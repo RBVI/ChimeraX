@@ -34,11 +34,12 @@ def hide_dust_piece(p, metric, limit, use_cached_geometry = False):
 
 # -----------------------------------------------------------------------------
 #
-def show_only_largest_blobs(surf, visible_only = False, blob_count = 1,
-                            rank_metric = 'size rank'):
+def largest_blobs_triangle_mask(vertices, triangles, triangle_mask, blob_count = 1,
+                                rank_metric = 'size rank'):
 
-    b = Blob_Masker(surf, visible_only)
-    surf.triangle_mask = b.triangle_mask(metric = rank_metric, limit = blob_count)
+    b = Blob_Masker(vertices, triangles, triangle_mask)
+    tmask = b.triangle_mask(metric = rank_metric, limit = blob_count)
+    return tmask
 #    import Surface
 #    Surface.set_visibility_method('hide dust', surf , None)
         
@@ -55,12 +56,12 @@ def unhide_dust(model):
 #
 class Blob_Masker:
 
-    def __init__(self, surf, visible_only = False):
+    def __init__(self, vertices, triangles, triangle_mask = None):
 
-        self.tsubset = surf.triangle_mask if visible_only else None
+        self.tsubset = triangle_mask
                 
-        self.varray = va = surf.vertices
-        self.tarray = ta = surf.masked_triangles if visible_only else surf.triangles
+        self.varray = va = vertices
+        self.tarray = ta = triangles if triangle_mask is None else triangles[triangle_mask,:]
         self.vertex_count = len(va)
         self.triangle_count = len(ta)
 

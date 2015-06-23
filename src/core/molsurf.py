@@ -169,7 +169,7 @@ class SurfCalc:
         surf.display = True
         surf.geometry = self.vertices, self.triangles
         surf.normals = self.normals
-        surf.triangle_mask = self.patch_display_mask(self.show_atoms)
+        surf.triangle_mask = tmask = self.patch_display_mask(self.show_atoms)
         surf.color = self.color
         surf.vertex_colors = self.vertex_atom_colors()
         surf.atoms = self.atoms
@@ -178,9 +178,16 @@ class SurfCalc:
         surf._calc_surf = self
         if not self.visible_patches is None:
             from . import surface
-            surface.show_only_largest_blobs(surf, visible_only = True,
-                                            blob_count = self.visible_patches,
-                                            rank_metric = 'area rank')
+            if self.sharp_boundaries:
+                # With sharp boundaries triangles are not connected.
+                vmap = surface.unique_vertex_map(self.vertices)
+                tri = vmap[self.triangles]
+            else:
+                tri = self.triangles
+            m = surface.largest_blobs_triangle_mask(self.vertices, tri, tmask,
+                                                    blob_count = self.visible_patches,
+                                                    rank_metric = 'area rank')
+            surf.triangle_mask = m
         if new_surf:
             session.models.add([surf], parent = self.parent_drawing)
         return surf

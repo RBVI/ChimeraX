@@ -104,9 +104,10 @@ inline int split_edge(int v0, int v1, int a0, int a1, float *va, int vs0, int vs
   float dvda = dx*dax + dy*day + dz*daz;
   float dcda = cx*dax + cy*day + cz*daz;
   float f1 = (dvda != 0 ? dcda / dvda : 0.5);
+  //  if (f1 < 0 || f1 > 1)
+  //    std::cerr << "split edge " << v0 << " " << v1 << " " << a0 << " " << a1 << " " << f1 << std::endl;
+  if (f1 < 0) f1 = 0; else if (f1 > 1) f1 = 1;
   float f0 = 1-f1;
-  if (f1 < 0 || f1 > 1)
-    std::cerr << "split edge " << v0 << " " << v1 << " " << a0 << " " << a1 << " " << f1 << std::endl;
   float x = f0*x0 + f1*x1, y = f0*y0 + f1*y1, z = f0*z0 + f1*z1;
   //      std::cerr << "split point " << v0 << " " << v1 << " " << x << " " << y << " " << z << std::endl;
 
@@ -294,6 +295,9 @@ inline float vertex_atom_distance(int v, int a, std::vector<float> &vs, float *a
   return dx*dx + dy*dy + dz*dz;
 }
 
+/*
+ * This is only used for iterative subdivision.
+
 static void fix_closest_atoms(std::vector<float> &vs, std::vector<int> &ts, 
 			      std::vector<int> &v2as, float *aa, int as0, int as1)
 {
@@ -327,6 +331,7 @@ static void fix_closest_atoms(std::vector<float> &vs, std::vector<int> &ts,
       c = 0;
     }
 }
+*/
 
 static void sharp_patches(const FArray &v, const FArray &n, const IArray &t, const IArray &v2a, const FArray &a,
 			  std::vector<float> *vs, std::vector<float> *ns,
@@ -335,14 +340,11 @@ static void sharp_patches(const FArray &v, const FArray &n, const IArray &t, con
   Edge_Map edge_splits;
   int t2, t3;
   count_edge_splits(t, v2a, edge_splits, &t2, &t3);
-  std::cerr << "2 edge splits " << t2 << ", 3 edge splits " << t3 << std::endl;
+  //  std::cerr << "2 edge splits " << t2 << ", 3 edge splits " << t3 << std::endl;
 
   // Compute geometry sizes with new vertices and triangles.
-  int ne = edge_splits.size();
   int nv = v.size(0);
   int nt = t.size(0);
-
-  std::cerr << "old vert " << nv << " tri " << nt << std::endl;
 
   // Get pointers and strides for original geometry
   float *va = v.values(), *na = n.values(), *aa = a.values();
@@ -379,7 +381,7 @@ static void sharp_patches(const FArray &v, const FArray &n, const IArray &t, con
 
   //  fix_closest_atoms(*vs, *ts, *v2as, aa, as0, as1);
 
-  std::cerr << "new vert " << vs->size()/3 << " tri " << ts->size()/3 << std::endl;
+  //  std::cerr << "vertices " << nv << " - " << vs->size()/3 << " tri " << nt << " - " << ts->size()/3 << std::endl;
 }
 			  
 // ----------------------------------------------------------------------------
@@ -419,4 +421,52 @@ extern "C" PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *ke
   PyObject *v2asa = c_array_to_python(v2as);
   PyObject *r = python_tuple(vsa, nsa, tsa, v2asa);
   return r;
+}
+
+class Vertex
+{
+public:
+  Vertex(float x, float y, float z): x(x), y(y), z(z) {}
+  bool operator<(const Vertex &v) const
+  { return x < v.x || (x == v.x && (y < v.y || (y == v.y && z < v.z))); }
+private:
+  float x,y,z;
+};
+
+// ----------------------------------------------------------------------------
+//
+static void unique_vertices(const FArray &vertices, int *vmap)
+{
+  std::map<Vertex,int> vm;
+  int nv = vertices.size(0);
+  long vs0 = vertices.stride(0), vs1 = vertices.stride(1);
+  const float *va = vertices.values();
+  for (int v = 0 ; v < nv ; ++v)
+    {
+      Vertex p(va[vs0*v], va[vs0*v+vs1], va[vs0*v+2*vs1]);
+      std::map<Vertex,int>::iterator vi = vm.find(p);
+      if (vi == vm.end())
+	{
+	  vm[p] = v;
+	  vmap[v] = v;
+	}
+      else
+	vmap[v] = vi->second;
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *unique_vertex_map(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray vertices;
+  const char *kwlist[] = {"vertices", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"), (char **)kwlist,
+				   parse_float_n3_array, &vertices))
+    return NULL;
+
+  int *vmap;
+  PyObject *vm = python_int_array(vertices.size(0), &vmap);
+  unique_vertices(vertices, vmap);
+  return vm;
 }

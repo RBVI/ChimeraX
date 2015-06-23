@@ -51,6 +51,8 @@ static struct PyMethodDef surface_cpp_methods[] =
   /* patches.h */
   {const_cast<char*>("sharp_edge_patches"), (PyCFunction)sharp_edge_patches,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("unique_vertex_map"), (PyCFunction)unique_vertex_map,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* sasa.h */
   {const_cast<char*>("surface_area_of_spheres"), (PyCFunction)surface_area_of_spheres,
