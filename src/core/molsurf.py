@@ -47,7 +47,7 @@ def surface_command(session, atoms = None, enclose = None, include = None,
         name = 'Surface %s' % enclose.spec
         rgba = (170,170,170,255) if color is None else color.uint8x4()
         s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing,
-                     parent, name, rgba, visible_patches)
+                     parent, name, rgba, visible_patches, sharp_boundaries)
         pieces.append(s)
 
     # Replace existing surfaces and close overlapping surfaces.
