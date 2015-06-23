@@ -483,6 +483,51 @@ PyObject *c_array_to_python(const std::vector<int> &i)
 
 // ----------------------------------------------------------------------------
 //
+PyObject *c_array_to_python(const std::vector<int> &i, int size0, int size1)
+{
+  initialize_numpy();       // required before using NumPy.
+
+  int sz = i.size();
+  int dimensions[2] = {size0, size1};
+  PyObject *a = allocate_python_array(2, dimensions, NPY_INT);
+  int *py_data = (int *)PyArray_DATA((PyArrayObject *)a);
+  for (int k = 0 ; k < sz ; ++k)
+    py_data[k] = i[k];
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
+PyObject *c_array_to_python(const std::vector<float> &values)
+{
+  initialize_numpy();       // required before using NumPy.
+
+  int sz = values.size();
+  int dimensions[1] = {sz};
+  PyObject *a = allocate_python_array(1, dimensions, NPY_FLOAT);
+  float *py_data = (float *)PyArray_DATA((PyArrayObject *)a);
+  for (int k = 0 ; k < sz ; ++k)
+    py_data[k] = values[k];
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
+PyObject *c_array_to_python(const std::vector<float> &values, int size0, int size1)
+{
+  initialize_numpy();       // required before using NumPy.
+
+  int sz = values.size();
+  int dimensions[2] = {size0, size1};
+  PyObject *a = allocate_python_array(2, dimensions, NPY_FLOAT);
+  float *py_data = (float *)PyArray_DATA((PyArrayObject *)a);
+  for (int k = 0 ; k < sz ; ++k)
+    py_data[k] = values[k];
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
 PyObject *c_array_to_python(const float *values, int size)
 {
   initialize_numpy();       // required before using NumPy.
