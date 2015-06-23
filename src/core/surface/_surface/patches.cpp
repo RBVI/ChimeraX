@@ -177,8 +177,11 @@ inline bool double_bisect_triangle(int v0, int v1, int v2, int a0, int a1, int a
   add_triangle(ts, v0, v21a, v12b);
   add_triangle(ts, v0, v12b, v02);
 
+  /*
+    For iterative subdivision.  This requires used of fix_closest_atoms().
   (*v2as)[v21] = a0;
   (*v2as)[v12] = a0;
+  */
 
   //  std::cerr << "double bisect " << v1 << " " << v2 << " " << a1 << " " << a2 << " " << a0 << std::endl;
 
@@ -374,7 +377,7 @@ static void sharp_patches(const FArray &v, const FArray &n, const IArray &t, con
 	bisect_triangle(v0, v1, v2, a0, a1, a2, ts, edge_splits);
     }
 
-  fix_closest_atoms(*vs, *ts, *v2as, aa, as0, as1);
+  //  fix_closest_atoms(*vs, *ts, *v2as, aa, as0, as1);
 
   std::cerr << "new vert " << vs->size()/3 << " tri " << ts->size()/3 << std::endl;
 }
