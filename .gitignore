@@ -20,3 +20,6 @@ Thumbs.db
 *.swp
 errs
 build
+.gitignore
+pip.log
+Chimera2.app

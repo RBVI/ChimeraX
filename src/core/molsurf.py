@@ -8,12 +8,27 @@ from . import generic3d
 from . import cli
 
 class MolecularSurface(generic3d.Generic3DModel):
-    pass
+    def first_intercept(self, mxyz1, mxyz2, exclude = None):
+        # Pick atom associated with surface patch
+        from .graphics import Drawing
+        p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+        if p is None:
+            return None
+        t = p.triangle_number
+        v = self.triangles[t,0]
+        sc = self._calc_surf
+        v2a = sc.vertex_to_atom_map()
+        a = v2a[v]
+        atom = self.atoms[a]
+        from .structure import PickedAtom
+        pa = PickedAtom(atom, p.distance)
+        return pa
 
 def surface_command(session, atoms = None, enclose = None, include = None,
                     probe_radius = 1.4, grid_spacing = 0.5,
-                    color = None, transparency = 0, nthread = None,
-                    replace = True, hide = False, close = False):
+                    color = None, transparency = 0, visible_patches = None,
+                    sharp_boundaries = True,
+                    nthread = None, replace = True, hide = False, close = False):
     '''
     Compute and display solvent excluded molecular surfaces.
     '''
@@ -35,7 +50,8 @@ def surface_command(session, atoms = None, enclose = None, include = None,
                 enclose_atoms = remove_solvent_ligands_ions(chain_atoms, include)[0]
             name = '%s_%s SES surface' % (m.name, chain_id)
             rgba = surface_rgba(color, transparency, chain_id)
-            s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing, m, name, rgba)
+            s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing,
+                         m, name, rgba, visible_patches, sharp_boundaries)
             pieces.append(s)
     else:
         enclose_atoms, eall_small = remove_solvent_ligands_ions(enclose, include)
@@ -44,7 +60,8 @@ def surface_command(session, atoms = None, enclose = None, include = None,
         parent = mols[0] if len(mols) == 1 else session.models.drawing
         name = 'Surface %s' % enclose.spec
         rgba = (170,170,170,255) if color is None else color.uint8x4()
-        s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing, parent, name, rgba)
+        s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing,
+                     parent, name, rgba, visible_patches, sharp_boundaries)
         pieces.append(s)
 
     # Replace existing surfaces and close overlapping surfaces.
@@ -84,6 +101,8 @@ def register_surface_command():
                    ('grid_spacing', cli.FloatArg),
                    ('color', color.ColorArg),
                    ('transparency', cli.FloatArg),
+                   ('visible_patches', cli.IntArg),
+                   ('sharp_boundaries', cli.BoolArg),
                    ('nthread', cli.IntArg),
                    ('replace', cli.BoolArg),
                    ('hide', cli.NoArg),
@@ -117,7 +136,8 @@ def remove_solvent_ligands_ions(atoms, keep = None):
 
 class SurfCalc:
 
-    def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing, parent_drawing, name, color):
+    def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing,
+                 parent_drawing, name, color, visible_patches, sharp_boundaries):
         self.atoms = enclose_atoms
         self.show_atoms = show_atoms	# Atoms for surface patch to show
         self.probe_radius = probe_radius
@@ -125,6 +145,8 @@ class SurfCalc:
         self.parent_drawing = parent_drawing
         self.name = name
         self.color = color
+        self.visible_patches = visible_patches
+        self.sharp_boundaries = sharp_boundaries
         self.vertices = None
         self.normals = None
         self.triangles = None
@@ -144,6 +166,12 @@ class SurfCalc:
         self._max_radius = r.max()
         from .surface import ses_surface_geometry
         va, na, ta = ses_surface_geometry(xyz, r, self.probe_radius, self.grid_spacing)
+        if self.sharp_boundaries:
+            from .surface import sharp_edge_patches
+            va, na, ta, v2a = sharp_edge_patches(va, na, ta, self.vertex_to_atom_map(va), xyz)
+            self._vertex_to_atom = v2a
+#        for i in range(3):
+#            vsa, nsa, tsa, v2a = sharp_edge_patches(vsa, nsa, tsa, v2a, xyz)
         self.vertices = va
         self.normals = na
         self.triangles = ta
@@ -155,12 +183,24 @@ class SurfCalc:
         surf.display = True
         surf.geometry = self.vertices, self.triangles
         surf.normals = self.normals
-        surf.triangle_mask = self.patch_display_mask(self.show_atoms)
+        surf.triangle_mask = tmask = self.patch_display_mask(self.show_atoms)
         surf.color = self.color
         surf.atoms = self.atoms
         surf.probe_radius = self.probe_radius
         surf.grid_spacing = self.grid_spacing
         surf._calc_surf = self
+        if not self.visible_patches is None:
+            from . import surface
+            if self.sharp_boundaries:
+                # With sharp boundaries triangles are not connected.
+                vmap = surface.unique_vertex_map(self.vertices)
+                tri = vmap[self.triangles]
+            else:
+                tri = self.triangles
+            m = surface.largest_blobs_triangle_mask(self.vertices, tri, tmask,
+                                                    blob_count = self.visible_patches,
+                                                    rank_metric = 'area rank')
+            surf.triangle_mask = m
         if new_surf:
             session.models.add([surf], parent = self.parent_drawing)
         return surf
@@ -173,10 +213,10 @@ class SurfCalc:
         self._max_radius = sc._max_radius
         self._vertex_to_atom = sc._vertex_to_atom
 
-    def vertex_to_atom_map(self):
+    def vertex_to_atom_map(self, vertices = None):
         v2a = self._vertex_to_atom
         if v2a is None:
-            xyz1 = self.vertices
+            xyz1 = self.vertices if vertices is None else vertices
             xyz2 = self.atoms.coords
             max_dist = 1.1 * (self.probe_radius + self._max_radius)
             from . import geometry
@@ -190,7 +230,6 @@ class SurfCalc:
     def vertex_atom_colors(self):
         vatom = self.vertex_to_atom_map()
         vcolors = self.atoms.colors[vatom,:]
-#        surf.vertex_colors = vcolors
         return vcolors
 
     def patch_display_mask(self, patch_atoms):
@@ -226,7 +265,10 @@ def find_matching_surfaces(surf_calcs, surfs):
     for sc in surf_calcs:
         s = smap.get(sc.atoms.hash())
         msurfs.append(s)
-        if s and s.probe_radius == sc.probe_radius and s.grid_spacing == sc.grid_spacing:
+        if (s and
+            s.probe_radius == sc.probe_radius and
+            s.grid_spacing == sc.grid_spacing and
+            s._calc_surf.sharp_boundaries == sc.sharp_boundaries):
             sc.copy_geometry(s)
     return msurfs
 
@@ -346,3 +388,38 @@ def register_buriedarea_command():
                    ('probe_radius', cli.FloatArg),],
         synopsis = 'compute buried area')
     cli.register('buriedarea', _buriedarea_desc, buriedarea_command)
+
+def scolor(session, atoms = None, color = None, byatom = False):
+    surfs = session.models.list(type = MolecularSurface)
+    if not atoms is None:
+        surfs = [s for s in surfs if s.atoms.intersects(atoms)]
+
+    for s in surfs:
+        sc = s._calc_surf
+        nv = len(s.vertices)
+        vcolors = s.vertex_colors
+        if vcolors is None:
+            from numpy import empty, uint8
+            vcolors = empty((nv,4), uint8)
+            vcolors[:] = s.color
+        if atoms is None:
+            v = slice(nv)
+        else:
+            ai = s.atoms.mask(atoms)
+            v2a = sc.vertex_to_atom_map()
+            v = ai[v2a]
+        if byatom:
+            vcolors[v] = sc.vertex_atom_colors()[v]
+        elif not color is None:
+            vcolors[v] = color.uint8x4()
+        s.vertex_colors = vcolors
+
+def register_scolor_command():
+    from .structure import AtomsArg
+    from . import cli, color
+    _scolor_desc = cli.CmdDesc(
+        optional = [('atoms', cli.Or(AtomsArg, cli.EmptyArg)),
+                    ('color', color.ColorArg),],
+        keyword = [('byatom', cli.NoArg)],
+        synopsis = 'color surfaces')
+    cli.register('scolor', _scolor_desc, scolor)
