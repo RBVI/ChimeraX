@@ -404,7 +404,7 @@ def register_scolor_command():
     from .structure import AtomsArg
     from . import cli, color
     _scolor_desc = cli.CmdDesc(
-        optional = [('atoms', AtomsArg),
+        optional = [('atoms', cli.Or(AtomsArg, cli.EmptyArg)),
                     ('color', color.ColorArg),],
         keyword = [('byatom', cli.NoArg)],
         synopsis = 'color surfaces')
