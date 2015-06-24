@@ -8,7 +8,21 @@ from . import generic3d
 from . import cli
 
 class MolecularSurface(generic3d.Generic3DModel):
-    pass
+    def first_intercept(self, mxyz1, mxyz2, exclude = None):
+        # Pick atom associated with surface patch
+        from .graphics import Drawing
+        p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+        if p is None:
+            return None
+        t = p.triangle_number
+        v = self.triangles[t,0]
+        sc = self._calc_surf
+        v2a = sc.vertex_to_atom_map()
+        a = v2a[v]
+        atom = self.atoms[a]
+        from .structure import PickedAtom
+        pa = PickedAtom(atom, p.distance)
+        return pa
 
 def surface_command(session, atoms = None, enclose = None, include = None,
                     probe_radius = 1.4, grid_spacing = 0.5,
