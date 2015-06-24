@@ -982,5 +982,5 @@ def shortcut_command(session, shortcut = None):
 
 def register_shortcut_command():
     from .cli import CmdDesc, StringArg, register
-    _sc_desc = CmdDesc(optional = [('shortcut', StringArg)])
-    register('sc', _sc_desc, shortcut_command)
+    _ks_desc = CmdDesc(optional = [('shortcut', StringArg)])
+    register('ks', _ks_desc, shortcut_command)
