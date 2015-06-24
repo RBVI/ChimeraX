@@ -17,7 +17,7 @@ class SaveDialog(wx.FileDialog):
         kw['style'] = kw.get('style', 0) | wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
         super(SaveDialog, self).__init__(parent, *args, **kw)
 
-"""
+'''
 import gzip, bz2
 BZ2_MAGIC = 'BZh'
 GZIP_MAGIC = '\037\213'
@@ -231,4 +231,4 @@ def tilde_expand(path):
 	else:
 		p = os.path.expanduser(path)
 	return p
-"""
+'''
