@@ -55,6 +55,7 @@ class Atom:
     num_bonds = c_property('atom_num_bonds', int32, read_only = True)
     radius = c_property('atom_radius', float32)
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True)
+    selected = c_property('atom_selected', npy_bool)
 
     def connects_to(self, atom):
         f = c_function('atom_connects_to',

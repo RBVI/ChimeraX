@@ -34,7 +34,6 @@ class AtomicStructure(CAtomicStructure, Model):
         self._atoms_drawing = None
         self._bonds_drawing = None
         self._pseudobond_group_drawings = {}    # Map name to drawing
-        self._selected_atoms = None	# Numpy array of bool, size equal number of atoms
         self.triangles_per_sphere = None
         self._atom_bounds = None
         self._atom_bounds_needs_update = True
@@ -196,10 +195,9 @@ class AtomicStructure(CAtomicStructure, Model):
         # Set atom colors
         p.colors = colors
 
-        asel = self._selected_atoms
-        if not asel is None:
-            # If the selected atoms array has wrong length, atoms deleted, clear selection.
-            p.selected_positions = asel if asel.sum() > 0 and len(asel) == n else None
+        # Set selected
+        a = self.atoms
+        p.selected_positions = a.selected if a.num_selected > 0 else None
 
     def atom_display_radii(self):
         a = self.atoms
@@ -429,9 +427,8 @@ class AtomicStructure(CAtomicStructure, Model):
                 self._ribbon_t2r[rp] = t2r
 
         # Set selected ribbons in graphics
-        asel = self._selected_atoms
-        if asel is not None and asel.sum() > 0:
-            rsel = set([r for r in self.atoms.filter(asel).unique_residues
+        if self.atoms.num_selected > 0:
+            rsel = set([r for r in self.atoms.filter(self.atoms.selected).unique_residues
                         if r in self._ribbon_r2t])
         else:
             rsel = set()
@@ -539,24 +536,15 @@ class AtomicStructure(CAtomicStructure, Model):
         return rd.bounds()
 
     def select_atom(self, atom, toggle=False, selected=True):
-        asel = self._selected_atoms
-        if asel is None:
-            na = self.num_atoms
-            from numpy import zeros, bool
-            asel = self._selected_atoms = zeros(na, bool)
-        i = self.atoms.index(atom)
-        asel[i] = (not asel[i]) if toggle else selected
+        atom.selected = (not atom.selected) if toggle else selected
         self._selection_changed()
 
     def select_atoms(self, atoms, toggle=False, selected=True):
-        asel = self._selected_atoms
-        if asel is None:
-            na = self.num_atoms
-            from numpy import zeros, bool
-            asel = self._selected_atoms = zeros(na, bool)
+        asel = self.atoms.selected
         m = self.atoms.mask(atoms)
         from numpy import logical_not
         asel[m] = logical_not(asel[m]) if toggle else selected
+        self.atoms.selected = asel
         self._selection_changed()
 
     def select_residue(self, residue, toggle=False, selected=True):
@@ -566,23 +554,18 @@ class AtomicStructure(CAtomicStructure, Model):
 
     def selected_items(self, itype):
         if itype == 'atoms':
-            asel = self._selected_atoms
-            if not asel is None and asel.sum() > 0:
-                atoms = self.atoms
-                sa = atoms.filter(asel)
-                return [sa]
+            atoms = self.atoms
+            if atoms.num_selected > 0:
+                return [atoms.filter(atoms.selected)]
         return []
 
     def any_part_selected(self):
-        asel = self._selected_atoms
-        if not asel is None and asel.sum() > 0:
+        if self.atoms.num_selected > 0:
             return True
         return Model.any_part_selected(self)
 
     def clear_selection(self):
-        asel = self._selected_atoms
-        if not asel is None and asel.sum() > 0:
-            asel[:] = False
+        self.atoms.selected = False
         self._selection_changed()
 
     def _selection_changed(self, promotion = False):
@@ -591,13 +574,11 @@ class AtomicStructure(CAtomicStructure, Model):
         self.update_graphics()
 
     def promote_selection(self):
-        asel = self._selected_atoms
-        if asel is None:
+        n = self.atoms.num_selected
+        if n == 0 or n == len(self.atoms):
             return
-        n = asel.sum()
-        if n == 0 or n == len(asel):
-            return
-        self._selection_promotion_history.append(asel.copy())
+        asel = self.atoms.selected
+        self._selection_promotion_history.append(asel)
 
         atoms = self.atoms
         r = atoms.residues
@@ -619,14 +600,16 @@ class AtomicStructure(CAtomicStructure, Model):
             else:
                 # Promote to entire molecule
                 psel = True
-        asel[:] = psel
+        self.atoms.selected = psel
         self._selection_changed(promotion = True)
 
     def demote_selection(self):
         pt = self._selection_promotion_history
         if len(pt) > 0:
-            self._selected_atoms[:] = pt.pop()
-            self._selection_changed(promotion = True)
+            asel = pt.pop()
+            if len(asel) == len(self.atoms):
+                self.atoms.selected = asel
+                self._selection_changed(promotion = True)
 
     def clear_selection_promotion_history(self):
         self._selection_promotion_history = []

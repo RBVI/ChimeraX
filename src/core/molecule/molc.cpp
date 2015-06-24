@@ -268,6 +268,30 @@ extern "C" void atom_scene_coords(void *atoms, int n, void *mols, int m, double 
     }
 }
 
+extern "C" void atom_selected(void *atoms, int n, unsigned char *sel)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    sel[i] = a[i]->selected();
+}
+
+extern "C" void set_atom_selected(void *atoms, int n, unsigned char *sel)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    a[i]->set_selected(*sel++);
+}
+
+extern "C" int atom_num_selected(void *atoms, int n)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  int s = 0;
+  for (int i = 0 ; i < n ; ++i)
+    if (a[i]->selected())
+      s += 1;
+  return s;
+}
+
 extern "C" void bond_atoms(void *bonds, int n, void **atoms)
 {
   Bond **b = static_cast<Bond **>(bonds);

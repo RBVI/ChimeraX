@@ -129,6 +129,12 @@ class Atoms(PointerArray):
     names = cvec_property('atom_name', string, read_only = True)
     radii = cvec_property('atom_radius', float32)
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True)
+    selected = cvec_property('atom_selected', npy_bool)
+
+    @property
+    def num_selected(self):
+        f = c_function('atom_num_selected', args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_int)
+        return f(self._c_pointers, len(self))
 
     @property
     def unique_structures(self):
