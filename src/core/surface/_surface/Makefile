@@ -6,7 +6,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/surface
 
 PYMOD_NAME = _surface
 SRCS	= connected.cpp measure.cpp normals.cpp parse_stl.cpp \
-	  sasa.cpp subdivide.cpp surface.cpp tube.cpp
+	  patches.cpp sasa.cpp subdivide.cpp surface.cpp tube.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 LIBS	= -L$(libdir) -larrays $(PYTHON_LIB)

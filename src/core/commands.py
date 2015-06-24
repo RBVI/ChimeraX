@@ -328,6 +328,7 @@ def register(session):
     molsurf.register_surface_command()
     molsurf.register_sasa_command()
     molsurf.register_buriedarea_command()
+    molsurf.register_scolor_command()
     from . import structure
     structure.register_molecule_commands()
     from . import lightcmd

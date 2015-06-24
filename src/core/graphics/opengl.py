@@ -1205,9 +1205,6 @@ class Buffer:
         the associated shader variable.  Return true if the buffer is deleted and replaced.
         '''
         bdata = self.buffered_data
-        if data is bdata:
-            return False
-
         replace_buffer = (data is None or bdata is None
                           or data.shape != bdata.shape)
         if replace_buffer:

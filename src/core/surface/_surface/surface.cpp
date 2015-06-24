@@ -6,6 +6,7 @@
 #include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "normals.h"			// use calculate_vertex_normals, invert_vertex_normals
 #include "parse_stl.h"			// use parse_stl
+#include "patches.h"			// use sharp_edge_patches
 #include "sasa.h"			// use surface_area_of_spheres
 #include "subdivide.h"			// use subdivide_triangles
 #include "tube.h"			// use tube_geometry
@@ -45,6 +46,12 @@ static struct PyMethodDef surface_cpp_methods[] =
 
   /* parse_stl.h */
   {const_cast<char*>("parse_stl"), (PyCFunction)parse_stl,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* patches.h */
+  {const_cast<char*>("sharp_edge_patches"), (PyCFunction)sharp_edge_patches,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("unique_vertex_map"), (PyCFunction)unique_vertex_map,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* sasa.h */
