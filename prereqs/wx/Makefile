@@ -55,7 +55,7 @@ ifneq ($(OS),Darwin)
 endif
 endif
 
-$(SOURCE):
+$(SOURCE) source:
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for f in $(PATCHES) ; do \
@@ -71,10 +71,8 @@ endif
 ifneq (,$(WAF))
 	cp $(WAF) $(SOURCE)/bin
 endif
-ifeq ($(OS),Darwin)
-	# On Darwin, we patch to add support for selecting
-	# OpenGL profile, so we need to rerun sip to get our
-	# new constants into Python
+ifneq (,$(PATCHES)$(PATCHINES))
+	# Since we patched wx, we need to rerun sip to incorporate our changes
 	cd $(SOURCE) && \
 		$(PYTHON_EXE) build.py build dox && \
 		$(PYTHON_EXE) build.py touch && \

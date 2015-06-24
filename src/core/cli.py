@@ -623,8 +623,8 @@ class Or(Annotation):
             raise ValueError("Need at two alternative annotations")
         self.annotations = annotations
         if name is None:
-            name = "%s, or %s" % (", ".join(annotations[0:-1]),
-                                  annotations[-1])
+            name = "%s or %s" % (", ".join([a.name for a in annotations[0:-1]]),
+                                  annotations[-1].name)
         self.name = name
 
     def parse(self, text, session):
@@ -844,6 +844,14 @@ class WholeRestOfLine(Annotation):
     @staticmethod
     def parse(text, session):
         return unescape(text), text, ''
+
+
+class EmptyArg(Annotation):
+    name = "matches empty string"
+
+    @staticmethod
+    def parse(text, session):
+        return None, "", text
 
 Bool2Arg = TupleOf(BoolArg, 2)
 Bool3Arg = TupleOf(BoolArg, 3)
@@ -1478,7 +1486,7 @@ class Command:
                     self._kwargs[kw_name] = value
                 self._error = ""
             except ValueError as err:
-                if isinstance(err, AnnotationError) and err.offset is not None:
+                if isinstance(err, AnnotationError) and err.offset:
                     # We got an error with an offset, that means that an
                     # argument was partially matched, so assume that is the
                     # error the user wants to see.
