@@ -59,10 +59,9 @@ class OpenGLCanvas(glcanvas.GLCanvas):
     def __init__(self, parent, view, ui=None, size=None):
         self.view = view
         attribs = [glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER]
-        from .. import preferences
-        prefs = preferences.get()
+        from ..core_settings import settings
         ppi = max(wx.GetDisplayPPI())
-        if ppi < prefs.multisample_threshold:
+        if ppi < settings.multisample_threshold:
             # TODO: how to pick number of samples
             attribs += [glcanvas.WX_GL_SAMPLE_BUFFERS, 1,
                         glcanvas.WX_GL_SAMPLES, 4]

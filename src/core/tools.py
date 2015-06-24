@@ -307,10 +307,9 @@ class Tools(State):
         """Start tools that should start when applications starts up."""
         session = self._session()   # resolve back reference
         from .toolshed import ToolshedError
-        from . import preferences
-        prefs = preferences.get()
+        from .core_settings import settings
         for ti in session.toolshed.tool_info():
-            if ti.name not in prefs.autostart:
+            if ti.name not in settings.autostart:
                 continue
             try:
                 ti.start(session)
