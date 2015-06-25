@@ -571,6 +571,14 @@ class AtomicStructure(CAtomicStructure, Model):
     def _selection_changed(self, promotion = False):
         if not promotion:
             self._selection_promotion_history = []
+
+        # Update selection on molecular surfaces
+        # TODO: Won't work for surfaces spanning multiple molecules
+        from .molsurf import MolecularSurface
+        for s in self.child_drawings():
+            if isinstance(s, MolecularSurface):
+                s.update_selection()
+
         self.update_graphics()
 
     def promote_selection(self):

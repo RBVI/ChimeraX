@@ -23,11 +23,9 @@ class MolecularSurface(Generic3DModel):
         self.visible_patches = visible_patches
         self.sharp_boundaries = sharp_boundaries
 
-        self.vertices = None
-        self.normals = None
-        self.triangles = None
         self._vertex_to_atom = None
         self._max_radius = None
+        self._atom_colors = None
 
     def new_parameters(self, show_atoms, probe_radius, grid_spacing,
                        visible_patches, sharp_boundaries,
@@ -49,6 +47,7 @@ class MolecularSurface(Generic3DModel):
             self.vertices = None
             self.normals = None
             self.triangles = None
+            self.preserve_colors()
             self.vertex_colors = None
             self._vertex_to_atom = None
             self._max_radius = None
@@ -78,6 +77,7 @@ class MolecularSurface(Generic3DModel):
         self.normals = na
         self.triangles = ta
         self.triangle_mask = self.calc_triangle_mask()
+        self.restore_colors()
 
     def calc_triangle_mask(self):
         tmask = self.patch_display_mask(self.show_atoms)
@@ -110,24 +110,44 @@ class MolecularSurface(Generic3DModel):
             self._vertex_to_atom = v2a
         return v2a
 
-    def vertex_atom_colors(self):
-        vatom = self.vertex_to_atom_map()
-        vcolors = self.atoms.colors[vatom,:]
-        return vcolors
-
     def patch_display_mask(self, patch_atoms):
         surf_atoms = self.atoms
         if len(patch_atoms) == len(surf_atoms):
             return None
-        v2a = self.vertex_to_atom_map()
         shown_atoms = surf_atoms.mask(patch_atoms)
-        shown_vertices = shown_atoms[v2a]
+        return self.atom_triangle_mask(shown_atoms)
+
+    def atom_triangle_mask(self, atom_mask):
+        v2a = self.vertex_to_atom_map()
+        shown_vertices = atom_mask[v2a]
         t = self.triangles
         from numpy import logical_and, empty, bool
         shown_triangles = empty((len(t),), bool)
         logical_and(shown_vertices[t[:,0]], shown_vertices[t[:,1]], shown_triangles)
         logical_and(shown_triangles, shown_vertices[t[:,2]], shown_triangles)
         return shown_triangles
+
+    def preserve_colors(self):
+        vc = self.vertex_colors
+        if vc is None:
+            return
+
+        # Preserve surface colors per atom.
+        v2a = self.vertex_to_atom_map()
+        from numpy import empty, uint8
+        acolor = empty((len(self.atoms),4), uint8)
+        acolor[:] = self.color
+        acolor[v2a] = vc
+        self._atom_colors = acolor
+
+    def restore_colors(self):
+        acolor = self._atom_colors
+        if acolor is None:
+            return
+
+        v2a = self.vertex_to_atom_map()
+        self.vertex_colors = acolor[v2a,:]
+        self._atom_colors = None
 
     def first_intercept(self, mxyz1, mxyz2, exclude = None):
         # Pick atom associated with surface patch
@@ -143,6 +163,11 @@ class MolecularSurface(Generic3DModel):
         from .structure import PickedAtom
         pa = PickedAtom(atom, p.distance)
         return pa
+
+    def update_selection(self):
+        asel = self.atoms.selected
+        tmask = self.atom_triangle_mask(asel)
+        self.selected_triangles_mask = tmask
 
 # -------------------------------------------------------------------------------------
 #
@@ -451,7 +476,8 @@ def scolor(session, atoms = None, color = None, byatom = False):
             v2a = s.vertex_to_atom_map()
             v = ai[v2a]
         if byatom:
-            vcolors[v] = s.vertex_atom_colors()[v]
+            v2a = s.vertex_to_atom_map()
+            vcolors[v] = s.atoms.colors[v2a[v],:]
         elif not color is None:
             vcolors[v] = color.uint8x4()
         s.vertex_colors = vcolors
