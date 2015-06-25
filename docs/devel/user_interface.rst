@@ -17,3 +17,5 @@ Modules
     :maxdepth: 2
 
     core/cli.rst
+
+    core/settings.rst

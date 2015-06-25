@@ -287,6 +287,7 @@ class ConfigFile:
 
     @property
     def filename(self):
+        """The name of the file used to store the settings"""
         return self._filename
 
     def save(self):
