@@ -306,7 +306,6 @@ constrained_match(const Sequence::Contents& aseq, const Chain& mseq,
     return ret;
 }
 
-#include <iostream>
 AssocRetvals
 gapped_match(const Sequence::Contents& aseq, const Chain& mseq,
     const AssocParams& ap, unsigned int max_errors)
@@ -401,7 +400,6 @@ try_assoc(const Sequence& align_seq, const Chain& mseq,
     bool assoc_failure = false;
     AssocRetvals retvals;
     try {
-std::cerr << "standard: " << ap.gaps.size() << " gaps \n";
         if (aseq.size() >= ap.est_len)
             retvals = constrained_match(aseq, mseq, ap, max_errors);
         else
@@ -456,7 +454,6 @@ std::cerr << "standard: " << ap.gaps.size() << " gaps \n";
         no_X_ap.segments.back().pop_back();
     AssocRetvals no_X_retvals;
     try {
-std::cerr << "no X: " << no_X_ap.gaps.size() << " gaps \n";
         if (aseq.size() >= no_X_ap.est_len)
             no_X_retvals = constrained_match(aseq, no_X, no_X_ap, max_errors);
         else
