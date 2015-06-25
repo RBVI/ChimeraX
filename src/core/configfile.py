@@ -1,10 +1,15 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-configfile: application preferences support
-===========================================
+configfile: application saved settings support
+==============================================
+
+Tools typically do not use this module directly;
+they instead use the :py:mod:`chimera.core.settings` module,
+which layers additional capabilities on top of this module's
+:py:class:`ConfigFile` class.
 
 This module provides support for accessing persistent
-configuratation information, *a.k.a., preferences.
+configuration information, *a.k.a., saved settings.
 The information is stored in a file in a human-readable form,
 *i.e.*, text, but is not necessarily editable.
 
@@ -14,7 +19,7 @@ and has a semantic version associated with it.
 Configuration information is kept in properties.
 And those properties have names and values.
 
-Each tool has its own preferences.
+Each tool has its own settings.
 The *MAJOR* part of the semantic version is embedded in its filename.
 For the chimera core,
 that version does not change during the life of the release,
@@ -27,15 +32,14 @@ Accessing Configuration Information
 
 Access Tool Configuration::
 
-    prefs = tool.get_preferences()
-    if prefs.PROPERTY == 12:  # access a value
+    settings = tool.get_settings()
+    if settings.PROPERTY == 12:  # access a value
         pass
-    prefs.PROPERTY = value    # set a value
+    settings.PROPERTY = value    # set a value
 
 Access Chimera Core Configuration::
 
-    from chimera.core import preferences
-    prefs = preferences.get()
+    from chimera.core.core_settings import settings
     # (ibid)
 
 Declaring the Configuration API
