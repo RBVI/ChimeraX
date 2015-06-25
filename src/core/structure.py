@@ -232,6 +232,9 @@ class AtomicStructure(CAtomicStructure, Model):
             if (draw_mode == self.SPHERE_STYLE).all():
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
+            # Suppress bond picking since bond selections are not supported.
+            from types import MethodType
+            p.first_intercept = MethodType(bond_first_intercept, p)
             from . import surface
             # Use 3 z-sections so cylinder ends match in half-bond mode.
             va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
@@ -652,6 +655,9 @@ def atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
     s = PickedAtom(atom, fmin)
 
     return s
+
+def bond_first_intercept(self, mxyz1, mxyz2, exclude = None):
+    return None
 
 def ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
     # TODO check intercept of bounding box as optimization
