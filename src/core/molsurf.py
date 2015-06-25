@@ -456,38 +456,3 @@ def register_buriedarea_command():
                    ('probe_radius', cli.FloatArg),],
         synopsis = 'compute buried area')
     cli.register('buriedarea', _buriedarea_desc, buriedarea_command)
-
-def scolor(session, atoms = None, color = None, byatom = False):
-    surfs = session.models.list(type = MolecularSurface)
-    if not atoms is None:
-        surfs = [s for s in surfs if s.atoms.intersects(atoms)]
-
-    for s in surfs:
-        nv = len(s.vertices)
-        vcolors = s.vertex_colors
-        if vcolors is None:
-            from numpy import empty, uint8
-            vcolors = empty((nv,4), uint8)
-            vcolors[:] = s.color
-        if atoms is None:
-            v = slice(nv)
-        else:
-            ai = s.atoms.mask(atoms)
-            v2a = s.vertex_to_atom_map()
-            v = ai[v2a]
-        if byatom:
-            v2a = s.vertex_to_atom_map()
-            vcolors[v] = s.atoms.colors[v2a[v],:]
-        elif not color is None:
-            vcolors[v] = color.uint8x4()
-        s.vertex_colors = vcolors
-
-def register_scolor_command():
-    from .structure import AtomsArg
-    from . import cli, color
-    _scolor_desc = cli.CmdDesc(
-        optional = [('atoms', cli.Or(AtomsArg, cli.EmptyArg)),
-                    ('color', color.ColorArg),],
-        keyword = [('byatom', cli.NoArg)],
-        synopsis = 'color surfaces')
-    cli.register('scolor', _scolor_desc, scolor)
