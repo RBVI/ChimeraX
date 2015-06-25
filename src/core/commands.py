@@ -301,6 +301,29 @@ def unribbon(session, spec=None):
 _unribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display ribbon for specified residues')
 
+def set_cmd(session, bg_color=None, silhouettes=None):
+    had_arg = False
+    view = session.main_view
+    if bg_color is not None:
+        had_arg = True
+        view.background_color = bg_color.rgba
+        view.redraw_needed = True
+    if silhouettes is not None:
+        had_arg = True
+        view.silhouettes = silhouettes
+        view.redraw_needed = True
+    if had_arg:
+        return
+    print('Current settings:\n'
+          '  bg_color:', view.background_color, '\n'
+          '  silhouettes:', view.silhouettes, '\n')
+
+from . import color
+_set_desc = cli.CmdDesc(
+    keyword=[('bg_color', color.ColorArg), ('silhouettes', cli.BoolArg)],
+    synopsis="set preferences"
+)
+
 
 def register(session):
     """Register common cli commands"""
@@ -322,8 +345,7 @@ def register(session):
     cli.register('save', _save_desc, save)
     cli.register('ribbon', _ribbon_desc, ribbon)
     cli.register('~ribbon', _unribbon_desc, unribbon)
-    from . import settings
-    settings.register_set_command()
+    cli.register('set', _set_desc, set_cmd)
     from . import molsurf
     molsurf.register_surface_command()
     molsurf.register_sasa_command()

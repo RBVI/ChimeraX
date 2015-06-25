@@ -220,8 +220,8 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
                         ad.site_config_dir, ad.user_log_dir, sess.app_data_dir,
                         adu.user_cache_dir)
 
-    from chimera.core import preferences
-    preferences.init(sess)
+    from chimera.core import core_settings
+    core_settings.init(sess)
 
     session.common_startup(sess)
     # or:
