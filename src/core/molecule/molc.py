@@ -100,9 +100,6 @@ def c_varlen_property(func_name, value_type, value_count, read_only = False, ast
 #
 def cvec_property(func_name, value_type, value_count = 1, read_only = False, astype = None, per_object = True):
 
-    if isinstance(value_count,str):
-        return c_varlen_property(func_name, value_type, value_count, read_only, astype)
-
     cget = c_array_function(func_name, value_type)
     def get_prop(self):
         # Get an attribute for multiple objects.
