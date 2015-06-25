@@ -343,6 +343,7 @@ class Drawing:
     def clear_selection(self):
         '''Unselect this drawing. Child drawings may remain selected.'''
         self.selected = False
+        self.selected_triangles_mask = None
         self.redraw_needed(selection_changed=True)
 
     def promote_selection(self):
