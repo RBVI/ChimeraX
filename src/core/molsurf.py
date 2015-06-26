@@ -128,6 +128,14 @@ class MolecularSurface(Generic3DModel):
         logical_and(shown_triangles, shown_vertices[t[:,2]], shown_triangles)
         return shown_triangles
 
+    def show(self, atoms):
+        self.show_atoms = self.show_atoms.merge(atoms)
+        self.triangle_mask = self.calc_triangle_mask()
+
+    def hide(self, atoms):
+        self.show_atoms = self.show_atoms.subtract(atoms)
+        self.triangle_mask = self.calc_triangle_mask()
+
     def preserve_colors(self):
         vc = self.vertex_colors
         if vc is None:
@@ -176,7 +184,7 @@ def surface_command(session, atoms = None, enclose = None, include = None,
                     probe_radius = 1.4, grid_spacing = 0.5,
                     color = None, transparency = None, visible_patches = None,
                     sharp_boundaries = True,
-                    nthread = None, replace = True, hide = False, close = False):
+                    nthread = None, replace = True, show = False, hide = False, close = False):
     '''
     Compute and display solvent excluded molecular surfaces.
     '''
@@ -185,6 +193,14 @@ def surface_command(session, atoms = None, enclose = None, include = None,
     if close:
         close_surfaces(atoms, session.models)
         return []
+
+    # Show surface patches for existing surfaces.
+    if show:
+        return show_surfaces(atoms, session.models)
+
+    # Hide surfaces or patches of surface for specified atoms.
+    if hide:
+        return hide_surfaces(atoms, session.models)
 
     if replace:
         all_surfs = dict((s.atoms.hash(), s) for s in session.models.list(type = MolecularSurface))
@@ -255,10 +271,6 @@ def surface_command(session, atoms = None, enclose = None, include = None,
     for s in surfs:
         s.display = True
 
-    # Hide some surfaces
-    if hide:
-        hide_surfaces(atoms, session.models)
-
     return surfs
 
 def register_surface_command():
@@ -276,6 +288,7 @@ def register_surface_command():
                    ('sharp_boundaries', cli.BoolArg),
                    ('nthread', cli.IntArg),
                    ('replace', cli.BoolArg),
+                   ('show', cli.NoArg),
                    ('hide', cli.NoArg),
                    ('close', cli.NoArg)],
         synopsis = 'create molecular surface')
@@ -339,7 +352,6 @@ def update_color(surf, color, transparency):
             rgba[3] = opacity
         surf.color = rgba
         surf.vertex_colors = None
-        print ('set surf color', rgba)
 
 def surfaces_overlapping_atoms(surfs, atoms):
     si = atoms.intersects_each([s.atoms for s in surfs])
@@ -374,9 +386,18 @@ def surfaces_with_atoms(atoms, models):
                     surfs.append(s)
     return surfs
 
+def show_surfaces(atoms, models):
+    surfs = surfaces_with_atoms(atoms, models)
+    for s in surfs:
+        s.display = True
+        s.show(atoms & s.atoms)
+    return surfs
+
 def hide_surfaces(atoms, models):
-    for s in surfaces_with_atoms(atoms, models):
-        s.display = False
+    surfs = surfaces_with_atoms(atoms, models)
+    for s in surfs:
+        s.hide(atoms & s.atoms)
+    return surfs
 
 def close_surfaces(atoms, models):
     surfs = surfaces_with_atoms(atoms, models)
