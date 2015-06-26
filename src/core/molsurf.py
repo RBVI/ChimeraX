@@ -68,11 +68,12 @@ class MolecularSurface(Generic3DModel):
         from .surface import ses_surface_geometry
         va, na, ta = ses_surface_geometry(xyz, r, self.probe_radius, self.grid_spacing)
         if self.sharp_boundaries:
+            v2a = self.vertex_to_atom_map(va)
             from .surface import sharp_edge_patches
-            va, na, ta, v2a = sharp_edge_patches(va, na, ta, self.vertex_to_atom_map(va), xyz)
-            self._vertex_to_atom = v2a
+            va, na, ta, v2a = sharp_edge_patches(va, na, ta, v2a, xyz)
 #        for i in range(3):
 #            vsa, nsa, tsa, v2a = sharp_edge_patches(vsa, nsa, tsa, v2a, xyz)
+            self._vertex_to_atom = v2a
         self.vertices = va
         self.normals = na
         self.triangles = ta
