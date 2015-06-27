@@ -386,6 +386,7 @@ def register(session):
 
     from . import atomspec
     atomspec.register_selector(None, "sel", _sel_selector)
+    atomspec.register_selector(None, "strands", _strands_selector)
 
 def _sel_selector(session, models, results):
     from .structure import AtomicStructure
@@ -395,3 +396,12 @@ def _sel_selector(session, models, results):
             if isinstance(m, AtomicStructure):
                 for atoms in m.selected_items('atoms'):
                     results.add_atoms(atoms)
+
+def _strands_selector(session, models, results):
+    from .structure import AtomicStructure
+    for m in models:
+        if isinstance(m, AtomicStructure):
+            strands = m.residues.filter(m.residues.is_sheet)
+            if strands:
+                results.add_model(m)
+                results.add_atoms(strands.atoms)

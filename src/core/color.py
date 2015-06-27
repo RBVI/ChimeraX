@@ -596,6 +596,40 @@ def rcolor(session, color, spec=None):
     session.logger.status('Colored %s' % ', '.join(what))
 
 
+def ecolor(session, spec, color=None, target=None):
+    """Color an object specification."""
+    from . import atomspec
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+
+    rgba8 = color.uint8x4()
+    atoms = results.atoms
+    if atoms is None:
+        na = 0
+    else:
+        atoms.colors = rgba8
+        na = len(atoms)
+
+    ns = 0
+    from .structure import AtomicStructure
+    for m in results.models:
+        if isinstance(m, AtomicStructure):
+            m.update_graphics()
+        else:
+            m.color = rgba8
+            ns += 1
+
+    what = []
+    if na > 0:
+        what.append('%d atoms' % na)
+    if ns > 0:
+        what.append('%d surfaces' % ns)
+    if na == 0 and ns == 0:
+        what.append('nothing')
+    session.logger.status('Colored %s' % ', '.join(what))
+
+
 def register_commands():
     from . import atomspec
     cli.register(
@@ -624,6 +658,14 @@ def register_commands():
         cli.CmdDesc(required=[('name', cli.StringArg)],
                     synopsis="remove color definition"),
         undefine_color
+    )
+    cli.register(
+        'ecolor',
+        cli.CmdDesc(optional=[('color', ColorArg)],
+                    required=[('spec', cli.Or(atomspec.AtomSpecArg, cli.EmptyArg))],
+                    keyword=[('target', cli.StringArg)],
+                    synopsis="testing real color syntax"),
+        ecolor
     )
 
 
