@@ -210,27 +210,8 @@ class MainWindow(wx.Frame, PlainTextLog):
     def on_quit(self, event):
         self.close()
 
-    def on_save_session(self, event, ses):
-        from . import io
-        try:
-            ses_filter = io.wx_export_file_filter(io.SESSION)
-        except ValueError:
-            ses.logger.error("Cannot find file extension for Chimera session ")
-            return
-        dlg = wx.FileDialog(self, "Save Session", "", "", ses_filter,
-                            wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
-        if dlg.ShowModal() == wx.ID_CANCEL:
-            return
-        ses_file = dlg.GetPath()
-        import os.path
-        ext = os.path.splitext(ses_file)[1]
-        ses_exts = io.extensions("Chimera session")
-        if ses_exts and ext not in ses_exts:
-            ses_file += ses_exts[0]
-        # TODO: maybe go through commands module
-        from . import commands
-        commands.export(ses, ses_file)
-        ses.logger.info("Session file \"%s\" saved." % ses_file)
+    def on_save(self, event, ses):
+        self.save_dialog.display(self, ses)
 
     def status(self, msg, color, secondary):
         wx.CallAfter(self._main_thread_status, msg, color, secondary)
@@ -240,6 +221,8 @@ class MainWindow(wx.Frame, PlainTextLog):
         self.graphics_window = g = GraphicsWindow(self, ui)
         from wx.lib.agw.aui import AuiPaneInfo
         self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
+        from .ui.save_dialog import SaveDialog
+        self.save_dialog = SaveDialog(self)
 
     def _build_menus(self, session):
         menu_bar = wx.MenuBar()
@@ -309,11 +292,11 @@ class MainWindow(wx.Frame, PlainTextLog):
         import sys
         file_menu = wx.Menu()
         menu_bar.Append(file_menu, "&File")
-        item = file_menu.Append(wx.ID_OPEN, "Open...", "Open input file")
+        item = file_menu.Append(wx.ID_OPEN, "Open...\tCtrl+O", "Open input file")
         self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_open(evt, ses),
             item)
-        item = file_menu.Append(wx.ID_ANY, "Save Session...", "Save session file")
-        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_save_session(evt, ses),
+        item = file_menu.Append(wx.ID_ANY, "Save...\tCtrl+S", "Save output file")
+        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_save(evt, ses),
             item)
         item = file_menu.Append(wx.ID_EXIT, "Quit\tCtrl-Q", "Quit application")
         self.Bind(wx.EVT_MENU, self.on_quit, item)
