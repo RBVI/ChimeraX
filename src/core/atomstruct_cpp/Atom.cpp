@@ -911,7 +911,7 @@ Atom::set_radius(float r)
     if (_radius == r)
         return;
     if (r <= 0.0)
-        throw std::runtime_error("radius must be positive");
+        throw std::logic_error("radius must be positive");
     _radius = r;
 }
 
