@@ -36,10 +36,21 @@ class SaveDialog:
         import io
         self.register(self.DEFAULT_FORMAT, _session_wildcard, None, _session_save)
 
-    def register(self, fmt, wildcard, make_ui, save):
-        self._registered_formats[fmt] = _SaveFormat(fmt, wildcard, make_ui, save)
+    def register(self, format_name, wildcard, make_ui, save):
+        self._registered_formats[format_name] = _SaveFormat(format_name, wildcard, make_ui, save)
         if self._format_selector:
             self._update_format_selector()
+
+    def deregister(self, format_name):
+        del self._registered_formats[format_name]
+
+    def current_format(self):
+        if self._format_selector is None:
+            format_name = self.DEFAULT_FORMAT
+        else:
+            n = self._format_selector.GetSelection()
+            format_name = self._format_selector.GetString(n)
+        return self._registered_formats[format_name]
 
     def display(self, parent, session):
         import wx
@@ -49,7 +60,7 @@ class SaveDialog:
             self.file_dialog.SetExtraControlCreator(self._extraCreatorCB)
         if self.file_dialog.ShowModal() == wx.ID_CANCEL:
             return
-        fmt = self._registered_formats[self._format_selector.GetValue()]
+        fmt = self.current_format()
         filename = self.file_dialog.GetPath()
         fmt.save(session, filename)
 
@@ -58,9 +69,9 @@ class SaveDialog:
         p = wx.Panel(parent)
         try:
             s = wx.BoxSizer(wx.VERTICAL)
-            # ComboBox at top for selecting save file type
-            format_selector = wx.ComboBox(p, style=wx.CB_READONLY)
-            format_selector.Bind(wx.EVT_COMBOBOX, self._select_format)
+            # Choice at top for selecting save file type
+            format_selector = wx.Choice(p, style=wx.CB_READONLY)
+            format_selector.Bind(wx.EVT_CHOICE, self._select_format)
             s.Add(format_selector, flag=wx.LEFT)
             # Panel for displaying format-specific options goes immediately below
             # Default is a window displaying text of "No user-settable options"
@@ -82,12 +93,14 @@ class SaveDialog:
             # Update everything (may require attributes set above)
             p.SetSizerAndFit(s)
             self._update_format_selector()
-            self._format_selector.SetValue(self.DEFAULT_FORMAT)
+            n = self._format_selector.Items.index(self.DEFAULT_FORMAT)
+            self._format_selector.SetSelection(n)
             self._select_format(self.DEFAULT_FORMAT)
             return p
         except:
-            import traceback, sys
-            traceback.print_exc(file=sys.__stderr__)
+            import traceback
+            print("Error in SaveDialog SetExtraControlCreator callback:\n")
+            print(traceback.format_exc())
             p.Destroy()
             return None
 
@@ -97,23 +110,26 @@ class SaveDialog:
         self._format_selector.Items = choices
 
     def _select_format(self, event=None):
-        if self._format_selector is None:
-            format_name = self.DEFAULT_FORMAT
-        else:
-            format_name = self._format_selector.GetValue()
-        fmt = self._registered_formats[self._format_selector.GetValue()]
+        fmt = self.current_format()
         self.file_dialog.SetWildcard(fmt.wildcard)
         w = fmt.window(self._options_window) or self._no_options_window
+        if w is self._current_option:
+            return
+        import wx
+        self._current_option.Show(False)
+        #self._options_sizer.Show(self._current_option, False, recursive=True)
         if w not in self._known_options:
-            self._options_sizer.Hide(self._current_option)
             self._options_sizer.Add(w, flag=wx.EXPAND|wx.ALL)
-        elif w is not self._current_option:
-            self._options_sizer.Hide(self._current_option)
-            self._options_sizer.Show(w)
+            self._known_options.add(w)
+        #self._options_sizer.Show(w, True, recursive=True)
+        w.Show(True)
         self._options_sizer.Layout()
+        self._options_window.Fit()
+        self._options_window.Refresh()
+        self._current_option = w
 
     def set_wildcard(self, format):
-        fmt = self._registered_formats[self._format_selector.GetValue()]
+        fmt = self.current_format()
         self.file_dialog.SetWildcard(fmt.wildcard)
 
 
@@ -134,3 +150,54 @@ def _session_save(session, filename):
     from .. import commands
     commands.export(session, filename)
     session.logger.info("File \"%s\" saved." % filename)
+
+
+class ImageSaver:
+
+    DEFAULT_FORMAT = "PNG"
+    DEFAULT_EXT = "png"
+
+    def wildcard(self):
+        from .. import commands
+        exts = list(commands.image_formats.keys())
+        exts.remove(self.DEFAULT_EXT)
+        exts.insert(0, self.DEFAULT_EXT)
+        fmts = ';'.join("*.%s" % e for e in exts)
+        wildcard = "Image file (%s)|%s" % (fmts, fmts)
+        return wildcard
+
+    def make_ui(self, parent):
+        import wx
+        from .. import commands
+        w = wx.Window(parent)
+        s = wx.BoxSizer(wx.VERTICAL)
+        selector = wx.Choice(w, choices=list(commands.image_formats.values()),
+                             style=wx.CB_READONLY)
+        selector.Bind(wx.EVT_CHOICE, self._select_format)
+        selector.SetSelection(selector.Items.index(self.DEFAULT_FORMAT))
+        s.Add(selector, flag=wx.LEFT)
+        w.SetSizerAndFit(s)
+        self._format_selector = selector
+        return w
+
+    def _select_format(self, event):
+        # TODO: enable options that apply to this graphics format
+        pass
+
+    def save(self, session, filename):
+        import os.path
+        ext = os.path.splitext(filename)[1]
+        format_name = self._format_selector.GetString(self._format_selector.Selection)
+        from .. import commands
+        for e, n in commands.image_formats.items():
+            if n == format_name:
+                e = '.' + e
+                if ext != e:
+                    filename += e
+                break
+        else:
+            raise RuntimeError("unsupported graphics format: %s" % format_name)
+        commands.save_image(session, filename)
+
+    def register(self, save_dialog):
+        save_dialog.register("Image", self.wildcard, self.make_ui, self.save)
