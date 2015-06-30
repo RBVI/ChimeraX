@@ -12,10 +12,6 @@ class Progress_Reporter:
 
     if message is None:
       def status(msg):
-        try:
-          from ... import ui
-          ui.show_status(msg)   # Hydra only
-        except:
           pass
       message = status
     self.message = message
@@ -37,13 +33,12 @@ class Progress_Reporter:
   def show_status(self, text):
 
 #    from chimera import nogui
-    nogui = True
-    if self.allow_cancel and not nogui:
-      self.message(text, showNow = False)
-      self.message('  cancel', color = 'blue', append = True,
-                   clickCallback = self.cancel_cb)
-    else:
-      self.message(text)
+#    if self.allow_cancel and not nogui:
+#      self.message(text, showNow = False)
+#      self.message('  cancel', color = 'blue', append = True,
+#                   clickCallback = self.cancel_cb)
+#    else:
+    self.message(text)
 
   # ---------------------------------------------------------------------------
   #

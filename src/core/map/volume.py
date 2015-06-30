@@ -1163,7 +1163,8 @@ class Volume(Model):
     d = self.data
     operation = 'reading %s' % d.name
     from .data import Progress_Reporter
-    progress = Progress_Reporter(operation, size, d.value_type.itemsize)
+    progress = Progress_Reporter(operation, size, d.value_type.itemsize,
+                                 message = self.message_cb)
     from_cache_only = not read_matrix
     if subsampling == (1,1,1):
       m = d.matrix(origin, size, step, progress, from_cache_only)
@@ -2675,7 +2676,8 @@ def volume_from_grid_data(grid_data, session, representation = None,
   d = data_already_opened(grid_data.path, grid_data.grid_id, session)
   if d:
     grid_data = d
-  v = Volume(grid_data, session, region, ro, model_id, open_model)
+  v = Volume(grid_data, session, region, ro, model_id, open_model,
+             message_cb = session.logger.status)
   v.set_representation(representation)
   if grid_data.rgba is None:
     set_initial_volume_color(v, session)
@@ -2782,7 +2784,7 @@ def open_map(session, stream, *args, **kw):
     for i,d in enumerate(grids):
         show = (i == 0 or not hasattr(d, 'series_index'))
         v = volume_from_grid_data(d, session, open_model = False, show_data = show)
-        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
+#        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
         maps.append(v)
 
     if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):

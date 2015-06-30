@@ -412,7 +412,9 @@ extern "C" PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *ke
 
   std::vector<float> vs, ns;
   std::vector<int> ts, v2as;
+  Py_BEGIN_ALLOW_THREADS
   sharp_patches(vertices, normals, triangles, v2a, axyz, &vs, &ns, &ts, &v2as);
+  Py_END_ALLOW_THREADS
 
   int nv = vs.size()/3, nt = ts.size()/3;
   PyObject *vsa = c_array_to_python(vs, nv, 3);
@@ -467,6 +469,8 @@ extern "C" PyObject *unique_vertex_map(PyObject *, PyObject *args, PyObject *key
 
   int *vmap;
   PyObject *vm = python_int_array(vertices.size(0), &vmap);
+  Py_BEGIN_ALLOW_THREADS
   unique_vertices(vertices, vmap);
+  Py_END_ALLOW_THREADS
   return vm;
 }
