@@ -6,10 +6,10 @@ Chimera2 Developer's Manual
 
 This manual covers the :ref:`core`, the associated tools and libraries,
 and the internals of application(s) built upon them.
-The actual applications are documented in the
+The actual applications are documented in
 the :doc:`User's Manual </users/>`.
 
-This code is free for non-commerical use, see the
+This code is free for non-commercial use, see the
 :doc:`license <license>` for details.
 
 The various interfaces are implemented in `Python <http://www.python.org/>`_
