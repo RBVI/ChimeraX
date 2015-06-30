@@ -498,7 +498,7 @@ start_t = end_t;
             int serial = record.anisou.serial;
             std::unordered_map<int, Atom *>::const_iterator si = asn.find(serial);
             if (si == asn.end()) {
-                logger::error(py_logger, "Unknown atom serial number (",
+                logger::warning(py_logger, "Unknown atom serial number (",
                     serial, ") in ANISOU record");
                 break;
             }
@@ -731,7 +731,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         Residue *init_res = as->find_residue(string_chain_id, init->seq_num,
             init->i_code, string_name);
         if (init_res == NULL) {
-            logger::error(py_logger, "Start residue of secondary structure"
+            logger::warning(py_logger, "Start residue of secondary structure"
                 " not found: ", r.c_str());
             continue;
         }
@@ -741,7 +741,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         Residue *end_res = as->find_residue(string_chain_id, end->seq_num,
             end->i_code, string_name);
         if (end_res == NULL) {
-            logger::error(py_logger, "End residue of secondary structure"
+            logger::warning(py_logger, "End residue of secondary structure"
                 " not found: ", r.c_str());
             continue;
         }
@@ -759,7 +759,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         }
         if (first == as->residues().end()
         || last == as->residues().end()) {
-            logger::error(py_logger, "Bad residue range for secondary"
+            logger::warning(py_logger, "Bad residue range for secondary"
                 " structure: ", r.c_str());
             continue;
         }
@@ -871,7 +871,7 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
     canonicalize_atom_name(aname, &as->asterisks_translated);
     Atom *a1 = res1->find_atom(aname);
     if (a1 == NULL) {
-        logger::error(py_logger, "Cannot find LINK atom ", aname,
+        logger::warning(py_logger, "Cannot find LINK atom ", aname,
             " in residue ", res1->str());
         return;
     }
@@ -879,7 +879,7 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
     canonicalize_atom_name(aname, &as->asterisks_translated);
     Atom *a2 = res2->find_atom(aname);
     if (a2 == NULL) {
-        logger::error(py_logger, "Cannot find LINK atom ", aname,
+        logger::warning(py_logger, "Cannot find LINK atom ", aname,
             " in residue ", res2->str());
         return;
     }
