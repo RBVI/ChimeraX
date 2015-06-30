@@ -3,10 +3,11 @@
 
 class _SaveFormat:
 
-    def __init__(self, name, wildcard, make_ui, save):
+    def __init__(self, name, wildcard, make_ui, update, save):
         self.name = name
         self._wildcard = wildcard
         self._make_ui = make_ui
+        self._update = update
         self._save = save
         self._window = None
 
@@ -21,6 +22,10 @@ class _SaveFormat:
             self._window = self._make_ui(parent)
         return self._window
 
+    def update(self, save_dialog):
+        if self._update:
+            self._update(save_dialog)
+
     def save(self, session, filename):
         return self._save(session, filename)
 
@@ -34,10 +39,11 @@ class SaveDialog:
         self._registered_formats = {}
         self._format_selector = None
         import io
-        self.register(self.DEFAULT_FORMAT, _session_wildcard, None, _session_save)
+        self.register(self.DEFAULT_FORMAT, _session_wildcard, None, None, _session_save)
 
-    def register(self, format_name, wildcard, make_ui, save):
-        self._registered_formats[format_name] = _SaveFormat(format_name, wildcard, make_ui, save)
+    def register(self, format_name, wildcard, make_ui, update, save):
+        self._registered_formats[format_name] = _SaveFormat(format_name, wildcard, make_ui,
+                                                            update, save)
         if self._format_selector:
             self._update_format_selector()
 
@@ -66,23 +72,22 @@ class SaveDialog:
 
     def _extraCreatorCB(self, parent):
         import wx
-        p = wx.Panel(parent)
+        p = wx.Window(parent)
         try:
             s = wx.BoxSizer(wx.VERTICAL)
             # Choice at top for selecting save file type
             format_selector = wx.Choice(p, style=wx.CB_READONLY)
             format_selector.Bind(wx.EVT_CHOICE, self._select_format)
-            s.Add(format_selector, flag=wx.LEFT)
+            s.Add(format_selector, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER, border=5)
             # Panel for displaying format-specific options goes immediately below
             # Default is a window displaying text of "No user-settable options"
             # For some reason, a Panel does not work but a Window does
-            no_options_window = wx.Window(p)
+            no_options_window = wx.Window(p, style=wx.BORDER_SIMPLE)
             ns = wx.BoxSizer(wx.VERTICAL)
-            t = wx.StaticText(no_options_window, label="No user-settable options",
-                              style=wx.ALIGN_CENTER)
-            ns.Add(t, flag=wx.LEFT)
+            t = wx.StaticText(no_options_window, label="No user-settable options")
+            ns.Add(t, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER, border=5)
             no_options_window.SetSizerAndFit(ns)
-            s.Add(no_options_window, flag=wx.EXPAND|wx.ALL)
+            s.Add(no_options_window, proportion=1, flag=wx.EXPAND|wx.ALL|wx.ALIGN_CENTER, border=2)
             # Save references to widgets we need
             self._options_window = p
             self._options_sizer = s
@@ -91,8 +96,8 @@ class SaveDialog:
             self._known_options = set([self._no_options_window])
             self._current_option = self._no_options_window
             # Update everything (may require attributes set above)
-            p.SetSizerAndFit(s)
             self._update_format_selector()
+            p.SetSizerAndFit(s)
             n = self._format_selector.Items.index(self.DEFAULT_FORMAT)
             self._format_selector.SetSelection(n)
             self._select_format(self.DEFAULT_FORMAT)
@@ -117,15 +122,13 @@ class SaveDialog:
             return
         import wx
         self._current_option.Show(False)
-        #self._options_sizer.Show(self._current_option, False, recursive=True)
         if w not in self._known_options:
-            self._options_sizer.Add(w, flag=wx.EXPAND|wx.ALL)
+            self._options_sizer.Add(w, proportion=1, flag=wx.EXPAND|wx.ALL|wx.ALIGN_CENTER,
+                                    border=2)
             self._known_options.add(w)
-        #self._options_sizer.Show(w, True, recursive=True)
         w.Show(True)
         self._options_sizer.Layout()
         self._options_window.Fit()
-        self._options_window.Refresh()
         self._current_option = w
 
     def set_wildcard(self, format):
@@ -157,6 +160,10 @@ class ImageSaver:
     DEFAULT_FORMAT = "PNG"
     DEFAULT_EXT = "png"
 
+    def __init__(self, save_dialog):
+        import weakref
+        self._save_dialog = weakref.ref(save_dialog)
+
     def wildcard(self):
         from .. import commands
         exts = list(commands.image_formats.keys())
@@ -169,35 +176,63 @@ class ImageSaver:
     def make_ui(self, parent):
         import wx
         from .. import commands
-        w = wx.Window(parent)
-        s = wx.BoxSizer(wx.VERTICAL)
+        w = wx.Window(parent, style=wx.BORDER_SIMPLE)
+        s = wx.FlexGridSizer(rows=2, cols=2, hgap=2, vgap=2)
+
         selector = wx.Choice(w, choices=list(commands.image_formats.values()),
                              style=wx.CB_READONLY)
         selector.Bind(wx.EVT_CHOICE, self._select_format)
         selector.SetSelection(selector.Items.index(self.DEFAULT_FORMAT))
-        s.Add(selector, flag=wx.LEFT)
+        s.Add(wx.StaticText(w, label="Format:"), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        s.Add(selector, proportion=1, flag=wx.ALL|wx.ALIGN_LEFT, border=5)
+
+        ss = wx.BoxSizer(wx.HORIZONTAL)
+        width = wx.StaticText(w, label="Width")
+        ss.Add(width, proportion=1)
+        x = wx.StaticText(w, label="x")
+        ss.Add(x, flag=wx.LEFT|wx.RIGHT, border=4)
+        height = wx.StaticText(w, label="Height")
+        ss.Add(height, proportion=1)
+        s.Add(wx.StaticText(w, label="Size:"), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        s.Add(ss, proportion=1, flag=wx.ALL|wx.ALIGN_LEFT, border=5)
+
         w.SetSizerAndFit(s)
+        parent.Fit()
         self._format_selector = selector
         return w
+
+    def _get_current_extension(self):
+        format_name = self._format_selector.GetString(self._format_selector.Selection)
+        from .. import commands
+        for e, n in commands.image_formats.items():
+            if n == format_name:
+                return e
+        else:
+            raise RuntimeError("unsupported graphics format: %s" % format_name)
+
+    def _file_dialog(self):
+        d = self._save_dialog()
+        if d:
+            return d.file_dialog
+        else:
+            return None
 
     def _select_format(self, event):
         # TODO: enable options that apply to this graphics format
         pass
 
+    def update(self, save_dialog):
+        # TODO: update UI elements
+        pass
+
     def save(self, session, filename):
         import os.path
         ext = os.path.splitext(filename)[1]
-        format_name = self._format_selector.GetString(self._format_selector.Selection)
-        from .. import commands
-        for e, n in commands.image_formats.items():
-            if n == format_name:
-                e = '.' + e
-                if ext != e:
-                    filename += e
-                break
-        else:
-            raise RuntimeError("unsupported graphics format: %s" % format_name)
+        e = '.' + self._get_current_extension()
+        if ext != e:
+            filename += e
         commands.save_image(session, filename)
 
-    def register(self, save_dialog):
-        save_dialog.register("Image", self.wildcard, self.make_ui, self.save)
+    def register(self):
+        self._save_dialog().register("Image File", self.wildcard, self.make_ui,
+                                     self.update, self.save)

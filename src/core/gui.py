@@ -232,7 +232,7 @@ class MainWindow(wx.Frame, PlainTextLog):
         self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
         from .ui.save_dialog import SaveDialog, ImageSaver
         self.save_dialog = SaveDialog(self)
-        ImageSaver().register(self.save_dialog)
+        ImageSaver(self.save_dialog).register()
 
     def _build_menus(self, session):
         menu_bar = wx.MenuBar()
