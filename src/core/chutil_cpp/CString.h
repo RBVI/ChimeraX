@@ -33,12 +33,15 @@ public:
         *dest = '\0';
     }
     CString(std::initializer_list<char> s) {
-        if (s.size() > len)
+        bool add_null = *(s.end()-1) != '\0';
+        if (s.size() > len + (add_null ? 1 : 0))
             throw std::invalid_argument("String too long");
         int pos = 0;
         for (auto c: s) {
             _data[pos++] = c;
         }
+        if (add_null)
+            _data[pos] = '\0';
     }
 
     const_iterator  begin() const { return _data; }
@@ -82,5 +85,14 @@ public:
 };
 
 }  // namespace chutil
+
+namespace std {
+
+template <int len> struct hash<chutil::CString<len>>
+{
+    size_t operator()(const chutil::CString<len>& cs) const {return cs.hash();}
+};
+
+}  // namespace std
 
 #endif  // util_cstring_cmp

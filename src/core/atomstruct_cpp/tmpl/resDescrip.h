@@ -2,10 +2,13 @@
 #ifndef templates_resDescrip
 #define templates_resDescrip
 
+#include "../string_types.h"
+
 namespace tmpl {
 
 typedef struct resDescrip {
-    const char *name, *descrip;
+    ResName  name;
+    const char  *descrip;
 } ResDescript;
 
 ResDescript res_descripts[] = {

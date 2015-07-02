@@ -12,6 +12,7 @@ namespace tmpl {
 
 using atomstruct::AtomName;
 using atomstruct::AtomType;
+using atomstruct::ResName;
     
 class CondInfo {
 public:
@@ -33,9 +34,9 @@ public:
         // <normal IDATM type, conditional IDATM types>
     typedef std::map<AtomName, AtomMappings> AtomMap;
         // atom name -> AtomMappings
-    typedef std::map<std::string, AtomMap> ResMap;
+    typedef std::map<ResName, AtomMap> ResMap;
         // res name -> AtomMap
-    AtomMap *res_template(std::string res_name, const char *app,
+    AtomMap *res_template(ResName res_name, const char *app,
             const char *template_dir, const char *extension);
     virtual ~TemplateCache();
     static TemplateCache *template_cache();

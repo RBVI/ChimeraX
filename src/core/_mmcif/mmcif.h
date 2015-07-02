@@ -3,11 +3,15 @@
 #include <string>
 #include <functional>
 
+#include <atomstruct/string_types.h>
+
 namespace tmpl {
     class Residue;
 }
 
 namespace mmcif {
+
+using atomstruct::ResName;
 
 PyObject*   parse_mmCIF_file(const char* filename, PyObject* logger=nullptr);
 PyObject*   parse_mmCIF_buffer(const unsigned char* buffer,
@@ -17,8 +21,8 @@ void        set_Python_locate_function(PyObject* function=NULL);
 
 #ifndef WrapPy
 const tmpl::Residue*
-            find_template_residue(const std::string& name);
-typedef std::function<std::string (const std::string& residue_type)>
+            find_template_residue(const ResName& name);
+typedef std::function<std::string (const ResName& residue_type)>
             LocateFunc;
 void        set_locate_template_function(LocateFunc func);
 #endif

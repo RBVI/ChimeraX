@@ -35,12 +35,13 @@ using basegeom::Coord;
 namespace mmcif {
 
 using atomstruct::AtomName;
+using atomstruct::ResName;
 
 tmpl::Molecule* templates;
 LocateFunc  locate_func;
 
 const tmpl::Residue*
-find_template_residue(const string& name)
+find_template_residue(const ResName& name)
 {
     if (templates == nullptr)
         templates = new tmpl::Molecule();
@@ -146,8 +147,8 @@ ExtractTemplate::finished_parse()
 void
 ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
 {
-    string  name;
-    string  modres;
+    ResName  name;
+    ResName  modres;
     char    code = '\0';
     type.clear();
 
@@ -155,7 +156,7 @@ ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
     pv.reserve(2);
     pv.emplace_back(get_column("id", true), true,
         [&] (const char* start, const char* end) {
-            name = string(start, end - start);
+            name = ResName(start, end - start);
         });
     pv.emplace_back(get_column("type", false), true,
         [&] (const char* start, const char* end) {
@@ -163,7 +164,7 @@ ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
         });
     pv.emplace_back(get_column("mon_nstd_parent_comp_id", false), true,
         [&] (const char* start, const char* end) {
-            modres = string(start, end - start);
+            modres = ResName(start, end - start);
             if (modres == "?" || modres == ".")
                 modres = "";
         });
@@ -183,7 +184,7 @@ ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
     is_peptide = type.find("peptide") != string::npos;
     is_nucleotide = type.compare(0, 3, "dna") == 0
         || type.compare(0, 3, "rna") == 0;
-    residue = templates->new_residue(name.c_str());
+    residue = templates->new_residue(name);
     all_residues.push_back(residue);
     if (!modres.empty()) {
         if (!code) {
@@ -340,8 +341,8 @@ set_Python_locate_function(PyObject* function)
     Py_INCREF(function);
     save_reference_to_function = function;
 
-    locate_func = [function] (const string& name) -> std::string {
-        PyObject* name_arg = wrappy::pyObject(name);
+    locate_func = [function] (const ResName& name) -> std::string {
+        PyObject* name_arg = wrappy::pyObject((const char*)name);
         PyObject* result = PyObject_CallFunction(function, "O", name_arg);
         Py_XDECREF(name_arg);
         if (result == NULL)
