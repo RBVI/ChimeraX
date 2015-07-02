@@ -4,8 +4,10 @@
 
 #include <string>
 #include <sstream>
-#include "Residue.h"
+
 #include "imex.h"
+#include "Residue.h"
+#include "string_types.h"
 
 namespace atomstruct {
 
@@ -13,15 +15,16 @@ class ATOMSTRUCT_IMEX MolResId {
     // convenience class for testing chain/position/insert-code equality
 public:
     int    pos;
-    std::string chain;
+    ResName chain;
     char insert;
     MolResId() {};
-    MolResId(const std::string &c, int p, char ic) {
+    MolResId(const ChainID& c, int p, char ic) {
         chain = c;
         pos = p;
         insert = ic;
     };
-    MolResId(char c, int p, char ic) : MolResId(std::string(1, c), p, ic) {};
+    MolResId(char c, int p, char ic) :
+        MolResId(std::string(1, c).c_str(), p, ic) {};
     MolResId(const atomstruct::Residue *r) {
         chain = r->chain_id();
         pos = r->position();

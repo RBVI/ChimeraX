@@ -14,6 +14,7 @@
 #include "Chain.h"
 #include "Pseudobond.h"
 #include "Ring.h"
+#include "string_types.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -39,7 +40,7 @@ public:
     typedef Edges  Bonds;
     typedef std::vector<Chain*>  Chains;
     typedef std::vector<CoordSet*>  CoordSets;
-    typedef std::map<std::string, std::vector<std::string>>  InputSeqInfo;
+    typedef std::map<ChainID, std::vector<ResName>>  InputSeqInfo;
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     static const char*  PBG_HYDROGEN_BONDS;
@@ -90,13 +91,13 @@ public:
     void  delete_atoms(std::vector<Atom*> atoms);
     void  delete_bond(Bond* b) { delete_edge(b); }
     void  delete_residue(Residue* r);
-    void  extend_input_seq_info(std::string& chain_id, std::string& res_name) {
+    void  extend_input_seq_info(ChainID& chain_id, ResName& res_name) {
         _input_seq_info[chain_id].push_back(res_name);
     }
     CoordSet *  find_coord_set(int) const;
-    Residue *  find_residue(std::string &chain_id, int pos, char insert) const;
-    Residue *  find_residue(std::string &chain_id, int pos, char insert,
-        std::string &name) const;
+    Residue *  find_residue(const ChainID& chain_id, int pos, char insert) const;
+    Residue *  find_residue(const ChainID& chain_id, int pos, char insert,
+        ResName& name) const;
     const InputSeqInfo&  input_seq_info() const { return _input_seq_info; }
     std::string  input_seq_source;
     bool  is_traj;
@@ -109,7 +110,7 @@ public:
     CoordSet *  new_coord_set();
     CoordSet *  new_coord_set(int index);
     CoordSet *  new_coord_set(int index, int size);
-    Residue *  new_residue(const std::string &name, const std::string &chain,
+    Residue *  new_residue(const ResName& name, const ChainID& chain,
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
     size_t  num_atoms() const { return atoms().size(); }
     size_t  num_bonds() const { return bonds().size(); }
@@ -128,7 +129,7 @@ public:
         unsigned int all_size_threshold = 0,
         std::set<const Residue *>* ignore = nullptr) const;
     void  set_active_coord_set(CoordSet *cs);
-    void  set_input_seq_info(const std::string& chain_id, const std::vector<std::string>& res_names) { _input_seq_info[chain_id] = res_names; }
+    void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }
     void  use_best_alt_locs();
 };

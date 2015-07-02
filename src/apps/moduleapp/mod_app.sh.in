@@ -14,13 +14,10 @@
 originalpath="$PATH"
 PATH=/bin:/usr/bin:"$PATH"
 
-# application name can be hardcoded by altering the next line
-app=`basename "$0"`
-
-# if CDPATH is set, then cd echos the directory as well
+# stop cd from echoing the directory
 unset CDPATH
 
-# Assume that the true location of $app is in CHIMERA/bin/ and
+# Assume that the true location of MOD_APP is in CHIMERA/bin/ and
 # deduce what CHIMERA should be even if there are symbolic links
 bindir=`dirname "$0"`
 if test ! -L "$0"
@@ -32,16 +29,17 @@ else
 	else
 		# fallback if readlink doesn't exist
 		link=`ls -l "$0" | sed 's/.* -> //'`
-	fi # $app was a (relative?) symbolic link
+	fi
+	# MOD_APP was a (relative?) symbolic link
 	tmp=`dirname "$link"`
 	bindir=`cd "$bindir"; cd "$tmp"; pwd -P`
 fi
 CHIMERA=`dirname "$bindir"`
 
-python="$CHIMERA/bin/APP_NAME"
+app="$CHIMERA/OS_BIN/APP_NAME"
 if test $# -gt 0
 then
-	exec "$python" -m chimera.$app "$@"
+	exec "$app" -m chimera.MOD_APP "$@"
 else
-	exec "$python" -m chimera.$app
+	exec "$app" -m chimera.MOD_APP
 fi

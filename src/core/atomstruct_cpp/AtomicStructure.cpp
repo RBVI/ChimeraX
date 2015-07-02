@@ -263,7 +263,7 @@ AtomicStructure::find_coord_set(int id) const
 }
 
 Residue *
-AtomicStructure::find_residue(std::string &chain_id, int pos, char insert) const
+AtomicStructure::find_residue(const ChainID &chain_id, int pos, char insert) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
         Residue *r = *ri;
@@ -275,7 +275,7 @@ AtomicStructure::find_residue(std::string &chain_id, int pos, char insert) const
 }
 
 Residue *
-AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::string &name) const
+AtomicStructure::find_residue(const ChainID& chain_id, int pos, char insert, ResName& name) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
         Residue *r = *ri;
@@ -301,7 +301,7 @@ AtomicStructure::make_chains() const
     // for chain IDs associated with a single polymer, we can try to
     // form a Chain using SEQRES record.  Otherwise, form a Chain based
     // on structure only
-    std::map<std::string, bool> unique_chain_id;
+    std::map<ChainID, bool> unique_chain_id;
     if (!_input_seq_info.empty()) {
         for (auto polymer: polys) {
             auto chain_id = polymer[0]->chain_id();
@@ -313,7 +313,7 @@ AtomicStructure::make_chains() const
         }
     }
     for (auto polymer: polys) {
-        const std::string& chain_id = polymer[0]->chain_id();
+        const ChainID& chain_id = polymer[0]->chain_id();
         auto chain = new Chain(chain_id, (AtomicStructure*)this);
         _chains->emplace_back(chain);
 
@@ -343,7 +343,7 @@ AtomicStructure::make_chains() const
             // skip if standard residues have been removed but the
             // sequence records haven't been...
             Sequence sr_seq(three_let_seq);
-            if (std::count(chain->begin(), chain->end(), 'X') == chain_size
+            if ((unsigned)std::count(chain->begin(), chain->end(), 'X') == chain_size
             && std::search(sr_seq.begin(), sr_seq.end(),
             chain->begin(), chain->end()) == sr_seq.end()) {
                 logger::warning(_logger, "Residues corresponding to ",
@@ -509,7 +509,7 @@ AtomicStructure::new_coord_set(int index, int size)
 }
 
 Residue*
-AtomicStructure::new_residue(const std::string &name, const std::string &chain,
+AtomicStructure::new_residue(const ResName& name, const ChainID& chain,
     int pos, char insert, Residue *neighbor, bool after)
 {
     if (neighbor == NULL) {

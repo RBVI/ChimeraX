@@ -2,11 +2,15 @@
 #ifndef templates_resinternal
 #define templates_resinternal
 
-#include "restmpl.h"
 #include <map>
 #include <string>
 
+#include "restmpl.h"
+#include "../string_types.h"
+
 namespace tmpl {
+
+using atomstruct::ResName;
 
 struct ResInit {
     Residue    *(*start)(Molecule *);
@@ -15,7 +19,7 @@ struct ResInit {
     ResInit(): start(0), middle(0), end(0) {}
 };
 
-typedef std::map<std::string, ResInit> ResInitMap;
+typedef std::map<ResName, ResInit> ResInitMap;
 
 }  // namespace tmpl
 

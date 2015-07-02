@@ -83,7 +83,7 @@ extern "C" void atom_chain_id(void *atoms, int n, void **cids)
 {
   Atom **a = static_cast<Atom **>(atoms);
   for (int i = 0 ; i < n ; ++i)
-    cids[i] = PyUnicode_FromString(a[i]->residue()->chain_id().c_str());
+    cids[i] = PyUnicode_FromString(a[i]->residue()->chain_id());
 }
 
 extern "C" void atom_color(void *atoms, int n, unsigned char *rgba)
@@ -525,7 +525,7 @@ extern "C" void residue_chain_id(void *residues, int n, void **cids)
   AcquireGIL g;
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
-    cids[i] = PyUnicode_FromString(r[i]->chain_id().c_str());
+    cids[i] = PyUnicode_FromString(r[i]->chain_id());
 }
 
 extern "C" void residue_is_helix(void *residues, int n, unsigned char *is_helix)
@@ -596,7 +596,7 @@ extern "C" void residue_name(void *residues, int n, void **names)
   AcquireGIL g;
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
-    names[i] = PyUnicode_FromString(r[i]->name().c_str());
+    names[i] = PyUnicode_FromString(r[i]->name());
 }
 
 extern "C" void residue_num_atoms(void *residues, int n, int *natoms)
@@ -675,7 +675,7 @@ extern "C" void chain_chain_id(void *chains, int n, void **cids)
   AcquireGIL g;
   Chain **c = static_cast<Chain **>(chains);
   for (int i = 0 ; i < n ; ++i)
-    cids[i] = PyUnicode_FromString(c[i]->chain_id().c_str());
+    cids[i] = PyUnicode_FromString(c[i]->chain_id());
 }
 
 extern "C" void chain_structure(void *chains, int n, void **molp)
