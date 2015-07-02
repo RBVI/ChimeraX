@@ -8,6 +8,7 @@
 
 #include "imex.h"
 #include "Sequence.h"
+#include "string_types.h"
 
 namespace atomstruct {
 
@@ -23,7 +24,7 @@ private:
     friend class Residue;
     void  remove_residue(Residue* r);
 
-    std::string  _chain_id;
+    ChainID  _chain_id;
     bool  _from_seqres;
     std::map<Residue*, SeqPos>  _res_map;
     Residues  _residues;
@@ -38,10 +39,10 @@ private:
     }
 
 public:
-    Chain(const std::string& chain_id, AtomicStructure* as): Sequence(),
+    Chain(const ChainID& chain_id, AtomicStructure* as): Sequence(),
         _chain_id(chain_id), _from_seqres(false), _structure(as) {}
 
-    const std::string&  chain_id() const { return _chain_id; }
+    const ChainID&  chain_id() const { return _chain_id; }
     // is character sequence derived from SEQRES records (or equivalent)?
     bool  from_seqres() const { return _from_seqres; }
     const Residues&  residues() const { return _residues; }

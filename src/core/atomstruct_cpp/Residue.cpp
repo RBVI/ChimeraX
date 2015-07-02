@@ -12,8 +12,8 @@
 
 namespace atomstruct {
 
-Residue::Residue(AtomicStructure *as, const std::string &name,
-    const std::string &chain, int pos, char insert):
+Residue::Residue(AtomicStructure *as, const ResName& name,
+    const ChainID& chain, int pos, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
     _is_helix(false), _is_het(false), _is_sheet(false), _name(name),
     _position(pos), _ss_id(-1), _ribbon_display(false),
@@ -119,7 +119,7 @@ std::string
 Residue::str() const
 {
     std::stringstream pos_string;
-    std::string ret = _name;
+    std::string ret = (const char*)_name;
     ret += " ";
     pos_string << _position;
     ret += pos_string.str();

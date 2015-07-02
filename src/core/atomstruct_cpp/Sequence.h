@@ -3,9 +3,11 @@
 #define atomstruct_Sequence
 
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include <string>
+
 #include "imex.h"
+#include "string_types.h"
 
 namespace atomstruct {
 
@@ -13,28 +15,28 @@ class ATOMSTRUCT_IMEX Sequence {
 public:
     typedef std::vector<char>  Contents;
 protected:
-    typedef std::unordered_map<std::string, char>  _1Letter_Map;
+    typedef std::map<ResName, char>  _1Letter_Map;
     static void  _init_rname_map();
     static _1Letter_Map  _nucleic3to1;
     static _1Letter_Map  _protein3to1;
     static _1Letter_Map  _rname3to1;
 
-    mutable std::unordered_map<unsigned int, unsigned int>  _cache_g2ug;
-    mutable std::unordered_map<unsigned int, unsigned int>  _cache_ug2g;
+    mutable std::map<unsigned int, unsigned int>  _cache_g2ug;
+    mutable std::map<unsigned int, unsigned int>  _cache_ug2g;
     mutable Contents  _cache_ungapped;
     void  _clear_cache() const
         { _cache_ungapped.clear();  _cache_g2ug.clear(); _cache_ug2g.clear(); }
     // can't inherit from vector, since we need to clear caches on changes
     Contents  _contents;
 public:
-    static void  assign_rname3to1(const std::string& rname, char let,
+    static void  assign_rname3to1(const ResName& rname, char let,
         bool protein);
-    static char  nucleic3to1(const std::string &rn);
-    static char  protein3to1(const std::string &rn);
-    static char  rname3to1(const std::string &rn);
+    static char  nucleic3to1(const ResName& rn);
+    static char  protein3to1(const ResName& rn);
+    static char  rname3to1(const ResName& rn);
 
     Sequence() {}
-    Sequence(const std::vector<std::string>& res_names);  // 3-letter codes
+    Sequence(const std::vector<ResName>& res_names);  // 3-letter codes
     virtual  ~Sequence() {}
 
     template <class InputIterator> void  assign(InputIterator first,

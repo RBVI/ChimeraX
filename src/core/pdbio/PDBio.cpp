@@ -21,14 +21,16 @@
 
 namespace pdb {
 
+using atomstruct::Atom;
 using atomstruct::AtomicStructure;
 using atomstruct::AtomName;
-using atomstruct::Residue;
 using atomstruct::Bond;
-using atomstruct::Atom;
+using atomstruct::ChainID;
 using atomstruct::CoordSet;
 using atomstruct::Element;
 using atomstruct::MolResId;
+using atomstruct::Residue;
+using atomstruct::ResName;
 using atomstruct::Sequence;
 using basegeom::Coord;
 
@@ -60,15 +62,18 @@ canonicalize_atom_name(AtomName& aname, bool *asterisks_translated)
 }
 
 static void
-canonicalize_res_name(std::string *rname)
+canonicalize_res_name(ResName rname)
 {
-    for (int i = rname->length(); i > 0; ) {
+    for (int i = rname.length(); i > 0; ) {
         --i;
-        if ((*rname)[i] == ' ') {
-            rname->replace(i, 1, "");
+        if (rname[i] == ' ') {
+            auto j = i;
+            do {
+                rname[j] = rname[j+1];
+            } while (rname[j++] != '\0');
             continue;
         }
-        (*rname)[i] = toupper((*rname)[i]);
+        rname[i] = toupper(rname[i]);
     }
 }
 
@@ -105,7 +110,7 @@ read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     bool        break_hets = false;
     bool        redo_elements = false;
     unsigned char  let;
-    std::string seqres_cur_chain;
+    ChainID  seqres_cur_chain;
     int         seqres_cur_count;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
@@ -255,9 +260,9 @@ start_t = end_t;
             actual_structure = true;
 
             AtomName aname;
-            std::string rname;
-            char cid = record.atom.res.chain_id;
-            if (islower(cid))
+            ResName rname;
+            auto cid = ChainID({record.atom.res.chain_id});
+            if (islower(record.atom.res.chain_id))
                 as->lower_case_chains = true;
             if (islower(record.atom.res.i_code))
                 record.atom.res.i_code = toupper(record.atom.res.i_code);
@@ -271,7 +276,7 @@ start_t = end_t;
             }
             MolResId rid(cid, seq_num, i_code);
             rname = record.atom.res.name;
-            canonicalize_res_name(&rname);
+            canonicalize_res_name(rname);
             if (recent_TER && cur_residue != NULL && cur_residue->chain_id() == rid.chain)
                 // HETATMs following a TER in the middle of
                 // of chain should not be chained even if
@@ -287,15 +292,12 @@ start_t = end_t;
                             cur_residue = as->residues()[++cur_res_index];
                     } else {
                         // Monte-Carlo traj?
-                        std::string string_cid;
-                        string_cid += cid;
-                        cur_residue = as->find_residue(string_cid, seq_num, i_code);
+                        cur_residue = as->find_residue(cid, seq_num, i_code);
                         if (cur_residue == NULL) {
                             // if chain ID is space and res is het,
                             // then chain ID probably should be
                             // space, check that...
-                            string_cid = " ";
-                            cur_residue = as->find_residue(string_cid, seq_num, i_code);
+                            cur_residue = as->find_residue(" ", seq_num, i_code);
                             if (cur_residue != NULL)
                                 rid = MolResId(' ', seq_num, i_code);
                         }
@@ -523,9 +525,8 @@ start_t = end_t;
         case PDB::SSBOND: {
             // process SSBOND records as CONECT because midas
             // used to use them that way
-            std::string string_chain_id;
-            string_chain_id += record.ssbond.res[0].chain_id;
-            Residue *ssres = as->find_residue(string_chain_id,
+            auto chain_id = ChainID({record.ssbond.res[0].chain_id});
+            Residue *ssres = as->find_residue(chain_id,
                 record.ssbond.res[0].seq_num, record.ssbond.res[0].i_code);
             if (ssres == NULL)
                 break;
@@ -541,9 +542,8 @@ start_t = end_t;
                 break;
             }
 
-            string_chain_id = "";
-            string_chain_id += record.ssbond.res[1].chain_id;
-            ssres = as->find_residue(string_chain_id,
+            chain_id = ChainID({record.ssbond.res[1].chain_id});
+            ssres = as->find_residue(chain_id,
                 record.ssbond.res[1].seq_num, record.ssbond.res[1].i_code);
             if (ssres == NULL)
                 break;
@@ -564,7 +564,7 @@ start_t = end_t;
         }
 
         case PDB::SEQRES: {
-            std::string chain_id(1, record.seqres.chain_id);
+            auto chain_id = ChainID({record.seqres.chain_id});
             if (chain_id != seqres_cur_chain) {
                 seqres_cur_chain = chain_id;
                 seqres_cur_count = 0;
@@ -573,7 +573,7 @@ start_t = end_t;
             int num_to_read = rem < 13 ? rem : 13;
             seqres_cur_count += num_to_read;
             for (int i = 0; i < num_to_read; ++i) {
-                std::string res_name(record.seqres.res_name[i]);
+                ResName res_name(record.seqres.res_name[i]);
                 as->extend_input_seq_info(chain_id, res_name);
             }
             if (as->input_seq_source.empty())
@@ -725,21 +725,19 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
             // Should not happen
             continue;
         }
-        std::string string_chain_id = "";
-        string_chain_id += init->chain_id;
-        std::string string_name = init->name;
-        Residue *init_res = as->find_residue(string_chain_id, init->seq_num,
-            init->i_code, string_name);
+        auto chain_id = ChainID({init->chain_id});
+        ResName name = init->name;
+        Residue *init_res = as->find_residue(chain_id, init->seq_num,
+            init->i_code, name);
         if (init_res == NULL) {
             logger::warning(py_logger, "Start residue of secondary structure"
                 " not found: ", r.c_str());
             continue;
         }
-        string_chain_id = "";
-        string_chain_id += end->chain_id;
-        string_name = end->name;
-        Residue *end_res = as->find_residue(string_chain_id, end->seq_num,
-            end->i_code, string_name);
+        chain_id = ChainID({end->chain_id});
+        name = end->name;
+        Residue *end_res = as->find_residue(chain_id, end->seq_num,
+            end->i_code, name);
         if (end_res == NULL) {
             logger::warning(py_logger, "End residue of secondary structure"
                 " not found: ", r.c_str());
@@ -844,12 +842,11 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
         return;
     }
     AtomName aname;
-    std::string rname;
+    ResName rname;
     PDB::Residue res = link.res[0];
-    std::string cid;
-    cid += res.chain_id;
+    ChainID cid({res.chain_id});
     rname = res.name;
-    canonicalize_res_name(&rname);
+    canonicalize_res_name(rname);
     Residue *res1 = as->find_residue(cid, res.seq_num, res.i_code, rname);
     if (!res1) {
         logger::warning(py_logger, "Cannot find LINK residue ", res.name,
@@ -857,10 +854,9 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
         return;
     }
     res = link.res[1];
-    cid = "";
-    cid += res.chain_id;
+    cid = ChainID({res.chain_id});
     rname = res.name;
-    canonicalize_res_name(&rname);
+    canonicalize_res_name(rname);
     Residue *res2 = as->find_residue(cid, res.seq_num, res.i_code, rname);
     if (!res2) {
         logger::warning(py_logger, "Cannot find LINK residue ", res.name,
