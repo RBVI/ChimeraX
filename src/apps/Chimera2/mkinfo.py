@@ -24,7 +24,7 @@ from __future__ import print_function
 import os
 import sys
 import plistlib
-from chimera.core import io, session, logger, configfile, preferences
+from chimera.core import io, session, logger, configfile, core_settings
 
 configfile.only_use_defaults = True
 
@@ -108,7 +108,7 @@ sess = session.Session()
 sess.app_name = "unknown"
 sess.debug = False
 sess.logger = logger.Logger(sess)
-preferences.init(sess)
+core_settings.init(sess)
 session.common_startup(sess)
 
 chimera_types = [f for f in io.formats() if f.startswith('Chimera')]
