@@ -18,3 +18,6 @@ app-install:;
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+
+clean:
+	rm -rf $(SOURCE)
