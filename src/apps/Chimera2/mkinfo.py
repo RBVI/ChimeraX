@@ -1,4 +1,3 @@
-#!/bin/env python
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 #
 # Copyright © 2014-2015 Regents of the University of California.
@@ -18,8 +17,6 @@
 # Apple Uniform Type Information (UTI) for chimera file types.
 # TODO: need domains/homepage each type, may alter registration.
 #
-
-from __future__ import print_function
 
 import os
 import sys
@@ -114,14 +111,27 @@ session.common_startup(sess)
 chimera_types = [f for f in io.formats() if f.startswith('Chimera')]
 
 # create Info.plist
-# TODO:
-# from chimera.core.version import version, releaseNum
-# year = version.split()[5].split('/')[0]
-# release = releaseNum[:]
-year = 2015
-release = [2, 0]
+
+# use today's year as the copyright year
+import datetime
+year = datetime.datetime.today().year
+
+# extract chimera.core version
+f = open('../../core/Makefile')
+for line in f.readlines():
+    if line.startswith('CORE_VERSION'):
+        break
+else:
+    print('error: unable to find chimera.core version')
+    raise SystemExit(1)
+
+version = line.split()[2]
+from distlib.version import NormalizedVersion as Version
+epoch, release, *_ = Version(version).parse(version)
+if len(release) == 1:
+    release += (0,)
 if len(release) < 4:
-    release[-1:-1] = [0] * (4 - len(release))
+    release += (0,) * (4 - len(release))
 
 pl = {
     "CFBundleDevelopmentRegion": "English",
