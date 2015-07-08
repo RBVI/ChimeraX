@@ -21,7 +21,7 @@
 import os
 import sys
 import plistlib
-from chimera.core import io, session, logger, configfile, core_settings
+from chimera.core import io, session, logger, configfile, core_settings, __copyright__ as copyright
 
 configfile.only_use_defaults = True
 
@@ -113,8 +113,7 @@ chimera_types = [f for f in io.formats() if f.startswith('Chimera')]
 # create Info.plist
 
 # use today's year as the copyright year
-import datetime
-year = datetime.datetime.today().year
+year = copyright.split()[2]
 
 # extract chimera.core version
 f = open('../../core/Makefile')
@@ -165,7 +164,9 @@ useLSItemContent_types = float(target) >= 10.5
 useLSItemContent_types = False
 
 pl["CFBundleDocumentTypes"] = []
-for f in io.formats():
+formats = io.formats()
+formats.sort()  # get consistent order
+for f in formats:
     if useLSItemContent_types:
         id = utid(f)
         if not id:
