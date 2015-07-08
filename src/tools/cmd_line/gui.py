@@ -14,8 +14,10 @@ class CommandLine(ToolInstance):
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
-        self.tool_window = session.ui.create_main_tool_window(self,
-                                      size=self.SIZE, destroy_hides=True)
+        from chimera.core.gui import MainToolWindow
+        class CmdWindow(MainToolWindow):
+            close_destroys = False
+        self.tool_window = CmdWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         import wx
         self.text = wx.ComboBox(parent, size=self.SIZE,
@@ -207,8 +209,11 @@ class _HistoryDialog:
     def __init__(self, controller):
         # make dialog hidden initially
         self.controller = controller
-        self.window = controller.session.ui.create_child_tool_window(
-            controller, title="Command History", destroy_hides=True)
+        from chimera.core.gui import ChildToolWindow
+        class HistoryWindow(ChildToolWindow):
+            close_destroys = False
+        self.window = controller.tool_window.create_child_window(
+            "Command History")
 
         parent = self.window.ui_area
         import wx

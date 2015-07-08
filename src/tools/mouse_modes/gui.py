@@ -19,7 +19,10 @@ class MouseModePanel(ToolInstance):
         self.columns = 6
 
         panel_size = (-1, self.rows * self.icon_size)
-        tw = session.ui.create_main_tool_window(self, size=panel_size, destroy_hides=True)
+        from chimera.core.gui import MainToolWindow
+        class MouseModesWindow(MainToolWindow):
+            close_destroys = False
+        tw = MouseModesWindow(self, size=panel_size)
         self.tool_window = tw
         parent = tw.ui_area
 

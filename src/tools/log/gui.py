@@ -12,8 +12,10 @@ class Log(ToolInstance, HtmlLog):
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
-        self.tool_window = session.ui.create_main_tool_window(
-            self, size=self.SIZE, destroy_hides=True)
+        from chimera.core.gui import MainToolWindow
+        class LogWindow(MainToolWindow):
+            close_destroys = False
+        self.tool_window = LogWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         import wx
         wx.FileSystem.AddHandler(wx.MemoryFSHandler())

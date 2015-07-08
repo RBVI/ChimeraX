@@ -41,8 +41,8 @@ ACTION_BUTTONS
         super().__init__(session, tool_info)
 
         self.display_name = "Open Models"
-        self.tool_window = session.ui.create_main_tool_window(self,
-            size=self.SIZE)
+        from chimera.core.gui import MainToolWindow
+        self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
         from wx import html2

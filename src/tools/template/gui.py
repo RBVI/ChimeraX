@@ -26,8 +26,8 @@ class ToolUI(ToolInstance):
         # in this case), so only override if different name desired
         self.display_name = "custom name for running tool"
         if session.ui.is_gui:
-            self.tool_window = session.ui.create_main_tool_window(
-                self, size=self.SIZE)
+            from chimera.core.gui import MainToolWindow
+            self.tool_window = MainToolWindow(self, size=self.SIZE)
             parent = self.tool_window.ui_area
             # UI content code
             self.tool_window.manage(placement="bottom")

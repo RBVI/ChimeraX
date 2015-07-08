@@ -24,8 +24,10 @@ class MapSeries(ToolInstance):
             #          (' length %d' % n))
 
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
-        tw = session.ui.create_main_tool_window(
-            self, size=self.SIZE, destroy_hides=True)
+        from chimera.core.gui import MainToolWindow
+        class MapSeriesWindow(MainToolWindow):
+            close_destroys = False
+        tw = MapSeriesWindow(self, size=self.SIZE)
         self.tool_window = tw
         parent = tw.ui_area
 
