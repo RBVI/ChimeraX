@@ -40,13 +40,6 @@ class Plot(ToolInstance):
         self.tool_window.shown = False
 
     #
-    # Override ToolInstance methods
-    #
-    def display(self, b):
-        """Show or hide map series user interface."""
-        self.tool_window.shown = b
-
-    #
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, phase, session, flags):

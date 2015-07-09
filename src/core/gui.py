@@ -85,6 +85,9 @@ class UI(wx.App):
         """
         self._keystroke_sinks.append(sink)
 
+    def set_tool_shown(self, tool_instance, shown):
+        self.main_window.set_tool_shown(tool_instance, shown)
+
     def splash_info(self, msg, step_num=None, num_steps=None):
         self.splash.SetText(msg)
         wx.SafeYield()
@@ -193,6 +196,7 @@ class MainWindow(wx.Frame, PlainTextLog):
                     del self.tool_pane_to_window[window.ui_area]
                     window.destroy(from_destructor=True)
                 else:
+                    window._prev_shown = window.shown
                     window.shown = False
             if close_destroys:
                 del self.tool_instance_to_windows[tool_instance]
@@ -222,6 +226,11 @@ class MainWindow(wx.Frame, PlainTextLog):
         from . import commands
         commands.export(ses, ses_file)
         ses.logger.info("Session file \"%s\" saved." % ses_file)
+
+    def set_tool_shown(self, tool_instance, shown):
+        tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
+        if tool_windows:
+            tool_windows[0].shown = shown
 
     def status(self, msg, color, secondary):
         wx.CallAfter(self._main_thread_status, msg, color, secondary)
@@ -276,7 +285,7 @@ class MainWindow(wx.Frame, PlainTextLog):
 
     def _new_tool_window(self, tw):
         self.tool_pane_to_window[tw.ui_area] = tw
-        self.tool_instance_to_windows[tw.tool_instance] = [tw]
+        self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
     def _populate_menus(self, menu_bar, session):
         import sys
@@ -324,7 +333,7 @@ class MainWindow(wx.Frame, PlainTextLog):
         tool_window._mw_set_shown(shown)
         if is_main_window:
             for window in all_windows[1:]:
-                window._mw_set_shown(shown)
+                window._mw_set_shown(getattr(window, '_prev_shown', shown))
 
 class ToolWindow:
     """An area that a tool can populate with widgets.

@@ -163,10 +163,6 @@ class MapSeries(ToolInstance):
         s.tools.remove([self])
         super().delete()
 
-    def display(self, b):
-        """Show or hide map series user interface."""
-        self.tool_window.shown = b
-
     #
     # Implement session.State methods if deriving from ToolInstance
     #

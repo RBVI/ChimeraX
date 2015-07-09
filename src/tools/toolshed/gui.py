@@ -236,6 +236,3 @@ class ToolshedUI(ToolInstance):
         self.tool_window = None
         session.tools.remove([self])
         super().delete()
-
-    def display(self, b):
-        self.tool_window.shown = b

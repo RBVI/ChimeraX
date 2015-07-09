@@ -100,7 +100,8 @@ class ToolInstance(State):
             Boolean value for whether the tool should be shown or hidden.
 
         """
-        pass
+        if self.session.ui.is_gui:
+            self.session.ui.set_tool_shown(self, b)
 
 
 class Tools(State):

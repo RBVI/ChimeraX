@@ -197,10 +197,6 @@ class CommandLine(ToolInstance):
         session.tools.remove([self])
         super().delete()
 
-    def display(self, b):
-        """Show or hide command line user interface."""
-        self.tool_window.shown = b
-
 class _HistoryDialog:
 
     record_label = "Record..."

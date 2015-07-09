@@ -91,10 +91,6 @@ class MouseModePanel(ToolInstance):
         s.tools.remove([self])
         super().delete()
 
-    def display(self, b):
-        """Show or hide mouse mode panel."""
-        self.tool_window.shown = b
-
     #
     # Implement session.State methods if deriving from ToolInstance
     #

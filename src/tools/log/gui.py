@@ -144,7 +144,3 @@ class Log(ToolInstance, HtmlLog):
         session.logger.remove_log(self)
         session.tools.remove([self])
         super().delete()
-
-    def display(self, b):
-        """Show or hide log."""
-        self.tool_window.shown = b

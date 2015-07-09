@@ -142,6 +142,3 @@ ACTION_BUTTONS
         self.tool_window.destroy()
         self.session.tools.remove([self])
         super().delete()
-
-    def display(self, b):
-        self.tool_window.shown = b
