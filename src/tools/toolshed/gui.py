@@ -231,8 +231,5 @@ class ToolshedUI(ToolInstance):
         for h in self._handlers:
             session.triggers.delete_handler(h)
         self._handlers = []
-        self.tool_window.shown = False
-        self.tool_window.destroy()
         self.tool_window = None
-        session.tools.remove([self])
         super().delete()

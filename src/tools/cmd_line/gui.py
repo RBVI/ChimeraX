@@ -48,6 +48,10 @@ class CommandLine(ToolInstance):
         self.text.SetValue(cmd)
         self.text.SetInsertionPointEnd()
 
+    def delete(self):
+        self.session.ui.deregister_for_keystrokes(self)
+        super().delete()
+
     def forwarded_keystroke(self, event):
         if event.KeyCode == 13:          # Return
             self.on_enter(event)
@@ -185,17 +189,6 @@ class CommandLine(ToolInstance):
 
     def reset_state(self):
         self.tool_window.shown = True
-
-    #
-    # Override ToolInstance methods
-    #
-    def delete(self):
-        session = self.session
-        session.ui.deregister_for_keystrokes(self)
-        self.tool_window.shown = False
-        self.tool_window.destroy()
-        session.tools.remove([self])
-        super().delete()
 
 class _HistoryDialog:
 

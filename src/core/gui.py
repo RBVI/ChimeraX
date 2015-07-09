@@ -85,6 +85,9 @@ class UI(wx.App):
         """
         self._keystroke_sinks.append(sink)
 
+    def remove_tool(self, tool_instance):
+        self.main_window.remove_tool(tool_instance)
+
     def set_tool_shown(self, tool_instance, shown):
         self.main_window.set_tool_shown(tool_instance, shown)
 
@@ -182,25 +185,22 @@ class MainWindow(wx.Frame, PlainTextLog):
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
         close_destroys = tool_window.close_destroys
+        if is_main_window and close_destroys:
+            tool_instance.delete()
+            return
         if tool_window.close_destroys:
             del self.tool_pane_to_window[tool_window.ui_area]
-            tool_window._destroy(from_destructor=True)
+            tool_window._destroy()
             all_windows.remove(tool_window)
         else:
             tool_window.shown = False
             event.Veto()
 
         if is_main_window:
+            # close hides, since close destroys is handled above
             for window in all_windows:
-                if close_destroys:
-                    del self.tool_pane_to_window[window.ui_area]
-                    window.destroy(from_destructor=True)
-                else:
-                    window._prev_shown = window.shown
-                    window.shown = False
-            if close_destroys:
-                del self.tool_instance_to_windows[tool_instance]
-                tool_instance.delete()
+                window._prev_shown = window.shown
+                window.shown = False
 
     def on_quit(self, event):
         self.close()
@@ -226,6 +226,15 @@ class MainWindow(wx.Frame, PlainTextLog):
         from . import commands
         commands.export(ses, ses_file)
         ses.logger.info("Session file \"%s\" saved." % ses_file)
+
+    def remove_tool(self, tool_instance):
+        tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
+        if tool_windows:
+            for tw in tool_windows:
+                tw._mw_set_shown(False)
+                del self.tool_pane_to_window[tw.ui_area]
+                tw._destroy()
+            del self.tool_instance_to_windows[tool_instance]
 
     def set_tool_shown(self, tool_instance, shown):
         tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
@@ -392,9 +401,9 @@ class ToolWindow:
         # any additional actions when window hidden/shown go here
         pass
 
-    def _destroy(self, **kw):
+    def _destroy(self):
         self.cleanup()
-        self.__toolkit.destroy(**kw)
+        self.__toolkit.destroy()
         self.__toolkit = None
 
     def _mw_set_shown(self, shown):
@@ -441,13 +450,11 @@ class _Wx:
 
         self.ui_area.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
 
-    def destroy(self, from_destructor=False):
+    def destroy(self):
         if not self.tool_window:
             # already destroyed
             return
-        if not from_destructor:
-            del self.main_window.tool_pane_to_window[self.ui_area]
-            self.ui_area.Destroy()
+        self.ui_area.Destroy()
         # free up references
         self.tool_window = None
         self.main_window = None

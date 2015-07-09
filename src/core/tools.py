@@ -87,8 +87,9 @@ class ToolInstance(State):
         called as the last step of tool deletion.
 
         """
-        if self.id is not None:
-            raise ValueError("tool instance is still in use")
+        if self.session.ui.is_gui:
+            self.session.ui.remove_tool(self)
+        self.session.tools.remove([self])
         # TODO: track.deleted(ToolInstance, [self])
 
     def display(self, b):

@@ -58,14 +58,3 @@ class ToolUI(ToolInstance):
 
     def reset_state(self):
         pass
-
-    #
-    # Override ToolInstance delete method to clean up
-    #
-    def delete(self):
-        session = self.session()
-        if session.ui.is_gui:
-            self.tool_window.shown = False
-            self.tool_window.destroy()
-        self.session.tools.remove([self])
-        super().delete()

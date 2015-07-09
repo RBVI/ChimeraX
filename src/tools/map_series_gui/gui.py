@@ -158,9 +158,6 @@ class MapSeries(ToolInstance):
     def delete(self):
         s = self.session
         s.triggers.delete_handler(self.model_close_handler)
-        self.tool_window.shown = False
-        self.tool_window.destroy()
-        s.tools.remove([self])
         super().delete()
 
     #

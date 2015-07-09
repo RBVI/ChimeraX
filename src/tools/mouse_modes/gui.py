@@ -82,16 +82,6 @@ class MouseModePanel(ToolInstance):
         self.tool_window.shown = False
 
     #
-    # Override ToolInstance methods
-    #
-    def delete(self):
-        s = self.session
-        self.tool_window.shown = False
-        self.tool_window.destroy()
-        s.tools.remove([self])
-        super().delete()
-
-    #
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, phase, session, flags):

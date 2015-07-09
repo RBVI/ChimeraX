@@ -342,12 +342,3 @@ class SideViewUI(ToolInstance):
 
     def reset_state(self):
         pass
-
-    #
-    # Override ToolInstance delete method to clean up
-    #
-    def delete(self):
-        self.tool_window.shown = False
-        self.tool_window.destroy()
-        self.session.tools.remove([self])
-        super().delete()
