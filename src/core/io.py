@@ -123,6 +123,10 @@ class _FileFormatInfo:
 
         True if can execute arbitrary code (*e.g.*, scripts)
 
+    ..attribute:: icon
+
+        Pathname of icon.
+
     ..attribute:: open_func
 
         function that opens files: func(session, stream/filename, name=None)
@@ -146,13 +150,14 @@ class _FileFormatInfo:
     """
 
     def __init__(self, category, extensions, prefixes, mime, reference,
-                 dangerous):
+                 dangerous, icon):
         self.category = category
         self.extensions = extensions
         self.prefixes = prefixes
         self.mime_types = mime
         self.reference = reference
         self.dangerous = dangerous
+        self.icon = icon
 
         self.open_func = None
         self.requires_filename = False
@@ -165,7 +170,7 @@ _file_formats = {}
 
 
 def register_format(format_name, category, extensions, prefixes=(), mime=(),
-                    reference=None, dangerous=None, **kw):
+                    reference=None, dangerous=None, icon=None, **kw):
     """Register file format's I/O functions and meta-data
 
     :param format_name: format's name
@@ -206,7 +211,7 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
         mime = [mime]
     ff = _file_formats[format_name] = _FileFormatInfo(category, exts, prefixes,
                                                       mime, reference,
-                                                      dangerous)
+                                                      dangerous, icon)
     for attr in ['open_func', 'requires_filename', 'fetch_func',
                  'export_func', 'export_notes', 'batch']:
         if attr in kw:
@@ -345,6 +350,14 @@ def dangerous(format_name):
         return False
 
 
+def icon(format_name):
+    """Return pathname of icon for named format or None"""
+    try:
+        return _file_formats[format_name].icon
+    except KeyError:
+        return None
+
+
 def category(format_name):
     """Return category of named format"""
     try:
@@ -354,9 +367,11 @@ def category(format_name):
 
 
 def format_names(open=True, export=False, source_is_file=False):
-    """Return known format names.
+    """Returns list of known format names.
 
     formats() -> [format-name(s)]
+
+    By default only returns the names of openable formats.
     """
     names = []
     for t, info in _file_formats.items():
