@@ -49,8 +49,8 @@ ifeq ($(OS),Darwin)
 endif
 
 clean:
-	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig __main__.py gensrcs \
-		Info.plist $(LINUX_ICONS)
+	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig frozen.c~ __main__.py \
+		gensrcs Info.plist $(LINUX_ICONS)
 
 lint:
 	$(PYLINT) *.py
