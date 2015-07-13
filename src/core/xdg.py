@@ -278,7 +278,7 @@ def install_icons(info, data_dir):
     if os.path.exists('/usr/share/icons/hicolor/scalable'):
         path = '%s/%s-icon.svg' % (image_dir, info.app_name)
         p2 = os.path.expanduser("~/.local/share/icons/hicolor/scalable/apps")
-        os.mkdirs(p2, exist_ok=True)
+        os.makedirs(p2, exist_ok=True)
 
     # install icons for file formats
     from . import io
