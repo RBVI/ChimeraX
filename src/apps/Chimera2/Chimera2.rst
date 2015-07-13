@@ -14,6 +14,14 @@ by the user.
 Command Line Arguments
 ======================
 
+When running Chimera2 from a terminal, *a.k.a.*, a shell, it can be given
+various options followed by data files.
+The data files are specified with same syntax as the filename argument
+of Models' :py:func:`~chimerac.core.models.Models.open`.
+
+Command Line Options
+--------------------
+
 In particular, the follow command line arguments are useful:
 
 ``--debug``
@@ -39,13 +47,22 @@ In particular, the follow command line arguments are useful:
 ``--notools``
     Do not autostart any tools at startup.
 
+``--uninstall``
+    If needed, deregister any icons or mime types,
+    then remove as much of the installation directory as possible.
+
 ``--usedefaults``
     Ignore user settings and use default settings.
 
 ``--version``
     Print out current version.
+    If given two times,
+    then all of installed Chimera2 tools verions are listed.
+    If given three times,
+    then all of installed Python package versions are listed.
 
 ``-m module``
+    Only recognized if it is the first argument.
     Act like the Python interpreter and run the module as the main module
     and the rest of the arguments are in :py:obj:`sys.argv`.
     Implies ``--nogui`` and ``--silent``.
