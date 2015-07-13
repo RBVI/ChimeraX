@@ -279,6 +279,13 @@ def install_icons(info, data_dir):
         path = '%s/%s-icon.svg' % (image_dir, info.app_name)
         p2 = os.path.expanduser("~/.local/share/icons/hicolor/scalable/apps")
         os.makedirs(p2, exist_ok=True)
+        import shutil
+        shutil.copyfile(path, os.path.join(p2, '%s.svg' % info.name))
+        cmd = [
+            'xdg-icon-resource', 'forceupdate',
+            '--mode', 'user',
+        ]
+        subprocess.call(cmd)
 
     # install icons for file formats
     from . import io

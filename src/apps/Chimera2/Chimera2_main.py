@@ -349,8 +349,8 @@ def init(argv, event_loop=True):
         raise SystemExit(0)
 
     if sys.platform.startswith('linux'):
-        from chimera.core import xdg
-        xdg.install_if_needed(sess, localized_app_name)
+        from chimera.core import _xdg
+        _xdg.install_if_needed(sess, localized_app_name)
 
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
@@ -447,8 +447,8 @@ def uninstall(sess):
         if os.path.basename(exe_dir) != 'bin':
             sys.logger.error('non-standard Chimera2 installation')
             return os.EX_SOFTWARE
-        from chimera.core import xdg
-        xdg.uninstall(sess)
+        from chimera.core import _xdg
+        _xdg.uninstall(sess)
         #parent = os.path.dirname(exe_dir)
         #rm_rf_path(parent, sess)
         return os.EX_OK
