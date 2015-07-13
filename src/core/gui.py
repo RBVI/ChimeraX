@@ -1,9 +1,35 @@
 # vi: set expandtab ts=4 sw=4:
+"""
+gui: main Chimera 2 user interface
+==================================
+
+The principal class that tool writers will use from this module is
+:py:class:`MainToolWindow`, which is either instantiated directly, or
+subclassed and instantiated to create the tool's main window.
+Additional windows are created by calling that instance's
+:py:meth:`MainToolWindow.create_child_window` method.
+
+Rarely, methods are used from the :py:class:`UI` class to get
+keystrokes typed to the main graphics window, or to execute code
+in a thread-safe manner.  The UI instance is accessed as session.ui.
+"""
 
 import wx
 
 
 class UI(wx.App):
+    """Main Chimera2 user interface
+
+       The only methods that tools might directly use are:
+
+       register(/deregister)_for_keystrokes
+        For the rare tool that might want to get keystrokes that are
+        typed when focus is in the main graphics window
+
+       thread_safe
+        To execute a function in a thread-safe manner
+       """
+
 
     def __init__(self, session):
         self.is_gui = True
@@ -335,6 +361,17 @@ class MainWindow(wx.Frame, PlainTextLog):
                 self.Bind(wx.EVT_MENU, cb, item)
         menu_bar.Append(tools_menu, "&Tools")
 
+    def _tool_window_destroy(self, tool_window):
+        tool_instance = tool_window.tool_instance
+        all_windows = self.tool_instance_to_windows[tool_instance]
+        is_main_window = tool_window is all_windows[0]
+        if is_main_window:
+            tool_instance.delete()
+            return
+        del self.tool_pane_to_window[tool_window.ui_area]
+        tool_window._destroy()
+        all_windows.remove(tool_window)
+
     def _tool_window_request_shown(self, tool_window, shown):
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
@@ -347,17 +384,22 @@ class MainWindow(wx.Frame, PlainTextLog):
 class ToolWindow:
     """An area that a tool can populate with widgets.
 
-       This class is not used directly.  Instead, a tool makes its main
-       window by instantiating the MainToolWindow class, and any subwindows
-       by calling that class's create_child_window() method.
+    This class is not used directly.  Instead, a tool makes its main
+    window by instantiating the :py:class:`MainToolWindow` class
+    (or a subclass thereof), and any subwindows by calling that class's
+    :py:meth:`~MainToolWindow.create_child_window` method.
 
-        'ui_area' is the parent to all the tool's widgets;
-        Call 'manage' once the widgets are set up to put the
-        tool into the main window.
+    The window's :py:attr:`ui_area` attribute is the parent to all the tool's
+    widgets for this window.  Call :py:meth:`manage` once the widgets
+    are set up to show the tool window in the main interface.
     """
 
+    #: Where the window is placed in the main interface
     placements = ["right", "left", "top", "bottom"]
 
+    #: Whether closing this window destroys it or hides it.
+    #: If it destroys it and this is the main window, all the
+    #: child windows will also be destroyedRolls
     close_destroys = True
 
     def __init__(self, tool_instance, title, size):
@@ -372,21 +414,38 @@ class ToolWindow:
         mw._new_tool_window(self)
 
     def cleanup(self):
-        # any additional things to do as the window is destroyed go here
+        """Perform tool-specific cleanup
+        
+        Override this method to perform additional actions needed when
+        the window is destroyed"""
         pass
 
+    def destroy(self):
+        """Called to destroy the window (from non-UI code)
+        
+           Destroying a tool's main window will also destroy all its
+           child windows.
+        """
+        self.tool_instance.session.ui.main_window._tool_window_destroy(self)
+
     def fill_context_menu(self, menu):
+        """Add items to this tool window's context menu
+        
+        Override to add items to any context menu popped up over this window"""
         pass
 
     def manage(self, placement, fixed_size=False):
-        """ Tool will be docked into main window on the side indicated by
-            'placement' (which should be a value from self.placements or None);
-            if 'placement' is None, the tool will be detached from the main
-            window.
+        """Show this tool window in the interface
+        
+        Tool will be docked into main window on the side indicated by
+        `placement` (which should be a value from :py:attr:`placements`
+        or None).  If `placement` is None, the tool will be detached
+        from the main window.
         """
         self.__toolkit.manage(placement, fixed_size)
 
     def _get_shown(self):
+        """Whether this window is hidden or shown"""
         return self.__toolkit.shown
 
     def _set_shown(self, shown):
@@ -398,7 +457,10 @@ class ToolWindow:
     shown = property(_get_shown, _set_shown)
 
     def shown_changed(self, shown):
-        # any additional actions when window hidden/shown go here
+        """Perform actions when window hidden/shown
+
+        Override to perform any actions you want done when the window
+        is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
         pass
 
     def _destroy(self):
@@ -411,11 +473,40 @@ class ToolWindow:
         self.shown_changed(shown)
 
 class MainToolWindow(ToolWindow):
+    """Class used to generate tool's main UI window.
+
+    The window's :py:attr:`ui_area` attribute is the parent to all the tool's
+    widgets for this window.  Call :py:meth:`manage` once the widgets
+    are set up to show the tool window in the main interface.
+
+    Parameters
+    ----------
+    tool_instance : a :py:class:`~chimera.core.tools.ToolInstance` instance
+        The tool creating this window.
+    size : 2-tuple of ints, optional
+        Requested size for the tool window, width by height, in pixels.
+        If not specified, uses the window system default.
+    """
     def __init__(self, tool_instance, size=None):
         super().__init__(tool_instance,
             tool_instance.display_name, size)
 
     def create_child_window(self, title, size=None, window_class=None):
+        """Make additional tool window
+
+        Parameters
+        ----------
+        title : str
+            Text shown in the window's title bar.
+        size
+            Same as for :py:class:`MainToolWindow` constructor.
+        window_class : :py:class:`ChildToolWindow` subclass, optional
+            Class to instantiate to create the child window.
+            Only needed if you want to override methods/attributes in
+            order to change behavior.
+            Defaults to :py:class:`ChildToolWindow`.
+        """
+
         if window_class is None:
             window_class = ChildToolWindow
         elif not issubclass(window_class, ChildToolWindow):
@@ -424,6 +515,11 @@ class MainToolWindow(ToolWindow):
         return window_class(self.tool_instance, title, size)
 
 class ChildToolWindow(ToolWindow):
+    """Child (*i.e.* additional) tool window
+
+    Only created through use of
+    :py:meth:`MainToolWindow.create_child_window` method.
+    """
     def __init__(self, tool_instance, title, size=None):
         super().__init__(tool_instance, title, size)
 
