@@ -22,9 +22,9 @@ class _SaveFormat:
             self._window = self._make_ui(parent)
         return self._window
 
-    def update(self, save_dialog):
+    def update(self, session, save_dialog):
         if self._update:
-            self._update(save_dialog)
+            self._update(session, save_dialog)
 
     def save(self, session, filename):
         return self._save(session, filename)
@@ -64,15 +64,23 @@ class SaveDialog:
             self.file_dialog = wx.FileDialog(parent, "Save File", "", "", "",
                                              wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
             self.file_dialog.SetExtraControlCreator(self._extraCreatorCB)
-        if self.file_dialog.ShowModal() == wx.ID_CANCEL:
-            return
+        else:
+            fmt = self.current_format()
+            fmt.update(session, self)
+        try:
+            self.session = session
+            if self.file_dialog.ShowModal() == wx.ID_CANCEL:
+                return
+        finally:
+            del self.session
         fmt = self.current_format()
         filename = self.file_dialog.GetPath()
         fmt.save(session, filename)
 
     def _extraCreatorCB(self, parent):
         import wx
-        p = wx.Window(parent)
+        # TODO: make tab traversal work on extra control panel
+        p = wx.Panel(parent)
         try:
             s = wx.BoxSizer(wx.VERTICAL)
             # Choice at top for selecting save file type
@@ -89,7 +97,7 @@ class SaveDialog:
             no_options_window.SetSizerAndFit(ns)
             s.Add(no_options_window, proportion=1, flag=wx.EXPAND|wx.ALL|wx.ALIGN_CENTER, border=2)
             # Save references to widgets we need
-            self._options_window = p
+            self._options_panel = p
             self._options_sizer = s
             self._format_selector = format_selector
             self._no_options_window = no_options_window
@@ -117,7 +125,8 @@ class SaveDialog:
     def _select_format(self, event=None):
         fmt = self.current_format()
         self.file_dialog.SetWildcard(fmt.wildcard)
-        w = fmt.window(self._options_window) or self._no_options_window
+        w = fmt.window(self._options_panel) or self._no_options_window
+        fmt.update(self.session, self)
         if w is self._current_option:
             return
         import wx
@@ -128,7 +137,7 @@ class SaveDialog:
             self._known_options.add(w)
         w.Show(True)
         self._options_sizer.Layout()
-        self._options_window.Fit()
+        self._options_panel.Fit()
         self._current_option = w
 
     def set_wildcard(self, format):
@@ -148,7 +157,7 @@ def _session_save(session, filename):
     exts = io.extensions("Chimera session")
     if exts and ext not in exts:
         filename += exts[0]
-    # TODO: generate text command instead of calling export directly
+    # TODO: generate text command instead of calling function directly
     # so that command logging happens automatically
     from .. import commands
     commands.export(session, filename)
@@ -159,6 +168,10 @@ class ImageSaver:
 
     DEFAULT_FORMAT = "PNG"
     DEFAULT_EXT = "png"
+    SUPERSAMPLE_OPTIONS = (("None", None),
+                           ("2x2", 2),
+                           ("3x3", 3),
+                           ("4x4", 4))
 
     def __init__(self, save_dialog):
         import weakref
@@ -177,7 +190,7 @@ class ImageSaver:
         import wx
         from .. import commands
         w = wx.Window(parent, style=wx.BORDER_SIMPLE)
-        s = wx.FlexGridSizer(rows=2, cols=2, hgap=2, vgap=2)
+        s = wx.FlexGridSizer(rows=3, cols=2, hgap=2, vgap=2)
 
         selector = wx.Choice(w, choices=list(commands.image_formats.values()),
                              style=wx.CB_READONLY)
@@ -185,21 +198,38 @@ class ImageSaver:
         selector.SetSelection(selector.Items.index(self.DEFAULT_FORMAT))
         s.Add(wx.StaticText(w, label="Format:"), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         s.Add(selector, proportion=1, flag=wx.ALL|wx.ALIGN_LEFT, border=5)
+        self._format_selector = selector
 
-        ss = wx.BoxSizer(wx.HORIZONTAL)
-        width = wx.StaticText(w, label="Width")
-        ss.Add(width, proportion=1)
-        x = wx.StaticText(w, label="x")
-        ss.Add(x, flag=wx.LEFT|wx.RIGHT, border=4)
-        height = wx.StaticText(w, label="Height")
-        ss.Add(height, proportion=1)
+        size_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self._width = wx.TextCtrl(w)
+        self._height = wx.TextCtrl(w)
+        # debugging code:
+        # self._width.Bind(wx.EVT_TEXT, self.EvtText)
+        # self._width.Bind(wx.EVT_CHAR, self.EvtChar)
+        size_sizer.Add(self._width, proportion=1)
+        size_sizer.Add(wx.StaticText(w, label="x"), flag=wx.LEFT|wx.RIGHT, border=4)
+        size_sizer.Add(self._height, proportion=1)
         s.Add(wx.StaticText(w, label="Size:"), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        s.Add(size_sizer, proportion=1, flag=wx.ALL|wx.ALIGN_LEFT, border=5)
+
+        ss = wx.Choice(w, choices=[o[0] for o in self.SUPERSAMPLE_OPTIONS], style=wx.CB_READONLY)
+        s.Add(wx.StaticText(w, label="Supersample:"), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         s.Add(ss, proportion=1, flag=wx.ALL|wx.ALIGN_LEFT, border=5)
+        self._supersample = ss
 
         w.SetSizerAndFit(s)
         parent.Fit()
-        self._format_selector = selector
         return w
+
+    def EvtText(self, event):
+        import sys
+        print("EvtText", event, event.GetString(), file=sys.__stderr__)
+        event.Skip()
+
+    def EvtChar(self, event):
+        import sys
+        print("EvtChar", event, event.GetKeyCode(), file=sys.__stderr__)
+        event.Skip()
 
     def _get_current_extension(self):
         format_name = self._format_selector.GetString(self._format_selector.Selection)
@@ -221,9 +251,11 @@ class ImageSaver:
         # TODO: enable options that apply to this graphics format
         pass
 
-    def update(self, save_dialog):
-        # TODO: update UI elements
-        pass
+    def update(self, session, save_dialog):
+        gw = session.ui.main_window.graphics_window
+        w, h = gw.GetSize()
+        self._width.SetValue(str(w))
+        self._height.SetValue(str(h))
 
     def save(self, session, filename):
         import os.path
@@ -231,7 +263,20 @@ class ImageSaver:
         e = '.' + self._get_current_extension()
         if ext != e:
             filename += e
-        commands.save_image(session, filename)
+        try:
+            w = int(self._width.GetValue())
+            h = int(self._height.GetValue())
+        except ValueError:
+            from ..cli import UserError
+            raise UserError("width/height must be integers")
+        if w <= 0 or h <= 0:
+            from ..cli import UserError
+            raise UserError("width/height must be positive integers")
+        ss = self.SUPERSAMPLE_OPTIONS[self._supersample.GetSelection()][1]
+        # TODO: generate text command instead of calling function directly
+        # so that command logging happens automatically
+        from .. import commands
+        commands.save_image(session, filename, width=w, height=h, supersample=ss)
 
     def register(self):
         self._save_dialog().register("Image File", self.wildcard, self.make_ui,
