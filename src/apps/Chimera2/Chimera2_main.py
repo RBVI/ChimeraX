@@ -253,7 +253,9 @@ def init(argv, event_loop=True):
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
-    sess.app_data_dir = os.path.join(os.path.dirname(bindir), "share")
+    rootdir = os.path.dirname(bindir)
+    sess.app_data_dir = os.path.join(rootdir, "share")
+    sess.app_bin_dir = os.path.join(rootdir, "bin")
 
     # inform the C++ layer of the appdirs paths
     from chimera.core import _appdirs
