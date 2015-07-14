@@ -30,3 +30,7 @@ clean:
 
 lint:
 	$(PYLINT) $(PYSRCS)
+
+molc.o: $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/Bond.h \
+	$(includedir)/atomstruct/Chain.h $(includedir)/atomstruct/Pseudobond.h \
+	$(includedir)/atomstruct/Residue.h $(includedir)/basegeom/destruct.h
