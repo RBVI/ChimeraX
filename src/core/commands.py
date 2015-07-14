@@ -132,7 +132,6 @@ def help(session, command_name=None):
         status(str(e))
         return
     if session.ui.is_gui:
-        status(usage)
         info(cli.html_usage(command_name), is_html=True)
     else:
         info(usage)
