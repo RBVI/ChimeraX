@@ -521,6 +521,18 @@ class StringArg(Annotation):
         token, text, rest = next_token(text)
         return token, text, rest
 
+class AxisArg(Annotation):
+    '''Annotation for axis vector thatn can be 3 floats or "x", or "y", or "z"'''
+    name = 'axis vector'
+
+    @staticmethod
+    def parse(text, session):
+        try:
+            return Float3Arg.parse(text, session)
+        except:
+            token, text, rest = next_token(text)
+            axis = {'x':(1,0,0), 'y':(0,1,0), 'z':(0,0,1)}.get(token)
+            return axis, text, rest
 
 class Bounded(Annotation):
     """Support bounded numerical values
