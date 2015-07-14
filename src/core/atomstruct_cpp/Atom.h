@@ -17,6 +17,7 @@
 
 namespace atomstruct {
 
+using basegeom::GraphicsContainer;
 using basegeom::Point;
 
 class AtomicStructure;
@@ -114,7 +115,11 @@ public:
     void  set_radius(float);
     void  set_serial_number(int);
     std::string  str() const;
-    AtomicStructure *  structure() const { return _structure; }
+    AtomicStructure*  structure() const { return _structure; }
+
+    // graphics related
+    GraphicsContainer*  graphics_container() const {
+        return reinterpret_cast<GraphicsContainer*>(_structure); }
 };
 
 }  // namespace atomstruct

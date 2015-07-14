@@ -9,8 +9,26 @@
 
 namespace basegeom {
     
+class GraphicsContainer {
+private:
+    bool  _gc_redraw:1;
+    bool  _gc_select:1;
+    bool  _gc_shape:1;
+    
+public:
+    GraphicsContainer(): _gc_redraw(false), _gc_select(false),
+        _gc_shape(false) {}
+    virtual  ~GraphicsContainer() {}
+    bool  get_gc_redraw() const { return _gc_redraw; }
+    bool  get_gc_select() const { return _gc_select; }
+    bool  get_gc_shape() const { return _gc_shape; }
+    void  set_gc_redraw(bool gc) { _gc_redraw = gc; }
+    void  set_gc_select(bool gc) { _gc_select = gc; }
+    void  set_gc_shape(bool gc) { _gc_shape = gc; }
+};
+
 template <class Vertex, class Edge>
-class Graph {
+class Graph: public GraphicsContainer {
 protected:
     typedef std::vector<Vertex*>  Vertices;
     typedef std::vector<Edge*>  Edges;
@@ -19,6 +37,7 @@ private:
     Edges  _edges;
 
     float  _ball_scale;
+    bool  _display = true;
 
 protected:
     void  add_edge(Edge *e) { _edges.emplace_back(e); }
@@ -44,13 +63,8 @@ public:
 
     // graphics related
     float  ball_scale() const { return _ball_scale; }
-    void  set_ball_scale(float bs) { _ball_scale = bs; }
-
-    // temporary until a Model class exists
-private:
-    bool  _display = true;
-public:
     bool  display() const { return _display; }
+    void  set_ball_scale(float bs) { set_gc_shape(true); _ball_scale = bs; }
     void  set_display(bool d) { _display = d; }
 };
 

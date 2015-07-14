@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 
+#include "Graph.h"
 #include "Real.h"
 #include "Rgba.h"
 #include "destruct.h"
@@ -49,6 +50,7 @@ public:
     const Rgba&  color() const { return _rgba; }
     BondDisplay  display() const { return _display; }
     bool  halfbond() const { return _halfbond; }
+    virtual GraphicsContainer*  graphics_container() const = 0;
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a) { _rgba = {r, g, b, a}; }
     void  set_color(const Rgba& rgba) { _rgba = rgba; }

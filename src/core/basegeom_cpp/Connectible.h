@@ -7,6 +7,7 @@
 
 #include "Connection.h"
 #include "Coord.h"
+#include "Graph.h"
 #include "Rgba.h"
 #include "destruct.h"
 
@@ -18,8 +19,8 @@ using ::basegeom::UniqueConnection;
     
 template <class FinalConnection, class FinalConnectible>
 class Connectible {
-    friend class UniqueConnection<FinalConnectible, FinalConnection>;
 protected:
+    friend class UniqueConnection<FinalConnectible, FinalConnection>;
     typedef std::vector<FinalConnection*> Connections;
     typedef std::vector<FinalConnectible*> Neighbors;
 
@@ -49,6 +50,7 @@ public:
         Rgba::Channel a) { _rgba = {r, g, b, a}; }
     void  set_color(const Rgba& rgba) { _rgba = rgba; }
     bool  display() const { return _display; }
+    virtual GraphicsContainer*  graphics_container() const = 0;
     void  set_display(bool d) { _display = d; }
     bool  selected() const { return _selected; }
     void  set_selected(bool s) { _selected = s; }

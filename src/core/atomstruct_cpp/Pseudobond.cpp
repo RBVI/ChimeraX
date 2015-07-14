@@ -95,7 +95,7 @@ PBond*
 CS_PBGroup::new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs)
 {
     _check_ownership(a1, a2);
-    PBond* pb = new PBond(a1, a2);
+    PBond* pb = new PBond(a1, a2, this);
     auto pbi = _pbonds.find(cs);
     if (pbi == _pbonds.end()) {
         _pbonds[cs].insert(pb);

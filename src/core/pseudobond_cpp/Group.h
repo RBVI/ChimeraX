@@ -7,11 +7,13 @@
 #include <string>
 
 #include <basegeom/destruct.h>
+#include <basegeom/Graph.h>
 
 namespace pseudobond {
 
 template <class EndPoint, class PBond>
-class Group: public basegeom::DestructionObserver {
+class Group:
+    public basegeom::DestructionObserver, public basegeom::GraphicsContainer {
 protected:
     std::string  _category;
     bool  _destruction_relevant;
