@@ -323,6 +323,75 @@ _set_desc = cli.CmdDesc(
     synopsis="set preferences"
 )
 
+#
+# Turn command to rotate models.
+#
+def turn(session, axis, angle, frames = 1):
+    v = session.main_view
+    c = v.camera
+    cv = c.position
+    saxis = cv.apply_without_translation(axis)  # Convert axis from camera to scene coordinates
+    center = v.center_of_rotation
+    from .geometry.place import rotation
+    r = rotation(saxis, -angle, center)
+    if frames == 1:
+        c.position = r*cv
+    else:
+        def rotate(r=r,c=c):
+            c.position = r*c.position
+        call_for_n_frames(rotate, frames, session)
+
+_turn_desc = cli.CmdDesc(required = [('axis', cli.AxisArg),
+                                     ('angle', cli.FloatArg)],
+                         optional = [('frames', cli.IntArg)])
+
+class call_for_n_frames:
+    
+    def __init__(self, func, n, session):
+        self.func = func
+        self.n = n
+        self.session = session
+        self.frame = 0
+        v = session.main_view
+        v.add_new_frame_callback(self.call)
+        if not hasattr(session, 'motion_in_progress'):
+            session.motion_in_progress = set()
+        session.motion_in_progress.add(self)
+    def call(self):
+        f = self.frame
+        if f >= self.n:
+            self.done()
+        else:
+            self.func()
+            self.frame = f+1
+    def done(self):
+        s = self.session
+        v = s.main_view
+        v.remove_new_frame_callback(self.call)
+        s.motion_in_progress.remove(self)
+
+def freeze(session):
+    if hasattr(session, 'motion_in_progress'):
+        for mip in tuple(session.motion_in_progress):
+            mip.done()
+_freeze_desc = cli.CmdDesc()
+
+def motion_in_progress(session):
+    return len(getattr(session, 'motion_in_progress', ())) > 0
+
+def wait(session, frames = None):
+    v = session.main_view
+    if frames is None:
+#        from ..commands.motion import motion_in_progress
+        while motion_in_progress(session):
+            v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
+            v.draw(only_if_changed = True)
+    else:
+        for f in range(frames):
+            v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
+            v.draw(only_if_changed = True)
+_wait_desc = cli.CmdDesc(optional = [('frames', cli.IntArg)])
+
 
 def register(session):
     """Register common cli commands"""
@@ -345,6 +414,9 @@ def register(session):
     cli.register('ribbon', _ribbon_desc, ribbon)
     cli.register('~ribbon', _unribbon_desc, unribbon)
     cli.register('set', _set_desc, set_cmd)
+    cli.register('turn', _turn_desc, turn)
+    cli.register('freeze', _freeze_desc, freeze)
+    cli.register('wait', _wait_desc, wait)
     from . import molsurf
     molsurf.register_surface_command()
     molsurf.register_sasa_command()
