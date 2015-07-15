@@ -138,7 +138,15 @@ class Logger:
     :py:meth:`Log.log` abstract method,
     but need not override the :py:meth:`Log.status` method
     if they are not interested in showing status.
+
+    If the Logger :py:attr:`collapse_similar` attribute is True, then
+    after a few occurances of consecutive similar log messages, the
+    remainder will be collapsed into a single log message noting how
+    many additional occurances there were.
     """
+
+    _sim_test_size = 10
+    _sim_collapse_after = 5
 
     def __init__(self, session):
         from chimera.core.orderedset import OrderedSet
@@ -147,6 +155,10 @@ class Logger:
         self._prev_newline = True
         self._status_timer1 = self._status_timer2 = None
         self._follow_timer1 = self._follow_timer2 = None
+        self._sim_info = None
+        self._prev_info = None
+        self._sim_timer = None
+        self._collapse_similar = False
 
     def add_log(self, log):
         """Add a logger"""
@@ -157,6 +169,22 @@ class Logger:
             # move to top
             self.logs.discard(log)
         self.logs.add(log)
+
+    @property
+    def collapse_similar(self):
+        return self._collapse_similar
+
+    @collapse_similar.setter
+    def collapse_similar(self, cs):
+        if cs == self._collapse_similar:
+            return
+        self._collapse_similar = cs
+        if not cs:
+            if self._sim_timer != None:
+                self._sim_timer.cancel()
+                self._sim_timer_cb()
+            else:
+                self._sim_info = None
 
     def clear(self):
         """clear all loggers"""
@@ -173,6 +201,10 @@ class Logger:
         if self._follow_timer2:
             self._follow_timer2.cancel()
             self._follow_timer2 = None
+        if self._sim_timer:
+            self._sim_timer.cancel()
+            self._sim_timer = None
+        self._prev_info = self._sim_info = None
 
     def error(self, msg, add_newline=True, image=None, is_html=False):
         """Log an error message
@@ -289,6 +321,7 @@ class Logger:
         return msg
 
     def _log(self, level, msg, add_newline, image, is_html, last_resort=None):
+        #level = Log.LEVEL_INFO
         prev_newline = self._prev_newline
         self._prev_newline = add_newline
 
@@ -297,6 +330,58 @@ class Logger:
                 msg += "<br/>"
             else:
                 msg += "\n"
+
+        if self.collapse_similar:
+            # Judge similarity to preceding messages and perhaps collapse...
+            if self._sim_info:
+                sim_level, sim_reps, sim_type, sim_data = self._sim_info
+                st = self._sim_test_size
+                if sim_level != level:
+                    similar = False
+                elif sim_type == "front":
+                    similar = msg[:2*st] == sim_data
+                elif sim_type == "back":
+                    similar = msg[-2*st:] == sim_data
+                else:
+                    similar = msg[st:] == sim_data[0] \
+                        and msg[-st:] == sim_data[1]
+                if similar:
+                    sim_reps += 1
+                    self._sim_info = (sim_level, sim_reps, sim_type, sim_data)
+                    if sim_reps >= self._sim_collapse_after+1:
+                        if self._sim_timer is not None:
+                            self._sim_timer.cancel()
+                        from threading import Timer
+                        self._sim_timer = Timer(0.5, self._sim_timer_cb)
+                        self._sim_timer.start()
+                        return
+                    # let first few reps get logged immediately...
+                else:
+                    if self._sim_timer is not None:
+                        self._sim_timer.cancel()
+                        self._sim_timer_cb()
+                    else:
+                        self._sim_info = None
+            elif self._prev_info is not None:
+                st = self._sim_test_size
+                prev_level, prev_msg = self._prev_info
+                if level == prev_level:
+                    similar = True
+                    if msg[:2*st] == prev_msg[:2*st]:
+                        sim_type = "front"
+                        sim_data = msg[:2*st]
+                    elif msg[-2*st:] == prev_msg[-2*st:]:
+                        sim_type = "back"
+                        sim_data = msg[-2*st:]
+                    elif msg[:st] == prev_msg[:st] \
+                    and msg[-st:] == prev_msg[-st:]:
+                        sim_type = "ends"
+                        sim_data = (msg[:st], msg[-st:])
+                    else:
+                        similar = False
+                    if similar:
+                        self._sim_info = (level, 2, sim_type, sim_data)
+        self._prev_info = (level, msg)
 
         msg_handled = False
         for log in self.logs:
@@ -316,6 +401,14 @@ class Logger:
                 else:
                     output = msg
                 print(output, end="", file=last_resort)
+
+    def _sim_timer_cb(self):
+        self._sim_timer = None
+        level, reps = self._sim_info[:2]
+        self._sim_info = None
+        self._log(level, "{} messages similar to the above omitted".format(
+            reps - self._sim_collapse_after), True, None, False)
+
 
     def _status_timeout(self, secondary):
         if secondary:
