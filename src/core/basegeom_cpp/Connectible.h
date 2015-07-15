@@ -47,13 +47,17 @@ public:
     // graphics related
     const Rgba&  color() const { return _rgba; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
-        Rgba::Channel a) { _rgba = {r, g, b, a}; }
-    void  set_color(const Rgba& rgba) { _rgba = rgba; }
+        Rgba::Channel a)
+        { graphics_container()->set_gc_redraw(); _rgba = {r, g, b, a}; }
+    void  set_color(const Rgba& rgba)
+        { graphics_container()->set_gc_redraw(); _rgba = rgba; }
     bool  display() const { return _display; }
     virtual GraphicsContainer*  graphics_container() const = 0;
-    void  set_display(bool d) { _display = d; }
+    void  set_display(bool d)
+        { graphics_container()->set_gc_shape(); _display = d; }
     bool  selected() const { return _selected; }
-    void  set_selected(bool s) { _selected = s; }
+    void  set_selected(bool s)
+        { graphics_container()->set_gc_select(); _selected = s; }
 };
 
 } //  namespace basegeom

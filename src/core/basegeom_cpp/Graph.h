@@ -19,12 +19,14 @@ public:
     GraphicsContainer(): _gc_redraw(false), _gc_select(false),
         _gc_shape(false) {}
     virtual  ~GraphicsContainer() {}
+    void  gc_clear()
+        { _gc_redraw = false; _gc_select = false; _gc_shape = false; }
     bool  get_gc_redraw() const { return _gc_redraw; }
     bool  get_gc_select() const { return _gc_select; }
     bool  get_gc_shape() const { return _gc_shape; }
-    void  set_gc_redraw(bool gc) { _gc_redraw = gc; }
-    void  set_gc_select(bool gc) { _gc_select = gc; }
-    void  set_gc_shape(bool gc) { _gc_shape = gc; }
+    void  set_gc_redraw(bool gc = true) { _gc_redraw = gc; }
+    void  set_gc_select(bool gc = true) { _gc_select = gc; }
+    void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
 };
 
 template <class Vertex, class Edge>
@@ -64,8 +66,8 @@ public:
     // graphics related
     float  ball_scale() const { return _ball_scale; }
     bool  display() const { return _display; }
-    void  set_ball_scale(float bs) { set_gc_shape(true); _ball_scale = bs; }
-    void  set_display(bool d) { _display = d; }
+    void  set_ball_scale(float bs) { set_gc_shape(); _ball_scale = bs; }
+    void  set_display(bool d) { set_gc_shape(); _display = d; }
 };
 
 } //  namespace basegeom

@@ -23,6 +23,7 @@ Graph<Vertex, Edge>::delete_edge(Edge *e)
     for (auto v: e->end_points())
         v->remove_connection(e);
     _edges.erase(i);
+    set_gc_redraw();
     delete e;
 }
 
@@ -38,6 +39,7 @@ Graph<Vertex, Edge>::delete_vertex(Vertex *v)
     for (auto e: v->connections())
         e->other_end(v)->remove_connection(e);
     _vertices.erase(i);
+    set_gc_shape();
     delete v;
 }
 
@@ -73,6 +75,7 @@ Graph<Vertex, Edge>::delete_vertices(const std::set<Vertex*>& vertices)
             if (rm) delete e; return rm;
         });
     _edges.erase(new_e_end, _edges.end());
+    set_gc_shape();
 }
 
 } //  namespace basegeom

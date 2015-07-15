@@ -17,6 +17,7 @@
 
 namespace atomstruct {
 
+using basegeom::BaseSphere;
 using basegeom::GraphicsContainer;
 using basegeom::Point;
 
@@ -26,7 +27,7 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom: public basegeom::BaseSphere<Bond, Atom> {
+class ATOMSTRUCT_IMEX Atom: public BaseSphere<Bond, Atom> {
     friend class AtomicStructure;
     friend class Residue;
 public:
@@ -64,7 +65,6 @@ private:
     AtomType  _explicit_idatm_type;
     AtomName  _name;
     unsigned int  _new_coord(const Point &);
-    float  _radius = -1.0; // indicates not explicitly set
     Residue *  _residue;
     mutable Rings  _rings;
     int  _serial_number;
