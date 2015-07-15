@@ -449,6 +449,8 @@ def register(session):
     crosslinks.register_crosslink_command()
     from . import split
     split.register_split_command()
+    from . import perframe
+    perframe.register_perframe_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
