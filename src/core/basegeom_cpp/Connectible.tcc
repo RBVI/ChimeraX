@@ -16,6 +16,7 @@ Connectible<FinalConnection, FinalConnectible>::add_connection(
     _connections.push_back(c);
     _neighbors.push_back(
         c->other_end(static_cast<FinalConnectible *>(this)));
+    graphics_container()->set_gc_redraw(true);
 }
 
 template <class FinalConnection, class FinalConnectible>

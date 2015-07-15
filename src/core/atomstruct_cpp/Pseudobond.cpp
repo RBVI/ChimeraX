@@ -23,7 +23,8 @@ Owned_PBGroup_Base::_check_ownership(Atom* a1, Atom* a2)
 }
 
 static void
-_check_destroyed_atoms(PBonds& pbonds, const std::set<void*>& destroyed)
+_check_destroyed_atoms(PBonds& pbonds, const std::set<void*>& destroyed,
+    GraphicsContainer* gc)
 {
     PBonds remaining;
     for (auto pb: pbonds) {
@@ -37,8 +38,10 @@ _check_destroyed_atoms(PBonds& pbonds, const std::set<void*>& destroyed)
     }
     if (remaining.size() == 0) {
         pbonds.clear();
+        gc->set_gc_redraw();
     } else if (remaining.size() != pbonds.size()) {
         pbonds.swap(remaining);
+        gc->set_gc_redraw();
     }
 }
 
@@ -47,21 +50,24 @@ CS_PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
 {
     auto db = basegeom::DestructionBatcher(this);
     for (auto& cs_pbs: _pbonds)
-        _check_destroyed_atoms(cs_pbs.second, destroyed);
+        _check_destroyed_atoms(cs_pbs.second, destroyed,
+            static_cast<GraphicsContainer*>(this));
 }
 
 void
 Owned_PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
 {
     auto db = basegeom::DestructionBatcher(this);
-    _check_destroyed_atoms(_pbonds, destroyed);
+    _check_destroyed_atoms(_pbonds, destroyed,
+        static_cast<GraphicsContainer*>(this));
 }
 
 void
 PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
 {
     auto db = basegeom::DestructionBatcher(this);
-    _check_destroyed_atoms(_pbonds, destroyed);
+    _check_destroyed_atoms(_pbonds, destroyed,
+        static_cast<GraphicsContainer*>(this));
 }
 
 Proxy_PBGroup*
@@ -95,7 +101,7 @@ PBond*
 CS_PBGroup::new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs)
 {
     _check_ownership(a1, a2);
-    PBond* pb = new PBond(a1, a2);
+    PBond* pb = new PBond(a1, a2, this);
     auto pbi = _pbonds.find(cs);
     if (pbi == _pbonds.end()) {
         _pbonds[cs].insert(pb);

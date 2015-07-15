@@ -7,6 +7,7 @@
 
 #include "Connection.h"
 #include "Coord.h"
+#include "Graph.h"
 #include "Rgba.h"
 #include "destruct.h"
 
@@ -18,8 +19,8 @@ using ::basegeom::UniqueConnection;
     
 template <class FinalConnection, class FinalConnectible>
 class Connectible {
-    friend class UniqueConnection<FinalConnectible, FinalConnection>;
 protected:
+    friend class UniqueConnection<FinalConnectible, FinalConnection>;
     typedef std::vector<FinalConnection*> Connections;
     typedef std::vector<FinalConnectible*> Neighbors;
 
@@ -46,12 +47,17 @@ public:
     // graphics related
     const Rgba&  color() const { return _rgba; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
-        Rgba::Channel a) { _rgba = {r, g, b, a}; }
-    void  set_color(const Rgba& rgba) { _rgba = rgba; }
+        Rgba::Channel a)
+        { graphics_container()->set_gc_redraw(); _rgba = {r, g, b, a}; }
+    void  set_color(const Rgba& rgba)
+        { graphics_container()->set_gc_redraw(); _rgba = rgba; }
     bool  display() const { return _display; }
-    void  set_display(bool d) { _display = d; }
+    virtual GraphicsContainer*  graphics_container() const = 0;
+    void  set_display(bool d)
+        { graphics_container()->set_gc_shape(); _display = d; }
     bool  selected() const { return _selected; }
-    void  set_selected(bool s) { _selected = s; }
+    void  set_selected(bool s)
+        { graphics_container()->set_gc_select(); _selected = s; }
 };
 
 } //  namespace basegeom

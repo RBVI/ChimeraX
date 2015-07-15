@@ -16,13 +16,18 @@ class Atom;
 class AtomicStructure;
 class CoordSet;
 
+using basegeom::GraphicsContainer;
+
 class ATOMSTRUCT_IMEX PBond: public basegeom::Connection<Atom>
 {
     friend class PBGroup;
     friend class Owned_PBGroup;
     friend class CS_PBGroup;
 private:
-    PBond(Atom* a1, Atom* a2): basegeom::Connection<Atom>(a1, a2) {};
+    GraphicsContainer*  _gc;
+
+    PBond(Atom* a1, Atom* a2, GraphicsContainer* gc):
+        basegeom::Connection<Atom>(a1, a2), _gc(gc) {};
 protected:
     const char*  err_msg_loop() const
         { return "Can't form pseudobond to itself"; }
@@ -32,6 +37,7 @@ public:
     virtual ~PBond() {}
     typedef End_points  Atoms;
     const Atoms&  atoms() const { return end_points(); }
+    GraphicsContainer*  graphics_container() const { return _gc; }
 };
 
 typedef std::set<PBond*>  PBonds;
@@ -46,7 +52,7 @@ public:
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
     void  clear() { for (auto pb: _pbonds) delete pb; _pbonds.clear(); }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
-        PBond* pb = new PBond(a1, a2);
+        PBond* pb = new PBond(a1, a2, this);
         pb->finish_construction();
         _pbonds.insert(pb);
         return pb;
@@ -80,7 +86,7 @@ public:
     void  clear() { for (auto pb : _pbonds) delete pb; _pbonds.clear(); }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         _check_ownership(a1, a2);
-        PBond* pb = new PBond(a1, a2);
+        PBond* pb = new PBond(a1, a2, this);
         pb->finish_construction();
         _pbonds.insert(pb); return pb;
     }

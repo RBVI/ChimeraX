@@ -67,21 +67,25 @@ public:
     const ResName&  name() const { return _name; }
     int  position() const { return _position; }
     void  remove_atom(Atom*);
-    bool  ribbon_display() const { return _ribbon_display; }
-    const Rgba&  ribbon_color() const { return _ribbon_rgba; }
     void  set_alt_loc(char alt_loc);
     void  set_is_helix(bool ih) { _is_helix = ih; }
     void  set_is_het(bool ih) { _is_het = ih; }
     void  set_is_sheet(bool is) { _is_sheet = is; }
     void  set_ss_id(int ssid) { _ss_id = ssid; }
-    void  set_ribbon_display(bool d) { _ribbon_display = d; }
-    void  set_ribbon_color(const Rgba& rgba) { _ribbon_rgba = rgba; }
     int  ss_id() const { return _ss_id; }
     std::string  str() const;
     AtomicStructure*  structure() const { return _structure; }
     std::vector<Atom*>  template_assign(
         void (Atom::*assign_func)(const char*), const char* app,
         const char* template_dir, const char* extension) const;
+
+    // graphics related
+    bool  ribbon_display() const { return _ribbon_display; }
+    const Rgba&  ribbon_color() const { return _ribbon_rgba; }
+    void  set_ribbon_display(bool d)
+        { structure()->set_gc_shape(); _ribbon_display = d; }
+    void  set_ribbon_color(const Rgba& rgba)
+        { structure()->set_gc_redraw(); _ribbon_rgba = rgba; }
 };
 
 #include "Chain.h"

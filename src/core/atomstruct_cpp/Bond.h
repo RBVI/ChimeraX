@@ -44,6 +44,11 @@ public:
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
     // sqlength() inherited from UniqueConnection
+
+    // graphics related
+    GraphicsContainer*  graphics_container() const {
+        return reinterpret_cast<GraphicsContainer*>(atoms()[0]->structure());
+    }
 };
 
 }  // namespace atomstruct

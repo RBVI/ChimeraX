@@ -671,7 +671,10 @@ AtomicStructure::set_active_coord_set(CoordSet *cs)
             throw std::out_of_range("Requested active coord set not in coord sets");
         new_active = cs;
     }
-    _active_coord_set = new_active;
+    if (_active_coord_set != new_active) {
+        _active_coord_set = new_active;
+        set_gc_shape();
+    }
 }
 
 void
