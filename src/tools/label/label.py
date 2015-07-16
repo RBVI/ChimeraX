@@ -34,16 +34,15 @@ class Label:
         self.drawing = None
         self.make_drawing()
 
-        if not hasattr(session, 'labels'):
-            session.labels = {}
-        session.labels[name] = self
+        lmap = getattr(session, 'labels', None)
+        if lmap is None:
+            session.labels = lmap = {}
+        if name in lmap:
+            lmap[name].delete()
+        lmap[name] = self
 
     def make_drawing(self):
         v = self.session.main_view
-        if self.drawing:
-            v.remove_overlays([self.drawing])
-            self.drawing = None
-        # TODO: Use black for light background if color is None.
         if self.color is None:
             light_bg = (sum(v.background_color[:3]) > 1.5)
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
@@ -53,9 +52,12 @@ class Label:
         x,y = (-1 + 2*self.xpos, -1 + 2*self.ypos)    # Convert 0-1 position to -1 to 1.
         w,h = v.window_size
         uw,uh = 2*rgba.shape[1]/h, 2*rgba.shape[0]/h
+        new = (self.drawing is None)
         from chimera.core.graphics.drawing import rgba_drawing
-        self.drawing = d = rgba_drawing(rgba, (x, y), (uw, uh))
-        v.add_overlay(d)
+        self.drawing = d = rgba_drawing(rgba, (x, y), (uw, uh), self.drawing)
+        d.display = self.visibility
+        if new:
+            v.add_overlay(d)
         return d
 
     def delete(self):
