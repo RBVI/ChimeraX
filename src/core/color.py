@@ -622,9 +622,13 @@ def ecolor(session, spec, color=None, target=None):
         ns = scolor(session, results.atoms, color)
         what.append('%d surfaces' % ns)
 
-    if target is None or 'l' in target:
-        if target is not None:
-            session.logger.warning('Cartoon colors not supported yet')
+    if target is None or 'c' in target:
+        residues = results.atoms.unique_residues
+        if residues is not None:
+            residues.ribbon_colors = color.uint8x4()
+            what.append('%d residues' % len(residues))
+        for m in residues.unique_structures:
+            m.update_ribbon_graphics(rebuild=True)
 
     if target is None or 'r' in target:
         if target is not None:
