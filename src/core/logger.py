@@ -18,9 +18,16 @@ class Log:
     """
 
     # log levels
-    LEVEL_ERROR = "error"
-    LEVEL_INFO = "info"
-    LEVEL_WARNING = "warning"
+    LEVEL_INFO = 0
+    LEVEL_WARNING = 1
+    LEVEL_ERROR = 2
+
+    LEVEL_DESCRIPTS = ["info", "warning", "error"]
+
+    # if excludes_other_logs is True, then if this log consumed the
+    # message (log() returned True) downstream logs will not get
+    # the message
+    excludes_other_logs = False
 
     def status(self, msg, color, secondary):
         """Show a status message.
@@ -159,6 +166,11 @@ class Logger:
         self._prev_info = None
         self._sim_timer = None
         self._collapse_similar = False
+        self.method_map = {
+            Log.LEVEL_ERROR: self.error,
+            Log.LEVEL_WARNING: self.warning,
+            Log.LEVEL_INFO: self.info
+        }
 
     def add_log(self, log):
         """Add a logger"""
@@ -238,6 +250,9 @@ class Logger:
 
     def remove_log(self, log):
         """remove a logger"""
+        if log.excludes_other_logs and self._sim_timer is not None:
+            self._sim_timer.cancel()
+            self._sim_timer_cb()
         self.logs.discard(log)
 
     def status(self, msg, color="black", log=False, secondary=False,
@@ -321,7 +336,6 @@ class Logger:
         return msg
 
     def _log(self, level, msg, add_newline, image, is_html, last_resort=None):
-        #level = Log.LEVEL_INFO
         prev_newline = self._prev_newline
         self._prev_newline = add_newline
 
@@ -384,7 +398,8 @@ class Logger:
         self._prev_info = (level, msg)
 
         msg_handled = False
-        for log in self.logs:
+        # "highest prority" log is last added, so:
+        for log in reversed(list(self.logs)):
             if isinstance(log, HtmlLog):
                 args = (level, msg, (image, add_newline), is_html)
             else:
@@ -392,6 +407,8 @@ class Logger:
             if log.log(*args):
                 # message displayed
                 msg_handled = True
+                if log.excludes_other_logs:
+                    break
 
         if not msg_handled:
             if last_resort:
@@ -416,6 +433,58 @@ class Logger:
         else:
             self._status_timer1 = None
         self.status("", secondary=secondary)
+
+
+class CollatingLog(PlainTextLog):
+    """Collates log messages
+
+    This class is designed to be used when some operation may produce
+    many log messages that would be more convenient to present as one
+    combined message.  You call the logger's :py:meth:`~Logger.add_log`
+    method to start collating, and remove it with :py:meth:`~Logger.remove_log`
+    to stop collating.  If the operation may produce many consecutive
+    simiilar (or identical) log messagesm you may also want to set the logger's
+    :py:attr:`~Logger.collapse_similar` attribute to True after adding
+    the log, and set it back to its original value before removing the log.
+    
+    To get the collated messages, call :py:meth:`summarize` on the log.
+    That will return a 2-tuple consisting of the maximum log level of the
+    messages, and their combined text.  The text will list the errors,
+    warnings, etc. in separate sections of the text.  To log the result,
+    use the logger's :py:attr:`~Logger.method_map` dictionary to convert
+    the maximum level to a method to call, and call that method with 
+    the summary as an argument (possibly preceded with some introductory
+    text) and with the `add_newline` keyword set to False.
+    """
+
+    excludes_other_logs = True
+
+    def __init__(self):
+        self.max_level = -1
+        self.msgs = []
+        for _ in range(len(self.LEVEL_DESCRIPTS)):
+            self.msgs.append([])
+ 
+    def log(self, level, msg):
+        self.msgs[level].append(msg)
+        self.max_level = max(self.max_level, level)
+        return True
+
+    def summarize(self):
+        if self.max_level < 0:
+            return -1, ""
+        msg = ""
+        for level in range(self.max_level, -1, -1):
+            msgs = self.msgs[level]
+            if not msgs:
+                continue
+            if msg:
+                msg += "\n"
+            msg += "{}{}:\n".format(
+                self.LEVEL_DESCRIPTS[level].capitalize(),
+                "s" if len(msgs) > 1 else "")
+            msg += "".join(msgs)
+        return self.max_level, msg
 
 
 def html_to_plain(html):
