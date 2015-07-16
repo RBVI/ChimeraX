@@ -392,6 +392,10 @@ def wait(session, frames = None):
             v.draw(only_if_changed = True)
 _wait_desc = cli.CmdDesc(optional = [('frames', cli.IntArg)])
 
+def crossfade(session, frames = 30):
+    from .graphics import CrossFade
+    CrossFade(session.main_view, frames)
+_crossfade_desc = cli.CmdDesc(optional = [('frames', cli.IntArg)])
 
 def register(session):
     """Register common cli commands"""
@@ -417,6 +421,7 @@ def register(session):
     cli.register('turn', _turn_desc, turn)
     cli.register('freeze', _freeze_desc, freeze)
     cli.register('wait', _wait_desc, wait)
+    cli.register('crossfade', _crossfade_desc, crossfade)
     from . import molsurf
     molsurf.register_surface_command()
     molsurf.register_sasa_command()
