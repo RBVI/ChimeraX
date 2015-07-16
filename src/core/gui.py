@@ -158,7 +158,7 @@ class MainWindow(wx.Frame, PlainTextLog):
     def __init__(self, ui, session):
         wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
 
-        from wx.lib.agw.aui import AuiManager, AuiPaneInfo, EVT_AUI_PANE_CLOSE
+        from wx.lib.agw.aui import AuiManager, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
         self.aui_mgr.SetManagedWindow(self)
 
@@ -571,12 +571,12 @@ class _Wx:
         """
         mw.aui_mgr.GetPane(self.ui_area).Layer(layer+1)
         """
-        mw.aui_mgr.Update()
         if placement is None:
            mw.aui_mgr.GetPane(self.ui_area).Float()
 
         if self.tool_window.close_destroys:
             mw.aui_mgr.GetPane(self.ui_area).DestroyOnClose()
+        mw.aui_mgr.Update()
 
     def on_context_menu(self, event):
         menu = wx.Menu()
