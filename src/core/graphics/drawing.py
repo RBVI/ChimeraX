@@ -1330,7 +1330,7 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     '''
     Make a drawing that is a single rectangle colored with a texture.
     '''
-    d = drawing.new_drawing() if drawing else Drawing('rgba')
+    d = drawing if drawing else Drawing('rgba')
     x, y = pos
     sx, sy = size
     from numpy import array, float32, uint32
