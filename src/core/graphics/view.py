@@ -374,7 +374,7 @@ class View:
         blur and cross fades.
         '''
         w, h = self.window_size
-        rgba = self._render.frame_buffer_image(w, h)
+        rgba = self._render.frame_buffer_image(w, h, front_buffer = True)
         return rgba
 
     def resize(self, width, height):
