@@ -602,30 +602,59 @@ def ecolor(session, spec, color=None, target=None):
     if spec is None:
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
-
-    rgba8 = color.uint8x4()
-    atoms = results.atoms
-    if atoms is None:
-        na = 0
-    else:
-        atoms.colors = rgba8
-        na = len(atoms)
-
-    ns = 0
-    from .structure import AtomicStructure
-    for m in results.models:
-        if isinstance(m, AtomicStructure):
-            m.update_graphics()
-        else:
-            m.color = rgba8
-            ns += 1
-
     what = []
-    if na > 0:
-        what.append('%d atoms' % na)
-    if ns > 0:
+
+    if target is None or 'a' in target:
+        # atoms/bonds
+        atoms = results.atoms
+        if atoms is not None:
+            atoms.colors = color.uint8x4()
+            what.append('%d atoms' % len(atoms))
+        for m in atoms.unique_structures:
+            m.update_graphics()
+
+    if target is None or 'l' in target:
+        if target is not None:
+            session.logger.warning('Label colors not supported yet')
+
+    if target is None or 's' in target:
+        from .scolor import scolor
+        ns = scolor(session, results.atoms, color)
         what.append('%d surfaces' % ns)
-    if na == 0 and ns == 0:
+
+    if target is None or 'c' in target:
+        residues = results.atoms.unique_residues
+        if residues is not None:
+            residues.ribbon_colors = color.uint8x4()
+            what.append('%d residues' % len(residues))
+        for m in residues.unique_structures:
+            m.update_ribbon_graphics(rebuild=True)
+
+    if target is None or 'r' in target:
+        if target is not None:
+            session.logger.warning('Residue label colors not supported yet')
+
+    if target is None or 'n' in target:
+        if target is not None:
+            session.logger.warning('Non-molecular model-level colors not supported yet')
+
+    if target is None or 'm' in target:
+        if target is not None:
+            session.logger.warning('Model-level colors not supported yet')
+
+    if target is None or 'b' in target:
+        if target is not None:
+            session.logger.warning('Bond colors not supported yet')
+
+    if target is None or 'p' in target:
+        if target is not None:
+            session.logger.warning('Pseudobond colors not supported yet')
+
+    if target is None or 'd' in target:
+        if target is not None:
+            session.logger.warning('Distances colors not supported yet')
+
+    if not what:
         what.append('nothing')
     session.logger.status('Colored %s' % ', '.join(what))
 

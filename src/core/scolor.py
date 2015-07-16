@@ -49,6 +49,7 @@ def scolor(session, atoms = None, color = None, byatom = False, esp = None):
         elif not color is None:
             vcolors[v] = color.uint8x4()
         s.vertex_colors = vcolors
+    return len(surfs)
 
 def register_scolor_command():
     from .structure import AtomsArg
