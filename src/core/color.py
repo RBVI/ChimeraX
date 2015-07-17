@@ -169,6 +169,7 @@ _BuiltinColors = SortedDict({
     'yellowgreen': (154, 205, 50, 255),
 })
 _BuiltinColors['transparent'] = (0, 0, 0, 0)
+_SpecialColors = ["byatom", "byelement", "byhetero"]
 
 
 class UserColors(SortedDict, State):
@@ -606,7 +607,16 @@ def ecolor(session, spec, color=None, target=None):
         # atoms/bonds
         atoms = results.atoms
         if atoms is not None:
-            atoms.colors = color.uint8x4()
+            if color in _SpecialColors:
+                if color == "byelement":
+                    _set_element_colors(atoms, False)
+                elif color == "byhetero":
+                    _set_element_colors(atoms, True)
+                else:
+                    # Other "colors" do not apply to atoms
+                    pass
+            else:
+                atoms.colors = color.uint8x4()
             what.append('%d atoms' % len(atoms))
 
     if target is None or 'l' in target:
@@ -615,16 +625,20 @@ def ecolor(session, spec, color=None, target=None):
 
     if target is None or 's' in target:
         from .scolor import scolor
-        ns = scolor(session, results.atoms, color)
+        if color in _SpecialColors:
+            ns = scolor(session, results.atoms, byatom=True)
+        else:
+            ns = scolor(session, results.atoms, color)
         what.append('%d surfaces' % ns)
 
     if target is None or 'c' in target:
-        residues = results.atoms.unique_residues
-        if residues is not None:
-            residues.ribbon_colors = color.uint8x4()
-            what.append('%d residues' % len(residues))
-        for m in residues.unique_structures:
-            m.update_ribbon_graphics(rebuild=True)
+        if color not in _SpecialColors:
+            residues = results.atoms.unique_residues
+            if residues is not None:
+                residues.ribbon_colors = color.uint8x4()
+                what.append('%d residues' % len(residues))
+            for m in residues.unique_structures:
+                m.update_ribbon_graphics(rebuild=True)
 
     if target is None or 'r' in target:
         if target is not None:
@@ -653,6 +667,18 @@ def ecolor(session, spec, color=None, target=None):
     if not what:
         what.append('nothing')
     session.logger.status('Colored %s' % ', '.join(what))
+
+
+def _set_element_colors(atoms, skip_carbon):
+    import numpy
+    from .structure import element_colors
+    en = atoms.element_numbers
+    for e in numpy.unique(en):
+        if not skip_carbon or e != 6:
+            ae = atoms.filter(en == e)
+            print("before", e, len(ae), ae[0].color)
+            atoms.filter(en == e).colors = element_colors(e)
+            print("after", ae[0].color)
 
 
 def register_commands():
@@ -686,7 +712,7 @@ def register_commands():
     )
     cli.register(
         'ecolor',
-        cli.CmdDesc(optional=[('color', ColorArg)],
+        cli.CmdDesc(optional=[('color', cli.Or(ColorArg, cli.EnumOf(_SpecialColors)))],
                     required=[('spec', cli.Or(atomspec.AtomSpecArg, cli.EmptyArg))],
                     keyword=[('target', cli.StringArg)],
                     synopsis="testing real color syntax"),

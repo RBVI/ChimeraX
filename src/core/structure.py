@@ -454,7 +454,10 @@ class AtomicStructure(CAtomicStructure, Model):
         # Partition by drawing
         for i in range(len(residues)):
             for r in residues[i]:
-                tr = self._ribbon_r2t[r]
+                try:
+                    tr = self._ribbon_r2t[r]
+                except KeyError:
+                    continue
                 try:
                     a = da[tr.drawing]
                 except KeyError:

@@ -262,6 +262,26 @@ class CAtomicStructure:
 
 # -----------------------------------------------------------------------------
 #
+class Element:
+
+    def __init__(self, e_pointer = None, name = None, number = 6):
+        if e_pointer is None:
+            # Create a new element
+            if name:
+                f = c_function('element_new_name', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
+                e_pointer = f(name)
+            else:
+                f = c_function('element_new_number', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+                e_pointer = f(number)
+        set_c_pointer(self, e_pointer)
+
+    name = c_property('element_name', string, read_only = True)
+    number = c_property('element_number', int32, read_only = True)
+    mass = c_property('element_mass', float32, read_only = True)
+    is_metal = c_property('element_is_metal', npy_bool, read_only = True)
+
+# -----------------------------------------------------------------------------
+#
 _object_map = {}	# Map C++ pointer to Python object
 def object_map(p, object_type):
     global _object_map

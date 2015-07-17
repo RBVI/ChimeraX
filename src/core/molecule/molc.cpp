@@ -1002,6 +1002,47 @@ extern "C" void *structure_new_residue(void *mol, const char *residue_name, cons
   return r;
 }
 
+extern "C" void *element_new_name(const char *name)
+{
+  Element *e = new Element(name);
+  return e;
+}
+
+extern "C" void *element_new_number(int number)
+{
+  Element *e = new Element(number);
+  return e;
+}
+
+extern "C" void element_name(void *elements, int n, void **names)
+{
+  AcquireGIL g;
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    names[i] = PyUnicode_FromString(e[i]->name());
+}
+
+extern "C" void element_number(void *elements, int n, int *as)
+{
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    as[i] = e[i]->number();
+}
+
+extern "C" void element_mass(void *elements, int n, float *mass)
+{
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    mass[i] = e[i]->mass();
+}
+
+extern "C" void element_is_metal(void *elements, int n, unsigned char *metal)
+{
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    metal[i] = e[i]->is_metal();
+}
+
 static void *init_numpy()
 {
   import_array(); // Initialize use of numpy
