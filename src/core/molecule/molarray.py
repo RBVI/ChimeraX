@@ -231,6 +231,10 @@ class Residues(PointerArray):
     ribbon_colors = cvec_property('residue_ribbon_color', uint8, 4)
 
     @property
+    def unique_structures(self):
+        return CAtomicStructures(unique(self.structures._pointers))
+
+    @property
     def unique_chain_ids(self):
         return unique(self.chain_ids)
 
