@@ -182,9 +182,6 @@ class Atoms(PointerArray):
         '''Delete the C++ Atom objects'''
         mols = self.unique_structures
         c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_int])(self._c_pointers, len(self))
-        # TODO: Graphics update should be handled by notifiers.
-        for m in mols:
-            m.update_graphics()
 
 # -----------------------------------------------------------------------------
 #
@@ -263,6 +260,9 @@ class CAtomicStructures(PointerArray):
                           read_only = True, per_object = False)
     chains = cvec_property('structure_chains', cptr, 'num_chains', astype = _chains,
                            read_only = True, per_object = False)
+    gc_color = cvec_property('structure_gc_color', npy_bool)
+    gc_select = cvec_property('structure_gc_select', npy_bool)
+    gc_shape = cvec_property('structure_gc_shape', npy_bool)
     names = cvec_property('structure_name', string)
     num_atoms = cvec_property('structure_num_atoms', int32, read_only = True)
     num_bonds = cvec_property('structure_num_bonds', int32, read_only = True)

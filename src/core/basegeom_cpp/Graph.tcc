@@ -23,7 +23,7 @@ Graph<Vertex, Edge>::delete_edge(Edge *e)
     for (auto v: e->end_points())
         v->remove_connection(e);
     _edges.erase(i);
-    set_gc_redraw();
+    set_gc_shape();
     delete e;
 }
 

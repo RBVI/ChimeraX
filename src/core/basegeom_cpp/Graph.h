@@ -11,20 +11,20 @@ namespace basegeom {
     
 class GraphicsContainer {
 private:
-    bool  _gc_redraw:1;
+    bool  _gc_color:1;
     bool  _gc_select:1;
     bool  _gc_shape:1;
     
 public:
-    GraphicsContainer(): _gc_redraw(false), _gc_select(false),
+    GraphicsContainer(): _gc_color(false), _gc_select(false),
         _gc_shape(false) {}
     virtual  ~GraphicsContainer() {}
     void  gc_clear()
-        { _gc_redraw = false; _gc_select = false; _gc_shape = false; }
-    bool  get_gc_redraw() const { return _gc_redraw; }
+        { _gc_color = false; _gc_select = false; _gc_shape = false; }
+    bool  get_gc_color() const { return _gc_color; }
     bool  get_gc_select() const { return _gc_select; }
     bool  get_gc_shape() const { return _gc_shape; }
-    void  set_gc_redraw(bool gc = true) { _gc_redraw = gc; }
+    void  set_gc_color(bool gc = true) { _gc_color = gc; }
     void  set_gc_select(bool gc = true) { _gc_select = gc; }
     void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
 };

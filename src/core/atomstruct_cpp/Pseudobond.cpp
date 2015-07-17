@@ -38,10 +38,10 @@ _check_destroyed_atoms(PBonds& pbonds, const std::set<void*>& destroyed,
     }
     if (remaining.size() == 0) {
         pbonds.clear();
-        gc->set_gc_redraw();
+        gc->set_gc_shape();
     } else if (remaining.size() != pbonds.size()) {
         pbonds.swap(remaining);
-        gc->set_gc_redraw();
+        gc->set_gc_shape();
     }
 }
 

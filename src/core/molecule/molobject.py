@@ -113,6 +113,9 @@ class ASPseudoBondGroup:
     def __init__(self, pbg_pointer = None):
         set_c_pointer(self, pbg_pointer)
 
+    gc_color = c_property('as_pseudobond_group_gc_color', npy_bool)
+    gc_select = c_property('as_pseudobond_group_gc_select', npy_bool)
+    gc_shape = c_property('as_pseudobond_group_gc_shape', npy_bool)
     num_pseudobonds = c_property('as_pseudobond_group_num_pseudobonds', int32, read_only = True)
     pseudobonds = c_property('as_pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
                              astype = _pseudobonds, read_only = True)
@@ -138,6 +141,9 @@ class CPseudoBondGroup:
         else:
             set_c_pointer(self, pbg_pointer)
 
+    gc_color = c_property('pseudobond_group_gc_color', npy_bool)
+    gc_select = c_property('pseudobond_group_gc_select', npy_bool)
+    gc_shape = c_property('pseudobond_group_gc_shape', npy_bool)
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', int32, read_only = True)
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
                              astype = _pseudobonds, read_only = True)
@@ -206,6 +212,9 @@ class CAtomicStructure:
     atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
     chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)
+    gc_color = c_property('structure_gc_color', npy_bool)
+    gc_select = c_property('structure_gc_select', npy_bool)
+    gc_shape = c_property('structure_gc_shape', npy_bool)
     name = c_property('structure_name', string)
     num_atoms = c_property('structure_num_atoms', int32, read_only = True)
     num_bonds = c_property('structure_num_bonds', int32, read_only = True)

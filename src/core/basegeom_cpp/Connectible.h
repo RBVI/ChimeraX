@@ -48,9 +48,9 @@ public:
     const Rgba&  color() const { return _rgba; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a)
-        { graphics_container()->set_gc_redraw(); _rgba = {r, g, b, a}; }
+        { graphics_container()->set_gc_color(); _rgba = {r, g, b, a}; }
     void  set_color(const Rgba& rgba)
-        { graphics_container()->set_gc_redraw(); _rgba = rgba; }
+        { graphics_container()->set_gc_color(); _rgba = rgba; }
     bool  display() const { return _display; }
     virtual GraphicsContainer*  graphics_container() const = 0;
     void  set_display(bool d)

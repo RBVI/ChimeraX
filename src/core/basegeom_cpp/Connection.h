@@ -53,19 +53,19 @@ public:
     virtual GraphicsContainer*  graphics_container() const = 0;
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a)
-        { graphics_container()->set_gc_redraw(); _rgba = {r, g, b, a}; }
+        { graphics_container()->set_gc_color(); _rgba = {r, g, b, a}; }
     void  set_color(const Rgba& rgba)
-        { graphics_container()->set_gc_redraw(); _rgba = rgba; }
+        { graphics_container()->set_gc_color(); _rgba = rgba; }
     void  set_display(BondDisplay d)
-        { graphics_container()->set_gc_redraw(); _display = d; }
+        { graphics_container()->set_gc_shape(); _display = d; }
     void  set_display(unsigned char d) { 
         if (d > static_cast<unsigned char>(BondDisplay::MAX_VAL))
             throw std::out_of_range("Invalid bond display value.");
-        graphics_container()->set_gc_redraw();
+        graphics_container()->set_gc_shape();
         _display = static_cast<BondDisplay>(d);
     }
     void  set_halfbond(bool hb)
-        { graphics_container()->set_gc_redraw(); _halfbond = hb; }
+        { graphics_container()->set_gc_color(); _halfbond = hb; }
     void  set_radius(float r)
         { graphics_container()->set_gc_shape(); _radius = r; }
     float  radius() const { return _radius; }

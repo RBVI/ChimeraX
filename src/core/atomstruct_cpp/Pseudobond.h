@@ -43,7 +43,7 @@ public:
 typedef std::set<PBond*>  PBonds;
 
 // "global" pseudobond groups...
-class PBGroup: pseudobond::Group<Atom, PBond>
+class PBGroup: public pseudobond::Group<Atom, PBond>
 {
 private:
     PBonds  _pbonds;

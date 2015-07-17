@@ -85,7 +85,7 @@ public:
     void  set_ribbon_display(bool d)
         { structure()->set_gc_shape(); _ribbon_display = d; }
     void  set_ribbon_color(const Rgba& rgba)
-        { structure()->set_gc_redraw(); _ribbon_rgba = rgba; }
+        { structure()->set_gc_color(); _ribbon_rgba = rgba; }
 };
 
 #include "Chain.h"

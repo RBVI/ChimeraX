@@ -465,6 +465,48 @@ extern "C" void pseudobond_group_delete(void *pbgroup)
   delete pbg;
 }
 
+extern "C" void pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    color_changed[i] = pbg[i]->get_gc_color();
+}
+
+extern "C" void set_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_color(color_changed[i]);
+}
+
+extern "C" void pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    select_changed[i] = pbg[i]->get_gc_select();
+}
+
+extern "C" void set_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_select(select_changed[i]);
+}
+
+extern "C" void pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    shape_changed[i] = pbg[i]->get_gc_shape();
+}
+
+extern "C" void set_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_shape(shape_changed[i]);
+}
+
 extern "C" void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
 {
   PBGroup *pbg = static_cast<PBGroup *>(pbgroup);
@@ -485,6 +527,48 @@ extern "C" void pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseud
   for (int i = 0 ; i < n ; ++i)
     for (auto pb: pbg[i]->pseudobonds())
       *pseudobonds++ = pb;
+}
+
+extern "C" void as_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    color_changed[i] = pbg[i]->get_gc_color();
+}
+
+extern "C" void set_as_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_color(color_changed[i]);
+}
+
+extern "C" void as_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    select_changed[i] = pbg[i]->get_gc_select();
+}
+
+extern "C" void set_as_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_select(select_changed[i]);
+}
+
+extern "C" void as_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    shape_changed[i] = pbg[i]->get_gc_shape();
+}
+
+extern "C" void set_as_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_shape(shape_changed[i]);
 }
 
 extern "C" void *as_pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
@@ -701,6 +785,48 @@ extern "C" void chain_residues(void *chains, int n, void **res)
       for (int j = 0 ; j < r.size() ; ++j)
 	*res++ = r[i];
     }
+}
+
+extern "C" void structure_gc_color(void *mols, int n, unsigned char *color_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    color_changed[i] = m[i]->get_gc_color();
+}
+
+extern "C" void set_structure_gc_color(void *mols, int n, unsigned char *color_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    m[i]->set_gc_color(color_changed[i]);
+}
+
+extern "C" void structure_gc_select(void *mols, int n, unsigned char *select_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    select_changed[i] = m[i]->get_gc_select();
+}
+
+extern "C" void set_structure_gc_select(void *mols, int n, unsigned char *select_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    m[i]->set_gc_select(select_changed[i]);
+}
+
+extern "C" void structure_gc_shape(void *mols, int n, unsigned char *shape_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    shape_changed[i] = m[i]->get_gc_shape();
+}
+
+extern "C" void set_structure_gc_shape(void *mols, int n, unsigned char *shape_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    m[i]->set_gc_shape(shape_changed[i]);
 }
 
 extern "C" void structure_name(void *mols, int n, void **names)
