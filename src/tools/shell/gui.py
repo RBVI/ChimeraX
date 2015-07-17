@@ -22,7 +22,7 @@ class ShellUI(ToolInstance):
         parent = self.tool_window.ui_area
         # UI content code
         from wx.py.shell import Shell
-        self.shell = Shell(parent, -1, locals={
+        self.shell = Shell(parent, -1, size=self.SIZE, locals={
                 'Chimera2_session': session
             },
             introText='Use Chimera2_session to access the current session.')
@@ -34,7 +34,7 @@ class ShellUI(ToolInstance):
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.shell, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
-        self.tool_window.manage(placement="right")
+        self.tool_window.manage(placement=None)
         # Add to running tool list for session if tool should be saved
         # in and restored from session and scenes
         session.tools.add([self])
