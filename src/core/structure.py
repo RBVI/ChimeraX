@@ -63,6 +63,14 @@ class AtomicStructure(CAtomicStructure, Model):
         CAtomicStructure.delete(self)
         Model.delete(self)
 
+    def added_to_session(self, session):
+        v = session.main_view
+        v.add_new_frame_callback(self.update_graphics_if_needed)
+
+    def removed_from_session(self, session):
+        v = session.main_view
+        v.remove_new_frame_callback(self.update_graphics_if_needed)
+
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
             return
@@ -99,13 +107,11 @@ class AtomicStructure(CAtomicStructure, Model):
         if atoms is None:
             atoms = self.atoms
         atoms.displays = True
-        self.update_graphics()
 
     def hide_atoms(self, atoms = None):
         if atoms is None:
             atoms = self.atoms
         atoms.displays = False
-        self.update_graphics()
 
     def initialize_graphical_attributes(self):
         a = self.atoms
@@ -160,10 +166,16 @@ class AtomicStructure(CAtomicStructure, Model):
         self.update_atom_graphics(coords, radii, colors, display)
 
     def new_atoms(self):
+        # TODO: Handle instead with a C++ notification that atoms added or deleted
         self._atoms = None
         self._atom_bounds_needs_update = True
-        self.redraw_needed(shape_changed = True)
-        self.update_graphics()
+
+    def update_graphics_if_needed(self):
+        c, s, se = self.gc_color, self.gc_shape, self.gc_select
+        if c or s or se:
+            self.gc_color = self.gc_shape = self.gc_select = False
+            self.update_graphics()
+            self.redraw_needed(shape_changed = s, selection_changed = se)
 
     def update_graphics(self):
         a = self.atoms
@@ -211,19 +223,16 @@ class AtomicStructure(CAtomicStructure, Model):
         if atoms is None:
             atoms = self.atoms
         atoms.draw_modes = style
-        self.update_graphics()
 
     def color_by_element(self, atoms = None):
         if atoms is None:
             atoms = self.atoms
         atoms.colors = element_colors(atoms.element_numbers)
-        self.update_graphics()
 
     def color_by_chain(self, atoms = None):
         if atoms is None:
             atoms = self.atoms
         atoms.colors = chain_colors(atoms.residues.chain_ids)
-        self.update_graphics()
 
     def update_bond_graphics(self, bond_atoms, draw_mode, radii,
                              bond_colors, half_bond_coloring):
@@ -495,12 +504,10 @@ class AtomicStructure(CAtomicStructure, Model):
     def hide_chain(self, cid):
         a = self.atoms
         a.displays &= self.chain_atom_mask(cid, invert = True)
-        self.update_graphics()
 
     def show_chain(self, cid):
         a = self.atoms
         a.displays |= self.chain_atom_mask(cid)
-        self.update_graphics()
 
     def chain_atom_mask(self, cid, invert = False):
         a = self.atoms
@@ -581,8 +588,6 @@ class AtomicStructure(CAtomicStructure, Model):
         for s in self.child_drawings():
             if isinstance(s, MolecularSurface):
                 s.update_selection()
-
-        self.update_graphics()
 
     def promote_selection(self):
         n = self.atoms.num_selected
@@ -998,9 +1003,6 @@ def ccolor_command(session, atoms = None):
         asr = atoms.evaluate(session)
         a = asr.atoms
         a.colors = chain_colors(a.residues.chain_ids)
-        for m in asr.models:
-            if isinstance(m, AtomicStructure):
-                m.update_graphics()
 
 # -----------------------------------------------------------------------------
 #
@@ -1017,12 +1019,6 @@ def celement_command(session, atoms = None):
         asr = atoms.evaluate(session)
         a = asr.atoms
         a.colors = element_colors(a.element_numbers)
-        update_model_graphics(asr.models)
-
-def update_model_graphics(models):
-    for m in models:
-        if isinstance(m, AtomicStructure):
-            m.update_graphics()
 
 # -----------------------------------------------------------------------------
 #
@@ -1042,7 +1038,6 @@ def style_command(session, atom_style, atoms = None):
     else:
         asr = atoms.evaluate(session)
         asr.atoms.draw_modes = s
-        update_model_graphics(asr.models)
 
 # -----------------------------------------------------------------------------
 #
@@ -1067,11 +1062,9 @@ def show_atoms(show, atoms, session):
         for m in session.models.list():
             if isinstance(m, AtomicStructure):
                 m.atoms.displays = show
-                m.update_graphics()
     else:
         asr = atoms.evaluate(session)
         asr.atoms.displays = show
-        update_model_graphics(asr.models)
 
 # -----------------------------------------------------------------------------
 #

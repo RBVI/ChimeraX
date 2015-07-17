@@ -64,7 +64,7 @@ def place_marker(session, center):
     ms = marker_settings(session)
     a.radius = ms['radius']
     a.color = ms['color']
-    r = m.new_residue('marker', ms['marker_chain_id'], ms['next_marker_num'])
+    r = m.new_residue('mark', ms['marker_chain_id'], ms['next_marker_num'])
     r.add_atom(a)
     ms['next_marker_num'] += 1
     m.new_atoms()
@@ -109,7 +109,6 @@ class ConnectMouseMode(MouseMode):
             elif not a1.connects_to(a2):
                 m = a1.structure
                 m.new_bond(a1,a2)
-                m.update_graphics()
                 s.logger.status('Made connection')
 
 def mark_map_center(volume):

@@ -144,8 +144,6 @@ def display(session, spec=None):
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     results.atoms.displays = True
-    for m in results.models:
-        m.update_graphics()
 _display_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display specified atoms')
 
@@ -155,8 +153,6 @@ def undisplay(session, spec=None):
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     results.atoms.displays = False
-    for m in results.models:
-        m.update_graphics()
 _undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                               synopsis='undisplay specified atoms')
 

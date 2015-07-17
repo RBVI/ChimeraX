@@ -23,9 +23,6 @@ def crosslink(session, pbgroups = None, color = None, radius = None, minimize = 
     if minimize:
         minimize_link_lengths(minimize, pbonds, iterations, frames, session)
 
-    for pbg in pbgroups:
-        pbg.update_graphics()	# TODO: pseudobond graphics should update automatically
-
 def minimize_link_lengths(mols, pbonds, iterations, frames, session):
     if len(mols) == 0:
         from .cli import UserError        

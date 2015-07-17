@@ -552,9 +552,7 @@ def color(session, color, spec=None):
     ns = 0
     from .structure import AtomicStructure
     for m in results.models:
-        if isinstance(m, AtomicStructure):
-            m.update_graphics()
-        else:
+        if not isinstance(m, AtomicStructure):
             m.color = rgba8
             ns += 1
 
@@ -614,9 +612,7 @@ def ecolor(session, spec, color=None, target=None):
     ns = 0
     from .structure import AtomicStructure
     for m in results.models:
-        if isinstance(m, AtomicStructure):
-            m.update_graphics()
-        else:
+        if not isinstance(m, AtomicStructure):
             m.color = rgba8
             ns += 1
 

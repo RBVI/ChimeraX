@@ -46,7 +46,6 @@ Here is an example of a function that may be registered with cli:
         translation = place.translation(by_vector)
         for m in spec.models:
             m.position = translation * m.position
-            m.update_graphics()
     move_desc = cli.CmdDesc(required=[("by", cli.Float3Arg)],
                             optional=[("modelspec", atomspec.AtomSpecArg)])
 
