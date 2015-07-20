@@ -20,7 +20,7 @@ def register_2dlabels_command():
     register('2dlabels delete', delete_desc, delete_op)
 
 class Label:
-    def __init__(self, session, name, text = '', color = None, size = 12, typeface = 'Arial',
+    def __init__(self, session, name, text = '', color = None, size = 24, typeface = 'Arial',
               xpos = 0.5, ypos = 0.5, visibility = True):
         self.session = session
         self.name = name
