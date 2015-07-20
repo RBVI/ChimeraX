@@ -18,5 +18,8 @@
 Thumbs.db
 # vim
 *.swp
-errs
+errs*
 build
+pip.log
+prebuilt*.bz2
+Chimera2.app

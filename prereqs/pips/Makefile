@@ -14,7 +14,7 @@ all:
 
 install: $(SOURCE)
 	LANG=$(LANG) $(PIP) install -r build_requirements.txt
-	for p in $(PATCHES); do \
+	-for p in $(PATCHES); do \
 		(cd $(PYSITEDIR) && patch -N -p0) < $$p ; \
 	done
 
@@ -26,7 +26,7 @@ upgrade:
 
 app-install:
 	$(APP_PIP) install -r app_requirements.txt
-	for p in $(PATCHES); do \
+	-for p in $(PATCHES); do \
 		(cd $(APP_PYSITEDIR) && patch -N -p0) < $$p ; \
 	done
 
