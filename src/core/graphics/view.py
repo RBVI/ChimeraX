@@ -21,9 +21,8 @@ class View:
 
         # Red, green, blue, opacity, 0-1 range.
         try:
-            from .. import preferences
-            prefs = preferences.get()
-            self._background_rgba = prefs.bg_color.rgba
+            from ..core_settings import settings
+            self._background_rgba = settings.bg_color.rgba
         except ImportError:
             self._background_rgba = (0, 0, 0, 1)
 
@@ -375,7 +374,7 @@ class View:
         blur and cross fades.
         '''
         w, h = self.window_size
-        rgba = self._render.frame_buffer_image(w, h)
+        rgba = self._render.frame_buffer_image(w, h, front_buffer = True)
         return rgba
 
     def resize(self, width, height):

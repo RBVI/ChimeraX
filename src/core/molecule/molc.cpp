@@ -4,6 +4,7 @@
 #include <numpy/arrayobject.h>      // use PyArray_*(), NPY_*
 
 #include "atomstruct/Atom.h"
+#include "atomstruct/Bond.h"
 #include "atomstruct/Chain.h"
 #include "atomstruct/Pseudobond.h"
 #include "atomstruct/Residue.h"
@@ -13,6 +14,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <set>
 
 namespace {
 
@@ -75,6 +77,13 @@ extern "C" void atom_bonded_atoms(void *atoms, int n, void **batoms)
       for (int j = 0 ; j < b.size() ; ++j)
 	*batoms++ = b[j]->other_atom(a[i]);
     }
+}
+
+extern "C" void atom_chain_id(void *atoms, int n, void **cids)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    cids[i] = PyUnicode_FromString(a[i]->residue()->chain_id());
 }
 
 extern "C" void atom_color(void *atoms, int n, unsigned char *rgba)
@@ -187,7 +196,14 @@ extern "C" void atom_element_number(void *atoms, int n, int *nums)
     nums[i] = a[i]->element().number();
 }
 
-extern "C" void atom_molecule(void *atoms, int n, void **molp)
+extern "C" void atom_in_chain(void *atoms, int n, unsigned char *in_chain)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    in_chain[i] = (a[i]->residue()->chain() != NULL);
+}
+
+extern "C" void atom_structure(void *atoms, int n, void **molp)
 {
   Atom **a = static_cast<Atom **>(atoms);
   for (int i = 0 ; i < n ; ++i)
@@ -230,7 +246,7 @@ extern "C" void atom_residue(void *atoms, int n, void **resp)
     resp[i] = a[i]->residue();
 }
 
-// Apply per-molecule transform to atom coordinates.
+// Apply per-structure transform to atom coordinates.
 extern "C" void atom_scene_coords(void *atoms, int n, void *mols, int m, double *mtf, double *xyz)
 {
   Atom **a = static_cast<Atom **>(atoms);
@@ -250,6 +266,30 @@ extern "C" void atom_scene_coords(void *atoms, int n, void *mols, int m, double 
       *xyz++ = t[4]*x + t[5]*y + t[6]*z + t[7];
       *xyz++ = t[8]*x + t[9]*y + t[10]*z + t[11];
     }
+}
+
+extern "C" void atom_selected(void *atoms, int n, unsigned char *sel)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    sel[i] = a[i]->selected();
+}
+
+extern "C" void set_atom_selected(void *atoms, int n, unsigned char *sel)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    a[i]->set_selected(*sel++);
+}
+
+extern "C" int atom_num_selected(void *atoms, int n)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  int s = 0;
+  for (int i = 0 ; i < n ; ++i)
+    if (a[i]->selected())
+      s += 1;
+  return s;
 }
 
 extern "C" void bond_atoms(void *bonds, int n, void **atoms)
@@ -425,6 +465,48 @@ extern "C" void pseudobond_group_delete(void *pbgroup)
   delete pbg;
 }
 
+extern "C" void pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    color_changed[i] = pbg[i]->get_gc_color();
+}
+
+extern "C" void set_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_color(color_changed[i]);
+}
+
+extern "C" void pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    select_changed[i] = pbg[i]->get_gc_select();
+}
+
+extern "C" void set_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_select(select_changed[i]);
+}
+
+extern "C" void pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    shape_changed[i] = pbg[i]->get_gc_shape();
+}
+
+extern "C" void set_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_shape(shape_changed[i]);
+}
+
 extern "C" void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
 {
   PBGroup *pbg = static_cast<PBGroup *>(pbgroup);
@@ -447,6 +529,70 @@ extern "C" void pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseud
       *pseudobonds++ = pb;
 }
 
+extern "C" void as_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    color_changed[i] = pbg[i]->get_gc_color();
+}
+
+extern "C" void set_as_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_color(color_changed[i]);
+}
+
+extern "C" void as_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    select_changed[i] = pbg[i]->get_gc_select();
+}
+
+extern "C" void set_as_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_select(select_changed[i]);
+}
+
+extern "C" void as_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    shape_changed[i] = pbg[i]->get_gc_shape();
+}
+
+extern "C" void set_as_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_shape(shape_changed[i]);
+}
+
+extern "C" void *as_pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
+{
+  Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+  PBond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
+  return b;
+}
+
+extern "C" void as_pseudobond_group_num_pseudobonds(void *pbgroups, int n, int *num_pseudobonds)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    *num_pseudobonds++ = pbg[i]->pseudobonds().size();
+}
+
+extern "C" void as_pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseudobonds)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    for (auto pb: pbg[i]->pseudobonds())
+      *pseudobonds++ = pb;
+}
+
 extern "C" void residue_atoms(void *residues, int n, void **atoms)
 {
   Residue **r = static_cast<Residue **>(residues);
@@ -463,7 +609,7 @@ extern "C" void residue_chain_id(void *residues, int n, void **cids)
   AcquireGIL g;
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
-    cids[i] = PyUnicode_FromString(r[i]->chain_id().c_str());
+    cids[i] = PyUnicode_FromString(r[i]->chain_id());
 }
 
 extern "C" void residue_is_helix(void *residues, int n, unsigned char *is_helix)
@@ -522,7 +668,7 @@ extern "C" void set_residue_ribbon_display(void *residues, int n, unsigned char 
     r[i]->set_ribbon_display(ribbon_display[i]);
 }
 
-extern "C" void residue_molecule(void *residues, int n, void **molp)
+extern "C" void residue_structure(void *residues, int n, void **molp)
 {
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
@@ -534,7 +680,7 @@ extern "C" void residue_name(void *residues, int n, void **names)
   AcquireGIL g;
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
-    names[i] = PyUnicode_FromString(r[i]->name().c_str());
+    names[i] = PyUnicode_FromString(r[i]->name());
 }
 
 extern "C" void residue_num_atoms(void *residues, int n, int *natoms)
@@ -613,10 +759,10 @@ extern "C" void chain_chain_id(void *chains, int n, void **cids)
   AcquireGIL g;
   Chain **c = static_cast<Chain **>(chains);
   for (int i = 0 ; i < n ; ++i)
-    cids[i] = PyUnicode_FromString(c[i]->chain_id().c_str());
+    cids[i] = PyUnicode_FromString(c[i]->chain_id());
 }
 
-extern "C" void chain_molecule(void *chains, int n, void **molp)
+extern "C" void chain_structure(void *chains, int n, void **molp)
 {
   Chain **c = static_cast<Chain **>(chains);
   for (int i = 0 ; i < n ; ++i)
@@ -641,7 +787,49 @@ extern "C" void chain_residues(void *chains, int n, void **res)
     }
 }
 
-extern "C" void molecule_name(void *mols, int n, void **names)
+extern "C" void structure_gc_color(void *mols, int n, unsigned char *color_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    color_changed[i] = m[i]->get_gc_color();
+}
+
+extern "C" void set_structure_gc_color(void *mols, int n, unsigned char *color_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    m[i]->set_gc_color(color_changed[i]);
+}
+
+extern "C" void structure_gc_select(void *mols, int n, unsigned char *select_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    select_changed[i] = m[i]->get_gc_select();
+}
+
+extern "C" void set_structure_gc_select(void *mols, int n, unsigned char *select_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    m[i]->set_gc_select(select_changed[i]);
+}
+
+extern "C" void structure_gc_shape(void *mols, int n, unsigned char *shape_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    shape_changed[i] = m[i]->get_gc_shape();
+}
+
+extern "C" void set_structure_gc_shape(void *mols, int n, unsigned char *shape_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    m[i]->set_gc_shape(shape_changed[i]);
+}
+
+extern "C" void structure_name(void *mols, int n, void **names)
 {
   AcquireGIL g;
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
@@ -649,7 +837,7 @@ extern "C" void molecule_name(void *mols, int n, void **names)
     names[i] = PyUnicode_FromString(m[i]->name().c_str());
 }
 
-extern "C" void set_molecule_name(void *mols, int n, void **names)
+extern "C" void set_structure_name(void *mols, int n, void **names)
 {
   AcquireGIL g;
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
@@ -657,14 +845,14 @@ extern "C" void set_molecule_name(void *mols, int n, void **names)
     m[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
 }
 
-extern "C" void molecule_num_atoms(void *mols, int n, int *natoms)
+extern "C" void structure_num_atoms(void *mols, int n, int *natoms)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
     natoms[i] = m[i]->atoms().size();
 }
 
-extern "C" void molecule_atoms(void *mols, int n, void **atoms)
+extern "C" void structure_atoms(void *mols, int n, void **atoms)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
@@ -675,14 +863,14 @@ extern "C" void molecule_atoms(void *mols, int n, void **atoms)
     }
 }
 
-extern "C" void molecule_num_bonds(void *mols, int n, int *nbonds)
+extern "C" void structure_num_bonds(void *mols, int n, int *nbonds)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
     nbonds[i] = m[i]->bonds().size();
 }
 
-extern "C" void molecule_bonds(void *mols, int n, void **bonds)
+extern "C" void structure_bonds(void *mols, int n, void **bonds)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
@@ -693,14 +881,14 @@ extern "C" void molecule_bonds(void *mols, int n, void **bonds)
     }
 }
 
-extern "C" void molecule_num_residues(void *mols, int n, int *nres)
+extern "C" void structure_num_residues(void *mols, int n, int *nres)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
     nres[i] = m[i]->residues().size();
 }
 
-extern "C" void molecule_residues(void *mols, int n, void **res)
+extern "C" void structure_residues(void *mols, int n, void **res)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
@@ -711,21 +899,21 @@ extern "C" void molecule_residues(void *mols, int n, void **res)
     }
 }
 
-extern "C" void molecule_num_coord_sets(void *mols, int n, int *ncoord_sets)
+extern "C" void structure_num_coord_sets(void *mols, int n, int *ncoord_sets)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
     ncoord_sets[i] = m[i]->coord_sets().size();
 }
 
-extern "C" void molecule_num_chains(void *mols, int n, int *nchains)
+extern "C" void structure_num_chains(void *mols, int n, int *nchains)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
     nchains[i] = m[i]->chains().size();
 }
 
-extern "C" void molecule_chains(void *mols, int n, void **chains)
+extern "C" void structure_chains(void *mols, int n, void **chains)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
@@ -736,7 +924,7 @@ extern "C" void molecule_chains(void *mols, int n, void **chains)
     }
 }
 
-extern "C" void molecule_pbg_map(void *mols, int n, void **pbgs)
+extern "C" void structure_pbg_map(void *mols, int n, void **pbgs)
 {
   // To use Python in this function which is called by ctypes,
   // must acquire the global interpreter lock.
@@ -747,20 +935,21 @@ extern "C" void molecule_pbg_map(void *mols, int n, void **pbgs)
       PyObject* pbg_map = PyDict_New();
       for (auto grp_info: m[i]->pb_mgr().group_map()) {
         PyObject* name = PyUnicode_FromString(grp_info.first.c_str());
-	// Put these in numpy array: grp_info.second->pseudobonds() (type std::set<PBond*>)
-	int np = grp_info.second->pseudobonds().size();
-	void **pbga;
-	PyObject *pb_array = python_voidp_array(np, &pbga);
-	int p = 0;
-        for (auto pb: grp_info.second->pseudobonds())
-	  pbga[p++] = static_cast<void *>(pb);
-	PyDict_SetItem(pbg_map, name, pb_array);
+	PyObject *pbg = PyLong_FromVoidPtr(grp_info.second);
+	PyDict_SetItem(pbg_map, name, pbg);
       }
       pbgs[i] = pbg_map;
     }
 }
 
-extern "C" PyObject *molecule_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
+extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name)
+{
+  AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+  Proxy_PBGroup *pbg = m->pb_mgr().get_group(name, AS_PBManager::GRP_NORMAL);
+  return pbg;
+}
+
+extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
 {
   // To use Python in this function which is called by ctypes,
   // must acquire the global interpreter lock.
@@ -780,37 +969,78 @@ extern "C" PyObject *molecule_polymers(void *mol, int consider_missing_structure
   return poly;
 }
 
-extern "C" void *molecule_new()
+extern "C" void *structure_new()
 {
   AtomicStructure *m = new AtomicStructure();
   return m;
 }
 
-extern "C" void molecule_delete(void *mol)
+extern "C" void structure_delete(void *mol)
 {
   AtomicStructure *m = static_cast<AtomicStructure *>(mol);
   delete m;
 }
 
-extern "C" void *molecule_new_atom(void *mol, const char *atom_name, const char *element_name)
+extern "C" void *structure_new_atom(void *mol, const char *atom_name, const char *element_name)
 {
   AtomicStructure *m = static_cast<AtomicStructure *>(mol);
   Atom *a = m->new_atom(atom_name, Element(element_name));
   return a;
 }
 
-extern "C" void *molecule_new_bond(void *mol, void *atom1, void *atom2)
+extern "C" void *structure_new_bond(void *mol, void *atom1, void *atom2)
 {
   AtomicStructure *m = static_cast<AtomicStructure *>(mol);
   Bond *b = m->new_bond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
   return b;
 }
 
-extern "C" void *molecule_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos)
+extern "C" void *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos)
 {
   AtomicStructure *m = static_cast<AtomicStructure *>(mol);
   Residue *r = m->new_residue(residue_name, chain_id, pos, ' ');
   return r;
+}
+
+extern "C" void *element_new_name(const char *name)
+{
+  Element *e = new Element(name);
+  return e;
+}
+
+extern "C" void *element_new_number(int number)
+{
+  Element *e = new Element(number);
+  return e;
+}
+
+extern "C" void element_name(void *elements, int n, void **names)
+{
+  AcquireGIL g;
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    names[i] = PyUnicode_FromString(e[i]->name());
+}
+
+extern "C" void element_number(void *elements, int n, int *as)
+{
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    as[i] = e[i]->number();
+}
+
+extern "C" void element_mass(void *elements, int n, float *mass)
+{
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    mass[i] = e[i]->mass();
+}
+
+extern "C" void element_is_metal(void *elements, int n, unsigned char *metal)
+{
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    metal[i] = e[i]->is_metal();
 }
 
 static void *init_numpy()
@@ -868,7 +1098,7 @@ private:
 	std::cerr << " base " << PyArray_BASE(a) << " weak " << ((PyArrayObject_fields *)a)->weakreflist << std::endl;
 	if (PyArray_Resize(a, &dims, 0, NPY_CORDER) == NULL)
 	  {
-	    std::cerr << "Failed to delete molecule object pointers from numpy array." << std::endl;
+	    std::cerr << "Failed to delete structure object pointers from numpy array." << std::endl;
 	    PyErr_Print();
 	  }
 	*/
@@ -942,3 +1172,59 @@ extern "C" void delete_object_map_deletion_handler(void *handler)
   delete static_cast<Object_Map_Deletion_Handler *>(handler);
 }
 
+extern "C" int pointer_index(void *pointer_array, int n, void *pointer)
+{
+  void **pa = static_cast<void **>(pointer_array);
+  for (int i = 0 ; i < n ; ++i)
+    if (pa[i] == pointer)
+      return i;
+  return -1;
+}
+
+extern "C" void pointer_mask(void *pointer_array, int n, void *pointer_array2, int n2, unsigned char *mask)
+{
+  void **pa = static_cast<void **>(pointer_array);
+  void **pa2 = static_cast<void **>(pointer_array2);
+  std::set<void *> s;
+  for (int i = 0 ; i < n2 ; ++i)
+    s.insert(pa2[i]);
+  for (int i = 0 ; i < n ; ++i)
+    mask[i] = (s.find(pa[i]) == s.end() ? 0 : 1);
+}
+
+extern "C" int pointer_intersects(void *pointer_array, int n, void *pointer_array2, int n2)
+{
+  void **pa = static_cast<void **>(pointer_array);
+  void **pa2 = static_cast<void **>(pointer_array2);
+  std::set<void *> s;
+  for (int i = 0 ; i < n2 ; ++i)
+    s.insert(pa2[i]);
+  for (int i = 0 ; i < n ; ++i)
+    if (s.find(pa[i]) != s.end())
+      return 1;
+  return 0;
+}
+
+extern "C" void pointer_intersects_each(void *pointer_arrays, int na, int *sizes,
+					void *pointer_array, int n,
+					void *intersects)
+{
+  void ***pas = static_cast<void ***>(pointer_arrays);
+  void **pa = static_cast<void **>(pointer_array);
+  unsigned char *ia = static_cast<unsigned char *>(intersects);
+  std::set<void *> s;
+  for (int i = 0 ; i < n ; ++i)
+    s.insert(pa[i]);
+  for (int i = 0 ; i < na ; ++i)
+    {
+      int m = sizes[i];
+      void **pai = pas[i];
+      ia[i] = 0;
+      for (int j = 0 ; j < m ; ++j)
+	if (s.find(pai[j]) != s.end())
+	  {
+	    ia[i] = 1;
+	    break;
+	  }
+    }
+}

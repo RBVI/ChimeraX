@@ -22,4 +22,5 @@ errs*
 build
 pip.log
 prebuilt*.bz2
+.gitignore
 Chimera2.app

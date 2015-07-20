@@ -2,6 +2,7 @@
 #ifndef atomstruct_AtomicStructure
 #define atomstruct_AtomicStructure
 
+#include <algorithm>
 #include <map>
 #include <set>
 #include <string>
@@ -13,6 +14,7 @@
 #include "Chain.h"
 #include "Pseudobond.h"
 #include "Ring.h"
+#include "string_types.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -26,6 +28,7 @@ namespace atomstruct {
 
 class Atom;
 class Bond;
+class Chain;
 class CoordSet;
 class Element;
 class Residue;
@@ -37,13 +40,16 @@ public:
     typedef Edges  Bonds;
     typedef std::vector<Chain*>  Chains;
     typedef std::vector<CoordSet*>  CoordSets;
-    typedef std::map<std::string, std::vector<std::string>>  InputSeqInfo;
+    typedef std::map<ChainID, std::vector<ResName>>  InputSeqInfo;
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     static const char*  PBG_HYDROGEN_BONDS;
     typedef std::vector<Residue*>  Residues;
     typedef std::unordered_set<Ring> Rings;
 private:
+    friend class Chain;
+    void  remove_chain(Chain* chain);
+
     CoordSet *  _active_coord_set;
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
@@ -51,6 +57,8 @@ private:
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
+    void  _delete_atom(Atom* a);
+    void  _delete_residue(Residue* r, const Residues::iterator& ri);
     void  _fast_calculate_rings(std::set<const Residue *>* ignore) const;
     bool  _fast_ring_calc_available(bool cross_residue,
             unsigned int all_size_threshold,
@@ -81,14 +89,15 @@ public:
     const CoordSets &  coord_sets() const { return _coord_sets; }
     void  delete_atom(Atom* a);
     void  delete_atoms(std::vector<Atom*> atoms);
-    void  delete_bond(Bond* b);
-    void  extend_input_seq_info(std::string& chain_id, std::string& res_name) {
+    void  delete_bond(Bond* b) { delete_edge(b); }
+    void  delete_residue(Residue* r);
+    void  extend_input_seq_info(ChainID& chain_id, ResName& res_name) {
         _input_seq_info[chain_id].push_back(res_name);
     }
     CoordSet *  find_coord_set(int) const;
-    Residue *  find_residue(std::string &chain_id, int pos, char insert) const;
-    Residue *  find_residue(std::string &chain_id, int pos, char insert,
-        std::string &name) const;
+    Residue *  find_residue(const ChainID& chain_id, int pos, char insert) const;
+    Residue *  find_residue(const ChainID& chain_id, int pos, char insert,
+        ResName& name) const;
     const InputSeqInfo&  input_seq_info() const { return _input_seq_info; }
     std::string  input_seq_source;
     bool  is_traj;
@@ -101,7 +110,7 @@ public:
     CoordSet *  new_coord_set();
     CoordSet *  new_coord_set(int index);
     CoordSet *  new_coord_set(int index, int size);
-    Residue *  new_residue(const std::string &name, const std::string &chain,
+    Residue *  new_residue(const ResName& name, const ChainID& chain,
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
     size_t  num_atoms() const { return atoms().size(); }
     size_t  num_bonds() const { return bonds().size(); }
@@ -120,7 +129,7 @@ public:
         unsigned int all_size_threshold = 0,
         std::set<const Residue *>* ignore = nullptr) const;
     void  set_active_coord_set(CoordSet *cs);
-    void  set_input_seq_info(const std::string& chain_id, const std::vector<std::string>& res_names) { _input_seq_info[chain_id] = res_names; }
+    void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }
     void  use_best_alt_locs();
 };
@@ -129,31 +138,17 @@ public:
 
 #include "Atom.h"
 inline void
-atomstruct::AtomicStructure::delete_atom(atomstruct::Atom* a) {
-    // assign to DestructionUser to var so it's not immediately destroyed!
-    auto du = basegeom::DestructionUser(a);
-    // iterate through a _copy_ of the bonds, since we're deleting them!
-    Atom::Bonds bonds = a->bonds();
-    for (auto b: bonds) delete_bond(b);
-    delete_vertex(a);
+atomstruct::AtomicStructure::_delete_atom(atomstruct::Atom* a)
+{
     if (a->element().number() == 1)
         --_num_hyds;
+    delete_vertex(a);
 }
 
 inline void
-atomstruct::AtomicStructure::delete_atoms(std::vector<atomstruct::Atom*> atoms)
+atomstruct::AtomicStructure::remove_chain(Chain* chain)
 {
-    // prevent per-atom notifications
-    auto du = basegeom::DestructionBatcher(this);
-    for (auto a: atoms)
-        delete_atom(a);
-}
-
-#include "Bond.h"
-inline void
-atomstruct::AtomicStructure::delete_bond(atomstruct::Bond* b) {
-    for (auto a: b->atoms()) a->remove_bond(b);
-    delete_edge(b);
+    _chains->erase(std::find(_chains->begin(), _chains->end(), chain));
 }
 
 #endif  // atomstruct_AtomicStructure

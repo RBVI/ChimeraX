@@ -29,7 +29,7 @@ def _atomic_structure(p):
     return object_map(p, CAtomicStructure)
 def _pseudobond_group_map(pbgc_map):
     from .molarray import PseudoBonds
-    pbg_map = dict((name, PseudoBonds(pbg)) for name, pbg in pbgc_map.items())
+    pbg_map = dict((name, object_map(pbg,ASPseudoBondGroup)) for name, pbg in pbgc_map.items())
     return pbg_map
 
 # -----------------------------------------------------------------------------
@@ -42,17 +42,20 @@ class Atom:
     bfactor = c_property('atom_bfactor', float32)
     bonds = c_property('atom_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
     bonded_atoms = c_property('atom_bonded_atoms', cptr, 'num_bonds', astype = _atoms, read_only = True)
+    chain_id = c_property('atom_chain_id', string, read_only = True)
     color = c_property('atom_color', uint8, 4)
     coord = c_property('atom_coord', float64, 3)
     display = c_property('atom_display', npy_bool)
     draw_mode = c_property('atom_draw_mode', int32)
     element_name = c_property('atom_element_name', string, read_only = True)
     element_number = c_property('atom_element_number', int32, read_only = True)
-    molecule = c_property('atom_molecule', cptr, astype = _atomic_structure, read_only = True)
+    in_chain = c_property('atom_in_chain', npy_bool, read_only = True)
+    structure = c_property('atom_structure', cptr, astype = _atomic_structure, read_only = True)
     name = c_property('atom_name', string, read_only = True)
     num_bonds = c_property('atom_num_bonds', int32, read_only = True)
     radius = c_property('atom_radius', float32)
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True)
+    selected = c_property('atom_selected', npy_bool)
 
     def connects_to(self, atom):
         f = c_function('atom_connects_to',
@@ -63,7 +66,7 @@ class Atom:
 
     @property
     def scene_coord(self):
-        return self.molecule.scene_position * self.coord
+        return self.structure.scene_position * self.coord
 
 # -----------------------------------------------------------------------------
 #
@@ -77,6 +80,10 @@ class Bond:
     display = c_property('bond_display', int32)
     halfbond = c_property('bond_halfbond', npy_bool)
     radius = c_property('bond_radius', float32)
+
+    def other_atom(self, atom):
+        a1,a2 = self.atoms
+        return a2 if atom is a1 else a1
 
 # -----------------------------------------------------------------------------
 #
@@ -100,14 +107,43 @@ class PseudoBond:
 
 # -----------------------------------------------------------------------------
 #
-class CPseudoBondGroup:
+class ASPseudoBondGroup:
+    '''AtomicStructure pseudobond group.'''
 
-    def __init__(self, name):
-        f = c_function('pseudobond_group_get', args = [ctypes.c_char_p], ret = ctypes.c_void_p)
-        pbg_pointer = f(name.encode('utf-8'))
+    def __init__(self, pbg_pointer = None):
         set_c_pointer(self, pbg_pointer)
-        add_to_object_map(self)
 
+    gc_color = c_property('as_pseudobond_group_gc_color', npy_bool)
+    gc_select = c_property('as_pseudobond_group_gc_select', npy_bool)
+    gc_shape = c_property('as_pseudobond_group_gc_shape', npy_bool)
+    num_pseudobonds = c_property('as_pseudobond_group_num_pseudobonds', int32, read_only = True)
+    pseudobonds = c_property('as_pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
+                             astype = _pseudobonds, read_only = True)
+
+    def new_pseudobond(self, atom1, atom2):
+        f = c_function('as_pseudobond_group_new_pseudobond',
+                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
+                       ret = ctypes.c_void_p)
+        pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
+        return object_map(pb, PseudoBond)
+
+# -----------------------------------------------------------------------------
+#
+class CPseudoBondGroup:
+    '''Global pseudobond group.'''
+
+    def __init__(self, pbg_pointer = None, name = None):
+        if pbg_pointer is None:
+            f = c_function('pseudobond_group_get', args = [ctypes.c_char_p], ret = ctypes.c_void_p)
+            pbg_pointer = f(name.encode('utf-8'))
+            set_c_pointer(self, pbg_pointer)
+            add_to_object_map(self)
+        else:
+            set_c_pointer(self, pbg_pointer)
+
+    gc_color = c_property('pseudobond_group_gc_color', npy_bool)
+    gc_select = c_property('pseudobond_group_gc_select', npy_bool)
+    gc_shape = c_property('pseudobond_group_gc_shape', npy_bool)
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', int32, read_only = True)
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
                              astype = _pseudobonds, read_only = True)
@@ -141,6 +177,7 @@ class Residue:
     number = c_property('residue_number', int32, read_only = True)
     str = c_property('residue_str', string, read_only = True)
     unique_id = c_property('residue_unique_id', int32, read_only = True)
+    structure = c_property('residue_structure', cptr, astype = _atomic_structure, read_only = True)
     # TODO: Currently no C++ method to get Chain
 
     def add_atom(self, atom):
@@ -155,7 +192,7 @@ class Chain:
         set_c_pointer(self, chain_pointer)
 
     chain_id = c_property('chain_chain_id', string, read_only = True)
-    molecule = c_property('chain_molecule', cptr, astype = _atomic_structure, read_only = True)
+    structure = c_property('chain_structure', cptr, astype = _atomic_structure, read_only = True)
     residues = c_property('chain_residues', cptr, 'num_residues', astype = _residues, read_only = True)
     num_residues = c_property('chain_num_residues', int32, read_only = True)
 
@@ -165,53 +202,83 @@ class CAtomicStructure:
 
     def __init__(self, mol_pointer = None):
         if mol_pointer is None:
-            # Create a new molecule
-            mol_pointer = c_function('molecule_new', args = (), ret = ctypes.c_void_p)()
+            # Create a new atomic structure
+            mol_pointer = c_function('structure_new', args = (), ret = ctypes.c_void_p)()
         set_c_pointer(self, mol_pointer)
 
     def delete(self):
-        c_function('molecule_delete', args = (ctypes.c_void_p,))(self._c_pointer)
+        c_function('structure_delete', args = (ctypes.c_void_p,))(self._c_pointer)
 
-    atoms = c_property('molecule_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
-    bonds = c_property('molecule_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
-    chains = c_property('molecule_chains', cptr, 'num_chains', astype = _chains, read_only = True)
-    name = c_property('molecule_name', string)
-    num_atoms = c_property('molecule_num_atoms', int32, read_only = True)
-    num_bonds = c_property('molecule_num_bonds', int32, read_only = True)
-    num_coord_sets = c_property('molecule_num_coord_sets', int32, read_only = True)
-    num_chains = c_property('molecule_num_chains', int32, read_only = True)
-    num_residues = c_property('molecule_num_residues', int32, read_only = True)
-    residues = c_property('molecule_residues', cptr, 'num_residues', astype = _residues, read_only = True)
-    pbg_map = c_property('molecule_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
+    atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
+    bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
+    chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)
+    gc_color = c_property('structure_gc_color', npy_bool)
+    gc_select = c_property('structure_gc_select', npy_bool)
+    gc_shape = c_property('structure_gc_shape', npy_bool)
+    name = c_property('structure_name', string)
+    num_atoms = c_property('structure_num_atoms', int32, read_only = True)
+    num_bonds = c_property('structure_num_bonds', int32, read_only = True)
+    num_coord_sets = c_property('structure_num_coord_sets', int32, read_only = True)
+    num_chains = c_property('structure_num_chains', int32, read_only = True)
+    num_residues = c_property('structure_num_residues', int32, read_only = True)
+    residues = c_property('structure_residues', cptr, 'num_residues', astype = _residues, read_only = True)
+    pbg_map = c_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
 
     def new_atom(self, atom_name, element_name):
-        f = c_function('molecule_new_atom',
+        f = c_function('structure_new_atom',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p),
                        ret = ctypes.c_void_p)
         ap = f(self._c_pointer, atom_name.encode('utf-8'), element_name.encode('utf-8'))
         return object_map(ap, Atom)
 
     def new_bond(self, atom1, atom2):
-        f = c_function('molecule_new_bond',
+        f = c_function('structure_new_bond',
                        args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
                        ret = ctypes.c_void_p)
         bp = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
         return object_map(bp, Bond)
 
     def new_residue(self, residue_name, chain_id, pos):
-        f = c_function('molecule_new_residue',
+        f = c_function('structure_new_residue',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
         rp = f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos)
         return object_map(rp, Residue)
 
     def polymers(self, consider_missing_structure = True, consider_chains_ids = True):
-        f = c_function('molecule_polymers',
+        f = c_function('structure_polymers',
                        args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int),
                        ret = ctypes.py_object)
         resarrays = f(self._c_pointer, consider_missing_structure, consider_chains_ids)
         from .molarray import Residues
         return tuple(Residues(ra) for ra in resarrays)
+
+    def pseudobond_group(self, name):
+        f = c_function('structure_pseudobond_group',
+                       args = (ctypes.c_void_p, ctypes.c_char_p),
+                       ret = ctypes.c_void_p)
+        pbg = f(self._c_pointer, name.encode('utf-8'))
+        return object_map(pbg, ASPseudoBondGroup)
+
+# -----------------------------------------------------------------------------
+#
+class Element:
+
+    def __init__(self, e_pointer = None, name = None, number = 6):
+        if e_pointer is None:
+            # Create a new element
+            if name:
+                f = c_function('element_new_name', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
+                e_pointer = f(name)
+            else:
+                f = c_function('element_new_number', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+                e_pointer = f(number)
+        set_c_pointer(self, e_pointer)
+
+    name = c_property('element_name', string, read_only = True)
+    number = c_property('element_number', int32, read_only = True)
+    mass = c_property('element_mass', float32, read_only = True)
+    is_metal = c_property('element_is_metal', npy_bool, read_only = True)
 
 # -----------------------------------------------------------------------------
 #

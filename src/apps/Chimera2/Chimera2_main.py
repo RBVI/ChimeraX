@@ -8,9 +8,40 @@
 import sys
 import os
 
-__version__ = "0.1.0a0"     # PEP 440 compatible
-__app_name__ = "Chimera2"
-__app_author__ = "UCSF"
+__version__ = "0.1.0a0"     # version of this file -- PEP 440 compatible
+
+app_name = "Chimera2"
+app_author = "UCSF"
+# remember locale codes are frequently different than country codes
+localized_app_name = {
+    'af': u'Chimera2',          # Afrikaans
+    'cs': u'Přízrak2',          # Czech
+    'da': u'Chiemra2',          # Danish
+    'de': u'Chimäre2',          # German
+    'el': u'Χίμαιρα2',          # Greek
+    'en': u'Chimera2',          # English
+    'es': u'Quimera2',          # Spanish
+    'fi': u'Kauhukuva2',        # Finish
+    'fr': u'Chimère2',          # French
+    'hr': u'Himera2',           # Croatian
+    'in': u'Angan-angan2',      # Indonesian
+    'it': u'Chimera2',          # Italian
+    'ja': u'キメラ2',           # Japanese
+    'ko': u'키메라2',           # Korean
+    'nl': u'Chimera2',          # Dutch
+    'no': u'Chimera2',          # Norwegian
+    'pl': u'Chimera2',          # Polish
+    'pt': u'Quimera2',          # Portuguese
+    'ro': u'Himeră2',           # Romainian
+    'ru': u'Химера2',           # Russian
+    'sr': u'Химера2',           # Serbian
+    'sk': u'Prízrak2',          # Slovak
+    'sv': u'Chimera2',          # Swedish
+    'th': u'ความเพ้อฝัน2',        # Thai
+    'tr': u'Kuruntu2',          # Turkish
+    'uk': u'Химера2',           # Ukrainian
+    'zh': u'嵌合體2',           # Chinese
+}
 
 
 def parse_arguments(argv):
@@ -42,8 +73,9 @@ def parse_arguments(argv):
     opts.load_tools = True
     opts.silent = False
     opts.status = True
+    opts.uninstall = False
     opts.use_defaults = False
-    opts.version = False
+    opts.version = 0
 
     # Will build usage string from list of arguments
     arguments = [
@@ -55,6 +87,7 @@ def parse_arguments(argv):
         "--silent",
         "--nostatus",
         "--notools",
+        "--uninstall",
         "--usedefaults",
         "--version",
     ]
@@ -118,10 +151,12 @@ def parse_arguments(argv):
             opts.status = opt[2] == 's'
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
+        elif opt == "--uninstall":
+            opts.uninstall = True
         elif opt in ("--usedefaults", "--nousedefaults"):
             opts.load_tools = opt[2] == 'u'
         elif opt == "--version":
-            opts.version = True
+            opts.version += 1
     if help:
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
@@ -131,7 +166,7 @@ def parse_arguments(argv):
     return opts, args
 
 
-def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
+def init(argv, event_loop=True):
     if sys.platform.startswith('darwin'):
         paths = os.environ['PATH'].split(':')
         if '/usr/sbin' not in paths:
@@ -140,12 +175,17 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
-    if app_name is None:
-        app_name = __app_name__
-    if app_author is None:
-        app_author = __app_author__
-    if version is None:
-        version = __version__       # TODO: use chimera.core's version
+    # use chimera.core's version
+    import pip
+    dists = pip.get_installed_distributions(local_only=True)
+    for d in dists:
+        if d.key == 'chimera.core':
+            version = d.version
+            break
+    else:
+        print("error: unable to figure out %s's version" % app_name)
+        return os.EX_SOFTWARE
+
     opts, args = parse_arguments(argv)
 
     # install line_profile decorator
@@ -184,6 +224,8 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
 
     from distlib.version import NormalizedVersion as Version
     epoch, ver, *_ = Version(version).parse(version)
+    if len(ver) == 1:
+        ver += (0,)
     partial_version = '%s.%s' % (ver[0], ver[1])
 
     import appdirs
@@ -211,7 +253,9 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
-    sess.app_data_dir = os.path.join(os.path.dirname(bindir), "share")
+    rootdir = os.path.dirname(bindir)
+    sess.app_data_dir = os.path.join(rootdir, "share")
+    sess.app_bin_dir = os.path.join(rootdir, "bin")
 
     # inform the C++ layer of the appdirs paths
     from chimera.core import _appdirs
@@ -220,8 +264,8 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
                         ad.site_config_dir, ad.user_log_dir, sess.app_data_dir,
                         adu.user_cache_dir)
 
-    from chimera.core import preferences
-    preferences.init(sess)
+    from chimera.core import core_settings
+    core_settings.init(sess)
 
     session.common_startup(sess)
     # or:
@@ -229,6 +273,9 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     #   from chimera.core import models
     #   sess.add_state_manager('models', models.Models(sess))
     # etc.
+
+    if opts.uninstall:
+        return uninstall(sess)
 
     # initialize the user interface
     if opts.gui:
@@ -273,19 +320,39 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
 
     if opts.version:
         print("%s: %s" % (app_name, version))
-        print("Installed tools:")
-        tool_info = sess.toolshed.tool_info()
-        if tool_info:
-            for t in tool_info:
-                print("    %s: %s" % (t.name, t.version))
+        if opts.version == 1:
+            return os.EX_OK
+        import pip
+        dists = pip.get_installed_distributions(local_only=True)
+        if not dists:
+            sess.logger.error("no version information available")
+            return os.EX_SOFTWARE
+        dists = list(dists)
+        dists.sort(key=lambda d: d.key)
+        if opts.version == 2:
+            print("Installed tools:")
         else:
-            print("    None.")
+            print("Installed packages:")
+        for d in dists:
+            key = d.key
+            if opts.version == 2:
+                if not key.startswith('chimera.'):
+                    continue
+                key = key[len('chimera.'):]
+            if d.has_version():
+                print("    %s: %s" % (key, d.version))
+            else:
+                print("    %s: unknown" % key)
         return os.EX_OK
 
     if opts.list_file_types:
         from chimera.core import io
         io.print_file_types()
         raise SystemExit(0)
+
+    if sys.platform.startswith('linux'):
+        from chimera.core import _xdg
+        _xdg.install_if_needed(sess, localized_app_name)
 
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
@@ -350,6 +417,61 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
             traceback.print_exc()
             return os.EX_SOFTWARE
     return os.EX_OK
+
+
+def rm_rf_path(path, sess):
+    # analogous to "rm -rf path"
+    import shutil
+    had_error = [False]
+
+    def found_error(function, path, excinfo):
+        had_error[0] = True
+
+    shutil.rmtree(path, onerror=found_error)
+    if had_error[0]:
+        sess.logger.warning("unable to completely remove '%s'" % path)
+
+
+def uninstall(sess):
+    # for uninstall option
+    import tempfile
+    # change directory so we're guaranteed not to be in the Chimera2 app
+    os.chdir(tempfile.gettempdir())
+
+    # find location of Chimera2
+    if sys.executable is None:
+        sess.logger.error('unable to locate Chimera2 executable')
+        return os.EX_SOFTWARE
+    exe = os.path.realpath(sys.executable)
+    exe_dir = os.path.dirname(exe)
+
+    if sys.platform.startswith('linux'):
+        if os.path.basename(exe_dir) != 'bin':
+            sys.logger.error('non-standard Chimera2 installation')
+            return os.EX_SOFTWARE
+        from chimera.core import _xdg
+        _xdg.uninstall(sess)
+        #parent = os.path.dirname(exe_dir)
+        #rm_rf_path(parent, sess)
+        return os.EX_OK
+
+    if sys.platform.startswith('darwin'):
+        if os.path.basename(exe_dir) != 'MacOS':
+            sess.logger.error('non-standard Chimera2 installation')
+            return os.EX_SOFTWARE
+        parent = os.path.dirname(exe_dir)
+        if os.path.basename(parent) != 'Contents':
+            sess.logger.error('non-standard Chimera2 installation')
+            return os.EX_SOFTWARE
+        parent = os.path.dirname(parent)
+        if not os.path.basename(parent).endswith('.app'):
+            sess.logger.error('non-standard Chimera2 installation')
+            return os.EX_SOFTWARE
+        rm_rf_path(parent, sess)
+        return os.EX_OK
+
+    sess.logger.error('can not yet uninstall on %s' % sys.platform)
+    return os.EX_UNAVAILABLE
 
 if __name__ == '__main__':
     raise SystemExit(init(sys.argv))

@@ -28,7 +28,7 @@ class MarkerMouseMode(MouseMode):
         if c is None:
             log.status('No marker placed')
             return
-        place_marker(session, c)
+        place_marker(self.session, c)
 
     def mouse_drag(self, event):
         pass
@@ -60,11 +60,11 @@ def marker_molecule(session):
 def place_marker(session, center):
     m = marker_molecule(session)
     a = m.new_atom('', 'H')
-    a.coord = c
+    a.coord = center
     ms = marker_settings(session)
     a.radius = ms['radius']
     a.color = ms['color']
-    r = m.new_residue('marker', ms['marker_chain_id'], ms['next_marker_num'])
+    r = m.new_residue('mark', ms['marker_chain_id'], ms['next_marker_num'])
     r.add_atom(a)
     ms['next_marker_num'] += 1
     m.new_atoms()
@@ -104,12 +104,11 @@ class ConnectMouseMode(MouseMode):
         atoms2 = selected_atoms(s)
         if len(atoms1) == 1 and len(atoms2) == 1:
             a1, a2 = atoms1[0], atoms2[0]
-            if a1.molecule != a2.molecule:
+            if a1.structure != a2.structure:
                 s.logger.status('Cannot connect atoms from different molecules')
             elif not a1.connects_to(a2):
-                m = a1.molecule
+                m = a1.structure
                 m.new_bond(a1,a2)
-                m.update_graphics()
                 s.logger.status('Made connection')
 
 def mark_map_center(volume):

@@ -7,11 +7,13 @@
 #include <string>
 
 #include <basegeom/destruct.h>
+#include <basegeom/Graph.h>
 
 namespace pseudobond {
 
 template <class EndPoint, class PBond>
-class Group: public basegeom::DestructionObserver {
+class Group:
+    public basegeom::DestructionObserver, public basegeom::GraphicsContainer {
 protected:
     std::string  _category;
     bool  _destruction_relevant;
@@ -22,11 +24,11 @@ protected:
         auto du = basegeom::DestructionUser(this);
         for (auto pb: pseudobonds())
             delete pb;
-        clear();
     }
 public:
     virtual void  clear() = 0;
-    Group(const std::string& cat): _category(cat), _destruction_relevant(true) {}
+    Group(const std::string& cat):
+        _category(cat), _destruction_relevant(true) { }
     virtual  ~Group() {}
     virtual const std::string&  category() const { return _category; }
     virtual void  check_destroyed_atoms(const std::set<void*>& destroyed) = 0;

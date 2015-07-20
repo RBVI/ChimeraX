@@ -16,7 +16,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     s = grid_spacing
     shape = [int(ceil((xyz_max[a] - xyz_min[a] + 2*pad) / s))
              for a in (2,1,0)]
-    print('ses surface grid size', shape, 'spheres', len(xyz))
+#    print('ses surface grid size', shape, 'spheres', len(xyz))
     from numpy import empty, float32, sqrt
     matrix = empty(shape, float32)
     max_index_range = 2

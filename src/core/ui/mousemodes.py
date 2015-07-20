@@ -55,7 +55,7 @@ class MouseModes:
             self.graphics_window.opengl_canvas.ReleaseMouse()
         if button is None:
             if event.LeftIsDown():
-                button = "left"
+                button = "middle" if event.AltDown() else "left"
             elif event.MiddleIsDown():
                 button = "middle"
             elif event.RightIsDown():
@@ -65,6 +65,8 @@ class MouseModes:
             if not self.graphics_window.opengl_canvas.HasCapture():
                 # a Windows thing; can lose mouse capture w/o mouse up
                 return
+        elif button == 'left' and event.AltDown():
+            button = 'middle'
         m = self.mouse_modes.get(button)
         if m and hasattr(m, action):
             f = getattr(m, action)

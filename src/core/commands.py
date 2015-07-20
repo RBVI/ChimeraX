@@ -132,7 +132,6 @@ def help(session, command_name=None):
         status(str(e))
         return
     if session.ui.is_gui:
-        status(usage)
         info(cli.html_usage(command_name), is_html=True)
     else:
         info(usage)
@@ -145,8 +144,6 @@ def display(session, spec=None):
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     results.atoms.displays = True
-    for m in results.models:
-        m.update_graphics()
 _display_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display specified atoms')
 
@@ -156,8 +153,6 @@ def undisplay(session, spec=None):
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     results.atoms.displays = False
-    for m in results.models:
-        m.update_graphics()
 _undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                               synopsis='undisplay specified atoms')
 
@@ -282,8 +277,10 @@ def ribbon(session, spec=None):
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = True
+    from .structure import AtomicStructure
     for m in results.models:
-        m.update_graphics()
+        if isinstance(m, AtomicStructure):
+            m.update_ribbon_graphics(rebuild=True)
 
 _ribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display ribbon for specified residues')
@@ -295,10 +292,106 @@ def unribbon(session, spec=None):
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = False
     for m in results.models:
-        m.update_graphics()
+        m.update_ribbon_graphics(rebuild=True)
 _unribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display ribbon for specified residues')
 
+def set_cmd(session, bg_color=None, silhouettes=None):
+    had_arg = False
+    view = session.main_view
+    if bg_color is not None:
+        had_arg = True
+        view.background_color = bg_color.rgba
+        view.redraw_needed = True
+    if silhouettes is not None:
+        had_arg = True
+        view.silhouettes = silhouettes
+        view.redraw_needed = True
+    if had_arg:
+        return
+    print('Current settings:\n'
+          '  bg_color:', view.background_color, '\n'
+          '  silhouettes:', view.silhouettes, '\n')
+
+from . import color
+_set_desc = cli.CmdDesc(
+    keyword=[('bg_color', color.ColorArg), ('silhouettes', cli.BoolArg)],
+    synopsis="set preferences"
+)
+
+#
+# Turn command to rotate models.
+#
+def turn(session, axis, angle, frames = 1):
+    v = session.main_view
+    c = v.camera
+    cv = c.position
+    saxis = cv.apply_without_translation(axis)  # Convert axis from camera to scene coordinates
+    center = v.center_of_rotation
+    from .geometry.place import rotation
+    r = rotation(saxis, -angle, center)
+    if frames == 1:
+        c.position = r*cv
+    else:
+        def rotate(r=r,c=c):
+            c.position = r*c.position
+        call_for_n_frames(rotate, frames, session)
+
+_turn_desc = cli.CmdDesc(required = [('axis', cli.AxisArg),
+                                     ('angle', cli.FloatArg)],
+                         optional = [('frames', cli.IntArg)])
+
+class call_for_n_frames:
+    
+    def __init__(self, func, n, session):
+        self.func = func
+        self.n = n
+        self.session = session
+        self.frame = 0
+        v = session.main_view
+        v.add_new_frame_callback(self.call)
+        if not hasattr(session, 'motion_in_progress'):
+            session.motion_in_progress = set()
+        session.motion_in_progress.add(self)
+    def call(self):
+        f = self.frame
+        if f >= self.n:
+            self.done()
+        else:
+            self.func()
+            self.frame = f+1
+    def done(self):
+        s = self.session
+        v = s.main_view
+        v.remove_new_frame_callback(self.call)
+        s.motion_in_progress.remove(self)
+
+def freeze(session):
+    if hasattr(session, 'motion_in_progress'):
+        for mip in tuple(session.motion_in_progress):
+            mip.done()
+_freeze_desc = cli.CmdDesc()
+
+def motion_in_progress(session):
+    return len(getattr(session, 'motion_in_progress', ())) > 0
+
+def wait(session, frames = None):
+    v = session.main_view
+    if frames is None:
+#        from ..commands.motion import motion_in_progress
+        while motion_in_progress(session):
+            v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
+            v.draw(only_if_changed = True)
+    else:
+        for f in range(frames):
+            v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
+            v.draw(only_if_changed = True)
+_wait_desc = cli.CmdDesc(optional = [('frames', cli.IntArg)])
+
+def crossfade(session, frames = 30):
+    from .graphics import CrossFade
+    CrossFade(session.main_view, frames)
+_crossfade_desc = cli.CmdDesc(optional = [('frames', cli.IntArg)])
 
 def register(session):
     """Register common cli commands"""
@@ -320,12 +413,17 @@ def register(session):
     cli.register('save', _save_desc, save)
     cli.register('ribbon', _ribbon_desc, ribbon)
     cli.register('~ribbon', _unribbon_desc, unribbon)
-    from . import settings
-    settings.register_set_command()
+    cli.register('set', _set_desc, set_cmd)
+    cli.register('turn', _turn_desc, turn)
+    cli.register('freeze', _freeze_desc, freeze)
+    cli.register('wait', _wait_desc, wait)
+    cli.register('crossfade', _crossfade_desc, crossfade)
     from . import molsurf
     molsurf.register_surface_command()
     molsurf.register_sasa_command()
     molsurf.register_buriedarea_command()
+    from . import scolor
+    scolor.register_scolor_command()
     from . import structure
     structure.register_molecule_commands()
     from . import lightcmd
@@ -350,6 +448,10 @@ def register(session):
     shortcuts.register_shortcut_command()
     from . import crosslinks
     crosslinks.register_crosslink_command()
+    from . import split
+    split.register_split_command()
+    from . import perframe
+    perframe.register_perframe_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
@@ -358,6 +460,7 @@ def register(session):
 
     from . import atomspec
     atomspec.register_selector(None, "sel", _sel_selector)
+    atomspec.register_selector(None, "strands", _strands_selector)
 
 def _sel_selector(session, models, results):
     from .structure import AtomicStructure
@@ -367,3 +470,12 @@ def _sel_selector(session, models, results):
             if isinstance(m, AtomicStructure):
                 for atoms in m.selected_items('atoms'):
                     results.add_atoms(atoms)
+
+def _strands_selector(session, models, results):
+    from .structure import AtomicStructure
+    for m in models:
+        if isinstance(m, AtomicStructure):
+            strands = m.residues.filter(m.residues.is_sheet)
+            if strands:
+                results.add_model(m)
+                results.add_atoms(strands.atoms)

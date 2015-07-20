@@ -5,7 +5,10 @@
 #include <stdlib.h>
 
 #include "Atom.h"
+#include "Bond.h"
 #include "AtomicStructure.h"
+#include <basegeom/Connectible.tcc>
+#include <basegeom/Graph.tcc>
 #include <basegeom/destruct.h>
 #include "connect.h"
 #include "MolResId.h"
@@ -21,27 +24,27 @@ using basegeom::Coord;
 
 // standard_residues contains the names of residues that should use
 // PDB ATOM records.
-static std::set<std::string> standard_residues = {
+static std::set<ResName> standard_residues = {
     "A", "ALA", "ARG", "ASN", "ASP", "ASX", "C", "CYS", "DA", "DC", "DG", "DT",
     "G", "GLN", "GLU", "GLX", "GLY", "HIS", "I", "ILE", "LEU", "LYS", "MET",
-    "PHE", "PRO", "SER", "T", "THR", "TRP", "TYR", "U", "VAL"
+    "PHE", "PRO", "SER", "T", "THR", "TRP", "TYR", "U", "UNK", "VAL"
 };
 
 //TODO: these 3 funcs need to be wrapped also
 bool
-standard_residue(const std::string& name)
+standard_residue(const ResName& name)
 {
     return standard_residues.find(name) != standard_residues.end();
 }
 
 void
-add_standard_residue(const std::string& name)
+add_standard_residue(const ResName& name)
 {
     standard_residues.insert(name);
 }
 
 void
-remove_standard_residue(const std::string& name)
+remove_standard_residue(const ResName& name)
 {
     standard_residues.erase(name);
 }

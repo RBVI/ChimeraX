@@ -8,12 +8,13 @@ TODO
 from . import cli
 from . import color
 from . import configfile
+from .settings import Settings
 _prefs = None
 
 
-class _Preferences(configfile.ConfigFile):
+class _CoreSettings(Settings):
 
-    PROPERTY_INFO = {
+    EXPLICIT_SAVE = {
         'bg_color': configfile.Value(
             color.Color('#000'), color.ColorArg, color.Color.hex_with_alpha),
         'multisample_threshold': configfile.Value(
@@ -24,16 +25,6 @@ class _Preferences(configfile.ConfigFile):
         'autostart': ['cmd_line', 'mouse_modes', 'log', 'sideview', 'map_series_gui'],
     }
 
-    def __init__(self, session):
-        configfile.ConfigFile.__init__(self, session, "chimera.core")
-
-
-def get():
-    assert(_prefs is not None)
-    return _prefs
-
-
 def init(session):
-    global _prefs
-    if _prefs is None:
-        _prefs = _Preferences(session)
+    global settings
+    settings = _CoreSettings(session, "chimera.core")

@@ -52,7 +52,7 @@ def position_state(models, atoms, base_model):
 
   btfinv = base_model.position.inverse()
   mset = set(models)
-  mset.update(tuple(atoms.unique_molecules))
+  mset.update(tuple(atoms.unique_structures))
   model_transforms = []
   for m in mset:
       model_transforms.append((m, btfinv * m.position))
@@ -86,7 +86,7 @@ def restore_position(pstate, angle_tolerance = 1e-5, shift_tolerance = 1e-5):
 def move_models_and_atoms(tf, models, atoms, move_whole_molecules, base_model):
 
     if move_whole_molecules:
-        models = list(models) + list(atoms.unique_molecules)
+        models = list(models) + list(atoms.unique_structures)
         from ...molecule import Atoms
         atoms = Atoms()
     global position_history

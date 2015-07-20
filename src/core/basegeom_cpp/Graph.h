@@ -2,15 +2,35 @@
 #ifndef basegeom_Graph
 #define basegeom_Graph
 
+#include <set>
 #include <vector>
-#include <algorithm>
 
 #include "destruct.h"
 
 namespace basegeom {
     
+class GraphicsContainer {
+private:
+    bool  _gc_color:1;
+    bool  _gc_select:1;
+    bool  _gc_shape:1;
+    
+public:
+    GraphicsContainer(): _gc_color(false), _gc_select(false),
+        _gc_shape(false) {}
+    virtual  ~GraphicsContainer() {}
+    void  gc_clear()
+        { _gc_color = false; _gc_select = false; _gc_shape = false; }
+    bool  get_gc_color() const { return _gc_color; }
+    bool  get_gc_select() const { return _gc_select; }
+    bool  get_gc_shape() const { return _gc_shape; }
+    void  set_gc_color(bool gc = true) { _gc_color = gc; }
+    void  set_gc_select(bool gc = true) { _gc_select = gc; }
+    void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
+};
+
 template <class Vertex, class Edge>
-class Graph {
+class Graph: public GraphicsContainer {
 protected:
     typedef std::vector<Vertex*>  Vertices;
     typedef std::vector<Edge*>  Edges;
@@ -19,12 +39,17 @@ private:
     Edges  _edges;
 
     float  _ball_scale;
+    bool  _display = true;
 
 protected:
     void  add_edge(Edge *e) { _edges.emplace_back(e); }
     void  add_vertex(Vertex *v) { _vertices.emplace_back(v); }
     void  delete_edge(Edge *e);
     void  delete_vertex(Vertex *v);
+    void  delete_vertices(const Vertices& vs) {
+        delete_vertices(std::set<Vertex*>(vs.begin(), vs.end()));
+    }
+    void  delete_vertices(const std::set<Vertex*>& vs);
     const Edges &  edges() const { return _edges; }
     const Vertices &  vertices() const { return _vertices; }
 
@@ -40,37 +65,10 @@ public:
 
     // graphics related
     float  ball_scale() const { return _ball_scale; }
-    void  set_ball_scale(float bs) { _ball_scale = bs; }
-
-    // temporary until a Model class exists
-private:
-    bool  _display = true;
-public:
     bool  display() const { return _display; }
-    void  set_display(bool d) { _display = d; }
+    void  set_ball_scale(float bs) { set_gc_shape(); _ball_scale = bs; }
+    void  set_display(bool d) { set_gc_shape(); _display = d; }
 };
-
-template <class Vertex, class Edge>
-void
-Graph<Vertex, Edge>::delete_edge(Edge *e)
-{
-    typename Edges::iterator i = std::find_if(_edges.begin(), _edges.end(),
-        [&e](Edge* ue) { return ue == e; });
-    if (i == _edges.end())
-        throw std::invalid_argument("delete_edge called for Edge not in Graph");
-    _edges.erase(i);
-}
-
-template <class Vertex, class Edge>
-void
-Graph<Vertex, Edge>::delete_vertex(Vertex *v)
-{
-    typename Vertices::iterator i = std::find_if(_vertices.begin(), _vertices.end(),
-        [&v](Vertex* uv) { return uv == v; });
-    if (i == _vertices.end())
-        throw std::invalid_argument("delete_vertex called for Vertex not in Graph");
-    _vertices.erase(i);
-}
 
 } //  namespace basegeom
 

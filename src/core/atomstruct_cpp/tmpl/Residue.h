@@ -11,6 +11,7 @@ namespace tmpl {
 
 using atomstruct::AtomName;
 using atomstruct::AtomType;
+using atomstruct::ResName;
 
 class Atom;
 class Molecule;
@@ -32,7 +33,7 @@ public:
                   const char *extension
                 ) const;
 
-    const std::string    name() const { return _name; }
+    const ResName&    name() const { return _name; }
     Atom    *chief() const { return _chief; }
     void    chief(Atom *a) { _chief = a; }
     Atom    *link() const { return _link; }
@@ -49,7 +50,7 @@ public:
     const AtomsMap &atoms_map() { return _atoms; }
 private:
     Residue(Molecule *, const char *t);
-    std::string _name;
+    ResName     _name;
     AtomsMap    _atoms;
     Atom        *_chief, *_link;
     std::string _description;

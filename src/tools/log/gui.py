@@ -12,19 +12,17 @@ class Log(ToolInstance, HtmlLog):
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
-        self.tool_window = session.ui.create_main_tool_window(
-            self, size=self.SIZE, destroy_hides=True)
+        from chimera.core.gui import MainToolWindow
+        class LogWindow(MainToolWindow):
+            close_destroys = False
+        self.tool_window = LogWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         import wx
         wx.FileSystem.AddHandler(wx.MemoryFSHandler())
         from itertools import count
         self._image_count = count()
-        # WebView doesn't currently support memory file systems,
-        # so use HtmlWindow
-        from wx.html import HtmlWindow
-        self.log_window = HtmlWindow(parent, size=self.SIZE)
-        if "gtk2" in wx.PlatformInfo:
-            self.log_window.SetStandardFonts()
+        from wx import html2
+        self.log_window = html2.WebView.New(parent, size=self.SIZE)
         self.page_source = ""
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.log_window, 1, wx.EXPAND)
@@ -33,7 +31,8 @@ class Log(ToolInstance, HtmlLog):
         session.tools.add([self])
         session.logger.add_log(self)
         self.log_window.Bind(wx.EVT_CLOSE, self.window_close)
-        self.log_window.Bind(wx.EVT_SIZE, self.window_size)
+        self.log_window.SetPage(self.page_source, "")
+        self.log_window.Bind(html2.EVT_WEBVIEW_LOADED, self.show_bottom)
 
     #
     # Implement logging
@@ -48,16 +47,14 @@ class Log(ToolInstance, HtmlLog):
         image, image_break = image_info
         if image:
             import io
-            mem_name = "image_{}.png".format(next(self._image_count))
             img_io = io.BytesIO()
             image.save(img_io, format='PNG')
             png_data = img_io.getvalue()
-            bitmap = wx.Bitmap.NewFromPNGData(png_data, len(png_data))
-            wx.MemoryFSHandler.AddFile(mem_name, bitmap.ConvertToImage(),
-                                       wx.BITMAP_TYPE_PNG)
-            w, h = image.size
-            self.page_source += '<img src="memory:{}" width={} height={}' \
-                ' style="vertical-align:middle">'.format(mem_name, w, h)
+            import codecs
+            bitmap = codecs.encode(png_data, 'base64')
+            width, height = image.size
+            img_src = '<img src="data:image/png;base64,%s" width=%d height=%d style="vertical-align:middle">' % (bitmap.decode('utf-8'), width, height)
+            self.page_source += img_src
             if image_break:
                 self.page_source += "<br>"
         else:
@@ -96,17 +93,16 @@ class Log(ToolInstance, HtmlLog):
                 msg = '<font color="red">' + msg + '</font>'
 
             self.page_source += msg
-        self.log_window.SetPage(self.page_source)
-        r = self.log_window.GetScrollRange(wx.VERTICAL)
-        self.log_window.Scroll(0, r)
+        self.log_window.SetPage(self.page_source, "")
         return True
+
+    def show_bottom(self, event):
+        # scroll to bottom
+        self.log_window.RunScript(
+            "window.scrollTo(0, document.body.scrollHeight);")
 
     def window_close(self, event):
         self.session.logger.remove_log(self)
-
-    def window_size(self, event):
-        # try to get to same scroll position
-        self.log_window.HistoryBack()
 
     #
     # Implement session.State methods if deriving from ToolInstance
@@ -136,13 +132,5 @@ class Log(ToolInstance, HtmlLog):
     # Override ToolInstance methods
     #
     def delete(self):
-        session = self.session
-        self.tool_window.shown = False
-        self.tool_window.destroy()
-        session.logger.remove_log(self)
-        session.tools.remove([self])
+        self.session.logger.remove_log(self)
         super().delete()
-
-    def display(self, b):
-        """Show or hide log."""
-        self.tool_window.shown = b

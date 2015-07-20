@@ -46,7 +46,6 @@ Here is an example of a function that may be registered with cli:
         translation = place.translation(by_vector)
         for m in spec.models:
             m.position = translation * m.position
-            m.update_graphics()
     move_desc = cli.CmdDesc(required=[("by", cli.Float3Arg)],
                             optional=[("modelspec", atomspec.AtomSpecArg)])
 
@@ -865,3 +864,15 @@ def everything(session):
         An AtomSpec instance that matches everything in session.
     """
     return AtomSpecArg.parse('#*', session)[0]
+
+# -----------------------------------------------------------------------------
+#
+class ModelsArg(Annotation):
+    """Parse command models specifier"""
+    name = "models"
+
+    @staticmethod
+    def parse(text, session):
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        return models, text, rest

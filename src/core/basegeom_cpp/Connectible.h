@@ -5,17 +5,22 @@
 #include <algorithm>
 #include <vector>
 
-#include "Coord.h"
 #include "Connection.h"
+#include "Coord.h"
+#include "Graph.h"
 #include "Rgba.h"
 #include "destruct.h"
 
 namespace basegeom {
+
+using ::basegeom::Coord;
+using ::basegeom::Point;
+using ::basegeom::UniqueConnection;
     
 template <class FinalConnection, class FinalConnectible>
 class Connectible {
-    friend class UniqueConnection<FinalConnectible, FinalConnection>;
 protected:
+    friend class UniqueConnection<FinalConnectible, FinalConnection>;
     typedef std::vector<FinalConnection*> Connections;
     typedef std::vector<FinalConnectible*> Neighbors;
 
@@ -24,36 +29,35 @@ private:
     Neighbors  _neighbors; // _connections/_neighbors in same order
 
     bool  _display = true;
+    bool  _selected = false;
     Rgba  _rgba;
-protected:
-    void  add_connection(FinalConnection *c) {
-        _connections.push_back(c);
-        _neighbors.push_back(
-            c->other_end(static_cast<FinalConnectible *>(this)));
-    }
-    virtual  ~Connectible() { DestructionUser(this); }
-    const Connections&  connections() const { return _connections; }
-    void  remove_connection(FinalConnection *c) {
-        auto cnti = std::find(_connections.begin(), _connections.end(), c);
-        _neighbors.erase(_neighbors.begin() + (cnti - _connections.begin()));
-        _connections.erase(cnti);
-    }
 public:
+    virtual  ~Connectible() { DestructionUser(this); }
+    void  add_connection(FinalConnection *c);
+    const Connections&  connections() const { return _connections; }
     bool  connects_to(FinalConnectible *c) const {
         return std::find(_neighbors.begin(), _neighbors.end(), c)
             != _neighbors.end();
     }
     virtual const Coord &  coord() const = 0;
     const Neighbors&  neighbors() const { return _neighbors; }
+    void  remove_connection(FinalConnection *c);
     virtual void  set_coord(const Point & coord) = 0;
 
     // graphics related
     const Rgba&  color() const { return _rgba; }
-    bool  display() const { return _display; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
-        Rgba::Channel a) { _rgba = {r, g, b, a}; }
-    void  set_color(const Rgba& rgba) { _rgba = rgba; }
-    void  set_display(bool d) { _display = d; }
+        Rgba::Channel a)
+        { graphics_container()->set_gc_color(); _rgba = {r, g, b, a}; }
+    void  set_color(const Rgba& rgba)
+        { graphics_container()->set_gc_color(); _rgba = rgba; }
+    bool  display() const { return _display; }
+    virtual GraphicsContainer*  graphics_container() const = 0;
+    void  set_display(bool d)
+        { graphics_container()->set_gc_shape(); _display = d; }
+    bool  selected() const { return _selected; }
+    void  set_selected(bool s)
+        { graphics_container()->set_gc_select(); _selected = s; }
 };
 
 } //  namespace basegeom

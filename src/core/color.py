@@ -169,6 +169,7 @@ _BuiltinColors = SortedDict({
     'yellowgreen': (154, 205, 50, 255),
 })
 _BuiltinColors['transparent'] = (0, 0, 0, 0)
+_SpecialColors = ["byatom", "byelement", "byhetero"]
 
 
 class UserColors(SortedDict, State):
@@ -552,9 +553,7 @@ def color(session, color, spec=None):
     ns = 0
     from .structure import AtomicStructure
     for m in results.models:
-        if isinstance(m, AtomicStructure):
-            m.update_graphics()
-        else:
+        if not isinstance(m, AtomicStructure):
             m.color = rgba8
             ns += 1
 
@@ -586,7 +585,7 @@ def rcolor(session, color, spec=None):
     from .structure import AtomicStructure
     for m in results.models:
         if isinstance(m, AtomicStructure):
-            m.update_graphics()
+            m.update_ribbon_graphics(rebuild=True)
 
     what = []
     if nr > 0:
@@ -594,6 +593,92 @@ def rcolor(session, color, spec=None):
     else:
         what.append('nothing')
     session.logger.status('Colored %s' % ', '.join(what))
+
+
+def ecolor(session, spec, color=None, target=None):
+    """Color an object specification."""
+    from . import atomspec
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+    what = []
+
+    if target is None or 'a' in target:
+        # atoms/bonds
+        atoms = results.atoms
+        if atoms is not None:
+            if color in _SpecialColors:
+                if color == "byelement":
+                    _set_element_colors(atoms, False)
+                elif color == "byhetero":
+                    _set_element_colors(atoms, True)
+                else:
+                    # Other "colors" do not apply to atoms
+                    pass
+            else:
+                atoms.colors = color.uint8x4()
+            what.append('%d atoms' % len(atoms))
+
+    if target is None or 'l' in target:
+        if target is not None:
+            session.logger.warning('Label colors not supported yet')
+
+    if target is None or 's' in target:
+        from .scolor import scolor
+        if color in _SpecialColors:
+            ns = scolor(session, results.atoms, byatom=True)
+        else:
+            ns = scolor(session, results.atoms, color)
+        what.append('%d surfaces' % ns)
+
+    if target is None or 'c' in target:
+        if color not in _SpecialColors:
+            residues = results.atoms.unique_residues
+            if residues is not None:
+                residues.ribbon_colors = color.uint8x4()
+                what.append('%d residues' % len(residues))
+            for m in residues.unique_structures:
+                m.update_ribbon_graphics(rebuild=True)
+
+    if target is None or 'r' in target:
+        if target is not None:
+            session.logger.warning('Residue label colors not supported yet')
+
+    if target is None or 'n' in target:
+        if target is not None:
+            session.logger.warning('Non-molecular model-level colors not supported yet')
+
+    if target is None or 'm' in target:
+        if target is not None:
+            session.logger.warning('Model-level colors not supported yet')
+
+    if target is None or 'b' in target:
+        if target is not None:
+            session.logger.warning('Bond colors not supported yet')
+
+    if target is None or 'p' in target:
+        if target is not None:
+            session.logger.warning('Pseudobond colors not supported yet')
+
+    if target is None or 'd' in target:
+        if target is not None:
+            session.logger.warning('Distances colors not supported yet')
+
+    if not what:
+        what.append('nothing')
+    session.logger.status('Colored %s' % ', '.join(what))
+
+
+def _set_element_colors(atoms, skip_carbon):
+    import numpy
+    from .structure import element_colors
+    en = atoms.element_numbers
+    for e in numpy.unique(en):
+        if not skip_carbon or e != 6:
+            ae = atoms.filter(en == e)
+            print("before", e, len(ae), ae[0].color)
+            atoms.filter(en == e).colors = element_colors(e)
+            print("after", ae[0].color)
 
 
 def register_commands():
@@ -624,6 +709,14 @@ def register_commands():
         cli.CmdDesc(required=[('name', cli.StringArg)],
                     synopsis="remove color definition"),
         undefine_color
+    )
+    cli.register(
+        'ecolor',
+        cli.CmdDesc(optional=[('color', cli.Or(ColorArg, cli.EnumOf(_SpecialColors)))],
+                    required=[('spec', cli.Or(atomspec.AtomSpecArg, cli.EmptyArg))],
+                    keyword=[('target', cli.StringArg)],
+                    synopsis="testing real color syntax"),
+        ecolor
     )
 
 

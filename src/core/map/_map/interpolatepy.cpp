@@ -124,7 +124,7 @@ extern "C" PyObject *interpolate_colormap(PyObject *, PyObject *args)
 {
   FArray values, color_data_values, colors, rgba;
   float rgba_above[4], rgba_below[4];
-  if (!PyArg_ParseTuple(args, const_cast<char *>("O&O&OO&O&|O&"),
+  if (!PyArg_ParseTuple(args, const_cast<char *>("O&O&O&O&O&|O&"),
 			parse_float_n_array, &values,
 			parse_float_n_array, &color_data_values,
 			parse_float_n4_array, &colors,
@@ -161,7 +161,7 @@ extern "C" PyObject *set_outside_volume_colors(PyObject *, PyObject *args)
   IArray outside;
   float rgba_outside_volume[4];
   FArray rgba;
-  if (!PyArg_ParseTuple(args, const_cast<char *>("O&OO"),
+  if (!PyArg_ParseTuple(args, const_cast<char *>("O&O&O&"),
 			parse_int_n_array, &outside,
 			parse_float_4_array, &rgba_outside_volume,
 			parse_writable_float_n4_array, &rgba))

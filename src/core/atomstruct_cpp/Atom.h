@@ -8,15 +8,17 @@
 #include <string>
 #include <vector>
 
-#include "Element.h"
-#include <basegeom/Point.h>
 #include <basegeom/Coord.h>
+#include <basegeom/Point.h>
 #include <basegeom/Sphere.h>
+#include "Element.h"
 #include "imex.h"
 #include "string_types.h"
 
 namespace atomstruct {
 
+using basegeom::BaseSphere;
+using basegeom::GraphicsContainer;
 using basegeom::Point;
 
 class AtomicStructure;
@@ -25,7 +27,7 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom: public basegeom::BaseSphere<Bond, Atom> {
+class ATOMSTRUCT_IMEX Atom: public BaseSphere<Bond, Atom> {
     friend class AtomicStructure;
     friend class Residue;
 public:
@@ -63,7 +65,6 @@ private:
     AtomType  _explicit_idatm_type;
     AtomName  _name;
     unsigned int  _new_coord(const Point &);
-    float  _radius = -1.0; // indicates not explicitly set
     Residue *  _residue;
     mutable Rings  _rings;
     int  _serial_number;
@@ -113,7 +114,12 @@ public:
     void  set_occupancy(float);
     void  set_radius(float);
     void  set_serial_number(int);
-    AtomicStructure *  structure() const { return _structure; }
+    std::string  str() const;
+    AtomicStructure*  structure() const { return _structure; }
+
+    // graphics related
+    GraphicsContainer*  graphics_container() const {
+        return reinterpret_cast<GraphicsContainer*>(_structure); }
 };
 
 }  // namespace atomstruct

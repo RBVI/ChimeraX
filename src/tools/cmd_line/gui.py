@@ -14,8 +14,10 @@ class CommandLine(ToolInstance):
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
-        self.tool_window = session.ui.create_main_tool_window(self,
-                                      size=self.SIZE, destroy_hides=True)
+        from chimera.core.gui import MainToolWindow
+        class CmdWindow(MainToolWindow):
+            close_destroys = False
+        self.tool_window = CmdWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         import wx
         self.text = wx.ComboBox(parent, size=self.SIZE,
@@ -45,6 +47,10 @@ class CommandLine(ToolInstance):
     def cmd_replace(self, cmd):
         self.text.SetValue(cmd)
         self.text.SetInsertionPointEnd()
+
+    def delete(self):
+        self.session.ui.deregister_for_keystrokes(self)
+        super().delete()
 
     def forwarded_keystroke(self, event):
         if event.KeyCode == 13:          # Return
@@ -184,21 +190,6 @@ class CommandLine(ToolInstance):
     def reset_state(self):
         self.tool_window.shown = True
 
-    #
-    # Override ToolInstance methods
-    #
-    def delete(self):
-        session = self.session
-        session.ui.deregister_for_keystrokes(self)
-        self.tool_window.shown = False
-        self.tool_window.destroy()
-        session.tools.remove([self])
-        super().delete()
-
-    def display(self, b):
-        """Show or hide command line user interface."""
-        self.tool_window.shown = b
-
 class _HistoryDialog:
 
     record_label = "Record..."
@@ -207,8 +198,11 @@ class _HistoryDialog:
     def __init__(self, controller):
         # make dialog hidden initially
         self.controller = controller
-        self.window = controller.session.ui.create_child_tool_window(
-            controller, title="Command History", destroy_hides=True)
+        from chimera.core.gui import ChildToolWindow
+        class HistoryWindow(ChildToolWindow):
+            close_destroys = False
+        self.window = controller.tool_window.create_child_window(
+            "Command History")
 
         parent = self.window.ui_area
         import wx

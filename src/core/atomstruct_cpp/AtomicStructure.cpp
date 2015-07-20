@@ -1,15 +1,17 @@
 // vi: set expandtab ts=4 sw=4:
 #include "Atom.h"
 #include "AtomicStructure.h"
+#include <basegeom/destruct.h>
+#include <basegeom/Graph.tcc>
 #include "Bond.h"
 #include "CoordSet.h"
-#include <logger/logger.h>
 #include "Element.h"
-#include "Residue.h"
+#include <logger/logger.h>
 #include "Pseudobond.h"
+#include "Residue.h"
 #include "seq_assoc.h"
 
-#include <algorithm>  // for std::find, std::sort
+#include <algorithm>  // for std::find, std::sort, std::remove_if
 #include <map>
 #include <stdexcept>
 #include <set>
@@ -32,8 +34,10 @@ AtomicStructure::~AtomicStructure() {
     // assign to variable so that it lives to end of destructor
     auto du = basegeom::DestructionUser(this);
     if (_chains != nullptr) {
-        for (auto c: *_chains)
-            delete c;
+        // don't delete the actual chains -- they may be being
+        // used as Sequences and the Python layer will delete 
+        // them (as sequences) as appropriate
+        delete _chains;
     }
     for (auto r: _residues)
         delete r;
@@ -157,6 +161,96 @@ AtomicStructure::best_alt_locs() const
     return best_locs;
 }
 
+void
+AtomicStructure::delete_atom(Atom* a)
+{
+    if (a->structure() != this) {
+        logger::error(_logger, "Atom ", a->residue()->str(), " ", a->name(),
+            " does not belong to the structure that it's being deleted from.");
+        return;
+    }
+    if (atoms().size() == 1) {
+        delete this;
+        return;
+    }
+    auto r = a->residue();
+    if (r->atoms().size() == 1) {
+        _delete_residue(r, std::find(_residues.begin(), _residues.end(), r));
+        return;
+    }
+    _delete_atom(a);
+}
+
+void
+AtomicStructure::delete_atoms(std::vector<Atom*> del_atoms)
+{
+    auto du = basegeom::DestructionBatcher(this);
+
+    // construct set first to ensure uniqueness before tests...
+    auto del_atoms_set = std::set<Atom*>(del_atoms.begin(), del_atoms.end());
+    if (del_atoms_set.size() == atoms().size()) {
+        delete this;
+        return;
+    }
+    std::map<Residue*, std::vector<Atom*>> res_del_atoms;
+    for (auto a: del_atoms_set) {
+        res_del_atoms[a->residue()].push_back(a);
+    }
+    std::set<Residue*> res_removals;
+    for (auto& r_atoms: res_del_atoms) {
+        auto r = r_atoms.first;
+        auto& dels = r_atoms.second;
+        if (dels.size() == r->atoms().size()) {
+            res_removals.insert(r);
+        } else {
+            for (auto a: dels)
+                r->remove_atom(a);
+        }
+    }
+    if (res_removals.size() > 0) {
+        // remove_if apparently doesn't guarantee that the _back_ of
+        // the vector is all the removed items -- there could be second
+        // copies of the retained values in there, so do the delete as
+        // part of the lambda rather than in a separate pass through
+        // the end of the vector
+        auto new_end = std::remove_if(_residues.begin(), _residues.end(),
+            [&res_removals](Residue* r) {
+                bool rm = res_removals.find(r) != res_removals.end();
+                if (rm) delete r; return rm;
+            });
+        _residues.erase(new_end, _residues.end());
+    }
+    delete_vertices(std::set<Atom*>(del_atoms.begin(), del_atoms.end()));
+}
+
+void
+AtomicStructure::_delete_residue(Residue* r,
+    const AtomicStructure::Residues::iterator& ri)
+{
+    auto db = basegeom::DestructionBatcher(r);
+    for (auto a: r->atoms()) {
+        _delete_atom(a);
+    }
+    _residues.erase(ri);
+    delete r;
+}
+
+void
+AtomicStructure::delete_residue(Residue* r)
+{
+    auto ri = std::find(_residues.begin(), _residues.end(), r);
+    if (ri == _residues.end()) {
+        logger::error(_logger, "Residue ", r->str(),
+            " does not belong to the structure that it's being deleted from.");
+        return;
+    }
+    if (residues().size() == 1) {
+        delete this;
+        return;
+    }
+    _delete_residue(r, ri);
+}
+
 CoordSet *
 AtomicStructure::find_coord_set(int id) const
 {
@@ -169,7 +263,7 @@ AtomicStructure::find_coord_set(int id) const
 }
 
 Residue *
-AtomicStructure::find_residue(std::string &chain_id, int pos, char insert) const
+AtomicStructure::find_residue(const ChainID &chain_id, int pos, char insert) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
         Residue *r = *ri;
@@ -181,7 +275,7 @@ AtomicStructure::find_residue(std::string &chain_id, int pos, char insert) const
 }
 
 Residue *
-AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::string &name) const
+AtomicStructure::find_residue(const ChainID& chain_id, int pos, char insert, ResName& name) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
         Residue *r = *ri;
@@ -195,8 +289,11 @@ AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::
 void
 AtomicStructure::make_chains() const
 {
-    if (_chains != nullptr)
+    if (_chains != nullptr) {
+        for (auto c: *_chains)
+            delete c;
         delete _chains;
+    }
 
     _chains = new Chains();
     auto polys = polymers();
@@ -204,7 +301,7 @@ AtomicStructure::make_chains() const
     // for chain IDs associated with a single polymer, we can try to
     // form a Chain using SEQRES record.  Otherwise, form a Chain based
     // on structure only
-    std::map<std::string, bool> unique_chain_id;
+    std::map<ChainID, bool> unique_chain_id;
     if (!_input_seq_info.empty()) {
         for (auto polymer: polys) {
             auto chain_id = polymer[0]->chain_id();
@@ -216,8 +313,8 @@ AtomicStructure::make_chains() const
         }
     }
     for (auto polymer: polys) {
-        const std::string& chain_id = polymer[0]->chain_id();
-        auto chain = new Chain(chain_id);
+        const ChainID& chain_id = polymer[0]->chain_id();
+        auto chain = new Chain(chain_id, (AtomicStructure*)this);
         _chains->emplace_back(chain);
 
         // first, create chain directly from structure
@@ -246,7 +343,7 @@ AtomicStructure::make_chains() const
             // skip if standard residues have been removed but the
             // sequence records haven't been...
             Sequence sr_seq(three_let_seq);
-            if (std::count(chain->begin(), chain->end(), 'X') == chain_size
+            if ((unsigned)std::count(chain->begin(), chain->end(), 'X') == chain_size
             && std::search(sr_seq.begin(), sr_seq.end(),
             chain->begin(), chain->end()) == sr_seq.end()) {
                 logger::warning(_logger, "Residues corresponding to ",
@@ -257,7 +354,90 @@ AtomicStructure::make_chains() const
 
             // okay, seriously try to match up with SEQRES
             auto ap = estimate_assoc_params(*chain);
-            //TODO
+
+            // UNK residues may be jammed up against the regular sequnce
+            // in SEQRES records (3dh4, 4gns) despite missing intervening
+            // residues; compensate...
+            //
+            // can't just test against est_len since there can be other
+            // missing structure
+
+            // leading Xs...
+            unsigned int additional_Xs = 0;
+            unsigned int existing_Xs = 0;
+            auto gi = ap.gaps.begin();
+            for (auto si = ap.segments.begin(); si != ap.segments.end()
+            && si+1 != ap.segments.end(); ++si, ++gi) {
+                auto seg = *si;
+                if (std::find_if_not(seg.begin(), seg.end(),
+                [](char c){return c == 'X';}) == seg.end()) {
+                    // all 'X'
+                    existing_Xs += seg.size();
+                    additional_Xs += *gi;
+                } else {
+                    break;
+                }
+            }
+            if (existing_Xs && sr_seq.size() >= existing_Xs
+            && std::count(sr_seq.begin(), sr_seq.begin() + existing_Xs, 'X')
+            == existing_Xs)
+                sr_seq.insert(sr_seq.begin(), additional_Xs, 'X');
+
+            // trailing Xs...
+            additional_Xs = 0;
+            existing_Xs = 0;
+            auto rgi = ap.gaps.rbegin();
+            for (auto rsi = ap.segments.rbegin(); rsi != ap.segments.rend()
+            && rsi+1 != ap.segments.rend(); ++rsi, ++rgi) {
+                auto seg = *rsi;
+                if (std::find_if_not(seg.begin(), seg.end(),
+                [](char c){return c == 'X';}) == seg.end()) {
+                    // all 'X'
+                    existing_Xs += seg.size();
+                    additional_Xs += *rgi;
+                } else {
+                    break;
+                }
+            }
+            if (existing_Xs && sr_seq.size() >= existing_Xs
+            && std::count(sr_seq.rbegin(), sr_seq.rbegin() + existing_Xs, 'X')
+            == existing_Xs)
+                sr_seq.insert(sr_seq.end(), additional_Xs, 'X');
+
+            // if a jump in numbering is in an unresolved part of the structure,
+            // the estimated length can be too long...
+            if (ap.est_len < sr_seq.size())
+                ap.est_len = sr_seq.size();
+
+            // since gapping a structure sequence is considered an "error",
+            // need to allow a lot more errors than normal.  However, allowing
+            // a _lot_ of errors can make it take a very long time to find the
+            // answer, so limit the maximum...
+            // (1vqn, chain 0 is > 2700 residues)
+            unsigned int seq_len = chain->size();
+            unsigned int gap_sum = 0;
+            for (auto gap: ap.gaps) {
+                gap_sum += gap;
+            }
+            unsigned int max_errs = std::min(seq_len/2,
+                std::max(seq_len/10, gap_sum));
+            AssocRetvals retvals;
+            try {
+                retvals = try_assoc(sr_seq, *chain, ap, max_errs);
+            } catch (SA_AssocFailure) {
+                chain->set_from_seqres(false);
+                continue;
+            }
+            auto& p2r = retvals.match_map.pos_to_res();
+            Chain::Residues new_residues;
+            for (Chain::SeqPos i = 0; i < sr_seq.size(); ++i ) {
+                auto pi = p2r.find(i);
+                if (pi == p2r.end())
+                    new_residues.push_back(nullptr);
+                else
+                    new_residues.push_back((*pi).second);
+            }
+            chain->bulk_set(new_residues, &sr_seq.contents());
         }
     }
 }
@@ -329,7 +509,7 @@ AtomicStructure::new_coord_set(int index, int size)
 }
 
 Residue*
-AtomicStructure::new_residue(const std::string &name, const std::string &chain,
+AtomicStructure::new_residue(const ResName& name, const ChainID& chain,
     int pos, char insert, Residue *neighbor, bool after)
 {
     if (neighbor == NULL) {
@@ -360,7 +540,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
     // so make an index map
     int i = 0;
     std::map<const Residue*, int> res_lookup;
-    for (auto& r: _residues) {
+    for (auto r: _residues) {
         res_lookup[r] = i++;
     }
 
@@ -368,7 +548,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
     // keyed on residue with value of whether that residue
     // is connected to the next one
     std::map<Residue*, bool> connected;
-    for (auto& b: bonds()) {
+    for (auto b: bonds()) {
         Atom* start = b->polymeric_start_atom();
         if (start != nullptr) {
             Residue* sr = start->residue();
@@ -491,7 +671,10 @@ AtomicStructure::set_active_coord_set(CoordSet *cs)
             throw std::out_of_range("Requested active coord set not in coord sets");
         new_active = cs;
     }
-    _active_coord_set = new_active;
+    if (_active_coord_set != new_active) {
+        _active_coord_set = new_active;
+        set_gc_shape();
+    }
 }
 
 void

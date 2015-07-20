@@ -98,7 +98,7 @@ while ($i <= $#residues)
 	set o = $outres[$i]
 	set l = $location[$i]
 	set r = $residues[$i]
-	echo "	(*rim)[std::string("\""$o"\"")].$l = init_$identifiers[$i];" >> $1.cpp
+	echo "	(*rim)["\""$o"\""].$l = init_$identifiers[$i];" >> $1.cpp
 	@ i++
 end
 echo '}' >> $1.cpp

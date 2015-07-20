@@ -22,6 +22,7 @@ public:
 protected:
     mutable GroupMap  _groups;
 public:
+    Base_Manager() {}
     virtual  ~Base_Manager() {}
     virtual Grp_Class*  get_group(
             const std::string& name, int create = GRP_NONE) const = 0;

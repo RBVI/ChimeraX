@@ -456,7 +456,7 @@ class Render:
     IMAGE_FORMAT_RGBA8 = 'rgba8'
     IMAGE_FORMAT_RGB32 = 'rgb32'
 
-    def frame_buffer_image(self, w, h, rgba=None):
+    def frame_buffer_image(self, w, h, rgba = None, front_buffer = False):
         '''
         Return the current frame buffer image as a numpy uint8 array of
         size (h, w, 4) where w and h are the framebuffer width and height.
@@ -466,11 +466,11 @@ class Render:
         if rgba is None:
             from numpy import empty, uint8
             rgba = empty((h, w, 4), uint8)
+        if front_buffer:
+            GL.glReadBuffer(GL.GL_FRONT)
         GL.glReadPixels(0, 0, w, h, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, rgba)
-# TODO: Test code for assessing glReadPixels() effect on rendering speed.
-#        from random import randint
-#        x0, y0 = randint(0, w - 1), randint(0, h - 1)
-#        rgba[y0:y0 + 50, x0:x0 + 50, :3] = 0
+        if front_buffer:
+            GL.glReadBuffer(GL.GL_BACK)
         return rgba
 
     def set_stereo_buffer(self, eye_num):
@@ -1202,12 +1202,9 @@ class Buffer:
     def update_buffer_data(self, data):
         '''
         Update the buffer with data supplied by a numpy array and bind it to
-        the associated shader variable.
+        the associated shader variable.  Return true if the buffer is deleted and replaced.
         '''
         bdata = self.buffered_data
-        if data is bdata:
-            return False
-
         replace_buffer = (data is None or bdata is None
                           or data.shape != bdata.shape)
         if replace_buffer:
@@ -1234,7 +1231,7 @@ class Buffer:
             self.buffered_array = d
             self.buffered_data = data
 
-        return True
+        return replace_buffer
 
     # Element types for Buffer draw_elements()
     triangles = GL.GL_TRIANGLES
@@ -1248,6 +1245,9 @@ class Buffer:
         vertex array object.
         '''
         # Don't bind element buffer since it is bound by VAO.
+        # TODO: Need to bind it because change to element buffer by update_buffer_data()
+        # erases the current binding and I don't have reliable code to restore that binding.
+        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.opengl_buffer)
         ne = self.buffered_array.size
         if ninst is None:
             GL.glDrawElements(element_type, ne, GL.GL_UNSIGNED_INT, None)

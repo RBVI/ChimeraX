@@ -19,7 +19,10 @@ class MouseModePanel(ToolInstance):
         self.columns = 6
 
         panel_size = (-1, self.rows * self.icon_size)
-        tw = session.ui.create_main_tool_window(self, size=panel_size, destroy_hides=True)
+        from chimera.core.gui import MainToolWindow
+        class MouseModesWindow(MainToolWindow):
+            close_destroys = False
+        tw = MouseModesWindow(self, size=panel_size)
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -77,20 +80,6 @@ class MouseModePanel(ToolInstance):
 
     def hide(self):
         self.tool_window.shown = False
-
-    #
-    # Override ToolInstance methods
-    #
-    def delete(self):
-        s = self.session
-        self.tool_window.shown = False
-        self.tool_window.destroy()
-        s.tools.remove([self])
-        super().delete()
-
-    def display(self, b):
-        """Show or hide mouse mode panel."""
-        self.tool_window.shown = b
 
     #
     # Implement session.State methods if deriving from ToolInstance
