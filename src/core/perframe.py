@@ -11,12 +11,13 @@ def register_perframe_command():
                    keyword = [('range', RangeArg),	# TODO: Allow multiple range arguments.
                               ('frames', IntArg),
                               ('interval', IntArg),
+                              ('format', StringArg),	# TODO: Allow multiple format arguments.
                               ('zero_pad_width', IntArg),
                               ('show_commands', NoArg)])
     register('perframe', desc, perframe)
 
-def perframe(session, command, frames = None, interval = 1, zero_pad_width = None,
-             range = None, show_commands = False):
+def perframe(session, command, frames = None, interval = 1, format = None,
+             zero_pad_width = None, range = None, show_commands = False):
 
     if command == 'stop':
         stop_perframe_callbacks(session)
@@ -28,6 +29,7 @@ def perframe(session, command, frames = None, interval = 1, zero_pad_width = Non
         'interval': interval,
         'skip': 0,
         'ranges': [] if range is None else [range],
+        'format': format,
         'zero_pad_width': zero_pad_width,
         'show_commands': show_commands,
         'frame_num': 1,
@@ -51,7 +53,8 @@ def _perframe_callback(data, session):
             d['skip'] = d['interval'] - 1
 
     frames, frame_num = d['frames'], d['frame_num']
-    cmd, stop = _expand_command(d['command'], frame_num, frames, d['ranges'], d['zero_pad_width'])
+    cmd, stop = _expand_command(d['command'], frame_num, frames, d['ranges'],
+                                d['format'], d['zero_pad_width'])
     if d['show_commands']:
         session.logger.info('perframe %d: %s\n' % (frame_num, cmd))
     try:
@@ -68,18 +71,23 @@ def _perframe_callback(data, session):
     else:
         d['frame_num'] = frame_num + 1
 
-def _expand_command(command, frame_num, frames, ranges, zero_pad_width):
-    args, stop = _perframe_args(frame_num, frames, ranges, zero_pad_width)
+def _expand_command(command, frame_num, frames, ranges, format, zero_pad_width):
+    args, stop = _perframe_args(frame_num, frames, ranges, format, zero_pad_width)
     for i, arg in enumerate(args):
         var = '$%d' % (i + 1)
         command = command.replace(var, arg)
     return command, stop
 
-def _perframe_args(frame_num, frames, ranges, zero_pad_width):
+def _perframe_args(frame_num, frames, ranges, format, zero_pad_width):
     args = []
     stop = False
+    if not format is None:
+        fmt = format
+    elif not zero_pad_width is None:
+        fmt = ('%%0%dg' if ranges else '%%0%dd') % zero_pad_width
+    else:
+        fmt = '%g' if ranges else '%d'
     if ranges:
-        fmt = '%%0%dg' % zero_pad_width if zero_pad_width else '%g'
         for vr in ranges:
             r0, r1 = vr[:2]
             explicit_rstep = not vr[2] is None
@@ -96,7 +104,6 @@ def _perframe_args(frame_num, frames, ranges, zero_pad_width):
                 v = r0 * (1 - f) + r1 * f
             args.append(fmt % v)
     else:
-        fmt = '%%0%dd' % zero_pad_width if zero_pad_width else '%d'
         args.append(fmt % frame_num)
     return args, stop
 
@@ -117,19 +124,19 @@ def stop_perframe_callbacks(session, callbacks = None):
 #
 from . import cli
 class RangeArg(cli.Annotation):
-    '''2 or 3 integers: start, end, step'''
+    '''2 or 3 floating point values: start, end, step'''
     name = 'range'
 
     @staticmethod
     def parse(text, session):
         token, text, rest = cli.next_token(text)
         try:
-            il = [int(x) for x in token.split(',')]
+            f = [float(x) for x in token.split(',')]
         except ValueError:
-            il = []
-        n = len(il)
+            f = []
+        n = len(f)
         if n < 2 or n > 3:
-            raise cli.UserError('Range argument must be 2 or 3 comma-separateed integer values, got %s' % token)
-        i0,i1 = il[:2]
-        step = il[2] if n >= 3 else None
-        return (i0,i1,step), text, rest
+            raise cli.UserError('Range argument must be 2 or 3 comma-separated numbers, got %s' % token)
+        f0,f1 = f[:2]
+        step = f[2] if n >= 3 else None
+        return (f0,f1,step), text, rest
