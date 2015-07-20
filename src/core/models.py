@@ -227,7 +227,7 @@ class Models(State):
         mlist = descendant_models(models)
         mlist.sort(key=lambda m: len(m.id), reverse=True)
         session = self._session()  # resolve back reference
-        for m in m_all:
+        for m in mlist:
             m.removed_from_session(session)
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
         for model in mlist:
