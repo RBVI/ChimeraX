@@ -452,6 +452,8 @@ def register(session):
     split.register_split_command()
     from . import perframe
     perframe.register_perframe_command()
+    from . import sym
+    sym.register_sym_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
