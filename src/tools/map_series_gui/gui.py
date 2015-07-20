@@ -24,8 +24,10 @@ class MapSeries(ToolInstance):
             #          (' length %d' % n))
 
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
-        tw = session.ui.create_main_tool_window(
-            self, size=self.SIZE, destroy_hides=True)
+        from chimera.core.gui import MainToolWindow
+        class MapSeriesWindow(MainToolWindow):
+            close_destroys = False
+        tw = MapSeriesWindow(self, size=self.SIZE)
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -156,14 +158,7 @@ class MapSeries(ToolInstance):
     def delete(self):
         s = self.session
         s.triggers.delete_handler(self.model_close_handler)
-        self.tool_window.shown = False
-        self.tool_window.destroy()
-        s.tools.remove([self])
         super().delete()
-
-    def display(self, b):
-        """Show or hide map series user interface."""
-        self.tool_window.shown = b
 
     #
     # Implement session.State methods if deriving from ToolInstance

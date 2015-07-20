@@ -16,11 +16,11 @@ install:
 	$(MAKE) -C prereqs install-prebuilt
 	$(MAKE) -C prereqs app-install
 	$(MAKE) -C src install
-	$(MAKE) -C docs html
+	$(MAKE) -C docs/devel html
 	@echo 'Finished install at' `date`
 
 docs.install:
-	$(MAKE) -C docs html
+	$(MAKE) -C docs/devel html
 
 build-dirs:
 	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \

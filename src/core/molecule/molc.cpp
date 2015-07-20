@@ -83,7 +83,7 @@ extern "C" void atom_chain_id(void *atoms, int n, void **cids)
 {
   Atom **a = static_cast<Atom **>(atoms);
   for (int i = 0 ; i < n ; ++i)
-    cids[i] = PyUnicode_FromString(a[i]->residue()->chain_id().c_str());
+    cids[i] = PyUnicode_FromString(a[i]->residue()->chain_id());
 }
 
 extern "C" void atom_color(void *atoms, int n, unsigned char *rgba)
@@ -268,6 +268,30 @@ extern "C" void atom_scene_coords(void *atoms, int n, void *mols, int m, double 
     }
 }
 
+extern "C" void atom_selected(void *atoms, int n, unsigned char *sel)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    sel[i] = a[i]->selected();
+}
+
+extern "C" void set_atom_selected(void *atoms, int n, unsigned char *sel)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    a[i]->set_selected(*sel++);
+}
+
+extern "C" int atom_num_selected(void *atoms, int n)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  int s = 0;
+  for (int i = 0 ; i < n ; ++i)
+    if (a[i]->selected())
+      s += 1;
+  return s;
+}
+
 extern "C" void bond_atoms(void *bonds, int n, void **atoms)
 {
   Bond **b = static_cast<Bond **>(bonds);
@@ -441,6 +465,48 @@ extern "C" void pseudobond_group_delete(void *pbgroup)
   delete pbg;
 }
 
+extern "C" void pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    color_changed[i] = pbg[i]->get_gc_color();
+}
+
+extern "C" void set_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_color(color_changed[i]);
+}
+
+extern "C" void pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    select_changed[i] = pbg[i]->get_gc_select();
+}
+
+extern "C" void set_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_select(select_changed[i]);
+}
+
+extern "C" void pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    shape_changed[i] = pbg[i]->get_gc_shape();
+}
+
+extern "C" void set_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_shape(shape_changed[i]);
+}
+
 extern "C" void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
 {
   PBGroup *pbg = static_cast<PBGroup *>(pbgroup);
@@ -461,6 +527,48 @@ extern "C" void pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseud
   for (int i = 0 ; i < n ; ++i)
     for (auto pb: pbg[i]->pseudobonds())
       *pseudobonds++ = pb;
+}
+
+extern "C" void as_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    color_changed[i] = pbg[i]->get_gc_color();
+}
+
+extern "C" void set_as_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_color(color_changed[i]);
+}
+
+extern "C" void as_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    select_changed[i] = pbg[i]->get_gc_select();
+}
+
+extern "C" void set_as_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_select(select_changed[i]);
+}
+
+extern "C" void as_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    shape_changed[i] = pbg[i]->get_gc_shape();
+}
+
+extern "C" void set_as_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    pbg[i]->set_gc_shape(shape_changed[i]);
 }
 
 extern "C" void *as_pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
@@ -501,7 +609,7 @@ extern "C" void residue_chain_id(void *residues, int n, void **cids)
   AcquireGIL g;
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
-    cids[i] = PyUnicode_FromString(r[i]->chain_id().c_str());
+    cids[i] = PyUnicode_FromString(r[i]->chain_id());
 }
 
 extern "C" void residue_is_helix(void *residues, int n, unsigned char *is_helix)
@@ -572,7 +680,7 @@ extern "C" void residue_name(void *residues, int n, void **names)
   AcquireGIL g;
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
-    names[i] = PyUnicode_FromString(r[i]->name().c_str());
+    names[i] = PyUnicode_FromString(r[i]->name());
 }
 
 extern "C" void residue_num_atoms(void *residues, int n, int *natoms)
@@ -651,7 +759,7 @@ extern "C" void chain_chain_id(void *chains, int n, void **cids)
   AcquireGIL g;
   Chain **c = static_cast<Chain **>(chains);
   for (int i = 0 ; i < n ; ++i)
-    cids[i] = PyUnicode_FromString(c[i]->chain_id().c_str());
+    cids[i] = PyUnicode_FromString(c[i]->chain_id());
 }
 
 extern "C" void chain_structure(void *chains, int n, void **molp)
@@ -677,6 +785,48 @@ extern "C" void chain_residues(void *chains, int n, void **res)
       for (int j = 0 ; j < r.size() ; ++j)
 	*res++ = r[i];
     }
+}
+
+extern "C" void structure_gc_color(void *mols, int n, unsigned char *color_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    color_changed[i] = m[i]->get_gc_color();
+}
+
+extern "C" void set_structure_gc_color(void *mols, int n, unsigned char *color_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    m[i]->set_gc_color(color_changed[i]);
+}
+
+extern "C" void structure_gc_select(void *mols, int n, unsigned char *select_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    select_changed[i] = m[i]->get_gc_select();
+}
+
+extern "C" void set_structure_gc_select(void *mols, int n, unsigned char *select_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    m[i]->set_gc_select(select_changed[i]);
+}
+
+extern "C" void structure_gc_shape(void *mols, int n, unsigned char *shape_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    shape_changed[i] = m[i]->get_gc_shape();
+}
+
+extern "C" void set_structure_gc_shape(void *mols, int n, unsigned char *shape_changed)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    m[i]->set_gc_shape(shape_changed[i]);
 }
 
 extern "C" void structure_name(void *mols, int n, void **names)
@@ -850,6 +1000,47 @@ extern "C" void *structure_new_residue(void *mol, const char *residue_name, cons
   AtomicStructure *m = static_cast<AtomicStructure *>(mol);
   Residue *r = m->new_residue(residue_name, chain_id, pos, ' ');
   return r;
+}
+
+extern "C" void *element_new_name(const char *name)
+{
+  Element *e = new Element(name);
+  return e;
+}
+
+extern "C" void *element_new_number(int number)
+{
+  Element *e = new Element(number);
+  return e;
+}
+
+extern "C" void element_name(void *elements, int n, void **names)
+{
+  AcquireGIL g;
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    names[i] = PyUnicode_FromString(e[i]->name());
+}
+
+extern "C" void element_number(void *elements, int n, int *as)
+{
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    as[i] = e[i]->number();
+}
+
+extern "C" void element_mass(void *elements, int n, float *mass)
+{
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    mass[i] = e[i]->mass();
+}
+
+extern "C" void element_is_metal(void *elements, int n, unsigned char *metal)
+{
+  Element **e = static_cast<Element **>(elements);
+  for (int i = 0 ; i < n ; ++i)
+    metal[i] = e[i]->is_metal();
 }
 
 static void *init_numpy()

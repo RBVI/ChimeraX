@@ -20,8 +20,6 @@ Modules
 
     core/logger.rst
 
-    core/configfile.rst
-
     core/history.rst
 
     core/safesave.rst
@@ -31,3 +29,5 @@ Modules
     core/orderedset.rst
 
     core/utils.rst
+
+    core/configfile.rst

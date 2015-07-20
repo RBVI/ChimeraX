@@ -3,7 +3,7 @@ from .models import Model
 class PseudoBondGroup(CPseudoBondGroup, Model):
     """Pseudobond group model"""
 
-    def __init__(self, name, view):
+    def __init__(self, name):
 
         CPseudoBondGroup.__init__(self, name = name)
         Model.__init__(self, name)
@@ -11,15 +11,30 @@ class PseudoBondGroup(CPseudoBondGroup, Model):
 
         self.update_graphics()
 
-        self._view = view
-        view.add_shape_changed_callback(self.update_graphics)
-
     def delete(self):
-        self._view.remove_shape_changed_callback(self.update_graphics)
-        self._view = None
         Model.delete(self)
         self._pbond_drawing = None
         CPseudoBondGroup.delete(self)
+
+    def added_to_session(self, session):
+        v = session.main_view
+        v.add_new_frame_callback(self.update_graphics_if_needed)
+
+        # Detect when atoms moved so pseudobonds must be redrawn.
+        # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
+        v.add_shape_changed_callback(self.update_graphics)
+
+    def removed_from_session(self, session):
+        v = session.main_view
+        v.remove_new_frame_callback(self.update_graphics_if_needed)
+        v.remove_shape_changed_callback(self.update_graphics)
+
+    def update_graphics_if_needed(self):
+        c, s, se = self.gc_color, self.gc_shape, self.gc_select
+        if c or s or se:
+            self.gc_color = self.gc_shape = self.gc_select = False
+            self.update_graphics()
+            self.redraw_needed(shape_changed = s, selection_changed = se)
 
     def update_graphics(self):
 

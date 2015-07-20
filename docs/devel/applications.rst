@@ -17,4 +17,6 @@ TODO: evaluate if this is needed.
 
     TODO: Structure comparison
 
+    apps/Chimera2/Chimera2.rst
+
     webapp.rst

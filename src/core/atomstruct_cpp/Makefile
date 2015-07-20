@@ -30,3 +30,18 @@ clean:
 	/bin/rm -f $(OBJS) $(SHLIB) imex.h
 
 $(SUBDIR_INSTALL): imex.h
+
+Atom.o: $(includedir)/basegeom/Coord.h $(includedir)/basegeom/Point.h \
+	$(includedir)/basegeom/Sphere.h
+AtomTypes.o: $(includedir)/basegeom/Coord.h
+AtomicStructure.o: $(includedir)/basegeom/Graph.h \
+	$(includedir)/basegeom/Graph.tcc $(includedir)/basegeom/destruct.h
+Bond.o: $(includedir)/basegeom/Connection.h
+Chain.o: $(includedir)/basegeom/destruct.h
+CoordSet.o: $(includedir)/basegeom/Coord.h $(includedir)/basegeom/destruct.h
+Pseudobond.o: $(includedir)/basegeom/Connection.h \
+	$(includedir)/basegeom/destruct.h $(includedir)/pseudobond/Manager.h
+Residue.o: $(includedir)/basegeom/Rgba.h $(includedir)/basegeom/destruct.h
+Ring.o: $(includedir)/basegeom/Coord.h $(includedir)/basegeom/Real.h
+connect.o: $(includedir)/basegeom/Connectible.tcc \
+	$(includedir)/basegeom/Graph.tcc $(includedir)/basegeom/destruct.h

@@ -11,6 +11,8 @@ using chutil::CString;
 // len param includes null
 typedef CString<5>  AtomName;
 typedef CString<5>  AtomType;
+typedef CString<5>  ChainID;
+typedef CString<5>  ResName;
 
 }  // namespace atomstruct
 

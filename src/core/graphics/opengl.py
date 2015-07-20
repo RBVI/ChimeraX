@@ -456,7 +456,7 @@ class Render:
     IMAGE_FORMAT_RGBA8 = 'rgba8'
     IMAGE_FORMAT_RGB32 = 'rgb32'
 
-    def frame_buffer_image(self, w, h, rgba=None):
+    def frame_buffer_image(self, w, h, rgba = None, front_buffer = False):
         '''
         Return the current frame buffer image as a numpy uint8 array of
         size (h, w, 4) where w and h are the framebuffer width and height.
@@ -466,11 +466,11 @@ class Render:
         if rgba is None:
             from numpy import empty, uint8
             rgba = empty((h, w, 4), uint8)
+        if front_buffer:
+            GL.glReadBuffer(GL.GL_FRONT)
         GL.glReadPixels(0, 0, w, h, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, rgba)
-# TODO: Test code for assessing glReadPixels() effect on rendering speed.
-#        from random import randint
-#        x0, y0 = randint(0, w - 1), randint(0, h - 1)
-#        rgba[y0:y0 + 50, x0:x0 + 50, :3] = 0
+        if front_buffer:
+            GL.glReadBuffer(GL.GL_BACK)
         return rgba
 
     def set_stereo_buffer(self, eye_num):
@@ -1205,9 +1205,6 @@ class Buffer:
         the associated shader variable.  Return true if the buffer is deleted and replaced.
         '''
         bdata = self.buffered_data
-        if data is bdata:
-            return False
-
         replace_buffer = (data is None or bdata is None
                           or data.shape != bdata.shape)
         if replace_buffer:

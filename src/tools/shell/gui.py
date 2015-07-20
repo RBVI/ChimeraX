@@ -17,12 +17,12 @@ class ShellUI(ToolInstance):
         # between lower-then-upper-case characters (therefore "Tool UI"
         # in this case), so only override if different name desired
         self.display_name = "Chimera 2 Python Shell"
-        self.tool_window = session.ui.create_main_tool_window(
-            self, size=self.SIZE)
+        from chimera.core.gui import MainToolWindow
+        self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
         from wx.py.shell import Shell
-        self.shell = Shell(parent, -1, locals={
+        self.shell = Shell(parent, -1, size=self.SIZE, locals={
                 'Chimera2_session': session
             },
             introText='Use Chimera2_session to access the current session.')
@@ -34,7 +34,7 @@ class ShellUI(ToolInstance):
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.shell, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
-        self.tool_window.manage(placement="right")
+        self.tool_window.manage(placement=None)
         # Add to running tool list for session if tool should be saved
         # in and restored from session and scenes
         session.tools.add([self])
@@ -51,15 +51,8 @@ class ShellUI(ToolInstance):
     def reset_state(self):
         pass
 
-    #
-    # Override ToolInstance delete method to clean up
-    #
     def delete(self):
-        session = self.session()
-        self.tool_window.shown = False
-        self.tool_window.destroy()
-        self.session.tools.remove([self])
+        self.shell.redirectStdin(False)
+        self.shell.redirectStdout(False)
+        self.shell.redirectStderr(False)
         super().delete()
-
-    def display(self, b):
-        self.tool_window.shown = b

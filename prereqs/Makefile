@@ -35,6 +35,10 @@ ifeq ($(OS),Darwin)
 SUBDIRS += leapmotion oculus
 endif
 
+ifeq ($(OS),Linux)
+SUBDIRS += xdg-utils
+endif
+
 #ifdef UNIX
 #SUBDIRS += unix
 #endif

@@ -70,7 +70,7 @@ Molecule::new_residue(const char *t)
 }
 
 Residue *
-Molecule::find_residue(const std::string &index) const
+Molecule::find_residue(const ResName& index) const
 {
     Residues::const_iterator i = _residues.find(index);
     if (i == _residues.end())

@@ -129,6 +129,12 @@ class Atoms(PointerArray):
     names = cvec_property('atom_name', string, read_only = True)
     radii = cvec_property('atom_radius', float32)
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True)
+    selected = cvec_property('atom_selected', npy_bool)
+
+    @property
+    def num_selected(self):
+        f = c_function('atom_num_selected', args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_int)
+        return f(self._c_pointers, len(self))
 
     @property
     def unique_structures(self):
@@ -176,9 +182,6 @@ class Atoms(PointerArray):
         '''Delete the C++ Atom objects'''
         mols = self.unique_structures
         c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_int])(self._c_pointers, len(self))
-        # TODO: Graphics update should be handled by notifiers.
-        for m in mols:
-            m.update_graphics()
 
 # -----------------------------------------------------------------------------
 #
@@ -228,6 +231,10 @@ class Residues(PointerArray):
     ribbon_colors = cvec_property('residue_ribbon_color', uint8, 4)
 
     @property
+    def unique_structures(self):
+        return CAtomicStructures(unique(self.structures._pointers))
+
+    @property
     def unique_chain_ids(self):
         return unique(self.chain_ids)
 
@@ -257,6 +264,9 @@ class CAtomicStructures(PointerArray):
                           read_only = True, per_object = False)
     chains = cvec_property('structure_chains', cptr, 'num_chains', astype = _chains,
                            read_only = True, per_object = False)
+    gc_color = cvec_property('structure_gc_color', npy_bool)
+    gc_select = cvec_property('structure_gc_select', npy_bool)
+    gc_shape = cvec_property('structure_gc_shape', npy_bool)
     names = cvec_property('structure_name', string)
     num_atoms = cvec_property('structure_num_atoms', int32, read_only = True)
     num_bonds = cvec_property('structure_num_bonds', int32, read_only = True)

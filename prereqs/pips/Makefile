@@ -15,11 +15,8 @@ all:
 
 install:	$(PYSITEDIR)/matplotlib
 	LANG=$(LANG) $(PIP) install -r build_requirements.txt
-
-$(PYSITEDIR)/matplotlib:
-	LANG=$(LANG) $(PIP) install matplotlib==$(MPL_VERSION)
-	for p in $(MPL_PATCHES); do \
-		patch -d $(PYSITEDIR) -N -p0 < $$p ; \
+	-for p in $(PATCHES); do \
+		(cd $(PYSITEDIR) && patch -N -p0) < $$p ; \
 	done
 
 list:
@@ -30,11 +27,8 @@ upgrade:
 
 app-install:	$(APP_PYSITEDIR)/matplotlib
 	$(APP_PIP) install -r app_requirements.txt
-
-$(APP_PYSITEDIR)/matplotlib:
-	LANG=$(LANG) $(APP_PIP) install matplotlib==$(MPL_VERSION)
-	for p in $(MPL_PATCHES); do \
-		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
+	-for p in $(PATCHES); do \
+		(cd $(APP_PYSITEDIR) && patch -N -p0) < $$p ; \
 	done
 
 clean:

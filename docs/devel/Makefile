@@ -1,6 +1,6 @@
 # Makefile for Sphinx documentation
 #
-TOP	= ..
+TOP	= ../..
 include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.

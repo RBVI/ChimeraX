@@ -311,8 +311,8 @@ gapped_match(const Sequence::Contents& aseq, const Chain& mseq,
     const AssocParams& ap, unsigned int max_errors)
 {
     Sequence::Contents gapped = ap.segments[0];
-    for (unsigned int i = 0; i < ap.segments.size(); ++i) {
-        gapped.insert(gapped.end(), ap.gaps[i], '.');
+    for (unsigned int i = 1; i < ap.segments.size(); ++i) {
+        gapped.insert(gapped.end(), ap.gaps[i-1], '.');
         gapped.insert(gapped.end(),
             ap.segments[i].begin(), ap.segments[i].end());
     }

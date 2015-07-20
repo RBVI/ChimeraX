@@ -3,7 +3,7 @@ def read_pseudobond_file(session, file, name, radius = 0.5, color = (255,255,0,2
     file.close()
 
     from . import pbgroup
-    g = pbgroup.PseudoBondGroup(name, session.main_view)
+    g = pbgroup.PseudoBondGroup(name)
 
     from .structure import AtomsArg
     for i, line in enumerate(lines):
@@ -18,8 +18,6 @@ def read_pseudobond_file(session, file, name, radius = 0.5, color = (255,255,0,2
         b.color = color
         b.radius = radius
         b.halfbond = False
-
-    g.update_graphics()
 
     return [g], 'Opened Pseudobonds %s, %d bonds' % (name, len(lines))
 

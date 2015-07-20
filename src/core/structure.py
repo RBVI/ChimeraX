@@ -34,7 +34,6 @@ class AtomicStructure(CAtomicStructure, Model):
         self._atoms_drawing = None
         self._bonds_drawing = None
         self._pseudobond_group_drawings = {}    # Map name to drawing
-        self._selected_atoms = None	# Numpy array of bool, size equal number of atoms
         self.triangles_per_sphere = None
         self._atom_bounds = None
         self._atom_bounds_needs_update = True
@@ -63,6 +62,14 @@ class AtomicStructure(CAtomicStructure, Model):
         self._atoms = None
         CAtomicStructure.delete(self)
         Model.delete(self)
+
+    def added_to_session(self, session):
+        v = session.main_view
+        v.add_new_frame_callback(self.update_graphics_if_needed)
+
+    def removed_from_session(self, session):
+        v = session.main_view
+        v.remove_new_frame_callback(self.update_graphics_if_needed)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
@@ -100,13 +107,11 @@ class AtomicStructure(CAtomicStructure, Model):
         if atoms is None:
             atoms = self.atoms
         atoms.displays = True
-        self.update_graphics()
 
     def hide_atoms(self, atoms = None):
         if atoms is None:
             atoms = self.atoms
         atoms.displays = False
-        self.update_graphics()
 
     def initialize_graphical_attributes(self):
         a = self.atoms
@@ -161,10 +166,16 @@ class AtomicStructure(CAtomicStructure, Model):
         self.update_atom_graphics(coords, radii, colors, display)
 
     def new_atoms(self):
+        # TODO: Handle instead with a C++ notification that atoms added or deleted
         self._atoms = None
         self._atom_bounds_needs_update = True
-        self.redraw_needed(shape_changed = True)
-        self.update_graphics()
+
+    def update_graphics_if_needed(self):
+        c, s, se = self.gc_color, self.gc_shape, self.gc_select
+        if c or s or se:
+            self.gc_color = self.gc_shape = self.gc_select = False
+            self.update_graphics()
+            self.redraw_needed(shape_changed = s, selection_changed = se)
 
     def update_graphics(self):
         a = self.atoms
@@ -196,10 +207,9 @@ class AtomicStructure(CAtomicStructure, Model):
         # Set atom colors
         p.colors = colors
 
-        asel = self._selected_atoms
-        if not asel is None:
-            # If the selected atoms array has wrong length, atoms deleted, clear selection.
-            p.selected_positions = asel if asel.sum() > 0 and len(asel) == n else None
+        # Set selected
+        a = self.atoms
+        p.selected_positions = a.selected if a.num_selected > 0 else None
 
     def atom_display_radii(self):
         a = self.atoms
@@ -213,19 +223,16 @@ class AtomicStructure(CAtomicStructure, Model):
         if atoms is None:
             atoms = self.atoms
         atoms.draw_modes = style
-        self.update_graphics()
 
     def color_by_element(self, atoms = None):
         if atoms is None:
             atoms = self.atoms
         atoms.colors = element_colors(atoms.element_numbers)
-        self.update_graphics()
 
     def color_by_chain(self, atoms = None):
         if atoms is None:
             atoms = self.atoms
         atoms.colors = chain_colors(atoms.residues.chain_ids)
-        self.update_graphics()
 
     def update_bond_graphics(self, bond_atoms, draw_mode, radii,
                              bond_colors, half_bond_coloring):
@@ -234,6 +241,9 @@ class AtomicStructure(CAtomicStructure, Model):
             if (draw_mode == self.SPHERE_STYLE).all():
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
+            # Suppress bond picking since bond selections are not supported.
+            from types import MethodType
+            p.first_intercept = MethodType(bond_first_intercept, p)
             from . import surface
             # Use 3 z-sections so cylinder ends match in half-bond mode.
             va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
@@ -429,9 +439,8 @@ class AtomicStructure(CAtomicStructure, Model):
                 self._ribbon_t2r[rp] = t2r
 
         # Set selected ribbons in graphics
-        asel = self._selected_atoms
-        if asel is not None and asel.sum() > 0:
-            rsel = set([r for r in self.atoms.filter(asel).unique_residues
+        if self.atoms.num_selected > 0:
+            rsel = set([r for r in self.atoms.filter(self.atoms.selected).unique_residues
                         if r in self._ribbon_r2t])
         else:
             rsel = set()
@@ -445,7 +454,10 @@ class AtomicStructure(CAtomicStructure, Model):
         # Partition by drawing
         for i in range(len(residues)):
             for r in residues[i]:
-                tr = self._ribbon_r2t[r]
+                try:
+                    tr = self._ribbon_r2t[r]
+                except KeyError:
+                    continue
                 try:
                     a = da[tr.drawing]
                 except KeyError:
@@ -495,12 +507,10 @@ class AtomicStructure(CAtomicStructure, Model):
     def hide_chain(self, cid):
         a = self.atoms
         a.displays &= self.chain_atom_mask(cid, invert = True)
-        self.update_graphics()
 
     def show_chain(self, cid):
         a = self.atoms
         a.displays |= self.chain_atom_mask(cid)
-        self.update_graphics()
 
     def chain_atom_mask(self, cid, invert = False):
         a = self.atoms
@@ -539,24 +549,15 @@ class AtomicStructure(CAtomicStructure, Model):
         return rd.bounds()
 
     def select_atom(self, atom, toggle=False, selected=True):
-        asel = self._selected_atoms
-        if asel is None:
-            na = self.num_atoms
-            from numpy import zeros, bool
-            asel = self._selected_atoms = zeros(na, bool)
-        i = self.atoms.index(atom)
-        asel[i] = (not asel[i]) if toggle else selected
+        atom.selected = (not atom.selected) if toggle else selected
         self._selection_changed()
 
     def select_atoms(self, atoms, toggle=False, selected=True):
-        asel = self._selected_atoms
-        if asel is None:
-            na = self.num_atoms
-            from numpy import zeros, bool
-            asel = self._selected_atoms = zeros(na, bool)
+        asel = self.atoms.selected
         m = self.atoms.mask(atoms)
         from numpy import logical_not
         asel[m] = logical_not(asel[m]) if toggle else selected
+        self.atoms.selected = asel
         self._selection_changed()
 
     def select_residue(self, residue, toggle=False, selected=True):
@@ -566,38 +567,37 @@ class AtomicStructure(CAtomicStructure, Model):
 
     def selected_items(self, itype):
         if itype == 'atoms':
-            asel = self._selected_atoms
-            if not asel is None and asel.sum() > 0:
-                atoms = self.atoms
-                sa = atoms.filter(asel)
-                return [sa]
+            atoms = self.atoms
+            if atoms.num_selected > 0:
+                return [atoms.filter(atoms.selected)]
         return []
 
     def any_part_selected(self):
-        asel = self._selected_atoms
-        if not asel is None and asel.sum() > 0:
+        if self.atoms.num_selected > 0:
             return True
         return Model.any_part_selected(self)
 
     def clear_selection(self):
-        asel = self._selected_atoms
-        if not asel is None and asel.sum() > 0:
-            asel[:] = False
+        self.atoms.selected = False
         self._selection_changed()
 
     def _selection_changed(self, promotion = False):
         if not promotion:
             self._selection_promotion_history = []
-        self.update_graphics()
+
+        # Update selection on molecular surfaces
+        # TODO: Won't work for surfaces spanning multiple molecules
+        from .molsurf import MolecularSurface
+        for s in self.child_drawings():
+            if isinstance(s, MolecularSurface):
+                s.update_selection()
 
     def promote_selection(self):
-        asel = self._selected_atoms
-        if asel is None:
+        n = self.atoms.num_selected
+        if n == 0 or n == len(self.atoms):
             return
-        n = asel.sum()
-        if n == 0 or n == len(asel):
-            return
-        self._selection_promotion_history.append(asel.copy())
+        asel = self.atoms.selected
+        self._selection_promotion_history.append(asel)
 
         atoms = self.atoms
         r = atoms.residues
@@ -619,14 +619,16 @@ class AtomicStructure(CAtomicStructure, Model):
             else:
                 # Promote to entire molecule
                 psel = True
-        asel[:] = psel
+        self.atoms.selected = psel
         self._selection_changed(promotion = True)
 
     def demote_selection(self):
         pt = self._selection_promotion_history
         if len(pt) > 0:
-            self._selected_atoms[:] = pt.pop()
-            self._selection_changed(promotion = True)
+            asel = pt.pop()
+            if len(asel) == len(self.atoms):
+                self.atoms.selected = asel
+                self._selection_changed(promotion = True)
 
     def clear_selection_promotion_history(self):
         self._selection_promotion_history = []
@@ -661,6 +663,9 @@ def atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
     s = PickedAtom(atom, fmin)
 
     return s
+
+def bond_first_intercept(self, mxyz1, mxyz2, exclude = None):
+    return None
 
 def ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
     # TODO check intercept of bounding box as optimization
@@ -1001,9 +1006,6 @@ def ccolor_command(session, atoms = None):
         asr = atoms.evaluate(session)
         a = asr.atoms
         a.colors = chain_colors(a.residues.chain_ids)
-        for m in asr.models:
-            if isinstance(m, AtomicStructure):
-                m.update_graphics()
 
 # -----------------------------------------------------------------------------
 #
@@ -1020,12 +1022,6 @@ def celement_command(session, atoms = None):
         asr = atoms.evaluate(session)
         a = asr.atoms
         a.colors = element_colors(a.element_numbers)
-        update_model_graphics(asr.models)
-
-def update_model_graphics(models):
-    for m in models:
-        if isinstance(m, AtomicStructure):
-            m.update_graphics()
 
 # -----------------------------------------------------------------------------
 #
@@ -1045,7 +1041,6 @@ def style_command(session, atom_style, atoms = None):
     else:
         asr = atoms.evaluate(session)
         asr.atoms.draw_modes = s
-        update_model_graphics(asr.models)
 
 # -----------------------------------------------------------------------------
 #
@@ -1070,11 +1065,9 @@ def show_atoms(show, atoms, session):
         for m in session.models.list():
             if isinstance(m, AtomicStructure):
                 m.atoms.displays = show
-                m.update_graphics()
     else:
         asr = atoms.evaluate(session)
         asr.atoms.displays = show
-        update_model_graphics(asr.models)
 
 # -----------------------------------------------------------------------------
 #

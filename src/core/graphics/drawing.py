@@ -343,6 +343,7 @@ class Drawing:
     def clear_selection(self):
         '''Unselect this drawing. Child drawings may remain selected.'''
         self.selected = False
+        self.selected_triangles_mask = None
         self.redraw_needed(selection_changed=True)
 
     def promote_selection(self):
@@ -1329,7 +1330,7 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     '''
     Make a drawing that is a single rectangle colored with a texture.
     '''
-    d = drawing.new_drawing() if drawing else Drawing('rgba')
+    d = drawing if drawing else Drawing('rgba')
     x, y = pos
     sx, sy = size
     from numpy import array, float32, uint32

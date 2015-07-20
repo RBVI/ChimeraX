@@ -4,6 +4,12 @@ chimera.core: collection of base chimera functionality
 ======================================================
 
 """
+__copyright__ = (
+    "Copyright \u00A9 2015 by the Regents of the University of California."
+    "  All Rights Reserved."
+    "  Free for non-commercial use."
+    "  See http://www.cgl.ucsf.edu/chimera/ for license details."
+)
 _class_cache = {}
 
 

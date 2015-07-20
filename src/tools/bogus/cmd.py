@@ -13,16 +13,12 @@ echo_desc = cli.CmdDesc(optional=[("args", cli.RestOfLine)])
 def undisplay(session, spec=None):
     r = spec.evaluate(session)
     r.atoms.displays = False
-    for m in r.models:
-        m.update_graphics()
 undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
 
 
 def display(session, spec=None):
     r = spec.evaluate(session)
     r.atoms.displays = True
-    for m in r.models:
-        m.update_graphics()
 display_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
 
 
@@ -41,7 +37,6 @@ def hidewater(session, modelspec=None):
             atom_displays = m.atoms.displays
             atom_displays[indices] = False
             m.atoms.displays = atom_displays
-        m.update_graphics()
 hidewater_desc = cli.CmdDesc(optional=[("modelspec", atomspec.AtomSpecArg)])
 
 
@@ -65,7 +60,6 @@ def move(session, by, modelspec=None):
     translation = place.translation(by_vector)
     for m in spec.models:
         m.position = translation * m.position
-        m.update_graphics()
 move_desc = cli.CmdDesc(required=[("by", cli.Float3Arg)],
                         optional=[("modelspec", atomspec.AtomSpecArg)])
 

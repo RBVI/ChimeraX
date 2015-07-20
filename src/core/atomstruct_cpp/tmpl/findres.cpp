@@ -33,7 +33,7 @@ restmpl_init()
                                     ++i) {
         for (unsigned int mi = 0; mi != 3; ++mi) {
             Molecule *m = mols[mi];
-            Residue *r = m->find_residue(std::string(res_descripts[i].name));
+            Residue *r = m->find_residue(res_descripts[i].name);
             if (r == NULL)
                 continue;
             r->description(std::string(res_descripts[i].descrip));
@@ -43,17 +43,17 @@ restmpl_init()
 
 // need function to find template for residue and fill in what's missing
 const Residue *
-find_template_residue(const std::string &name, bool start, bool end)
+find_template_residue(const ResName& name, bool start, bool end)
 {
     bool new_r = false;
-    std::string mapped_name = name;
+    ResName mapped_name = name;
 
     if (start_mol == NULL)
         restmpl_init();
 
     // assume that most users will want HID (who knows?)
     if (mapped_name == "HIS")
-        mapped_name.assign("HID");
+        mapped_name = "HID";
 
     ResInitMap::iterator i = resmap.find(mapped_name);
     ResInit *ri = (i == resmap.end()) ? NULL : &i->second;

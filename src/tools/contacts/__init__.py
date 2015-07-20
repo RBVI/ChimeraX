@@ -12,8 +12,6 @@ def start_tool(session, ti):
     return Plot(session, ti)
 
 
-# no commands
-
 #
 # 'register_command' is called by the toolshed on start up
 #

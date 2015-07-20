@@ -700,7 +700,6 @@ def color_by_bfactor(atoms):
         t1 = time()
         print ('set colors by b-factors for %d atoms in %.3f seconds, %.0f atoms/sec'
                % (len(matoms), t1-t0, len(matoms)/(t1-t0)))
-        m.update_graphics()
 
 def color_by_chain(atoms):
     for m, a in atoms:
@@ -982,5 +981,5 @@ def shortcut_command(session, shortcut = None):
 
 def register_shortcut_command():
     from .cli import CmdDesc, StringArg, register
-    _sc_desc = CmdDesc(optional = [('shortcut', StringArg)])
-    register('sc', _sc_desc, shortcut_command)
+    _ks_desc = CmdDesc(optional = [('shortcut', StringArg)])
+    register('ks', _ks_desc, shortcut_command)

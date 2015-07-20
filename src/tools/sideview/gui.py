@@ -289,8 +289,8 @@ class SideViewUI(ToolInstance):
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
-        self.tool_window = session.ui.create_main_tool_window(
-            self, size=self.SIZE)
+        from chimera.core.gui import MainToolWindow
+        self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
 
         # UI content code
@@ -342,15 +342,3 @@ class SideViewUI(ToolInstance):
 
     def reset_state(self):
         pass
-
-    #
-    # Override ToolInstance delete method to clean up
-    #
-    def delete(self):
-        self.tool_window.shown = False
-        self.tool_window.destroy()
-        self.session.tools.remove([self])
-        super().delete()
-
-    def display(self, b):
-        self.tool_window.shown = b

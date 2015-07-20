@@ -55,6 +55,7 @@ class Atom:
     num_bonds = c_property('atom_num_bonds', int32, read_only = True)
     radius = c_property('atom_radius', float32)
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True)
+    selected = c_property('atom_selected', npy_bool)
 
     def connects_to(self, atom):
         f = c_function('atom_connects_to',
@@ -112,6 +113,9 @@ class ASPseudoBondGroup:
     def __init__(self, pbg_pointer = None):
         set_c_pointer(self, pbg_pointer)
 
+    gc_color = c_property('as_pseudobond_group_gc_color', npy_bool)
+    gc_select = c_property('as_pseudobond_group_gc_select', npy_bool)
+    gc_shape = c_property('as_pseudobond_group_gc_shape', npy_bool)
     num_pseudobonds = c_property('as_pseudobond_group_num_pseudobonds', int32, read_only = True)
     pseudobonds = c_property('as_pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
                              astype = _pseudobonds, read_only = True)
@@ -137,6 +141,9 @@ class CPseudoBondGroup:
         else:
             set_c_pointer(self, pbg_pointer)
 
+    gc_color = c_property('pseudobond_group_gc_color', npy_bool)
+    gc_select = c_property('pseudobond_group_gc_select', npy_bool)
+    gc_shape = c_property('pseudobond_group_gc_shape', npy_bool)
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', int32, read_only = True)
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
                              astype = _pseudobonds, read_only = True)
@@ -205,6 +212,9 @@ class CAtomicStructure:
     atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     bonds = c_property('structure_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
     chains = c_property('structure_chains', cptr, 'num_chains', astype = _chains, read_only = True)
+    gc_color = c_property('structure_gc_color', npy_bool)
+    gc_select = c_property('structure_gc_select', npy_bool)
+    gc_shape = c_property('structure_gc_shape', npy_bool)
     name = c_property('structure_name', string)
     num_atoms = c_property('structure_num_atoms', int32, read_only = True)
     num_bonds = c_property('structure_num_bonds', int32, read_only = True)
@@ -249,6 +259,26 @@ class CAtomicStructure:
                        ret = ctypes.c_void_p)
         pbg = f(self._c_pointer, name.encode('utf-8'))
         return object_map(pbg, ASPseudoBondGroup)
+
+# -----------------------------------------------------------------------------
+#
+class Element:
+
+    def __init__(self, e_pointer = None, name = None, number = 6):
+        if e_pointer is None:
+            # Create a new element
+            if name:
+                f = c_function('element_new_name', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
+                e_pointer = f(name)
+            else:
+                f = c_function('element_new_number', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+                e_pointer = f(number)
+        set_c_pointer(self, e_pointer)
+
+    name = c_property('element_name', string, read_only = True)
+    number = c_property('element_number', int32, read_only = True)
+    mass = c_property('element_mass', float32, read_only = True)
+    is_metal = c_property('element_is_metal', npy_bool, read_only = True)
 
 # -----------------------------------------------------------------------------
 #

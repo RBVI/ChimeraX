@@ -30,10 +30,9 @@ class CrossFade(Drawing):
         v = self.viewer
         self.rgba = v.frame_buffer_rgba()
 
-        # TODO: Use a childless drawing.
         # Make textured square surface piece
         from .drawing import rgba_drawing
-        self.piece = rgba_drawing(self.rgba, (-1, -1), (2, 2), self)
+        rgba_drawing(self.rgba, (-1, -1), (2, 2), self)
 
         v.add_overlay(self)
         v.add_new_frame_callback(self.next_frame)
@@ -52,7 +51,7 @@ class CrossFade(Drawing):
         self.frame = f
         alpha = int(255 * (n - f) / n)
         self.rgba[:, :, 3] = alpha
-        self.piece.texture.reload_texture(self.rgba)
+        self.texture.reload_texture(self.rgba)
         self.redraw_needed()
 
 

@@ -18,8 +18,9 @@
 Thumbs.db
 # vim
 *.swp
-errs
+errs*
 build
-.gitignore
 pip.log
+prebuilt*.bz2
+.gitignore
 Chimera2.app
