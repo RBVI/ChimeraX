@@ -109,8 +109,8 @@ def standard_shortcuts(session):
         ('sp', show_sphere, 'Display atoms in sphere style', molcat, atomsarg, mlmenu),
         ('st', show_stick, 'Display atoms in stick style', molcat, atomsarg, mlmenu, sep),
 
-#        ('rb', show_ribbon, 'Display ribbon', molcat, atomsarg, mlmenu),
-#        ('hr', hide_ribbon, 'Undisplay ribbon', molcat, atomsarg, mlmenu),
+        ('rb', show_ribbon, 'Display ribbon', molcat, atomsarg, mlmenu),
+        ('hr', hide_ribbon, 'Undisplay ribbon', molcat, atomsarg, mlmenu),
 #        ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
@@ -689,8 +689,8 @@ def show_molecular_surface(atoms, session):
             molsurf.surface_command(session, m.atoms)
 
 def color_by_element(atoms):
-    from . import structure
-    structure.color_by_element(atoms)
+    from . import color
+    color.color_by_element(atoms)
 
 def color_by_bfactor(atoms):
     from time import time
@@ -705,8 +705,8 @@ def color_by_bfactor(atoms):
            % (len(atoms), t1-t0, len(atoms)/(t1-t0)))
 
 def color_by_chain(atoms):
-    from . import structure
-    structure.color_by_chain(atoms)
+    from . import color
+    color.color_by_chain(atoms)
 
 def color_one_color(m):
     m.single_color()
@@ -734,10 +734,10 @@ def show_stick(atoms):
 def show_ball_and_stick(atoms):
     from .structure import AtomicStructure
     atoms.draw_modes = AtomicStructure.BALL_STYLE
-def show_ribbon(a):
-    a.show_ribbon()
-def hide_ribbon(a):
-    a.hide_ribbon()
+def show_ribbon(atoms):
+    atoms.unique_residues.ribbon_displays = True
+def hide_ribbon(atoms):
+    atoms.unique_residues.ribbon_displays = False
 def fatter_ribbons(m):
     m.set_ribbon_radius(2*m.ribbon_radius)
 def thinner_ribbons(m):
