@@ -669,13 +669,15 @@ class Or(Annotation):
 _escape_table = {
     "'": "'",
     '"': '"',
-    'a': '\a',
-    'b': '\b',
-    'f': '\f',
-    'n': '\n',
-    'r': '\r',
-    't': '\t',
-    'v': '\v',
+    '\\': '\\',
+    '\n': '',
+    'a': '\a',  # alarm
+    'b': '\b',  # backspace
+    'f': '\f',  # formfeed
+    'n': '\n',  # newline
+    'r': '\r',  # return
+    't': '\t',  # tab
+    'v': '\v',  # vertical tab
 }
 
 
@@ -700,7 +702,7 @@ def unescape_with_index_map(text):
     for escape sequences."""
     # standard Python backslashes including \N{unicode name}
     start = 0
-    index_map = range(len(text))
+    index_map = list(range(len(text)))
     while start < len(text):
         index = text.find('\\', start)
         if index == -1:
@@ -774,7 +776,6 @@ def next_token(text):
     :returns: a 3-tuple of first argument in text, the actual text used,
               and the rest of the text.
 
-
     Tokens may be quoted, in which case the text between
     the quotes is returned.
     """
@@ -796,18 +797,18 @@ def next_token(text):
             token = text[start + 1:end]
             raise AnnotationError("incomplete quoted text")
         token = unescape(token)
-    # elif text[start] == "'":
-    #     m = _single_quote.match(text, start)
-    #     if m:
-    #         end = m.end()
-    #         if text[end - 1].isspace():
-    #             end -= 1
-    #         token = text[start + 1:end - 1]
-    #     else:
-    #         end = len(text)
-    #         token = text[start + 1:end]
-    #         raise AnnotationError("incomplete quoted text")
-    #     token = unescape(token)
+    elif text[start] == "'":
+        m = _single_quote.match(text, start)
+        if m:
+            end = m.end()
+            if text[end - 1].isspace():
+                end -= 1
+            token = text[start + 1:end - 1]
+        else:
+            end = len(text)
+            token = text[start + 1:end]
+            raise AnnotationError("incomplete quoted text")
+        token = unescape(token)
     elif text[start] == ';':
         return ';', ';', text[start + 1:]
     else:
@@ -815,7 +816,6 @@ def next_token(text):
         end = m.end()
         token = text[start:end]
     return token, text[:end], text[end:]
-_next_token = next_token  # backward compatibility
 
 
 def _upto_semicolon(text):
@@ -835,14 +835,14 @@ def _upto_semicolon(text):
                 start = size
                 raise AnnotationError("incomplete quoted text")
                 break
-        # elif text[start] == "'":
-        #     m = _single_quote.match(text, start)
-        #     if m:
-        #         start = m.end()
-        #     else:
-        #         start = size
-        #         raise AnnotationError("incomplete quoted text")
-        #         break
+        elif text[start] == "'":
+            m = _single_quote.match(text, start)
+            if m:
+                start = m.end()
+            else:
+                start = size
+                raise AnnotationError("incomplete quoted text")
+                break
         elif text[start] == ';':
             break
         else:
@@ -860,7 +860,7 @@ class RestOfLine(Annotation):
         start = m.end()
         leading = text[:start]
         text, rest = _upto_semicolon(text[start:])
-        return unescape(text), leading + text, rest
+        return text, leading + text, rest
 
 
 class WholeRestOfLine(Annotation):
@@ -868,7 +868,7 @@ class WholeRestOfLine(Annotation):
 
     @staticmethod
     def parse(text, session):
-        return unescape(text), text, ''
+        return text, text, ''
 
 
 class EmptyArg(Annotation):
@@ -1363,7 +1363,7 @@ class Command:
                 if _used_aliases is None:
                     _used_aliases = {cmd_name}
                 results.append(ci.function(session, *args, optional=optional,
-                               used_aliases=_used_aliases))
+                               _used_aliases=_used_aliases))
                 continue
             except UserError as err:
                 if isinstance(ci.function, Alias):
@@ -1790,7 +1790,7 @@ def registered_commands():
 class Alias:
     """alias a command
 
-    Returns an unnamed command alias.
+    Returns a callable unnamed command alias.
 
     :param text: parameterized command text
 
@@ -1857,8 +1857,13 @@ class Alias:
         return CmdDesc(required=required, optional=[('optional', RestOfLine)],
                        **kw)
 
-    def __call__(self, session, *args, optional='', used_aliases=None):
-        assert(len(args) >= self.num_args)
+    def __call__(self, session, *args, optional='', echo_tag=None,
+                 _used_aliases=None):
+        # when echo_tag is not None, echo the substitued alias with
+        # the given tag
+        self.cmd = None
+        if len(args) < self.num_args:
+            raise UserError("Not enough arguments")
         # substitute args for positional arguments
         text = ''
         for part in self.parts:
@@ -1870,9 +1875,11 @@ class Alias:
                 text += optional
             else:
                 text += args[part]
+        if echo_tag is not None:
+            session.logger.info('%s%s' % (echo_tag, text))
         self.cmd = Command(session, text, final=True,
-                           _used_aliases=used_aliases)
-        return self.cmd.execute(_used_aliases=used_aliases)
+                           _used_aliases=_used_aliases)
+        return self.cmd.execute(_used_aliases=_used_aliases)
 
 
 _cmd_aliases = {}
