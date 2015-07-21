@@ -328,7 +328,7 @@ def turn(session, axis, angle, frames = 1):
     cv = c.position
     saxis = cv.apply_without_translation(axis)  # Convert axis from camera to scene coordinates
     center = v.center_of_rotation
-    from .geometry.place import rotation
+    from .geometry import rotation
     r = rotation(saxis, -angle, center)
     if frames == 1:
         c.position = r*cv

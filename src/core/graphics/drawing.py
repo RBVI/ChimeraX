@@ -50,7 +50,7 @@ class Drawing:
         self.name = name
         "Name of this drawing."
 
-        from ..geometry.place import Places
+        from ..geometry import Places
         # Copies of drawing are placed at these positions:
         self._positions = Places()
         from numpy import array, uint8
@@ -407,13 +407,13 @@ class Drawing:
         return self._positions[0]
 
     def set_position(self, pos):
-        from ..geometry.place import Places
+        from ..geometry import Places
         self._positions = Places([pos])
         self.redraw_needed(shape_changed=True)
 
     @property
     def scene_position(self):
-        from ..geometry.place import product
+        from ..geometry import product
         return product([d.position for d in self.drawing_lineage])
 
     position = property(get_position, set_position)
@@ -978,7 +978,7 @@ def draw_drawings(renderer, cvinv, drawings, opaque_only = False):
     '''
     r = renderer
     r.set_view_matrix(cvinv)
-    from ..geometry.place import Place
+    from ..geometry import Place
     p = Place()
     _draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
     if not opaque_only and _any_transparent_drawings(drawings):
@@ -1054,7 +1054,7 @@ def draw_outline(renderer, cvinv, drawings):
     r = renderer
     r.set_view_matrix(cvinv)
     r.start_rendering_outline()
-    from ..geometry.place import Place
+    from ..geometry import Place
     p = Place()
     _draw_multiple(drawings, r, p, Drawing.SELECTION_DRAW_PASS)
     r.finish_rendering_outline()

@@ -3,7 +3,7 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
     for m in molecules:
         assem = pdb_assemblies(m)
         if clear:
-            from .geometry.place import Place
+            from .geometry import Place
             m.position = Place()
             for s in m.surfaces():
                 s.position = Place()
@@ -60,7 +60,7 @@ def pdb_assemblies(m):
                        'matrix[1][1]', 'matrix[1][2]', 'matrix[1][3]', 'vector[1]',
                        'matrix[2][1]', 'matrix[2][2]', 'matrix[2][3]', 'vector[2]',
                        'matrix[3][1]', 'matrix[3][2]', 'matrix[3][3]', 'vector[3]'))
-    from .geometry.place import Place
+    from .geometry import Place
     for id, m11,m12,m13,m14,m21,m22,m23,m24,m31,m32,m33,m34 in mat:
         ops[id] = Place(matrix = ((m11,m12,m13,m14),(m21,m22,m23,m24),(m31,m32,m33,m34)))
 
@@ -79,7 +79,7 @@ class Assembly:
         self.operators = operator_products(products, operator_table)
 
 def operator_products(products, oper_table):
-    from .geometry.place import Places
+    from .geometry import Places
     p = Places(tuple(oper_table[e] for e in products[0]))
     if len(products) > 1:
         p = p * operator_products(products[1:], oper_table)

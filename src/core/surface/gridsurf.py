@@ -23,7 +23,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     matrix[:,:,:] = max_index_range
 
     # Transform centers and radii to grid index coordinates
-    from ..geometry.place import Place
+    from ..geometry import Place
     xyz_to_ijk_tf = Place(((1.0/s, 0, 0, -origin[0]/s),
                            (0, 1.0/s, 0, -origin[1]/s),
                            (0, 0, 1.0/s, -origin[2]/s)))

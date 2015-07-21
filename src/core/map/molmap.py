@@ -170,7 +170,7 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
              for a in (2,1,0)]
     matrix = zeros(shape, float32)
 
-    from ..geometry.place import Place, identity
+    from ..geometry import Place, identity
     xyz_to_ijk_tf = Place(((1.0/step, 0, 0, -origin[0]/step),
                            (0, 1.0/step, 0, -origin[1]/step),
                            (0, 0, 1.0/step, -origin[2]/step)))
@@ -204,7 +204,7 @@ def balls_grid_data(xyz, radii, resolution, step, pad,
              for a in (2,1,0)]
     matrix = zeros(shape, float32)
 
-    from ..geometry.place import Place, identity
+    from ..geometry import Place, identity
     xyz_to_ijk_tf = Place(((1.0/step, 0, 0, -origin[0]/step),
                            (0, 1.0/step, 0, -origin[1]/step),
                            (0, 0, 1.0/step, -origin[2]/step)))

@@ -13,7 +13,7 @@
 import wx
 from wx import glcanvas
 from chimera.core.tools import ToolInstance
-from chimera.core.geometry.place import Place
+from chimera.core.geometry import Place
 
 
 class _PixelLocations:
@@ -24,7 +24,7 @@ class OrthoCamera:
     """A limited camera for the Side View without field_of_view"""
 
     def __init__(self):
-        from chimera.core.geometry.place import Place
+        from chimera.core.geometry import Place
         self.position = Place()
 
         from chimera.core.graphics.camera import mono_camera_mode

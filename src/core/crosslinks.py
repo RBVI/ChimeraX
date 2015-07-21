@@ -98,7 +98,7 @@ class interpolate_position:
             self.view.remove_new_frame_callback(self.update_position)
         else:
             f = fr / self.frames
-            from .geometry.place import translation, rotation
+            from .geometry import translation, rotation
             m.position = translation(f*(self.c1-self.c0)) * rotation(self.axis, f*self.angle, self.c0) * self.pos0
             self.frame += 1
 

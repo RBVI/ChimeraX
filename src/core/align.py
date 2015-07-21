@@ -53,7 +53,7 @@ def align_points(xyz, ref_xyz):
 #        arms = sqrt((df*df).sum()/len(Si))
 #        print (rms, arms)
 
-    from .geometry.place import Place
+    from .geometry import Place
     p = Place(tf)
 
     return p, rms
