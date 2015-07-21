@@ -256,8 +256,8 @@ class MainWindow(wx.Frame, PlainTextLog):
         self.graphics_window = g = GraphicsWindow(self, ui)
         from wx.lib.agw.aui import AuiPaneInfo
         self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
-        from .ui.save_dialog import SaveDialog, ImageSaver
-        self.save_dialog = SaveDialog(self)
+        from .ui.save_dialog import MainSaveDialog, ImageSaver
+        self.save_dialog = MainSaveDialog(self)
         ImageSaver(self.save_dialog).register()
 
     def _build_menus(self, session):
