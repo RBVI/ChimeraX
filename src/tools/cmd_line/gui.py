@@ -247,8 +247,9 @@ class _HistoryDialog:
             if dlg.ShowModal() == wx.ID_CANCEL:
                 return
             fname = dlg.GetPath()
-            #TODO: wrap class around open() to handle tilde expansion and
-            # other conveniences
+            from chimera.core.io import open_filename
+            f = open_filename(fname, 'w')
+            
 
             return
         if label == self.execute_label:
