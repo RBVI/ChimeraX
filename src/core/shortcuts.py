@@ -263,7 +263,10 @@ class Keyboard_Shortcuts:
 
     def enable_shortcuts(self):
         if not self._enabled:
-            self.session.ui.register_for_keystrokes(self)
+            ui = self.session.ui
+            ui.register_for_keystrokes(self)
+            # TODO: Don't get key strokes if command line has focus
+            ui.main_window.graphics_window.SetFocus()
             self._enabled = True
 
     def disable_shortcuts(self):
