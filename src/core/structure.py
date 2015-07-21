@@ -56,7 +56,7 @@ class AtomicStructure(CAtomicStructure, Model):
         self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
         self._ribbon_selected_residues = set()
 
-        self.make_drawing()
+        self._make_drawing()
 
     def delete(self):
         self._atoms = None
@@ -65,11 +65,11 @@ class AtomicStructure(CAtomicStructure, Model):
 
     def added_to_session(self, session):
         v = session.main_view
-        v.add_new_frame_callback(self.update_graphics_if_needed)
+        v.add_new_frame_callback(self._update_graphics_if_needed)
 
     def removed_from_session(self, session):
         v = session.main_view
-        v.remove_new_frame_callback(self.update_graphics_if_needed)
+        v.remove_new_frame_callback(self._update_graphics_if_needed)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
@@ -98,7 +98,7 @@ class AtomicStructure(CAtomicStructure, Model):
         na = sum(self.atoms.displays) if self.display else 0
         return na
 
-    def initialize_graphical_attributes(self):
+    def _initialize_graphical_attributes(self):
         a = self.atoms
         a.draw_modes = self.SPHERE_STYLE
         a.colors = element_colors(a.element_numbers)
@@ -111,33 +111,33 @@ class AtomicStructure(CAtomicStructure, Model):
             pb.halfbonds = False
             pb.colors = pb_colors.get(name, (255,255,0,255))
 
-    def make_drawing(self):
+    def _make_drawing(self):
 
-        self.initialize_graphical_attributes()
+        self._initialize_graphical_attributes()
 
         a = self.atoms
         coords = a.coords
-        radii = self.atom_display_radii()
+        radii = self._atom_display_radii()
         colors = a.colors
         display = a.displays
         b = self.bonds
         pbgs = self.pseudobond_groups
 
         # Create graphics
-        self.create_atom_spheres(coords, radii, colors, display)
-        self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
+        self._create_atom_spheres(coords, radii, colors, display)
+        self._update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
         for name, pbg in pbgs.items():
             pb = pbg.pseudobonds
-            self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
-        self.update_ribbon_graphics()
+            self._update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
+        self._update_ribbon_graphics()
 
-    def create_atom_spheres(self, coords, radii, colors, display):
+    def _create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing
         if p is None:
             self._atoms_drawing = p = self.new_drawing('atoms')
             # Add atom picking method to the atom drawing
             from types import MethodType
-            p.first_intercept = MethodType(atom_first_intercept, p)
+            p.first_intercept = MethodType(_atom_first_intercept, p)
 
         n = len(coords)
         self.triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
@@ -148,32 +148,32 @@ class AtomicStructure(CAtomicStructure, Model):
         p.geometry = va, ta
         p.normals = na
 
-        self.update_atom_graphics(coords, radii, colors, display)
+        self._update_atom_graphics(coords, radii, colors, display)
 
     def new_atoms(self):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
         self._atoms = None
         self._atom_bounds_needs_update = True
 
-    def update_graphics_if_needed(self):
+    def _update_graphics_if_needed(self):
         c, s, se = self.gc_color, self.gc_shape, self.gc_select
         if c or s or se:
             self.gc_color = self.gc_shape = self.gc_select = False
-            self.update_graphics()
+            self._update_graphics()
             self.redraw_needed(shape_changed = s, selection_changed = se)
 
-    def update_graphics(self):
+    def _update_graphics(self):
         a = self.atoms
         b = self.bonds
-        self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors, a.displays)
-        self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
+        self._update_atom_graphics(a.coords, self._atom_display_radii(), a.colors, a.displays)
+        self._update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
         pbgs = self.pseudobond_groups
         for name, pbg in pbgs.items():
             pb = pbg.pseudobonds
-            self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
-        self.update_ribbon_graphics()
+            self._update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
+        self._update_ribbon_graphics(rebuild = True)
 
-    def update_atom_graphics(self, coords, radii, colors, display):
+    def _update_atom_graphics(self, coords, radii, colors, display):
         p = self._atoms_drawing
         if p is None:
             return
@@ -196,7 +196,7 @@ class AtomicStructure(CAtomicStructure, Model):
         a = self.atoms
         p.selected_positions = a.selected if a.num_selected > 0 else None
 
-    def atom_display_radii(self):
+    def _atom_display_radii(self):
         a = self.atoms
         r = a.radii.copy()
         dm = a.draw_modes
@@ -204,8 +204,8 @@ class AtomicStructure(CAtomicStructure, Model):
         r[dm == self.STICK_STYLE] = self.bond_radius
         return r
 
-    def update_bond_graphics(self, bond_atoms, draw_mode, radii,
-                             bond_colors, half_bond_coloring):
+    def _update_bond_graphics(self, bond_atoms, draw_mode, radii,
+                              bond_colors, half_bond_coloring):
         p = self._bonds_drawing
         if p is None:
             if (draw_mode == self.SPHERE_STYLE).all():
@@ -213,7 +213,7 @@ class AtomicStructure(CAtomicStructure, Model):
             self._bonds_drawing = p = self.new_drawing('bonds')
             # Suppress bond picking since bond selections are not supported.
             from types import MethodType
-            p.first_intercept = MethodType(bond_first_intercept, p)
+            p.first_intercept = MethodType(_bond_first_intercept, p)
             from . import surface
             # Use 3 z-sections so cylinder ends match in half-bond mode.
             va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
@@ -222,10 +222,10 @@ class AtomicStructure(CAtomicStructure, Model):
 
         xyz1, xyz2 = bond_atoms[0].coords, bond_atoms[1].coords
         p.positions = bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
-        p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
-        self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
+        p.display_positions = self._shown_bond_cylinders(bond_atoms, half_bond_coloring)
+        self._set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
-    def set_bond_colors(self, drawing, bond_atoms, bond_colors, half_bond_coloring):
+    def _set_bond_colors(self, drawing, bond_atoms, bond_colors, half_bond_coloring):
         p = drawing
         if p is None:
             return
@@ -237,7 +237,7 @@ class AtomicStructure(CAtomicStructure, Model):
         else:
             p.colors = bond_colors
 
-    def shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
+    def _shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
         sb = bond_atoms[0].displays & bond_atoms[1].displays  # Show bond if both atoms shown
         ns = ((bond_atoms[0].draw_modes != self.SPHERE_STYLE) |
               (bond_atoms[1].draw_modes != self.SPHERE_STYLE))       # Don't show if both atoms in sphere style
@@ -248,9 +248,8 @@ class AtomicStructure(CAtomicStructure, Model):
             return sb2
         return sb
 
-    def update_pseudobond_graphics(self, name, bond_atoms, radii,
-                                   bond_colors, half_bond_coloring):
-#        print ('pseudobond chain ids', bond_atoms[0].residues.chain_ids, bond_atoms[1].residues.chain_ids)
+    def _update_pseudobond_graphics(self, name, bond_atoms, radii,
+                                    bond_colors, half_bond_coloring):
         pg = self._pseudobond_group_drawings
         if not name in pg:
             pg[name] = p = self.new_drawing(name)
@@ -262,10 +261,10 @@ class AtomicStructure(CAtomicStructure, Model):
 
         xyz1, xyz2 = bond_atoms[0].coords, bond_atoms[1].coords
         p.positions = bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
-        p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
-        self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
+        p.display_positions = self._shown_bond_cylinders(bond_atoms, half_bond_coloring)
+        self._set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
-    def update_ribbon_graphics(self, rebuild=False):
+    def _update_ribbon_graphics(self, rebuild=False):
         if rebuild:
             from .ribbon import Ribbon, XSection
             from .geometry import place
@@ -404,7 +403,7 @@ class AtomicStructure(CAtomicStructure, Model):
                 rp.vertex_colors = concatenate(color_list)
                 rp.atomic_structure = self
                 from types import MethodType
-                rp.first_intercept = MethodType(ribbon_first_intercept, rp)
+                rp.first_intercept = MethodType(_ribbon_first_intercept, rp)
                 # Save mappings for picking
                 self._ribbon_t2r[rp] = t2r
 
@@ -474,27 +473,10 @@ class AtomicStructure(CAtomicStructure, Model):
             else:
                 return coords, None
 
-    def hide_chain(self, cid):
-        a = self.atoms
-        a.displays &= self.chain_atom_mask(cid, invert = True)
-
-    def show_chain(self, cid):
-        a = self.atoms
-        a.displays |= self.chain_atom_mask(cid)
-
-    def chain_atom_mask(self, cid, invert = False):
-        a = self.atoms
-        cids = a.residues.chain_ids
-        from numpy import array, bool, logical_not
-        d = array(tuple((cid != c) for c in cids), bool)
-        if invert:
-            logical_not(d,d)
-        return d
-
     def bounds(self, positions = True):
         # TODO: Cache bounds
-        ab = self.atom_bounds()
-        rb = self.ribbon_bounds()
+        ab = self._atom_bounds()
+        rb = self._ribbon_bounds()
         sb = tuple(s.bounds() for s in self.surfaces())
         from .geometry import bounds
         b = bounds.union_bounds((ab, rb) + sb)
@@ -502,7 +484,7 @@ class AtomicStructure(CAtomicStructure, Model):
             b = bounds.copies_bounding_box(b, self.positions)
         return b
 
-    def atom_bounds(self):
+    def _atom_bounds(self):
         if not self._atom_bounds_needs_update:
             return self._atom_bounds
         a = self.atoms
@@ -513,7 +495,7 @@ class AtomicStructure(CAtomicStructure, Model):
         self._atom_bounds_needs_update = False
         return b
 
-    def ribbon_bounds(self):
+    def _ribbon_bounds(self):
         rd = self._ribbon_drawing
         if rd is None or not rd.display:
             return None
@@ -618,7 +600,7 @@ def selected_atoms(session):
                 atoms = atoms | matoms
     return atoms
 
-def atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
+def _atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
     # TODO check intercept of bounding box as optimization
     xyzr = self.positions.shift_and_scale_array()
     dp = self.display_positions
@@ -640,10 +622,10 @@ def atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
 
     return s
 
-def bond_first_intercept(self, mxyz1, mxyz2, exclude = None):
+def _bond_first_intercept(self, mxyz1, mxyz2, exclude = None):
     return None
 
-def ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
+def _ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
     # TODO check intercept of bounding box as optimization
     from .graphics import Drawing
     pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
