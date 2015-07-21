@@ -225,6 +225,7 @@ class _HistoryDialog:
         self.window.shown = False
         from chimera.core.history import FIFOHistory
         self.history = FIFOHistory(500, controller.session, "command line")
+        self._record_dialog = None
 
     def add(self, item):
         self.listbox.Append(item)
@@ -241,16 +242,32 @@ class _HistoryDialog:
             from chimera.core.io import extensions
             ext = extensions("Chimera")[0]
             wc = "Chimera commands (*{})|*{}".format(ext, ext)
-            from chimera.core.open_save import SaveDialog
-            dlg = SaveDialog(self.window.ui_area, "Record Commands", wildcard=wc)
-            dlg.SetExtraControlCreator(self._recordCustomizeCB)
+            from chimera.core.ui.open_save import SaveDialog
+            from chimera.core.io import open_filename, extensions
+            if self._record_dialog is None:
+                self._record_dialg = dlg = SaveDialog(self.window.ui_area, "Record Commands",
+                    wildcard=wc, add_extension=extensions("Chimera")[0])
+                dlg.SetExtraControlCreator(self._recordCustomizeCB)
+            else:
+                dlg = self._record_dialog
             if dlg.ShowModal() == wx.ID_CANCEL:
                 return
-            fname = dlg.GetPath()
-            from chimera.core.io import open_filename
-            f = open_filename(fname, 'w')
-            
-
+            path = dlg.GetPath()
+            if not path:
+                from chimera.core.cli import UserError
+                raise UserError("No file specified for saving command history")
+            if self.save_amount_Choice.GetStringSelection() == "all":
+                cmds = [cmd for cmd in self.history]
+            else:
+                cmds = [self.listbox.GetString(x) for x in self.listbox.GetSelections()]
+            if self.save_append_CheckBox.Value == True:
+                mode = 'a'
+            else:
+                mode = 'w'
+            f = open_filename(path, mode)
+            for cmd in cmds:
+                print(cmd, file=f)
+            f.close()
             return
         if label == self.execute_label:
             for index in self.listbox.GetSelections():
@@ -289,6 +306,9 @@ class _HistoryDialog:
         self.listbox.Deselect(sel)
         self.listbox.SetSelection(sel+1)
         self.controller.cmd_replace(self.listbox.GetString(sel+1))
+
+    def on_append_change(self, event):
+        self.overwrite_disclaimer.Show(self.save_append_CheckBox.Value)
 
     def on_listbox(self, event):
         self.select()
@@ -331,12 +351,23 @@ class _HistoryDialog:
         import wx
         panel = wx.Panel(parent)
         amount_label1 = wx.StaticText(panel, label="Record")
-        amount = wx.Choice(panel, choices=["all", "selected"])
+        self.save_amount_Choice = amount = wx.Choice(panel, choices=["all", "selected"])
         amount.SetSelection(0)
         amount_label2 = wx.StaticText(panel, label="commands")
         amount_sizer = wx.BoxSizer(wx.HORIZONTAL)
         amount_sizer.Add(amount_label1)
         amount_sizer.Add(amount)
         amount_sizer.Add(amount_label2)
-        panel.SetSizerAndFit(amount_sizer)
+        row_sizer = wx.BoxSizer(wx.VERTICAL)
+        row_sizer.Add(amount_sizer)
+        self.save_append_CheckBox = cb = wx.CheckBox(panel, label="Append to file")
+        cb.Bind(wx.EVT_CHECKBOX, self.on_append_change)
+        cb.Value = False
+        row_sizer.Add(cb, flag=wx.ALIGN_CENTER)
+        self.overwrite_disclaimer = disclaimer = wx.StaticText(panel,
+                label="(ignore overwrite warning)")
+        disclaimer.SetLabelMarkup("<small><i>(ignore overwrite warning)</i></small>")
+        disclaimer.Hide()
+        row_sizer.Add(disclaimer, flag=wx.ALIGN_CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+        panel.SetSizerAndFit(row_sizer)
         return panel
