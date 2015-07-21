@@ -242,8 +242,9 @@ class Play_Series:
       return
 
     m.display = True
+    m.atoms.displays = False
     a = m.atom_subset(residue_range = (fmin, fmax))
-    a.show_atoms(only_these = True)
+    a.displays = True
         
   # ---------------------------------------------------------------------------
   #

@@ -277,10 +277,6 @@ def ribbon(session, spec=None):
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = True
-    from .structure import AtomicStructure
-    for m in results.models:
-        if isinstance(m, AtomicStructure):
-            m.update_ribbon_graphics(rebuild=True)
 
 _ribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display ribbon for specified residues')
@@ -291,8 +287,7 @@ def unribbon(session, spec=None):
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = False
-    for m in results.models:
-        m.update_ribbon_graphics(rebuild=True)
+
 _unribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display ribbon for specified residues')
 
@@ -318,6 +313,24 @@ _set_desc = cli.CmdDesc(
     keyword=[('bg_color', color.ColorArg), ('silhouettes', cli.BoolArg)],
     synopsis="set preferences"
 )
+
+def style_command(session, atom_style, atoms = None):
+    from .structure import AtomicStructure
+    s = {'sphere':AtomicStructure.SPHERE_STYLE,
+         'ball':AtomicStructure.BALL_STYLE,
+         'stick':AtomicStructure.STICK_STYLE,
+         }[atom_style.lower()]
+    if atoms is None:
+        for m in session.models.list():
+            if isinstance(m, AtomicStructure):
+                m.atoms.draw_modes = s
+    else:
+        asr = atoms.evaluate(session)
+        asr.atoms.draw_modes = s
+
+_style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball', 'stick')))],
+                          optional=[("atoms", atomspec.AtomSpecArg)],
+                          synopsis='change atom depiction')
 
 #
 # Turn command to rotate models.
@@ -414,6 +427,7 @@ def register(session):
     cli.register('ribbon', _ribbon_desc, ribbon)
     cli.register('~ribbon', _unribbon_desc, unribbon)
     cli.register('set', _set_desc, set_cmd)
+    cli.register('style', _style_desc, style_command)
     cli.register('turn', _turn_desc, turn)
     cli.register('freeze', _freeze_desc, freeze)
     cli.register('wait', _wait_desc, wait)
@@ -424,8 +438,6 @@ def register(session):
     molsurf.register_buriedarea_command()
     from . import scolor
     scolor.register_scolor_command()
-    from . import structure
-    structure.register_molecule_commands()
     from . import lightcmd
     lightcmd.register_lighting_command()
     lightcmd.register_material_command()
