@@ -124,7 +124,7 @@ class Space_Navigator:
             else:
                 v.center_of_rotation_needs_update()     # Translation
             cr = cpinv * v.center_of_rotation
-        from ...geometry.place import translation
+        from ...geometry import translation
         stf = cp * translation(cr) * tf * translation(-cr) * cpinv
         if self.collision(stf.inverse() * cam.position.origin()):
             return

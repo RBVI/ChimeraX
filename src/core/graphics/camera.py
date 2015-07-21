@@ -21,7 +21,7 @@ class Camera:
         # Camera postion and direction, neg z-axis is camera view direction,
         # x and y axes are horizontal and vertical screen axes.
         # First 3 columns are x, y, z axes, 4th column is camara location.
-        from ..geometry.place import Place
+        from ..geometry import Place
         self._position = Place()
         """Coordinate frame for camera in scene coordinates with camera
         pointed along -z."""

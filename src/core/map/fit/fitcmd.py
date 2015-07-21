@@ -416,7 +416,7 @@ def fitting_metric(metric):
 #
 def map_fitting_points(v, envelope, local_coords = False):
 
-    from ...geometry.place import identity
+    from ...geometry import identity
     point_to_scene_transform = None if local_coords else identity()
     from . import fitmap as F
     try:

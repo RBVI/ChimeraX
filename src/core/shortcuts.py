@@ -564,7 +564,7 @@ def show_biological_unit(m, session):
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
-        from .geometry.place import Places
+        from .geometry import Places
         m.positions = Places([m.positions[0]])
 
 def display_surface(session):

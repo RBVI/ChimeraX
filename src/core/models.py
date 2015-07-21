@@ -227,7 +227,7 @@ class Models(State):
         mlist = descendant_models(models)
         mlist.sort(key=lambda m: len(m.id), reverse=True)
         session = self._session()  # resolve back reference
-        for m in m_all:
+        for m in mlist:
             m.removed_from_session(session)
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
         for model in mlist:
@@ -253,7 +253,7 @@ class Models(State):
     def open(self, filenames, id=None, **kw):
         from . import io
         session = self._session()  # resolve back reference
-        models, status = io.open_multiple(session, filenames, **kw)
+        models, status = io.open_multiple_data(session, filenames, **kw)
         if status:
             session.logger.status(status)
         if models:

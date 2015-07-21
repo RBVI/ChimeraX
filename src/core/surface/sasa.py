@@ -279,7 +279,7 @@ def circle_intercept_angle(center1, pintersect, center2):
 # Angle from plane defined by z and v1 rotated to plane defined by z and v2
 # range 0 to 2*pi.
 def polar_angle(zaxis, v1, v2):
-    from ..geometry.place import orthonormal_frame
+    from ..geometry import orthonormal_frame
     f = orthonormal_frame(zaxis, xdir = v1)
     x,y,z = f.transpose()*v2
     a = atan2(y,x)
@@ -329,7 +329,7 @@ def draw_arc(circle, p1, p2, sphere, surf, color, width, offset):
 
     arc = polar_angle(circle.center, p1, p2)
     va, ta = sphere_band_arc(circle.angle, arc, width)
-    from ..geometry.place import orthonormal_frame
+    from ..geometry import orthonormal_frame
     f = orthonormal_frame(circle.center, xdir = p1)
     f.move(va)
     na = va.copy()
@@ -347,7 +347,7 @@ def draw_sphere_points(points, sphere, s, color, radius = 0.02, offset = 0.02):
 
 def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
     cs, r = sphere
-    from ..geometry.place import orthonormal_frame
+    from ..geometry import orthonormal_frame
     for c in circles:
         f = orthonormal_frame(c.center)
         va, ta = sphere_band_geometry(c.angle, width = width)
