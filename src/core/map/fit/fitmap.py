@@ -88,7 +88,7 @@ def motion_to_maximum(points, point_weights, volume, max_steps = 2000,
     by specifying a list of Place objects for the symmetries argument.
     '''
 
-    from ...geometry.place import identity
+    from ...geometry import identity
     data_array, xyz_to_ijk_transform = \
         volume.matrix_and_transform(identity(), subregion = None, step = 1)
     move_tf, stats = \
@@ -134,7 +134,7 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     else:
         point_wts = point_weights
 
-    from ...geometry.place import identity
+    from ...geometry import identity
     move_tf = identity()
 
     if rotation_center is None:
@@ -498,7 +498,7 @@ def average_map_value_at_atom_positions(atoms, volume = None):
     if volume is None or len(points) == 0:
         return 0, len(points)
 
-    from ...geometry.place import identity
+    from ...geometry import identity
     data_array, xyz_to_ijk_transform = \
         volume.matrix_and_transform(identity(), subregion = None, step = 1)
 
@@ -525,7 +525,7 @@ def average_map_value(points, xyz_to_ijk_transform, data_array, syminv = []):
 # Returns global coordinates by default.
 # If above_threshold is false filter out points with zero density.
 #
-from ...geometry.place import Place
+from ...geometry import Place
 def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
 
     m, xyz_to_ijk_tf = v.matrix_and_transform(point_to_world_xform,
@@ -647,7 +647,7 @@ def atoms_outside_contour(atoms, volume = None):
         from .. import active_volume
         volume = active_volume()
     points = atom_coordinates(atoms)
-    from ...geometry.place import identity
+    from ...geometry import identity
     poc, clevel = points_outside_contour(points, identity(), volume)
     return poc, clevel
 

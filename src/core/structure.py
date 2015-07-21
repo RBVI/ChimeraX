@@ -525,8 +525,9 @@ class AtomicStructure(CAtomicStructure, Model):
         # TODO: Cache bounds
         ab = self.atom_bounds()
         rb = self.ribbon_bounds()
+        sb = tuple(s.bounds() for s in self.surfaces())
         from .geometry import bounds
-        b = bounds.union_bounds((ab, rb))
+        b = bounds.union_bounds((ab, rb) + sb)
         if positions:
             b = bounds.copies_bounding_box(b, self.positions)
         return b
@@ -632,6 +633,11 @@ class AtomicStructure(CAtomicStructure, Model):
 
     def clear_selection_promotion_history(self):
         self._selection_promotion_history = []
+
+    def surfaces(self):
+        from .molsurf import MolecularSurface
+        surfs = [s for s in self.child_models() if isinstance(s, MolecularSurface)]
+        return surfs
 
 def selected_atoms(session):
     from .molecule import Atoms

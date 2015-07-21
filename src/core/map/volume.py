@@ -1268,7 +1268,7 @@ class Volume(Model):
     xi, yi, zi = data.ijk_to_xyz((io+istep, jo, ko))
     xj, yj, zj = data.ijk_to_xyz((io, jo+jstep, ko))
     xk, yk, zk = data.ijk_to_xyz((io, jo, ko+kstep))
-    from ..geometry.place import Place
+    from ..geometry import Place
     tf = Place(((xi-xo, xj-xo, xk-xo, xo),
                 (yi-yo, yj-yo, yk-yo, yo),
                 (zi-zo, zj-zo, zk-zo, zo)))

@@ -509,7 +509,7 @@ class Render:
     def shadowmap_start(self, framebuffer, texture_unit, center, radius, size):
 
         # Set projection matrix to be orthographic and span all models.
-        from ..geometry.place import scale, translation
+        from ..geometry import scale, translation
         pm = (scale((1 / radius, 1 / radius, -1 / radius))
               * translation((0, 0, radius)))  # orthographic projection along z
         self.set_projection_matrix(pm.opengl_matrix())
@@ -554,7 +554,7 @@ class Render:
                           depth_bias=0.005):
 
         # Projection matrix, orthographic along z
-        from ..geometry.place import translation, scale, orthonormal_frame
+        from ..geometry import translation, scale, orthonormal_frame
         pm = (scale((1 / radius, 1 / radius, -1 / radius))
               * translation((0, 0, radius)))
 

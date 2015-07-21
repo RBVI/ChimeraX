@@ -21,7 +21,7 @@ def fit_search(models, points, point_weights, volume, n,
     asym_center = tuple(x0 + (x1-x0)*f
                         for x0, x1, f in zip(xyz_min, xyz_max, asym_center_f)) 
 
-    from ...geometry.place import translation, identity
+    from ...geometry import translation, identity
     center = points.mean(axis=0)
     ctf = translation(-center)
     ijk_to_xyz_tf = volume.matrix_indices_to_xyz_transform(step = 1)
@@ -323,7 +323,7 @@ def random_translation_step(center, radius):
     v = random_direction()
     from random import random
     r = radius * random()
-    from ...geometry.place import translation
+    from ...geometry import translation
     tf = translation(center + r*v)
     return tf
 
@@ -333,7 +333,7 @@ def random_translation(xyz_min, xyz_max):
 
     from random import random
     shift = [x0+random()*(x1-x0) for x0,x1 in zip(xyz_min, xyz_max)]
-    from ...geometry.place import translation
+    from ...geometry import translation
     tf = translation(shift)
     return tf
 
