@@ -358,25 +358,6 @@ def surfaces_overlapping_atoms(surfs, atoms):
     osurfs = [s for s,i in zip(surfs,si) if i]
     return osurfs
 
-def show_surface(name, va, na, ta, color = (180,180,180,255)):
-    surf = MolecularSurface(name)
-    surf.geometry = va, ta
-    surf.normals = na
-    surf.color = color
-    return surf
-
-def molecule_surface(mol, probe_radius = 1.4, grid_spacing = 0.5):
-    a = mol.atoms
-    from numpy import array
-    a = a.filter(array(a.residues.names) != 'HOH')     # exclude waters
-    xyz, r = a.coords, a.radii
-    from .surface import ses_surface_geometry
-    va, na, ta = ses_surface_geometry(xyz, r, probe_radius, grid_spacing)
-    from numpy import array, uint8
-    color = array((180,180,180,255), uint8)
-    surf = show_surface(mol.name + ' surface', va, na, ta, color, mol.position)
-    return surf
-
 def surfaces_with_atoms(atoms, models):
     surfs = []
     for m in list(atoms.unique_structures) + [models.drawing]:

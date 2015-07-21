@@ -98,21 +98,6 @@ class AtomicStructure(CAtomicStructure, Model):
         na = sum(self.atoms.displays) if self.display else 0
         return na
 
-    def solvent_atoms(self):
-        atoms = self.atoms
-        from numpy import array
-        return atoms.filter(array(atoms.residues.names) == 'HOH')
-
-    def show_atoms(self, atoms = None):
-        if atoms is None:
-            atoms = self.atoms
-        atoms.displays = True
-
-    def hide_atoms(self, atoms = None):
-        if atoms is None:
-            atoms = self.atoms
-        atoms.displays = False
-
     def initialize_graphical_attributes(self):
         a = self.atoms
         a.draw_modes = self.SPHERE_STYLE
@@ -218,21 +203,6 @@ class AtomicStructure(CAtomicStructure, Model):
         r[dm == self.BALL_STYLE] *= self.ball_scale
         r[dm == self.STICK_STYLE] = self.bond_radius
         return r
-
-    def set_atom_style(self, style, atoms = None):
-        if atoms is None:
-            atoms = self.atoms
-        atoms.draw_modes = style
-
-    def color_by_element(self, atoms = None):
-        if atoms is None:
-            atoms = self.atoms
-        atoms.colors = element_colors(atoms.element_numbers)
-
-    def color_by_chain(self, atoms = None):
-        if atoms is None:
-            atoms = self.atoms
-        atoms.colors = chain_colors(atoms.residues.chain_ids)
 
     def update_bond_graphics(self, bond_atoms, draw_mode, radii,
                              bond_colors, half_bond_coloring):
@@ -804,6 +774,11 @@ def pseudobond_geometry(segments = 9):
 
 # -----------------------------------------------------------------------------
 #
+def color_by_element(atoms):
+    atoms.colors = element_colors(atoms.element_numbers)
+
+# -----------------------------------------------------------------------------
+#
 element_rgba_256 = None
 def element_colors(element_numbers):
     global element_rgba_256
@@ -932,6 +907,11 @@ def element_colors(element_numbers):
 
 # -----------------------------------------------------------------------------
 #
+def color_by_chain(atoms):
+    atoms.colors = chain_colors(atoms.residues.chain_ids)
+
+# -----------------------------------------------------------------------------
+#
 rgba_256 = None
 def chain_colors(cids):
 
@@ -1007,11 +987,10 @@ def ccolor_command(session, atoms = None):
     if atoms is None:
         for m in session.models.list():
             if isinstance(m, AtomicStructure):
-                m.color_by_chain()
+                color_by_chain(m.atoms)
     else:
         asr = atoms.evaluate(session)
-        a = asr.atoms
-        a.colors = chain_colors(a.residues.chain_ids)
+        color_by_chain(asr.atoms)
 
 # -----------------------------------------------------------------------------
 #
@@ -1023,11 +1002,10 @@ def celement_command(session, atoms = None):
     if atoms is None:
         for m in session.models.list():
             if isinstance(m, AtomicStructure):
-                m.color_by_element()
+                color_by_element(m.atoms)
     else:
         asr = atoms.evaluate(session)
-        a = asr.atoms
-        a.colors = element_colors(a.element_numbers)
+        color_by_element(asr.atoms)
 
 # -----------------------------------------------------------------------------
 #
@@ -1043,7 +1021,7 @@ def style_command(session, atom_style, atoms = None):
     if atoms is None:
         for m in session.models.list():
             if isinstance(m, AtomicStructure):
-                m.set_atom_style(s)
+                m.atoms.draw_modes = s
     else:
         asr = atoms.evaluate(session)
         asr.atoms.draw_modes = s
