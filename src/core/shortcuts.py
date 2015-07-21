@@ -109,8 +109,8 @@ def standard_shortcuts(session):
         ('sp', show_sphere, 'Display atoms in sphere style', molcat, atomsarg, mlmenu),
         ('st', show_stick, 'Display atoms in stick style', molcat, atomsarg, mlmenu, sep),
 
-#        ('rb', show_ribbon, 'Display ribbon', molcat, atomsarg, mlmenu),
-#        ('hr', hide_ribbon, 'Undisplay ribbon', molcat, atomsarg, mlmenu),
+        ('rb', show_ribbon, 'Display ribbon', molcat, atomsarg, mlmenu),
+        ('hr', hide_ribbon, 'Undisplay ribbon', molcat, atomsarg, mlmenu),
 #        ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
@@ -263,7 +263,10 @@ class Keyboard_Shortcuts:
 
     def enable_shortcuts(self):
         if not self._enabled:
-            self.session.ui.register_for_keystrokes(self)
+            ui = self.session.ui
+            ui.register_for_keystrokes(self)
+            # TODO: Don't get key strokes if command line has focus
+            ui.main_window.graphics_window.SetFocus()
             self._enabled = True
 
     def disable_shortcuts(self):
@@ -345,16 +348,17 @@ def shortcut_atoms(session):
     matoms = []
     sel = session.selection
     atoms_list = sel.items('atoms')
+    from .molecule import concatenate, Atoms
     if atoms_list:
-        for atoms in atoms_list:
-            matoms.extend(atoms.by_structure)
+        atoms = concatenate(atoms_list)
     elif sel.empty():
         # Nothing selected, so operate on all atoms
         from .structure import AtomicStructure
-        for m in session.models.list():
-            if isinstance(m, AtomicStructure) and m.num_atoms > 0:
-                matoms.append((m,m.atoms))
-    return matoms
+        atoms = concatenate([m.atoms for m in session.models.list()
+                             if isinstance(m, AtomicStructure)])
+    else:
+        atoms = Atoms()
+    return atoms
 
 def shortcut_surfaces(session):
     sel = session.selection
@@ -673,39 +677,39 @@ def delete_selected_models(session):
     session.models.close(session.selection.models())
 
 def show_map_full_resolution(m):
-  m.new_region(ijk_step = (1,1,1), adjust_step = False)
+    m.new_region(ijk_step = (1,1,1), adjust_step = False)
 
 def show_molecular_surface(atoms, session):
-    for m, a in atoms:
+    mols = atoms.unique_structures
+    for m in mols:
         if hasattr(m, 'molsurf') and m.molsurf in session.models.list():
             m.molsurf.display = True
         else:
-            from .molsurf import molecule_surface
-            m.molsurf = s = molecule_surface(m)
-            session.models.add([s])
+            from . import molsurf
+            molsurf.surface_command(session, m.atoms)
 
 def color_by_element(atoms):
-    for m, a in atoms:
-        m.color_by_element(a)
+    from . import color
+    color.color_by_element(atoms)
 
 def color_by_bfactor(atoms):
     from time import time
-    for m, matoms in atoms:
-        t0 = time()
-        for a in matoms:
-            b = a.bfactor
-            f = min(1.0, b/50)
-#            a.radius = 1+f
-            a.color = (max(128,int((1-f)*255)),128,max(128,int(f*255)),255)
-        t1 = time()
-        print ('set colors by b-factors for %d atoms in %.3f seconds, %.0f atoms/sec'
-               % (len(matoms), t1-t0, len(matoms)/(t1-t0)))
+    t0 = time()
+    for a in atoms:
+        b = a.bfactor
+        f = min(1.0, b/50)
+#        a.radius = 1+f
+        a.color = (max(128,int((1-f)*255)),128,max(128,int(f*255)),255)
+    t1 = time()
+    print ('set colors by b-factors for %d atoms in %.3f seconds, %.0f atoms/sec'
+           % (len(atoms), t1-t0, len(atoms)/(t1-t0)))
 
 def color_by_chain(atoms):
-    for m, a in atoms:
-        m.color_by_chain(a)
+    from . import color
+    color.color_by_chain(atoms)
+
 def color_one_color(m):
-  m.single_color()
+    m.single_color()
 
 def ambient_lighting(session):
     from .lightcmd import lighting
@@ -718,24 +722,22 @@ def simple_lighting(session):
     lighting(session, 'simple')
 
 def show_atoms(atoms):
-    for m, a in atoms:
-        m.show_atoms(a)
+    atoms.displays = True
 def hide_atoms(atoms):
-    for m, a in atoms:
-        m.hide_atoms(a)
+    atoms.displays = False
 def show_sphere(atoms):
-    for m, a in atoms:
-        m.set_atom_style(m.SPHERE_STYLE, a)
+    from .structure import AtomicStructure
+    atoms.draw_modes = AtomicStructure.SPHERE_STYLE
 def show_stick(atoms):
-    for m, a in atoms:
-        m.set_atom_style(m.STICK_STYLE, a)
+    from .structure import AtomicStructure
+    atoms.draw_modes = AtomicStructure.STICK_STYLE
 def show_ball_and_stick(atoms):
-    for m, a in atoms:
-        m.set_atom_style(m.BALL_STYLE, a)
-def show_ribbon(a):
-  a.show_ribbon()
-def hide_ribbon(a):
-  a.hide_ribbon()
+    from .structure import AtomicStructure
+    atoms.draw_modes = AtomicStructure.BALL_STYLE
+def show_ribbon(atoms):
+    atoms.unique_residues.ribbon_displays = True
+def hide_ribbon(atoms):
+    atoms.unique_residues.ribbon_displays = False
 def fatter_ribbons(m):
     m.set_ribbon_radius(2*m.ribbon_radius)
 def thinner_ribbons(m):
@@ -743,11 +745,9 @@ def thinner_ribbons(m):
 def show_ligands(m):
     m.show_ligand_atoms()
 def show_waters(atoms):
-    for m,a in atoms:
-        m.show_atoms(a.intersect(m.solvent_atoms()))
+    atoms.displays |= (atoms.residues.names == 'HOH')
 def hide_waters(atoms):
-    for m,a in atoms:
-        m.hide_atoms(a.intersect(m.solvent_atoms()))
+    atoms.displays &= (atoms.residues.names != 'HOH')
 def molecule_bonds(m, session):
     if m.bonds is None:
         from ..molecule import connect
@@ -759,15 +759,15 @@ def molecule_bonds(m, session):
         if missing:
             log.info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
 def accessible_surface_area(atoms, session, probe_radius = 1.4):
-    from numpy import concatenate
-    na = sum(len(a) for m,a in atoms)
+    na = len(atoms)
     if na > 0:
-        xyz = concatenate([(m.position*a.coords) for m,a in atoms])
-        r = concatenate([a.radii for m,a in atoms]) + probe_radius
+        from numpy import concatenate
+        xyz = atoms.scene_coords
+        r = atoms.radii + probe_radius
         from . import surface
         areas = surface.spheres_surface_area(xyz, r)
         area = areas.sum()
-        name = ','.join(m.name for m,a in atoms) + ' %d atoms' % na
+        name = ','.join(m.name for m in atoms.unique_structures) + ' %d atoms' % na
         msg = 'Accessible surface area of %s = %.5g' % (name, areas.sum())
     else:
         msg = 'No atoms selected for accessible surface area'
@@ -968,9 +968,8 @@ def restore_position(session):
         c.position = session._saved_camera_view
 
 def minimize_crosslinks(atoms, session):
-    mols = [m for m, a in atoms]
     from .crosslinks import crosslink
-    crosslink(session, minimize = mols, frames = 30)
+    crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
 def shortcut_command(session, shortcut = None):
     ks = session.keyboard_shortcuts
