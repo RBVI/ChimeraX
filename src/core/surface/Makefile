@@ -6,7 +6,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/surface
 
 SUBDIRS	= _surface
 
-PYSRCS = __init__.py area.py dust.py gridsurf.py icosahedron.py \
+PYSRCS = __init__.py area.py dust.py gaussian.py gridsurf.py icosahedron.py \
 	 sasa.py shapes.py split.py tube.py
 
 # All needed subdirectories must be set by now.

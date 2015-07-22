@@ -10,14 +10,16 @@ from . import cli
 class MolecularSurface(Generic3DModel):
 
     def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing,
-                 name, color, visible_patches, sharp_boundaries):
+                 resolution, level, name, color, visible_patches, sharp_boundaries):
         
         Generic3DModel.__init__(self, name)
 
         self.atoms = enclose_atoms
         self.show_atoms = show_atoms	# Atoms for surface patch to show
-        self.probe_radius = probe_radius
+        self.probe_radius = probe_radius # Only used for solvent excluded surface
         self.grid_spacing = grid_spacing
+        self.resolution = resolution    # Only used for Gaussian surface
+        self.level = level		# Contour level for Gaussian surface, atomic number units
         self.name = name
         self.color = color
         self.visible_patches = visible_patches
@@ -26,13 +28,16 @@ class MolecularSurface(Generic3DModel):
         self._vertex_to_atom = None
         self._max_radius = None
         self._atom_colors = None
+        self._sharp_edge_iterations = 1
 
     def new_parameters(self, show_atoms, probe_radius, grid_spacing,
-                       visible_patches, sharp_boundaries,
+                       resolution, level, visible_patches, sharp_boundaries,
                        color = None, transparency = None):
 
         shape_change = (probe_radius != self.probe_radius or
                         grid_spacing != self.grid_spacing or
+                        resolution != self.resolution or
+                        level != self.level or
                         sharp_boundaries != self.sharp_boundaries)
         shown_changed = (show_atoms.hash() != self.show_atoms.hash() or
                          visible_patches != self.visible_patches)
@@ -40,6 +45,8 @@ class MolecularSurface(Generic3DModel):
         self.show_atoms = show_atoms	# Atoms for surface patch to show
         self.probe_radius = probe_radius
         self.grid_spacing = grid_spacing
+        self.resolution = resolution
+        self.level = level
         self.visible_patches = visible_patches
         self.sharp_boundaries = sharp_boundaries
 
@@ -59,21 +66,31 @@ class MolecularSurface(Generic3DModel):
         return len(self.atoms)
 
     def calculate_surface_geometry(self):
+
         if not self.vertices is None:
             return              # Geometry already computed
+
         atoms = self.atoms
         xyz = atoms.coords
-        r = atoms.radii
-        self._max_radius = r.max()
-        from .surface import ses_surface_geometry
-        va, na, ta = ses_surface_geometry(xyz, r, self.probe_radius, self.grid_spacing)
+        res = self.resolution
+        from . import surface
+        if res is None:
+            # Compute solvent excluded surface
+            r = atoms.radii
+            self._max_radius = r.max()
+            va, na, ta = surface.ses_surface_geometry(xyz, r, self.probe_radius, self.grid_spacing)
+        else:
+            # Compute Gaussian surface
+            va, na, ta = surface.gaussian_surface(xyz, atoms.element_numbers, res,
+                                                  self.level, self.grid_spacing)
+
         if self.sharp_boundaries:
             v2a = self.vertex_to_atom_map(va)
             from .surface import sharp_edge_patches
-            va, na, ta, v2a = sharp_edge_patches(va, na, ta, v2a, xyz)
-#        for i in range(3):
-#            vsa, nsa, tsa, v2a = sharp_edge_patches(vsa, nsa, tsa, v2a, xyz)
+            for i in range(self._sharp_edge_iterations):
+                va, na, ta, v2a = sharp_edge_patches(va, na, ta, v2a, xyz)
             self._vertex_to_atom = v2a
+
         self.vertices = va
         self.normals = na
         self.triangles = ta
@@ -102,14 +119,26 @@ class MolecularSurface(Generic3DModel):
         if v2a is None:
             xyz1 = self.vertices if vertices is None else vertices
             xyz2 = self.atoms.coords
-            max_dist = 1.1 * (self.probe_radius + self._max_radius)
+            max_dist = self.maximum_atom_to_surface_distance()
             from . import geometry
             i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist)
+            if len(i1) < len(xyz1):
+                # TODO: For Gaussian surface should increase max_dist and try again.
+                raise RuntimeError('Surface further from atoms than expected (%g) for %d of %d atoms'
+                                   % (max_dist, len(xyz1)-len(i1), len(xyz1)))
             from numpy import empty, int32
             v2a = empty((len(xyz1),), int32)
             v2a[i1] = nearest1
             self._vertex_to_atom = v2a
         return v2a
+
+    def maximum_atom_to_surface_distance(self):
+        res = self.resolution
+        if res is None:
+            d = 1.1 * (self.probe_radius + self._max_radius)
+        else:
+            d = 2*res
+        return d
 
     def patch_display_mask(self, patch_atoms):
         surf_atoms = self.atoms
@@ -181,9 +210,9 @@ class MolecularSurface(Generic3DModel):
 # -------------------------------------------------------------------------------------
 #
 def surface_command(session, atoms = None, enclose = None, include = None,
-                    probe_radius = 1.4, grid_spacing = 0.5,
+                    probe_radius = 1.4, grid_spacing = None, resolution = None, level = None,
                     color = None, transparency = None, visible_patches = None,
-                    sharp_boundaries = True,
+                    sharp_boundaries = None,
                     nthread = None, replace = True, show = False, hide = False, close = False):
     '''
     Compute and display solvent excluded molecular surfaces.
@@ -206,7 +235,13 @@ def surface_command(session, atoms = None, enclose = None, include = None,
         all_surfs = dict((s.atoms.hash(), s) for s in session.models.list(type = MolecularSurface))
     else:
         all_surfs = {}
-    
+
+    if grid_spacing is None:
+        grid_spacing = 0.5 if resolution is None else 0.1 * resolution
+
+    if sharp_boundaries is None:
+        sharp_boundaries = True if resolution is None else False
+
     surfs = []
     new_surfs = []
     if enclose is None:
@@ -222,12 +257,13 @@ def surface_command(session, atoms = None, enclose = None, include = None,
             if s is None:
                 name = '%s_%s SES surface' % (m.name, chain_id)
                 rgba = surface_rgba(color, transparency, chain_id)
-                s = MolecularSurface(enclose_atoms, show_atoms, probe_radius, grid_spacing,
+                s = MolecularSurface(enclose_atoms, show_atoms,
+                                     probe_radius, grid_spacing, resolution, level,
                                      name, rgba, visible_patches, sharp_boundaries)
                 new_surfs.append((s,m))
             else:
                 s.new_parameters(show_atoms, probe_radius, grid_spacing,
-                                 visible_patches, sharp_boundaries)
+                                 resolution, level, visible_patches, sharp_boundaries)
                 update_color(s, color, transparency)
             surfs.append(s)
     else:
@@ -239,12 +275,13 @@ def surface_command(session, atoms = None, enclose = None, include = None,
             parent = mols[0] if len(mols) == 1 else session.models.drawing
             name = 'Surface %s' % enclose.spec
             rgba = surface_rgba(color, transparency)
-            s = MolecularSurface(enclose_atoms, show_atoms, probe_radius, grid_spacing,
+            s = MolecularSurface(enclose_atoms, show_atoms,
+                                 probe_radius, grid_spacing, resolution, level,
                                  name, rgba, visible_patches, sharp_boundaries)
             new_surfs.append((s,parent))
         else:
             s.new_parameters(show_atoms, probe_radius, grid_spacing,
-                             visible_patches, sharp_boundaries)
+                             resolution, level, visible_patches, sharp_boundaries)
             update_color(s, color, transparency)
         surfs.append(s)
 
@@ -262,6 +299,8 @@ def surface_command(session, atoms = None, enclose = None, include = None,
     args.sort(key = lambda s: s[0].atom_count, reverse = True)      # Largest first for load balancing
     from . import threadq
     threadq.apply_to_list(lambda s: s.calculate_surface_geometry(), args, nthread)
+    # TODO: Any Python error in the threaded call causes a crash when it tries
+    #       to write an error message to the log, not in the main thread.
 
     # Add new surfaces to open models list.
     for s, parent in new_surfs:
@@ -282,6 +321,8 @@ def register_surface_command():
                    ('include', AtomsArg),
                    ('probe_radius', cli.FloatArg),
                    ('grid_spacing', cli.FloatArg),
+                   ('resolution', cli.FloatArg),
+                   ('level', cli.FloatArg),
                    ('color', color.ColorArg),
                    ('transparency', cli.FloatArg),
                    ('visible_patches', cli.IntArg),
