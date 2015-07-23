@@ -57,9 +57,11 @@ public:
     Contents::iterator  insert(Contents::const_iterator pos,
         Contents::size_type n, Contents::value_type val)
         { _clear_cache(); return _contents.insert(pos, n, val); }
+    Sequence&  operator+=(const Sequence&);
     void  pop_back() { _clear_cache(); _contents.pop_back(); }
     void  pop_front() { _clear_cache(); _contents.erase(_contents.begin()); }
     void  push_back(unsigned char c) { _clear_cache(); _contents.push_back(c); }
+    void  push_front(unsigned char c);
     Contents::const_reverse_iterator  rbegin() const
         { return _contents.rbegin(); }
     Contents::const_reverse_iterator  rend() const { return _contents.rend(); }
