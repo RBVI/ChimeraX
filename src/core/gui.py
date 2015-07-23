@@ -399,14 +399,14 @@ class ToolWindow:
 
     def cleanup(self):
         """Perform tool-specific cleanup
-        
+
         Override this method to perform additional actions needed when
         the window is destroyed"""
         pass
 
     def destroy(self):
         """Called to destroy the window (from non-UI code)
-        
+
            Destroying a tool's main window will also destroy all its
            child windows.
         """
@@ -414,13 +414,13 @@ class ToolWindow:
 
     def fill_context_menu(self, menu):
         """Add items to this tool window's context menu
-        
+
         Override to add items to any context menu popped up over this window"""
         pass
 
     def manage(self, placement, fixed_size=False):
         """Show this tool window in the interface
-        
+
         Tool will be docked into main window on the side indicated by
         `placement` (which should be a value from :py:attr:`placements`
         or None).  If `placement` is None, the tool will be detached

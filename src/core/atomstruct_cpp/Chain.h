@@ -26,7 +26,8 @@ private:
 
     ChainID  _chain_id;
     bool  _from_seqres;
-    std::map<Residue*, SeqPos>  _res_map;
+    typedef std::map<Residue*, SeqPos>  ResMap;
+    ResMap  _res_map;
     Residues  _residues;
     AtomicStructure*  _structure;
 
@@ -47,8 +48,11 @@ public:
     bool  from_seqres() const { return _from_seqres; }
     const Residues&  residues() const { return _residues; }
     Residue*  get(unsigned i) const { return _residues[i]; }
+    Chain&  operator+=(Chain&);
     void  pop_back();
     void  pop_front();
+    void  push_back(Residue* r);
+    void  push_front(Residue* r);
     void  set(unsigned i, Residue* r, char character = -1);
     void  set_from_seqres(bool fs);
     AtomicStructure*  structure() const { return _structure; }

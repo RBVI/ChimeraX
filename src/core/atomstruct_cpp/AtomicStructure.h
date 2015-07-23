@@ -35,6 +35,7 @@ class Residue;
 
 class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
     friend class Atom; // for IDATM stuff
+    friend class Bond; // for checking if make_chains() has been run yet
 public:
     typedef Vertices  Atoms;
     typedef Edges  Bonds;
@@ -53,7 +54,7 @@ private:
     CoordSet *  _active_coord_set;
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
-    mutable Chains *  _chains;
+    mutable Chains*  _chains;
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
@@ -67,6 +68,11 @@ private:
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
     std::string  _name;
+    Chain*  _new_chain(const ChainID& chain_id) const {
+        auto chain = new Chain(chain_id, (AtomicStructure*)this);
+        _chains->emplace_back(chain);
+        return chain;
+    }
     int  _num_hyds = 0;
     AS_PBManager  _pb_mgr;
     mutable bool  _recompute_rings;

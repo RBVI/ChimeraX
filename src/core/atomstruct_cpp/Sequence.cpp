@@ -110,6 +110,14 @@ Sequence::nucleic3to1(const ResName& rn)
     return (*l1i).second;
 }
 
+Sequence&
+Sequence::operator+=(const Sequence& addition)
+{
+    _clear_cache();
+    _contents.insert(_contents.end(), addition.begin(), addition.end());
+    return *this;
+}
+
 char
 Sequence::protein3to1(const ResName& rn)
 {
@@ -118,6 +126,16 @@ Sequence::protein3to1(const ResName& rn)
         return 'X';
     }
     return (*l1i).second;
+}
+
+void
+Sequence::push_front(unsigned char c)
+{
+    _clear_cache();
+    Contents pushed(_contents.size()+1);
+    pushed.push_back(c);
+    pushed.insert(pushed.end(), _contents.begin(), _contents.end());
+    pushed.swap(_contents);
 }
 
 char

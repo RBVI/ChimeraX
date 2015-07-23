@@ -42,10 +42,28 @@ Chain::bulk_set(const Chain::Residues& residues,
         delete chars;
 }
 
+Chain&
+Chain::operator+=(Chain& addition)
+{
+
+    Sequence::operator+=(*this);
+    auto offset = _residues.size();
+    _residues.insert(_residues.end(), addition._residues.begin(), addition._residues.end());
+    for (auto res_i: addition._res_map) {
+        _res_map[res_i.first] = res_i.second + offset;
+        // assuming we're not calling remove_residue() later, which would
+        // null out the chain pointer...
+        res_i.first->set_chain(this);
+    }
+    _structure->remove_chain(&addition);
+    addition._structure = nullptr;
+    return *this;
+}
+
 void
 Chain::pop_back()
 {
-    atomstruct::Sequence::pop_back();
+    Sequence::pop_back();
     _residues.pop_back();
     auto back = _residues.back();
     if (back != nullptr) {
@@ -61,17 +79,47 @@ Chain::pop_back()
 void
 Chain::pop_front()
 {
-    atomstruct::Sequence::pop_front();
+    Sequence::pop_front();
     auto front = _residues.front();
     _residues.erase(_residues.begin());
     if (front != nullptr) {
         _res_map.erase(front);
+        for (auto& res_i: _res_map)
+            res_i.second--;
         front->set_chain(nullptr);
         if (no_structure_left()) {
             _structure->remove_chain(this);
             _structure = nullptr;
         }
     }
+}
+
+void
+Chain::push_back(Residue* r)
+{
+    if (r->chain() != nullptr)
+        r->chain()->remove_residue(r);
+    Sequence::push_back(Sequence::rname3to1(r->name()));
+    _res_map[r] = _residues.size();
+    _residues.push_back(r);
+    r->set_chain(this);
+}
+
+void
+Chain::push_front(Residue* r)
+{
+    if (r->chain() != nullptr)
+        r->chain()->remove_residue(r);
+    Sequence::push_front(Sequence::rname3to1(r->name()));
+    Residues pushed(_residues.size()+1);
+    pushed.push_back(r);
+    pushed.insert(pushed.end(), _residues.begin(), _residues.end());
+    pushed.swap(_residues);
+    for (auto& res_i: _res_map) {
+        res_i.second++;
+    }
+    _res_map[r] = 0;
+    r->set_chain(this);
 }
 
 void
@@ -82,7 +130,16 @@ Chain::remove_residue(Residue* r) {
         if (basegeom::DestructionCoordinator::destruction_parent() != _structure)
             _structure->remove_chain(this);
         _structure = nullptr;
+    } else {
+        _res_map.clear();
+        int i = 0;
+        for (auto ri = _residues.begin(); ri != _residues.end(); ++ri, ++i) {
+            if (*ri != nullptr) {
+                _res_map[*ri] = i;
+            }
+        }
     }
+    r->set_chain(nullptr);
 }
 
 void 
@@ -96,7 +153,7 @@ Chain::set(unsigned i, Residue *r, char character)
     }
     if (i == _residues.size()) {
         _residues.push_back(r);
-        push_back(c);
+        Sequence::push_back(c);
     } else {
         auto& res_at_i = _residues.at(i);
         if (res_at_i != nullptr) {
