@@ -56,6 +56,8 @@ class ToolshedUI(ToolInstance):
         from wx import html2
         import wx
         self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
+        self.webview.EnableContextMenu(False)
+        #self.webview.EnableHistory(False)
         self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING,
                           self._on_navigating,
                           id=self.webview.GetId())
@@ -140,6 +142,7 @@ class ToolshedUI(ToolInstance):
         print("</ul>", file=s)
         page = page.replace("AVAILABLE_TOOLS", s.getvalue())
 
+        self.webview.ClearHistory()
         self.webview.SetPage(page, "")
 
     def refresh_installed(self, session):

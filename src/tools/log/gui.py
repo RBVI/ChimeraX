@@ -23,6 +23,7 @@ class Log(ToolInstance, HtmlLog):
         self._image_count = count()
         from wx import html2
         self.log_window = html2.WebView.New(parent, size=self.SIZE)
+        self.log_window.EnableContextMenu(False)
         self.page_source = ""
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.log_window, 1, wx.EXPAND)
@@ -93,6 +94,7 @@ class Log(ToolInstance, HtmlLog):
                 msg = '<font color="red">' + msg + '</font>'
 
             self.page_source += msg
+        self.log_window.ClearHistory()
         self.log_window.SetPage(self.page_source, "")
         return True
 

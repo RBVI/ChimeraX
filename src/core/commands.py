@@ -32,6 +32,14 @@ _stop_desc = cli.CmdDesc(optional=[('ignore', cli.RestOfLine)],
 
 
 def echo(session, text=''):
+    tokens = []
+    while text:
+        token, chars, rest = cli.next_token(text)
+        tokens.append(token)
+        m = cli._whitespace.match(rest)
+        rest = rest[m.end():]
+        text = rest
+    text = ' '.join(tokens)
     session.logger.info(text)
 _echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)],
                          synopsis='show text in log')
@@ -60,7 +68,7 @@ _export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                            ' matching filename suffix')
 
 
-def close(session, model_ids = None):
+def close(session, model_ids=None):
     m = session.models
     if model_ids is None:
         mlist = m.list()
@@ -73,11 +81,13 @@ def close(session, model_ids = None):
 _close_desc = cli.CmdDesc(optional=[('model_ids', cli.ListOf(cli.ModelIdArg))],
                           synopsis='close models')
 
+
 def delete(session, atoms):
     atoms.delete()
 from .structure import AtomsArg
 _delete_desc = cli.CmdDesc(required=[('atoms', AtomsArg)],
                            synopsis='delete atoms')
+
 
 def list(session):
     models = session.models.list()
@@ -279,7 +289,7 @@ def ribbon(session, spec=None):
     results.atoms.residues.ribbon_displays = True
 
 _ribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
-                            synopsis='display ribbon for specified residues')
+                           synopsis='display ribbon for specified residues')
 
 
 def unribbon(session, spec=None):
@@ -289,7 +299,8 @@ def unribbon(session, spec=None):
     results.atoms.residues.ribbon_displays = False
 
 _unribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
-                            synopsis='display ribbon for specified residues')
+                             synopsis='display ribbon for specified residues')
+
 
 def set_cmd(session, bg_color=None, silhouettes=None):
     had_arg = False
@@ -332,10 +343,47 @@ _style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball
                           optional=[("atoms", atomspec.AtomSpecArg)],
                           synopsis='change atom depiction')
 
+class CallForNFrames:
+    # CallForNFrames acts like a function that keeps track of per-frame
+    # functions.  But those functions need state, so that state is
+    # encapsulated in instances of this class.
+    #
+    # Instances are automatically added to the given session 'Attribute'.
+
+    Infinite = -1
+    Attribute = 'motion_in_progress'    # session attribute
+
+    def __init__(self, func, n, session):
+        self.func = func
+        self.n = n
+        self.session = session
+        self.frame = 0
+        v = session.main_view
+        v.add_new_frame_callback(self)
+        if not hasattr(session, self.Attribute):
+            setattr(session, self.Attribute, set([self]))
+        else:
+            getattr(session, self.Attribute).add(self)
+
+    def __call__(self):
+        f = self.frame
+        if self.n != self.Infinite and f >= self.n:
+            self.done()
+        else:
+            self.func(self.session, f)
+            self.frame = f + 1
+
+    def done(self):
+        s = self.session
+        v = s.main_view
+        v.remove_new_frame_callback(self)
+        getattr(s, self.Attribute).remove(self)
+
+
 #
 # Turn command to rotate models.
 #
-def turn(session, axis, angle, frames = 1):
+def turn(session, axis, angle, frames=None):
     v = session.main_view
     c = v.camera
     cv = c.position
@@ -343,68 +391,98 @@ def turn(session, axis, angle, frames = 1):
     center = v.center_of_rotation
     from .geometry import rotation
     r = rotation(saxis, -angle, center)
-    if frames == 1:
-        c.position = r*cv
+    if frames is None:
+        c.position = r * cv
     else:
-        def rotate(r=r,c=c):
-            c.position = r*c.position
-        call_for_n_frames(rotate, frames, session)
+        def rotate(session, frame, r=r, c=c):
+            c.position = r * c.position
+        CallForNFrames(rotate, frames, session)
 
-_turn_desc = cli.CmdDesc(required = [('axis', cli.AxisArg),
-                                     ('angle', cli.FloatArg)],
-                         optional = [('frames', cli.IntArg)])
+_turn_desc = cli.CmdDesc(
+    required=[('axis', cli.AxisArg),
+              ('angle', cli.FloatArg)],
+    optional=[('frames', cli.PositiveIntArg)],
+    synopsis='rotate models'
+)
 
-class call_for_n_frames:
-    
-    def __init__(self, func, n, session):
-        self.func = func
-        self.n = n
-        self.session = session
-        self.frame = 0
-        v = session.main_view
-        v.add_new_frame_callback(self.call)
-        if not hasattr(session, 'motion_in_progress'):
-            session.motion_in_progress = set()
-        session.motion_in_progress.add(self)
-    def call(self):
-        f = self.frame
-        if f >= self.n:
-            self.done()
-        else:
-            self.func()
-            self.frame = f+1
-    def done(self):
-        s = self.session
-        v = s.main_view
-        v.remove_new_frame_callback(self.call)
-        s.motion_in_progress.remove(self)
+
+def roll(session, axis=(0, 1, 0), angle=1.5, frames=CallForNFrames.Infinite):
+    turn(session, axis, angle, frames)
+
+_roll_desc = cli.CmdDesc(
+    optional=[('axis', cli.AxisArg),
+              ('angle', cli.FloatArg),
+              ('frames', cli.PositiveIntArg)],
+    synopsis='rotate models'
+)
+
+
+def move(session, axis, distance, frames=None):
+    v = session.main_view
+    c = v.camera
+    cv = c.position
+    saxis = cv.apply_without_translation(axis)  # Convert axis from camera to scene coordinates
+    from .geometry import translation
+    t = translation(saxis * -distance)
+    if frames is None:
+        c.position = t * cv
+    else:
+        def translate(session, frame, t=t):
+            c.position = t * c.position
+        CallForNFrames(translate, frames, session)
+
+_move_desc = cli.CmdDesc(
+    required=[('axis', cli.AxisArg),
+              ('distance', cli.FloatArg)],
+    optional=[('frames', cli.PositiveIntArg)],
+    synopsis='translate models'
+)
+
 
 def freeze(session):
-    if hasattr(session, 'motion_in_progress'):
-        for mip in tuple(session.motion_in_progress):
-            mip.done()
-_freeze_desc = cli.CmdDesc()
+    if not hasattr(session, CallForNFrames.Attribute):
+        return
+    for mip in tuple(getattr(session, CallForNFrames.Attribute)):
+        mip.done()
+_freeze_desc = cli.CmdDesc(synopsis='stop all motion')
+
 
 def motion_in_progress(session):
-    return len(getattr(session, 'motion_in_progress', ())) > 0
+    # Return True if there are non-infinite motions
+    if not hasattr(session, CallForNFrames.Attribute):
+        return False
+    has_finite_motion = False
+    for m in getattr(session, CallForNFrames.Attribute):
+        if m.n == CallForNFrames.Infinite:
+            return False
+        has_finite_motion = True
+    return has_finite_motion
 
-def wait(session, frames = None):
+
+def wait(session, frames=None):
     v = session.main_view
     if frames is None:
-#        from ..commands.motion import motion_in_progress
+        # from ..commands.motion import motion_in_progress
         while motion_in_progress(session):
             v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
-            v.draw(only_if_changed = True)
+            v.draw(only_if_changed=True)
     else:
         for f in range(frames):
             v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
-            v.draw(only_if_changed = True)
-_wait_desc = cli.CmdDesc(optional = [('frames', cli.IntArg)])
+            v.draw(only_if_changed=True)
+_wait_desc = cli.CmdDesc(
+    optional=[('frames', cli.PositiveIntArg)],
+    synopsis='suspend command processing for a specified number of frames'
+             ' or until finite motions have stopped ')
 
-def crossfade(session, frames = 30):
+
+def crossfade(session, frames=30):
     from .graphics import CrossFade
     CrossFade(session.main_view, frames)
-_crossfade_desc = cli.CmdDesc(optional = [('frames', cli.IntArg)])
+_crossfade_desc = cli.CmdDesc(
+    optional=[('frames', cli.PositiveIntArg)],
+    synopsis='Fade between one rendered scene and the next scene.')
+
 
 def register(session):
     """Register common cli commands"""
@@ -429,6 +507,8 @@ def register(session):
     cli.register('set', _set_desc, set_cmd)
     cli.register('style', _style_desc, style_command)
     cli.register('turn', _turn_desc, turn)
+    cli.register('roll', _roll_desc, roll)
+    cli.register('move', _move_desc, move)
     cli.register('freeze', _freeze_desc, freeze)
     cli.register('wait', _wait_desc, wait)
     cli.register('crossfade', _crossfade_desc, crossfade)
@@ -476,6 +556,7 @@ def register(session):
     atomspec.register_selector(None, "sel", _sel_selector)
     atomspec.register_selector(None, "strands", _strands_selector)
 
+
 def _sel_selector(session, models, results):
     from .structure import AtomicStructure
     for m in models:
@@ -484,6 +565,7 @@ def _sel_selector(session, models, results):
             if isinstance(m, AtomicStructure):
                 for atoms in m.selected_items('atoms'):
                     results.add_atoms(atoms)
+
 
 def _strands_selector(session, models, results):
     from .structure import AtomicStructure
