@@ -270,6 +270,7 @@ class MainWindow(wx.Frame, PlainTextLog):
             self.status_bar.SetStatusText(msg, 1)
         else:
             self.status_bar.SetStatusText(msg, 0)
+        self.status_bar.Update()
 
 
     def _build_graphics(self, ui):
