@@ -158,7 +158,7 @@ def banded_extrusion(xyz_path, point_colors, segment_colors,
 #
 def extrusion_transforms(path, tangents, yaxis = None):
 
-    from ..geometry.place import identity, vector_rotation, translation
+    from ..geometry import identity, vector_rotation, translation
     tflist = []
     if yaxis is None:
         # Make xy planes for coordinate frames at each path point not rotate

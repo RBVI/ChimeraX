@@ -359,7 +359,7 @@ def set_map_state(s, volume, notify = True):
     if attr in s:
       setattr(v, attr, s[attr])
 
-  from ..geometry.place import Place
+  from ..geometry import Place
   v.position = Place(s['place'])
 
   v.new_region(*s['region'], show = False, adjust_step = False)

@@ -6,14 +6,18 @@
 #include <map>
 #include <vector>
 #include <string>
+
 #include "TAexcept.h"
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"
 #include "Residue.h"
 #include "../imex.h"
+#include "../string_types.h"
 
 namespace tmpl {
+
+using atomstruct::ResName;
 
 class ATOMSTRUCT_IMEX Molecule {
 public:
@@ -22,7 +26,7 @@ public:
     typedef std::set<Atom *> Atoms;
     typedef std::set<Bond *> Bonds;
     typedef std::vector<CoordSet *> CoordSets;
-    typedef std::map<std::string, Residue *> Residues;
+    typedef std::map<ResName, Residue *> Residues;
 private:
     Atoms    _atoms;
     Bonds    _bonds;
@@ -34,7 +38,7 @@ public:
     const CoordSets    &coord_sets() const { return _coord_sets; }
     CoordSet    *find_coord_set(int) const;
     Residue    *new_residue(const char *t);
-    Residue    *find_residue(const std::string &) const;
+    Residue    *find_residue(const ResName&) const;
     void        set_active_coord_set(CoordSet *cs);
     CoordSet    *active_coord_set() const { return _active_cs; }
     const Residues &residues_map() { return _residues; }

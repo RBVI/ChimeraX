@@ -1243,14 +1243,13 @@ extern "C" PyObject *find_closest_points(PyObject *, PyObject *args, PyObject *k
 
   FArray cxyz1 = xyz1.contiguous_array(), cxyz2 = xyz2.contiguous_array();
   Index_List i1, i2, nearest1;
+  Py_BEGIN_ALLOW_THREADS
   find_close_points(CP_BOXES,
-  // find_close_points(CP_ALL_PAIRS,
-  //  find_close_points(CP_BINS,
-  //  find_close_points(CP_BOX_ALL_PAIRS,
 		    cxyz1.values(), cxyz1.size(0),
 		    cxyz2.values(), cxyz2.size(0),
 		    static_cast<float>(d),
 		    &i1, &i2, &nearest1);
+  Py_END_ALLOW_THREADS
 
   return python_tuple(c_array_to_python(i1), c_array_to_python(i2),
   		      c_array_to_python(nearest1));
@@ -1361,7 +1360,9 @@ extern "C" PyObject *find_close_points_sets(PyObject *, PyObject *args, PyObject
 
   int n1 = p1.size(), n2 = p2.size();
   vector<Index_List> i1(n1), i2(n2);
+  Py_BEGIN_ALLOW_THREADS
   find_close_points(CP_BOXES, p1, p2, static_cast<float>(d), &i1, &i2);
+  Py_END_ALLOW_THREADS
 
   return python_tuple(index_lists(i1), index_lists(i2));
 }

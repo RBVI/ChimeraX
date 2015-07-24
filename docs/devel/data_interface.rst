@@ -42,8 +42,6 @@ Structure-related Modules
 
     core/pdbio.rst
 
-    core/structaccess.rst
-
 Graphics-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

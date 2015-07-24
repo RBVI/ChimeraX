@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 
+#include "Graph.h"
 #include "Real.h"
 #include "Rgba.h"
 #include "destruct.h"
@@ -49,17 +50,24 @@ public:
     const Rgba&  color() const { return _rgba; }
     BondDisplay  display() const { return _display; }
     bool  halfbond() const { return _halfbond; }
+    virtual GraphicsContainer*  graphics_container() const = 0;
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
-        Rgba::Channel a) { _rgba = {r, g, b, a}; }
-    void  set_color(const Rgba& rgba) { _rgba = rgba; }
-    void  set_display(BondDisplay d) { _display = d; }
+        Rgba::Channel a)
+        { graphics_container()->set_gc_color(); _rgba = {r, g, b, a}; }
+    void  set_color(const Rgba& rgba)
+        { graphics_container()->set_gc_color(); _rgba = rgba; }
+    void  set_display(BondDisplay d)
+        { graphics_container()->set_gc_shape(); _display = d; }
     void  set_display(unsigned char d) { 
         if (d > static_cast<unsigned char>(BondDisplay::MAX_VAL))
             throw std::out_of_range("Invalid bond display value.");
+        graphics_container()->set_gc_shape();
         _display = static_cast<BondDisplay>(d);
     }
-    void  set_halfbond(bool hb) { _halfbond = hb; }
-    void  set_radius(float r) { _radius = r; }
+    void  set_halfbond(bool hb)
+        { graphics_container()->set_gc_color(); _halfbond = hb; }
+    void  set_radius(float r)
+        { graphics_container()->set_gc_shape(); _radius = r; }
     float  radius() const { return _radius; }
 };
 
@@ -87,6 +95,7 @@ Connection<End>::finish_construction()
 {
     if (_end_points[0] == _end_points[1])
         throw std::invalid_argument(err_msg_loop());
+    graphics_container()->set_gc_shape();
 }
 
 template <class End, class FinalConnection>

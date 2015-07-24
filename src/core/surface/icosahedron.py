@@ -36,7 +36,7 @@ def icosahedron_geometry(orientation='2n5'):
     from math import cos, sin, pi
     c5 = cos(2 * pi / 5)
     s5 = sin(2 * pi / 5)
-    from ..geometry.place import Place
+    from ..geometry import Place
     tf5 = Place(((c5, -s5, 0, 0),
                  (s5, c5, 0, 0),
                  (0, 0, 1, 0)))
@@ -351,7 +351,7 @@ def icosahedral_matrix_table():
 
     )
 
-    from ..geometry.place import Place
+    from ..geometry import Place
     icos_matrices['222'] = tuple(Place(m) for m in m_222)
     for cs in coordinate_system_names:
         if cs != '222':
@@ -397,7 +397,7 @@ def coordinate_system_transform(from_cs, to_cs):
     s35 = e / sqrt(3)      # Sin/Cos for angle between 3-fold and 5-fold axis
     c35 = sqrt(1 - s35 * s35)
 
-    from ..geometry.place import Place
+    from ..geometry import Place
     transform[('2n5', '222')] = Place(((1, 0, 0, 0),
                                       (0, c25, -s25, 0),
                                       (0, s25, c25, 0)))
@@ -442,7 +442,7 @@ def coordinate_system_transform(from_cs, to_cs):
                     transform[(f1, t2)] = transform[(f2, t2)] \
                         * transform[(f1, t1)]
 
-    from ..geometry.place import identity
+    from ..geometry import identity
     i = identity()
     for s in coordinate_system_names:
         transform[(s, s)] = i

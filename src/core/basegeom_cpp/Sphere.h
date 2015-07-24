@@ -14,14 +14,20 @@ private:
 
     int  _draw_mode = 0;
 public:
-    BaseSphere(): _radius(0.0) {}
+    BaseSphere(float radius): _radius(radius) {}
     virtual  ~BaseSphere() {}
-    void  set_radius(float r) { _radius = r; }
-    float  radius() const { return _radius; }
+    virtual void  set_radius(float r)
+        {   if (_radius != r) {
+                this->graphics_container()->set_gc_shape();
+                _radius = r;
+            }
+        }
+    virtual float  radius() const { return _radius; }
 
     // graphics related
     int  draw_mode() const { return _draw_mode; }
-    void  set_draw_mode(int dm) { _draw_mode = dm; }
+    void  set_draw_mode(int dm)
+        { this->graphics_container()->set_gc_shape(); _draw_mode = dm; }
 };
 
 template <class FinalConnection, class FinalConnectible>

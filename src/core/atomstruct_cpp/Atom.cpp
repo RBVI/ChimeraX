@@ -12,7 +12,7 @@
 namespace atomstruct {
 
 Atom::Atom(AtomicStructure *as, const char* name, Element e):
-    BaseSphere<Bond, Atom>(),
+    BaseSphere<Bond, Atom>(-1.0), // -1 indicates not explicitly set
     _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(e),
     _name(name), _residue(NULL), _serial_number(-1), _structure(as)
 {
@@ -70,8 +70,10 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
             }
         }
         cs->add_coord(coord);
+        graphics_container()->set_gc_shape();
     } else {
         cs->_coords[_coord_index] = coord;
+        graphics_container()->set_gc_shape();
     }
 }
 
@@ -794,9 +796,10 @@ Atom::occupancy() const
 float
 Atom::radius() const
 {
-    if (_radius >= 0.0)
+    auto r = BaseSphere<Bond, Atom>::radius();
+    if (r >= 0.0)
         // has been explicitly set
-        return _radius;
+        return r;
 
     return default_radius();
 }
@@ -908,11 +911,9 @@ Atom::set_occupancy(float occupancy)
 void
 Atom::set_radius(float r)
 {
-    if (_radius == r)
-        return;
     if (r <= 0.0)
-        throw std::runtime_error("radius must be positive");
-    _radius = r;
+        throw std::logic_error("radius must be positive");
+    BaseSphere<Bond, Atom>::set_radius(r);
 }
 
 void

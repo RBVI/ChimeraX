@@ -456,7 +456,7 @@ class Render:
     IMAGE_FORMAT_RGBA8 = 'rgba8'
     IMAGE_FORMAT_RGB32 = 'rgb32'
 
-    def frame_buffer_image(self, w, h, rgba=None):
+    def frame_buffer_image(self, w, h, rgba = None, front_buffer = False):
         '''
         Return the current frame buffer image as a numpy uint8 array of
         size (h, w, 4) where w and h are the framebuffer width and height.
@@ -466,11 +466,11 @@ class Render:
         if rgba is None:
             from numpy import empty, uint8
             rgba = empty((h, w, 4), uint8)
+        if front_buffer:
+            GL.glReadBuffer(GL.GL_FRONT)
         GL.glReadPixels(0, 0, w, h, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, rgba)
-# TODO: Test code for assessing glReadPixels() effect on rendering speed.
-#        from random import randint
-#        x0, y0 = randint(0, w - 1), randint(0, h - 1)
-#        rgba[y0:y0 + 50, x0:x0 + 50, :3] = 0
+        if front_buffer:
+            GL.glReadBuffer(GL.GL_BACK)
         return rgba
 
     def set_stereo_buffer(self, eye_num):
@@ -509,7 +509,7 @@ class Render:
     def shadowmap_start(self, framebuffer, texture_unit, center, radius, size):
 
         # Set projection matrix to be orthographic and span all models.
-        from ..geometry.place import scale, translation
+        from ..geometry import scale, translation
         pm = (scale((1 / radius, 1 / radius, -1 / radius))
               * translation((0, 0, radius)))  # orthographic projection along z
         self.set_projection_matrix(pm.opengl_matrix())
@@ -554,7 +554,7 @@ class Render:
                           depth_bias=0.005):
 
         # Projection matrix, orthographic along z
-        from ..geometry.place import translation, scale, orthonormal_frame
+        from ..geometry import translation, scale, orthonormal_frame
         pm = (scale((1 / radius, 1 / radius, -1 / radius))
               * translation((0, 0, radius)))
 
@@ -1202,12 +1202,9 @@ class Buffer:
     def update_buffer_data(self, data):
         '''
         Update the buffer with data supplied by a numpy array and bind it to
-        the associated shader variable.
+        the associated shader variable.  Return true if the buffer is deleted and replaced.
         '''
         bdata = self.buffered_data
-        if data is bdata:
-            return False
-
         replace_buffer = (data is None or bdata is None
                           or data.shape != bdata.shape)
         if replace_buffer:
@@ -1234,7 +1231,7 @@ class Buffer:
             self.buffered_array = d
             self.buffered_data = data
 
-        return True
+        return replace_buffer
 
     # Element types for Buffer draw_elements()
     triangles = GL.GL_TRIANGLES

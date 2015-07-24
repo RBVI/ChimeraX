@@ -123,6 +123,10 @@ class _FileFormatInfo:
 
         True if can execute arbitrary code (*e.g.*, scripts)
 
+    ..attribute:: icon
+
+        Pathname of icon.
+
     ..attribute:: open_func
 
         function that opens files: func(session, stream/filename, name=None)
@@ -146,13 +150,14 @@ class _FileFormatInfo:
     """
 
     def __init__(self, category, extensions, prefixes, mime, reference,
-                 dangerous):
+                 dangerous, icon):
         self.category = category
         self.extensions = extensions
         self.prefixes = prefixes
         self.mime_types = mime
         self.reference = reference
         self.dangerous = dangerous
+        self.icon = icon
 
         self.open_func = None
         self.requires_filename = False
@@ -165,7 +170,7 @@ _file_formats = {}
 
 
 def register_format(format_name, category, extensions, prefixes=(), mime=(),
-                    reference=None, dangerous=None, **kw):
+                    reference=None, dangerous=None, icon=None, **kw):
     """Register file format's I/O functions and meta-data
 
     :param format_name: format's name
@@ -206,7 +211,7 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
         mime = [mime]
     ff = _file_formats[format_name] = _FileFormatInfo(category, exts, prefixes,
                                                       mime, reference,
-                                                      dangerous)
+                                                      dangerous, icon)
     for attr in ['open_func', 'requires_filename', 'fetch_func',
                  'export_func', 'export_notes', 'batch']:
         if attr in kw:
@@ -345,6 +350,14 @@ def dangerous(format_name):
         return False
 
 
+def icon(format_name):
+    """Return pathname of icon for named format or None"""
+    try:
+        return _file_formats[format_name].icon
+    except KeyError:
+        return None
+
+
 def category(format_name):
     """Return category of named format"""
     try:
@@ -354,9 +367,11 @@ def category(format_name):
 
 
 def format_names(open=True, export=False, source_is_file=False):
-    """Return known format names.
+    """Returns list of known format names.
 
     formats() -> [format-name(s)]
+
+    By default only returns the names of openable formats.
     """
     names = []
     for t, info in _file_formats.items():
@@ -398,13 +413,7 @@ def deduce_format(filename, has_format=None, prefixable=True):
     compression = None
     if has_format:
         format_name = has_format
-        import os
-        for compression in compression_suffixes():
-            if filename.endswith(compression):
-                stripped = filename[:-len(compression)]
-                break
-        else:
-            compression = None
+        stripped, compression = determine_compression(filename)
     elif (prefixable and len(filename) >= 2 and ':' in filename and
             filename[1] != ':'):
         # format may be specified as colon-separated prefix
@@ -421,14 +430,8 @@ def deduce_format(filename, has_format=None, prefixable=True):
             from .cli import UserError
             raise ValueError("'%s' is not a not prefix" % prefix)
     elif format_name is None:
+        stripped, compression = determine_compression(filename)
         import os
-        for compression in compression_suffixes():
-            if filename.endswith(compression):
-                stripped = filename[:-len(compression)]
-                break
-        else:
-            stripped = filename
-            compression = None
         base, ext = os.path.splitext(stripped)
         if not ext:
             from .cli import UserError
@@ -523,10 +526,8 @@ def wx_open_file_filter(all=False):
     return '|'.join(result)
 
 
-_builtin_open = open
 
-
-def open(session, filespec, as_a=None, label=None, **kw):
+def open_data(session, filespec, as_a=None, label=None, **kw):
     """open a (compressed) file
 
     :param filespec: '''prefix:id''' or a (compressed) filename
@@ -552,24 +553,9 @@ def open(session, filespec, as_a=None, label=None, **kw):
             filename = None
         else:
             filename = stream
-            stream = _builtin_open(filename, 'rb')
+            stream = open(filename, 'rb')
     else:
-        import os.path
-        if not compression:
-            filename = os.path.expanduser(os.path.expandvars(filename))
-            try:
-                stream = _builtin_open(filename, 'rb')
-                name = os.path.basename(filename)
-            except OSError as e:
-                raise UserError(e)
-        else:
-            stream_type = _compression[compression]
-            try:
-                stream = stream_type(filename)
-                name = os.path.basename(os.path.splitext(filename)[0])
-                filename = None
-            except OSError as e:
-                raise UserError(e)
+        filename, name, stream = _compressed_open(filename, compression, 'rb')
     if requires_filename(format_name) and not filename:
         # copy compressed file to real file
         import tempfile
@@ -595,7 +581,7 @@ def open(session, filespec, as_a=None, label=None, **kw):
     return models, status
 
 
-def open_multiple(session, filespecs, **kw):
+def open_multiple_data(session, filespecs, **kw):
     '''Open one or more files, including handling formats where multiple files
     contribute to a single model, such as image stacks.'''
     if isinstance(filespecs, str):
@@ -622,7 +608,7 @@ def open_multiple(session, filespecs, **kw):
         models, status = open_func(session, paths, name)
         mlist.extend(models)
     for fspec in unbatched:
-        models, status = open(session, fspec, **kw)
+        models, status = open_data(session, fspec, **kw)
         mlist.extend(models)
 
     return mlist, status
@@ -642,6 +628,78 @@ def export(session, filename, **kw):
         with SaveFile(filename, open=open_compressed) as stream:
             return func(session, stream, **kw)
 
+
+def determine_compression(filename):
+    """Check file name for compression suffixes
+
+    Returns the file name with the compression suffix if any stripped, and
+    the compression suffix (None if no compression suffix).
+    """
+    for compression in compression_suffixes():
+        if filename.endswith(compression):
+            stripped = filename[:-len(compression)]
+            break
+    else:
+        stripped = filename
+        compression = None
+    return stripped, compression
+
+def _compressed_open(filename, compression, *args, **kw):
+    import os.path
+    from chimera.core.cli import UserError
+    filename = os.path.expanduser(os.path.expandvars(filename))
+    if not compression:
+        try:
+            stream = open(filename, *args, **kw)
+            name = os.path.basename(filename)
+        except OSError as e:
+            raise UserError(e)
+    else:
+        stream_type = _compression[compression]
+        try:
+            stream = stream_type(filename, *args, **kw)
+            name = os.path.basename(os.path.splitext(filename)[0])
+            filename = None
+        except OSError as e:
+            raise UserError(e)
+
+    return filename, name, stream
+
+def open_filename(filename, *args, **kw):
+    """Open a file/URL with or without compression
+
+    Takes the same arguments as built-in open and returns a file-like
+    object.  However, `filename` can also be a file-like object itself,
+    in which case it is simple returned.  Also, if `filename` is a string
+    that begins with "http:", then it is interpreted as an URL.
+
+    If the file is opened for input, compression is checked for and
+    handled automatically.  If the file is opened for output, the `compress`
+    keyword can be used to force or suppress compression.  If the keyword
+    is not given, then compression will occur if the file name ends in
+    the appropriate suffix (*e.g.* '.gz').  If compressing, you can supply
+    `args` compatible with the appropriate "open" function (*e.g.* gzip.open).
+
+    '~' is expanded unless the `expand_user` keyword is specified as False.
+
+    Uncompressed non-binary files will be opened for reading with universal
+    newline support.
+    """
+
+    if not isinstance(filename, str):
+        # a "file-like" object -- just return it after making sure
+        # that .close() will work
+        if not hasattr(filename, "close") or not callable(filename.close):
+            filename.close = lambda: False
+        return filename
+
+    if filename.startswith("http:"):
+        from urllib.request import urlopen
+        return urlopen(filename)
+
+    stripped, compression = determine_compression(filename)
+    path, fname, stream = _compressed_open(filename, compression, *args, **kw)
+    return stream
 
 def gunzip(gzpath, path, remove_gz=True):
 

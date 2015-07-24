@@ -80,7 +80,7 @@ class _RestrictedUnpickler(pickle.Unpickler):
         'numpy.core.multiarray': {'_reconstruct', 'scalar'},
         'PIL.Image': {'Image'},
     }
-    from .geometry.place import Place, Places
+    from .geometry import Place, Places
     supported[Place.__module__] = {Place.__name__, Places.__name__}
 
     def find_class(self, module, name):

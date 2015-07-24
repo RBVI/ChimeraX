@@ -1,4 +1,3 @@
-#!/bin/env python
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 #
 # Copyright © 2014-2015 Regents of the University of California.
@@ -19,12 +18,10 @@
 # TODO: need domains/homepage each type, may alter registration.
 #
 
-from __future__ import print_function
-
 import os
 import sys
 import plistlib
-from chimera.core import io, session, logger, configfile, preferences
+from chimera.core import io, session, logger, configfile, core_settings, __copyright__ as copyright
 
 configfile.only_use_defaults = True
 
@@ -108,20 +105,32 @@ sess = session.Session()
 sess.app_name = "unknown"
 sess.debug = False
 sess.logger = logger.Logger(sess)
-preferences.init(sess)
+core_settings.init(sess)
 session.common_startup(sess)
 
 chimera_types = [f for f in io.formats() if f.startswith('Chimera')]
 
 # create Info.plist
-# TODO:
-# from chimera.core.version import version, releaseNum
-# year = version.split()[5].split('/')[0]
-# release = releaseNum[:]
-year = 2015
-release = [2, 0]
+
+# use today's year as the copyright year
+year = copyright.split()[2]
+
+# extract chimera.core version
+f = open('../../core/Makefile')
+for line in f.readlines():
+    if line.startswith('CORE_VERSION'):
+        break
+else:
+    print('error: unable to find chimera.core version')
+    raise SystemExit(1)
+
+version = line.split()[2]
+from distlib.version import NormalizedVersion as Version
+epoch, release, *_ = Version(version).parse(version)
+if len(release) == 1:
+    release += (0,)
 if len(release) < 4:
-    release[-1:-1] = [0] * (4 - len(release))
+    release += (0,) * (4 - len(release))
 
 pl = {
     "CFBundleDevelopmentRegion": "English",
@@ -155,7 +164,9 @@ useLSItemContent_types = float(target) >= 10.5
 useLSItemContent_types = False
 
 pl["CFBundleDocumentTypes"] = []
-for f in io.formats():
+formats = io.formats()
+formats.sort()  # get consistent order
+for f in formats:
     if useLSItemContent_types:
         id = utid(f)
         if not id:

@@ -72,9 +72,6 @@ class Model(State, Drawing):
                 dlist.extend(d.all_models())
         return dlist
 
-    def update_graphics(self):
-        pass
-
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
             return
@@ -93,6 +90,11 @@ class Model(State, Drawing):
     def selected_items(self, itype):
         return []
 
+    def added_to_session(self, session):
+        pass
+
+    def removed_from_session(self, session):
+        pass
 
 class Models(State):
 
@@ -163,7 +165,7 @@ class Models(State):
                 continue
             model.delete()
 
-    def list(self, model_id=None):
+    def list(self, model_id=None, type=None):
         if model_id is None:
             models = list(self._models.values())
         else:
@@ -175,6 +177,8 @@ class Models(State):
             # sort so submodels are removed before parent models
             model_ids.sort(key=len, reverse=True)
             models = [self._models[x] for x in model_ids]
+        if not type is None:
+            models = [m for m in models if isinstance(m,type)]
         return models
 
     def add(self, models, parent=None):
@@ -203,8 +207,11 @@ class Models(State):
             if children:
                 m_all.extend(self.add(children, model))
 
+        session = self._session()
+        for m in m_all:
+            m.added_to_session(session)
+
         if parent is None:
-            session = self._session()
             session.triggers.activate_trigger(ADD_MODELS, m_all)
 
         return m_all
@@ -220,6 +227,8 @@ class Models(State):
         mlist = descendant_models(models)
         mlist.sort(key=lambda m: len(m.id), reverse=True)
         session = self._session()  # resolve back reference
+        for m in mlist:
+            m.removed_from_session(session)
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
         for model in mlist:
             model_id = model.id
@@ -244,7 +253,7 @@ class Models(State):
     def open(self, filenames, id=None, **kw):
         from . import io
         session = self._session()  # resolve back reference
-        models, status = io.open_multiple(session, filenames, **kw)
+        models, status = io.open_multiple_data(session, filenames, **kw)
         if status:
             session.logger.status(status)
         if models:

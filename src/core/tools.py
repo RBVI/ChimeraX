@@ -87,8 +87,9 @@ class ToolInstance(State):
         called as the last step of tool deletion.
 
         """
-        if self.id is not None:
-            raise ValueError("tool instance is still in use")
+        if self.session.ui.is_gui:
+            self.session.ui.remove_tool(self)
+        self.session.tools.remove([self])
         # TODO: track.deleted(ToolInstance, [self])
 
     def display(self, b):
@@ -100,7 +101,8 @@ class ToolInstance(State):
             Boolean value for whether the tool should be shown or hidden.
 
         """
-        pass
+        if self.session.ui.is_gui:
+            self.session.ui.set_tool_shown(self, b)
 
 
 class Tools(State):
@@ -307,10 +309,9 @@ class Tools(State):
         """Start tools that should start when applications starts up."""
         session = self._session()   # resolve back reference
         from .toolshed import ToolshedError
-        from . import preferences
-        prefs = preferences.get()
+        from .core_settings import settings
         for ti in session.toolshed.tool_info():
-            if ti.name not in prefs.autostart:
+            if ti.name not in settings.autostart:
                 continue
             try:
                 ti.start(session)

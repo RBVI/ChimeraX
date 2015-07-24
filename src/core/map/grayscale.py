@@ -21,7 +21,7 @@ class Gray_Scale_Drawing(Drawing):
 
     self.mod_rgba = (1,1,1,1)	# For luminance color modes.
 
-    from ..geometry.place import Place
+    from ..geometry import Place
     self.ijk_to_xyz = Place(((1,0,0,0),(0,1,0,0),(0,0,1,0)))
 
     # Use 2d textures along chosen axes or 3d textures.

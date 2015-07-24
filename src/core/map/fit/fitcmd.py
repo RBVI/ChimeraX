@@ -134,7 +134,7 @@ def subtraction_maps(spec, resolution, session):
         if resolution is None:
             raise UserError('Require resolution keyword for atomic models used '
                             'in subtract maps option')
-        for m, matoms in atoms.by_molecule:
+        for m, matoms in atoms.by_structure:
             from .fitmap import simulated_map
             vlist.append(simulated_map(matoms, resolution, session))
     from .. import Volume
@@ -145,7 +145,7 @@ def subtraction_maps(spec, resolution, session):
 #
 def split_by_model(sel, resolution, session):
 
-    aom = [(atoms, None) for m,atoms in sel.atoms.by_molecule]
+    aom = [(atoms, None) for m,atoms in sel.atoms.by_structure]
     from .. import Volume
     aom.extend([(None, v) for v in sel.models if isinstance(v, Volume)])
     if not resolution is None:
@@ -183,7 +183,7 @@ def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
                                     maxSteps, gridStepMin, gridStepMax, 
                                     shift, rotate, moveWholeMolecules,
                                     request_stop_cb = report_status(log))
-    mols = atoms.unique_molecules
+    mols = atoms.unique_structures
     if log and stats:
         log.info(F.atom_fit_message(mols, volume, stats))
         if moveWholeMolecules:
@@ -299,7 +299,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
     from . import search as FS
     rotations = 'r' in placement
     shifts = 's' in placement
-    mlist = list(atoms.unique_molecules)
+    mlist = list(atoms.unique_structures)
     if v:
         mlist.append(v)
 
@@ -379,7 +379,7 @@ def fit_sequence(vlist, volume, subtract_maps = [], metric = 'overlap', envelope
     # TODO: Handle case where not moving whole molecules.
     for v in vlist: 
         if hasattr(v, 'atoms'):
-            for m in v.atoms.unique_molecules:
+            for m in v.atoms.unique_structures:
                 m.position = v.position
  
     return flist
@@ -416,7 +416,7 @@ def fitting_metric(metric):
 #
 def map_fitting_points(v, envelope, local_coords = False):
 
-    from ...geometry.place import identity
+    from ...geometry import identity
     point_to_scene_transform = None if local_coords else identity()
     from . import fitmap as F
     try:

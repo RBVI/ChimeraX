@@ -1,3 +1,3 @@
-APP = structcomp
+MOD_APP = structcomp
 
 include ../moduleapp/Makefile

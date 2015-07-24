@@ -100,38 +100,41 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
 {
     // find the biggest segment, (but non-all-X segments win over
     // all-X segments)
-    int longest = -1;
+    unsigned int longest;
+    bool longest_found = false;
     int seg_num = -1;
-    int bsi;
+    unsigned int bsi;
     for (auto seg: cm_ap.segments) {
         seg_num++;
         if (std::find_if_not(seg.begin(), seg.end(),
                 [](char c){return c == 'X';}) == seg.end()) {
             continue;
         }
-        if (seg.size() > longest) {
+        if (!longest_found || seg.size() > longest) {
             bsi = seg_num;
             longest = seg.size();
+            longest_found = true;
         }
     }
-    if (longest < 0) {
+    if (!longest_found) {
         // all segments are all-X
         seg_num = -1;
         for (auto seg: cm_ap.segments) {
             seg_num++;
-            if (seg.size() > longest) {
+            if (!longest_found || seg.size() > longest) {
                 bsi = seg_num;
                 longest = seg.size();
+                longest_found = true;
             }
         }
     }
 
     auto bsi_iter = cm_ap.segments.begin() + bsi;
-    int left_space = 0;
+    unsigned int left_space = 0;
     for (auto seg_i = cm_ap.segments.begin(); seg_i != bsi_iter; ++seg_i) {
         left_space += seg_i->size() + 1;
     }
-    int right_space = 0;
+    unsigned int right_space = 0;
     for (auto seg_i = bsi_iter+1; seg_i != cm_ap.segments.end(); ++seg_i) {
         right_space += seg_i->size() + 1;
     }
@@ -141,8 +144,9 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     std::vector<unsigned int> err_list;
     auto seq = cm_ap.segments[bsi];
     int min_offset = -1;
-    int min_errs = -1;
-    int min_gap_errs = -1;
+    unsigned int min_errs;
+    bool min_errs_found = false;
+    unsigned int min_gap_errs;
     int target_left_gap, target_right_gap;
     if (bsi == 0) {
         target_left_gap = cm_ap.gaps[0];
@@ -156,8 +160,8 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     }
     int offset_end = aseq.size() - right_space - longest + 1;
     for (int offset = left_space; offset < offset_end; ++offset) {
-        int errors = 0;
-        for (int i = 0; i < longest; ++i) {
+        unsigned int errors = 0;
+        for (unsigned int i = 0; i < longest; ++i) {
             if (seq[i] == aseq[offset+i])
                 continue;
             if (++errors > max_errors) {
@@ -168,7 +172,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
         }
         if (err_list.empty() || err_list.back() != max_errors+1) {
             err_list.push_back(errors);
-            int gap_errs = 0;
+            unsigned int gap_errs = 0;
             if (target_left_gap >= 0) {
                 gap_errs += std::abs((int)((offset+1) - target_left_gap));
             }
@@ -176,9 +180,10 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
                 gap_errs += std::abs((int)(1 + (aseq.size() - (offset+longest))
                     - target_right_gap));
             }
-            if (min_errs < 0 || errors < min_errs
+            if (!min_errs_found || errors < min_errs
             || (errors == min_errs && gap_errs < min_gap_errs)) {
                 min_errs = errors;
+                min_errs_found = true;
                 min_offset = offset;
                 min_gap_errs = gap_errs;
             }
@@ -190,18 +195,18 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     // leave gaps to left and right
     std::vector<int> left_offsets, right_offsets;
     unsigned int left_errors = 0, right_errors = 0;
-    AssocParams left_ap(0, cm_ap.segments.cbegin(),
-        cm_ap.segments.cbegin()+bsi-1,
-        cm_ap.gaps.cbegin(), cm_ap.gaps.cbegin()+bsi);
+    AssocParams left_ap, right_ap;
     if (bsi > 0) {
+        left_ap = AssocParams(0, cm_ap.segments.cbegin(),
+            cm_ap.segments.cbegin()+bsi-1,
+            cm_ap.gaps.cbegin(), cm_ap.gaps.cbegin()+bsi);
         Sequence::Contents left_aseq(aseq.begin(), aseq.begin()+min_offset-2);
         left_errors = _constrained(left_aseq, left_ap, left_offsets,
             max_errors - min_errs);
     }
-    AssocParams right_ap(0, cm_ap.segments.begin()+bsi+1, cm_ap.segments.end(),
-        cm_ap.gaps.begin()+bsi+1, cm_ap.gaps.end());
-    if (left_errors + min_errs <= max_errors
-    && bsi+1 != cm_ap.segments.size()) {
+    if (left_errors + min_errs <= max_errors && bsi+1 < cm_ap.segments.size()) {
+        right_ap = AssocParams(0, cm_ap.segments.begin()+bsi+1,
+            cm_ap.segments.end(), cm_ap.gaps.begin()+bsi+1, cm_ap.gaps.end());
         Sequence::Contents right_aseq(aseq.begin() + min_offset + longest + 1,
             aseq.end());
         right_errors = _constrained(right_aseq, right_ap, right_offsets,
@@ -217,7 +222,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     };
     OffsetInfo offs(min_offset, left_offsets, right_offsets);
 
-    for (int i = 0; i < err_list.size(); ++i) {
+    for (unsigned int i = 0; i < err_list.size(); ++i) {
         unsigned int base_errs = err_list[i];
         if (base_errs >= std::min(tot_errs, max_errors+1))
             continue;
@@ -248,7 +253,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
             right_errors = 0;
         }
 
-        int err_sum = base_errs + left_errors + right_errors;
+        unsigned int err_sum = base_errs + left_errors + right_errors;
         if (err_sum < tot_errs) {
             tot_errs = err_sum;
             offs.min = offset;
@@ -285,10 +290,10 @@ constrained_match(const Sequence::Contents& aseq, const Chain& mseq,
         throw std::logic_error("Internal match problem: #segments != #offsets");
     AssocRetvals ret;
     unsigned int res_offset = 0;
-    for (int si = 0; si < ap.segments.size(); ++si) {
+    for (unsigned int si = 0; si < ap.segments.size(); ++si) {
         int offset = offsets[si];
         const Sequence::Contents& segment = ap.segments[si];
-        for (int i = 0; i < segment.size(); ++i) {
+        for (unsigned int i = 0; i < segment.size(); ++i) {
             Residue* r = mseq.residues()[res_offset+i];
             if (r != nullptr) {
                 ret.match_map[r] = offset+i;
@@ -306,32 +311,36 @@ gapped_match(const Sequence::Contents& aseq, const Chain& mseq,
     const AssocParams& ap, unsigned int max_errors)
 {
     Sequence::Contents gapped = ap.segments[0];
-    for (int i = 0; i < ap.segments.size(); ++i) {
-        gapped.insert(gapped.end(), ap.gaps[i], '.');
+    for (unsigned int i = 1; i < ap.segments.size(); ++i) {
+        gapped.insert(gapped.end(), ap.gaps[i-1], '.');
         gapped.insert(gapped.end(),
             ap.segments[i].begin(), ap.segments[i].end());
     }
 
     // to avoid matching completely in gaps, need to establish 
     // a minimum number of matches
-    int min_matches = std::min(aseq.size(), mseq.size()) / 2;
+    unsigned int min_matches = std::min(aseq.size(), mseq.size()) / 2;
     int best_score = 0, best_offset;
     unsigned int tot_errs = max_errors + 1;
     int o_end = ap.est_len - aseq.size() + 1;
     for (int offset = gapped.size() - ap.est_len; offset < o_end; ++offset) {
-        int matches = 0;
-        int errors = 0;
+        unsigned int matches = 0;
+        unsigned int errors = 0;
         if (offset + aseq.size() < min_matches)
             continue;
         if (gapped.size() - offset < min_matches)
             continue;
-        for (int i = 0; i < aseq.size(); ++i) {
-            if (offset+i < 0)
+        for (unsigned int i = 0; i < aseq.size(); ++i) {
+            if (offset+(int)i < 0)
                 continue;
-            if (offset+i >= gapped.size())
+            // since we know the sum is positive, the below will work
+            // since the int is promoted to unsigned, and the addition
+            // of two unsigns uses modulo arithmetic
+            unsigned int cur_offset = offset + i;
+            if (cur_offset >= gapped.size())
                 // in ending gap
                 continue;
-            auto gap_char = gapped[offset+i];
+            auto gap_char = gapped[cur_offset];
             if (aseq[i] == gap_char) {
                 ++matches;
                 continue;
@@ -342,9 +351,10 @@ gapped_match(const Sequence::Contents& aseq, const Chain& mseq,
                 break;
         }
         if (errors < tot_errs) {
-            if (matches < min_matches || matches - errors <= best_score)
+            if (matches < min_matches
+            || (int)matches - (int)errors <= best_score)
                 continue;
-            best_score = matches - errors;
+            best_score = (int)matches - (int)errors;
             tot_errs = errors;
             best_offset = offset;
         }
@@ -356,8 +366,8 @@ gapped_match(const Sequence::Contents& aseq, const Chain& mseq,
     AssocRetvals ret;
     ret.num_errors = tot_errs;
     int mseq_index = 0;
-    for (int i = 0; i < best_offset + aseq.size(); ++i) {
-        if (i >= gapped.size())
+    for (int i = 0; i < best_offset + (int)aseq.size(); ++i) {
+        if (i >= (int)gapped.size())
             break;
         if (gapped[i] == '.')
             continue;
@@ -419,7 +429,7 @@ try_assoc(const Sequence& align_seq, const Chain& mseq,
             throw SA_AssocFailure("bad assoc");
         return retvals;
     }
-    int offset = mseq.size() - no_X.size();
+    unsigned int offset = mseq.size() - no_X.size();
     while (offset > 0 && offset >= no_X_ap.segments.front().size()) {
         offset -= no_X_ap.segments.front().size();
         no_X_ap.segments.erase(no_X_ap.segments.begin());
@@ -428,7 +438,7 @@ try_assoc(const Sequence& align_seq, const Chain& mseq,
     }
     while (offset-- > 0)
         no_X_ap.segments.front().erase(no_X_ap.segments.front().begin());
-    int tail_loss = 0;
+    unsigned int tail_loss = 0;
     while (no_X.back() == 'X') {
         no_X.pop_back();
         --no_X_ap.est_len;

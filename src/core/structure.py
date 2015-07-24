@@ -34,9 +34,8 @@ class AtomicStructure(CAtomicStructure, Model):
         self._atoms_drawing = None
         self._bonds_drawing = None
         self._pseudobond_group_drawings = {}    # Map name to drawing
-        self._selected_atoms = None	# Numpy array of bool, size equal number of atoms
         self.triangles_per_sphere = None
-        self._atom_bounds = None
+        self._cached_atom_bounds = None
         self._atom_bounds_needs_update = True
 
         self.ribbon_divisions = 10
@@ -57,12 +56,20 @@ class AtomicStructure(CAtomicStructure, Model):
         self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
         self._ribbon_selected_residues = set()
 
-        self.make_drawing()
+        self._make_drawing()
 
     def delete(self):
         self._atoms = None
         CAtomicStructure.delete(self)
         Model.delete(self)
+
+    def added_to_session(self, session):
+        v = session.main_view
+        v.add_new_frame_callback(self._update_graphics_if_needed)
+
+    def removed_from_session(self, session):
+        v = session.main_view
+        v.remove_new_frame_callback(self._update_graphics_if_needed)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
@@ -91,26 +98,10 @@ class AtomicStructure(CAtomicStructure, Model):
         na = sum(self.atoms.displays) if self.display else 0
         return na
 
-    def solvent_atoms(self):
-        atoms = self.atoms
-        from numpy import array
-        return atoms.filter(array(atoms.residues.names) == 'HOH')
-
-    def show_atoms(self, atoms = None):
-        if atoms is None:
-            atoms = self.atoms
-        atoms.displays = True
-        self.update_graphics()
-
-    def hide_atoms(self, atoms = None):
-        if atoms is None:
-            atoms = self.atoms
-        atoms.displays = False
-        self.update_graphics()
-
-    def initialize_graphical_attributes(self):
+    def _initialize_graphical_attributes(self):
         a = self.atoms
         a.draw_modes = self.SPHERE_STYLE
+        from .color import element_colors
         a.colors = element_colors(a.element_numbers)
         b = self.bonds
         b.radii = self.bond_radius
@@ -121,33 +112,33 @@ class AtomicStructure(CAtomicStructure, Model):
             pb.halfbonds = False
             pb.colors = pb_colors.get(name, (255,255,0,255))
 
-    def make_drawing(self):
+    def _make_drawing(self):
 
-        self.initialize_graphical_attributes()
+        self._initialize_graphical_attributes()
 
         a = self.atoms
         coords = a.coords
-        radii = self.atom_display_radii()
+        radii = self._atom_display_radii()
         colors = a.colors
         display = a.displays
         b = self.bonds
         pbgs = self.pseudobond_groups
 
         # Create graphics
-        self.create_atom_spheres(coords, radii, colors, display)
-        self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
+        self._create_atom_spheres(coords, radii, colors, display)
+        self._update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
         for name, pbg in pbgs.items():
             pb = pbg.pseudobonds
-            self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
-        self.update_ribbon_graphics()
+            self._update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
+        self._update_ribbon_graphics()
 
-    def create_atom_spheres(self, coords, radii, colors, display):
+    def _create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing
         if p is None:
             self._atoms_drawing = p = self.new_drawing('atoms')
             # Add atom picking method to the atom drawing
             from types import MethodType
-            p.first_intercept = MethodType(atom_first_intercept, p)
+            p.first_intercept = MethodType(_atom_first_intercept, p)
 
         n = len(coords)
         self.triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
@@ -158,26 +149,32 @@ class AtomicStructure(CAtomicStructure, Model):
         p.geometry = va, ta
         p.normals = na
 
-        self.update_atom_graphics(coords, radii, colors, display)
+        self._update_atom_graphics(coords, radii, colors, display)
 
     def new_atoms(self):
+        # TODO: Handle instead with a C++ notification that atoms added or deleted
         self._atoms = None
         self._atom_bounds_needs_update = True
-        self.redraw_needed(shape_changed = True)
-        self.update_graphics()
 
-    def update_graphics(self):
+    def _update_graphics_if_needed(self):
+        c, s, se = self.gc_color, self.gc_shape, self.gc_select
+        if c or s or se:
+            self.gc_color = self.gc_shape = self.gc_select = False
+            self._update_graphics()
+            self.redraw_needed(shape_changed = s, selection_changed = se)
+
+    def _update_graphics(self):
         a = self.atoms
         b = self.bonds
-        self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors, a.displays)
-        self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
+        self._update_atom_graphics(a.coords, self._atom_display_radii(), a.colors, a.displays)
+        self._update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
         pbgs = self.pseudobond_groups
         for name, pbg in pbgs.items():
             pb = pbg.pseudobonds
-            self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
-        self.update_ribbon_graphics()
+            self._update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
+        self._update_ribbon_graphics(rebuild = True)
 
-    def update_atom_graphics(self, coords, radii, colors, display):
+    def _update_atom_graphics(self, coords, radii, colors, display):
         p = self._atoms_drawing
         if p is None:
             return
@@ -196,12 +193,11 @@ class AtomicStructure(CAtomicStructure, Model):
         # Set atom colors
         p.colors = colors
 
-        asel = self._selected_atoms
-        if not asel is None:
-            # If the selected atoms array has wrong length, atoms deleted, clear selection.
-            p.selected_positions = asel if asel.sum() > 0 and len(asel) == n else None
+        # Set selected
+        a = self.atoms
+        p.selected_positions = a.selected if a.num_selected > 0 else None
 
-    def atom_display_radii(self):
+    def _atom_display_radii(self):
         a = self.atoms
         r = a.radii.copy()
         dm = a.draw_modes
@@ -209,31 +205,16 @@ class AtomicStructure(CAtomicStructure, Model):
         r[dm == self.STICK_STYLE] = self.bond_radius
         return r
 
-    def set_atom_style(self, style, atoms = None):
-        if atoms is None:
-            atoms = self.atoms
-        atoms.draw_modes = style
-        self.update_graphics()
-
-    def color_by_element(self, atoms = None):
-        if atoms is None:
-            atoms = self.atoms
-        atoms.colors = element_colors(atoms.element_numbers)
-        self.update_graphics()
-
-    def color_by_chain(self, atoms = None):
-        if atoms is None:
-            atoms = self.atoms
-        atoms.colors = chain_colors(atoms.residues.chain_ids)
-        self.update_graphics()
-
-    def update_bond_graphics(self, bond_atoms, draw_mode, radii,
-                             bond_colors, half_bond_coloring):
+    def _update_bond_graphics(self, bond_atoms, draw_mode, radii,
+                              bond_colors, half_bond_coloring):
         p = self._bonds_drawing
         if p is None:
             if (draw_mode == self.SPHERE_STYLE).all():
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
+            # Suppress bond picking since bond selections are not supported.
+            from types import MethodType
+            p.first_intercept = MethodType(_bond_first_intercept, p)
             from . import surface
             # Use 3 z-sections so cylinder ends match in half-bond mode.
             va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
@@ -241,11 +222,11 @@ class AtomicStructure(CAtomicStructure, Model):
             p.normals = na
 
         xyz1, xyz2 = bond_atoms[0].coords, bond_atoms[1].coords
-        p.positions = bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
-        p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
-        self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
+        p.positions = _bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
+        p.display_positions = self._shown_bond_cylinders(bond_atoms, half_bond_coloring)
+        self._set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
-    def set_bond_colors(self, drawing, bond_atoms, bond_colors, half_bond_coloring):
+    def _set_bond_colors(self, drawing, bond_atoms, bond_colors, half_bond_coloring):
         p = drawing
         if p is None:
             return
@@ -257,7 +238,7 @@ class AtomicStructure(CAtomicStructure, Model):
         else:
             p.colors = bond_colors
 
-    def shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
+    def _shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
         sb = bond_atoms[0].displays & bond_atoms[1].displays  # Show bond if both atoms shown
         ns = ((bond_atoms[0].draw_modes != self.SPHERE_STYLE) |
               (bond_atoms[1].draw_modes != self.SPHERE_STYLE))       # Don't show if both atoms in sphere style
@@ -268,24 +249,23 @@ class AtomicStructure(CAtomicStructure, Model):
             return sb2
         return sb
 
-    def update_pseudobond_graphics(self, name, bond_atoms, radii,
-                                   bond_colors, half_bond_coloring):
-#        print ('pseudobond chain ids', bond_atoms[0].residues.chain_ids, bond_atoms[1].residues.chain_ids)
+    def _update_pseudobond_graphics(self, name, bond_atoms, radii,
+                                    bond_colors, half_bond_coloring):
         pg = self._pseudobond_group_drawings
         if not name in pg:
             pg[name] = p = self.new_drawing(name)
-            va, na, ta = pseudobond_geometry()
+            va, na, ta = _pseudobond_geometry()
             p.geometry = va, ta
             p.normals = na
         else:
             p = pg[name]
 
         xyz1, xyz2 = bond_atoms[0].coords, bond_atoms[1].coords
-        p.positions = bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
-        p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
-        self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
+        p.positions = _bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
+        p.display_positions = self._shown_bond_cylinders(bond_atoms, half_bond_coloring)
+        self._set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
-    def update_ribbon_graphics(self, rebuild=False):
+    def _update_ribbon_graphics(self, rebuild=False):
         if rebuild:
             from .ribbon import Ribbon, XSection
             from .geometry import place
@@ -424,14 +404,13 @@ class AtomicStructure(CAtomicStructure, Model):
                 rp.vertex_colors = concatenate(color_list)
                 rp.atomic_structure = self
                 from types import MethodType
-                rp.first_intercept = MethodType(ribbon_first_intercept, rp)
+                rp.first_intercept = MethodType(_ribbon_first_intercept, rp)
                 # Save mappings for picking
                 self._ribbon_t2r[rp] = t2r
 
         # Set selected ribbons in graphics
-        asel = self._selected_atoms
-        if asel is not None and asel.sum() > 0:
-            rsel = set([r for r in self.atoms.filter(asel).unique_residues
+        if self.atoms.num_selected > 0:
+            rsel = set([r for r in self.atoms.filter(self.atoms.selected).unique_residues
                         if r in self._ribbon_r2t])
         else:
             rsel = set()
@@ -445,7 +424,10 @@ class AtomicStructure(CAtomicStructure, Model):
         # Partition by drawing
         for i in range(len(residues)):
             for r in residues[i]:
-                tr = self._ribbon_r2t[r]
+                try:
+                    tr = self._ribbon_r2t[r]
+                except KeyError:
+                    continue
                 try:
                     a = da[tr.drawing]
                 except KeyError:
@@ -492,71 +474,44 @@ class AtomicStructure(CAtomicStructure, Model):
             else:
                 return coords, None
 
-    def hide_chain(self, cid):
-        a = self.atoms
-        a.displays &= self.chain_atom_mask(cid, invert = True)
-        self.update_graphics()
-
-    def show_chain(self, cid):
-        a = self.atoms
-        a.displays |= self.chain_atom_mask(cid)
-        self.update_graphics()
-
-    def chain_atom_mask(self, cid, invert = False):
-        a = self.atoms
-        cids = a.residues.chain_ids
-        from numpy import array, bool, logical_not
-        d = array(tuple((cid != c) for c in cids), bool)
-        if invert:
-            logical_not(d,d)
-        return d
-
     def bounds(self, positions = True):
         # TODO: Cache bounds
-        ab = self.atom_bounds()
-        rb = self.ribbon_bounds()
+        ab = self._atom_bounds()
+        rb = self._ribbon_bounds()
+        sb = tuple(s.bounds() for s in self.surfaces())
         from .geometry import bounds
-        b = bounds.union_bounds((ab, rb))
+        b = bounds.union_bounds((ab, rb) + sb)
         if positions:
             b = bounds.copies_bounding_box(b, self.positions)
         return b
 
-    def atom_bounds(self):
+    def _atom_bounds(self):
         if not self._atom_bounds_needs_update:
-            return self._atom_bounds
+            return self._cached_atom_bounds
         a = self.atoms
         xyz = a.coords[a.displays]
         from .geometry import bounds
         b = bounds.point_bounds(xyz)
-        self._atom_bounds = b
+        self._cached_atom_bounds = b
         self._atom_bounds_needs_update = False
         return b
 
-    def ribbon_bounds(self):
+    def _ribbon_bounds(self):
         rd = self._ribbon_drawing
         if rd is None or not rd.display:
             return None
         return rd.bounds()
 
     def select_atom(self, atom, toggle=False, selected=True):
-        asel = self._selected_atoms
-        if asel is None:
-            na = self.num_atoms
-            from numpy import zeros, bool
-            asel = self._selected_atoms = zeros(na, bool)
-        i = self.atoms.index(atom)
-        asel[i] = (not asel[i]) if toggle else selected
+        atom.selected = (not atom.selected) if toggle else selected
         self._selection_changed()
 
     def select_atoms(self, atoms, toggle=False, selected=True):
-        asel = self._selected_atoms
-        if asel is None:
-            na = self.num_atoms
-            from numpy import zeros, bool
-            asel = self._selected_atoms = zeros(na, bool)
+        asel = self.atoms.selected
         m = self.atoms.mask(atoms)
         from numpy import logical_not
         asel[m] = logical_not(asel[m]) if toggle else selected
+        self.atoms.selected = asel
         self._selection_changed()
 
     def select_residue(self, residue, toggle=False, selected=True):
@@ -566,38 +521,37 @@ class AtomicStructure(CAtomicStructure, Model):
 
     def selected_items(self, itype):
         if itype == 'atoms':
-            asel = self._selected_atoms
-            if not asel is None and asel.sum() > 0:
-                atoms = self.atoms
-                sa = atoms.filter(asel)
-                return [sa]
+            atoms = self.atoms
+            if atoms.num_selected > 0:
+                return [atoms.filter(atoms.selected)]
         return []
 
     def any_part_selected(self):
-        asel = self._selected_atoms
-        if not asel is None and asel.sum() > 0:
+        if self.atoms.num_selected > 0:
             return True
         return Model.any_part_selected(self)
 
     def clear_selection(self):
-        asel = self._selected_atoms
-        if not asel is None and asel.sum() > 0:
-            asel[:] = False
+        self.atoms.selected = False
         self._selection_changed()
 
     def _selection_changed(self, promotion = False):
         if not promotion:
             self._selection_promotion_history = []
-        self.update_graphics()
+
+        # Update selection on molecular surfaces
+        # TODO: Won't work for surfaces spanning multiple molecules
+        from .molsurf import MolecularSurface
+        for s in self.child_drawings():
+            if isinstance(s, MolecularSurface):
+                s.update_selection()
 
     def promote_selection(self):
-        asel = self._selected_atoms
-        if asel is None:
+        n = self.atoms.num_selected
+        if n == 0 or n == len(self.atoms):
             return
-        n = asel.sum()
-        if n == 0 or n == len(asel):
-            return
-        self._selection_promotion_history.append(asel.copy())
+        asel = self.atoms.selected
+        self._selection_promotion_history.append(asel)
 
         atoms = self.atoms
         r = atoms.residues
@@ -619,17 +573,24 @@ class AtomicStructure(CAtomicStructure, Model):
             else:
                 # Promote to entire molecule
                 psel = True
-        asel[:] = psel
+        self.atoms.selected = psel
         self._selection_changed(promotion = True)
 
     def demote_selection(self):
         pt = self._selection_promotion_history
         if len(pt) > 0:
-            self._selected_atoms[:] = pt.pop()
-            self._selection_changed(promotion = True)
+            asel = pt.pop()
+            if len(asel) == len(self.atoms):
+                self.atoms.selected = asel
+                self._selection_changed(promotion = True)
 
     def clear_selection_promotion_history(self):
         self._selection_promotion_history = []
+
+    def surfaces(self):
+        from .molsurf import MolecularSurface
+        surfs = [s for s in self.child_models() if isinstance(s, MolecularSurface)]
+        return surfs
 
 def selected_atoms(session):
     from .molecule import Atoms
@@ -640,7 +601,7 @@ def selected_atoms(session):
                 atoms = atoms | matoms
     return atoms
 
-def atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
+def _atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
     # TODO check intercept of bounding box as optimization
     xyzr = self.positions.shift_and_scale_array()
     dp = self.display_positions
@@ -662,7 +623,10 @@ def atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
 
     return s
 
-def ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
+def _bond_first_intercept(self, mxyz1, mxyz2, exclude = None):
+    return None
+
+def _ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
     # TODO check intercept of bounding box as optimization
     from .graphics import Drawing
     pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
@@ -687,15 +651,15 @@ class PickedAtom(Pick):
     def description(self):
         return atom_description(self.atom)
     def drawing(self):
-        return self.atom.molecule
+        return self.atom.structure
     def select(self, toggle = False):
         a = self.atom
-        a.molecule.select_atom(a, toggle)
+        a.structure.select_atom(a, toggle)
 
 # -----------------------------------------------------------------------------
 #
 def atom_description(atom):
-    m = atom.molecule
+    m = atom.structure
     r = atom.residue
     d = '%s #%s.%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
     return d
@@ -710,15 +674,15 @@ class PickedResidue(Pick):
     def description(self):
         return residue_description(self.residue)
     def drawing(self):
-        return self.residue.molecule
+        return self.residue.structure
     def select(self, toggle=False):
         r = self.residue
-        r.molecule.select_residue(r, toggle)
+        r.structure.select_residue(r, toggle)
 
 # -----------------------------------------------------------------------------
 #
 def residue_description(r):
-    m = r.molecule
+    m = r.structure
     d = '%s #%s.%s %s %d' % (m.name, m.id_string(), r.chain_id, r.name, r.number)
     return d
 
@@ -741,9 +705,9 @@ class RibbonTriangleRange:
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
 #
-def bond_cylinder_placements(axyz0, axyz1, radius, half_bond):
+def _bond_cylinder_placements(axyz0, axyz1, radius, half_bond):
 
-  # TODO: Allow per-bound variation in half-bond mode.
+  # TODO: Allow per-bond variation in half-bond mode.
   half_bond = half_bond.any()
 
   n = len(axyz0)
@@ -787,294 +751,9 @@ def bond_cylinder_placements(axyz0, axyz1, radius, half_bond):
 
 # -----------------------------------------------------------------------------
 #
-def pseudobond_geometry(segments = 9):
+def _pseudobond_geometry(segments = 9):
     from . import surface
     return surface.dashed_cylinder_geometry(segments)
-
-# -----------------------------------------------------------------------------
-#
-element_rgba_256 = None
-def element_colors(element_numbers):
-    global element_rgba_256
-    if element_rgba_256 is None:
-        from numpy import empty, uint8
-        element_rgba_256 = ec = empty((256, 4), uint8)
-        ec[:,:3] = 180
-        ec[:,3] = 255
-        # jmol element colors
-        colors = (
-            (1,	(255,255,255)),	 # H
-            (2,	(217,255,255)),	 # He
-            (3,	(204,128,255)),	 # Li
-            (4,	(194,255,0)),	 # Be  
-            (5,	(255,181,181)),	 # B
-            (6,	(144,144,144)),	 # C
-            (7,	(48,80,248)),	 # N  
-            (8,	(255,13,13)),	 # O  
-            (9, (144,224,80)),	 # F 
-            (10, (179,227,245)), # Ne
-            (11, (171,92,242)),	 # Na 
-            (12, (138,255,0)),	 # Mg  
-            (13, (191,166,166)), # Al
-            (14, (240,200,160)), # Si
-            (15, (255,128,0)),	 # P  
-            (16, (255,255,48)),	 # S 
-            (17, (31,240,31)),	 # Cl  
-            (18, (128,209,227)), # Ar
-            (19, (143,64,212)),	 # K 
-            (20, (61,255,0)),	 # Ca   
-            (21, (230,230,230)), # Sc
-            (22, (191,194,199)), # Ti
-            (23, (166,166,171)), # V
-            (24, (138,153,199)), # Cr
-            (25, (156,122,199)), # Mn
-            (26, (224,102,51)),	 # Fe 
-            (27, (240,144,160)), # Co
-            (28, (80,208,80)),	 # Ni  
-            (29, (200,128,51)),	 # Cu 
-            (30, (125,128,176)), # Zn
-            (31, (194,143,143)), # Ga
-            (32, (102,143,143)), # Ge
-            (33, (189,128,227)), # As
-            (34, (255,161,0)),	 # Se  
-            (35, (166,41,41)),	 # Br  
-            (36, (92,184,209)),	 # Kr 
-            (37, (112,46,176)),	 # Rb 
-            (38, (0,255,0)),	 # Sr    
-            (39, (148,255,255)), # Y
-            (40, (148,224,224)), # Zr
-            (41, (115,194,201)), # Nb
-            (42, (84,181,181)),	 # Mo 
-            (43, (59,158,158)),	 # Tc 
-            (44, (36,143,143)),	 # Ru 
-            (45, (10,125,140)),	 # Rh 
-            (46, (0,105,133)),	 # Pd  
-            (47, (192,192,192)), # Ag
-            (48, (255,217,143)), # Cd
-            (49, (166,117,115)), # In
-            (50, (102,128,128)), # Sn
-            (51, (158,99,181)),	 # Sb 
-            (52, (212,122,0)),	 # Te  
-            (53, (148,0,148)),	 # I  
-            (54, (66,158,176)),	 # Xe 
-            (55, (87,23,143)),	 # Cs  
-            (56, (0,201,0)),	 # Ba    
-            (57, (112,212,255)), # La
-            (58, (255,255,199)), # Ce
-            (59, (217,255,199)), # Pr
-            (60, (199,255,199)), # Nd
-            (61, (163,255,199)), # Pm
-            (62, (143,255,199)), # Sm
-            (63, (97,255,199)),	 # Eu 
-            (64, (69,255,199)),	 # Gd 
-            (65, (48,255,199)),	 # Tb 
-            (66, (31,255,199)),	 # Dy 
-            (67, (0,255,156)),	 # Ho  
-            (68, (0,230,117)),	 # Er  
-            (69, (0,212,82)),	 # Tm   
-            (70, (0,191,56)),	 # Yb   
-            (71, (0,171,36)),	 # Lu   
-            (72, (77,194,255)),	 # Hf 
-            (73, (77,166,255)),	 # Ta 
-            (74, (33,148,214)),	 # W 
-            (75, (38,125,171)),	 # Re 
-            (76, (38,102,150)),	 # Os 
-            (77, (23,84,135)),	 # Ir  
-            (78, (208,208,224)), # Pt
-            (79, (255,209,35)),	 # Au 
-            (80, (184,184,208)), # Hg
-            (81, (166,84,77)),	 # Tl  
-            (82, (87,89,97)),	 # Pb   
-            (83, (158,79,181)),	 # Bi 
-            (84, (171,92,0)),	 # Po   
-            (85, (117,79,69)),	 # At  
-            (86, (66,130,150)),	 # Rn 
-            (87, (66,0,102)),	 # Fr   
-            (88, (0,125,0)),	 # Ra    
-            (89, (112,171,250)), # Ac
-            (90, (0,186,255)),	 # Th  
-            (91, (0,161,255)),	 # Pa  
-            (92, (0,143,255)),	 # U  
-            (93, (0,128,255)),	 # Np  
-            (94, (0,107,255)),	 # Pu  
-            (95, (84,92,242)),	 # Am  
-            (96, (120,92,227)),	 # Cm 
-            (97, (138,79,227)),	 # Bk 
-            (98, (161,54,212)),	 # Cf 
-            (99, (179,31,212)),	 # Es 
-            (100, (179,31,186)), # Fm 
-            (101, (179,13,166)), # Md 
-            (102, (189,13,135)), # No 
-            (103, (199,0,102)),	 # Lr  
-            (104, (204,0,89)),	 # Rf   
-            (105, (209,0,79)),	 # Db   
-            (106, (217,0,69)),	 # Sg   
-            (107, (224,0,56)),	 # Bh   
-            (108, (230,0,46)),	 # Hs   
-            (109, (235,0,38)),	 # Mt   
-        )
-        for e, rgb in colors:
-            ec[e,:3] = rgb
-
-    colors = element_rgba_256[element_numbers]
-    return colors
-
-# -----------------------------------------------------------------------------
-#
-rgba_256 = None
-def chain_colors(cids):
-
-    global rgba_256
-    if rgba_256 is None:
-        rgba_256 = {
-          'a':(123,104,238,255),
-          'b':(240,128,128,255),
-          'c':(143,188,143,255),
-          'd':(222,184,135,255),
-          'e':(255,127,80,255),
-          'f':(128,128,128,255),
-          'g':(107,142,35,255),
-          'h':(100,100,100,255),
-          'i':(255,255,0,255),
-          'j':(55,19,112,255),
-          'k':(255,255,150,255),
-          'l':(202,62,94,255),
-          'm':(205,145,63,255),
-          'n':(12,75,100,255),
-          'o':(255,0,0,255),
-          'p':(175,155,50,255),
-          'q':(105,205,48,255),
-          'r':(37,70,25,255),
-          's':(121,33,135,255),
-          't':(83,140,208,255),
-          'u':(0,154,37,255),
-          'v':(178,220,205,255),
-          'w':(255,152,213,255),
-          'x':(200,90,174,255),
-          'y':(175,200,74,255),
-          'z':(63,25,12,255),
-          '1': (87, 87, 87,255),
-          '2': (173, 35, 35,255),
-          '3': (42, 75, 215,255),
-          '4': (29, 105, 20,255),
-          '5': (129, 74, 25,255),
-          '6': (129, 38, 192,255),
-          '7': (160, 160, 160,255),
-          '8': (129, 197, 122,255),
-          '9': (157, 175, 255,255),
-          '0': (41, 208, 208,255),
-        }
-
-    for cid in set(cids):
-        c = str(cid).lower()
-        if not c in rgba_256:
-            from random import randint, seed
-            seed(c)
-            rgba_256[c] = (randint(128,255),randint(128,255),randint(128,255),255)
-
-    from numpy import array, uint8
-    c = array(tuple(rgba_256[cid.lower()] for cid in cids), uint8)
-    return c
-
-# -----------------------------------------------------------------------------
-#
-def chain_rgba(cid):
-    return tuple(float(c/255.0) for c in chain_colors([cid])[0])
-
-# -----------------------------------------------------------------------------
-#
-def chain_rgba8(cid):
-    return chain_colors([cid])[0]
-
-# -----------------------------------------------------------------------------
-#
-from . import cli
-from . import atomspec
-_ccolor_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)],
-                           synopsis='color by chain')
-def ccolor_command(session, atoms = None):
-    if atoms is None:
-        for m in session.models.list():
-            if isinstance(m, AtomicStructure):
-                m.color_by_chain()
-    else:
-        asr = atoms.evaluate(session)
-        a = asr.atoms
-        a.colors = chain_colors(a.residues.chain_ids)
-        for m in asr.models:
-            if isinstance(m, AtomicStructure):
-                m.update_graphics()
-
-# -----------------------------------------------------------------------------
-#
-from . import cli
-from . import atomspec
-_celement_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)],
-                             synopsis='color by element')
-def celement_command(session, atoms = None):
-    if atoms is None:
-        for m in session.models.list():
-            if isinstance(m, AtomicStructure):
-                m.color_by_element()
-    else:
-        asr = atoms.evaluate(session)
-        a = asr.atoms
-        a.colors = element_colors(a.element_numbers)
-        update_model_graphics(asr.models)
-
-def update_model_graphics(models):
-    for m in models:
-        if isinstance(m, AtomicStructure):
-            m.update_graphics()
-
-# -----------------------------------------------------------------------------
-#
-from . import cli
-_style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball', 'stick')))],
-                          optional=[("atoms", atomspec.AtomSpecArg)],
-                          synopsis='change atom depiction')
-def style_command(session, atom_style, atoms = None):
-    s = {'sphere':AtomicStructure.SPHERE_STYLE,
-         'ball':AtomicStructure.BALL_STYLE,
-         'stick':AtomicStructure.STICK_STYLE,
-         }[atom_style.lower()]
-    if atoms is None:
-        for m in session.models.list():
-            if isinstance(m, AtomicStructure):
-                m.set_atom_style(s)
-    else:
-        asr = atoms.evaluate(session)
-        asr.atoms.draw_modes = s
-        update_model_graphics(asr.models)
-
-# -----------------------------------------------------------------------------
-#
-from . import cli
-_hide_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)],
-                         synopsis='hide atoms')
-def hide_command(session, atoms = None):
-    show_atoms(False, atoms, session)
-
-# -----------------------------------------------------------------------------
-#
-from . import cli
-_show_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)],
-                         synopsis='show atoms')
-def show_command(session, atoms = None):
-    show_atoms(True, atoms, session)
-
-# -----------------------------------------------------------------------------
-#
-def show_atoms(show, atoms, session):
-    if atoms is None:
-        for m in session.models.list():
-            if isinstance(m, AtomicStructure):
-                m.atoms.displays = show
-                m.update_graphics()
-    else:
-        asr = atoms.evaluate(session)
-        asr.atoms.displays = show
-        update_model_graphics(asr.models)
 
 # -----------------------------------------------------------------------------
 #
@@ -1118,13 +797,3 @@ class AtomicStructuresArg(cli.Annotation):
         models = aspec.evaluate(session).models
         mols = [m for m in models if isinstance(m, AtomicStructure)]
         return mols, text, rest
-
-# -----------------------------------------------------------------------------
-#
-def register_molecule_commands():
-    from . import cli
-    cli.register('style', _style_desc, style_command)
-    cli.register('ccolor', _ccolor_desc, ccolor_command)
-    cli.register('celement', _celement_desc, celement_command)
-    cli.register('hide', _hide_desc, hide_command)
-    cli.register('show', _show_desc, show_command)

@@ -45,6 +45,7 @@ int parse_writable_float_n3_array(PyObject *arg, void *farray);
 int parse_double_n3_array(PyObject *arg, void *darray);
 int parse_writable_double_n3_array(PyObject *arg, void *darray);
 int parse_uint8_n_array(PyObject *arg, void *carray);
+int parse_writable_uint8_n_array(PyObject *arg, void *carray);
 int parse_uint8_n4_array(PyObject *arg, void *carray);
 int parse_float_n4_array(PyObject *arg, void *farray);
 int parse_writable_float_n4_array(PyObject *arg, void *farray);
@@ -92,10 +93,13 @@ bool python_array_to_c(PyObject *a, double *values, int size0, int size1);
 bool float_2d_array_values(PyObject *farray, int n2, float **f, int *size);
 
 //
-// Convert C arrays to Python Numeric arrays.
+// Convert C arrays to Python Numpy arrays.
 //
 PyObject *c_array_to_python(const int *values, int size);
-PyObject *c_array_to_python(const std::vector<int> &i);
+PyObject *c_array_to_python(const std::vector<int> &values);
+PyObject *c_array_to_python(const std::vector<int> &values, int size0, int size1);
+PyObject *c_array_to_python(const std::vector<float> &values);
+PyObject *c_array_to_python(const std::vector<float> &values, int size0, int size1);
 PyObject *c_array_to_python(const float *values, int size);
 PyObject *c_array_to_python(const double *values, int size);
 PyObject *c_array_to_python(const int *values, int size0, int size1);
@@ -103,7 +107,7 @@ PyObject *c_array_to_python(const float *values, int size0, int size1);
 PyObject *c_array_to_python(const double *values, int size0, int size1);
 
 //
-// Create an uninitialized Numeric array.
+// Create an uninitialized Numpy array.
 //
 PyObject *python_uint8_array(int size, unsigned char **data = NULL);
 PyObject *python_uint8_array(int size1, int size2, unsigned char **data = NULL);

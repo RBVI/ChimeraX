@@ -1,9 +1,35 @@
 # vi: set expandtab ts=4 sw=4:
+"""
+gui: main Chimera 2 user interface
+==================================
+
+The principal class that tool writers will use from this module is
+:py:class:`MainToolWindow`, which is either instantiated directly, or
+subclassed and instantiated to create the tool's main window.
+Additional windows are created by calling that instance's
+:py:meth:`MainToolWindow.create_child_window` method.
+
+Rarely, methods are used from the :py:class:`UI` class to get
+keystrokes typed to the main graphics window, or to execute code
+in a thread-safe manner.  The UI instance is accessed as session.ui.
+"""
 
 import wx
 
 
 class UI(wx.App):
+    """Main Chimera2 user interface
+
+       The only methods that tools might directly use are:
+
+       register(/deregister)_for_keystrokes
+        For the rare tool that might want to get keystrokes that are
+        typed when focus is in the main graphics window
+
+       thread_safe
+        To execute a function in a thread-safe manner
+       """
+
 
     def __init__(self, session):
         self.is_gui = True
@@ -50,16 +76,6 @@ class UI(wx.App):
     def close_splash(self):
         self.splash.Close()
 
-    def create_child_tool_window(self, tool_instance, title=None,
-            size=None, destroy_hides=False):
-        return self.main_window._create_child_tool_window(tool_instance,
-            title, size, destroy_hides)
-
-    def create_main_tool_window(self, tool_instance, size=None,
-            destroy_hides=False):
-        return self.main_window._create_main_tool_window(tool_instance, size,
-            destroy_hides)
-
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
         """
@@ -94,6 +110,12 @@ class UI(wx.App):
            method will be called with the keystroke event as the argument.
         """
         self._keystroke_sinks.append(sink)
+
+    def remove_tool(self, tool_instance):
+        self.main_window.remove_tool(tool_instance)
+
+    def set_tool_shown(self, tool_instance, shown):
+        self.main_window.set_tool_shown(tool_instance, shown)
 
     def splash_info(self, msg, step_num=None, num_steps=None):
         self.splash.SetText(msg)
@@ -136,7 +158,7 @@ class MainWindow(wx.Frame, PlainTextLog):
     def __init__(self, ui, session):
         wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
 
-        from wx.lib.agw.aui import AuiManager, AuiPaneInfo, EVT_AUI_PANE_CLOSE
+        from wx.lib.agw.aui import AuiManager, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
         self.aui_mgr.SetManagedWindow(self)
 
@@ -188,101 +210,45 @@ class MainWindow(wx.Frame, PlainTextLog):
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
-        destroy_hides = tool_window.destroy_hides
-        if tool_window.destroy_hides:
+        close_destroys = tool_window.close_destroys
+        if is_main_window and close_destroys:
+            tool_instance.delete()
+            return
+        if tool_window.close_destroys:
+            del self.tool_pane_to_window[tool_window.ui_area]
+            tool_window._destroy()
+            all_windows.remove(tool_window)
+        else:
             tool_window.shown = False
             event.Veto()
-        else:
-            del self.tool_pane_to_window[tool_window.ui_area]
-            tool_window.destroy(from_destructor=True)
-            all_windows.remove(tool_window)
 
         if is_main_window:
+            # close hides, since close destroys is handled above
             for window in all_windows:
-                if destroy_hides:
-                    window.shown = False
-                else:
-                    del self.tool_pane_to_window[window.ui_area]
-                    window.destroy(from_destructor=True)
-            if not destroy_hides:
-                del self.tool_instance_to_windows[tool_instance]
+                window._prev_shown = window.shown
+                window.shown = False
 
     def on_quit(self, event):
         self.close()
 
-    def on_save_session(self, event, ses):
-        from . import io
-        try:
-            ses_filter = io.wx_export_file_filter(io.SESSION)
-        except ValueError:
-            ses.logger.error("Cannot find file extension for Chimera session ")
-            return
-        dlg = wx.FileDialog(self, "Save Session", "", "", ses_filter,
-                            wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
-        if dlg.ShowModal() == wx.ID_CANCEL:
-            return
-        ses_file = dlg.GetPath()
-        import os.path
-        ext = os.path.splitext(ses_file)[1]
-        ses_exts = io.extensions("Chimera session")
-        if ses_exts and ext not in ses_exts:
-            ses_file += ses_exts[0]
-        # TODO: maybe go through commands module
-        from . import commands
-        commands.export(ses, ses_file)
-        ses.logger.info("Session file \"%s\" saved." % ses_file)
+    def on_save(self, event, ses):
+        self.save_dialog.display(self, ses)
+
+    def remove_tool(self, tool_instance):
+        tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
+        if tool_windows:
+            for tw in tool_windows:
+                tw._mw_set_shown(False)
+                del self.tool_pane_to_window[tw.ui_area]
+                tw._destroy()
+            del self.tool_instance_to_windows[tool_instance]
+
+    def set_tool_shown(self, tool_instance, shown):
+        tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
+        if tool_windows:
+            tool_windows[0].shown = shown
 
     def status(self, msg, color, secondary):
-        wx.CallAfter(self._main_thread_status, msg, color, secondary)
-
-    def _build_graphics(self, ui):
-        from .ui.graphics import GraphicsWindow
-        self.graphics_window = g = GraphicsWindow(self, ui)
-        from wx.lib.agw.aui import AuiPaneInfo
-        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
-
-    def _build_menus(self, session):
-        menu_bar = wx.MenuBar()
-        self._populate_menus(menu_bar, session)
-        self.SetMenuBar(menu_bar)
-
-    def _build_status(self):
-        # as a kludge, use 3 fields so that I can center the initial
-        # "Welcome" text
-        self.status_bar = self.CreateStatusBar(3,
-            wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
-            | wx.FULL_REPAINT_ON_RESIZE)
-        greeting = "Welcome to Chimera 2"
-        greeting_size = wx.Window.GetTextExtent(self, greeting)
-        self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
-        self.status_bar.SetStatusText("", 0)
-        self.status_bar.SetStatusText(greeting, 1)
-        self.status_bar.SetStatusText("", 2)
-        self._initial_status_kludge = True
-
-    def _create_child_tool_window(self, tool_instance, title, size,
-            destroy_hides):
-        if tool_instance not in self.tool_instance_to_windows:
-            raise ValueError("Tool {} trying to create child window without "
-                "first creating main window".format(tool_instance.display_name))
-        if title is None:
-            title = tool_instance.display_name
-        tw = ToolWindow(tool_instance, title, self, size, destroy_hides)
-        self.tool_pane_to_window[tw.ui_area] = tw
-        self.tool_instance_to_windows[tool_instance].append(tw)
-        return tw
-
-    def _create_main_tool_window(self, tool_instance, size, destroy_hides):
-        if tool_instance in self.tool_instance_to_windows:
-            raise ValueError("Tool {} trying to create multiple main windows"
-                .format(tool_instance.display_name))
-        tw = ToolWindow(tool_instance, tool_instance.display_name, self, size,
-            destroy_hides)
-        self.tool_pane_to_window[tw.ui_area] = tw
-        self.tool_instance_to_windows[tool_instance] = [tw]
-        return tw
-
-    def _main_thread_status(self, msg, color, secondary):
         if self._initial_status_kludge == True:
             self._initial_status_kludge = False
             self.status_bar.SetStatusText("", 1)
@@ -305,15 +271,48 @@ class MainWindow(wx.Frame, PlainTextLog):
         else:
             self.status_bar.SetStatusText(msg, 0)
 
+
+    def _build_graphics(self, ui):
+        from .ui.graphics import GraphicsWindow
+        self.graphics_window = g = GraphicsWindow(self, ui)
+        from wx.lib.agw.aui import AuiPaneInfo
+        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
+        from .ui.save_dialog import MainSaveDialog, ImageSaver
+        self.save_dialog = MainSaveDialog(self)
+        ImageSaver(self.save_dialog).register()
+
+    def _build_menus(self, session):
+        menu_bar = wx.MenuBar()
+        self._populate_menus(menu_bar, session)
+        self.SetMenuBar(menu_bar)
+
+    def _build_status(self):
+        # as a kludge, use 3 fields so that I can center the initial
+        # "Welcome" text
+        self.status_bar = self.CreateStatusBar(3,
+            wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
+            | wx.FULL_REPAINT_ON_RESIZE)
+        greeting = "Welcome to Chimera 2"
+        greeting_size = wx.Window.GetTextExtent(self, greeting)
+        self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
+        self.status_bar.SetStatusText("", 0)
+        self.status_bar.SetStatusText(greeting, 1)
+        self.status_bar.SetStatusText("", 2)
+        self._initial_status_kludge = True
+
+    def _new_tool_window(self, tw):
+        self.tool_pane_to_window[tw.ui_area] = tw
+        self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
+
     def _populate_menus(self, menu_bar, session):
         import sys
         file_menu = wx.Menu()
         menu_bar.Append(file_menu, "&File")
-        item = file_menu.Append(wx.ID_OPEN, "Open...", "Open input file")
+        item = file_menu.Append(wx.ID_OPEN, "Open...\tCtrl+O", "Open input file")
         self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_open(evt, ses),
             item)
-        item = file_menu.Append(wx.ID_ANY, "Save Session...", "Save session file")
-        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_save_session(evt, ses),
+        item = file_menu.Append(wx.ID_ANY, "Save...\tCtrl+S", "Save output file")
+        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_save(evt, ses),
             item)
         item = file_menu.Append(wx.ID_EXIT, "Quit\tCtrl-Q", "Quit application")
         self.Bind(wx.EVT_MENU, self.on_quit, item)
@@ -344,75 +343,174 @@ class MainWindow(wx.Frame, PlainTextLog):
                 self.Bind(wx.EVT_MENU, cb, item)
         menu_bar.Append(tools_menu, "&Tools")
 
+    def _tool_window_destroy(self, tool_window):
+        tool_instance = tool_window.tool_instance
+        all_windows = self.tool_instance_to_windows[tool_instance]
+        is_main_window = tool_window is all_windows[0]
+        if is_main_window:
+            tool_instance.delete()
+            return
+        del self.tool_pane_to_window[tool_window.ui_area]
+        tool_window._destroy()
+        all_windows.remove(tool_window)
+
     def _tool_window_request_shown(self, tool_window, shown):
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
-        tool_window._set_shown(shown)
+        tool_window._mw_set_shown(shown)
         if is_main_window:
             for window in all_windows[1:]:
-                window._set_shown(shown)
+                window._mw_set_shown(getattr(window, '_prev_shown', shown))
 
 class ToolWindow:
     """An area that a tool can populate with widgets.
 
-    Should not be created directly by the tool but instead should
-    be created via the UI class, either its method creat_main_tool_window
-    or create_child_tool_window."""
+    This class is not used directly.  Instead, a tool makes its main
+    window by instantiating the :py:class:`MainToolWindow` class
+    (or a subclass thereof), and any subwindows by calling that class's
+    :py:meth:`~MainToolWindow.create_child_window` method.
 
+    The window's :py:attr:`ui_area` attribute is the parent to all the tool's
+    widgets for this window.  Call :py:meth:`manage` once the widgets
+    are set up to show the tool window in the main interface.
+    """
+
+    #: Where the window is placed in the main interface
     placements = ["right", "left", "top", "bottom"]
 
-    def __init__(self, tool_instance, title, main_window, size, destroy_hides):
-        """ 'ui_area' is the parent to all the tool's widgets;
-            Call 'manage' once the widgets are set up to put the
-            tool into the main window.
-        """
+    #: Whether closing this window destroys it or hides it.
+    #: If it destroys it and this is the main window, all the
+    #: child windows will also be destroyedRolls
+    close_destroys = True
+
+    def __init__(self, tool_instance, title, size):
+        self.tool_instance = tool_instance
+        mw = tool_instance.session.ui.main_window
         try:
-            self.__toolkit = _Wx(self, title, main_window, size, destroy_hides)
+            self.__toolkit = _Wx(self, title, mw, size)
         except ImportError:
             # browser version
             raise NotImplementedError("Browser tool API not implemented")
         self.ui_area = self.__toolkit.ui_area
-        self.tool_instance = tool_instance
-        self.main_window = main_window
+        mw._new_tool_window(self)
 
-    def destroy(self, **kw):
-        self.__toolkit.destroy(**kw)
-        self.__toolkit = None
+    def cleanup(self):
+        """Perform tool-specific cleanup
 
-    def manage(self, placement, fixed_size = False):
-        """ Tool will be docked into main window on the side indicated by
-            'placement' (which should be a value from self.placements or None);
-            if 'placement' is None, the tool will be detached from the main
-            window.
+        Override this method to perform additional actions needed when
+        the window is destroyed"""
+        pass
+
+    def destroy(self):
+        """Called to destroy the window (from non-UI code)
+
+           Destroying a tool's main window will also destroy all its
+           child windows.
+        """
+        self.tool_instance.session.ui.main_window._tool_window_destroy(self)
+
+    def fill_context_menu(self, menu):
+        """Add items to this tool window's context menu
+
+        Override to add items to any context menu popped up over this window"""
+        pass
+
+    def manage(self, placement, fixed_size=False):
+        """Show this tool window in the interface
+
+        Tool will be docked into main window on the side indicated by
+        `placement` (which should be a value from :py:attr:`placements`
+        or None).  If `placement` is None, the tool will be detached
+        from the main window.
         """
         self.__toolkit.manage(placement, fixed_size)
 
-    def get_destroy_hides(self):
-        return self.__toolkit.destroy_hides
-
-    destroy_hides = property(get_destroy_hides)
-
-    def get_shown(self):
+    def _get_shown(self):
+        """Whether this window is hidden or shown"""
         return self.__toolkit.shown
 
-    def set_shown(self, shown):
+    def _set_shown(self, shown):
         if shown == self.__toolkit.shown:
             return
-        self.main_window._tool_window_request_shown(self, shown)
+        self.tool_instance.session.ui.main_window._tool_window_request_shown(
+            self, shown)
 
-    shown = property(get_shown, set_shown)
+    shown = property(_get_shown, _set_shown)
 
-    def _set_shown(self, shown):
+    def shown_changed(self, shown):
+        """Perform actions when window hidden/shown
+
+        Override to perform any actions you want done when the window
+        is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
+        pass
+
+    def _destroy(self):
+        self.cleanup()
+        self.__toolkit.destroy()
+        self.__toolkit = None
+
+    def _mw_set_shown(self, shown):
         self.__toolkit.shown = shown
+        self.shown_changed(shown)
+
+class MainToolWindow(ToolWindow):
+    """Class used to generate tool's main UI window.
+
+    The window's :py:attr:`ui_area` attribute is the parent to all the tool's
+    widgets for this window.  Call :py:meth:`manage` once the widgets
+    are set up to show the tool window in the main interface.
+
+    Parameters
+    ----------
+    tool_instance : a :py:class:`~chimera.core.tools.ToolInstance` instance
+        The tool creating this window.
+    size : 2-tuple of ints, optional
+        Requested size for the tool window, width by height, in pixels.
+        If not specified, uses the window system default.
+    """
+    def __init__(self, tool_instance, size=None):
+        super().__init__(tool_instance,
+            tool_instance.display_name, size)
+
+    def create_child_window(self, title, size=None, window_class=None):
+        """Make additional tool window
+
+        Parameters
+        ----------
+        title : str
+            Text shown in the window's title bar.
+        size
+            Same as for :py:class:`MainToolWindow` constructor.
+        window_class : :py:class:`ChildToolWindow` subclass, optional
+            Class to instantiate to create the child window.
+            Only needed if you want to override methods/attributes in
+            order to change behavior.
+            Defaults to :py:class:`ChildToolWindow`.
+        """
+
+        if window_class is None:
+            window_class = ChildToolWindow
+        elif not issubclass(window_class, ChildToolWindow):
+            raise ValueError(
+                "Child window class must inherit from ChildToolWindow")
+        return window_class(self.tool_instance, title, size)
+
+class ChildToolWindow(ToolWindow):
+    """Child (*i.e.* additional) tool window
+
+    Only created through use of
+    :py:meth:`MainToolWindow.create_child_window` method.
+    """
+    def __init__(self, tool_instance, title, size=None):
+        super().__init__(tool_instance, title, size)
 
 class _Wx:
 
-    def __init__(self, tool_window, title, main_window, size, destroy_hides):
+    def __init__(self, tool_window, title, main_window, size):
         import wx
         self.tool_window = tool_window
         self.title = title
-        self.destroy_hides = destroy_hides
         self.main_window = mw = main_window
         wx_sides = [wx.RIGHT, wx.LEFT, wx.TOP, wx.BOTTOM]
         self.placement_map = dict(zip(self.tool_window.placements, wx_sides))
@@ -424,28 +522,23 @@ class _Wx:
             raise RuntimeError("No main window or main window dead")
         if size is None:
             size = wx.DefaultSize
-        class WxToolPanel(wx.Panel):
-            def __init__(self, parent, destroy_hides=destroy_hides, **kw):
-                self._destroy_hides = destroy_hides
-                wx.Panel.__init__(self, parent, **kw)
 
-        self.ui_area = WxToolPanel(mw, name=title, size=size)
-        mw.tool_pane_to_window[self.ui_area] = tool_window
+        self.ui_area = wx.Panel(mw, name=title, size=size)
         self._pane_info = None
 
-    def destroy(self, from_destructor=False):
+        self.ui_area.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
+
+    def destroy(self):
         if not self.tool_window:
             # already destroyed
             return
-        if not from_destructor:
-            del self.main_window.tool_pane_to_window[self.ui_area]
-            self.ui_area.Destroy()
+        self.ui_area.Destroy()
         # free up references
         self.tool_window = None
         self.main_window = None
         self._pane_info = None
 
-    def manage(self, placement, fixed_size = False):
+    def manage(self, placement, fixed_size=False):
         import wx
         placements = self.tool_window.placements
         if placement is None:
@@ -476,17 +569,35 @@ class _Wx:
         """
         mw.aui_mgr.GetPane(self.ui_area).Layer(layer+1)
         """
-        mw.aui_mgr.Update()
         if placement is None:
            mw.aui_mgr.GetPane(self.ui_area).Float()
 
-        if not self.destroy_hides:
+        if self.tool_window.close_destroys:
             mw.aui_mgr.GetPane(self.ui_area).DestroyOnClose()
+        mw.aui_mgr.Update()
 
-    def getShown(self):
+    def on_context_menu(self, event):
+        menu = wx.Menu()
+        self.tool_window.fill_context_menu(menu)
+        if menu.GetMenuItemCount() > 0:
+            menu.Append(wx.ID_SEPARATOR)
+        help_id = wx.NewId()
+        # TODO: once help system more fleshed out, look for help attribute
+        # or method in tool window instance and do something appropriate...
+        if False:
+            self.ui_area.Bind(wx.EVT_MENU, lambda evt: self.help_func(),
+                id=help_id)
+            menu.Append(help_id, "Help")
+        else:
+            menu.Append(help_id, "No help available")
+            menu.Enable(help_id, False)
+        self.ui_area.PopupMenu(menu)
+        menu.Destroy()
+
+    def _get_shown(self):
         return self.ui_area.Shown
 
-    def setShown(self, shown):
+    def _set_shown(self, shown):
         if shown == self.ui_area.Shown:
             return
         aui_mgr = self.main_window.aui_mgr
@@ -502,4 +613,4 @@ class _Wx:
 
         self.ui_area.Shown = shown
 
-    shown = property(getShown, setShown)
+    shown = property(_get_shown, _set_shown)

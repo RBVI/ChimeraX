@@ -5,12 +5,16 @@
 #include "restmpl.h"
 #include <vector>
 #include <string>
+
 #include "../imex.h"
+#include "../string_types.h"
 
 namespace tmpl {
 
+using atomstruct::ResName;
+
 ATOMSTRUCT_IMEX extern const Residue *
-    find_template_residue(const std::string &name, bool start, bool end);
+    find_template_residue(const ResName& name, bool start, bool end);
 
 }  // namespace tmpl
 

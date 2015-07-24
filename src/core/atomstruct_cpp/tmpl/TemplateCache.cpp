@@ -17,6 +17,7 @@ namespace tmpl {
 
 using atomstruct::AtomName;
 using atomstruct::AtomType;
+using atomstruct::ResName;
 
 #ifndef S_ISDIR
 # define S_ISDIR(x)    (((x) & S_IFMT) == S_IFDIR)
@@ -36,7 +37,7 @@ TemplateCache::template_cache()
 }
 
 TemplateCache::AtomMap *
-TemplateCache::res_template(std::string res_type, const char *app,
+TemplateCache::res_template(ResName res_name, const char *app,
             const char *template_dir, const char *extension)
 {
     std::string key;
@@ -50,10 +51,10 @@ TemplateCache::res_template(std::string res_type, const char *app,
         cache_template_type(key, app, template_dir, extension);
     }
     ResMap &rm = cache[key];
-    ResMap::iterator rmi = rm.find(res_type);
+    ResMap::iterator rmi = rm.find(res_name);
     if (rmi == rm.end()) {
         std::ostringstream os;
-        os << "No " << app << " template found for residue " << res_type;
+        os << "No " << app << " template found for residue " << res_name;
         throw TA_NoTemplate(os.str());
     }
     return &((*rmi).second);
@@ -102,7 +103,7 @@ TemplateCache::cache_template_type(std::string &key, const char *app,
                     continue;
             }
             
-            std::string res_name(entry->d_name, dot);
+            ResName res_name = std::string(entry->d_name, dot).c_str();
             if (res_map.find(res_name) != res_map.end())
                 // residue already templated;
                 // since earlier search path 
