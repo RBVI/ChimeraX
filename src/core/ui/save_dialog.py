@@ -30,7 +30,7 @@ class _SaveFormat:
         return self._save(session, filename)
 
 
-class SaveDialog:
+class MainSaveDialog:
 
     DEFAULT_FORMAT = "Chimera Session"
 
@@ -61,8 +61,8 @@ class SaveDialog:
     def display(self, parent, session):
         import wx
         if self.file_dialog is None:
-            self.file_dialog = wx.FileDialog(parent, "Save File", "", "", "",
-                                             wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+            from .open_save import SaveDialog
+            self.file_dialog = SaveDialog(parent, "Save File")
             self.file_dialog.SetExtraControlCreator(self._extraCreatorCB)
         else:
             fmt = self.current_format()
@@ -112,7 +112,7 @@ class SaveDialog:
             return p
         except:
             import traceback
-            print("Error in SaveDialog SetExtraControlCreator callback:\n")
+            print("Error in MainSaveDialog SetExtraControlCreator callback:\n")
             print(traceback.format_exc())
             p.Destroy()
             return None

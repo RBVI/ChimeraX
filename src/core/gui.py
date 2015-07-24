@@ -249,37 +249,6 @@ class MainWindow(wx.Frame, PlainTextLog):
             tool_windows[0].shown = shown
 
     def status(self, msg, color, secondary):
-        wx.CallAfter(self._main_thread_status, msg, color, secondary)
-
-    def _build_graphics(self, ui):
-        from .ui.graphics import GraphicsWindow
-        self.graphics_window = g = GraphicsWindow(self, ui)
-        from wx.lib.agw.aui import AuiPaneInfo
-        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
-        from .ui.save_dialog import SaveDialog, ImageSaver
-        self.save_dialog = SaveDialog(self)
-        ImageSaver(self.save_dialog).register()
-
-    def _build_menus(self, session):
-        menu_bar = wx.MenuBar()
-        self._populate_menus(menu_bar, session)
-        self.SetMenuBar(menu_bar)
-
-    def _build_status(self):
-        # as a kludge, use 3 fields so that I can center the initial
-        # "Welcome" text
-        self.status_bar = self.CreateStatusBar(3,
-            wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
-            | wx.FULL_REPAINT_ON_RESIZE)
-        greeting = "Welcome to Chimera 2"
-        greeting_size = wx.Window.GetTextExtent(self, greeting)
-        self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
-        self.status_bar.SetStatusText("", 0)
-        self.status_bar.SetStatusText(greeting, 1)
-        self.status_bar.SetStatusText("", 2)
-        self._initial_status_kludge = True
-
-    def _main_thread_status(self, msg, color, secondary):
         if self._initial_status_kludge == True:
             self._initial_status_kludge = False
             self.status_bar.SetStatusText("", 1)
@@ -301,6 +270,36 @@ class MainWindow(wx.Frame, PlainTextLog):
             self.status_bar.SetStatusText(msg, 1)
         else:
             self.status_bar.SetStatusText(msg, 0)
+        self.status_bar.Update()
+
+
+    def _build_graphics(self, ui):
+        from .ui.graphics import GraphicsWindow
+        self.graphics_window = g = GraphicsWindow(self, ui)
+        from wx.lib.agw.aui import AuiPaneInfo
+        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
+        from .ui.save_dialog import MainSaveDialog, ImageSaver
+        self.save_dialog = MainSaveDialog(self)
+        ImageSaver(self.save_dialog).register()
+
+    def _build_menus(self, session):
+        menu_bar = wx.MenuBar()
+        self._populate_menus(menu_bar, session)
+        self.SetMenuBar(menu_bar)
+
+    def _build_status(self):
+        # as a kludge, use 3 fields so that I can center the initial
+        # "Welcome" text
+        self.status_bar = self.CreateStatusBar(3,
+            wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
+            | wx.FULL_REPAINT_ON_RESIZE)
+        greeting = "Welcome to Chimera 2"
+        greeting_size = wx.Window.GetTextExtent(self, greeting)
+        self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
+        self.status_bar.SetStatusText("", 0)
+        self.status_bar.SetStatusText(greeting, 1)
+        self.status_bar.SetStatusText("", 2)
+        self._initial_status_kludge = True
 
     def _new_tool_window(self, tw):
         self.tool_pane_to_window[tw.ui_area] = tw
@@ -399,14 +398,14 @@ class ToolWindow:
 
     def cleanup(self):
         """Perform tool-specific cleanup
-        
+
         Override this method to perform additional actions needed when
         the window is destroyed"""
         pass
 
     def destroy(self):
         """Called to destroy the window (from non-UI code)
-        
+
            Destroying a tool's main window will also destroy all its
            child windows.
         """
@@ -414,13 +413,13 @@ class ToolWindow:
 
     def fill_context_menu(self, menu):
         """Add items to this tool window's context menu
-        
+
         Override to add items to any context menu popped up over this window"""
         pass
 
     def manage(self, placement, fixed_size=False):
         """Show this tool window in the interface
-        
+
         Tool will be docked into main window on the side indicated by
         `placement` (which should be a value from :py:attr:`placements`
         or None).  If `placement` is None, the tool will be detached

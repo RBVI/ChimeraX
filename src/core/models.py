@@ -253,7 +253,7 @@ class Models(State):
     def open(self, filenames, id=None, **kw):
         from . import io
         session = self._session()  # resolve back reference
-        models, status = io.open_multiple(session, filenames, **kw)
+        models, status = io.open_multiple_data(session, filenames, **kw)
         if status:
             session.logger.status(status)
         if models:
