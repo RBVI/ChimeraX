@@ -134,6 +134,7 @@ public:
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
         std::set<const Residue *>* ignore = nullptr) const;
+    int  session_info(PyObject* ints, PyObject* floats, PyObject* strings) const;
     void  set_active_coord_set(CoordSet *cs);
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }

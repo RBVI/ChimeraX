@@ -655,6 +655,12 @@ AtomicStructure::_rings_cached(bool cross_residues,
         && ignore == _rings_last_ignore;
 }
 
+int
+AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* strings) const
+{
+    return 1;  // version number
+}
+
 void
 AtomicStructure::set_active_coord_set(CoordSet *cs)
 {
