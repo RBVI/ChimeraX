@@ -319,7 +319,7 @@ class Logger:
             self._follow_timer1 = None
         if follow_log is None:
             follow_log = log
-        self.status(follow_with, color=color, log=follow_log,
+        self.session.ui.thread_safe(self.status, follow_with, color=color, log=follow_log,
                     secondary=secondary)
 
     def _html_to_plain(self, msg, image, is_html):
@@ -432,7 +432,7 @@ class Logger:
             self._status_timer2 = None
         else:
             self._status_timer1 = None
-        self.status("", secondary=secondary)
+        self.session.ui.thread_safe(self.status, "", secondary=secondary)
 
 
 class CollatingLog(PlainTextLog):
