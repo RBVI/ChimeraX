@@ -81,9 +81,9 @@ class MolecularSurface(Generic3DModel):
             va, na, ta = surface.ses_surface_geometry(xyz, r, self.probe_radius, self.grid_spacing)
         else:
             # Compute Gaussian surface
-            va, na, ta = surface.gaussian_surface(xyz, atoms.element_numbers, res,
-                                                  self.level, self.grid_spacing)
-
+            va, na, ta, level = surface.gaussian_surface(xyz, atoms.element_numbers, res,
+                                                         self.level, self.grid_spacing)
+            self.gaussian_level = level
         if self.sharp_boundaries:
             v2a = self.vertex_to_atom_map(va)
             from .surface import sharp_edge_patches
@@ -299,9 +299,16 @@ def surface_command(session, atoms = None, enclose = None, include = None,
     args.sort(key = lambda s: s[0].atom_count, reverse = True)      # Largest first for load balancing
     from . import threadq
     threadq.apply_to_list(lambda s: s.calculate_surface_geometry(), args, nthread)
+#    for s in surfs:
+#        s.calculate_surface_geometry()
     # TODO: Any Python error in the threaded call causes a crash when it tries
     #       to write an error message to the log, not in the main thread.
 
+    if not resolution is None and level is None:
+        log = session.logger
+        log.info('\n'.join('%s contour level %.1f' % (s.name, s.gaussian_level)
+                           for s in surfs))
+            
     # Add new surfaces to open models list.
     for s, parent in new_surfs:
         session.models.add([s], parent = parent)
