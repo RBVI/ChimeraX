@@ -84,6 +84,7 @@ class MolecularSurface(Generic3DModel):
             va, na, ta, level = surface.gaussian_surface(xyz, atoms.element_numbers, res,
                                                          self.level, self.grid_spacing)
             self.gaussian_level = level
+
         if self.sharp_boundaries:
             v2a = self.vertex_to_atom_map(va)
             from .surface import sharp_edge_patches
