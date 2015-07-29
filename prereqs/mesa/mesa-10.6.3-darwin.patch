@@ -1,0 +1,53 @@
+*** src/mesa/main/shader_query.cpp~	Sun Jul 26 06:33:00 2015
+--- src/mesa/main/shader_query.cpp	Wed Jul 29 13:53:05 2015
+***************
+*** 69,75 ****
+     GET_CURRENT_CONTEXT(ctx);
+  
+     struct gl_shader_program *const shProg =
+!       _mesa_lookup_shader_program_err(ctx, program, "glBindAttribLocation");
+     if (!shProg)
+        return;
+  
+--- 69,75 ----
+     GET_CURRENT_CONTEXT(ctx);
+  
+     struct gl_shader_program *const shProg =
+!      _mesa_lookup_shader_program_err(ctx, (uintptr_t)program, "glBindAttribLocation");
+     if (!shProg)
+        return;
+  
+***************
+*** 137,143 ****
+        return;
+     }
+  
+!    shProg = _mesa_lookup_shader_program_err(ctx, program, "glGetActiveAttrib");
+     if (!shProg)
+        return;
+  
+--- 137,143 ----
+        return;
+     }
+  
+!    shProg = _mesa_lookup_shader_program_err(ctx, (uintptr_t)program, "glGetActiveAttrib");
+     if (!shProg)
+        return;
+  
+***************
+*** 251,257 ****
+  {
+     GET_CURRENT_CONTEXT(ctx);
+     struct gl_shader_program *const shProg =
+!       _mesa_lookup_shader_program_err(ctx, program, "glGetAttribLocation");
+  
+     if (!shProg) {
+        return -1;
+--- 251,257 ----
+  {
+     GET_CURRENT_CONTEXT(ctx);
+     struct gl_shader_program *const shProg =
+!      _mesa_lookup_shader_program_err(ctx, (uintptr_t)program, "glGetAttribLocation");
+  
+     if (!shProg) {
+        return -1;

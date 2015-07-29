@@ -1,0 +1,13 @@
+*** OpenGL/_opaque.py~	Sat Apr  6 12:15:19 2013
+--- OpenGL/_opaque.py	Wed Jul 29 15:06:07 2015
+***************
+*** 6,11 ****
+--- 6,13 ----
+      """An Opaque Structure reference (base class)"""
+  class _opaque_pointer( ctypes.POINTER( _Opaque ) ):
+      _type_ = _Opaque
++     def __hash__(self):
++         return self.address
+      @classmethod
+      def from_param( cls, value ):
+          return ctypes.cast( value, cls )

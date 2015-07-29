@@ -36,19 +36,12 @@ SUBDIRS += leapmotion oculus
 endif
 
 ifeq ($(OS),Linux)
-SUBDIRS += xdg-utils
+SUBDIRS += llvm mesa pkgconfig xdg-utils
 endif
 
 #ifdef UNIX
 #SUBDIRS += unix
 #endif
-
-ifdef NEED_MESA
-SUBDIRS += Mesa
-else
-Mesa.install:
-Mesa.app-install:
-endif
 
 ifdef HYDRA
 SUBDIRS += qt sip PyQt
@@ -137,6 +130,8 @@ hdf5.install: zlib.install
 hdf5.app-install: zlib.app-install
 leapmotion.install: setuptools.install
 leapmotion.app-install: setuptools.app-install
+llvm.install:
+mesa.install: llvm.install pkgconfig.install
 numexpr.install: numpy.install
 numexpr.app-install: numpy.app-install
 numpy.install: setuptools.install
@@ -148,6 +143,7 @@ pcre.app-install: zlib.app-install
 # pips.app-install: jpeg.app-install tiff.app-install freetype.app-install littecms.app-install webp.app-install webpmux.app-install
 pips.install: setuptools.install
 pips.app-install: setuptools.app-install
+pkgconfig.install:
 pycollada.install: setuptools.install numpy.install pips.install
 pycollada.app-install: setuptools.app-install numpy.app-install pips.app-install
 PyOpenGL.install: setuptools.install numpy.install Mesa.install pips.install
