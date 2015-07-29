@@ -254,8 +254,10 @@ def init(argv, event_loop=True):
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
     rootdir = os.path.dirname(bindir)
-    sess.app_data_dir = os.path.join(rootdir, "share")
-    sess.app_bin_dir = os.path.join(rootdir, "bin")
+    import chimera
+    chimera.app_data_dir = sess.app_data_dir = os.path.join(rootdir, "share")
+    chimera.app_bin_dir = sess.app_bin_dir = os.path.join(rootdir, "bin")
+    chimera.app_lib_dir = sess.app_lib_dir = os.path.join(rootdir, "lib")
 
     # inform the C++ layer of the appdirs paths
     from chimera.core import _appdirs
