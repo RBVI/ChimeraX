@@ -267,6 +267,11 @@ def init(argv, event_loop=True):
     from chimera.core import core_settings
     core_settings.init(sess)
 
+    if not opts.gui:
+        # Flag to configure off-screen rendering before PyOpenGL imported
+        from chimera import core
+        core.offscreen_rendering = True
+
     session.common_startup(sess)
     # or:
     #   sess.add_state_manager('scenes', session.Scenes(sess))
