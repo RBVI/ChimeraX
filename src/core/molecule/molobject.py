@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 from numpy import uint8, int32, float64, float32, bool as npy_bool
 from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function
 import ctypes
@@ -15,8 +16,8 @@ def _bonds(b):
     from .molarray import Bonds
     return Bonds(b)
 def _pseudobonds(b):
-    from .molarray import PseudoBonds
-    return PseudoBonds(b)
+    from .molarray import Pseudobonds
+    return Pseudobonds(b)
 def _residue(p):
     return object_map(p, Residue)
 def _residues(r):
@@ -28,8 +29,8 @@ def _chains(c):
 def _atomic_structure(p):
     return object_map(p, CAtomicStructure)
 def _pseudobond_group_map(pbgc_map):
-    from .molarray import PseudoBonds
-    pbg_map = dict((name, object_map(pbg,ASPseudoBondGroup)) for name, pbg in pbgc_map.items())
+    from ..pbgroup import PseudobondGroup
+    pbg_map = dict((name, object_map(pbg,PseudobondGroup)) for name, pbg in pbgc_map.items())
     return pbg_map
 
 # -----------------------------------------------------------------------------
@@ -87,7 +88,7 @@ class Bond:
 
 # -----------------------------------------------------------------------------
 #
-class PseudoBond:
+class Pseudobond:
 
     def __init__(self, pbond_pointer):
         set_c_pointer(self, pbond_pointer)
@@ -107,40 +108,13 @@ class PseudoBond:
 
 # -----------------------------------------------------------------------------
 #
-class ASPseudoBondGroup:
-    '''AtomicStructure pseudobond group.'''
+class CPseudobondGroup:
+    '''Pseudobond group.'''
 
-    def __init__(self, pbg_pointer = None):
+    def __init__(self, pbg_pointer):
         set_c_pointer(self, pbg_pointer)
 
-    gc_color = c_property('as_pseudobond_group_gc_color', npy_bool)
-    gc_select = c_property('as_pseudobond_group_gc_select', npy_bool)
-    gc_shape = c_property('as_pseudobond_group_gc_shape', npy_bool)
-    num_pseudobonds = c_property('as_pseudobond_group_num_pseudobonds', int32, read_only = True)
-    pseudobonds = c_property('as_pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
-                             astype = _pseudobonds, read_only = True)
-
-    def new_pseudobond(self, atom1, atom2):
-        f = c_function('as_pseudobond_group_new_pseudobond',
-                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
-                       ret = ctypes.c_void_p)
-        pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
-        return object_map(pb, PseudoBond)
-
-# -----------------------------------------------------------------------------
-#
-class CPseudoBondGroup:
-    '''Global pseudobond group.'''
-
-    def __init__(self, pbg_pointer = None, name = None):
-        if pbg_pointer is None:
-            f = c_function('pseudobond_group_get', args = [ctypes.c_char_p], ret = ctypes.c_void_p)
-            pbg_pointer = f(name.encode('utf-8'))
-            set_c_pointer(self, pbg_pointer)
-            add_to_object_map(self)
-        else:
-            set_c_pointer(self, pbg_pointer)
-
+    category = c_property('pseudobond_group_category', string, read_only = True)
     gc_color = c_property('pseudobond_group_gc_color', npy_bool)
     gc_select = c_property('pseudobond_group_gc_select', npy_bool)
     gc_shape = c_property('pseudobond_group_gc_shape', npy_bool)
@@ -153,10 +127,28 @@ class CPseudoBondGroup:
                        args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
                        ret = ctypes.c_void_p)
         pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
-        return object_map(pb, PseudoBond)
+        return object_map(pb, Pseudobond)
 
-    def delete(self):
-        c_function('pseudobond_group_delete', args = [ctypes.c_void_p])(self._c_pointer)
+
+# -----------------------------------------------------------------------------
+#
+class PseudobondManager:
+    '''Per-session singleton pseudobond manager'''
+
+    def __init__(self):
+        f = c_function('pseudobond_create_global_manager', args = (), ret = ctypes.c_void_p)
+        set_c_pointer(self, f())
+
+    def get_group(self, name, create = True):
+        f = c_function('pseudobond_global_manager_get_group',
+                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
+                       ret = ctypes.c_void_p)
+        pbg = f(self._c_pointer, name.encode('utf-8'), create)
+        if not pbg:
+            return None
+        from ..pbgroup import PseudobondGroup
+        return object_map(pbg, PseudobondGroup)
+
 
 # -----------------------------------------------------------------------------
 #
@@ -253,12 +245,18 @@ class CAtomicStructure:
         from .molarray import Residues
         return tuple(Residues(ra) for ra in resarrays)
 
-    def pseudobond_group(self, name):
+    def pseudobond_group(self, name, create_type = "normal"):
+        if create_type is None:
+            create_arg = 0
+        elif create_type == "normal":
+            create_arg = 1
+        else:  # per-coordset
+            create_arg = 2
         f = c_function('structure_pseudobond_group',
-                       args = (ctypes.c_void_p, ctypes.c_char_p),
+                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
-        pbg = f(self._c_pointer, name.encode('utf-8'))
-        return object_map(pbg, ASPseudoBondGroup)
+        pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
+        return object_map(pbg, PseudobondGroup)
 
 # -----------------------------------------------------------------------------
 #

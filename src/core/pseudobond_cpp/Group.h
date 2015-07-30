@@ -17,6 +17,11 @@ class Group:
 protected:
     std::string  _category;
     bool  _destruction_relevant;
+
+    // the manager will need to be declared as a friend...
+    Group(const std::string& cat): _category(cat), _destruction_relevant(true) { }
+    virtual  ~Group() {}
+
     // can't call pure virtuals from base class destructors, so
     // make the code easily available to derived classes...
     void  dtor_code() {
@@ -27,9 +32,6 @@ protected:
     }
 public:
     virtual void  clear() = 0;
-    Group(const std::string& cat):
-        _category(cat), _destruction_relevant(true) { }
-    virtual  ~Group() {}
     virtual const std::string&  category() const { return _category; }
     virtual void  check_destroyed_atoms(const std::set<void*>& destroyed) = 0;
     virtual void  destructors_done(const std::set<void*>& destroyed) {
@@ -46,10 +48,12 @@ class Owned_Group: public Group<EndPoint, PBond> {
 protected:
     Owner*  _owner;
 public:
-    virtual PBond*  new_pseudobond(EndPoint* e1, EndPoint* e2) = 0;
     Owned_Group(const std::string& cat, Owner* owner):
             Group<EndPoint, PBond>(cat), _owner(owner) {}
     virtual  ~Owned_Group() {};
+
+    virtual PBond*  new_pseudobond(EndPoint* e1, EndPoint* e2) = 0;
+    Owner*  owner() const { return _owner; }
 };
 
 }  // namespace pseudobond
