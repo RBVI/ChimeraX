@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #include <Python.h>	// Use PyUnicode_FromString
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -452,145 +453,88 @@ extern "C" void set_pseudobond_radius(void *pbonds, int n, float *radii)
     b[i]->set_radius(*radii++);
 }
 
-extern "C" void *pseudobond_group_get(const char *name)
+extern "C" void pseudobond_group_category(void *pbgroups, int n, void **categories)
 {
-  int create = PBManager::GRP_NORMAL;	// Create if not yet created.
-  PBGroup *pbg = PBManager::manager().get_group(name, create);
-  return pbg;
-}
-
-extern "C" void pseudobond_group_delete(void *pbgroup)
-{
-  PBGroup *pbg = static_cast<PBGroup *>(pbgroup);
-  delete pbg;
+  AcquireGIL g;
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    categories[i] = PyUnicode_FromString(pbg[i]->category().c_str());
 }
 
 extern "C" void pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
 {
-  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
   for (int i = 0 ; i < n ; ++i)
     color_changed[i] = pbg[i]->get_gc_color();
 }
 
 extern "C" void set_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
 {
-  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
   for (int i = 0 ; i < n ; ++i)
     pbg[i]->set_gc_color(color_changed[i]);
 }
 
 extern "C" void pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
 {
-  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
   for (int i = 0 ; i < n ; ++i)
     select_changed[i] = pbg[i]->get_gc_select();
 }
 
 extern "C" void set_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
 {
-  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
   for (int i = 0 ; i < n ; ++i)
     pbg[i]->set_gc_select(select_changed[i]);
 }
 
 extern "C" void pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
 {
-  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
   for (int i = 0 ; i < n ; ++i)
     shape_changed[i] = pbg[i]->get_gc_shape();
 }
 
 extern "C" void set_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
 {
-  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
   for (int i = 0 ; i < n ; ++i)
     pbg[i]->set_gc_shape(shape_changed[i]);
 }
 
 extern "C" void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
 {
-  PBGroup *pbg = static_cast<PBGroup *>(pbgroup);
+  Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
   PBond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
   return b;
 }
 
 extern "C" void pseudobond_group_num_pseudobonds(void *pbgroups, int n, int *num_pseudobonds)
 {
-  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
   for (int i = 0 ; i < n ; ++i)
     *num_pseudobonds++ = pbg[i]->pseudobonds().size();
 }
 
 extern "C" void pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseudobonds)
 {
-  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
-  for (int i = 0 ; i < n ; ++i)
-    for (auto pb: pbg[i]->pseudobonds())
-      *pseudobonds++ = pb;
-}
-
-extern "C" void as_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
-{
-  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-  for (int i = 0 ; i < n ; ++i)
-    color_changed[i] = pbg[i]->get_gc_color();
-}
-
-extern "C" void set_as_pseudobond_group_gc_color(void *pbgroups, int n, unsigned char *color_changed)
-{
-  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-  for (int i = 0 ; i < n ; ++i)
-    pbg[i]->set_gc_color(color_changed[i]);
-}
-
-extern "C" void as_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
-{
-  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-  for (int i = 0 ; i < n ; ++i)
-    select_changed[i] = pbg[i]->get_gc_select();
-}
-
-extern "C" void set_as_pseudobond_group_gc_select(void *pbgroups, int n, unsigned char *select_changed)
-{
-  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-  for (int i = 0 ; i < n ; ++i)
-    pbg[i]->set_gc_select(select_changed[i]);
-}
-
-extern "C" void as_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
-{
-  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-  for (int i = 0 ; i < n ; ++i)
-    shape_changed[i] = pbg[i]->get_gc_shape();
-}
-
-extern "C" void set_as_pseudobond_group_gc_shape(void *pbgroups, int n, unsigned char *shape_changed)
-{
-  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-  for (int i = 0 ; i < n ; ++i)
-    pbg[i]->set_gc_shape(shape_changed[i]);
-}
-
-extern "C" void *as_pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
-{
-  Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
-  PBond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
-  return b;
-}
-
-extern "C" void as_pseudobond_group_num_pseudobonds(void *pbgroups, int n, int *num_pseudobonds)
-{
-  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-  for (int i = 0 ; i < n ; ++i)
-    *num_pseudobonds++ = pbg[i]->pseudobonds().size();
-}
-
-extern "C" void as_pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseudobonds)
-{
   Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
   for (int i = 0 ; i < n ; ++i)
     for (auto pb: pbg[i]->pseudobonds())
       *pseudobonds++ = pb;
+}
+
+extern "C" void *pseudobond_create_global_manager()
+{
+  auto pb_manager = new PBManager();
+  return pb_manager;
+}
+
+extern "C" void* pseudobond_global_manager_get_group(void *manager, const char* name, int create)
+{
+  PBManager* mgr = static_cast<PBManager*>(manager);
+  return mgr->get_group(name, create);
 }
 
 extern "C" void residue_atoms(void *residues, int n, void **atoms)
@@ -942,10 +886,10 @@ extern "C" void structure_pbg_map(void *mols, int n, void **pbgs)
     }
 }
 
-extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name)
+extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name, int create_type)
 {
   AtomicStructure *m = static_cast<AtomicStructure *>(mol);
-  Proxy_PBGroup *pbg = m->pb_mgr().get_group(name, AS_PBManager::GRP_NORMAL);
+  Proxy_PBGroup *pbg = m->pb_mgr().get_group(name, create_type);
   return pbg;
 }
 

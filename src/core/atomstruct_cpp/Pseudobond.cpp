@@ -5,19 +5,12 @@
 #include <basegeom/destruct.h>
 #include "Pseudobond.h"
 
-namespace pseudobond {
-
-template <>
-atomstruct::PBManager Global_Manager<atomstruct::PBGroup>::_manager = Global_Manager<atomstruct::PBGroup>();
-
-}  // namespace pseudobond
-
 namespace atomstruct {
 
 void
 Owned_PBGroup_Base::_check_ownership(Atom* a1, Atom* a2)
 {
-    if (a1->structure() != _owner || a2->structure() != _owner)
+    if (_owner != nullptr && (a1->structure() != _owner || a2->structure() != _owner))
         throw std::invalid_argument("Pseudobond endpoints not in "
             " atomic structure associated with group");
 }
@@ -63,15 +56,27 @@ Owned_PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
 }
 
 void
-PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
+AS_PBManager::delete_group(Proxy_PBGroup* group)
 {
-    auto db = basegeom::DestructionBatcher(this);
-    _check_destroyed_atoms(_pbonds, destroyed,
-        static_cast<GraphicsContainer*>(this));
+    auto gmi = this->_groups.find(group->category());
+    if (gmi == this->_groups.end())
+        throw std::invalid_argument("Asking for deletion of group not in manager!");
+    delete group;
+    this->_groups.erase(gmi);
+}
+
+void
+PBManager::delete_group(Proxy_PBGroup* group)
+{
+    auto gmi = this->_groups.find(group->category());
+    if (gmi == this->_groups.end())
+        throw std::invalid_argument("Asking for deletion of group not in manager!");
+    delete group;
+    this->_groups.erase(gmi);
 }
 
 Proxy_PBGroup*
-AS_PBManager::get_group(const std::string& name, int create) const
+AS_PBManager::get_group(const std::string& name, int create)
 {
     Proxy_PBGroup* grp;
     auto gmi = this->_groups.find(name);
@@ -86,7 +91,34 @@ AS_PBManager::get_group(const std::string& name, int create) const
     if (create == GRP_NONE)
         return nullptr;
 
-    grp = new Proxy_PBGroup(name, _owner, create);
+    grp = new Proxy_PBGroup(static_cast<Proxy_PBGroup::BaseManager*>(this),
+        name, _owner, create);
+    _groups[name] = grp;
+    return grp;
+}
+
+Proxy_PBGroup*
+PBManager::get_group(const std::string& name, int create)
+{
+    Proxy_PBGroup* grp;
+    auto gmi = this->_groups.find(name);
+    if (gmi != this->_groups.end()) {
+        grp = (*gmi).second;
+        if (create != GRP_NONE && grp->group_type() != create) {
+            throw std::invalid_argument("Group type mismatch");
+        }
+        return grp;
+    }
+
+    if (create == GRP_NONE)
+        return nullptr;
+
+    if (create != GRP_NORMAL)
+        throw std::invalid_argument("Can only create normal pseudobond groups"
+            " in global non-structure-associated pseudobond manager");
+
+    grp = new Proxy_PBGroup(static_cast<Proxy_PBGroup::BaseManager*>(this),
+        name, nullptr, create);
     _groups[name] = grp;
     return grp;
 }

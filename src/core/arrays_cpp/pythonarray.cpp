@@ -1232,7 +1232,7 @@ static void *initialize_numpy()
   if (first_call)
     {
       first_call = false;
-      import_array();
+      import_array1(NULL);
     }
   return NULL;
 }

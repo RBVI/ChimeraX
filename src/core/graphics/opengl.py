@@ -12,10 +12,31 @@ and texture coordinates.  The Bindings class defines the connections
 between Buffers and shader program variables.  The Texture class manages
 2D texture storage.  '''
 
+def configure_offscreen_rendering():
+    from chimera import core, app_lib_dir
+    if not hasattr(core, 'offscreen_rendering'):
+        return
+    import sys
+    if sys.platform == 'darwin':
+        return  # OSMesa 10.6.3 with LLVM crashes in glDrawElements() on Mac.
+    import os
+    os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
+    # OSMesa 10.6.2 gives an OpenGL 3.0 compatibility context on Linux with only GLSL 130 support.
+    # Chimera needs OpenGL 3.3 with GLSL 330 shaders and requires only a core context.
+    # Overriding Mesa to give OpenGL 3.3, gives a core context that really does support 3.3.
+    # TODO: This would not be necessary if Linux Chimera requested a core context.
+    os.environ['MESA_GL_VERSION_OVERRIDE'] = '3.3'
+    # Tell PyOpenGL where to find libOSMesa
+    lib_suffix = '.dylib' if sys.platform == 'darwin' else '.so'
+    os.environ['PYOPENGL_OSMESA_LIB_PATH'] = os.path.join(app_lib_dir, 'libOSMesa' + lib_suffix)
+
+# Set environment variables set before importing PyOpenGL.
+configure_offscreen_rendering()
+
 from OpenGL import GL
+
 # OpenGL workarounds:
 stencil8_needed = False
-
 
 class Render:
     '''
@@ -360,6 +381,16 @@ class Render:
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
         return GL.glGetString(GL.GL_VERSION).decode('utf-8')
+
+    def opengl_info(self):
+        lines = ['vendor: %s' % GL.glGetString(GL.GL_VENDOR).decode('utf-8'),
+                 'renderer: %s' % GL.glGetString(GL.GL_RENDERER).decode('utf-8'),
+                 'version: %s' % GL.glGetString(GL.GL_VERSION).decode('utf-8'),
+                 'GLSL version: %s' % GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8')]
+        ne = GL.glGetInteger(GL.GL_NUM_EXTENSIONS)
+        for e in range(ne):
+            lines.append('extension: %s' % GL.glGetStringi(GL.GL_EXTENSIONS,e).decode('utf-8'))
+        return '\n'.join(lines)
 
     def support_stereo(self):
         'Return if sequential stereo is supported.'
@@ -1072,8 +1103,7 @@ class Bindings:
         if nattr == 1:
             GL.glVertexAttribPointer(attr_id, ncomp, gtype, normalize, 0, None)
             GL.glEnableVertexAttribArray(attr_id)
-            GL.glVertexAttribDivisor(attr_id,
-                                     1 if buffer.instance_buffer else 0)
+            GL.glVertexAttribDivisor(attr_id, 1 if buffer.instance_buffer else 0)
             self.bound_attr_ids[buffer] = [attr_id]
         else:
             # Matrices use multiple vector attributes
@@ -1238,7 +1268,7 @@ class Buffer:
     lines = GL.GL_LINES
     points = GL.GL_POINTS
 
-    def draw_elements(self, element_type=GL.GL_TRIANGLES, ninst=None):
+    def draw_elements(self, element_type=triangles, ninst=None):
         '''
         Draw primitives using this buffer as the element buffer.
         All the required buffers are assumed to be already bound using a
@@ -1252,8 +1282,7 @@ class Buffer:
         if ninst is None:
             GL.glDrawElements(element_type, ne, GL.GL_UNSIGNED_INT, None)
         else:
-            GL.glDrawElementsInstanced(element_type, ne, GL.GL_UNSIGNED_INT,
-                                       None, ninst)
+            GL.glDrawElementsInstanced(element_type, ne, GL.GL_UNSIGNED_INT, None, ninst)
 
     def shader_has_required_capabilities(self, shader):
         if not self.requires_capabilities:
@@ -1612,3 +1641,25 @@ def print_debug_log(tag, count=None):
 def pyopengl_null():
     import ctypes
     return ctypes.c_void_p(0)
+
+class OffScreenRenderingContext:
+    def __init__(self, width = 512, height = 512):
+        self.width = width
+        self.height = height
+        from OpenGL import GL, arrays, platform
+        from OpenGL.raw.osmesa import mesa
+        # To use OSMesa with PyOpenGL requires environment variable PYOPENGL_PLATFORM=osmesa
+        # Also will need libOSMesa in dlopen library path.
+        self.context = mesa.OSMesaCreateContext(GL.GL_RGBA, None)
+        buf = arrays.GLubyteArray.zeros((height, width, 4))
+        #p = arrays.ArrayDatatype.dataPointer(buf)
+        self.buffer = buf
+        
+    def make_current(self):
+        from OpenGL import GL, arrays, platform
+        from OpenGL.raw.osmesa import mesa
+        assert(mesa.OSMesaMakeCurrent(self.context, self.buffer, GL.GL_UNSIGNED_BYTE, self.width, self.height))
+        assert(platform.CurrentContextIsValid())
+
+    def swap_buffers(self):
+        pass

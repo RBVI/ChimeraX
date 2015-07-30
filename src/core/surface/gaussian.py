@@ -18,7 +18,6 @@ def gaussian_surface(xyz, weights, resolution, level = None, grid_spacing = None
         from ..map import data
         mxyz, outside = data.interpolate_volume_data(xyz, grid.xyz_to_ijk_transform, m)
         level = 0.5*min(mxyz)
-        print ('Gaussian surface contour level %.1f' % level)
 
     from ..map import contour_surface
     va, ta, na = contour_surface(m, level, cap_faces = True, calculate_normals = True)
@@ -30,4 +29,4 @@ def gaussian_surface(xyz, weights, resolution, level = None, grid_spacing = None
     from ..geometry import vector
     vector.normalize_vectors(na)
 
-    return va, na, ta
+    return va, na, ta, level

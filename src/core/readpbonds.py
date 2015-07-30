@@ -1,9 +1,10 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 def read_pseudobond_file(session, file, name, radius = 0.5, color = (255,255,0,255), as_ = None):
     lines = file.readlines()
     file.close()
 
     from . import pbgroup
-    g = pbgroup.PseudoBondGroup(name)
+    g = session.pb_manager.get_group(name)
 
     from .structure import AtomsArg
     for i, line in enumerate(lines):

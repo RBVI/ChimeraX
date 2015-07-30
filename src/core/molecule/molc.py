@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 from numpy import object as string, uintp as cptr, object as pyobject
 
 from numpy import empty, ndarray

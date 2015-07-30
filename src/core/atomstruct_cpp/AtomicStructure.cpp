@@ -565,8 +565,8 @@ AtomicStructure::polymers(bool consider_missing_structure,
 
     if (consider_missing_structure) {
         // go through missing-structure pseudobonds
-        auto pbg = (Owned_PBGroup*) _pb_mgr.get_group(PBG_MISSING_STRUCTURE,
-            AS_PBManager::GRP_NONE);
+        auto pbg = (Owned_PBGroup*) const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
+            PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
         if (pbg != nullptr) {
             for (auto& pb: pbg->pseudobonds()) {
                 Residue *r1 = pb->atoms()[0]->residue();
