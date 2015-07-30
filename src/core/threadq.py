@@ -14,7 +14,10 @@ class WorkThread(threading.Thread):
                 s = self.in_queue.get_nowait()
             except queue.Empty:
                 break
-            r = self.function(*s)
+            try:
+                r = self.function(*s)
+            except Exception as e:
+                r = e
             self.out_queue.put(r)
             self.in_queue.task_done()
 
@@ -48,6 +51,9 @@ def apply_to_list(func, args, nthread = None):
 
     results = []
     while not out_queue.empty():
-        results.append(out_queue.get())
+        r = out_queue.get()
+        if isinstance(r, Exception):
+            raise r
+        results.append(r)
 
     return results

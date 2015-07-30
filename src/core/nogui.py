@@ -56,6 +56,19 @@ class UI:
             except ImportError:
                 pass
 
+        if not self.initialize_offscreen_rendering(session.main_view):
+            session.logger.info('Offscreen rendering not available')
+
+    def initialize_offscreen_rendering(self, view):
+        from . import graphics
+        try:
+            c = graphics.OffScreenRenderingContext()
+        except:
+            c = None             # OSMesa library was not found
+        if c:
+            view.initialize_context(c)
+        return not c is None
+
     def splash_info(self, message, splash_step, num_splash_steps):
         import sys
         print("%.2f%% done: %s" % (splash_step / num_splash_steps * 100,
