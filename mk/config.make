@@ -16,10 +16,16 @@ all:
 # version numbers that leak out of prerequisites
 
 PYTHON_VERSION = 3.4
-ifdef DEBUG
+ifndef DEBUG
+PYTHON_ABI = m
+else
+ifneq (,$(wildcard $(includedir)/python$(PYTHON_VERSION)dm))
 PYTHON_ABI = dm
 else
+# didn't find debug include files, Python not compiled with debugging,
+# so revert to regular Python ABI
 PYTHON_ABI = m
+endif
 endif
 # Windows uses python22.dll instead of libpython2.2.so
 PYVER_NODOT = $(subst .,,$(PYTHON_VERSION))
