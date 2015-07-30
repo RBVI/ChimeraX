@@ -1660,7 +1660,6 @@ class OffScreenRenderingContext:
         from OpenGL.raw.osmesa import mesa
         assert(mesa.OSMesaMakeCurrent(self.context, self.buffer, GL.GL_UNSIGNED_BYTE, self.width, self.height))
         assert(platform.CurrentContextIsValid())
-        print('current osmesa context', platform.GetCurrentContext())
 
     def swap_buffers(self):
         pass
