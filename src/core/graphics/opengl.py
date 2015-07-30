@@ -27,8 +27,8 @@ def configure_offscreen_rendering():
     # TODO: This would not be necessary if Linux Chimera requested a core context.
     os.environ['MESA_GL_VERSION_OVERRIDE'] = '3.3'
     # Tell PyOpenGL where to find libOSMesa
-    pvar = 'DYLD_LIBRARY_PATH' if sys.platform == 'darwin' else 'LD_LIBRARY_PATH'
-    os.environ[pvar] = app_lib_dir
+    lib_suffix = '.dylib' if sys.platform == 'darwin' else '.so'
+    os.environ['PYOPENGL_OSMESA_LIB_PATH'] = os.path.join(app_lib_dir, 'libOSMesa' + lib_suffix)
 
 # Set environment variables set before importing PyOpenGL.
 configure_offscreen_rendering()

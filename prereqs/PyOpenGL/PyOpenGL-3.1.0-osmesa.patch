@@ -11,3 +11,30 @@
       @classmethod
       def from_param( cls, value ):
           return ctypes.cast( value, cls )
+*** OpenGL/platform/osmesa.py~	Mon Feb 24 05:45:30 2014
+--- OpenGL/platform/osmesa.py	Wed Jul 29 18:41:49 2015
+***************
+*** 18,27 ****
+      ]
+      @baseplatform.lazy_property
+      def GL(self):
+          try:
+              return ctypesloader.loadLibrary(
+                  ctypes.cdll,
+!                 'OSMesa', 
+                  mode=ctypes.RTLD_GLOBAL 
+              ) 
+          except OSError as err:
+--- 18,29 ----
+      ]
+      @baseplatform.lazy_property
+      def GL(self):
++         import os
++         osmesa_lib_path = os.environ.get('PYOPENGL_OSMESA_LIB_PATH', 'OSMesa')
+          try:
+              return ctypesloader.loadLibrary(
+                  ctypes.cdll,
+!                 osmesa_lib_path, 
+                  mode=ctypes.RTLD_GLOBAL 
+              ) 
+          except OSError as err:
