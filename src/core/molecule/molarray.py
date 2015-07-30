@@ -198,10 +198,10 @@ class Bonds(PointerArray):
 
 # -----------------------------------------------------------------------------
 #
-class PseudoBonds(PointerArray):
+class Pseudobonds(PointerArray):
 
     def __init__(self, pbond_pointers):
-        PointerArray.__init__(self, pbond_pointers, molobject.PseudoBond, PseudoBonds)
+        PointerArray.__init__(self, pbond_pointers, molobject.Pseudobond, Pseudobonds)
 
     atoms = cvec_property('pseudobond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
     colors = cvec_property('pseudobond_color', uint8, 4)

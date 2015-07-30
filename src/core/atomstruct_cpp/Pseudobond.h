@@ -38,38 +38,28 @@ public:
     typedef End_points  Atoms;
     const Atoms&  atoms() const { return end_points(); }
     GraphicsContainer*  graphics_container() const { return _gc; }
+    GraphicsContainer*  group() const { return graphics_container(); }
 };
 
 typedef std::set<PBond*>  PBonds;
 
-// "global" pseudobond groups...
-class PBGroup: public pseudobond::Group<Atom, PBond>
-{
-private:
-    PBonds  _pbonds;
-public:
-    virtual ~PBGroup() { dtor_code(); }
-    void  check_destroyed_atoms(const std::set<void*>& destroyed);
-    void  clear() { for (auto pb: _pbonds) delete pb; _pbonds.clear(); }
-    PBond*  new_pseudobond(Atom* a1, Atom* a2) {
-        PBond* pb = new PBond(a1, a2, this);
-        pb->finish_construction();
-        _pbonds.insert(pb);
-        return pb;
-    }
-    PBGroup(const std::string& cat): pseudobond::Group<Atom, PBond>(cat) {}
-    const PBonds&  pseudobonds() const { return _pbonds; }
-};
+class Proxy_PBGroup;
 
 // global pseudobond manager
-typedef pseudobond::Global_Manager<PBGroup>  PBManager;
+// Though for C++ purposes it could be templated off of PBGroup instead
+// of Proxy_PBGroup, this allows groups to be treated uniformly on the
+// Python side
+class PBManager: public pseudobond::Base_Manager<Proxy_PBGroup> {
+public:
+    void  delete_group(Proxy_PBGroup*);
+    Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
+};
 
 // in per-AtomicStructure groups there are per-CoordSet groups
 // and overall groups...
 class Owned_PBGroup_Base: public pseudobond::Owned_Group<AtomicStructure, Atom, PBond> {
 protected:
     friend class AS_PBManager;
-    friend class pseudobond::Owned_Manager<AtomicStructure, Owned_PBGroup_Base>;
     void  _check_ownership(Atom* a1, Atom* a2);
     Owned_PBGroup_Base(const std::string& cat, AtomicStructure* as):
         Owned_Group<AtomicStructure, Atom, PBond>(cat, as) {};
@@ -77,11 +67,13 @@ protected:
 
 class Owned_PBGroup: public Owned_PBGroup_Base {
 private:
+    friend class Proxy_PBGroup;
     PBonds  _pbonds;
-public:
+protected:
     Owned_PBGroup(const std::string& cat, AtomicStructure* as):
         Owned_PBGroup_Base(cat, as) {}
     ~Owned_PBGroup() { dtor_code(); }
+public:
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
     void  clear() { for (auto pb : _pbonds) delete pb; _pbonds.clear(); }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
@@ -93,15 +85,13 @@ public:
     const PBonds&  pseudobonds() const { return _pbonds; }
 };
 
-class Proxy_PBGroup;
-
 class CS_PBGroup: public Owned_PBGroup_Base
 {
 private:
     friend class Proxy_PBGroup;
     mutable std::unordered_map<const CoordSet*, PBonds>  _pbonds;
     void  remove_cs(const CoordSet* cs) { _pbonds.erase(cs); }
-public:
+protected:
     CS_PBGroup(const std::string& cat, AtomicStructure* as):
         Owned_PBGroup_Base(cat, as) {}
     ~CS_PBGroup() {
@@ -112,6 +102,7 @@ public:
                 delete pb;
         }
     }
+public:
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
     void  clear() {
         for (auto cat_set : _pbonds)
@@ -138,17 +129,38 @@ private:
         pseudobond::Owned_Manager<AtomicStructure, Proxy_PBGroup>(as) {}
     void  remove_cs(const CoordSet* cs);
 public:
-    Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE) const;
+    void  delete_group(Proxy_PBGroup*);
+    Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
 };
 
 // Need a proxy class that can be contained/returned by the pseudobond
 // manager and that will dispatch calls to the appropriate contained class
 class Proxy_PBGroup: public Owned_PBGroup_Base
 {
+public:
+    typedef pseudobond::Base_Manager<Proxy_PBGroup>  BaseManager;
 private:
     friend class AS_PBManager;
+    friend class pseudobond::Owned_Manager<AtomicStructure, Proxy_PBGroup>;
+    friend class pseudobond::Base_Manager<Proxy_PBGroup>;
+    friend class PBManager;
     int  _group_type;
+    BaseManager*  _manager;
     void*  _proxied;
+
+    Proxy_PBGroup(BaseManager* manager, const std::string& cat):
+        Owned_PBGroup_Base(cat, nullptr), _manager(manager) { init(AS_PBManager::GRP_NORMAL); }
+    Proxy_PBGroup(BaseManager* manager, const std::string& cat, AtomicStructure* as):
+        Owned_PBGroup_Base(cat, as), _manager(manager) { init(AS_PBManager::GRP_NORMAL); }
+    Proxy_PBGroup(BaseManager* manager, const std::string& cat, AtomicStructure* as, int grp_type):
+        Owned_PBGroup_Base(cat, as), _manager(manager) { init(grp_type); }
+    ~Proxy_PBGroup() {
+        auto du = basegeom::DestructionUser(this);
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            delete static_cast<Owned_PBGroup*>(_proxied);
+        else
+            delete static_cast<CS_PBGroup*>(_proxied);
+    }
     void  init(int grp_type) {
         _group_type = grp_type;
         if (grp_type == AS_PBManager::GRP_NORMAL)
@@ -161,17 +173,6 @@ private:
             static_cast<CS_PBGroup*>(_proxied)->remove_cs(cs);
     }
 public:
-    Proxy_PBGroup(const std::string& cat, AtomicStructure* as):
-        Owned_PBGroup_Base(cat, as) { init(AS_PBManager::GRP_NORMAL); }
-    Proxy_PBGroup(const std::string& cat, AtomicStructure* as, int grp_type):
-        Owned_PBGroup_Base(cat, as) { init(grp_type); }
-    ~Proxy_PBGroup() {
-        auto du = basegeom::DestructionUser(this);
-        if (_group_type == AS_PBManager::GRP_NORMAL)
-            delete static_cast<Owned_PBGroup*>(_proxied);
-        else
-            delete static_cast<CS_PBGroup*>(_proxied);
-    }
     const std::string&  category() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<Owned_PBGroup*>(_proxied)->category();
@@ -186,6 +187,12 @@ public:
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<Owned_PBGroup*>(_proxied)->clear();
         static_cast<CS_PBGroup*>(_proxied)->clear();
+    }
+    void  destroy() {
+        if (owner() == nullptr)
+            static_cast<PBManager*>(_manager)->delete_group(this);
+        else
+            static_cast<AS_PBManager*>(_manager)->delete_group(this);
     }
     int  group_type() const { return _group_type; }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
@@ -216,6 +223,8 @@ public:
             throw std::invalid_argument("Not a per-coordset pseudobond group");
         return static_cast<CS_PBGroup*>(_proxied)->pseudobonds(cs);
     }
+    decltype(_owner)  structure() const { return owner(); }
+
 };
 
 }  // namespace atomstruct

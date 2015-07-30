@@ -1,12 +1,12 @@
-from .molecule import CPseudoBondGroup
+from .molecule import CPseudobondGroup
 from .models import Model
-class PseudoBondGroup(CPseudoBondGroup, Model):
+class PseudobondGroup(CPseudobondGroup, Model):
     """Pseudobond group model"""
 
-    def __init__(self, name):
+    def __init__(self, pbg_pointer):
 
-        CPseudoBondGroup.__init__(self, name = name)
-        Model.__init__(self, name)
+        CPseudobondGroup.__init__(self, pbg_pointer)
+        Model.__init__(self, self.category)
         self._pbond_drawing = None
 
         self._update_graphics()
@@ -14,7 +14,7 @@ class PseudoBondGroup(CPseudoBondGroup, Model):
     def delete(self):
         Model.delete(self)
         self._pbond_drawing = None
-        CPseudoBondGroup.delete(self)
+        CPseudobondGroup.delete(self)
 
     def added_to_session(self, session):
         v = session.main_view
@@ -76,7 +76,8 @@ class PseudoBondGroup(CPseudoBondGroup, Model):
     def _shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
         sb = bond_atoms[0].displays & bond_atoms[1].displays  # Show bond if both atoms shown
         if half_bond_coloring.any():
-            sb2 = numpy.concatenate((sb,sb))
+            from numpy import concatenate
+            sb2 = concatenate((sb,sb))
             return sb2
         return sb
 
@@ -94,15 +95,15 @@ class PseudoBondGroup(CPseudoBondGroup, Model):
         pass
 
 def all_pseudobond_groups(models):
-    return [m for m in models.list() if isinstance(m, PseudoBondGroup)]
+    return [m for m in models.list() if isinstance(m, PseudobondGroup)]
 
 from .cli import Annotation
-class PseudoBondGroupsArg(Annotation):
+class PseudobondGroupsArg(Annotation):
     name = 'pseudobond groups'
     @staticmethod
     def parse(text, session):
         from .atomspec import AtomSpecArg
         value, used, rest = AtomSpecArg.parse(text, session)
         models = value.evaluate(session).models
-        pbgs = [m for m in models if isinstance(m, PseudoBondGroup)]
+        pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
         return pbgs, used, rest

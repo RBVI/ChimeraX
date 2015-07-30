@@ -652,6 +652,8 @@ def common_startup(sess):
     _monkey_patch = False
     sess.main_view = View(sess.models.drawing, (256, 256), None, sess.logger)
     sess.add_state_manager('main_view', sess.main_view)
+    from .molecule.molobject import PseudobondManager
+    sess.pb_manager = PseudobondManager()
 
     from . import commands
     commands.register(sess)
