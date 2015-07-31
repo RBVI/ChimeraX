@@ -1,6 +1,8 @@
 from numpy import uint8, int32, float64, float32, bool as npy_bool, integer, empty, unique, array
-from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, pointer
+from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, pointer, ctype_type_to_numpy
 from . import molobject
+import ctypes
+size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 
 def _atoms(a):
     return Atoms(a)
@@ -53,7 +55,7 @@ class PointerArray:
         from .molobject import object_map
         return object_map(self._pointers[i], self._object_class)
     def index(self, object):
-        f = c_function('pointer_index', args = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p], ret = ctypes.c_int)
+        f = c_function('pointer_index', args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p], ret = ctypes.c_ssize_t)
         i = f(self._c_pointers, len(self), object._c_pointer)
         return i
 
@@ -69,17 +71,17 @@ class PointerArray:
         return self._objects_class(numpy.intersect1d(self._pointers, objects._pointers))
     def intersects(self, objects):
         f = c_function('pointer_intersects',
-                       args = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int],
-                       ret = ctypes.c_int)
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.c_bool)
         return f(self._c_pointers, len(self), objects._c_pointers, len(objects))
     def intersects_each(self, objects_list):
         '''Check if each of serveral pointer arrays intersects this array.
         Return a boolean array of length equal to the length of objects_list.
         '''
         f = c_function('pointer_intersects_each',
-                       args = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p,
-                               ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p])
-        sizes = array(tuple(len(a) for a in objects_list), int32)
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
+                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        sizes = array(tuple(len(a) for a in objects_list), size_t)
         arrays = array(tuple(a._pointers.ctypes.data_as(ctypes.c_void_p).value for a in objects_list), cptr)
         n = len(objects_list)
         iarray = empty((n,), npy_bool)
@@ -90,8 +92,8 @@ class PointerArray:
     def mask(self, objects):
         '''Return bool array indicating for each object in current set whether that
         object appears in the argument objects.'''
-        f = c_function('pointer_mask', args = [ctypes.c_void_p, ctypes.c_int,
-                                               ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p])
+        f = c_function('pointer_mask', args = [ctypes.c_void_p, ctypes.c_size_t,
+                                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
         mask = empty((len(self),), npy_bool)
         f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(mask))
         return mask
@@ -123,7 +125,7 @@ class Atoms(PointerArray):
     displays = cvec_property('atom_display', npy_bool)
     draw_modes = cvec_property('atom_draw_mode', int32)
     element_names = cvec_property('atom_element_name', string, read_only = True)
-    element_numbers = cvec_property('atom_element_number', int32, read_only = True)
+    element_numbers = cvec_property('atom_element_number', uint8, read_only = True)
     in_chains = cvec_property('atom_in_chain', npy_bool, read_only = True)
     structures = cvec_property('atom_structure', cptr, astype = _atomic_structures, read_only = True)
     names = cvec_property('atom_name', string, read_only = True)
@@ -133,7 +135,7 @@ class Atoms(PointerArray):
 
     @property
     def num_selected(self):
-        f = c_function('atom_num_selected', args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_int)
+        f = c_function('atom_num_selected', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.c_size_t)
         return f(self._c_pointers, len(self))
 
     @property
@@ -148,7 +150,6 @@ class Atoms(PointerArray):
     def by_structure(self):
         '''Return list of pairs of structure and Atoms for that structure.'''
         amol = self.structures._pointers
-        from numpy import array
         return [(m, self.filter(amol==m._c_pointer.value)) for m in self.unique_structures]
 
     @property
@@ -172,8 +173,8 @@ class Atoms(PointerArray):
         mols = self.unique_structures
         mtable = array(tuple(m.scene_position.matrix for m in mols), float64)
         from .molc import pointer
-        f = c_function('atom_scene_coords', args = [ctypes.c_void_p, ctypes.c_int,
-                                                    ctypes.c_void_p, ctypes.c_int,
+        f = c_function('atom_scene_coords', args = [ctypes.c_void_p, ctypes.c_size_t,
+                                                    ctypes.c_void_p, ctypes.c_size_t,
                                                     ctypes.c_void_p, ctypes.c_void_p])
         f(self._c_pointers, n, mols._c_pointers, len(mols), pointer(mtable), pointer(xyz))
         return xyz
@@ -181,7 +182,7 @@ class Atoms(PointerArray):
     def delete(self):
         '''Delete the C++ Atom objects'''
         mols = self.unique_structures
-        c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_int])(self._c_pointers, len(self))
+        c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
 # -----------------------------------------------------------------------------
 #
@@ -222,7 +223,7 @@ class Residues(PointerArray):
     is_sheet = cvec_property('residue_is_sheet', npy_bool)
     structures = cvec_property('residue_structure', cptr, astype = _atomic_structures, read_only = True)
     names = cvec_property('residue_name', string, read_only = True)
-    num_atoms = cvec_property('residue_num_atoms', int32, read_only = True)
+    num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True)
     numbers = cvec_property('residue_number', int32, read_only = True)
     ss_id = cvec_property('residue_ss_id', int32)
     strs = cvec_property('residue_str', string, read_only = True)
@@ -249,7 +250,7 @@ class Chains(PointerArray):
     structures = cvec_property('chain_structure', cptr, astype = _atomic_structures, read_only = True)
     residues = cvec_property('chain_residues', cptr, 'num_residues', astype = _residues,
                              read_only = True, per_object = False)
-    num_residues = cvec_property('chain_num_residues', int32, read_only = True)
+    num_residues = cvec_property('chain_num_residues', size_t, read_only = True)
 
 # -----------------------------------------------------------------------------
 #
@@ -268,10 +269,10 @@ class CAtomicStructures(PointerArray):
     gc_select = cvec_property('structure_gc_select', npy_bool)
     gc_shape = cvec_property('structure_gc_shape', npy_bool)
     names = cvec_property('structure_name', string)
-    num_atoms = cvec_property('structure_num_atoms', int32, read_only = True)
-    num_bonds = cvec_property('structure_num_bonds', int32, read_only = True)
-    num_chains = cvec_property('structure_num_chains', int32, read_only = True)
-    num_residues = cvec_property('structure_num_residues', int32, read_only = True)
+    num_atoms = cvec_property('structure_num_atoms', size_t, read_only = True)
+    num_bonds = cvec_property('structure_num_bonds', size_t, read_only = True)
+    num_chains = cvec_property('structure_num_chains', size_t, read_only = True)
+    num_residues = cvec_property('structure_num_residues', size_t, read_only = True)
     residues = cvec_property('structure_residues', cptr, 'num_residues', astype = _residues,
                              read_only = True, per_object = False)
     pbg_maps = cvec_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
@@ -284,6 +285,5 @@ def remove_deleted_pointers(array):
     import weakref
     weakref.finalize(array, pointer_array_freed, id(array))
 
-import ctypes
 remove_deleted_c_pointers = c_function('remove_deleted_c_pointers', args = [ctypes.py_object])
 pointer_array_freed = c_function('pointer_array_freed', args = [ctypes.c_void_p])

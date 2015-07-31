@@ -12,7 +12,6 @@ OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 HDRS 	= 
 INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 LIBS	= -L$(libdir) -latomstruct -larrays $(PYTHON_LIB)
-OPT = -g
 
 all: $(PYOBJS) $(SHLIB)
 

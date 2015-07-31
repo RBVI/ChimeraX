@@ -1,7 +1,8 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 from numpy import uint8, int32, float64, float32, bool as npy_bool
-from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function
+from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, ctype_type_to_numpy
 import ctypes
+size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 
 # -------------------------------------------------------------------------------
 # These routines convert C++ pointers to Python objects and are used for defining
@@ -49,11 +50,11 @@ class Atom:
     display = c_property('atom_display', npy_bool)
     draw_mode = c_property('atom_draw_mode', int32)
     element_name = c_property('atom_element_name', string, read_only = True)
-    element_number = c_property('atom_element_number', int32, read_only = True)
+    element_number = c_property('atom_element_number', uint8, read_only = True)
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True)
     structure = c_property('atom_structure', cptr, astype = _atomic_structure, read_only = True)
     name = c_property('atom_name', string, read_only = True)
-    num_bonds = c_property('atom_num_bonds', int32, read_only = True)
+    num_bonds = c_property('atom_num_bonds', size_t, read_only = True)
     radius = c_property('atom_radius', float32)
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True)
     selected = c_property('atom_selected', npy_bool)
@@ -61,7 +62,7 @@ class Atom:
     def connects_to(self, atom):
         f = c_function('atom_connects_to',
                        args = (ctypes.c_void_p, ctypes.c_void_p),
-                       ret = ctypes.c_int)
+                       ret = ctypes.c_bool)
         c = f(self._c_pointer, atom._c_pointer)
         return c
 
@@ -78,7 +79,7 @@ class Bond:
 
     atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
     color = c_property('bond_color', uint8, 4)
-    display = c_property('bond_display', int32)
+    display = c_property('bond_display', uint8)
     halfbond = c_property('bond_halfbond', npy_bool)
     radius = c_property('bond_radius', float32)
 
@@ -95,7 +96,7 @@ class Pseudobond:
 
     atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
     color = c_property('pseudobond_color', uint8, 4)
-    display = c_property('pseudobond_display', int32)
+    display = c_property('pseudobond_display', uint8)
     halfbond = c_property('pseudobond_halfbond', npy_bool)
     radius = c_property('pseudobond_radius', float32)
 
@@ -118,7 +119,7 @@ class CPseudobondGroup:
     gc_color = c_property('pseudobond_group_gc_color', npy_bool)
     gc_select = c_property('pseudobond_group_gc_select', npy_bool)
     gc_shape = c_property('pseudobond_group_gc_shape', npy_bool)
-    num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', int32, read_only = True)
+    num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
                              astype = _pseudobonds, read_only = True)
 
@@ -165,7 +166,7 @@ class Residue:
     ribbon_display = c_property('residue_ribbon_display', npy_bool)
     ribbon_color = c_property('residue_ribbon_color', uint8, 4)
     name = c_property('residue_name', string, read_only = True)
-    num_atoms = c_property('residue_num_atoms', int32, read_only = True)
+    num_atoms = c_property('residue_num_atoms', size_t, read_only = True)
     number = c_property('residue_number', int32, read_only = True)
     str = c_property('residue_str', string, read_only = True)
     unique_id = c_property('residue_unique_id', int32, read_only = True)
@@ -186,7 +187,7 @@ class Chain:
     chain_id = c_property('chain_chain_id', string, read_only = True)
     structure = c_property('chain_structure', cptr, astype = _atomic_structure, read_only = True)
     residues = c_property('chain_residues', cptr, 'num_residues', astype = _residues, read_only = True)
-    num_residues = c_property('chain_num_residues', int32, read_only = True)
+    num_residues = c_property('chain_num_residues', size_t, read_only = True)
 
 # -----------------------------------------------------------------------------
 #
@@ -208,11 +209,11 @@ class CAtomicStructure:
     gc_select = c_property('structure_gc_select', npy_bool)
     gc_shape = c_property('structure_gc_shape', npy_bool)
     name = c_property('structure_name', string)
-    num_atoms = c_property('structure_num_atoms', int32, read_only = True)
-    num_bonds = c_property('structure_num_bonds', int32, read_only = True)
-    num_coord_sets = c_property('structure_num_coord_sets', int32, read_only = True)
-    num_chains = c_property('structure_num_chains', int32, read_only = True)
-    num_residues = c_property('structure_num_residues', int32, read_only = True)
+    num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
+    num_bonds = c_property('structure_num_bonds', size_t, read_only = True)
+    num_coord_sets = c_property('structure_num_coord_sets', size_t, read_only = True)
+    num_chains = c_property('structure_num_chains', size_t, read_only = True)
+    num_residues = c_property('structure_num_residues', size_t, read_only = True)
     residues = c_property('structure_residues', cptr, 'num_residues', astype = _residues, read_only = True)
     pbg_map = c_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
 
@@ -274,7 +275,7 @@ class Element:
         set_c_pointer(self, e_pointer)
 
     name = c_property('element_name', string, read_only = True)
-    number = c_property('element_number', int32, read_only = True)
+    number = c_property('element_number', uint8, read_only = True)
     mass = c_property('element_mass', float32, read_only = True)
     is_metal = c_property('element_is_metal', npy_bool, read_only = True)
 
