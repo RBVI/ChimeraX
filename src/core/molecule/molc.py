@@ -2,7 +2,7 @@
 from numpy import object as string, uintp as cptr, object as pyobject
 
 from numpy import empty, ndarray
-from ctypes import byref
+import ctypes
 
 # -----------------------------------------------------------------------------
 # Create a property that calls a C library function using ctypes.
@@ -16,7 +16,7 @@ def c_property(func_name, value_type, value_count = 1, read_only = False, astype
 
     vtype = numpy_type_to_ctype[value_type]
     v = vtype()
-    v_ref = byref(v)
+    v_ref = ctypes.byref(v)
 
     cget = c_array_function(func_name, value_type)
     if astype is None:
@@ -139,7 +139,7 @@ def cvec_property(func_name, value_type, value_count = 1, read_only = False, ast
 #
 def set_c_pointer(self, pointer):
     self._c_pointer = cp = ctypes.c_void_p(int(pointer))
-    self._c_pointer_ref = byref(cp)
+    self._c_pointer_ref = ctypes.byref(cp)
 
 # -----------------------------------------------------------------------------
 # Set the object C pointer used as the first argument of C get/set methods
@@ -153,8 +153,7 @@ def set_cvec_pointer(self, pointers):
 # Look up a C function and set its argument types if they have not been set.
 #
 def c_array_function(name, dtype):
-    import ctypes
-    args = (ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(numpy_type_to_ctype[dtype]))
+    args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(numpy_type_to_ctype[dtype]))
     return c_function(name, args = args)
 
 # -----------------------------------------------------------------------------
@@ -163,20 +162,37 @@ _molc_lib = None
 def c_function(func_name, lib_name = 'libmolc', args = None, ret = None):
     global _molc_lib
     if _molc_lib is None:
-        from os import path
-        libpath = path.join(path.dirname(__file__), lib_name)
-        from numpy import ctypeslib
-        _molc_lib = ctypeslib.load_library(libpath, '.')
+        import os
+        import sys
+        if sys.platform.startswith('darwin'):
+            exts = ['.dylib', '.so']
+        elif sys.platform.startswith('linux'):
+            exts = ['.so']
+        else: # Windows
+            exts = ['.pyd', '.dll']
+        for ext in exts:
+            if os.path.isabs(lib_name):
+                lib_path = lib_name
+            else:
+                lib_path = os.path.join(os.path.dirname(__file__), lib_name)
+            lib_path += ext
+            if not os.path.exists(lib_path):
+                continue
+            _molc_lib = ctypes.PyDLL(lib_path)
+            break
+        else:
+            raise RuntimeError("Unable to find '%s' shared library" % lib_name)
     f = getattr(_molc_lib, func_name)
-    if not args is None and f.argtypes is None:
+    if args is not None and f.argtypes is None:
         f.argtypes = args
+    if ret is not None:
         f.restype = ret
     return f
 
 # -----------------------------------------------------------------------------
 # Map numpy array value types (numpy.dtype) to ctypes value types.
 #
-import numpy, ctypes
+import numpy
 numpy_type_to_ctype = {
     numpy.float64: ctypes.c_double,
     numpy.float32: ctypes.c_float,
@@ -188,6 +204,34 @@ numpy_type_to_ctype = {
     numpy.object_: ctypes.py_object,
     numpy.object: ctypes.py_object,
 }
+
+# -----------------------------------------------------------------------------
+# Map ctype value types to numpy array value types (numpy.dtype)
+#
+ctype_type_to_numpy = {
+    ctypes.c_double: numpy.float64,
+    ctypes.c_float: numpy.float32,
+    ctypes.c_int: numpy.int32,
+    ctypes.c_uint8: numpy.uint8,
+    ctypes.c_void_p: numpy.uintp,
+    ctypes.c_uint8: numpy.uint8,
+    ctypes.c_bool: numpy.bool_,
+    ctypes.py_object: numpy.object_,
+}
+
+if ctypes.sizeof(ctypes.c_long) == 4:
+    numpy_type_to_ctype[numpy.int64] = ctypes.c_longlong
+elif ctypes.sizeof(ctypes.c_long) == 8:
+    numpy_type_to_ctype[numpy.int64] = ctypes.c_long
+else:
+    raise RuntimeError("Only support 4- and 8-byte longs")
+if ctypes.sizeof(ctypes.c_size_t) == 4:
+    ctype_type_to_numpy[ctypes.c_size_t] = numpy.int32
+elif ctypes.sizeof(ctypes.c_size_t) == 8:
+    ctype_type_to_numpy[ctypes.c_size_t] = numpy.int64
+else:
+    raise RuntimeError("Only support 4- and 8-byte size_t")
+
 
 # -----------------------------------------------------------------------------
 # Create ctypes pointer to numpy array data.

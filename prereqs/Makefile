@@ -146,8 +146,8 @@ pips.app-install: setuptools.app-install
 pkgconfig.install:
 pycollada.install: setuptools.install numpy.install pips.install
 pycollada.app-install: setuptools.app-install numpy.app-install pips.app-install
-PyOpenGL.install: setuptools.install numpy.install Mesa.install pips.install
-PyOpenGL.app-install: setuptools.app-install numpy.app-install Mesa.app-install pips.app-install
+PyOpenGL.install: setuptools.install numpy.install pips.install
+PyOpenGL.app-install: setuptools.app-install numpy.app-install pips.app-install
 PyQt.install: setuptools.install qt.install sip.install
 PyQt.app-install: setuptools.app-install qt.app-install sip.app-install
 pytables.install: hdf5.install numexpr.install pips.install setuptools.install zlib.install
