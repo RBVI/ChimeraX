@@ -13,8 +13,11 @@ between Buffers and shader program variables.  The Texture class manages
 2D texture storage.  '''
 
 def configure_offscreen_rendering():
-    from chimera import core, app_lib_dir
+    from chimera import core
     if not hasattr(core, 'offscreen_rendering'):
+        return
+    import chimera
+    if not hasattr(chimera, 'app_lib_dir'):
         return
     import sys
     if sys.platform == 'darwin':
@@ -28,6 +31,7 @@ def configure_offscreen_rendering():
     os.environ['MESA_GL_VERSION_OVERRIDE'] = '3.3'
     # Tell PyOpenGL where to find libOSMesa
     lib_suffix = '.dylib' if sys.platform == 'darwin' else '.so'
+    from chimera import app_lib_dir
     os.environ['PYOPENGL_OSMESA_LIB_PATH'] = os.path.join(app_lib_dir, 'libOSMesa' + lib_suffix)
 
 # Set environment variables set before importing PyOpenGL.
