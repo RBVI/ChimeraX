@@ -228,7 +228,7 @@ def save(session, filename, width=None, height=None, format=None, supersample=No
     e = splitext(filename)[1].lower()
     from . import session as ses
     if e[1:] in image_file_suffixes:
-        save_image(session, filename, width, height, format, supersample)
+        save_image(session, filename, format, width, height, supersample)
     elif e == ses.SESSION_SUFFIX:
         ses.save(session, filename)
     else:
@@ -268,7 +268,7 @@ def save_image(session, path, format=None, width=None, height=None,
     from os.path import expanduser, dirname, exists, splitext
     path = expanduser(path)         # Tilde expansion
     dir = dirname(path)
-    if not exists(dir):
+    if dir and not exists(dir):
         raise cli.UserError('Directory "%s" does not exist' % dir)
 
     if format is None:
