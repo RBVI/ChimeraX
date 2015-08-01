@@ -218,7 +218,7 @@ but if it isn't present,
 then it looked for the old value and migrates it.
 If the old value isn't present, then the new default value is used.
 """
-from .cli import UserError
+from .errors import UserError
 
 only_use_defaults = False   # if True, do not read nor write configuration data
 

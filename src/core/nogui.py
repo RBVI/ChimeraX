@@ -147,14 +147,14 @@ class _Input(Task):
 
     def execute(self, text):
         # Command execution, runs in UI thread
-        from . import cli
+        from . import errors
         text = text.strip()
         if not text:
             return
         try:
             self._cmd.parse_text(text, final=True)
             self._cmd.execute()
-        except cli.UserError as err:
+        except errors.UserError as err:
             logger = self.session.logger
             logger.info(self._cmd.current_text)
             rest = self._cmd.current_text[self._cmd.amount_parsed:]

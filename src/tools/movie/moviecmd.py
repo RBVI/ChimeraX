@@ -1,4 +1,4 @@
-from chimera.core.cli import UserError as CommandError
+from chimera.core.errors import UserError as CommandError
 def register_movie_command():
 
     from chimera.core.cli import CmdDesc, register, BoolArg, EnumOf, ListOf, IntArg, Int2Arg, StringArg, FloatArg

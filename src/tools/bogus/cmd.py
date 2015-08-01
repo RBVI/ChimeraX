@@ -46,6 +46,7 @@ def apbs(session, modelspec=None):
     else:
         models = modelspec.evaluate(session).models
     if len(models) != 1:
+        from chimera.core.errors import UserError
         raise UserError("apbs works on one model at a time")
     for m in models:
         _apbs_pdb2pqr(session, m)

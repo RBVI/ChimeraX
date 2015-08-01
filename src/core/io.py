@@ -427,14 +427,14 @@ def deduce_format(filename, has_format=None, prefixable=True):
                 prefixed = True
                 break
         if format_name is None:
-            from .cli import UserError
+            from .errors import UserError
             raise ValueError("'%s' is not a not prefix" % prefix)
     elif format_name is None:
         stripped, compression = determine_compression(filename)
         import os
         base, ext = os.path.splitext(stripped)
         if not ext:
-            from .cli import UserError
+            from .errors import UserError
             raise UserError("Missing filename suffix")
         ext = ext.casefold()
         for t, info in _file_formats.items():
@@ -442,7 +442,7 @@ def deduce_format(filename, has_format=None, prefixable=True):
                 format_name = t
                 break
         if format_name is None:
-            from .cli import UserError
+            from .errors import UserError
             raise UserError("Unrecognized filename suffix")
     return format_name, prefixed, filename, compression
 
@@ -538,7 +538,7 @@ def open_data(session, filespec, as_a=None, label=None, **kw):
     uncompressed into a temporary file before calling the open function.
     """
 
-    from chimera.core.cli import UserError
+    from chimera.core.errors import UserError
     format_name, prefix, filename, compression = deduce_format(
         filespec, has_format=as_a)
     open_func = open_function(format_name)
@@ -646,7 +646,7 @@ def determine_compression(filename):
 
 def _compressed_open(filename, compression, *args, **kw):
     import os.path
-    from chimera.core.cli import UserError
+    from chimera.core.errors import UserError
     filename = os.path.expanduser(os.path.expandvars(filename))
     if not compression:
         try:

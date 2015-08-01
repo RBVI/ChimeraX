@@ -483,7 +483,8 @@ class ColorArg(cli.Annotation):
 def define_color(session, name, color=None):
     """Create a user defined color."""
     if ' ' in name:
-        raise cli.UserError("Sorry, spaces are not alllowed in color names")
+        from .errors import UsetError
+        raise UserError("Sorry, spaces are not alllowed in color names")
     if color is None:
         if session is not None:
             i = session.user_colors.bisect_left(name)

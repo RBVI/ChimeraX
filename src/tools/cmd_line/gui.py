@@ -103,7 +103,7 @@ class CommandLine(ToolInstance):
         logger = session.logger
         text = self.text.Value
         logger.status("")
-        from chimera.core import cli
+        from chimera.core import cli, errors
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
@@ -114,7 +114,7 @@ class CommandLine(ToolInstance):
             except SystemExit:
                 # TODO: somehow quit application
                 raise
-            except cli.UserError as err:
+            except errors.UserError as err:
                 rest = cmd.current_text[cmd.amount_parsed:]
                 spaces = len(rest) - len(rest.lstrip())
                 error_at = cmd.amount_parsed + spaces
@@ -254,7 +254,7 @@ class _HistoryDialog:
                 return
             path = dlg.GetPath()
             if not path:
-                from chimera.core.cli import UserError
+                from chimera.core.errors import UserError
                 raise UserError("No file specified for saving command history")
             if self.save_amount_Choice.GetStringSelection() == "all":
                 cmds = [cmd for cmd in self.history]

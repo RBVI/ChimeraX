@@ -401,11 +401,11 @@ def init(argv, event_loop=True):
         return os.EX_OK
 
     # the rest of the arguments are data files
-    from chimera.core import cli
+    from chimera.core import errors
     for arg in args:
         try:
             sess.models.open(arg)
-        except (IOError, cli.UserError) as e:
+        except (IOError, errors.UserError) as e:
             sess.logger.error(str(e))
         except Exception as e:
             import traceback

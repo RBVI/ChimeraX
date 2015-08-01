@@ -1,4 +1,4 @@
-from chimera.core.cli import UserError as CommandError
+from chimera.core.errors import UserError as CommandError
 def register_2dlabels_command():
 
     from chimera.core.cli import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg

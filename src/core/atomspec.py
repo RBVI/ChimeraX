@@ -59,7 +59,7 @@ all atoms.
 """
 
 import re
-from .cli import Annotation, UserError
+from .cli import Annotation
 
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 

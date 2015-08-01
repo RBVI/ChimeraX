@@ -14,7 +14,7 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
         else:
             amap = dict((a.id, a) for a in assem)
             if not assembly in amap:
-                from .cli import UserError
+                from .errors import UserError
                 raise UserError('Assembly "%s" not found, have %s'
                                 % (assembly, ', '.join(a.id for a in assem)))
             a = amap[assembly]

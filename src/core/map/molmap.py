@@ -1,3 +1,4 @@
+# vi: set expandtab ts=4 sw=4:
 # -----------------------------------------------------------------------------
 # Simulate an electron density map for an atomic model at a specfied
 # resolution.  The simulated map is useful for fitting the model into
@@ -47,7 +48,7 @@ def molecule_map(session,
                  displayThreshold = 0.95, # fraction of total density
                  modelId = None, # integer
                  replace = True,
-		 showDialog = True
+                 showDialog = True
                  ):
 
     molecules = atoms.unique_structures
@@ -58,7 +59,8 @@ def molecule_map(session,
             name = '%s map %.3g' % (m.name, resolution)
 
     if len(atoms) == 0:
-        raise cli.UserError('No atoms specified')
+        from ..errors import UserError
+        raise UserError('No atoms specified')
 
     if edgePadding is None:
         pad = 3*resolution

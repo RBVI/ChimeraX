@@ -505,7 +505,8 @@ def save(session, filename, **kw):
         try:
             output = my_open(filename)
         except IOError as e:
-            raise cli.UserError(e)
+            from .errors import UserError
+            raise UserError(e)
 
     try:
         session.save(output)

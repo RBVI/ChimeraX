@@ -30,7 +30,7 @@
 # laplacian, gaussian, permuteAxes, bin, median, scale, boxes, morph, cover,
 # flatten, unbend, tile.
 #
-from ...cli import UserError as CommandError
+from ...errors import UserError as CommandError
 
 def register_vop_command():
 

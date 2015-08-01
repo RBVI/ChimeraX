@@ -11,6 +11,7 @@ must be called to get the commands recognized by the command line interface
 
 from . import atomspec
 from . import cli
+from .errors import UserError
 # from graphics.cameramode import CameraModeArg
 
 
@@ -26,7 +27,7 @@ _exit_desc = cli.CmdDesc(synopsis='exit application')
 
 
 def stop(session, ignore=None):
-    raise cli.UserError('use "exit" or "quit" instead of "stop"')
+    raise UserError('use "exit" or "quit" instead of "stop"')
 _stop_desc = cli.CmdDesc(optional=[('ignore', cli.RestOfLine)],
                          synopsis='DO NOT USE')
 
@@ -49,7 +50,7 @@ def open(session, filename, id=None, as_=None):
     try:
         return session.models.open(filename, id=id, as_=as_)
     except OSError as e:
-        raise cli.UserError(e)
+        raise UserError(e)
 _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                          keyword=[('id', cli.ModelIdArg),
                                   ('as_a', cli.StringArg),
@@ -62,7 +63,7 @@ def export(session, filename, **kw):
         from . import io
         return io.export(session, filename, **kw)
     except OSError as e:
-        raise cli.UserError(e)
+        raise UserError(e)
 _export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                            synopsis='export data in format'
                            ' matching filename suffix')
@@ -76,7 +77,7 @@ def close(session, model_ids=None):
         try:
             mlist = sum((m.list(model_id) for model_id in model_ids), [])
         except ValueError as e:
-            raise cli.UserError(e)
+            raise UserError(e)
     m.close(mlist)
 _close_desc = cli.CmdDesc(optional=[('model_ids', cli.ListOf(cli.ModelIdArg))],
                           synopsis='close models')
@@ -187,7 +188,7 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
     if eye_separation is not None or screen_width is not None:
         has_arg = True
         if eye_separation is None or screen_width is None:
-            raise cli.UserError("Must specifiy both eye-separation and"
+            raise UserError("Must specifiy both eye-separation and"
                                 " screen-width -- only ratio is used")
         cam.eye_separation_pixels = (eye_separation / screen_width) * \
             view.screen().size().width()
@@ -233,7 +234,7 @@ def save(session, filename, width=None, height=None, format=None, supersample=No
         ses.save(session, filename)
     else:
         suffixes = image_file_suffixes + (ses.SESSION_SUFFIX[1:],)
-        raise cli.UserError('Unrecognized file suffix "%s", require one of %s'
+        raise UserError('Unrecognized file suffix "%s", require one of %s'
                             % (e, ','.join(suffixes)))
 
 _save_desc = cli.CmdDesc(
@@ -269,12 +270,12 @@ def save_image(session, path, format=None, width=None, height=None,
     path = expanduser(path)         # Tilde expansion
     dir = dirname(path)
     if dir and not exists(dir):
-        raise cli.UserError('Directory "%s" does not exist' % dir)
+        raise UserError('Directory "%s" does not exist' % dir)
 
     if format is None:
         suffix = splitext(path)[1][1:].lower()
         if suffix not in image_file_suffixes:
-            raise cli.UserError('Unrecognized image file suffix "%s"' % format)
+            raise UserError('Unrecognized image file suffix "%s"' % format)
         format = image_formats[suffix]
 
     view = session.main_view

@@ -158,7 +158,7 @@ Example
 
 Here is a simple example::
 
-    import cli
+    import from chimera.core import cli, errors
     @register("echo", cli.CmdDesc(optional=[('text', cli.RestOfLine)]))
     def echo(session, text=''):
         print(text)
@@ -169,7 +169,7 @@ Here is a simple example::
         status = command.execute()
         if status:
             print(status)
-    except cli.UserError as err:
+    except errors.UserError as err:
         print(err, file=sys.stderr)
 
 
@@ -227,16 +227,7 @@ def _user_kw(kw_name):
     return words[0].lower() + ''.join([x.capitalize() for x in words[1:]])
 
 
-class UserError(ValueError):
-    """An exception provoked by the user's input.
-
-    UserError(object) -> a UserError object
-
-    This is in contrast to a error is a bug in the program.
-    """
-    pass
-
-
+from .errors import UserError
 class AnnotationError(UserError):
     """Error, with optional offset, in annotation"""
 

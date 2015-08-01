@@ -1,4 +1,4 @@
-from ...cli import UserError
+from ...errors import UserError
 
 # -----------------------------------------------------------------------------
 #

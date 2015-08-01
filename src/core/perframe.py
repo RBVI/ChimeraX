@@ -111,8 +111,8 @@ def _perframe_args(frame_num, frames, ranges, format, zero_pad_width):
 def stop_perframe_callbacks(session, callbacks = None):
 
     if not hasattr(session, 'perframe_callbacks'):
-        from . import cli
-        raise cli.UserError("No per-frame command active")
+        from . import errors
+        raise errors.UserError("No per-frame command active")
     pfcb = session.perframe_callbacks
     if callbacks is None:
         callbacks = tuple(pfcb)

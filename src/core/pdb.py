@@ -7,7 +7,7 @@ Read Protein DataBank (PDB) files.
 """
 
 from . import structure
-from .cli import UserError
+from .errors import UserError
 
 _builtin_open = open
 

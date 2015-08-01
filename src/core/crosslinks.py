@@ -5,7 +5,7 @@ def crosslink(session, pbgroups = None, color = None, radius = None, minimize = 
         pbgroups = pbgroup.all_pseudobond_groups(session.models)
 
     if len(pbgroups) == 0:
-        from .cli import UserError        
+        from .errors import UserError        
         raise UserError('No pseudobond groups specified.')
 
     from .molecule import concatenate
@@ -25,11 +25,11 @@ def crosslink(session, pbgroups = None, color = None, radius = None, minimize = 
 
 def minimize_link_lengths(mols, pbonds, iterations, frames, session):
     if len(mols) == 0:
-        from .cli import UserError        
+        from .errors import UserError        
         raise UserError('No structures specified for minimizing crosslinks.')
     mol_links, mol_pbonds = links_by_molecule(pbonds, mols)
     if len(mol_links) == 0:
-        from .cli import UserError        
+        from .errors import UserError        
         raise UserError('No pseudobonds to minimize for specified molecules.')
     if len(mols) == 1:
         iterations = min(1,iterations)
