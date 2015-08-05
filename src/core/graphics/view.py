@@ -417,6 +417,8 @@ class View:
 
         if dm.shape_changed:
             self._call_callbacks('shape changed')
+            self.center_of_rotation_needs_update()
+            self.update_center_of_rotation()
 
         if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
             # Force recomputation of ambient shadows since shape changed.
