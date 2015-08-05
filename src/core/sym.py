@@ -18,15 +18,16 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
                 raise UserError('Assembly "%s" not found, have %s'
                                 % (assembly, ', '.join(a.id for a in assem)))
             a = amap[assembly]
+            num_chain_ids = len(m.residues.unique_chain_ids)
             if surface_only:
                 from .molsurf import surface_command
                 surfs = surface_command(session, a.included_atoms(m))
-                if len(a.chain_ids) < m.num_chains:
+                if len(a.chain_ids) < num_chain_ids:
                     surface_command(session, a.excluded_atoms(m), hide = True)
                 for s in surfs:
                     s.positions = a.operators
             else:
-                if len(a.chain_ids) < m.num_chains:
+                if len(a.chain_ids) < num_chain_ids:
                     # Hide chains that are not part of assembly
                     atoms = a.excluded_atoms(m)
                     atoms.displays = False
@@ -91,7 +92,8 @@ class Assembly:
         self.operators = operator_products(products, operator_table)
 
     def included_atoms(self, mol):
-        if len(self.chain_ids) == mol.num_chains:
+        num_chain_ids = len(mol.residues.unique_chain_ids)
+        if len(self.chain_ids) == num_chain_ids:
             return mol.atoms
         cids = set(self.chain_ids)
         from .molecule import concatenate
@@ -100,7 +102,8 @@ class Assembly:
         return atoms
 
     def excluded_atoms(self, mol):
-        if len(self.chain_ids) == mol.num_chains:
+        num_chain_ids = len(mol.residues.unique_chain_ids)
+        if len(self.chain_ids) == num_chain_ids:
             from .molecule import Atoms
             return Atoms()
         cids = set(self.chain_ids)
