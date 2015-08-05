@@ -409,6 +409,9 @@ class Drawing:
     def set_position(self, pos):
         from ..geometry import Places
         self._positions = Places([pos])
+        if (not self._displayed_positions is None
+            and len(self._displayed_positions) != 1):
+            self._displayed_positions = None
         self.redraw_needed(shape_changed=True)
 
     @property
@@ -675,17 +678,15 @@ class Drawing:
 
         # Update instancing buffers
         p = self.positions
-        instancing = (p.shift_and_scale_array() is not None or len(p) > 1)
-        if instancing:
-            if ('_colors' in changes or
-                '_positions' in changes or
-                '_displayed_positions' in changes or
-                '_selected_positions' in changes):
-                c = self.colors
-                pm = self._position_mask()
-                pmsel = self._position_mask(True)
-                ds.update_instance_buffers(p, c, pm)
-                dss.update_instance_buffers(p, c, pmsel)
+        if ('_colors' in changes or
+            '_positions' in changes or
+            '_displayed_positions' in changes or
+            '_selected_positions' in changes):
+            c = self.colors
+            pm = self._position_mask()
+            pmsel = self._position_mask(True)
+            ds.update_instance_buffers(p, c, pm)
+            dss.update_instance_buffers(p, c, pmsel)
 
         # Update buffers shared by drawing and selection
         for b in self._vertex_buffers:
