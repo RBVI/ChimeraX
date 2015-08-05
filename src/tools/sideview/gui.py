@@ -110,10 +110,10 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.applique.display_style = Drawing.Mesh
         self.applique.use_lighting = False
         self.view.add_2d_overlay(self.applique)
-        self.main_view.add_rendered_frame_callback(self._redraw)
+        self.main_view.add_callback('rendered frame', self._redraw)
 
     def on_destroy(self, event):
-        self.main_view.remove_rendered_frame_callback(self._redraw)
+        self.main_view.remove_callback('rendered frame', self._redraw)
 
     def _redraw(self):
         # wx.CallAfter(self.draw)

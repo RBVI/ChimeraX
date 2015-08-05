@@ -65,11 +65,11 @@ class AtomicStructure(CAtomicStructure, Model):
 
     def added_to_session(self, session):
         v = session.main_view
-        v.add_new_frame_callback(self._update_graphics_if_needed)
+        v.add_callback('graphics update', self._update_graphics_if_needed)
 
     def removed_from_session(self, session):
         v = session.main_view
-        v.remove_new_frame_callback(self._update_graphics_if_needed)
+        v.remove_callback('graphics update', self._update_graphics_if_needed)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:

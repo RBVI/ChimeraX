@@ -289,7 +289,7 @@ def move_models(models, transforms, base_model, frames, session):
         def mstep(mt = move_table, cb = cb):
             move_step(mt, cb, session)
         cb.append(mstep)
-        session.view.add_new_frame_callback(mstep)
+        session.view.add_callback('new frame', mstep)
 
 # -----------------------------------------------------------------------------
 #
@@ -314,7 +314,7 @@ def move_step(move_table, cb, session):
             del mt[m]
 
     if len(mt) == 0:
-        session.view.remove_new_frame_callback(cb[0])
+        session.view.remove_callback('new frame', cb[0])
 
 # -----------------------------------------------------------------------------
 #

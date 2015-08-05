@@ -18,16 +18,16 @@ class PseudobondGroup(CPseudobondGroup, Model):
 
     def added_to_session(self, session):
         v = session.main_view
-        v.add_new_frame_callback(self._update_graphics_if_needed)
+        v.add_callback('graphics update', self._update_graphics_if_needed)
 
         # Detect when atoms moved so pseudobonds must be redrawn.
         # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
-        v.add_shape_changed_callback(self.update_graphics)
+        v.add_callback('shape changed', self.update_graphics)
 
     def removed_from_session(self, session):
         v = session.main_view
-        v.remove_new_frame_callback(self._update_graphics_if_needed)
-        v.remove_shape_changed_callback(self.update_graphics)
+        v.remove_callback('graphics update', self._update_graphics_if_needed)
+        v.remove_callback('shape changed', self.update_graphics)
 
     def _update_graphics_if_needed(self):
         c, s, se = self.gc_color, self.gc_shape, self.gc_select

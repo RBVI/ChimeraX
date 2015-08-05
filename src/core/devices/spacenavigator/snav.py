@@ -30,7 +30,7 @@ class Space_Navigator:
                 return False     # Connection failed.
 
         if self.device:
-            self.view.add_new_frame_callback(self.check_space_navigator)
+            self.view.add_callback('new frame', self.check_space_navigator)
             self.processing_events = True
             return True
 
@@ -41,7 +41,7 @@ class Space_Navigator:
     def stop_event_processing(self):
 
         if self.processing_events:
-            self.view.remove_new_frame_callback(self.check_space_navigator)
+            self.view.remove_callback('new frame', self.check_space_navigator)
             self.processing_events = False
 
     def check_space_navigator(self):

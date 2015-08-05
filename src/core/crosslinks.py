@@ -88,14 +88,14 @@ class interpolate_position:
             center = 0.5*(b.xyz_min + b.xyz_max)
             self.c0, self.c1 = pos0*center, pos1*center
             self.axis, self.angle = (pos1*pos0.inverse()).rotation_axis_and_angle()
-            view.add_new_frame_callback(self.update_position)
+            view.add_callback('new frame', self.update_position)
 
     def update_position(self):
         m = self.model
         fr = self.frame
         if fr >= self.frames:
             m.position = self.pos1
-            self.view.remove_new_frame_callback(self.update_position)
+            self.view.remove_callback('new frame', self.update_position)
         else:
             f = fr / self.frames
             from .geometry import translation, rotation

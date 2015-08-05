@@ -56,9 +56,8 @@ class View:
         self._time_graphics = False
         self.update_lighting = False
         self._block_redraw_count = 0
-        self._new_frame_callbacks = []
-        self._rendered_callbacks = []
-        self._shape_changed_callbacks = []
+        self._callbacks = {'new frame':[], 'graphics update': [],
+                           'rendered frame':[], 'shape changed':[]}
 
         self._overlays = []
         self._2d_overlays = []
@@ -318,6 +317,7 @@ class View:
               drawings=None):
         '''Capture an image of the current scene. A PIL image is returned.'''
         self._use_opengl()
+        self._call_callbacks('graphics update')
 
         w, h = self._window_size_matching_aspect(width, height)
 
@@ -406,14 +406,8 @@ class View:
         return (vw, vh)
 
     def _draw_if_changed(self):
-        for cb in self._new_frame_callbacks:
-            try:
-                cb()
-            except:
-                import traceback
-                self.log.warning('new frame callback raised error\n' +
-                                 traceback.format_exc())
-                self.remove_new_frame_callback(cb)
+        self._call_callbacks('new frame')
+        self._call_callbacks('graphics update')
 
         c = self.camera
         dm = self._drawing_manager
@@ -422,14 +416,7 @@ class View:
             return False
 
         if dm.shape_changed:
-            for cb in tuple(self._shape_changed_callbacks):
-                try:
-                    cb()
-                except:
-                    import traceback
-                    self.log.warning('shape changed callback raised error\n' +
-                                     traceback.format_exc())
-                    self.remove_shape_changed_callback(cb)
+            self._call_callbacks('shape changed')
 
         if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
             # Force recomputation of ambient shadows since shape changed.
@@ -440,14 +427,8 @@ class View:
         dm.redraw_needed = False
         dm.shape_changed = False
         self.draw()
-        for cb in self._rendered_callbacks:
-            try:
-                cb()
-            except:
-                import traceback
-                self.log.warning('rendered callback raised error\n' +
-                                 traceback.format_exc())
-                self.remove_new_frame_callback(cb)
+
+        self._call_callbacks('rendered frame')
 
         return True
 
@@ -509,36 +490,27 @@ class View:
         '''
         self._render.finish_rendering()
 
-    def add_new_frame_callback(self, cb):
-        '''Add a function to be called before each redraw.  The function
-        takes no arguments.'''
-        self._new_frame_callbacks.append(cb)
+    def add_callback(self, type, cb):
+        '''Add a function to be called before each redraw (type = "new frame"),
+        before each redraw after new frame callbacks (type = "graphics update"),
+        after each redraw (type = "rendered frame"), or before redrawing when the
+        shape has changed (type = "shape changed").  The callback functions
+        take no arguments.'''
+        self._callbacks[type].append(cb)
 
-    def remove_new_frame_callback(self, cb):
-        '''Remove a callback that was added with add_new_frame_callback().'''
-        self._new_frame_callbacks.remove(cb)
+    def remove_callback(self, type, cb):
+        '''Remove a callback that was added with add_callback().'''
+        self._callbacks[type].remove(cb)
 
-    def add_rendered_frame_callback(self, cb):
-        '''Add a function to be called after each redraw.  The function
-        takes no arguments.'''
-        self._rendered_callbacks.append(cb)
-
-    def remove_rendered_frame_callback(self, cb):
-        '''Remove a callback that was added with
-        add_rendered_frame_callback().'''
-        self._rendered_callbacks.remove(cb)
-
-    def add_shape_changed_callback(self, cb):
-        '''
-        Add a function to be called before each redraw when drawing
-        shape has changed.  The function takes no arguments.
-        '''
-        self._shape_changed_callbacks.append(cb)
-
-    def remove_shape_changed_callback(self, cb):
-        '''Remove a callback that was added with
-        add_shape_changed_callback().'''
-        self._shape_changed_callbacks.remove(cb)
+    def _call_callbacks(self, type):
+        for cb in self._callbacks[type]:
+            try:
+                cb()
+            except:
+                import traceback
+                self.log.warning('%s callback raised error\n%s'
+                                 % (type, traceback.format_exc()))
+                self.remove_callback(type, cb)
 
     def _multishadow_directions(self):
 

@@ -39,7 +39,7 @@ class Oculus_Rift:
             _oculus.initialize()
             self.parameters = _oculus.parameters()      # Interpupillary distance not set until initialize called.
             self.frame_cb = self.use_oculus_orientation
-            self.view.add_new_frame_callback(self.frame_cb)
+            self.view.add_callback('new frame', self.frame_cb)
         return True
 
     def close(self):
@@ -54,7 +54,7 @@ class Oculus_Rift:
     def stop_event_processing(self):
 
         if self.frame_cb:
-            self.view.remove_new_frame_callback(self.frame_cb)
+            self.view.remove_callback('new frame', self.frame_cb)
             self.frame_cb = None
             if self.connected:
                 from . import _oculus

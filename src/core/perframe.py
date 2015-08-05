@@ -41,7 +41,7 @@ def perframe(session, command, frames = None, interval = 1, format = None,
         _perframe_callback(data, session)
     data['callback'] = cb
     v = session.main_view
-    v.add_new_frame_callback(cb)
+    v.add_callback('new frame', cb)
     if not hasattr(session, 'perframe_callbacks'):
         session.perframe_callbacks = set()
     session.perframe_callbacks.add(cb)
@@ -118,7 +118,7 @@ def stop_perframe_callbacks(session, callbacks = None):
         callbacks = tuple(pfcb)
     for cb in callbacks:
         v = session.main_view
-        v.remove_new_frame_callback(cb)
+        v.remove_callback('new frame', cb)
         pfcb.remove(cb)
 
 # -----------------------------------------------------------------------------

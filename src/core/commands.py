@@ -360,7 +360,7 @@ class CallForNFrames:
         self.session = session
         self.frame = 0
         v = session.main_view
-        v.add_new_frame_callback(self)
+        v.add_callback('new frame', self)
         if not hasattr(session, self.Attribute):
             setattr(session, self.Attribute, set([self]))
         else:
@@ -377,7 +377,7 @@ class CallForNFrames:
     def done(self):
         s = self.session
         v = s.main_view
-        v.remove_new_frame_callback(self)
+        v.remove_callback('new frame', self)
         getattr(s, self.Attribute).remove(self)
 
 

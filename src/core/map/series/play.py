@@ -60,7 +60,7 @@ class Play_Series:
 
     if self.play_handler is None:
       self.play_handler = h = self.next_time_cb
-      self.view().add_new_frame_callback(h)
+      self.view().add_callback('new frame', h)
   
   # ---------------------------------------------------------------------------
   #
@@ -68,7 +68,7 @@ class Play_Series:
 
     h = self.play_handler
     if h:
-      self.view().remove_new_frame_callback(h)
+      self.view().remove_callback('new frame', h)
       self.play_handler = None
 
   # ---------------------------------------------------------------------------
