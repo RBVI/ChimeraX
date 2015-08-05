@@ -162,6 +162,8 @@ class AtomicStructure(CAtomicStructure, Model):
             self.gc_color = self.gc_shape = self.gc_select = False
             self._update_graphics()
             self.redraw_needed(shape_changed = s, selection_changed = se)
+            if s:
+                self._atom_bounds_needs_update = True
 
     def _update_graphics(self):
         a = self.atoms
