@@ -19,13 +19,25 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
                                 % (assembly, ', '.join(a.id for a in assem)))
             a = amap[assembly]
             if surface_only:
-                surfs = m.surfaces()
-                if len(surfs) == 0:
-                    from .molsurf import surface_command
-                    surfs = surface_command(session, m.atoms)
+                from .molsurf import surface_command
+                surfs = surface_command(session, a.included_atoms(m))
+                if len(a.chain_ids) < m.num_chains:
+                    surface_command(session, a.excluded_atoms(m), hide = True)
                 for s in surfs:
                     s.positions = a.operators
             else:
+                if len(a.chain_ids) < m.num_chains:
+                    # Hide chains that are not part of assembly
+                    atoms = a.excluded_atoms(m)
+                    atoms.displays = False
+                    atoms.unique_residues.ribbon_displays = False
+
+                atoms = a.included_atoms(m)
+                if not atoms.displays.any():
+                    if not atoms.unique_residues.ribbon_displays.any():
+                        # Show atoms if atoms and ribbon are hidden
+                        atoms.displays = True
+
                 m.positions = a.operators
 
 def register_sym_command():
@@ -64,7 +76,7 @@ def pdb_assemblies(m):
     for id, m11,m12,m13,m14,m21,m22,m23,m24,m31,m32,m33,m34 in mat:
         ops[id] = Place(matrix = ((m11,m12,m13,m14),(m21,m22,m23,m24),(m31,m32,m33,m34)))
 
-    alist = [Assembly(id, name[id], op_expr[id], chain_ids[id], ops) for id in ids]
+    alist = [Assembly(id, name[id], op_expr[id], chain_ids[id].split(','), ops) for id in ids]
     m.assemblies = alist
     return alist
 
@@ -77,6 +89,25 @@ class Assembly:
         self.operator_table = operator_table
         products = parse_operator_expression(operator_expr)
         self.operators = operator_products(products, operator_table)
+
+    def included_atoms(self, mol):
+        if len(self.chain_ids) == mol.num_chains:
+            return mol.atoms
+        cids = set(self.chain_ids)
+        from .molecule import concatenate
+        atoms = concatenate([atoms for m, chain_id, atoms in mol.atoms.by_chain
+                             if chain_id in cids])
+        return atoms
+
+    def excluded_atoms(self, mol):
+        if len(self.chain_ids) == mol.num_chains:
+            from .molecule import Atoms
+            return Atoms()
+        cids = set(self.chain_ids)
+        from .molecule import concatenate
+        atoms = concatenate([atoms for m, chain_id, atoms in mol.atoms.by_chain
+                             if not chain_id in cids])
+        return atoms
 
 def operator_products(products, oper_table):
     from .geometry import Places
