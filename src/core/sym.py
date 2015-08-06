@@ -57,11 +57,17 @@ def pdb_assemblies(m):
         return []
     if hasattr(m, 'assemblies'):
         return m.assemblies
+    m.assemblies = alist = mmcif_assemblies(m.filename)
+    return alist
+
+def mmcif_assemblies(mmcif_path):
     table_names = ('_pdbx_struct_assembly',
                    '_pdbx_struct_assembly_gen',
                    '_pdbx_struct_oper_list')
     from . import mmcif
-    assem, assem_gen, oper = mmcif.read_mmcif_tables(m.filename, table_names)
+    assem, assem_gen, oper = mmcif.read_mmcif_tables(mmcif_path, table_names)
+    if assem is None or assem_gen is None or oper is None:
+        return []
     op_expr = assem_gen.mapping('assembly_id', 'oper_expression')
     chain_ids = assem_gen.mapping('assembly_id', 'asym_id_list')
     name = assem.mapping('id', 'details')
@@ -78,7 +84,6 @@ def pdb_assemblies(m):
         ops[id] = Place(matrix = ((m11,m12,m13,m14),(m21,m22,m23,m24),(m31,m32,m33,m34)))
 
     alist = [Assembly(id, name[id], op_expr[id], chain_ids[id].split(','), ops) for id in ids]
-    m.assemblies = alist
     return alist
 
 class Assembly:
