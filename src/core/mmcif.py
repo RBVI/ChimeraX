@@ -158,7 +158,10 @@ def read_mmcif_tables(mmcif_path, table_names):
         # The whole line is treated as a single values as if quoted.
         lval = semicolon_quote = line[1:].rstrip()
         if lval:
-          values[-1].append(lval)
+          if values:
+            values[-1].append(lval)
+          else:
+            values.append([lval])
       elif semicolon_quote:
         # Line that starts with semicolon continues on following lines until a line with only a semicolon.
         values[-1][-1] += line.rstrip()
