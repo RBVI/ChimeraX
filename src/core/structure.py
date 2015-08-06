@@ -478,6 +478,7 @@ class AtomicStructure(CAtomicStructure, Model):
 
     def bounds(self, positions = True):
         # TODO: Cache bounds
+        self._update_graphics_if_needed()       # Ribbon bound computed from graphics
         ab = self._atom_bounds()
         rb = self._ribbon_bounds()
         sb = tuple(s.bounds() for s in self.surfaces())
