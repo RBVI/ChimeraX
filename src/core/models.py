@@ -207,11 +207,10 @@ class Models(State):
             if children:
                 m_all.extend(self.add(children, model))
 
-        session = self._session()
-        for m in m_all:
-            m.added_to_session(session)
-
         if parent is None:
+            session = self._session()
+            for m in m_all:
+                m.added_to_session(session)
             session.triggers.activate_trigger(ADD_MODELS, m_all)
 
         return m_all
@@ -267,8 +266,8 @@ class Models(State):
         return models
 
 
-def descendant_models(models, mset=None):
-    mlist = []
+def descendant_models(models):
+    mset = set()
     for m in models:
-        mlist.extend(m.all_models())
-    return mlist
+        mset.update(m.all_models())
+    return list(mset)
