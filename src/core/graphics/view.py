@@ -498,6 +498,8 @@ class View:
         after each redraw (type = "rendered frame"), or before redrawing when the
         shape has changed (type = "shape changed").  The callback functions
         take no arguments.'''
+        if cb in self._callbacks[type]:
+            raise RuntimeError('Callback already in callback list when adding %s' % type)
         self._callbacks[type].append(cb)
 
     def remove_callback(self, type, cb):
@@ -505,7 +507,8 @@ class View:
         self._callbacks[type].remove(cb)
 
     def _call_callbacks(self, type):
-        for cb in self._callbacks[type]:
+        cbs = tuple(self._callbacks[type])
+        for cb in cbs:
             try:
                 cb()
             except:
