@@ -224,7 +224,7 @@ _camera_desc = cli.CmdDesc(
 )
 
 
-def save(session, filename, width=None, height=None, format=None, supersample=None):
+def save(session, filename, width=None, height=None, supersample=None, format=None):
     from os.path import splitext
     e = splitext(filename)[1].lower()
     from . import session as ses
