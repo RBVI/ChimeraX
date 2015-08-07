@@ -198,9 +198,9 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     AssocParams left_ap, right_ap;
     if (bsi > 0) {
         left_ap = AssocParams(0, cm_ap.segments.cbegin(),
-            cm_ap.segments.cbegin()+bsi-1,
-            cm_ap.gaps.cbegin(), cm_ap.gaps.cbegin()+bsi);
-        Sequence::Contents left_aseq(aseq.begin(), aseq.begin()+min_offset-2);
+            cm_ap.segments.cbegin()+bsi,
+            cm_ap.gaps.cbegin(), cm_ap.gaps.cbegin()+bsi+1);
+        Sequence::Contents left_aseq(aseq.begin(), aseq.begin()+min_offset-1);
         left_errors = _constrained(left_aseq, left_ap, left_offsets,
             max_errors - min_errs);
     }
