@@ -3,6 +3,108 @@
 from chimera.core.tools import ToolInstance
 from chimera.core.logger import HtmlLog
 
+context_menu_css = """
+.context-menu {
+	display: none;
+	position: absolute;
+	z-index: 100;
+	border: solid 1px #000000;
+	box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
+	cursor: pointer;
+}
+.context-menu-items {
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
+}
+.context-menu-item a:link, a:visited {
+	display: block;
+	color: #000;
+	text-decoration: none;
+	padding: 4px 8px;
+}
+.context-menu-item a:hover, a:active {
+	background-color: #cccccc;
+}
+.context-menu-active {
+	display: block;
+}
+"""
+
+context_menu_html = """
+<nav id="context-menu" class="context-menu">
+    <ul class="context-menu-items">
+        <!--
+        <li class="context-menu-item">
+            <a href="log:copy" class="context-menu-link"> Copy </a>
+        </li>
+        -->
+        <li class="context-menu-item">
+            <a href="log:save" class="context-menu-link"> Save </a>
+        </li>
+        <li class="context-menu-item">
+            <a href="log:clear" class="context-menu-link"> Clear </a>
+        </li>
+        <hr style="margin:0;">
+        <li class="context-menu-item">
+            <a href="log:help" class="context-menu-link"> Help </a>
+        </li>
+    </ul>
+</nav>
+"""
+
+context_menu_script = """
+(function() {
+	"use strict";
+
+	var context_menu = document.querySelector(".context-menu");
+	var context_menu_shown = false;
+	var active_css = "context-menu-active";
+
+	function show_context_menu() {
+		if (!context_menu_shown) {
+			context_menu_shown = true;
+			context_menu.classList.add(active_css);
+		}
+	}
+
+	function hide_context_menu() {
+		if (context_menu_shown) {
+			context_menu_shown = false;
+			context_menu.classList.remove(active_css);
+		}
+	}
+
+	function position_menu(menu, e) {
+		var x = e.pageX;
+		var y = e.pageY;
+
+		menu.style.left = x + "px";
+		menu.style.top = y + "px";
+	}
+
+	function init()
+	{
+		document.addEventListener("contextmenu", function (e) {
+			e.preventDefault();
+			show_context_menu();
+			position_menu(context_menu, e);
+		});
+
+		document.addEventListener("click", function (e) {
+			var button = e.which;
+			if (button === 1)	// left button used
+				hide_context_menu();
+		});
+
+		context_menu.addEventListener("mouseleave", hide_context_menu);
+	}
+
+	init();
+
+})();
+"""
+
 
 class Log(ToolInstance, HtmlLog):
 
@@ -24,6 +126,7 @@ class Log(ToolInstance, HtmlLog):
         from wx import html2
         self.log_window = html2.WebView.New(parent, size=self.SIZE)
         self.log_window.EnableContextMenu(False)
+        self.log_window.EnableHistory(False)
         self.page_source = ""
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.log_window, 1, wx.EXPAND)
@@ -31,9 +134,12 @@ class Log(ToolInstance, HtmlLog):
         self.tool_window.manage(placement="right")
         session.tools.add([self])
         session.logger.add_log(self)
-        self.log_window.Bind(wx.EVT_CLOSE, self.window_close)
-        self.log_window.SetPage(self.page_source, "")
-        self.log_window.Bind(html2.EVT_WEBVIEW_LOADED, self.show_bottom)
+        self.log_window.Bind(wx.EVT_CLOSE, self.on_close)
+        self.log_window.Bind(html2.EVT_WEBVIEW_LOADED, self.on_load)
+        self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
+            id=self.log_window.GetId())
+        #self.log_window.SetPage(self.page_source, "")
+        self.show_page_source()
 
     #
     # Implement logging
@@ -57,7 +163,7 @@ class Log(ToolInstance, HtmlLog):
             img_src = '<img src="data:image/png;base64,%s" width=%d height=%d style="vertical-align:middle">' % (bitmap.decode('utf-8'), width, height)
             self.page_source += img_src
             if image_break:
-                self.page_source += "<br>"
+                self.page_source += "<br>\n"
         else:
             if level in (self.LEVEL_ERROR, self.LEVEL_WARNING):
                 if level == self.LEVEL_ERROR:
@@ -86,7 +192,7 @@ class Log(ToolInstance, HtmlLog):
             if not is_html:
                 from html import escape
                 msg = escape(msg)
-                msg = msg.replace("\n", "<br>")
+                msg = msg.replace("\n", "<br>\n")
 
             if level == self.LEVEL_ERROR:
                 msg = '<font color="red">' + msg + '</font>'
@@ -94,17 +200,62 @@ class Log(ToolInstance, HtmlLog):
                 msg = '<font color="red">' + msg + '</font>'
 
             self.page_source += msg
-        self.log_window.ClearHistory()
-        self.log_window.SetPage(self.page_source, "")
+        self.show_page_source()
         return True
 
-    def show_bottom(self, event):
+    def show_page_source(self):
+        self.log_window.SetPage("<style>%s</style>%s\n%s" % (
+            context_menu_css, context_menu_html, self.page_source), "")
+
+    # wx event handling
+
+    def on_close(self, event):
+        self.session.logger.remove_log(self)
+
+    def on_load(self, event):
         # scroll to bottom
         self.log_window.RunScript(
             "window.scrollTo(0, document.body.scrollHeight);")
+        # setup context menu
+        self.log_window.RunScript(context_menu_script)
 
-    def window_close(self, event):
-        self.session.logger.remove_log(self)
+    def on_navigating(self, event):
+        session = self.session
+        # Handle event
+        url = event.GetURL()
+        import sys
+        if url.startswith("log:"):
+            event.Veto()
+            cmd = url.split(':', 1)[1]
+            if cmd == 'help':
+                pass # TODO: self.help_func()?
+            elif cmd == 'clear':
+                self.page_source = ""
+                self.show_page_source()
+            elif cmd == 'copy':
+                pass  # TODO
+            if cmd == 'save':
+                from chimera.core.ui.open_save import SaveDialog
+                save_dialog = SaveDialog(self.log_window, "Save Log",
+                        defaultFile="log",
+                        wildcard="HTML files (*.html)|*.html",
+                        add_extension=".html")
+                import wx
+                if save_dialog.ShowModal() == wx.ID_CANCEL:
+                    return
+                filename = save_dialog.GetPath()
+                f = open(filename, 'w')
+                f.write("<!DOCTYPE html>\n"
+                        "<html>\n"
+                        "<head>\n"
+                        "<title> Chimera2 Log </title>\n"
+                        "</head>\n"
+                        "<body>\n"
+                        "<h1> Chimera2 Log </h1>\n")
+                f.write(self.page_source)
+                f.write("</body>\n"
+                        "</html>\n")
+                f.close()
 
     #
     # Implement session.State methods if deriving from ToolInstance
