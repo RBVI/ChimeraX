@@ -192,7 +192,7 @@ class Logger:
             return
         self._collapse_similar = cs
         if not cs:
-            if self._sim_timer != None:
+            if self._sim_timer is not None:
                 self._sim_timer.cancel()
                 self._sim_timer_cb()
             else:
@@ -319,8 +319,8 @@ class Logger:
             self._follow_timer1 = None
         if follow_log is None:
             follow_log = log
-        self.session.ui.thread_safe(self.status, follow_with, color=color, log=follow_log,
-                    secondary=secondary)
+        self.session.ui.thread_safe(self.status, follow_with, color=color,
+                                    log=follow_log, secondary=secondary)
 
     def _html_to_plain(self, msg, image, is_html):
         if image:
@@ -426,7 +426,6 @@ class Logger:
         self._log(level, "{} messages similar to the above omitted".format(
             reps - self._sim_collapse_after), True, None, False)
 
-
     def _status_timeout(self, secondary):
         if secondary:
             self._status_timer2 = None
@@ -446,13 +445,13 @@ class CollatingLog(PlainTextLog):
     simiilar (or identical) log messagesm you may also want to set the logger's
     :py:attr:`~Logger.collapse_similar` attribute to True after adding
     the log, and set it back to its original value before removing the log.
-    
+
     To get the collated messages, call :py:meth:`summarize` on the log.
     That will return a 2-tuple consisting of the maximum log level of the
     messages, and their combined text.  The text will list the errors,
     warnings, etc. in separate sections of the text.  To log the result,
     use the logger's :py:attr:`~Logger.method_map` dictionary to convert
-    the maximum level to a method to call, and call that method with 
+    the maximum level to a method to call, and call that method with
     the summary as an argument (possibly preceded with some introductory
     text) and with the `add_newline` keyword set to False.
     """
@@ -464,7 +463,7 @@ class CollatingLog(PlainTextLog):
         self.msgs = []
         for _ in range(len(self.LEVEL_DESCRIPTS)):
             self.msgs.append([])
- 
+
     def log(self, level, msg):
         self.msgs[level].append(msg)
         self.max_level = max(self.max_level, level)
@@ -485,6 +484,40 @@ class CollatingLog(PlainTextLog):
                 "s" if len(msgs) > 1 else "")
             msg += "".join(msgs)
         return self.max_level, msg
+
+
+class Collator:
+    """Context manager for a CollatingLog
+    
+    Parameters
+    ----------
+    logger : the session's :py:class:`Logger`
+        The logger to use.
+    summary_title : string
+        What to title the log summary.
+    log_errors : boolean
+        Whether or not to log errors, defaults True.
+    """
+
+    def __init__(self, logger, summary_title, log_errors=True):
+        self.logger = logger
+        self.summary_title = summary_title
+        self.log_errors = log_errors
+        self.collater = CollatingLog()
+
+    def __enter__(self):
+        self.logger.add_log(self.collater)
+        self.prev_collapse = self.logger.collapse_similar
+        self.logger.collapse_similar = True
+
+    def __exit__(self, *exc_info):
+        self.logger.collapse_similar = self.prev_collapse
+        self.logger.remove_log(self.collater)
+        if self.log_errors:
+            level, summary = self.collater.summarize()
+            if summary:
+                msg = "%s:\n\n%s" % (self.summary_title, summary)
+                self.logger.method_map[level](msg, add_newline=False)
 
 
 def html_to_plain(html):

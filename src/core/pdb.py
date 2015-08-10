@@ -20,22 +20,13 @@ def open_pdb(session, filename, name, *args, **kw):
     else:
         input = _builtin_open(filename, 'rb')
 
-    from .logger import CollatingLog
-    collater = CollatingLog()
-    session.logger.add_log(collater)
-    prev_collapse = session.logger.collapse_similar
-    session.logger.collapse_similar = True
-    from . import pdbio
-    pointers = pdbio.read_pdb_file(input, log=session.logger)
-    if input != filename:
-        input.close()
-    session.logger.collapse_similar = prev_collapse
-    session.logger.remove_log(collater)
-    if kw.pop('log_errors', True):
-        level, summary = collater.summarize()
-        if summary:
-            msg = "Summary of problems reading PDB file:\n\n" + summary
-            session.logger.method_map[level](msg, add_newline=False)
+    from .logger import Collator
+    with Collator(session.logger, "Summary of problems reading PDB file",
+                  kw.pop('log_errors', True)):
+        from . import pdbio
+        pointers = pdbio.read_pdb_file(input, log=session.logger)
+        if input != filename:
+            input.close()
 
     models = [structure.AtomicStructure(name, p) for p in pointers]
 
