@@ -47,7 +47,7 @@ class GraphicsWindow(wx.Panel):
         self.opengl_canvas.SwapBuffers()
 
     def _redraw_timer_callback(self, event):
-        if not self.view.draw(only_if_changed=True):
+        if not self.view.draw_new_frame():
             self.mouse_modes.mouse_pause_tracking()
 
 
