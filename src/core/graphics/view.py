@@ -52,7 +52,7 @@ class View:
         self.silhouette_depth_jump = 0.01       # fraction of scene depth
 
         self.frame_number = 1
-        self.redraw_needed = False
+        self.redraw_needed = True
         self._time_graphics = False
         self.update_lighting = False
         self._block_redraw_count = 0
@@ -106,19 +106,6 @@ class View:
         from .opengl import Render
         self._render = Render()
 
-    def _initialize_opengl(self):
-
-        if self._opengl_initialized:
-            return
-        self._opengl_initialized = True
-
-        r = self._render
-        r.set_background_color(self.background_color)
-        r.enable_depth_test(True)
-
-        w, h = self.window_size
-        r.initialize_opengl(w, h)
-
     def opengl_context(self):
         return self._opengl_context
 
@@ -133,26 +120,160 @@ class View:
         self._opengl_context.make_current()
         self._initialize_opengl()
 
-    def draw(self, only_if_changed=False):
+    def _initialize_opengl(self):
+
+        if self._opengl_initialized:
+            return
+        self._opengl_initialized = True
+
+        r = self._render
+        r.set_background_color(self.background_color)
+        r.enable_depth_test(True)
+
+        w, h = self.window_size
+        r.initialize_opengl(w, h)
+
+    def draw_new_frame(self):
         '''
-        Draw the scene. If only_if_changed is True then redraw the scene
-        only if the drawing or camera or rendering options have changed.
+        Draw the scene if it has changed or camera or rendering options have changed.
+        Before checking if the scene has changed call the "new frame" callbacks
+        typically used by movie recording to animate such as rotating the view, fading
+        models in and out, ....  If the scene is drawn call the "rendered frame" callbacks
+        after drawing.  Return true if draw, otherwise false.
         '''
-        if only_if_changed:
-            if self._block_redraw_count == 0:
-                # Avoid redrawing during callbacks of the current redraw.
-                self._block_redraw()
-                try:
-                    return self._draw_if_changed()
-                finally:
-                    self._unblock_redraw()
+        if self._block_redraw_count > 0:
+            # Avoid redrawing during callbacks of the current redraw.
+            return False
+        
+        self._block_redraw()
+        try:
+            self._call_callbacks('new frame')
+            changed = self._check_for_drawing_change()
+            if changed:
+                self.draw(check_for_changes = False)
+                self._call_callbacks('rendered frame')
+        finally:
+            self._unblock_redraw()
+
+        self.frame_number += 1
+
+        return changed
+
+    def draw(self, camera = None, drawings = None, check_for_changes = True, swap_buffers = True):
+        '''
+        Draw the scene.
+        '''
+        self._use_opengl()
+
+        if check_for_changes:
+            if self._check_for_drawing_change() and not swap_buffers:
+                self.redraw_needed = True       # Make sure redraw with swap is done later.
+
+        if camera is None:
+            camera = self.camera
+
+        mdraw = [self.drawing] if drawings is None else drawings
+
+        r = self._render
+        if self.shadows:
+            # Light direction in camera coords
+            kl = r.lighting.key_light_direction
+            # Light direction in scene coords.
+            lightdir = camera.position.apply_without_translation(kl)
+            stf = self._use_shadow_map(lightdir, drawings)
+        if self.multishadow > 0:
+            mstf, msdepth \
+                = self._use_multishadow_map(self._multishadow_directions(),
+                                            drawings)
+
+        r.set_background_color(self.background_color)
+
+        if self.update_lighting:
+            self.update_lighting = False
+            r.set_shader_lighting_parameters()
+
+        if drawings is None:
+            any_selected = self.any_drawing_selected()
+        else:
+            any_selected = True
+
+        r.set_frame_number(self.frame_number)
+        perspective_near_far_ratio = 2
+        from .drawing import (draw_depth, draw_drawings, draw_outline,
+                              draw_overlays, draw_2d_overlays)
+        for vnum in range(camera.number_of_views()):
+            camera.set_render_target(vnum, r)
+            if self.silhouettes:
+                r.start_silhouette_drawing()
+            r.draw_background()
+            if mdraw:
+                perspective_near_far_ratio \
+                    = self._update_projection(vnum, camera=camera)
+                cp = camera.get_position(vnum)
+                cpinv = cp.inverse()
+                if self.shadows and stf is not None:
+                    r.set_shadow_transform(stf * cp)
+                if self.multishadow > 0 and mstf is not None:
+                    r.set_multishadow_transforms(mstf, cp, msdepth)
+                    # Initial depth pass optimization to avoid lighting
+                    # calculation on hidden geometry
+                    draw_depth(r, cpinv, mdraw)
+                    r.allow_equal_depth(True)
+                self._start_timing()
+                draw_drawings(r, cpinv, mdraw)
+                self._finish_timing()
+                if self.multishadow > 0:
+                    r.allow_equal_depth(False)
+                if any_selected:
+                    draw_outline(r, cpinv, mdraw)
+            if self.silhouettes:
+                r.finish_silhouette_drawing(self.silhouette_thickness,
+                                            self.silhouette_color,
+                                            self.silhouette_depth_jump,
+                                            perspective_near_far_ratio)
+
+        camera.combine_rendered_camera_views(r)
+
+        if self._overlays:
+            draw_overlays(self._overlays, r)
+
+        if self._2d_overlays:
+            draw_2d_overlays(self._2d_overlays, r)
+
+        if swap_buffers and self.camera.mode.do_swap_buffers():
+            self._opengl_context.swap_buffers()
+
+    def _check_for_drawing_change(self):
+        self._call_callbacks('graphics update')
+
+        c = self.camera
+        dm = self._drawing_manager
+        draw = self.redraw_needed or c.redraw_needed or dm.redraw_needed
+        if not draw:
             return False
 
-        self._use_opengl()
-        self._draw_scene()
-        if self.camera.mode.do_swap_buffers():
-            self._opengl_context.swap_buffers()
-        self.frame_number += 1
+        if dm.shape_changed:
+            self._call_callbacks('shape changed')
+            self.center_of_rotation_needs_update()
+            self.update_center_of_rotation()
+
+        if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
+            # Force recomputation of ambient shadows since shape changed.
+            self._multishadow_transforms = []
+
+        self.redraw_needed = False
+        c.redraw_needed = False
+        dm.redraw_needed = False
+        dm.shape_changed = False
+
+        return True
+
+    def _block_redraw(self):
+        # Avoid redrawing when we are already in the middle of drawing.
+        self._block_redraw_count += 1
+
+    def _unblock_redraw(self):
+        self._block_redraw_count -= 1
 
     def get_background_color(self):
         return self._background_rgba
@@ -316,8 +437,6 @@ class View:
     def image(self, width=None, height=None, supersample=None, camera=None,
               drawings=None):
         '''Capture an image of the current scene. A PIL image is returned.'''
-        self._use_opengl()
-        self._call_callbacks('graphics update')
 
         w, h = self._window_size_matching_aspect(width, height)
 
@@ -341,7 +460,7 @@ class View:
             c = camera
 
         if supersample is None:
-            self._draw_scene(c, drawings)
+            self.draw(c, drawings, swap_buffers = False)
             rgba = r.frame_buffer_image(w, h)
         else:
             from numpy import zeros, float32, uint8
@@ -352,7 +471,7 @@ class View:
             for i in range(n):
                 for j in range(n):
                     c.pixel_shift = (s0 + i * s, s0 + j * s)
-                    self._draw_scene(c, drawings)
+                    self.draw(c, drawings, swap_buffers = False)
                     srgba += r.frame_buffer_image(w, h)
             c.pixel_shift = (0, 0)
             srgba /= n * n
@@ -404,42 +523,6 @@ class View:
             # Choose width to match window aspect ratio.
             return ((vw * h) // vh, h)
         return (vw, vh)
-
-    def _draw_if_changed(self):
-        self._call_callbacks('new frame')
-        self._call_callbacks('graphics update')
-
-        c = self.camera
-        dm = self._drawing_manager
-        draw = self.redraw_needed or c.redraw_needed or dm.redraw_needed
-        if not draw:
-            return False
-
-        if dm.shape_changed:
-            self._call_callbacks('shape changed')
-            self.center_of_rotation_needs_update()
-            self.update_center_of_rotation()
-
-        if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
-            # Force recomputation of ambient shadows since shape changed.
-            self._multishadow_transforms = []
-
-        self.redraw_needed = False
-        c.redraw_needed = False
-        dm.redraw_needed = False
-        dm.shape_changed = False
-        self.draw()
-
-        self._call_callbacks('rendered frame')
-
-        return True
-
-    def _block_redraw(self):
-        # Avoid redrawing when we are already in the middle of drawing.
-        self._block_redraw_count += 1
-
-    def _unblock_redraw(self):
-        self._block_redraw_count -= 1
 
     def report_framerate(self, time=None, monitor_period=1.0):
         '''
@@ -525,79 +608,6 @@ class View:
             from ..geometry import sphere
             self._multishadow_dir = directions = sphere.sphere_points(n)
         return directions
-
-    def _draw_scene(self, camera=None, drawings=None):
-
-        if camera is None:
-            camera = self.camera
-
-        mdraw = [self.drawing] if drawings is None else drawings
-
-        r = self._render
-        if self.shadows:
-            # Light direction in camera coords
-            kl = r.lighting.key_light_direction
-            # Light direction in scene coords.
-            lightdir = camera.position.apply_without_translation(kl)
-            stf = self._use_shadow_map(lightdir, drawings)
-        if self.multishadow > 0:
-            mstf, msdepth \
-                = self._use_multishadow_map(self._multishadow_directions(),
-                                            drawings)
-
-        r.set_background_color(self.background_color)
-
-        if self.update_lighting:
-            self.update_lighting = False
-            r.set_shader_lighting_parameters()
-
-        if drawings is None:
-            any_selected = self.any_drawing_selected()
-        else:
-            any_selected = True
-
-        r.set_frame_number(self.frame_number)
-        perspective_near_far_ratio = 2
-        from .drawing import (draw_depth, draw_drawings, draw_outline,
-                              draw_overlays, draw_2d_overlays)
-        for vnum in range(camera.number_of_views()):
-            camera.set_render_target(vnum, r)
-            if self.silhouettes:
-                r.start_silhouette_drawing()
-            r.draw_background()
-            if mdraw:
-                perspective_near_far_ratio \
-                    = self._update_projection(vnum, camera=camera)
-                cp = camera.get_position(vnum)
-                cpinv = cp.inverse()
-                if self.shadows and stf is not None:
-                    r.set_shadow_transform(stf * cp)
-                if self.multishadow > 0 and mstf is not None:
-                    r.set_multishadow_transforms(mstf, cp, msdepth)
-                    # Initial depth pass optimization to avoid lighting
-                    # calculation on hidden geometry
-                    draw_depth(r, cpinv, mdraw)
-                    r.allow_equal_depth(True)
-                self._start_timing()
-                draw_drawings(r, cpinv, mdraw)
-                self._finish_timing()
-                if self.multishadow > 0:
-                    r.allow_equal_depth(False)
-                if any_selected:
-                    draw_outline(r, cpinv, mdraw)
-            if self.silhouettes:
-                r.finish_silhouette_drawing(self.silhouette_thickness,
-                                            self.silhouette_color,
-                                            self.silhouette_depth_jump,
-                                            perspective_near_far_ratio)
-
-        camera.combine_rendered_camera_views(r)
-
-        if self._overlays:
-            draw_overlays(self._overlays, r)
-
-        if self._2d_overlays:
-            draw_2d_overlays(self._2d_overlays, r)
 
     def _use_shadow_map(self, light_direction, drawings):
 
