@@ -46,6 +46,8 @@ class View:
         self._multishadow_dir = None
         self._multishadow_transforms = []
         self._multishadow_depth = None
+        self._multishadow_update_needed = False
+
         self.silhouettes = False
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0, 0, 0, 1)    # black
@@ -63,8 +65,8 @@ class View:
         self._2d_overlays = []
 
         from numpy import array, float32
-        self.center_of_rotation = array((0, 0, 0), float32)
-        self._update_center = True
+        self._center_of_rotation = array((0, 0, 0), float32)
+        self._update_center_of_rotation = False
 
         self._drawing_manager = dm = _RedrawNeeded()
         if track:
@@ -166,8 +168,7 @@ class View:
         self._use_opengl()
 
         if check_for_changes:
-            if self._check_for_drawing_change() and not swap_buffers:
-                self.redraw_needed = True       # Make sure redraw with swap is done later.
+            self._check_for_drawing_change()
 
         if camera is None:
             camera = self.camera
@@ -240,8 +241,10 @@ class View:
         if self._2d_overlays:
             draw_2d_overlays(self._2d_overlays, r)
 
-        if swap_buffers and self.camera.mode.do_swap_buffers():
-            self._opengl_context.swap_buffers()
+        if swap_buffers:
+            if self.camera.mode.do_swap_buffers():
+                self._opengl_context.swap_buffers()
+            self.redraw_needed = False
 
     def _check_for_drawing_change(self):
         self._call_callbacks('graphics update')
@@ -253,18 +256,17 @@ class View:
             return False
 
         if dm.shape_changed:
-            self._call_callbacks('shape changed')
-            self.center_of_rotation_needs_update()
-            self.update_center_of_rotation()
+            self._call_callbacks('shape changed')	# Used for updating pseudobond graphics
+            self._update_center_of_rotation = True
 
         if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
-            # Force recomputation of ambient shadows since shape changed.
-            self._multishadow_transforms = []
+            self._multishadow_update_needed = True
 
-        self.redraw_needed = False
         c.redraw_needed = False
         dm.redraw_needed = False
         dm.shape_changed = False
+
+        self.redraw_needed = True
 
         return True
 
@@ -638,6 +640,10 @@ class View:
 
     def _use_multishadow_map(self, light_directions, drawings):
 
+        if self._multishadow_update_needed:
+            self._multishadow_transforms = []
+            self._multishadow_update_needed = False
+
         r = self._render
         if len(self._multishadow_transforms) == len(light_directions):
             # Bind shadow map for subsequent rendering of shadows.
@@ -686,7 +692,7 @@ class View:
         '''Return bounds of drawing, displayed part only.'''
         dm = self._drawing_manager
         b = dm.cached_drawing_bounds
-        if b is None:
+        if b is None or self._check_for_drawing_change():
             dm.cached_drawing_bounds = b = self.drawing.bounds()
         return b
 
@@ -716,17 +722,24 @@ class View:
         shift = self.camera.view_all(b.center(), b.width())
         self.translate(-shift)
 
-    def center_of_rotation_needs_update(self):
-        '''Cause the center of rotation to be updated.'''
-        self._update_center = True
+    def _get_cofr(self):
+        if self._update_center_of_rotation:
+            self._update_center_of_rotation = False
+            cofr = self._compute_center_of_rotation()
+            if not cofr is None:
+                self._center_of_rotation = cofr
+        return self._center_of_rotation
+    def _set_cofr(self, cofr):
+        self._center_of_rotation = cofr
+        self._update_center_of_rotation = False
+    center_of_rotation = property(_get_cofr, _set_cofr)
 
-    def update_center_of_rotation(self):
+    def _compute_center_of_rotation(self):
         '''
-        Update the center of rotation to the center of displayed drawings
-        if zoomed out, or the front center object if zoomed in.
+        Compute the center of rotation of displayed drawings.
+        Use bounding box center if zoomed out, or the front center
+        point if zoomed in.
         '''
-        if not self._update_center:
-            return
         self._update_center = False
         b = self.drawing_bounds()
         if b is None:
@@ -739,8 +752,8 @@ class View:
             # Use front center point for zoomed in views
             cr = self._front_center_point()
             if cr is None:
-                return
-        self.center_of_rotation = cr
+                return None
+        return cr
 
     def _front_center_point(self):
         w, h = self.window_size
@@ -822,7 +835,6 @@ class View:
                 return
             center = b.center()
         else:
-            self.update_center_of_rotation()
             center = self.center_of_rotation
         from ..geometry import place
         r = place.rotation(axis, angle, center)
@@ -831,7 +843,7 @@ class View:
     def translate(self, shift, drawings=None):
         '''Move camera to simulate a translation of drawings.  Translation
         is in scene coordinates.'''
-        self.center_of_rotation_needs_update()
+        self._update_center_of_rotation = True
         from ..geometry import place
         t = place.translation(shift)
         self.move(t, drawings)
