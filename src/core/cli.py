@@ -228,11 +228,11 @@ def _user_kw(kw_name):
 
 
 from .errors import UserError
-class AnnotationError(UserError):
+class AnnotationError(UserError, ValueError):
     """Error, with optional offset, in annotation"""
 
     def __init__(self, message, offset=None):
-        ValueError.__init__(self, message)
+        super().__init__(message)
         self.offset = offset
 
 
@@ -649,12 +649,12 @@ class Or(Annotation):
                 return anno.parse(text, session)
             except ValueError:
                 pass
-        names = [a.__name__ for a in self.annotations]
+        names = [a.name for a in self.annotations]
         msg = ', '.join(names[:-1])
         if len(names) > 2:
             msg += ', '
         msg += 'or ' + names[-1]
-        raise AnnotationError("Excepted %s" % msg)
+        raise AnnotationError("Expected %s" % msg)
 
 
 _escape_table = {

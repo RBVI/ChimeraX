@@ -171,6 +171,13 @@ _BuiltinColors = SortedDict({
 _BuiltinColors['transparent'] = (0, 0, 0, 0)
 _SpecialColors = ["byatom", "byelement", "byhetero", "bychain"]
 
+_BuiltinColormaps = SortedDict()
+_CmapRanges = ["full"]
+
+_SequentialLevels = ["residues", "helix", "helices", "strands",
+                     "SSEs", "chains", "molmodels", 
+                     "volmodels", "allmodels"]
+
 
 class UserColors(SortedDict, State):
     """Support for per-session colors.
@@ -479,6 +486,168 @@ class ColorArg(cli.Annotation):
             return Color([red, green, blue, alpha]), m.group(), rest
         raise ValueError("Unknown color description")
 
+# -----------------------------------------------------------------------------
+
+
+class UserColormaps(SortedDict, State):
+    """Support for per-session colormaps.
+
+    Accessed through the session object as ``session.user_colormaps``.
+    """
+
+    USER_COLORMAPS_VERSION = 1
+
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
+        return [self.USER_COLORMAPS_VERSION, dict(self)]
+
+    def restore_snapshot(self, phase, session, version, data):
+        if version != self.USER_COLORMAPS_VERSION:
+            raise RestoreError("Unexpected UserColormaps version")
+        if phase == self.CREATE_PHASE:
+            self.clear()
+            self.update(data)
+
+    def reset_state(self):
+        """Reset state to data-less state"""
+        self.clear()
+
+
+class Colormap:
+    """Basic colormap support.
+
+    Colormaps keep track of two parallel arrays: values and colors.
+    When given a value, the colors corresponding to tracked values below
+    and above the target value; the target color is computed by
+    interpolating in RGB space.  Two additional colors are tracked
+    by colormap for values above and below the minimum and maximum
+    tracked values.  A "no value" color is also tracked.
+
+    Attributes
+    ----------
+        data_values : 
+
+    Parameters
+    ----------
+    data_values : array of floating point values
+        sorted list or numpy array of floating point values.
+    colors : array of colors
+        list or numpy array of Color instances.
+    color_above_value_range : color for values above maximum value
+        instance of Color.
+    color_below_value_range : color for values below minimum value
+        instance of Color.
+    color_no_value : default color when no value is defined
+        instance of Color.
+    """
+    def __init__(self, data_values, colors,
+                 color_above_value_range = None,
+                 color_below_value_range = None,
+                 color_no_value= None):
+        from numpy import array, float32, ndarray
+        if not data_values:
+            import numpy
+            self.data_values = numpy.linspace(0.0, 1.0, len(colors))
+        elif isinstance(data_values, ndarray):
+            self.data_values = data_values
+        else:
+            self.data_values = array(data_values, dtype=float32)
+        c = colors[0]
+        if isinstance(c, Color):
+            self.colors = array([c.rgba for c in colors])
+        elif isinstance(colors, ndarray):
+            self.colors = colors
+        else:
+            self.colors = array(colors, dtype=float32)
+
+        if color_above_value_range == None:
+            color_above_value_range = colors[-1]
+        if color_below_value_range == None:
+            color_below_value_range = colors[0]
+        if color_no_value == None:
+            color_no_value = (.5,.5,.5,1)
+
+        self.color_above_value_range = color_above_value_range
+        self.color_below_value_range = color_below_value_range
+        self.color_no_value = color_no_value
+
+    def get_colors_for(self, values):
+        """Return numpy array of rgba for given values.
+
+        Parameter
+        ---------
+        values : numpy array of float32
+
+        Return Value
+        ------------
+        numpy array of rgba (Nx4 where N is the length of "values".)
+        """
+        from . import map
+        colors = map.interpolate_colormap(values, self.data_values, self.colors,
+                                          self.color_above_value_range,
+                                          self.color_below_value_range)
+        return colors
+
+
+# Initialize built-in colormaps
+_BuiltinColormaps['rainbow'] = Colormap(None, ((1,0,0,1), (1,1,0,1), (0,1,0,1), (0,1,1,1), (0,0,1,1)))
+_BuiltinColormaps['grayscale'] = Colormap(None, ((0,0,0,1), (1,1,1,1)))
+# _BuiltinColormaps['red-white-blue'] = Colormap(None, ((1,0,0,1), (1,1,1,1), (0,0,1,1)))
+_BuiltinColormaps['red-white-blue'] = Colormap(None, ((1,0,0,1), (.7,.7,.7,1), (0,0,1,1)))
+_BuiltinColormaps['blue-white-red'] = Colormap(None, ((0,0,1,1), (1,1,1,1), (1,0,0,1)))
+_BuiltinColormaps['cyan-white-maroon'] = Colormap(None, ((0.059,0.78,0.81,1), (1,1,1,1), (0.62,0.125,0.37,1)))
+# Add some aliases
+_BuiltinColormaps['redblue'] = _BuiltinColormaps['red-white-blue']
+_BuiltinColormaps['bluered'] = _BuiltinColormaps['blue-white-red']
+_BuiltinColormaps['gray'] = _BuiltinColormaps['grayscale']
+_BuiltinColormaps['cyanmaroon'] = _BuiltinColormaps['cyan-white-maroon']
+
+
+class ColormapArg(cli.Annotation):
+    """Support color map names and value-color pairs specifications.
+    """
+    name = 'a colormap'
+
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = cli.next_token(text)
+        parts = token.split(':')
+        if len(parts) > 1:
+            values = []
+            colors = []
+            for p in parts:
+                vc = p.split(',')
+                if len(vc) == 1:
+                    color, t, r = ColorArg.parse(vc[0], session)
+                elif len(vc) == 2:
+                    values.append(float(vc[0]))
+                    color, t, r = ColorArg.parse(vc[1], session)
+                else:
+                    raise ValueError("Too many fields in colormap")
+                if r:
+                    raise ValueError("Bad color in colormap")
+                colors.append(color)
+            if len(values) != len(colors):
+                raise ValueError("Number of values and color must match in colormap")
+            return Colormap(values, colors), text, rest
+        else:
+            if session is not None:
+                i = session.user_colormaps.bisect_left(token)
+                if i < len(session.user_colormaps):
+                    name = session.user_colormaps.iloc[i]
+                    if name.startswith(token):
+                        return session.user_colormaps[name], name, rest
+            i = _BuiltinColormaps.bisect_left(token)
+            if i >= len(_BuiltinColormaps):
+                raise ValueError("Invalid colormap name")
+            name = _BuiltinColormaps.iloc[i]
+            if not name.startswith(token):
+                raise ValueError("Invalid colormap name")
+            return _BuiltinColormaps[name], name, rest
+
+# -----------------------------------------------------------------------------
+
 
 def define_color(session, name, color=None):
     """Create a user defined color."""
@@ -591,12 +760,23 @@ def rcolor(session, color, spec=None):
     session.logger.status('Colored %s' % ', '.join(what))
 
 
-def ecolor(session, spec, color=None, target=None):
+def ecolor(session, spec, color=None, target=None,
+           sequential=None, cmap=None, cmap_range=None):
     """Color an object specification."""
     from . import atomspec
     if spec is None:
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
+    if sequential is not None:
+        try:
+            f = _SequentialColor[sequential]
+        except KeyError:
+            from .errors import UserError
+            raise UserError("sequential \"%s\" not implemented yet"
+                            % sequential)
+        else:
+            f(results, cmap)
+            return
     what = []
 
     if target is None or 'a' in target:
@@ -672,9 +852,7 @@ def _set_element_colors(atoms, skip_carbon):
     for e in numpy.unique(en):
         if not skip_carbon or e != 6:
             ae = atoms.filter(en == e)
-            print("before", e, len(ae), ae[0].color)
             atoms.filter(en == e).colors = element_colors(e)
-            print("after", ae[0].color)
 
 # -----------------------------------------------------------------------------
 #
@@ -886,7 +1064,37 @@ def chain_rgba(cid):
 def chain_rgba8(cid):
     return chain_colors([cid])[0]
 
+# -----------------------------------------------------------------------------
+#
+def _set_sequential_chain(selected, cmap):
+    # Organize selected atoms by structure and then chain
+    sa = selected.atoms
+    chain_atoms = sa.filter(sa.in_chains)
+    structures = {}
+    for structure, chain_id, atoms in chain_atoms.by_chain:
+        try:
+            sl = structures[structure]
+        except KeyError:
+            sl = []
+            structures[structure] = sl
+        sl.append((chain_id, atoms))
+    # Make sure there is a colormap
+    if cmap is None:
+        cmap = _BuiltinColormaps["redblue"]
+    # Each structure is colored separately with cmap applied by chain
+    import numpy
+    for sl in structures.values():
+        colors = cmap.get_colors_for(numpy.linspace(0.0, 1.0, len(sl)))
+        for color, (chain_id, atoms) in zip(colors, sl):
+            atoms.colors = Color(color).uint8x4()
 
+_SequentialColor = {
+    "chains": _set_sequential_chain,
+}
+
+
+# -----------------------------------------------------------------------------
+#
 def register_commands():
     from . import atomspec
     cli.register(
@@ -918,9 +1126,13 @@ def register_commands():
     )
     cli.register(
         'ecolor',
-        cli.CmdDesc(optional=[('color', cli.Or(ColorArg, cli.EnumOf(_SpecialColors)))],
-                    required=[('spec', cli.Or(atomspec.AtomSpecArg, cli.EmptyArg))],
-                    keyword=[('target', cli.StringArg)],
+        cli.CmdDesc(required=[('spec', cli.Or(atomspec.AtomSpecArg, cli.EmptyArg))],
+                    optional=[('color', cli.Or(ColorArg, cli.EnumOf(_SpecialColors)))],
+                    keyword=[('target', cli.StringArg),
+                             ('sequential', cli.EnumOf(_SequentialLevels)),
+                             ('cmap', ColormapArg),
+                             ('cmap_range', cli.Or(cli.TupleOf(cli.FloatArg, 2),
+                                                    cli.EnumOf(_CmapRanges)))],
                     synopsis="testing real color syntax"),
         ecolor
     )

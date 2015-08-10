@@ -646,6 +646,8 @@ def common_startup(sess):
     from . import color
     sess.user_colors = color.UserColors()
     sess.add_state_manager('user_colors', sess.user_colors)
+    sess.user_colormaps = color.UserColormaps()
+    sess.add_state_manager('user_colormaps', sess.user_colormaps)
     from .graphics.view import View
     global _monkey_patch
     if _monkey_patch:
