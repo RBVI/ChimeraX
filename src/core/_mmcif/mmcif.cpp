@@ -1128,22 +1128,45 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
     map<ChainID, int> strand_ids;
     while (parse_row(pv)) {
         if (chain_id1 != chain_id2) {
-            logger::error(_logger, "Start and end residues of strand"
-                " are in different chains: ", sheet_id, ' ', id);
+            logger::error(_logger, "Invalid sheet range for strand: ",
+                          sheet_id, ' ', id, ": different chains");
             continue;
         }
 
-        const ResidueMap& residue_map = all_residues[chain_id1];
-        string entity_id = chain_entity_map[chain_id1];
-        auto& entity_poly_seq = poly_seq[entity_id];
+        auto ari = all_residues.find(chain_id1);
+        if (ari == all_residues.end()) {
+            logger::error(_logger, "Invalid sheet range for strand: ",
+                          sheet_id, ' ', id, ": invalid chain");
+            continue;
+        }
+        const ResidueMap& residue_map = ari->second;
+        auto cemi = chain_entity_map.find(chain_id1);
+        if (cemi == chain_entity_map.end()) {
+            logger::error(_logger, "Invalid sheet range for strand: ",
+                          sheet_id, ' ', id, ": invalid chain");
+            continue;
+        }
+        string entity_id = cemi->second;
+        auto psi = poly_seq.find(entity_id);
+        if (psi == poly_seq.end()) {
+            logger::error(_logger, "Invalid sheet range for strand: ",
+                          sheet_id, ' ', id, ": invalid chain");
+            continue;
+        }
+        auto& entity_poly_seq = psi->second;
 
-        auto init_ps = entity_poly_seq.lower_bound(
-                       PolySeq(position1, residue_name1, false));
-        auto end_ps = entity_poly_seq.upper_bound(
-                       PolySeq(position2, residue_name2, false));
+        auto init_ps_key = PolySeq(position1, residue_name1, false);
+        auto end_ps_key = PolySeq(position2, residue_name2, false);
+        if (end_ps_key < init_ps_key) {
+            logger::error(_logger, "Invalid sheet range for strand: ",
+                          sheet_id, ' ', id, ": ends before it starts");
+            continue;
+        }
+        auto init_ps = entity_poly_seq.lower_bound(init_ps_key);
+        auto end_ps = entity_poly_seq.upper_bound(end_ps_key);
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end()) {
-            logger::error(_logger, "Bad residue range for strand: ",
+            logger::error(_logger, "Invalid sheet range for strand: ",
                           sheet_id, ' ', id);
             continue;
         }
@@ -1215,7 +1238,7 @@ structure_pointers(ExtractMolecule &e, const char *filename)
     int i = 0;
     for (auto m: e.all_molecules)
         if (m->atoms().size() > 0)
-	  sa[i++] = static_cast<void *>(m);
+	        sa[i++] = static_cast<void *>(m);
 
     return s_array;
 }
