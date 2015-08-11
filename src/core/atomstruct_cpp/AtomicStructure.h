@@ -34,7 +34,7 @@ class Element;
 class Residue;
 
 class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
-    friend class Atom; // for IDATM stuff
+    friend class Atom; // for IDATM stuff and _polymers_computed
     friend class Bond; // for checking if make_chains() has been run yet
 public:
     typedef Vertices  Atoms;
@@ -75,6 +75,7 @@ private:
     }
     int  _num_hyds = 0;
     AS_PBManager  _pb_mgr;
+    mutable bool  _polymers_computed;
     mutable bool  _recompute_rings;
     Residues  _residues;
     mutable Rings  _rings;

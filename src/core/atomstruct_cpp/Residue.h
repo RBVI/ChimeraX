@@ -3,6 +3,7 @@
 #define atomstruct_Residue
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -78,6 +79,12 @@ public:
     std::vector<Atom*>  template_assign(
         void (Atom::*assign_func)(const char*), const char* app,
         const char* template_dir, const char* extension) const;
+
+    // handy
+    static const std::set<AtomName> aa_min_chain_names;
+    static const std::set<AtomName> aa_max_chain_names;
+    static const std::set<AtomName> na_min_chain_names;
+    static const std::set<AtomName> na_max_chain_names;
 
     // graphics related
     bool  ribbon_display() const { return _ribbon_display; }
