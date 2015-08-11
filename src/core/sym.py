@@ -31,10 +31,11 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
                     # Hide chains that are not part of assembly
                     excluded_atoms.displays = False
                     excluded_atoms.unique_residues.ribbon_displays = False
-                if not included_atoms.displays.any():
-                    if not included_atoms.unique_residues.ribbon_displays.any():
-                        # Show atoms if atoms and ribbon are hidden
-                        included_atoms.displays = True
+                if not included_atoms.displays.all():
+                    # Show chains that have not atoms or ribbons shown.
+                    for m, cid, catoms in included_atoms.by_chain:
+                        if not catoms.displays.any() and not catoms.residues.ribbon_displays.any():
+                            catoms.displays = True
 
                 m.positions = a.operators
 
