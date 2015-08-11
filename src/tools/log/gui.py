@@ -114,6 +114,7 @@ class Log(ToolInstance, HtmlLog):
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
+        self.warning_shows_dialog = True
         from chimera.core.gui import MainToolWindow
         class LogWindow(MainToolWindow):
             close_destroys = False
@@ -165,7 +166,7 @@ class Log(ToolInstance, HtmlLog):
             if image_break:
                 self.page_source += "<br>\n"
         else:
-            if level in (self.LEVEL_ERROR, self.LEVEL_WARNING):
+            if level == self.LEVEL_ERROR or (level == self.LEVEL_WARNING and self.warning_shows_dialog):
                 if level == self.LEVEL_ERROR:
                     caption = "Chimera 2 Error"
                     icon = wx.ICON_ERROR

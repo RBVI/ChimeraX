@@ -19,22 +19,26 @@ def get_singleton(session, create=False):
     else:
         return running[0]
 
-
-def hide(session):
-    log = get_singleton(session)
+def log(session, warning_dialog = None, show = None, hide = None, test = None):
+    create = show or warning_dialog or test
+    log = get_singleton(session, create = create)
     if log is not None:
-        log.display(False)
-hide_desc = cli.CmdDesc()
+        if not warning_dialog is None:
+            log.warning_shows_dialog = warning_dialog
+        if hide:
+            log.display(False)
+        if show:
+            log.display(True)
+        if test:
+            log_test(session)
+
+log_desc = cli.CmdDesc(keyword = [('show', cli.NoArg),
+                                  ('hide', cli.NoArg),
+                                  ('warning_dialog', cli.BoolArg),
+                                  ('test', cli.NoArg)])
 
 
-def show(session):
-    log = get_singleton(session, create=True)
-    if log is not None:
-        log.display(True)
-show_desc = cli.CmdDesc()
-
-
-def test(session):
+def log_test(session):
     session.logger.info("Something in <i>italics</i>!", is_html=True)
     session.logger.error("HTML <i>error</i> message", is_html=True)
     #session.logger.error("\n".join(["%d" % i for i in range(200)]))
@@ -176,4 +180,3 @@ def test(session):
                     name, s2_id, s1_id), file=log_string)
         f.close()
         session.logger.info(log_string.getvalue())
-test_desc = cli.CmdDesc()
