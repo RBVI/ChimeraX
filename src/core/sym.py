@@ -8,7 +8,10 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
             for s in m.surfaces():
                 s.position = Place()
         elif assembly is None:
-            ainfo = '\n'.join(' %s = %s (%d copies)' % (a.id,a.description,len(a.operators)) for a in assem)
+            ainfo = '\n'.join(' %s = %s (%s copies)'
+                              % (a.id,a.description,
+                                 ','.join(str(len(ops)) for cids, expr, ops in a.chain_ops))
+                              for a in assem)
             anames = ainfo if assem else "no assemblies"
             session.logger.info('Assemblies for %s:\n%s' % (m.name, anames))
         else:
@@ -18,26 +21,10 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
                 raise UserError('Assembly "%s" not found, have %s'
                                 % (assembly, ', '.join(a.id for a in assem)))
             a = amap[assembly]
-            included_atoms, excluded_atoms = a.partition_atoms(m.atoms)
             if surface_only:
-                from .molsurf import surface_command
-                surfs = surface_command(session, included_atoms)
-                if len(excluded_atoms) > 0:
-                    surface_command(session, excluded_atoms, hide = True)
-                for s in surfs:
-                    s.positions = a.operators
+                a.show_surfaces(m, session)
             else:
-                if len(excluded_atoms) > 0:
-                    # Hide chains that are not part of assembly
-                    excluded_atoms.displays = False
-                    excluded_atoms.unique_residues.ribbon_displays = False
-                if not included_atoms.displays.all():
-                    # Show chains that have not atoms or ribbons shown.
-                    for m, cid, catoms in included_atoms.by_chain:
-                        if not catoms.displays.any() and not catoms.residues.ribbon_displays.any():
-                            catoms.displays = True
-
-                m.positions = a.operators
+                a.show(m, session)
 
 def register_sym_command():
     from .structure import AtomicStructuresArg
@@ -68,11 +55,15 @@ def mmcif_assemblies(mmcif_path):
     assem, assem_gen, oper, cremap1, cremap2 = mmcif.read_mmcif_tables(mmcif_path, table_names)
     if assem is None or assem_gen is None or oper is None:
         return []
-    op_expr = assem_gen.mapping('assembly_id', 'oper_expression')
-    chain_ids = assem_gen.mapping('assembly_id', 'asym_id_list')
+
     name = assem.mapping('id', 'details')
     ids = list(name.keys())
     ids.sort()
+
+    cops = assem_gen.fields(('assembly_id', 'oper_expression', 'asym_id_list'))
+    chain_ops = {}
+    for id, op_expr, cids in cops:
+        chain_ops.setdefault(id,[]).append((cids.split(','), op_expr))
 
     ops = {}
     mat = oper.fields(('id',
@@ -85,7 +76,7 @@ def mmcif_assemblies(mmcif_path):
 
     cmap = chain_id_changes(cremap1, cremap2)
 
-    alist = [Assembly(id, name[id], op_expr[id], chain_ids[id].split(','), ops, cmap) for id in ids]
+    alist = [Assembly(id, name[id], chain_ops[id], ops, cmap) for id in ids]
     return alist
 
 #
@@ -111,25 +102,83 @@ def chain_id_changes(poly_seq_scheme, nonpoly_scheme):
     return cmap
 
 class Assembly:
-    def __init__(self, id, description, operator_expr, chain_ids, operator_table, chain_map):
+    def __init__(self, id, description, chain_ops, operator_table, chain_map):
         self.id = id
         self.description = description
-        self.operator_expr = operator_expr
-        self.chain_ids = chain_ids
+
+        cops = []
+        for chain_ids, operator_expr in chain_ops:
+            products = parse_operator_expression(operator_expr)
+            ops = operator_products(products, operator_table)
+            cops.append((chain_ids, operator_expr, ops))
+        self.chain_ops = cops	# Triples of chain id list, operator expression, operator matrices
+
         self.operator_table = operator_table
-        products = parse_operator_expression(operator_expr)
-        self.operators = operator_products(products, operator_table)
         # Chain map maps Chimera chain id, res name to mmcif chain id used in chain_ids
         self.chain_map = chain_map
 
-    def partition_atoms(self, atoms):
+    def show(self, mol, session):
+        mols = self._molecule_copies(mol, session)
+        for (chain_ids, op_expr, ops), m in zip(self.chain_ops, mols):
+            included_atoms, excluded_atoms = self._partition_atoms(m.atoms, chain_ids)
+            if len(excluded_atoms) > 0:
+                # Hide chains that are not part of assembly
+                excluded_atoms.displays = False
+                excluded_atoms.unique_residues.ribbon_displays = False
+            if not included_atoms.displays.all():
+                # Show chains that have not atoms or ribbons shown.
+                for mc, cid, catoms in included_atoms.by_chain:
+                    if not catoms.displays.any() and not catoms.residues.ribbon_displays.any():
+                        catoms.displays = True
+            m.positions = ops
+
+    def show_surfaces(self, mol, session):
+        included_atoms, excluded_atoms = self._partition_atoms(mol.atoms, self._chain_ids())
+        from .molsurf import surface_command
+        surfs = surface_command(session, included_atoms)
+        if len(excluded_atoms) > 0:
+            surface_command(session, excluded_atoms, hide = True)
+        for s in surfs:
+            cid = s.atoms[0].residue.chain_id
+            s.positions = self._chain_operators(cid)
+
+    def _partition_atoms(self, atoms, chain_ids):
         mmcif_cids = mmcif_chain_ids(atoms, self.chain_map)
         from numpy import in1d, logical_not
-        mask = in1d(mmcif_cids, self.chain_ids)
+        mask = in1d(mmcif_cids, chain_ids)
         included_atoms = atoms.filter(mask)
         logical_not(mask,mask)
         excluded_atoms = atoms.filter(mask)
         return included_atoms, excluded_atoms
+
+    def _chain_ids(self):
+        return sum((chain_ids for chain_ids, op_expr, ops in self.chain_ops), [])
+
+    def _chain_operators(self, chain_id):
+        cops = []
+        for chain_ids, operator_expr, ops in self.chain_ops:
+            if chain_id in chain_ids:
+                cops.extend(ops)
+        return cops
+
+    def _molecule_copies(self, mol, session):
+        copies = getattr(mol, '_sym_copies', [])
+        nm = 1 + len(copies)
+        n = len(self.chain_ops)
+        if nm < n:
+            # Create new copies
+            mnew = [mol.copy('%s %d' % (mol.name,i)) for i in range(nm,n)]
+            session.models.add(mnew)
+            copies.extend(mnew)
+            mol._sym_copies = copies
+        elif nm > n:
+            # Close extra copies
+            session.models.close(copies[nm-n-1:])
+            copies = copies[:nm-n-1]
+            mol._sym_copies = copies
+        mols = [mol] + copies
+        return mols
+            
 
 def mmcif_chain_ids(atoms, chain_map):
     if len(chain_map) == 0:
