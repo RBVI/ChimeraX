@@ -81,10 +81,10 @@ public:
         const char* template_dir, const char* extension) const;
 
     // handy
-    static const std::set<AtomName> aa_min_chain_names;
-    static const std::set<AtomName> aa_max_chain_names;
-    static const std::set<AtomName> na_min_chain_names;
-    static const std::set<AtomName> na_max_chain_names;
+    static const std::set<AtomName> aa_min_backbone_names;
+    static const std::set<AtomName> aa_max_backbone_names;
+    static const std::set<AtomName> na_min_backbone_names;
+    static const std::set<AtomName> na_max_backbone_names;
 
     // graphics related
     bool  ribbon_display() const { return _ribbon_display; }
