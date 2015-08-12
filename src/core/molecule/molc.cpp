@@ -965,6 +965,17 @@ extern "C" void chain_residues(void *chains, size_t n, pyobject_t *res)
     }
 }
 
+extern "C" void *structure_copy(void *mol)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        return m->copy();
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" void structure_gc_color(void *mols, size_t n, npy_bool *color_changed)
 {
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);

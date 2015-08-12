@@ -119,10 +119,8 @@ class Space_Navigator:
             cr = cpinv * cam.position.origin()
             tf = tf.inverse()
         else:
-            if tf.rotation_angle() > 1e-5:
-                v.update_center_of_rotation()           # Rotation
-            else:
-                v.center_of_rotation_needs_update()     # Translation
+            if tf.rotation_angle() <= 1e-5:
+                v._update_center_of_rotation = True  # Translation
             cr = cpinv * v.center_of_rotation
         from ...geometry import translation
         stf = cp * translation(cr) * tf * translation(-cr) * cpinv

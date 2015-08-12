@@ -224,7 +224,7 @@ _camera_desc = cli.CmdDesc(
 )
 
 
-def save(session, filename, width=None, height=None, format=None, supersample=None):
+def save(session, filename, width=None, height=None, supersample=None, format=None):
     from os.path import splitext
     e = splitext(filename)[1].lower()
     from . import session as ses
@@ -466,11 +466,11 @@ def wait(session, frames=None):
         # from ..commands.motion import motion_in_progress
         while motion_in_progress(session):
             v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
-            v.draw(only_if_changed=True)
+            v.draw_new_frame()
     else:
         for f in range(frames):
             v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
-            v.draw(only_if_changed=True)
+            v.draw_new_frame()
 _wait_desc = cli.CmdDesc(
     optional=[('frames', cli.PositiveIntArg)],
     synopsis='suspend command processing for a specified number of frames'

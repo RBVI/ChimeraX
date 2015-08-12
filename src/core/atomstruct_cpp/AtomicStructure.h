@@ -87,6 +87,7 @@ private:
 public:
     AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure();
+    AtomicStructure *copy() const;
     const Atoms &    atoms() const { return vertices(); }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
@@ -111,7 +112,7 @@ public:
     PyObject*  logger() const { return _logger; }
     bool  lower_case_chains;
     void  make_chains() const;
-    const std::string&  name() { return _name; }
+    const std::string&  name() const { return _name; }
     Atom *  new_atom(const char* name, Element e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();

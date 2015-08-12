@@ -218,6 +218,11 @@ class CAtomicStructure:
     residues = c_property('structure_residues', cptr, 'num_residues', astype = _residues, read_only = True)
     pbg_map = c_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
 
+    def _copy(self):
+        f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
+        p = f(self._c_pointer)
+        return p
+        
     def new_atom(self, atom_name, element_name):
         f = c_function('structure_new_atom',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p),

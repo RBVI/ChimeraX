@@ -45,6 +45,79 @@ AtomicStructure::~AtomicStructure() {
         delete cs;
 }
 
+AtomicStructure *AtomicStructure::copy() const
+{
+  AtomicStructure *m = new AtomicStructure(_logger);
+
+  m->set_name(name());
+
+  for (auto h = pdb_headers.begin() ; h != pdb_headers.end() ; ++h)
+    m->pdb_headers[h->first] = h->second;
+  m->pdb_version = pdb_version;
+
+  std::map<Residue *, Residue *> rmap;
+  for (auto ri = residues().begin() ; ri != residues().end() ; ++ri)
+    {
+      Residue *r = *ri;
+      Residue *cr = m->new_residue(r->name(), r->chain_id(), r->position(), r->insertion_code());
+      cr->set_ribbon_display(r->ribbon_display());
+      cr->set_ribbon_color(r->ribbon_color());
+      cr->set_is_helix(r->is_helix());
+      cr->set_is_sheet(r->is_sheet());
+      cr->set_is_het(r->is_het());
+      rmap[r] = cr;
+    }
+
+  std::map<Atom *, Atom*> amap;
+  for (auto ai = atoms().begin() ; ai != atoms().end() ; ++ai)
+    {
+      Atom *a = *ai;
+      Atom *ca = m->new_atom(a->name(), a->element());
+      std::set<char> alocs = a->alt_locs();
+      if (alocs.empty())
+	{
+	  ca->set_coord(a->coord());
+	  ca->set_bfactor(a->bfactor());
+	  ca->set_occupancy(a->occupancy());
+	}
+      else
+	{
+	  char aloc = a->alt_loc();	// Remember original alt loc.
+	  for (auto ali = alocs.begin() ; ali != alocs.end() ; ++ali)
+	    {
+	      char al = *ali;
+	      a->set_alt_loc(al);
+	      ca->set_alt_loc(al, true);
+	      ca->set_coord(a->coord());
+	      ca->set_bfactor(a->bfactor());
+	      ca->set_occupancy(a->occupancy());
+	    }
+	  a->set_alt_loc(aloc);	// Restore original alt loc.
+	  ca->set_alt_loc(aloc);
+	}
+      ca->set_draw_mode(a->draw_mode());
+      ca->set_radius(a->radius());
+      ca->set_color(a->color());
+      ca->set_display(a->display());
+      amap[a] = ca;
+      Residue *cr = rmap[a->residue()];
+      cr->add_atom(ca);
+    }
+
+  for (auto bi = bonds().begin() ; bi != bonds().end() ; ++bi)
+    {
+      Bond *b = *bi;
+      const Bond::Atoms &a = b->atoms();
+      Bond *cb = m->new_bond(amap[a[0]], amap[a[1]]);
+      cb->set_display(b->display());
+      cb->set_color(b->color());
+      cb->set_halfbond(b->halfbond());
+      cb->set_radius(b->radius());
+    }
+
+  return m;
+}
+
 std::map<Residue *, char>
 AtomicStructure::best_alt_locs() const
 {

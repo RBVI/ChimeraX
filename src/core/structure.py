@@ -18,7 +18,8 @@ class AtomicStructure(CAtomicStructure, Model):
     BALL_STYLE = 2
     STICK_STYLE = 3
 
-    def __init__(self, name, atomic_structure_pointer = None):
+    def __init__(self, name, atomic_structure_pointer = None,
+                 initialize_graphical_attributes = True):
 
         CAtomicStructure.__init__(self, atomic_structure_pointer)
         from . import molecule
@@ -56,12 +57,18 @@ class AtomicStructure(CAtomicStructure, Model):
         self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
         self._ribbon_selected_residues = set()
 
-        self._make_drawing()
+        self._make_drawing(initialize_graphical_attributes)
 
     def delete(self):
         self._atoms = None
         CAtomicStructure.delete(self)
         Model.delete(self)
+
+    def copy(self, name):
+        m = AtomicStructure(name, CAtomicStructure._copy(self),
+                            initialize_graphical_attributes = False)
+        m.positions = self.positions
+        return m
 
     def added_to_session(self, session):
         v = session.main_view
@@ -112,9 +119,10 @@ class AtomicStructure(CAtomicStructure, Model):
             pb.halfbonds = False
             pb.colors = pb_colors.get(name, (255,255,0,255))
 
-    def _make_drawing(self):
+    def _make_drawing(self, initialize_graphical_attributes):
 
-        self._initialize_graphical_attributes()
+        if initialize_graphical_attributes:
+            self._initialize_graphical_attributes()
 
         a = self.atoms
         coords = a.coords
