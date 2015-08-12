@@ -24,9 +24,9 @@ const char*  AtomicStructure::PBG_HYDROGEN_BONDS = "hydrogen bonds";
 
 AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(NULL),
     _chains(nullptr), _idatm_valid(false), _logger(logger),
-    _name("unknown AtomicStructure"), _pb_mgr(this), _recompute_rings(true),
-    asterisks_translated(false), is_traj(false), lower_case_chains(false),
-    pdb_version(0)
+    _name("unknown AtomicStructure"), _pb_mgr(this), _polymers_computed(false),
+    _recompute_rings(true), asterisks_translated(false), is_traj(false),
+    lower_case_chains(false), pdb_version(0)
 {
 }
 
@@ -680,6 +680,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
         polys.push_back(chain);
     }
 
+    _polymers_computed = true;
     return polys;
 }
 

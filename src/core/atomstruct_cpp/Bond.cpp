@@ -44,6 +44,45 @@ Bond::Bond(AtomicStructure *as, Atom *a1, Atom *a2):
     }
 }
 
+static bool
+_polymer_res(Residue* r, Atom* a, bool* is_nucleic)
+{
+    const std::set<AtomName>* min_names;
+    AtomName missing_ok;
+    if (a->name() == "O3'" || a->name() == "P") {
+        // nucleic
+        *is_nucleic = true;
+        min_names = &Residue::na_min_backbone_names;
+        missing_ok = "P";
+    } else {
+        // amino acid
+        *is_nucleic = false;
+        min_names = &Residue::aa_min_backbone_names;
+    }
+    auto atoms_map = r->atoms_map();
+    for (auto aname: *min_names) {
+        auto name_atom = atoms_map.find(aname);
+        if (name_atom == atoms_map.end()) {
+            if (aname == missing_ok)
+                continue;
+            return false;
+        }
+        auto element_name = (*name_atom).second->element().name();
+        if (strlen(element_name) > 1 || aname[0] != element_name[0])
+            return false;
+    }
+    return true;
+}
+
+static void
+_set_backbone(Residue* r, const std::set<AtomName>& names)
+{
+    for (auto a: r->atoms()) {
+        if (names.find(a->name()) != names.end())
+            a->set_is_backbone(true);
+    }
+}
+
 Atom *
 Bond::polymeric_start_atom() const
 {
@@ -55,29 +94,52 @@ Bond::polymeric_start_atom() const
     if (r1 == r2)
         return nullptr;
 
+    bool n1, n2;
     unsigned char c1 = Sequence::rname3to1(r1->name());
+    if (c1 == 'X') {
+        // some heavily modified polymeric residues may not be in
+        // MODRES records (or such records may be missing...)
+        if (!_polymer_res(r1, a1, &n1))
+            return nullptr;
+    } else {
+        n1 = Sequence::nucleic3to1(r1->name()) != 'X';
+    }
     unsigned char c2 = Sequence::rname3to1(r2->name());
-    if (c1 == 'X' || c2 == 'X')
-        return nullptr;
+    if (c2 == 'X') {
+        if (!_polymer_res(r2, a2, &n2))
+            return nullptr;
+    } else {
+        n2 = Sequence::nucleic3to1(r2->name()) != 'X';
+    }
 
     // are they both the same kind (amino acid / nucleic acid)?
-    bool n1 = Sequence::nucleic3to1(r1->name()) != 'X';
-    bool n2 = Sequence::nucleic3to1(r2->name()) != 'X';
     if (n1 != n2)
         return nullptr;
 
     if (n1) {
         // both nucleic
-        if (a1->name() == "O3'" && a2->name() == "P")
+        if (a1->name() == "O3'" && a2->name() == "P") {
+            _set_backbone(r1, Residue::na_max_backbone_names);
+            _set_backbone(r2, Residue::na_max_backbone_names);
             return a1;
-        if (a1->name() == "P" && a2->name() == "O3'")
+        }
+        if (a1->name() == "P" && a2->name() == "O3'") {
+            _set_backbone(r1, Residue::na_max_backbone_names);
+            _set_backbone(r2, Residue::na_max_backbone_names);
             return a2;
+        }
     } else {
         // both protein
-        if (a1->name() == "C" && a2->name() == "N")
+        if (a1->name() == "C" && a2->name() == "N") {
+            _set_backbone(r1, Residue::aa_max_backbone_names);
+            _set_backbone(r2, Residue::aa_max_backbone_names);
             return a1;
-        if (a1->name() == "N" && a2->name() == "C")
+        }
+        if (a1->name() == "N" && a2->name() == "C") {
+            _set_backbone(r1, Residue::aa_max_backbone_names);
+            _set_backbone(r2, Residue::aa_max_backbone_names);
             return a2;
+        }
     }
     return nullptr;
 }

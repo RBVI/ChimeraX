@@ -63,6 +63,7 @@ private:
     void  _coordset_set_coord(const Point &, CoordSet *cs);
     Element  _element;
     AtomType  _explicit_idatm_type;
+    bool  _is_backbone;
     AtomName  _name;
     unsigned int  _new_coord(const Point &);
     Residue *  _residue;
@@ -91,6 +92,7 @@ public:
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
     bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
     const AtomType&  idatm_type() const;
+    bool  is_backbone() const;
     const AtomName&  name() const { return _name; }
     // neighbors() just simply inherited from Connectible (via BaseSphere)
     float  occupancy() const;
@@ -111,6 +113,7 @@ public:
     void  set_computed_idatm_type(const char* it) { _computed_idatm_type =  it; }
     void  set_idatm_type(const char* it) { _explicit_idatm_type = it; }
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
+    void  set_is_backbone(bool ibb) { _is_backbone = ibb; }
     void  set_occupancy(float);
     void  set_radius(float);
     void  set_serial_number(int);
@@ -130,6 +133,12 @@ atomstruct::Atom::idatm_type() const {
     if (idatm_is_explicit()) return _explicit_idatm_type;
     if (!_structure->_idatm_valid) _structure->_compute_idatm_types();
     return _computed_idatm_type;
+}
+
+inline bool
+atomstruct::Atom::is_backbone() const {
+    if (!structure()->_polymers_computed) structure()->polymers();
+    return _is_backbone;
 }
 
 #endif  // atomstruct_Atom

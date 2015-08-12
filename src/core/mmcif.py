@@ -20,9 +20,12 @@ def open_mmcif(session, filename, name, *args, **kw):
         filename = filename.name
 
     from . import _mmcif
-    _mmcif.set_Python_locate_function(
-        lambda name: _get_template(name, session.app_dirs, session.logger))
-    pointers = _mmcif.parse_mmCIF_file(filename, session.logger)
+    from .logger import Collator
+    with Collator(session.logger, "Summary of problems reading mmCIF file",
+                  kw.pop('log_errors', True)):
+        _mmcif.set_Python_locate_function(
+            lambda name: _get_template(name, session.app_dirs, session.logger))
+        pointers = _mmcif.parse_mmCIF_file(filename, session.logger)
 
     models = [structure.AtomicStructure(name, p) for p in pointers]
     for m in models:
@@ -31,6 +34,7 @@ def open_mmcif(session, filename, name, *args, **kw):
     return models, ("Opened mmCIF data containing %d atoms and %d bonds"
                     % (sum(m.num_atoms for m in models),
                        sum(m.num_bonds for m in models)))
+
 
 def fetch_mmcif(session, pdb_id):
     if len(pdb_id) != 4:
@@ -111,6 +115,7 @@ def register():
         mime=("chemical/x-mmcif", "chemical/x-cif"),
         reference="http://mmcif.wwpdb.org/",
         requires_filename=True, open_func=open_mmcif, fetch_func=fetch_mmcif)
+
 
 def read_mmcif_tables(mmcif_path, table_names):
   f = open(mmcif_path)
@@ -234,4 +239,3 @@ class mmCIF_Table:
     fi = tuple(t.index(f) for f in field_names)
     ftable = tuple(tuple(v[i] for i in fi) for v in self.values)
     return ftable 
-      

@@ -52,6 +52,7 @@ class Atom:
     element_name = c_property('atom_element_name', string, read_only = True)
     element_number = c_property('atom_element_number', uint8, read_only = True)
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True)
+    is_backbone = c_property('atom_is_backbone', npy_bool)
     structure = c_property('atom_structure', cptr, astype = _atomic_structure, read_only = True)
     name = c_property('atom_name', string, read_only = True)
     num_bonds = c_property('atom_num_bonds', size_t, read_only = True)

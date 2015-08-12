@@ -12,6 +12,16 @@
 
 namespace atomstruct {
 
+const std::set<AtomName> Residue::aa_min_backbone_names = {
+    "C", "CA", "N"};
+const std::set<AtomName> Residue::aa_max_backbone_names = {
+    "C", "CA", "N", "O", "OXT", "OT1", "OT2"};
+const std::set<AtomName> Residue::na_min_backbone_names = {
+    "O3'", "C3'", "C4'", "C5'", "O5'", "P"};
+const std::set<AtomName> Residue::na_max_backbone_names = {
+    "O3'", "C3'", "C4'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "O2'",
+    "C2'", "O4'", "C1'"};
+
 Residue::Residue(AtomicStructure *as, const ResName& name,
     const ChainID& chain, int pos, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),

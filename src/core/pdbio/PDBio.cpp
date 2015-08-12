@@ -62,7 +62,7 @@ canonicalize_atom_name(AtomName& aname, bool *asterisks_translated)
 }
 
 static void
-canonicalize_res_name(ResName rname)
+canonicalize_res_name(ResName& rname)
 {
     for (int i = rname.length(); i > 0; ) {
         --i;

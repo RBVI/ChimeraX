@@ -414,8 +414,7 @@ def deduce_format(filename, has_format=None, prefixable=True):
     if has_format:
         format_name = has_format
         stripped, compression = determine_compression(filename)
-    elif (prefixable and len(filename) >= 2 and ':' in filename and
-            filename[1] != ':'):
+    elif (prefixable and ':' in filename and ':' not in filename[0:2]):
         # format may be specified as colon-separated prefix
         # ignoring Windows drive letters
         prefix, fname = filename.split(':', 1)
@@ -429,6 +428,9 @@ def deduce_format(filename, has_format=None, prefixable=True):
         if format_name is None:
             from .errors import UserError
             raise ValueError("'%s' is not a not prefix" % prefix)
+    elif prefixable and len(filename) == 4 and 'mmCIF' in _file_formats:
+        format_name = 'mmCIF'
+        prefixed = True
     elif format_name is None:
         stripped, compression = determine_compression(filename)
         import os
