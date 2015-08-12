@@ -19,22 +19,25 @@ def get_singleton(session, create=False):
     else:
         return running[0]
 
-def log(session, warning_dialog = None, show = None, hide = None, test = None):
-    create = show or warning_dialog or test
+def log(session, show = None, hide = None, warning_dialog = None, error_dialog = None, test = None):
+    create = show or test
     log = get_singleton(session, create = create)
     if log is not None:
-        if not warning_dialog is None:
-            log.warning_shows_dialog = warning_dialog
         if hide:
             log.display(False)
         if show:
             log.display(True)
         if test:
             log_test(session)
+        if not warning_dialog is None:
+            log.warning_shows_dialog = warning_dialog
+        if not error_dialog is None:
+            log.error_shows_dialog = error_dialog
 
 log_desc = cli.CmdDesc(keyword = [('show', cli.NoArg),
                                   ('hide', cli.NoArg),
                                   ('warning_dialog', cli.BoolArg),
+                                  ('error_dialog', cli.BoolArg),
                                   ('test', cli.NoArg)])
 
 
