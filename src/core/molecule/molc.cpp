@@ -343,6 +343,18 @@ extern "C" void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
     }
 }
 
+extern "C" void atom_is_backbone(void *atoms, size_t n, npy_bool *sel)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::is_backbone, sel);
+}
+
+extern "C" void set_atom_is_backbone(void *atoms, size_t n, npy_bool *sel)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_set<Atom, bool, npy_bool>(a, n, &Atom::set_is_backbone, sel);
+}
+
 extern "C" void atom_structure(void *atoms, size_t n, pyobject_t *molp)
 {
     Atom **a = static_cast<Atom **>(atoms);

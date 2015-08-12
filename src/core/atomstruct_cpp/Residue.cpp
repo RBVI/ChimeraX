@@ -12,13 +12,13 @@
 
 namespace atomstruct {
 
-const std::set<AtomName> Residue::aa_min_chain_names = {
+const std::set<AtomName> Residue::aa_min_backbone_names = {
     "C", "CA", "N"};
-const std::set<AtomName> Residue::aa_max_chain_names = {
+const std::set<AtomName> Residue::aa_max_backbone_names = {
     "C", "CA", "N", "O", "OXT", "OT1", "OT2"};
-const std::set<AtomName> Residue::na_min_chain_names = {
+const std::set<AtomName> Residue::na_min_backbone_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "P"};
-const std::set<AtomName> Residue::na_max_chain_names = {
+const std::set<AtomName> Residue::na_max_backbone_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "O2'",
     "C2'", "O4'", "C1'"};
 

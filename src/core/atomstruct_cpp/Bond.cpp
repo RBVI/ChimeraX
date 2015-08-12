@@ -52,12 +52,12 @@ _polymer_res(Residue* r, Atom* a, bool* is_nucleic)
     if (a->name() == "O3'" || a->name() == "P") {
         // nucleic
         *is_nucleic = true;
-        min_names = &Residue::na_min_chain_names;
+        min_names = &Residue::na_min_backbone_names;
         missing_ok = "P";
     } else {
         // amino acid
         *is_nucleic = false;
-        min_names = &Residue::aa_min_chain_names;
+        min_names = &Residue::aa_min_backbone_names;
     }
     auto atoms_map = r->atoms_map();
     for (auto aname: *min_names) {
@@ -75,11 +75,11 @@ _polymer_res(Residue* r, Atom* a, bool* is_nucleic)
 }
 
 static void
-_set_main_chain(Residue* r, const std::set<AtomName>& names)
+_set_backbone(Residue* r, const std::set<AtomName>& names)
 {
     for (auto a: r->atoms()) {
         if (names.find(a->name()) != names.end())
-            a->set_is_main_chain(true);
+            a->set_is_backbone(true);
     }
 }
 
@@ -119,25 +119,25 @@ Bond::polymeric_start_atom() const
     if (n1) {
         // both nucleic
         if (a1->name() == "O3'" && a2->name() == "P") {
-            _set_main_chain(r1, Residue::na_max_chain_names);
-            _set_main_chain(r2, Residue::na_max_chain_names);
+            _set_backbone(r1, Residue::na_max_backbone_names);
+            _set_backbone(r2, Residue::na_max_backbone_names);
             return a1;
         }
         if (a1->name() == "P" && a2->name() == "O3'") {
-            _set_main_chain(r1, Residue::na_max_chain_names);
-            _set_main_chain(r2, Residue::na_max_chain_names);
+            _set_backbone(r1, Residue::na_max_backbone_names);
+            _set_backbone(r2, Residue::na_max_backbone_names);
             return a2;
         }
     } else {
         // both protein
         if (a1->name() == "C" && a2->name() == "N") {
-            _set_main_chain(r1, Residue::aa_max_chain_names);
-            _set_main_chain(r2, Residue::aa_max_chain_names);
+            _set_backbone(r1, Residue::aa_max_backbone_names);
+            _set_backbone(r2, Residue::aa_max_backbone_names);
             return a1;
         }
         if (a1->name() == "N" && a2->name() == "C") {
-            _set_main_chain(r1, Residue::aa_max_chain_names);
-            _set_main_chain(r2, Residue::aa_max_chain_names);
+            _set_backbone(r1, Residue::aa_max_backbone_names);
+            _set_backbone(r2, Residue::aa_max_backbone_names);
             return a2;
         }
     }
