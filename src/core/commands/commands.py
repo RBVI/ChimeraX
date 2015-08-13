@@ -512,10 +512,12 @@ def register_core_commands(session):
     cli.register('freeze', _freeze_desc, freeze)
     cli.register('wait', _wait_desc, wait)
     cli.register('crossfade', _crossfade_desc, crossfade)
-    from .. import molsurf
-    molsurf.register_surface_command()
-    molsurf.register_sasa_command()
-    molsurf.register_buriedarea_command()
+    from . import surface
+    surface.register_surface_command()
+    from . import sasa
+    sasa.register_sasa_command()
+    from . import buriedarea
+    buriedarea.register_buriedarea_command()
     from . import scolor
     scolor.register_scolor_command()
     from . import lightcmd
