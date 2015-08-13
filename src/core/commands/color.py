@@ -15,7 +15,7 @@ from the CSS4 draft and the CSS4 color names.
 import re
 from sortedcontainers import SortedDict
 from . import cli
-from .session import State, RestoreError
+from ..state import State, RestoreError
 
 # CSS4 colors
 _BuiltinColors = SortedDict({
@@ -583,7 +583,7 @@ class Colormap:
         ------------
         numpy array of rgba (Nx4 where N is the length of "values".)
         """
-        from . import map
+        from .. import map
         colors = map.interpolate_colormap(values, self.data_values, self.colors,
                                           self.color_above_value_range,
                                           self.color_below_value_range)
@@ -652,7 +652,7 @@ class ColormapArg(cli.Annotation):
 def define_color(session, name, color=None):
     """Create a user defined color."""
     if ' ' in name:
-        from .errors import UsetError
+        from ..errors import UsetError
         raise UserError("Sorry, spaces are not alllowed in color names")
     if color is None:
         if session is not None:
@@ -721,7 +721,7 @@ def color(session, color, spec=None):
         na = len(atoms)
 
     ns = 0
-    from .structure import AtomicStructure
+    from ..structure import AtomicStructure
     for m in results.models:
         if not isinstance(m, AtomicStructure):
             m.color = rgba8
@@ -771,7 +771,7 @@ def ecolor(session, spec, color=None, target=None,
         try:
             f = _SequentialColor[sequential]
         except KeyError:
-            from .errors import UserError
+            from ..errors import UserError
             raise UserError("sequential \"%s\" not implemented yet"
                             % sequential)
         else:

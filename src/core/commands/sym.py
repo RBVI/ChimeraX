@@ -27,10 +27,9 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
                 a.show(m, session)
 
 def register_sym_command():
-    from .structure import AtomicStructuresArg
     from . import cli
     _sym_desc = cli.CmdDesc(
-        required = [('molecules', AtomicStructuresArg)],
+        required = [('molecules', cli.AtomicStructuresArg)],
         keyword = [('assembly', cli.StringArg),
                    ('clear', cli.NoArg),
                    ('surface_only', cli.NoArg)],

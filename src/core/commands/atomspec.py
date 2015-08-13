@@ -34,7 +34,7 @@ Example
 
 Here is an example of a function that may be registered with cli:
 
-    from chimera.core import cli, atomspec
+    from chimera.core.commands import cli, atomspec
 
     def move(session, by, modelspec=None):
         if modelspec is None:
@@ -703,7 +703,7 @@ class AtomSpecResults:
     """
     def __init__(self):
         self._models = set()
-        from .molecule import Atoms
+        from ..molecule import Atoms
         self._atoms = Atoms()
 
     def add_model(self, m):
@@ -720,7 +720,7 @@ class AtomSpecResults:
         self.add_atoms(other.atoms)
 
     def invert(self, session, models):
-        from .molecule import Atoms
+        from ..molecule import Atoms
         atoms = Atoms()
         for m in models:
             if m in self._models:

@@ -1,5 +1,5 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
-.. automodule:: chimera.core.cli
+.. automodule:: chimera.core.commands.cli
     :members:
     :show-inheritance:

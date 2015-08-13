@@ -5,7 +5,6 @@ molsurf -- Compute molecular surfaces
 """
 
 from .generic3d import Generic3DModel
-from . import cli
 
 class MolecularSurface(Generic3DModel):
 
@@ -321,37 +320,38 @@ def surface_command(session, atoms = None, enclose = None, include = None,
     return surfs
 
 def register_surface_command():
-    from .structure import AtomsArg
-    from . import cli, color
-    _surface_desc = cli.CmdDesc(
+    from .commands import CmdDesc, register, AtomsArg, FloatArg, IntArg, ColorArg, BoolArg, NoArg
+    _surface_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('enclose', AtomsArg),
                    ('include', AtomsArg),
-                   ('probe_radius', cli.FloatArg),
-                   ('grid_spacing', cli.FloatArg),
-                   ('resolution', cli.FloatArg),
-                   ('level', cli.FloatArg),
-                   ('color', color.ColorArg),
-                   ('transparency', cli.FloatArg),
-                   ('visible_patches', cli.IntArg),
-                   ('sharp_boundaries', cli.BoolArg),
-                   ('nthread', cli.IntArg),
-                   ('replace', cli.BoolArg),
-                   ('show', cli.NoArg),
-                   ('hide', cli.NoArg),
-                   ('close', cli.NoArg)],
+                   ('probe_radius', FloatArg),
+                   ('grid_spacing', FloatArg),
+                   ('resolution', FloatArg),
+                   ('level', FloatArg),
+                   ('color', ColorArg),
+                   ('transparency', FloatArg),
+                   ('visible_patches', IntArg),
+                   ('sharp_boundaries', BoolArg),
+                   ('nthread', IntArg),
+                   ('replace', BoolArg),
+                   ('show', NoArg),
+                   ('hide', NoArg),
+                   ('close', NoArg)],
         synopsis = 'create molecular surface')
-    cli.register('surface', _surface_desc, surface_command)
+    register('surface', _surface_desc, surface_command)
 
 def check_atoms(atoms, session):
     if atoms is None:
         from .structure import all_atoms
         atoms = all_atoms(session)
         if len(atoms) == 0:
-            raise cli.AnnotationError('No atomic models open.')
+            from .commands import AnnotationError
+            raise AnnotationError('No atomic models open.')
         atoms.spec = 'all atoms'
     elif len(atoms) == 0:
-        raise cli.AnnotationError('No atoms specified by %s' % (atoms.spec,))
+        from .commands import AnnotationError
+        raise AnnotationError('No atoms specified by %s' % (atoms.spec,))
     return atoms
 
 def remove_solvent_ligands_ions(atoms, keep = None):
@@ -373,7 +373,7 @@ def surface_rgba(color, transparency, chain_id = None):
             from numpy import array, uint8
             rgba8 = array((180,180,180,255), uint8)
         else:
-            from . import color
+            from .commands import color
             rgba8 = color.chain_rgba8(chain_id)
     else:
         rgba8 = color.uint8x4()
@@ -451,12 +451,12 @@ def sasa_command(session, atoms = None, probe_radius = 1.4):
     log.status(msg)
 
 def register_sasa_command():
-    from .structure import AtomsArg
-    _sasa_desc = cli.CmdDesc(
+    from .commands import CmdDesc, register, AtomsArg, FloatArg
+    _sasa_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
-        keyword = [('probe_radius', cli.FloatArg),],
+        keyword = [('probe_radius', FloatArg),],
         synopsis = 'compute solvent accessible surface area')
-    cli.register('sasa', _sasa_desc, sasa_command)
+    register('sasa', _sasa_desc, sasa_command)
 
 def buriedarea_command(session, atoms1, with_atoms2 = None, probe_radius = 1.4):
     '''
@@ -464,13 +464,15 @@ def buriedarea_command(session, atoms1, with_atoms2 = None, probe_radius = 1.4):
     Only the specified atoms are considered.
     '''
     if with_atoms2 is None:
-        raise cli.AnnotationError('Require "with" keyword: buriedarea #1 with #2')
+        from .commands import AnnotationError
+        raise AnnotationError('Require "with" keyword: buriedarea #1 with #2')
     atoms2 = with_atoms2
 
     ni = len(atoms1.intersect(atoms2))
     if ni > 0:
-        raise cli.AnnotationError('Two sets of atoms must be disjoint, got %d atoms in %s and %s'
-                                  % (ni, atoms1.spec, atoms2.spec))
+        from .commands import AnnotationError
+        raise AnnotationError('Two sets of atoms must be disjoint, got %d atoms in %s and %s'
+                              % (ni, atoms1.spec, atoms2.spec))
 
     ba, a1a, a2a, a12a = buried_area(atoms1, atoms2, probe_radius)
 
@@ -501,10 +503,10 @@ def atom_spheres(atoms, probe_radius = 1.4):
     return xyz, r
 
 def register_buriedarea_command():
-    from .structure import AtomsArg
-    _buriedarea_desc = cli.CmdDesc(
+    from .commands import CmdDesc, register, AtomsArg, FloatArg
+    _buriedarea_desc = CmdDesc(
         required = [('atoms1', AtomsArg)],
         keyword = [('with_atoms2', AtomsArg),
-                   ('probe_radius', cli.FloatArg),],
+                   ('probe_radius', FloatArg),],
         synopsis = 'compute buried area')
-    cli.register('buriedarea', _buriedarea_desc, buriedarea_command)
+    register('buriedarea', _buriedarea_desc, buriedarea_command)

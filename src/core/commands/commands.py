@@ -11,7 +11,7 @@ must be called to get the commands recognized by the command line interface
 
 from . import atomspec
 from . import cli
-from .errors import UserError
+from ..errors import UserError
 # from graphics.cameramode import CameraModeArg
 
 
@@ -60,7 +60,7 @@ _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
 
 def export(session, filename, **kw):
     try:
-        from . import io
+        from .. import io
         return io.export(session, filename, **kw)
     except OSError as e:
         raise UserError(e)
@@ -85,8 +85,7 @@ _close_desc = cli.CmdDesc(optional=[('model_ids', cli.ListOf(cli.ModelIdArg))],
 
 def delete(session, atoms):
     atoms.delete()
-from .structure import AtomsArg
-_delete_desc = cli.CmdDesc(required=[('atoms', AtomsArg)],
+_delete_desc = cli.CmdDesc(required=[('atoms', cli.AtomsArg)],
                            synopsis='delete atoms')
 
 
@@ -227,7 +226,7 @@ _camera_desc = cli.CmdDesc(
 def save(session, filename, width=None, height=None, supersample=None, format=None):
     from os.path import splitext
     e = splitext(filename)[1].lower()
-    from . import session as ses
+    from .. import session as ses
     if e[1:] in image_file_suffixes:
         save_image(session, filename, format, width, height, supersample)
     elif e == ses.SESSION_SUFFIX:
@@ -327,7 +326,7 @@ _set_desc = cli.CmdDesc(
 )
 
 def style_command(session, atom_style, atoms = None):
-    from .structure import AtomicStructure
+    from ..structure import AtomicStructure
     s = {'sphere':AtomicStructure.SPHERE_STYLE,
          'ball':AtomicStructure.BALL_STYLE,
          'stick':AtomicStructure.STICK_STYLE,
@@ -390,7 +389,7 @@ def turn(session, axis, angle, frames=None):
     cv = c.position
     saxis = cv.apply_without_translation(axis)  # Convert axis from camera to scene coordinates
     center = v.center_of_rotation
-    from .geometry import rotation
+    from ..geometry import rotation
     r = rotation(saxis, -angle, center)
     if frames is None:
         c.position = r * cv
@@ -423,7 +422,7 @@ def move(session, axis, distance, frames=None):
     c = v.camera
     cv = c.position
     saxis = cv.apply_without_translation(axis)  # Convert axis from camera to scene coordinates
-    from .geometry import translation
+    from ..geometry import translation
     t = translation(saxis * -distance)
     if frames is None:
         c.position = t * cv
@@ -478,14 +477,14 @@ _wait_desc = cli.CmdDesc(
 
 
 def crossfade(session, frames=30):
-    from .graphics import CrossFade
+    from ..graphics import CrossFade
     CrossFade(session.main_view, frames)
 _crossfade_desc = cli.CmdDesc(
     optional=[('frames', cli.PositiveIntArg)],
     synopsis='Fade between one rendered scene and the next scene.')
 
 
-def register(session):
+def register_core_commands(session):
     """Register common cli commands"""
     cli.register('exit', _exit_desc, exit)
     cli.alias(session, "quit", "exit $*")
@@ -513,7 +512,7 @@ def register(session):
     cli.register('freeze', _freeze_desc, freeze)
     cli.register('wait', _wait_desc, wait)
     cli.register('crossfade', _crossfade_desc, crossfade)
-    from . import molsurf
+    from .. import molsurf
     molsurf.register_surface_command()
     molsurf.register_sasa_command()
     molsurf.register_buriedarea_command()
@@ -522,22 +521,22 @@ def register(session):
     from . import lightcmd
     lightcmd.register_lighting_command()
     lightcmd.register_material_command()
-    from . import map
+    from .. import map
     map.register_volume_command()
     map.register_molmap_command()
-    from .map import filter
+    from ..map import filter
     filter.register_vop_command()
-    from .map import fit
+    from ..map import fit
     fit.register_fitmap_command()
-    from .map import series
+    from ..map import series
     series.register_vseries_command()
     from . import color
     color.register_commands()
-    from .devices import oculus
+    from ..devices import oculus
     oculus.register_oculus_command()
-    from .devices import spacenavigator
+    from ..devices import spacenavigator
     spacenavigator.register_snav_command()
-    from . import shortcuts
+    from .. import shortcuts
     shortcuts.register_shortcut_command()
     from . import crosslinks
     crosslinks.register_crosslink_command()
@@ -559,7 +558,7 @@ def register(session):
 
 
 def _sel_selector(session, models, results):
-    from .structure import AtomicStructure
+    from ..structure import AtomicStructure
     for m in models:
         if m.any_part_selected():
             results.add_model(m)
@@ -569,7 +568,7 @@ def _sel_selector(session, models, results):
 
 
 def _strands_selector(session, models, results):
-    from .structure import AtomicStructure
+    from ..structure import AtomicStructure
     for m in models:
         if isinstance(m, AtomicStructure):
             strands = m.residues.filter(m.residues.is_sheet)

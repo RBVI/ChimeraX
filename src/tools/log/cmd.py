@@ -1,8 +1,5 @@
 # vi: set expandtab ts=4 sw=4:
 
-from chimera.core import cli
-
-
 def get_singleton(session, create=False):
     if not session.ui.is_gui:
         return None
@@ -34,11 +31,12 @@ def log(session, show = None, hide = None, warning_dialog = None, error_dialog =
         if not error_dialog is None:
             log.error_shows_dialog = error_dialog
 
-log_desc = cli.CmdDesc(keyword = [('show', cli.NoArg),
-                                  ('hide', cli.NoArg),
-                                  ('warning_dialog', cli.BoolArg),
-                                  ('error_dialog', cli.BoolArg),
-                                  ('test', cli.NoArg)])
+from chimera.core.commands import CmdDesc, NoArg, BoolArg
+log_desc = CmdDesc(keyword = [('show', NoArg),
+                              ('hide', NoArg),
+                              ('warning_dialog', BoolArg),
+                              ('error_dialog', BoolArg),
+                              ('test', NoArg)])
 
 
 def log_test(session):

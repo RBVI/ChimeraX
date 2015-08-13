@@ -34,11 +34,10 @@ from ...errors import UserError as CommandError
 
 def register_vop_command():
 
-    from ...cli import CmdDesc, register, BoolArg, EnumOf, IntArg, Int3Arg
-    from ...cli import FloatArg, Float3Arg, FloatsArg, ModelIdArg
+    from ...commands import CmdDesc, register, BoolArg, EnumOf, IntArg, Int3Arg
+    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
-    from ...structure import AtomsArg
 
     varg = [('volumes', MapsArg)]
     ssm_kw = [
@@ -371,7 +370,6 @@ def boxes_op(session, volumes, markers, size = 0, useMarkerSize = False,
              subregion = 'all', step = 1, modelId = None):
 
     if size <= 0 and not useMarkerSize:
-        from ... import cli
         raise CommandError('Must specify size or enable useMarkerSize')
 
     from .boxes import boxes
@@ -640,10 +638,8 @@ def subtract_op(session, volumes, onGrid = None, boundingGrid = False,
                 modelId = None):
 
     if len(volumes) != 2:
-        from ... import cli
         raise CommandError('vop subtract operation requires exactly two volumes')
     if minRMS and scaleFactors:
-        from ... import cli
         raise CommandError('vop subtract cannot specify both minRMS and scaleFactors options.')
     mult = (1,'minrms') if minRMS else scaleFactors
 

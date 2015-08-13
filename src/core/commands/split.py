@@ -263,13 +263,13 @@ def atom_bonds(atoms):
 #
 def register_split_command():
 
-    from . import cli, atomspec, color, structure
+    from . import cli, atomspec, color
     desc = cli.CmdDesc(
-        optional = [('molecules', structure.AtomicStructuresArg)],
+        optional = [('molecules', cli.AtomicStructuresArg)],
         keyword = [('chains', cli.NoArg),
                    ('ligands', cli.NoArg),
                    ('connected', cli.NoArg),
-                   ('atoms', structure.AtomsArg)],
+                   ('atoms', cli.AtomsArg)],
         synopsis = 'split molecule into multiple molecules'
         )
     # TODO: Allow repeating atoms keyword.

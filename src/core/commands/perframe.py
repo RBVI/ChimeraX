@@ -7,7 +7,7 @@
 
 def register_perframe_command():
 
-    from chimera.core.cli import CmdDesc, register, IntArg, StringArg, NoArg
+    from .cli import CmdDesc, register, IntArg, StringArg, NoArg
     desc = CmdDesc(required = [('command', StringArg)],
                    keyword = [('range', RangeArg),      # TODO: Allow multiple range arguments.
                               ('frames', IntArg),

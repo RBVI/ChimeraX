@@ -4,10 +4,9 @@
 #
 def register_volume_command():
 
-    from ..cli import CmdDesc, register
-    from ..cli import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg
+    from ..commands import CmdDesc, register
+    from ..commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
-    from ..color import ColorArg
 
     from .data.fileformats import file_writers
     stypes = [fw[1] for fw in file_writers]

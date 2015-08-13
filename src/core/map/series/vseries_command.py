@@ -8,10 +8,8 @@ players = set()         # Active players.
 
 def register_vseries_command():
 
-    from ...cli import CmdDesc, register, BoolArg, EnumOf, IntArg, StringArg, FloatArg
-    from ...color import ColorArg
+    from ...commands import CmdDesc, register, BoolArg, EnumOf, IntArg, StringArg, FloatArg, AtomsArg, ColorArg
     from ..mapargs import MapArg, MapStepArg, MapRegionArg, ValueTypeArg, IntRangeArg
-    from ...structure import AtomsArg
 
     sarg = [('series', SeriesArg)]
 
@@ -354,7 +352,7 @@ def slider_op(session, series):
 
 # -----------------------------------------------------------------------------
 #
-from ...cli import Annotation
+from ...commands import Annotation
 class SeriesArg(Annotation):
     name = 'map series'
     @staticmethod

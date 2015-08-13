@@ -93,7 +93,7 @@ or a :py:class:`Value` has three items associated with it:
 
     1. A default value.
     2. A function that can parse the value or a
-       cli :py:class:`~chimera.core.cli.Annotation` that can parse the value.
+       cli :py:class:`~chimera.core.commands.cli.Annotation` that can parse the value.
        This allows for error checking in the case where a user hand edits
        the configuration.
     3. A function to convert the value to a string.
@@ -431,7 +431,7 @@ class Value:
     from_str : function or Annotation, optional
         can be either a function that takes a string
         and returns a value of the right type, or a cli
-        :py:class:`~chimera.core.cli.Annotation`.
+        :py:class:`~chimera.core.commands.cli.Annotation`.
         Defaults to py:func:`ast.literal_eval`.
     to_str : function returning a string, optional
         Defaults to :py:func:`repr`.
@@ -476,7 +476,7 @@ class Value:
 
 if __name__ == '__main__':
     # simple test
-    from . import cli
+    from .commands import cli
     import os
 
     class _ToolPreferences(ConfigFile):

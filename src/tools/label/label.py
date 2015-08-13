@@ -1,8 +1,7 @@
 from chimera.core.errors import UserError as CommandError
 def register_2dlabels_command():
 
-    from chimera.core.cli import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg
-    from chimera.core.color import ColorArg
+    from chimera.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
 
     # Create and change have same arguments
     cargs = [('text', StringArg),

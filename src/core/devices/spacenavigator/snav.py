@@ -232,7 +232,7 @@ def snav_command(session, enable = None, fly = None):
 # Register the snav command for Chimera 2.
 #
 def register_snav_command():
-    from ...cli import CmdDesc, BoolArg, register
+    from ...commands import CmdDesc, BoolArg, register
     _snav_desc = CmdDesc(optional = [('enable', BoolArg)],
                          keyword = [('fly', BoolArg)])
     register('snav', _snav_desc, snav_command)

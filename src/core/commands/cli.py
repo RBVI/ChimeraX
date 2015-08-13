@@ -158,7 +158,7 @@ Example
 
 Here is a simple example::
 
-    import from chimera.core import cli, errors
+    import from chimera.core.commands import cli, errors
     @register("echo", cli.CmdDesc(optional=[('text', cli.RestOfLine)]))
     def echo(session, text=''):
         print(text)
@@ -227,7 +227,7 @@ def _user_kw(kw_name):
     return words[0].lower() + ''.join([x.capitalize() for x in words[1:]])
 
 
-from .errors import UserError
+from ..errors import UserError
 class AnnotationError(UserError, ValueError):
     """Error, with optional offset, in annotation"""
 
@@ -536,6 +536,45 @@ class AxisArg(Annotation):
         except KeyError:
             raise AnnotationError('Expected 3 floats or "x", or "y", or "z"')
         return axis, text, rest
+
+
+class AtomsArg(Annotation):
+    """Parse command atoms specifier"""
+    name = "atoms"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        atoms = aspec.evaluate(session).atoms
+        atoms.spec = str(aspec)
+        return atoms, text, rest
+
+
+class AtomicStructuresArg(Annotation):
+    """Parse command atomic structures specifier"""
+    name = "atomic structures"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..structure import AtomicStructure
+        mols = [m for m in models if isinstance(m, AtomicStructure)]
+        return mols, text, rest
+
+
+class PseudobondGroupsArg(Annotation):
+    name = 'pseudobond groups'
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        value, used, rest = AtomSpecArg.parse(text, session)
+        models = value.evaluate(session).models
+        from ..pbgroup import PseudobondGroup
+        pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
+        return pbgs, used, rest
 
 
 class Bounded(Annotation):
@@ -1091,7 +1130,7 @@ def delay_registration(name, proxy_function, logger=None):
 
     Example::
 
-        from chimera.core import cli
+        from chimera.core.commands import cli
 
         def lazy_reg():
             import module

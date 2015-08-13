@@ -104,13 +104,11 @@ class interpolate_position:
 
 def register_crosslink_command():
     from . import cli
-    from .pbgroup import PseudobondGroupsArg
     from .color import ColorArg
-    from .structure import AtomicStructuresArg
-    desc = cli.CmdDesc(optional = [('pbgroups', PseudobondGroupsArg)],
+    desc = cli.CmdDesc(optional = [('pbgroups', cli.PseudobondGroupsArg)],
                        keyword = [('color', ColorArg),
                                   ('radius', cli.FloatArg),
-                                  ('minimize', AtomicStructuresArg),
+                                  ('minimize', cli.AtomicStructuresArg),
                                   ('iterations', cli.IntArg),
                                   ('frames', cli.IntArg),
                               ])
