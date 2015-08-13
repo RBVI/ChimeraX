@@ -54,7 +54,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         session.logger.info(msg)
         return
 
-    from .geometry.vector import normalize_vector as normalize
+    from ..geometry.vector import normalize_vector as normalize
     from numpy import array, float32
 
     if preset == 'default' or preset == 'simple':
@@ -109,7 +109,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
             try:
                 size = int(qualityOfShadows)
             except:
-                from .errors import UserError
+                from ..errors import UserError
                 raise UserError('qualityOfShadows value must be an integer or one of %s'
                                 % ', '.join('%s (%d)' % (nm,s) for nm,s in sizes.items()))
         v.shadow_map_size = size

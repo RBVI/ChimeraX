@@ -546,6 +546,8 @@ def register_core_commands(session):
     perframe.register_perframe_command()
     from . import sym
     sym.register_sym_command()
+    from . import aimages
+    aimages.register_assembly_images_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd

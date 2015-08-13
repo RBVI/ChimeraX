@@ -3,7 +3,7 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
     for m in molecules:
         assem = pdb_assemblies(m)
         if clear:
-            from .geometry import Place
+            from ..geometry import Place
             m.position = Place()
             for s in m.surfaces():
                 s.position = Place()
@@ -17,7 +17,7 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
         else:
             amap = dict((a.id, a) for a in assem)
             if not assembly in amap:
-                from .errors import UserError
+                from ..errors import UserError
                 raise UserError('Assembly "%s" not found, have %s'
                                 % (assembly, ', '.join(a.id for a in assem)))
             a = amap[assembly]
@@ -50,7 +50,7 @@ def mmcif_assemblies(mmcif_path):
                    '_pdbx_struct_oper_list',
                    '_pdbx_poly_seq_scheme',
                    '_pdbx_nonpoly_scheme')
-    from . import mmcif
+    from .. import mmcif
     assem, assem_gen, oper, cremap1, cremap2 = mmcif.read_mmcif_tables(mmcif_path, table_names)
     if assem is None or assem_gen is None or oper is None:
         return []
@@ -69,7 +69,7 @@ def mmcif_assemblies(mmcif_path):
                        'matrix[1][1]', 'matrix[1][2]', 'matrix[1][3]', 'vector[1]',
                        'matrix[2][1]', 'matrix[2][2]', 'matrix[2][3]', 'vector[2]',
                        'matrix[3][1]', 'matrix[3][2]', 'matrix[3][3]', 'vector[3]'))
-    from .geometry import Place
+    from ..geometry import Place
     for id, m11,m12,m13,m14,m21,m22,m23,m24,m31,m32,m33,m34 in mat:
         ops[id] = Place(matrix = ((m11,m12,m13,m14),(m21,m22,m23,m24),(m31,m32,m33,m34)))
 
@@ -133,7 +133,7 @@ class Assembly:
 
     def show_surfaces(self, mol, session):
         included_atoms, excluded_atoms = self._partition_atoms(mol.atoms, self._chain_ids())
-        from .molsurf import surface_command
+        from ..molsurf import surface_command
         surfs = surface_command(session, included_atoms)
         if len(excluded_atoms) > 0:
             surface_command(session, excluded_atoms, hide = True)
@@ -189,7 +189,7 @@ def mmcif_chain_ids(atoms, chain_map):
     return cids
 
 def operator_products(products, oper_table):
-    from .geometry import Places
+    from ..geometry import Places
     p = Places(tuple(oper_table[e] for e in products[0]))
     if len(products) > 1:
         p = p * operator_products(products[1:], oper_table)

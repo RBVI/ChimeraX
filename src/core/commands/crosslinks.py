@@ -1,14 +1,14 @@
 def crosslink(session, pbgroups = None, color = None, radius = None, minimize = None, iterations = 10, frames = None):
 
     if pbgroups is None:
-        from . import pbgroup
+        from .. import pbgroup
         pbgroups = pbgroup.all_pseudobond_groups(session.models)
 
     if len(pbgroups) == 0:
-        from .errors import UserError        
+        from ..errors import UserError        
         raise UserError('No pseudobond groups specified.')
 
-    from .molecule import concatenate
+    from ..molecule import concatenate
     pbonds = concatenate([pbg.pseudobonds for pbg in pbgroups])
 
     if color:
@@ -25,18 +25,18 @@ def crosslink(session, pbgroups = None, color = None, radius = None, minimize = 
 
 def minimize_link_lengths(mols, pbonds, iterations, frames, session):
     if len(mols) == 0:
-        from .errors import UserError        
+        from ..errors import UserError        
         raise UserError('No structures specified for minimizing crosslinks.')
     mol_links, mol_pbonds = links_by_molecule(pbonds, mols)
     if len(mol_links) == 0:
-        from .errors import UserError        
+        from ..errors import UserError        
         raise UserError('No pseudobonds to minimize for specified molecules.')
     if len(mols) == 1:
         iterations = min(1,iterations)
     if not frames is None:
         pos0 = dict((m,m.position) for m in mols)
     from numpy import array, float64
-    from . import align
+    from .. import align
     for i in range(iterations):
         for m in mols:
             if m in mol_links:
@@ -98,7 +98,7 @@ class interpolate_position:
             self.view.remove_callback('new frame', self.update_position)
         else:
             f = fr / self.frames
-            from .geometry import translation, rotation
+            from ..geometry import translation, rotation
             m.position = translation(f*(self.c1-self.c0)) * rotation(self.axis, f*self.angle, self.c0) * self.pos0
             self.frame += 1
 

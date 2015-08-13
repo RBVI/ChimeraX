@@ -22,7 +22,7 @@
 #               [range <r>]
 #
 def scolor(session, atoms = None, color = None, byatom = False, esp = None):
-    from .molsurf import MolecularSurface
+    from ..molsurf import MolecularSurface
     surfs = session.models.list(type = MolecularSurface)
     if not atoms is None:
         surfs = [s for s in surfs if s.atoms.intersects(atoms)]
@@ -697,7 +697,7 @@ class Gradient_Color(Volume_Color):
 def interpolate_colormap(values, color_data_values, rgba_colors,
                          rgba_above_value_range, rgba_below_value_range):
 
-    from . import map
+    from .. import map
     rgba = map.interpolate_colormap(values, color_data_values, rgba_colors,
                                     rgba_above_value_range, rgba_below_value_range)
     return rgba
@@ -706,7 +706,7 @@ def interpolate_colormap(values, color_data_values, rgba_colors,
 #
 def set_outside_volume_colors(outside, rgba_outside_volume, rgba):
 
-    from . import map
+    from .. import map
     map.set_outside_volume_colors(outside, rgba_outside_volume, rgba)
             
 # -----------------------------------------------------------------------------

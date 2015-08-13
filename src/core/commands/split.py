@@ -4,7 +4,7 @@
 def split_molecules(session, molecules = None, chains = None, ligands = False, connected = False, atoms = None):
 
     if molecules is None:
-        from . import structure
+        from .. import structure
         molecules = structure.all_atomic_structures(session)
 
     if chains is None and not ligands and not connected and atoms is None:
@@ -14,7 +14,7 @@ def split_molecules(session, molecules = None, chains = None, ligands = False, c
     olist = []
     log = session.logger
     models = session.models
-    from .models import Model
+    from ..models import Model
     for m in molecules:
         clist = split_molecule(m, chains, ligands, connected, atoms)
         if clist:
@@ -161,7 +161,7 @@ def split_atoms(atoms, asubsets):
 #
 def molecule_from_atoms(m, atoms, name = None):
 
-    from .structure import AtomicStructure
+    from ..structure import AtomicStructure
     cm = AtomicStructure(name or m.name)
 #    cm.color = m.color
     cm.display = m.display
