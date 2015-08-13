@@ -3,15 +3,24 @@
 #define util_cstring_cmp
 
 #include <cstring>  // strcmp
-#include <iostream>
+#include <sstream>
 #include <string>
 #include <stdexcept>
 
 namespace chutil {
 
-// comparison function for const char* in maps and so forth
+// put character pack into stringstream
 
-template <int len>
+inline void unpack(std::stringstream& ss, char c) { ss << c; }
+
+template<typename C, typename... CS>
+void unpack(std::stringstream& ss, C c, CS... cs)
+{
+    ss << c;
+    unpack(ss, cs...);
+}
+
+template <int len, char... description_chars>
 class CString
 {
 public:
@@ -19,13 +28,23 @@ public:
 
 private:
     char  _data[len];
+    void  _report_error(const std::string& val) {
+        std::stringstream error_msg;
+        unpack(error_msg, description_chars...);
+        error_msg << " \"";
+        error_msg << val;
+        error_msg << "\" too long, maximum ";
+        error_msg << len-1;
+        error_msg << " characters.";
+        throw std::invalid_argument(error_msg.str());
+    }
 
 public:
     CString() { _data[0] = '\0'; }
     CString(const char* s) { *this = s; }
     CString(const char* s, std::ptrdiff_t length) {
         if (length+1 > len)
-            throw std::invalid_argument("String too long");
+            _report_error(std::string(s, length));
         char* dest = _data;
         while (length-- > 0) {
             *dest++ = *s++;
@@ -35,7 +54,7 @@ public:
     CString(std::initializer_list<char> s) {
         bool add_null = *(s.end()-1) != '\0';
         if (s.size() > len + (add_null ? 1 : 0))
-            throw std::invalid_argument("String too long");
+            _report_error(std::string(s));
         int pos = 0;
         for (auto c: s) {
             _data[pos++] = c;
@@ -54,7 +73,7 @@ public:
 
     void  operator=(const char* s) {
         if (std::strlen(s) >= len)
-            throw std::invalid_argument("String too long");
+            _report_error(std::string(s));
         std::strcpy(_data, s);
     }
     operator const char*() const { return _data; }
@@ -88,9 +107,11 @@ public:
 
 namespace std {
 
-template <int len> struct hash<chutil::CString<len>>
+template <int len, char... description_chars>
+struct hash<chutil::CString<len, description_chars...>>
 {
-    size_t operator()(const chutil::CString<len>& cs) const {return cs.hash();}
+    size_t operator()(const chutil::CString<len, description_chars...>& cs) const
+        {return cs.hash();}
 };
 
 }  // namespace std

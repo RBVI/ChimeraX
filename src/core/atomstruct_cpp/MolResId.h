@@ -15,7 +15,7 @@ class ATOMSTRUCT_IMEX MolResId {
     // convenience class for testing chain/position/insert-code equality
 public:
     int    pos;
-    ResName chain;
+    ChainID chain;
     char insert;
     MolResId() {};
     MolResId(const ChainID& c, int p, char ic) {
