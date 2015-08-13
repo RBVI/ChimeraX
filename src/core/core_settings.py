@@ -5,8 +5,8 @@ preferences: manage preferences
 
 TODO
 """
-from . import cli
-from . import color
+from .commands import cli
+from .commands import color
 from . import configfile
 from .settings import Settings
 _prefs = None
