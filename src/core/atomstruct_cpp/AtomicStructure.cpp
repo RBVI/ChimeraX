@@ -73,6 +73,8 @@ AtomicStructure *AtomicStructure::copy() const
     {
       Atom *a = *ai;
       Atom *ca = m->new_atom(a->name(), a->element());
+      Residue *cr = rmap[a->residue()];
+      cr->add_atom(ca);	// Must set residue before setting alt locs
       std::set<char> alocs = a->alt_locs();
       if (alocs.empty())
 	{
@@ -100,8 +102,6 @@ AtomicStructure *AtomicStructure::copy() const
       ca->set_color(a->color());
       ca->set_display(a->display());
       amap[a] = ca;
-      Residue *cr = rmap[a->residue()];
-      cr->add_atom(ca);
     }
 
   for (auto bi = bonds().begin() ; bi != bonds().end() ; ++bi)
