@@ -6,7 +6,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/geometry
 
 SUBDIRS	= _geometry
 
-PYSRCS = __init__.py bins.py bounds.py matrix.py place.py sphere.py spline.py vector.py
+PYSRCS = __init__.py align.py bins.py bounds.py matrix.py place.py sphere.py spline.py vector.py
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

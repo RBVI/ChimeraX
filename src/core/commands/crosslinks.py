@@ -36,14 +36,14 @@ def minimize_link_lengths(mols, pbonds, iterations, frames, session):
     if not frames is None:
         pos0 = dict((m,m.position) for m in mols)
     from numpy import array, float64
-    from .. import align
+    from ..geometry import align_points
     for i in range(iterations):
         for m in mols:
             if m in mol_links:
                 atom_pairs = mol_links[m]
                 moving = array([a1.scene_coord for a1,a2 in atom_pairs], float64)
                 fixed = array([a2.scene_coord for a1,a2 in atom_pairs], float64)
-                tf, rms = align.align_points(moving, fixed)
+                tf, rms = align_points(moving, fixed)
                 m.position = tf * m.position
 
     lengths = [pb.length for pb in mol_pbonds]
