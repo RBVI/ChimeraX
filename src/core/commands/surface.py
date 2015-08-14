@@ -2,13 +2,41 @@
 
 # -------------------------------------------------------------------------------------
 #
-def surface_command(session, atoms = None, enclose = None, include = None,
-                    probe_radius = 1.4, grid_spacing = None, resolution = None, level = None,
-                    color = None, transparency = None, visible_patches = None,
-                    sharp_boundaries = None,
-                    nthread = None, replace = True, show = False, hide = False, close = False):
+def surface(session, atoms = None, enclose = None, include = None,
+            probe_radius = 1.4, grid_spacing = None, resolution = None, level = None,
+            color = None, transparency = None, visible_patches = None,
+            sharp_boundaries = None,
+            nthread = None, replace = True, show = False, hide = False, close = False):
     '''
     Compute and display solvent excluded molecular surfaces.
+
+    :param atoms: Atoms controlling which surface patch is shown.
+                  Surfaces are computed for each chain these atoms belong to and patches
+                  of these surfaces near the specifed atoms are shown.  Solvent, ligands
+                  and ions are excluded from each chain surface.
+    :param enclose: Make a surface enclosing exactly these specified atoms excluding
+                    solvent, ligands and ions
+    :param include: Solvent, ligands or ions to include in the surface.
+    :param probe_radius: Radius of probe sphere rolled over atoms to produce surface.
+                         Only used for solvent excluded surfaces.
+    :param grid_spacing: Surface is computed on 3-dimensional grid with this spacing
+                         between grid points along each axis.
+    :param resolution: Specifying a resolution value (Angstroms) causes the surface calculation
+                       to use a contour surface of a 3-d grid of a sum of Gaussians one centered
+                       at each atom instead of a solvent excluded surface.  See the molmap command
+                       for details.
+    :param level: Contour level for Gaussian surface in atomic number units.  Each Gaussian has
+                  height scaled by the atom atomic number.
+    :param color: Colors surfaces using this color.
+    :param transparency: Percentage transparency for surfaces.
+    :param visible_patches: Maximum number of connected surface pieces per chain to show.
+    :param sharp_boundaries: Make the surface triangulation have edges exactly between atoms
+                             so per-atom surface colors and surface patches have smoother edges.
+    :param nthread: Number of CPU threads to use in computing surfaces.
+    :param replace: Whether to replace an existing surface for the same atoms or make a copy.
+    :param show: Show patches for existing surfaces without computing any new surface.
+    :param hide: Undisplay surfaces or patches of surfaces.
+    :param close: Close surfaces for the specified atoms.
     '''
     atoms = check_atoms(atoms, session) # Warn if no atoms specifed
 
@@ -135,7 +163,7 @@ def register_surface_command():
                    ('hide', NoArg),
                    ('close', NoArg)],
         synopsis = 'create molecular surface')
-    register('surface', _surface_desc, surface_command)
+    register('surface', _surface_desc, surface)
 
 def check_atoms(atoms, session):
     if atoms is None:

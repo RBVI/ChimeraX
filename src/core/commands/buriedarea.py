@@ -1,9 +1,17 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
-def buriedarea_command(session, atoms1, with_atoms2 = None, probe_radius = 1.4):
+def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4):
     '''
-    Compute solvent accessible surface area.
-    Only the specified atoms are considered.
+    Compute buried solvent accessible surface (SAS) area between two sets of atoms.
+    This is the sum of the SAS area of each set of atoms minus the SAS area of the
+    combined sets of atoms, that difference divided by two since each set of atoms
+    has surface at the interface, so the interface area is defined as half the buried
+    area.  Atoms not specified in either atom set are ignored when considering where
+    the probe sphere can reach.
+
+    :param atoms1: First set of atoms.
+    :param with_atoms2: Second set of atoms -- must be disjoint from first set.
+    :param probe_radius: Radius of the probe sphere.
     '''
     if with_atoms2 is None:
         from . import AnnotationError
@@ -34,4 +42,4 @@ def register_buriedarea_command():
         keyword = [('with_atoms2', AtomsArg),
                    ('probe_radius', FloatArg),],
         synopsis = 'compute buried area')
-    register('buriedarea', _buriedarea_desc, buriedarea_command)
+    register('buriedarea', _buriedarea_desc, buriedarea)

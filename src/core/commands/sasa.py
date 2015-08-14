@@ -1,9 +1,11 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
-def sasa_command(session, atoms = None, probe_radius = 1.4):
+def sasa(session, atoms = None, probe_radius = 1.4):
     '''
     Compute solvent accessible surface area.
-    Only the specified atoms are considered.
+
+    :param atoms: A probe sphere is rolled over these atoms ignoring collisions with any other atoms.
+    :param probe_radius: Radius of the probe sphere.
     '''
     from .surface import check_atoms
     atoms = check_atoms(atoms, session)
@@ -23,4 +25,4 @@ def register_sasa_command():
         optional = [('atoms', AtomsArg)],
         keyword = [('probe_radius', FloatArg),],
         synopsis = 'compute solvent accessible surface area')
-    register('sasa', _sasa_desc, sasa_command)
+    register('sasa', _sasa_desc, sasa)
