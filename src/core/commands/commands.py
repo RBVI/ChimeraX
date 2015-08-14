@@ -15,14 +15,14 @@ from ..errors import UserError
 # from graphics.cameramode import CameraModeArg
 
 
-def run(session, text, suppress_errors=False):
+def run(session, text, downgrade_errors=False):
     """execute a textual command
 
     Parameters
     ----------
     text : string
         The text of the command to execute.
-    suppress_errors : bool
+    downgrade_errors : bool
         True if errors in the command should be logged as informational.
     """
     command = cli.Command(session)
@@ -30,7 +30,7 @@ def run(session, text, suppress_errors=False):
         command.parse_text(text, final=True)
         command.execute()
     except UserError as err:
-        if suppress_errors:
+        if downgrade_errors:
             session.logger.info(str(err))
         else:
             session.logger.error(str(err))
