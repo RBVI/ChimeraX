@@ -827,10 +827,18 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
     while (parse_row(pv)) {
         if (symmetry1 != symmetry2)
             continue;
-        bool metal = conn_type == "metalc";
-        bool hydro = conn_type == "hydro";
-        if (!metal && !hydro && conn_type != "covale" && conn_type != "disulf")
-            continue;   // skip hydrogen and modres bonds
+        bool normal = false;
+        bool metal = false;
+        bool hydro = false;
+        // TODO: survey PDB mmCIF files and test in descending prevalence
+        if (conn_type == "covale" || conn_type == "disulf")
+            normal = true;
+        else if (conn_type == "hydro")
+            hydro = true;
+        else if (conn_type == "metalc")
+            metal = true;
+        if (!normal && !metal && !hydro)
+            continue;   // skip hydrogen, modres, and unknown bonds
         AtomKey k1(chain_id1, position1, auth_position1, ins_code1, alt_id1,
                 atom_name1, residue_name1);
         auto ai1 = atom_map.find(k1);
@@ -984,8 +992,9 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
         if (conf_type.empty())
             continue;
         if (chain_id1 != chain_id2) {
-            logger::error(_logger, "Start and end residues of secondary"
-                          " structure are in different chains: ", id);
+            logger::warning(_logger, "Start and end residues of secondary"
+                          " structure \"", id,
+                          "\" are in different chains on line ", line_number());
             continue;
         }
         // Only expect helixes and turns, strands were in mmCIF v. 2,
@@ -1008,18 +1017,46 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
             }
         }
 
-        const ResidueMap& residue_map = all_residues[chain_id1];
-        string entity_id = chain_entity_map[chain_id1];
-        auto& entity_poly_seq = poly_seq[entity_id];
+        auto ari = all_residues.find(chain_id1);
+        if (ari == all_residues.end()) {
+            logger::warning(_logger, "Invalid sheet range for secondardy"
+                            " structure \"", id, "\": invalid chain"
+                            ", on line ", line_number());
+            continue;
+        }
+        const ResidueMap& residue_map = ari->second;
+        auto cemi = chain_entity_map.find(chain_id1);
+        if (cemi == chain_entity_map.end()) {
+            logger::warning(_logger, "Invalid sheet range for secondary",
+                            " structure \"", id, "\": invalid chain"
+                            ", on line ", line_number());
+            continue;
+        }
+        string entity_id = cemi->second;
+        auto psi = poly_seq.find(entity_id);
+        if (psi == poly_seq.end()) {
+            logger::warning(_logger, "Invalid sheet range for secondary",
+                            " structure \"", id, "\": invalid chain"
+                            ", on line ", line_number());
+            continue;
+        }
+        auto& entity_poly_seq = psi->second;
 
-        auto init_ps = entity_poly_seq.lower_bound(
-                       PolySeq(position1, residue_name1, false));
-        auto end_ps = entity_poly_seq.upper_bound(
-                       PolySeq(position2, residue_name2, false));
+        auto init_ps_key = PolySeq(position1, residue_name1, false);
+        auto end_ps_key = PolySeq(position2, residue_name2, false);
+        if (end_ps_key < init_ps_key) {
+            logger::warning(_logger, "Invalid sheet range for secondary",
+                            " structure \"", id, "\": ends before it starts"
+                            ", on line ", line_number());
+            continue;
+        }
+        auto init_ps = entity_poly_seq.lower_bound(init_ps_key);
+        auto end_ps = entity_poly_seq.upper_bound(end_ps_key);
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end()) {
-            logger::error(_logger, "Bad residue range for secondary strcture: ",
-                          id);
+            logger::warning(_logger,
+                            "Bad residue range for secondary strcture \"", id,
+                            "\" on line ", line_number());
             continue;
         }
         for (auto pi = init_ps; pi != end_ps; ++pi) {
@@ -1128,29 +1165,33 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
     map<ChainID, int> strand_ids;
     while (parse_row(pv)) {
         if (chain_id1 != chain_id2) {
-            logger::error(_logger, "Invalid sheet range for strand: ",
-                          sheet_id, ' ', id, ": different chains");
+            logger::warning(_logger, "Invalid sheet range for strand \"",
+                            sheet_id, ' ', id, "\": different chains"
+                            ", on line ", line_number());
             continue;
         }
 
         auto ari = all_residues.find(chain_id1);
         if (ari == all_residues.end()) {
-            logger::error(_logger, "Invalid sheet range for strand: ",
-                          sheet_id, ' ', id, ": invalid chain");
+            logger::warning(_logger, "Invalid sheet range for strand \"",
+                            sheet_id, ' ', id, "\": invalid chain"
+                            ", on line ", line_number());
             continue;
         }
         const ResidueMap& residue_map = ari->second;
         auto cemi = chain_entity_map.find(chain_id1);
         if (cemi == chain_entity_map.end()) {
-            logger::error(_logger, "Invalid sheet range for strand: ",
-                          sheet_id, ' ', id, ": invalid chain");
+            logger::warning(_logger, "Invalid sheet range for strand \"",
+                            sheet_id, ' ', id, "\": invalid chain"
+                            ", on line ", line_number());
             continue;
         }
         string entity_id = cemi->second;
         auto psi = poly_seq.find(entity_id);
         if (psi == poly_seq.end()) {
-            logger::error(_logger, "Invalid sheet range for strand: ",
-                          sheet_id, ' ', id, ": invalid chain");
+            logger::warning(_logger, "Invalid sheet range for strand \"",
+                            sheet_id, ' ', id, "\": invalid chain"
+                            ", on line ", line_number());
             continue;
         }
         auto& entity_poly_seq = psi->second;
@@ -1158,16 +1199,17 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
         auto init_ps_key = PolySeq(position1, residue_name1, false);
         auto end_ps_key = PolySeq(position2, residue_name2, false);
         if (end_ps_key < init_ps_key) {
-            logger::error(_logger, "Invalid sheet range for strand: ",
-                          sheet_id, ' ', id, ": ends before it starts");
+            logger::warning(_logger, "Invalid sheet range for strand \"",
+                            sheet_id, ' ', id, "\": ends before it starts"
+                            ", on line ", line_number());
             continue;
         }
         auto init_ps = entity_poly_seq.lower_bound(init_ps_key);
         auto end_ps = entity_poly_seq.upper_bound(end_ps_key);
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end()) {
-            logger::error(_logger, "Invalid sheet range for strand: ",
-                          sheet_id, ' ', id);
+            logger::warning(_logger, "Invalid sheet range for strand \"",
+                            sheet_id, ' ', id, "\" on line ", line_number());
             continue;
         }
         int strand_id;
@@ -1219,8 +1261,9 @@ ExtractMolecule::parse_entity_poly_seq(bool /*in_loop*/)
             hetero = *start == 'Y' || *start == 'y';
         });
 
-    while (parse_row(pv))
+    while (parse_row(pv)) {
         poly_seq[entity_id].emplace(seq_id, mon_id, hetero);
+    }
 }
 
 static PyObject*
