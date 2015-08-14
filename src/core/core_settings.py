@@ -5,8 +5,8 @@ preferences: manage preferences
 
 TODO
 """
-from . import cli
-from . import color
+from . import commands
+from .commands.color import Color
 from . import configfile
 from .settings import Settings
 _prefs = None
@@ -16,9 +16,9 @@ class _CoreSettings(Settings):
 
     EXPLICIT_SAVE = {
         'bg_color': configfile.Value(
-            color.Color('#000'), color.ColorArg, color.Color.hex_with_alpha),
+            Color('#000'), commands.ColorArg, Color.hex_with_alpha),
         'multisample_threshold': configfile.Value(
-            0, cli.NonNegativeIntArg, str),
+            0, commands.NonNegativeIntArg, str),
         'silhouette': False,
         # autostart map_series_gui until alternate means of installing
         # trigger is found
