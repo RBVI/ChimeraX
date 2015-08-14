@@ -15,6 +15,30 @@ from ..errors import UserError
 # from graphics.cameramode import CameraModeArg
 
 
+def run(session, text, suppress_errors=False):
+    """execute a textual command
+
+    Parameters
+    ----------
+    text : string
+        The text of the command to execute.
+    suppress_errors : bool
+        True if errors in the command should be logged as informational.
+    """
+    command = cli.Command(session)
+    try:
+        command.parse_text(text, final=True)
+        command.execute()
+    except UserError as err:
+        if suppress_errors:
+            session.logger.info(str(err))
+        else:
+            session.logger.error(str(err))
+_run_desc = cli.CmdDesc(required=[('text', cli.StringArg)],
+                        optional=[('ignore_errors', cli.BoolArg)],
+                        synopsis='indirectly run a command')
+
+
 def pwd(session):
     import os
     session.logger.info('current working directory: %s' % os.getcwd())
@@ -188,7 +212,7 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
         has_arg = True
         if eye_separation is None or screen_width is None:
             raise UserError("Must specifiy both eye-separation and"
-                                " screen-width -- only ratio is used")
+                            " screen-width -- only ratio is used")
         cam.eye_separation_pixels = (eye_separation / screen_width) * \
             view.screen().size().width()
         cam.redraw_needed = True
@@ -234,7 +258,7 @@ def save(session, filename, width=None, height=None, supersample=None, format=No
     else:
         suffixes = image_file_suffixes + (ses.SESSION_SUFFIX[1:],)
         raise UserError('Unrecognized file suffix "%s", require one of %s'
-                            % (e, ','.join(suffixes)))
+                        % (e, ','.join(suffixes)))
 
 _save_desc = cli.CmdDesc(
     required=[('filename', cli.StringArg), ],
@@ -325,12 +349,14 @@ _set_desc = cli.CmdDesc(
     synopsis="set preferences"
 )
 
-def style_command(session, atom_style, atoms = None):
+
+def style_command(session, atom_style, atoms=None):
     from ..structure import AtomicStructure
-    s = {'sphere':AtomicStructure.SPHERE_STYLE,
-         'ball':AtomicStructure.BALL_STYLE,
-         'stick':AtomicStructure.STICK_STYLE,
-         }[atom_style.lower()]
+    s = {
+        'sphere': AtomicStructure.SPHERE_STYLE,
+        'ball': AtomicStructure.BALL_STYLE,
+        'stick': AtomicStructure.STICK_STYLE,
+    }[atom_style.lower()]
     if atoms is None:
         for m in session.models.list():
             if isinstance(m, AtomicStructure):
@@ -339,9 +365,10 @@ def style_command(session, atom_style, atoms = None):
         asr = atoms.evaluate(session)
         asr.atoms.draw_modes = s
 
-_style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball', 'stick')))],
+_style_desc = cli.CmdDesc(required=[('atom_style', cli.EnumOf(('sphere', 'ball', 'stick')))],
                           optional=[("atoms", atomspec.AtomSpecArg)],
                           synopsis='change atom depiction')
+
 
 class CallForNFrames:
     # CallForNFrames acts like a function that keeps track of per-frame
@@ -512,6 +539,7 @@ def register_core_commands(session):
     cli.register('freeze', _freeze_desc, freeze)
     cli.register('wait', _wait_desc, wait)
     cli.register('crossfade', _crossfade_desc, crossfade)
+    cli.register('run', _run_desc, run)
     from .. import molsurf
     molsurf.register_surface_command()
     molsurf.register_sasa_command()

@@ -191,6 +191,7 @@ from keyword import iskeyword as is_python_keyword
 import re
 import sys
 from collections import OrderedDict
+from ..errors import UserError
 
 _debugging = False
 _normal_token = re.compile(r"[^;\s]*")
@@ -227,7 +228,6 @@ def _user_kw(kw_name):
     return words[0].lower() + ''.join([x.capitalize() for x in words[1:]])
 
 
-from ..errors import UserError
 class AnnotationError(UserError, ValueError):
     """Error, with optional offset, in annotation"""
 
