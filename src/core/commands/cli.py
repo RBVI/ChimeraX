@@ -567,6 +567,7 @@ class AtomicStructuresArg(Annotation):
 
 class PseudobondGroupsArg(Annotation):
     name = 'pseudobond groups'
+
     @staticmethod
     def parse(text, session):
         from .atomspec import AtomSpecArg
@@ -1014,6 +1015,38 @@ class SameSize(Postcondition):
     def error_message(self):
         return "%s argument should be the same size as %s argument" % (
             self.name1, self.name2)
+
+
+class RequiredArgs(Postcondition):
+    """Postcondition check for required keywords
+
+    RequiredArgs(argument name(s)) -> a RequiredArgs object
+
+    :param *arg_names: list of argument names
+
+    This is useful for 'optional' and keyword arguments that don't have
+    a default value.
+    """
+
+    __slots__ = ['arg_names', 'missing']
+
+    def __init__(self, *arg_names):
+        self.arg_names = arg_names
+        self.missing = ()
+
+    def check(self, kw_args):
+        self.missing = tuple(n for n in self.arg_names if n not in kw_args)
+        return len(self.missing) == 0
+
+    def error_message(self):
+        count = len(self.missing)
+        if count == 1:
+            return "missing '%s' argument" % self.missing
+        if count == 2:
+            return "missing '%s' and '%s' arguments" % self.missing
+        return "missing %s, and '%s' arguments" % (
+            ', '.join(self.missing[:-1]), self.missing[-1])
+
 
 # _commands is a map of command name to command information.  Except when
 # it is a multiword command name, then the preliminary words map to
@@ -1997,7 +2030,7 @@ def unalias(session, name):
     del cmd_map[word]
 
 if __name__ == '__main__':
-    from utils import flattened
+    from ..utils import flattened
 
     class ColorArg(Annotation):
         name = 'a color'
@@ -2141,11 +2174,14 @@ if __name__ == '__main__':
         print('test9 full, target, names: %r, %r, %r' % (full, target, names))
 
     test10_desc = CmdDesc(
-        required=(
+        optional=(
             ("colors", ListOf(ColorArg)),
             ("offsets", ListOf(FloatArg)),
         ),
-        postconditions=(SameSize('colors', 'offsets'),)
+        postconditions=(
+            SameSize('colors', 'offsets'),
+            RequiredArgs("colors", "offsets")
+        )
     )
 
     @register('test10', test10_desc)
