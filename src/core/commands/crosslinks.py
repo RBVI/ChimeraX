@@ -102,7 +102,7 @@ class interpolate_position:
             m.position = translation(f*(self.c1-self.c0)) * rotation(self.axis, f*self.angle, self.c0) * self.pos0
             self.frame += 1
 
-def register_crosslink_command():
+def register_command(session):
     from . import cli
     from .color import ColorArg
     desc = cli.CmdDesc(optional = [('pbgroups', cli.PseudobondGroupsArg)],

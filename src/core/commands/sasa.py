@@ -19,7 +19,7 @@ def sasa(session, atoms = None, probe_radius = 1.4):
     log.info(msg)
     log.status(msg)
 
-def register_sasa_command():
+def register_command(session):
     from . import CmdDesc, register, AtomsArg, FloatArg
     _sasa_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],

@@ -1,3 +1,5 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
+
 # -----------------------------------------------------------------------------
 # Code for scolor (spatial coloring) command, providing the campabilities of
 # the Surface Color dialog.
@@ -51,7 +53,7 @@ def scolor(session, atoms = None, color = None, byatom = False, esp = None):
         s.vertex_colors = vcolors
     return len(surfs)
 
-def register_scolor_command():
+def register_command(session):
     from . import cli, color
     from ..map import MapArg
     _scolor_desc = cli.CmdDesc(

@@ -1,4 +1,5 @@
-from .commands import register_core_commands, run
+from .commands import register_core_commands
+from .run import run
 
 from .cli import CmdDesc, register, Command, alias
 

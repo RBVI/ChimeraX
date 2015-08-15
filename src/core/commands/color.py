@@ -1,4 +1,5 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
+
 """
 color: basic color support
 ===========================
@@ -1095,7 +1096,7 @@ _SequentialColor = {
 
 # -----------------------------------------------------------------------------
 #
-def register_commands():
+def register_commands(session):
     from . import atomspec
     cli.register(
         'color',

@@ -1,3 +1,5 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
+
 # -----------------------------------------------------------------------------
 # Command to split molecules so that each chain is in a separate molecule.
 #
@@ -261,7 +263,7 @@ def atom_bonds(atoms):
 
 # -----------------------------------------------------------------------------
 #
-def register_split_command():
+def register_command(session):
 
     from . import cli, atomspec, color
     desc = cli.CmdDesc(

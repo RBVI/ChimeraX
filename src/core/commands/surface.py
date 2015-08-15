@@ -143,7 +143,7 @@ def surface(session, atoms = None, enclose = None, include = None,
 
     return surfs
 
-def register_surface_command():
+def register_command(session):
     from . import CmdDesc, register, AtomsArg, FloatArg, IntArg, ColorArg, BoolArg, NoArg
     _surface_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],

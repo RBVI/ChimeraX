@@ -1,0 +1,170 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
+
+def lighting(session, preset = None, direction = None, intensity = None, color = None, 
+             fill_direction = None, fill_intensity = None, fill_color = None,
+             ambient_intensity = None, ambient_color = None, fixed = None,
+             shadows = None, quality_of_shadows = None, depth_bias = None,
+             multi_shadow = None, ms_map_size = None, ms_depth_bias = None):
+    '''
+    Set lighting parameters. There are 2 directional lights, a key light and a fill light,
+    in addition to ambient lighting.  The key light can cast a shadow, and shadows cast
+    from multiple uniformly distributed directions can produce ambient shadowing (aka "ambient occlusion").
+    Parameters that are not specified retain their current value.  If no options are specified
+    then the current settings are printed to the log.
+
+    :param preset: Names a standard set of lighting parameters. Allowed values are "default",
+                   "simple", "full", "soft" and "flat".  Simple is the same as default and has
+                   no shadows.  Full includes direct and ambient shadows.  Soft includes ambient
+                   shadows from 64 directions and no direct lighting.  Flat has only anbient lighting
+                   and no shadows with silhouettes enabled.  Specifying a preset only specifies some
+                   of the lighting parameters. Specifying other options overrides the preset values.
+    :param direction: Key light direction as vector (3 numbers).  Does not have to
+                      be unit length -- it will be normalized.  Points in the direction the light shines.
+                      The viewing direction is along -z.  Initially is pointing down to the right
+                      (1,-1,-1).
+    :param intensity: Key light intensity. This is a brightness scale factor. Initial value 1.
+    :param color: Key light color, a Color object, initial value RGB = (1,1,1).
+    :param fill_direction: Fill light direction. Initially is pointing from lower left (-0.2,-0.2,-0.959).
+    :param fill_intensity: Fill light intensity. Initial value 0.5.
+    :param fill_color: Fill light color, a Color object, initial value RGB = (1,1,1).
+    :param ambient_intensity: Ambient light intensity. Initial value 0.4.
+    :param ambient_color: Ambient color, a Color object, initial value RGB = (1,1,1).
+    :param fixed: Whether light directions are fixed in scene coordinates or move with the camera.
+                  Initial value fixed = false.
+    :param shadows: Whether to show shadows.  Initial value false.
+    :param quality_of_shadows: Shadows are rendered with a 2 dimensional texture. Pixelated shadow edges result from
+                               using small texture sizes.  Value can be "coarse" (1024), "normal" (2048), "fine" (4096),
+                               "finer" (8192), or an integer value can be specified.
+    :param depth_bias: To avoid a surface shadowing itself due to numerical rounding errors an bias distance
+                       is used. This is a fraction of the scene diameter.  Initial value 0.005.
+    :param multi_shadow: How many directions to use for casting ambient shadows.  Value 0 means no
+                         ambient shadows. The soft preset uses 64 directions.  Initial value 0.
+    :param ms_map_size: Size of one 2-dimensional texture holding all the ambient shadow maps.
+                        Small values give coarser shadows that give a smoother appearance
+                        when many shadows ar rendered. Initial value 128.
+    :param ms_depth_bias: Depth bias to avoid surface self shadowing for ambient shadows as a fraction
+                          of the scene diameter. Because small shadow map sizes are typically used a
+                          larger bias is needed than for directional shadows.  Initial value 0.05.
+    '''
+    v = session.main_view
+    lp = v.lighting()
+
+    if len([opt for opt in (preset, direction, intensity, color, fill_direction, fill_intensity, fill_color,
+                            ambient_intensity, ambient_color, fixed, shadows, depth_bias, quality_of_shadows,
+                            multi_shadow, ms_map_size, ms_depth_bias)
+            if not opt is None]) == 0:
+        # Report current settings.
+        lines = (
+            'Intensity: %.5g' % lp.key_light_intensity,
+            'Direction: (%.5g,%.5g,%.5g)' % tuple(lp.key_light_direction),
+            'Color: (%.5g,%.5g,%.5g)' % tuple(lp.key_light_color),
+            'Fill intensity: %.5g' % lp.fill_light_intensity,
+            'Fill direction: (%.5g,%.5g,%.5g)' % tuple(lp.fill_light_direction),
+            'Fill color: (%.5g,%.5g,%.5g)' % tuple(lp.fill_light_color),
+            'Ambient intensity: %.5g' % lp.ambient_light_intensity,
+            'Ambient color: (%.5g,%.5g,%.5g)' % tuple(lp.ambient_light_color),
+            'Shadow: %s (depth map size %d, depth bias %.5g)'
+              % (v.shadows, v.shadow_map_size, v.shadow_depth_bias),
+            'Multishadows: %d (max %d, depth map size %d, depth bias %.5g)'
+              % (v.multishadow, v.max_multishadow(), v.multishadow_map_size, v.multishadow_depth_bias),
+        )
+        msg = '\n'.join(lines)
+        session.logger.info(msg)
+        return
+
+    from ..geometry.vector import normalize_vector as normalize
+    from numpy import array, float32
+
+    if preset == 'default' or preset == 'simple':
+        v.shadows = False
+        v.multishadow = 0
+        lp.set_default_parameters()
+    elif preset == 'full':
+        v.shadows = True
+        v.multishadow = 64
+        lp.key_light_intensity = 0.7
+        lp.fill_light_intensity = 0.3
+        lp.ambient_light_intensity = 1
+    elif preset == 'soft':
+        v.shadows = False
+        v.multishadow = 64
+        lp.key_light_intensity = 0
+        lp.fill_light_intensity = 0
+        lp.ambient_light_intensity = 1.5
+    elif preset == 'flat':
+        v.shadows = False
+        v.multishadow = 0
+        lp.key_light_intensity = 0
+        lp.fill_light_intensity = 0
+        lp.ambient_light_intensity = 1
+        v.silhouettes = True
+
+    if not direction is None:
+        lp.key_light_direction = array(normalize(direction), float32)
+    if not intensity is None:
+        lp.key_light_intensity = intensity
+    if not color is None:
+        lp.key_light_color = color.rgba[:3]
+    if not fill_direction is None:
+        lp.fill_light_direction = array(normalize(fill_direction), float32)
+    if not fill_intensity is None:
+        lp.fill_light_intensity = fill_intnsity
+    if not fill_color is None:
+        lp.fill_light_color = fill_color.rgba[:3]
+    if not ambient_intensity is None:
+        lp.ambient_light_intensity = ambient_intensity
+    if not ambient_color is None:
+        lp.ambient_light_color = ambient_color.rgba[:3]
+    if not fixed is None:
+        lp.move_lights_with_camera = not fixed
+    if not shadows is None:
+        v.shadows = shadows
+    if not quality_of_shadows is None:
+        sizes = {'normal':2048, 'fine':4096, 'finer':8192, 'coarse':1024}
+        if quality_of_shadows in sizes:
+            size = sizes[quality_of_shadows]
+        else:
+            try:
+                size = int(quality_of_shadows)
+            except:
+                from ..errors import UserError
+                raise UserError('qualityOfShadows value must be an integer or one of %s'
+                                % ', '.join('%s (%d)' % (nm,s) for nm,s in sizes.items()))
+        v.shadow_map_size = size
+    if not depth_bias is None:
+        v.shadow_depth_bias = depth_bias
+    if not multi_shadow is None:
+        v.multishadow = multi_shadow
+    if not ms_map_size is None:
+        v.multishadow_map_size = ms_map_size
+    if not ms_depth_bias is None:
+        v.multishadow_depth_bias = ms_depth_bias
+
+    v.update_lighting = True
+    v.redraw_needed = True
+
+def register_command(session):
+    from .cli import CmdDesc, BoolArg, IntArg, FloatArg, Float3Arg, StringArg, EnumOf, register
+    from .color import ColorArg
+    _lighting_desc = CmdDesc(
+        optional = [('preset', EnumOf(('default', 'full', 'soft', 'simple', 'flat')))],
+        keyword = [
+            ('direction', Float3Arg),
+            ('intensity', FloatArg),
+            ('color', ColorArg),
+            ('fill_direction', Float3Arg),
+            ('fill_intensity', FloatArg),
+            ('fill_color', ColorArg),
+            ('ambient_intensity', FloatArg),
+            ('ambient_color', ColorArg),
+            ('fixed', BoolArg),
+            ('shadows', BoolArg),
+            ('quality_of_shadows', StringArg),
+            ('depth_bias', FloatArg),
+            ('multi_shadow', IntArg),
+            ('ms_map_size', IntArg),
+            ('ms_depth_bias', FloatArg),
+        ],
+        synopsis="report or alter lighting parameters")
+
+    register('lighting', _lighting_desc, lighting)

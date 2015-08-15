@@ -1,4 +1,5 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
+
 def perframe(session, command, frames = None, interval = 1, format = None,
              zero_pad_width = None, range = None, show_commands = False):
     '''Execute specified command each frame, typically used during movie recording.
@@ -38,7 +39,7 @@ def perframe(session, command, frames = None, interval = 1, format = None,
         session.perframe_callbacks = set()
     session.perframe_callbacks.add(cb)
 
-def register_perframe_command():
+def register_command(session):
 
     from .cli import CmdDesc, register, IntArg, StringArg, NoArg
     desc = CmdDesc(required = [('command', StringArg)],

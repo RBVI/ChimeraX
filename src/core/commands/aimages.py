@@ -1,12 +1,34 @@
-#
-# Assembly images command for batch rendering mmCIF assembly images.
-# This is an obscure capability developed for the Protein DataBank to render images.
-#
-def render_assembly_images(session, directory = '.', subdirectories = True,
-                           width = 400, height = 400, supersample = 2,
-                           image_suffix = '.png', exclude = ['128d.cif', '1m4x.cif'],
-                           log_file = '/Users/goddard/ucsf/assemblies/log'):
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 
+#
+#
+def aimages(session, directory = '.', subdirectories = True,
+            width = 400, height = 400, supersample = 2,
+            image_suffix = '.png', exclude = ['128d.cif', '1m4x.cif'],
+            log_file = '/Users/goddard/ucsf/assemblies/log'):
+    '''
+    Assembly images command for batch rendering mmCIF assembly images.
+    This is for the Protein DataBank to render images.
+
+    Parameters
+    ----------
+    directory : string
+        Find all files with suffix .cif in this directory and recursively in subdirectories.
+    subdirectories : bool
+        Whether to recursively search subdirectories for .cif files.
+    width : integer
+        Width in pixels of saved image.
+    height : integer
+        Height in pixels of saved image.
+    supersample : integer
+        Supersampling makes image N-fold larger than averages down to smooth object images.
+    image_suffix : string
+        File suffix for images, used to determine image format (e.g. .png, .jpg, .tif)
+    exclude : list of strings
+        File names to exclude from rendering (some large files cause graphics crashes).
+    log_file : string
+        Path to file to write log messages as each mmCIF file is rendered.
+    '''
     s = session
     run(s, 'set bg white')
     run(s, 'set silhouette false')
@@ -72,7 +94,7 @@ def run(session, cmd_text):
     cmd = Command(session, cmd_text, final=True)
     cmd.execute()
 
-def register_assembly_images_command():
+def register_command(session):
     from . import CmdDesc, StringArg, IntArg, ListOf, register
     desc = CmdDesc(
         optional = [('directory', StringArg)],
@@ -83,7 +105,7 @@ def register_assembly_images_command():
                    ('exclude', ListOf(StringArg)),
                    ('log_file', StringArg)],
         synopsis = 'Render mmCIF assembly images')
-    register('aimages', desc, render_assembly_images)
+    register('aimages', desc, aimages)
 
 # To make a tiled array of images with filename labels:
 # /opt/ImageMagick/bin/montage -label "%t" *.png -geometry "400x400+0+0" tiled.jpg

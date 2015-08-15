@@ -1,5 +1,19 @@
-# Clone or copy a model.
+# vi: set expandtab shiftwidth=4 softtabstop=4:
+
 def sym(session, molecules, assembly = None, clear = False, surface_only = False):
+    '''
+    Show molecular assemblies of molecular models defined in mmCIF files.
+    These can be subassemblies or symmetrical copies with individual chains 
+    placed according to matrices specified in the mmCIF file.
+
+    :param molecules: List of molecules to show as assemblies.
+    :param assembly: The name of assembly in the mmCIF file. If this parameter is None
+                     then the names of available assemblies are printed in log.
+    :param clear: Revert to displaying no assembly, resets the use of any symmetry matrices.
+    :param surface_only: Instead of showing instances of the molecule, show instances
+                         of surfaces of each chain.  The chain surfaces are computed if
+                         they do not already exist.
+    '''
     for m in molecules:
         assem = pdb_assemblies(m)
         if clear:
@@ -26,7 +40,7 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
             else:
                 a.show(m, session)
 
-def register_sym_command():
+def register_command(session):
     from . import cli
     _sym_desc = cli.CmdDesc(
         required = [('molecules', cli.AtomicStructuresArg)],

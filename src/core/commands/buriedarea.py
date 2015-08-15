@@ -35,7 +35,7 @@ def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4):
             % (atoms1.spec, a1a, atoms2.spec, a2a, a12a))
     log.info(msg)
 
-def register_buriedarea_command():
+def register_command(session):
     from . import CmdDesc, register, AtomsArg, FloatArg
     _buriedarea_desc = CmdDesc(
         required = [('atoms1', AtomsArg)],
