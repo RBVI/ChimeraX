@@ -776,7 +776,7 @@ def ecolor(session, spec, color=None, target=None,
             raise UserError("sequential \"%s\" not implemented yet"
                             % sequential)
         else:
-            f(results, cmap)
+            f(results, cmap, target)
             return
     what = []
 
@@ -1067,7 +1067,7 @@ def chain_rgba8(cid):
 
 # -----------------------------------------------------------------------------
 #
-def _set_sequential_chain(selected, cmap):
+def _set_sequential_chain(selected, cmap, target):
     # Organize selected atoms by structure and then chain
     sa = selected.atoms
     chain_atoms = sa.filter(sa.in_chains)
@@ -1081,13 +1081,17 @@ def _set_sequential_chain(selected, cmap):
         sl.append((chain_id, atoms))
     # Make sure there is a colormap
     if cmap is None:
-        cmap = _BuiltinColormaps["redblue"]
+        cmap = _BuiltinColormaps["rainbow"]
     # Each structure is colored separately with cmap applied by chain
     import numpy
     for sl in structures.values():
         colors = cmap.get_colors_for(numpy.linspace(0.0, 1.0, len(sl)))
         for color, (chain_id, atoms) in zip(colors, sl):
-            atoms.colors = Color(color).uint8x4()
+            c = Color(color).uint8x4()
+            if target is None or 'a' in target:
+                atoms.colors = c
+            if target is None or 'c' in target:
+                atoms.unique_residues.ribbon_colors = c
 
 _SequentialColor = {
     "chains": _set_sequential_chain,
