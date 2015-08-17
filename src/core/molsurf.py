@@ -226,8 +226,8 @@ def surface_rgba(color, transparency, chain_id = None):
             from numpy import array, uint8
             rgba8 = array((180,180,180,255), uint8)
         else:
-            from .commands import color
-            rgba8 = color.chain_rgba8(chain_id)
+            from . import colors
+            rgba8 = colors.chain_rgba8(chain_id)
     else:
         rgba8 = color.uint8x4()
     if not transparency is None:

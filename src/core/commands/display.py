@@ -31,6 +31,7 @@ def undisplay(session, spec=None):
 
 def register_command(session):
     from . import cli
+    from . import atomspec
     desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                        synopsis='display specified atoms')
     cli.register('display', desc, display)

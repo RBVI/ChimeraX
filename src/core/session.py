@@ -508,10 +508,10 @@ def common_startup(sess):
     sess.models = models.Models(sess)
     sess.add_state_manager('models', sess.models)
     sess.selection = Selection(sess.models)
-    from .commands import color
-    sess.user_colors = color.UserColors()
+    from . import colors
+    sess.user_colors = colors.UserColors()
     sess.add_state_manager('user_colors', sess.user_colors)
-    sess.user_colormaps = color.UserColormaps()
+    sess.user_colormaps = colors.UserColormaps()
     sess.add_state_manager('user_colormaps', sess.user_colormaps)
     from .graphics.view import View
     global _monkey_patch

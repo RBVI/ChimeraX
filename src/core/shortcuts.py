@@ -689,8 +689,8 @@ def show_molecular_surface(atoms, session):
             molsurf.surface_command(session, m.atoms)
 
 def color_by_element(atoms):
-    from .commands import color
-    color.color_by_element(atoms)
+    from . import colors
+    colors.color_by_element(atoms)
 
 def color_by_bfactor(atoms):
     from time import time
@@ -705,8 +705,8 @@ def color_by_bfactor(atoms):
            % (len(atoms), t1-t0, len(atoms)/(t1-t0)))
 
 def color_by_chain(atoms):
-    from .commands import color
-    color.color_by_chain(atoms)
+    from . import colors
+    colors.color_by_chain(atoms)
 
 def color_one_color(m):
     m.single_color()

@@ -108,7 +108,7 @@ class AtomicStructure(CAtomicStructure, Model):
     def _initialize_graphical_attributes(self):
         a = self.atoms
         a.draw_modes = self.SPHERE_STYLE
-        from .commands.color import element_colors
+        from .colors import element_colors
         a.colors = element_colors(a.element_numbers)
         b = self.bonds
         b.radii = self.bond_radius

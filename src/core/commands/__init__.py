@@ -8,5 +8,6 @@ from .cli import NoArg, BoolArg, StringArg, EnumOf, ListOf
 from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg
 from .cli import FloatArg, Float3Arg, FloatsArg
 from .cli import ModelIdArg, AtomsArg
-from .color import ColorArg
+
+from .colorarg import ColorArg, ColormapArg
 from .atomspec import AtomSpecArg

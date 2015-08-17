@@ -43,6 +43,7 @@ def material(session, preset = None, reflectivity = None,
     v.redraw_needed = True
 
 def register_command(session):
+    from .cli import CmdDesc, EnumOf, FloatArg, register
     _material_desc = CmdDesc(
         optional = [('preset', EnumOf(('default', 'shiny', 'dull')))],
         keyword = [
@@ -52,5 +53,4 @@ def register_command(session):
             ('ambient_reflectivity', FloatArg),
         ],
         synopsis="report or alter material parameters")
-    from . import cli
-    cli.register('material', _material_desc, material)
+    register('material', _material_desc, material)
