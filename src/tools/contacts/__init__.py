@@ -18,7 +18,7 @@ def start_tool(session, ti):
 def register_command(command_name):
     from chimera.core.commands import register
     from . import cmd
-    register('contacts', cmd.contact_desc, cmd.contact_command)
+    register('contacts', cmd.contacts_desc, cmd.contacts)
 
 
 #

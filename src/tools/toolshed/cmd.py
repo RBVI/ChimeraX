@@ -12,6 +12,13 @@ def _display_tools(ti_list, logger):
 
 
 def ts_list(session, tool_type="installed"):
+    '''List installed tools in the log.
+
+    Parameters
+    ----------
+    tool_type : string
+      Types are "installed", "available", or "all"
+    '''
     ts = session.toolshed
     logger = session.logger
     if tool_type == "installed" or tool_type == "all":
@@ -32,6 +39,15 @@ ts_list_desc = CmdDesc(optional=[("tool_type", _tool_types)])
 
 
 def ts_refresh(session, tool_type="installed"):
+    '''
+    Check for new tools or new tool vesions on server and display
+    them in the tool shed window.
+
+    Parameters
+    ----------
+    tool_type : string
+      Types are "installed", "available", or "all"
+    '''
     ts = session.toolshed
     logger = session.logger
     if tool_type == "installed":
@@ -51,6 +67,16 @@ def _tool_string(tool_name, version):
 
 
 def ts_install(session, tool_name, user_only=True, version=None):
+    '''
+    Install a tool.
+
+    Parameters
+    ----------
+    tool_name : string
+    user_only : bool
+      Install for this user only, or install for all users.
+    version : string
+    '''
     ts = session.toolshed
     logger = session.logger
     ti = ts.find_tool(tool_name, installed=True, version=version)
@@ -69,6 +95,13 @@ ts_install_desc = CmdDesc(required=[("tool_name", StringArg)],
 
 
 def ts_remove(session, tool_name):
+    '''
+    Remove an installed tool.
+
+    Parameters
+    ----------
+    tool_name : string
+    '''
     ts = session.toolshed
     logger = session.logger
     ti = ts.find_tool(tool_name, installed=True)
@@ -80,6 +113,13 @@ ts_remove_desc = CmdDesc(required=[("tool_name", StringArg)])
 
 
 def ts_start(session, tool_name, *args, **kw):
+    '''
+    Start a tool.
+
+    Parameters
+    ----------
+    tool_name : string
+    '''
     ts = session.toolshed
     logger = session.logger
     ti = ts.find_tool(tool_name, installed=True)
@@ -91,6 +131,14 @@ ts_start_desc = CmdDesc(required=[("tool_name", StringArg)])
 
 
 def ts_update(session, tool_name, version=None):
+    '''
+    Update a tool to the latest version.
+
+    Parameters
+    ----------
+    tool_name : string
+    version : string
+    '''
     ts = session.toolshed
     logger = session.logger
     new_ti = ts.find_tool(tool_name, installed=False, version=version)
@@ -134,6 +182,7 @@ def get_singleton(session, create=False):
 
 
 def ts_hide(session):
+    '''Hide the Tool Shed user interface.'''
     ts = get_singleton(session)
     if ts is not None:
         ts.display(False)
@@ -141,6 +190,7 @@ ts_hide_desc = CmdDesc()
 
 
 def ts_show(session):
+    '''Show the Tool Shed user interface.'''
     ts = get_singleton(session, create=True)
     if ts is not None:
         ts.display(True)

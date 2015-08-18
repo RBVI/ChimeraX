@@ -20,14 +20,16 @@ def get_singleton(session, create=False):
         return running[0]
 
 
-def hide(session):
+def command_line_hide(session):
+    '''Hide the command line.'''
     cmdline = get_singleton(session)
     if cmdline is not None:
         cmdline.display(False)
 hide_desc = CmdDesc()
 
 
-def show(session):
+def command_line_show(session):
+    '''Show the command line.'''
     cmdline = get_singleton(session, create=True)
     if cmdline is not None:
         cmdline.display(True)

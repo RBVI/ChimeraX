@@ -13,7 +13,7 @@ def register_movie_command():
                    ('size', Int2Arg),
                    ('supersample', IntArg),
                    ('limit', IntArg)])
-    register('movie record', record_desc, record_op)
+    register('movie record', record_desc, movie_record)
 
     from .movie import RESET_CLEAR, RESET_KEEP, RESET_NONE
     reset_modes = (RESET_CLEAR, RESET_KEEP, RESET_NONE)
@@ -28,35 +28,55 @@ def register_movie_command():
                    ('round_trip', BoolArg),
                    ('wait', BoolArg),
                ])
-    register('movie encode', encode_desc, encode_multiple_op)
+    register('movie encode', encode_desc, movie_encode)
 
     crossfade_desc = CmdDesc(optional = [('frames', IntArg)])
-    register('movie crossfade', crossfade_desc, crossfade_op)
+    register('movie crossfade', crossfade_desc, movie_crossfade)
 
     duplicate_desc = CmdDesc(optional = [('frames', IntArg)])
-    register('movie duplicate', duplicate_desc, duplicate_op)
+    register('movie duplicate', duplicate_desc, movie_duplicate)
 
     stop_desc = CmdDesc()
-    register('movie stop', stop_desc, stop_op)
+    register('movie stop', stop_desc, movie_stop)
 
     abort_desc = CmdDesc()
-    register('movie abort', abort_desc, abort_op)
+    register('movie abort', abort_desc, movie_abort)
 
     reset_desc = CmdDesc(optional = [('reset_mode', EnumOf(reset_modes))])
-    register('movie reset', reset_desc, reset_op)
+    register('movie reset', reset_desc, movie_reset)
 
     status_desc = CmdDesc()
-    register('movie status', status_desc, status_op)
+    register('movie status', status_desc, movie_status)
 
     formats_desc = CmdDesc()
-    register('movie formats', formats_desc, formats_op)
+    register('movie formats', formats_desc, movie_formats)
 
     ignore_desc = CmdDesc(optional = [('ignore', BoolArg)])
-    register('movie ignore', ignore_desc, ignore_op)
+    register('movie ignore', ignore_desc, movie_ignore)
 
-def record_op(session, directory = None, pattern = None, format = None,
-              size = None, supersample = 1, limit = 15000):
+from .movie import RESET_CLEAR
+def movie_record(session, directory = None, pattern = None, format = None,
+                 size = None, supersample = 1, limit = 15000):
+    '''Start recording a movie.
 
+    Parameters
+    ----------
+    directory : string
+      A temporary directory for saving image files before the movie is encoded.
+      By default a temporary system directory is created.
+    pattern : string
+      File name including a printf style specification like "%04d" for the frame number
+      for saving images.
+    format : string
+      Image file format (default ppm) for saving frames.
+    size : 2 int
+      Width and height in pixels of movie.
+    supersample : int
+      Amount of supersampling when saving individual image frames.
+    limit : int
+      Maximum number of frames to save.  This is a safe guard so that the entire computer disk storage
+      is not filled with images if a movie recording is never stopped.
+    '''
     if ignore_movie_commands(session):
         return
     
@@ -101,25 +121,52 @@ def ignore_movie_commands(session):
         session.logger.info('Ignoring command: %s %s' % (cmdname, args))
     return ignore
 
-def encode_multiple_op(session, **kw):
-
-    if 'output' in kw:
-        kw1 = kw.copy()
-        outputs = kw1.pop('output')
-        from .movie import RESET_CLEAR, RESET_KEEP, RESET_NONE
-        r = kw1.pop('reset_mode') if 'reset_mode' in kw1 else RESET_CLEAR
-        w = kw1.pop('wait') if 'wait' in kw1 else False
-        for o in outputs[:-1]:
-            encode_op(output = o, reset_mode = RESET_NONE, wait = True, **kw1)
-        encode_op(session, output = outputs[-1], reset_mode = r, wait = w, **kw1)
-    else:
-        encode_op(session, **kw)
+def movie_encode(session, output=None, format=None, quality=None, qscale=None, bitrate=None,
+                 framerate=25, round_trip=False, reset_mode=RESET_CLEAR, wait=False):
+    '''Enode images captured with movie record command creating a movie file.
+    This uses the standalone video encoding program ffmpeg which is included with Chimera.
     
-from .movie import RESET_CLEAR
-def encode_op(session, output=None, format=None,
-              quality=None, qscale=None, bitrate=None,
-              framerate=25, round_trip=False,
-              reset_mode=RESET_CLEAR, wait=False):
+    Parameters
+    ----------
+    output : list of strings
+      Filenames of movie output files.  By specifying multiple files, different video encoding
+      formats can be made.
+    format : string
+      Format of video file to write.  If not specified, the file suffix determines the format.
+    quality : string
+      Quality of video, higher quality results in larger file size.  Qualities are "highest",
+      "higher", "high", "good", "medium", "fair", "low".  Default "good".  This overrides
+      the qscale and bitrate options.
+    qscale : int
+      Quality scale parameter used by some video codecs.  This overrides the bitrate option.
+    bitrate : int
+      Target bit rate for video encoding in Kbits/second.
+    framerate : int
+      Frames per second that video should playback at in a video player.
+    round_trip : bool
+      If true, the images are played forward and than backward so movie ends where
+      it began.  This is used for making movies that loop without a jump between the
+      last frame and first frame.
+    reset_mode : string
+      Whether to keep or delete the image files that were captured after the video files is made.
+      Values are "clear", "keep" or "none".  Default "clear" means the image files are deleted.
+    wait : bool
+      Whether to wait until movie encoding is finished before the command returns.
+      Default false means the command can return before the video encoding is complete.
+    '''
+    if not output is None:
+        from .movie import RESET_NONE
+        for o in output[:-1]:
+            encode_op(session, o, format, quality, qscale, bitrate,
+                      framerate, round_trip, reset_mode = RESET_NONE, wait = True)
+        encode_op(session, output[-1], format, quality, qscale, bitrate,
+                  framerate, round_trip, reset_mode, wait)
+    else:
+        encode_op(session, output, format, quality, qscale, bitrate,
+                  framerate, round_trip, reset_mode, wait)
+    
+def encode_op(session, output=None, format=None, quality=None, qscale=None, bitrate=None,
+              framerate=25, round_trip=False, reset_mode=RESET_CLEAR, wait=False):
 
     from . import formats
 
@@ -165,37 +212,42 @@ def encode_op(session, output=None, format=None,
     movie.start_encoding(output, f['ffmpeg_name'], output_size, f['ffmpeg_codec'], "yuv420p", f['size_restriction'],
                          framerate, bit_rate, qual, round_trip, reset_mode)
 
-def crossfade_op(session, frames=25):
-
+def movie_crossfade(session, frames=25):
+    '''Linear interpolate between the current graphics image and the next image
+    over a specified number of frames.
+    '''
     session.movie.postprocess('crossfade', frames)
 
-def duplicate_op(session, frames=25):
-
+def movie_duplicate(session, frames=25):
+    '''Repeat the current image frame a specified number of frames
+    so that the video does not change during playback.'''
     session.movie.postprocess('duplicate', frames)
 
-def stop_op(session):
-
+def movie_stop(session):
+    '''Stop recording video frames. Using the movie encode command also stops recording.'''
     session.movie.stop_recording()
 
-def abort_op(session):
-
+def movie_abort(session):
+    '''Stop movie recording and delete any recorded frames.'''
     session.movie.stop_encoding()
 
-def reset_op(session, reset_mode = RESET_CLEAR):
-
+def movie_reset(session, reset_mode = RESET_CLEAR):
+    '''Clear images saved with movie record.'''
     clr = (reset_mode == RESET_CLEAR)
     session.movie.resetRecorder(clearFrames=clr)
 
-def ignore_op(session, ignore = True):
-
+def movie_ignore(session, ignore = True):
+    '''Ignore subsequent movie commands except for the movie ignore command.
+    This can be used to run a movie recording script without recording
+    the movie.'''
     session.ignore_movie_commands = ignore
 
-def status_op(session):
-
+def movie_status(session):
+    '''Report recording status such as number of frames saved to the log.'''
     session.movie.dumpStatusInfo()
 
-def formats_op(session):
-
+def movie_formats(session):
+    '''Report the available video formats to the log.'''
     from . import formats
     flist = '\n'.join('\t%s\t=\t %s (.%s)' % (n, f['label'], f['suffix'])
                       for name, f in formats.formats.items())

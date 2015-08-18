@@ -9,7 +9,7 @@ def start_tool(session, ti):
     # a single tool in the entire package, so we do not need to
     # look at the name in 'ti.name'
     from . import cmd
-    cmd.show(session)
+    cmd.mousemodes_show(session)
     return cmd.get_singleton(session)
 
 
@@ -19,5 +19,5 @@ def start_tool(session, ti):
 def register_command(command_name):
     from . import cmd
     from chimera.core.commands import register
-    register(command_name + " hide", cmd.hide_desc, cmd.hide)
-    register(command_name + " show", cmd.show_desc, cmd.show)
+    register(command_name + " hide", cmd.hide_desc, cmd.mousemodes_hide)
+    register(command_name + " show", cmd.show_desc, cmd.mousemodes_show)

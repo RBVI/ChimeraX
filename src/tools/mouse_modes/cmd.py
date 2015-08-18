@@ -17,7 +17,8 @@ def get_singleton(session, create=False):
         return running[0]
 
 
-def hide(session):
+def mousemodes_hide(session):
+    '''Hide the mouse modes icon panel.'''
     mmpanel = get_singleton(session)
     if mmpanel is not None:
         mmpanel.display(False)
@@ -25,7 +26,8 @@ from chimera.core.commands import CmdDesc
 hide_desc = CmdDesc()
 
 
-def show(session):
+def mousemodes_show(session):
+    '''Show the mouse modes icon panel.'''
     mmpanel = get_singleton(session, create=True)
     if mmpanel is not None:
         mmpanel.display(True)

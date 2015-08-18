@@ -17,6 +17,21 @@ def get_singleton(session, create=False):
         return running[0]
 
 def log(session, show = None, hide = None, warning_dialog = None, error_dialog = None, test = None):
+    '''Control setting for the Log window.
+
+    Parameters
+    ----------
+    show : bool
+    hide : bool
+    warning_dialog : bool
+      If true, warnings popup a separate dialog, if false no warning dialog is shown.
+      In either case the warning appears in the log text.
+    error_dialog : bool
+      If true, errors popup a separate dialog, if false no error dialog is shown.
+      In either case the errors appears in the log text.
+    test : bool
+      Test logging of various types of messages.
+    '''
     create = show or test
     log = get_singleton(session, create = create)
     if log is not None:

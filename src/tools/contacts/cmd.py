@@ -1,18 +1,23 @@
 # vi: set expandtab ts=4 sw=4:
 
 from chimera.core.commands import CmdDesc, AtomSpecArg, FloatArg
-contact_desc = CmdDesc(
+contacts_desc = CmdDesc(
     optional = [('atoms', AtomSpecArg),],
     keyword = [('probeRadius', FloatArg),])
 
-def contact_command(session, atoms = None, probeRadius = 1.4):
+def contacts(session, atoms = None, probe_radius = 1.4):
     '''
-    Compute solvent accessible surface area.
-    Only the specified atoms are considered.
+    Compute buried solvent accessible surface areas between chains
+    and show a 2-dimensional network graph depicting the contacts.
+
+    Parameters
+    ----------
+    atoms : Atoms
+    probe_radius : float
     '''
     from chimera.core import molsurf
     s = molsurf.atom_spec_spheres(atoms, session, chains = True)
-    areas, ba = buried_areas(s, probeRadius)
+    areas, ba = buried_areas(s, probe_radius)
 
     names = [name for name,xyz,r,place in s]
     sn = dict(zip(names,short_chain_names(names)))
