@@ -20,9 +20,9 @@ def start_tool(session, ti):
 #
 def register_command(command_name):
     from . import cmd
-    from chimera.core import cli
-    cli.register(command_name + " SUBCOMMAND_NAME",
-                 cmd.subcommand_desc, cmd.subcommand_function)
+    from chimera.core.commands import register
+    register(command_name + " SUBCOMMAND_NAME",
+             cmd.subcommand_desc, cmd.subcommand_function)
     # TODO: Register more subcommands here
 
 

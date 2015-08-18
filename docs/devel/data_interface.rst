@@ -24,15 +24,19 @@ Modules
 -------
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
-    core/session.rst
+    core/commands/commands.rst
 
-    core/triggerset.rst
+    core/commands/cli.rst
 
     core/data_events.rst
 
     core/io.rst
+
+    core/session.rst
+
+    core/triggerset.rst
 
 Structure-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~~

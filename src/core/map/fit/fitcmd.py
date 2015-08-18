@@ -441,11 +441,10 @@ def report_status(log):
 #
 def register_fitmap_command():
 
-    from ... import cli
-    from ...atomspec import AtomSpecArg
+    from ...commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, AtomSpecArg
     from ..mapargs import MapArg
 
-    fitmap_desc = cli.CmdDesc(
+    fitmap_desc = CmdDesc(
         required = [
             ('atomsOrMap', AtomSpecArg),
         ],
@@ -454,32 +453,32 @@ def register_fitmap_command():
             ('subtract_maps', AtomSpecArg),
 
 # Four modes, default is single fit mode (no option)
-            ('eachModel', cli.BoolArg),
-            ('sequence', cli.IntArg),
-            ('search', cli.IntArg),
+            ('eachModel', BoolArg),
+            ('sequence', IntArg),
+            ('search', IntArg),
 
 # Fitting settings
-            ('metric', cli.EnumOf(('overlap', 'correlation', 'cam'))),  # overlap, correlation or cam.
-            ('envelope', cli.BoolArg),
-            ('resolution', cli.FloatArg),
-            ('shift', cli.BoolArg),
-            ('rotate', cli.BoolArg),
-            ('symmetric', cli.BoolArg),
-            ('maxSteps', cli.IntArg),
-            ('gridStepMax', cli.FloatArg),
-            ('gridStepMin', cli.FloatArg),
+            ('metric', EnumOf(('overlap', 'correlation', 'cam'))),  # overlap, correlation or cam.
+            ('envelope', BoolArg),
+            ('resolution', FloatArg),
+            ('shift', BoolArg),
+            ('rotate', BoolArg),
+            ('symmetric', BoolArg),
+            ('maxSteps', IntArg),
+            ('gridStepMax', FloatArg),
+            ('gridStepMin', FloatArg),
 
 # Search options
-            ('placement', cli.EnumOf(('sr', 's', 'r'))),
-            ('radius', cli.FloatArg),
-            ('clusterAngle', cli.FloatArg),
-            ('clusterShift', cli.FloatArg),
-            ('asymmetricUnit', cli.BoolArg),
-            ('levelInside', cli.FloatArg),            # fraction of point in contour
+            ('placement', EnumOf(('sr', 's', 'r'))),
+            ('radius', FloatArg),
+            ('clusterAngle', FloatArg),
+            ('clusterShift', FloatArg),
+            ('asymmetricUnit', BoolArg),
+            ('levelInside', FloatArg),            # fraction of point in contour
 
 # Output options
-            ('moveWholeMolecules', cli.BoolArg),
-            ('listFits', cli.BoolArg),
+            ('moveWholeMolecules', BoolArg),
+            ('listFits', BoolArg),
         ]
     )
-    cli.register('fitmap', fitmap_desc, fitmap)
+    register('fitmap', fitmap_desc, fitmap)

@@ -158,7 +158,7 @@ public:
 
     // version() returns the version of the CIF file if it is given.
     // For mmCIF files it is typically empty.
-    const std::string&  version();  // CIF version of current parse
+    const std::string&  version() const;  // CIF version of current parse
 
     // The category callback functions should call parse_row()
     // to parse the values for columns it is interested in.  If in a loop,
@@ -179,13 +179,16 @@ public:
     bool parse_row(ParseValues& pv);
 
     // Return current category.
-    const std::string& category();
+    const std::string& category() const;
 
     // Return current block code
-    const std::string& block_code();
+    const std::string& block_code() const;
 
     // Return current category column tags.
-    const StringVector& tags();
+    const StringVector& tags() const;
+
+    // Return current line number
+    size_t line_number() const;
 
     // Convert tag to column position.
     int get_column(const char* tag, bool required=false);
@@ -274,27 +277,33 @@ private:
 };
 
 inline const std::string&
-CIFFile::version()
+CIFFile::version() const
 {
     return version_;
 }
 
 inline const std::string&
-CIFFile::category()
+CIFFile::category() const
 {
     return current_category;
 }
 
 inline const std::string&
-CIFFile::block_code()
+CIFFile::block_code() const
 {
     return current_data_block;
 }
 
 inline const StringVector&
-CIFFile::tags()
+CIFFile::tags() const
 {
     return current_tags;
+}
+
+inline size_t
+CIFFile::line_number() const
+{
+    return lineno;
 }
 
 } // namespace readcif

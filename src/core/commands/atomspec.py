@@ -34,7 +34,7 @@ Example
 
 Here is an example of a function that may be registered with cli:
 
-    from chimera.core import cli, atomspec
+    from chimera.core.commands import cli, atomspec
 
     def move(session, by, modelspec=None):
         if modelspec is None:
@@ -381,6 +381,11 @@ class _SubPart:
     def find_selected_parts(self, model, atoms, num_atoms):
         # Only filter if a spec for this level is present
         # TODO: account for my_attrs in addition to my_parts
+        if self.my_attrs is not None:
+            # Using UserError instead of LimitationError to
+            # avoid generating traceback in log
+            from ..errors import UserError
+            raise UserError("Atomspec attributes not supported yet")
         import numpy
         if self.my_parts is not None:
             my_selected = self._filter_parts(model, atoms, num_atoms)
@@ -703,7 +708,7 @@ class AtomSpecResults:
     """
     def __init__(self):
         self._models = set()
-        from .molecule import Atoms
+        from ..molecule import Atoms
         self._atoms = Atoms()
 
     def add_model(self, m):
@@ -720,7 +725,7 @@ class AtomSpecResults:
         self.add_atoms(other.atoms)
 
     def invert(self, session, models):
-        from .molecule import Atoms
+        from ..molecule import Atoms
         atoms = Atoms()
         for m in models:
             if m in self._models:

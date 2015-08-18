@@ -16,9 +16,9 @@ def start_tool(session, ti):
 # 'register_command' is called by the toolshed on start up
 #
 def register_command(command_name):
-    from chimera.core import cli
+    from chimera.core.commands import register
     from . import cmd
-    cli.register('contacts', cmd.contact_desc, cmd.contact_command)
+    register('contacts', cmd.contact_desc, cmd.contact_command)
 
 
 #

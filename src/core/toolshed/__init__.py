@@ -1091,7 +1091,7 @@ class ToolInfo:
 
     def register_commands(self):
         """Register commands with cli."""
-        from chimera.core import cli
+        from chimera.core.commands import cli
         for command_name in self.command_names:
             def cb(s=self, n=command_name):
                 s._register_cmd(n)
@@ -1104,7 +1104,7 @@ class ToolInfo:
 
     def deregister_commands(self):
         """Deregister commands with cli."""
-        from chimera.core import cli
+        from chimera.core.commands import cli
         for command_name in self.command_names:
             _debug("deregister_command", command_name)
             cli.deregister(command_name)

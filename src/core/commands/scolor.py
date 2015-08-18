@@ -1,3 +1,5 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
+
 # -----------------------------------------------------------------------------
 # Code for scolor (spatial coloring) command, providing the campabilities of
 # the Surface Color dialog.
@@ -22,7 +24,7 @@
 #               [range <r>]
 #
 def scolor(session, atoms = None, color = None, byatom = False, esp = None):
-    from .molsurf import MolecularSurface
+    from ..molsurf import MolecularSurface
     surfs = session.models.list(type = MolecularSurface)
     if not atoms is None:
         surfs = [s for s in surfs if s.atoms.intersects(atoms)]
@@ -51,12 +53,11 @@ def scolor(session, atoms = None, color = None, byatom = False, esp = None):
         s.vertex_colors = vcolors
     return len(surfs)
 
-def register_scolor_command():
-    from .structure import AtomsArg
+def register_command(session):
     from . import cli, color
-    from .map import MapArg
+    from ..map import MapArg
     _scolor_desc = cli.CmdDesc(
-        optional = [('atoms', cli.Or(AtomsArg, cli.EmptyArg)),
+        optional = [('atoms', cli.Or(cli.AtomsArg, cli.EmptyArg)),
                     ('color', color.ColorArg),],
         keyword = [('byatom', cli.NoArg),
                    ('esp', MapArg)],
@@ -698,7 +699,7 @@ class Gradient_Color(Volume_Color):
 def interpolate_colormap(values, color_data_values, rgba_colors,
                          rgba_above_value_range, rgba_below_value_range):
 
-    from . import map
+    from .. import map
     rgba = map.interpolate_colormap(values, color_data_values, rgba_colors,
                                     rgba_above_value_range, rgba_below_value_range)
     return rgba
@@ -707,7 +708,7 @@ def interpolate_colormap(values, color_data_values, rgba_colors,
 #
 def set_outside_volume_colors(outside, rgba_outside_volume, rgba):
 
-    from . import map
+    from .. import map
     map.set_outside_volume_colors(outside, rgba_outside_volume, rgba)
             
 # -----------------------------------------------------------------------------

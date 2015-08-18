@@ -1,9 +1,9 @@
 # vi: set expandtab ts=4 sw=4:
 
-from chimera.core import cli, atomspec
-contact_desc = cli.CmdDesc(
-    optional = [('atoms', atomspec.AtomSpecArg),],
-    keyword = [('probeRadius', cli.FloatArg),])
+from chimera.core.commands import CmdDesc, AtomSpecArg, FloatArg
+contact_desc = CmdDesc(
+    optional = [('atoms', AtomSpecArg),],
+    keyword = [('probeRadius', FloatArg),])
 
 def contact_command(session, atoms = None, probeRadius = 1.4):
     '''

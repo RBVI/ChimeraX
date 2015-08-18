@@ -122,7 +122,7 @@ def stop_oculus2(session):
 # Register the oculus command for Chimera 2.
 #
 def register_oculus_command():
-    from ...cli import CmdDesc, BoolArg, FloatArg, register
+    from ...commands import CmdDesc, BoolArg, FloatArg, register
     _oculus_desc = CmdDesc(required = [('enable', BoolArg)],
                            keyword = [('panSpeed', FloatArg)])
     register('oculus', _oculus_desc, oculus_cmd)

@@ -21,7 +21,7 @@ setup(
     },
     packages=[
         "chimera.core",
-        "chimera.core.ui",
+        "chimera.core.commands",
         "chimera.core.devices",
         "chimera.core.devices.oculus",
         "chimera.core.devices.spacenavigator",
@@ -41,6 +41,7 @@ setup(
         "chimera.core.molecule",
         "chimera.core.surface",
         "chimera.core.toolshed",
+        "chimera.core.ui",
         "chimera.core.webservices",
     ],
     package_data={

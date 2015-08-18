@@ -1,14 +1,14 @@
 def crosslink(session, pbgroups = None, color = None, radius = None, minimize = None, iterations = 10, frames = None):
 
     if pbgroups is None:
-        from . import pbgroup
+        from .. import pbgroup
         pbgroups = pbgroup.all_pseudobond_groups(session.models)
 
     if len(pbgroups) == 0:
-        from .errors import UserError        
+        from ..errors import UserError        
         raise UserError('No pseudobond groups specified.')
 
-    from .molecule import concatenate
+    from ..molecule import concatenate
     pbonds = concatenate([pbg.pseudobonds for pbg in pbgroups])
 
     if color:
@@ -25,25 +25,25 @@ def crosslink(session, pbgroups = None, color = None, radius = None, minimize = 
 
 def minimize_link_lengths(mols, pbonds, iterations, frames, session):
     if len(mols) == 0:
-        from .errors import UserError        
+        from ..errors import UserError        
         raise UserError('No structures specified for minimizing crosslinks.')
     mol_links, mol_pbonds = links_by_molecule(pbonds, mols)
     if len(mol_links) == 0:
-        from .errors import UserError        
+        from ..errors import UserError        
         raise UserError('No pseudobonds to minimize for specified molecules.')
     if len(mols) == 1:
         iterations = min(1,iterations)
     if not frames is None:
         pos0 = dict((m,m.position) for m in mols)
     from numpy import array, float64
-    from . import align
+    from ..geometry import align_points
     for i in range(iterations):
         for m in mols:
             if m in mol_links:
                 atom_pairs = mol_links[m]
                 moving = array([a1.scene_coord for a1,a2 in atom_pairs], float64)
                 fixed = array([a2.scene_coord for a1,a2 in atom_pairs], float64)
-                tf, rms = align.align_points(moving, fixed)
+                tf, rms = align_points(moving, fixed)
                 m.position = tf * m.position
 
     lengths = [pb.length for pb in mol_pbonds]
@@ -98,19 +98,17 @@ class interpolate_position:
             self.view.remove_callback('new frame', self.update_position)
         else:
             f = fr / self.frames
-            from .geometry import translation, rotation
+            from ..geometry import translation, rotation
             m.position = translation(f*(self.c1-self.c0)) * rotation(self.axis, f*self.angle, self.c0) * self.pos0
             self.frame += 1
 
-def register_crosslink_command():
+def register_command(session):
     from . import cli
-    from .pbgroup import PseudobondGroupsArg
     from .color import ColorArg
-    from .structure import AtomicStructuresArg
-    desc = cli.CmdDesc(optional = [('pbgroups', PseudobondGroupsArg)],
+    desc = cli.CmdDesc(optional = [('pbgroups', cli.PseudobondGroupsArg)],
                        keyword = [('color', ColorArg),
                                   ('radius', cli.FloatArg),
-                                  ('minimize', AtomicStructuresArg),
+                                  ('minimize', cli.AtomicStructuresArg),
                                   ('iterations', cli.IntArg),
                                   ('frames', cli.IntArg),
                               ])

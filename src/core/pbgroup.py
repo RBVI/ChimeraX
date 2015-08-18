@@ -96,14 +96,3 @@ class PseudobondGroup(CPseudobondGroup, Model):
 
 def all_pseudobond_groups(models):
     return [m for m in models.list() if isinstance(m, PseudobondGroup)]
-
-from .cli import Annotation
-class PseudobondGroupsArg(Annotation):
-    name = 'pseudobond groups'
-    @staticmethod
-    def parse(text, session):
-        from .atomspec import AtomSpecArg
-        value, used, rest = AtomSpecArg.parse(text, session)
-        models = value.evaluate(session).models
-        pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
-        return pbgs, used, rest

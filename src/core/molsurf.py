@@ -5,7 +5,6 @@ molsurf -- Compute molecular surfaces
 """
 
 from .generic3d import Generic3DModel
-from . import cli
 
 class MolecularSurface(Generic3DModel):
 
@@ -208,152 +207,6 @@ class MolecularSurface(Generic3DModel):
         tmask = self.atom_triangle_mask(asel)
         self.selected_triangles_mask = tmask
 
-# -------------------------------------------------------------------------------------
-#
-def surface_command(session, atoms = None, enclose = None, include = None,
-                    probe_radius = 1.4, grid_spacing = None, resolution = None, level = None,
-                    color = None, transparency = None, visible_patches = None,
-                    sharp_boundaries = None,
-                    nthread = None, replace = True, show = False, hide = False, close = False):
-    '''
-    Compute and display solvent excluded molecular surfaces.
-    '''
-    atoms = check_atoms(atoms, session) # Warn if no atoms specifed
-
-    if close:
-        close_surfaces(atoms, session.models)
-        return []
-
-    # Show surface patches for existing surfaces.
-    if show:
-        return show_surfaces(atoms, session.models)
-
-    # Hide surfaces or patches of surface for specified atoms.
-    if hide:
-        return hide_surfaces(atoms, session.models)
-
-    if replace:
-        all_surfs = dict((s.atoms.hash(), s) for s in session.models.list(type = MolecularSurface))
-    else:
-        all_surfs = {}
-
-    if grid_spacing is None:
-        grid_spacing = 0.5 if resolution is None else 0.1 * resolution
-
-    if sharp_boundaries is None:
-        sharp_boundaries = True if resolution is None else False
-
-    surfs = []
-    new_surfs = []
-    if enclose is None:
-        atoms, all_small = remove_solvent_ligands_ions(atoms, include)
-        for m, chain_id, show_atoms in atoms.by_chain:
-            if all_small:
-                enclose_atoms = atoms.filter(atoms.chain_ids == chain_id)
-            else:
-                matoms = m.atoms
-                chain_atoms = matoms.filter(matoms.chain_ids == chain_id)
-                enclose_atoms = remove_solvent_ligands_ions(chain_atoms, include)[0]
-            s = all_surfs.get(enclose_atoms.hash())
-            if s is None:
-                name = '%s_%s SES surface' % (m.name, chain_id)
-                rgba = surface_rgba(color, transparency, chain_id)
-                s = MolecularSurface(enclose_atoms, show_atoms,
-                                     probe_radius, grid_spacing, resolution, level,
-                                     name, rgba, visible_patches, sharp_boundaries)
-                new_surfs.append((s,m))
-            else:
-                s.new_parameters(show_atoms, probe_radius, grid_spacing,
-                                 resolution, level, visible_patches, sharp_boundaries)
-                update_color(s, color, transparency)
-            surfs.append(s)
-    else:
-        enclose_atoms, eall_small = remove_solvent_ligands_ions(enclose, include)
-        show_atoms = enclose_atoms if atoms is None else atoms.intersect(enclose_atoms)
-        s = all_surfs.get(enclose_atoms.hash())
-        if s is None:
-            mols = enclose.unique_structures
-            parent = mols[0] if len(mols) == 1 else session.models.drawing
-            name = 'Surface %s' % enclose.spec
-            rgba = surface_rgba(color, transparency)
-            s = MolecularSurface(enclose_atoms, show_atoms,
-                                 probe_radius, grid_spacing, resolution, level,
-                                 name, rgba, visible_patches, sharp_boundaries)
-            new_surfs.append((s,parent))
-        else:
-            s.new_parameters(show_atoms, probe_radius, grid_spacing,
-                             resolution, level, visible_patches, sharp_boundaries)
-            update_color(s, color, transparency)
-        surfs.append(s)
-
-    # Close overlapping surfaces.
-    if replace:
-        other_surfs = set(all_surfs.values()) - set(surfs)
-        from .molecule import concatenate
-        surf_atoms = concatenate([s.atoms for s in surfs])
-        osurfs = surfaces_overlapping_atoms(other_surfs, surf_atoms)
-        if osurfs:
-            session.models.close(osurfs)
-
-    # Compute surfaces using multiple threads
-    args = [(s,) for s in surfs]
-    args.sort(key = lambda s: s[0].atom_count, reverse = True)      # Largest first for load balancing
-    from . import threadq
-    threadq.apply_to_list(lambda s: s.calculate_surface_geometry(), args, nthread)
-#    for s in surfs:
-#        s.calculate_surface_geometry()
-    # TODO: Any Python error in the threaded call causes a crash when it tries
-    #       to write an error message to the log, not in the main thread.
-
-    if not resolution is None and level is None:
-        log = session.logger
-        log.info('\n'.join('%s contour level %.1f' % (s.name, s.gaussian_level)
-                           for s in surfs))
-            
-    # Add new surfaces to open models list.
-    for s, parent in new_surfs:
-        session.models.add([s], parent = parent)
-
-    # Make sure replaced surfaces are displayed.
-    for s in surfs:
-        s.display = True
-
-    return surfs
-
-def register_surface_command():
-    from .structure import AtomsArg
-    from . import cli, color
-    _surface_desc = cli.CmdDesc(
-        optional = [('atoms', AtomsArg)],
-        keyword = [('enclose', AtomsArg),
-                   ('include', AtomsArg),
-                   ('probe_radius', cli.FloatArg),
-                   ('grid_spacing', cli.FloatArg),
-                   ('resolution', cli.FloatArg),
-                   ('level', cli.FloatArg),
-                   ('color', color.ColorArg),
-                   ('transparency', cli.FloatArg),
-                   ('visible_patches', cli.IntArg),
-                   ('sharp_boundaries', cli.BoolArg),
-                   ('nthread', cli.IntArg),
-                   ('replace', cli.BoolArg),
-                   ('show', cli.NoArg),
-                   ('hide', cli.NoArg),
-                   ('close', cli.NoArg)],
-        synopsis = 'create molecular surface')
-    cli.register('surface', _surface_desc, surface_command)
-
-def check_atoms(atoms, session):
-    if atoms is None:
-        from .structure import all_atoms
-        atoms = all_atoms(session)
-        if len(atoms) == 0:
-            raise cli.AnnotationError('No atomic models open.')
-        atoms.spec = 'all atoms'
-    elif len(atoms) == 0:
-        raise cli.AnnotationError('No atoms specified by %s' % (atoms.spec,))
-    return atoms
-
 def remove_solvent_ligands_ions(atoms, keep = None):
     '''Remove solvent, ligands and ions unless that removes all atoms
     in which case don't remove any.'''
@@ -373,8 +226,8 @@ def surface_rgba(color, transparency, chain_id = None):
             from numpy import array, uint8
             rgba8 = array((180,180,180,255), uint8)
         else:
-            from . import color
-            rgba8 = color.chain_rgba8(chain_id)
+            from . import colors
+            rgba8 = colors.chain_rgba8(chain_id)
     else:
         rgba8 = color.uint8x4()
     if not transparency is None:
@@ -434,54 +287,6 @@ def close_surfaces(atoms, models):
     if surfs:
         models.close(surfs)
 
-def sasa_command(session, atoms = None, probe_radius = 1.4):
-    '''
-    Compute solvent accessible surface area.
-    Only the specified atoms are considered.
-    '''
-    atoms = check_atoms(atoms, session)
-    r = atoms.radii
-    r += probe_radius
-    from . import surface
-    areas = surface.spheres_surface_area(atoms.scene_coords, r)
-    area = areas.sum()
-    msg = 'Solvent accessible area for %s = %.5g' % (atoms.spec, area)
-    log = session.logger
-    log.info(msg)
-    log.status(msg)
-
-def register_sasa_command():
-    from .structure import AtomsArg
-    _sasa_desc = cli.CmdDesc(
-        optional = [('atoms', AtomsArg)],
-        keyword = [('probe_radius', cli.FloatArg),],
-        synopsis = 'compute solvent accessible surface area')
-    cli.register('sasa', _sasa_desc, sasa_command)
-
-def buriedarea_command(session, atoms1, with_atoms2 = None, probe_radius = 1.4):
-    '''
-    Compute solvent accessible surface area.
-    Only the specified atoms are considered.
-    '''
-    if with_atoms2 is None:
-        raise cli.AnnotationError('Require "with" keyword: buriedarea #1 with #2')
-    atoms2 = with_atoms2
-
-    ni = len(atoms1.intersect(atoms2))
-    if ni > 0:
-        raise cli.AnnotationError('Two sets of atoms must be disjoint, got %d atoms in %s and %s'
-                                  % (ni, atoms1.spec, atoms2.spec))
-
-    ba, a1a, a2a, a12a = buried_area(atoms1, atoms2, probe_radius)
-
-    # Report result
-    msg = 'Buried area between %s and %s = %.5g' % (atoms1.spec, atoms2.spec, ba)
-    log = session.logger
-    log.status(msg)
-    msg += ('\n  area %s = %.5g, area %s = %.5g, area both = %.5g'
-            % (atoms1.spec, a1a, atoms2.spec, a2a, a12a))
-    log.info(msg)
-
 def buried_area(a1, a2, probe_radius):
     from .surface import spheres_surface_area
     xyz1, r1 = atom_spheres(a1, probe_radius)
@@ -499,12 +304,3 @@ def atom_spheres(atoms, probe_radius = 1.4):
     r = atoms.radii.copy()
     r += probe_radius
     return xyz, r
-
-def register_buriedarea_command():
-    from .structure import AtomsArg
-    _buriedarea_desc = cli.CmdDesc(
-        required = [('atoms1', AtomsArg)],
-        keyword = [('with_atoms2', AtomsArg),
-                   ('probe_radius', cli.FloatArg),],
-        synopsis = 'compute buried area')
-    cli.register('buriedarea', _buriedarea_desc, buriedarea_command)

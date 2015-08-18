@@ -6,29 +6,29 @@
 #
 def register_molmap_command():
 
-    from .. import cli, structure
-    molmap_desc = cli.CmdDesc(
+    from ..commands import CmdDesc, register, AtomsArg, BoolArg, FloatArg
+    molmap_desc = CmdDesc(
         required = [
-            ('atoms', structure.AtomsArg),
-            ('resolution', cli.FloatArg),
+            ('atoms', AtomsArg),
+            ('resolution', FloatArg),
         ],
         keyword = [
-            ('gridSpacing', cli.FloatArg),
-            ('edgePadding', cli.FloatArg),
-            ('cutoffRange', cli.FloatArg),
-            ('sigmaFactor', cli.FloatArg),
-            ('balls', cli.BoolArg),
-#            ('symmetry', cli.StringArg),
-#            ('center', cli.StringArg),   # Can be a 3 floats or atom spec
-#            ('axis', cli.StringArg),     # Can be a 3 floats or atom spec
+            ('gridSpacing', FloatArg),
+            ('edgePadding', FloatArg),
+            ('cutoffRange', FloatArg),
+            ('sigmaFactor', FloatArg),
+            ('balls', BoolArg),
+#            ('symmetry', StringArg),
+#            ('center', StringArg),   # Can be a 3 floats or atom spec
+#            ('axis', StringArg),     # Can be a 3 floats or atom spec
 #            ('coordinateSystem', openstate_arg),
-            ('displayThreshold', cli.FloatArg),
+            ('displayThreshold', FloatArg),
 #            ('modelId', model_id_arg),
-            ('replace', cli.BoolArg),
-            ('showDialog', cli.BoolArg),
+            ('replace', BoolArg),
+            ('showDialog', BoolArg),
         ]
     )
-    cli.register('molmap', molmap_desc, molecule_map)
+    register('molmap', molmap_desc, molecule_map)
 
 # -----------------------------------------------------------------------------
 #

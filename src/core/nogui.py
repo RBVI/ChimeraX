@@ -114,8 +114,8 @@ class _Input(Task):
     def __init__(self, session):
         # Initializer, runs in UI thread
         super().__init__(session)
-        from . import cli
-        self._cmd = cli.Command(session)
+        from .commands import Command
+        self._cmd = Command(session)
         from threading import Semaphore
         self._sem = Semaphore()
 

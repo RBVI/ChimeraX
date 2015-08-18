@@ -162,7 +162,8 @@ ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             type = string(start, end - start);
         });
-    pv.emplace_back(get_column("mon_nstd_parent_comp_id", false), true,
+    //    pv.emplace_back(get_column("mon_nstd_parent_comp_id", false), true,
+    pv.emplace_back(get_column("three_letter_code", false), true,
         [&] (const char* start, const char* end) {
             modres = ResName(start, end - start);
             if (modres == "?" || modres == ".")

@@ -6,7 +6,7 @@ def read_pseudobond_file(session, file, name, radius = 0.5, color = (255,255,0,2
     from . import pbgroup
     g = session.pb_manager.get_group(name)
 
-    from .structure import AtomsArg
+    from .commands import AtomsArg
     for i, line in enumerate(lines):
         aspec1, aspec2 = line.decode('utf-8').split()[:2]
         a1, used, rest = AtomsArg.parse(aspec1, session)

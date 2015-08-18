@@ -108,7 +108,7 @@ class AtomicStructure(CAtomicStructure, Model):
     def _initialize_graphical_attributes(self):
         a = self.atoms
         a.draw_modes = self.SPHERE_STYLE
-        from .color import element_colors
+        from .colors import element_colors
         a.colors = element_colors(a.element_numbers)
         b = self.bonds
         b.radii = self.bond_radius
@@ -779,32 +779,3 @@ def all_atoms(session):
     for m in all_atomic_structures(session):
         atoms = atoms | m.atoms
     return atoms
-
-# -----------------------------------------------------------------------------
-#
-from . import cli
-class AtomsArg(cli.Annotation):
-    """Parse command atoms specifier"""
-    name = "atoms"
-
-    @staticmethod
-    def parse(text, session):
-        from . import atomspec
-        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        atoms = aspec.evaluate(session).atoms
-        atoms.spec = str(aspec)
-        return atoms, text, rest
-
-# -----------------------------------------------------------------------------
-#
-class AtomicStructuresArg(cli.Annotation):
-    """Parse command atomic structures specifier"""
-    name = "atomic structures"
-
-    @staticmethod
-    def parse(text, session):
-        from . import atomspec
-        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        mols = [m for m in models if isinstance(m, AtomicStructure)]
-        return mols, text, rest

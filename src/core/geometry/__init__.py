@@ -3,3 +3,4 @@ from .place import Place, Places, identity, rotation, vector_rotation, translati
 from ._geometry import natural_cubic_spline
 from ._geometry import sphere_bounds, spheres_in_bounds, bounds_overlap
 from ._geometry import find_closest_points
+from .align import align_points

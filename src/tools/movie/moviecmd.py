@@ -1,7 +1,7 @@
 from chimera.core.errors import UserError as CommandError
 def register_movie_command():
 
-    from chimera.core.cli import CmdDesc, register, BoolArg, EnumOf, ListOf, IntArg, Int2Arg, StringArg, FloatArg
+    from chimera.core.commands import CmdDesc, register, BoolArg, EnumOf, ListOf, IntArg, Int2Arg, StringArg, FloatArg
 
     from .formats import image_formats, formats, qualities
     ifmts = image_formats

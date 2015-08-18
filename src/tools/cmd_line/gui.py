@@ -103,13 +103,14 @@ class CommandLine(ToolInstance):
         logger = session.logger
         text = self.text.Value
         logger.status("")
-        from chimera.core import cli, errors
+        from chimera.core import errors
+        from chimera.core.commands import Command
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
             session.logger.info(cmd_text)
             try:
-                cmd = cli.Command(session, cmd_text, final=True)
+                cmd = Command(session, cmd_text, final=True)
                 cmd.execute()
             except SystemExit:
                 # TODO: somehow quit application
