@@ -26,7 +26,7 @@ COMMAND_NAME = Replace with one-word command name
 # TOOL_CATEGORY = General
 # COMMAND_NAME = command_line
 
-PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,/,.,')
+PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
 
