@@ -3,8 +3,23 @@
 # -----------------------------------------------------------------------------
 # Command to split molecules so that each chain is in a separate molecule.
 #
-def split_molecules(session, molecules = None, chains = None, ligands = False, connected = False, atoms = None):
+def split(session, molecules = None, chains = None, ligands = False, connected = False, atoms = None):
+    '''
+    Split an atomic structure into separate structures, for example one for each chain.
 
+    Parameters
+    ----------
+    molecules : AtomicStructures
+      Structures to split.
+    chains : bool
+      Split each chain into a separate atomic structure.
+    ligands : bool
+      Split each ligand into a separate atomic structure.
+    connected : bool
+      Split each connected set of atoms into a separate atomic structure.
+    atoms : Atoms
+      Split the specified atoms into a separate atomic structure.
+    '''
     if molecules is None:
         from .. import structure
         molecules = structure.all_atomic_structures(session)
@@ -276,4 +291,4 @@ def register_command(session):
         )
     # TODO: Allow repeating atoms keyword.
 
-    cli.register('split', desc, split_molecules)
+    cli.register('split', desc, split)

@@ -1,5 +1,25 @@
-def crosslink(session, pbgroups = None, color = None, radius = None, minimize = None, iterations = 10, frames = None):
+def crosslinks(session, pbgroups = None, color = None, radius = None, minimize = None, iterations = 10, frames = None):
+    '''
+    Move atomic models to minimize crosslink lengths.
 
+    Parameters
+    ----------
+    pbgroups : PseudobondGroups or None
+      Pseudobond groups containing crosslinks.  If None then all pseudbond groups are used.
+    color : Color
+      Set the pseudobonds to this color
+    radius : float
+      Set pseudobond cylinder radius.
+    minimize : bool
+      Move each atomic structure model rigidly to minimize the sum of squares of link distances
+      to other models.  Each model is moved one time.  This does not produce minimum sum of squares
+      of all links, but multiple iterations converge to that result.
+    iterations : int
+      Minimize the sequence of atomic structures this many times.
+    frames : int
+      If minimize is true then move the atomic structures gradually to their minimized positions
+      over this many frames.
+    '''
     if pbgroups is None:
         from .. import pbgroup
         pbgroups = pbgroup.all_pseudobond_groups(session.models)
@@ -112,4 +132,4 @@ def register_command(session):
                                   ('iterations', cli.IntArg),
                                   ('frames', cli.IntArg),
                               ])
-    cli.register('crosslink', desc, crosslink)
+    cli.register('crosslinks', desc, crosslinks)

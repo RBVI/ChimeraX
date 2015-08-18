@@ -2,10 +2,10 @@
 
 #
 #
-def aimages(session, directory = '.', subdirectories = True,
-            width = 400, height = 400, supersample = 2,
-            image_suffix = '.png', exclude = ['128d.cif', '1m4x.cif'],
-            log_file = '/Users/goddard/ucsf/assemblies/log'):
+def pdbimages(session, directory = '.', subdirectories = True,
+              width = 400, height = 400, supersample = 2,
+              image_suffix = '.png', exclude = ['128d.cif', '1m4x.cif'],
+              log_file = '/Users/goddard/ucsf/assemblies/log'):
     '''
     Assembly images command for batch rendering mmCIF assembly images.
     This is for the Protein DataBank to render images.
@@ -105,7 +105,7 @@ def register_command(session):
                    ('exclude', ListOf(StringArg)),
                    ('log_file', StringArg)],
         synopsis = 'Render mmCIF assembly images')
-    register('aimages', desc, aimages)
+    register('pdbimages', desc, pdbimages)
 
 # To make a tiled array of images with filename labels:
 # /opt/ImageMagick/bin/montage -label "%t" *.png -geometry "400x400+0+0" tiled.jpg
