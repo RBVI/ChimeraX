@@ -1,6 +1,6 @@
 # vi: set expandtab ts=4 sw=4:
 
-from chimera.core import cli, atomspec
+from chimera.core.commands import cli, atomspec
 from chimera.core.webservices.opal_job import OpalJob
 from .psize import Psize
 
