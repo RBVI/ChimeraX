@@ -14,76 +14,76 @@ def register_vseries_command():
     sarg = [('series', SeriesArg)]
 
     align_desc = CmdDesc(required = sarg,
-                         keyword = [('encloseVolume', FloatArg),
-                                    ('fastEncloseVolume', FloatArg)])
-    register('vseries align', align_desc, align_op)
+                         keyword = [('enclose_volume', FloatArg),
+                                    ('fast_enclose_volume', FloatArg)])
+    register('vseries align', align_desc, vseries_align)
 
     save_desc = CmdDesc(required = sarg + [('path', StringArg)],
                          keyword = [
                              ('subregion', MapRegionArg),
                              ('step', MapStepArg),
-                             ('valueType', ValueTypeArg),
+                             ('value_type', ValueTypeArg),
                              ('threshold', FloatArg),
-                             ('zeroMean', BoolArg),
-                             ('scaleFactor', FloatArg),
-                             ('encloseVolume', FloatArg),
-                             ('fastEncloseVolume', FloatArg),
-                             ('normalizeLevel', FloatArg),
+                             ('zero_mean', BoolArg),
+                             ('scale_factor', FloatArg),
+                             ('enclose_volume', FloatArg),
+                             ('fast_enclose_volume', FloatArg),
+                             ('normalize_level', FloatArg),
                              ('align', BoolArg),
-                             ('onGrid', MapArg),
+                             ('on_grid', MapArg),
                              ('mask', MapArg),
-                             ('finalValueType', ValueTypeArg),
+                             ('final_value_type', ValueTypeArg),
                              ('compress', BoolArg),])
-    register('vseries save', save_desc, save_op)
+    register('vseries save', save_desc, vseries_save)
 
     measure_desc = CmdDesc(required = sarg,
                            keyword = [('output', StringArg),
                                       ('centroids', BoolArg),
                                       ('color', ColorArg),
                                       ('radius', FloatArg),])
-    register('vseries measure', measure_desc, measure_op)
+    register('vseries measure', measure_desc, vseries_measure)
 
     play_desc = CmdDesc(required = sarg,
                         keyword = [('loop', BoolArg),
                                    ('direction', EnumOf(('forward', 'backward', 'oscillate'))),
                                    ('normalize', BoolArg),
-                                   ('maxFrameRate', FloatArg),
+                                   ('max_frame_rate', FloatArg),
                                    ('markers', AtomsArg),
-                                   ('precedingMarkerFrames', IntArg),
-                                   ('followingMarkerFrames', IntArg),
-                                   ('colorRange', FloatArg),
-                                   ('cacheFrames', IntArg),
-                                   ('jumpTo', IntArg),
+                                   ('preceding_marker_frames', IntArg),
+                                   ('following_marker_frames', IntArg),
+                                   ('color_range', FloatArg),
+                                   ('cache_frames', IntArg),
+                                   ('jump_to', IntArg),
                                    ('range', IntRangeArg),
-                                   ('startTime', IntArg),])
-    register('vseries play', play_desc, play_op)
+                                   ('start_time', IntArg),])
+    register('vseries play', play_desc, vseries_play)
 
     stop_desc = CmdDesc(required = sarg)
-    register('vseries stop', stop_desc, stop_op)
+    register('vseries stop', stop_desc, vseries_stop)
 
     slider_desc = CmdDesc(required = sarg)
-    register('vseries slider', slider_desc, slider_op)
+    register('vseries slider', slider_desc, vseries_slider)
 
 # -----------------------------------------------------------------------------
 #
-def play_op(session, series, direction = 'forward', loop = False, maxFrameRate = None,
-            jumpTo = None, range = None, start = None, normalize = False, markers = None,
-            precedingMarkerFrames = 0, followingMarkerFrames = 0,
-            colorRange = None, cacheFrames = 1):
-
+def vseries_play(session, series, direction = 'forward', loop = False, max_frame_rate = None,
+            jump_to = None, range = None, start = None, normalize = False, markers = None,
+            preceding_marker_frames = 0, following_marker_frames = 0,
+            color_range = None, cache_frames = 1):
+    '''Show a sequence of maps from a volume series.'''
     from . import play
     p = play.Play_Series(series, session, range = range, start_time = start,
                          play_direction = direction,
                          loop = loop,
-                         max_frame_rate = maxFrameRate,
+                         max_frame_rate = max_frame_rate,
                          normalize_thresholds = normalize,
                          markers = markers,
-                         preceding_marker_frames = precedingMarkerFrames,
-                         following_marker_frames = followingMarkerFrames,
-                         color_range = colorRange,
-                         rendering_cache_size = cacheFrames)
-    if not jumpTo is None:
-        p.change_time(jumpTo)
+                         preceding_marker_frames = preceding_marker_frames,
+                         following_marker_frames = following_marker_frames,
+                         color_range = color_range,
+                         rendering_cache_size = cache_frames)
+    if not jump_to is None:
+        p.change_time(jump_to)
     else:
         global players
         players.add(p)
@@ -93,8 +93,8 @@ def play_op(session, series, direction = 'forward', loop = False, maxFrameRate =
 
 # -----------------------------------------------------------------------------
 #
-def stop_op(session, series):
-
+def vseries_stop(session, series):
+    '''Stop playing a map series.'''
     for p in players:
         for s in series:
             if s in p.series:
@@ -103,9 +103,10 @@ def stop_op(session, series):
 
 # -----------------------------------------------------------------------------
 #
-def align_op(session, series, encloseVolume = None, fastEncloseVolume = None):
+def vseries_align(session, series, enclose_volume = None, fast_enclose_volume = None):
+    '''Align each frame of a map series to the preceeding frame.'''
     for s in series:
-        align_series(s, encloseVolume, fastEncloseVolume, session)
+        align_series(s, enclose_volume, fast_enclose_volume, session)
 
 # -----------------------------------------------------------------------------
 #
@@ -148,11 +149,14 @@ def align(v, vprev):
 
 # -----------------------------------------------------------------------------
 #
-def save_op(session, series, path, subregion = None, step = None, valueType = None,
-            threshold = None, zeroMean = False, scaleFactor = None,
-            encloseVolume = None, fastEncloseVolume = None, normalizeLevel = None,
-            align = False, onGrid = None, mask = None, finalValueType = None, compress = False):
-
+def vseries_save(session, series, path, subregion = None, step = None, value_type = None,
+            threshold = None, zero_mean = False, scale_factor = None,
+            enclose_volume = None, fast_enclose_volume = None, normalize_level = None,
+            align = False, on_grid = None, mask = None, final_value_type = None, compress = False):
+    '''
+    Process the frames of a map series and save the result to a a file.
+    Processing can normalize, align, mask and change the numeric value type of maps.
+    '''
     if len(series) > 1:
         from ...commands.parse import CommandError
         raise CommandError('vseries save: Can only save one series in a file, got %d'
@@ -166,31 +170,31 @@ def save_op(session, series, path, subregion = None, step = None, valueType = No
     if onGrid is None and align:
         onGrid = maps[0]
 
-    on_grid = None
-    if not onGrid is None:
-        vtype = maps[0].data.value_type if valueType is None else valueType
-        on_grid = onGrid.writable_copy(value_type = vtype, show = False)
+    grid = None
+    if not on_grid is None:
+        vtype = maps[0].data.value_type if value_type is None else value_type
+        grid = on_grid.writable_copy(value_type = vtype, show = False)
 
     n = len(maps)
     for i,v in enumerate(maps):
         session.status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
         align_to = maps[i-1] if align and i > 0 else None
-        d = processed_volume(v, subregion, step, valueType, threshold, zeroMean, scaleFactor,
-                             encloseVolume, fastEncloseVolume, normalizeLevel,
-                             align_to, on_grid, mask, finalValueType)
+        d = processed_volume(v, subregion, step, value_type, threshold, zero_mean, scale_factor,
+                             enclose_volume, fast_enclose_volume, normalize_level,
+                             align_to, grid, mask, final_value_type)
         d.name = '%04d' % i
         options = {'append': True, 'compress': compress}
         from ..data import cmap
         cmap.write_grid_as_chimera_map(d, path, options)
 
-    if on_grid:
-        on_grid.close()
+    if grid:
+        grid.close()
 
 # -----------------------------------------------------------------------------
 #
 def processed_volume(v, subregion = None, step = None, value_type = None, threshold = None,
-                     zeroMean = False, scaleFactor = None,
-                     encloseVolume = None, fastEncloseVolume = None, normalizeLevel = None,
+                     zero_mean = False, scale_factor = None,
+                     enclose_volume = None, fast_enclose_volume = None, normalize_level = None,
                      align_to = None, on_grid = None, mask = None, final_value_type = None):
     d = v.data
     if not subregion is None or not step is None:
@@ -200,8 +204,8 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
         from ..data import Grid_Subregion
         d = Grid_Subregion(d, ijk_min, ijk_max, ijk_step)
 
-    if (value_type is None and threshold is None and not zeroMean and
-        scaleFactor is None and align_to is None and mask is None and
+    if (value_type is None and threshold is None and not zero_mean and
+        scale_factor is None and align_to is None and mask is None and
         final_value_type is None):
         return d
 
@@ -213,25 +217,25 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
         from numpy import maximum, array
         maximum(m, array((threshold,),m.dtype), m)
 
-    if zeroMean:
+    if zero_mean:
         from numpy import float64
         mean = m.mean(dtype = float64)
         m = (m - mean).astype(m.dtype)
 
-    if not scaleFactor is None:
-        m = (m*scaleFactor).astype(m.dtype)
+    if not scale_factor is None:
+        m = (m*scale_factor).astype(m.dtype)
 
-    if not encloseVolume is None or not fastEncloseVolume is None:
-        set_enclosed_volume(v, encloseVolume, fastEncloseVolume)
+    if not enclose_volume is None or not fast_enclose_volume is None:
+        set_enclosed_volume(v, enclose_volume, fast_enclose_volume)
 
-    if not normalizeLevel is None:
+    if not normalize_level is None:
         if len(v.surface_levels) == 0:
             from ...commands.parse import CommandError
-            raise CommandError('vseries save: normalizeLevel used but no level set for volume %s' % v.name)
+            raise CommandError('vseries save: normalize_level used but no level set for volume %s' % v.name)
         level = max(v.surface_levels)
-        if zeroMean:
+        if zero_mean:
             level -= mean
-        scale = normalizeLevel / level
+        scale = normalize_level / level
         m = (m*scale).astype(m.dtype)
 
     if not align_to is None:
@@ -259,9 +263,9 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
 
 # -----------------------------------------------------------------------------
 #
-def measure_op(session, series, output = None, centroids = True,
+def vseries_measure(session, series, output = None, centroids = True,
                color = (.7,.7,.7,1), radius = None):
-
+    '''Report centroid motion of a map series.'''
     from ...surface import surface_volume_and_area
     from ...measure import inertia
     meas = []
@@ -343,8 +347,8 @@ def release_stopped_players():
 
 # -----------------------------------------------------------------------------
 #
-def slider_op(session, series):
-
+def vseries_slider(session, series):
+    '''Display a graphical user interface slider to play through frames of a map series.'''
     tool_info = session.toolshed.find_tool('map_series_gui')
     if tool_info:
         from chimera.map_series_gui.gui import MapSeries

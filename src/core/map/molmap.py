@@ -124,6 +124,8 @@ def molmap(session,
                           displayThreshold, modelId, replace, showDialog, name, session)
     return v
 
+molecule_map = molmap
+
 # -----------------------------------------------------------------------------
 #
 def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
@@ -138,7 +140,7 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
     if replace:
         from .volume import volume_list
         vlist = [v for v in volume_list(session)
-                 if getattr(v, 'molmap_atoms', None) == atoms]
+                 if hasattr(v, 'molmap_atoms') and v.molmap_atoms == atoms]
         session.models.close(vlist)
 
     from . import volume_from_grid_data

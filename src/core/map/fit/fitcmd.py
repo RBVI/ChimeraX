@@ -2,22 +2,98 @@ from ...errors import UserError
 
 # -----------------------------------------------------------------------------
 #
-def fitmap(session, atomsOrMap, inMap = None, subtract_maps = None,
+def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
            metric = None, envelope = True, resolution = None,
            shift = True, rotate = True, symmetric = False,
-           moveWholeMolecules = True,
+           move_whole_molecules = True,
            search = 0, placement = 'sr', radius = None,
-           clusterAngle = 6, clusterShift = 3,
-           asymmetricUnit = True, levelInside = 0.1, sequence = 0,
-           maxSteps = 2000, gridStepMin = 0.01, gridStepMax = 0.5,
-           listFits = None, eachModel = False):
+           cluster_angle = 6, cluster_shift = 3,
+           asymmetric_unit = True, level_inside = 0.1, sequence = 0,
+           max_steps = 2000, grid_step_min = 0.01, grid_step_max = 0.5,
+           list_fits = None, each_model = False):
+    '''
+    Fit an atomic model or a map in a map using a rigid rotation and translation
+    by locally optimizing correlation.  There are four modes: 1) fit all models into map
+    as a single rigid group, 2) fit each model into the map separately, 3) fit each model
+    separately while subtracting others (sequence mode), or 4) use random starting positions
+    when fitting (search mode).
 
-    atoms_or_map = atomsOrMap.evaluate(session)
-    atoms_or_map.spec = str(atomsOrMap)
-    volume = inMap
+    Parameters
+    ----------
+    atoms_or_map
+      Atoms or map that will be moved.
+    in_map : Volume
+      Target density map to fit into.
+    subtract_maps : Atoms
+      Subtract map for these atoms from the target map before fitting.
+
+    ----------------------------------------------------------------------------
+    Mode
+    ----------------------------------------------------------------------------
+    each_model : bool
+      Whether to fit each model independently or all as one rigid group.
+    sequence : integer
+      Fit each model in sequence subtracting other models first for this number of specified fits.
+    search : integer
+      Fit using N randomized initial placements and cluster similar results.
+
+    ----------------------------------------------------------------------------
+    Fitting settings
+    ----------------------------------------------------------------------------
+    metric : 'overlap', 'correlation', or 'cam'
+      Optimization function to use.  Overlap is pointwise sum.  Cam is correlation
+      about mean (ie. mean value is subtracted from maps before computing correlation).
+    envelope : bool
+      Whether to consider fit only within lowest displayed contour level if moving map.
+    resolution : float
+      Resolution for making simulated maps from atomic models.  Required when correlation
+      or cam metric is used and atomic models are being fit.
+    shift : bool
+      Allow translation when fitting.
+    rotate : bool
+      Allow rotation when fitting.
+    symmetric : bool
+      Whether to use symmetry of the target map to take account of clashes between
+      copies of the fit models.
+    max_steps: integer
+      Maximum number of gradient ascent steps to take
+    grid_step_max : float
+      Maximum motion during a fitting step in grid index units.
+    grid_step_min : float
+      The fit is considered converged when Motion less than this value (grid index units).
+
+    ----------------------------------------------------------------------------
+    Search options
+    ----------------------------------------------------------------------------
+    placement : 'sr', 's', or 'r'
+      Whether random placements should include shift and rotation
+    radius : float
+      Limits the random placements to within this distance of the starting position.
+    cluster_angle : float
+      Rotational difference for a fit to form a new cluster.
+    cluster_shift : float
+      Shift difference for a fit to form a new cluster.
+    asymmetric_unit : bool
+      List only one symmetrically equivalent fit position if the target map has symmetry.
+    level_inside : float
+       Fraction of fit atoms or map that must be inside the target map contour level
+       in order to keep the fit.
+
+    ----------------------------------------------------------------------------
+    Output options
+    ----------------------------------------------------------------------------
+    move_whole_molecules : bool
+      Move entire molecules, or only the atoms that were specified.
+    list_fits : bool
+      Show the fits in a dialog.
+    '''
+    spec = str(atoms_or_map)
+    atoms_or_map = atoms_or_map.evaluate(session)
+    atoms_or_map.spec = spec
+    volume = in_map
     if metric is None:
         metric = 'correlation' if symmetric else 'overlap'
-    mwm = moveWholeMolecules
+    mwm = move_whole_molecules
     if subtract_maps:
         smaps = subtraction_maps(subtract_maps.evaluate(session), resolution, session)
         if sequence == 0:
@@ -28,30 +104,30 @@ def fitmap(session, atomsOrMap, inMap = None, subtract_maps = None,
 
     flist = []
     log = session.logger
-    amlist = atoms_and_map(atoms_or_map, resolution, mwm, sequence, eachModel, session)
+    amlist = atoms_and_map(atoms_or_map, resolution, mwm, sequence, each_model, session)
     for atoms, v in amlist:
         if sequence > 0 or subtract_maps:
             fits = fit_sequence(v, volume, smaps, metric, envelope, resolution,
                                 shift, rotate, mwm, sequence,
-                                maxSteps, gridStepMin, gridStepMax, log)
+                                max_steps, grid_step_min, grid_step_max, log)
         elif search:
             fits = fit_search(atoms, v, volume, metric, envelope, shift, rotate,
                               mwm, search, placement, radius,
-                              clusterAngle, clusterShift, asymmetricUnit, levelInside,
-                              maxSteps, gridStepMin, gridStepMax, log)
+                              cluster_angle, cluster_shift, asymmetric_unit, level_inside,
+                              max_steps, grid_step_min, grid_step_max, log)
         elif v is None:
             fits = [fit_atoms_in_map(atoms, volume, shift, rotate, mwm,
-                                     maxSteps, gridStepMin, gridStepMax, log)]
+                                     max_steps, grid_step_min, grid_step_max, log)]
         elif symmetric:
             fits = [fit_map_in_symmetric_map(v, volume, metric, envelope,
                                              shift, rotate, mwm,
-                                             atoms, maxSteps, gridStepMin, gridStepMax, log)]
+                                             atoms, max_steps, grid_step_min, grid_step_max, log)]
         else:
             fits = [fit_map_in_map(v, volume, metric, envelope,
                                    shift, rotate, mwm, atoms,
-                                   maxSteps, gridStepMin, gridStepMax, log)]
+                                   max_steps, grid_step_min, grid_step_max, log)]
 
-        if listFits:
+        if list_fits:
             show_first = search > 0
             list_fits(fits, show_first, session)
         flist.extend(fits)
@@ -61,7 +137,7 @@ def fitmap(session, atomsOrMap, inMap = None, subtract_maps = None,
 # -----------------------------------------------------------------------------
 #
 def check_fit_options(atoms_or_map, volume, metric, resolution,
-                      symmetric, moveWholeMolecules, search, sequence):
+                      symmetric, move_whole_molecules, search, sequence):
     if volume is None:
         raise UserError('Must specify "in" keyword, e.g. fit #1 in #2')
     if sequence > 0 and search > 0:
@@ -84,15 +160,15 @@ def check_fit_options(atoms_or_map, volume, metric, resolution,
             raise UserError('Must specify a map resolution when'
                             ' fitting an atomic model using correlation')
 
-    if sequence > 0 and not moveWholeMolecules:
+    if sequence > 0 and not move_whole_molecules:
         raise UserError('Fit sequence does not support'
                         ' moving partial molecules')
 
 # -----------------------------------------------------------------------------
 #
-def atoms_and_map(atoms_or_map, resolution, moveWholeMolecules, sequence, eachModel, session):
+def atoms_and_map(atoms_or_map, resolution, move_whole_molecules, sequence, each_model, session):
 
-    if eachModel and sequence == 0:
+    if each_model and sequence == 0:
         return split_by_model(atoms_or_map, resolution, session)
 
     if sequence > 0:
@@ -175,18 +251,18 @@ def list_fits(flist, show, session):
 
 # -----------------------------------------------------------------------------
 #
-def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
-                     maxSteps, gridStepMin, gridStepMax, log = None):
+def fit_atoms_in_map(atoms, volume, shift, rotate, move_whole_molecules,
+                     max_steps, grid_step_min, grid_step_max, log = None):
 
     from . import fitmap as F
     stats = F.move_atoms_to_maximum(atoms, volume,
-                                    maxSteps, gridStepMin, gridStepMax, 
-                                    shift, rotate, moveWholeMolecules,
+                                    max_steps, grid_step_min, grid_step_max, 
+                                    shift, rotate, move_whole_molecules,
                                     request_stop_cb = report_status(log))
     mols = atoms.unique_structures
     if log and stats:
         log.info(F.atom_fit_message(mols, volume, stats))
-        if moveWholeMolecules:
+        if move_whole_molecules:
             for m in mols:
                 log.info(F.transformation_matrix_message(m, volume))
         log.status('%d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
@@ -199,8 +275,8 @@ def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
 # -----------------------------------------------------------------------------
 #
 def fit_map_in_map(v, volume, metric, envelope,
-                   shift, rotate, moveWholeMolecules, mapAtoms,
-                   maxSteps, gridStepMin, gridStepMax, log = None):
+                   shift, rotate, move_whole_molecules, map_atoms,
+                   max_steps, grid_step_min, grid_step_max, log = None):
 
     me = fitting_metric(metric)
     points, point_weights = map_fitting_points(v, envelope)
@@ -208,11 +284,11 @@ def fit_map_in_map(v, volume, metric, envelope,
 
     from . import fitmap as F
     move_tf, stats = F.motion_to_maximum(points, point_weights, volume,
-                                         maxSteps, gridStepMin, gridStepMax,
+                                         max_steps, grid_step_min, grid_step_max,
                                          shift, rotate, me, symmetries,
                                          report_status(log))
     from . import move
-    move.move_models_and_atoms(move_tf, [v], mapAtoms, moveWholeMolecules,
+    move.move_models_and_atoms(move_tf, [v], map_atoms, move_whole_molecules,
                                volume)
 
     if log:
@@ -229,14 +305,14 @@ def fit_map_in_map(v, volume, metric, envelope,
 # -----------------------------------------------------------------------------
 #
 def fit_map_in_symmetric_map(v, volume, metric, envelope,
-                             shift, rotate, moveWholeMolecules, mapAtoms,
-                             maxSteps, gridStepMin, gridStepMax, log = None):
+                             shift, rotate, move_whole_molecules, map_atoms,
+                             max_steps, grid_step_min, grid_step_max, log = None):
 
     from . import fitmap as F
     me = fitting_metric(metric)
     points, point_weights = map_fitting_points(volume, envelope,
                                                local_coords = True)
-    refpt = F.volume_center_point(v, volume.openState.xform)
+    refpt = F.volume_center_point(v, volume.place)
     symmetries = volume.data.symmetries
     indices = F.asymmetric_unit_points(points, refpt, symmetries)
     apoints = points[indices]
@@ -253,7 +329,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     try:
         move_tf, stats = F.locate_maximum(apoints, apoint_weights,
                                           data_array, xyz_to_ijk_transform,
-                                          maxSteps, gridStepMin, gridStepMax,
+                                          max_steps, grid_step_min, grid_step_max,
                                           shift, rotate, me, refpt, symmetries,
                                           stop_cb)
     finally:
@@ -265,7 +341,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     ctf = volume.position.inverse()
     vtf = ctf.inverse() * move_tf.inverse() * ctf
     from . import move
-    move.move_models_and_atoms(vtf, [v], mapAtoms, moveWholeMolecules, volume)
+    move.move_models_and_atoms(vtf, [v], map_atoms, move_whole_molecules, volume)
 
     if log:
         log.info(F.map_fit_message(v, volume, stats))
@@ -281,9 +357,9 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
 # -----------------------------------------------------------------------------
 #
 def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
-               moveWholeMolecules, search, placement, radius,
-               clusterAngle, clusterShift, asymmetricUnit, levelInside,
-               maxSteps, gridStepMin, gridStepMax, log = None):
+               move_whole_molecules, search, placement, radius,
+               cluster_angle, cluster_shift, asymmetric_unit, level_inside,
+               max_steps, grid_step_min, grid_step_max, log = None):
     
     # TODO: Handle case where not moving whole molecules.
 
@@ -294,8 +370,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
         point_weights = None
     else:
         points, point_weights = map_fitting_points(v, envelope)
-        import Matrix
-        Matrix.xform_points(points, volume.openState.xform.inverse())
+        points = volume.place.inverse()*points
     from . import search as FS
     rotations = 'r' in placement
     shifts = 's' in placement
@@ -312,13 +387,13 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
 #    try:
     flist, outside = FS.fit_search(
             mlist, points, point_weights, volume, search, rotations, shifts,
-            radius, clusterAngle, clusterShift, asymmetricUnit, levelInside,
-            me, shift, rotate, maxSteps, gridStepMin, gridStepMax, stop_cb)
+            radius, cluster_angle, cluster_shift, asymmetric_unit, level_inside,
+            me, shift, rotate, max_steps, grid_step_min, grid_step_max, stop_cb)
 #    finally:
 #        task.finished()
 
     if log:
-        report_fit_search_results(flist, search, outside, levelInside, log)
+        report_fit_search_results(flist, search, outside, level_inside, log)
     return flist
 
 # -----------------------------------------------------------------------------
@@ -334,12 +409,12 @@ def request_stop_cb(message, task):
 
 # -----------------------------------------------------------------------------
 #
-def report_fit_search_results(flist, search, outside, levelInside, log):
+def report_fit_search_results(flist, search, outside, level_inside, log):
 
     log.info('Found %d unique fits from %d random placements ' %
              (len(flist), search) +
              'having fraction of points inside contour >= %.3f (%d of %d).\n'
-             % (levelInside, search-outside,  search))
+             % (level_inside, search-outside,  search))
 
     if len(flist) == 0:
         return
@@ -356,8 +431,8 @@ def report_fit_search_results(flist, search, outside, levelInside, log):
 # -----------------------------------------------------------------------------
 #
 def fit_sequence(vlist, volume, subtract_maps = [], metric = 'overlap', envelope = True,
-                 resolution = None, shift = True, rotate = True, moveWholeMolecules = True,
-                 sequence = 1, maxSteps = 2000, gridStepMin = 0.01, gridStepMax = 0.5,
+                 resolution = None, shift = True, rotate = True, move_whole_molecules = True,
+                 sequence = 1, max_steps = 2000, grid_step_min = 0.01, grid_step_max = 0.5,
                  log = None):
 
     me = fitting_metric(metric)
@@ -371,7 +446,7 @@ def fit_sequence(vlist, volume, subtract_maps = [], metric = 'overlap', envelope
     flist = []
 #    try:
     flist = S.fit_sequence(vlist, volume, sequence, subtract_maps, envelope, me, shift, rotate,
-                           maxSteps, gridStepMin, gridStepMax, stop_cb, log)
+                           max_steps, grid_step_min, grid_step_max, stop_cb, log)
 #    finally:
 #        task.finished()
 
@@ -446,14 +521,14 @@ def register_fitmap_command():
 
     fitmap_desc = CmdDesc(
         required = [
-            ('atomsOrMap', AtomSpecArg),
+            ('atoms_or_map', AtomSpecArg),
         ],
         keyword = [
-            ('inMap', MapArg),	# Require keyword to avoid two consecutive atom specs.
+            ('in_map', MapArg),	# Require keyword to avoid two consecutive atom specs.
             ('subtract_maps', AtomSpecArg),
 
 # Four modes, default is single fit mode (no option)
-            ('eachModel', BoolArg),
+            ('each_model', BoolArg),
             ('sequence', IntArg),
             ('search', IntArg),
 
@@ -464,21 +539,21 @@ def register_fitmap_command():
             ('shift', BoolArg),
             ('rotate', BoolArg),
             ('symmetric', BoolArg),
-            ('maxSteps', IntArg),
-            ('gridStepMax', FloatArg),
-            ('gridStepMin', FloatArg),
+            ('max_steps', IntArg),
+            ('grid_step_max', FloatArg),
+            ('grid_step_min', FloatArg),
 
 # Search options
             ('placement', EnumOf(('sr', 's', 'r'))),
             ('radius', FloatArg),
-            ('clusterAngle', FloatArg),
-            ('clusterShift', FloatArg),
-            ('asymmetricUnit', BoolArg),
-            ('levelInside', FloatArg),            # fraction of point in contour
+            ('cluster_angle', FloatArg),
+            ('cluster_shift', FloatArg),
+            ('asymmetric_unit', BoolArg),
+            ('level_inside', FloatArg),            # fraction of point in contour
 
 # Output options
-            ('moveWholeMolecules', BoolArg),
-            ('listFits', BoolArg),
+            ('move_whole_molecules', BoolArg),
+            ('list_fits', BoolArg),
         ]
     )
     register('fitmap', fitmap_desc, fitmap)

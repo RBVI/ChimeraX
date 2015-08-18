@@ -30,6 +30,7 @@ available from the Chimera command-line.
     :members:
 .. automodule:: chimera.core.commands.export
     :members:
+.. autofunction:: chimera.core.map.fit.fitcmd.fitmap
 .. automodule:: chimera.core.commands.help
     :members:
 .. autofunction:: chimera.core.shortcuts.ks
@@ -39,8 +40,7 @@ available from the Chimera command-line.
     :members:
 .. automodule:: chimera.core.commands.material
     :members:
-.. automodule:: chimera.core.map.molmap
-    :members:
+.. autofunction:: chimera.core.map.molmap.molmap
 .. automodule:: chimera.core.commands.move
     :members:
 .. autofunction:: chimera.core.devices.oculus.oculuscmd.oculus
@@ -80,6 +80,8 @@ available from the Chimera command-line.
 .. automodule:: chimera.core.map.volumecommand
     :members:
 .. automodule:: chimera.core.map.filter.vopcommand
+    :members:
+.. automodule:: chimera.core.map.series.vseries_command
     :members:
 .. automodule:: chimera.core.commands.wait
     :members:
