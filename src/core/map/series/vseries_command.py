@@ -357,7 +357,7 @@ class SeriesArg(Annotation):
     name = 'map series'
     @staticmethod
     def parse(text, session):
-        from ...atomspec import AtomSpecArg
+        from ...commands import AtomSpecArg
         value, used, rest = AtomSpecArg.parse(text, session)
         models = value.evaluate(session).models
         from .series import Map_Series

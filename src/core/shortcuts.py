@@ -971,7 +971,15 @@ def minimize_crosslinks(atoms, session):
     from .crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
-def shortcut_command(session, shortcut = None):
+def ks(session, shortcut = None):
+    '''
+    Enable keyboard shortcuts.  Keys typed in the graphics window will be interpreted as shortcuts.
+
+    Parameters
+    ----------
+    shortcut : string
+      Keyboard shortcut to execute.  If no shortcut is specified switch to shortcut input mode.
+    '''
     ks = session.keyboard_shortcuts
     if shortcut is None:
         ks.enable_shortcuts()
@@ -981,4 +989,4 @@ def shortcut_command(session, shortcut = None):
 def register_shortcut_command():
     from .commands import CmdDesc, StringArg, register
     _ks_desc = CmdDesc(optional = [('shortcut', StringArg)])
-    register('ks', _ks_desc, shortcut_command)
+    register('ks', _ks_desc, ks)

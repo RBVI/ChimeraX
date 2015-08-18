@@ -7,7 +7,7 @@ class MapsArg(Annotation):
     name = 'density maps'
     @staticmethod
     def parse(text, session):
-        from ..atomspec import AtomSpecArg
+        from ..commands import AtomSpecArg
         value, used, rest = AtomSpecArg.parse(text, session)
         models = value.evaluate(session).models
         from .volume import Volume
@@ -18,7 +18,7 @@ class MapArg(Annotation):
     name = 'density map'
     @staticmethod
     def parse(text, session):
-        from ..atomspec import AtomSpecArg
+        from ..commands import AtomSpecArg
         value, used, rest = AtomSpecArg.parse(text, session)
         models = value.evaluate(session).models
         from .volume import Volume

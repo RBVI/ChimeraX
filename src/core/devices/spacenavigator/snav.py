@@ -215,8 +215,19 @@ def avoid_collisions(session):
 
 # -----------------------------------------------------------------------------
 #
-def snav_command(session, enable = None, fly = None):
+def snav(session, enable = None, fly = None):
+    '''Enable or disable moving models with Space Navigator input device.
 
+    Parameters
+    ----------
+    enable : bool
+      Enable (true) or disable (false) use of the Space Navigator device.
+    fly : bool
+      Enable flying mode where the Space Navigator motions control the camera,
+      for example pushing forward flies the camera forward.  If fly is false,
+      then the device controls the models, pushing forward would push the models
+      away from the camera.  In both cases it is actually the camera that moves.
+    '''
     sn = space_navigator(session)
     if not enable is None:
         if enable:
@@ -235,4 +246,4 @@ def register_snav_command():
     from ...commands import CmdDesc, BoolArg, register
     _snav_desc = CmdDesc(optional = [('enable', BoolArg)],
                          keyword = [('fly', BoolArg)])
-    register('snav', _snav_desc, snav_command)
+    register('snav', _snav_desc, snav)

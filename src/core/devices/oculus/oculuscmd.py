@@ -58,16 +58,29 @@ def oculus_command(enable = None, panSpeed = None, session = None):
 # -----------------------------------------------------------------------------
 # Command for Chimera 2.
 #
-def oculus_cmd(session, enable, panSpeed = None):
+def oculus(session, enable, pan_speed = None):
+    '''Enable stereo viewing and head motion tracking with an Oculus Rift headset.
 
+    Parameters
+    ----------
+    enable : bool
+      Enable or disable use of an Oculus Rift headset.  The device must be connected
+      and powered on to enable it.  A new full screen window will be created on the
+      Oculus device.  Graphics will not be updated in the main Chimera window because
+      the different rendering rates of the Oculus and a conventional display will cause
+      stuttering of the Oculus graphics.  Also the Side View panel in the main Chimera
+      window should be closed to avoid stuttering.
+    pan_speed : float
+      Controls how far the camera moves in response to tranlation head motion.  Default 5.
+    '''
     if enable:
         start_oculus2(session)
     else:
         stop_oculus2(session)
 
-    if not panSpeed is None:
+    if not pan_speed is None:
         for oc in session.oculus:
-            oc.panning_speed = panSpeed
+            oc.panning_speed = pan_speed
 
 def start_oculus2(session):
 
@@ -124,5 +137,5 @@ def stop_oculus2(session):
 def register_oculus_command():
     from ...commands import CmdDesc, BoolArg, FloatArg, register
     _oculus_desc = CmdDesc(required = [('enable', BoolArg)],
-                           keyword = [('panSpeed', FloatArg)])
-    register('oculus', _oculus_desc, oculus_cmd)
+                           keyword = [('pan_speed', FloatArg)])
+    register('oculus', _oculus_desc, oculus)

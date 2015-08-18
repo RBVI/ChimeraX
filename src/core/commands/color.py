@@ -12,7 +12,7 @@ _SequentialLevels = ["residues", "helix", "helices", "strands",
 
 _CmapRanges = ["full"]
 
-def define_color(session, name, color=None):
+def colordef(session, name, color=None):
     """Create a user defined color."""
     if ' ' in name:
         from ..errors import UsetError
@@ -64,13 +64,19 @@ def define_color(session, name, color=None):
     session.user_colors[name] = color
 
 
-def undefine_color(session, name):
+def uncolordef(session, name):
     """Remove a user defined color."""
     del session.user_colors[name]
 
 
 def color(session, color, spec=None):
-    """Color an object specification."""
+    """Color an atoms.
+
+    Parameters
+    ----------
+    color : Color
+    spec : atom specifier
+    """
     from . import atomspec
     if spec is None:
         spec = atomspec.everything(session)
@@ -102,7 +108,14 @@ def color(session, color, spec=None):
 
 
 def rcolor(session, color, spec=None):
-    """Color ribbons for an object specification."""
+    """Color ribbons.
+
+    Parameters
+    ----------
+    color : Color
+    spec : atom specifier
+      Set ribbon color for these residues.
+    """
     from . import atomspec
     if spec is None:
         spec = atomspec.everything(session)
@@ -126,7 +139,25 @@ def rcolor(session, color, spec=None):
 
 def ecolor(session, spec, color=None, target=None,
            sequential=None, cmap=None, cmap_range=None):
-    """Color an object specification."""
+    """Color atoms, ribbons, surfaces, ....
+
+    Parameters
+    ----------
+    spec : specifier
+      Which objects to color.
+    color : Color
+      Color can be a standard color name or "byelement", "byhetero" or "bychain" .
+    target : string
+      Characters indicating what to color, a = atoms, c = cartoon, s = surfaces, m = models,
+      n = non-molecule models, l = labels, r = residue labels, b = bonds, p = pseudobonds, d = distances.
+      Everything is colored if no target is specified.
+    sequential : string
+      Value can only be "chains", assigns each chain a color from a color map.
+    cmap : Colormap
+      Color map to use with sequential coloring
+    cmap_range : 2 comma-separated floats or "full"
+      Specifies the range of value used for sampling from a color map.
+    """
     from . import atomspec
     if spec is None:
         spec = atomspec.everything(session)
@@ -278,13 +309,13 @@ def register_command(session):
         cli.CmdDesc(required=[('name', cli.StringArg)],
                     optional=[('color', ColorArg)],
                     synopsis="define a custom color"),
-        define_color
+        colordef
     )
     cli.register(
         '~colordef',
         cli.CmdDesc(required=[('name', cli.StringArg)],
                     synopsis="remove color definition"),
-        undefine_color
+        uncolordef
     )
     cli.register(
         'ecolor',

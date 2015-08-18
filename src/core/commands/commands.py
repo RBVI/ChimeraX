@@ -21,10 +21,12 @@ def register_core_commands(session):
     fit.register_fitmap_command()
     from ..map import series
     series.register_vseries_command()
+
     from ..devices import oculus
     oculus.register_oculus_command()
     from ..devices import spacenavigator
     spacenavigator.register_snav_command()
+
     from .. import shortcuts
     shortcuts.register_shortcut_command()
 
