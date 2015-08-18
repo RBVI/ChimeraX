@@ -9,9 +9,14 @@ def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4):
     area.  Atoms not specified in either atom set are ignored when considering where
     the probe sphere can reach.
 
-    :param atoms1: First set of atoms.
-    :param with_atoms2: Second set of atoms -- must be disjoint from first set.
-    :param probe_radius: Radius of the probe sphere.
+    Parameters
+    ----------
+    atoms1 : Atoms
+      First set of atoms.
+    with_atoms2 : Atoms
+      Second set of atoms -- must be disjoint from first set.
+    probe_radius : float
+      Radius of the probe sphere.
     '''
     if with_atoms2 is None:
         from . import AnnotationError

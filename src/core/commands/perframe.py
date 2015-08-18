@@ -4,14 +4,23 @@ def perframe(session, command, frames = None, interval = 1, format = None,
              zero_pad_width = None, range = None, show_commands = False):
     '''Execute specified command each frame, typically used during movie recording.
 
-    :param command: The command to be run each frame, optionally containing "$1"
-                    which will be replaced by the frame number starting at 0.
-    :param frames: Number of frames to execute the specified command.
-    :param interval: Integer k to run the command only every Kth frame.
-    :param format: printf style format (e.g. %d, %.3f) for substituting value in for $1.
-    :param zero_pad_width: Field width in characters used when substituting $1 left padded with zeros.
-    :param range: start,end[,step] integer or float range of values to substitute for $1 instead of frame number.
-    :param show_commands: whether to echo commands to log.
+    Parameters
+    ----------
+    command : string
+      The command to be run each frame, optionally containing "$1"
+      which will be replaced by the frame number starting at 0.
+    frames : int
+      Number of frames to execute the specified command.
+    interval : int
+      Run the command only every Kth frame.
+    format : string
+      Printf style format (e.g. %d, %.3f) for substituting value in for $1.
+    zero_pad_width : int
+      Field width in characters used when substituting $1 left padded with zeros.
+    range : 2 or 3 int
+      start,end[,step] integer or float range of values to substitute for $1 instead of frame number.
+    show_commands : bool
+      Whether to echo commands to log.
     '''
 
     if command == 'stop':

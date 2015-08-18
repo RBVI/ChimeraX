@@ -70,7 +70,7 @@ def uncolordef(session, name):
 
 
 def color(session, color, spec=None):
-    """Color an atoms.
+    """Color atoms.
 
     Parameters
     ----------

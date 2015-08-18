@@ -4,8 +4,12 @@ def sasa(session, atoms = None, probe_radius = 1.4):
     '''
     Compute solvent accessible surface area.
 
-    :param atoms: A probe sphere is rolled over these atoms ignoring collisions with any other atoms.
-    :param probe_radius: Radius of the probe sphere.
+    Parameters
+    ----------
+    atoms : Atoms
+      A probe sphere is rolled over these atoms ignoring collisions with any other atoms.
+    probe_radius : float
+      Radius of the probe sphere.
     '''
     from .surface import check_atoms
     atoms = check_atoms(atoms, session)

@@ -12,39 +12,57 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     Parameters that are not specified retain their current value.  If no options are specified
     then the current settings are printed to the log.
 
-    :param preset: Names a standard set of lighting parameters. Allowed values are "default",
-                   "simple", "full", "soft" and "flat".  Simple is the same as default and has
-                   no shadows.  Full includes direct and ambient shadows.  Soft includes ambient
-                   shadows from 64 directions and no direct lighting.  Flat has only anbient lighting
-                   and no shadows with silhouettes enabled.  Specifying a preset only specifies some
-                   of the lighting parameters. Specifying other options overrides the preset values.
-    :param direction: Key light direction as vector (3 numbers).  Does not have to
-                      be unit length -- it will be normalized.  Points in the direction the light shines.
-                      The viewing direction is along -z.  Initially is pointing down to the right
-                      (1,-1,-1).
-    :param intensity: Key light intensity. This is a brightness scale factor. Initial value 1.
-    :param color: Key light color, a Color object, initial value RGB = (1,1,1).
-    :param fill_direction: Fill light direction. Initially is pointing from lower left (-0.2,-0.2,-0.959).
-    :param fill_intensity: Fill light intensity. Initial value 0.5.
-    :param fill_color: Fill light color, a Color object, initial value RGB = (1,1,1).
-    :param ambient_intensity: Ambient light intensity. Initial value 0.4.
-    :param ambient_color: Ambient color, a Color object, initial value RGB = (1,1,1).
-    :param fixed: Whether light directions are fixed in scene coordinates or move with the camera.
-                  Initial value fixed = false.
-    :param shadows: Whether to show shadows.  Initial value false.
-    :param quality_of_shadows: Shadows are rendered with a 2 dimensional texture. Pixelated shadow edges result from
-                               using small texture sizes.  Value can be "coarse" (1024), "normal" (2048), "fine" (4096),
-                               "finer" (8192), or an integer value can be specified.
-    :param depth_bias: To avoid a surface shadowing itself due to numerical rounding errors an bias distance
-                       is used. This is a fraction of the scene diameter.  Initial value 0.005.
-    :param multi_shadow: How many directions to use for casting ambient shadows.  Value 0 means no
-                         ambient shadows. The soft preset uses 64 directions.  Initial value 0.
-    :param ms_map_size: Size of one 2-dimensional texture holding all the ambient shadow maps.
-                        Small values give coarser shadows that give a smoother appearance
-                        when many shadows ar rendered. Initial value 128.
-    :param ms_depth_bias: Depth bias to avoid surface self shadowing for ambient shadows as a fraction
-                          of the scene diameter. Because small shadow map sizes are typically used a
-                          larger bias is needed than for directional shadows.  Initial value 0.05.
+    Parameters
+    ----------
+    preset : string
+      Names a standard set of lighting parameters. Allowed values are "default",
+      "simple", "full", "soft" and "flat".  Simple is the same as default and has
+      no shadows.  Full includes direct and ambient shadows.  Soft includes ambient
+      shadows from 64 directions and no direct lighting.  Flat has only anbient lighting
+      and no shadows with silhouettes enabled.  Specifying a preset only specifies some
+      of the lighting parameters. Specifying other options overrides the preset values.
+    direction : 3 floats
+      Key light direction as vector.  Does not have to
+      have unit length -- it will be normalized.  Points in the direction the light shines.
+      The viewing direction is along -z.  Initially is pointing down to the right
+      (1,-1,-1).
+    intensity : float
+      Key light intensity. This is a brightness scale factor. Initial value 1.
+    color : Color
+      Key light color, initial value RGB = (1,1,1).
+    fill_direction : 3 floats
+      Fill light direction. Initially is pointing from lower left (-0.2,-0.2,-0.959).
+    fill_intensity : float
+      Fill light intensity. Initial value 0.5.
+    fill_color : Color
+      Fill light color, initial value RGB = (1,1,1).
+    ambient_intensity : float
+       Ambient light intensity. Initial value 0.4.
+    ambient_color : Color
+      Ambient color, initial value RGB = (1,1,1).
+    fixed : bool
+      Whether light directions are fixed in scene coordinates or move with the camera.
+      Initial value fixed = false.
+    shadows : bool
+      Whether to show shadows.  Initial value false.
+    quality_of_shadows : string or int
+      Shadows are rendered with a 2 dimensional texture. Pixelated shadow edges result from
+      using small texture sizes.  Value can be "coarse" (1024), "normal" (2048), "fine" (4096),
+      "finer" (8192), or an integer value can be specified.
+    depth_bias : float
+      To avoid a surface shadowing itself due to numerical rounding errors an bias distance
+      is used. This is a fraction of the scene diameter.  Initial value 0.005.
+    multi_shadow : int
+      How many directions to use for casting ambient shadows.  Value 0 means no
+      ambient shadows. The soft preset uses 64 directions.  Initial value 0.
+    ms_map_size : int
+      Size of one 2-dimensional texture holding all the ambient shadow maps.
+      Small values give coarser shadows that give a smoother appearance
+      when many shadows ar rendered. Initial value 128.
+    ms_depth_bias : float
+      Depth bias to avoid surface self shadowing for ambient shadows as a fraction
+      of the scene diameter. Because small shadow map sizes are typically used a
+      larger bias is needed than for directional shadows.  Initial value 0.05.
     '''
     v = session.main_view
     lp = v.lighting()

@@ -7,18 +7,25 @@ def material(session, preset = None, reflectivity = None,
     Change surface material properties controlling the reflection of light.
     Currently all models use the same material properties.
 
-    :param preset: Can be "default", "shiny" or "dull".  Default sets all material
-                   properties to there default values.  Shiny sets specular reflectivity to 1.
-                   Dull sets specular reflectivity to 0.
-    :param reflectivity: Fraction of directional light reflected diffusely (reflected equally in
-                         all directions). Initial value 0.8.
-    :param specular_reflectivity: Fraction of key light reflected specularly (mirror reflection
-                                  with some spread given by exponent. Initial value 0.8.
-    :param exponent: Controls specularly reflected light scaling intensity by a factor of
-                     cosine(x) raised to the exponent power, where x is the between the mirror
-                     reflection direction and the view direction. Larger values produce smaller
-                     specular highlight spots on surfaces.  Initial value 30.
-    :param ambient_reflectivity: Fraction of ambient light reflected. Initial value 0.8.
+    Parameters
+    ----------
+    preset : string
+      Can be "default", "shiny" or "dull".  Default sets all material
+      properties to there default values.  Shiny sets specular reflectivity to 1.
+      Dull sets specular reflectivity to 0.
+    reflectivity : float
+      Fraction of directional light reflected diffusely (reflected equally in
+      all directions). Initial value 0.8.
+    specular_reflectivity : float
+      Fraction of key light reflected specularly (mirror reflection
+      with some spread given by exponent. Initial value 0.8.
+    exponent : float
+      Controls specularly reflected light scaling intensity by a factor of
+      cosine(x) raised to the exponent power, where x is the between the mirror
+      reflection direction and the view direction. Larger values produce smaller
+      specular highlight spots on surfaces.  Initial value 30.
+    ambient_reflectivity : float
+      Fraction of ambient light reflected. Initial value 0.8.
     '''
     v = session.main_view
     m = v.material()

@@ -6,13 +6,19 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
     These can be subassemblies or symmetrical copies with individual chains 
     placed according to matrices specified in the mmCIF file.
 
-    :param molecules: List of molecules to show as assemblies.
-    :param assembly: The name of assembly in the mmCIF file. If this parameter is None
-                     then the names of available assemblies are printed in log.
-    :param clear: Revert to displaying no assembly, resets the use of any symmetry matrices.
-    :param surface_only: Instead of showing instances of the molecule, show instances
-                         of surfaces of each chain.  The chain surfaces are computed if
-                         they do not already exist.
+    Parameters
+    ----------
+    molecules : list of AtomicStructure
+      List of molecules to show as assemblies.
+    assembly : string
+      The name of assembly in the mmCIF file. If this parameter is None
+      then the names of available assemblies are printed in log.
+    clear : bool
+      Revert to displaying no assembly, resets the use of any symmetry matrices.
+    surface_only : bool
+      Instead of showing instances of the molecule, show instances
+      of surfaces of each chain.  The chain surfaces are computed if
+      they do not already exist.
     '''
     for m in molecules:
         assem = pdb_assemblies(m)
