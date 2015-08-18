@@ -985,10 +985,10 @@ clock_t start_t = clock();
 
         if (mapped[a])
             redo[a] = 0;
+#endif
 
         if (redo[a] == 0)
             continue;
-#endif
         
         bool c3able = false;
         for (auto bondee: a->neighbors()) {
