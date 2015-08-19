@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-settings: save/access tool interface values
+settings: Save/access tool interface values
 ===========================================
 
 Basic Usage

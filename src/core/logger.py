@@ -1,6 +1,6 @@
 # vi: set expandtab ts=4 sw=4:
 """
-logger: application log support
+logger: Application log support
 ===============================
 
 This module is very important.

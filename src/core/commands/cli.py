@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-cli: application command line support
+cli: Application command line support
 =====================================
 
 This module provides a method for parsing text commands

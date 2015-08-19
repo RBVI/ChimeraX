@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-io: manage file formats that can be opened and exported
+io: Manage file formats that can be opened and exported
 =======================================================
 
 The io module keeps track of the functions that can open, fetch, and export

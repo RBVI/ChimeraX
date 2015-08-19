@@ -2,13 +2,13 @@
 
 .. default-domain:: cpp
 
-Generate structure connectivity
-===============================
+libatomstruct: C++ atomic structure classes
+===========================================
 
-The primary public function offered by the connectivity
-shared library is :func:`connect_structure` (declared in
-connectivity/connect.h along with other supporting
-functions/classes):
+Generate structure connectivity
+-------------------------------
+
+:func:`connect_structure`  is declared in atomstruct/connect.h.
 
 .. function:: void connect_structure(AtomicStructure *as, std::vector<Residue *> *chain_starters, std::vector<Residue *> *chain_enders, std::set<Atom *> *conect_atoms, std::set<MolResId> *mod_res)
 

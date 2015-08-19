@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-configfile: application saved settings support
+configfile: Application saved settings support
 ==============================================
 
 Tools typically do not use this module directly;

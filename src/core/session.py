@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-session: application session support
+session: Application session support
 ====================================
 
 A session provides access to most of the application's state.
