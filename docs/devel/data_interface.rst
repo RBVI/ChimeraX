@@ -42,7 +42,7 @@ Structure-related Modules
 .. toctree::
     :maxdepth: 2
 
-    core/pdbio.rst
+    core/atomic/pdbio.rst
 
 Graphics-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -62,7 +62,7 @@ C++ helper Modules
 
     core/appdirs_cpp/appdirs_cpp.rst
 
-    core/connectivity.rst
+    core/atomic/connectivity.rst
 
 .. seealso::
 

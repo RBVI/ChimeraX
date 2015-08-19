@@ -26,6 +26,8 @@ Python Modules
 
     core/orderedset.rst
 
+    core/atomic/pdbio.rst
+
     core/safesave.rst
 
     core/serialize.rst

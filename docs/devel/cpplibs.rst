@@ -8,7 +8,5 @@ C++ Libraries
 
     core/appdirs_cpp/appdirs_cpp.rst
 
-    core/connectivity.rst
-
-    core/pdbio.rst
+    core/atomic/connectivity.rst
 
