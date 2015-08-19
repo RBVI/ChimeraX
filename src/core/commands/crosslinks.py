@@ -28,7 +28,7 @@ def crosslinks(session, pbgroups = None, color = None, radius = None, minimize =
         from ..errors import UserError        
         raise UserError('No pseudobond groups specified.')
 
-    from ..molecule import concatenate
+    from ..atomic import concatenate
     pbonds = concatenate([pbg.pseudobonds for pbg in pbgroups])
 
     if color:

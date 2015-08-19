@@ -708,7 +708,7 @@ class AtomSpecResults:
     """
     def __init__(self):
         self._models = set()
-        from ..molecule import Atoms
+        from ..atomic import Atoms
         self._atoms = Atoms()
 
     def add_model(self, m):
@@ -725,7 +725,7 @@ class AtomSpecResults:
         self.add_atoms(other.atoms)
 
     def invert(self, session, models):
-        from ..molecule import Atoms
+        from ..atomic import Atoms
         atoms = Atoms()
         for m in models:
             if m in self._models:

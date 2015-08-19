@@ -560,7 +560,7 @@ class AtomicStructuresArg(Annotation):
         from . import atomspec
         aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
         models = aspec.evaluate(session).models
-        from ..structure import AtomicStructure
+        from ..atomic import AtomicStructure
         mols = [m for m in models if isinstance(m, AtomicStructure)]
         return mols, text, rest
 

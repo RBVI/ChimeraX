@@ -91,7 +91,7 @@ def color(session, color, spec=None):
         na = len(atoms)
 
     ns = 0
-    from ..structure import AtomicStructure
+    from ..atomic import AtomicStructure
     for m in results.models:
         if not isinstance(m, AtomicStructure):
             m.color = rgba8

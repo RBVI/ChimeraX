@@ -1,8 +1,8 @@
-TOP= ../../..
+TOP= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
+PKG_DIR = $(PYSITEDIR)/chimera/core/atomic
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/atomic
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)

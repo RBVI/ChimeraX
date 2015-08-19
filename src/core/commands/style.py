@@ -10,7 +10,7 @@ def style(session, atom_style, atoms=None):
     atoms : atom specifier
         Change the style of these atoms. If not specified then all atoms are changed.
     '''
-    from ..structure import AtomicStructure
+    from ..atomic import AtomicStructure
     s = {
         'sphere': AtomicStructure.SPHERE_STYLE,
         'ball': AtomicStructure.BALL_STYLE,

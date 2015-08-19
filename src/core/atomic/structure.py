@@ -1,9 +1,8 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
-from . import io
-from .models import Model
-from . import profile
-from .session import RestoreError
-from .molecule import CAtomicStructure
+from .. import io
+from ..models import Model
+from ..session import RestoreError
+from .molobject import CAtomicStructure
 
 CATEGORY = io.STRUCTURE
 
@@ -22,8 +21,8 @@ class AtomicStructure(CAtomicStructure, Model):
                  initialize_graphical_attributes = True):
 
         CAtomicStructure.__init__(self, atomic_structure_pointer)
-        from . import molecule
-        molecule.add_to_object_map(self)
+        from . import molobject
+        molobject.add_to_object_map(self)
 
         Model.__init__(self, name)
 
@@ -108,7 +107,7 @@ class AtomicStructure(CAtomicStructure, Model):
     def _initialize_graphical_attributes(self):
         a = self.atoms
         a.draw_modes = self.SPHERE_STYLE
-        from .colors import element_colors
+        from ..colors import element_colors
         a.colors = element_colors(a.element_numbers)
         b = self.bonds
         b.radii = self.bond_radius
@@ -152,7 +151,7 @@ class AtomicStructure(CAtomicStructure, Model):
         self.triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
 
         # Set instanced sphere triangulation
-        from . import surface
+        from .. import surface
         va, na, ta = surface.sphere_geometry(self.triangles_per_sphere)
         p.geometry = va, ta
         p.normals = na
@@ -196,8 +195,8 @@ class AtomicStructure(CAtomicStructure, Model):
         xyzr[:, :3] = coords
         xyzr[:, 3] = radii
 
-        from .geometry import place
-        p.positions = place.Places(shift_and_scale=xyzr)
+        from ..geometry import Places
+        p.positions = Places(shift_and_scale=xyzr)
         p.display_positions = display
 
         # Set atom colors
@@ -225,7 +224,7 @@ class AtomicStructure(CAtomicStructure, Model):
             # Suppress bond picking since bond selections are not supported.
             from types import MethodType
             p.first_intercept = MethodType(_bond_first_intercept, p)
-            from . import surface
+            from .. import surface
             # Use 3 z-sections so cylinder ends match in half-bond mode.
             va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
             p.geometry = va, ta
@@ -278,7 +277,6 @@ class AtomicStructure(CAtomicStructure, Model):
     def _update_ribbon_graphics(self, rebuild=False):
         if rebuild:
             from .ribbon import Ribbon, XSection
-            from .geometry import place
             from numpy import concatenate, array, uint8
             polymers = self.polymers(False, False)
             if self._ribbon_drawing is None:
@@ -490,7 +488,7 @@ class AtomicStructure(CAtomicStructure, Model):
         ab = self._atom_bounds()
         rb = self._ribbon_bounds()
         sb = tuple(s.bounds() for s in self.surfaces())
-        from .geometry import bounds
+        from ..geometry import bounds
         b = bounds.union_bounds((ab, rb) + sb)
         if positions:
             b = bounds.copies_bounding_box(b, self.positions)
@@ -501,7 +499,7 @@ class AtomicStructure(CAtomicStructure, Model):
             return self._cached_atom_bounds
         a = self.atoms
         xyz = a.coords[a.displays]
-        from .geometry import bounds
+        from ..geometry import bounds
         b = bounds.point_bounds(xyz)
         self._cached_atom_bounds = b
         self._atom_bounds_needs_update = False
@@ -604,7 +602,7 @@ class AtomicStructure(CAtomicStructure, Model):
         return surfs
 
 def selected_atoms(session):
-    from .molecule import Atoms
+    from .molarray import Atoms
     atoms = Atoms()
     for m in session.models.list():
         if isinstance(m, AtomicStructure):
@@ -619,7 +617,7 @@ def _atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
     xyz,r = (xyzr[:,:3], xyzr[:,3]) if dp is None else (xyzr[dp,:3], xyzr[dp,3])
 
     # Check for atom sphere intercept
-    from . import graphics
+    from .. import graphics
     fmin, anum = graphics.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
 
     if fmin is None:
@@ -639,7 +637,7 @@ def _bond_first_intercept(self, mxyz1, mxyz2, exclude = None):
 
 def _ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
     # TODO check intercept of bounding box as optimization
-    from .graphics import Drawing
+    from ..graphics import Drawing
     pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
     if pd is None:
         return None
@@ -654,7 +652,7 @@ def _ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
 
 # -----------------------------------------------------------------------------
 #
-from .graphics import Pick
+from ..graphics import Pick
 class PickedAtom(Pick):
     def __init__(self, atom, distance):
         Pick.__init__(self, distance)
@@ -677,7 +675,7 @@ def atom_description(atom):
 
 # -----------------------------------------------------------------------------
 #
-from .graphics import Pick
+from ..graphics import Pick
 class PickedResidue(Pick):
     def __init__(self, residue, distance):
         Pick.__init__(self, distance)
@@ -756,14 +754,14 @@ def _bond_cylinder_placements(axyz0, axyz1, radius, half_bond):
   else:
     p[:,:3,:3] = rs
   pt = transpose(p,(0,2,1))
-  from .geometry import place
-  pl = place.Places(opengl_array = pt)
+  from ..geometry import Places
+  pl = Places(opengl_array = pt)
   return pl
 
 # -----------------------------------------------------------------------------
 #
 def _pseudobond_geometry(segments = 9):
-    from . import surface
+    from .. import surface
     return surface.dashed_cylinder_geometry(segments)
 
 # -----------------------------------------------------------------------------
@@ -774,7 +772,7 @@ def all_atomic_structures(session):
 # -----------------------------------------------------------------------------
 #
 def all_atoms(session):
-    from .molecule import Atoms
+    from .molarray import Atoms
     atoms = Atoms()
     for m in all_atomic_structures(session):
         atoms = atoms | m.atoms

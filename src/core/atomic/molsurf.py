@@ -4,7 +4,7 @@ molsurf -- Compute molecular surfaces
 =====================================
 """
 
-from .generic3d import Generic3DModel
+from ..generic3d import Generic3DModel
 
 class MolecularSurface(Generic3DModel):
 
@@ -72,7 +72,7 @@ class MolecularSurface(Generic3DModel):
         atoms = self.atoms
         xyz = atoms.coords
         res = self.resolution
-        from . import surface
+        from .. import surface
         if res is None:
             # Compute solvent excluded surface
             r = atoms.radii
@@ -86,7 +86,7 @@ class MolecularSurface(Generic3DModel):
 
         if self.sharp_boundaries:
             v2a = self.vertex_to_atom_map(va)
-            from .surface import sharp_edge_patches
+            from ..surface import sharp_edge_patches
             for i in range(self._sharp_edge_iterations):
                 va, na, ta, v2a = sharp_edge_patches(va, na, ta, v2a, xyz)
             self._vertex_to_atom = v2a
@@ -102,7 +102,7 @@ class MolecularSurface(Generic3DModel):
         if self.visible_patches is None:
             return tmask
 
-        from . import surface
+        from .. import surface
         if self.sharp_boundaries:
             # With sharp boundaries triangles are not connected.
             vmap = surface.unique_vertex_map(self.vertices)
@@ -120,7 +120,7 @@ class MolecularSurface(Generic3DModel):
             xyz1 = self.vertices if vertices is None else vertices
             xyz2 = self.atoms.coords
             max_dist = self.maximum_atom_to_surface_distance()
-            from . import geometry
+            from .. import geometry
             i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist)
             if len(i1) < len(xyz1):
                 # TODO: For Gaussian surface should increase max_dist and try again.
@@ -189,7 +189,7 @@ class MolecularSurface(Generic3DModel):
 
     def first_intercept(self, mxyz1, mxyz2, exclude = None):
         # Pick atom associated with surface patch
-        from .graphics import Drawing
+        from ..graphics import Drawing
         p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
         if p is None:
             return None
@@ -226,7 +226,7 @@ def surface_rgba(color, transparency, chain_id = None):
             from numpy import array, uint8
             rgba8 = array((180,180,180,255), uint8)
         else:
-            from . import colors
+            from .. import colors
             rgba8 = colors.chain_rgba8(chain_id)
     else:
         rgba8 = color.uint8x4()
@@ -288,7 +288,7 @@ def close_surfaces(atoms, models):
         models.close(surfs)
 
 def buried_area(a1, a2, probe_radius):
-    from .surface import spheres_surface_area
+    from ..surface import spheres_surface_area
     xyz1, r1 = atom_spheres(a1, probe_radius)
     a1a = spheres_surface_area(xyz1, r1).sum()
     xyz2, r2 = atom_spheres(a2, probe_radius)

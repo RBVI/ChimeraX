@@ -321,7 +321,7 @@ def create_centroid_path(xyz, radius, color):
 
     n = len(xyz)
     from numpy import zeros, array, float32, arange, empty
-    from ...molecule import atom_dtype, Molecule
+    from ...atomic import atom_dtype, AtomicStructure
     atoms = zeros((n,), atom_dtype)
     atoms['atom_name'] = b's'
     atoms['element_number'] = 1
@@ -336,7 +336,7 @@ def create_centroid_path(xyz, radius, color):
     atoms['ribbon_color'] = (255,255,255,255)
     atoms['atom_shown'] = 1
     atoms['ribbon_shown'] = 0
-    m = Molecule('centroids', atoms)
+    m = AtomicStructure('centroids', atoms)
     return m
 
 # -----------------------------------------------------------------------------

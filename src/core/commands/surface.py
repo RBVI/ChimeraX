@@ -130,7 +130,7 @@ def surface(session, atoms = None, enclose = None, include = None,
     # Close overlapping surfaces.
     if replace:
         other_surfs = set(all_surfs.values()) - set(surfs)
-        from ..molecule import concatenate
+        from ..atomic import concatenate
         surf_atoms = concatenate([s.atoms for s in surfs])
         osurfs = surfaces_overlapping_atoms(other_surfs, surf_atoms)
         if osurfs:
@@ -185,7 +185,7 @@ def register_command(session):
 
 def check_atoms(atoms, session):
     if atoms is None:
-        from ..structure import all_atoms
+        from ..atomic import all_atoms
         atoms = all_atoms(session)
         if len(atoms) == 0:
             from . import AnnotationError

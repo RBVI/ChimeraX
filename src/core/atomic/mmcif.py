@@ -7,7 +7,7 @@ Read mmCIF files.
 """
 
 from . import structure
-from .errors import UserError
+from ..errors import UserError
 
 _builtin_open = open
 _initialized = False
@@ -20,7 +20,7 @@ def open_mmcif(session, filename, name, *args, **kw):
         filename = filename.name
 
     from . import _mmcif
-    from .logger import Collator
+    from ..logger import Collator
     with Collator(session.logger, "Summary of problems reading mmCIF file",
                   kw.pop('log_errors', True)):
         _mmcif.set_Python_locate_function(
@@ -57,7 +57,7 @@ def fetch_mmcif(session, pdb_id):
     os.makedirs(dirname, exist_ok=True)
 
     from urllib.request import URLError, Request
-    from . import utils
+    from .. import utils
     url = "http://www.pdb.org/pdb/files/%s.cif" % pdb_id.upper()
     request = Request(url, unverifiable=True, headers={
         "User-Agent": utils.html_user_agent(session.app_dirs),
@@ -83,7 +83,7 @@ def _get_template(name, app_dirs, logger):
     os.makedirs(dirname, exist_ok=True)
 
     from urllib.request import URLError, Request
-    from . import utils
+    from .. import utils
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
     request = Request(url, unverifiable=True, headers={
@@ -103,7 +103,7 @@ def register():
     if _initialized:
         return
 
-    from . import io
+    from .. import io
     # mmCIF uses same file suffix as CIF
     # PDB uses chemical/x-cif when serving CCD files
     # io.register_format(

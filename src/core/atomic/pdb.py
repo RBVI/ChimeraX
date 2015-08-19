@@ -7,7 +7,7 @@ Read Protein DataBank (PDB) files.
 """
 
 from . import structure
-from .errors import UserError
+from ..errors import UserError
 
 _builtin_open = open
 
@@ -20,7 +20,7 @@ def open_pdb(session, filename, name, *args, **kw):
     else:
         input = _builtin_open(filename, 'rb')
 
-    from .logger import Collator
+    from ..logger import Collator
     with Collator(session.logger, "Summary of problems reading PDB file",
                   kw.pop('log_errors', True)):
         from . import pdbio
@@ -56,7 +56,7 @@ def fetch_pdb(session, pdb_id):
     os.makedirs(dirname, exist_ok=True)
 
     from urllib.request import URLError, Request
-    from . import utils
+    from .. import utils
     url = "http://www.pdb.org/pdb/files/%s.pdb" % pdb_id.upper()
     request = Request(url, unverifiable=True, headers={
         "User-Agent": utils.html_user_agent(session.app_dirs),
@@ -68,7 +68,7 @@ def fetch_pdb(session, pdb_id):
 
 
 def register():
-    from . import io
+    from .. import io
     io.register_format(
         "PDB", structure.CATEGORY, (".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
         mime=("chemical/x-pdb", "chemical/x-spdbv"),

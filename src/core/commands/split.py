@@ -178,7 +178,7 @@ def split_atoms(atoms, asubsets):
 #
 def molecule_from_atoms(m, atoms, name = None):
 
-    from ..structure import AtomicStructure
+    from ..atomic import AtomicStructure
     cm = AtomicStructure(name or m.name)
 #    cm.color = m.color
     cm.display = m.display

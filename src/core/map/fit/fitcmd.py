@@ -188,7 +188,7 @@ def atoms_and_map(atoms_or_map, resolution, move_whole_molecules, sequence, each
                 raise UserError('No molecules specified for fitting')
             from . import fitmap as F
             vlist = [F.simulated_map(m.atoms, resolution, session) for m in mlist]
-        from ...molecule import Atoms
+        from ...atomic import Atoms
         return [(Atoms(), vlist)]
 
     atoms = atoms_or_map.atoms

@@ -260,8 +260,8 @@ class Fit:
     #
     def fit_molecules(self):
 
-        from ...molecule import Molecule
-        mols = [m for m in self.models if isinstance(m, Molecule)]
+        from ...atomic import AtomicStructure
+        mols = [m for m in self.models if isinstance(m, AtomicStructure)]
         return mols
     
 # -----------------------------------------------------------------------------

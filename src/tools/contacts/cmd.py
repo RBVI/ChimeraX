@@ -15,7 +15,7 @@ def contacts(session, atoms = None, probe_radius = 1.4):
     atoms : Atoms
     probe_radius : float
     '''
-    from chimera.core import molsurf
+    from chimera.core.atomic import molsurf
     s = molsurf.atom_spec_spheres(atoms, session, chains = True)
     areas, ba = buried_areas(s, probe_radius)
 

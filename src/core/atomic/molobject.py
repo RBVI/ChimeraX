@@ -30,7 +30,7 @@ def _chains(c):
 def _atomic_structure(p):
     return object_map(p, CAtomicStructure)
 def _pseudobond_group_map(pbgc_map):
-    from ..pbgroup import PseudobondGroup
+    from .pbgroup import PseudobondGroup
     pbg_map = dict((name, object_map(pbg,PseudobondGroup)) for name, pbg in pbgc_map.items())
     return pbg_map
 
@@ -148,7 +148,7 @@ class PseudobondManager:
         pbg = f(self._c_pointer, name.encode('utf-8'), create)
         if not pbg:
             return None
-        from ..pbgroup import PseudobondGroup
+        from .pbgroup import PseudobondGroup
         return object_map(pbg, PseudobondGroup)
 
 

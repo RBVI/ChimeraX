@@ -21,6 +21,7 @@ setup(
     },
     packages=[
         "chimera.core",
+        "chimera.core.atomic",
         "chimera.core.commands",
         "chimera.core.devices",
         "chimera.core.devices.oculus",
@@ -38,7 +39,6 @@ setup(
         "chimera.core.map.filter",
         "chimera.core.map.fit",
         "chimera.core.map.series",
-        "chimera.core.molecule",
         "chimera.core.surface",
         "chimera.core.toolshed",
         "chimera.core.ui",
@@ -46,14 +46,14 @@ setup(
     ],
     package_data={
         "chimera.core": ["*.PYMOD_EXT"],
-        "chimera.core.ui": ["*.jpg"],
+        "chimera.core.atomic": ["*.SHLIB_EXT", "*.PYMOD_EXT"],
         "chimera.core.devices.oculus": ["*.PYMOD_EXT"],
         "chimera.core.devices.spacenavigator": ["*.PYMOD_EXT"],
         "chimera.core.geometry": ["*.PYMOD_EXT"],
         "chimera.core.graphics": ["*.txt", "*.PYMOD_EXT"],
         "chimera.core.map": ["*.PYMOD_EXT"],
-        "chimera.core.molecule": ["*.SHLIB_EXT"],
         "chimera.core.surface": ["*.PYMOD_EXT"],
+        "chimera.core.ui": ["*.jpg"],
     },
     data_files=[
         ("", ["timestamp"]),

@@ -1,5 +1,5 @@
-from .molecule import CPseudobondGroup
-from .models import Model
+from .molobject import CPseudobondGroup
+from ..models import Model
 class PseudobondGroup(CPseudobondGroup, Model):
     """Pseudobond group model"""
 

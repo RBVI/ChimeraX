@@ -70,7 +70,7 @@ def mmcif_assemblies(mmcif_path):
                    '_pdbx_struct_oper_list',
                    '_pdbx_poly_seq_scheme',
                    '_pdbx_nonpoly_scheme')
-    from .. import mmcif
+    from ..atomic import mmcif
     assem, assem_gen, oper, cremap1, cremap2 = mmcif.read_mmcif_tables(mmcif_path, table_names)
     if assem is None or assem_gen is None or oper is None:
         return []

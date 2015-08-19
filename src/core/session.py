@@ -520,7 +520,7 @@ def common_startup(sess):
     _monkey_patch = False
     sess.main_view = View(sess.models.drawing, (256, 256), None, sess.logger)
     sess.add_state_manager('main_view', sess.main_view)
-    from .molecule.molobject import PseudobondManager
+    from .atomic import PseudobondManager
     sess.pb_manager = PseudobondManager()
 
     from . import commands
@@ -533,14 +533,14 @@ def common_startup(sess):
     # file formats
     from . import stl
     stl.register()
-    from . import pdb
+    from .atomic import pdb
     pdb.register()
-    from . import mmcif
+    from .atomic import mmcif
     mmcif.register()
     from . import scripting
     scripting.register()
     from . import map
     map.register_map_file_readers()
     map.register_emdb_fetch()
-    from . import readpbonds
+    from .atomic import readpbonds
     readpbonds.register()

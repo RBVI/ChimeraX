@@ -1,15 +1,11 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
-	   basegeom_cpp chutil_cpp commands \
-	   devices \
+SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
+	   chutil_cpp commands devices \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
-	   map molecule _mmcif \
-	   pdb_cpp pdbio pseudobond_cpp \
-	   readcif_cpp \
-	   surface toolshed ui \
+	   map surface toolshed ui \
 	   webservices
 
 include $(TOP)/mk/subdir.make
@@ -68,14 +64,8 @@ clean:
 	rm -rf __pycache__ build dist chimera.core.egg-info setup.py timestamp $(GENSRCS)
 
 _appdirs.install: appdirs_cpp.install
-atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install \
-	chutil_cpp.install ioutil_cpp.install pseudobond_cpp.install
+atomic.install: logger_cpp.install chutil_cpp.install ioutil_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
-molecule.install: atomstruct_cpp.install
-_mmcif.install: readcif_cpp.install atomstruct_cpp.install
-pdbio.install: atomstruct_cpp.install logger_cpp.install pdb_cpp.install \
-	basegeom_cpp.install
-pseudobond_cpp.install: basegeom_cpp.install
-surface.install: arrays_cpp.install
 map.install: arrays_cpp.install
+surface.install: arrays_cpp.install

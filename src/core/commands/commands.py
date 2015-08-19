@@ -37,7 +37,7 @@ def register_core_commands(session):
 
 
 def _sel_selector(session, models, results):
-    from ..structure import AtomicStructure
+    from ..atomic import AtomicStructure
     for m in models:
         if m.any_part_selected():
             results.add_model(m)
@@ -47,7 +47,7 @@ def _sel_selector(session, models, results):
 
 
 def _strands_selector(session, models, results):
-    from ..structure import AtomicStructure
+    from ..atomic import AtomicStructure
     for m in models:
         if isinstance(m, AtomicStructure):
             strands = m.residues.filter(m.residues.is_sheet)

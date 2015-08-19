@@ -1,4 +1,4 @@
-TOP	= ../../..
+TOP	= ../../../..
 include $(TOP)/mk/config.make
 
 NO_SUBDIR_INSTALL = 1
