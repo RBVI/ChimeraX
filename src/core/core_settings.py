@@ -6,7 +6,7 @@ preferences: manage preferences
 TODO
 """
 from . import commands
-from .commands.color import Color
+from .colors import Color
 from . import configfile
 from .settings import Settings
 _prefs = None
