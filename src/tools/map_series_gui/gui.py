@@ -24,7 +24,7 @@ class MapSeries(ToolInstance):
             #          (' length %d' % n))
 
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
-        from chimera.core.gui import MainToolWindow
+        from chimera.core.ui import MainToolWindow
         class MapSeriesWindow(MainToolWindow):
             close_destroys = False
         tw = MapSeriesWindow(self, size=self.SIZE)

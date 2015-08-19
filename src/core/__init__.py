@@ -41,7 +41,7 @@ def get_class(class_name):
         from . import tasks
         cls = tasks.Job
     elif class_name == '_Input':
-        from . import nogui
+        from .ui import nogui
         cls = nogui._Input
     else:
         return None

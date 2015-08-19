@@ -50,7 +50,7 @@ class ToolshedUI(ToolInstance):
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
-        from chimera.core.gui import MainToolWindow
+        from chimera.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
         from wx import html2

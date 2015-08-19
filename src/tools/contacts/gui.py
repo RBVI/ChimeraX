@@ -11,7 +11,7 @@ class Plot(ToolInstance):
 
         super().__init__(session, tool_info)
 
-        from chimera.core.gui import MainToolWindow
+        from chimera.core.ui import MainToolWindow
         tw = MainToolWindow(self, size=self.SIZE)
         self.tool_window = tw
         parent = tw.ui_area

@@ -116,7 +116,7 @@ class Log(ToolInstance, HtmlLog):
         super().__init__(session, tool_info, **kw)
         self.warning_shows_dialog = True
         self.error_shows_dialog = True
-        from chimera.core.gui import MainToolWindow
+        from chimera.core.ui import MainToolWindow
         class LogWindow(MainToolWindow):
             close_destroys = False
         self.tool_window = LogWindow(self, size=self.SIZE)

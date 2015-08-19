@@ -20,6 +20,6 @@ Modules
 
     core/commands/cli.rst
 
-    core/gui.rst
+    core/ui/gui.rst
 
     core/settings.rst

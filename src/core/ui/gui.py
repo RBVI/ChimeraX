@@ -1,6 +1,6 @@
 # vi: set expandtab ts=4 sw=4:
 """
-gui: main Chimera 2 user interface
+gui: Main Chimera 2 user interface
 ==================================
 
 The principal class that tool writers will use from this module is
@@ -39,7 +39,7 @@ class UI(wx.App):
         # splash screen
         import os.path
         splash_pic_path = os.path.join(os.path.dirname(__file__),
-                                       "ui", "splash.jpg")
+                                       "splash.jpg")
         import wx.lib.agw.advancedsplash as AS
         bitmap = wx.Bitmap(splash_pic_path, type=wx.BITMAP_TYPE_JPEG)
 
@@ -152,7 +152,7 @@ def redirect_stdio_to_logger(logger):
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
-from .logger import PlainTextLog
+from ..logger import PlainTextLog
 class MainWindow(wx.Frame, PlainTextLog):
 
     def __init__(self, ui, session):
@@ -194,7 +194,7 @@ class MainWindow(wx.Frame, PlainTextLog):
             event.Skip()
 
     def on_open(self, event, session):
-        from . import io
+        from .. import io
         dlg = wx.FileDialog(self, "Open file",
             wildcard=io.wx_open_file_filter(all=True),
             style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_MULTIPLE)
@@ -274,11 +274,11 @@ class MainWindow(wx.Frame, PlainTextLog):
 
 
     def _build_graphics(self, ui):
-        from .ui.graphics import GraphicsWindow
+        from .graphics import GraphicsWindow
         self.graphics_window = g = GraphicsWindow(self, ui)
         from wx.lib.agw.aui import AuiPaneInfo
         self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
-        from .ui.save_dialog import MainSaveDialog, ImageSaver
+        from .save_dialog import MainSaveDialog, ImageSaver
         self.save_dialog = MainSaveDialog(self)
         ImageSaver(self.save_dialog).register()
 

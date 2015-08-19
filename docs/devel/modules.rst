@@ -16,7 +16,7 @@ Python Modules
 
     core/graphics/public.rst
 
-    core/gui.rst
+    core/ui/gui.rst
 
     core/history.rst
 

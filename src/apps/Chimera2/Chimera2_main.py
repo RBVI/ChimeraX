@@ -286,10 +286,10 @@ def init(argv, event_loop=True):
 
     # initialize the user interface
     if opts.gui:
-        from chimera.core import gui
+        from chimera.core.ui import gui
         ui_class = gui.UI
     else:
-        from chimera.core import nogui
+        from chimera.core.ui import nogui
         ui_class = nogui.UI
     # sets up logging, splash screen if gui
     # calls "sess.save_in_session(self)"
