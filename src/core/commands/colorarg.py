@@ -4,6 +4,7 @@ import re
 from . import cli
 from ..colors import Color
 
+
 class ColorArg(cli.Annotation):
     """Support color names and CSS3 color specifications.
 
@@ -32,22 +33,19 @@ class ColorArg(cli.Annotation):
             return Color(token), text, rest
         m = _color_func.match(text)
         if m is None:
-            token, text, rest = cli.next_token(text)
+            from .color import _find_named_color
+            color = None
             if session is not None:
-                i = session.user_colors.bisect_left(token)
-                if i < len(session.user_colors):
-                    name = session.user_colors.iloc[i]
-                    if name.startswith(token):
-                        return session.user_colors[name], name, rest
-            from ..colors import BuiltinColors
-            i = BuiltinColors.bisect_left(token)
-            if i >= len(BuiltinColors):
+                name, color, rest = _find_named_color(session.user_colors, text)
+            if color is None:
+                from ..colors import _BuiltinColors
+                name, rgb, rest = _find_named_color(_BuiltinColors, text)
+                color = Color([x / 255 for x in rgb])
+            import sys
+            print("name: '%s', rest: '%s'" % (name, rest), file=sys.__stderr__)
+            if color is None:
                 raise ValueError("Invalid color name")
-            name = BuiltinColors.iloc[i]
-            if not name.startswith(token):
-                raise ValueError("Invalid color name")
-            color = BuiltinColors[name]
-            return Color([x / 255 for x in color]), name, rest
+            return color, name, rest
         color_space = m.group(1)
         numbers = _parse_numbers(m.group(2))
         rest = text[m.end():]
@@ -122,6 +120,7 @@ class ColorArg(cli.Annotation):
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             return Color([red, green, blue, alpha]), m.group(), rest
         raise ValueError("Unknown color description")
+
 
 class ColormapArg(cli.Annotation):
     """Support color map names and value-color pairs specifications.
@@ -219,4 +218,3 @@ def _convert_angle(number):
     if u == 'turn':
         return n
     raise cli.AnnotationError("Unexpected units", u_pos)
-
