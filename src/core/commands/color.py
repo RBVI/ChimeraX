@@ -22,30 +22,29 @@ def _find_named_color(color_dict, name):
     last_real_name = None
     w = 0
     choices = []
-    cur_name = words[0]
+    cur_name = ""
     while w < len(words):
+        if cur_name:
+            cur_name += ' '
+        cur_name += words[w]
         i = color_dict.bisect_left(cur_name)
         if i >= num_colors:
             break
         choices = []
         for i in range(i, num_colors):
-            real_name = color_dict.iloc[i]
-            if not real_name.startswith(cur_name):
+            color_name = color_dict.iloc[i]
+            if not color_name.startswith(cur_name):
                 break
-            choices.append(real_name)
+            choices.append(color_name)
         if len(choices) == 0:
             break
-        if len(choices) == 1:
-            last_real_name = None
-            real_name = choices[0]
-            break
         multiword_choices = [(c.split()[w], c) for c in choices if ' ' in c]
-        if len(multiword_choices) == 0 or w + 1 == len(words):
+        if len(multiword_choices) == 0:
             last_real_name = None
             real_name = choices[0]
             break
         last_real_name = multiword_choices[0][1]
-        cur_name = cur_name[:-len(words[w])] + multiword_choices[0][0] + ' ' + words[w + 1]
+        cur_name = cur_name[:-len(words[w])] + multiword_choices[0][0]
         w += 1
     if last_real_name:
         w -= 1
@@ -69,14 +68,14 @@ def colordef(session, name, color=None):
             real_name, color, rest = _find_named_color(session.user_colors, name)
             if rest:
                 color = None
-        if color is None:
+        else:
             from ..colors import _BuiltinColors
-            real_name, rgb, rest = _find_named_color(_BuiltinColors, name)
-            if not rest:
-                color = Color([x / 255 for x in rgb])
+            real_name, color, rest = _find_named_color(_BuiltinColors, name)
+            if rest:
+                color = None
         if color is None:
-            session.logger.status('Unknown color %r' % name)
-            return
+            from ..errors import UserError
+            raise UserError('Unknown color %r' % name)
 
         def percent(x):
             if x == 1:
@@ -102,10 +101,10 @@ def colordef(session, name, color=None):
             session.logger.status(msg)
             session.logger.info(
                 msg +
-                '<div style="width:1em; height:.4em;'
+                '<div style="width:1em; height:.5em;'
                 ' display:inline-block;'
-                ' border:1px solid #000; background-color:%s"/>'
-                % color.hex())
+                ' border:1px solid #000; background-color:%s"></div>'
+                % color.hex(), is_html=True)
         return
     name = ' '.join(name.split())   # canonicalize
     session.user_colors[name] = color

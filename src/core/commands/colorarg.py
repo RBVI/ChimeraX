@@ -37,12 +37,9 @@ class ColorArg(cli.Annotation):
             color = None
             if session is not None:
                 name, color, rest = _find_named_color(session.user_colors, text)
-            if color is None:
+            else:
                 from ..colors import _BuiltinColors
-                name, rgb, rest = _find_named_color(_BuiltinColors, text)
-                color = Color([x / 255 for x in rgb])
-            import sys
-            print("name: '%s', rest: '%s'" % (name, rest), file=sys.__stderr__)
+                name, color, rest = _find_named_color(_BuiltinColors, text)
             if color is None:
                 raise ValueError("Invalid color name")
             return color, name, rest
