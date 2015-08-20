@@ -1,16 +1,16 @@
-from .molobject import CPseudobondGroup
+from .molobject import PseudobondGroupData
 from ..models import Model
-class PseudobondGroup(CPseudobondGroup, Model):
+class PseudobondGroup(PseudobondGroupData, Model):
     """
     A pseudobond group is a named group of :class:`.Pseudobond` objects
     such as distances that depict lines between atoms with distance labels.
     Pseudobond groups are managed in C++ code which is made accessible
-    via the :class:`.CPseudobondGroup` base class.
+    via the :class:`.PseudobondGroupData` base class.
     """
 
     def __init__(self, pbg_pointer):
 
-        CPseudobondGroup.__init__(self, pbg_pointer)
+        PseudobondGroupData.__init__(self, pbg_pointer)
         Model.__init__(self, self.category)
         self._pbond_drawing = None
 
@@ -19,7 +19,7 @@ class PseudobondGroup(CPseudobondGroup, Model):
     def delete(self):
         Model.delete(self)
         self._pbond_drawing = None
-        CPseudobondGroup.delete(self)
+        PseudobondGroupData.delete(self)
 
     def added_to_session(self, session):
         v = session.main_view

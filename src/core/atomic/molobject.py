@@ -28,7 +28,7 @@ def _chains(c):
     from .molarray import Chains
     return Chains(c)
 def _atomic_structure(p):
-    return object_map(p, CAtomicStructure)
+    return object_map(p, AtomicStructureData)
 def _pseudobond_group_map(pbgc_map):
     from .pbgroup import PseudobondGroup
     pbg_map = dict((name, object_map(pbg,PseudobondGroup)) for name, pbg in pbgc_map.items())
@@ -195,7 +195,7 @@ class Pseudobond:
 
 # -----------------------------------------------------------------------------
 #
-class CPseudobondGroup:
+class PseudobondGroupData:
     '''
     A group of pseudobonds typically used for one purpose such as display
     of distances or missing segments.  The category attribute names the group,
@@ -236,7 +236,7 @@ class CPseudobondGroup:
 #
 class PseudobondManager:
     '''Per-session singleton pseudobond manager keeps track of all
-    :class:`CPseudobondGroup` objects.'''
+    :class:`.PseudobondGroupData` objects.'''
 
     def __init__(self):
         f = c_function('pseudobond_create_global_manager', args = (), ret = ctypes.c_void_p)
@@ -328,7 +328,7 @@ class Chain:
 
 # -----------------------------------------------------------------------------
 #
-class CAtomicStructure:
+class AtomicStructureData:
     '''
     This is a base class of :class:`.AtomicStructure`.
     This base class manages the atomic data while the

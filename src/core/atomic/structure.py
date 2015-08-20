@@ -2,15 +2,15 @@
 from .. import io
 from ..models import Model
 from ..session import RestoreError
-from .molobject import CAtomicStructure
+from .molobject import AtomicStructureData
 
 CATEGORY = io.STRUCTURE
 
 
-class AtomicStructure(CAtomicStructure, Model):
+class AtomicStructure(AtomicStructureData, Model):
     """
     Molecular model including atomic coordinates.
-    The data is managed by the :class:`.CAtomicStructure` base class
+    The data is managed by the :class:`.AtomicStructureData` base class
     which provides access to the C++ structures.
     """
 
@@ -19,7 +19,7 @@ class AtomicStructure(CAtomicStructure, Model):
     def __init__(self, name, atomic_structure_pointer = None,
                  initialize_graphical_attributes = True):
 
-        CAtomicStructure.__init__(self, atomic_structure_pointer)
+        AtomicStructureData.__init__(self, atomic_structure_pointer)
         from . import molobject
         molobject.add_to_object_map(self)
 
@@ -59,11 +59,11 @@ class AtomicStructure(CAtomicStructure, Model):
 
     def delete(self):
         self._atoms = None
-        CAtomicStructure.delete(self)
+        AtomicStructureData.delete(self)
         Model.delete(self)
 
     def copy(self, name):
-        m = AtomicStructure(name, CAtomicStructure._copy(self),
+        m = AtomicStructure(name, AtomicStructureData._copy(self),
                             initialize_graphical_attributes = False)
         m.positions = self.positions
         return m
@@ -93,7 +93,7 @@ class AtomicStructure(CAtomicStructure, Model):
     def atoms(self):
         '''All atoms of the structure in an :py:class:`.Atoms` instance.'''
         if self._atoms is None:
-            self._atoms = CAtomicStructure.atoms.fget(self)
+            self._atoms = AtomicStructureData.atoms.fget(self)
         return self._atoms
 
     @property

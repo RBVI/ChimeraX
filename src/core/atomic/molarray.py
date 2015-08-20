@@ -18,7 +18,7 @@ done using arrays of attributes.  To get a list of atoms use list(x) where
 x is an Atoms collection. Collections behave as Python iterators so constructs
 such as a "for" loop over an Atoms collection is valid: "for a in atoms: ...".
 
-There are collections Atoms, Bonds, Pseudobonds, Residues, Chains, CAtomicStructures.
+There are collections Atoms, Bonds, Pseudobonds, Residues, Chains, AtomicStructureDatas.
 
 Some attributes return collections instead of numpy arrays.  For example,
 atoms.residues returns a Residues collection that has one residue for each atom
@@ -48,7 +48,7 @@ def _residues(a):
 def _chains(a):
     return Chains(a)
 def _atomic_structures(p):
-    return CAtomicStructures(p)
+    return AtomicStructureDatas(p)
 def _residues(p):
     return Residues(p)
 def _atoms_pair(p):
@@ -239,7 +239,7 @@ class Atoms(PointerArray):
 
     @property
     def unique_structures(self):
-        return CAtomicStructures(unique(self.structures._pointers))
+        return AtomicStructureDatas(unique(self.structures._pointers))
 
     @property
     def unique_residues(self):
@@ -384,7 +384,7 @@ class Residues(PointerArray):
 
     @property
     def unique_structures(self):
-        return CAtomicStructures(unique(self.structures._pointers))
+        return AtomicStructureDatas(unique(self.structures._pointers))
 
     @property
     def unique_chain_ids(self):
@@ -405,12 +405,12 @@ class Chains(PointerArray):
 
 # -----------------------------------------------------------------------------
 #
-class CAtomicStructures(PointerArray):
+class AtomicStructureDatas(PointerArray):
     '''
     Collection of C++ atomic structures.
     '''
     def __init__(self, mol_pointers):
-        PointerArray.__init__(self, mol_pointers, molobject.CAtomicStructure, CAtomicStructures)
+        PointerArray.__init__(self, mol_pointers, molobject.AtomicStructureData, AtomicStructureDatas)
 
     atoms = cvec_property('structure_atoms', cptr, 'num_atoms', astype = _atoms,
                           read_only = True, per_object = False)
