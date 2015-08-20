@@ -700,15 +700,15 @@ AtomicStructure::rings(bool cross_residues, unsigned int all_size_threshold,
     _calculate_rings(cross_residues, all_size_threshold, ignore);
 
     // clear out ring lists in individual atoms and bonds
-    for (auto& a: atoms()) {
+    for (auto a: atoms()) {
         a->_rings.clear();
     }
-    for (auto& b: bonds()) {
+    for (auto b: bonds()) {
         b->_rings.clear();
     }
 
     // set individual atom/bond ring lists
-    for (auto &r: _rings) {
+    for (auto& r: _rings) {
         for (auto a: r.atoms()) {
             a->_rings.push_back(&r);
         }

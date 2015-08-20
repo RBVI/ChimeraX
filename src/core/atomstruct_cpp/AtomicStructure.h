@@ -46,7 +46,9 @@ public:
     static const char*  PBG_MISSING_STRUCTURE;
     static const char*  PBG_HYDROGEN_BONDS;
     typedef std::vector<Residue*>  Residues;
-    typedef std::unordered_set<Ring> Rings;
+    // The MSR-finding step of ring perception depends on the iteration
+    // being in ascending order (which std::set guarantees), so use std::set
+    typedef std::set<Ring> Rings;
 private:
     friend class Chain;
     void  remove_chain(Chain* chain);

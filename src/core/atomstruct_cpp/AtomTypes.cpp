@@ -1056,17 +1056,18 @@ clock_t start_t = clock();
     }
 #endif
     int ring_limit = 3;
-    Rings rs = rings(false, ring_limit, &mapped_residues);
-    if (rs.size() < 20) {
+    Rings try_rings = rings(false, ring_limit, &mapped_residues);
+    if (try_rings.size() < 20) {
         // not something crazy like an averaged structure...
         ring_limit = 6;
-        rs = rings(false, ring_limit, &mapped_residues);
-        if (rs.size() < 20) {
+        try_rings = rings(false, ring_limit, &mapped_residues);
+        if (try_rings.size() < 20) {
             // not something crazy like a nanotube...
             ring_limit = 0;
-            rs = rings(false, ring_limit, &mapped_residues);
         }
     }
+    // try_rings is a copy, we want a reference...
+    const Rings& rs = rings(false, ring_limit, &mapped_residues);
     // screen out rings with definite non-planar types
     std::set<const Ring*> planar_rings;
     for (auto& r: rs) {
@@ -2112,7 +2113,8 @@ invert_uncertains(std::vector<Atom*> &uncertain,
             a->set_computed_idatm_type("Npl");
         else
             logger::error(a->structure()->logger(),
-                "Unknown invert atom type: ", a->idatm_type());
+                "Unknown invert atom type: ", a->idatm_type(),
+                " for atom ", a->str());
     }
 }
 
