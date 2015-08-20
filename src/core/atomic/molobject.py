@@ -37,30 +37,59 @@ def _pseudobond_group_map(pbgc_map):
 # -----------------------------------------------------------------------------
 #
 class Atom:
-
+    '''
+    An atom includes physical and graphical properties such as an element name,
+    coordinates in space, and color and radius for rendering.
+    '''
     def __init__(self, atom_pointer):
         set_c_pointer(self, atom_pointer)
 
     bfactor = c_property('atom_bfactor', float32)
+    '''B-factor, floating point value.'''
     bonds = c_property('atom_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
+    '''Bonds connected to this atom as an array of :py:class:`Bond` objects. Read only.'''
     bonded_atoms = c_property('atom_bonded_atoms', cptr, 'num_bonds', astype = _atoms, read_only = True)
+    ''':class:`Atoms` connnected to this atom directly by one bond. Read only.'''
     chain_id = c_property('atom_chain_id', string, read_only = True)
+    '''Protein Data Bank chain identifier. Read only string.'''
     color = c_property('atom_color', uint8, 4)
+    '''Color RGBA uint8 length 4 numpy array.'''
     coord = c_property('atom_coord', float64, 3)
+    '''Coordinates as a numpy length 3 array, 64-bit float values.'''
     display = c_property('atom_display', npy_bool)
+    '''Whether to display the atom. Boolean value.'''
+    SPHERE_STYLE = 1
+    '''Draw mode that uses full atom radius.'''
+    BALL_STYLE = 2
+    '''Draw mode that displays a reduced atom radius, but larger than bond radius.'''
+    STICK_STYLE = 3
+    '''Draw mode that displays an atom size that matches bond radius.'''
     draw_mode = c_property('atom_draw_mode', int32)
+    '''Controls how the atom is depicted.  Can be SPHERE_STYLE, BALL_STYLE or
+    STICK_STYLE.'''
     element_name = c_property('atom_element_name', string, read_only = True)
+    '''Chemical element name. Read only.'''
     element_number = c_property('atom_element_number', uint8, read_only = True)
+    '''Chemical element number. Read only.'''
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True)
+    '''Whether this atom belongs to a polymer. Read only.'''
     is_backbone = c_property('atom_is_backbone', npy_bool)
+    '''Whether this a protein or nucleic acid backbone atom.'''
     structure = c_property('atom_structure', cptr, astype = _atomic_structure, read_only = True)
+    ''':class:`AtomicStructure` the atom belongs to.'''
     name = c_property('atom_name', string, read_only = True)
+    '''Atom name. Maximum length 4 characters. Read only.'''
     num_bonds = c_property('atom_num_bonds', size_t, read_only = True)
+    '''Number of bonds connected to this atom. Read only.'''
     radius = c_property('atom_radius', float32)
+    '''Radius of atom.'''
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True)
+    ''':class:`Residue` the atom belongs to.'''
     selected = c_property('atom_selected', npy_bool)
+    '''Whether the atom is selected.'''
 
     def connects_to(self, atom):
+        '''Whether this atom is directly bonded to a specified atom.'''
         f = c_function('atom_connects_to',
                        args = (ctypes.c_void_p, ctypes.c_void_p),
                        ret = ctypes.c_bool)
@@ -69,16 +98,24 @@ class Atom:
 
     @property
     def scene_coord(self):
+        '''
+        Atom center coordinates in the global scene coordinate system.
+        This accounts for the :class:`Drawing` positions for the hierarchy
+        of models this atom belongs to.
+        '''
         return self.structure.scene_position * self.coord
 
 # -----------------------------------------------------------------------------
 #
 class Bond:
-
+    '''
+    Bond connecting two atoms.
+    '''
     def __init__(self, bond_pointer):
         set_c_pointer(self, bond_pointer)
 
     atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
+    '''Two atoms that the bond joins as a tuple of :py:class:`Atom` objects'''
     color = c_property('bond_color', uint8, 4)
     display = c_property('bond_display', uint8)
     halfbond = c_property('bond_halfbond', npy_bool)
@@ -91,7 +128,12 @@ class Bond:
 # -----------------------------------------------------------------------------
 #
 class Pseudobond:
-
+    '''
+    A Pseudobond is a graphical line between atoms for example depicting a distance
+    or a gap in an amino acid chain, often shown as a dotted or dashed line.
+    Pseudobonds can join atoms belonging to different :class:`AtomicStructure`s
+    which is not possible with a :class:`Bond`.
+    '''
     def __init__(self, pbond_pointer):
         set_c_pointer(self, pbond_pointer)
 
@@ -155,6 +197,10 @@ class PseudobondManager:
 # -----------------------------------------------------------------------------
 #
 class Residue:
+    '''
+    A group of atoms such as an amino acid or nucleic acid. Every atom in
+    an :class:`AtomicStructure` belongs to a residue, including solvent and ions.
+    '''
 
     def __init__(self, residue_pointer):
         set_c_pointer(self, residue_pointer)
@@ -181,7 +227,11 @@ class Residue:
 # -----------------------------------------------------------------------------
 #
 class Chain:
-
+    '''
+    A single polymer chain such as a protein, DNA or RNA strand.
+    A chain has a sequence associated with it.  A chain may have breaks.
+    Chain objects are not always equivalent to Protein Databank chains.
+    '''
     def __init__(self, chain_pointer):
         set_c_pointer(self, chain_pointer)
 
@@ -193,7 +243,11 @@ class Chain:
 # -----------------------------------------------------------------------------
 #
 class CAtomicStructure:
-
+    '''
+    This is a base class of :class:`AtomicStructure`.
+    This base class manages the atomic data while the
+    derived class handles the graphical 3-dimensional rendering using OpenGL.
+    '''
     def __init__(self, mol_pointer = None):
         if mol_pointer is None:
             # Create a new atomic structure
@@ -268,7 +322,7 @@ class CAtomicStructure:
 # -----------------------------------------------------------------------------
 #
 class Element:
-
+    '''A chemical element having a name, number, mass, and other physical properties.'''
     def __init__(self, e_pointer = None, name = None, number = 6):
         if e_pointer is None:
             # Create a new element

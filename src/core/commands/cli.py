@@ -573,7 +573,7 @@ class PseudobondGroupsArg(Annotation):
         from .atomspec import AtomSpecArg
         value, used, rest = AtomSpecArg.parse(text, session)
         models = value.evaluate(session).models
-        from ..pbgroup import PseudobondGroup
+        from ..atomic import PseudobondGroup
         pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
         return pbgs, used, rest
 

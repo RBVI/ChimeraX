@@ -21,8 +21,8 @@ def split(session, molecules = None, chains = None, ligands = False, connected =
       Split the specified atoms into a separate atomic structure.
     '''
     if molecules is None:
-        from .. import structure
-        molecules = structure.all_atomic_structures(session)
+        from .. import atomic
+        molecules = atomic.all_atomic_structures(session)
 
     if chains is None and not ligands and not connected and atoms is None:
         chains = True

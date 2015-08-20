@@ -6,6 +6,8 @@ Python Modules
 .. toctree::
     :maxdepth: 1
 
+    core/atomic/atomic.rst
+
     core/commands/cli.rst
 
     core/configfile.rst
@@ -23,6 +25,8 @@ Python Modules
     core/io.rst
 
     core/logger.rst
+
+    core/map/map.rst
 
     core/orderedset.rst
 

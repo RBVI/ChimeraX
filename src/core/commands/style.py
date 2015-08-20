@@ -10,11 +10,11 @@ def style(session, atom_style, atoms=None):
     atoms : atom specifier
         Change the style of these atoms. If not specified then all atoms are changed.
     '''
-    from ..atomic import AtomicStructure
+    from ..atomic import Atom, AtomicStructure
     s = {
-        'sphere': AtomicStructure.SPHERE_STYLE,
-        'ball': AtomicStructure.BALL_STYLE,
-        'stick': AtomicStructure.STICK_STYLE,
+        'sphere': Atom.SPHERE_STYLE,
+        'ball': Atom.BALL_STYLE,
+        'stick': Atom.STICK_STYLE,
     }[atom_style.lower()]
     if atoms is None:
         for m in session.models.list():

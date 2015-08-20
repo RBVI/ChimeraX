@@ -726,14 +726,14 @@ def show_atoms(atoms):
 def hide_atoms(atoms):
     atoms.displays = False
 def show_sphere(atoms):
-    from .atomic import AtomicStructure
-    atoms.draw_modes = AtomicStructure.SPHERE_STYLE
+    from .atomic import Atom
+    atoms.draw_modes = Atom.SPHERE_STYLE
 def show_stick(atoms):
-    from .atomic import AtomicStructure
-    atoms.draw_modes = AtomicStructure.STICK_STYLE
+    from .atomic import Atom
+    atoms.draw_modes = Atom.STICK_STYLE
 def show_ball_and_stick(atoms):
-    from .atomic import AtomicStructure
-    atoms.draw_modes = AtomicStructure.BALL_STYLE
+    from .atomic import Atom
+    atoms.draw_modes = Atom.BALL_STYLE
 def show_ribbon(atoms):
     atoms.unique_residues.ribbon_displays = True
 def hide_ribbon(atoms):

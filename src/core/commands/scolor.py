@@ -24,7 +24,7 @@
 #               [range <r>]
 #
 def scolor(session, atoms = None, color = None, byatom = False, esp = None):
-    from ..molsurf import MolecularSurface
+    from ..atomic import MolecularSurface
     surfs = session.models.list(type = MolecularSurface)
     if not atoms is None:
         surfs = [s for s in surfs if s.atoms.intersects(atoms)]

@@ -21,8 +21,8 @@ def crosslinks(session, pbgroups = None, color = None, radius = None, minimize =
       over this many frames.
     '''
     if pbgroups is None:
-        from .. import pbgroup
-        pbgroups = pbgroup.all_pseudobond_groups(session.models)
+        from .. import atomic
+        pbgroups = atomic.all_pseudobond_groups(session.models)
 
     if len(pbgroups) == 0:
         from ..errors import UserError        

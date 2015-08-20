@@ -8,14 +8,13 @@ CATEGORY = io.STRUCTURE
 
 
 class AtomicStructure(CAtomicStructure, Model):
-    """Commom base class for atomic structures"""
+    """
+    Molecular model including atomic coordinates.
+    The data is managed by the :class:`.CAtomicStructure` base class
+    which provides access to the C++ structures.
+    """
 
     STRUCTURE_STATE_VERSION = 0
-
-    # Atom display styles, Atom.draw_modes
-    SPHERE_STYLE = 1
-    BALL_STYLE = 2
-    STICK_STYLE = 3
 
     def __init__(self, name, atomic_structure_pointer = None,
                  initialize_graphical_attributes = True):
@@ -92,6 +91,7 @@ class AtomicStructure(CAtomicStructure, Model):
 
     @property
     def atoms(self):
+        '''All atoms of the structure in an :py:class:`.Atoms` instance.'''
         if self._atoms is None:
             self._atoms = CAtomicStructure.atoms.fget(self)
         return self._atoms
@@ -106,7 +106,8 @@ class AtomicStructure(CAtomicStructure, Model):
 
     def _initialize_graphical_attributes(self):
         a = self.atoms
-        a.draw_modes = self.SPHERE_STYLE
+        from .molobject import Atom
+        a.draw_modes = Atom.SPHERE_STYLE
         from ..colors import element_colors
         a.colors = element_colors(a.element_numbers)
         b = self.bonds
@@ -210,15 +211,17 @@ class AtomicStructure(CAtomicStructure, Model):
         a = self.atoms
         r = a.radii.copy()
         dm = a.draw_modes
-        r[dm == self.BALL_STYLE] *= self.ball_scale
-        r[dm == self.STICK_STYLE] = self.bond_radius
+        from .molobject import Atom
+        r[dm == Atom.BALL_STYLE] *= self.ball_scale
+        r[dm == Atom.STICK_STYLE] = self.bond_radius
         return r
 
     def _update_bond_graphics(self, bond_atoms, draw_mode, radii,
                               bond_colors, half_bond_coloring):
         p = self._bonds_drawing
         if p is None:
-            if (draw_mode == self.SPHERE_STYLE).all():
+            from .molobject import Atom
+            if (draw_mode == Atom.SPHERE_STYLE).all():
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
             # Suppress bond picking since bond selections are not supported.
@@ -249,8 +252,9 @@ class AtomicStructure(CAtomicStructure, Model):
 
     def _shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
         sb = bond_atoms[0].displays & bond_atoms[1].displays  # Show bond if both atoms shown
-        ns = ((bond_atoms[0].draw_modes != self.SPHERE_STYLE) |
-              (bond_atoms[1].draw_modes != self.SPHERE_STYLE))       # Don't show if both atoms in sphere style
+        from .molobject import Atom
+        ns = ((bond_atoms[0].draw_modes != Atom.SPHERE_STYLE) |
+              (bond_atoms[1].draw_modes != Atom.SPHERE_STYLE))       # Don't show if both atoms in sphere style
         import numpy
         numpy.logical_and(sb,ns,sb)
         if half_bond_coloring.any():

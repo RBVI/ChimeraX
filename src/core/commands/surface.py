@@ -58,8 +58,8 @@ def surface(session, atoms = None, enclose = None, include = None,
     '''
     atoms = check_atoms(atoms, session) # Warn if no atoms specifed
 
-    from ..molsurf import close_surfaces, show_surfaces, hide_surfaces, remove_solvent_ligands_ions
-    from ..molsurf import surface_rgba, MolecularSurface, update_color, surfaces_overlapping_atoms
+    from ..atomic.molsurf import close_surfaces, show_surfaces, hide_surfaces, remove_solvent_ligands_ions
+    from ..atomic.molsurf import surface_rgba, MolecularSurface, update_color, surfaces_overlapping_atoms
 
     if close:
         close_surfaces(atoms, session.models)

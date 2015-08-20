@@ -153,10 +153,10 @@ class Assembly:
 
     def show_surfaces(self, mol, session):
         included_atoms, excluded_atoms = self._partition_atoms(mol.atoms, self._chain_ids())
-        from ..molsurf import surface_command
-        surfs = surface_command(session, included_atoms)
+        from .surface import surface
+        surfs = surface(session, included_atoms)
         if len(excluded_atoms) > 0:
-            surface_command(session, excluded_atoms, hide = True)
+            surface(session, excluded_atoms, hide = True)
         for s in surfs:
             cid = s.atoms[0].residue.chain_id
             s.positions = self._chain_operators(cid)
