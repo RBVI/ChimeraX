@@ -931,7 +931,7 @@ std::string
 Atom::str() const
 {
     std::string ret = residue()->str();
-    ret += " @";
+    ret += " ";
     ret += name();
     return ret;
 }

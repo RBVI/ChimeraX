@@ -7,33 +7,75 @@ from .colorarg import ColorArg, ColormapArg
 _SpecialColors = ["byatom", "byelement", "byhetero", "bychain"]
 
 _SequentialLevels = ["residues", "helix", "helices", "strands",
-                     "SSEs", "chains", "molmodels", 
+                     "SSEs", "chains", "molmodels",
                      "volmodels", "allmodels"]
 
 _CmapRanges = ["full"]
 
+
+def _find_named_color(color_dict, name):
+    # handle color names with spaces
+    # returns key, value, part of name that was unused
+    num_colors = len(color_dict)
+    words = name.split(maxsplit=10)
+    real_name = None
+    last_real_name = None
+    w = 0
+    choices = []
+    cur_name = ""
+    while w < len(words):
+        if cur_name:
+            cur_name += ' '
+        cur_name += words[w]
+        i = color_dict.bisect_left(cur_name)
+        if i >= num_colors:
+            break
+        choices = []
+        for i in range(i, num_colors):
+            color_name = color_dict.iloc[i]
+            if not color_name.startswith(cur_name):
+                break
+            choices.append(color_name)
+        if len(choices) == 0:
+            break
+        multiword_choices = [(c.split()[w], c) for c in choices if ' ' in c]
+        if len(multiword_choices) == 0:
+            last_real_name = None
+            real_name = choices[0]
+            break
+        last_real_name = multiword_choices[0][1]
+        cur_name = cur_name[:-len(words[w])] + multiword_choices[0][0]
+        w += 1
+    if last_real_name:
+        w -= 1
+        real_name = last_real_name
+    if real_name:
+        start = 0
+        for i in range(w + 1):
+            start = name.find(words[i], start)
+            start += len(words[i])
+        unused = name[start:]
+        return real_name, color_dict[real_name], unused
+    return None, None, name
+
+
 def colordef(session, name, color=None):
     """Create a user defined color."""
-    if ' ' in name:
-        from ..errors import UsetError
-        raise UserError("Sorry, spaces are not alllowed in color names")
     if color is None:
+        # TODO: need to merge the two color dictionaries to properly
+        # resolve abbreviations
         if session is not None:
-            i = session.user_colors.bisect_left(name)
-            if i < len(session.user_colors):
-                real_name = session.user_colors.iloc[i]
-                if real_name.startswith(name):
-                    color = session.user_colors[real_name]
+            real_name, color, rest = _find_named_color(session.user_colors, name)
+            if rest:
+                color = None
+        else:
+            from ..colors import _BuiltinColors
+            real_name, color, rest = _find_named_color(_BuiltinColors, name)
+            if rest:
+                color = None
         if color is None:
-            from ..colors import BuiltinColors
-            i = BuiltinColors.bisect_left(name)
-            if i < len(BuiltinColors):
-                real_name = BuiltinColors.iloc[i]
-                if real_name.startswith(name):
-                    color = Color([x / 255 for x in BuiltinColors[real_name]])
-        if color is None:
-            session.logger.status('Unknown color %r' % name)
-            return
+            from ..errors import UserError
+            raise UserError('Unknown color %r' % name)
 
         def percent(x):
             if x == 1:
@@ -53,14 +95,18 @@ def colordef(session, name, color=None):
         if session is None:
             print(msg)
             return
-        session.logger.status(msg)
-        session.logger.info(
-            msg +
-            '<div style="width:1em; height:.4em;'
-            ' display:inline-block;'
-            ' border:1px solid #000; background-color:%s"/>'
-            % color.hex())
+        if not session.ui.is_gui:
+            session.logger.info(msg)
+        else:
+            session.logger.status(msg)
+            session.logger.info(
+                msg +
+                '<div style="width:1em; height:.5em;'
+                ' display:inline-block;'
+                ' border:1px solid #000; background-color:%s"></div>'
+                % color.hex(), is_html=True)
         return
+    name = ' '.join(name.split())   # canonicalize
     session.user_colors[name] = color
 
 
@@ -248,9 +294,10 @@ def _set_element_colors(atoms, skip_carbon):
     en = atoms.element_numbers
     for e in numpy.unique(en):
         if not skip_carbon or e != 6:
-            ae = atoms.filter(en == e)
             from .. import colors
-            atoms.filter(en == e).colors = colors.element_colors(e)
+            ae = atoms.filter(en == e)
+            ae.colors = colors.element_colors(e)
+
 
 # -----------------------------------------------------------------------------
 #
@@ -325,7 +372,7 @@ def register_command(session):
                              ('sequential', cli.EnumOf(_SequentialLevels)),
                              ('cmap', ColormapArg),
                              ('cmap_range', cli.Or(cli.TupleOf(cli.FloatArg, 2),
-                                                    cli.EnumOf(_CmapRanges)))],
+                                                   cli.EnumOf(_CmapRanges)))],
                     synopsis="testing real color syntax"),
         ecolor
     )

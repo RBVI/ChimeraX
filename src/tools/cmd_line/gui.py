@@ -105,12 +105,15 @@ class CommandLine(ToolInstance):
         logger.status("")
         from chimera.core import errors
         from chimera.core.commands import Command
+        from html import escape
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
-            session.logger.info(cmd_text)
             try:
                 cmd = Command(session, cmd_text, final=True)
+                cmd.error_check()
+                session.logger.info('<p>%s' % escape(cmd.current_text),
+                                    is_html=True)
                 cmd.execute()
             except SystemExit:
                 # TODO: somehow quit application
@@ -119,8 +122,15 @@ class CommandLine(ToolInstance):
                 rest = cmd.current_text[cmd.amount_parsed:]
                 spaces = len(rest) - len(rest.lstrip())
                 error_at = cmd.amount_parsed + spaces
-                err_text = "<pre>%s<br>\n%s^<br>\n%s\n</pre>" % (
-                    cmd.current_text, '.' * error_at, str(err))
+                syntax_error = error_at < len(cmd.current_text)
+                # error message in red text
+                err_color = 'crimson'
+                err_text = '<span style="color:%s;">%s</span>\n' % (
+                    err_color, escape(str(err)))
+                if syntax_error:
+                    err_text = '<p>%s<span style="color:white; background-color:%s;">%s</span><br>\n' % (
+                        escape(cmd.current_text[:error_at]), err_color,
+                        escape(cmd.current_text[error_at:])) + err_text
                 logger.info(err_text, is_html=True)
                 logger.status(str(err))
             except:
@@ -138,7 +148,7 @@ class CommandLine(ToolInstance):
                         self._last_thumb = thumb_data
                         log_thumb = True
                 else:
-                   self._last_thumb = None
+                    self._last_thumb = None
                 if log_thumb:
                     session.logger.info("graphics image", image=thumb)
         self.text.SetValue(cmd_text)
@@ -191,6 +201,7 @@ class CommandLine(ToolInstance):
     def reset_state(self):
         self.tool_window.shown = True
 
+
 class _HistoryDialog:
 
     record_label = "Record..."
@@ -208,7 +219,7 @@ class _HistoryDialog:
         parent = self.window.ui_area
         import wx
         self.listbox = wx.ListBox(parent, size=(100, 400),
-                                style=wx.LB_EXTENDED | wx.LB_NEEDED_SB)
+                                  style=wx.LB_EXTENDED | wx.LB_NEEDED_SB)
         self.listbox.Bind(wx.EVT_LISTBOX, self.on_listbox)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.listbox, 1, wx.EXPAND)
@@ -233,7 +244,7 @@ class _HistoryDialog:
         self.history.enqueue(item)
         for sel in self.listbox.GetSelections():
             self.listbox.Deselect(sel)
-        self.listbox.SetSelection(len(self.history)-1)
+        self.listbox.SetSelection(len(self.history) - 1)
         self.update_list()
 
     def button_cb(self, event):
@@ -246,9 +257,10 @@ class _HistoryDialog:
             from chimera.core.ui.open_save import SaveDialog
             from chimera.core.io import open_filename, extensions
             if self._record_dialog is None:
-                self._record_dialg = dlg = SaveDialog(self.window.ui_area, "Record Commands",
+                self._record_dialg = dlg = SaveDialog(
+                    self.window.ui_area, "Record Commands",
                     wildcard=wc, add_extension=extensions("Chimera")[0])
-                dlg.SetExtraControlCreator(self._recordCustomizeCB)
+                dlg.SetExtraControlCreator(self._record_customize_cb)
             else:
                 dlg = self._record_dialog
             if dlg.ShowModal() == wx.ID_CANCEL:
@@ -261,7 +273,7 @@ class _HistoryDialog:
                 cmds = [cmd for cmd in self.history]
             else:
                 cmds = [self.listbox.GetString(x) for x in self.listbox.GetSelections()]
-            if self.save_append_CheckBox.Value == True:
+            if self.save_append_CheckBox.Value:
                 mode = 'a'
             else:
                 mode = 'w'
@@ -278,23 +290,23 @@ class _HistoryDialog:
         stock_id = event.GetEventObject().GetId()
         if stock_id == wx.ID_DELETE:
             self.history.replace([self.history[i]
-                for i in range(len(self.history))
-                if i not in self.listbox.GetSelections()])
+                                  for i in range(len(self.history))
+                                  if i not in self.listbox.GetSelections()])
             self.populate()
             return
         if stock_id == wx.ID_COPY:
             if not wx.TheClipboard.Open():
-                self.controller.session.logger.error("Could not access the"
-                    " system clipboard")
+                self.controller.session.logger.error(
+                    "Could not access the system clipboard")
                 return
             wx.TheClipboard.SetData(wx.TextDataObject("\n".join(
                 [self.listbox.GetString(i)
-                for i in self.listbox.GetSelections()])))
+                 for i in self.listbox.GetSelections()])))
             wx.TheClipboard.Flush()
             wx.TheClipboard.Close()
             return
         if stock_id == wx.ID_HELP:
-            #TODO
+            # TODO
             return
 
     def down(self):
@@ -305,8 +317,8 @@ class _HistoryDialog:
         if sel == self.listbox.GetCount() - 1:
             return
         self.listbox.Deselect(sel)
-        self.listbox.SetSelection(sel+1)
-        self.controller.cmd_replace(self.listbox.GetString(sel+1))
+        self.listbox.SetSelection(sel + 1)
+        self.controller.cmd_replace(self.listbox.GetString(sel + 1))
 
     def on_append_change(self, event):
         self.overwrite_disclaimer.Show(self.save_append_CheckBox.Value)
@@ -339,16 +351,16 @@ class _HistoryDialog:
         if sel == 0:
             return
         self.listbox.Deselect(sel)
-        self.listbox.SetSelection(sel-1)
-        self.controller.cmd_replace(self.listbox.GetString(sel-1))
-        
+        self.listbox.SetSelection(sel - 1)
+        self.controller.cmd_replace(self.listbox.GetString(sel - 1))
+
     def update_list(self):
         c = self.controller
         last8 = self.history[-8:]
         last8.reverse()
         c.text.Items = last8 + [c.show_history_label, c.compact_label]
 
-    def _recordCustomizeCB(self, parent):
+    def _record_customize_cb(self, parent):
         import wx
         panel = wx.Panel(parent)
         amount_label1 = wx.StaticText(panel, label="Record")
@@ -365,10 +377,10 @@ class _HistoryDialog:
         cb.Bind(wx.EVT_CHECKBOX, self.on_append_change)
         cb.Value = False
         row_sizer.Add(cb, flag=wx.ALIGN_CENTER)
-        self.overwrite_disclaimer = disclaimer = wx.StaticText(panel,
-                label="(ignore overwrite warning)")
+        self.overwrite_disclaimer = disclaimer = wx.StaticText(
+            panel, label="(ignore overwrite warning)")
         disclaimer.SetLabelMarkup("<small><i>(ignore overwrite warning)</i></small>")
         disclaimer.Hide()
-        row_sizer.Add(disclaimer, flag=wx.ALIGN_CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+        row_sizer.Add(disclaimer, flag=wx.ALIGN_CENTER | wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
         panel.SetSizerAndFit(row_sizer)
         return panel

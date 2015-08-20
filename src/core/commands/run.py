@@ -10,8 +10,9 @@ def run(session, text, downgrade_errors=False):
     downgrade_errors : bool
         True if errors in the command should be logged as informational.
     """
-    command = cli.Command(session)
+    from . import cli
     from ..errors import UserError
+    command = cli.Command(session)
     try:
         command.parse_text(text, final=True)
         command.execute()
