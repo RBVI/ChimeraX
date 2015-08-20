@@ -34,7 +34,8 @@ def help(session, command_name=None):
             try:
                 info(cli.html_usage(name), is_html=True)
             except:
-                info('<b>%s</b> no documentation' % name, is_html=True)
+                from html import escape
+                info('<b>%s</b> no documentation' % escape(name), is_html=True)
         return
 
     try:
