@@ -2,6 +2,7 @@
 
 def stop(session):
     '''Stop a motion initiated with turn, roll or move with the frames argument.'''
+    from .motion import CallForNFrames
     if not hasattr(session, CallForNFrames.Attribute):
         return
     for mip in tuple(getattr(session, CallForNFrames.Attribute)):
