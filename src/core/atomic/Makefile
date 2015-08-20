@@ -35,10 +35,7 @@ clean:
 lint:
 	$(PYLINT) $(PYSRCS)
 
-molc.o: $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/Bond.h \
-	$(includedir)/atomstruct/Chain.h $(includedir)/atomstruct/Pseudobond.h \
-	$(includedir)/atomstruct/Residue.h $(includedir)/basegeom/destruct.h
-
+$(OBJS): atomstruct_cpp.install basegeom_cpp.install
 atomstruct_cpp.install: basegeom_cpp.install pseudobond_cpp.install
 mmcif_cpp.install: readcif_cpp.install atomstruct_cpp.install
 pdbio.install: atomstruct_cpp.install pdb_cpp.install basegeom_cpp.install
