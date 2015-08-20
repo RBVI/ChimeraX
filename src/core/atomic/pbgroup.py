@@ -35,9 +35,9 @@ class PseudobondGroup(CPseudobondGroup, Model):
         v.remove_callback('shape changed', self.update_graphics)
 
     def _update_graphics_if_needed(self):
-        c, s, se = self.gc_color, self.gc_shape, self.gc_select
+        c, s, se = self._gc_color, self._gc_shape, self._gc_select
         if c or s or se:
-            self.gc_color = self.gc_shape = self.gc_select = False
+            self._gc_color = self._gc_shape = self._gc_select = False
             self._update_graphics()
             self.redraw_needed(shape_changed = s, selection_changed = se)
 
