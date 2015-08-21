@@ -1055,13 +1055,14 @@ clock_t start_t = clock();
             mapped_residues.insert(a_tf.first->residue());
     }
 #endif
+    int too_many_rings = (residues().size() - mapped_residues.size()) * 20;
     int ring_limit = 3;
     Rings try_rings = rings(false, ring_limit, &mapped_residues);
-    if (try_rings.size() < 20) {
+    if (try_rings.size() < too_many_rings) {
         // not something crazy like an averaged structure...
         ring_limit = 6;
         try_rings = rings(false, ring_limit, &mapped_residues);
-        if (try_rings.size() < 20) {
+        if (try_rings.size() < too_many_rings) {
             // not something crazy like a nanotube...
             ring_limit = 0;
         }
@@ -1158,11 +1159,13 @@ clock_t start_t = clock();
             system_atoms.insert(atoms.begin(), atoms.end());
             system_rings.push_back(qr);
             for (auto b: bonds) {
-                for (auto br: b->minimum_rings(false, &mapped_residues)) {
+                for (auto br: b->rings(false, ring_limit, &mapped_residues)) {
                     if (seen_rings.find(br) != seen_rings.end())
+
                         continue;
                     if (planar_rings.find(br) == planar_rings.end())
                         continue;
+
                     queue.push_back(br);
                     seen_rings.insert(br);
                 }
