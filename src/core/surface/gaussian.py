@@ -1,4 +1,12 @@
 def gaussian_surface(xyz, weights, resolution, level = None, grid_spacing = None):
+    '''
+    Return vertex, normal vector and triangles for a contour surface computed
+    from a density map created as a sum of Gaussians at specified center positions
+    with specified heights, and Gaussian width determined by resolution.
+    If the contour level is None then compute the lowest density value at
+    the center point positions.  Return the input level or this computed level
+    as a fourth return value.
+    '''
     if grid_spacing is None:
         grid_spacing = 0.25 * resolution
 

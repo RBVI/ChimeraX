@@ -1,7 +1,7 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-models: model support
-=====================
+models: Displayed data
+======================
 
 """
 
@@ -14,13 +14,10 @@ REMOVE_MODELS = 'remove models'
 
 
 class Model(State, Drawing):
-    """All models are drawings.
+    """A Model is a :class:`.Drawing` together with an id number 
+    that allows it to be referenced in a typed command.
 
-    That means that regardless of whether or not there is a GUI,
-    each model maintains its geometry.
-
-    Every model subclass that can be in a session file, needs to be
-    registered.
+    Model subclasses can be saved session files.
 
     Parameters
     ----------

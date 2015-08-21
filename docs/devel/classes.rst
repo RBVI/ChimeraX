@@ -12,7 +12,9 @@
  * :class:`.Grid_Data` - density map data
  * :class:`.Lighting` - lighting paramters
  * :class:`.Log` - text command log
- * :class:`.Material` - material reflectivity paramters
+ * :class:`.Material` - material reflectivity parameters
+ * :class:`.Model` - Displayed data with id number
+ * :class:`.MolecularSurface` - molecular surfaces
  * :class:`.Place` - position and orientation in space
  * :class:`.Residue` - a molecule residue
  * :class:`.Session` - application state

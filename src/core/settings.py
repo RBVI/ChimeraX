@@ -118,7 +118,6 @@ class Settings(ConfigFile):
 
     Attributes
     ----------
-    filename
     AUTO_SAVE : dict
         Class dictionary containing setting names and default values.
         Such settings will be saved to disk immediately when changed.

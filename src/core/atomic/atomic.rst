@@ -19,12 +19,13 @@ represented as pseudobonds:
  * :class:`.PseudobondGroup`
  * :class:`.PseudobondManager`
 
-Efficient collections of molecular objects are also available:
+Efficient collections of molecular objects and molecular surfaces are also available
 
 .. toctree::
    :maxdepth: 1
 
    molarray.rst
+   molsurf.rst
 
 Atomic data classes
 -------------------

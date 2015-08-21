@@ -10,6 +10,8 @@ Python Modules
 
     core/commands/cli.rst
 
+    core/commands/commands.rst
+
     core/configfile.rst
 
     core/data_events.rst
@@ -28,6 +30,10 @@ Python Modules
 
     core/map/map.rst
 
+    core/models.rst
+
+    core/atomic/molsurf.rst
+
     core/orderedset.rst
 
     core/atomic/pdbio.rst
@@ -39,6 +45,8 @@ Python Modules
     core/session.rst
 
     core/settings.rst
+
+    core/surface/surface.rst
 
     core/tasks.rst
 

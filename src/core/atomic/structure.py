@@ -9,6 +9,8 @@ CATEGORY = io.STRUCTURE
 
 class AtomicStructure(AtomicStructureData, Model):
     """
+    Bases: :class:`.AtomicStructureData`, :class:`.Model`
+
     Molecular model including atomic coordinates.
     The data is managed by the :class:`.AtomicStructureData` base class
     which provides access to the C++ structures.
@@ -58,11 +60,17 @@ class AtomicStructure(AtomicStructureData, Model):
         self._make_drawing(initialize_graphical_attributes)
 
     def delete(self):
+        '''Delete this structure.'''
         self._atoms = None
         AtomicStructureData.delete(self)
         Model.delete(self)
 
     def copy(self, name):
+        '''
+        Return a copy of this structure with a new name.
+        No atoms or other components of the structure
+        are shared between the original and the copy.
+        '''
         m = AtomicStructure(name, AtomicStructureData._copy(self),
                             initialize_graphical_attributes = False)
         m.positions = self.positions
@@ -98,9 +106,12 @@ class AtomicStructure(AtomicStructureData, Model):
 
     @property
     def pseudobond_groups(self):
+        '''Dictionary mapping name to :class:`.PseudobondGroup` for pseudobond groups
+        belonging to this structure. Read only.'''
         return self.pbg_map
 
     def shown_atom_count(self):
+        '''Number of atoms displayed.'''
         na = sum(self.atoms.displays) if self.display else 0
         return na
 
@@ -516,10 +527,18 @@ class AtomicStructure(AtomicStructureData, Model):
         return rd.bounds()
 
     def select_atom(self, atom, toggle=False, selected=True):
+        '''
+        Select or unselect a specified :class:`.Atom`.
+        If selected is false then it unselects this atom.
+        '''
         atom.selected = (not atom.selected) if toggle else selected
         self._selection_changed()
 
     def select_atoms(self, atoms, toggle=False, selected=True):
+        '''
+        Select or unselect :class:`.Atoms`.
+        If selected is false then it unselects the atoms.
+        '''
         asel = self.atoms.selected
         m = self.atoms.mask(atoms)
         from numpy import logical_not
@@ -528,6 +547,11 @@ class AtomicStructure(AtomicStructureData, Model):
         self._selection_changed()
 
     def select_residue(self, residue, toggle=False, selected=True):
+        '''
+        Select a specified :class:`.Residue`.
+        If selected is false then it unselects the residue.
+        Selecting a residue is equivalent to select all the residue atoms.
+        '''
         if toggle:
             selected = residue not in self._ribbon_selected_residues
         self.select_atoms(residue.atoms, toggle=False, selected=selected)
@@ -601,18 +625,10 @@ class AtomicStructure(AtomicStructureData, Model):
         self._selection_promotion_history = []
 
     def surfaces(self):
+        '''List of :class:`.MolecularSurface` objects for this structure.'''
         from .molsurf import MolecularSurface
         surfs = [s for s in self.child_models() if isinstance(s, MolecularSurface)]
         return surfs
-
-def selected_atoms(session):
-    from .molarray import Atoms
-    atoms = Atoms()
-    for m in session.models.list():
-        if isinstance(m, AtomicStructure):
-            for matoms in m.selected_items('atoms'):
-                atoms = atoms | matoms
-    return atoms
 
 def _atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
     # TODO check intercept of bounding box as optimization
@@ -771,13 +787,27 @@ def _pseudobond_geometry(segments = 9):
 # -----------------------------------------------------------------------------
 #
 def all_atomic_structures(session):
+    '''List of all :class:`.AtomicStructure` objects.'''
     return [m for m in session.models.list() if isinstance(m,AtomicStructure)]
 
 # -----------------------------------------------------------------------------
 #
 def all_atoms(session):
+    '''All atoms in all structures as an :class:`.Atoms` collection.'''
     from .molarray import Atoms
     atoms = Atoms()
     for m in all_atomic_structures(session):
         atoms = atoms | m.atoms
+    return atoms
+
+# -----------------------------------------------------------------------------
+#
+def selected_atoms(session):
+    '''All selected atoms in all structures as an :class:`.Atoms` collection.'''
+    from .molarray import Atoms
+    atoms = Atoms()
+    for m in session.models.list():
+        if isinstance(m, AtomicStructure):
+            for matoms in m.selected_items('atoms'):
+                atoms = atoms | matoms
     return atoms

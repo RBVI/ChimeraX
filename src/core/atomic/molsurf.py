@@ -1,13 +1,57 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-molsurf -- Compute molecular surfaces
-=====================================
+molsurf: Compute molecular surfaces
+===================================
 """
 
 from ..generic3d import Generic3DModel
 
 class MolecularSurface(Generic3DModel):
+    '''
+    A molecular surface computed from a set of atoms.
+    This can be a solvent excluded surface which is the
+    boundary of the region where a sphere of radius
+    *probe_radius* cannot reach.  Or it can be a contour
+    surface of a density map created by placing Gaussian
+    shapes at the center of each atom position where
+    the *resolution* parameter controls the width of the Gaussian.
+    Part of a surface can be undisplayed, leaving only the
+    patch associated with *show_atoms* :class:`.Atoms`.
 
+    Parameters
+    ----------
+    enclose_atoms : :class:`.Atoms`
+      Surface bounds these atoms.
+    show_atoms : :class:`.Atoms`
+      Show only the portion of the surface near these atoms.
+    probe_radius : float
+      The probe sphere radius for a solvent excluded surface.
+    grid_spacing : float
+      Spacing of 3-dimensional grid used in surface calculations.
+      Typical value os 0.5 Angstroms. Finer values give smoother surfaces
+      but take more memory and longer computation times.
+    resolution : float
+      Used only for Gaussian surfaces, specifies a nominal density
+      map resolution.  See the :function:`.molmap` for details.
+    level : float or None
+      Threshold level for Gaussian surfaces. The density map used to
+      compute these surface uses Gaussian heights equal to atomic number
+      so the level is in atomic number units.  If None is specified then
+      the level chosen is the minimum density at the atom positions.
+    name : string
+      Surface name.
+
+    color : numpy uint8 length 4 array
+      RGBA color for surface.
+    visible_patches : int or None
+      Number of connected surface components to show.
+      Only the largest area N components will be shown.
+      For value None all components are shown.
+    sharp_boundaries : bool
+      Whether to subdivide triangles composing the surface so that
+      triangle edges lie exactly between atoms. This creates less jagged
+      edges when showing or coloring patches of surfaces for a subset of atoms.
+    '''
     def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing,
                  resolution, level, name, color, visible_patches, sharp_boundaries):
         
@@ -32,7 +76,10 @@ class MolecularSurface(Generic3DModel):
     def new_parameters(self, show_atoms, probe_radius, grid_spacing,
                        resolution, level, visible_patches, sharp_boundaries,
                        color = None, transparency = None):
-
+        '''
+        Change the surface parameters.  Parameter definitions are the
+        same as for the contructor.
+        '''
         shape_change = (probe_radius != self.probe_radius or
                         grid_spacing != self.grid_spacing or
                         resolution != self.resolution or
@@ -53,19 +100,20 @@ class MolecularSurface(Generic3DModel):
             self.vertices = None
             self.normals = None
             self.triangles = None
-            self.preserve_colors()
+            self._preserve_colors()
             self.vertex_colors = None
             self._vertex_to_atom = None
             self._max_radius = None
         elif shown_changed:
-            self.triangle_mask = self.calc_triangle_mask()
+            self.triangle_mask = self._calc_triangle_mask()
                 
     @property
     def atom_count(self):
+        '''Number of atoms for calculating the surface. Read only.'''
         return len(self.atoms)
 
     def calculate_surface_geometry(self):
-
+        '''Recalculate the surface if parameters have been changed.'''
         if not self.vertices is None:
             return              # Geometry already computed
 
@@ -94,11 +142,11 @@ class MolecularSurface(Generic3DModel):
         self.vertices = va
         self.normals = na
         self.triangles = ta
-        self.triangle_mask = self.calc_triangle_mask()
-        self.restore_colors()
+        self.triangle_mask = self._calc_triangle_mask()
+        self._restore_colors()
 
-    def calc_triangle_mask(self):
-        tmask = self.patch_display_mask(self.show_atoms)
+    def _calc_triangle_mask(self):
+        tmask = self._patch_display_mask(self.show_atoms)
         if self.visible_patches is None:
             return tmask
 
@@ -115,11 +163,16 @@ class MolecularSurface(Generic3DModel):
         return m
 
     def vertex_to_atom_map(self, vertices = None):
+        '''
+        Returns a numpy array of integer values with length equal to
+        the number of surface vertices and value is the atom index for
+        the atom closest to each vertex.
+        '''
         v2a = self._vertex_to_atom
         if v2a is None:
             xyz1 = self.vertices if vertices is None else vertices
             xyz2 = self.atoms.coords
-            max_dist = self.maximum_atom_to_surface_distance()
+            max_dist = self._maximum_atom_to_surface_distance()
             from .. import geometry
             i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist)
             if len(i1) < len(xyz1):
@@ -132,7 +185,7 @@ class MolecularSurface(Generic3DModel):
             self._vertex_to_atom = v2a
         return v2a
 
-    def maximum_atom_to_surface_distance(self):
+    def _maximum_atom_to_surface_distance(self):
         res = self.resolution
         if res is None:
             d = 1.1 * (self.probe_radius + self._max_radius)
@@ -140,14 +193,14 @@ class MolecularSurface(Generic3DModel):
             d = 2*res
         return d
 
-    def patch_display_mask(self, patch_atoms):
+    def _patch_display_mask(self, patch_atoms):
         surf_atoms = self.atoms
         if len(patch_atoms) == len(surf_atoms):
             return None
         shown_atoms = surf_atoms.mask(patch_atoms)
-        return self.atom_triangle_mask(shown_atoms)
+        return self._atom_triangle_mask(shown_atoms)
 
-    def atom_triangle_mask(self, atom_mask):
+    def _atom_triangle_mask(self, atom_mask):
         v2a = self.vertex_to_atom_map()
         shown_vertices = atom_mask[v2a]
         t = self.triangles
@@ -158,14 +211,21 @@ class MolecularSurface(Generic3DModel):
         return shown_triangles
 
     def show(self, atoms):
+        '''
+        Show the surface patch near these :class:`.Atoms` in
+        addition to any already shown surface patch.
+        '''
         self.show_atoms = self.show_atoms.merge(atoms)
-        self.triangle_mask = self.calc_triangle_mask()
+        self.triangle_mask = self._calc_triangle_mask()
 
     def hide(self, atoms):
+        '''
+        Hide the surface patch near these :class:`.Atoms`.
+        '''
         self.show_atoms = self.show_atoms.subtract(atoms)
-        self.triangle_mask = self.calc_triangle_mask()
+        self.triangle_mask = self._calc_triangle_mask()
 
-    def preserve_colors(self):
+    def _preserve_colors(self):
         vc = self.vertex_colors
         if vc is None:
             return
@@ -178,7 +238,7 @@ class MolecularSurface(Generic3DModel):
         acolor[v2a] = vc
         self._atom_colors = acolor
 
-    def restore_colors(self):
+    def _restore_colors(self):
         acolor = self._atom_colors
         if acolor is None:
             return
@@ -204,7 +264,7 @@ class MolecularSurface(Generic3DModel):
 
     def update_selection(self):
         asel = self.atoms.selected
-        tmask = self.atom_triangle_mask(asel)
+        tmask = self._atom_triangle_mask(asel)
         self.selected_triangles_mask = tmask
 
 def remove_solvent_ligands_ions(atoms, keep = None):
