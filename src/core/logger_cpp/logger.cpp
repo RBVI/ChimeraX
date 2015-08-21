@@ -39,7 +39,7 @@ py_exception_msg()
 // placeholders until the Python Logger is implemented...
 void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level)
 {
-    if (logger == nullptr) {
+    if (logger == nullptr || logger == Py_None) {
         if (level == _LogLevel::ERROR)
             std::cerr << msg.str() << "\n";
         else
