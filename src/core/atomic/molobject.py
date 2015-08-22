@@ -367,6 +367,8 @@ class AtomicStructureData:
     pbg_map = c_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
     '''Dictionary mapping name to :class:`.PseudobondGroup` for pseudobond groups
     belonging to this structure. Read only.'''
+    pdb_headers = c_property('pdb_headers', pyobject, read_only = True)
+    '''Dictionary with PDB headers. Read only.'''
 
     def _copy(self):
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
