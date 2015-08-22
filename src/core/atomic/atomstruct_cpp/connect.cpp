@@ -412,6 +412,9 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
     Residue *link_res = NULL, *prev_res = NULL, *first_res = NULL;
     Atom *link_atom;
     AtomName link_atom_name;
+    // start/end residues much more efficient to search as a map...
+    std::set<Residue*> sres_map(start_residues->begin(), start_residues->end());
+    std::set<Residue*> eres_map(end_residues->begin(), end_residues->end());
     for (AtomicStructure::Residues::const_iterator ri = as->residues().begin();
     ri != as->residues().end(); ++ri) {
         Residue *r = *ri;
@@ -467,10 +470,8 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             tr = NULL;
         else
             tr = tmpl::find_template_residue(r->name(),
-                std::find(start_residues->begin(),
-                start_residues->end(), r) != start_residues->end(),
-                std::find(end_residues->begin(),
-                end_residues->end(), r) != end_residues->end());
+                sres_map.find(r) != sres_map.end(),
+                eres_map.find(r) != eres_map.end());
         if (tr != NULL)
             connect_residue_by_template(r, tr, conect_atoms);
         else
