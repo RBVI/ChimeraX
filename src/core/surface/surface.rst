@@ -5,6 +5,12 @@ surface: Triangulated surface calculations
 
 Routines for calculating surface triangulations and properties of triangulated surfaces.
 
+Surfaces are represented using numpy arrays of vertices (N by 3 array, xyz coodinates, float32),
+and a numpy array of triangles which are triples of indices into the vertex list
+(M by 3 array, vertex indices, int32).  For surface lighting, normal vectors at each vertex are used
+(N by 3 array, unit vectors, float32).  The vertex, triangle and normal arrays are
+sometimes called varray, tarray, narray, and sometimes vertices, triangles, normals.
+
 .. automodule:: chimera.core.surface.sasa
     :members:
 
