@@ -1055,7 +1055,7 @@ clock_t start_t = clock();
             mapped_residues.insert(a_tf.first->residue());
     }
 #endif
-    int too_many_rings = (residues().size() - mapped_residues.size()) * 20;
+    size_t too_many_rings = (residues().size() - mapped_residues.size()) * 20;
     int ring_limit = 3;
     Rings try_rings = rings(false, ring_limit, &mapped_residues);
     if (try_rings.size() < too_many_rings) {

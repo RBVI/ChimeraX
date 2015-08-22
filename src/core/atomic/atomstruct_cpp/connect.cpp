@@ -330,25 +330,43 @@ metal_coordination_bonds(AtomicStructure* as)
         if (metal->bonds().size() - del_bonds.size() > 4) {
             del_bonds.insert(metal_bonds.begin(), metal_bonds.end());
         } else {
-            bi = metal_bonds.begin();
-            for (auto nb: metal->neighbors()) {
-                // metals with just one bond may be a legitimate compound
-                if (metal_bonds.size() - del_bonds.size() == 1) {
-                    // avoid expensive atom-type computation by skipping
-                    // common elements we know cannot have lone pairs...
-                    if (nb->element().number() == Element::C
-                    || nb->element().number() == Element::H)
-                        continue;
-                    auto idatm_type = nb->idatm_type();
-                    auto idatm_info_map = Atom::get_idatm_info_map();
-                    auto info = idatm_info_map.find(idatm_type);
-                    if (info != idatm_info_map.end()
-                    && (info->second).substituents == (info->second).geometry
-                    && idatm_type != "Npl" && idatm_type != "N2+") {
-                        // nitrogen exclusions for HEME C in 1og5
-                        continue;
+            // metals with just one bond may be a legitimate compound
+            if (metal_bonds.size() - del_bonds.size() == 1) {
+                // avoid expensive atom-type computation by skipping
+                // common elements we know cannot have lone pairs...
+
+                // find the remaining bond
+                Atom* nb = nullptr;
+                auto nbi = metal->neighbors().begin();
+                auto bi = metal->bonds().begin();
+                for (; nbi != metal->neighbors().end(); ++nbi, ++bi ) {
+                    if (del_bonds.find(*bi) == del_bonds.end()) {
+                        nb = *nbi;
+                        break;
                     }
                 }
+                if (nb == nullptr)
+                    throw std::logic_error("All metal bonds in del_bonds");
+                if (nb->element().number() == Element::C
+                || nb->element().number() == Element::H) {
+                    if (del_bonds.size() > 0)
+                        mc_bonds.insert(del_bonds.begin(), del_bonds.end());
+                    continue;
+                }
+                auto idatm_type = nb->idatm_type();
+                auto idatm_info_map = Atom::get_idatm_info_map();
+                auto info = idatm_info_map.find(idatm_type);
+                if (info != idatm_info_map.end()
+                && (info->second).substituents == (info->second).geometry
+                && idatm_type != "Npl" && idatm_type != "N2+") {
+                    // nitrogen exclusions for HEME C in 1og5
+                    if (del_bonds.size() > 0)
+                        mc_bonds.insert(del_bonds.begin(), del_bonds.end());
+                    continue;
+                }
+            }
+            bi = metal_bonds.begin();
+            for (auto nb: metal->neighbors()) {
                 for (auto gnb: nb->neighbors()) {
                     if (metals.find(gnb) == metals.end()
                     && gnb->residue() == nb->residue())
@@ -394,6 +412,9 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
     Residue *link_res = NULL, *prev_res = NULL, *first_res = NULL;
     Atom *link_atom;
     AtomName link_atom_name;
+    // start/end residues much more efficient to search as a map...
+    std::set<Residue*> sres_map(start_residues->begin(), start_residues->end());
+    std::set<Residue*> eres_map(end_residues->begin(), end_residues->end());
     for (AtomicStructure::Residues::const_iterator ri = as->residues().begin();
     ri != as->residues().end(); ++ri) {
         Residue *r = *ri;
@@ -449,10 +470,8 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             tr = NULL;
         else
             tr = tmpl::find_template_residue(r->name(),
-                std::find(start_residues->begin(),
-                start_residues->end(), r) != start_residues->end(),
-                std::find(end_residues->begin(),
-                end_residues->end(), r) != end_residues->end());
+                sres_map.find(r) != sres_map.end(),
+                eres_map.find(r) != eres_map.end());
         if (tr != NULL)
             connect_residue_by_template(r, tr, conect_atoms);
         else
