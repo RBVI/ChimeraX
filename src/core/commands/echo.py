@@ -9,6 +9,7 @@ def echo(session, text=''):
         The text to log.
     '''
     tokens = []
+    from . import cli
     while text:
         token, chars, rest = cli.next_token(text)
         tokens.append(token)
