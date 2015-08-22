@@ -420,7 +420,7 @@ class AtomicStructureData:
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
-        return object_map(pbg, PseudobondGroup)
+        return object_map(pbg, PseudobondGroupData)
 
     # Graphics changed flags used by rendering code.  Private.
     _gc_color = c_property('structure_gc_color', npy_bool)
