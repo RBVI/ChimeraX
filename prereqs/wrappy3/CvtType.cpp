@@ -466,7 +466,7 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		// cppToAptPattern = bvPattern;
 		typeCheckPattern = "PyUnicode_Check(@)";
 		bvFormat_ = 'N';
-		bvPattern = "PyUnicode_Decode(@.str().data(), @.size(), \"utf-8\", \"replace\")";
+		bvPattern = "PyUnicode_DecodeUTF8(@.str().data(), @.size(), \"replace\")";
 		python_type = "str";
 		return;
 	}
