@@ -41,6 +41,23 @@ typedef float float32_t;
 typedef double float64_t;
 typedef void *pyobject_t;
 
+inline PyObject* unicode_from_string(const char *data, size_t size)
+{
+    return PyUnicode_DecodeUTF8(data, size, "replace");
+}
+
+inline PyObject* unicode_from_string(const std::string& str)
+{
+    return PyUnicode_DecodeUTF8(str.data(), str.size(), "replace");
+}
+
+template <int len, char... description_chars>
+inline PyObject* unicode_from_string(const chutil::CString<len, description_chars...>& cstr)
+{
+    return PyUnicode_DecodeUTF8(static_cast<const char*>(cstr), cstr.size(),
+                            "replace");
+}
+
 static void
 molc_error()
 {
@@ -187,7 +204,7 @@ extern "C" void atom_chain_id(void *atoms, size_t n, pyobject_t *cids)
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-            cids[i] = PyUnicode_FromString(a[i]->residue()->chain_id());
+            cids[i] = unicode_from_string(a[i]->residue()->chain_id());
     } catch (...) {
         molc_error();
     }
@@ -315,7 +332,7 @@ extern "C" void atom_element_name(void *atoms, size_t n, pyobject_t *names)
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-            names[i] = PyUnicode_FromString(a[i]->element().name());
+            names[i] = unicode_from_string(a[i]->element().name());
     } catch (...) {
         molc_error();
     }
@@ -366,7 +383,7 @@ extern "C" void atom_name(void *atoms, size_t n, pyobject_t *names)
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-            names[i] = PyUnicode_FromString(a[i]->name());
+            names[i] = unicode_from_string(a[i]->name());
     } catch (...) {
         molc_error();
     }
@@ -644,7 +661,7 @@ extern "C" void pseudobond_group_category(void *pbgroups, int n, void **categori
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     try {
         for (int i = 0 ; i < n ; ++i)
-            categories[i] = PyUnicode_FromString(pbg[i]->category().c_str());
+            categories[i] = unicode_from_string(pbg[i]->category());
     } catch (...) {
         molc_error();
     }
@@ -762,7 +779,7 @@ extern "C" void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
-            cids[i] = PyUnicode_FromString(r[i]->chain_id());
+            cids[i] = unicode_from_string(r[i]->chain_id());
     } catch (...) {
         molc_error();
     }
@@ -827,7 +844,7 @@ extern "C" void residue_name(void *residues, size_t n, pyobject_t *names)
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
-            names[i] = PyUnicode_FromString(r[i]->name());
+            names[i] = unicode_from_string(r[i]->name());
     } catch (...) {
         molc_error();
     }
@@ -855,7 +872,7 @@ extern "C" void residue_str(void *residues, size_t n, pyobject_t *strs)
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
-            strs[i] = PyUnicode_FromString(r[i]->str().c_str());
+            strs[i] = unicode_from_string(r[i]->str().c_str());
     } catch (...) {
         molc_error();
     }
@@ -928,7 +945,7 @@ extern "C" void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
     Chain **c = static_cast<Chain **>(chains);
     try {
         for (size_t i = 0; i != n; ++i)
-            cids[i] = PyUnicode_FromString(c[i]->chain_id());
+            cids[i] = unicode_from_string(c[i]->chain_id());
     } catch (...) {
         molc_error();
     }
@@ -1017,7 +1034,7 @@ extern "C" void structure_name(void *mols, size_t n, pyobject_t *names)
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i)
-            names[i] = PyUnicode_FromString(m[i]->name().c_str());
+            names[i] = unicode_from_string(m[i]->name().c_str());
     } catch (...) {
         molc_error();
     }
@@ -1128,17 +1145,20 @@ extern "C" void structure_chains(void *mols, size_t n, pyobject_t *chains)
 extern "C" void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
 {
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    PyObject* pbg_map = NULL;
     try {
         for (size_t i = 0; i != n; ++i) {
-            PyObject* pbg_map = PyDict_New();
+            pbg_map = PyDict_New();
             for (auto grp_info: m[i]->pb_mgr().group_map()) {
-                PyObject* name = PyUnicode_FromString(grp_info.first.c_str());
+                PyObject* name = unicode_from_string(grp_info.first.c_str());
                 PyObject *pbg = PyLong_FromVoidPtr(grp_info.second);
                 PyDict_SetItem(pbg_map, name, pbg);
             }
             pbgs[i] = pbg_map;
+            pbg_map = NULL;
         }
     } catch (...) {
+        Py_XDECREF(pbg_map);
         molc_error();
     }
 }
@@ -1158,9 +1178,10 @@ extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name
 extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    PyObject *poly = NULL;
     try {
         std::vector<Chain::Residues> polymers = m->polymers(consider_missing_structure, consider_chains_ids);
-        PyObject *poly = PyTuple_New(polymers.size());
+        poly = PyTuple_New(polymers.size());
         size_t p = 0;
         for (auto resvec: polymers) {
             void **ra;
@@ -1172,6 +1193,7 @@ extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structur
         }
         return poly;
     } catch (...) {
+        Py_XDECREF(poly);
         molc_error();
         return nullptr;
     }
