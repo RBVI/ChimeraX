@@ -1,8 +1,8 @@
 # vi: set expandtab ts=4 sw=4:
 
-from chimera.core.commands import CmdDesc, AtomSpecArg, FloatArg
+from chimera.core.commands import CmdDesc, AtomsArg, FloatArg
 contacts_desc = CmdDesc(
-    optional = [('atoms', AtomSpecArg),],
+    optional = [('atoms', AtomsArg),],
     keyword = [('probeRadius', FloatArg),])
 
 def contacts(session, atoms = None, probe_radius = 1.4):
@@ -15,11 +15,10 @@ def contacts(session, atoms = None, probe_radius = 1.4):
     atoms : Atoms
     probe_radius : float
     '''
-    from chimera.core.atomic import molsurf
-    s = molsurf.atom_spec_spheres(atoms, session, chains = True)
+    s = atom_spheres(atoms, session)
     areas, ba = buried_areas(s, probe_radius)
 
-    names = [name for name,xyz,r,place in s]
+    names = [name for name,xyz,r in s]
     sn = dict(zip(names,short_chain_names(names)))
 
     # Report result
@@ -31,20 +30,30 @@ def contacts(session, atoms = None, probe_radius = 1.4):
     from . import gui
     gui.show_contact_graph(areas, ba, sn, session)
 
+def atom_spheres(atoms, session):
+    if atoms is None:
+        from chimera.core.atomic import all_atoms
+        atoms = all_atoms(session)
+    if len(atoms) == 0:
+        from chimera.core import UserError
+        raise UserError('No atoms specified')
+    s = [('#%s/%s'%(m.id_string(),cid), catoms.scene_coords, catoms.radii)
+         for m, cid, catoms in atoms.by_chain]
+    return s
+
 def short_chain_names(names):
     use_short_names = (len(set(n.split('/',1)[0] for n in names)) == 1)
     sn = tuple(n.split('/',1)[-1] for n in names) if use_short_names else names
     return sn
 
 def buried_areas(s, probe_radius, min_area = 1):
-    # TODO: Use place matrices
-    s = [(name, xyz, r + probe_radius, place) for name, xyz, r, place in s]
+    s = [(name, xyz, r + probe_radius) for name, xyz, r in s]
     s.sort(key = lambda v: len(v[1]), reverse = True)   # Biggest first for threading.
     
     # Compute area of each atom set.
     from chimera.core.surface import spheres_surface_area
     from chimera.core.threadq import apply_to_list
-    def area(name, xyz, r, place):
+    def area(name, xyz, r):
         return (name, spheres_surface_area(xyz,r).sum())
     areas = apply_to_list(area, s)
 
@@ -53,7 +62,7 @@ def buried_areas(s, probe_radius, min_area = 1):
     from chimera.core.geometry.sphere import sphere_points
     axes = sphere_points(naxes)
     from chimera.core.geometry import sphere_bounds
-    bounds = [sphere_bounds(xyz, r, axes) for name, xyz, r, place in s]
+    bounds = [sphere_bounds(xyz, r, axes) for name, xyz, r in s]
 
     # Compute buried areas between all pairs.
     buried = []
@@ -66,8 +75,8 @@ def buried_areas(s, probe_radius, min_area = 1):
                 pairs.append((i,j))
 
     def barea(i, j, s = s, bounds = bounds, axes = axes, probe_radius = probe_radius):
-        n1, xyz1, r1, p1 = s[i]
-        n2, xyz2, r2, p2 = s[j]
+        n1, xyz1, r1 = s[i]
+        n2, xyz2, r2 = s[j]
         ba = optimized_buried_area(xyz1, r1, bounds[i], xyz2, r2, bounds[j], axes, probe_radius)
         return (n1,n2,ba)
     bareas = apply_to_list(barea, pairs)
