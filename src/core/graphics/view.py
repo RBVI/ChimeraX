@@ -440,6 +440,8 @@ class View:
               drawings=None):
         '''Capture an image of the current scene. A PIL image is returned.'''
 
+        self._use_opengl()
+
         w, h = self._window_size_matching_aspect(width, height)
 
         from .opengl import Framebuffer
