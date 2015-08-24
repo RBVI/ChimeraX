@@ -527,8 +527,8 @@ class AtomicStructureDatas(Collection):
     group categories (strings) and whose values are
     :class:`.Pseudobonds`. Read only.
     '''
-    pdb_headers = cvec_property('pdb_headers', pyobject, read_only = True)
-    '''Return a list of dictionaries with PDB headers. Read only.'''
+    metadata = cvec_property('metadata', pyobject, read_only = True)
+    '''Return a list of dictionaries with metadata. Read only.'''
 
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.

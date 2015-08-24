@@ -51,8 +51,8 @@ AtomicStructure *AtomicStructure::copy() const
 
   m->set_name(name());
 
-  for (auto h = pdb_headers.begin() ; h != pdb_headers.end() ; ++h)
-    m->pdb_headers[h->first] = h->second;
+  for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
+    m->metadata[h->first] = h->second;
   m->pdb_version = pdb_version;
 
   std::map<Residue *, Residue *> rmap;
