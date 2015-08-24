@@ -214,7 +214,7 @@ class _HistoryDialog:
         class HistoryWindow(ChildToolWindow):
             close_destroys = False
         self.window = controller.tool_window.create_child_window(
-            "Command History")
+            "Command History", window_class=HistoryWindow)
 
         parent = self.window.ui_area
         import wx
