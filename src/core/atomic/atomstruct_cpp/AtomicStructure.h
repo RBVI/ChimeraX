@@ -129,7 +129,7 @@ public:
     size_t  num_chains() const { return chains().size(); }
     size_t  num_coord_sets() const { return coord_sets().size(); }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
-    std::map<std::string, std::vector<std::string>> pdb_headers;
+    std::map<std::string, std::vector<std::string>> metadata;
     int  pdb_version;
     std::vector<Chain::Residues>  polymers(
         bool consider_missing_structure = true,

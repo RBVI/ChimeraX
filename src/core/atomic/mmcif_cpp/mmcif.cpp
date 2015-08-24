@@ -1314,7 +1314,7 @@ structure_pointers(ExtractMolecule &e, const char *filename)
         if (m->atoms().size() > 0) {
 	    m->set_name(filename);
 	    count += 1;
-        m->pdb_headers = e.generic_tables;
+        m->metadata = e.generic_tables;
 	}
 
     void **sa;

@@ -1653,15 +1653,15 @@ extern "C" void pointer_intersects_each(void *pointer_arrays, size_t na, size_t 
     }
 }
 
-extern "C" void pdb_headers(void *mols, size_t n, pyobject_t *headers)
+extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
 {
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
     PyObject* header_map = NULL;
     try {
         for (size_t i = 0; i < n; ++i) {
             header_map = PyDict_New();
-            auto& pdb_headers = m[i]->pdb_headers;
-            for (auto& item: pdb_headers) {
+            auto& metadata = m[i]->metadata;
+            for (auto& item: metadata) {
                 PyObject* key = unicode_from_string(item.first);
                 auto& headers = item.second;
                 size_t count = headers.size();
