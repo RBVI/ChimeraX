@@ -31,6 +31,8 @@ class ATOMSTRUCT_IMEX Atom: public BaseSphere<Bond, Atom> {
     friend class AtomicStructure;
     friend class Residue;
 public:
+    // HIDE_ constants are masks for hide bits in basegeom::Connectible
+    static const unsigned int  HIDE_RIBBON = 0x1;
     typedef Connections Bonds;
     enum IdatmGeometry {
         Ion=0, Single=1, Linear=2, Planar=3, Tetrahedral=4

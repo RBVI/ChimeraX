@@ -27,6 +27,7 @@ protected:
     End_points  _end_points;
 
     BondDisplay  _display = BondDisplay::Smart;
+    int  _hide = 0;
     bool  _halfbond = true;
     float  _radius = 1.0;
     Rgba  _rgba;
@@ -69,6 +70,11 @@ public:
     void  set_radius(float r)
         { graphics_container()->set_gc_shape(); _radius = r; }
     float  radius() const { return _radius; }
+    int  hide() const { return _hide; }
+    void  set_hide(int h)
+        { graphics_container()->set_gc_shape(); _hide = h; }
+    BondDisplay  visible() const
+        { return _hide ? BondDisplay::Never : _display; }
 };
 
 template <class End, class FinalConnection>

@@ -89,6 +89,12 @@ class Atom:
     ''':class:`Residue` the atom belongs to.'''
     selected = c_property('atom_selected', npy_bool)
     '''Whether the atom is selected.'''
+    HIDE_RIBBON = 0x1
+    '''Hide mask for backbone atoms in ribbon.'''
+    hide = c_property('atom_hide', int32)
+    '''Whether atom is hidden (overrides display).  Integer bitmask.'''
+    visible = c_property('atom_visible', uint8, read_only = True)
+    '''Whether atom is display and not hidden.  Read only integer.'''
 
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
@@ -141,6 +147,12 @@ class Bond:
     '''
     radius = c_property('bond_radius', float32)
     '''Displayed cylinder radius for the bond.'''
+    HIDE_RIBBON = 0x1
+    '''Hide mask for backbone bonds in ribbon.'''
+    hide = c_property('bond_hide', int32)
+    '''Whether bond is hidden (overrides display).  Integer bitmask.'''
+    visible = c_property('bond_visible', uint8, read_only = True)
+    '''Whether bond is display and not hidden.  Read only integer.'''
 
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
