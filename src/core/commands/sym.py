@@ -61,17 +61,17 @@ def pdb_assemblies(m):
         return []
     if hasattr(m, 'assemblies'):
         return m.assemblies
-    m.assemblies = alist = mmcif_assemblies(m.filename)
+    m.assemblies = alist = mmcif_assemblies(m)
     return alist
 
-def mmcif_assemblies(mmcif_path):
-    table_names = ('_pdbx_struct_assembly',
-                   '_pdbx_struct_assembly_gen',
-                   '_pdbx_struct_oper_list',
-                   '_pdbx_poly_seq_scheme',
-                   '_pdbx_nonpoly_scheme')
+def mmcif_assemblies(model):
+    table_names = ('pdbx_struct_assembly',
+                   'pdbx_struct_assembly_gen',
+                   'pdbx_struct_oper_list',
+                   'pdbx_poly_seq_scheme',
+                   'pdbx_nonpoly_scheme')
     from ..atomic import mmcif
-    assem, assem_gen, oper, cremap1, cremap2 = mmcif.read_mmcif_tables(mmcif_path, table_names)
+    assem, assem_gen, oper, cremap1, cremap2 = mmcif.get_mmcif_tables(model, table_names)
     if assem is None or assem_gen is None or oper is None:
         return []
 

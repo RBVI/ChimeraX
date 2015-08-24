@@ -62,8 +62,9 @@ void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
 
 struct ExtractMolecule: public readcif::CIFFile
 {
+    static const char* builtin_categories[];
     PyObject* _logger;
-    ExtractMolecule(PyObject* logger);
+    ExtractMolecule(PyObject* logger, const StringVector& generic_categories);
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
@@ -73,7 +74,9 @@ struct ExtractMolecule: public readcif::CIFFile
     void parse_struct_conf(bool in_loop);
     void parse_struct_sheet_range(bool in_loop);
     void parse_entity_poly_seq(bool in_loop);
+    void parse_generic_category(bool in_loop);
 
+    std::map<string, StringVector> generic_tables;
     vector<AtomicStructure*> all_molecules;
     map<int, AtomicStructure*> molecules;
     struct AtomKey {
@@ -181,6 +184,11 @@ struct ExtractMolecule: public readcif::CIFFile
     int first_model_num;
 };
 
+const char* ExtractMolecule::builtin_categories[] = {
+    "audit_conform", "atom_site", "entity_poly_seq"
+    "struct_conn", "struct_conf", "struct_sheet_range",
+};
+
 std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
     out << k.chain_id << ':' << k.residue_name << '.' << k.position
         << '(' << k.auth_position << ')'
@@ -188,7 +196,7 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
     return out;
 }
 
-ExtractMolecule::ExtractMolecule(PyObject* logger):
+ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories):
     _logger(logger), first_model_num(INT_MAX)
 {
     register_category("audit_conform",
@@ -215,6 +223,17 @@ ExtractMolecule::ExtractMolecule(PyObject* logger):
         [this] (bool in_loop) {
             parse_entity_poly_seq(in_loop);
         });
+    for (auto& c: generic_categories) {
+        if (std::find(std::begin(builtin_categories), std::end(builtin_categories), c) != std::end(builtin_categories)) {
+            logger::warning(_logger, "Can not overriden builtin parsing for "
+                            "category: ", c);
+            continue;
+        }
+        register_category(c,
+            [this] (bool in_loop) {
+                parse_generic_category(in_loop);
+            });
+    }
 }
 
 void
@@ -431,6 +450,27 @@ ExtractMolecule::data_block(const string& /*name*/)
 {
     if (!molecules.empty())
         finished_parse();
+}
+
+void
+ExtractMolecule::parse_generic_category(bool /*in_loop*/)
+{
+    const string& category = this->category();
+    const StringVector& tags = this->tags();
+    generic_tables[category] = tags;
+
+    StringVector data;
+    CIFFile::ParseValues pv;
+    pv.reserve(tags.size());
+    for (auto& t: tags) {
+        pv.emplace_back(get_column(t.c_str(), true), true,
+            [&data] (const char* start, const char* end) {
+                data.push_back(string(start, end - start));
+            });
+    }
+    while (parse_row(pv))
+        continue;
+    generic_tables[category + " data"] = data;
 }
 
 void
@@ -1274,6 +1314,7 @@ structure_pointers(ExtractMolecule &e, const char *filename)
         if (m->atoms().size() > 0) {
 	    m->set_name(filename);
 	    count += 1;
+        m->pdb_headers = e.generic_tables;
 	}
 
     void **sa;
@@ -1292,7 +1333,19 @@ parse_mmCIF_file(const char *filename, PyObject* logger)
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract(logger);
+    ExtractMolecule extract(logger, StringVector());
+    extract.parse_file(filename);
+    return structure_pointers(extract, filename);
+}
+
+PyObject*
+parse_mmCIF_file(const char *filename, const StringVector& generic_categories,
+                 PyObject* logger)
+{
+#ifdef CLOCK_PROFILING
+clock_t start_t, end_t;
+#endif
+    ExtractMolecule extract(logger, generic_categories);
     extract.parse_file(filename);
     return structure_pointers(extract, filename);
 }
@@ -1303,7 +1356,19 @@ parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger)
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract(logger);
+    ExtractMolecule extract(logger, StringVector());
+    extract.parse(reinterpret_cast<const char *>(whole_file));
+    return structure_pointers(extract, "unknown mmCIF file");
+}
+
+PyObject*
+parse_mmCIF_buffer(const unsigned char *whole_file,
+                   const StringVector& generic_categories, PyObject* logger)
+{
+#ifdef CLOCK_PROFILING
+clock_t start_t, end_t;
+#endif
+    ExtractMolecule extract(logger, generic_categories);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract, "unknown mmCIF file");
 }
