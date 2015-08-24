@@ -3,6 +3,7 @@
 #include "AtomicStructure.h"
 #include "Bond.h"
 #include "CoordSet.h"
+#include "ChangeTracker.h"
 #include "Residue.h"
 
 #include <utility>  // for std::pair
@@ -17,7 +18,20 @@ Atom::Atom(AtomicStructure *as, const char* name, Element e):
     _is_backbone(false), _name(name), _residue(NULL), _serial_number(-1),
     _structure(as)
 {
+    _structure->change_tracker()->add_created(this);
 }
+
+Atom::~Atom()
+{
+    _structure->change_tracker()->add_deleted(this);
+}
+
+const std::string Atom::REASON_ALT_LOC("alt_loc changed");
+const std::string Atom::REASON_ANISO_U("aniso_u changed");
+const std::string Atom::REASON_BFACTOR("bfactor changed");
+const std::string Atom::REASON_COORD("coord changed");
+const std::string Atom::REASON_IDATM_TYPE("idatm_type changed");
+const std::string Atom::REASON_OCCUPANCY("occupancy changed");
 
 std::set<char>
 Atom::alt_locs() const
@@ -818,6 +832,7 @@ Atom::set_alt_loc(char alt_loc, bool create, bool from_residue)
 {
     if (alt_loc == _alt_loc || alt_loc == ' ')
         return;
+    _structure->change_tracker()->add_modified(this, REASON_ALT_LOC);
     if (create) {
         if (_alt_loc_map.find(alt_loc) != _alt_loc_map.end()) {
             set_alt_loc(alt_loc, create=false);
@@ -864,6 +879,7 @@ Atom::set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u
     (*_aniso_u)[3] = u22;
     (*_aniso_u)[4] = u23;
     (*_aniso_u)[5] = u33;
+    _structure->change_tracker()->add_modified(this, REASON_ANISO_U);
 }
 
 void
@@ -874,11 +890,13 @@ Atom::set_bfactor(float bfactor)
         (*i).second.bfactor = bfactor;
     } else
         structure()->active_coord_set()->set_bfactor(this, bfactor);
+    _structure->change_tracker()->add_modified(this, REASON_BFACTOR);
 }
 
 void
 Atom::set_coord(const basegeom::Coord &coord, CoordSet *cs)
 {
+    _structure->change_tracker()->add_modified(this, REASON_COORD);
     if (cs == NULL) {
         cs = structure()->active_coord_set();
         if (cs == NULL) {
@@ -902,6 +920,7 @@ Atom::set_coord(const basegeom::Coord &coord, CoordSet *cs)
 void
 Atom::set_occupancy(float occupancy)
 {
+    _structure->change_tracker()->add_modified(this, REASON_OCCUPANCY);
     if (_alt_loc != ' ') {
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         (*i).second.occupancy = occupancy;

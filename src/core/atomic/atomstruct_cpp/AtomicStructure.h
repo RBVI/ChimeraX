@@ -29,6 +29,7 @@ namespace atomstruct {
 class Atom;
 class Bond;
 class Chain;
+class ChangeTracker;
 class CoordSet;
 class Element;
 class Residue;
@@ -57,6 +58,7 @@ private:
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
     mutable Chains*  _chains;
+    ChangeTracker*  _change_tracker;
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
@@ -87,7 +89,7 @@ private:
     mutable bool  _rings_last_cross_residues;
     mutable std::set<const Residue *>*  _rings_last_ignore;
 public:
-    AtomicStructure(PyObject* logger = nullptr);
+    AtomicStructure(ChangeTracker* ct, PyObject* logger = nullptr);
     virtual  ~AtomicStructure();
     AtomicStructure *copy() const;
     const Atoms &    atoms() const { return vertices(); }
@@ -96,6 +98,7 @@ public:
     std::map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return edges(); }
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
+    ChangeTracker*  change_tracker() const { return _change_tracker; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
     void  delete_atom(Atom* a);
     void  delete_atoms(std::vector<Atom*> atoms);

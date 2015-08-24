@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <basegeom/Coord.h>
+#include <basegeom/Graph.h>
 #include <basegeom/Point.h>
 #include <basegeom/Sphere.h>
 #include "Element.h"
@@ -18,6 +19,7 @@
 namespace atomstruct {
 
 using basegeom::BaseSphere;
+using basegeom::Graph;
 using basegeom::GraphicsContainer;
 using basegeom::Point;
 
@@ -29,6 +31,7 @@ class Ring;
 
 class ATOMSTRUCT_IMEX Atom: public BaseSphere<Bond, Atom> {
     friend class AtomicStructure;
+    friend class Graph<Atom, Bond>;
     friend class Residue;
 public:
     typedef Connections Bonds;
@@ -43,9 +46,17 @@ public:
     typedef std::map<AtomType, IdatmInfo> IdatmInfoMap;
     typedef std::vector<const Ring*>  Rings;
 
+    // change tracker reasons
+    static const std::string  REASON_ALT_LOC;
+    static const std::string  REASON_ANISO_U;
+    static const std::string  REASON_BFACTOR;
+    static const std::string  REASON_COORD;
+    static const std::string  REASON_IDATM_TYPE;
+    static const std::string  REASON_OCCUPANCY;
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
     Atom(AtomicStructure *as, const char* name, Element e);
+    virtual ~Atom();
     char  _alt_loc;
     typedef struct {
         std::vector<float> *  aniso_u;
@@ -110,8 +121,8 @@ public:
     void  set_bfactor(float);
     virtual void  set_coord(const Point & coord) { set_coord(coord, NULL); }
     void  set_coord(const Point & coord, CoordSet * cs);
-    void  set_computed_idatm_type(const char* it) { _computed_idatm_type =  it; }
-    void  set_idatm_type(const char* it) { _explicit_idatm_type = it; }
+    void  set_computed_idatm_type(const char* it);
+    void  set_idatm_type(const char* it);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
     void  set_is_backbone(bool ibb) { _is_backbone = ibb; }
     void  set_occupancy(float);
@@ -128,6 +139,7 @@ public:
 }  // namespace atomstruct
 
 #include "AtomicStructure.h"
+#include "ChangeTracker.h"
 inline const atomstruct::AtomType&
 atomstruct::Atom::idatm_type() const {
     if (idatm_is_explicit()) return _explicit_idatm_type;
@@ -139,6 +151,24 @@ inline bool
 atomstruct::Atom::is_backbone() const {
     if (!structure()->_polymers_computed) structure()->polymers();
     return _is_backbone;
+}
+
+inline void
+atomstruct::Atom::set_computed_idatm_type(const char* it) {
+    if (!idatm_is_explicit() && _computed_idatm_type != it)
+        _structure->change_tracker()->add_modified(this, REASON_IDATM_TYPE);
+    _computed_idatm_type =  it;
+}
+
+inline void
+atomstruct::Atom::set_idatm_type(const char* it) {
+    // make sure it actually is effectively different before tracking
+    // change
+    if (!(_explicit_idatm_type.empty() && _computed_idatm_type == it)
+    && !(*it == '\0' && _explicit_idatm_type == _computed_idatm_type)
+    && !(!_explicit_idatm_type.empty() && it == _explicit_idatm_type))
+        _structure->change_tracker()->add_modified(this, REASON_IDATM_TYPE);
+    _explicit_idatm_type = it;
 }
 
 #endif  // atomstruct_Atom

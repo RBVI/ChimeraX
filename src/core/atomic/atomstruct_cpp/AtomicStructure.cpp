@@ -22,10 +22,11 @@ const char*  AtomicStructure::PBG_METAL_COORDINATION = "metal coordination bonds
 const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 const char*  AtomicStructure::PBG_HYDROGEN_BONDS = "hydrogen bonds";
 
-AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(NULL),
-    _chains(nullptr), _idatm_valid(false), _logger(logger),
-    _name("unknown AtomicStructure"), _pb_mgr(this), _polymers_computed(false),
-    _recompute_rings(true), asterisks_translated(false), is_traj(false),
+AtomicStructure::AtomicStructure(ChangeTracker* ct, PyObject* logger):
+    _active_coord_set(NULL), _chains(nullptr), _change_tracker(ct),
+    _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure"),
+    _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
+    asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0)
 {
 }
@@ -47,7 +48,7 @@ AtomicStructure::~AtomicStructure() {
 
 AtomicStructure *AtomicStructure::copy() const
 {
-  AtomicStructure *m = new AtomicStructure(_logger);
+  AtomicStructure *m = new AtomicStructure(_change_tracker, _logger);
 
   m->set_name(name());
 
