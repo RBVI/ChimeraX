@@ -428,14 +428,15 @@ def deduce_format(filename, has_format=None, prefixable=True):
         if format_name is None:
             from .errors import UserError
             raise ValueError("'%s' is not a not prefix" % prefix)
-    elif prefixable and len(filename) == 4 and 'mmCIF' in _file_formats:
-        format_name = 'mmCIF'
-        prefixed = True
     elif format_name is None:
         stripped, compression = determine_compression(filename)
         import os
         base, ext = os.path.splitext(stripped)
         if not ext:
+            if prefixable and len(filename) == 4 and 'mmCIF' in _file_formats:
+                format_name = 'mmCIF'
+                prefixed = True
+                return format_name, prefixed, filename, None
             from .errors import UserError
             raise UserError("Missing filename suffix")
         ext = ext.casefold()
