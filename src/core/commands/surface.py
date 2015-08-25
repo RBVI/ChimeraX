@@ -114,7 +114,7 @@ def surface(session, atoms = None, enclose = None, include = None,
         s = all_surfs.get(enclose_atoms.hash())
         if s is None:
             mols = enclose.unique_structures
-            parent = mols[0] if len(mols) == 1 else session.models.drawing
+            parent = mols[0] if len(mols) == 1 else None
             name = 'Surface %s' % enclose.spec
             rgba = surface_rgba(color, transparency)
             s = MolecularSurface(enclose_atoms, show_atoms,
