@@ -1,0 +1,331 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: surface</title>
+</head><body>
+<p>
+This is the pared-down version;
+see <a href="http://www.cgl.ucsf.edu/home/meng/chi2/surface.html"
+target="_top">version with developer notes</a>.
+</p>
+<hr>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: surface</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>surface</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
+[&nbsp;enclose
+&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
+[&nbsp;include
+&nbsp;<a href="atomspec.html"><i>atom-spec3</i></a>&nbsp;]
+[&nbsp;replace&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;probeRadius&nbsp;<i>rad</i>&nbsp;]
+[&nbsp;gridSpacing&nbsp;<i>s</i>&nbsp;]
+[&nbsp;resolution&nbsp;<i>r</i>&nbsp; [&nbsp;level&nbsp;<i>l</i>&nbsp;]]
+[&nbsp;sharpBoundaries&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;visiblePatches&nbsp;<i>N</i>&nbsp;] 
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>surface</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
+(&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;)
+ <BR><b>surface</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
+<b>close</b>
+ <BR><b>surface</b> &nbsp;<i>surf-model</i>&nbsp; <b>close</b>
+</h3>
+<p>
+The <b>surface</b> command creates and displays molecular surfaces,
+either atomically detailed solvent-excluded surfaces (default) or
+lower-resolution Gaussian surfaces specified with the 
+<a href="#parameters"><b>resolution</b></a> option.
+A <b><i>solvent-excluded</i></b> surface (SES) is
+composed of the contact, toroidal, and reentrant surfaces
+of a probe sphere rolled over the spacefilling atoms. By contrast,
+a <b><i>solvent-accessible</i></b> surface (SAS, not shown by Chimera)
+is the surface traced out by the center of the probe sphere.
+See below for <a href="#options">surface creation options</a> and
+<a href="#examples">examples</a>.
+</p><p>
+With <a href="atomspec.html"><i>atom-spec1</i></a>,
+display can be controlled for entire molecular surfaces on down to
+individual atom or residue patches within a molecular surface;
+see the <a href="#examples">examples</a>.
+By default, molecular surfaces are generated to enclose only the residues
+in biopolymer chains, grouped by chain ID.
+Typically, this gives a separate 
+molecular surface for each peptide or nucleic acid chain.
+If only a subset of the atoms in a chain is specified, only the 
+surface patches for those atoms in the context of the chain will be shown.
+The command <b>surface</b> with the <b>hide</b> keyword
+undisplays molecular surface patches for the specified atoms;
+the <b>show</b> keyword indicates displaying patches for the specified atoms
+in <i>pre-existing</i> surfaces only.
+The command <b>surface</b> with the <b>close</b> keyword removes all surface
+models that enclose any of the specified atoms, 
+or removes the specified <i>surf-model</i>.
+</p><p>
+<a name="modelnumbers"></a>
+By default, each biopolymer chain in an atomic model
+will give rise to a separate surface model.
+Molecular surface models are treated as &ldquo;children&rdquo; 
+of the corresponding atomic model.
+For example, surface models based on atoms in model #1 
+will be numbered #1.1, 1.2, <i>etc.</i>, 
+and closing #1 will also close those surface models.
+However, if a single surface model is based on atoms from more than one model
+(for example, generated with <b>surf enclose #1,2</b>), it will be assigned 
+a number at the same level as the atomic models (for example, #3).
+</p>
+
+<a name="surfcats"></a>
+<font color="brown"><p>
+** The following categorization is not yet implemented;
+currently, the default surfaces simply include the biopolymer chains. **
+</p></font>
+<table border width="95%" cellpadding="4" cellspacing="0">
+<tr><th>Automatic Categories</th> 
+<th>Membership Rules (in order of application)</th></tr>
+<tr><td align=center><b>solvent</b></td>
+<td>
+Of the following two, the set with the greater number of residues:
+<ul>
+<li> &ldquo;small solvent&rdquo; candidate set:
+residues of up to 3 atoms named WAT, HOH, and DOD, plus singleton atoms
+(<i>i.e.</i>, not covalently bonded to other atoms)
+of atomic number 6-8 in single-atom residues
+<li> &ldquo;other solvent&rdquo; candidate set:  
+excluding residues in the &ldquo;small solvent&rdquo; set, 
+the most prevalent type of residue that is not covalently bonded 
+to other residues, has &le; 10 atoms per residue, and is present in
+at least 10 copies in the structure
+</ul>
+</td>
+<tr><td align=center><b>ions</b></td>
+<td>
+Non-solvent singleton atoms other than noble gases, 
+plus covalently bonded groups of &le; 4 atoms 
+(not counting hydrogens) in the same residues as those singletons
+</td>
+<tr><td align=center><b>ligand</b></td>
+<td>
+Singleton atoms that are noble gases;
+single residues or bonded sequences of residues
+with &lt; 10 residues per bonded sequence, 
+&lt; 250 atoms, and &lt; 1/4 the number of atoms
+in the largest bonded sequence of residues in the model;
+residues bonded to a chain but not included in its main sequence
+(<i>e.g.</i>, retinal in rhodopsin, glycosylations)
+</td>
+<tr><td align=center><b>main</b></td>
+<td>
+All remaining atoms;
+by default, molecular surfaces enclose these, grouped by chain ID
+</td>
+</table>
+<!--
+<p>
+Each category name can be used in
+<a href="atomspec.html"><i>atom-spec</i></a> strings. 
+</p>
+-->
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="options"></a>
+<h3>Surface Creation Options</h3>
+<p>
+Option keywords for <a href="#top"><b>surface</b></a>
+can be truncated to unique strings and their case does not matter.
+Synonyms for true: True, 1. Synonyms for false: False, 0.
+<ul>
+<li><a href="#grouping">Grouping Atoms into Surfaces</a>
+<li><a href="#parameters">Calculation Parameters</a>
+<li><a href="#appearance">Other Appearance Options</a>
+</ul>
+</p>
+
+<a name="grouping"></a>
+<h4><a href="#options" class="nounder"><b>&larr;</b></a>
+Grouping Atoms into Surfaces</h4>
+<p>
+The <b>enclose</b> option can be used to specify a different set of atoms 
+(<a href="atomspec.html"><i>atom-spec2</i></a>)
+to enclose within a single surface, for <a href="#examples">example</a>,
+to coalesce
+biopolymer chains with different chain IDs into a single molecular envelope.
+</p><p>
+The <b>include</b> option can be used to force including atoms that
+would otherwise be ignored 
+<!--
+(any subset of the atoms 
+<a href="#surfcats">categorized</a>
+as <b>ligand</b>, <b>solvent</b>, or <b>ions</b>) 
+-->
+(residues not within a biopolymer chain, such as ligands, solvent, and ions)
+into the same envelope as the biopolymer atoms with the same chain ID.
+For convenience, however, if
+<a href="atomspec.html"><i>atom-spec1</i></a>
+contains only such atoms, they will be surfaced separately
+<!--
+(grouped by <a href="#surfcats">category</a> and chain ID)
+-->
+and the <b>include</b> option is not needed.
+</p><p>
+The <b>replace</b> option (default <b>true</b>)
+indicates removing all previously created surface models 
+that enclose any of the same atoms as the current surface.
+Successive uses of the <b>surface</b> command with <b>replace false</b>
+can produce multiple surface models that enclose the same set of atoms
+or different but overlapping sets of atoms. Surface model number assignments
+are discussed <a href="#modelnumbers">above</a>.
+</p>
+
+<a name="parameters"></a>
+<h4><a href="#options" class="nounder"><b>&larr;</b></a>
+Calculation Parameters</h4>
+<p>
+Aside from how atoms are <a href="#grouping">grouped</a>, molecular surface
+parameters can be specified with the following options:
+</p>
+<ul>
+<li>The <b>resolution</b> option
+indicates creating a low-resolution surface instead of a solvent-excluded
+surface (SES).
+A pseudo-density map is generated by summing over atoms, where each atom is
+described as a 3D Gaussian distribution of width proportional to the
+<b>resolution</b> <i>r</i> and amplitude (height) equal to the atomic number.
+The summed density map is contoured at the specified isosurface
+<b>level</b> <i>l</i> and then discarded.
+The default contour level is half the minimum of
+the map values at atom positions, as determined by interpolation.
+The level is reported in the log. A smaller contour level gives a
+larger surface, that is, farther out from the atomic centers.
+<li>If <b>resolution</b> is not given, an SES will be calculated with
+<b>probeRadius</b> <i>rad</i>, the radius of the 
+&ldquo;rolling sphere&rdquo; probe (default <b>1.4</b> &Aring;, 
+the value often used to approximate a water molecule).
+A larger probe radius gives a less detailed and less bumpy surface.
+<li>The <b>gridSpacing</b> <i>s</i> is the spacing of the grid used to 
+calculate either type of surface. The default spacing is <b>0.5</b> &Aring;
+is for an SES, <b>0.1<i>r</i></b> (one-tenth the resolution) 
+for a Gaussian surface.
+A smaller spacing gives a smoother, more finely triangulated surface,
+but uses more memory.
+</ul>
+
+<a name="appearance"></a>
+<h4><a href="#options" class="nounder"><b>&larr;</b></a>
+Other Appearance Options</h4>
+<p>
+The <b>sharpBoundaries</b> option 
+(default <b>true</b> for an SES, default <b>false</b> for a Gaussian surface)
+adjusts the triangulation of the surface to produce abrupt and relatively
+straight boundaries between per-atom patches. This significantly reduces the
+sawtooth appearance where adjacent per-atom patches differ in color or 
+display status (hidden <i>vs.</i> shown).
+</p><p>
+The <b>visiblePatches</b> option indicates hiding all but the 
+<i>N</i> largest connected surface patches (per surface model) for
+the specified atoms; by removing the visual clutter of small patches,
+this can significantly enhance viewing of pocket surfaces.
+Ranking to determine the largest is based on surface area, <i>including</i>
+any portions hidden by clipping.
+</p>
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="examples"></a>
+<h3>Examples</h3>
+<p>
+Example <a href="#top"><b>surface</b></a> commands:
+</p>
+<blockquote>
+<b>surface</b>
+</blockquote>
+- display the surface of each biopolymer chain in each model
+<blockquote>
+<b>surface #1</b>
+</blockquote>
+- display the surface of each biopolymer chain in model 1
+<blockquote>
+<b>surface #1:5-38</b>
+</blockquote>
+- display the surface patch(es) for residues 5-38 in each chain of model 1
+<blockquote>
+<b>surface #1/A:5-38 hide</b>
+</blockquote>
+- hide the surface patch(es) for residues 5-38 in chain A of model 1
+<blockquote>
+<b>surface :10-20 visible 1</b>
+</blockquote>
+- display the largest surface patch for residues 10-20 in each chain
+<blockquote>
+<b>surface /b close</b>
+</blockquote>
+- close (delete) the surface model for chain B
+<blockquote>
+<b>surface #1.2 close</b>
+</blockquote>
+- close (delete) the surface with model number 1.2
+<!-- category "ligand" not yet implemented
+<blockquote>
+<b>surface ligand za<5 visible 1</b>
+</blockquote>
+- display the largest surface patch per biopolymer chain for
+atoms within 5&Aring; of <a href="#surfcats"><b>ligand</b></a>
+<blockquote>
+<b>surface ligand</b>
+</blockquote>
+- display surface(s) for <a href="#surfcats"><b>ligand</b></a>
+(divided up by chain ID)
+-->
+<blockquote>
+<b>surface #1-3</b>
+</blockquote>
+- display the surface of each biopolymer chain in models 1-3
+<blockquote>
+<b>surface #1-3 enclose #1-3</b>
+</blockquote>
+- display a single surface enclosing all biopolymer chains in models 1-3;
+the first <b>#1-3</b> could be omitted,
+as a blank specification there is interpreted as &ldquo;all&rdquo; 
+<blockquote>
+<b>surface :10-20 enclose /a-c</b>
+</blockquote>
+- display the surface patch(es) for residues 10-20 within a single surface
+that encloses chains A-C
+<blockquote>
+<b>surface #1 include :hem</b>
+</blockquote>
+- display a surface that encloses each biopolymer chain in model 1 along
+with its respective HEM residue (for example, in PDB
+<a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=4hhb"
+target="_blank">4HHB</a>)
+<blockquote>
+<b>surface enclose #1 include :hem</b>
+</blockquote>
+- display a single surface that encloses all the biopolymer chains 
+and HEM residues in model 1
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2015</address>
+</body></html>
