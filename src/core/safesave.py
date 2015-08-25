@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-safesave: safely write files
+safesave: Safely write files
 ============================
 
 This module provides a method to safely overwrite a file.  If it fails,

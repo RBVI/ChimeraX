@@ -110,10 +110,10 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.applique.display_style = Drawing.Mesh
         self.applique.use_lighting = False
         self.view.add_2d_overlay(self.applique)
-        self.main_view.add_rendered_frame_callback(self._redraw)
+        self.main_view.add_callback('rendered frame', self._redraw)
 
     def on_destroy(self, event):
-        self.main_view.remove_rendered_frame_callback(self._redraw)
+        self.main_view.remove_callback('rendered frame', self._redraw)
 
     def _redraw(self):
         # wx.CallAfter(self.draw)
@@ -289,7 +289,7 @@ class SideViewUI(ToolInstance):
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
-        from chimera.core.gui import MainToolWindow
+        from chimera.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
 

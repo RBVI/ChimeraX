@@ -205,14 +205,14 @@ pyObject(char const* _x)
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
-	return PyUnicode_Decode(_x, strlen(_x), "utf-8", "replace");
+	return PyUnicode_DecodeUTF8(_x, strlen(_x), "replace");
 }
 
 template <> inline PyObject*
-pyObject(std::string _x) { return PyUnicode_Decode(_x.data(), _x.size(), "utf-8", "replace"); }
+pyObject(std::string _x) { return PyUnicode_DecodeUTF8(_x.data(), _x.size(), "replace"); }
 
 template <> inline PyObject*
-pyObject(const std::string &_x) { return PyUnicode_Decode(_x.data(), _x.size(), "utf-8", "replace"); }
+pyObject(const std::string &_x) { return PyUnicode_DecodeUTF8(_x.data(), _x.size(), "replace"); }
 
 template <> inline PyObject*
 pyObject(PyObject* _x) { Py_XINCREF(_x); return _x; }

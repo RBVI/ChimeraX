@@ -14,10 +14,12 @@ Modules
 -------
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
-    core/gui.rst
+    core/commands/commands.rst
 
-    core/cli.rst
+    core/commands/cli.rst
+
+    core/ui/gui.rst
 
     core/settings.rst

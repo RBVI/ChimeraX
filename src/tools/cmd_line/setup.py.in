@@ -1,7 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
-#import distutils.core
-#distutils.core.DEBUG = True
+# import distutils.core
+# distutils.core.DEBUG = True
 from distlib import metadata
 print(metadata.METADATA_FILENAME)
 metadata.METADATA_FILENAME = "metadata.json"

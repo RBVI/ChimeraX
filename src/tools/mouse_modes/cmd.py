@@ -1,8 +1,5 @@
 # vi: set expandtab ts=4 sw=4:
 
-from chimera.core import cli
-
-
 def get_singleton(session, create=False):
     if not session.ui.is_gui:
         return None
@@ -20,15 +17,18 @@ def get_singleton(session, create=False):
         return running[0]
 
 
-def hide(session):
+def mousemodes_hide(session):
+    '''Hide the mouse modes icon panel.'''
     mmpanel = get_singleton(session)
     if mmpanel is not None:
         mmpanel.display(False)
-hide_desc = cli.CmdDesc()
+from chimera.core.commands import CmdDesc
+hide_desc = CmdDesc()
 
 
-def show(session):
+def mousemodes_show(session):
+    '''Show the mouse modes icon panel.'''
     mmpanel = get_singleton(session, create=True)
     if mmpanel is not None:
         mmpanel.display(True)
-show_desc = cli.CmdDesc()
+show_desc = CmdDesc()

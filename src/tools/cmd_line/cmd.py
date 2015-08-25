@@ -1,6 +1,6 @@
 # vi: set expandtab ts=4 sw=4:
 
-from chimera.core import cli
+from chimera.core.commands import CmdDesc
 
 
 def get_singleton(session, create=False):
@@ -20,15 +20,17 @@ def get_singleton(session, create=False):
         return running[0]
 
 
-def hide(session):
+def command_line_hide(session):
+    '''Hide the command line.'''
     cmdline = get_singleton(session)
     if cmdline is not None:
         cmdline.display(False)
-hide_desc = cli.CmdDesc()
+hide_desc = CmdDesc()
 
 
-def show(session):
+def command_line_show(session):
+    '''Show the command line.'''
     cmdline = get_singleton(session, create=True)
     if cmdline is not None:
         cmdline.display(True)
-show_desc = cli.CmdDesc()
+show_desc = CmdDesc()

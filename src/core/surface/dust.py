@@ -36,7 +36,11 @@ def hide_dust_piece(p, metric, limit, use_cached_geometry = False):
 #
 def largest_blobs_triangle_mask(vertices, triangles, triangle_mask, blob_count = 1,
                                 rank_metric = 'size rank'):
-
+    '''
+    Return a triangle mask which includes the N largest connected surface components
+    using a specified metric "size rank", "area rank", or "volume rank".  Size rank
+    measures maximum extent along x, y and z axes.
+    '''
     b = Blob_Masker(vertices, triangles, triangle_mask)
     tmask = b.triangle_mask(metric = rank_metric, limit = blob_count)
     return tmask

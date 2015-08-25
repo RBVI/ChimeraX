@@ -30,7 +30,7 @@ class Space_Navigator:
                 return False     # Connection failed.
 
         if self.device:
-            self.view.add_new_frame_callback(self.check_space_navigator)
+            self.view.add_callback('new frame', self.check_space_navigator)
             self.processing_events = True
             return True
 
@@ -41,7 +41,7 @@ class Space_Navigator:
     def stop_event_processing(self):
 
         if self.processing_events:
-            self.view.remove_new_frame_callback(self.check_space_navigator)
+            self.view.remove_callback('new frame', self.check_space_navigator)
             self.processing_events = False
 
     def check_space_navigator(self):
@@ -119,10 +119,8 @@ class Space_Navigator:
             cr = cpinv * cam.position.origin()
             tf = tf.inverse()
         else:
-            if tf.rotation_angle() > 1e-5:
-                v.update_center_of_rotation()           # Rotation
-            else:
-                v.center_of_rotation_needs_update()     # Translation
+            if tf.rotation_angle() <= 1e-5:
+                v._update_center_of_rotation = True  # Translation
             cr = cpinv * v.center_of_rotation
         from ...geometry import translation
         stf = cp * translation(cr) * tf * translation(-cr) * cpinv
@@ -217,8 +215,19 @@ def avoid_collisions(session):
 
 # -----------------------------------------------------------------------------
 #
-def snav_command(session, enable = None, fly = None):
+def snav(session, enable = None, fly = None):
+    '''Enable or disable moving models with Space Navigator input device.
 
+    Parameters
+    ----------
+    enable : bool
+      Enable (true) or disable (false) use of the Space Navigator device.
+    fly : bool
+      Enable flying mode where the Space Navigator motions control the camera,
+      for example pushing forward flies the camera forward.  If fly is false,
+      then the device controls the models, pushing forward would push the models
+      away from the camera.  In both cases it is actually the camera that moves.
+    '''
     sn = space_navigator(session)
     if not enable is None:
         if enable:
@@ -234,7 +243,7 @@ def snav_command(session, enable = None, fly = None):
 # Register the snav command for Chimera 2.
 #
 def register_snav_command():
-    from ...cli import CmdDesc, BoolArg, register
+    from ...commands import CmdDesc, BoolArg, register
     _snav_desc = CmdDesc(optional = [('enable', BoolArg)],
                          keyword = [('fly', BoolArg)])
-    register('snav', _snav_desc, snav_command)
+    register('snav', _snav_desc, snav)

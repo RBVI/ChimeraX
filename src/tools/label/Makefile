@@ -16,7 +16,7 @@ TOOL_CATEGORY = Hidden
 TOOL_SYNOPSIS = Command to draw 2d labels
 COMMAND_NAME = 2dlabels
 
-PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,/,.,')
+PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
 

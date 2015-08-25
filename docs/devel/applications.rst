@@ -15,8 +15,6 @@ TODO: evaluate if this is needed.
 .. toctree::
     :maxdepth: 2
 
-    TODO: Structure comparison
-
     apps/Chimera2/Chimera2.rst
 
     webapp.rst

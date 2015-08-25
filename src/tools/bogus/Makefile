@@ -12,7 +12,7 @@ TOOL_CATEGORY = General
 TOOL_SYNOPSIS = Bogus tool for demonstrating toolshed functionality
 COMMAND_NAME = bogus
 
-PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,/,.,')
+PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
 

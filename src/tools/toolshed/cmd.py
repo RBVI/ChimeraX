@@ -1,8 +1,8 @@
 # vi: set expandtab ts=4 sw=4:
 
-from chimera.core import cli
+from chimera.core.commands import EnumOf, CmdDesc, StringArg, BoolArg
 
-_tool_types = cli.EnumOf(["all", "installed", "available"])
+_tool_types = EnumOf(["all", "installed", "available"])
 
 
 def _display_tools(ti_list, logger):
@@ -12,6 +12,13 @@ def _display_tools(ti_list, logger):
 
 
 def ts_list(session, tool_type="installed"):
+    '''List installed tools in the log.
+
+    Parameters
+    ----------
+    tool_type : string
+      Types are "installed", "available", or "all"
+    '''
     ts = session.toolshed
     logger = session.logger
     if tool_type == "installed" or tool_type == "all":
@@ -28,10 +35,19 @@ def ts_list(session, tool_type="installed"):
             _display_tools(ti_list, logger)
         else:
             logger.info("No available tools found.")
-ts_list_desc = cli.CmdDesc(optional=[("tool_type", _tool_types)])
+ts_list_desc = CmdDesc(optional=[("tool_type", _tool_types)])
 
 
 def ts_refresh(session, tool_type="installed"):
+    '''
+    Check for new tools or new tool vesions on server and display
+    them in the tool shed window.
+
+    Parameters
+    ----------
+    tool_type : string
+      Types are "installed", "available", or "all"
+    '''
     ts = session.toolshed
     logger = session.logger
     if tool_type == "installed":
@@ -40,7 +56,7 @@ def ts_refresh(session, tool_type="installed"):
         ts.reload(logger, rebuild_cache=False, check_remote=True)
     elif tool_type == "all":
         ts.reload(logger, rebuild_cache=True, check_remote=True)
-ts_refresh_desc = cli.CmdDesc(optional=[("tool_type", _tool_types)])
+ts_refresh_desc = CmdDesc(optional=[("tool_type", _tool_types)])
 
 
 def _tool_string(tool_name, version):
@@ -51,6 +67,16 @@ def _tool_string(tool_name, version):
 
 
 def ts_install(session, tool_name, user_only=True, version=None):
+    '''
+    Install a tool.
+
+    Parameters
+    ----------
+    tool_name : string
+    user_only : bool
+      Install for this user only, or install for all users.
+    version : string
+    '''
     ts = session.toolshed
     logger = session.logger
     ti = ts.find_tool(tool_name, installed=True, version=version)
@@ -63,12 +89,19 @@ def ts_install(session, tool_name, user_only=True, version=None):
                      % _tool_string(tool_name, version))
         return
     ts.install_tool(ti, logger, not user_only)
-ts_install_desc = cli.CmdDesc(required=[("tool_name", cli.StringArg)],
-                              optional=[("user_only", cli.BoolArg),
-                                        ("version", cli.StringArg)])
+ts_install_desc = CmdDesc(required=[("tool_name", StringArg)],
+                          optional=[("user_only", BoolArg),
+                                    ("version", StringArg)])
 
 
 def ts_remove(session, tool_name):
+    '''
+    Remove an installed tool.
+
+    Parameters
+    ----------
+    tool_name : string
+    '''
     ts = session.toolshed
     logger = session.logger
     ti = ts.find_tool(tool_name, installed=True)
@@ -76,10 +109,17 @@ def ts_remove(session, tool_name):
         logger.error("\"%s\" does not match any tools" % tool_name)
         return
     ts.uninstall_tool(ti, logger)
-ts_remove_desc = cli.CmdDesc(required=[("tool_name", cli.StringArg)])
+ts_remove_desc = CmdDesc(required=[("tool_name", StringArg)])
 
 
 def ts_start(session, tool_name, *args, **kw):
+    '''
+    Start a tool.
+
+    Parameters
+    ----------
+    tool_name : string
+    '''
     ts = session.toolshed
     logger = session.logger
     ti = ts.find_tool(tool_name, installed=True)
@@ -87,10 +127,18 @@ def ts_start(session, tool_name, *args, **kw):
         logger.error("\"%s\" does not match any tools" % tool_name)
         return
     ti.start(session, *args, **kw)
-ts_start_desc = cli.CmdDesc(required=[("tool_name", cli.StringArg)])
+ts_start_desc = CmdDesc(required=[("tool_name", StringArg)])
 
 
 def ts_update(session, tool_name, version=None):
+    '''
+    Update a tool to the latest version.
+
+    Parameters
+    ----------
+    tool_name : string
+    version : string
+    '''
     ts = session.toolshed
     logger = session.logger
     new_ti = ts.find_tool(tool_name, installed=False, version=version)
@@ -107,8 +155,8 @@ def ts_update(session, tool_name, version=None):
         logger.info("\"%s\" is up to date" % tool_name)
         return
     ts.install_tool(new_ti, logger)
-ts_update_desc = cli.CmdDesc(required=[("tool_name", cli.StringArg)],
-                             optional=[("version", cli.StringArg)])
+ts_update_desc = CmdDesc(required=[("tool_name", StringArg)],
+                         optional=[("version", StringArg)])
 
 
 #
@@ -134,14 +182,16 @@ def get_singleton(session, create=False):
 
 
 def ts_hide(session):
+    '''Hide the Tool Shed user interface.'''
     ts = get_singleton(session)
     if ts is not None:
         ts.display(False)
-ts_hide_desc = cli.CmdDesc()
+ts_hide_desc = CmdDesc()
 
 
 def ts_show(session):
+    '''Show the Tool Shed user interface.'''
     ts = get_singleton(session, create=True)
     if ts is not None:
         ts.display(True)
-ts_show_desc = cli.CmdDesc()
+ts_show_desc = CmdDesc()

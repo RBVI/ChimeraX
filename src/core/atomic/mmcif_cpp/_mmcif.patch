@@ -1,0 +1,55 @@
+--- _mmcif.cpp.orig	2015-08-20 16:53:59.908863108 -0700
++++ _mmcif.cpp	2015-08-20 17:00:34.744679789 -0700
+@@ -61,6 +61,26 @@
+ 	}
+ }
+ 
++static bool
++sequence_to_vector_string(PyObject *seq, std::vector<std::string> *vec)
++{
++	if (!PySequence_Check(seq))
++		return false;
++	int count = PySequence_Length(seq);
++	vec->reserve(count);
++	for (int i = 0; i < count; ++i) {
++		PyObject *o = PySequence_GetItem(seq, i);
++		if (!PyUnicode_Check(o)) {
++			Py_XDECREF(o);
++			return false;
++		}
++		std::string inst = wrappy::PythonUnicode_AsCppString(o);
++		vec->push_back(inst);
++		Py_DECREF(o);
++	}
++	return true;
++}
++
+ static PyObject*
+ _mmcif_load_mmCIF_templates(PyObject*, PyObject* _ptArg)
+ {
+@@ -118,9 +138,9 @@
+ 			return NULL;
+ 		try {
+ 			const unsigned char* cppArg1 = reinterpret_cast<unsigned char*>(_ptArg1.buf);
+-			if (!?TODO?)
+-				throw std::invalid_argument("argument 2 should be a list of str");
+-			const std::vector<std::string>& cppArg2 = ?TODO?;
++			std::vector<std::string> cppArg2;
++			if (!sequence_to_vector_string(_ptArg2, &cppArg2))
++				throw std::invalid_argument("argument 2 should be a sequence of str");
+ 			PyObject* cppArg3 = _ptArg3;
+ 			PyObject* _result = parse_mmCIF_buffer(cppArg1, cppArg2, cppArg3);
+ 			PyBuffer_Release(&_ptArg1);
+@@ -180,9 +200,9 @@
+ 			if (!PyUnicode_Check(_ptArg1))
+ 				throw std::invalid_argument("argument 1 should be a str");
+ 			std::string cppArg1 = wrappy::PythonUnicode_AsCppString(_ptArg1);
+-			if (!?TODO?)
+-				throw std::invalid_argument("argument 2 should be a list of str");
+-			const std::vector<std::string>& cppArg2 = ?TODO?;
++			std::vector<std::string> cppArg2;
++			if (!sequence_to_vector_string(_ptArg2, &cppArg2))
++				throw std::invalid_argument("argument 2 should be a sequence of str");
+ 			PyObject* cppArg3 = _ptArg3;
+ 			PyObject* _result = parse_mmCIF_file(cppArg1.c_str(), cppArg2, cppArg3);
+ 			return _result;

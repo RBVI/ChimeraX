@@ -1,7 +1,7 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-utils -- generically useful stuff that doesn't fit elsewhere
-============================================================
+utils: Generically useful stuff that doesn't fit elsewhere
+==========================================================
 """
 
 
@@ -57,6 +57,7 @@ def html_user_agent(app_dirs):
         try:
             utils.retrieve_cached_url(request, filename, session.logger)
         except URLError as e:
+            from chimera.core.errors import UsereError
             raise UserError(str(e))
     """
     # The name, author, and version must be "tokens"

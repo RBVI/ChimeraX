@@ -1,8 +1,5 @@
 # vi: set expandtab ts=4 sw=4:
 
-from chimera.core import cli
-
-
 def get_singleton(session, create=False):
     if not session.ui.is_gui:
         return None
@@ -19,22 +16,45 @@ def get_singleton(session, create=False):
     else:
         return running[0]
 
+def log(session, show = None, hide = None, warning_dialog = None, error_dialog = None, test = None):
+    '''Control setting for the Log window.
 
-def hide(session):
-    log = get_singleton(session)
+    Parameters
+    ----------
+    show : bool
+    hide : bool
+    warning_dialog : bool
+      If true, warnings popup a separate dialog, if false no warning dialog is shown.
+      In either case the warning appears in the log text.
+    error_dialog : bool
+      If true, errors popup a separate dialog, if false no error dialog is shown.
+      In either case the errors appears in the log text.
+    test : bool
+      Test logging of various types of messages.
+    '''
+    create = show or test
+    log = get_singleton(session, create = create)
     if log is not None:
-        log.display(False)
-hide_desc = cli.CmdDesc()
+        if hide:
+            log.display(False)
+        if show:
+            log.display(True)
+        if test:
+            log_test(session)
+        if not warning_dialog is None:
+            log.warning_shows_dialog = warning_dialog
+        if not error_dialog is None:
+            log.error_shows_dialog = error_dialog
+
+from chimera.core.commands import CmdDesc, NoArg, BoolArg
+log_desc = CmdDesc(keyword = [('show', NoArg),
+                              ('hide', NoArg),
+                              ('warning_dialog', BoolArg),
+                              ('error_dialog', BoolArg),
+                              ('test', NoArg)])
 
 
-def show(session):
-    log = get_singleton(session, create=True)
-    if log is not None:
-        log.display(True)
-show_desc = cli.CmdDesc()
-
-
-def test(session):
+def log_test(session):
     session.logger.info("Something in <i>italics</i>!", is_html=True)
     session.logger.error("HTML <i>error</i> message", is_html=True)
     #session.logger.error("\n".join(["%d" % i for i in range(200)]))
@@ -176,4 +196,3 @@ def test(session):
                     name, s2_id, s1_id), file=log_string)
         f.close()
         session.logger.info(log_string.getvalue())
-test_desc = cli.CmdDesc()

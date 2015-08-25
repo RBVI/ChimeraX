@@ -23,7 +23,7 @@ def fit_sequence(models, volume, steps, subtract_maps = [],
     # Make float32 copy for subtracting interpolated molecule maps.
     d = array(data_array, float32)
 
-    from ...molecule import Atoms
+    from ...atomic import Atoms
     from .move import position_history as h
     h.record_position(models, Atoms(), volume)
 

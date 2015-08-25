@@ -10,7 +10,7 @@ RESET_CLEAR = 'clear'
 RESET_KEEP = 'keep'
 RESET_NONE = 'none'
 
-from chimera.core.cli import UserError as MovieError
+from chimera.core.errors import UserError as MovieError
 
 class Movie:
 
@@ -60,7 +60,7 @@ class Movie:
 
     def start_recording(self):
         v = self.session.main_view
-        v.add_rendered_frame_callback(self.capture_image)
+        v.add_callback('rendered frame', self.capture_image)
         self.recording = True
 #        from chimera.tasks import Task
 #        self.task = Task("record movie", self.cancelCB)
@@ -86,7 +86,7 @@ class Movie:
         if not self.is_recording():
             raise MovieError("Not currently recording")
         v = self.session.main_view
-        v.remove_rendered_frame_callback(self.capture_image)
+        v.remove_callback('rendered frame', self.capture_image)
         self.recording = False
 #        self.task.finished()
         self.task = None

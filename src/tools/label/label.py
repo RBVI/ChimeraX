@@ -1,9 +1,9 @@
-from chimera.core.cli import UserError as CommandError
+from chimera.core.errors import UserError as CommandError
 def register_2dlabels_command():
 
-    from chimera.core.cli import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg
-    from chimera.core.color import ColorArg
+    from chimera.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
 
+    rargs = [('name', StringArg)]
     # Create and change have same arguments
     cargs = [('text', StringArg),
              ('color', ColorArg),
@@ -12,16 +12,16 @@ def register_2dlabels_command():
              ('xpos', FloatArg),
              ('ypos', FloatArg),
              ('visibility', BoolArg)]
-    create_desc = CmdDesc(required = [('name', StringArg)], keyword = cargs)
-    register('2dlabels create', create_desc, create_op)
-    change_desc = CmdDesc(required = [('name', StringArg)], keyword = cargs)
-    register('2dlabels change', change_desc, change_op)
-    delete_desc = CmdDesc(required = [('name', StringArg)])
-    register('2dlabels delete', delete_desc, delete_op)
+    create_desc = CmdDesc(required = rargs, keyword = cargs)
+    register('2dlabels create', create_desc, label_create)
+    change_desc = CmdDesc(required = rargs, keyword = cargs)
+    register('2dlabels change', change_desc, label_change)
+    delete_desc = CmdDesc(required = rargs)
+    register('2dlabels delete', delete_desc, label_delete)
 
 class Label:
     def __init__(self, session, name, text = '', color = None, size = 24, typeface = 'Arial',
-              xpos = 0.5, ypos = 0.5, visibility = True):
+                 xpos = 0.5, ypos = 0.5, visibility = True):
         self.session = session
         self.name = name
         self.text = text
@@ -68,10 +68,36 @@ class Label:
         s.main_view.remove_overlays([d])
         del s.labels[self.name]
 
-create_op = Label
+def label_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
+                 xpos = 0.5, ypos = 0.5, visibility = True):
+    '''Create a label at a fixed position in the graphics window.
 
-def change_op(session, name, text = None, color = None, size = None, typeface = None,
-              xpos = None, ypos = None, visibility = None):
+    Parameters
+    ----------
+    name : string
+      Identifier for the label used to change or delete label.
+    text : string
+      Displayed text of the label.
+    color : Color
+      Color of the label text.  If no color is specified black is used on light backgrounds
+      and white is used on dark backgrounds.
+    size : int
+      Font size in pixels.
+    typeface : string
+      Font name.  This must be a true type font installed on Mac in /Library/Fonts
+      and is the name of the font file without the ".ttf" suffix.
+    xpos : float
+      Placement of left edge of text. Range 0 - 1 covers full width of graphics window.
+    ypos : float
+      Placement of bottom edge of text. Range 0 - 1 covers full height of graphics window.
+    visibility : bool
+      Whether or not to display the label.
+    '''
+    return Label(**locals())
+
+def label_change(session, name, text = None, color = None, size = None, typeface = None,
+                 xpos = None, ypos = None, visibility = None):
+    '''Change label parameters.'''
     l = session.labels[name]
     if not text is None: l.text = text
     if not color is None: l.color = color
@@ -81,8 +107,10 @@ def change_op(session, name, text = None, color = None, size = None, typeface = 
     if not ypos is None: l.ypos = ypos
     if not visibility is None: l.visibility = visibility
     l.make_drawing()
+    return l
 
-def delete_op(session, name):
+def label_delete(session, name):
+    '''Delete label.'''
     l = session.labels[name]
     l.delete()
 

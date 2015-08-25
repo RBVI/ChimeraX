@@ -341,19 +341,19 @@ def shortcut_maps(session):
     return shortcut_models(session, Volume)
 
 def shortcut_molecules(session):
-    from .structure import AtomicStructure
+    from .atomic import AtomicStructure
     return shortcut_models(session, AtomicStructure)
 
 def shortcut_atoms(session):
     matoms = []
     sel = session.selection
     atoms_list = sel.items('atoms')
-    from .molecule import concatenate, Atoms
+    from .atomic import concatenate, Atoms
     if atoms_list:
         atoms = concatenate(atoms_list)
     elif sel.empty():
         # Nothing selected, so operate on all atoms
-        from .structure import AtomicStructure
+        from .atomic import AtomicStructure
         atoms = concatenate([m.atoms for m in session.models.list()
                              if isinstance(m, AtomicStructure)])
     else:
@@ -535,7 +535,7 @@ def fit_subtract(session):
         maps = [m for m in models if isinstance(m, Volume) and m.display]
     molfit = [m for m in shortcut_molecules(session) if m.display]
     mfitset = set(molfit)
-    from .structure import AtomicStructure
+    from .atomic import AtomicStructure
     molsub = [m for m in models
               if isinstance(m, AtomicStructure) and m.display and not m in mfitset]
     print ('fs', len(maps), len(molfit), len(molsub))
@@ -559,7 +559,7 @@ def fit_subtract(session):
 def show_biological_unit(m, session):
 
     if hasattr(m, 'pdb_text'):
-        from ..molecule import biomt
+        from .atomic import biomt
         places = biomt.pdb_biomt_matrices(m.pdb_text)
         print (m.path, 'biomt', len(places))
         if places:
@@ -618,7 +618,7 @@ def toggle_surface_transparency(session):
 def show_surface_transparent(session, alpha = 0.5):
     from .map import Volume
     from .graphics import Drawing
-    from .structure import AtomicStructure
+    from .atomic import AtomicStructure
     a = int(255*alpha)
     for m in shortcut_surfaces_and_maps(session):
         if not m.display:
@@ -689,8 +689,8 @@ def show_molecular_surface(atoms, session):
             molsurf.surface_command(session, m.atoms)
 
 def color_by_element(atoms):
-    from . import color
-    color.color_by_element(atoms)
+    from . import colors
+    colors.color_by_element(atoms)
 
 def color_by_bfactor(atoms):
     from time import time
@@ -705,8 +705,8 @@ def color_by_bfactor(atoms):
            % (len(atoms), t1-t0, len(atoms)/(t1-t0)))
 
 def color_by_chain(atoms):
-    from . import color
-    color.color_by_chain(atoms)
+    from . import colors
+    colors.color_by_chain(atoms)
 
 def color_one_color(m):
     m.single_color()
@@ -726,14 +726,14 @@ def show_atoms(atoms):
 def hide_atoms(atoms):
     atoms.displays = False
 def show_sphere(atoms):
-    from .structure import AtomicStructure
-    atoms.draw_modes = AtomicStructure.SPHERE_STYLE
+    from .atomic import Atom
+    atoms.draw_modes = Atom.SPHERE_STYLE
 def show_stick(atoms):
-    from .structure import AtomicStructure
-    atoms.draw_modes = AtomicStructure.STICK_STYLE
+    from .atomic import Atom
+    atoms.draw_modes = Atom.STICK_STYLE
 def show_ball_and_stick(atoms):
-    from .structure import AtomicStructure
-    atoms.draw_modes = AtomicStructure.BALL_STYLE
+    from .atomic import Atom
+    atoms.draw_modes = Atom.BALL_STYLE
 def show_ribbon(atoms):
     atoms.unique_residues.ribbon_displays = True
 def hide_ribbon(atoms):
@@ -750,7 +750,7 @@ def hide_waters(atoms):
     atoms.displays &= (atoms.residues.names != 'HOH')
 def molecule_bonds(m, session):
     if m.bonds is None:
-        from ..molecule import connect
+        from .atomic import connect
         m.bonds, missing = connect.molecule_bonds(m, session)
         msg = 'Created %d bonds for %s using templates' % (len(m.bonds), m.name)
         log = session.logger
@@ -846,7 +846,7 @@ def show_framerate(session):
 
 def show_triangle_count(session):
     models = session.models.list()
-    from .structure import AtomicStructure
+    from .atomic import AtomicStructure
     mols = [m for m in models if isinstance(m, AtomicStructure)]
     na = sum(m.shown_atom_count() for m in mols) if mols else 0
     nt = sum(m.shown_atom_count() * m.triangles_per_sphere for m in mols) if mols else 0
@@ -971,7 +971,15 @@ def minimize_crosslinks(atoms, session):
     from .crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
-def shortcut_command(session, shortcut = None):
+def ks(session, shortcut = None):
+    '''
+    Enable keyboard shortcuts.  Keys typed in the graphics window will be interpreted as shortcuts.
+
+    Parameters
+    ----------
+    shortcut : string
+      Keyboard shortcut to execute.  If no shortcut is specified switch to shortcut input mode.
+    '''
     ks = session.keyboard_shortcuts
     if shortcut is None:
         ks.enable_shortcuts()
@@ -979,6 +987,6 @@ def shortcut_command(session, shortcut = None):
         ks.try_shortcut(shortcut)
 
 def register_shortcut_command():
-    from .cli import CmdDesc, StringArg, register
+    from .commands import CmdDesc, StringArg, register
     _ks_desc = CmdDesc(optional = [('shortcut', StringArg)])
-    register('ks', _ks_desc, shortcut_command)
+    register('ks', _ks_desc, ks)

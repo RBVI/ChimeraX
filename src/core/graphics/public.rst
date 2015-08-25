@@ -1,5 +1,6 @@
-graphics
-========
+graphics: Rendering using OpenGL
+================================
+
 .. automodule:: chimera.core.graphics.view
     :members:
     :member-order: bysource

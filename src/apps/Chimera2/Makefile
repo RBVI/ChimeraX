@@ -50,7 +50,7 @@ endif
 
 clean:
 	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig frozen.c~ __main__.py \
-		gensrcs Info.plist $(LINUX_ICONS)
+		gensrcs Info.plist chimera-icon.icns $(LINUX_ICONS)
 
 lint:
 	$(PYLINT) *.py

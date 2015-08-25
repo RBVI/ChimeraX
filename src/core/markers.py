@@ -97,7 +97,7 @@ class ConnectMouseMode(MouseMode):
 
     def mouse_down(self, event):
         s = self.session
-        from .structure import selected_atoms
+        from .atomic import selected_atoms
         atoms1 = selected_atoms(s)
         from .ui.mousemodes import mouse_select
         mouse_select(event, s, self.view)

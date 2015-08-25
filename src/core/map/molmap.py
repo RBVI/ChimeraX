@@ -1,3 +1,4 @@
+# vi: set expandtab ts=4 sw=4:
 # -----------------------------------------------------------------------------
 # Simulate an electron density map for an atomic model at a specfied
 # resolution.  The simulated map is useful for fitting the model into
@@ -5,50 +6,82 @@
 #
 def register_molmap_command():
 
-    from .. import cli, structure
-    molmap_desc = cli.CmdDesc(
+    from ..commands import CmdDesc, register, AtomsArg, BoolArg, FloatArg
+    molmap_desc = CmdDesc(
         required = [
-            ('atoms', structure.AtomsArg),
-            ('resolution', cli.FloatArg),
+            ('atoms', AtomsArg),
+            ('resolution', FloatArg),
         ],
         keyword = [
-            ('gridSpacing', cli.FloatArg),
-            ('edgePadding', cli.FloatArg),
-            ('cutoffRange', cli.FloatArg),
-            ('sigmaFactor', cli.FloatArg),
-            ('balls', cli.BoolArg),
-#            ('symmetry', cli.StringArg),
-#            ('center', cli.StringArg),   # Can be a 3 floats or atom spec
-#            ('axis', cli.StringArg),     # Can be a 3 floats or atom spec
+            ('gridSpacing', FloatArg),
+            ('edgePadding', FloatArg),
+            ('cutoffRange', FloatArg),
+            ('sigmaFactor', FloatArg),
+            ('balls', BoolArg),
+#            ('symmetry', StringArg),
+#            ('center', StringArg),   # Can be a 3 floats or atom spec
+#            ('axis', StringArg),     # Can be a 3 floats or atom spec
 #            ('coordinateSystem', openstate_arg),
-            ('displayThreshold', cli.FloatArg),
+            ('displayThreshold', FloatArg),
 #            ('modelId', model_id_arg),
-            ('replace', cli.BoolArg),
-            ('showDialog', cli.BoolArg),
+            ('replace', BoolArg),
+            ('showDialog', BoolArg),
         ]
     )
-    cli.register('molmap', molmap_desc, molecule_map)
+    register('molmap', molmap_desc, molmap)
 
 # -----------------------------------------------------------------------------
 #
 from math import sqrt, pi
-def molecule_map(session,
-                 atoms,
-                 resolution,
-                 gridSpacing = None,    # default is 1/3 resolution
-                 edgePadding = None,    # default is 3 times resolution
-                 cutoffRange = 5,       # in standard deviations
-                 sigmaFactor = 1/(pi*sqrt(2)), # standard deviation / resolution
-                 balls = False,         # Use balls instead of Gaussians
-                 symmetry = None,       # Equivalent to sym group option.
-                 center = (0,0,0),      # Center of symmetry.
-                 axis = (0,0,1),        # Axis of symmetry.
-                 coordinateSystem = None,       # Coordinate system of symmetry.
-                 displayThreshold = 0.95, # fraction of total density
-                 modelId = None, # integer
-                 replace = True,
-		 showDialog = True
-                 ):
+def molmap(session,
+           atoms,
+           resolution,
+           gridSpacing = None,    # default is 1/3 resolution
+           edgePadding = None,    # default is 3 times resolution
+           cutoffRange = 5,       # in standard deviations
+           sigmaFactor = 1/(pi*sqrt(2)), # standard deviation / resolution
+           balls = False,         # Use balls instead of Gaussians
+           symmetry = None,       # Equivalent to sym group option.
+           center = (0,0,0),      # Center of symmetry.
+           axis = (0,0,1),        # Axis of symmetry.
+           coordinateSystem = None,       # Coordinate system of symmetry.
+           displayThreshold = 0.95, # fraction of total density
+           modelId = None, # integer
+           replace = True,
+           showDialog = True
+          ):
+    '''
+    Create a density map by placing Gaussians centered on atoms.
+
+    Parameters
+    ----------
+    atoms : Atoms
+    resolution : float
+    grid_spacing : float
+      Default is 1/3 resolution.
+    edge_padding : float
+      Default is 3 times resolution.
+    cutoff_range : float
+      In standard deviations.
+    sigma_factor : float
+      Scale factor equal to standard deviation / resolution, default 1/(pi*sqrt(2)).
+    balls : bool
+      Use balls instead of Gaussians
+    symmetry : not supported
+      Apply symmetry operations to atoms
+    center : 3 floats or atom spec
+      Center of symmetry.
+    axis : 3 floats
+      Axis of symmetry.
+    coordinate_system : model spec
+      Coordinate system of symmetry.
+    display_threshold : float
+      Initial contour level as fraction of total density, default 0.95.
+    model_id : list of integers
+    replace : bool
+      Default true
+    show_dialog : bool, not supported
+    '''
 
     molecules = atoms.unique_structures
     if len(molecules) > 1:
@@ -58,7 +91,8 @@ def molecule_map(session,
             name = '%s map %.3g' % (m.name, resolution)
 
     if len(atoms) == 0:
-        raise cli.UserError('No atoms specified')
+        from ..errors import UserError
+        raise UserError('No atoms specified')
 
     if edgePadding is None:
         pad = 3*resolution
@@ -90,6 +124,8 @@ def molecule_map(session,
                           displayThreshold, modelId, replace, showDialog, name, session)
     return v
 
+molecule_map = molmap
+
 # -----------------------------------------------------------------------------
 #
 def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
@@ -104,7 +140,7 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
     if replace:
         from .volume import volume_list
         vlist = [v for v in volume_list(session)
-                 if getattr(v, 'molmap_atoms', None) == atoms]
+                 if hasattr(v, 'molmap_atoms') and v.molmap_atoms == atoms]
         session.models.close(vlist)
 
     from . import volume_from_grid_data

@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-io: manage file formats that can be opened and exported
+io: Manage file formats that can be opened and exported
 =======================================================
 
 The io module keeps track of the functions that can open, fetch, and export
@@ -28,7 +28,8 @@ __all__ = [
     'register_compression',
     'SCRIPT',
     'formats',
-    'open',
+    'open_data',
+    'open_multiple_data',
     'prefixes',
     'extensions',
     'open_function',
@@ -414,8 +415,7 @@ def deduce_format(filename, has_format=None, prefixable=True):
     if has_format:
         format_name = has_format
         stripped, compression = determine_compression(filename)
-    elif (prefixable and len(filename) >= 2 and ':' in filename and
-            filename[1] != ':'):
+    elif (prefixable and ':' in filename and ':' not in filename[0:2]):
         # format may be specified as colon-separated prefix
         # ignoring Windows drive letters
         prefix, fname = filename.split(':', 1)
@@ -427,14 +427,18 @@ def deduce_format(filename, has_format=None, prefixable=True):
                 prefixed = True
                 break
         if format_name is None:
-            from .cli import UserError
+            from .errors import UserError
             raise ValueError("'%s' is not a not prefix" % prefix)
     elif format_name is None:
         stripped, compression = determine_compression(filename)
         import os
         base, ext = os.path.splitext(stripped)
         if not ext:
-            from .cli import UserError
+            if prefixable and len(filename) == 4 and 'mmCIF' in _file_formats:
+                format_name = 'mmCIF'
+                prefixed = True
+                return format_name, prefixed, filename, None
+            from .errors import UserError
             raise UserError("Missing filename suffix")
         ext = ext.casefold()
         for t, info in _file_formats.items():
@@ -442,7 +446,7 @@ def deduce_format(filename, has_format=None, prefixable=True):
                 format_name = t
                 break
         if format_name is None:
-            from .cli import UserError
+            from .errors import UserError
             raise UserError("Unrecognized filename suffix")
     return format_name, prefixed, filename, compression
 
@@ -538,7 +542,7 @@ def open_data(session, filespec, as_a=None, label=None, **kw):
     uncompressed into a temporary file before calling the open function.
     """
 
-    from chimera.core.cli import UserError
+    from chimera.core.errors import UserError
     format_name, prefix, filename, compression = deduce_format(
         filespec, has_format=as_a)
     open_func = open_function(format_name)
@@ -646,7 +650,7 @@ def determine_compression(filename):
 
 def _compressed_open(filename, compression, *args, **kw):
     import os.path
-    from chimera.core.cli import UserError
+    from chimera.core.errors import UserError
     filename = os.path.expanduser(os.path.expandvars(filename))
     if not compression:
         try:

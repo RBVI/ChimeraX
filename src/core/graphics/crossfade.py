@@ -19,12 +19,9 @@ class CrossFade(Drawing):
         self.frame = 0
         self.rgba = None
 
-#        viewer.add_rendered_frame_callback(self.capture_image)
         self.capture_image()
 
     def capture_image(self):
-
-        # viewer.remove_rendered_frame_callback(self.capture_image)
 
         # Capture current image
         v = self.viewer
@@ -35,14 +32,14 @@ class CrossFade(Drawing):
         rgba_drawing(self.rgba, (-1, -1), (2, 2), self)
 
         v.add_overlay(self)
-        v.add_new_frame_callback(self.next_frame)
+        v.add_callback('new frame', self.next_frame)
 
     def next_frame(self):
 
         f, n = self.frame + 1, self.frames
         if f >= n:
             v = self.viewer
-            v.remove_new_frame_callback(self.next_frame)
+            v.remove_callback('new frame', self.next_frame)
             v.remove_overlays([self])
             self.remove_all_drawings()
             return

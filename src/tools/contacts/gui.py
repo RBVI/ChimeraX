@@ -11,7 +11,7 @@ class Plot(ToolInstance):
 
         super().__init__(session, tool_info)
 
-        from chimera.core.gui import MainToolWindow
+        from chimera.core.ui import MainToolWindow
         tw = MainToolWindow(self, size=self.SIZE)
         self.tool_window = tw
         parent = tw.ui_area
@@ -70,7 +70,7 @@ def show_contact_graph(node_weights, edge_weights, short_names, session):
     from math import sqrt
     w = dict(node_weights)
     node_sizes = tuple(10*sqrt(w[n]) for n in G)
-    from chimera.core.color import chain_rgba
+    from chimera.core.colors import chain_rgba
     node_colors = tuple(chain_rgba(short_names[n]) for n in G)
     nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=a)
 

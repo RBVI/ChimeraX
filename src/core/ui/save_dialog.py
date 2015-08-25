@@ -267,10 +267,10 @@ class ImageSaver:
             w = int(self._width.GetValue())
             h = int(self._height.GetValue())
         except ValueError:
-            from ..cli import UserError
+            from ..errors import UserError
             raise UserError("width/height must be integers")
         if w <= 0 or h <= 0:
-            from ..cli import UserError
+            from ..errors import UserError
             raise UserError("width/height must be positive integers")
         ss = self.SUPERSAMPLE_OPTIONS[self._supersample.GetSelection()][1]
         # TODO: generate text command instead of calling function directly

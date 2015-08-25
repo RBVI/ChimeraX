@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-tasks: task creation and monitoring
+tasks: Task creation and monitoring
 ===================================
 
 This module defines classes for tasks and their state manager.

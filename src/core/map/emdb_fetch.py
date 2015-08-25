@@ -1,3 +1,4 @@
+# vi: set expandtab ts=4 sw=4:
 # -----------------------------------------------------------------------------
 # Fetch density maps from the Electron Microscopy Data Bank
 #
@@ -5,6 +6,7 @@
 #       ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-5680/map/emd_5680.map.gz
 #
 def fetch_emdb(session, emdb_id):
+    from ..errors import UserError
     if len(emdb_id) != 4:
         raise UserError("EMDB identifiers are 4 characters long")
 

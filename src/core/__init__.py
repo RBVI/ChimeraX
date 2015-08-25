@@ -26,8 +26,8 @@ def get_class(class_name):
     except KeyError:
         pass
     if class_name == 'AtomicStructure':
-        from . import structure
-        cls = structure.AtomicStructure
+        from . import atomic
+        cls = atomic.AtomicStructure
     elif class_name == 'Generic3DModel':
         from . import generic3d
         cls = generic3d.Generic3DModel
@@ -41,7 +41,7 @@ def get_class(class_name):
         from . import tasks
         cls = tasks.Job
     elif class_name == '_Input':
-        from . import nogui
+        from .ui import nogui
         cls = nogui._Input
     else:
         return None

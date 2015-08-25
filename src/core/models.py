@@ -1,7 +1,7 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-models: model support
-=====================
+models: Displayed data
+======================
 
 """
 
@@ -14,13 +14,10 @@ REMOVE_MODELS = 'remove models'
 
 
 class Model(State, Drawing):
-    """All models are drawings.
+    """A Model is a :class:`.Drawing` together with an id number 
+    that allows it to be referenced in a typed command.
 
-    That means that regardless of whether or not there is a GUI,
-    each model maintains its geometry.
-
-    Every model subclass that can be in a session file, needs to be
-    registered.
+    Model subclasses can be saved session files.
 
     Parameters
     ----------
@@ -207,11 +204,10 @@ class Models(State):
             if children:
                 m_all.extend(self.add(children, model))
 
-        session = self._session()
-        for m in m_all:
-            m.added_to_session(session)
-
         if parent is None:
+            session = self._session()
+            for m in m_all:
+                m.added_to_session(session)
             session.triggers.activate_trigger(ADD_MODELS, m_all)
 
         return m_all
@@ -267,8 +263,8 @@ class Models(State):
         return models
 
 
-def descendant_models(models, mset=None):
-    mlist = []
+def descendant_models(models):
+    mset = set()
     for m in models:
-        mlist.extend(m.all_models())
-    return mlist
+        mset.update(m.all_models())
+    return list(mset)

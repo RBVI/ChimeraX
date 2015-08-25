@@ -1,6 +1,10 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
-# Only produces 20, 80, 320, ... (multiples of 4) triangle count.
+
 def sphere_geometry(ntri):
+  '''
+  Return vertex, normal vector and triangle arrays for unit sphere geometry.
+  Only produces 20, 80, 320, ... (multiples of 4) triangle count.
+  '''
   from . import icosahedron
   va, ta = icosahedron.icosahedron_geometry()
   from numpy import int32, sqrt
@@ -17,7 +21,10 @@ def sphere_geometry(ntri):
 # -----------------------------------------------------------------------------
 #
 def cylinder_geometry(radius = 1, height = 1, nz = 2, nc = 10, caps = True):
-
+    '''
+    Return vertex, normal vector and triangle arrays for cylinder geometry
+    with specified radius and height centered at the origin.
+    '''
     varray, narray, tarray = unit_cylinder_geometry(nz, nc)
     varray[:,0] *= radius
     varray[:,1] *= radius
@@ -86,6 +93,9 @@ def unit_cylinder_geometry(nz, nc):
     return varray, narray, tarray
 
 def dashed_cylinder_geometry(segments = 5, radius = 1, height = 1, nz = 2, nc = 10, caps = True):
+    '''
+    Return vertex, normal vector and triangle arrays for a sequence of colinear cylinders.
+    '''
     va, na, ta = cylinder_geometry(radius, height, nz, nc, caps)
     h = 0.5/segments
     va[:,2] *= h

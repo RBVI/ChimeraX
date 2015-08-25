@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-history: application history support
+history: Application history support
 ====================================
 
 This module provides support for caching information across

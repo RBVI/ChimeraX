@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-settings: save/access tool interface values
+settings: Save/access tool interface values
 ===========================================
 
 Basic Usage
@@ -27,7 +27,7 @@ allowed.
 
     from chimera.core.settings import Settings
     from chimera.core.configfile import Value
-    from chimera.core.cli import EnumOf
+    from chimera.core.commands import EnumOf
     class FullEnum(EnumOf): allow_truncated = False
 
     class MyToolSettings(Settings):
@@ -66,10 +66,10 @@ within its legal range of values.  The three arguments to Value() are:
 1. The default value.
 2. A function to convert text to the value, or an object that can convert the
    text into the needed value by following the
-   :py:class:`~chimera.core.cli.Annotation` abstract class protocol.
+   :py:class:`~chimera.core.commands.cli.Annotation` abstract class protocol.
 3. A function that converts a value to text.
 
-There are many Annotation subclasses in the :py:mod:`~chimera.core.cli`
+There are many Annotation subclasses in the :py:mod:`~chimera.core.commands.cli`
 module that can be used as the second argument to Value() and that also
 perform range checking.
 
@@ -118,7 +118,6 @@ class Settings(ConfigFile):
 
     Attributes
     ----------
-    filename
     AUTO_SAVE : dict
         Class dictionary containing setting names and default values.
         Such settings will be saved to disk immediately when changed.

@@ -24,15 +24,19 @@ Modules
 -------
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
+
+    core/commands/cli.rst
+
+    core/data_events.rst
+
+    core/io.rst
 
     core/session.rst
 
     core/triggerset.rst
 
-    core/data_events.rst
-
-    core/io.rst
+    core/scripting.rst
 
 Structure-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +44,7 @@ Structure-related Modules
 .. toctree::
     :maxdepth: 2
 
-    core/pdbio.rst
+    core/atomic/pdbio.rst
 
 Graphics-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -60,7 +64,7 @@ C++ helper Modules
 
     core/appdirs_cpp/appdirs_cpp.rst
 
-    core/connectivity.rst
+    core/atomic/connectivity.rst
 
 .. seealso::
 

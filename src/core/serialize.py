@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-serialize: support serialization of "simple" types
+serialize: Support serialization of "simple" types
 ==================================================
 
 Provide object serialization and deserialization for simple Python objects.
