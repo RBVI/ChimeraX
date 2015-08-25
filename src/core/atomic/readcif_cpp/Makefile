@@ -22,8 +22,8 @@ all: $(LIBRARY)
 #all: $(SHLIB)
 
 install: all
-	cp readcif.h $(includedir)
-	cp $(LIBRARY) $(libdir)
+	$(RSYNC) readcif.h $(includedir)
+	$(RSYNC) $(LIBRARY) $(libdir)
 	#cp $(SHLIB) $(shlibdir)
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 

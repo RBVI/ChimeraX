@@ -12,6 +12,14 @@ from ..errors import UserError
 _builtin_open = open
 _initialized = False
 
+_additional_categories = (
+    'pdbx_struct_assembly',
+    'pdbx_struct_assembly_gen',
+    'pdbx_struct_oper_list',
+    'pdbx_poly_seq_scheme',
+    'pdbx_nonpoly_scheme'
+)
+
 
 def open_mmcif(session, filename, name, *args, **kw):
     # mmCIF parsing requires an uncompressed file
@@ -25,7 +33,8 @@ def open_mmcif(session, filename, name, *args, **kw):
                   kw.pop('log_errors', True)):
         _mmcif.set_Python_locate_function(
             lambda name: _get_template(name, session.app_dirs, session.logger))
-        pointers = _mmcif.parse_mmCIF_file(filename, session.logger)
+        pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories,
+                                           session.logger)
 
     models = [structure.AtomicStructure(name, p) for p in pointers]
     for m in models:
@@ -117,125 +126,63 @@ def register():
         requires_filename=True, open_func=open_mmcif, fetch_func=fetch_mmcif)
 
 
-def read_mmcif_tables(mmcif_path, table_names):
-  f = open(mmcif_path)
-  tables = {}
-  tname = None
-  vcontinue = False
-  semicolon_quote = False
-  while True:
-    line = f.readline()
-    if tname is None:
-      if line == '':
-        break
-      for tn in table_names:
-        if line.startswith(tn + '.'):
-          tname = tn
-          tags = []
-          values = []
-          break
-      if tname is None:
-        continue
-    if line.startswith(tname + '.'):
-      tvalue = line.split('.', maxsplit=1)[1]
-      tfields = tvalue.split(maxsplit = 1)
-      tag = tfields[0]
-      tags.append(tag)
-      if len(tfields) == 2:
-        value = remove_quotes(tfields[1])
-        if values:            # Tags have values on same line without loop.
-          values[0].append(value)
+def get_mmcif_tables(model, table_names):
+    raw_tables = model.metadata
+    tlist = []
+    for n in table_names:
+        if n not in raw_tables:
+            tlist.append(None)
         else:
-          values.append([value])
-      elif values:
-        # Other tags have values, so this one must have value on next line, e.g. 1afi _entity table.
-        # Should really be looking for loop_.
-        vcontinue = True
-    elif line.startswith('#') or line == '':
-      if [v for v in values if len(v) != len(tags)]:
-        # Error: Number of values doesn't match number of tags.
-        print (mmcif_path, tags, values)
-      tables[tname] = mmCIF_Table(tname, tags, values)
-      tname = None
-    else:
-      if line.startswith(';'):
-        # Fields can extend onto next line if that line is preceded by a semicolon.
-        # The whole line is treated as a single values as if quoted.
-        lval = semicolon_quote = line[1:].rstrip()
-        if lval:
-          if values:
-            values[-1].append(lval)
-          else:
-            values.append([lval])
-      elif semicolon_quote:
-        # Line that starts with semicolon continues on following lines until a line with only a semicolon.
-        values[-1][-1] += line.rstrip()
-      elif vcontinue:
-        # Values simply continue on next line sometimes (e.g. 207l.cif _entity table).
-        values[-1].extend(combine_quoted_values(line.split()))
-      else:
-        # New line of values
-        values.append(combine_quoted_values(line.split()))
-      vcontinue = (len(values[-1]) < len(tags))
-        
-  f.close()
-  tlist = [tables.get(tn, None) for tn in table_names]
-  return tlist
+            tags = raw_tables[n]
+            values_1d = raw_tables[n + ' data']
+            num_columns = len(tags)
+            slices = [values_1d[i::num_columns] for i in range(num_columns)]
+            values_2d = list(zip(*slices))
+            tlist.append(MMCIFTable(n, tags, values_2d))
+    return tlist
 
-def combine_quoted_values(values):
-  qvalues = []
-  in_quote = False
-  for e in values:
-    if in_quote:
-      if e.endswith(in_quote):
-        qv.append(e[:-1])
-        qvalues.append(' '.join(qv))
-        in_quote = False
-      else:
-        qv.append(e)
-    elif e.startswith("'") or e.startswith('"'):
-      q = e[0]
-      if e.endswith(q):
-        qvalues.append(e[1:-1])
-      else:
-        in_quote = q
-        qv = [e[1:]]
-    else:
-      qvalues.append(e)
-  return qvalues
 
-def remove_quotes(s):
-  t = s.strip()
-  if (t.startswith("'") and t.endswith("'")) or (t.startswith('"') and t.endswith('"')):
-    return t[1:-1]
-  return t
+class MMCIFTable:
 
-class mmCIF_Table:
-  def __init__(self, table_name, tags, values):
-    self.table_name = table_name
-    self.tags = tags
-    self.values = values
-  def mapping(self, key_name, value_name, foreach = None):
-    t = self.tags
-    for n in (key_name, value_name, foreach):
-      if n and not n in t:
-        raise ValueError('Field "%s" not in table "%s", have fields %s' %
-                         (n, self.table_name, ', '.join(t)))
-    ki,vi = t.index(key_name), t.index(value_name)
-    if foreach:
-      fi = t.index(foreach)
-      m = {}
-      for f in set(v[fi] for v in self.values):
-        m[f] = dict((v[ki],v[vi]) for v in self.values if v[fi] == f)
-    else:
-      m = dict((v[ki],v[vi]) for v in self.values)
-    return m
-  def fields(self, field_names):
-    t = self.tags
-    missing = [n for n in field_names if not n in t]
-    if missing:
-        raise ValueError('Fields %s not in table "%s", have fields %s' %
-                         (', '.join(missing), self.table_name, ', '.join(t)))
-    fi = tuple(t.index(f) for f in field_names)
-    ftable = tuple(tuple(v[i] for i in fi) for v in self.values)
-    return ftable 
+    def __init__(self, table_name, tags, values):
+        self.table_name = table_name
+        self.tags = tags
+        self.values = values
+
+    def __eq__(self, other):
+        # for debugging
+        if self.tags != other.tags or len(self.values) != len(other.values):
+            return False
+        return all(tuple(self.values[i]) == tuple(other.values[i])
+                   for i in range(len(self.values)))
+
+    def __repr__(self):
+        return "MMCIFTable(%s, %s, ...[%d])" % (self.table_name, self.tags, len(self.values))
+
+    def mapping(self, key_name, value_name, foreach=None):
+        t = self.tags
+        for n in (key_name, value_name, foreach):
+            if n and n not in t:
+                raise ValueError(
+                    'Field "%s" not in table "%s", have fields %s'
+                    % (n, self.table_name, ', '.join(t)))
+        ki, vi = t.index(key_name), t.index(value_name)
+        if foreach:
+            fi = t.index(foreach)
+            m = {}
+            for f in set(v[fi] for v in self.values):
+                m[f] = dict((v[ki], v[vi]) for v in self.values if v[fi] == f)
+        else:
+            m = dict((v[ki], v[vi]) for v in self.values)
+        return m
+
+    def fields(self, field_names):
+        t = self.tags
+        missing = [n for n in field_names if n not in t]
+        if missing:
+            raise ValueError(
+                'Fields %s not in table "%s", have fields %s'
+                % (', '.join(missing), self.table_name, ', '.join(t)))
+        fi = tuple(t.index(f) for f in field_names)
+        ftable = tuple(tuple(v[i] for i in fi) for v in self.values)
+        return ftable

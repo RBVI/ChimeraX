@@ -32,7 +32,9 @@ def configure_offscreen_rendering():
     # Tell PyOpenGL where to find libOSMesa
     lib_suffix = '.dylib' if sys.platform == 'darwin' else '.so'
     from chimera import app_lib_dir
-    os.environ['PYOPENGL_OSMESA_LIB_PATH'] = os.path.join(app_lib_dir, 'libOSMesa' + lib_suffix)
+    lib_mesa = os.path.join(app_lib_dir, 'libOSMesa' + lib_suffix)
+    if os.path.exists(lib_mesa):
+        os.environ['PYOPENGL_OSMESA_LIB_PATH'] = lib_mesa
 
 # Set environment variables set before importing PyOpenGL.
 configure_offscreen_rendering()

@@ -29,6 +29,7 @@ private:
     Neighbors  _neighbors; // _connections/_neighbors in same order
 
     bool  _display = true;
+    int  _hide = 0;
     bool  _selected = false;
     Rgba  _rgba;
 public:
@@ -55,6 +56,10 @@ public:
     virtual GraphicsContainer*  graphics_container() const = 0;
     void  set_display(bool d)
         { graphics_container()->set_gc_shape(); _display = d; }
+    int  hide() const { return _hide; }
+    void  set_hide(int h)
+        { graphics_container()->set_gc_shape(); _hide = h; }
+    bool  visible() const { return _display && !_hide; }
     bool  selected() const { return _selected; }
     void  set_selected(bool s)
         { graphics_container()->set_gc_select(); _selected = s; }

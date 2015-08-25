@@ -329,7 +329,7 @@ set_Python_locate_function(PyObject* function)
 {
     static PyObject* save_reference_to_function = NULL;
 
-    if (function == NULL) {
+    if (function == NULL || function == Py_None) {
         locate_func = nullptr;
         return;
     }

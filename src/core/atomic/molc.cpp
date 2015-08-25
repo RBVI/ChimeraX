@@ -41,6 +41,23 @@ typedef float float32_t;
 typedef double float64_t;
 typedef void *pyobject_t;
 
+inline PyObject* unicode_from_string(const char *data, size_t size)
+{
+    return PyUnicode_DecodeUTF8(data, size, "replace");
+}
+
+inline PyObject* unicode_from_string(const std::string& str)
+{
+    return PyUnicode_DecodeUTF8(str.data(), str.size(), "replace");
+}
+
+template <int len, char... description_chars>
+inline PyObject* unicode_from_string(const chutil::CString<len, description_chars...>& cstr)
+{
+    return PyUnicode_DecodeUTF8(static_cast<const char*>(cstr), cstr.size(),
+                            "replace");
+}
+
 static void
 molc_error()
 {
@@ -187,7 +204,7 @@ extern "C" void atom_chain_id(void *atoms, size_t n, pyobject_t *cids)
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-            cids[i] = PyUnicode_FromString(a[i]->residue()->chain_id());
+            cids[i] = unicode_from_string(a[i]->residue()->chain_id());
     } catch (...) {
         molc_error();
     }
@@ -298,6 +315,24 @@ extern "C" void set_atom_display(void *atoms, size_t n, npy_bool *disp)
     error_wrap_array_set<Atom, bool, npy_bool>(a, n, &Atom::set_display, disp);
 }
 
+extern "C" void atom_hide(void *atoms, size_t n, int32_t *hide)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, int, int>(a, n, &Atom::hide, hide);
+}
+
+extern "C" void set_atom_hide(void *atoms, size_t n, int32_t *hide)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_set<Atom, int, int>(a, n, &Atom::set_hide, hide);
+}
+
+extern "C" void atom_visible(void *atoms, size_t n, npy_bool *visible)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::visible, visible);
+}
+
 extern "C" void atom_draw_mode(void *atoms, size_t n, int32_t *modes)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -315,7 +350,7 @@ extern "C" void atom_element_name(void *atoms, size_t n, pyobject_t *names)
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-            names[i] = PyUnicode_FromString(a[i]->element().name());
+            names[i] = unicode_from_string(a[i]->element().name());
     } catch (...) {
         molc_error();
     }
@@ -366,7 +401,7 @@ extern "C" void atom_name(void *atoms, size_t n, pyobject_t *names)
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-            names[i] = PyUnicode_FromString(a[i]->name());
+            names[i] = unicode_from_string(a[i]->name());
     } catch (...) {
         molc_error();
     }
@@ -522,6 +557,29 @@ extern "C" void set_bond_display(void *bonds, size_t n, uint8_t *disp)
     }
 }
 
+extern "C" void bond_hide(void *bonds, size_t n, int32_t *hide)
+{
+    Bond **a = static_cast<Bond **>(bonds);
+    error_wrap_array_get<Bond, int, int>(a, n, &Bond::hide, hide);
+}
+
+extern "C" void set_bond_hide(void *bonds, size_t n, int32_t *hide)
+{
+    Bond **a = static_cast<Bond **>(bonds);
+    error_wrap_array_set<Bond, int, int>(a, n, &Bond::set_hide, hide);
+}
+
+extern "C" void bond_visible(void *bonds, size_t n, uint8_t *visible)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            visible[i] = static_cast<uint8_t>(b[i]->visible());
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
 {
     Bond **b = static_cast<Bond **>(bonds);
@@ -644,7 +702,7 @@ extern "C" void pseudobond_group_category(void *pbgroups, int n, void **categori
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     try {
         for (int i = 0 ; i < n ; ++i)
-            categories[i] = PyUnicode_FromString(pbg[i]->category().c_str());
+            categories[i] = unicode_from_string(pbg[i]->category());
     } catch (...) {
         molc_error();
     }
@@ -762,7 +820,7 @@ extern "C" void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
-            cids[i] = PyUnicode_FromString(r[i]->chain_id());
+            cids[i] = unicode_from_string(r[i]->chain_id());
     } catch (...) {
         molc_error();
     }
@@ -827,7 +885,7 @@ extern "C" void residue_name(void *residues, size_t n, pyobject_t *names)
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
-            names[i] = PyUnicode_FromString(r[i]->name());
+            names[i] = unicode_from_string(r[i]->name());
     } catch (...) {
         molc_error();
     }
@@ -855,7 +913,7 @@ extern "C" void residue_str(void *residues, size_t n, pyobject_t *strs)
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
-            strs[i] = PyUnicode_FromString(r[i]->str().c_str());
+            strs[i] = unicode_from_string(r[i]->str().c_str());
     } catch (...) {
         molc_error();
     }
@@ -923,12 +981,101 @@ extern "C" void set_residue_ribbon_color(void *residues, size_t n, uint8_t *rgba
     }
 }
 
+extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        std::vector<Atom *> centers;
+        std::vector<Atom *> guides;
+        bool has_guides = true;
+        for (size_t i = 0; i != n; ++i) {
+            const Residue::Atoms &a = r[i]->atoms();
+            Atom *center = NULL;
+            Atom *guide = NULL;
+            for (auto atom: a) {
+                AtomName name = atom->name();
+                if (name == "CA" || name == "C5'")
+                    center = atom;
+                else if (name == "O" || name == "C1'")
+                    guide = atom;
+            }
+            if (center == NULL) {
+                // Do not care if there is a guide atom
+                // Turn off ribbon display (is this right?)
+                r[i]->set_ribbon_display(false);
+            }
+            else {
+                centers.push_back(center);
+                if (guide)
+                    guides.push_back(guide);
+                else
+                    has_guides = false;
+            }
+            if (r[i]->ribbon_display()) {
+                // Ribbon is shown, so hide backbone atoms and bonds
+                for (auto atom: a)
+                    if ((atom->hide() & Atom::HIDE_RIBBON) == 0
+                            && atom->is_backbone() && atom != center)
+                        atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+                for (auto bond: r[i]->bonds_between(r[i])) {
+                    auto atoms = bond->atoms();
+                    if ((bond->hide() & Bond::HIDE_RIBBON) == 0
+                            && atoms[0]->is_backbone() && atoms[1]->is_backbone())
+                        bond->set_hide(bond->hide() | Bond::HIDE_RIBBON);
+                }
+            }
+            else {
+                // Ribbon is not shown, so unhide backbone atoms and bonds
+                for (auto atom: a)
+                    if ((atom->hide() & Atom::HIDE_RIBBON) != 0
+                            && atom->is_backbone() && atom != center)
+                        atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+                for (auto bond: r[i]->bonds_between(r[i])) {
+                    auto atoms = bond->atoms();
+                    if ((bond->hide() & Bond::HIDE_RIBBON) != 0
+                            && atoms[0]->is_backbone() && atoms[1]->is_backbone())
+                        bond->set_hide(bond->hide() & ~Bond::HIDE_RIBBON);
+                }
+            }
+        }
+        PyObject *o = PyTuple_New(2);
+        float *data;
+        PyObject *ca = python_float_array(centers.size(), 3, &data);
+        for (auto atom : centers) {
+            const Coord &c = atom->coord();
+            *data++ = c[0];
+            *data++ = c[1];
+            *data++ = c[2];
+        }
+        PyTuple_SetItem(o, 0, ca);
+        if (has_guides) {
+            PyObject *ga = python_float_array(guides.size(), 3, &data);
+            for (auto atom : guides) {
+                const Coord &c = atom->coord();
+                *data++ = c[0];
+                *data++ = c[1];
+                *data++ = c[2];
+            }
+            PyTuple_SetItem(o, 1, ga);
+        }
+        else {
+            Py_INCREF(Py_None);
+            PyTuple_SetItem(o, 1, Py_None);
+        }
+        return o;
+    } catch (...) {
+        molc_error();
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+}
+
 extern "C" void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
 {
     Chain **c = static_cast<Chain **>(chains);
     try {
         for (size_t i = 0; i != n; ++i)
-            cids[i] = PyUnicode_FromString(c[i]->chain_id());
+            cids[i] = unicode_from_string(c[i]->chain_id());
     } catch (...) {
         molc_error();
     }
@@ -1017,7 +1164,7 @@ extern "C" void structure_name(void *mols, size_t n, pyobject_t *names)
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i)
-            names[i] = PyUnicode_FromString(m[i]->name().c_str());
+            names[i] = unicode_from_string(m[i]->name().c_str());
     } catch (...) {
         molc_error();
     }
@@ -1128,17 +1275,20 @@ extern "C" void structure_chains(void *mols, size_t n, pyobject_t *chains)
 extern "C" void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
 {
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    PyObject* pbg_map = NULL;
     try {
         for (size_t i = 0; i != n; ++i) {
-            PyObject* pbg_map = PyDict_New();
+            pbg_map = PyDict_New();
             for (auto grp_info: m[i]->pb_mgr().group_map()) {
-                PyObject* name = PyUnicode_FromString(grp_info.first.c_str());
+                PyObject* name = unicode_from_string(grp_info.first.c_str());
                 PyObject *pbg = PyLong_FromVoidPtr(grp_info.second);
                 PyDict_SetItem(pbg_map, name, pbg);
             }
             pbgs[i] = pbg_map;
+            pbg_map = NULL;
         }
     } catch (...) {
+        Py_XDECREF(pbg_map);
         molc_error();
     }
 }
@@ -1158,9 +1308,10 @@ extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name
 extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    PyObject *poly = NULL;
     try {
         std::vector<Chain::Residues> polymers = m->polymers(consider_missing_structure, consider_chains_ids);
-        PyObject *poly = PyTuple_New(polymers.size());
+        poly = PyTuple_New(polymers.size());
         size_t p = 0;
         for (auto resvec: polymers) {
             void **ra;
@@ -1172,6 +1323,7 @@ extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structur
         }
         return poly;
     } catch (...) {
+        Py_XDECREF(poly);
         molc_error();
         return nullptr;
     }
@@ -1497,6 +1649,32 @@ extern "C" void pointer_intersects_each(void *pointer_arrays, size_t na, size_t 
                 }
         }
     } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    PyObject* header_map = NULL;
+    try {
+        for (size_t i = 0; i < n; ++i) {
+            header_map = PyDict_New();
+            auto& metadata = m[i]->metadata;
+            for (auto& item: metadata) {
+                PyObject* key = unicode_from_string(item.first);
+                auto& headers = item.second;
+                size_t count = headers.size();
+                PyObject* values = PyList_New(count);
+                for (size_t i = 0; i != count; ++i)
+                    PyList_SetItem(values, i, unicode_from_string(headers[i]));
+                PyDict_SetItem(header_map, key, values);
+            }
+            headers[i] = header_map;
+            header_map = NULL;
+        }
+    } catch (...) {
+        Py_XDECREF(header_map);
         molc_error();
     }
 }
