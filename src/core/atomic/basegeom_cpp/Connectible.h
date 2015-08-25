@@ -17,7 +17,7 @@ using ::basegeom::Coord;
 using ::basegeom::Point;
 using ::basegeom::UniqueConnection;
     
-template <class FinalConnection, class FinalConnectible>
+template <class FinalConnectible, class FinalConnection>
 class Connectible {
 protected:
     friend class UniqueConnection<FinalConnectible, FinalConnection>;

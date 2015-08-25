@@ -12,7 +12,7 @@
 namespace atomstruct {
 
 Atom::Atom(AtomicStructure *as, const char* name, Element e):
-    BaseSphere<Bond, Atom>(-1.0), // -1 indicates not explicitly set
+    BaseSphere<Atom, Bond>(-1.0), // -1 indicates not explicitly set
     _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(e),
     _is_backbone(false), _name(name), _residue(NULL), _serial_number(-1),
     _structure(as)
@@ -797,7 +797,7 @@ Atom::occupancy() const
 float
 Atom::radius() const
 {
-    auto r = BaseSphere<Bond, Atom>::radius();
+    auto r = BaseSphere<Atom, Bond>::radius();
     if (r >= 0.0)
         // has been explicitly set
         return r;
@@ -914,7 +914,7 @@ Atom::set_radius(float r)
 {
     if (r <= 0.0)
         throw std::logic_error("radius must be positive");
-    BaseSphere<Bond, Atom>::set_radius(r);
+    BaseSphere<Atom, Bond>::set_radius(r);
 }
 
 void
