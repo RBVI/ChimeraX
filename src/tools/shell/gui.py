@@ -23,9 +23,9 @@ class ShellUI(ToolInstance):
         # UI content code
         from wx.py.shell import Shell
         self.shell = Shell(parent, -1, size=self.SIZE, locals={
-                'Chimera2_session': session
+                'session': session
             },
-            introText='Use Chimera2_session to access the current session.')
+            introText='Use "session" to access the current session.')
         self.shell.redirectStdin(True)
         self.shell.redirectStdout(True)
         self.shell.redirectStderr(True)
