@@ -293,7 +293,6 @@ class AtomicStructure(AtomicStructureData, Model):
         p.display_positions = self._shown_bond_cylinders(bond_atoms, half_bond_coloring)
         self._set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
-    @line_profile
     def _create_ribbon_graphics(self):
         from .ribbon import Ribbon, XSection
         from numpy import concatenate, array, uint8
