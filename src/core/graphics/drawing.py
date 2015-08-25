@@ -1287,7 +1287,10 @@ class TrianglePick(Pick):
     '''
     def __init__(self, distance, triangle_number, copy_number, drawing):
         Pick.__init__(self, distance)
-        self.triangle_number = triangle_number
+        tm = drawing.triangle_mask
+        # Convert to from displayed triangle number to all triangles number.
+        tnum = triangle_number if tm is None else tm.nonzero()[0][triangle_number]
+        self.triangle_number = tnum
         self._copy = copy_number
         self._drawing = drawing
 
