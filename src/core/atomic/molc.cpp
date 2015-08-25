@@ -7,6 +7,7 @@
 #include "atomstruct/Atom.h"
 #include "atomstruct/Bond.h"
 #include "atomstruct/Chain.h"
+#include "atomstruct/ChangeTracker.h"
 #include "atomstruct/Pseudobond.h"
 #include "atomstruct/Residue.h"
 #include "basegeom/destruct.h"     // Use DestructionObserver
@@ -982,6 +983,17 @@ extern "C" void chain_residues(void *chains, size_t n, pyobject_t *res)
     }
 }
 
+extern "C" void *change_tracker_create()
+{
+    try {
+        auto change_tracker = new ChangeTracker();
+        return change_tracker;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" void *structure_copy(void *mol)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
@@ -1199,10 +1211,10 @@ extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structur
     }
 }
 
-extern "C" void *structure_new()
+extern "C" void *structure_new(void *ct, PyObject* logger)
 {
     try {
-        AtomicStructure *m = new AtomicStructure();
+        AtomicStructure *m = new AtomicStructure(static_cast<ChangeTracker*>(ct), logger);
         return m;
     } catch (...) {
         molc_error();

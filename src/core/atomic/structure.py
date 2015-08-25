@@ -19,9 +19,11 @@ class AtomicStructure(AtomicStructureData, Model):
     STRUCTURE_STATE_VERSION = 0
 
     def __init__(self, name, atomic_structure_pointer = None,
-                 initialize_graphical_attributes = True):
+                 initialize_graphical_attributes = True,
+                 change_tracker = None, logger = None):
 
-        AtomicStructureData.__init__(self, atomic_structure_pointer)
+        AtomicStructureData.__init__(self, atomic_structure_pointer,
+            change_tracker, logger)
         from . import molobject
         molobject.add_to_object_map(self)
 

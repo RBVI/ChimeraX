@@ -334,10 +334,13 @@ class AtomicStructureData:
     This base class manages the atomic data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
-    def __init__(self, mol_pointer = None):
+    def __init__(self, mol_pointer=None, change_tracker=None, logger=None):
         if mol_pointer is None:
             # Create a new atomic structure
-            mol_pointer = c_function('structure_new', args = (), ret = ctypes.c_void_p)()
+            if change_tracker == None or logger == None:
+                raise ValueError("Must provide change_tracker and logger"
+                    " arguments when constructing new AtomicStructure")
+            mol_pointer = c_function('structure_new', args = (ctypes.c_void_p, ctypes.py_object), ret = ctypes.c_void_p)()
         set_c_pointer(self, mol_pointer)
 
     def delete(self):
@@ -428,6 +431,16 @@ class AtomicStructureData:
     _gc_color = c_property('structure_gc_color', npy_bool)
     _gc_select = c_property('structure_gc_select', npy_bool)
     _gc_shape = c_property('structure_gc_shape', npy_bool)
+
+# -----------------------------------------------------------------------------
+#
+class ChangeTracker:
+    '''Per-session singleton change tracker keeps track of all
+    atomic data changes'''
+
+    def __init__(self):
+        f = c_function('change_tracker_create', args = (), ret = ctypes.c_void_p)
+        set_c_pointer(self, f())
 
 # -----------------------------------------------------------------------------
 #
