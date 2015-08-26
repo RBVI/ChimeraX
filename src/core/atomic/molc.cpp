@@ -23,7 +23,7 @@
 // Argument delcaration types:
 //
 // numpy array arguments are sized, so use uint8_t for numpy's uint8,
-// float32_t_t for numpys float32_t, etc.  The integer _t types are from
+// float32_t for numpys float32_t, etc.  The integer _t types are from
 // <stdint.h>.  Special case is for numpy/C/C++ booleans which are
 // processed in all cases as bytes:
 // 	1 == numpy.bool_().nbytes in Python
