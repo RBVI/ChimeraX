@@ -91,8 +91,8 @@ def standard_shortcuts(session):
         ('fr', show_map_full_resolution, 'Show map at full resolution', mapcat, maparg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
-        ('sf', show_surface, 'Show map as surface', mapcat, maparg, mmenu),
-        ('me', show_mesh, 'Show map as mesh', mapcat, maparg, mmenu),
+        ('fl', show_filled, 'Show map or surface in filled style', mapcat, sesarg, mmenu),
+        ('me', show_mesh, 'Show map or surface as mesh', mapcat, sesarg, mmenu),
         ('gs', show_grayscale, 'Show map as grayscale', mapcat, maparg, mmenu, sep),
 
         ('pl', show_one_plane, 'Show one plane', mapcat, maparg, mmenu),
@@ -120,6 +120,7 @@ def standard_shortcuts(session):
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('ce', color_by_element, 'Color atoms by element', molcat, atomsarg, mlmenu),
+        ('rc', random_color_atoms, 'Random color atoms', molcat, atomsarg, mlmenu),
         ('bf', color_by_bfactor, 'Color by bfactor', molcat, atomsarg, mlmenu),
         ('cc', color_by_chain, 'Color chains', molcat, atomsarg, mlmenu, sep),
 
@@ -385,13 +386,23 @@ def close_all_models(session):
 #    session.scenes.delete_all_scenes()
 #    session.file_history.show_thumbnails()
 
-def show_mesh(m):
-  m.set_representation('mesh')
-  m.show()
+def show_mesh(session):
+    from .map import Volume
+    for m in shortcut_surfaces_and_maps(session):
+        if isinstance(m, Volume):
+            m.set_representation('mesh')
+            m.show()
+        else:
+            m.display_style = m.Mesh
 
-def show_surface(m):
-  m.set_representation('surface')
-  m.show()
+def show_filled(session):
+    from .map import Volume
+    for m in shortcut_surfaces_and_maps(session):
+        if isinstance(m, Volume):
+            m.set_representation('surface')
+            m.show()
+        else:
+            m.display_style = m.Solid
 
 def show_grayscale(m):
   m.set_representation('solid')
@@ -618,7 +629,6 @@ def toggle_surface_transparency(session):
 def show_surface_transparent(session, alpha = 0.5):
     from .map import Volume
     from .graphics import Drawing
-    from .atomic import AtomicStructure
     a = int(255*alpha)
     for m in shortcut_surfaces_and_maps(session):
         if not m.display:
@@ -691,6 +701,12 @@ def show_molecular_surface(atoms, session):
 def color_by_element(atoms):
     from . import colors
     colors.color_by_element(atoms)
+
+def random_color_atoms(atoms):
+    from numpy import random, uint8
+    colors = random.randint(0,255,(len(atoms),4)).astype(uint8)
+    colors[:,3] = 255   # No transparency
+    atoms.colors = colors
 
 def color_by_bfactor(atoms):
     from time import time
