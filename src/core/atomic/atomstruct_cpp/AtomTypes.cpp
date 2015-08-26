@@ -2088,6 +2088,9 @@ clock_t start_t = clock();
             }
         }
     }
+    // since the rings() "ignore" arg pointed to a local variable, the
+    // rings cannot be reused...
+    _recompute_rings = true;
 #ifdef REPORT_TIME
 clock_t end_t = clock();
 std::cerr << "Tracking "

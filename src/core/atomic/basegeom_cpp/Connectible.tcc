@@ -8,9 +8,9 @@
 
 namespace basegeom {
 
-template <class FinalConnection, class FinalConnectible>
+template <class FinalConnectible, class FinalConnection>
 inline void
-Connectible<FinalConnection, FinalConnectible>::add_connection(
+Connectible<FinalConnectible, FinalConnection>::add_connection(
     FinalConnection *c)
 {
     _connections.push_back(c);
@@ -19,9 +19,9 @@ Connectible<FinalConnection, FinalConnectible>::add_connection(
     graphics_container()->set_gc_shape();
 }
 
-template <class FinalConnection, class FinalConnectible>
+template <class FinalConnectible, class FinalConnection>
 inline void
-Connectible<FinalConnection, FinalConnectible>::remove_connection(
+Connectible<FinalConnectible, FinalConnection>::remove_connection(
     FinalConnection *c)
 {
     auto cnti = std::find(_connections.begin(), _connections.end(), c);

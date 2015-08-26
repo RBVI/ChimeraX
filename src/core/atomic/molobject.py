@@ -436,6 +436,14 @@ class AtomicStructureData:
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
         return object_map(pbg, PseudobondGroupData)
 
+    def session_info(self, ints, floats, misc):
+        '''Gather session info; return version number'''
+        f = c_function('structure_session_info',
+                    args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
+                        ctypes.py_object),
+                    ret = ctypes.c_int)
+        return f(self._c_pointer, ints, floats, misc)
+
     # Graphics changed flags used by rendering code.  Private.
     _gc_color = c_property('structure_gc_color', npy_bool)
     _gc_select = c_property('structure_gc_select', npy_bool)

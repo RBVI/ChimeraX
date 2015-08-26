@@ -27,7 +27,7 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom: public BaseSphere<Bond, Atom> {
+class ATOMSTRUCT_IMEX Atom: public BaseSphere<Atom, Bond> {
     friend class AtomicStructure;
     friend class Residue;
 public:

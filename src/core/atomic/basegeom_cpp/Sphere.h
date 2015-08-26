@@ -7,8 +7,8 @@
 
 namespace basegeom {
     
-template <class FinalConnection, class FinalConnectible>
-class BaseSphere: public Connectible<FinalConnection, FinalConnectible> {
+template <class FinalConnectible, class FinalConnection>
+class BaseSphere: public Connectible<FinalConnectible, FinalConnection> {
 private:
     float  _radius;
 
@@ -30,8 +30,8 @@ public:
         { this->graphics_container()->set_gc_shape(); _draw_mode = dm; }
 };
 
-template <class FinalConnection, class FinalConnectible>
-class Sphere: public BaseSphere<FinalConnection, FinalConnectible> {
+template <class FinalConnectible, class FinalConnection>
+class Sphere: public BaseSphere<FinalConnectible, FinalConnection> {
 private:
     Coord  _coord;
 

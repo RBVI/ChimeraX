@@ -23,7 +23,7 @@
 // Argument delcaration types:
 //
 // numpy array arguments are sized, so use uint8_t for numpy's uint8,
-// float32_t_t for numpys float32_t, etc.  The integer _t types are from
+// float32_t for numpys float32_t, etc.  The integer _t types are from
 // <stdint.h>.  Special case is for numpy/C/C++ booleans which are
 // processed in all cases as bytes:
 // 	1 == numpy.bool_().nbytes in Python
@@ -1302,6 +1302,17 @@ extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *floats, PyObject *misc)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        return m->session_info(ints, floats, misc);
+    } catch (...) {
+        molc_error();
+        return -1;
     }
 }
 

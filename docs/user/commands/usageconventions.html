@@ -1,0 +1,53 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Usage Conventions in Command Documentation</title>
+</head><body>
+
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Usage Conventions in Command Documentation</h3> 
+<p>
+In the <b>Usage</b> sections of command manual pages:
+<ul>
+<li> <b>keywords</b> to be taken literally are not italicized
+<li> <b><i>parameters</i></b> that should be replaced with 
+an appropriate value (such as a number or word) are italicized
+<li><b><i>atom-spec</i></b> refers to an
+<a href="atomspec.html">atom specification string</a>,
+which generally specifies &ldquo;all&rdquo; when left blank
+<li> optional keywords and parameters are referred to as
+<b><i>options</i></b> or are enclosed in square brackets: <b>[&nbsp;]</b> 
+<li> mutually exclusive choices are separated by a vertical bar: <b>|</b>
+<li> mutually exclusive choices of a required item are grouped with
+parentheses: <b>(&nbsp;)</b>
+</ul>
+The brackets, vertical bars, and parentheses mentioned above are 
+merely symbolic and should not be included in the typed command.
+</p><p>
+Command names and keywords can be truncated to unique strings,
+unless a command's manual page states otherwise.
+</p><p>
+Multiple commands can be combined on a single line, separated by semicolons.
+This may be useful because the display 
+is not redrawn until the last command in a semicolon-separated series 
+has been executed; that is, multiple graphical changes such as changes in 
+representation, color, and display state can be made to appear 
+simultaneously instead of one by one.
+</p>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2015</address>
+</body></html>

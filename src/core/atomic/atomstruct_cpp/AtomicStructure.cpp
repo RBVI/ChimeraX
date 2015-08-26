@@ -1,4 +1,5 @@
 // vi: set expandtab ts=4 sw=4:
+#include <pythonarray.h>
 #include "Atom.h"
 #include "AtomicStructure.h"
 #include <basegeom/destruct.h>
@@ -13,6 +14,7 @@
 
 #include <algorithm>  // for std::find, std::sort, std::remove_if
 #include <map>
+#include "Python.h"
 #include <stdexcept>
 #include <set>
 
@@ -22,7 +24,7 @@ const char*  AtomicStructure::PBG_METAL_COORDINATION = "metal coordination bonds
 const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 const char*  AtomicStructure::PBG_HYDROGEN_BONDS = "hydrogen bonds";
 
-AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(NULL),
+AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(nullptr),
     _chains(nullptr), _idatm_valid(false), _logger(logger),
     _name("unknown AtomicStructure"), _pb_mgr(this), _polymers_computed(false),
     _recompute_rings(true), asterisks_translated(false), is_traj(false),
@@ -332,7 +334,7 @@ AtomicStructure::find_coord_set(int id) const
             return *csi;
     }
 
-    return NULL;
+    return nullptr;
 }
 
 Residue *
@@ -344,7 +346,7 @@ AtomicStructure::find_residue(const ChainID &chain_id, int pos, char insert) con
         && r->insertion_code() == insert)
             return r;
     }
-    return NULL;
+    return nullptr;
 }
 
 Residue *
@@ -356,7 +358,7 @@ AtomicStructure::find_residue(const ChainID& chain_id, int pos, char insert, Res
         && r->insertion_code() == insert)
             return r;
     }
-    return NULL;
+    return nullptr;
 }
 
 void
@@ -584,7 +586,7 @@ Residue*
 AtomicStructure::new_residue(const ResName& name, const ChainID& chain,
     int pos, char insert, Residue *neighbor, bool after)
 {
-    if (neighbor == NULL) {
+    if (neighbor == nullptr) {
         _residues.emplace_back(new Residue(this, name, chain, pos, insert));
         return _residues.back();
     }
@@ -729,11 +731,126 @@ AtomicStructure::_rings_cached(bool cross_residues,
         && ignore == _rings_last_ignore;
 }
 
+int
+AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
+{
+    // The passed-in args need to be empty lists.  This routine will add one object to each
+    // list for each of these classes:
+    //    AtomicStructure
+    //    PseudobondManager
+    //    CoordSet
+    //    Chain
+    //    Residue
+    //    Ring
+    //    Atom
+    //    Bond
+    // For the numeric types, the objects will be numpy arrays: one-dimensional for
+    // AtomicStructure attributes and two-dimensional for the others.  Except for
+    // PseudobondManager; that will be a list of numpy arrays, one per group.  For the misc,
+    // The objects will be Python lists, or lists of lists (same scheme as for the arrays),
+    // though there may be exceptions (e.g. altloc info).
+
+    if (!PyList_Check(ints) || PyList_Size(ints) != 0)
+        throw std::invalid_argument("AtomicStructure::session_info: first arg is not an"
+            " empty list");
+    if (!PyList_Check(floats) || PyList_Size(floats) != 0)
+        throw std::invalid_argument("AtomicStructure::session_info: second arg is not an"
+            " empty list");
+    if (!PyList_Check(misc) || PyList_Size(misc) != 0)
+        throw std::invalid_argument("AtomicStructure::session_info: third arg is not an"
+            " empty list");
+
+    // AtomicStructure attrs
+    int* int_array;
+    PyObject* npy_array = python_int_array(10, &int_array);
+    *int_array++ = _idatm_valid;
+    bool recompute_rings = _recompute_rings || _rings_last_ignore != nullptr;
+    *int_array++ = recompute_rings;
+    *int_array++ = _rings_last_all_size_threshold;
+    *int_array++ = _rings_last_cross_residues;
+    int x = std::find(_coord_sets.begin(), _coord_sets.end(), _active_coord_set)
+        - _coord_sets.begin();
+    *int_array++ = x; // can be size+1 if active coord set is null
+    *int_array++ = asterisks_translated;
+    *int_array++ = display();
+    *int_array++ = is_traj;
+    *int_array++ = lower_case_chains;
+    *int_array++ = pdb_version;
+    if (PyList_Append(ints, npy_array) < 0)
+        throw std::runtime_error("Couldn't append to int list");
+
+    float* float_array;
+    npy_array = python_float_array(1, &float_array);
+    *float_array++ = ball_scale();
+    if (PyList_Append(floats, npy_array) < 0)
+        throw std::runtime_error("Couldn't append to floats list");
+
+    PyObject* attr_list = PyList_New(4);
+    if (PyList_Append(misc, attr_list) < 0)
+        throw std::runtime_error("Couldn't append to misc list");
+    // input_seq_info
+    PyObject* map = PyDict_New();
+    if (map == nullptr)
+        throw std::runtime_error("Cannot create Python map for input seq info");
+    for (auto cid_residues: _input_seq_info) {
+        PyObject* chain_id = PyUnicode_FromString(cid_residues.first);
+        if (chain_id == nullptr)
+            throw std::runtime_error("Cannot create Python string for chain ID");
+        PyObject* res_list = PyList_New(cid_residues.second.size());
+        if (res_list == nullptr)
+            throw std::runtime_error("Cannot create Python list for residue names");
+        for (unsigned int i = 0; i < cid_residues.second.size(); ++i) {
+            PyObject* res_name = PyUnicode_FromString(cid_residues.second[i]);
+            if (res_name == nullptr)
+                throw std::runtime_error("Cannot create Python string for residue name");
+            PyList_SET_ITEM(res_list, i, res_name);
+        }
+        PyDict_SetItem(map, chain_id, res_list);
+        Py_DECREF(chain_id);
+        Py_DECREF(res_list);
+    }
+    PyList_SET_ITEM(attr_list, 0, map);
+    // name
+    PyObject* name = PyUnicode_FromString(_name.c_str());
+    if (name == nullptr)
+        throw std::runtime_error("Cannot create Python string for structure name");
+    PyList_SET_ITEM(attr_list, 1, name);
+    // input_seq_source
+    PyObject* seq_source = PyUnicode_FromString(input_seq_source.c_str());
+    if (seq_source == nullptr)
+        throw std::runtime_error("Cannot create Python string for seq info source");
+    PyList_SET_ITEM(attr_list, 2, seq_source);
+    // pdb_headers
+    map = PyDict_New();
+    if (map == nullptr)
+        throw std::runtime_error("Cannot create Python map for metadata");
+    for (auto type_hdrs: metadata) {
+        PyObject* htype = PyUnicode_FromString(type_hdrs.first.c_str());
+        if (htype == nullptr)
+            throw std::runtime_error("Cannot create Python string for metadata key");
+        PyObject* headers = PyList_New(type_hdrs.second.size());
+        if (headers == nullptr)
+            throw std::runtime_error("Cannot create Python list for metadata value");
+        for (unsigned int i = 0; i < type_hdrs.second.size(); ++i) {
+            PyObject* hdr = PyUnicode_FromString(type_hdrs.second[i].c_str());
+            if (hdr == nullptr)
+                throw std::runtime_error("Cannot create Python string for metadata line");
+            PyList_SET_ITEM(headers, i, hdr);
+        }
+        PyDict_SetItem(map, htype, headers);
+        Py_DECREF(htype);
+        Py_DECREF(headers);
+    }
+    PyList_SET_ITEM(attr_list, 3, map);
+
+    return 1;  // version number
+}
+
 void
 AtomicStructure::set_active_coord_set(CoordSet *cs)
 {
     CoordSet *new_active;
-    if (cs == NULL) {
+    if (cs == nullptr) {
         if (_coord_sets.empty())
             return;
         new_active = _coord_sets.front();
