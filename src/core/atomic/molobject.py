@@ -448,6 +448,7 @@ class AtomicStructureData:
     _gc_color = c_property('structure_gc_color', npy_bool)
     _gc_select = c_property('structure_gc_select', npy_bool)
     _gc_shape = c_property('structure_gc_shape', npy_bool)
+    _gc_ribbon = c_property('structure_gc_ribbon', npy_bool)
 
 # -----------------------------------------------------------------------------
 #

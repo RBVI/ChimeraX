@@ -1159,6 +1159,18 @@ extern "C" void set_structure_gc_shape(void *mols, size_t n, npy_bool *shape_cha
     error_wrap_array_set<AtomicStructure, bool, npy_bool>(m, n, &AtomicStructure::set_gc_shape, shape_changed);
 }
 
+extern "C" void structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_get<AtomicStructure, bool, npy_bool>(m, n, &AtomicStructure::get_gc_ribbon, ribbon_changed);
+}
+
+extern "C" void set_structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_set<AtomicStructure, bool, npy_bool>(m, n, &AtomicStructure::set_gc_ribbon, ribbon_changed);
+}
+
 extern "C" void structure_name(void *mols, size_t n, pyobject_t *names)
 {
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
