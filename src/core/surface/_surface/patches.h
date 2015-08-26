@@ -10,7 +10,7 @@ extern "C"
 //
 // Split triangles to create sharp boundaries equidistant between atoms.
 //
-// Args: vertices, normals, triangles, vertex to atom index array, atom positions.
+// Args: vertices, normals, triangles, vertex to atom index array, atom positions, atom radius.
 // Returns subdivide vertices, normals, triangles, vertex to atom
 //
 PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *keywds);

@@ -1,5 +1,6 @@
 #include <map>		// use std::map
 #include <iostream>
+#include <math.h>			// use sqrt()
 
 #include "pythonarray.h"		// use python_float_array
 #include "rcarray.h"			// use FArray, IArray
@@ -66,11 +67,13 @@ inline void add_triangle(std::vector<int> *t, int v0, int v1, int v2)
   t->push_back(v1);
   t->push_back(v2);
 }
-inline void bisect_triangle(int v0, int v1, int v2, int a0, int a1, int a2,
-			    std::vector<int> *ts, Edge_Map &edge_splits)
+
+// Split a triangle along a single cut line, dividing it into 3 new triangles.
+inline void cut_triangle_1_line(int v0, int v1, int v2, int a0, int a1, int a2,
+				std::vector<int> *ts, Edge_Map &edge_splits)
 {
-  // 2 edges split
-  // First put in standard orientation with edges 02 and 12 split.
+  // Cut line crosses 2 edges.
+  // First put in standard orientation with edges 02 and 12 cut.
   if (a1 == a2)
     { int temp = v0; v0 = v1; v1 = v2; v2 = temp; }
   else if (a2 == a0)
@@ -88,30 +91,75 @@ inline void bisect_triangle(int v0, int v1, int v2, int a0, int a1, int a2,
   add_triangle(ts, v2,v20,v21);
 }
 
-inline int split_edge(int v0, int v1, int a0, int a1, float *va, int vs0, int vs1,
-		      float *na, int ns0, int ns1, float *aa, int as0, int as1,
-		      std::vector<float> *vs, std::vector<float> *ns, std::vector<int> *v2as)
+// Find the point on segment p0,p1 equidistant to a0 and a1.
+// Returns fraction 0-1 from p0 to p1.
+inline float split_fraction(float x0, float y0, float z0, float x1, float y1, float z1,
+			    float ax0, float ay0, float az0, float ax1, float ay1, float az1)
 {
-  // Find position to split along edge.
-  // Equidistant from atoms: f = (0.5*(a1xyz+a2xyz)-v0xyz, a1xyz-a0xyz) / (v1xyz-v0xyz, a1xyz-a0xyz)
-  float x0 = va[vs0*v0], y0 = va[vs0*v0+vs1], z0 = va[vs0*v0+2*vs1];
-  float x1 = va[vs0*v1], y1 = va[vs0*v1+vs1], z1 = va[vs0*v1+2*vs1];
   float dx = x1-x0, dy = y1-y0, dz = z1-z0;
-  float ax0 = aa[as0*a0], ay0 = aa[as0*a0+as1], az0 = aa[as0*a0+2*as1];
-  float ax1 = aa[as0*a1], ay1 = aa[as0*a1+as1], az1 = aa[as0*a1+2*as1];
   float dax = ax1-ax0, day = ay1-ay0, daz = az1-az0;
   float cx = 0.5*(ax0+ax1)-x0, cy = 0.5*(ay0+ay1)-y0, cz = 0.5*(az0+az1)-z0;
   float dvda = dx*dax + dy*day + dz*daz;
   float dcda = cx*dax + cy*day + cz*daz;
   float f1 = (dvda != 0 ? dcda / dvda : 0.5);
   //  if (f1 < 0 || f1 > 1)
-  //    std::cerr << "split edge " << v0 << " " << v1 << " " << a0 << " " << a1 << " " << f1 << std::endl;
-  if (f1 < 0) f1 = 0; else if (f1 > 1) f1 = 1;
+  //    std::cerr << "split_fraction(): out of 0-1 range " << f1 << std::endl;
+  if (f1 < 0) f1 = 0; else if (f1 > 1) f1 = 1;	// Clamp to 0-1 range.
+  return f1;
+}
+
+// Find the point on segment p0,p1 where the distance to a0 divided by r0 equals
+// the distance to a1 divided by r1.  Returns fraction 0-1 from p0 to p1.
+// Requires solving quadratic equation.
+inline float scaled_split_fraction(float x0, float y0, float z0, float x1, float y1, float z1,
+				   float ax0, float ay0, float az0, float ax1, float ay1, float az1,
+				   float r0, float r1)
+{
+  float dx = x1-x0, dy = y1-y0, dz = z1-z0;
+  float d2 = dx*dx + dy*dy + dz*dz;
+  float r12 = r1*r1, r02 = r0*r0;
+  float a = d2*(r12-r02);
+  if (a == 0)
+    return split_fraction(x0, y0, z0, x1, y1, z1, ax0, ay0, az0, ax1, ay1, az1);
+  float e0x = x0-ax0, e0y = y0-ay0, e0z = z0-az0;
+  float e02 = e0x*e0x + e0y*e0y + e0z*e0z;
+  float de0 = dx*e0x + dy*e0y + dz*e0z;
+  float e1x = x0-ax1, e1y = y0-ay1, e1z = z0-az1;
+  float e12 = e1x*e1x + e1y*e1y + e1z*e1z;
+  float de1 = dx*e1x + dy*e1y + dz*e1z;
+
+  float b = r12*de0 - r02*de1;
+  float c = r12*e02-r02*e12;
+  float b2ac = b*b-a*c;
+  if (b2ac < 0)
+    {
+      //      std::cerr << "scaled_split_fraction(): negative discriminant.\n";
+      return 0.5;
+    }
+  float f1 = (-b + sqrtf(b2ac))/a;
+  //  if (f1 < 0 || f1 > 1)
+  //    std::cerr << "scaled_split_fraction(): out of 0-1 range " << f1 << " " << r0 << " " << r1 << " " << std::endl;
+  if (f1 < 0) f1 = 0; else if (f1 > 1) f1 = 1;	// Clamp to 0-1 range.
+  return f1;
+}
+
+inline int split_edge(int v0, int v1, int a0, int a1, float *va, int vs0, int vs1,
+		      float *na, int ns0, int ns1, float *aa, int as0, int as1, float *ra, int rs0,
+		      std::vector<float> *vs, std::vector<float> *ns, std::vector<int> *v2as)
+{
+  // Find position to split along edge.
+  // Equidistant from atoms: f = (0.5*(a1xyz+a2xyz)-v0xyz, a1xyz-a0xyz) / (v1xyz-v0xyz, a1xyz-a0xyz)
+  float x0 = va[vs0*v0], y0 = va[vs0*v0+vs1], z0 = va[vs0*v0+2*vs1];
+  float x1 = va[vs0*v1], y1 = va[vs0*v1+vs1], z1 = va[vs0*v1+2*vs1];
+  float ax0 = aa[as0*a0], ay0 = aa[as0*a0+as1], az0 = aa[as0*a0+2*as1];
+  float ax1 = aa[as0*a1], ay1 = aa[as0*a1+as1], az1 = aa[as0*a1+2*as1];
+  float f1 = (ra == NULL ?
+	      split_fraction(x0,y0,z0, x1,y1,z1, ax0,ay0,az0, ax1,ay1,az1) :
+	      scaled_split_fraction(x0,y0,z0, x1,y1,z1, ax0,ay0,az0, ax1,ay1,az1, ra[rs0*a0], ra[rs0*a1]));
   float f0 = 1-f1;
-  float x = f0*x0 + f1*x1, y = f0*y0 + f1*y1, z = f0*z0 + f1*z1;
-  //      std::cerr << "split point " << v0 << " " << v1 << " " << x << " " << y << " " << z << std::endl;
 
   // Make 2 copies of vertex at split position
+  float x = f0*x0 + f1*x1, y = f0*y0 + f1*y1, z = f0*z0 + f1*z1;
   add_vertex(vs, x, y, z);
   add_vertex(vs, x, y, z);
 
@@ -134,7 +182,7 @@ inline int split_edge(int v0, int v1, int a0, int a1, float *va, int vs0, int vs
 
 inline void split_edges(std::vector<float> *vs, std::vector<float> *ns, std::vector<int> *v2as,
 			float *va, int vs0, int vs1, float *na, int ns0, int ns1,
-			int *v2aa, int v2as0, float *aa, int as0, int as1,
+			int *v2aa, int v2as0, float *aa, int as0, int as1, float *ra, int rs0,
 			Edge_Map &edge_splits)
 {
   for (Edge_Map::iterator ei = edge_splits.begin() ; ei != edge_splits.end() ; ++ei)
@@ -142,17 +190,25 @@ inline void split_edges(std::vector<float> *vs, std::vector<float> *ns, std::vec
       const Edge &e = ei->first;
       int v0 = e.first, v1 = e.second;
       int a0 = v2aa[v2as0*v0], a1 = v2aa[v2as0*v1];
-      ei->second = split_edge(v0, v1, a0, a1, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, vs, ns, v2as);
+      ei->second = split_edge(v0, v1, a0, a1, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, v2as);
     }
 }
 
 
-inline bool double_bisect_triangle(int v0, int v1, int v2, int a0, int a1, int a2,
-				   int v01, int v10, int v12, int v21, int v20, int v02,
-				   float *va, int vs0, int vs1, float *na, int ns0, int ns1, 
-				   float *aa, int as0, int as1,
-				   std::vector<float> *vs, std::vector<float> *ns,
-				   std::vector<int> *ts, std::vector<int> *v2as)
+// Each triangle vertex is closest to a different atom.  Normally this would partition
+// the triangle into 3 regions using 3 lines that intersect at a point inside the triangle.
+// But if the intersection point lies outside the triangle then it is only cut by 2 lines.
+// To test for this case see if the cut point along edge 12 is closer to the atom of vertex 0
+// than the atoms of vertex 1 and 2.
+//
+// Returns true if triangle is double cut, otherwise false.
+//
+inline bool cut_triangle_2_lines(int v0, int v1, int v2, int a0, int a1, int a2,
+				 int v01, int v10, int v12, int v21, int v20, int v02,
+				 float *va, int vs0, int vs1, float *na, int ns0, int ns1, 
+				 float *aa, int as0, int as1, float *ra, int rs0,
+				 std::vector<float> *vs, std::vector<float> *ns,
+				 std::vector<int> *ts, std::vector<int> *v2as)
 {
   float ex0 = (*vs)[vs0*v12], ey0 = (*vs)[vs0*v12+vs1], ez0 = (*vs)[vs0*v12+2*vs1];
 
@@ -164,13 +220,19 @@ inline bool double_bisect_triangle(int v0, int v1, int v2, int a0, int a1, int a
   float dx1 = ex0-ax1, dy1 = ey0-ay1, dz1 = ez0-az1;
   float d0 = dx0*dx0 + dy0*dy0 + dz0*dz0;
   float d1 = dx1*dx1 + dy1*dy1 + dz1*dz1;
-  if (d0 >= d1)
+  if (ra)
+    {
+      float r0 = ra[a0*rs0], r1 = ra[a1*rs0];
+      if (d0*r1*r1 >= d1*r0*r0)
+	return false;
+    }
+  else if (d0 >= d1)
     return false;
 
-  // Double bisect edge 12.
-  int v12a = split_edge(v1, v2, a1, a0, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, vs, ns, v2as);
+  // Double cut edge 12.
+  int v12a = split_edge(v1, v2, a1, a0, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, v2as);
   int v21a = v12a + 1;
-  int v12b = split_edge(v1, v2, a0, a2, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, vs, ns, v2as);
+  int v12b = split_edge(v1, v2, a0, a2, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, v2as);
   int v21b = v12b + 1;
   add_triangle(ts, v1, v12a, v10);
   add_triangle(ts, v2, v20, v21b);
@@ -184,16 +246,21 @@ inline bool double_bisect_triangle(int v0, int v1, int v2, int a0, int a1, int a
   (*v2as)[v12] = a0;
   */
 
-  //  std::cerr << "double bisect " << v1 << " " << v2 << " " << a1 << " " << a2 << " " << a0 << std::endl;
+  //  std::cerr << "double cut " << v1 << " " << v2 << " " << a1 << " " << a2 << " " << a0 << std::endl;
 
   return true;
 }
 
-inline void trisect_triangle(int v0, int v1, int v2, int a0, int a1, int a2,
-			     float *va, int vs0, int vs1, float *na, int ns0, int ns1, 
-			     float *aa, int as0, int as1,
-			     std::vector<float> *vs, std::vector<float> *ns,
-			     std::vector<int> *ts, std::vector<int> *v2as, Edge_Map &edge_splits)
+// Each triangle vertex is closest to a different atom, so the triangle is to be cut into
+// 3 regions using 3 cut lines.  It can happen that the intersection of the 3 lines lies
+// outside the triangle in which case the triangle is only cut by two lines, a case handled
+// by double_cut_triangle().
+inline void cut_triangle_3_lines(int v0, int v1, int v2, int a0, int a1, int a2,
+				 float *va, int vs0, int vs1, float *na, int ns0, int ns1, 
+				 float *aa, int as0, int as1, float *ra, int rs0,
+				 std::vector<float> *vs, std::vector<float> *ns,
+				 std::vector<int> *ts, std::vector<int> *v2as,
+				 Edge_Map &edge_splits)
 {
   // All 3 edges split
   int v01, v10, v12, v21, v20, v02;
@@ -204,12 +271,12 @@ inline void trisect_triangle(int v0, int v1, int v2, int a0, int a1, int a2,
   if (v2 < v0) { v20 = edge_splits[Edge(v2,v0)]; v02 = v20+1; }
   else { v02 = edge_splits[Edge(v0,v2)]; v20 = v02+1; }
 
-  if (double_bisect_triangle(v0, v1, v2, a0, a1, a2, v01, v10, v12, v21, v20, v02,
-			     va, vs0, vs1, na, ns0, ns1, aa, as0, as1, vs, ns, ts, v2as) ||
-      double_bisect_triangle(v1, v2, v0, a1, a2, a0, v12, v21, v20, v02, v01, v10,
-			     va, vs0, vs1, na, ns0, ns1, aa, as0, as1, vs, ns, ts, v2as) ||
-      double_bisect_triangle(v2, v0, v1, a2, a0, a1, v20, v02, v01, v10, v12, v21,
-			     va, vs0, vs1, na, ns0, ns1, aa, as0, as1, vs, ns, ts, v2as))
+  if (cut_triangle_2_lines(v0, v1, v2, a0, a1, a2, v01, v10, v12, v21, v20, v02,
+			   va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, ts, v2as) ||
+      cut_triangle_2_lines(v1, v2, v0, a1, a2, a0, v12, v21, v20, v02, v01, v10,
+			   va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, ts, v2as) ||
+      cut_triangle_2_lines(v2, v0, v1, a2, a0, a1, v20, v02, v01, v10, v12, v21,
+			   va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, ts, v2as))
     return;
 
   // Add mid-triangle vertex (3 copies).
@@ -226,8 +293,12 @@ inline void trisect_triangle(int v0, int v1, int v2, int a0, int a1, int a2,
   float cx02 = ax2-ax0, cy02 = ay2-ay0, cz02 = az2-az0;
 
   //	  float cx12 = ax2-ax1, cy12 = ay2-ay1, cz12 = az2-az1;
-  float mx01 = 0.5*(ax0+ax1)-x0, my01 = 0.5*(ay0+ay1)-y0, mz01 = 0.5*(az0+az1)-z0;
-  float mx02 = 0.5*(ax0+ax2)-x0, my02 = 0.5*(ay0+ay2)-y0, mz02 = 0.5*(az0+az2)-z0;
+  float sx01 = (*vs)[v01*vs0], sy01 = (*vs)[v01*vs0+vs1], sz01 = (*vs)[v01*vs0+2*vs1];
+  float mx01 = sx01-x0, my01 = sy01-y0, mz01 = sz01-z0;
+  //  float mx01 = 0.5*(ax0+ax1)-x0, my01 = 0.5*(ay0+ay1)-y0, mz01 = 0.5*(az0+az1)-z0;
+  float sx02 = (*vs)[v02*vs0], sy02 = (*vs)[v02*vs0+vs1], sz02 = (*vs)[v02*vs0+2*vs1];
+  float mx02 = sx02-x0, my02 = sy02-y0, mz02 = sz02-z0;
+  //  float mx02 = 0.5*(ax0+ax2)-x0, my02 = 0.5*(ay0+ay2)-y0, mz02 = 0.5*(az0+az2)-z0;
   //	  float mx12 = 0.5*(ax1+ax2)-x0, my12 = 0.5*(ay1+ay2)-y0, mz12 = 0.5*(az1+az2)-z0;
 
   float v01c01 = x01*cx01 + y01*cy01 + z01*cz01;
@@ -333,7 +404,8 @@ static void fix_closest_atoms(std::vector<float> &vs, std::vector<int> &ts,
 }
 */
 
-static void sharp_patches(const FArray &v, const FArray &n, const IArray &t, const IArray &v2a, const FArray &a,
+static void sharp_patches(const FArray &v, const FArray &n, const IArray &t,
+			  const IArray &v2a, const FArray &a, const FArray &r,
 			  std::vector<float> *vs, std::vector<float> *ns,
 			  std::vector<int> *ts, std::vector<int> *v2as)
 {
@@ -353,6 +425,8 @@ static void sharp_patches(const FArray &v, const FArray &n, const IArray &t, con
   long ns0 = n.stride(0), ns1 = n.stride(1);
   long ts0 = t.stride(0), ts1 = t.stride(1);
   long v2as0 = v2a.stride(0), as0 = a.stride(0), as1 = a.stride(1);
+  float *ra = (r.dimension() == 1 ? r.values() : NULL);
+  long rs0 = (r.dimension() == 1 ? r.stride(0) : 0);
 
   // Copy original vertices and normals.
   for (int i = 0 ; i < nv ; ++i)
@@ -363,7 +437,7 @@ static void sharp_patches(const FArray &v, const FArray &n, const IArray &t, con
     }
 
   // Make vertices for edge splits.
-  split_edges(vs, ns, v2as, va, vs0, vs1, na, ns0, ns1, v2aa, v2as0, aa, as0, as1, edge_splits);
+  split_edges(vs, ns, v2as, va, vs0, vs1, na, ns0, ns1, v2aa, v2as0, aa, as0, as1, ra, rs0, edge_splits);
 
   // Make subdivided triangles.
   for (long ti = 0 ; ti < nt ; ++ti)
@@ -373,10 +447,11 @@ static void sharp_patches(const FArray &v, const FArray &n, const IArray &t, con
       if (a0 == a1 && a1 == a2)
 	add_triangle(ts, v0, v1, v2);  // copy triangle, no subdivision
       else if (a0 != a1 && a1 != a2 && a2 != a0)
-	trisect_triangle(v0, v1, v2, a0, a1, a2, va, vs0, vs1, na, ns0, ns1, aa, as0, as1,
-			 vs, ns, ts, v2as, edge_splits);
+	cut_triangle_3_lines(v0, v1, v2, a0, a1, a2, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0,
+			     vs, ns, ts, v2as, edge_splits);
       else
-	bisect_triangle(v0, v1, v2, a0, a1, a2, ts, edge_splits);
+	// Cut triangle along one line.
+	cut_triangle_1_line(v0, v1, v2, a0, a1, a2, ts, edge_splits);
     }
 
   //  fix_closest_atoms(*vs, *ts, *v2as, aa, as0, as1);
@@ -388,15 +463,16 @@ static void sharp_patches(const FArray &v, const FArray &n, const IArray &t, con
 //
 extern "C" PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *keywds)
 {
-  FArray vertices, normals, axyz;
+  FArray vertices, normals, axyz, radii;
   IArray triangles, v2a;
-  const char *kwlist[] = {"vertices", "normals", "triangles", "v2a", "atom_xyz", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&O&"), (char **)kwlist,
+  const char *kwlist[] = {"vertices", "normals", "triangles", "v2a", "atom_xyz", "atom_radii", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&O&|O&"), (char **)kwlist,
 				   parse_float_n3_array, &vertices,
 				   parse_float_n3_array, &normals,
 				   parse_int_n3_array, &triangles,
 				   parse_int_n_array, &v2a,
-				   parse_float_n3_array, &axyz))
+				   parse_float_n3_array, &axyz,
+				   parse_float_n_array, &radii))
     return NULL;
 
   if (normals.size(0) != vertices.size(0))
@@ -409,11 +485,16 @@ extern "C" PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *ke
       PyErr_SetString(PyExc_ValueError, "vertex map and vertices have different sizes");
       return NULL;
     }
+  if (radii.dimension() == 1 && radii.size(0) != axyz.size(0))
+    {
+      PyErr_SetString(PyExc_ValueError, "atom coordinates and radii arrays have different sizes");
+      return NULL;
+    }
 
   std::vector<float> vs, ns;
   std::vector<int> ts, v2as;
   Py_BEGIN_ALLOW_THREADS
-  sharp_patches(vertices, normals, triangles, v2a, axyz, &vs, &ns, &ts, &v2as);
+  sharp_patches(vertices, normals, triangles, v2a, axyz, radii, &vs, &ns, &ts, &v2as);
   Py_END_ALLOW_THREADS
 
   int nv = vs.size()/3, nt = ts.size()/3;
