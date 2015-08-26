@@ -762,15 +762,17 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
 
     // AtomicStructure attrs
     int* int_array;
-    PyObject* npy_array = python_int_array(9, &int_array);
+    PyObject* npy_array = python_int_array(10, &int_array);
     *int_array++ = _idatm_valid;
-    *int_array++ = _recompute_rings || _rings_last_ignore != nullptr;
+    bool recompute_rings = _recompute_rings || _rings_last_ignore != nullptr;
+    *int_array++ = recompute_rings;
     *int_array++ = _rings_last_all_size_threshold;
     *int_array++ = _rings_last_cross_residues;
     int x = std::find(_coord_sets.begin(), _coord_sets.end(), _active_coord_set)
         - _coord_sets.begin();
     *int_array++ = x; // can be size+1 if active coord set is null
     *int_array++ = asterisks_translated;
+    *int_array++ = display();
     *int_array++ = is_traj;
     *int_array++ = lower_case_chains;
     *int_array++ = pdb_version;
@@ -778,7 +780,8 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         throw std::runtime_error("Couldn't append to int list");
 
     float* float_array;
-    npy_array = python_float_array(0, nullptr);
+    npy_array = python_float_array(1, &float_array);
+    *float_array++ = ball_scale();
     if (PyList_Append(floats, npy_array) < 0)
         throw std::runtime_error("Couldn't append to floats list");
 
@@ -820,18 +823,18 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     // pdb_headers
     map = PyDict_New();
     if (map == nullptr)
-        throw std::runtime_error("Cannot create Python map for PDB headers");
-    for (auto type_hdrs: pdb_headers) {
+        throw std::runtime_error("Cannot create Python map for metadata");
+    for (auto type_hdrs: metadata) {
         PyObject* htype = PyUnicode_FromString(type_hdrs.first.c_str());
         if (htype == nullptr)
-            throw std::runtime_error("Cannot create Python string for PDB header type");
+            throw std::runtime_error("Cannot create Python string for metadata key");
         PyObject* headers = PyList_New(type_hdrs.second.size());
         if (headers == nullptr)
-            throw std::runtime_error("Cannot create Python list for PDB headers");
+            throw std::runtime_error("Cannot create Python list for metadata value");
         for (unsigned int i = 0; i < type_hdrs.second.size(); ++i) {
             PyObject* hdr = PyUnicode_FromString(type_hdrs.second[i].c_str());
             if (hdr == nullptr)
-                throw std::runtime_error("Cannot create Python string for PDB header line");
+                throw std::runtime_error("Cannot create Python string for metadata line");
             PyList_SET_ITEM(headers, i, hdr);
         }
         PyDict_SetItem(map, htype, headers);

@@ -1305,6 +1305,17 @@ extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name
     }
 }
 
+extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *floats, PyObject *misc)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        return m->session_info(ints, floats, misc);
+    } catch (...) {
+        molc_error();
+        return -1;
+    }
+}
+
 extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
