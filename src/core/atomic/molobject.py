@@ -440,7 +440,7 @@ class AtomicStructureData:
         '''Gather session info; return version number'''
         f = c_function('structure_session_info',
                     args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
-                        ctype.py_object),
+                        ctypes.py_object),
                     ret = ctypes.c_int)
         return f(self._c_pointer, ints, floats, misc)
 
