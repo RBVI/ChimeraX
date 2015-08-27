@@ -493,9 +493,11 @@ class AtomicStructure(AtomicStructureData, Model):
         if not self._atom_bounds_needs_update:
             return self._cached_atom_bounds
         a = self.atoms
-        xyz = a.coords[a.displays]
-        from ..geometry import bounds
-        b = bounds.point_bounds(xyz)
+        disp = a.displays
+        xyz = a.coords[disp]
+        radii = a.radii[disp]
+        from .. import geometry
+        b = geometry.sphere_bounds(xyz, radii)
         self._cached_atom_bounds = b
         self._atom_bounds_needs_update = False
         return b

@@ -37,7 +37,7 @@ static void axes_sphere_bounds(const FArray &centers, const FArray &radii, const
 // -----------------------------------------------------------------------------
 //
 extern "C"
-PyObject *sphere_bounds(PyObject *, PyObject *args, PyObject *keywds)
+PyObject *sphere_axes_bounds(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray centers, radii, axes;
   const char *kwlist[] = {"centers", "radii", "axes", NULL};
@@ -158,4 +158,54 @@ PyObject *bounds_overlap(PyObject *, PyObject *args, PyObject *keywds)
 
   bool overlap = axes_bounds_overlap(bounds1, bounds2, padding);
   return python_bool(overlap);
+}
+
+// -----------------------------------------------------------------------------
+//
+static void sphere_bounding_box(const FArray &centers, const FArray &radii, float *xyz_min, float *xyz_max)
+{
+  long n = centers.size(0);
+  long cs0 = centers.stride(0), cs1 = centers.stride(1), rs = radii.stride(0);
+  float *ca = centers.values(), *ra = radii.values();
+  float xmin = 0, ymin = 0, zmin = 0, xmax = 0, ymax = 0, zmax = 0;
+  for (long i = 0 ; i < n ; ++i, ca += cs0, ra += rs)
+    {
+      float x = ca[0], y = ca[cs1], z = ca[2*cs1], r = *ra;
+      if (i == 0)
+	{ xmin = x-r; xmax = x+r; ymin = y-r; ymax = y+r; zmin = z-r; zmax = z+r; }
+      else
+	{
+	  if (x-r < xmin) xmin = x-r;
+	  else if (x+r > xmax) xmax = x+r;
+	  if (y-r < ymin) ymin = y-r;
+	  else if (y+r > ymax) ymax = y+r;
+	  if (z-r < zmin) zmin = z-r;
+	  else if (z+r > zmax) zmax = z+r;
+	}
+    }
+  xyz_min[0] = xmin; xyz_min[1] = ymin; xyz_min[2] = zmin;
+  xyz_max[0] = xmax; xyz_max[1] = ymax; xyz_max[2] = zmax;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *sphere_bounds(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray centers, radii;
+  const char *kwlist[] = {"centers", "radii", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &centers,
+				   parse_float_n_array, &radii))
+    return NULL;
+
+  if (radii.size() != centers.size(0))
+    return PyErr_Format(PyExc_ValueError, "Centers and radii arrays have different sizes %ld and %ld",
+			centers.size(0), radii.size());
+
+  float *xyz_bounds;
+  PyObject *bounds = python_float_array(2, 3, &xyz_bounds);
+  sphere_bounding_box(centers, radii, xyz_bounds, xyz_bounds+3);
+  return bounds;
 }

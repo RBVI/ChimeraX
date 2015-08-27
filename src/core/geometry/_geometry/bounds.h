@@ -9,8 +9,10 @@
 
 extern "C"
 {
-// axes_sphere_bounds(centers, radii, axes) -> axes_bounds
+// sphere_xyz_bounds(centers, radii) -> bounds
 PyObject *sphere_bounds(PyObject *, PyObject *args, PyObject *keywds);
+// axes_sphere_bounds(centers, radii, axes) -> axes_bounds
+PyObject *sphere_axes_bounds(PyObject *, PyObject *args, PyObject *keywds);
 // spheres_in_bounds(centers, radii, axes, axes_bounds, padding) -> indices
 PyObject *spheres_in_bounds(PyObject *, PyObject *args, PyObject *keywds);
 // bounds_overlap(bounds1, bounds2, padding) -> true/false
