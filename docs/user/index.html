@@ -10,14 +10,13 @@ software or any revisions or derivations thereof.
 -->
 
 <html><head>
-<title>Chimera2 User Guide Index</title>
+<title>UCSF Chimera2 User Guide</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
 </head><body>
 
-<img width="75px" src="Chimera2-icon.svg" alt="Chimera2 logo"/>
-
-<h2>Chimera2 User Guide Index</h2>
+<h2><img width="60px" src="Chimera2-icon.svg" alt="Chimera2 logo"/>
+UCSF Chimera2 User Guide</h2>
 <p>
 Not much in here yet.
 </p>
@@ -47,15 +46,16 @@ Not much in here yet.
 <p>
 Of course, many more commands exist but lack detailed user documentation,
 and may be experimental and/or in flux.  A subset are listed below, 
-and the <b>help</b> command (<i>e.g.</i>, <b>help style</b>)
-can be used to show their brief descriptions in the <b>Log</b>.
-Some are very similar to the corresponding commands in Chimera1.
+and the <b>help</b> command can be used to show brief descriptions
+of specific commands or all commands in the <b>Log</b>
+(<i>e.g.</i>, <b>help style</b> or <b>help all</b>). 
+Some commands are much the same as in Chimera1.
 Some may be removed and cease to exist in Chimera2.
 </p>
 <ul>
 <li><b>open</b> 
 - open local file or fetch from repository; first model is #1;
-default for 4-character, PDB-like ID is to fetch mmCIF; use <b>pdb:</b> 
+default for 4-character ID is to fetch mmCIF; use <b>pdb:</b> 
 prefix to fetch PDB, <b>emdb:</b> prefix to fetch from EMDB</li> 
 <li><b>close</b> 
 - close model</li> 
@@ -64,10 +64,23 @@ prefix to fetch PDB, <b>emdb:</b> prefix to fetch from EMDB</li>
 <li><b>color</b></li>
 <li><b>display/~display</b></li>
 <li><b>ribbon/~ribbon</b></li>
-<li><b>style</b> (with style options <b>stick, ball, sphere</b>)</li>
+<li><b>style</b>
+(with options <b>stick, ball, sphere</b>)</li>
+<li><b>lighting</b> 
+(with options including <b>soft</b> for ambient occlusion, <b>flat</b> 
+for ambient-only, <b>full</b> with shadows, <b>default</b>)</li>
+<li><b>set</b>
+(with options including <b>bgColor</b> and <b>silhouette</b>)</li>
 <li><b>delete</b></li>
-<li><b>exit</b></li>
-<li><b>help</b></li>
+<li><b>exit</b> or <b>quit</b></li>
+<li><b>sym</b></li>
+<li><b>sasa</b></li>
+<li><b>buriedarea</b></li>
+<li><b>contacts</b></li>
+<li><b>volume</b></li>
+<li><b>vop</b></li>
+<li><b>vseries</b></li>
+<li><b>molmap</b></li>
 <li><b>movie</b></li>
 <li><b>crossfade</b></li>
 <li><b>move</b></li>
@@ -78,16 +91,7 @@ prefix to fetch PDB, <b>emdb:</b> prefix to fetch from EMDB</li>
 <li><b>wait</b></li>
 <li><b>2dlabels</b></li>
 <li><b>perframe</b></li>
-<li><b>volume</b></li>
-<li><b>vop</b></li>
-<li><b>vseries</b></li>
-<li><b>sym</b></li>
-<li><b>contacts</b></li>
 <li><b>save</b></li>
-<li><b>light</b> (with options including <b>soft</b> for ambient occlusion,
-<b>flat</b> for ambient-only, <b>full</b> with shadows, <b>default</b>)</li>
-<li><b>set</b> (with options including <b>bgColor</b> and 
-<b>silhouette</b>)</li>
 <li><b>material</b></li>
 <li><b>camera</b></li>
 <li><b>oculus</b></li>
@@ -95,6 +99,9 @@ prefix to fetch PDB, <b>emdb:</b> prefix to fetch from EMDB</li>
 </ul>
 
 <hr>
-<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2015</address>
+<p align="center">
+UCSF Chimera2 documentation is copyrighted &copy; by the
+Regents of the University of California, 2015.
+All rights reserved.
+</p>
 </body></html> 
