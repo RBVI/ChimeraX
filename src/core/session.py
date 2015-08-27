@@ -526,10 +526,6 @@ def common_startup(sess):
     from . import commands
     commands.register_core_commands(sess)
 
-    from . import shortcuts
-    sess.keyboard_shortcuts = ks = shortcuts.Keyboard_Shortcuts(sess)
-    shortcuts.register_shortcuts(ks)
-
     # file formats
     from . import stl
     stl.register()
