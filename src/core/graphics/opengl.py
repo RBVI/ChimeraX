@@ -743,7 +743,7 @@ class Render:
         return sfb
 
     def draw_depth_outline(self, depth_texture, thickness=1,
-                           color=(0, 0, 0, 1), depth_jump=0.01,
+                           color=(0, 0, 0, 1), depth_jump=0.03,
                            perspective_near_far_ratio=1):
 
         # Render pixels with depth less than neighbor pixel by at least
