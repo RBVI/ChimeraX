@@ -86,6 +86,7 @@ private:
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
     mutable std::set<const Residue *>*  _rings_last_ignore;
+    bool  _gc_ribbon = false;
 public:
     AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure();
@@ -148,6 +149,8 @@ public:
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }
     void  use_best_alt_locs();
+    bool  get_gc_ribbon() const { return _gc_ribbon; }
+    void  set_gc_ribbon(bool gc = true) { _gc_ribbon = gc; }
 };
 
 }  // namespace atomstruct

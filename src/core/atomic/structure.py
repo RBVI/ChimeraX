@@ -176,11 +176,12 @@ class AtomicStructure(AtomicStructureData, Model):
         self._atom_bounds_needs_update = True
 
     def _update_graphics_if_needed(self):
-        c, s, se = self._gc_color, self._gc_shape, self._gc_select
-        if self._gc_shape:
+        if self._gc_ribbon:
             # Do this before fetching bits because ribbon creation changes some
             # display and hide bits
             self._create_ribbon_graphics()
+            self._gc_ribbon = False
+        c, s, se = self._gc_color, self._gc_shape, self._gc_select
         if c or s or se:
             self._gc_color = self._gc_shape = self._gc_select = False
             self._update_graphics()

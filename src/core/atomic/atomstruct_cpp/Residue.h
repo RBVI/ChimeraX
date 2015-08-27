@@ -90,9 +90,9 @@ public:
     bool  ribbon_display() const { return _ribbon_display; }
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
     void  set_ribbon_display(bool d)
-        { structure()->set_gc_shape(); _ribbon_display = d; }
+        { structure()->set_gc_ribbon(); _ribbon_display = d; }
     void  set_ribbon_color(const Rgba& rgba)
-        { structure()->set_gc_color(); _ribbon_rgba = rgba; }
+        { structure()->set_gc_ribbon(); _ribbon_rgba = rgba; }
 };
 
 #include "Chain.h"
