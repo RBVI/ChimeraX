@@ -136,7 +136,7 @@ help
 
 ks
 ==
-.. autofunction:: chimera.core.shortcuts.ks
+.. autofunction:: chimera.tools.shortcuts.shortcuts
 
 2dlabel
 =======
