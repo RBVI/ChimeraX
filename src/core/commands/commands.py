@@ -27,9 +27,6 @@ def register_core_commands(session):
     from ..devices import spacenavigator
     spacenavigator.register_snav_command()
 
-    from .. import shortcuts
-    shortcuts.register_shortcut_command()
-
     # Selectors
     from . import atomspec
     atomspec.register_selector(None, "sel", _sel_selector)

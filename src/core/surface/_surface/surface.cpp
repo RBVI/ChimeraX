@@ -117,10 +117,11 @@ static struct PyMethodDef surface_cpp_methods[] =
   /* patches.h */
   {const_cast<char*>("sharp_edge_patches"), (PyCFunction)sharp_edge_patches,
    METH_VARARGS|METH_KEYWORDS,
-   "sharp_edge_patches(vertices, normals, triangles, vertex_to_atom_index_map, atom_positions)"
+   "sharp_edge_patches(vertices, normals, triangles, vertex_to_atom_index_map, atom_positions, atom_radii)"
    " -> (vertices, normals, triangles, vertex_to_atom_index_map)\n"
    "\n"
    "Split triangles to create sharp boundaries equidistant between atoms.\n"
+   "Equidistant means an equal number of atom radii away.\n"
    "Implemented in C++.\n"
   },
   {const_cast<char*>("unique_vertex_map"), (PyCFunction)unique_vertex_map,
