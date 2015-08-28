@@ -21,6 +21,12 @@ class Bounds:
     def width(self):
         return (self.xyz_max - self.xyz_min).max()
 
+    def radius(self):
+        size = self.xyz_max - self.xyz_min
+        from math import sqrt
+        r = 0.5*sqrt((size*size).sum())
+        return r
+
 
 def point_bounds(xyz, placements=[]):
 
