@@ -15,6 +15,7 @@ software or any revisions or derivations thereof.
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
 </head><body>
 
+<a name="top"></a>
 <h2><img width="60px" src="Chimera2-icon.svg" alt="Chimera2 logo"/>
 UCSF Chimera2 User Guide</h2>
 <p>
@@ -28,18 +29,15 @@ Not much in here yet.
 <li>Tools</i>:</li>
 <li>Commands</i>:</li>
  <ul>
- <li><a href="commands/surface.html"><b>surface</b></a></li>
- </ul>
-<li>Command-Related</i>:</li>
- <ul>
  <li>command-line <a href="commands/atomspec.html">target specification</a></li>
    <ul>
    <li><a href="commands/atomspec-diffsum.html">differences <i>vs.</i> 
     Chimera1</a></li>
    </ul>
  <li>command-line <a href="commands/colornames.html">colornames</a></li>
- <li><a href="commands/usageconventions.html">usage conventions</a>
-  in command manual pages</li>
+ <li>command manpage 
+  <a href="commands/usageconventions.html">usage conventions</a></li>
+ <li><a href="commands/surface.html"><b>surface</b></a></li>
  </ul>
 </ul>
 
@@ -48,24 +46,34 @@ Of course, many more commands exist but lack detailed user documentation,
 and may be experimental and/or in flux.  A subset are listed below, 
 and the <b>help</b> command can be used to show brief descriptions
 of specific commands or all commands in the <b>Log</b>
-(<i>e.g.</i>, <b>help style</b> or <b>help all</b>). 
-Some commands are much the same as in Chimera1.
-Some may be removed and cease to exist in Chimera2.
+(for example, <b>help style</b> or <b>help all</b>). 
+Some commands are much the same as the corresponding 
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/framecommand.html">Chimera1 commands</a>,
+except for the atom-specification changes noted <a href="#top">above</a>.
+Some commands may be omitted from later versions of Chimera2.
 </p>
 <ul>
 <li><b>open</b> 
-- open local file or fetch from repository; first model is #1;
-default for 4-character ID is to fetch mmCIF; use <b>pdb:</b> 
-prefix to fetch PDB, <b>emdb:</b> prefix to fetch from EMDB</li> 
+- open local file or fetch from repository
+  <ul>
+  <li>first model is #1</li>
+  <li>default for 4-character ID is to fetch mmCIF; use <b>pdb:</b> prefix 
+  to fetch PDB, <b>emdb:</b> prefix to fetch from EMDB</li>
+  </ul>
+</li> 
 <li><b>close</b> 
 - close model</li> 
 <li><b>list</b>
 - list current models</li>
 <li><b>color</b></li>
-<li><b>display/~display</b></li>
-<li><b>ribbon/~ribbon</b></li>
 <li><b>style</b>
 (with options <b>stick, ball, sphere</b>)</li>
+<li><b>display/~display</b></li>
+<li><b>ribbon/~ribbon</b></li>
+<li><b>view</b>
+- bring everything or specified items into view, like Chimera1 
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/window.html"
+target="_blank"><b>window</b></a></li>
 <li><b>lighting</b> 
 (with options including <b>soft</b> for ambient occlusion, <b>flat</b> 
 for ambient-only, <b>full</b> with shadows, <b>default</b>)</li>
@@ -77,25 +85,60 @@ for ambient-only, <b>full</b> with shadows, <b>default</b>)</li>
 <li><b>sasa</b></li>
 <li><b>buriedarea</b></li>
 <li><b>contacts</b></li>
-<li><b>volume</b></li>
-<li><b>vop</b></li>
-<li><b>vseries</b></li>
-<li><b>molmap</b></li>
-<li><b>movie</b></li>
+<li><b>volume</b>
+- same as Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/volume.html"
+target="_blank"><b>volume</b></a></li>
+<li><b>vop</b>
+- same as Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/vop.html"
+target="_blank"><b>vop</b></a></li>
+<li><b>vseries</b>
+- same as Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/vseries.html"
+target="_blank"><b>vseries</b></a></li>
+<li><b>molmap</b>
+- same as Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/molmap.html"
+target="_blank"><b>molmap</b></a></li>
+<li><b>movie</b>
+- same as Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/movie.html"
+target="_blank"><b>movie</b></a></li>
 <li><b>crossfade</b></li>
-<li><b>move</b></li>
-<li><b>turn</b></li>
-<li><b>roll</b></li>
+<li><b>move</b>
+- similar to Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/move.html"
+target="_blank"><b>move</b></a></li>
+<li><b>turn</b>
+- similar to Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/turn.html"
+target="_blank"><b>turn</b></a></li>
+<li><b>roll</b>
+- similar to Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/roll.html"
+target="_blank"><b>roll</b></a></li>
 <li><b>stop</b>
-- stop motion, like Chimera1 <b>freeze</b></li>
-<li><b>wait</b></li>
-<li><b>2dlabels</b></li>
-<li><b>perframe</b></li>
+- stop all motion, like Chimera1 
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/freeze.html"
+target="_blank"><b>freeze</b></a></li>
+<li><b>wait</b>
+- same as Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/wait.html"
+target="_blank"><b>wait</b></a></li>
+<li><b>title</b>
+- static annotation like Chimera1 
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/2dlabels.html"
+target="_blank"><b>2dlabels</b></a>, with some of its options</li>
+<li><b>perframe</b>
+- similar to Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/perframe.html"
+target="_blank"><b>perframe</b></a></li>
 <li><b>save</b></li>
 <li><b>material</b></li>
 <li><b>camera</b></li>
 <li><b>oculus</b></li>
-<li><b>window</b></li>
+<li><b>pdbimages</b></li>
 </ul>
 
 <hr>
