@@ -325,6 +325,24 @@ target="_blank">4HHB</a>)
 - display a single surface that encloses all the biopolymer chains 
 and HEM residues in model 1
 
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="notes"></a>
+<h3>Technical Notes</h3>
+
+<p>
+<b>Patch boundaries</b>. 
+Per-atom surface patch boundaries are defined by associating each 
+surface point with an atom.
+In a solvent-excluded surface, each point is associated with the atom with
+the smallest distance normalized by radius (the atom with the
+smallest <i>d</i>/<i>r</i>, where <i>d</i> is the distance between the 
+surface point and the atom center, and <i>r</i> is the atomic VDW radius).
+In a Gaussian surface, each point is simply associated with the closest
+atomic center.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 August 2015</address>
