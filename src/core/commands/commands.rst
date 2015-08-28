@@ -52,11 +52,11 @@ and their code location is described with the function descriptions.
 | `sym`_ - Show molecular assemblies involving symmetry
 | `toolshed`_ * - Control the Tool Shed user interface
 | `turn`_ - Rotate models
+| `view`_ - Move camera to view all models
 | `volume`_ - Change density map display settings
 | `vop`_ - Filter density maps
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
-| `window`_ - Move camera to view all models
 
 buriedarea
 ==========
@@ -272,6 +272,10 @@ turn
 ====
 .. autofunction:: chimera.core.commands.turn.turn
 
+view
+====
+.. autofunction:: chimera.core.commands.view.view
+
 volume
 ======
 .. autofunction:: chimera.core.map.volumecommand.volume
@@ -289,8 +293,4 @@ vseries
 wait
 ====
 .. autofunction:: chimera.core.commands.wait.wait
-
-window
-======
-.. autofunction:: chimera.core.commands.window.window
 
