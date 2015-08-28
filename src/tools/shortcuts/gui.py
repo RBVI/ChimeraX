@@ -15,7 +15,7 @@ class ShortcutPanel(ToolInstance):
 
         self.icon_size = 48
         self.icon_border = 4
-        self.rows = 1
+        self.rows = 2
         self.columns = 6
 
         panel_size = (300, self.rows * self.icon_size)
@@ -30,11 +30,18 @@ class ShortcutPanel(ToolInstance):
         from chimera.core.map import series
         import wx
         shortcuts = (
+            ('da', 'atomshow.png', 'Show atoms'),
+            ('ha', 'atomhide.png', 'Hide atoms'),
+            ('rb', 'ribshow.png', 'Show molecule ribbons'),
+            ('hr', 'ribhide.png', 'Hide molecule ribbons'),
+            ('ms', 'surfshow.png', 'Show molecular surface'),
+            ('hs', 'surfhide.png', 'Hide molecular surface'),
             ('st', 'stick.png', 'Show molecule in stick style'),
             ('sp', 'sphere.png', 'Show molecule in sphere style'),
             ('bs', 'ball.png', 'Show molecule in ball and stick style'),
-            ('rb', 'ribbon.png', 'Show molecule in ribbon style'),
-            ('ms', 'surf.png', 'Show molecular surface'),
+            ('ce', 'colorbyelement.png', 'Color atoms by element'),
+            ('cc', 'colorbychain.png', 'Color atoms by chain'),
+            ('rc', 'colorrandom.png', 'Random atom colors'),
             )
         self.buttons = []
         for i, (keys, icon_file, descrip) in enumerate(shortcuts):
