@@ -8,7 +8,7 @@ and their code location is described with the function descriptions.
 | `buriedarea`_ - Compute buried area between atomic structures
 | `camera`_ - Change camera settings
 | `close`_ - Close models
-| `color`_ - Color atoms
+| `color`_ - Color atoms, ribbons and surfaces
 | `colordef`_ - Define new colors
 | `command_line`_ * - Hide or show the command line
 | `contacts`_ * - Make a buried area contact graph
@@ -17,7 +17,6 @@ and their code location is described with the function descriptions.
 | `delete`_ - Delete models
 | `display`_ - Display atoms
 | `echo`_ - Write message to log
-| `ecolor`_ - Experimental color command
 | `exit`_ - Quit
 | `export`_ - Export files
 | `fitmap`_ - fit atomic structures in density maps
@@ -114,10 +113,6 @@ echo
 ====
 .. autofunction:: chimera.core.commands.echo.echo
 
-ecolor
-======
-.. autofunction:: chimera.core.commands.color.ecolor
-
 exit
 ====
 .. autofunction:: chimera.core.commands.exit.exit
@@ -136,7 +131,7 @@ help
 
 ks
 ==
-.. autofunction:: chimera.tools.shortcuts.shortcuts
+.. autofunction:: chimera.shortcuts.shortcuts.ks
 
 2dlabel
 =======

@@ -61,8 +61,8 @@ def buried_areas(s, probe_radius, min_area = 1):
     naxes = 64
     from chimera.core.geometry.sphere import sphere_points
     axes = sphere_points(naxes)
-    from chimera.core.geometry import sphere_bounds
-    bounds = [sphere_bounds(xyz, r, axes) for name, xyz, r in s]
+    from chimera.core.geometry import sphere_axes_bounds
+    bounds = [sphere_axes_bounds(xyz, r, axes) for name, xyz, r in s]
 
     # Compute buried areas between all pairs.
     buried = []

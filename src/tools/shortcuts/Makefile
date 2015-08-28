@@ -11,7 +11,7 @@ PKG_DESCRIPTION = Keboard shortcuts
 # you need manually edit all the files.
 TOOL_NAME = shortcuts
 TOOL_PKG_NAME = chimera.shortcuts
-TOOL_DISPLAY_NAME = Molecule Style
+TOOL_DISPLAY_NAME = Molecule Display
 TOOL_CATEGORY = General
 TOOL_SYNOPSIS = Two-letter shortcuts
 COMMAND_NAME = ks
