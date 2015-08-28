@@ -477,8 +477,12 @@ class Drawing:
 
     def _opaque(self):
         # TODO: Should render transparency for each copy separately
-        return self._colors[0][3] == 255 and (self.texture is None or
-                                              self.opaque_texture)
+        # TODO: Should check all vertex colors for transparency. Would need to render
+        #     opaque and transparent parts separately for 1-layer transparency to work
+        #     as expected when some vertices are opaque and some transparent.
+        vc = self.vertex_colors
+        alpha = self.color[3] if vc is None or len(vc) == 0 else vc[0,3]
+        return alpha == 255 and (self.texture is None or self.opaque_texture)
 
     def showing_transparent(self):
         '''Are any transparent objects being displayed. Includes all
