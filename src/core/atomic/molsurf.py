@@ -32,7 +32,7 @@ class MolecularSurface(Generic3DModel):
       but take more memory and longer computation times.
     resolution : float
       Used only for Gaussian surfaces, specifies a nominal density
-      map resolution.  See the :function:`.molmap` for details.
+      map resolution.  See the :func:`.molmap` for details.
     level : float or None
       Threshold level for Gaussian surfaces. The density map used to
       compute these surface uses Gaussian heights equal to atomic number
