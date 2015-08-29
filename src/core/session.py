@@ -537,6 +537,7 @@ def common_startup(sess):
     scripting.register()
     from . import map
     map.register_map_file_readers()
+    map.register_eds_fetch()
     map.register_emdb_fetch()
     from .atomic import readpbonds
     readpbonds.register()

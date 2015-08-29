@@ -29,6 +29,7 @@ from .mouselevel import ContourLevelMouseMode
 # Routines to register map file formats, database fetch, and volume command.
 #
 from .volume import register_map_file_readers
+from .eds_fetch import register_eds_fetch
 from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command
 from .molmap import register_molmap_command
