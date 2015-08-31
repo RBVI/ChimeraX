@@ -254,7 +254,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
       mask_value = 1
 
   from . import grid_indices
-  from _closepoints import find_closest_points, BOXES_METHOD
+  from ...geometry import find_closest_points
 
   size_limit = 2 ** 22          # 4 Mvoxels
   if mask_3d.size > size_limit:
@@ -264,8 +264,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
     grid_data.ijk_to_xyz_transform.move(grid_points)
     zstep = [grid_data.ijk_to_xyz_transform[a][2] for a in range(3)]
     for z in range(zsize):
-      i1, i2, n1 = find_closest_points(BOXES_METHOD, grid_points, zone_points,
-                                       zone_radius)
+      i1, i2, n1 = find_closest_points(grid_points, zone_points, zone_radius)
       offset = xsize*ysize*z
       if zone_point_mask_values is None:
         mask_1d[i1 + offset] = mask_value
@@ -275,8 +274,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
   else:
     grid_points = grid_indices(grid_data.size, floatc)
     grid_data.ijk_to_xyz_transform.move(grid_points)
-    i1, i2, n1 = find_closest_points(BOXES_METHOD, grid_points, zone_points,
-                                     zone_radius)
+    i1, i2, n1 = find_closest_points(grid_points, zone_points, zone_radius)
     if zone_point_mask_values is None:
       mask_1d[i1] = mask_value
     else:

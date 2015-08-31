@@ -35,7 +35,7 @@ from ...errors import UserError as CommandError
 def register_vop_command():
 
     from ...commands import CmdDesc, register, BoolArg, EnumOf, IntArg, Int3Arg
-    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
+    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg, RequiredArgs
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
 
@@ -212,10 +212,13 @@ def register_vop_command():
                                     ('in_place', BoolArg)] + ssm_kw)
     register('vop zFlip', zflip_desc, vop_flip)
 
-    zone_desc = CmdDesc(required = varg + [('atoms', AtomsArg), ('radius', FloatArg)],
-                        keyword = [('bond_point_spacing', FloatArg),
+    zone_desc = CmdDesc(required = varg,
+                        keyword = [('atoms', AtomsArg),
+                                   ('radius', FloatArg),
+                                   ('bond_point_spacing', FloatArg),
                                    ('minimal_bounds', BoolArg),
-                                   ('invert', BoolArg)] + ssm_kw)
+                                   ('invert', BoolArg)] + ssm_kw,
+                        postconditions=[RequiredArgs('atoms', 'radius')])
     register('vop zone', zone_desc, vop_zone)
 
 # -----------------------------------------------------------------------------
@@ -788,9 +791,11 @@ def submatrix_center(v, xyz_center, index_center, subregion, step):
 
 # -----------------------------------------------------------------------------
 #
-def vop_zone(session, volumes, atoms, radius, bond_point_spacing = None,
+def vop_zone(session, volumes, atoms = None, radius = None, bond_point_spacing = None,
             minimal_bounds = False, invert = False,
             subregion = 'all', step = 1, model_id = None):
+
+# TODO: atoms and radius args are required, but cli.py requires default values since they are keywords params
 
     '''Mask a map keeping only parts close to specified atoms.'''
     if len(atoms) == 0:
@@ -806,12 +811,16 @@ def zone_operation(v, atoms, radius, bond_point_spacing = None,
                    minimal_bounds = False, invert = False,
                    subregion = 'all', step = 1, model_id = None):
 
-    from ... import molecule as M
-    bonds = M.interatom_bonds(atoms) if bond_point_spacing else []
+# TODO: Need method to get bonds between atoms.
+#    from ... import molecule as M
+#    bonds = M.interatom_bonds(atoms) if bond_point_spacing else []
 
-    import SurfaceZone as SZ
-    points = SZ.path_points(atoms, bonds, v.place.inverse(),
-                            bond_point_spacing)
+#    import SurfaceZone as SZ
+#    points = SZ.path_points(atoms, bonds, v.place.inverse(),
+#                            bond_point_spacing)
+
+    points = atoms.scene_coords
+    v.position.inverse().move(points)   # Convert points to map coordinates.
 
     vz = zone_volume(v, points, radius, minimal_bounds, invert,
                      subregion, step, model_id)
@@ -831,7 +840,7 @@ def zone_volume(volume, points, radius,
     mg.name = volume.name + ' zone'
 
     from .. import volume_from_grid_data
-    vz = volume_from_grid_data(mg, session, model_id = model_id, show_data = False)
+    vz = volume_from_grid_data(mg, volume.session, model_id = model_id, show_data = False)
     vz.copy_settings_from(volume, copy_colors = False, copy_zone = False)
     vz.show()
     volume.unshow()

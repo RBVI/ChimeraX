@@ -1,0 +1,286 @@
+<html>
+<title>Chimera2 Quick Start Guide</title>
+<body>
+
+<img src="images/chimera2.png" width=500 align=right>
+
+<h1>Chimera2 Quick Start Guide</h1>
+
+<p>August 28, 2015</p>
+
+<p>
+Chimera2 is the next generation visualization program from the Computer Graphics Lab at UC San Francisco,
+following Midas, MidasPlus, and Chimera 1.
+
+<h3>
+Features
+</h3>
+
+<p>
+Chimera2 has better graphics (e.g. interactive ambient shadows), handles
+large structures (millions of atoms) much faster, and has a modern single window user interface,
+and will have a web site of available extensions written by others using documented
+programming interfaces.
+</p>
+
+<h3>
+Compatibility
+</h3>
+
+<p>
+Chimera2 is <i>not</i> backward compatible with Chimera 1, although many aspects will be familiar from Chimera 1.
+</p>
+
+<h3>
+Initial Release in December 2015
+</h3>
+
+<p>
+We plan an initial release with basic capabilities at the end of 2015, on Mac (10.10 or newer)
+and Linux computers.  A Windows release will be later in 2016.
+</p>
+
+<h2>
+Example Atomic Structure Commands
+</h2>
+
+<p>
+Chimera2 is currently mostly controlled by typed commands.
+We do not yet have much documentation for the commands although many are the same or similar to Chimera 1.
+There is Python programming
+<a href="http://preview.cgl.ucsf.edu/chimera2/docs/core/commands/commands.html">command documentation</a>.
+</p>
+
+<table cellpadding=5>
+<tr>
+<td width=256 align=center>open 2bbv
+<td width=256 align=center>color #1 bychain
+<td width=256 align=center>style stick /b
+<td width=256>Mouse drag to move.
+<tr>
+<td><img src="images/open.png">
+<td><img src="images/colorchain.png">
+<td><img src="images/stick.png">
+<td><img src="images/shift.png">
+<tr>
+<td width=256 valign=top><i>File is fetched from PDB in mmCIF format and cached in ~/Downloads/Chimera/PDB</i>
+<td width=256 valign=top><i>Each chain gets its own color.</i>
+<td width=256 valign=top><i>Change chain b to stick style.</i>
+<td width=256 valign=top><i>Rotate by dragging mouse, translate by dragging mouse with option key pressed.</i>
+</table>
+
+<hr>
+
+<table cellpadding=5>
+<tr>
+<td width=256 align=center>~display /c
+<td width=256 align=center>ribbon /c
+<td width=256>Mouse click to select an atom.
+<td width=256>Press up-arrow key.
+<tr>
+<td><img src="images/undisplay.png">
+<td><img src="images/ribbon.png">
+<td><img src="images/select.png">
+<td><img src="images/uparrow.png">
+<tr>
+<td width=256 valign=top><i>Hide chain c atoms.</i>
+<td width=256 valign=top><i>Display backbone ribbon</i>
+<td width=256 valign=top><i>Click to select showing green outline, shift-click to add to selection, click background to clear selection.</i>
+<td width=256 valign=top><i>Up arrow and down arrow keys expand and unexpand selection.</i>
+</table>
+
+<hr>
+
+<table cellpadding=5>
+<tr>
+<td width=256 align=center>color sel gold
+<td width=256 align=center>surface #1
+<td width=256 align=center>~display<br>display :HOH<br>style sphere
+<tr>
+<td><img src="images/color.png">
+<td><img src="images/surface.png">
+<td><img src="images/water.png">
+<tr>
+<td width=256 valign=top><i>Use "sel" to refer to selected atoms in any command.</i>
+<td width=256 valign=top><i>Solvent excluded surface for each chain.</i>
+<td width=256 valign=top><i>Show waters as red spheres.</i>
+</table>
+
+<hr>
+
+<table cellpadding=5>
+<tr>
+<td width=256 align=center>sym #1
+<td width=256 align=center>sym #1 assembly 1
+<td width=256 align=center>view
+<tr>
+<td>
+<pre>
+Assemblies for 2bbv
+1 = complete icosahedral assembly (60 copies)
+2 = icosahedral asymmetric unit (1 copies)
+3 = icosahedral pentamer (5 copies)
+4 = icosahedral 23 hexamer (6 copies)
+PAU = icosahedral asymmetric unit, std point frame (1 copies)
+XAU = crystal asymmetric unit, crystal frame (5 copies)
+</pre>
+<td><img src="images/assembly.png">
+<td><img src="images/view.png">
+<tr>
+<td width=256 valign=top><i>List mmCIF assemblies.</i>
+<td width=256 valign=top><i>Show the assembly named "1".</i>
+<td width=256 valign=top><i>Bring all models into view.</i>
+</table>
+
+<hr>
+
+<table cellpadding=5>
+<tr>
+<td width=256 align=center>light full
+<td width=256 align=center>sym #1 assem 3<br>set bg white<br>set silhouette true
+<td width=256 align=center>sym #1 clear<br>~display<br>ribbon<br>save ~/Desktop/2bbv.png
+<td width=256 align=center>display<br>~ribbon<br>light flat
+<tr>
+<td><img src="images/lightfull.png">
+<td><img src="images/pentamer.png">
+<td><img src="images/ribbons.png">
+<td><img src="images/flat.png">
+<tr>
+<td width=256 valign=top><i>Show direct and ambient shadows.</i>
+<td width=256 valign=top><i>Show pentamer assembly, set background color to white, show thin black edges.</i>
+<td width=256 valign=top><i>Show asymmetric unit as ribbon and save image.</i>
+<td width=256 valign=top><i>Flat lighting with silhouette edges.</i>
+</table>
+
+<hr>
+
+<table cellpadding=5>
+<tr>
+<td width=256 align=center>buriedarea /a with /b<br><br>
+sasa #1 & ~:HOH
+
+<td width=256 align=center>contacts #1
+<td width=256 align=center>movie record super 3 ; turn y 3 120 ; wait ; movie encode ~/Desktop/spin.mp4 quality high
+<tr>
+<td>
+<pre>
+Buried area between /a and /b = 1900.4
+area /a = 15385, area /b = 14989, area both = 26573
+
+Solvent accessible area for #1 & ~:HOH = 34093
+</pre>
+<td><img src="images/contacts.png">
+<pre>
+8 buried areas:
+  B A 1900, C A 1865, C B 1836, C F 766,
+  A D 738, B E 709, C N 211, N F 93
+</pre>
+<td>
+<video width="302" height="302" controls>
+  <source src="images/spin.mp4" type="video/mp4">
+Your browser does not support the video tag.
+</video>
+<tr>
+<td width=256 valign=top><i>Compute solvent accessible buried surface area between chains A and B.
+Also compute total solvent accessible area excluding waters.</i>
+<td width=256 valign=top><i>Display contact graph between all chains.</i>
+<td width=256 valign=top><i>Record movie spinning 3 degrees for 120 steps. Commands are on one line.</i>
+</table>
+
+<h2>
+Example Density Map Commands
+</h2>
+
+<table cellpadding=5>
+<tr>
+<td width=256 align=center>open emdb:1080
+<td width=256 align=center>volume #1 level 0.9
+<td width=256>
+<img src="images/contour.png" height=40 align=right>
+Click contour level mouse mode
+then drag with right mouse button.
+<td width=256 align=center>vol #1 enclose 1e6 step 1 color tan
+
+<tr>
+<td><img src="images/emdb1080.png">
+<td>
+<img src="images/level.png">
+<td><img src="images/mouselevel.png">
+<td><img src="images/enclose.png">
+<tr>
+<td width=256 valign=top><i>Open EM Databank map 1080.</i>
+<td width=256 valign=top><i>Hover mouse over map reports contour level 1.675 in status line. Then change level.</i>
+<td width=256 valign=top><i>With Mac one-button mouse drag while pressing <b>Command</b> key.</i>
+<td width=256 valign=top><i>Set level to enclose 1,000,000 cubic Angstroms, show full resolution and set color.</i>
+</table>
+
+<hr>
+
+<table cellpadding=5>
+<tr>
+<td width=256 align=center>light full<br>set bg gray<br>set silhouette true
+<td width=256 align=center>open 1grl
+<td width=256 align=center>
+<img src="images/move_h2o.png" height=40 align=right>
+Click move selection mouse. Click atom to select.
+Then right-mouse drag to move molecule into map.
+<td width=256 align=center>fit #2 in #1<br>
+  volume #1 transparency 0.5<br>
+  color bychain
+<tr>
+<td><img src="images/litmap.png">
+<td><img src="images/1grl.png">
+<td><img src="images/handfit.png">
+<td><img src="images/fitmap.png">
+<tr>
+<td width=256 valign=top><i>Lighting with shadows, plus thin black edges.</i>
+<td width=256 valign=top><i>Open atomic model to fit in map.</i>
+<td width=256 valign=top>
+<img src="images/rotate_h2o.png" height=40 align=left>
+<i>Can also use rotate selection mouse mode.</i>
+<td width=256 valign=top><i>Locally optimize fit of atomic model in map.
+  Make map 50% transparent.</i>
+</table>
+
+<hr>
+
+<table cellpadding=5>
+<tr>
+<td width=256 align=center>molmap #2 10<br>vol #3 style mesh
+<td width=256 align=center>vop subtract #1,3 minRMS true<br>vol #4 color pink transparency 0<br>~display ; ribbon
+<td width=256 align=center>close<br>open emdb:1273
+<td width=256 align=center>volume #1 region all showOutline true
+<tr>
+<td><img src="images/molmap.png">
+<td><img src="images/vopsub2.png">
+<td><img src="images/emdb1273.png">
+<td><img src="images/grayscale.png">
+<tr>
+<td width=256 valign=top><i>Create simulated map for atomic model at 10 Angstroms resolution and show as mesh.</i>
+<td width=256 valign=top><i>Subtract simulated map from experimental map.</i>
+<td width=256 valign=top><i>Open tomogram of a T-cell, single-plane grayscale displayed because of large map size.</i>
+<td width=256 valign=top><i>Show all planes of tomogram, grayscale rendering.</i>
+</table>
+
+<hr>
+
+<table cellpadding=5>
+<tr>
+<td width=256 align=center>open eds:1a0m
+<td width=256 align=center>open 1a0m<br>
+  style stick<br>
+  vol #1 level 1.0 style mesh
+<td width=256 align=center>vop zone #1 atoms #2 radius 2<br>
+vol #3 level .5 style mesh transp 0.6
+<tr>
+<td><img src="images/eds_1a0m.png">
+<td><img src="images/1a0m.png">
+<td><img src="images/zone.png">
+<tr>
+<td width=256 valign=top><i>Open x-ray map for PDB 1a0m from Uppsala Electron Density Server.</i>
+<td width=256 valign=top><i>Show atomic model and x-ray map as mesh.</i>
+<td width=256 valign=top><i>Show map zone within 2 Angstroms of atoms.</i>
+</table>
+
+</html>
+<body>
