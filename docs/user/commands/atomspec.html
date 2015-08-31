@@ -14,11 +14,10 @@ software or any revisions or derivations thereof.
 <title>Atom Specification (Chimera2)</title>
 </head><body>
 <p>
-This is the pared-down version;
-see <a href="http://www.cgl.ucsf.edu/home/meng/chi2/frameatom_spec2.html"
-target="_top">version with developer notes</a>.  
-However, both versions include examples that don't yet work because they use 
-categories or attribute names from Chimera1 that are not defined in Chimera2.
+<font color="brown">
+** This page includes examples that don't yet work because they use categories 
+or attribute names from Chimera1 that are not defined in Chimera2. **
+</font>
 </p>
 <hr>
 
@@ -765,7 +764,6 @@ Atom specifications can be combined with the operators:
 <li><b>&amp;</b> for <b>intersection</b> (AND)
 <li><b>|</b> for <b>union</b> (OR)
 <li><b>~</b> for <b>negation</b> (NOT)
-<font color="brown">(not yet implemented)</font>
 </ul>
 Parentheses can be used to indicate the desired order of multiple operations.
 Thus, at least one parenthesis of each set should be adjacent to
@@ -780,6 +778,10 @@ Examples:
 <b>/A &amp; protein</b>
 </blockquote>
 - chain A protein residues only
+<blockquote>
+<b>/A &amp; ~ :hem</b>
+</blockquote>
+- chain A residues other than HEM
 <blockquote>
 <b>@ca & #1/B,E#2/A,D</b>
 </blockquote>

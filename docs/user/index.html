@@ -19,22 +19,26 @@ software or any revisions or derivations thereof.
 <h2><img width="60px" src="Chimera2-icon.svg" alt="Chimera2 logo"/>
 UCSF Chimera2 User Guide</h2>
 <p>
-Not much in here yet.
+<b>UCSF Chimera2</b> is the successor program to <b>UCSF Chimera</b>,
+here termed &ldquo;Chimera1.&rdquo;
 </p>
 <ul>
 <li>General</i>:</li>
  <ul>
- <li><a href="advantages.html">Chimera2 advantages</a></li>
+ <li><a href="advantages.html">advantages <i>vs.</i> Chimera1</a></li>
+ <li><a href="../quickstart/index.html">Quick Start Guide</a></li>
  </ul>
 <li>Tools</i>:</li>
 <li>Commands</i>:</li>
  <ul>
- <li>command-line <a href="commands/atomspec.html">target specification</a></li>
+ <li>command-line 
+  <a href="commands/atomspec.html">target specification</a></li>
    <ul>
    <li><a href="commands/atomspec-diffsum.html">differences <i>vs.</i> 
     Chimera1</a></li>
    </ul>
- <li>command-line <a href="commands/colornames.html">colornames</a></li>
+ <li>command-line 
+  <a href="commands/colornames.html">color specification</a></li>
  <li>command manpage 
   <a href="commands/usageconventions.html">usage conventions</a></li>
  <li><a href="commands/surface.html"><b>surface</b></a></li>
@@ -42,15 +46,15 @@ Not much in here yet.
 </ul>
 
 <p>
-Of course, many more commands exist but lack detailed user documentation,
-and may be experimental and/or in flux.  A subset are listed below, 
-and the <b>help</b> command can be used to show brief descriptions
+Many more commands exist, but are not yet fully documented.
+Some are in an experimental state and could be changed significantly or
+omitted from later versions of Chimera2.
+Several current commands are listed below.
+The <b>help</b> command can be used to show brief descriptions
 of specific commands or all commands in the <b>Log</b>
 (for example, <b>help style</b> or <b>help all</b>). 
-Some commands are much the same as the corresponding 
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/framecommand.html">Chimera1 commands</a>,
-except for the atom-specification changes noted <a href="#top">above</a>.
-Some commands may be omitted from later versions of Chimera2.
+Some are much the same as the corresponding Chimera1 commands,
+except for the specification differences noted <a href="#top">above</a>.
 </p>
 <ul>
 <li><b>open</b> 
@@ -58,18 +62,20 @@ Some commands may be omitted from later versions of Chimera2.
   <ul>
   <li>first model is #1</li>
   <li>default for 4-character ID is to fetch mmCIF; use <b>pdb:</b> prefix 
-  to fetch PDB, <b>emdb:</b> prefix to fetch from EMDB</li>
+  to fetch PDB, <b>emdb:</b> to fetch from EMDB, <b>eds:</b> to fetch 
+  from EDS</li>
   </ul>
 </li> 
 <li><b>close</b> 
 - close model</li> 
 <li><b>list</b>
 - list current models</li>
-<li><b>color</b></li>
 <li><b>style</b>
 (with options <b>stick, ball, sphere</b>)</li>
 <li><b>display/~display</b></li>
 <li><b>ribbon/~ribbon</b></li>
+<li><b>color</b></li>
+<li><b>colordef</b></li>
 <li><b>view</b>
 - bring everything or specified items into view, like Chimera1 
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/window.html"
