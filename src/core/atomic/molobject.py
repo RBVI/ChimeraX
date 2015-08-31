@@ -89,6 +89,12 @@ class Atom:
     ''':class:`Residue` the atom belongs to.'''
     selected = c_property('atom_selected', npy_bool)
     '''Whether the atom is selected.'''
+    HIDE_RIBBON = 0x1
+    '''Hide mask for backbone atoms in ribbon.'''
+    hide = c_property('atom_hide', int32)
+    '''Whether atom is hidden (overrides display).  Integer bitmask.'''
+    visible = c_property('atom_visible', uint8, read_only = True)
+    '''Whether atom is display and not hidden.  Read only integer.'''
 
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
@@ -141,6 +147,12 @@ class Bond:
     '''
     radius = c_property('bond_radius', float32)
     '''Displayed cylinder radius for the bond.'''
+    HIDE_RIBBON = 0x1
+    '''Hide mask for backbone bonds in ribbon.'''
+    hide = c_property('bond_hide', int32)
+    '''Whether bond is hidden (overrides display).  Integer bitmask.'''
+    visible = c_property('bond_visible', uint8, read_only = True)
+    '''Whether bond is display and not hidden.  Read only integer.'''
 
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
@@ -370,8 +382,8 @@ class AtomicStructureData:
     pbg_map = c_property('structure_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
     '''Dictionary mapping name to :class:`.PseudobondGroup` for pseudobond groups
     belonging to this structure. Read only.'''
-    pdb_headers = c_property('pdb_headers', pyobject, read_only = True)
-    '''Dictionary with PDB headers. Read only.'''
+    metadata = c_property('metadata', pyobject, read_only = True)
+    '''Dictionary with metadata. Read only.'''
 
     def _copy(self):
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
@@ -427,10 +439,19 @@ class AtomicStructureData:
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
         return object_map(pbg, PseudobondGroupData)
 
+    def session_info(self, ints, floats, misc):
+        '''Gather session info; return version number'''
+        f = c_function('structure_session_info',
+                    args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
+                        ctypes.py_object),
+                    ret = ctypes.c_int)
+        return f(self._c_pointer, ints, floats, misc)
+
     # Graphics changed flags used by rendering code.  Private.
     _gc_color = c_property('structure_gc_color', npy_bool)
     _gc_select = c_property('structure_gc_select', npy_bool)
     _gc_shape = c_property('structure_gc_shape', npy_bool)
+    _gc_ribbon = c_property('structure_gc_ribbon', npy_bool)
 
 # -----------------------------------------------------------------------------
 #

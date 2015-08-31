@@ -147,6 +147,7 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
     v = volume_from_grid_data(grid, session, open_model = False,
                               show_dialog = show_dialog)
     v.initialize_thresholds(mfrac = (display_threshold, 1), replace = True)
+    v.position = atoms[0].structure.position
     v.show()
 
     v.molmap_atoms = atoms   # Remember atoms used to calculate volume
@@ -161,17 +162,21 @@ def molecule_grid_data(atoms, resolution, step, pad,
                        cutoff_range, sigma_factor, balls = False,
                        transforms = [], csys = None, name = 'molmap'):
 
-    xyz = atoms.coords
+    if len(atoms.unique_structures) == 1:
+        xyz = atoms.coords
+    else:
+        # Transform coordinates to local coordinates of the molecule containing
+        # the first atom.  This handles multiple unaligned molecules.
+        xyz = atoms.scene_coords
+        tf = atoms[0].structure.position.inverse()
+        tf.move(xyz)
 
-    # Transform coordinates to local coordinates of the molecule containing
-    # the first atom.  This handles multiple unaligned molecules.
-#    m0 = atoms[0].structure
-#    tf = m0.position
-#    tf.inverse().move(xyz)
+# TODO: Adjust transforms to correct coordinate system
 #    if csys:
 #        tf = csys.inverse() * tf
 #    tfinv = tf.inverse()
 #    tflist = [(tfinv * t * tf) for t in transforms]
+
     tflist = transforms
 
     if balls:

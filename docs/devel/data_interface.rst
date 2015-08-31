@@ -36,6 +36,8 @@ Modules
 
     core/triggerset.rst
 
+    core/scripting.rst
+
 Structure-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

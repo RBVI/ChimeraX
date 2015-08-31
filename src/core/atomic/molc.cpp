@@ -24,7 +24,7 @@
 // Argument delcaration types:
 //
 // numpy array arguments are sized, so use uint8_t for numpy's uint8,
-// float32_t_t for numpys float32_t, etc.  The integer _t types are from
+// float32_t for numpys float32_t, etc.  The integer _t types are from
 // <stdint.h>.  Special case is for numpy/C/C++ booleans which are
 // processed in all cases as bytes:
 // 	1 == numpy.bool_().nbytes in Python
@@ -316,6 +316,24 @@ extern "C" void set_atom_display(void *atoms, size_t n, npy_bool *disp)
     error_wrap_array_set<Atom, bool, npy_bool>(a, n, &Atom::set_display, disp);
 }
 
+extern "C" void atom_hide(void *atoms, size_t n, int32_t *hide)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, int, int>(a, n, &Atom::hide, hide);
+}
+
+extern "C" void set_atom_hide(void *atoms, size_t n, int32_t *hide)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_set<Atom, int, int>(a, n, &Atom::set_hide, hide);
+}
+
+extern "C" void atom_visible(void *atoms, size_t n, npy_bool *visible)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::visible, visible);
+}
+
 extern "C" void atom_draw_mode(void *atoms, size_t n, int32_t *modes)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -535,6 +553,29 @@ extern "C" void set_bond_display(void *bonds, size_t n, uint8_t *disp)
     try {
         for (size_t i = 0; i != n; ++i)
             b[i]->set_display(static_cast<Bond::BondDisplay>(disp[i]));
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void bond_hide(void *bonds, size_t n, int32_t *hide)
+{
+    Bond **a = static_cast<Bond **>(bonds);
+    error_wrap_array_get<Bond, int, int>(a, n, &Bond::hide, hide);
+}
+
+extern "C" void set_bond_hide(void *bonds, size_t n, int32_t *hide)
+{
+    Bond **a = static_cast<Bond **>(bonds);
+    error_wrap_array_set<Bond, int, int>(a, n, &Bond::set_hide, hide);
+}
+
+extern "C" void bond_visible(void *bonds, size_t n, uint8_t *visible)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            visible[i] = static_cast<uint8_t>(b[i]->visible());
     } catch (...) {
         molc_error();
     }
@@ -941,6 +982,95 @@ extern "C" void set_residue_ribbon_color(void *residues, size_t n, uint8_t *rgba
     }
 }
 
+extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        std::vector<Atom *> centers;
+        std::vector<Atom *> guides;
+        bool has_guides = true;
+        for (size_t i = 0; i != n; ++i) {
+            const Residue::Atoms &a = r[i]->atoms();
+            Atom *center = NULL;
+            Atom *guide = NULL;
+            for (auto atom: a) {
+                AtomName name = atom->name();
+                if (name == "CA" || name == "C5'")
+                    center = atom;
+                else if (name == "O" || name == "C1'")
+                    guide = atom;
+            }
+            if (center == NULL) {
+                // Do not care if there is a guide atom
+                // Turn off ribbon display (is this right?)
+                r[i]->set_ribbon_display(false);
+            }
+            else {
+                centers.push_back(center);
+                if (guide)
+                    guides.push_back(guide);
+                else
+                    has_guides = false;
+            }
+            if (r[i]->ribbon_display()) {
+                // Ribbon is shown, so hide backbone atoms and bonds
+                for (auto atom: a)
+                    if ((atom->hide() & Atom::HIDE_RIBBON) == 0
+                            && atom->is_backbone() && atom != center)
+                        atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+                for (auto bond: r[i]->bonds_between(r[i])) {
+                    auto atoms = bond->atoms();
+                    if ((bond->hide() & Bond::HIDE_RIBBON) == 0
+                            && atoms[0]->is_backbone() && atoms[1]->is_backbone())
+                        bond->set_hide(bond->hide() | Bond::HIDE_RIBBON);
+                }
+            }
+            else {
+                // Ribbon is not shown, so unhide backbone atoms and bonds
+                for (auto atom: a)
+                    if ((atom->hide() & Atom::HIDE_RIBBON) != 0
+                            && atom->is_backbone() && atom != center)
+                        atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+                for (auto bond: r[i]->bonds_between(r[i])) {
+                    auto atoms = bond->atoms();
+                    if ((bond->hide() & Bond::HIDE_RIBBON) != 0
+                            && atoms[0]->is_backbone() && atoms[1]->is_backbone())
+                        bond->set_hide(bond->hide() & ~Bond::HIDE_RIBBON);
+                }
+            }
+        }
+        PyObject *o = PyTuple_New(2);
+        float *data;
+        PyObject *ca = python_float_array(centers.size(), 3, &data);
+        for (auto atom : centers) {
+            const Coord &c = atom->coord();
+            *data++ = c[0];
+            *data++ = c[1];
+            *data++ = c[2];
+        }
+        PyTuple_SetItem(o, 0, ca);
+        if (has_guides) {
+            PyObject *ga = python_float_array(guides.size(), 3, &data);
+            for (auto atom : guides) {
+                const Coord &c = atom->coord();
+                *data++ = c[0];
+                *data++ = c[1];
+                *data++ = c[2];
+            }
+            PyTuple_SetItem(o, 1, ga);
+        }
+        else {
+            Py_INCREF(Py_None);
+            PyTuple_SetItem(o, 1, Py_None);
+        }
+        return o;
+    } catch (...) {
+        molc_error();
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+}
+
 extern "C" void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
 {
     Chain **c = static_cast<Chain **>(chains);
@@ -1039,6 +1169,18 @@ extern "C" void set_structure_gc_shape(void *mols, size_t n, npy_bool *shape_cha
 {
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
     error_wrap_array_set<AtomicStructure, bool, npy_bool>(m, n, &AtomicStructure::set_gc_shape, shape_changed);
+}
+
+extern "C" void structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_get<AtomicStructure, bool, npy_bool>(m, n, &AtomicStructure::get_gc_ribbon, ribbon_changed);
+}
+
+extern "C" void set_structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_set<AtomicStructure, bool, npy_bool>(m, n, &AtomicStructure::set_gc_ribbon, ribbon_changed);
 }
 
 extern "C" void structure_name(void *mols, size_t n, pyobject_t *names)
@@ -1184,6 +1326,17 @@ extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *floats, PyObject *misc)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        return m->session_info(ints, floats, misc);
+    } catch (...) {
+        molc_error();
+        return -1;
     }
 }
 
@@ -1535,15 +1688,15 @@ extern "C" void pointer_intersects_each(void *pointer_arrays, size_t na, size_t 
     }
 }
 
-extern "C" void pdb_headers(void *mols, size_t n, pyobject_t *headers)
+extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
 {
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
     PyObject* header_map = NULL;
     try {
         for (size_t i = 0; i < n; ++i) {
             header_map = PyDict_New();
-            auto& pdb_headers = m[i]->pdb_headers;
-            for (auto& item: pdb_headers) {
+            auto& metadata = m[i]->metadata;
+            for (auto& item: metadata) {
                 PyObject* key = unicode_from_string(item.first);
                 auto& headers = item.second;
                 size_t count = headers.size();

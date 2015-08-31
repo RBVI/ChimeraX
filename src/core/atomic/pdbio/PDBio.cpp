@@ -614,7 +614,7 @@ start_t = end_t;
                 for (int i = key.length()-1; i >= 0 && key[i] == ' '; i--)
                     key.erase(i, 1);
                 
-                std::vector<std::string> &h = as->pdb_headers[key];
+                std::vector<std::string> &h = as->metadata[key];
                 h.push_back(std::string((const char *)line));
                 break;
 
@@ -1042,10 +1042,10 @@ start_t = end_t;
             delete as;
             as = NULL;
         } else {
-            // give all members of an ensemble the same pdb_headers
+            // give all members of an ensemble the same metadata
             if (explode && ! structs->empty()) {
-                if (as->pdb_headers.empty())
-                    as->pdb_headers = (*structs)[0]->pdb_headers;
+                if (as->metadata.empty())
+                    as->metadata = (*structs)[0]->metadata;
                 if (ss_map[as].empty())
                     ss_map[as] = ss_map[(*structs)[0]];
             }

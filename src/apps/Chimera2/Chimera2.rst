@@ -68,6 +68,8 @@ In particular, the follow command line arguments are useful:
     Implies ``--nogui`` and ``--silent``.
     This is done after Chimera2 has started up, so a Chimera2 session
     is available in the global variable ``Chimera2_session``.
+    The module name is ``__main__`` instead of a sandbox name that
+    is used for normal :py:mod:`~chimera.core.scripting`.
 
 
 Initializing the Session
@@ -133,3 +135,6 @@ Line Profiling
     4. Analyze your results, possibly edit your code, and return to step 1.
 
     5. Remove the function decorators before committing your changes.
+
+To use the :py:mod:`timeit` module, see the :py:mod:`~chimera.core.scripting`
+documentation.

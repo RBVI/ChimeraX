@@ -84,7 +84,7 @@ def save_assembly_images(mol, width, height, supersample, image_prefix, image_su
     from . import sym
     for assembly in sym.pdb_assemblies(mol):
         run(s, 'sym #%s assembly %s' % (mol.id_string(), assembly.id))
-        run(s, 'window')          # Zoom to fit molecules
+        run(s, 'view')          # Zoom to fit molecules
         image_file = '%s_%s%s' % (image_prefix, assembly.id, image_suffix)
         run(s, 'save "%s" width %d height %d supersample %d'
             % (image_file, width, height, supersample))

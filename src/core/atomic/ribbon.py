@@ -108,11 +108,11 @@ class Ribbon:
         xc = self.coefficients[0][seg]
         yc = self.coefficients[1][seg]
         zc = self.coefficients[2][seg]
-        coords = []
-        tangents = []
-        from numpy import array
-        coords = [array([xc[0], yc[0], zc[0]])]
-        tangents = [normalize(array([xc[1], yc[1], zc[1]]))]
+        from numpy import zeros, array
+        coords = zeros((divisions + 1, 3), float)
+        tangents = zeros((divisions + 1, 3), float)
+        coords[0] = [xc[0], yc[0], zc[0]]
+        tangents[0] = normalize(array([xc[1], yc[1], zc[1]]))
         d = float(divisions)
         for i in range(divisions):
             t = (i + 1) / d
@@ -121,13 +121,12 @@ class Ribbon:
             x = xc[0] + xc[1] * t + xc[2] * t2 + xc[3] * t3
             y = yc[0] + yc[1] * t + yc[2] * t2 + yc[3] * t3
             z = zc[0] + zc[1] * t + zc[2] * t2 + zc[3] * t3
-            coords.append(array([x, y, z]))
+            coords[i + 1] = [x, y, z]
             x = xc[1] + 2 * xc[2] * t + 3 * xc[3] * t2
             y = yc[1] + 2 * yc[2] * t + 3 * yc[3] * t2
             z = zc[1] + 2 * zc[2] * t + 3 * zc[3] * t2
-            tangents.append(normalize(array([x, y, z])))
-        coords = array(coords)
-        tangents = array(tangents)
+            tangents[i + 1] = [x, y, z]
+        tangents = normalize_vector_array(tangents)
         ns = self.normals[seg]
         ne = self.normals[seg + 1]
         normals, flipped = constrained_normals(tangents, ns, ne)
@@ -428,6 +427,15 @@ def normalize(v):
     return v / d
 
 
+def normalize_vector_array(a):
+    from numpy.linalg import norm
+    import numpy
+    d = norm(a, axis=1)
+    d[d < EPSILON] = 1
+    n = a / d[:, numpy.newaxis]
+    return n
+
+
 def tridiagonal(a, b, c, d):
     '''
     TDMA solver, a b c d can be NumPy array type or Python list type.
@@ -466,29 +474,35 @@ def _rotate_around(n, c, s, v):
     m20 = n[0] * n[2] * c1 - s * n[1]
     m21 = n[1] * n[2] * c1 + s * n[0]
     m22 = c + n[2] * n[2] * c1
-    from numpy import array
-    return array([m00 * v[0] + m01 * v[1] + m02 * v[2],
-                  m10 * v[0] + m11 * v[1] + m12 * v[2],
-                  m20 * v[0] + m21 * v[1] + m22 * v[2]])
+    x = m00 * v[0] + m01 * v[1] + m02 * v[2]
+    y = m10 * v[0] + m11 * v[1] + m12 * v[2]
+    z = m20 * v[0] + m21 * v[1] + m22 * v[2]
+    v[0] = x
+    v[1] = y
+    v[2] = z
 
 
 def parallel_transport_normals(tangents, n0):
-    from numpy import cross, inner, array
+    from numpy import cross, zeros, array, newaxis, sum, sqrt
+    #from numpy import cross, inner, zeros, newaxis, array
     from numpy.linalg import norm
-    from math import sqrt
-    normals = [ n0 ]
-    n = n0
+    #from math import sqrt
+    normals = zeros((len(tangents), 3), float)
+    normals[0] = n0
+    n = array(n0)
+    b = cross(tangents[:-1], tangents[1:])
+    d = norm(b, axis=1)
+    zero = d < EPSILON
+    d[zero] = 1
+    b_hat = b / d[:, newaxis]
+    ct = sum(tangents[:-1] * tangents[1:], axis=1)
+    st = sqrt(1 - ct * ct)
     for i in range(len(tangents) - 1):
-        b = cross(tangents[i], tangents[i + 1])
-        if norm(b) < EPSILON:
-            normals.append(n)
-        else:
-            b_hat = normalize(b)
-            cos_theta = inner(tangents[i], tangents[i + 1])
-            sin_theta = sqrt(1 - cos_theta * cos_theta)
-            n = _rotate_around(b_hat, cos_theta, sin_theta, n)
-            normals.append(n)
-    return array(normals)
+        if not zero[i]:
+            # If the spline turns, update tangent
+            _rotate_around(b_hat[i], ct[i], st[i], n)
+        normals[i + 1] = n
+    return normals
 
 
 def constrained_normals(tangents, n_start, n_end):
@@ -509,7 +523,7 @@ def constrained_normals(tangents, n_start, n_end):
     for i in range(1, len(normals)):
         c = cos(i * delta)
         s = sin(i * delta)
-        normals[i] = _rotate_around(tangents[i], c, s, normals[i])
+        _rotate_around(tangents[i], c, s, normals[i])
     return normals, flipped
 
 def tessellate(coords):

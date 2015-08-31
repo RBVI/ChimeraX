@@ -51,7 +51,7 @@ class View:
         self.silhouettes = False
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0, 0, 0, 1)    # black
-        self.silhouette_depth_jump = 0.01       # fraction of scene depth
+        self.silhouette_depth_jump = 0.03       # fraction of scene depth
 
         self.frame_number = 1
         self.redraw_needed = True
@@ -909,5 +909,5 @@ def _drawing_bounds(drawings, open_drawing):
         b = bounds.union_bounds(d.bounds() for d in drawings)
         bdrawings = drawings
     center = None if b is None else b.center()
-    radius = None if b is None else 0.5 * b.width()
+    radius = None if b is None else b.radius()
     return center, radius, bdrawings

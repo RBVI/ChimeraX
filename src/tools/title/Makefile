@@ -1,20 +1,20 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.label
+PKG_NAME = chimera.title
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = 2d labels
+PKG_DESCRIPTION = Add title text to graphics
 
 # For many cases, only a single tool and a single command
 # is provided by a package.  Variables below are designed
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
-TOOL_NAME = label
-TOOL_PKG_NAME = chimera.label
-TOOL_DISPLAY_NAME = 2D Labels
+TOOL_NAME = title
+TOOL_PKG_NAME = chimera.title
+TOOL_DISPLAY_NAME = Titles
 TOOL_CATEGORY = Hidden
-TOOL_SYNOPSIS = Command to draw 2d labels
-COMMAND_NAME = 2dlabels
+TOOL_SYNOPSIS = Add title text to graphics
+COMMAND_NAME = title
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)

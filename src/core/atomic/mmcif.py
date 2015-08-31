@@ -127,22 +127,22 @@ def register():
 
 
 def get_mmcif_tables(model, table_names):
-    headers = model.pdb_headers
+    raw_tables = model.metadata
     tlist = []
     for n in table_names:
-        if n not in headers:
+        if n not in raw_tables:
             tlist.append(None)
         else:
-            tags = headers[n]
-            values_1d = headers[n + ' data']
+            tags = raw_tables[n]
+            values_1d = raw_tables[n + ' data']
             num_columns = len(tags)
             slices = [values_1d[i::num_columns] for i in range(num_columns)]
             values_2d = list(zip(*slices))
-            tlist.append(mmCIF_Table(n, tags, values_2d))
+            tlist.append(MMCIFTable(n, tags, values_2d))
     return tlist
 
 
-class mmCIF_Table:
+class MMCIFTable:
 
     def __init__(self, table_name, tags, values):
         self.table_name = table_name
@@ -157,7 +157,7 @@ class mmCIF_Table:
                    for i in range(len(self.values)))
 
     def __repr__(self):
-        return "mmCIF_Table(%s, %s, ...[%d])" % (self.table_name, self.tags, len(self.values))
+        return "MMCIFTable(%s, %s, ...[%d])" % (self.table_name, self.tags, len(self.values))
 
     def mapping(self, key_name, value_name, foreach=None):
         t = self.tags

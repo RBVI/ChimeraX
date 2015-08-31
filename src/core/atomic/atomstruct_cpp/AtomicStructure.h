@@ -88,22 +88,26 @@ private:
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
     mutable std::set<const Residue *>*  _rings_last_ignore;
+    bool  _gc_ribbon = false;
 public:
     AtomicStructure(ChangeTracker* ct, PyObject* logger = nullptr);
     virtual  ~AtomicStructure();
-    AtomicStructure *copy() const;
-    const Atoms &    atoms() const { return vertices(); }
+
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
+    const Atoms &    atoms() const { return vertices(); }
+    // ball_scale() inherited from Graph
     std::map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return edges(); }
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     ChangeTracker*  change_tracker() const { return _change_tracker; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
+    AtomicStructure*  copy() const;
     void  delete_atom(Atom* a);
     void  delete_atoms(std::vector<Atom*> atoms);
     void  delete_bond(Bond* b) { delete_edge(b); }
     void  delete_residue(Residue* r);
+    // display() inherited from Graph
     void  extend_input_seq_info(ChainID& chain_id, ResName& res_name) {
         _input_seq_info[chain_id].push_back(res_name);
     }
@@ -117,6 +121,7 @@ public:
     PyObject*  logger() const { return _logger; }
     bool  lower_case_chains;
     void  make_chains() const;
+    std::map<std::string, std::vector<std::string>> metadata;
     const std::string&  name() const { return _name; }
     Atom *  new_atom(const char* name, Element e);
     Bond *  new_bond(Atom *, Atom *);
@@ -132,7 +137,6 @@ public:
     size_t  num_chains() const { return chains().size(); }
     size_t  num_coord_sets() const { return coord_sets().size(); }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
-    std::map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
     std::vector<Chain::Residues>  polymers(
         bool consider_missing_structure = true,
@@ -141,10 +145,15 @@ public:
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
         std::set<const Residue *>* ignore = nullptr) const;
+    int  session_info(PyObject* ints, PyObject* floats, PyObject* strings) const;
     void  set_active_coord_set(CoordSet *cs);
+    // set_ball_scale() inherited from Graph
+    // set_display() inherited from Graph
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }
     void  use_best_alt_locs();
+    bool  get_gc_ribbon() const { return _gc_ribbon; }
+    void  set_gc_ribbon(bool gc = true) { _gc_ribbon = gc; }
 };
 
 }  // namespace atomstruct

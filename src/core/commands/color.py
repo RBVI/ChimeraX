@@ -43,7 +43,7 @@ def _find_named_color(color_dict, name):
             last_real_name = None
             real_name = choices[0]
             break
-        last_real_name = multiword_choices[0][1]
+        last_real_name = choices[0]
         cur_name = cur_name[:-len(words[w])] + multiword_choices[0][0]
         w += 1
     if last_real_name:
@@ -115,44 +115,6 @@ def uncolordef(session, name):
     del session.user_colors[name]
 
 
-def color(session, color, spec=None):
-    """Color atoms.
-
-    Parameters
-    ----------
-    color : Color
-    spec : atom specifier
-    """
-    from . import atomspec
-    if spec is None:
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
-
-    rgba8 = color.uint8x4()
-    atoms = results.atoms
-    if atoms is None:
-        na = 0
-    else:
-        atoms.colors = rgba8
-        na = len(atoms)
-
-    ns = 0
-    from ..atomic import AtomicStructure
-    for m in results.models:
-        if not isinstance(m, AtomicStructure):
-            m.color = rgba8
-            ns += 1
-
-    what = []
-    if na > 0:
-        what.append('%d atoms' % na)
-    if ns > 0:
-        what.append('%d surfaces' % ns)
-    if na == 0 and ns == 0:
-        what.append('nothing')
-    session.logger.status('Colored %s' % ', '.join(what))
-
-
 def rcolor(session, color, spec=None):
     """Color ribbons.
 
@@ -183,7 +145,7 @@ def rcolor(session, color, spec=None):
     session.logger.status('Colored %s' % ', '.join(what))
 
 
-def ecolor(session, spec, color=None, target=None,
+def color(session, spec, color=None, target=None,
            sequential=None, cmap=None, cmap_range=None):
     """Color atoms, ribbons, surfaces, ....
 
@@ -339,9 +301,14 @@ def register_command(session):
     from . import atomspec
     cli.register(
         'color',
-        cli.CmdDesc(required=[("color", ColorArg)],
-                    optional=[("spec", atomspec.AtomSpecArg)],
-                    synopsis="color specified objects"),
+        cli.CmdDesc(required=[('spec', cli.Or(atomspec.AtomSpecArg, cli.EmptyArg))],
+                    optional=[('color', cli.Or(ColorArg, cli.EnumOf(_SpecialColors)))],
+                    keyword=[('target', cli.StringArg),
+                             ('sequential', cli.EnumOf(_SequentialLevels)),
+                             ('cmap', ColormapArg),
+                             ('cmap_range', cli.Or(cli.TupleOf(cli.FloatArg, 2),
+                                                   cli.EnumOf(_CmapRanges)))],
+                    synopsis="color objects"),
         color
     )
     cli.register(
@@ -363,18 +330,6 @@ def register_command(session):
         cli.CmdDesc(required=[('name', cli.StringArg)],
                     synopsis="remove color definition"),
         uncolordef
-    )
-    cli.register(
-        'ecolor',
-        cli.CmdDesc(required=[('spec', cli.Or(atomspec.AtomSpecArg, cli.EmptyArg))],
-                    optional=[('color', cli.Or(ColorArg, cli.EnumOf(_SpecialColors)))],
-                    keyword=[('target', cli.StringArg),
-                             ('sequential', cli.EnumOf(_SequentialLevels)),
-                             ('cmap', ColormapArg),
-                             ('cmap_range', cli.Or(cli.TupleOf(cli.FloatArg, 2),
-                                                   cli.EnumOf(_CmapRanges)))],
-                    synopsis="testing real color syntax"),
-        ecolor
     )
 
 

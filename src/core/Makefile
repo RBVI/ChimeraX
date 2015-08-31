@@ -64,7 +64,7 @@ clean:
 	rm -rf __pycache__ build dist chimera.core.egg-info setup.py timestamp $(GENSRCS)
 
 _appdirs.install: appdirs_cpp.install
-atomic.install: logger_cpp.install chutil_cpp.install ioutil_cpp.install
+atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install logger_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
 map.install: arrays_cpp.install

@@ -1,5 +1,5 @@
 from chimera.core.errors import UserError as CommandError
-def register_2dlabels_command():
+def register_title_command():
 
     from chimera.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
 
@@ -13,11 +13,11 @@ def register_2dlabels_command():
              ('ypos', FloatArg),
              ('visibility', BoolArg)]
     create_desc = CmdDesc(required = rargs, keyword = cargs)
-    register('2dlabels create', create_desc, label_create)
+    register('title create', create_desc, title_create)
     change_desc = CmdDesc(required = rargs, keyword = cargs)
-    register('2dlabels change', change_desc, label_change)
+    register('title change', change_desc, title_change)
     delete_desc = CmdDesc(required = rargs)
-    register('2dlabels delete', delete_desc, label_delete)
+    register('title delete', delete_desc, title_delete)
 
 class Label:
     def __init__(self, session, name, text = '', color = None, size = 24, typeface = 'Arial',
@@ -68,7 +68,7 @@ class Label:
         s.main_view.remove_overlays([d])
         del s.labels[self.name]
 
-def label_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
+def title_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
                  xpos = 0.5, ypos = 0.5, visibility = True):
     '''Create a label at a fixed position in the graphics window.
 
@@ -95,7 +95,7 @@ def label_create(session, name, text = '', color = None, size = 24, typeface = '
     '''
     return Label(**locals())
 
-def label_change(session, name, text = None, color = None, size = None, typeface = None,
+def title_change(session, name, text = None, color = None, size = None, typeface = None,
                  xpos = None, ypos = None, visibility = None):
     '''Change label parameters.'''
     l = session.labels[name]
@@ -109,7 +109,7 @@ def label_change(session, name, text = None, color = None, size = None, typeface
     l.make_drawing()
     return l
 
-def label_delete(session, name):
+def title_delete(session, name):
     '''Delete label.'''
     l = session.labels[name]
     l.delete()

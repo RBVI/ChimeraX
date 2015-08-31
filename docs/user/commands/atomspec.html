@@ -1,0 +1,856 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Atom Specification (Chimera2)</title>
+</head><body>
+<p>
+<font color="brown">
+** This page includes examples that don't yet work because they use categories 
+or attribute names from Chimera1 that are not defined in Chimera2. **
+</font>
+</p>
+<hr>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h2>Command-Line Target Specification</h2>
+<p>
+Atomic models and atoms and residues within those models
+can be specified in commands using:
+<ul>
+<li><a href="#hierarchy">hierarchical specifiers</a>
+- model number, chain, residue, atom name
+<li>the word <b>sel</b> - the current selection
+<li><a href="#zones">zones</a> - by distance from other items
+<font color="brown">(not yet implemented)</font>
+<li><a href="#builtin">built-in classifications, user-defined targets</a>
+<font color="brown">(not yet implemented)</font>
+<li><a href="#descriptors">attribute</a> names and values
+<font color="brown">(not yet implemented)</font>
+</ul>
+or <a href="#combinations">combinations</a> of these.
+In addition, some commands accept or require specifying
+<a href="#othermodels">non-atomic models</a> such as surfaces.
+Specification strings may contain embedded spaces, and
+a blank specification (where allowed) means &ldquo;all.&rdquo;
+</p><p>
+The summary of <a href="atomspec-diffsum.html">differences
+in command-line specification</a> relative to Chimera1 may be useful.
+</p>
+
+<a name="hierarchy"></a>
+<h2><a href="#top" class="nounder"><b>&larr;</b></a>
+Hierarchical Specifiers</h2>
+
+<table border width="95%" cellpadding="3" cellspacing="0">
+<tr><th>Symbol</th> <th>Reference Level</th> <th>Definition</th>
+</tr><tr>
+<td align=center><b>#</b></td> <td align=center>model</td> 
+<td>model number assigned to the data in Chimera 
+<br>(hierarchical, with positive integers separated by dots:
+N, N.N, N.N.N, <i>etc.</i>)
+</td>
+</tr> <tr>
+<td align=center><b>/</b></td> <td align=center>chain</td>
+<td>chain identifier (case-insensitive unless 
+both upper- and lowercase chain IDs are present)</td>
+</tr> <tr>
+<td align=center><b>:</b></td> <td align=center>residue</td>
+<td>residue number <br><i>OR</i><br>
+residue name (case-insensitive)</td>
+</tr> <tr>
+<td align=center><b>@</b></td> <td align=center>atom</td> 
+<td>atom name (case-insensitive)</td>
+</tr>
+</table>
+<p>
+Each set of atomic coordinates is a <b><i>model</i></b> with an associated 
+model identification (ID) number.  Three-dimensional datasets 
+other than atomic coordinates are also assigned model ID numbers.
+Models can be opened from a file, 
+or derived from another model or created from scratch in Chimera.
+</p><p>
+Model numbers are either assigned automatically or specified by the user.
+They are hierarchical, with any number of levels 
+(positive integers N, N.N, <i>etc.</i>); a model at a lower level 
+is still an entire model, but the hierarchy allows grouping. 
+For example, #1.1, #1.2, ... #1.10 could be 10 structures in an NMR ensemble.
+</p><p>
+A molecular model contains one or more <b><i>chains</i></b>, 
+each chain contains one or more <b><i>residues</i></b>, and each residue
+contains one or more <b><i>atoms</i></b>.
+Thus, an atom can be specified by model number, chain identifier (ID),
+residue number, and atom name. The lack of a specifier is interpreted 
+as all units at the associated level; for example, if no chain ID is given,
+the specification refers to all chains.
+</p><p>
+Chain IDs, residue names and numbers,
+and atom names are read from the input file.
+In <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" target="_top">PDB format</a>, a
+standard nomenclature is used for standard amino acid and nucleic acid residues.
+Asterisks (<b>*</b>) in PDB input atom names will be translated 
+to prime symbols (<b>'</b>).
+</p><p>
+<b>Capitalization</b><br>
+In the command line, capitalization of chain IDs,
+residue names, and atom names is not important, with one exception:
+when a model contains both uppercase and lowercase chain identifiers,
+case matters for chain specification in that model only.
+</p><p>
+<b>Lists and ranges</b><br>
+Model and residue numbers are integers, 
+although a residue number may have an insertion code directly appended.
+Multiple model numbers or residue numbers can be indicated by 
+comma-separated lists of individual numbers and/or one or more ranges of the 
+form <i>start</i>-<i>end</i>. 
+<font color="brown">
+An asterisk <b>*</b> can be substituted
+for <i>start</i> or <i>end</i> to extend the range to
+the first or last number possible, respectively. 
+</font>
+Chain IDs, residue names, and atom names can also be entered
+as comma-separated lists. Ranges of chain IDs are also allowed; in that case,
+ordering is alphabetical, and neither <i>start</i> nor <i>end</i> 
+can be omitted.
+</p><p>
+Examples:
+<blockquote>
+<b>#1</b>
+</blockquote>
+- all atoms in model 1, including any models lower in the hierarchy
+(1.N, 1.N.N, <i>etc.</i>)
+<blockquote>
+<b>#1/B-D,F</b>
+</blockquote>
+- chains B, C, D, and F in model 1
+<blockquote>
+<b>#1,2:50-*@CA</b>
+</blockquote>
+- atoms named CA in residues 50-end in models 1 and 2
+<font color="brown">(not yet implemented)</font>
+<blockquote>
+<b>#3/A:*-83,90-*</b>
+</blockquote>
+- residues start-83 and 90-end in chain A of model 3
+<font color="brown">(not yet implemented)</font>
+<blockquote>
+<b>/A,D-F:43-256</b>
+</blockquote>
+- residues 43-256 in chains A, D, E, and F
+<blockquote>
+<b>:12-25,48@ca,n</b>
+</blockquote>
+- atoms named CA and N in residues 12-25 and 48
+<blockquote>
+<b>/:12-15</b>
+</blockquote>
+- residues 12-15 in no-ID chains only 
+<font color="brown">(not yet implemented)</font>
+<blockquote>
+<b>:lys,arg</b>
+</blockquote>
+- lysine and arginine residues
+<blockquote>
+<b>:lys,arg@cb</b>
+</blockquote>
+- atoms named CB in lysine and arginine residues
+<blockquote>
+<b>/A@n,ca,c,o</b>
+</blockquote>
+- atoms named N, CA, C, O in chain A
+<blockquote>
+<b>/A:195,221@n,ca,c,o</b>
+</blockquote>
+- atoms named N, CA, C, O in residues 195 and 221 of chain A
+</p><p>
+<b>In model lists, commas are used only to separate values at the 
+main model level, not the sublevels.</b> For example,
+<font color="brown">(neither of the following works yet)</font>
+</p>
+<blockquote>
+<b>#2.1-3,5</b>
+</blockquote>
+is interpreted as submodels 1-3 of model 2 and all of model 5, while
+<blockquote>
+<b>#2.1-3,.5</b>
+</blockquote>
+indicates submodels 1-3 of model 2 and submodel 5 of all models.
+</p>
+
+<a name="implicit"></a>
+<h3>Implicit Operations</h3>
+<p>
+In the examples above, the hierarchical symbols were used only in descending 
+order (<b># / : @</b>), with each successive level applying to the levels
+that came before it. However, the hierarchy can be &ldquo;reset&rdquo; 
+by repeating a level or returning to a higher level.
+Examples:
+<blockquote>
+<b>:12,14@CA</b>
+</blockquote>
+- atoms named CA in residues 12 and 14
+(successive narrowing, as in previous examples)
+<blockquote>
+<b>:12:14@CA</b>
+</blockquote>
+- <i>all</i> atoms of residue 12, CA atom of residue 14 
+<blockquote>
+<b>/A/B:12-20@CA:14@N</b>
+<br>- or -<br>
+<b>/B:12-20@CA:14@N/A</b>
+</blockquote>
+- <i>all</i> atoms of chain A,
+CA atoms of residues 12-20 and N atom of residue 14 in chain B
+<blockquote>
+<b>/a:50-60,66/b:52-62,69@n,ca,c,o</b>
+</blockquote>
+- <i>all</i> atoms of chain A residues 50-60 and 66, plus
+atoms named N, CA, C, O in chain B residues 52-62 and 69
+<blockquote>
+<b>/a:50-60,66/b:52-62,69 & @n,ca,c,o</b>
+</blockquote>
+- atoms named N, CA, C, O in chain A residues 50-60, 66
+and in chain B residues 52-62, 69; intersection <b>&amp;</b>
+(see <a href="#combinations">combinations</a>) is needed to specify
+only the named atoms in both chains
+</p>
+
+<a name="wildcards"></a>
+<h3>Wild Cards
+<font color="brown">(not yet implemented)</font></h3>
+<p>
+The <b>global wild card *</b> matches all atoms in a residue
+or all residues in a model. It stands alone as a symbol, that is,
+it cannot be used to match <i>parts</i> of names,
+such as <b>G*</b> or <b>*A</b>.
+The <b>partial wild card =</b> matches parts of atom or residue names
+but not parts of residue sequence numbers; similarly,
+the <b>single-character wild card ?</b> matches single characters
+within residue or atom names but not single digits within residue
+sequence numbers.
+Examples:
+<blockquote>
+<b>/A:12@*</b>
+<br>- or -<br>
+<b>/A:12</b>
+</blockquote>
+- all atoms in residue 12 of chain A
+<blockquote>
+<b>#2:G??</b>
+</blockquote>
+- residues in model 2 with three-letter names starting with <b>G</b>
+<blockquote>
+<b>:fmn@?1</b>
+</blockquote>
+- atoms in residue FMN with two-letter names ending with <b>1</b>
+<blockquote>
+<b>@S=</b>
+</blockquote>
+- atoms with names starting with <b>S</b>
+<blockquote>
+<b>@h,h?,h??</b>
+</blockquote>
+- atoms with one-, two-, or three-letter names starting with <b>H</b>
+</p>
+
+<hr>
+<a name="zones"></a>
+<h2><a href="#top" class="nounder"><b>&larr;</b></a> Zones
+<font color="brown">(not yet implemented)</font></h2>
+<p>
+Atoms, residues or atomic models within or beyond some distance of a 
+reference set of atoms can be specified as a zone.
+(These zones are based on atom centers only, but the
+the command <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/zonesel.html"><b>zonesel</b></a> allows 
+basing zones on surfaces and including surfaces in zones.)
+</p><p>
+A zone specification has the following parts:
+<ol>
+<li>reference-atom specification
+<li><b><i>zone operator</i></b>, comprising both:
+  <ul>
+  <li>a level symbol: <b>@</b> (atom-based cutoff),
+   <b>:</b> (residue-based), or <b>#</b> (atomic model-based)
+  <li>an inequality symbol: 
+    <b>&lt;</b> (less than), <b>&gt;</b> (greater than), 
+    <b>&lt;=</b> (less than or equal to), or
+    <b>&gt;=</b> (greater than or equal to)
+  </ul>
+<li>distance cutoff
+</ol>
+Examples:
+<blockquote>
+<b>@nz &nbsp;@&lt;= &nbsp;3.8</b>
+</blockquote>
+- atoms within 3.8 &Aring; of atoms named NZ
+<blockquote>
+<b>#1:gtp &nbsp;:&lt; &nbsp;10.5</b>
+</blockquote>
+- residues with any atom less than 10.5 &Aring; from any atom 
+in GTP residue(s) of model 1
+<blockquote>
+<b>#1:gtp &nbsp;:&gt;= &nbsp;10.5</b>
+</blockquote>
+- residues without any atom less than 10.5 &Aring; from any atom 
+in GTP residue(s) of model 1
+</p>
+
+<hr>
+<a name="builtin"></a>
+<h2><a href="#top" class="nounder"><b>&larr;</b></a>
+Built-in Classifications and User-Defined Targets
+<font color="brown">(not yet implemented)</font></h2>
+<p>
+Built-in classifications include
+any of the terminal entries in the following sections of the
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide//menu.html#menuselect"><b>Select</b> menu</a>:
+   <ul>
+   <li><b>Chemistry</b>
+   <li><b>Residue... <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/resprop/resprop.html#aacat">amino acid category</a></b>
+   <li><b>Structure</b>
+   </ul>
+<blockquote>
+For example, <b>Structure</b> includes
+  <ul>
+  <li>type of molecule: <b>protein</b>, <b>nucleic acid</b>,
+  <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/volumepathtracer/framevolpath.html"
+  target="_top"><b>markers</b></a>
+  <li>protein secondary structure: <b>helix</b>, <b>strand</b>, <b>coil</b>
+  <li><a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">automatic categories for surface 
+  calculation</a>:  <b>main</b>, <b>ligand</b>, <b>solvent</b>, <b>ions</b>
+  </ul>
+... whereas <b>Chemistry</b> includes 
+all of the element symbols (<b>C</b>, <b>Fe</b>, <i>etc.</i>)
+and many functional groups (<b>disulfide</b>, <b>phosphate</b>, 
+<b>ether O</b>, <i>etc.</i>).
+The same pattern of capitalization and spaces, if any, as shown in the
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/menu.html#menuselect"><b>Select</b> menu</a> should be used. 
+Where there is ambiguity, the parent menu should be included in the
+specification, for example, &ldquo;IDATM type.H&rdquo; or 
+&ldquo;element.H&rdquo; instead of &ldquo;H&rdquo; alone.
+The parent menu can be included in this manner even when not necessary.
+</blockquote>
+User-defined targets include:
+  <ul>
+  <li>target names defined with
+<a href="http://www.cgl.ucsf.edu/home/meng/chi2/alias.html"><b>alias</b></a>
+  (a separate command, perhaps
+<a href="http://www.cgl.ucsf.edu/home/meng/chi2/macro.html"><b>macro</b></a>,
+ will assume the command-definition function)
+</font>
+  <li>custom entries in the sections of the
+  <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/menu.html#menuselect"><b>Select</b> menu</a>
+  mentioned <a href="#builtin">above</a> 
+</ul>
+Built-in classifications cannot be redefined by the user.
+</p>
+<p>Some examples:</p>
+<blockquote>
+<b>side chain/base.without CA/C1'</b>
+<br>- or -<br>
+<b>without CA/C1'</b>
+</blockquote>
+- atoms in amino acid side chains (not including CA)
+and atoms in nucleic acid bases (not including C1');
+using &ldquo;with&rdquo; instead of &ldquo;without&rdquo; would include CA/C1'
+<blockquote>
+<b>Mg</b>
+</blockquote>
+- magnesium atoms/ions
+<blockquote>
+<b>helix & positive</b>
+</blockquote>
+- residues in protein &alpha;-helices that are also in the <b>positive</b>
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/resprop/resprop.html#aacat">amino
+acid category</a> (using <b>&amp;</b> for intersection, 
+see <a href="#combinations">combinations</a>)
+<blockquote>
+<b>carboxylate</b>
+</blockquote>
+- atoms in carboxylate groups
+<blockquote>
+<b>solvent</b>
+</blockquote>
+- atoms <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">automatically categorized</a>
+as <b>solvent</b>
+
+<hr>
+<a name="descriptors"></a>
+<h2><a href="#top" class="nounder"><b>&larr;</b></a> Attributes
+<font color="brown">(not yet implemented)</font></h2>
+<p>
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/defineattrib/defineattrib.html#attribdef">
+Attributes</a> are properties of atoms, residues and models,
+specified by <a href="#attrnames">attribute name</a> and value
+and indicated with symbols:
+<b>@@</b> for <a href="#atprops">atom attributes</a>,
+<b>::</b> for <a href="#resprops">residue attributes</a>, and
+<b>##</b> for <a href="#modprops">atomic-model attributes</a>.
+</p><p>
+Attribute <i>names</i> are case-sensitive, attribute <i>values</i> are not.
+Attribute values containing spaces (some color names, for example) 
+must be enclosed in double quote marks.
+</p><p>
+Besides <b>=</b> (equals), attributes with numerical values can also be used 
+with <b>&gt;</b> (greater than), <b>&lt;</b> (less than), <b>&gt;=</b>
+(greater than or equal to), and <b>&lt;=</b> (less than or equal to).
+</p><p>
+For negation, <b>~</b> can be used outside of the attribute specification
+(see <a href="#combinations">combinations</a> and
+<a href="#attr-examples">examples</a>).
+</p><p>
+When placed before an attribute name,
+the <b>caret ^</b> indicates that the atoms, residues, or models have
+not been assigned any value for the attribute. For example,
+<b>:/^kdHydrophobicity</b> designates residues 
+(such as water or nucleic acids) that lack a 
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/hydrophob.html">Kyte-Doolittle hydrophobicity</a> assignment.
+</font>
+</p><p>
+Color values can be specified:
+</p>
+<ul>
+<li> by name, <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/colortables.html">built-in</a>
+or defined previously with <b><A href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/colordef.html">colordef</A></b>
+<li> as a comma-separated list of component values
+<i>red,green,blue,alpha</i> where
+each value can range from zero to 1 and specification of <i>alpha</i>
+(1 &ndash; transparency) is optional
+</ul>
+
+<table border width="95%" cellpadding="3" cellspacing="0">
+<tr><th colspan="2"><a name="atprops">SELECTED ATOM ATTRIBUTES</a>
+<sup><a href="#note">**</a></sup/></th></tr>
+<tr><th>Atomspec Usage</th> <th>Explanation</th>
+<!--
+</tr><tr>
+<td align=center><b>altLoc=</b><i>altloc</i></td>
+<td><i>altloc</i> is the alternate location identifier of the atom</td>
+-->
+</tr><tr>
+<td align=center><b>areaSAS=</b><i>sasa</i></td>
+<td><i>sasa</i> is the
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">solvent-accessible</a>
+surface area of the atom (available when a
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">molecular surface</a>
+has been computed)
+</tr><tr>
+<td align=center><b>areaSES=</b><i>sesa</i></td>
+<td><i>sesa</i> is the
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">solvent-excluded</a>
+surface area of the atom (available when a
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">molecular surface</a>
+has been computed)
+</tr> <tr>
+<td align=center><b>bfactor=</b><i>bfactor</i></td>
+<td><i>bfactor</i> is the B-factor value of the atom (see also 
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/thermal/thermal.html"><b>Thermal
+Ellipsoids</b></a>)</td>
+</tr> <tr>
+<td align=center><b>color=</b><i>color</i></td>
+<td><i>color</i> is the color of the atom (assigned on a per-atom basis;
+see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/hierarchy.html">coloring hierarchy</a>)</td>
+</tr> <tr>
+<td align=center><b>defaultRadius=</b><i>rad</i></td>
+<td><i>rad</i> is the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/vdwrad.html">default VDW radius</a>
+of the atom in &Aring;</td>
+</tr> <tr>
+<td align=center><b>display</b></td>
+<td>whether display is enabled at the atom level
+(see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/hierarchy.html#displevels">display hierarchy</a>)</td>
+</tr> <tr>
+<td align=center><b>drawMode=</b><i>mode</i></td>
+<td><i>mode</i> can be 0 (synonyms: dot, wire, wireframe), 1 (sphere, cpk,
+space-filling), 2 (endcap, stick), or 3 (ball, ball and stick, ball-and-stick,
+ball+stick, bs, b+s); see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/drawmode.html">draw mode</a>
+</td>
+</tr> <tr>
+<td align=center><b>element=</b><i>atno</i></td>
+<td><i>atno</i> is the atomic number or the element symbol</td>
+</tr> <tr>
+<td align=center><b>idatmType=</b><i>type</i></td>
+<td><i>type</i> is the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/idatm.html">atom type</a></td>
+</tr> <tr>
+<td align=center><b>label</b></td>
+<td>whether the atom is labeled</td>
+</tr> <tr>
+<td align=center><b>label=</b><i>label</i></td>
+<td><i>label</i> is the text of the atom label</td>
+</tr> <tr>
+<td align=center><b>labelColor=</b><i>labcolor</i></td>
+<td><i>labcolor</i> is the color of the atom label</td>
+</tr> <tr>
+<td align=center><b>name=</b><i>name</i></td>
+<td><i>name</i> is the atom name</td>
+</tr> <tr>
+<td align=center><b>occupancy=</b><i>occupancy</i></td>
+<td><i>occupancy</i> is the occupancy value of the atom</td>
+</tr> <tr>
+<td align=center><b>pdbSegment=</b><i>segid</i></td>
+<td><i>segid</i> is the segment identifier of the atom</a>
+</tr> <tr>
+<td align=center><b>radius=</b><i>radius</i></td>
+<td><i>radius</i> is the current VDW radius of the atom in &Aring;
+(may have been changed by the user from the
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/vdwrad.html">default VDW radius</a>)</td>
+</tr> <tr>
+<td align=center><b>serialNumber=</b><i>n</i></td>
+<td><i>n</i> is the atom serial number in the input file</td>
+</tr> <tr>
+<td align=center><b>surfaceCategory=</b><i>category</i></td>
+<td><i>category</i> is the name of the surface calculation category 
+to which the atom
+has been assigned <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">automatically</a>
+or manually using <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/msms.html"><b>surfcat</b></a></td>
+</tr> <tr>
+<td align=center><b>surfaceDisplay</b></td>
+<td>whether molecular surface display is turned on for the atom
+(however, this can be true even for atoms that do not contribute to the
+molecular surface)</td>
+</tr>
+</table>
+
+<a name="attr-examples"></a>
+<p>
+Examples 
+(with <b>&amp;</b> for intersection and <b>~</b> for negation, 
+see <a href="#combinations">combinations</a>):
+</p>
+<blockquote>
+<b>@ca & @@bfactor>40</b>
+</blockquote>
+- atoms named CA with B-factor values over 40
+<blockquote>
+<b>:asn & @@bfactor>40</b>
+</blockquote>
+- atoms with B-factor values over 40 in asparagine residues
+<blockquote>
+<b>@@bfactor>=20 & @@bfactor<=40</b>
+</blockquote>
+- atoms with B-factor values ranging from 20 to 40
+<blockquote>
+<b>C & ~ @@idatmType=Car</b>
+</blockquote>
+- non-aromatic carbon atoms (see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/idatm.html">atom types</a>)
+<blockquote>
+<b>N & @@drawMode=1 & @@label</b>
+</blockquote>
+- nitrogen atoms that are drawn as spheres and labeled
+<blockquote>
+<b>N & (@@drawMode=1 | @@label)</b>
+</blockquote>
+- nitrogen atoms that are drawn as spheres and/or labeled
+<blockquote>
+<b>@ca & ~ (@@label | @@color=green | @@color=red)</b>
+</blockquote>
+- atoms named CA that are not labeled, and are not green or red
+<blockquote>
+<b>~ @@color=yellow | ~ @@color=blue</b>
+</blockquote>
+- all atoms, because if an atom is yellow it fulfills the criterion of not
+being blue, and <i>vice versa</i>
+</p>
+
+<table border width="95%" cellpadding="3" cellspacing="0">
+<tr><th colspan="2"><a name="resprops">SELECTED RESIDUE ATTRIBUTES</a>
+<sup><a href="#note">**</a></sup/></th></tr>
+<tr><th>Atomspec Usage</th> <th>Explanation</th>
+</tr><tr>
+<td align=center><b>areaSAS=</b><i>sasa</i></td>
+<td><i>sasa</i> is the
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">solvent-accessible</a>
+surface area of the residue (available when a
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">molecular surface</a>
+has been computed)
+</tr><tr>
+<td align=center><b>areaSES=</b><i>sesa</i></td>
+<td><i>sesa</i> is the
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">solvent-excluded</a>
+surface area of the residue (available when a
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">molecular surface</a>
+has been computed)
+</tr><tr>
+<td align=center><b>isHelix</b></td>
+<td>whether the residue is in a helix (true is only possible for
+amino acids)
+</tr> <tr>
+<td align=center><b>isHet</b></td>
+<td>whether the residue is in PDB HETATM records (or the mmCIF equivalent)
+</tr> <tr>
+<td align=center><b>isSheet</b> <br><i>OR</i><br> <b>isStrand</b></td>
+<td>whether the residue is in a beta strand (true is only possible for
+amino acids)
+</tr> <tr>
+<td align=center><b>kdHydrophobicity=</b><i>value</i></td>
+<td><i>value</i> is the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/hydrophob.html">Kyte-Doolittle 
+hydrophobicity</a> of the amino acid residue</td>
+</tr> <tr>
+<td align=center><b>numAtoms=</b><i>N</i></td>
+<td><i>N</i> is the total number of atoms in the residue</td>
+</tr> <tr>
+<td align=center><b>phi=</b><i>angle</i></td>
+<td><i>angle</i> is the protein/peptide backbone &phi; dihedral angle
+(C<sub><i>i-1</i></sub>-N-CA-C)</td>
+</tr> <tr>
+<td align=center><b>psi=</b><i>angle</i></td>
+<td><i>angle</i> is the protein/peptide backbone &psi; dihedral angle
+(N-CA-C-N<sub><i>i+1</i></sub>)</td>
+</tr> <tr>
+<td align=center><b>ribbonColor=</b><i>ribcolor</i></td>
+<td><i>ribcolor</i> is the color of the residue's ribbon segment
+(see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/hierarchy.html">coloring hierarchy</a>)</td>
+</tr> <tr>
+<td align=center><b>ribbonDisplay</b></td>
+<td>whether ribbon display is turned on for the residue
+(however, this can be true even when the residue is a type
+that does not have any ribbon, such as water)</td>
+</tr> <tr>
+<td align=center><b>ssId=</b><i>N</i></td>
+<td><i>N</i> is the secondary structure element identifier,
+for example, 1 for residues in the first helix and first strand
+(starting from the N-terminus)</td>
+</tr> <tr>
+<td align=center><b>type=</b><i>resname</i></td>
+<td><i>resname</i> is the residue name</td>
+</tr> <tr>
+<td align=center><b>uniprotIndex=</b><i>N</i></td>
+<td><i>N</i> is the residue number in the corresponding
+<a href="http://www.uniprot.org/" target="_blank">UniProt</a> sequence
+(discerned from HEADER and SEQRES information in the
+structure PDB file using a web service provided by the
+<a href="http://www.rcsb.org/pdb/home/home.do" target="_blank">RCSB PDB</a>)
+</td>
+</tr>
+</table>
+<p>
+Helix and strand assignments are taken from the input structure file.
+When the input file lacks secondary structure information, 
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/ksdssp.html"><b>ksdssp</b></a> is called automatically to 
+generate helix and strand assignments.  
+The <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/ksdssp.html"><b>ksdssp</b></a> command (or
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelpanel.html#computess"><b>compute SS</b></a>
+in the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelpanel.html"><b>Model Panel</b></a>)
+can also be used to recompute assignments.
+</p><p>
+Examples:
+</p>
+<blockquote>
+<b>::numAtoms>=10</b>
+</blockquote>
+- residues with 10 or more atoms
+<br><br>
+<table border width="95%" cellpadding="3" cellspacing="0">
+<tr><th colspan="2"><a name="modprops">SELECTED ATOMIC-MODEL ATTRIBUTES</a>
+<sup><a href="#note">**</a></sup/></th></tr>
+<tr><th>Atomspec Usage</th> <th>Explanation</th>
+</tr><tr>
+<td align=center><b>ballScale=</b><i>factor</i></td>
+<td><i>factor</i> is ball radius relative to VDW radius</td>
+</tr> <tr>
+<td align=center><b>color=</b><i>color</i></td>
+<td><i>color</i> is the color assigned on a per-model basis
+(see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/hierarchy.html">coloring hierarchy</a>)</td>
+</tr> <tr>
+<td align=center><b>display</b></td>
+<td>whether display is enabled at the model level
+(see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/hierarchy.html#displevels">display hierarchy</a>)</td>
+</tr> <tr>
+<td align=center><b>lineWidth=</b><i>width</i></td>
+<td><i>width</i> is the linewidth of bonds in the model in the wire
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html">representation</a></td>
+</tr> <tr>
+<td align=center><b>name=</b><i>name</i></td>
+<td><i>name</i> is the name of the model</td>
+</tr> <tr>
+<td align=center><b>numAtoms=</b><i>N</i></td>
+<td><i>N</i> is the total number of atoms in the model</td>
+</tr> <tr>
+<td align=center><b>numResidues=</b><i>M</i></td>
+<td><i>M</i> is the total number of residues in the model</td>
+</tr><tr>
+<td align=center><b>ribbonInsideColor=</b><i>color</i></td>
+<td><i>color</i> is the color used for the insides
+of peptide/protein helix ribbon segments</td>
+</tr><tr>
+<td align=center><b>stickScale=</b><i>factor</i></td>
+<td><i>factor</i> is stick radius relative to bond radius 
+(the default bond radius is 0.2 &Aring;)</td>
+</tr>
+</table>
+<p>
+<sup><a name="note">**</a></sup>Additional 
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/defineattrib/defineattrib.html#attribdef">attributes</a>
+can be created:
+<ul>
+<li> arbitrarily with 
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/defineattrib/defineattrib.html"><b>Define
+Attribute</b></a>, <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/defattr.html"><b>defattr</b></a>, or
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/setattr.html"><b>setattr</b></a> 
+(these also allow changing the values of existing attributes)
+<li> by combining other attributes using the
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/calculator/calculator.html"><b>Attribute 
+Calculator</b></a>
+<li> by various other Chimera tools such as
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/addcharge/addcharge.html"><b>Add 
+Charge</b></a>,
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/surfvol/surfvol.html"><b>Area/Volume 
+from Web</b></a>,
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/density/density.html"><b>Values 
+at Atom Positions</b></a>, and
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/multalignviewer/framemav.html"
+target="_top"><b>Multalign Viewer</b></a>
+</ul>
+
+<a name="attrnames"></a>
+<h3>Attribute Names</h3>
+<p>
+The preceding tables [<a href="#atprops">atoms</a>] 
+[<a href="#resprops">residues</a>] [<a href="#modprops">atomic models</a>] 
+include the names of some commonly used
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/defineattrib/defineattrib.html#attribdef">
+attributes</a>. Additional attributes are listed in
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelattrib.html">attribute inspector</a> dialogs,
+and yet others may be generated only when a particular tool is used, 
+or created arbitrarily by the user.
+</p><p>
+Attribute name lookup in Chimera:
+<ul>
+<li>attribute names are shown in the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/help.html#balloon">balloon 
+help</a> of <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelattrib.html">attribute inspector</a> dialogs
+<br><br>
+<li><a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/render/render.html#select"><b>Select 
+by Attribute</b></a> lists most numerical, string-valued, 
+and boolean attributes of atoms, residues, and atomic models;
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/render/render.html#render"><b>Render
+by Attribute</b></a> lists most numerical ones
+<br><br>
+<li>the command <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/listen.html#listresattr"><b>list resattr</b></a>
+lists most residue attributes
+<br><br>
+<li>Data descriptors (attributes) defined in the C++
+layer of Chimera can be listed by entering the following into
+<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/idle/idle.html"><b>IDLE</b></a> (under
+<b>Tools... General Controls</b>):
+<blockquote>
+help(chimera.<i>Class</i>)
+</blockquote>
+where <i>Class</i> can be <b>Atom</b>, <b>Residue</b>, or <b>Molecule</b>.
+This approach also works for <b>Bond</b>, <b>PseudoBond</b>, and 
+<b>PseudoBondGroup</b>. 
+Attributes defined in the Python layer will not be included, however.
+</ul>
+<p>
+
+<hr>
+<a name="combinations"></a>
+<h2><a href="#top" class="nounder"><b>&larr;</b></a>
+Combinations</h2>
+<p>
+Atom specifications can be combined with the operators:
+<ul>
+<li><b>&amp;</b> for <b>intersection</b> (AND)
+<li><b>|</b> for <b>union</b> (OR)
+<li><b>~</b> for <b>negation</b> (NOT)
+</ul>
+Parentheses can be used to indicate the desired order of multiple operations.
+Thus, at least one parenthesis of each set should be adjacent to
+or separated by space only from a combination operator 
+or <a href="#zones">zone operator</a>.
+When <b>&amp;</b> and <b>|</b> occur in the same list, <b>&amp;</b> 
+has higher priority (<b>&amp;</b>-separated lists can be considered
+as grouped within parentheses).
+</p><p>
+Examples:
+<blockquote>
+<b>/A &amp; protein</b>
+</blockquote>
+- chain A protein residues only
+<blockquote>
+<b>/A &amp; ~ :hem</b>
+</blockquote>
+- chain A residues other than HEM
+<blockquote>
+<b>@ca & #1/B,E#2/A,D</b>
+</blockquote>
+- atoms named CA in chains B, E of model 1 and chains A, D of model 2
+<blockquote>
+<b>#1:asp,glu &amp; (#2 :&lt;= 10)</b>
+</blockquote>
+- aspartate and glutamate residues in model 1 
+that are within 10 &Aring; of model 2
+<blockquote>
+<b>:phe,tyr &amp; with CA/C1'</b>
+</blockquote>
+- sidechain and CA atoms of phenylalanine and tyrosine
+<blockquote>
+<b>(ligand | protein) @&lt;= 4.8</b>
+</blockquote>
+- atoms within 4.8 &Aring; of 
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">ligand</a> or protein
+<blockquote>
+<b>ligand | (protein @&lt;= 4.8)</b>
+</blockquote>
+- <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">ligand</a> 
+plus atoms within 4.8 &Aring; of protein
+<blockquote>
+<b>Ng+ | N3+</b>
+</blockquote>
+- guanidinium nitrogens and <i>sp</i><sup>3</sup>-hybridized, 
+formally positive nitrogens (see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/idatm.html">atom types</a>)
+<blockquote>
+<b>:cys@sg &amp; ~disulfide</b>
+<br>- or -<br>
+<b>:cys &amp; S &amp; ~disulfide</b>
+</blockquote>
+- cysteine sulfur atoms not participating in a disulfide bond
+<blockquote>
+<b>(ions @&lt;= 4) &amp; ~ions</b>
+</blockquote>
+- atoms within 4 &Aring; of <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">ions</a>,
+excluding the ions themselves
+</p>
+
+<hr>
+<a name="othermodels"></a>
+<h2><a href="#top" class="nounder"><b>&larr;</b></a>
+Surfaces and Other Model Types</h2>
+<p>
+Some commands can apply to things other than atomic models 
+(atomic coordinates) and 
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">molecular surfaces</a>. 
+To handle such cases, &ldquo;atom specification&rdquo;
+has been extended as follows:
+<ul>
+<li>an entire <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/surfattrib.html#surfmodels">surface model</a> 
+(all of its pieces) can be specified by model number preceded by #,
+or by <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/selection.html">selection</a> and
+using the word <b>sel</b>
+<li><a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/surfattrib.html#surfpiecedef">surface pieces</a> 
+can be specified individually by 
+<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/selection.html#pickselect">selection from the screen</a>
+and using the word <b>sel</b>
+<li><a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/vrmlattrib.html">other types of models</a> 
+can be specified by model number preceded by #
+</ul>
+Which of these can be used and whether they can be
+<a href="#combinations">combined</a> with atom specifications
+depends on the command.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2015</address>
+</body></html> 

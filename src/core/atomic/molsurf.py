@@ -32,7 +32,7 @@ class MolecularSurface(Generic3DModel):
       but take more memory and longer computation times.
     resolution : float
       Used only for Gaussian surfaces, specifies a nominal density
-      map resolution.  See the :function:`.molmap` for details.
+      map resolution.  See the :func:`.molmap` for details.
     level : float or None
       Threshold level for Gaussian surfaces. The density map used to
       compute these surface uses Gaussian heights equal to atomic number
@@ -134,9 +134,10 @@ class MolecularSurface(Generic3DModel):
 
         if self.sharp_boundaries:
             v2a = self.vertex_to_atom_map(va)
+            rkw = {'atom_radii':atoms.radii} if self.resolution is None else {}
             from ..surface import sharp_edge_patches
             for i in range(self._sharp_edge_iterations):
-                va, na, ta, v2a = sharp_edge_patches(va, na, ta, v2a, xyz)
+                va, na, ta, v2a = sharp_edge_patches(va, na, ta, v2a, xyz, **rkw)
             self._vertex_to_atom = v2a
 
         self.vertices = va
@@ -172,9 +173,10 @@ class MolecularSurface(Generic3DModel):
         if v2a is None:
             xyz1 = self.vertices if vertices is None else vertices
             xyz2 = self.atoms.coords
+            radii = {'scale2':self.atoms.radii} if self.resolution is None else {}
             max_dist = self._maximum_atom_to_surface_distance()
             from .. import geometry
-            i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist)
+            i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist, **radii)
             if len(i1) < len(xyz1):
                 # TODO: For Gaussian surface should increase max_dist and try again.
                 raise RuntimeError('Surface further from atoms than expected (%g) for %d of %d atoms'

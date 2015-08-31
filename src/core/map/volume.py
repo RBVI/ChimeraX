@@ -99,11 +99,7 @@ class Volume(Model):
   #
   def name_with_id(self):
 
-    if self.subid:
-      sid = '#%d.%d' % (self.id, self.subid)
-    else:
-      sid = '#%d' % self.id
-    return self.name + ' ' + sid
+    return '%s #%s' % (self.name, self.id_string())
 
   # ---------------------------------------------------------------------------
   #
@@ -1439,8 +1435,8 @@ class Volume(Model):
     if scale == 'minrms':
       level = min(v.surface_levels) if v.surface_levels else 0
       scale = -minimum_rms_scale(values, m, level)
-      ses = self.session
-      ses.info('Minimum RMS scale factor for "%s" above level %.5g\n'
+      log = self.session.logger
+      log.info('Minimum RMS scale factor for "%s" above level %.5g\n'
                '  subtracted from "%s" is %.5g\n'
                % (v.name_with_id(), level, self.name_with_id(), scale))
     if scale != 1:

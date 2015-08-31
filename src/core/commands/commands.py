@@ -7,7 +7,7 @@ def register_core_commands(session):
                'delete', 'display', 'echo', 'exit', 'export', 'help', 'lighting', 'list', 'material', 
                'move', 'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'ribbon', 'run',
                'sasa', 'save', 'scolor', 'set', 'split', 'stop', 'style', 'surface', 'sym',
-               'turn', 'wait', 'window']
+               'turn', 'view', 'wait']
     for mod in modules:
         m = import_module('chimera.core.commands.%s' % mod)
         m.register_command(session)
@@ -26,9 +26,6 @@ def register_core_commands(session):
     oculus.register_oculus_command()
     from ..devices import spacenavigator
     spacenavigator.register_snav_command()
-
-    from .. import shortcuts
-    shortcuts.register_shortcut_command()
 
     # Selectors
     from . import atomspec

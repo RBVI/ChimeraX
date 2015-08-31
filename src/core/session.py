@@ -527,10 +527,6 @@ def common_startup(sess):
     from . import commands
     commands.register_core_commands(sess)
 
-    from . import shortcuts
-    sess.keyboard_shortcuts = ks = shortcuts.Keyboard_Shortcuts(sess)
-    shortcuts.register_shortcuts(ks)
-
     # file formats
     from . import stl
     stl.register()
@@ -542,6 +538,7 @@ def common_startup(sess):
     scripting.register()
     from . import map
     map.register_map_file_readers()
+    map.register_eds_fetch()
     map.register_emdb_fetch()
     from .atomic import readpbonds
     readpbonds.register()

@@ -21,6 +21,12 @@ class Bounds:
     def width(self):
         return (self.xyz_max - self.xyz_min).max()
 
+    def radius(self):
+        size = self.xyz_max - self.xyz_min
+        from math import sqrt
+        r = 0.5*sqrt((size*size).sum())
+        return r
+
 
 def point_bounds(xyz, placements=[]):
 
@@ -89,3 +95,8 @@ def point_axis_bounds(points, axis):
     a2 = dot(axis, axis)
     b = Bounds(pa.min() / a2, pa.max() / a2)
     return b
+
+def sphere_bounds(centers, radii):
+    from . import _geometry
+    b = _geometry.sphere_bounds(centers, radii)
+    return Bounds(b[0], b[1])

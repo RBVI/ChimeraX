@@ -8,7 +8,7 @@ and their code location is described with the function descriptions.
 | `buriedarea`_ - Compute buried area between atomic structures
 | `camera`_ - Change camera settings
 | `close`_ - Close models
-| `color`_ - Color atoms
+| `color`_ - Color atoms, ribbons and surfaces
 | `colordef`_ - Define new colors
 | `command_line`_ * - Hide or show the command line
 | `contacts`_ * - Make a buried area contact graph
@@ -17,13 +17,11 @@ and their code location is described with the function descriptions.
 | `delete`_ - Delete models
 | `display`_ - Display atoms
 | `echo`_ - Write message to log
-| `ecolor`_ - Experimental color command
 | `exit`_ - Quit
 | `export`_ - Export files
 | `fitmap`_ - fit atomic structures in density maps
 | `help`_ - Show documentation
 | `ks`_ - Enable keyboard shortcuts
-| `2dlabel`_ * - Create text labels
 | `lighting`_ - Change lighting parameters
 | `list`_ - List open models
 | `log`_ * - Hide and show the log
@@ -51,13 +49,14 @@ and their code location is described with the function descriptions.
 | `style`_ - Change atom display style
 | `surface`_ - Compute a molecular surface
 | `sym`_ - Show molecular assemblies involving symmetry
+| `title`_ * - Show text titles with graphics
 | `toolshed`_ * - Control the Tool Shed user interface
 | `turn`_ - Rotate models
+| `view`_ - Move camera to view all models
 | `volume`_ - Change density map display settings
 | `vop`_ - Filter density maps
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
-| `window`_ - Move camera to view all models
 
 buriedarea
 ==========
@@ -114,10 +113,6 @@ echo
 ====
 .. autofunction:: chimera.core.commands.echo.echo
 
-ecolor
-======
-.. autofunction:: chimera.core.commands.color.ecolor
-
 exit
 ====
 .. autofunction:: chimera.core.commands.exit.exit
@@ -136,15 +131,7 @@ help
 
 ks
 ==
-.. autofunction:: chimera.core.shortcuts.ks
-
-2dlabel
-=======
-Function found in *chimera.label.label*
-
-.. autofunction:: chimera.label.label.label_create
-.. autofunction:: chimera.label.label.label_change
-.. autofunction:: chimera.label.label.label_delete
+.. autofunction:: chimera.shortcuts.shortcuts.ks
 
 lighting
 ========
@@ -265,6 +252,14 @@ sym
 ===
 .. autofunction:: chimera.core.commands.sym.sym
 
+title
+=====
+Function found in *chimera.title.label*
+
+.. autofunction:: chimera.title.label.title_create
+.. autofunction:: chimera.title.label.title_change
+.. autofunction:: chimera.title.label.title_delete
+
 toolshed
 ========
 Function defined in *chimera.toolshed.cmd*
@@ -276,6 +271,10 @@ Function defined in *chimera.toolshed.cmd*
 turn
 ====
 .. autofunction:: chimera.core.commands.turn.turn
+
+view
+====
+.. autofunction:: chimera.core.commands.view.view
 
 volume
 ======
@@ -294,8 +293,4 @@ vseries
 wait
 ====
 .. autofunction:: chimera.core.commands.wait.wait
-
-window
-======
-.. autofunction:: chimera.core.commands.window.window
 

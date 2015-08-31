@@ -6,7 +6,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/map
 
 SUBDIRS	= _map data filter fit series
 
-PYSRCS = __init__.py defaultsettings.py emdb_fetch.py grayscale.py \
+PYSRCS = __init__.py defaultsettings.py eds_fetch.py emdb_fetch.py grayscale.py \
 	mapargs.py measure.py molmap.py mouselevel.py \
 	moveplanes.py session.py slice.py solid.py volume.py volumecommand.py
 

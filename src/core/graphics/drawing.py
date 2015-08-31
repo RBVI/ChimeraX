@@ -477,8 +477,12 @@ class Drawing:
 
     def _opaque(self):
         # TODO: Should render transparency for each copy separately
-        return self._colors[0][3] == 255 and (self.texture is None or
-                                              self.opaque_texture)
+        # TODO: Should check all vertex colors for transparency. Would need to render
+        #     opaque and transparent parts separately for 1-layer transparency to work
+        #     as expected when some vertices are opaque and some transparent.
+        vc = self.vertex_colors
+        alpha = self.color[3] if vc is None or len(vc) == 0 else vc[0,3]
+        return alpha == 255 and (self.texture is None or self.opaque_texture)
 
     def showing_transparent(self):
         '''Are any transparent objects being displayed. Includes all
@@ -670,11 +674,12 @@ class Drawing:
             (self.display_style == self.Mesh and '_edge_mask' in changes) or
             '_selected_triangles_mask' in changes):
             ta = self.triangles
-            em = self._edge_mask if self.display_style == self.Mesh else None
+            style = self.display_style
+            em = self._edge_mask
             tm = self._triangle_mask
             tmsel = self.selected_displayed_triangles_mask
-            ds.update_element_buffer(ta, tm, em)
-            dss.update_element_buffer(ta, tmsel, em)
+            ds.update_element_buffer(ta, style, tm, em)
+            dss.update_element_buffer(ta, style, tmsel, em)
 
         # Update instancing buffers
         p = self.positions
@@ -1133,9 +1138,9 @@ class _DrawShape:
         eb.buffer_attribute_name = 'elements'
         return eb
 
-    def update_element_buffer(self, triangles, triangle_mask, edge_mask):
+    def update_element_buffer(self, triangles, style, triangle_mask, edge_mask):
 
-        self.elements = e = self.masked_elements(triangles, triangle_mask, edge_mask)
+        self.elements = e = self.masked_elements(triangles, style, triangle_mask, edge_mask)
 
         eb = self.element_buffer
         if len(e) > 0 and eb is None:
@@ -1147,27 +1152,36 @@ class _DrawShape:
         if eb:
             self.buffer_needs_update(eb)
 
-    def masked_elements(self, triangles, tmask, edge_mask):
+    def masked_elements(self, triangles, style, tmask, edge_mask):
 
         ta = triangles
         if ta is None:
             return None
-        if tmask is not None:
-            ta = ta[tmask, :]
-        if edge_mask is not None:
-            # TODO: Need to reset masked_edges if edge_mask changed.
-            me = self.masked_edges
-            if (me is None or edge_mask is not self._edge_mask or
+        if style == Drawing.Solid:
+            if tmask is not None:
+                ta = ta[tmask, :]
+        elif style == Drawing.Mesh:
+            from ._graphics import masked_edges
+            if ta.shape[1] == 2:
+                pass    # Triangles array already contains edges.
+            elif edge_mask is None:
+                ta = masked_edges(ta)
+            else:
+                # TODO: Need to reset masked_edges if edge_mask changed.
+                me = self.masked_edges
+                if (me is None or edge_mask is not self._edge_mask or
                     tmask is not self._tri_mask):
-                kw = {}
-                if edge_mask is not None:
-                    kw['edge_mask'] = edge_mask
-                if tmask is not None:
-                    kw['triangle_mask'] = tmask
-                from ._graphics import masked_edges
-                self.masked_edges = me = masked_edges(ta, **kw)
-                self._edge_mask, self._tri_mask = edge_mask, tmask
-            ta = me
+                    kw = {}
+                    if edge_mask is not None:
+                        kw['edge_mask'] = edge_mask
+                    if tmask is not None:
+                        kw['triangle_mask'] = tmask
+                    self.masked_edges = me = masked_edges(ta, **kw)
+                    self._edge_mask, self._tri_mask = edge_mask, tmask
+                ta = me
+        elif style == Drawing.Dot:
+            from numpy import unique
+            ta = unique(ta)
         return ta
 
     def create_instance_buffers(self):
@@ -1287,7 +1301,10 @@ class TrianglePick(Pick):
     '''
     def __init__(self, distance, triangle_number, copy_number, drawing):
         Pick.__init__(self, distance)
-        self.triangle_number = triangle_number
+        tm = drawing.triangle_mask
+        # Convert to from displayed triangle number to all triangles number.
+        tnum = triangle_number if tm is None else tm.nonzero()[0][triangle_number]
+        self.triangle_number = tnum
         self._copy = copy_number
         self._drawing = drawing
 

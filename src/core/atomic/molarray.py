@@ -212,6 +212,11 @@ class Atoms(Collection):
     set with such an array (or equivalent sequence), or with a
     single boolean value.
     '''
+    visibles = cvec_property('atom_visible', npy_bool, read_only = True)
+    '''
+    Returns whether the Atoms should be visible (displayed and not hidden).
+    Returns a :mod:`numpy` array of boolean values.  Read only.
+    '''
     draw_modes = cvec_property('atom_draw_mode', int32)
     '''
     Controls how the Atoms should be depicted, *e.g.* sphere,
@@ -336,6 +341,12 @@ class Bonds(Collection):
     Returns a :mod:`numpy` array of integers.  Can be
     set with such an array (or equivalent sequence), or with a
     single integer value.
+    '''
+    visibles = cvec_property('bond_visible', int32, read_only = True)
+    '''
+    Returns whether the Bonds should be visible.  If hidden, the
+    return value is Never; otherwise, same as display.
+    Returns a :mod:`numpy` array of integers.  Read only.
     '''
     halfbonds = cvec_property('bond_halfbond', npy_bool)
     '''
@@ -466,6 +477,18 @@ class Residues(Collection):
         '''The unique chain IDs as a numpy array of strings.'''
         return unique(self.chain_ids)
 
+    def get_polymer_spline(self):
+        '''Return a tuple of spline center and guide coordinates for a
+	polymer chain.  Residues in the chain that do not have a center
+	atom will have their display bit turned off.  Center coordinates
+	are returned as a numpy array.  Guide coordinates are only returned
+	if all spline atoms have matching guide atoms; otherwise, None is
+	returned for guide coordinates.'''
+        f = c_function('residue_polymer_spline',
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.py_object)
+        return f(self._c_pointers, len(self))
+
 # -----------------------------------------------------------------------------
 #
 class Chains(Collection):
@@ -527,8 +550,8 @@ class AtomicStructureDatas(Collection):
     group categories (strings) and whose values are
     :class:`.Pseudobonds`. Read only.
     '''
-    pdb_headers = cvec_property('pdb_headers', pyobject, read_only = True)
-    '''Return a list of dictionaries with PDB headers. Read only.'''
+    metadata = cvec_property('metadata', pyobject, read_only = True)
+    '''Return a list of dictionaries with metadata. Read only.'''
 
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.

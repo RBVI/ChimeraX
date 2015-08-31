@@ -24,14 +24,15 @@ typedef enum {CP_ALL_PAIRS, CP_BOX_ALL_PAIRS, CP_BINS, CP_BOX_BINS, CP_BOXES}
 // Find close points between two sets of points.  The returned lists i1 and i2
 // hold the indices from sets 1 and 2 of points that are part of close pairs.
 // The returned nearest list gives the indices of set 2 points that are nearest
-// to the close set 1 points.  Its elements correspond to those in returned
-// array i1.  The nearest pointer can be NULL if that information is not
-// needed.
+// to the set 1 points and within range d.  Its elements correspond to those in returned
+// array i1. The nearest pointer can be NULL if that information is not
+// needed.  If the scales argument is not NULL then the distance from set 2
+// point i is scaled by 1/scales[i] when computing the nearest point.
 //
 void find_close_points(Close_Points_Method m,
 		       const float *xyz1, int n1,
 		       const float *xyz2, int n2,
-		       float d,
+		       float d, float *scales,
 		       Index_List *i1, Index_List *i2,
 		       Index_List *nearest1 = NULL);
 
@@ -111,14 +112,14 @@ public:
     for (int k = 0 ; k < n ; ++k)
       d2[k] = NO_DISTANCE;
   }
-  ~Nearest_Points()
+  virtual ~Nearest_Points()
   {
     delete [] closest;
     closest = NULL;
     delete [] d2;
     d2 = NULL;
   }
-  void close_pair(int i, int j, float d2_ij)
+  virtual void close_pair(int i, int j, float d2_ij)
   {
     float d2min = d2[i];
     if (d2min == NO_DISTANCE || d2_ij < d2min)
@@ -135,12 +136,43 @@ public:
       nearest1[k] = closest[i1[k]];
   }
 
-private:
+protected:
   int *closest;
   float *d2;
   static const float NO_DISTANCE;
 };
 const float Nearest_Points::NO_DISTANCE = -1.0;
+
+// ----------------------------------------------------------------------------
+// Scale each distance to the first point by a scale factor when determining
+// which neighbor point is nearest.
+//
+class Nearest_Scaled_Points : public Nearest_Points
+{
+public:
+  Nearest_Scaled_Points(int n, float *scales) : Nearest_Points(n), scales(scales) {}
+  virtual void close_pair(int i, int j, float d2_ij)
+  {
+    float d2min = d2[i];
+    if (d2min == NO_DISTANCE)
+      {
+	closest[i] = j;
+	d2[i] = d2_ij;
+      }
+    else 
+      {
+	float sc = scales[closest[i]], sj = scales[j];
+	if (sc*sc*d2_ij < sj*sj*d2min)
+	  {
+	    closest[i] = j;
+	    d2[i] = d2_ij;
+	  }
+      }
+  }
+
+private:
+  float *scales;
+};
 
 // ----------------------------------------------------------------------------
 //
@@ -327,12 +359,14 @@ static bool boxes_are_close(const Box &box1, const Box &box2, float distance);
 void find_close_points(Close_Points_Method m,
 		       const float *xyz1, int n1,
 		       const float *xyz2, int n2,
-		       float d,
+		       float d, float *scales,
 		       Index_List *i1, Index_List *i2, Index_List *nearest1)
 {
   Point_List p1(xyz1, n1), p2(xyz2, n2);
   Index_Set is1(i1, n1), is2(i2, n2);
-  Nearest_Points *np1 = (nearest1 ? new Nearest_Points(n1) : NULL);
+  Nearest_Points *np1 = NULL;
+  if (nearest1)
+    np1 = (scales ? new Nearest_Scaled_Points(n1,scales) : new Nearest_Points(n1));
   find_close_points(m, p1, p2, d, is1, is2, np1);
   if (np1)
     {
@@ -1218,11 +1252,13 @@ extern "C" PyObject *find_close_points(PyObject *, PyObject *args, PyObject *key
     return NULL;
 
   FArray cxyz1 = xyz1.contiguous_array(), cxyz2 = xyz2.contiguous_array();
+  float *scales = NULL;
   Index_List i1, i2;
   find_close_points(CP_BOXES,
 		    cxyz1.values(), cxyz1.size(0),
 		    cxyz2.values(), cxyz2.size(0),
-		    static_cast<float>(d), &i1, &i2);
+		    static_cast<float>(d), scales,
+		    &i1, &i2);
 
   return python_tuple(c_array_to_python(i1), c_array_to_python(i2));
 }
@@ -1231,23 +1267,32 @@ extern "C" PyObject *find_close_points(PyObject *, PyObject *args, PyObject *key
 //
 extern "C" PyObject *find_closest_points(PyObject *, PyObject *args, PyObject *keywds)
 {
-  FArray xyz1, xyz2;
+  FArray xyz1, xyz2, scale2;
   double d;
-  const char *kwlist[] = {"xyz1", "xyz2", "max_distance", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&d"),
+  const char *kwlist[] = {"xyz1", "xyz2", "max_distance", "scale2", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&d|O&"),
 				   (char **)kwlist,
 				   parse_float_n3_array, &xyz1,
 				   parse_float_n3_array, &xyz2,
-				   &d))
+				   &d,
+				   parse_float_n_array, &scale2))
     return NULL;
 
+  if (scale2.dimension() == 1 and scale2.size(0) != xyz2.size(0))
+    {
+      PyErr_SetString(PyExc_TypeError,
+		      "Scales array size does not match points array size");
+      return NULL;
+    }
   FArray cxyz1 = xyz1.contiguous_array(), cxyz2 = xyz2.contiguous_array();
+  FArray sc = scale2.contiguous_array();
+  float *sa = (sc.dimension() == 1 ? scale2.values() : NULL);
   Index_List i1, i2, nearest1;
   Py_BEGIN_ALLOW_THREADS
   find_close_points(CP_BOXES,
 		    cxyz1.values(), cxyz1.size(0),
 		    cxyz2.values(), cxyz2.size(0),
-		    static_cast<float>(d),
+		    static_cast<float>(d), sa,
 		    &i1, &i2, &nearest1);
   Py_END_ALLOW_THREADS
 
