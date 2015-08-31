@@ -47,9 +47,13 @@ class GraphicsWindow(wx.Panel):
         self.opengl_canvas.SwapBuffers()
 
     def _redraw_timer_callback(self, event):
-        if not self.view.draw_new_frame():
-            self.mouse_modes.mouse_pause_tracking()
+        # apparently we're in a thread, so use CallAfter since the
+        # routines being called query wx widgets (mainly the
+        # main graphics window) for attributes
 
+        # 'x or y' is the "lambda way" of saying 'if not x: y'
+        wx.CallAfter(lambda s=self:
+            s.view.draw_new_frame() or s.mouse_modes.mouse_pause_tracking())
 
 from wx import glcanvas
 
