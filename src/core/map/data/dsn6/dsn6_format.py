@@ -17,7 +17,7 @@ class dsn6_map:
     format_id = file.read(3)
     file.seek(0)
 
-    if format_id == ':-)':
+    if format_id == b':-)':
       read_header = self.read_brix_header
       self.format = 'brix'
     else:
