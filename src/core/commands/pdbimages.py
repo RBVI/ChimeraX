@@ -1,11 +1,9 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
-#
-#
 def pdbimages(session, directory = '.', subdirectories = True,
               width = 400, height = 400, supersample = 2,
-              image_suffix = '.png', exclude = ['128d.cif', '1m4x.cif'],
-              log_file = '/Users/goddard/ucsf/assemblies/log'):
+              image_suffix = '.png', exclude = ['1m4x.cif'],
+              log_file = None):
     '''
     Assembly images command for batch rendering mmCIF assembly images.
     This is for the Protein DataBank to render images.
@@ -37,20 +35,30 @@ def pdbimages(session, directory = '.', subdirectories = True,
 
     mmcifs = cif_files(directory, subdirectories, exclude, image_suffix)
 
-    log = open(log_file, 'a')
+    from os.path import expanduser         # Tilde expansion
+    log = open(expanduser(log_file), 'a') if log_file else NoLog()
     log.write('Rendering %d mmCIF files\n' % len(mmcifs))
     for f in mmcifs:
         log.write(f + '\n')
         log.flush()
         try:
             save_images(f, width, height, supersample, image_suffix, s)
-        except TypeError as e:
-            log.write(str(e) + '\n')   # Handle mmcif string to long errors.
+        except Error as e:
+            log.write(str(e) + '\n')
     log.close()
+
+class NoLog:
+    def write(self, text):
+        pass
+    def flush(self):
+        pass
+    def close(self):
+        pass
 
 def cif_files(directory, subdirectories, exclude, image_suffix):
 
     from os import listdir, path
+    directory = path.expanduser(directory)         # Tilde expansion
     files = listdir(directory)
     has_image = set(f.rsplit('_', maxsplit=1)[0]+'.cif' for f in files if f.endswith(image_suffix))
     mmcifs = [path.join(directory,f) for f in files
