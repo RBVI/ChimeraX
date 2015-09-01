@@ -207,6 +207,8 @@ class _HistoryDialog:
     record_label = "Record..."
     execute_label = "Execute"
 
+    NUM_REMEMBERED = 500
+
     def __init__(self, controller):
         # make dialog hidden initially
         self.controller = controller
@@ -236,11 +238,13 @@ class _HistoryDialog:
         self.window.manage(placement=None)
         self.window.shown = False
         from chimera.core.history import FIFOHistory
-        self.history = FIFOHistory(500, controller.session, "command line")
+        self.history = FIFOHistory(self.NUM_REMEMBERED, controller.session, "command line")
         self._record_dialog = None
 
     def add(self, item):
         self.listbox.Append(item)
+        while self.listbox.GetCount() > self.NUM_REMEMBERED:
+            self.listbox.Delete(0)
         self.history.enqueue(item)
         for sel in self.listbox.GetSelections():
             self.listbox.Deselect(sel)
