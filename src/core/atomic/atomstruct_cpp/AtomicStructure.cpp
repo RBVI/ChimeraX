@@ -843,6 +843,13 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     }
     PyList_SET_ITEM(attr_list, 3, map);
 
+    // PseudobondManager groups;
+    // main version number needs to go up when manager's
+    // version number goes up, so check it
+    if (_pb_mgr->session_info(ints, floats, misc) != 1) {
+        throw std::runtime_error("Unexpected version number from pseudobond manager");
+    }
+
     return 1;  // version number
 }
 

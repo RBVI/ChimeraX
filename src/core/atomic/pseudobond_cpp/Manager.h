@@ -11,6 +11,8 @@
 
 namespace pseudobond {
 
+class PyObject;
+
 //classes
 template <class Grp_Class>
 class Base_Manager {
@@ -27,6 +29,7 @@ public:
     virtual Grp_Class*  get_group(
             const std::string& name, int create = GRP_NONE) = 0;
     const GroupMap&  group_map() const { return _groups; }
+    virtual int  session_info(PyObject* ints, PyObject* floats, PyObject* misc) = 0;
 };
 
 template <class Owner, class Grp_Class>
