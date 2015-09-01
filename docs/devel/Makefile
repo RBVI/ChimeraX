@@ -12,6 +12,7 @@ SPHINXBUILD   = $(PYTHON_EXE) $(bindir)/sphinx-build
 endif
 PAPER         =
 BUILDDIR      = _build
+DOCDIR        = $(app_datadir)/docs/devel
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -45,6 +46,8 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
 install: html
+	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
+	$(RSYNC) $(BUILDDIR)/html/ $(DOCDIR)
 
 clean:
 	-rm -rf $(BUILDDIR)/* conf.py

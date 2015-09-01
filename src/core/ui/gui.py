@@ -344,6 +344,21 @@ class MainWindow(wx.Frame, PlainTextLog):
                 self.Bind(wx.EVT_MENU, cb, item)
         menu_bar.Append(tools_menu, "&Tools")
 
+        help_menu = wx.Menu()
+        menu_bar.Append(help_menu, "&Help")
+        for entry, dir in (('User Guide', 'user'),
+                           ('Quick Start Guide', 'quickstart'),
+                           ('Programer Guide', 'devel')):
+            item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
+            def cb(evt, ses=session, d=dir):
+                from os import path
+                path = path.join(ses.app_data_dir, 'docs', d, 'index.html')
+                import pathlib
+                url = pathlib.Path(path).as_uri()
+                from webbrowser import open
+                open(url)
+            self.Bind(wx.EVT_MENU, cb, item)
+
     def _tool_window_destroy(self, tool_window):
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
