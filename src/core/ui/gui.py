@@ -348,7 +348,7 @@ class MainWindow(wx.Frame, PlainTextLog):
         menu_bar.Append(help_menu, "&Help")
         for entry, dir in (('User Guide', 'user'),
                            ('Quick Start Guide', 'quickstart'),
-                           ('Programer Guide', 'devel')):
+                           ('Programming Guide', 'devel')):
             item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
             def cb(evt, ses=session, d=dir):
                 from os import path
