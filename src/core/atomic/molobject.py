@@ -138,7 +138,7 @@ class Bond:
     '''
     Whether to display the bond, with 3 possible integer values:
     ALWAYS_DISPLAY, NEVER_DISPLAY, SMART_DISPLAY.
-    TODO: Value is not currently ignored, smart display is always used.
+    TODO: Value is currently ignored, smart display is always used.
     '''
     halfbond = c_property('bond_halfbond', npy_bool)
     '''
@@ -187,7 +187,7 @@ class Pseudobond:
     display = c_property('pseudobond_display', uint8)
     '''Whether to display the bond, with 3 possible integer values:
     ALWAYS_DISPLAY, NEVER_DISPLAY, SMART_DISPLAY.
-    TODO: Value is not currently ignored, smart display is always used.
+    TODO: Value is currently ignored, smart display is always used.
     '''
     halfbond = c_property('pseudobond_halfbond', npy_bool)
     '''
@@ -462,6 +462,31 @@ class ChangeTracker:
     def __init__(self):
         f = c_function('change_tracker_create', args = (), ret = ctypes.c_void_p)
         set_c_pointer(self, f())
+
+    @property
+    def changes(self):
+        f = c_function('change_tracker_changes', args = (ctypes.c_void_p,),
+            ret = ctypes.py_object)
+        data = f(self._c_pointer)
+        class Changes:
+            def __init__(self, created, modified, reasons, total_deleted):
+                self.created = created
+                self.modified = modified
+                self.reasons = reasons
+                self.total_deleted = total_deleted
+                self.deleted = set()
+        final_changes = {}
+        for k, v in data.items():
+            created_ptrs, mod_ptrs, reasons, tot_del = v
+            #TODO: make collections based on key names
+            # and what about collections of structures and pseudobond groups
+
+
+
+    @property
+    def ptr_val(self):
+        """C pointer value, as an int.  For passing through to C++ layer"""
+        return self._c_pointer.value
 
 # -----------------------------------------------------------------------------
 #

@@ -3,6 +3,7 @@
 #define atomstruct_ChangeTracker
 
 #include <set>
+#include <string>
 #include <vector>
 
 #include "imex.h"
@@ -14,7 +15,7 @@ public:
     std::set<void*>  created; // use set so that deletions can be easily found
     std::set<void*>  modified;
     std::set<std::string>   reasons;
-    int  num_deleted = 0;
+    long  num_deleted = 0;
 
     void  clear() { created.clear(); modified.clear(); reasons.clear(); num_deleted=0; }
 };
@@ -57,6 +58,9 @@ public:
 
     void  clear() { for (auto changes: _type_changes) changes.clear(); }
     const std::vector<Changes>&  get_changes() const { return _type_changes; }
+    const std::string  python_class_names[_num_types] = {
+        "Atom", "Bond", "PBond", "Residue", "Chain", "AtomicStructure", "Proxy_PBGroup"
+    };
 };
 
 class Atom;

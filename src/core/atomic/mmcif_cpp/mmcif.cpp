@@ -42,6 +42,7 @@ namespace mmcif {
 
 using atomstruct::AtomName;
 using atomstruct::ChainID;
+using atomstruct::ChangeTracker;
 using atomstruct::ResName;
 
 typedef vector<string> StringVector;
@@ -1329,49 +1330,57 @@ structure_pointers(ExtractMolecule &e, const char *filename)
     return s_array;
 }
 
+static ChangeTracker*
+pyobj2ctp(PyObject* change_tracker_ptr)
+{
+    if (!PyLong_Check(change_tracker_ptr))
+        throw std::invalid_argument("change_tracker must be an int (c_void_p.value)");
+    return static_cast<ChangeTracker*>(PyLong_AsVoidPtr(change_tracker_ptr));
+}
+
 PyObject*
-parse_mmCIF_file(const char *filename, ChangeTracker* ct, PyObject* logger)
+parse_mmCIF_file(const char *filename, PyObject* change_tracker_ptr, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract(ct, logger, StringVector());
+    ExtractMolecule extract(pyobj2ctp(change_tracker_ptr), logger, StringVector());
     extract.parse_file(filename);
     return structure_pointers(extract, filename);
 }
 
 PyObject*
 parse_mmCIF_file(const char *filename, const StringVector& generic_categories,
-                 ChangeTracker* ct, PyObject* logger)
+                 PyObject* change_tracker_ptr, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract(ct, logger, generic_categories);
+    ExtractMolecule extract(pyobj2ctp(change_tracker_ptr), logger, generic_categories);
     extract.parse_file(filename);
     return structure_pointers(extract, filename);
 }
 
 PyObject*
 parse_mmCIF_buffer(const unsigned char *whole_file,
-    ChangeTracker* ct, PyObject* logger)
+    PyObject* change_tracker_ptr, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract(ct, logger, StringVector());
+    ExtractMolecule extract(pyobj2ctp(change_tracker_ptr), logger, StringVector());
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract, "unknown mmCIF file");
 }
 
 PyObject*
 parse_mmCIF_buffer(const unsigned char *whole_file,
-   const StringVector& generic_categories, ChangeTracker* ct, PyObject* logger)
+   const StringVector& generic_categories, PyObject* change_tracker_ptr, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract(ct, logger, generic_categories);
+    ExtractMolecule extract(pyobj2ctp(change_tracker_ptr), logger, generic_categories);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract, "unknown mmCIF file");
 }

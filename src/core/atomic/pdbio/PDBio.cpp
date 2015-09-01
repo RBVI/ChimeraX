@@ -27,6 +27,7 @@ using atomstruct::AtomicStructure;
 using atomstruct::AtomName;
 using atomstruct::Bond;
 using atomstruct::ChainID;
+using atomstruct::ChangeTracker;
 using atomstruct::CoordSet;
 using atomstruct::Element;
 using atomstruct::MolResId;

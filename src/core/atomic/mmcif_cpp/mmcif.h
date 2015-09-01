@@ -13,17 +13,17 @@ namespace tmpl {
 namespace mmcif {
 
 using atomstruct::ResName;
-class ChangeTracker;
 
-PyObject*   parse_mmCIF_file(const char* filename, ChangeTracker* ct, PyObject* logger);
+PyObject*   parse_mmCIF_file(const char* filename,
+                            PyObject* change_tracker_ptr, PyObject* logger);
 PyObject*   parse_mmCIF_file(const char* filename,
                              const std::vector<std::string> &extra_categories,
-                             ChangeTracker* ct, PyObject* logger);
+                             PyObject* change_tracker_ptr, PyObject* logger);
 PyObject*   parse_mmCIF_buffer(const unsigned char* buffer,
-                             ChangeTracker* ct, PyObject* logger);
+                             PyObject* change_tracker_ptr, PyObject* logger);
 PyObject*   parse_mmCIF_buffer(const unsigned char* buffer,
                              const std::vector<std::string> &extra_categories,
-                             ChangeTracker* ct, PyObject* logger);
+                             PyObject* change_tracker_ptr, PyObject* logger);
 void        load_mmCIF_templates(const char* filename);
 void        set_Python_locate_function(PyObject* function);
 

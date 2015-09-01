@@ -1713,3 +1713,50 @@ extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
         molc_error();
     }
 }
+
+extern "C" PyObject* change_tracker_changes(void *vct)
+{
+
+    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
+    PyObject* changes_data = NULL;
+    try {
+        changes_data = PyDict_New();
+        auto all_changes = ct->get_changes();
+        for (size_t i = 0; i < all_changes.size(); ++i) {
+            auto class_changes = all_changes[i];
+            auto class_name = ct->python_class_names[i];
+            PyObject* key = unicode_from_string(class_name);
+            PyObject* value = PyTuple_New(4);
+
+            // first tuple item:  created objects
+            void **ptrs;
+            PyObject *ptr_array = python_voidp_array(class_changes.created.size(), &ptrs);
+            size_t j = 0;
+            for (auto ptr: class_changes.created)
+                ptrs[j++] = ptr;
+            PyTuple_SetItem(value, 0, ptr_array);
+
+            // second tuple item:  modified objects
+            ptr_array = python_voidp_array(class_changes.created.size(), &ptrs);
+            j = 0;
+            for (auto ptr: class_changes.modified)
+                ptrs[j++] = ptr;
+            PyTuple_SetItem(value, 1, ptr_array);
+
+            // third tuple item:  list of reasons
+            PyObject* reasons = PyList_New(class_changes.reasons.size());
+            j = 0;
+            for (auto reason: class_changes.reasons)
+                PyList_SetItem(reasons, j++, unicode_from_string(reason));
+            PyTuple_SetItem(value, 2, reasons);
+
+            // fourth tuple item:  total number of deleted objects
+            PyTuple_SetItem(value, 3, PyLong_FromLong(class_changes.num_deleted));
+
+            PyDict_SetItem(changes_data, key, value);
+        }
+    } catch (...) {
+        Py_XDECREF(changes_data);
+        molc_error();
+    }
+}

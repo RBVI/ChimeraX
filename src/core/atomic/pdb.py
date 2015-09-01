@@ -24,7 +24,8 @@ def open_pdb(session, filename, name, *args, **kw):
     with Collator(session.logger, "Summary of problems reading PDB file",
                   kw.pop('log_errors', True)):
         from . import pdbio
-        pointers = pdbio.read_pdb_file(input, log=session.logger)
+        pointers = pdbio.read_pdb_file(input, session.change_tracker.ptr_val,
+            log=session.logger)
         if input != filename:
             input.close()
 
