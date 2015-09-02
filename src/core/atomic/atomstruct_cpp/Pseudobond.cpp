@@ -5,6 +5,8 @@
 #include <basegeom/destruct.h>
 #include "Pseudobond.h"
 
+#include <Python.h>
+
 namespace atomstruct {
 
 void
@@ -147,6 +149,30 @@ const std::set<PBond*>&
 CS_PBGroup::pseudobonds() const
 {
     return pseudobonds(_owner->active_coord_set());
+}
+
+int
+AS_PBManager::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
+{
+    PyObject* int_list = PyList_New(0);
+    if (int_list == nullptr) {
+        throw std::runtime_error("Can't allocate list for pseudobond group ints");
+    }
+    PyObject* float_list = PyList_New(0);
+    if (float_list == nullptr) {
+        throw std::runtime_error("Can't allocate list for pseudobond group floats");
+    }
+    PyObject* misc_list = PyList_New(0);
+    if (misc_list == nullptr) {
+        throw std::runtime_error("Can't allocate list for pseudobond group misc info");
+    }
+    //TODO
+    return 1;
+}
+
+int
+PBManager::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
+{
 }
 
 void

@@ -54,6 +54,7 @@ class PBManager: public pseudobond::Base_Manager<Proxy_PBGroup> {
 public:
     void  delete_group(Proxy_PBGroup*);
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
+    int  session_info(PyObject* ints, PyObject* floats, PyObject* misc) const;
 };
 
 // in per-AtomicStructure groups there are per-CoordSet groups
@@ -64,7 +65,6 @@ protected:
     void  _check_ownership(Atom* a1, Atom* a2);
     Owned_PBGroup_Base(const std::string& cat, AtomicStructure* as):
         Owned_Group<AtomicStructure, Atom, PBond>(cat, as) {};
-    int  session_info(PyObject* ints, PyObject* floats, PyObject* misc);
 };
 
 class Owned_PBGroup: public Owned_PBGroup_Base {
@@ -133,7 +133,7 @@ private:
 public:
     void  delete_group(Proxy_PBGroup*);
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
-    int  session_info(PyObject* ints, PyObject* floats, PyObject* misc);
+    int  session_info(PyObject* ints, PyObject* floats, PyObject* misc) const;
 };
 
 // Need a proxy class that can be contained/returned by the pseudobond

@@ -786,6 +786,8 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         throw std::runtime_error("Couldn't append to floats list");
 
     PyObject* attr_list = PyList_New(4);
+    if (attr_list == nullptr)
+        throw std::runtime_error("Cannot create Python list for misc info");
     if (PyList_Append(misc, attr_list) < 0)
         throw std::runtime_error("Couldn't append to misc list");
     // input_seq_info
