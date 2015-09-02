@@ -41,7 +41,7 @@ void PDB::parse_line(const char *buf)
     case ATOM9:
     case ATOM:
     case HETATM: {
-        fmt = (input_version == 2 && strlen(buf) >= 80)
+        fmt = (input_version == 2 && strlen(buf) >= 73)
             ? "%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f%6 %4s%2s%2s"
             : "%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f";
         if (0 <= sscanf(buf, fmt,
