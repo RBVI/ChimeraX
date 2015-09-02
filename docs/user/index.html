@@ -16,7 +16,7 @@ software or any revisions or derivations thereof.
 </head><body>
 
 <a name="top"></a>
-<h2><img width="60px" src="Chimera2-icon.svg" alt="Chimera2 logo"/>
+<h2><img width="70px" src="Chimera2-icon.svg" alt="Chimera2 logo"/>
 UCSF Chimera2 User Guide</h2>
 <p>
 <b>UCSF Chimera2</b> is the successor program to <b>UCSF Chimera</b>,
@@ -31,6 +31,13 @@ here termed &ldquo;Chimera1.&rdquo;
 <li>Tools</i>:</li>
 <li>Commands</i>:</li>
  <ul>
+ <li><a href="commands/color.html"><b>color</b></a>
+ - color atomic models, cartoons, molecular surfaces</li>
+ <li><a href="commands/surface.html"><b>surface</b></a>
+ - create and display molecular surfaces</li>
+</ul>
+<li>Command-Related</i>:</li>
+ <ul>
  <li>command-line 
   <a href="commands/atomspec.html">target specification</a></li>
    <ul>
@@ -41,19 +48,18 @@ here termed &ldquo;Chimera1.&rdquo;
   <a href="commands/colornames.html">color specification</a></li>
  <li>command manpage 
   <a href="commands/usageconventions.html">usage conventions</a></li>
- <li><a href="commands/surface.html"><b>surface</b></a></li>
  </ul>
 </ul>
 
 <p>
-Many more commands exist, but are not yet fully documented.
+Many more commands exist, but are not yet documented in detail.
 Some are in an experimental state and could be changed significantly or
 omitted from later versions of Chimera2.
 Several current commands are listed below.
 The <b>help</b> command can be used to show brief descriptions
 of specific commands or all commands in the <b>Log</b>
 (for example, <b>help style</b> or <b>help all</b>). 
-Some are much the same as the corresponding Chimera1 commands,
+Some commands are much the same as the corresponding Chimera1 commands,
 except for the specification differences noted <a href="#top">above</a>.
 </p>
 <ul>
@@ -74,12 +80,9 @@ except for the specification differences noted <a href="#top">above</a>.
 (with options <b>stick, ball, sphere</b>)</li>
 <li><b>display/~display</b></li>
 <li><b>ribbon/~ribbon</b></li>
-<li><b>color</b></li>
 <li><b>colordef</b></li>
 <li><b>view</b>
-- bring everything or specified items into view, like Chimera1 
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/window.html"
-target="_blank"><b>window</b></a></li>
+- bring everything into view</li>
 <li><b>lighting</b> 
 (with options including <b>soft</b> for ambient occlusion, <b>flat</b> 
 for ambient-only, <b>full</b> with shadows, <b>default</b>)</li>
@@ -144,7 +147,9 @@ target="_blank"><b>perframe</b></a></li>
 <li><b>material</b></li>
 <li><b>camera</b></li>
 <li><b>oculus</b></li>
-<li><b>pdbimages</b></li>
+<li><b>pdbimages</b>
+- batch-render images of molecular assemblies defined in mmCIF files
+(see <a href="../pdbimages/index.html">examples</a>)</li>
 </ul>
 
 <hr>
