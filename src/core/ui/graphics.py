@@ -83,8 +83,6 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             test_attribs = attribs + [glcanvas.WX_GL_DEPTH_SIZE, depth]
             if gl_supported(test_attribs + [0]):
                 attribs = test_attribs
-                # TODO: log this
-                print("Using {}-bit OpenGL depth buffer".format(depth))
                 break
         else:
             raise AssertionError("Required OpenGL depth buffer capability"
@@ -94,8 +92,6 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             # TODO: keep track of fact that 3D stereo is available, but
             # don't use it
             pass
-        else:
-            print("Stereo mode is not supported by OpenGL driver")
         ckw = {} if size is None else {'size': size}
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs + [0],
                                    style=wx.WANTS_CHARS, **ckw)
