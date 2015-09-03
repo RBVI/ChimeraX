@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+import re
 from . import cli
 from ..colors import Color
 from .colorarg import ColorArg, ColormapArg
@@ -11,6 +12,7 @@ _SequentialLevels = ["residues", "helix", "helices", "strands",
                      "volmodels", "allmodels"]
 
 _CmapRanges = ["full"]
+ColorNames = re.compile(r'[a-z][-_a-z0-9 ]*')
 
 
 def _find_named_color(color_dict, name):
@@ -61,6 +63,9 @@ def _find_named_color(color_dict, name):
 
 def colordef(session, name, color=None):
     """Create a user defined color."""
+    if ColorNames.match(name) is None:
+        from ..errors import UserError
+        raise UserError('Illegal color name: "%s"' % name)
     if color is None:
         # TODO: need to merge the two color dictionaries to properly
         # resolve abbreviations
