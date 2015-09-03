@@ -75,6 +75,7 @@ class UI(wx.App):
 
     def close_splash(self):
         self.splash.Close()
+        self.main_window.Raise()
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
