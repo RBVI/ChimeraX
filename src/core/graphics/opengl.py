@@ -398,6 +398,16 @@ class Render:
             lines.append('extension: %s' % GL.glGetStringi(GL.GL_EXTENSIONS,e).decode('utf-8'))
         return '\n'.join(lines)
 
+    def opengl_profile(self):
+        pmask = GL.glGetIntegerv(GL.GL_CONTEXT_PROFILE_MASK)
+        if pmask == GL.GL_CONTEXT_CORE_PROFILE_BIT:
+            p = 'core'
+        elif pmask == GL.GL_CONTEXT_COMPATIBILITY_PROFILE_BIT:
+            p = 'compatibility'
+        else:
+            p = 'unknown'
+        return p
+
     def support_stereo(self):
         'Return if sequential stereo is supported.'
         return GL.glGetBoolean(GL.GL_STEREO)

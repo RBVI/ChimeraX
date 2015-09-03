@@ -1,0 +1,176 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: color</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: color</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>color</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+&nbsp;<a href="#colorname"><i>colorname</i></a>&nbsp;
+[&nbsp;<a href="#target">target</a> &nbsp;<i>string</i>&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>color</b>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+&nbsp;<b>sequential chains</b>
+[&nbsp;<a href="#target">target</a> &nbsp;<i>string</i>&nbsp;]
+[&nbsp;<b>cmap</b> &nbsp;<i>palette</i>&nbsp;]
+</h3>
+<p>
+The <b>color</b> command colors atomic models, including
+cartoon and molecular surface representations. 
+See <a href="#examples">examples</a> below.
+See also: <a href="colordef.html"><b>colordef</b></a>, <b>volume</b>
+</p><p>
+The absence of an atom or model specifier implies &ldquo;all.&rdquo;
+Keywords can be truncated to unique strings, and their case does not matter.
+<!--
+Synonyms for true: True, 1.  Synonyms for false: False, 0.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive options, and
+default settings are indicated with <b>bold</b>.
+-->
+</p><p>
+For simple coloring, the <a name="colorname"><i>colorname</i></a> can be:
+<ul>
+<li><a href="colornames.html">color specification</a> by name,
+hexadecimal color code, or component values in RGB or other color spaces
+<li><b>byelement</b>
+- a <a href="colortables.html">color-by-element scheme</a>; only applies to 
+atomic representations and per-atom patches of molecular surfaces
+<li><b>byhet</b> or <b>byhetero</b>
+- same as <b>byelement</b>, except leaving carbon atoms unchanged
+<li><b>byatom</b>
+- color other <a href="#target">targets</a>
+(molecular surface patches, <i>etc.</i>) to match the corresponding atoms
+</ul>
+</p><p>
+The <b>sequential chains</b> method applies a range of colors,
+setting a different color for each biopolymer chain in an atomic model.
+Only the biopolymer chains are colored, not ligand and solvent residues,
+even if they have the same chain ID as a biopolymer chain.
+Future <b>sequential</b> sub-options will allow setting a different color
+for each residue or secondary structure element along a chain,
+or for each model.
+Sequential coloring always applies to entire models (not parts of models).
+</p><p>
+The <a name="target"><b>target</b></a> option allows coloring only 
+a subset of the possible displays of a given atom, residue, <i>etc.</i>
+The <i>string</i> can be any combination of the following letters,
+without commas or spaces:
+  <ul>
+  <li><b>a</b> - atoms/bonds (halfbond coloring)
+<!--
+  <li><b>l</b> - atom labels
+-->
+  <li><b>c</b> - cartoons (divisible to per-residue segments)
+  <li><b>s</b> - surfaces
+  (molecular surfaces divisible to per-atom patches)
+<!--
+  <li><b>r</b> - residue labels
+  <li><b>n</b> - nonmolecular models (model-level color)
+  <li><b>m</b> - molecular models (model-level color)
+  <li><b>b</b> - bonds only 
+   (halfbond mode off) with both end atoms specified
+  <li><b>p</b> - pseudobonds with both end atoms specified
+  <li><b>d</b> - distances and other pseudobond labels
+-->
+  </ul>
+The default target is all of the above, 
+<font color="brown">
+except that surface coloring is
+not yet implemented for <b>sequential</b> coloring
+(if atoms have been colored sequentially, however,
+the surface can be colored to match the atoms with the command: 
+<b>color byatom target s</b>).
+</font>
+</p><p>
+The <b>cmap</b> option specifies a <i>palette</i> for sequential
+coloring (colors listed in ascending value order):
+</p>
+<ul>
+<li><b>rainbow</b> (default) - red, yellow, green, cyan, blue
+<!-- blue, cyan, green, yellow, red -->
+<li><b>red-white-blue</b> (synonym <b>redblue</b>)
+<li><b>blue-white-red</b> (synonym <b>bluered</b>)
+<li><b>cyan-white-maroon</b> (synonym <b>cyanmaroon</b>)
+<li><b>gray</b> - black, white
+</ul>
+<p>
+The colors are interpolated along the range to generate a unique color
+for each item being colored sequentially.
+</p>
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="examples"></a>
+<h3>Examples</h3>
+<p>
+Example <a href="#top"><b>color</b></a> commands:
+</p>
+<blockquote>
+<b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;target a</b>
+</blockquote>
+- color residues 12 and 260-275 in chains A and B, atoms/bonds only
+<blockquote>
+<b>color &nbsp;seq chain &nbsp;targ c</b>
+</blockquote>
+- assign a unique color per chain in each atomic model
+from red &rarr; blue through the rainbow, cartoons only
+<blockquote>
+<b>color #3 &nbsp;seq ch &nbsp;cmap cyan</b>
+</blockquote>
+- color chains in model 3 from a medium cyan through white to dark maroon
+<!--
+<blockquote>
+<b>color &nbsp;sequential res</b>
+</blockquote>
+- rainbow-color residues blue &rarr; red in each biopolymer chain
+<blockquote>
+<b>color &nbsp;seq res &nbsp;target c</b>
+</blockquote>
+- rainbow-color residues blue &rarr; red in each biopolymer chain,
+cartoons only
+<blockquote>
+<b>color /A &nbsp;attribute bfactor &nbsp;target ac &nbsp;residueVal max</b>
+</blockquote>
+- rainbow-color chain A atoms by atomic <b>bfactor</b>, 
+cartoon segments by maximum atomic <b>bfactor</b> per residue
+<blockquote>
+<b>color #0 &nbsp;volume #1 &nbsp;cmap redblue &nbsp;cmapRange -10,10
+&nbsp;newAttr esp</b>
+</blockquote>
+- color model #0 by values in map #1; if #0 includes atoms (as opposed to
+surface-only), create new atom attribute named <b>esp</b>
+<blockquote>
+<b>color #0 &nbsp;volume #1 &nbsp;cmap -10,red:0,white:10,medium blue
+&nbsp;newAttr esp</b>
+</blockquote>
+- same as previous except use <b>medium blue</b> instead of <b>blue</b>
+<blockquote>
+<b>color &nbsp;seq mol &nbsp;initial true</b>
+</blockquote>
+- reset molecule models to default initial colors
+-->
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2015</address>
+</body></html>
