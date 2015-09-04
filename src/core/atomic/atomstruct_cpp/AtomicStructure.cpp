@@ -1,5 +1,4 @@
 // vi: set expandtab ts=4 sw=4:
-#include <pythonarray.h>
 #include "Atom.h"
 #include "AtomicStructure.h"
 #include <basegeom/destruct.h>
@@ -9,6 +8,7 @@
 #include "Element.h"
 #include <logger/logger.h>
 #include "Pseudobond.h"
+#include <pythonarray.h>
 #include "Residue.h"
 #include "seq_assoc.h"
 
@@ -848,7 +848,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     // PseudobondManager groups;
     // main version number needs to go up when manager's
     // version number goes up, so check it
-    if (_pb_mgr->session_info(ints, floats, misc) != 1) {
+    if (_pb_mgr.session_info(ints, floats, misc) != 1) {
         throw std::runtime_error("Unexpected version number from pseudobond manager");
     }
 

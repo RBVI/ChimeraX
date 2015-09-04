@@ -15,7 +15,6 @@ namespace atomstruct {
 class Atom;
 class AtomicStructure;
 class CoordSet;
-class PyObject;
 
 using basegeom::GraphicsContainer;
 
@@ -54,7 +53,6 @@ class PBManager: public pseudobond::Base_Manager<Proxy_PBGroup> {
 public:
     void  delete_group(Proxy_PBGroup*);
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
-    int  session_info(PyObject* ints, PyObject* floats, PyObject* misc) const;
 };
 
 // in per-AtomicStructure groups there are per-CoordSet groups
@@ -129,6 +127,9 @@ private:
     friend class CoordSet;
     AS_PBManager(AtomicStructure* as):
         pseudobond::Owned_Manager<AtomicStructure, Proxy_PBGroup>(as) {}
+
+    void  _grp_session_info(const std::set<PBond*>& pbonds, PyObject* ints,
+        PyObject* floats, PyObject* misc) const;
     void  remove_cs(const CoordSet* cs);
 public:
     void  delete_group(Proxy_PBGroup*);

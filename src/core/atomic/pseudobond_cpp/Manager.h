@@ -9,9 +9,15 @@
 #include "Group.h"
 #include <basegeom/destruct.h>
 
+// "forward declare" PyObject, which is a typedef of a struct,
+// as per the python mailing list:
+// http://mail.python.org/pipermail/python-dev/2003-August/037601.html
+#ifndef PyObject_HEAD
+struct _object;
+typedef _object PyObject;
+#endif
+    
 namespace pseudobond {
-
-class PyObject;
 
 //classes
 template <class Grp_Class>
@@ -29,7 +35,6 @@ public:
     virtual Grp_Class*  get_group(
             const std::string& name, int create = GRP_NONE) = 0;
     const GroupMap&  group_map() const { return _groups; }
-    virtual int  session_info(PyObject* ints, PyObject* floats, PyObject* misc) = 0;
 };
 
 template <class Owner, class Grp_Class>
@@ -52,6 +57,9 @@ public:
             delete name_grp.second;
         }
     };
+
+    Owner*  owner() const { return _owner; }
+    virtual int  session_info(PyObject* ints, PyObject* floats, PyObject* misc) const = 0;
 };
 
 }  // namespace pseudobond
