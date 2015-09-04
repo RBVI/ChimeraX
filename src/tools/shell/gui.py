@@ -29,12 +29,12 @@ class ShellUI(ToolInstance):
         self.shell.redirectStdin(True)
         self.shell.redirectStdout(True)
         self.shell.redirectStderr(True)
-        self.shell.setFocus()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.shell, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement=None)
+        self.shell.setFocus()
         # Add to running tool list for session if tool should be saved
         # in and restored from session and scenes
         session.tools.add([self])
