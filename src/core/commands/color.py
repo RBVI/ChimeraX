@@ -45,6 +45,7 @@ def _find_named_color(color_dict, name):
             last_real_name = None
             real_name = choices[0]
             break
+        choices.sort(key=len)
         last_real_name = choices[0]
         cur_name = cur_name[:-len(words[w])] + multiword_choices[0][0]
         w += 1
