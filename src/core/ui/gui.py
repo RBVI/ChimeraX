@@ -75,6 +75,7 @@ class UI(wx.App):
 
     def close_splash(self):
         self.splash.Close()
+        self.main_window.Raise()
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
@@ -343,6 +344,22 @@ class MainWindow(wx.Frame, PlainTextLog):
                 cb = lambda evt, ses=session, ti=ti: ti.start(ses)
                 self.Bind(wx.EVT_MENU, cb, item)
         menu_bar.Append(tools_menu, "&Tools")
+
+        help_menu = wx.Menu()
+        menu_bar.Append(help_menu, "&Help")
+        for entry, dir in (('User Guide', 'user'),
+                           ('Quick Start Guide', 'quickstart'),
+                           ('Programming Guide', 'devel'),
+                           ('PDB images command', 'pdbimages')):
+            item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
+            def cb(evt, ses=session, d=dir):
+                from os import path
+                path = path.join(ses.app_data_dir, 'docs', d, 'index.html')
+                import pathlib
+                url = pathlib.Path(path).as_uri()
+                from webbrowser import open
+                open(url)
+            self.Bind(wx.EVT_MENU, cb, item)
 
     def _tool_window_destroy(self, tool_window):
         tool_instance = tool_window.tool_instance

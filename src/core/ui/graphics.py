@@ -69,12 +69,10 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             # TODO: how to pick number of samples
             attribs += [glcanvas.WX_GL_SAMPLE_BUFFERS, 1,
                         glcanvas.WX_GL_SAMPLES, 4]
-        import sys
-        if sys.platform.startswith('darwin'):
-            attribs += [
-                glcanvas.WX_GL_OPENGL_PROFILE,
-                glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
-            ]
+        attribs += [
+            glcanvas.WX_GL_OPENGL_PROFILE,
+            glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
+        ]
         gl_supported = glcanvas.GLCanvas.IsDisplaySupported
         if not gl_supported(attribs + [0]):
             raise AssertionError("Required OpenGL capabilities, RGBA and/or"
@@ -83,8 +81,6 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             test_attribs = attribs + [glcanvas.WX_GL_DEPTH_SIZE, depth]
             if gl_supported(test_attribs + [0]):
                 attribs = test_attribs
-                # TODO: log this
-                print("Using {}-bit OpenGL depth buffer".format(depth))
                 break
         else:
             raise AssertionError("Required OpenGL depth buffer capability"
@@ -94,8 +90,6 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             # TODO: keep track of fact that 3D stereo is available, but
             # don't use it
             pass
-        else:
-            print("Stereo mode is not supported by OpenGL driver")
         ckw = {} if size is None else {'size': size}
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs + [0],
                                    style=wx.WANTS_CHARS, **ckw)

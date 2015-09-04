@@ -386,6 +386,7 @@ def init(argv, event_loop=True):
 
     if opts.gui:
         sess.ui.close_splash()
+        sess.logger.info('OpenGL ' + sess.main_view.opengl_version())
 
     if opts.module:
         import runpy

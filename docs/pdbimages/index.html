@@ -1,0 +1,142 @@
+<html>
+<title>PDB Assembly Images</title>
+<body>
+<h1>PDB Assembly Images</h1>
+
+<p>
+August 31, 2015
+</p>
+
+<p>
+The Chimera2 <i>pdbimages</i> command does batch rendering of molecular assemblies defined in
+mmCIF files.  It makes an image for each assembly in each mmCIF file (*.cif suffix) in a specified directory.
+</p>
+
+<h2>
+Example
+</h2>
+
+<img src="tiled.jpg" align=right>
+
+<p>
+Start Chimera2 and enter the pdbimages command specifying a directory containing mmCIF files:
+</p>
+
+<pre>
+  pdbimages /tmp/mmcif_files
+</pre>
+
+<p>
+This will create images for each assembly in the same directory
+</p>
+
+<blockquote>
+<pre>
+$ ls /tmp/mmcif_files
+1A0M.cif	1EJ6_XAU.png	1M4X_5.png	
+1A0M_1.png	1GOS.cif	1M4X_6.png	
+1A2P.cif	1GOS_1.png	1M4X_PAU.png	
+1A2P_1.png	1IDI.cif	1OJD.cif	
+1A2P_2.png	1IDI_1.png	1OJD_1.png	
+1A2P_3.png	1JJ2.cif	1OJD_2.png	
+1EJ6.cif	1JJ2_1.png	1OJD_3.png	
+1EJ6_1.png	1M4X.cif	1OJD_4.png	
+1EJ6_2.png	1M4X_1.png	1OJD_5.png	
+1EJ6_3.png	1M4X_2.png	
+1EJ6_4.png	1M4X_3.png	
+1EJ6_PAU.png	1M4X_4.png	
+</pre>
+</blockquote>
+
+<p>
+The name of each assembly (typical assembly names are "1", "2", "3"...) is appended to the file mmCIF name
+to produce the PNG image file name.
+</p>
+
+<h2>
+Montage Image
+</h2>
+
+<p>
+A tiled single image showing the assemblies can be made with the free
+<a href="http://www.imagemagick.org/">ImageMagick</a> software package using command
+to make 100 by 100 pixel tile for each assembly image.
+</p>
+
+<pre>
+  montage -label "%t" *.png -geometry "100x100+0+0" tiled.jpg
+</pre>
+
+<h2>
+Display Settings
+</h2>
+
+<p>
+The assemblies are viewed along the -z axis of the crystallographic coordinates, which is not ideal in many cases.
+They are shown with atoms as spheres, with separate colors for each chain, and ambient occlusion lighting (which
+makes recessed areas dark, and allows good depth perception).
+</p>
+
+<h2>
+Customizing Display Settings
+</h2>
+
+<p>
+The sphere style, coloring, lighting and view point are currently set in the Python code for the
+<i>pdbimages</i> command.  With some knowledge of Python this can be customized.  The code is found
+in the Mac app in
+</p>
+
+<pre>
+  Chimera2.app/Contents/lib/python3.4/site-packages/chimera/core/commands/pdbimages.py
+</pre>
+
+<p>
+Some of the available commands that could be used to provide different renderings are illustrated
+in the Chimera2 <a href="../quickstart/index.html">Quick Start Guide</a> and more details is
+in the <a href="../devel/core/commands/commands.html">Programming Guide</a>.
+</p>
+
+<h2>
+Options
+</h2>
+
+<p>
+There are additional options to the <i>pdbimages</i> command.  The command is not yet documented
+in the <a href="../user/index.html">User Guide</a> but is listed in the
+<a href="../devel/core/commands/commands.html#pdbimages">Programming Guide</a>.
+The following example makes 800 by 800 pixel images, with edge smoothing using supersampling
+and logs the files processed in the specified file (useful when errors occur).
+</p>
+
+<pre>
+  pdbimages /tmp/mmcif_files width 800 height 800 supersample 3 logFile /tmp/mmcif_files/log
+</pre>
+
+<h2>
+Server Rendering
+</h2>
+
+<p>
+The pdbimages command can be used on a Linux server without graphics and with no display by
+starting Linux Chimera2 with the <i>--nogui</i> flag and then typing the pdbimages command
+to the resulting Chimera2 prompt.  This uses CPU rendering which tests showed to be approximately
+60 times slower than rendering with a graphics card and display.  It is currently not possible
+to use a graphics card without a display in Chimera2.
+</p>
+
+<h2>
+Performance
+</h2>
+
+<p>
+On a 2012 iMac with 32 Gbytes of memory and Geforce GTX 680MX graphics (2 Gb graphics memory)
+all assemblies in the PDB can be rendered in about 1 day.  Various problems are encountered.
+The Mac graphics driver typically crashes after about 10,000 mmCIF files.  Also Chimera2 uses
+gradually more memory, even though the mmCIF files are closed after each is rendered.  This
+consumes about 1.5 Mbytes of memory per file, so 10,000 files takes 15 Gbytes of memory.
+For both these reasons, it is necessary to run in batches of a few thousand files.
+</p>
+
+</body>
+</html>

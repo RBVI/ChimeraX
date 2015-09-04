@@ -6,7 +6,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.0.3.dev1719+62a2221
+VERSION = 3.0.3.dev1830+0b5f910
 SHLIB_VER = 3.0.0.3.0
 DISTRIBUTION = wxPython_Phoenix-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)
@@ -15,6 +15,11 @@ INSTALL_OPTS =
 ifdef DEBUG
 BUILD_OPTS += --debug
 INSTALL_OPTS += --debug
+endif
+
+ifeq ($(OS),Linux)
+SYSLIBDIR = /usr/lib/x86_64-linux-gnu
+SYSLIBS = $(wildcard $(SYSLIBDIR)/libjpeg.so.62 $(SYSLIBDIR)/libwebkitgtk-1.0.so.0 $(SYSLIBDIR)/libjavascriptcoregtk-1.0.so.0)
 endif
 
 PATCHES = $(wildcard wxPython_Phoenix-$(VERSION)_$(OS)_*.patch) \
@@ -43,6 +48,9 @@ ifeq ($(OS),Darwin)
 endif
 ifeq ($(OS),Linux)
 	cd $(PYSITEDIR)/wx; mv -f libwx_* $(libdir)/
+ifneq (,$(SYSLIBS))
+	$(RSYNC) --copy-links $(SYSLIBS) $(shlibdir)
+endif
 endif
 endif
 
@@ -52,6 +60,9 @@ app-install:
 ifndef USE_MAC_FRAMEWORKS
 ifneq ($(OS),Darwin)
 	$(RSYNC) $(shlibdir)/libwx_*$(SHLIB_EXT)* $(app_shlibdir)
+ifneq (,$(SYSLIBS))
+	$(RSYNC) $(SYSLIBS) $(app_shlibdir)
+endif
 endif
 endif
 

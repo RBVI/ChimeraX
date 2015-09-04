@@ -725,18 +725,24 @@ class AtomSpecResults:
         self.add_atoms(other.atoms)
 
     def invert(self, session, models):
-        from ..atomic import Atoms
+        from ..atomic import Atoms, AtomicStructure
         atoms = Atoms()
+        imodels = set()
         for m in models:
-            if m in self._models:
-                # Was selected, so invert model atoms
-                keep = m.atoms - self._atoms
-            else:
-                # Was not selected, so include all atoms
-                keep = m.atoms
-            if len(keep) > 0:
-                atoms = atoms | keep
+            if isinstance(m, AtomicStructure):
+                if m in self._models:
+                    # Was selected, so invert model atoms
+                    keep = m.atoms - self._atoms
+                else:
+                    # Was not selected, so include all atoms
+                    keep = m.atoms
+                if len(keep) > 0:
+                    atoms = atoms | keep
+                    imodels.add(m)
+            elif not m in self._models:
+                imodels.add(m)
         self._atoms = atoms
+        self._models = imodels
 
     @property
     def models(self):

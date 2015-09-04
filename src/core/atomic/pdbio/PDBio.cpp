@@ -411,20 +411,20 @@ start_t = end_t;
                         e = new Element(1);
                     else
                         e = new Element(record.atom.name);
+                    if ((e->number() > 83 || e->number() == 61
+                      || e->number() == 43 || e->number() == 0)
+                      && record.atom.name[0] != ' ') {
+                        // probably one of those funky PDB
+                        // non-standard-residue atom names;
+                        // try _just_ the second character...
+                        delete e;
+                        char atsym[2];
+                        atsym[0] = record.atom.name[1];
+                        atsym[1] = '\0';
+                        e = new Element(atsym);
+                    }
                 }
 
-                if ((e->number() > 83 || e->number() == 61
-                  || e->number() == 43 || e->number() == 0)
-                  && record.atom.name[0] != ' ') {
-                    // probably one of those funky PDB
-                    // non-standard-residue atom names;
-                    // try _just_ the second character...
-                    delete e;
-                    char atsym[2];
-                    atsym[0] = record.atom.name[1];
-                    atsym[1] = '\0';
-                    e = new Element(atsym);
-                }
                 if (e->number() == 0 && !(
                   // explicit lone pair
                   (record.atom.name[0] == 'L' &&

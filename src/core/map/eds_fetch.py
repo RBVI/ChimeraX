@@ -27,6 +27,12 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False):
   import os
   filename = os.path.expanduser(filename)
 
+  if os.path.exists(filename):
+    return filename, id
+
+  dirname = os.path.dirname(filename)
+  os.makedirs(dirname, exist_ok=True)
+
   from urllib.request import URLError, Request
   from .. import utils
   request = Request(map_url, unverifiable=True, headers={
