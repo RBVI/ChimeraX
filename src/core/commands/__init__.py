@@ -1,7 +1,7 @@
 from .commands import register_core_commands
 from .run import run
 
-from .cli import CmdDesc, register, Command, RequiredArgs, alias
+from .cli import CmdDesc, register, Command, alias
 
 from .cli import Annotation, next_token, AnnotationError
 from .cli import NoArg, BoolArg, StringArg, EnumOf, ListOf

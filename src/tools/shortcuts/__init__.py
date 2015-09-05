@@ -10,7 +10,8 @@ def start_tool(session, ti):
     # look at the name in 'ti.name'
     from . import gui
     spanel = gui.get_singleton(session, create = True)
-    spanel.display(True)
+    if spanel is not None:
+        spanel.display(True)
     return spanel
 
 

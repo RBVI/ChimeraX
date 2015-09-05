@@ -48,8 +48,8 @@ and are automatically completed to the first registered
 command with the given prefix.  Likewise for keyword arguments.
 
 Keywords are case sensitive, and are expected to be all lowercase.
-Underscores are supported, but are documented as and accepted as dashes.
-For example, a ``bg_color`` keyword would be documented as ``bg-color``.
+Underscores are elided, but are documented as mixed case.
+For example, a ``bg_color`` keyword would be documented as ``bgColor``.
 
 Registering Commands
 --------------------
@@ -200,6 +200,26 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
+def commas(text_seq, conjunction=' or', suffix='s'):
+    """Return comma separated list of words and suffix"""
+    seq_len = len(text_seq)
+    if seq_len == 0:
+        return "", ""
+    if seq_len == 1:
+        return text_seq[0], ""
+    if seq_len == 2:
+        return '%s %s %s' % (text_seq[0], conjunction, text_seq[1]), suffix
+    text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
+    return text, suffix
+
+def discard_article(text):
+    """remove leading article from text"""
+    text_seq = text.split(None, 1)
+    if text_seq[0] in ('a', 'an', 'the'):
+        return text_seq[1]
+    return text
+
+
 def _dq_repr(obj):
     """Like repr, but use double quotes"""
     r = repr(obj)
@@ -303,11 +323,10 @@ class Aggregate(Annotation):
             self.max_size = max_size
         if name is None:
             if ',' in annotation.name:
-                name = "collection of %s" % annotation.name
+                name = "a collection of %s" % annotation.name
             else:
-                # discard article
-                name = annotation.name.split(None, 1)[1]
-                name = "%s(s)" % name
+                name = discard_article(annotation.name)
+                name = "some %s(s)" % name
         self.name = name
         self.prefix = prefix
 
@@ -442,7 +461,7 @@ class DottedTupleOf(Aggregate):
         Aggregate.__init__(self, annotation, min_size, max_size, name, prefix)
         if name is None:
             if ',' in annotation.name:
-                name = "dotted list of %s" % annotation.name
+                name = "a dotted list of %s" % annotation.name
             else:
                 # discard article
                 name = annotation.name.split(None, 1)[1]
@@ -469,12 +488,21 @@ class BoolArg(Annotation):
 
 
 class NoArg(Annotation):
-    """Annotation for keyword with no value"""
-    name = ""
+    """Annotation for keyword whose presence indicates True"""
+    name = "nothing"
 
     @staticmethod
     def parse(text, session):
         return True, "", text
+
+
+class EmptyArg(Annotation):
+    """Annotation for optionally missing 'required' argument"""
+    name = "an empty string"
+
+    @staticmethod
+    def parse(text, session):
+        return None, "", text
 
 
 class IntArg(Annotation):
@@ -596,6 +624,7 @@ class Bounded(Annotation):
         if name is None:
             if min and max:
                 name = "%s <= %s <= %s" % (min, annotation.name, max)
+                name = "%s >= %s and <= %s" % (annotation.name, min, max)
             elif min:
                 name = "%s >= %s" % (annotation.name, min)
             elif max:
@@ -649,8 +678,10 @@ class EnumOf(Annotation):
             self.ids = values
         self.values = values
         if name is None:
-            name = "one of '%s', or '%s'" % ("', '".join(self.ids[0:-1]),
-                                             self.ids[-1])
+            if len(self.ids) == 1:
+                name = self.ids[0]
+            else:
+                name = "one of %s" % commas(["'%s'" % i for i in self.ids])[0]
         self.name = name
 
     def parse(self, text, session):
@@ -679,8 +710,7 @@ class Or(Annotation):
             raise ValueError("Need at two alternative annotations")
         self.annotations = annotations
         if name is None:
-            name = "%s or %s" % (", ".join([a.name for a in annotations[0:-1]]),
-                                 annotations[-1].name)
+            name = commas([a.name for a in annotations])[0]
         self.name = name
 
     def parse(self, text, session):
@@ -689,11 +719,7 @@ class Or(Annotation):
                 return anno.parse(text, session)
             except ValueError:
                 pass
-        names = [a.name for a in self.annotations]
-        msg = ', '.join(names[:-1])
-        if len(names) > 2:
-            msg += ', '
-        msg += 'or ' + names[-1]
+        msg = commas([a.name for a in self.annotations])[0]
         raise AnnotationError("Expected %s" % msg)
 
 
@@ -785,9 +811,9 @@ def unescape_with_index_map(text):
             end = text.find('}', index + 3)
             if end > 0:
                 import unicodedata
-                name = text[index + 3:end]
+                char_name = text[index + 3:end]
                 try:
-                    char = unicodedata.lookup(name)
+                    char = unicodedata.lookup(char_name)
                     text = text[:index] + char + text[end + 1:]
                     index_map = index_map[:index] + index_map[end:]
                 except KeyError:
@@ -901,14 +927,6 @@ class WholeRestOfLine(Annotation):
     def parse(text, session):
         return text, text, ''
 
-
-class EmptyArg(Annotation):
-    name = "matches empty string"
-
-    @staticmethod
-    def parse(text, session):
-        return None, "", text
-
 Bool2Arg = TupleOf(BoolArg, 2)
 Bool3Arg = TupleOf(BoolArg, 3)
 IntsArg = ListOf(IntArg)
@@ -1017,37 +1035,6 @@ class SameSize(Postcondition):
             self.name1, self.name2)
 
 
-class RequiredArgs(Postcondition):
-    """Postcondition check for required keywords
-
-    RequiredArgs(argument name(s)) -> a RequiredArgs object
-
-    :param *arg_names: list of argument names
-
-    This is useful for 'optional' and keyword arguments that don't have
-    a default value.
-    """
-
-    __slots__ = ['arg_names', 'missing']
-
-    def __init__(self, *arg_names):
-        self.arg_names = arg_names
-        self.missing = ()
-
-    def check(self, kw_args):
-        self.missing = tuple(n for n in self.arg_names if n not in kw_args)
-        return len(self.missing) == 0
-
-    def error_message(self):
-        count = len(self.missing)
-        if count == 1:
-            return "missing '%s' argument" % self.missing
-        if count == 2:
-            return "missing '%s' and '%s' arguments" % self.missing
-        return "missing %s, and '%s' arguments" % (
-            ', '.join(self.missing[:-1]), self.missing[-1])
-
-
 # _commands is a map of command name to command information.  Except when
 # it is a multiword command name, then the preliminary words map to
 # dictionaries that map to the command information.
@@ -1068,9 +1055,10 @@ def _check_autocomplete(word, mapping, name):
 class CmdDesc:
     """Describe command arguments.
 
-    :param required: required positional arguments tuple
-    :param optional: optional positional arguments tuple
-    :param keyword: keyword arguments tuple
+    :param required: required positional arguments sequence
+    :param optional: optional positional arguments sequence
+    :param keyword: keyword arguments sequence
+    :param required_arguments: sequence of argument names that must be given
     :param url: URL to help page
     :param synopsis: one line description
     :param official: True if officially supported command
@@ -1079,18 +1067,24 @@ class CmdDesc:
 
         function that implements command
 
-    Each tuple contains tuples with the argument name and a type annotation.
-    The command line parser uses the *optional* argument names to as
-    keyword arguments.
+    Each :param required:, :param optional:, :param keyword: sequence
+    contains tuples with the argument name and a type annotation.
+    The command line parser uses the :param optional: argument names as
+    additional keyword arguments.
+    :param required_arguments: are for Python function arguments that
+    don't have default values, but should be given on the command line
+    (typically *keyword* arguments, but could be used for syntactically
+    *optional* arguments).
     """
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
-        '_postconditions', '_function',
+        '_required_arguments', '_postconditions', '_function',
         'url', 'synopsis', 'official'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
-                 postconditions=(), url=None, synopsis=None, official=False):
+                 postconditions=(), required_arguments=(),
+                 url=None, synopsis=None, official=False):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = OrderedDict(keyword)
@@ -1098,6 +1092,7 @@ class CmdDesc:
         # keyword_map is what would user would type
         self._keyword_map = dict([(_canonical_kw(n), n) for n in self._keyword])
         self._postconditions = postconditions
+        self._required_arguments = required_arguments
         self.url = url
         self.synopsis = synopsis
         self.official = official
@@ -1126,6 +1121,7 @@ class CmdDesc:
             raise ValueError("Missing initial 'session' argument")
         for p in params[1:]:
             if (p.default != empty or p.name in self._required or
+                    p.name in self._required_arguments or
                     p.kind in (var_positional, var_keyword)):
                 continue
             raise ValueError("Wrong function or '%s' argument must be "
@@ -1250,7 +1246,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
         # command already registered
         if isinstance(function, Alias):
             if not isinstance(cmd_map[word].function, Alias):
-                # only save nonaliased version of command
+                # only save non-aliased version of command
                 _aliased_commands[name] = cmd_map[word]
             cmd_map[word] = cmd_desc
         elif isinstance(what.function, Alias):
@@ -1385,7 +1381,7 @@ class Command:
         self._error = ""
         self._ci = None
         self.command_name = None
-        self._kwargs = {}
+        self._kw_args = {}
         self._error_checked = False
 
     def error_check(self):
@@ -1398,9 +1394,13 @@ class Command:
         """
         if self._error:
             raise UserError(self._error)
-        for (cmd_name, ci, kwargs) in self._multiple:
+        for (cmd_name, ci, kw_args) in self._multiple:
+            missing = [kw for kw in ci._required_arguments if kw not in kw_args]
+            if missing:
+                # TODO
+                raise UserError("Missing required '%s' argument" % missing)
             for cond in ci._postconditions:
-                if not cond.check(kwargs):
+                if not cond.check(kw_args):
                     raise UserError(cond.error_message())
         self._error_checked = True
 
@@ -1411,16 +1411,16 @@ class Command:
         if not self._error_checked:
             self.error_check()
         results = []
-        for (cmd_name, ci, kwargs) in self._multiple:
+        for (cmd_name, ci, kw_args) in self._multiple:
             try:
                 if not isinstance(ci.function, Alias):
-                    results.append(ci.function(session, **kwargs))
+                    results.append(ci.function(session, **kw_args))
                     continue
-                arg_names = [k for k in kwargs.keys() if isinstance(k, int)]
+                arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
                 arg_names.sort()
-                args = [kwargs[k] for k in arg_names]
-                if 'optional' in kwargs:
-                    optional = kwargs['optional']
+                args = [kw_args[k] for k in arg_names]
+                if 'optional' in kw_args:
+                    optional = kw_args['optional']
                 else:
                     optional = ''
                 if _used_aliases is None:
@@ -1552,7 +1552,7 @@ class Command:
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
-        #   if successful, updates self._kwargs
+        #   if successful, updates self._kw_args
         session = self._session()  # resolve back reference
         text = self.current_text[self.amount_parsed:]
         positional = self._ci._required.copy()
@@ -1582,9 +1582,9 @@ class Command:
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 if is_python_keyword(kw_name):
-                    self._kwargs['%s_' % kw_name] = value
+                    self._kw_args['%s_' % kw_name] = value
                 else:
-                    self._kwargs[kw_name] = value
+                    self._kw_args[kw_name] = value
                 self._error = ""
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset:
@@ -1606,7 +1606,7 @@ class Command:
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
-        #   if successful, updates self._kwargs
+        #   if successful, updates self._kw_args
         session = self._session()  # resolve back reference
         m = _whitespace.match(self.current_text, self.amount_parsed)
         self.amount_parsed = m.end()
@@ -1657,9 +1657,9 @@ class Command:
             try:
                 value, text = self._parse_arg(anno, text, session, final)
                 if is_python_keyword(kw_name):
-                    self._kwargs['%s_' % kw_name] = value
+                    self._kw_args['%s_' % kw_name] = value
                 else:
-                    self._kwargs[kw_name] = value
+                    self._kw_args[kw_name] = value
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
@@ -1702,10 +1702,10 @@ class Command:
             self._process_keyword_arguments(final)
             if self._error:
                 return
-            self._multiple.append((self.command_name, self._ci, self._kwargs))
+            self._multiple.append((self.command_name, self._ci, self._kw_args))
             self.command_name = None
             self._ci = None
-            self._kwargs = {}
+            self._kw_args = {}
             m = _whitespace.match(self.current_text, self.amount_parsed)
             self.amount_parsed = m.end()
             if self.amount_parsed == len(self.current_text):
@@ -1957,13 +1957,13 @@ def alias(session, name='', text=''):
     :param text: optional text of the alias
 
     If the alias name is not given, then a text list of all the aliases is
-    returned.  If alias text is not given, the the text of the named alias
+    returned.  If alias text is not given, the text of the named alias
     is returned.  If both arguments are given, then a new alias is made.
     """
     logger = session.logger if session else None
     if not name:
         # list aliases
-        names = ', '.join(_cmd_aliases)
+        names = commas(_cmd_alias, '')
         if names:
             if logger is not None:
                 logger.info('Aliases: %s' % names)
@@ -2178,9 +2178,9 @@ if __name__ == '__main__':
             ("colors", ListOf(ColorArg)),
             ("offsets", ListOf(FloatArg)),
         ),
+        required_arguments=("colors", "offsets"),
         postconditions=(
             SameSize('colors', 'offsets'),
-            RequiredArgs("colors", "offsets")
         )
     )
 

@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 2.4.2
+VERSION = 2.4.3
 DISTRIBUTION = numexpr-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/numexpr-$(VERSION)
 
