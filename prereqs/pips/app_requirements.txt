@@ -5,7 +5,7 @@ Cython==0.23.1
 distlib==0.2.1
 grako==3.6.3
 line_profiler==1.0
-networkx==1.9.1
+networkx==1.10
 Pillow==2.9.0
 pip==7.1.2
 python-dateutil==2.4.2
