@@ -43,3 +43,6 @@ clean:
 outdated:
 	$(PIP) list --allow-external wxpython-phoenix --outdated --pre
 
+app-outdated:
+	$(APP_PIP) list --allow-external wxpython-phoenix --outdated --pre
+

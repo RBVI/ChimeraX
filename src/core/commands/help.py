@@ -17,25 +17,29 @@ def help(session, command_name=None):
     if command_name is None:
         info("Use 'help <command>' to learn more about a command.")
         cmds = cli.registered_commands()
-        cmds.sort()
-        if len(cmds) == 0:
-            pass
-        elif len(cmds) == 1:
-            info("The following command is available: %s" % cmds[0])
-        else:
-            info("The following commands are available: %s, and %s"
-                 % (', '.join(cmds[:-1]), cmds[-1]))
+        if len(cmds) > 0:
+            cmds.sort(key=lambda x: x[x[0] == '~':])
+            text, suffix = cli.commas(cmds, ' and')
+            info("The following command%s are available: %s" % (suffix, text))
         return
     elif command_name == 'all':
-        info("Syntax for all commands.")
-        cmds = cli.registered_commands()
-        cmds.sort()
+        info("Syntax for all commands:")
+        cmds = cli.registered_commands(multiword=True)
+        cmds.sort(key=lambda x: x[x[0] == '~':])
+        if not session.ui.is_gui:
+            for name in cmds:
+                try:
+                    info(cli.usage(name))
+                except:
+                    info('%s -- no documentation' % name)
+            return
         for name in cmds:
             try:
                 info(cli.html_usage(name), is_html=True)
             except:
                 from html import escape
-                info('<b>%s</b> no documentation' % escape(name), is_html=True)
+                info('<b>%s</b> &mdash; no documentation' % escape(name),
+                     is_html=True)
         return
 
     try:

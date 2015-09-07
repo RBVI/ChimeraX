@@ -13,11 +13,6 @@ software or any revisions or derivations thereof.
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command-Line Color Specification</title>
 </head><body>
-<p>
-Compare to
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/color.html#colorname">Chimera1 color specification</a>.
-</p>
-<hr>
 
 <a name="top"></a>
 <a href="../index.html">
@@ -30,19 +25,37 @@ Colors can be specified in commands with:
 </p>
 <ul>
 <li><a href="http://www.w3schools.com/cssref/css_colornames.asp"
-target="_blank">CSS color names</a>,
+target="_blank">CSS color names</a> except in lowercase only,
 optionally with spaces between words
-<li>names defined previously with the 
+<li>color names defined previously with the 
 <a href="colordef.html"><b>colordef</b></a> command
 <li>CSS <b>hex</b> format (hexadecimal) 
-<li>CSS format for colorspaces:
-<b>rgb</b> (red, green, blue), 
-<b>rgba</b> (red, green, blue, opacity), 
-<b>hsl</b> (hue, saturation, lightness), 
-<b>hsla</b> (hue, saturation, lightness, opacity),
-<b>gray</b> (grayscale)
+<li>CSS-like format for colorspaces:
+  <ul>
+  <li><b>rgb</b> - red, green, blue
+  <li><b>rgba</b> - red, green, blue, opacity 
+  <li><b>hsl</b> - hue, saturation, lightness
+  <li><b>hsla</b> - hue, saturation, lightness, opacity
+  <li><b>gray</b> - grayscale
+  </ul>
+The colorspace name must be in lowercase
+and immediately precede the open parenthesis.
+Otherwise, embedded spaces are allowed.
+Opacity is always within the range 0-1, whereas the remaining components
+may be expressed on a scale of 0 to 255, or as percentages 
+(indicated with a percent sign), or as fractional values within the range 0-1 
+(indicated with a decimal point, for example, 1.0 rather than 1). 
+RGB or HSL components within a single specification 
+must be expressed on the same scale.
 </ul>
-</p><p>
+<p>
+Color names from CSS or <a href="colordef.html"><b>colordef</b></a>
+can be truncated, with ambiguous truncations 
+going to the shortest of the matching full color names.
+</p>
+
+<h3>Examples</h3>
+<p>
 The following all specify the same color:
 </p>
 <blockquote>
@@ -50,9 +63,9 @@ red<br>
 #f00<br>
 #0xff0000<br>
 rgb(255, 0, 0)<br>
+rgb(1.0,0,0)<br>
 rgb(100%, 0, 0)<br>
 rgba(100%, 0, 0, 1)<br>
-rgba(100%, 0, 0, 100%)<br>
 hsl(0, 100%, 50%)
 </blockquote>
 The following specify the same shade of gray:
@@ -63,5 +76,5 @@ gray(50%)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2015</address>
+September 2015</address>
 </body></html>
