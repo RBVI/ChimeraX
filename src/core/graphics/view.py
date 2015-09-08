@@ -101,7 +101,6 @@ class View:
         self.background_color = (0, 0, 0, 1)
 
     def initialize_context(self, oc):
-        """"""
         if self._opengl_context is not None:
             raise ValueError("OpenGL context is alread set")
         self._opengl_context = oc
@@ -161,7 +160,8 @@ class View:
 
         return changed
 
-    def draw(self, camera = None, drawings = None, check_for_changes = True, swap_buffers = True):
+    def draw(self, camera = None, drawings = None,
+             check_for_changes = True, swap_buffers = True):
         '''
         Draw the scene.
         '''
