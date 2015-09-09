@@ -75,8 +75,9 @@ class SideViewCanvas(glcanvas.GLCanvas):
         ]
         if sys.platform.startswith('darwin'):
             attribs[-1:-1] = [
-                glcanvas.WX_GL_OPENGL_PROFILE,
-                glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
+                glcanvas.WX_GL_CORE_PROFILE,
+                glcanvas.WX_GL_MAJOR_VERSION, 3,
+                glcanvas.WX_GL_MINOR_VERSION, 3,
             ]
         if not glcanvas.GLCanvas.IsDisplaySupported(attribs):
             raise AssertionError(
