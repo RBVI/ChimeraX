@@ -56,6 +56,7 @@ class Drawing:
         from numpy import array, uint8
         # Colors for each position, N by 4 uint8 numpy array:
         self._colors = array(((178, 178, 178, 255),), uint8)
+        self._opaque_color_count = 1
         # bool numpy array, show only some positions:
         self._displayed_positions = None
         self._any_displayed_positions = True
@@ -85,12 +86,8 @@ class Drawing:
         """Normal vectors of the rendered geometry, a numpy N by 3 array
         of float32 values."""
 
-        self.vertex_colors = None
-        '''
-        R, G, B, A color and transparency for each vertex, a numpy N by
-        4 array of uint8 values, can be None in which case a single color
-        (attribute color) is used for the object.
-        '''
+        self._vertex_colors = None
+        self._opaque_vertex_color_count = 0
 
         self._triangle_mask = None
         '''
@@ -165,7 +162,7 @@ class Drawing:
             self.redraw_needed()
         if key in self._effects_buffers:
             self._attribute_changes.add(key)
-            gc = key in ('vertices', 'triangles')
+            gc = key in ('vertices', 'triangles', '_triangle_mask')
             if gc:
                 self._cached_bounds = None
             sc = (gc or (key in ('_displayed_positions', '_positions')))
@@ -453,9 +450,11 @@ class Drawing:
 
     def set_color(self, rgba):
         from numpy import empty, uint8
-        c = empty((len(self._positions), 4), uint8)
+        np = len(self._positions)
+        c = empty((np, 4), uint8)
         c[:, :] = rgba
         self._colors = c
+        self._opaque_color_count = (np if rgba[3] == 255 else 0)
         self.redraw_needed()
 
     color = property(get_color, set_color)
@@ -469,27 +468,49 @@ class Drawing:
         from numpy import ndarray, array, uint8
         c = rgba if isinstance(rgba, ndarray) else array(rgba, uint8)
         self._colors = c
+        self._opaque_color_count = opaque_count(c)
         self.redraw_needed()
 
     colors = property(get_colors, set_colors)
     '''Color for each position used when per-vertex coloring is not
     specified.'''
 
-    def _opaque(self):
-        # TODO: Should render transparency for each copy separately
-        # TODO: Should check all vertex colors for transparency. Would need to render
-        #     opaque and transparent parts separately for 1-layer transparency to work
-        #     as expected when some vertices are opaque and some transparent.
-        vc = self.vertex_colors
-        alpha = self.color[3] if vc is None or len(vc) == 0 else vc[0,3]
-        return alpha == 255 and (self.texture is None or self.opaque_texture)
+    def get_vertex_colors(self):
+        return self._vertex_colors
+    def set_vertex_colors(self, vcolors):
+        self._vertex_colors = vcolors
+        self._opaque_vertex_color_count = opaque_count(vcolors)
+    vertex_colors = property(get_vertex_colors, set_vertex_colors)
+    '''
+    R, G, B, A color and transparency for each vertex, a numpy N by
+    4 array of uint8 values, can be None in which case a single color
+    (attribute color) is used for the object.
+    '''
+
+    def _transparency(self):
+        if self.texture is not None:
+            any_opaque = self.opaque_texture
+            any_transparent = not self.opaque_texture
+        else:
+            vc = self.vertex_colors
+            if vc is None:
+                oc = self._opaque_color_count
+                any_opaque = (oc > 0)
+                any_transparent = (oc < len(self._colors))
+            else:
+                oc = self._opaque_vertex_color_count
+                any_opaque = (oc > 0)
+                any_transparent = (oc < len(vc))
+        return any_opaque, any_transparent
 
     def showing_transparent(self):
         '''Are any transparent objects being displayed. Includes all
         children.'''
         if self.display:
-            if not self.empty_drawing() and not self._opaque():
-                return True
+            if not self.empty_drawing():
+                any_opaque, any_transp = self._transparency()
+                if any_transp:
+                    return True
             for d in self.child_drawings():
                 if d.showing_transparent():
                     return True
@@ -578,12 +599,14 @@ class Drawing:
         renderer.set_model_matrix(pp)
 
         if draw_pass == self.OPAQUE_DRAW_PASS:
-            if self._opaque():
-                self._draw_geometry(renderer, selected_only)
+            any_opaque, any_transp = self._transparency()
+            if any_opaque:
+                self._draw_geometry(renderer, selected_only, opaque_only = any_transp)
         elif draw_pass in (self.TRANSPARENT_DRAW_PASS,
                            self.TRANSPARENT_DEPTH_DRAW_PASS):
-            if not self._opaque():
-                self._draw_geometry(renderer, selected_only)
+            any_opaque, any_transp = self._transparency()
+            if any_transp:
+                self._draw_geometry(renderer, selected_only, transparent_only = any_opaque)
         elif draw_pass == self.SELECTION_DRAW_PASS:
             self._draw_geometry(renderer, selected_only)
 
@@ -594,7 +617,8 @@ class Drawing:
         for d in dlist:
             d.draw(renderer, place, draw_pass, selected_only)
 
-    def _draw_geometry(self, renderer, selected_only=False):
+    def _draw_geometry(self, renderer, selected_only=False,
+                       transparent_only=False, opaque_only=False):
         ''' Draw the geometry.'''
 
         if self.vertices is None:
@@ -609,7 +633,7 @@ class Drawing:
         ds = self._draw_selection if selected_only else self._draw_shape
         ds.activate_bindings()
 
-        sopt = self._shader_options()
+        sopt = self._shader_options(transparent_only, opaque_only)
         shader = renderer.shader(sopt)
         renderer.use_shader(shader)
 
@@ -633,7 +657,7 @@ class Drawing:
         if self.texture is not None:
             self.texture.unbind_texture()
 
-    def _shader_options(self):
+    def _shader_options(self, transparent_only = False, opaque_only = False):
         sopt = self._shader_opt
         if sopt is None:
             sopt = 0
@@ -651,6 +675,12 @@ class Drawing:
             elif len(self.positions) > 1:
                 sopt |= Render.SHADER_INSTANCING
             self._shader_opt = sopt
+        if transparent_only:
+            from .opengl import Render
+            sopt |= Render.SHADER_TRANSPARENT_ONLY
+        if opaque_only:
+            from .opengl import Render
+            sopt |= Render.SHADER_OPAQUE_ONLY
         return sopt
 
     _effects_shader = set(
@@ -735,7 +765,14 @@ class Drawing:
             return cb
 
         va = self.vertices
-        if va is None or len(va) == 0:
+        if va is None:
+            return None
+        tmask = self._triangle_mask
+        if not tmask is None:
+            import numpy
+            vshown = numpy.unique(self.triangles[tmask,:])
+            va = va[vshown,:]
+        if len(va) == 0:
             return None
         xyz_min = va.min(axis=0)
         xyz_max = va.max(axis=0)
@@ -976,6 +1013,11 @@ class Drawing:
         # delay implementing until needed
         raise NotImplemented()
 
+def opaque_count(rgba):
+    if rgba is None:
+        return 0
+    from . import _graphics
+    return _graphics.count_value(rgba[:,3], 255)
 
 def draw_drawings(renderer, cvinv, drawings, opaque_only = False):
     '''
@@ -1011,7 +1053,7 @@ def _any_transparent_drawings(drawings):
 def draw_depth(renderer, cvinv, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
-    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_VERTEX_COLORS |
+    r.disable_shader_capabilities(r.SHADER_LIGHTING |
                                   r.SHADER_TEXTURE_2D)
     draw_drawings(r, cvinv, drawings, opaque_only)
     r.disable_shader_capabilities(0)

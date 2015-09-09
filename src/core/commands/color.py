@@ -148,7 +148,7 @@ def rcolor(session, color, spec=None):
         what.append('%d residues' % nr)
     else:
         what.append('nothing')
-    session.logger.status('Colored %s' % ', '.join(what))
+    session.logger.status('Colored %s' % cli.commas(what, ' and')[0])
 
 
 def color(session, spec, color=None, target=None,
@@ -254,7 +254,7 @@ def color(session, spec, color=None, target=None,
 
     if not what:
         what.append('nothing')
-    session.logger.status('Colored %s' % ', '.join(what))
+    session.logger.status('Colored %s' % cli.commas(what, ' and')[0])
 
 
 def _set_element_colors(atoms, skip_carbon):

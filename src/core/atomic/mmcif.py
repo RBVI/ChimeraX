@@ -180,9 +180,12 @@ class MMCIFTable:
         t = self.tags
         missing = [n for n in field_names if n not in t]
         if missing:
+            from chimera.core.commands.cli import commas
+            missed, missed_suffix = commas(missing, ' and')
+            have, have_suffix = commas(t, ' and')
             raise ValueError(
-                'Fields %s not in table "%s", have fields %s'
-                % (', '.join(missing), self.table_name, ', '.join(t)))
+                'Field%s %s not in table "%s", have field%s %s'
+                % (missed_suffix, missed, self.table_name, have_suffix, have))
         fi = tuple(t.index(f) for f in field_names)
         ftable = tuple(tuple(v[i] for i in fi) for v in self.values)
         return ftable

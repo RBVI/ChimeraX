@@ -29,10 +29,8 @@ def scolor(session, atoms = None, color = None, byatom = False, esp = None):
     atom colors, or use a single color, or color by electrostatic potential,
     or color radially.  TODO: Only a few options are currently supported.
     '''
-    from ..atomic import MolecularSurface
-    surfs = session.models.list(type = MolecularSurface)
-    if not atoms is None:
-        surfs = [s for s in surfs if s.atoms.intersects(atoms)]
+    from .. import atomic
+    surfs = atomic.surfaces_with_atoms(atoms, session.models)
 
     for s in surfs:
         nv = len(s.vertices)

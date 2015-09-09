@@ -1,118 +1,461 @@
-diff -ru wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/include/wx/glcanvas.h wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/include/wx/glcanvas.h
---- wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/include/wx/glcanvas.h	2013-07-26 09:02:46.000000000 -0700
-+++ wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/include/wx/glcanvas.h	2014-02-21 09:25:01.000000000 -0800
-@@ -48,7 +48,13 @@
+commit 3c7ba391352d3a8d781df7d83738d4ca4616b8a6
+Author: Vadim Zeitlin <vadim@wxwidgets.org>
+Date:   Wed Aug 6 23:31:41 2014 +0000
+
+    Allow requesting core OpenGL profile and explicit OpenGL version.
+    
+    Add WX_GL_CORE_PROFILE and WX_GL_{MAJOR,MINOR}_VERSION attributes which can be
+    used to use modern OpenGL with wxGLCanvas.
+    
+    Closes #16402.
+    
+    git-svn-id: https://svn.wxwidgets.org/svn/wx/wxWidgets/trunk@77018 c3d73ce0-8a6f-49c7-b76d-6d57e0e08775
+
+diff --git a/include/wx/glcanvas.h b/include/wx/glcanvas.h
+index 3b60eb0..cf6b964 100644
+--- wxPython_Phoenix-old/ext/wxWidgets/include/wx/glcanvas.h
++++ wxPython_Phoenix-new/ext/wxWidgets/include/wx/glcanvas.h
+@@ -48,7 +48,10 @@ enum
      WX_GL_MIN_ACCUM_BLUE,  // use blue buffer with most bits (> MIN_ACCUM_BLUE bits)
      WX_GL_MIN_ACCUM_ALPHA, // use alpha buffer with most bits (> MIN_ACCUM_ALPHA bits)
      WX_GL_SAMPLE_BUFFERS,  // 1 for multisampling support (antialiasing)
 -    WX_GL_SAMPLES          // 4 for 2x2 antialiasing supersampling on most graphics cards
 +    WX_GL_SAMPLES,         // 4 for 2x2 antialiasing supersampling on most graphics cards
-+    WX_GL_OPENGL_PROFILE,  // opengl profile selector for Mac OS X
-+};
-+
-+enum {
-+    WX_GL_OPENGL_PROFILE_LEGACY,
-+    WX_GL_OPENGL_PROFILE_3_2CORE,
++    WX_GL_CORE_PROFILE,    // use an OpenGL core profile
++    WX_GL_MAJOR_VERSION,   // major OpenGL version of the core profile
++    WX_GL_MINOR_VERSION    // minor OpenGL version of the core profile
  };
  
  #define wxGLCanvasName wxT("GLCanvas")
-diff -ru wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/interface/wx/glcanvas.h wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/interface/wx/glcanvas.h
---- wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/interface/wx/glcanvas.h	2013-07-26 09:02:46.000000000 -0700
-+++ wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/interface/wx/glcanvas.h	2014-02-21 09:25:10.000000000 -0800
-@@ -137,8 +137,18 @@
+diff --git wxPython_Phoenix-old/ext/wxWidgets/interface/wx/glcanvas.h wxPython_Phoenix-new/ext/wxWidgets/interface/wx/glcanvas.h
+index 49d120e..56504a8 100644
+--- wxPython_Phoenix-old/ext/wxWidgets/interface/wx/glcanvas.h
++++ wxPython_Phoenix-new/ext/wxWidgets/interface/wx/glcanvas.h
+@@ -137,7 +137,44 @@ enum
      WX_GL_SAMPLE_BUFFERS,
  
      /// 4 for 2x2 antialiasing supersampling on most graphics cards
 -    WX_GL_SAMPLES
 +    WX_GL_SAMPLES,
++
++    /**
++        Request an OpenGL core profile.
++
++        Notice that using this attribute will result in also requesting OpenGL
++        at least version 3.0.
++
++        See ::WX_GL_MAJOR_VERSION and ::WX_GL_MINOR_VERSION for more precise
++        version selection.
++
++        @since 3.1.0
++     */
++    WX_GL_CORE_PROFILE,
++
++    /**
++        Request specific OpenGL core major version number (>= 3).
++
++        This attribute should be followed by the major version number
++        requested.
++
++        It has no effect under OS X where specifying ::WX_GL_CORE_PROFILE will
++        result in using OpenGL version at least 3.2 but can still be used
++        there for portability.
++
++        @since 3.1.0
++     */
++    WX_GL_MAJOR_VERSION,
++
++    /**
++        Request specific OpenGL core minor version number.
++
++        This attribute has the same semantics as ::WX_GL_MAJOR_VERSION but is
++        for the minor OpenGL version, e.g. 2 if OpenGL 3.2 is requested.
++
++        @since 3.1.0
++     */
++    WX_GL_MINOR_VERSION
  
-+    /// OpenGL profile selector for Mac OS X
-+    WX_GL_OPENGL_PROFILE,
-+};
-+
-+enum {
-+    /// Legacy OpenGL 1.x/2.x profile
-+    WX_GL_OPENGL_PROFILE_LEGACY,
-+
-+    /// OpenGL 3.2+ profile (no legacy support)
-+    WX_GL_OPENGL_PROFILE_3_2CORE,
  };
  
- /**
-diff -ru wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/src/osx/cocoa/glcanvas.mm wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/src/osx/cocoa/glcanvas.mm
---- wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/src/osx/cocoa/glcanvas.mm	2013-09-25 23:31:20.000000000 -0700
-+++ wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/src/osx/cocoa/glcanvas.mm	2014-02-21 09:25:30.000000000 -0800
-@@ -213,6 +213,19 @@
+diff --git wxPython_Phoenix-old/ext/wxWidgets/src/msw/glcanvas.cpp wxPython_Phoenix-new/ext/wxWidgets/src/msw/glcanvas.cpp
+index 7beb05c..e130a97 100644
+--- wxPython_Phoenix-old/ext/wxWidgets/src/msw/glcanvas.cpp
++++ wxPython_Phoenix-new/ext/wxWidgets/src/msw/glcanvas.cpp
+@@ -45,7 +45,7 @@ LRESULT WXDLLEXPORT APIENTRY _EXPORT wxWndProc(HWND hWnd, UINT message,
+ #endif
+ 
+ // ----------------------------------------------------------------------------
+-// define possibly missing WGL constants
++// define possibly missing WGL constants and types
+ // ----------------------------------------------------------------------------
+ 
+ #ifndef WGL_ARB_pixel_format
+@@ -76,6 +76,49 @@ LRESULT WXDLLEXPORT APIENTRY _EXPORT wxWndProc(HWND hWnd, UINT message,
+ #define WGL_SAMPLES_ARB                   0x2042
+ #endif
+ 
++#ifndef WGL_ARB_create_context
++#define WGL_ARB_create_context
++#define WGL_CONTEXT_MAJOR_VERSION_ARB   0x2091
++#define WGL_CONTEXT_MINOR_VERSION_ARB   0x2092
++#define WGL_CONTEXT_LAYER_PLANE_ARB     0x2093
++#define WGL_CONTEXT_FLAGS_ARB           0x2094
++#define WGL_CONTEXT_DEBUG_BIT_ARB       0x0001
++#define WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB  0x0002
++
++#ifndef WGL_ARB_create_context_profile
++#define WGL_ARB_create_context_profile
++#define WGL_CONTEXT_PROFILE_MASK_ARB              0x9126
++#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB          0x00000001
++#define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
++#endif
++
++#ifndef WGL_ARB_create_context_robustness
++#define WGL_ARB_create_context_robustness
++#define WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB         0x00000004
++#define WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB     0x8256
++#define WGL_NO_RESET_NOTIFICATION_ARB                   0x8261
++#define WGL_LOSE_CONTEXT_ON_RESET_ARB                   0x8252
++#endif
++#endif
++
++#ifndef WGL_EXT_create_context_es2_profile
++#define WGL_EXT_create_context_es2_profile
++#define WGL_CONTEXT_ES2_PROFILE_BIT_EXT           0x00000004
++#endif
++
++#ifndef WGL_EXT_create_context_es_profile
++#define WGL_EXT_create_context_es_profile
++#define WGL_CONTEXT_ES_PROFILE_BIT_EXT            0x00000004
++#endif
++
++#ifndef WGL_ARB_framebuffer_sRGB
++#define WGL_ARB_framebuffer_sRGB
++#define WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB                0x20A9
++#endif
++
++typedef HGLRC(WINAPI * PFNWGLCREATECONTEXTATTRIBSARBPROC)
++    (HDC hDC, HGLRC hShareContext, const int *attribList);
++
+ // ----------------------------------------------------------------------------
+ // libraries
+ // ----------------------------------------------------------------------------
+@@ -108,10 +151,44 @@ LRESULT WXDLLEXPORT APIENTRY _EXPORT wxWndProc(HWND hWnd, UINT message,
+ 
+ IMPLEMENT_CLASS(wxGLContext, wxObject)
+ 
++// The window will always be created first so the array will be initialized
++// and then the window will be assigned to the context.
++// max 8 attributes plus terminator
++// if first is 0, create legacy context
++static int s_wglContextAttribs[9] = {0};
++
+ wxGLContext::wxGLContext(wxGLCanvas *win, const wxGLContext* other)
+ {
+-    m_glContext = wglCreateContext(win->GetHDC());
+-    wxCHECK_RET( m_glContext, wxT("Couldn't create OpenGL context") );
++    if ( s_wglContextAttribs[0] == 0 ) // create legacy context
++    {
++        m_glContext = wglCreateContext(win->GetHDC());
++        wxCHECK_RET( m_glContext, wxT("Couldn't create OpenGL context") );
++    }
++    else // create a context using attributes
++    {
++        // We need to create a temporary context to get the
++        // wglCreateContextAttribsARB function
++        HGLRC tempContext = wglCreateContext(win->GetHDC());
++        wxCHECK_RET( tempContext, wxT("Couldn't create OpenGL context") );
++
++        wglMakeCurrent(win->GetHDC(), tempContext);
++        PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB
++            = (PFNWGLCREATECONTEXTATTRIBSARBPROC)
++            wglGetProcAddress("wglCreateContextAttribsARB");
++        wglMakeCurrent(win->GetHDC(), NULL);
++        wglDeleteContext(tempContext);
++
++        if ( !wglCreateContextAttribsARB )
++        {
++            wxLogError(_("Core OpenGL profile is not supported by the OpenGL driver."));
++            return;
++        }
++
++        m_glContext = wglCreateContextAttribsARB(
++            win->GetHDC(), 0, s_wglContextAttribs);
++        wxCHECK_RET( m_glContext,
++                     wxT("Couldn't create core profile OpenGL context") );
++    }
+ 
+     if ( other )
+     {
+@@ -235,6 +312,55 @@ bool wxGLCanvas::Create(wxWindow *parent,
+     if ( !CreateWindow(parent, id, pos, size, style, name) )
+         return false;
+ 
++    // these will be used for the context creation attributes
++    // if a core profile is requested
++    bool useGLCoreProfile = false;
++
++    // the minimum gl core version is 3.0
++    int glVersionMajor = 3,
++        glVersionMinor = 0;
++
++    // Check for a core profile request
++    for ( int i = 0; attribList[i]; )
++    {
++        switch ( attribList[i++] )
++        {
++            case WX_GL_CORE_PROFILE:
++                useGLCoreProfile = true;
++                break;
++
++            case WX_GL_MAJOR_VERSION:
++                glVersionMajor = attribList[i++];
++                break;
++
++            case WX_GL_MINOR_VERSION:
++                glVersionMinor = attribList[i++];
++                break;
++
++            default:
++                // ignore all other flags for now
++                break;
++        }
++    }
++
++    if ( useGLCoreProfile )
++    {
++        s_wglContextAttribs[0] = WGL_CONTEXT_MAJOR_VERSION_ARB;
++        s_wglContextAttribs[1] = glVersionMajor;
++        s_wglContextAttribs[2] = WGL_CONTEXT_MINOR_VERSION_ARB;
++        s_wglContextAttribs[3] = glVersionMinor;
++        s_wglContextAttribs[4] = WGL_CONTEXT_FLAGS_ARB;
++        s_wglContextAttribs[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
++        s_wglContextAttribs[6] = WGL_CONTEXT_PROFILE_MASK_ARB;
++        s_wglContextAttribs[7] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
++        s_wglContextAttribs[8] = 0; // terminate
++    }
++    else // create legacy/compatibility context
++    {
++        s_wglContextAttribs[0] = 0;
++    }
++
++
+     PIXELFORMATDESCRIPTOR pfd;
+     const int setupVal = DoSetup(pfd, attribList);
+     if ( setupVal == 0 ) // PixelFormat error
+diff --git wxPython_Phoenix-old/ext/wxWidgets/src/osx/cocoa/glcanvas.mm wxPython_Phoenix-new/ext/wxWidgets/src/osx/cocoa/glcanvas.mm
+index e51fd34..159007a 100644
+--- wxPython_Phoenix-old/ext/wxWidgets/src/osx/cocoa/glcanvas.mm
++++ wxPython_Phoenix-new/ext/wxWidgets/src/osx/cocoa/glcanvas.mm
+@@ -213,6 +213,15 @@ WXGLPixelFormat WXGLChoosePixelFormat(const int *attribList)
                      data[p++] = NSOpenGLPFASamples;
                      data[p++] = (NSOpenGLPixelFormatAttribute) attribList[arg++];
                      break;
 +
-+                case WX_GL_OPENGL_PROFILE:
++                case WX_GL_CORE_PROFILE:
 +                    data[p++] = NSOpenGLPFAOpenGLProfile;
-+                    switch ( attribList[arg++] ) {
-+                        case WX_GL_OPENGL_PROFILE_LEGACY:
-+                        default:
-+                            data[p++] = NSOpenGLProfileVersionLegacy;
-+                            break;
-+                        case WX_GL_OPENGL_PROFILE_3_2CORE:
-+                            data[p++] = NSOpenGLProfileVersion3_2Core;
-+                            break;
-+                    }
++                    // request an OpenGL core profile
++                    // will use the highest available OpenGL version
++                    // which will be at least 3.2
++                    data[p++] = NSOpenGLProfileVersion3_2Core;
++
 +                    break;
              }
          }
-
-*** wxPython_Phoenix-3.0.3.dev1719+62a2221/ext/wxWidgets/src/unix/glx11.cpp.orig	Mon Mar  2 05:39:45 2015
---- wxPython_Phoenix-3.0.3.dev1719+62a2221/ext/wxWidgets/src/unix/glx11.cpp	Wed Sep  2 17:41:08 2015
-***************
-*** 209,215 ****
-                  return false;
-  
-              // indicates whether we have a boolean attribute
-!             bool isBoolAttr = false;
-  
-              switch ( wxattrs[arg++] )
-              {
---- 209,215 ----
-                  return false;
-  
-              // indicates whether we have a boolean attribute
-!             bool isBoolAttr = false, noAttr = false;
-  
-              switch ( wxattrs[arg++] )
-              {
-***************
-*** 315,320 ****
---- 315,329 ----
-  
-                      return false;
-  
-+ 	        case WX_GL_OPENGL_PROFILE:
-+ 		    if (wxattrs[arg++] == WX_GL_OPENGL_PROFILE_3_2CORE)
-+ 		    {
-+ 		      glattrs[p++] = GLX_CONTEXT_PROFILE_MASK_ARB;
-+ 		      glattrs[p++] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
-+ 		    }
-+ 		    noAttr = true;
-+ 		    break;
-+ 
-                  default:
-                      wxLogDebug(wxT("Unsupported OpenGL attribute %d"),
-                                 wxattrs[arg - 1]);
-***************
-*** 328,334 ****
-                  if ( GetGLXVersion() >= 13 )
-                      glattrs[p++] = True;
-              }
-!             else // attribute with real (non-boolean) value
-              {
-                  // copy attribute value as is
-                  glattrs[p++] = wxattrs[arg++];
---- 337,343 ----
-                  if ( GetGLXVersion() >= 13 )
-                      glattrs[p++] = True;
-              }
-!             else if ( !noAttr ) // attribute with real (non-boolean) value
-              {
-                  // copy attribute value as is
-                  glattrs[p++] = wxattrs[arg++];
+ 
+diff --git wxPython_Phoenix-old/ext/wxWidgets/src/unix/glx11.cpp wxPython_Phoenix-new/ext/wxWidgets/src/unix/glx11.cpp
+index ec2bd5b..0019ec8 100644
+--- wxPython_Phoenix-old/ext/wxWidgets/src/unix/glx11.cpp
++++ wxPython_Phoenix-new/ext/wxWidgets/src/unix/glx11.cpp
+@@ -36,15 +36,123 @@
+     #endif
+ #endif // __SGI__
+ 
++// ----------------------------------------------------------------------------
++// define possibly missing XGL constants and types
++// ----------------------------------------------------------------------------
++
++#ifndef GLX_NONE_EXT
++#define GLX_NONE_EXT                       0x8000
++#endif
++
++#ifndef GLX_ARB_multisample
++#define GLX_ARB_multisample
++#define GLX_SAMPLE_BUFFERS_ARB             100000
++#define GLX_SAMPLES_ARB                    100001
++#endif
++
++#ifndef GLX_EXT_visual_rating
++#define GLX_EXT_visual_rating
++#define GLX_VISUAL_CAVEAT_EXT              0x20
++#define GLX_NONE_EXT                       0x8000
++#define GLX_SLOW_VISUAL_EXT                0x8001
++#define GLX_NON_CONFORMANT_VISUAL_EXT      0x800D
++#endif
++
++#ifndef GLX_EXT_visual_info
++#define GLX_EXT_visual_info
++#define GLX_X_VISUAL_TYPE_EXT              0x22
++#define GLX_DIRECT_COLOR_EXT               0x8003
++#endif
++
++#ifndef GLX_ARB_create_context
++#define GLX_ARB_create_context
++#define GLX_CONTEXT_MAJOR_VERSION_ARB      0x2091
++#define GLX_CONTEXT_MINOR_VERSION_ARB      0x2092
++#define GLX_CONTEXT_FLAGS_ARB              0x2094
++#define GLX_CONTEXT_DEBUG_BIT_ARB          0x0001
++#define GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB 0x0002
++
++/* Typedef for the GL 3.0 context creation function */
++typedef GLXContext(*PFNGLXCREATECONTEXTATTRIBSARBPROC)
++    (Display * dpy, GLXFBConfig config, GLXContext share_context,
++    Bool direct, const int *attrib_list);
++#endif
++
++#ifndef GLX_ARB_create_context_profile
++#define GLX_ARB_create_context_profile
++#define GLX_CONTEXT_PROFILE_MASK_ARB       0x9126
++#define GLX_CONTEXT_CORE_PROFILE_BIT_ARB   0x00000001
++#define GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
++#endif
++
++#ifndef GLX_ARB_create_context_robustness
++#define GLX_ARB_create_context_robustness
++#define GLX_CONTEXT_ROBUST_ACCESS_BIT_ARB  0x00000004
++#define GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB     0x8256
++#define GLX_NO_RESET_NOTIFICATION_ARB                   0x8261
++#define GLX_LOSE_CONTEXT_ON_RESET_ARB                   0x8252
++#endif
++
++#ifndef GLX_EXT_create_context_es2_profile
++#define GLX_EXT_create_context_es2_profile
++#ifndef GLX_CONTEXT_ES2_PROFILE_BIT_EXT
++#define GLX_CONTEXT_ES2_PROFILE_BIT_EXT    0x00000002
++#endif
++#endif
++
++#ifndef GLX_ARB_framebuffer_sRGB
++#define GLX_ARB_framebuffer_sRGB
++#ifndef GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB
++#define GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB                0x20B2
++#endif
++#endif
++
++
+ // ============================================================================
+ // wxGLContext implementation
+ // ============================================================================
+ 
+ IMPLEMENT_CLASS(wxGLContext, wxObject)
+ 
++// The window will always be created first so the array will be initialized
++// and then the window will be assigned to the context.
++// max 8 attributes plus terminator
++// if first is 0, create legacy context
++static int s_glxContextAttribs[9] = {0};
++
+ wxGLContext::wxGLContext(wxGLCanvas *gc, const wxGLContext *other)
+ {
+-    if ( wxGLCanvas::GetGLXVersion() >= 13 )
++    if ( s_glxContextAttribs[0] != 0 ) // OpenGL 3 context creation
++    {
++        XVisualInfo *vi = gc->GetXVisualInfo();
++        wxCHECK_RET( vi, wxT("invalid visual for OpenGL") );
++
++        // We need to create a temporary context to get the
++        // glXCreateContextAttribsARB function
++        GLXContext tempContext = glXCreateContext( wxGetX11Display(), vi,
++                                                   NULL,
++                                                   GL_TRUE );
++        wxCHECK_RET( tempContext, wxT("Couldn't create OpenGL context") );
++
++        PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB
++            = (PFNGLXCREATECONTEXTATTRIBSARBPROC)
++            glXGetProcAddress((GLubyte *)"glXCreateContextAttribsARB");
++        if ( !glXCreateContextAttribsARB )
++        {
++            wxLogError(_("Core OpenGL profile is not supported by the OpenGL driver."));
++            return;
++        }
++
++        GLXFBConfig *fbc = gc->GetGLXFBConfig();
++        wxCHECK_RET( fbc, wxT("invalid GLXFBConfig for OpenGL") );
++
++        m_glContext = glXCreateContextAttribsARB( wxGetX11Display(), fbc[0],
++            other ? other->m_glContext : None,
++            GL_TRUE, s_glxContextAttribs );
++
++        glXDestroyContext( wxGetX11Display(), tempContext );
++    }
++    else if ( wxGLCanvas::GetGLXVersion() >= 13 )
+     {
+         GLXFBConfig *fbc = gc->GetGLXFBConfig();
+         wxCHECK_RET( fbc, wxT("invalid GLXFBConfig for OpenGL") );
+@@ -170,6 +278,8 @@ wxGLCanvasX11::ConvertWXAttrsToGL(const int *wxattrs, int *glattrs, size_t n)
+           old version but must be followed by True or False in the new one.
+      */
+ 
++    s_glxContextAttribs[0] = 0; // default is legacy context
++
+     if ( !wxattrs )
+     {
+         size_t i = 0;
+@@ -199,6 +309,14 @@ wxGLCanvasX11::ConvertWXAttrsToGL(const int *wxattrs, int *glattrs, size_t n)
+     }
+     else // have non-default attributes
+     {
++        // these will be used for the context creation attributes
++        // if a core profile is requested
++        bool useGLCoreProfile = false;
++
++        // the minimum gl core version is 3.0
++        int glVersionMajor = 3,
++            glVersionMinor = 0;
++
+         size_t p = 0;
+         for ( int arg = 0; wxattrs[arg] != 0; )
+         {
+@@ -315,6 +433,18 @@ wxGLCanvasX11::ConvertWXAttrsToGL(const int *wxattrs, int *glattrs, size_t n)
+ 
+                     return false;
+ 
++                case WX_GL_CORE_PROFILE:
++                    useGLCoreProfile = true;
++                    continue;
++
++                case WX_GL_MAJOR_VERSION:
++                    glVersionMajor = wxattrs[arg++];
++                    continue;
++
++                case WX_GL_MINOR_VERSION:
++                    glVersionMinor = wxattrs[arg++];
++                    continue;
++
+                 default:
+                     wxLogDebug(wxT("Unsupported OpenGL attribute %d"),
+                                wxattrs[arg - 1]);
+@@ -336,6 +466,23 @@ wxGLCanvasX11::ConvertWXAttrsToGL(const int *wxattrs, int *glattrs, size_t n)
+         }
+ 
+         glattrs[p] = None;
++
++        if ( useGLCoreProfile )
++        {
++            s_glxContextAttribs[0] = GLX_CONTEXT_MAJOR_VERSION_ARB;
++            s_glxContextAttribs[1] = glVersionMajor;
++            s_glxContextAttribs[2] = GLX_CONTEXT_MINOR_VERSION_ARB;
++            s_glxContextAttribs[3] = glVersionMinor;
++            s_glxContextAttribs[4] = GLX_CONTEXT_FLAGS_ARB;
++            s_glxContextAttribs[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
++            s_glxContextAttribs[6] = GLX_CONTEXT_PROFILE_MASK_ARB;
++            s_glxContextAttribs[7] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
++            s_glxContextAttribs[8] = 0; // terminate
++        }
++        else // create legacy/compatibility context
++        {
++            s_glxContextAttribs[0] = 0;
++        }
+     }
+ 
+     return true;

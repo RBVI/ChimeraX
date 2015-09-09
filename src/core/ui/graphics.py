@@ -70,8 +70,9 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             attribs += [glcanvas.WX_GL_SAMPLE_BUFFERS, 1,
                         glcanvas.WX_GL_SAMPLES, 4]
         attribs += [
-            glcanvas.WX_GL_OPENGL_PROFILE,
-            glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
+            glcanvas.WX_GL_CORE_PROFILE,
+            glcanvas.WX_GL_MAJOR_VERSION, 3,
+            glcanvas.WX_GL_MINOR_VERSION, 3,
         ]
         gl_supported = glcanvas.GLCanvas.IsDisplaySupported
         if not gl_supported(attribs + [0]):
