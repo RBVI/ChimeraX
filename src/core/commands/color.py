@@ -160,61 +160,16 @@ _SequentialColor = {
     "chains": _set_sequential_chain,
 }
 
-
-def rcolor(session, color, spec=None):
-    """Color ribbons.
-
-    Parameters
-    ----------
-    color : Color
-    spec : atom specifier
-      Set ribbon color for these residues.
-    """
-    from . import atomspec
-    if spec is None:
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
-
-    rgba8 = color.uint8x4()
-    residues = results.atoms.unique_residues
-    if residues is None:
-        nr = 0
-    else:
-        residues.ribbon_colors = rgba8
-        nr = len(residues)
-
-    what = []
-    if nr > 0:
-        what.append('%d residues' % nr)
-    else:
-        what.append('nothing')
-
-    from . import cli
-    session.logger.status('Colored %s' % cli.commas(what, ' and')[0])
-
-
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import cli
-    from .colorarg import ColorArg, ColormapArg
-    from . import atomspec
-    cli.register(
-        'color',
-        cli.CmdDesc(required=[('spec', cli.Or(atomspec.AtomSpecArg, cli.EmptyArg))],
-                    optional=[('color', cli.Or(ColorArg, cli.EnumOf(_SpecialColors)))],
-                    keyword=[('target', cli.StringArg),
-                             ('sequential', cli.EnumOf(_SequentialLevels)),
-                             ('cmap', ColormapArg),
-                             ('cmap_range', cli.Or(cli.TupleOf(cli.FloatArg, 2),
-                                                   cli.EnumOf(_CmapRanges)))],
-                    synopsis="color objects"),
-        color
-    )
-    cli.register(
-        'rcolor',
-        cli.CmdDesc(required=[("color", ColorArg)],
-                    optional=[("spec", atomspec.AtomSpecArg)],
-                    synopsis="color specified ribbons"),
-        rcolor
-    )
+    from . import register, CmdDesc, ColorArg, ColormapArg, AtomSpecArg
+    from . import EmptyArg, Or, EnumOf, StringArg, TupleOf, FloatArg
+    desc = CmdDesc(required=[('spec', Or(AtomSpecArg, EmptyArg))],
+                   optional=[('color', Or(ColorArg, EnumOf(_SpecialColors)))],
+                   keyword=[('target', StringArg),
+                            ('sequential', EnumOf(_SequentialLevels)),
+                            ('cmap', ColormapArg),
+                            ('cmap_range', Or(TupleOf(FloatArg, 2), EnumOf(_CmapRanges)))],
+                   synopsis="color objects")
+    register('color', desc, color)

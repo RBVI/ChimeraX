@@ -35,7 +35,6 @@ and their code location is described with the function descriptions.
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
 | `pwd`_ - Present working directory
-| `rcolor`_ - Color ribbons
 | `roll`_ - Rotate models
 | `ribbon`_ - Display atomic structure ribbons
 | `run`_ - Run a user command string
@@ -195,10 +194,6 @@ perframe
 pwd
 ===
 .. autofunction:: chimera.core.commands.pwd.pwd
-
-rcolor
-======
-.. autofunction:: chimera.core.commands.color.rcolor
 
 roll
 ====
