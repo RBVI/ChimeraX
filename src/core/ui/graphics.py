@@ -69,11 +69,17 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             # TODO: how to pick number of samples
             attribs += [glcanvas.WX_GL_SAMPLE_BUFFERS, 1,
                         glcanvas.WX_GL_SAMPLES, 4]
-        attribs += [
-            glcanvas.WX_GL_CORE_PROFILE,
-            glcanvas.WX_GL_MAJOR_VERSION, 3,
-            glcanvas.WX_GL_MINOR_VERSION, 3,
-        ]
+        # attribs += [
+        #     glcanvas.WX_GL_CORE_PROFILE,
+        #     glcanvas.WX_GL_MAJOR_VERSION, 3,
+        #     glcanvas.WX_GL_MINOR_VERSION, 3,
+        # ]
+        import sys
+        if sys.platform.startswith('darwin'):
+            attribs[-1:-1] = [
+                glcanvas.WX_GL_OPENGL_PROFILE,
+                glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
+            ]
         gl_supported = glcanvas.GLCanvas.IsDisplaySupported
         if not gl_supported(attribs + [0]):
             raise AssertionError("Required OpenGL capabilities, RGBA and/or"

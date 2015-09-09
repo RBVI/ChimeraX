@@ -57,11 +57,11 @@ def scolor(session, atoms = None, color = None, byatom = False, esp = None):
     return len(surfs)
 
 def register_command(session):
-    from . import cli, color
+    from . import cli, color, ColorArg
     from ..map import MapArg
     _scolor_desc = cli.CmdDesc(
         optional = [('atoms', cli.Or(cli.AtomsArg, cli.EmptyArg)),
-                    ('color', color.ColorArg),],
+                    ('color', ColorArg),],
         keyword = [('byatom', cli.NoArg),
                    ('esp', MapArg)],
         synopsis = 'color surfaces')

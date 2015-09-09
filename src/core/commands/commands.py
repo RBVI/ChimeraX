@@ -3,7 +3,7 @@
 def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module
-    modules = ['buriedarea', 'camera', 'close', 'color', 'crossfade', 'crosslinks',
+    modules = ['buriedarea', 'camera', 'close', 'color', 'colordef', 'crossfade', 'crosslinks',
                'delete', 'display', 'echo', 'exit', 'export', 'help', 'lighting', 'list', 'material', 
                'move', 'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'ribbon', 'run',
                'sasa', 'save', 'scolor', 'set', 'split', 'stop', 'style', 'surface', 'sym',

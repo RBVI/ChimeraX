@@ -33,7 +33,7 @@ class ColorArg(cli.Annotation):
             return Color(token), text, rest
         m = _color_func.match(text)
         if m is None:
-            from .color import _find_named_color
+            from .colordef import _find_named_color
             color = None
             if session is not None:
                 name, color, rest = _find_named_color(session.user_colors, text)
@@ -215,3 +215,29 @@ def _convert_angle(number):
     if u == 'turn':
         return n
     raise cli.AnnotationError("Unexpected units", u_pos)
+
+def test():
+    tests = [
+        "0x00ff00",
+        "#0f0",
+        "#00ffff",
+        "gray(50)",
+        "gray(50%)",
+        "rgb(0, 0, 255)",
+        "rgb(100%, 0, 0)",
+        "red",
+        "hsl(0, 100%, 50%)",  # red
+        "lime",
+        "hsl(120deg, 100%, 50%)",  # lime
+        "darkgreen",
+        "hsl(120, 100%, 20%)",  # darkgreen
+        "lightgreen",
+        "hsl(120, 75%, 75%)",  # lightgreen
+    ]
+    for t in tests:
+        print(t)
+        try:
+            print(ColorArg.parse(t))
+        except ValueError as err:
+            print(err)
+    print('same:', ColorArg.parse('white')[0] == Color('#ffffff'))

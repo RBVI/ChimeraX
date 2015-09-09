@@ -77,8 +77,8 @@ color
 
 colordef
 ========
-.. autofunction:: chimera.core.commands.color.colordef
-.. autofunction:: chimera.core.commands.color.uncolordef
+.. autofunction:: chimera.core.commands.colordef.colordef
+.. autofunction:: chimera.core.commands.colordef.uncolordef
 
 command_line
 ============
