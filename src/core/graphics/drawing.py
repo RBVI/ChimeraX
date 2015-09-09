@@ -162,7 +162,7 @@ class Drawing:
             self.redraw_needed()
         if key in self._effects_buffers:
             self._attribute_changes.add(key)
-            gc = key in ('vertices', 'triangles')
+            gc = key in ('vertices', 'triangles', '_triangle_mask')
             if gc:
                 self._cached_bounds = None
             sc = (gc or (key in ('_displayed_positions', '_positions')))
@@ -765,7 +765,14 @@ class Drawing:
             return cb
 
         va = self.vertices
-        if va is None or len(va) == 0:
+        if va is None:
+            return None
+        tmask = self._triangle_mask
+        if not tmask is None:
+            import numpy
+            vshown = numpy.unique(self.triangles[tmask,:])
+            va = va[vshown,:]
+        if len(va) == 0:
             return None
         xyz_min = va.min(axis=0)
         xyz_max = va.max(axis=0)
