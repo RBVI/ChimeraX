@@ -10,11 +10,11 @@
 #include <atomstruct/Atom.h>
 #include <atomstruct/AtomicStructure.h>
 #include <atomstruct/Bond.h>
-#include <atomstruct/ChangeTracker.h>
 #include <atomstruct/connect.h>
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/Sequence.h>
+#include <basegeom/ChangeTracker.h>
 #include <basegeom/destruct.h>
 #include <basegeom/Graph.tcc>
 #include <logger/logger.h>

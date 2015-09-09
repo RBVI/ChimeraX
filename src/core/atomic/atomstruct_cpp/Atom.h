@@ -19,6 +19,7 @@
 namespace atomstruct {
 
 using basegeom::BaseSphere;
+using basegeom::ChangeTracker;
 using basegeom::Graph;
 using basegeom::GraphicsContainer;
 using basegeom::Point;
@@ -48,13 +49,6 @@ public:
     typedef std::map<AtomType, IdatmInfo> IdatmInfoMap;
     typedef std::vector<const Ring*>  Rings;
 
-    // change tracker reasons
-    static const std::string  REASON_ALT_LOC;
-    static const std::string  REASON_ANISO_U;
-    static const std::string  REASON_BFACTOR;
-    static const std::string  REASON_COORD;
-    static const std::string  REASON_IDATM_TYPE;
-    static const std::string  REASON_OCCUPANCY;
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
     Atom(AtomicStructure *as, const char* name, Element e);
@@ -133,6 +127,9 @@ public:
     std::string  str() const;
     AtomicStructure*  structure() const { return _structure; }
 
+    // change tracking
+    ChangeTracker*  change_tracker() const;
+
     // graphics related
     GraphicsContainer*  graphics_container() const {
         return reinterpret_cast<GraphicsContainer*>(_structure); }
@@ -141,7 +138,9 @@ public:
 }  // namespace atomstruct
 
 #include "AtomicStructure.h"
-#include "ChangeTracker.h"
+inline basegeom::ChangeTracker*
+atomstruct::Atom::change_tracker() const { return _structure->change_tracker(); }
+
 inline const atomstruct::AtomType&
 atomstruct::Atom::idatm_type() const {
     if (idatm_is_explicit()) return _explicit_idatm_type;
@@ -157,8 +156,9 @@ atomstruct::Atom::is_backbone() const {
 
 inline void
 atomstruct::Atom::set_computed_idatm_type(const char* it) {
-    if (!idatm_is_explicit() && _computed_idatm_type != it)
-        _structure->change_tracker()->add_modified(this, REASON_IDATM_TYPE);
+    if (!idatm_is_explicit() && _computed_idatm_type != it) {
+        change_tracker()->add_modified(this, basegeom::ChangeTracker::REASON_IDATM_TYPE);
+    }
     _computed_idatm_type =  it;
 }
 
@@ -168,8 +168,9 @@ atomstruct::Atom::set_idatm_type(const char* it) {
     // change
     if (!(_explicit_idatm_type.empty() && _computed_idatm_type == it)
     && !(*it == '\0' && _explicit_idatm_type == _computed_idatm_type)
-    && !(!_explicit_idatm_type.empty() && it == _explicit_idatm_type))
-        _structure->change_tracker()->add_modified(this, REASON_IDATM_TYPE);
+    && !(!_explicit_idatm_type.empty() && it == _explicit_idatm_type)) {
+        change_tracker()->add_modified(this, basegeom::ChangeTracker::REASON_IDATM_TYPE);
+    }
     _explicit_idatm_type = it;
 }
 

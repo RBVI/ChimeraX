@@ -43,6 +43,8 @@ def _atoms(a):
     return Atoms(a)
 def _bonds(a):
     return Bonds(a)
+def _pseudobonds(a):
+	return Pseudobonds(a)
 def _residues(a):
     return Residues(a)
 def _chains(a):
@@ -552,6 +554,27 @@ class AtomicStructureDatas(Collection):
     '''
     metadata = cvec_property('metadata', pyobject, read_only = True)
     '''Return a list of dictionaries with metadata. Read only.'''
+
+
+# -----------------------------------------------------------------------------
+#
+class PseudobondGroupDatas(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Collection of C++ pseudobond group objects.
+    '''
+    def __init__(self, pbg_pointers):
+        Collection.__init__(self, pbg_pointers, molobject.PseudobondGroupData,
+			PseudobondGroupDatas)
+
+    pseudobonds = cvec_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
+		astype = _pseudobonds, read_only = True, per_object = False)
+    '''A single :class:`.Pseudobonds` object containing pseudobonds for all groups. Read only.'''
+    names = cvec_property('pseudobond_group_category', string, read_only = True)
+    '''A numpy string array of categories of each group.'''
+    num_bonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
+    '''Number of pseudobonds in each group. Read only.'''
 
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.

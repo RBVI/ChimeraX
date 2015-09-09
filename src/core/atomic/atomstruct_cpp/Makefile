@@ -32,7 +32,7 @@ clean:
 $(SUBDIR_INSTALL): imex.h
 
 Atom.o: $(includedir)/basegeom/Coord.h $(includedir)/basegeom/Point.h \
-	$(includedir)/basegeom/Sphere.h
+	$(includedir)/basegeom/Sphere.h $(includedir)/basegeom/Connectible.h
 AtomTypes.o: $(includedir)/basegeom/Coord.h
 AtomicStructure.o: $(includedir)/basegeom/Graph.h \
 	$(includedir)/basegeom/Graph.tcc $(includedir)/basegeom/destruct.h

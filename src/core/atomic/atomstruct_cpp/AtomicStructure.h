@@ -24,15 +24,18 @@ struct _object;
 typedef _object PyObject;
 #endif
     
+namespace basegeom { class ChangeTracker; }
+
 namespace atomstruct {
 
 class Atom;
 class Bond;
 class Chain;
-class ChangeTracker;
 class CoordSet;
 class Element;
 class Residue;
+
+using basegeom::ChangeTracker;
 
 class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
     friend class Atom; // for IDATM stuff and _polymers_computed

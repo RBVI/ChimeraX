@@ -7,9 +7,9 @@
 #include "atomstruct/Atom.h"
 #include "atomstruct/Bond.h"
 #include "atomstruct/Chain.h"
-#include "atomstruct/ChangeTracker.h"
 #include "atomstruct/Pseudobond.h"
 #include "atomstruct/Residue.h"
+#include "basegeom/ChangeTracker.h"
 #include "basegeom/destruct.h"     // Use DestructionObserver
 #include "pythonarray.h"           // Use python_voidp_array()
 
@@ -156,6 +156,7 @@ error_wrap_array_set(T** instances, size_t n, void (T::*pm)(Elem), Elem2* args)
 
 
 using namespace atomstruct;
+using basegeom::ChangeTracker;
 using basegeom::Coord;
 using basegeom::Real;
 using basegeom::DestructionObserver;
@@ -1737,7 +1738,7 @@ extern "C" PyObject* change_tracker_changes(void *vct)
             PyTuple_SetItem(value, 0, ptr_array);
 
             // second tuple item:  modified objects
-            ptr_array = python_voidp_array(class_changes.created.size(), &ptrs);
+            ptr_array = python_voidp_array(class_changes.modified.size(), &ptrs);
             j = 0;
             for (auto ptr: class_changes.modified)
                 ptrs[j++] = ptr;
@@ -1759,4 +1760,5 @@ extern "C" PyObject* change_tracker_changes(void *vct)
         Py_XDECREF(changes_data);
         molc_error();
     }
+    return changes_data;
 }

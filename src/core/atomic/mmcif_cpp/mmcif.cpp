@@ -1,7 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
 #include "mmcif.h"
 #include <atomstruct/AtomicStructure.h>
-#include <atomstruct/ChangeTracker.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/Bond.h>
 #include <atomstruct/Atom.h>
@@ -9,6 +8,7 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/tmpl/Atom.h>
 #include <atomstruct/tmpl/Residue.h>
+#include <basegeom/ChangeTracker.h>
 #include <logger/logger.h>
 #include "pythonarray.h"	// Use python_voidp_array()
 #include <readcif.h>

@@ -462,6 +462,7 @@ class ChangeTracker:
     def __init__(self):
         f = c_function('change_tracker_create', args = (), ret = ctypes.c_void_p)
         set_c_pointer(self, f())
+        self.deleted = {}
 
     @property
     def changes(self):
@@ -469,19 +470,24 @@ class ChangeTracker:
             ret = ctypes.py_object)
         data = f(self._c_pointer)
         class Changes:
-            def __init__(self, created, modified, reasons, total_deleted):
+            def __init__(self, created, modified, reasons, total_deleted, deleted):
                 self.created = created
                 self.modified = modified
                 self.reasons = reasons
                 self.total_deleted = total_deleted
-                self.deleted = set()
+                self.deleted = deleted
         final_changes = {}
         for k, v in data.items():
             created_ptrs, mod_ptrs, reasons, tot_del = v
-            #TODO: make collections based on key names
-            # and what about collections of structures and pseudobond groups
-
-
+            temp_ns = {}
+            # can't effectively use locals() as the third argument for some
+            # obscure Python 3 reason
+            exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
+            collection = temp_ns['collection']
+            fc_key = k[:-4] if k.endswith("Data") else k
+            final_changes[fc_key] = Changes(collection(created_ptrs),
+                collection(mod_ptrs), reasons, tot_del, self.deleted.get(fc_key, set()))
+        return final_changes
 
     @property
     def ptr_val(self):
