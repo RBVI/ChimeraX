@@ -461,7 +461,7 @@ start_t = end_t;
                 
             }
             Atom *a;
-            if (record.atom.alt_loc && cur_residue->count_atom(aname) == 1) {
+            if (record.atom.alt_loc != ' ' && cur_residue->count_atom(aname) == 1) {
                 a = cur_residue->find_atom(aname);
                 a->set_alt_loc(record.atom.alt_loc, true);
                 a->set_coord(c);
