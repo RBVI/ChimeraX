@@ -722,6 +722,9 @@ class Or(Annotation):
         for anno in self.annotations:
             try:
                 return anno.parse(text, session)
+            except AnnotationError as err:
+                if err.offset:
+                    raise
             except ValueError:
                 pass
         msg = commas([a.name for a in self.annotations])[0]

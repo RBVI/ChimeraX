@@ -41,7 +41,7 @@ class ColorArg(cli.Annotation):
                 from ..colors import _BuiltinColors
                 name, color, rest = _find_named_color(_BuiltinColors, text)
             if color is None:
-                raise ValueError("Invalid color name")
+                raise ValueError("Invalid color name or specifier")
             return color, name, rest
         color_space = m.group(1)
         numbers = _parse_numbers(m.group(2))
@@ -49,9 +49,9 @@ class ColorArg(cli.Annotation):
         if color_space == 'gray' and len(numbers) in (1, 2):
             # gray( number [%], [ number [%] ])
             try:
-                x = _convert_number(numbers[0])
+                x = _convert_number(numbers[0], 'gray scale')
                 if len(numbers) == 2:
-                    alpha = _convert_number(numbers[1], maximum=1)
+                    alpha = _convert_number(numbers[1], 'alpha', maximum=1)
                 else:
                     alpha = 1
             except cli.AnnotationError as err:
@@ -61,9 +61,9 @@ class ColorArg(cli.Annotation):
         if color_space == 'rgb' and len(numbers) == 3:
             # rgb( number [%], number [%], number [%])
             try:
-                red = _convert_number(numbers[0])
-                green = _convert_number(numbers[1])
-                blue = _convert_number(numbers[2])
+                red = _convert_number(numbers[0], 'red')
+                green = _convert_number(numbers[1], 'green')
+                blue = _convert_number(numbers[2], 'blue')
             except cli.AnnotationError as err:
                 err.offset += m.end(1)
                 raise
@@ -71,10 +71,10 @@ class ColorArg(cli.Annotation):
         if color_space == 'rgba' and len(numbers) == 4:
             # rgba( number [%], number [%], number [%], number [%])
             try:
-                red = _convert_number(numbers[0])
-                green = _convert_number(numbers[1])
-                blue = _convert_number(numbers[2])
-                alpha = _convert_number(numbers[3], maximum=1)
+                red = _convert_number(numbers[0], 'red')
+                green = _convert_number(numbers[1], 'green')
+                blue = _convert_number(numbers[2], 'blue')
+                alpha = _convert_number(numbers[3], 'alpha', maximum=1)
             except cli.AnnotationError as err:
                 err.offset += m.end(1)
                 raise
@@ -82,9 +82,11 @@ class ColorArg(cli.Annotation):
         if color_space == 'hsl' and len(numbers) == 3:
             # hsl( number [%], number [%], number [%])
             try:
-                hue = _convert_angle(numbers[0])
-                sat = _convert_number(numbers[1], require_percent=True)
-                light = _convert_number(numbers[2], require_percent=True)
+                hue = _convert_angle(numbers[0], 'hue angle')
+                sat = _convert_number(numbers[1], 'saturation',
+                                      require_percent=True)
+                light = _convert_number(numbers[2], 'lightness',
+                                        require_percent=True)
             except cli.AnnotationError as err:
                 err.offset += m.end(1)
                 raise
@@ -97,13 +99,14 @@ class ColorArg(cli.Annotation):
             import colorsys
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             return Color([red, green, blue, 1]), m.group(), rest
-        if color_space == 'hsla' and len(numbers) == 4:
-            # hsla( number [%], number [%], number [%], number [%])
+        if color_space == 'hsla' and len(numbers) == 4: # hsla( number [%], number [%], number [%], number [%])
             try:
-                hue = _convert_angle(numbers[0])
-                sat = _convert_number(numbers[1], require_percent=True)
-                light = _convert_number(numbers[2], require_percent=True)
-                alpha = _convert_number(numbers[3], maximum=1)
+                hue = _convert_angle(numbers[0], 'hue angle')
+                sat = _convert_number(numbers[1], 'saturation',
+                                      require_percent=True)
+                light = _convert_number(numbers[2], 'lightness',
+                                        require_percent=True)
+                alpha = _convert_number(numbers[3], 'alpha', maximum=1)
             except cli.AnnotationError as err:
                 err.offset += m.end(1)
                 raise
@@ -116,7 +119,9 @@ class ColorArg(cli.Annotation):
             import colorsys
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             return Color([red, green, blue, alpha]), m.group(), rest
-        raise ValueError("Unknown color description")
+        raise ValueError(
+            "Wrong number of components for %s specifier" % color_space,
+            offset=m.end())
 
 
 class ColormapArg(cli.Annotation):
@@ -181,6 +186,8 @@ def _parse_numbers(text):
         start = m.end()
         m = _units.match(text, start)
         u = m.group(1)
+        if not m:
+            raise cli.AnnotationError("Unknown units", start)
         u_pos = start
         start = m.end()
         result.append((n, n_pos, u, u_pos))
@@ -191,19 +198,19 @@ def _parse_numbers(text):
         start += 1
 
 
-def _convert_number(number, maximum=255, require_percent=False):
+def _convert_number(number, name, maximum=255, require_percent=False):
     """Return number scaled to 0 <= n <= 1"""
     n, n_pos, u, u_pos = number
     if require_percent and u != '%':
-        raise cli.AnnotationError("Must give a percentage", u_pos)
+        raise cli.AnnotationError("%s must be a percentage" % name, u_pos)
     if u == '':
         return n / maximum
     if u == '%':
         return n / 100
-    raise cli.AnnotationError("Unexpected units", u_pos)
+    raise cli.AnnotationError("Unexpected units for %s" % name, u_pos)
 
 
-def _convert_angle(number):
+def _convert_angle(number, name):
     n, n_pos, u, u_pos = number
     if u in ('', 'deg'):
         return n / 360
@@ -214,4 +221,5 @@ def _convert_angle(number):
         return n / 400
     if u == 'turn':
         return n
-    raise cli.AnnotationError("Unexpected units", u_pos)
+    raise cli.AnnotationError("'%s' doesn't make sense for %s" % (u, name),
+                              offset=u_pos)
