@@ -51,6 +51,7 @@ and their code location is described with the function descriptions.
 | `sym`_ - Show molecular assemblies involving symmetry
 | `title`_ * - Show text titles with graphics
 | `toolshed`_ * - Control the Tool Shed user interface
+| `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
 | `view`_ - Move camera to view all models
 | `volume`_ - Change density map display settings
@@ -267,6 +268,10 @@ Function defined in *chimera.toolshed.cmd*
 .. automodule:: chimera.toolshed.cmd
   :members:
   :member-order: bysource
+
+transparency
+============
+.. autofunction:: chimera.core.commands.transparency.transparency
 
 turn
 ====
