@@ -194,7 +194,7 @@ def _parse_numbers(text):
         m = _number.match(text, start)
         if not m:
             raise cli.AnnotationError("Expected a number", start)
-        n = float(m.group())
+        n = m.group()
         n_pos = start
         start = m.end()
         m = _units.match(text, start)
@@ -213,13 +213,16 @@ def _parse_numbers(text):
 
 def _convert_number(number, name, maximum=255, require_percent=False):
     """Return number scaled to 0 <= n <= 1"""
-    n, n_pos, u, u_pos = number
+    n_str, n_pos, u, u_pos = number
+    n = float(n_str)
     if require_percent and u != '%':
         raise cli.AnnotationError("%s must be a percentage" % name, u_pos)
-    if u == '':
-        return n / maximum
     if u == '%':
         return n / 100
+    if '.' in n_str:
+        return n
+    if u == '':
+        return n / maximum
     raise cli.AnnotationError("Unexpected units for %s" % name, u_pos)
 
 
