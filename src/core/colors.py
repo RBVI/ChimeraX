@@ -105,6 +105,7 @@ class Color:
                 values = [int(x, 16) / 15 for x in digits] + [1.0]
             elif len(rgba) == 5:
                 digits = (x for x in rgba[1:])
+                values = [int(x, 16) / 15 for x in digits]
             elif len(rgba) == 7:
                 digits = (rgba[x:x + 2] for x in range(1, 7, 2))
                 values = [int(x, 16) / 255 for x in digits] + [1.0]
