@@ -8,8 +8,8 @@ _SequentialLevels = ["residues", "helix", "helices", "strands",
 
 _CmapRanges = ["full"]
 
-def color(session, spec, color=None, target=None,
-           sequential=None, cmap=None, cmap_range=None):
+def color(session, spec, color=None, target=None, transparency=None,
+          sequential=None, cmap=None, cmap_range=None):
     """Color atoms, ribbons, surfaces, ....
 
     Parameters
@@ -22,6 +22,8 @@ def color(session, spec, color=None, target=None,
       Characters indicating what to color, a = atoms, c = cartoon, s = surfaces, m = models,
       n = non-molecule models, l = labels, r = residue labels, b = bonds, p = pseudobonds, d = distances.
       Everything is colored if no target is specified.
+    transparency : float
+      Percent transparency to use.  If not specified current transparency is preserved.
     sequential : string
       Value can only be "chains", assigns each chain a color from a color map.
     cmap : Colormap
@@ -29,10 +31,23 @@ def color(session, spec, color=None, target=None,
     cmap_range : 2 comma-separated floats or "full"
       Specifies the range of value used for sampling from a color map.
     """
-    from . import atomspec
     if spec is None:
+        from . import atomspec
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
+    atoms = results.atoms
+
+    default_target = (target is None)
+    if default_target:
+        target = 'acsmnlrbpd'
+
+    # Decide whether to set or preserve transparency
+    opacity = None
+    if transparency is not None:
+        opacity = min(255,max(0,int(2.56*(100-transparency))))
+    if getattr(color, 'explicit_transparency', False):
+        opacity = color.uint8x4()[3]
+
     if sequential is not None:
         try:
             f = _SequentialColor[sequential]
@@ -41,72 +56,76 @@ def color(session, spec, color=None, target=None,
             raise UserError("sequential \"%s\" not implemented yet"
                             % sequential)
         else:
-            f(results, cmap, target)
+            f(results, cmap, opacity, target)
             return
+
     what = []
 
-    if target is None or 'a' in target:
+    if 'a' in target:
         # atoms/bonds
-        atoms = results.atoms
         if atoms is not None:
             if color in _SpecialColors:
-                if color == "byelement":
-                    _set_element_colors(atoms, False)
-                elif color == "byhetero":
-                    _set_element_colors(atoms, True)
-                elif color == "bychain":
-                    from .. import colors
-                    colors.color_atoms_by_chain(atoms)
-                else:
-                    # Other "colors" do not apply to atoms
-                    pass
+                c = _computed_atom_colors(atoms, color, opacity)
+                if not c is None:
+                    atoms.colors = c
             else:
-                atoms.colors = color.uint8x4()
+                _set_atom_colors(atoms, color, opacity)
             what.append('%d atoms' % len(atoms))
 
-    if target is None or 'l' in target:
-        if target is not None:
+    if 'l' in target:
+        if not default_target:
             session.logger.warning('Label colors not supported yet')
 
-    if target is None or 's' in target:
+    if 's' in target:
         from .scolor import scolor
         if color in _SpecialColors:
-            ns = scolor(session, results.atoms, byatom=True)
+            if 'a' in target:
+                ns = scolor(session, atoms, opacity=opacity, byatom=True)
+            else:
+                # Surface colored different from atoms
+                c = _computed_atom_colors(atoms, color, opacity)
+                ns = scolor(session, atoms, opacity=opacity, byatom=True, per_atom_colors=c)
         else:
-            ns = scolor(session, results.atoms, color)
+            ns = scolor(session, atoms, color, opacity=opacity)
         what.append('%d surfaces' % ns)
 
-    if target is None or 'c' in target:
-        residues = results.atoms.unique_residues
+    if 'c' in target:
+        residues = atoms.unique_residues
         if color not in _SpecialColors:
-            residues.ribbon_colors = color.uint8x4()
+            c = residues.ribbon_colors
+            c[:,:3]= color.uint8x4()[:3]
+            if opacity is not None:
+                c[:,3] = opacity
+            residues.ribbon_colors = c
         elif color == 'bychain':
-            from .. import colors
-            colors.color_ribbons_by_chain(residues)
+            from ..colors import chain_colors
+            c = chain_colors(residues.chain_ids)
+            c[:,3] = residues.ribbon_colors[:,3] if opacity is None else opacity
+            residues.ribbon_colors = c
         what.append('%d residues' % len(residues))
 
-    if target is None or 'r' in target:
-        if target is not None:
+    if 'r' in target:
+        if not default_target:
             session.logger.warning('Residue label colors not supported yet')
 
-    if target is None or 'n' in target:
-        if target is not None:
+    if 'n' in target:
+        if not default_target:
             session.logger.warning('Non-molecular model-level colors not supported yet')
 
-    if target is None or 'm' in target:
-        if target is not None:
+    if 'm' in target:
+        if not default_target:
             session.logger.warning('Model-level colors not supported yet')
 
-    if target is None or 'b' in target:
-        if target is not None:
+    if 'b' in target:
+        if not default_target:
             session.logger.warning('Bond colors not supported yet')
 
-    if target is None or 'p' in target:
-        if target is not None:
+    if 'p' in target:
+        if not default_target:
             session.logger.warning('Pseudobond colors not supported yet')
 
-    if target is None or 'd' in target:
-        if target is not None:
+    if 'd' in target:
+        if not default_target:
             session.logger.warning('Distances colors not supported yet')
 
     if not what:
@@ -115,20 +134,45 @@ def color(session, spec, color=None, target=None,
     from . import cli
     session.logger.status('Colored %s' % cli.commas(what, ' and')[0])
 
+def _computed_atom_colors(atoms, color, opacity):
+    if color == "byelement":
+        c = _element_colors(atoms, opacity)
+    elif color == "byhetero":
+        c = _element_colors(atoms, opacity, skip_carbon = True)
+    elif color == "bychain":
+        from ..colors import chain_colors
+        c = chain_colors(atoms.residues.chain_ids)
+        c[:,3] = atoms.colors[:,3] if opacity is None else opacity
+    else:
+        # Other "colors" do not apply to atoms
+        c = None
+    return c
 
-def _set_element_colors(atoms, skip_carbon):
-    import numpy
-    en = atoms.element_numbers
-    for e in numpy.unique(en):
-        if not skip_carbon or e != 6:
-            from .. import colors
-            ae = atoms.filter(en == e)
-            ae.colors = colors.element_colors(e)
+def _element_colors(atoms, opacity = None, skip_carbon = False):
+    if skip_carbon:
+        atoms= atoms.filter(atoms.element_numbers != 6)
+    from ..colors import element_colors
+    c = element_colors(atoms.element_numbers)
+    c[:,3] = atoms.colors[:,3] if opacity is None else opacity
+    return c
 
+def _set_atom_colors(atoms, color, opacity):
+    c = atoms.colors
+    c[:,:3] = color.uint8x4()[:3]	# Preserve transparency
+    if opacity is not None:
+        c[:,3] = opacity
+    atoms.colors = c
+
+def _set_ribbon_colors(residues, color, opacity):
+    c = residues.ribbon_colors
+    c[:,:3] = color.uint8x4()[:3]	# Preserve transparency
+    if opacity is not None:
+        c[:,3] = opacity
+    residues.ribbon_colors = c
 
 # -----------------------------------------------------------------------------
 #
-def _set_sequential_chain(selected, cmap, target):
+def _set_sequential_chain(selected, cmap, opacity, target):
     # Organize selected atoms by structure and then chain
     sa = selected.atoms
     chain_atoms = sa.filter(sa.in_chains)
@@ -150,11 +194,12 @@ def _set_sequential_chain(selected, cmap, target):
     for sl in structures.values():
         colors = cmap.get_colors_for(numpy.linspace(0.0, 1.0, len(sl)))
         for color, (chain_id, atoms) in zip(colors, sl):
-            c = Color(color).uint8x4()
+            c = Color(color)
             if target is None or 'a' in target:
-                atoms.colors = c
+                _set_atom_colors(atoms, c, opacity)
             if target is None or 'c' in target:
-                atoms.unique_residues.ribbon_colors = c
+                res = atoms.unique_residues
+                _set_ribbon_colors(res, c, opacity)
 
 _SequentialColor = {
     "chains": _set_sequential_chain,
@@ -168,6 +213,7 @@ def register_command(session):
     desc = CmdDesc(required=[('spec', Or(AtomSpecArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors)))],
                    keyword=[('target', StringArg),
+                            ('transparency', FloatArg),
                             ('sequential', EnumOf(_SequentialLevels)),
                             ('cmap', ColormapArg),
                             ('cmap_range', Or(TupleOf(FloatArg, 2), EnumOf(_CmapRanges)))],

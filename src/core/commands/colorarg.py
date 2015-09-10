@@ -30,7 +30,9 @@ class ColorArg(cli.Annotation):
     def parse(text, session):
         if text[0] == '#':
             token, text, rest = cli.next_token(text)
-            return Color(token), text, rest
+            c = Color(token)
+            c.explicit_transparency = (len(token) in (5,9,17))
+            return c, text, rest
         m = _color_func.match(text)
         if m is None:
             from .colordef import _find_named_color
@@ -57,7 +59,9 @@ class ColorArg(cli.Annotation):
             except cli.AnnotationError as err:
                 err.offset += m.end(1)
                 raise
-            return Color([x, x, x, alpha]), m.group(), rest
+            c = Color([x, x, x, alpha])
+            c.explicit_transparency = (len(numbers) == 2)
+            return c, m.group(), rest
         if color_space == 'rgb' and len(numbers) == 3:
             # rgb( number [%], number [%], number [%])
             try:
@@ -67,7 +71,9 @@ class ColorArg(cli.Annotation):
             except cli.AnnotationError as err:
                 err.offset += m.end(1)
                 raise
-            return Color([red, green, blue, 1]), m.group(), rest
+            c = Color([red, green, blue, 1])
+            c.explicit_transparency = False
+            return c, m.group(), rest
         if color_space == 'rgba' and len(numbers) == 4:
             # rgba( number [%], number [%], number [%], number [%])
             try:
@@ -78,7 +84,9 @@ class ColorArg(cli.Annotation):
             except cli.AnnotationError as err:
                 err.offset += m.end(1)
                 raise
-            return Color([red, green, blue, alpha]), m.group(), rest
+            c = Color([red, green, blue, alpha])
+            c.explicit_transparency = True
+            return c, m.group(), rest
         if color_space == 'hsl' and len(numbers) == 3:
             # hsl( number [%], number [%], number [%])
             try:
@@ -96,7 +104,9 @@ class ColorArg(cli.Annotation):
                 light = 1
             import colorsys
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
-            return Color([red, green, blue, 1]), m.group(), rest
+            c = Color([red, green, blue, 1])
+            c.explicit_transparency = False
+            return c, m.group(), rest
         if color_space == 'hsla' and len(numbers) == 4:
             # hsla( number [%], number [%], number [%], number [%])
             try:
@@ -115,7 +125,9 @@ class ColorArg(cli.Annotation):
                 light = 1
             import colorsys
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
-            return Color([red, green, blue, alpha]), m.group(), rest
+            c = Color([red, green, blue, alpha])
+            c.explicit_transparency = True
+            return c, m.group(), rest
         raise ValueError("Unknown color description")
 
 

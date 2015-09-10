@@ -23,7 +23,8 @@
 #               [perPixel true|false]
 #               [range <r>]
 #
-def scolor(session, atoms = None, color = None, byatom = False, esp = None):
+def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
+           per_atom_colors = None, esp = None):
     '''
     Color surfaces using a variety of methods, for example, to match nearby
     atom colors, or use a single color, or color by electrostatic potential,
@@ -39,6 +40,8 @@ def scolor(session, atoms = None, color = None, byatom = False, esp = None):
             from numpy import empty, uint8
             vcolors = empty((nv,4), uint8)
             vcolors[:] = s.color
+        else:
+            vcolors = vcolors.copy()    # Preserve original opacity
         if atoms is None:
             v = slice(nv)
         else:
@@ -47,12 +50,18 @@ def scolor(session, atoms = None, color = None, byatom = False, esp = None):
             v = ai[v2a]
         if byatom:
             v2a = s.vertex_to_atom_map()
-            vcolors[v] = s.atoms.colors[v2a[v],:]
+            c = s.atoms.colors if per_atom_colors is None else per_atom_colors[atoms.mask(s.atoms)]
+            vcolors[v] = c[v2a[v],:]
         elif not esp is None:
             cs = volume_color_source(s, esp, cmap_range = (-10,10), offset = 1.4)
             vcolors[v] = cs.vertex_colors(s)[v]
         elif not color is None:
             vcolors[v] = color.uint8x4()
+        if opacity is None:
+            if s.vertex_colors is not None:
+                vcolors[v,3] = s.vertex_colors[v,3]	# Preserve current transparency
+        elif opacity != 'computed':
+            vcolors[v,3] = opacity
         s.vertex_colors = vcolors
     return len(surfs)
 
@@ -62,7 +71,8 @@ def register_command(session):
     _scolor_desc = cli.CmdDesc(
         optional = [('atoms', cli.Or(cli.AtomsArg, cli.EmptyArg)),
                     ('color', ColorArg),],
-        keyword = [('byatom', cli.NoArg),
+        keyword = [('opacity', cli.IntArg),
+                   ('byatom', cli.NoArg),
                    ('esp', MapArg)],
         synopsis = 'color surfaces')
     cli.register('scolor', _scolor_desc, scolor)
