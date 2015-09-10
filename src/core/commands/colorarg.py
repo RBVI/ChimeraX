@@ -91,19 +91,11 @@ class ColorArg(cli.Annotation):
             # hsl( number [%], number [%], number [%])
             try:
                 hue = _convert_angle(numbers[0], 'hue angle')
-                sat = _convert_number(numbers[1], 'saturation',
-                                      require_percent=True)
-                light = _convert_number(numbers[2], 'lightness',
-                                        require_percent=True)
+                sat = _convert_number(numbers[1], 'saturation', maximum=1)
+                light = _convert_number(numbers[2], 'lightness', maximum=1)
             except cli.AnnotationError as err:
                 err.offset += m.end(1)
                 raise
-            if sat < 0:
-                sat = 0
-            if light < 0:
-                light = 0
-            elif light > 1:
-                light = 1
             import colorsys
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             c = Color([red, green, blue, 1])
@@ -113,20 +105,12 @@ class ColorArg(cli.Annotation):
             # hsla( number [%], number [%], number [%], number [%])
             try:
                 hue = _convert_angle(numbers[0], 'hue angle')
-                sat = _convert_number(numbers[1], 'saturation',
-                                      require_percent=True)
-                light = _convert_number(numbers[2], 'lightness',
-                                        require_percent=True)
+                sat = _convert_number(numbers[1], 'saturation', maximum=1)
+                light = _convert_number(numbers[2], 'lightness', maximum=1)
                 alpha = _convert_number(numbers[3], 'alpha', maximum=1)
             except cli.AnnotationError as err:
                 err.offset += m.end(1)
                 raise
-            if sat < 0:
-                sat = 0
-            if light < 0:
-                light = 0
-            elif light > 1:
-                light = 1
             import colorsys
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             c = Color([red, green, blue, alpha])
@@ -211,23 +195,32 @@ def _parse_numbers(text):
         start += 1
 
 
-def _convert_number(number, name, maximum=255, require_percent=False):
+def _convert_number(number, name, *, maximum=255, clamp=True,
+                    require_percent=False):
     """Return number scaled to 0 <= n <= 1"""
     n_str, n_pos, u, u_pos = number
     n = float(n_str)
     if require_percent and u != '%':
         raise cli.AnnotationError("%s must be a percentage" % name, u_pos)
     if u == '%':
-        return n / 100
-    if '.' in n_str:
-        return n
-    if u == '':
-        return n / maximum
-    raise cli.AnnotationError("Unexpected units for %s" % name, u_pos)
+        n = n / 100
+    elif '.' in n_str:
+         pass
+    elif u == '':
+        n =  n / maximum
+    else:
+        raise cli.AnnotationError("Unexpected units for %s" % name, u_pos)
+    if clamp:
+        if n < 0:
+            n = 0
+        elif n > 1:
+            n = 1
+    return n
 
 
 def _convert_angle(number, name):
-    n, n_pos, u, u_pos = number
+    n_str, n_pos, u, u_pos = number
+    n = float(n_str)
     if u in ('', 'deg'):
         return n / 360
     if u == 'rad':
