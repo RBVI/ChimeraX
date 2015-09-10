@@ -202,7 +202,7 @@ _whitespace = re.compile("\s*")
 
 def commas(text_seq, conjunction=' or', suffix='s'):
     """Return comma separated list of words and suffix
-    
+ 
     :param text_seq: a sequence of text strings
     :param conjunction: a word with a leading space
     :param suffix: suffix to return if more than one string
@@ -216,6 +216,7 @@ def commas(text_seq, conjunction=' or', suffix='s'):
         return '%s%s %s' % (text_seq[0], conjunction, text_seq[1]), suffix
     text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
     return text, suffix
+
 
 def discard_article(text):
     """remove leading article from text"""
@@ -1857,6 +1858,7 @@ def registered_commands(multiword=False):
     """Return a list of the currently registered commands"""
     if not multiword:
         return list(_commands.keys())
+
     def cmds(cmd_map):
         for word in cmd_map.keys():
             what = cmd_map[word]
@@ -1985,7 +1987,7 @@ def alias(session, name='', text=''):
     logger = session.logger if session else None
     if not name:
         # list aliases
-        names = commas(_cmd_alias, '')
+        names = commas(list(_cmd_aliases.keys()), '')[0]
         if names:
             if logger is not None:
                 logger.info('Aliases: %s' % names)
