@@ -16,9 +16,10 @@ class Atom;
 class AtomicStructure;
 class CoordSet;
 
+using basegeom::ChangeTracker;
 using basegeom::GraphicsContainer;
 
-class ATOMSTRUCT_IMEX PBond: public basegeom::Connection<Atom>
+class ATOMSTRUCT_IMEX PBond: public basegeom::Connection<Atom, PBond>
 {
     friend class PBGroup;
     friend class Owned_PBGroup;
@@ -27,7 +28,7 @@ private:
     GraphicsContainer*  _gc;
 
     PBond(Atom* a1, Atom* a2, GraphicsContainer* gc):
-        basegeom::Connection<Atom>(a1, a2), _gc(gc) {};
+        basegeom::Connection<Atom, PBond>(a1, a2), _gc(gc) {};
 protected:
     const char*  err_msg_loop() const
         { return "Can't form pseudobond to itself"; }
@@ -37,6 +38,7 @@ public:
     virtual ~PBond() {}
     typedef End_points  Atoms;
     const Atoms&  atoms() const { return end_points(); }
+    ChangeTracker*  change_tracker() const;
     GraphicsContainer*  graphics_container() const { return _gc; }
     GraphicsContainer*  group() const { return graphics_container(); }
 };

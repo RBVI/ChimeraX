@@ -9,9 +9,12 @@ const std::string ChangeTracker::REASON_BFACTOR("bfactor changed");
 const std::string ChangeTracker::REASON_COLOR("color changed");
 const std::string ChangeTracker::REASON_COORD("coord changed");
 const std::string ChangeTracker::REASON_DISPLAY("display changed");
+const std::string ChangeTracker::REASON_DRAW_MODE("draw_mode changed");
+const std::string ChangeTracker::REASON_HALFBOND("halfbond changed");
 const std::string ChangeTracker::REASON_HIDE("hide changed");
 const std::string ChangeTracker::REASON_IDATM_TYPE("idatm_type changed");
 const std::string ChangeTracker::REASON_OCCUPANCY("occupancy changed");
+const std::string ChangeTracker::REASON_RADIUS("radius changed");
 const std::string ChangeTracker::REASON_SELECTED("selected changed");
 
 }  // namespace basegeom

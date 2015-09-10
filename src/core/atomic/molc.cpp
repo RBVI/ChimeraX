@@ -669,7 +669,7 @@ extern "C" void set_pseudobond_display(void *pbonds, size_t n, uint8_t *disp)
     PBond **b = static_cast<PBond **>(pbonds);
     try {
         for (size_t i = 0; i != n; ++i)
-            b[i]->set_display(static_cast<Bond::BondDisplay>(disp[i]));
+            b[i]->set_display(static_cast<unsigned char>(disp[i]));
     } catch (...) {
         molc_error();
     }

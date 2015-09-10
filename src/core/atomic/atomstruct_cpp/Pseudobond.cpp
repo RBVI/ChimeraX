@@ -7,6 +7,9 @@
 
 namespace atomstruct {
 
+basegeom::ChangeTracker*
+PBond::change_tracker() const { return atoms()[0]->change_tracker(); }
+
 void
 Owned_PBGroup_Base::_check_ownership(Atom* a1, Atom* a2)
 {

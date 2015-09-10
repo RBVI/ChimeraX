@@ -50,9 +50,12 @@ public:
     static const std::string  REASON_COLOR;
     static const std::string  REASON_COORD;
     static const std::string  REASON_DISPLAY;
+    static const std::string  REASON_DRAW_MODE;
+    static const std::string  REASON_HALFBOND;
     static const std::string  REASON_HIDE;
     static const std::string  REASON_IDATM_TYPE;
     static const std::string  REASON_OCCUPANCY;
+    static const std::string  REASON_RADIUS;
     static const std::string  REASON_SELECTED;
     
     template<class C>

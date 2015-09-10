@@ -14,6 +14,7 @@ class Atom;
 class AtomicStructure;
 class Residue;
 class Ring;
+using basegeom::ChangeTracker;
 
 class ATOMSTRUCT_IMEX Bond: public basegeom::UniqueConnection<Atom, Bond> {
     friend class AtomicStructure;
@@ -41,11 +42,14 @@ public:
             std::set<const Residue*>* ignore = nullptr) const {
         return rings(cross_residues, 0, ignore);
     }
-    Atom *  other_atom(Atom *a) const { return other_end(a); }
-    Atom *  polymeric_start_atom() const;
+    Atom*  other_atom(Atom *a) const { return other_end(a); }
+    Atom*  polymeric_start_atom() const;
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
     // sqlength() inherited from UniqueConnection
+
+    // change tracking
+    ChangeTracker*  change_tracker() const;
 
     // graphics related
     GraphicsContainer*  graphics_container() const {
@@ -56,6 +60,9 @@ public:
 }  // namespace atomstruct
 
 #include "AtomicStructure.h"
+inline basegeom::ChangeTracker*
+atomstruct::Bond::change_tracker() const { return atoms()[0]->change_tracker(); }
+
 inline const atomstruct::Bond::Rings&
 atomstruct::Bond::all_rings(bool cross_residues, int size_threshold,
     std::set<const Residue*>* ignore) const

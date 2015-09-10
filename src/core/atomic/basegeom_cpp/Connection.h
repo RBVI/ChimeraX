@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 
+#include "ChangeTracker.h"
 #include "Graph.h"
 #include "Real.h"
 #include "Rgba.h"
@@ -11,7 +12,9 @@
 
 namespace basegeom {
     
-template <class End>
+using ::basegeom::ChangeTracker;
+
+template <class End, class FinalConnection>
 class Connection {
 public:
     enum class BondDisplay : unsigned char { Never, Smart, Always,
@@ -47,38 +50,59 @@ public:
         return _end_points[0]->coord().sqdistance(_end_points[1]->coord());
     }
 
+    // change tracking
+    virtual ChangeTracker*  change_tracker() const = 0;
+
     // graphics related
     const Rgba&  color() const { return _rgba; }
     BondDisplay  display() const { return _display; }
     bool  halfbond() const { return _halfbond; }
     virtual GraphicsContainer*  graphics_container() const = 0;
-    void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
-        Rgba::Channel a)
-        { graphics_container()->set_gc_color(); _rgba = {r, g, b, a}; }
-    void  set_color(const Rgba& rgba)
-        { graphics_container()->set_gc_color(); _rgba = rgba; }
-    void  set_display(BondDisplay d)
-        { graphics_container()->set_gc_shape(); _display = d; }
+    void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a)
+        { set_color(Rgba({r, g, b, a})); }
+    void  set_color(const Rgba& rgba) {
+        graphics_container()->set_gc_color();
+        change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
+            ChangeTracker::REASON_COLOR);
+        _rgba = rgba;
+    }
+    void  set_display(BondDisplay d) {
+        graphics_container()->set_gc_shape();
+        change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
+            ChangeTracker::REASON_DISPLAY);
+        _display = d;
+    }
     void  set_display(unsigned char d) { 
         if (d > static_cast<unsigned char>(BondDisplay::MAX_VAL))
             throw std::out_of_range("Invalid bond display value.");
-        graphics_container()->set_gc_shape();
-        _display = static_cast<BondDisplay>(d);
+        set_display(static_cast<BondDisplay>(d));
     }
-    void  set_halfbond(bool hb)
-        { graphics_container()->set_gc_color(); _halfbond = hb; }
-    void  set_radius(float r)
-        { graphics_container()->set_gc_shape(); _radius = r; }
+    void  set_halfbond(bool hb) {
+        graphics_container()->set_gc_color();
+        change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
+            ChangeTracker::REASON_HALFBOND);
+        _halfbond = hb;
+    }
+    void  set_radius(float r) {
+        graphics_container()->set_gc_shape();
+        change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
+            ChangeTracker::REASON_RADIUS);
+        _radius = r;
+    }
     float  radius() const { return _radius; }
     int  hide() const { return _hide; }
-    void  set_hide(int h)
-        { graphics_container()->set_gc_shape(); _hide = h; }
+    void  set_hide(int h) {
+        graphics_container()->set_gc_shape();
+        change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
+            ChangeTracker::REASON_HIDE);
+        _hide = h;
+    }
     BondDisplay  visible() const
         { return _hide ? BondDisplay::Never : _display; }
 };
 
 template <class End, class FinalConnection>
-class UniqueConnection: public Connection<End> {
+class UniqueConnection: public Connection<End, FinalConnection> {
 protected:
     virtual const char*  err_msg_exists() const
         { return "Connection already exists between endpoints"; }
@@ -88,16 +112,16 @@ public:
     virtual  ~UniqueConnection() {}
 };
 
-template <class End>
-Connection<End>::Connection(End *e1, End *e2)
+template <class End, class FinalConnection>
+Connection<End, FinalConnection>::Connection(End *e1, End *e2)
 {
     _end_points[0] = e1;
     _end_points[1] = e2;
 }
 
-template <class End>
+template <class End, class FinalConnection>
 void
-Connection<End>::finish_construction()
+Connection<End, FinalConnection>::finish_construction()
 {
     if (_end_points[0] == _end_points[1])
         throw std::invalid_argument(err_msg_loop());
@@ -106,7 +130,7 @@ Connection<End>::finish_construction()
 
 template <class End, class FinalConnection>
 UniqueConnection<End, FinalConnection>::UniqueConnection(End *e1, End *e2) :
-    Connection<End>(e1, e2)
+    Connection<End, FinalConnection>(e1, e2)
 {
 }
 
@@ -114,18 +138,18 @@ template <class End, class FinalConnection>
 void
 UniqueConnection<End, FinalConnection>::finish_construction()
 {
-    static_cast<Connection<End> *>(this)->finish_construction();
+    static_cast<Connection<End, FinalConnection> *>(this)->finish_construction();
     End* e1 = this->_end_points[0]; // "this->" necessary because compiler
     End* e2 = this->_end_points[1]; // doesn't automatically look in parents
     if (e1->connects_to(e2))
         throw std::invalid_argument(err_msg_exists());
-    e1->add_connection(static_cast<FinalConnection *>(this));
+    e1->add_connection(dynamic_cast<FinalConnection *>(this));
     e2->add_connection(static_cast<FinalConnection *>(this));
 }
 
-template <class End>
+template <class End, class FinalConnection>
 End *
-Connection<End>::other_end(End *e) const
+Connection<End, FinalConnection>::other_end(End *e) const
 {
     if (e == _end_points[0])
         return _end_points[1];
