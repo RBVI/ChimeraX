@@ -21,7 +21,8 @@ class="clRight" alt="Chimera2 logo"/></a>
 
 <h3>Command-Line Color Specification</h3>
 <p>
-Colors can be specified in commands with:
+Colors can be specified in commands
+(<a href="color.html"><b>color</b></a>, <i>etc.</i>) with:
 </p>
 <ul>
 <li><a href="http://www.w3schools.com/cssref/css_colornames.asp"
@@ -29,24 +30,39 @@ target="_blank">CSS color names</a> except in lowercase only,
 optionally with spaces between words
 <li>color names defined previously with the 
 <a href="colordef.html"><b>colordef</b></a> command
-<li>CSS <b>hex</b> format (hexadecimal) 
-<li>CSS-like format for colorspaces:
+<li>hexadecimal format starting with # and encoding
+<b>rgb</b> (3 or 6 digits) or <b>rgba</b> (4 or 8 digits)
+<li><a href="http://www.w3schools.com/cssref/css_colors_legal.asp"
+target="_blank">CSS-like specifications</a> in the following formats:
   <ul>
-  <li><b>rgb</b> - red, green, blue
-  <li><b>rgba</b> - red, green, blue, opacity 
-  <li><b>hsl</b> - hue, saturation, lightness
-  <li><b>hsla</b> - hue, saturation, lightness, opacity
-  <li><b>gray</b> - grayscale
+  <li><b>rgb(<i>red, green, blue</i>)</b>
+  <li><b>rgba(<i>red, green, blue, alpha</i>)</b>
+  <li><b>hsl(<i>hue, saturation, lightness</i>)</b>
+  <li><b>hsla(<i>hue, saturation, lightness, alpha</i>)</b>
+  <li><b>gray(<i>grayscale</i>)</b> 
   </ul>
-The colorspace name must be in lowercase
-and immediately precede the open parenthesis.
-Otherwise, embedded spaces are allowed.
-Opacity is always within the range 0-1, whereas the remaining components
-may be expressed on a scale of 0 to 255, or as percentages 
-(indicated with a percent sign), or as fractional values within the range 0-1 
-(indicated with a decimal point, for example, 1.0 rather than 1). 
-RGB or HSL components within a single specification 
-must be expressed on the same scale.
+The colorspace name must be in lowercase and immediately precede 
+the open parenthesis.  Otherwise, embedded spaces are allowed.
+Values for <i>red</i>, <i>green</i>, <i>blue</i>, <i>alpha</i>
+(increasing transparent &rarr; opaque), <i>saturation</i>, <i>lightness</i>,
+and <i>grayscale</i> (increasing black &rarr; white) can be given as:
+  <ul>
+  <li> percentages indicated with %
+  <li> fractional values in the range 0-1, indicated with a decimal point
+  (for example, 1. rather than 1)
+  </ul>
+The <i>red</i>, <i>green</i>, <i>blue</i>, and <i>grayscale</i> 
+components can also be expressed as whole numbers in the range 0-255. 
+Values for <i>hue</i> are in the range 0-360,
+corresponding to angular positions on the color wheel.
+<!--
+<li>as a shorthand, 
+the following without embedded spaces and in percentages only (no % required):
+  <ul>
+  <li><b><i>red,green,blue</i></b>
+  <li><b><i>red,green,blue,alpha</i></b>
+  </ul>
+-->
 </ul>
 <p>
 Color names from CSS or <a href="colordef.html"><b>colordef</b></a>
@@ -61,11 +77,17 @@ The following all specify the same color:
 <blockquote>
 red<br>
 #f00<br>
-#0xff0000<br>
+#FF0000FF<br>
 rgb(255, 0, 0)<br>
-rgb(1.0,0,0)<br>
-rgb(100%, 0, 0)<br>
-rgba(100%, 0, 0, 1)<br>
+rgb(1., 0., 0.)<br>
+rgb(100%, 0%, 0%)<br>
+rgba(100%, 0%, 0%, 1)<br>
+rgba(100%, 0%, 0%, 100%)<br>
+<!--
+100,0,0</br>
+100,0,0,100</br>
+-->
+hsl(0, 1.0, 0.5)<br>
 hsl(0, 100%, 50%)
 </blockquote>
 The following specify the same shade of gray:
