@@ -201,21 +201,27 @@ _whitespace = re.compile("\s*")
 
 
 def commas(text_seq, conjunction=' or', suffix='s'):
-    """Return comma separated list of words and suffix"""
+    """Return comma separated list of words and suffix
+ 
+    :param text_seq: a sequence of text strings
+    :param conjunction: a word with a leading space
+    :param suffix: suffix to return if more than one string
+    """
     seq_len = len(text_seq)
     if seq_len == 0:
         return "", ""
     if seq_len == 1:
         return text_seq[0], ""
     if seq_len == 2:
-        return '%s %s %s' % (text_seq[0], conjunction, text_seq[1]), suffix
+        return '%s%s %s' % (text_seq[0], conjunction, text_seq[1]), suffix
     text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
     return text, suffix
+
 
 def discard_article(text):
     """remove leading article from text"""
     text_seq = text.split(None, 1)
-    if text_seq[0] in ('a', 'an', 'the'):
+    if text_seq[0] in ('a', 'an', 'the', 'some'):
         return text_seq[1]
     return text
 
@@ -679,7 +685,7 @@ class EnumOf(Annotation):
         self.values = values
         if name is None:
             if len(self.ids) == 1:
-                name = self.ids[0]
+                name = "'%s'" % self.ids[0]
             else:
                 name = "one of %s" % commas(["'%s'" % i for i in self.ids])[0]
         self.name = name
@@ -717,6 +723,9 @@ class Or(Annotation):
         for anno in self.annotations:
             try:
                 return anno.parse(text, session)
+            except AnnotationError as err:
+                if err.offset:
+                    raise
             except ValueError:
                 pass
         msg = commas([a.name for a in self.annotations])[0]
@@ -1845,9 +1854,23 @@ def html_usage(name, no_aliases=False):
     return usage
 
 
-def registered_commands():
+def registered_commands(multiword=False):
     """Return a list of the currently registered commands"""
-    return list(_commands.keys())
+    if not multiword:
+        return list(_commands.keys())
+
+    def cmds(cmd_map):
+        for word in cmd_map.keys():
+            what = cmd_map[word]
+            if isinstance(what, _Defer):
+                what = _lazy_register(cmd_map, word)
+                continue
+            if isinstance(what, CmdDesc):
+                yield word
+                continue
+            for word2 in cmds(what):
+                yield "%s %s" % (word, word2)
+    return list(cmds(_commands))
 
 
 class Alias:
@@ -1949,7 +1972,8 @@ _cmd_aliases = {}
 
 
 @register('alias', CmdDesc(optional=[('name', StringArg),
-                                     ('text', WholeRestOfLine)]))
+                                     ('text', WholeRestOfLine)],
+                           synopsis='list or define a command alias'))
 def alias(session, name='', text=''):
     """Create command alias
 
@@ -1963,7 +1987,7 @@ def alias(session, name='', text=''):
     logger = session.logger if session else None
     if not name:
         # list aliases
-        names = commas(_cmd_alias, '')
+        names = commas(list(_cmd_aliases.keys()), '')[0]
         if names:
             if logger is not None:
                 logger.info('Aliases: %s' % names)
@@ -1997,7 +2021,8 @@ def alias(session, name='', text=''):
     _cmd_aliases[name] = cmd
 
 
-@register('~alias', CmdDesc(required=[('name', StringArg)]))
+@register('~alias', CmdDesc(required=[('name', StringArg)],
+                            synopsis='remove a command alias'))
 def unalias(session, name):
     """Remove command alias
 

@@ -28,9 +28,9 @@ def set(session, bg_color=None, silhouettes=None):
           '  silhouettes:', view.silhouettes, '\n')
 
 def register_command(session):
-    from . import cli, color
+    from . import cli, color, ColorArg
     desc = cli.CmdDesc(
-        keyword=[('bg_color', color.ColorArg), ('silhouettes', cli.BoolArg)],
+        keyword=[('bg_color', ColorArg), ('silhouettes', cli.BoolArg)],
         synopsis="set preferences"
         )
     cli.register('set', desc, set)

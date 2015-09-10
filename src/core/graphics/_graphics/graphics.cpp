@@ -2,6 +2,7 @@
 #include <Python.h>			// use PyObject
 
 #include "blend_rgba.h"			// use blur_blend_images
+#include "count.h"			// use count_values
 #include "intercept.h"			// use closest_geometry_intercept
 #include "mesh_edges.h"			// use masked_edges
 
@@ -14,9 +15,13 @@ static struct PyMethodDef graphics_cpp_methods[] =
 {
   /* blend_rgba.h */
   {const_cast<char*>("blur_blend_images"), (PyCFunction)blur_blend_images,
-   METH_VARARGS|METH_KEYWORDS},
+   METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("accumulate_images"), (PyCFunction)accumulate_images,
-   METH_VARARGS|METH_KEYWORDS},
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* count.h */
+  {const_cast<char*>("count_value"), (PyCFunction)count_value,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* intercept.h */
   {const_cast<char*>("closest_geometry_intercept"), (PyCFunction)closest_geometry_intercept,
