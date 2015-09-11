@@ -32,7 +32,7 @@ class Ring;
 
 class ATOMSTRUCT_IMEX Atom: public BaseSphere<Atom, Bond> {
     friend class AtomicStructure;
-    friend class Graph<Atom, Bond>;
+    friend class Graph<Atom, Bond, AtomicStructure>;
     friend class Residue;
 public:
     // HIDE_ constants are masks for hide bits in basegeom::Connectible
@@ -120,7 +120,7 @@ public:
     void  set_computed_idatm_type(const char* it);
     void  set_idatm_type(const char* it);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
-    void  set_is_backbone(bool ibb) { _is_backbone = ibb; }
+    void  set_is_backbone(bool ibb);
     void  set_occupancy(float);
     void  set_radius(float);
     void  set_serial_number(int);
@@ -138,40 +138,53 @@ public:
 }  // namespace atomstruct
 
 #include "AtomicStructure.h"
+
+namespace atomstruct {
+
 inline basegeom::ChangeTracker*
-atomstruct::Atom::change_tracker() const { return _structure->change_tracker(); }
+Atom::change_tracker() const { return _structure->change_tracker(); }
 
 inline const atomstruct::AtomType&
-atomstruct::Atom::idatm_type() const {
+Atom::idatm_type() const {
     if (idatm_is_explicit()) return _explicit_idatm_type;
     if (!_structure->_idatm_valid) _structure->_compute_idatm_types();
     return _computed_idatm_type;
 }
 
 inline bool
-atomstruct::Atom::is_backbone() const {
+Atom::is_backbone() const {
     if (!structure()->_polymers_computed) structure()->polymers();
     return _is_backbone;
 }
 
 inline void
-atomstruct::Atom::set_computed_idatm_type(const char* it) {
+Atom::set_computed_idatm_type(const char* it) {
     if (!idatm_is_explicit() && _computed_idatm_type != it) {
-        change_tracker()->add_modified(this, basegeom::ChangeTracker::REASON_IDATM_TYPE);
+        change_tracker()->add_modified(this, ChangeTracker::REASON_IDATM_TYPE);
     }
     _computed_idatm_type =  it;
 }
 
 inline void
-atomstruct::Atom::set_idatm_type(const char* it) {
+Atom::set_idatm_type(const char* it) {
     // make sure it actually is effectively different before tracking
     // change
     if (!(_explicit_idatm_type.empty() && _computed_idatm_type == it)
     && !(*it == '\0' && _explicit_idatm_type == _computed_idatm_type)
     && !(!_explicit_idatm_type.empty() && it == _explicit_idatm_type)) {
-        change_tracker()->add_modified(this, basegeom::ChangeTracker::REASON_IDATM_TYPE);
+        change_tracker()->add_modified(this, ChangeTracker::REASON_IDATM_TYPE);
     }
     _explicit_idatm_type = it;
 }
+
+inline void
+Atom::set_is_backbone(bool ibb) {
+    if (ibb == _is_backbone)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_IS_BACKBONE);
+    _is_backbone = ibb;
+}
+
+}  // namespace atomstruct
 
 #endif  // atomstruct_Atom

@@ -56,6 +56,8 @@ public:
         set_color(Rgba({r, g, b, a}));
     }
     void  set_color(const Rgba& rgba) {
+        if (rgba == _rgba)
+            return;
         graphics_container()->set_gc_color();
         change_tracker()->add_modified(dynamic_cast<FinalConnectible*>(this),
             ChangeTracker::REASON_COLOR);
@@ -64,6 +66,8 @@ public:
     bool  display() const { return _display; }
     virtual GraphicsContainer*  graphics_container() const = 0;
     void  set_display(bool d) {
+        if (d == _display)
+            return;
         graphics_container()->set_gc_shape();
         change_tracker()->add_modified(dynamic_cast<FinalConnectible*>(this),
             ChangeTracker::REASON_DISPLAY);
@@ -71,6 +75,8 @@ public:
     }
     int  hide() const { return _hide; }
     void  set_hide(int h) {
+        if (h == _hide)
+            return;
         graphics_container()->set_gc_shape();
         change_tracker()->add_modified(dynamic_cast<FinalConnectible*>(this),
             ChangeTracker::REASON_HIDE);
@@ -79,6 +85,8 @@ public:
     bool  visible() const { return _display && !_hide; }
     bool  selected() const { return _selected; }
     void  set_selected(bool s) {
+        if (s == _selected)
+            return;
         graphics_container()->set_gc_select();
         change_tracker()->add_modified(dynamic_cast<FinalConnectible*>(this),
             ChangeTracker::REASON_SELECTED);

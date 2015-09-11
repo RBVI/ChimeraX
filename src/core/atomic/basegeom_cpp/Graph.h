@@ -5,9 +5,12 @@
 #include <set>
 #include <vector>
 
+#include "ChangeTracker.h"
 #include "destruct.h"
 
 namespace basegeom {
+
+using ::basegeom::ChangeTracker;
     
 class GraphicsContainer {
 private:
@@ -29,7 +32,7 @@ public:
     void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
 };
 
-template <class Vertex, class Edge>
+template <class Vertex, class Edge, class FinalGraph>
 class Graph: public GraphicsContainer {
 protected:
     typedef std::vector<Vertex*>  Vertices;
@@ -65,9 +68,24 @@ public:
 
     // graphics related
     float  ball_scale() const { return _ball_scale; }
+    virtual ChangeTracker*  change_tracker() const = 0;
     bool  display() const { return _display; }
-    void  set_ball_scale(float bs) { set_gc_shape(); _ball_scale = bs; }
-    void  set_display(bool d) { set_gc_shape(); _display = d; }
+    void  set_ball_scale(float bs) {
+        if (bs == _ball_scale)
+            return;
+        set_gc_shape();
+        _ball_scale = bs;
+        change_tracker()->add_modified(dynamic_cast<FinalGraph*>(this),
+            ChangeTracker::REASON_BALL_SCALE);
+    }
+    void  set_display(bool d) {
+        if (d == _display)
+            return;
+        set_gc_shape();
+        _display = d;
+        change_tracker()->add_modified(dynamic_cast<FinalGraph*>(this),
+            ChangeTracker::REASON_DISPLAY);
+    }
 };
 
 } //  namespace basegeom

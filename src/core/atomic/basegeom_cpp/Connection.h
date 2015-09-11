@@ -61,12 +61,16 @@ public:
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a)
         { set_color(Rgba({r, g, b, a})); }
     void  set_color(const Rgba& rgba) {
+        if (rgba == _rgba)
+            return;
         graphics_container()->set_gc_color();
         change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
             ChangeTracker::REASON_COLOR);
         _rgba = rgba;
     }
     void  set_display(BondDisplay d) {
+        if (d == _display)
+            return;
         graphics_container()->set_gc_shape();
         change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
             ChangeTracker::REASON_DISPLAY);
@@ -78,12 +82,16 @@ public:
         set_display(static_cast<BondDisplay>(d));
     }
     void  set_halfbond(bool hb) {
+        if (hb == _halfbond)
+            return;
         graphics_container()->set_gc_color();
         change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
             ChangeTracker::REASON_HALFBOND);
         _halfbond = hb;
     }
     void  set_radius(float r) {
+        if (r == _radius)
+            return;
         graphics_container()->set_gc_shape();
         change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
             ChangeTracker::REASON_RADIUS);
@@ -92,6 +100,8 @@ public:
     float  radius() const { return _radius; }
     int  hide() const { return _hide; }
     void  set_hide(int h) {
+        if (h == _hide)
+            return;
         graphics_container()->set_gc_shape();
         change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
             ChangeTracker::REASON_HIDE);

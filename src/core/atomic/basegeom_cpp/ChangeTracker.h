@@ -44,8 +44,10 @@ private:
 public:
     ChangeTracker() : _type_changes(_num_types) {};
 
+    static const std::string  REASON_ACTIVE_COORD_SET;
     static const std::string  REASON_ALT_LOC;
     static const std::string  REASON_ANISO_U;
+    static const std::string  REASON_BALL_SCALE;
     static const std::string  REASON_BFACTOR;
     static const std::string  REASON_COLOR;
     static const std::string  REASON_COORD;
@@ -54,9 +56,19 @@ public:
     static const std::string  REASON_HALFBOND;
     static const std::string  REASON_HIDE;
     static const std::string  REASON_IDATM_TYPE;
+    static const std::string  REASON_IS_BACKBONE;
+    static const std::string  REASON_IS_HELIX;
+    static const std::string  REASON_IS_HET;
+    static const std::string  REASON_IS_SHEET;
     static const std::string  REASON_OCCUPANCY;
     static const std::string  REASON_RADIUS;
+    static const std::string  REASON_RESIDUES;
+    static const std::string  REASON_RIBBON_DISPLAY;
+    static const std::string  REASON_RIBBON_COLOR;
     static const std::string  REASON_SELECTED;
+    static const std::string  REASON_SEQUENCE;
+    static const std::string  REASON_SERIAL_NUMBER;
+    static const std::string  REASON_SS_ID;
     
     template<class C>
     void  add_created(C* ptr) {
@@ -71,6 +83,17 @@ public:
             // newly created objects don't also go in modified set
             changes.modified.insert(ptr);
             changes.reasons.insert(reason);
+        }
+    }
+
+    template<class C>
+    void  add_modified(C* ptr, const std::string &reason, const std::string &reason2) {
+        auto& changes = _type_changes[_ptr_to_type(ptr)];
+        if (changes.created.find(ptr) == changes.created.end()) {
+            // newly created objects don't also go in modified set
+            changes.modified.insert(ptr);
+            changes.reasons.insert(reason);
+            changes.reasons.insert(reason2);
         }
     }
 

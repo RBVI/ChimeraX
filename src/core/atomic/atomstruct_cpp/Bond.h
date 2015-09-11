@@ -60,11 +60,14 @@ public:
 }  // namespace atomstruct
 
 #include "AtomicStructure.h"
-inline basegeom::ChangeTracker*
-atomstruct::Bond::change_tracker() const { return atoms()[0]->change_tracker(); }
 
-inline const atomstruct::Bond::Rings&
-atomstruct::Bond::all_rings(bool cross_residues, int size_threshold,
+namespace atomstruct {
+
+inline basegeom::ChangeTracker*
+Bond::change_tracker() const { return atoms()[0]->change_tracker(); }
+
+inline const Bond::Rings&
+Bond::all_rings(bool cross_residues, int size_threshold,
     std::set<const Residue*>* ignore) const
 {
     int max_ring_size = size_threshold;
@@ -73,12 +76,14 @@ atomstruct::Bond::all_rings(bool cross_residues, int size_threshold,
     return rings(cross_residues, max_ring_size, ignore);
 }
 
-inline const atomstruct::Bond::Rings&
-atomstruct::Bond::rings(bool cross_residues, int all_size_threshold,
+inline const Bond::Rings&
+Bond::rings(bool cross_residues, int all_size_threshold,
     std::set<const Residue*>* ignore) const
 {
     atoms()[0]->structure()->rings(cross_residues, all_size_threshold, ignore);
     return _rings;
 }
+
+}  // namespace atomstruct
 
 #endif  // atomstruct_Bond

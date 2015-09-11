@@ -31,6 +31,7 @@ AtomicStructure::AtomicStructure(ChangeTracker* ct, PyObject* logger):
     asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0)
 {
+    change_tracker()->add_created(this);
 }
 
 AtomicStructure::~AtomicStructure() {
@@ -46,6 +47,7 @@ AtomicStructure::~AtomicStructure() {
         delete r;
     for (auto cs: _coord_sets)
         delete cs;
+    change_tracker()->add_deleted(this);
 }
 
 AtomicStructure *AtomicStructure::copy() const
@@ -865,6 +867,7 @@ AtomicStructure::set_active_coord_set(CoordSet *cs)
     if (_active_coord_set != new_active) {
         _active_coord_set = new_active;
         set_gc_shape();
+        change_tracker()->add_modified(this, ChangeTracker::REASON_ACTIVE_COORD_SET);
     }
 }
 

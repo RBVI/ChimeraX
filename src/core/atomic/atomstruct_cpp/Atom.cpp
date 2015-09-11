@@ -937,6 +937,7 @@ Atom::set_serial_number(int sn)
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         (*i).second.serial_number = sn;
     }
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SERIAL_NUMBER);
 }
 
 std::string

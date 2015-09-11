@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <basegeom/Rgba.h>
-#include <basegeom/destruct.h>
 #include "imex.h"
 #include "string_types.h"
 
@@ -19,6 +18,7 @@ class AtomicStructure;
 class Bond;
 class Chain;
 
+using basegeom::ChangeTracker;
 using basegeom::Rgba;
 
 class ATOMSTRUCT_IMEX Residue {
@@ -28,11 +28,7 @@ public:
 private:
     friend class AtomicStructure;
     Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);
-    virtual  ~Residue() {
-        auto du = basegeom::DestructionUser(this);
-        if (_chain != nullptr)
-            _chain->remove_residue(this);
-    }
+    virtual  ~Residue();
 
     friend class Chain;
     void  set_chain(Chain* chain) { _chain = chain; }
@@ -69,10 +65,10 @@ public:
     int  position() const { return _position; }
     void  remove_atom(Atom*);
     void  set_alt_loc(char alt_loc);
-    void  set_is_helix(bool ih) { _is_helix = ih; }
-    void  set_is_het(bool ih) { _is_het = ih; }
-    void  set_is_sheet(bool is) { _is_sheet = is; }
-    void  set_ss_id(int ssid) { _ss_id = ssid; }
+    void  set_is_helix(bool ih);
+    void  set_is_het(bool ih);
+    void  set_is_sheet(bool is);
+    void  set_ss_id(int ssid);
     int  ss_id() const { return _ss_id; }
     std::string  str() const;
     AtomicStructure*  structure() const { return _structure; }
@@ -89,19 +85,77 @@ public:
     // graphics related
     bool  ribbon_display() const { return _ribbon_display; }
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
-    void  set_ribbon_display(bool d)
-        { structure()->set_gc_ribbon(); _ribbon_display = d; }
-    void  set_ribbon_color(const Rgba& rgba)
-        { structure()->set_gc_ribbon(); _ribbon_rgba = rgba; }
+    void  set_ribbon_display(bool d);
+    void  set_ribbon_color(const Rgba& rgba);
 };
 
+}  // namespace atomstruct
+
+#include "AtomicStructure.h"
 #include "Chain.h"
+
+namespace atomstruct {
+
 inline const ChainID&
 Residue::chain_id() const
 {
     if (_chain != nullptr)
         return _chain->chain_id();
     return _chain_id;
+}
+
+inline void
+Residue::set_is_helix(bool ih)
+{
+    if (ih == _is_helix)
+        return;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_HELIX);
+    _is_helix = ih;
+}
+
+inline void
+Residue::set_is_het(bool ih)
+{
+    if (ih == _is_het)
+        return;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_HET);
+    _is_het = ih;
+}
+
+inline void
+Residue::set_is_sheet(bool is)
+{
+    if (is == _is_sheet)
+        return;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_SHEET);
+    _is_sheet = is;
+}
+
+inline void
+Residue::set_ribbon_display(bool d) {
+    if (d == _ribbon_display)
+        return;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_DISPLAY);
+    _structure->set_gc_ribbon();
+    _ribbon_display = d;
+}
+
+inline void
+Residue::set_ribbon_color(const Rgba& rgba) {
+    if (rgba == _ribbon_rgba)
+        return;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_COLOR);
+    _structure->set_gc_ribbon();
+    _ribbon_rgba = rgba;
+}
+
+inline void
+Residue::set_ss_id(int ss_id)
+{
+    if (ss_id == _ss_id)
+        return;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SS_ID);
+    _ss_id = ss_id;
 }
 
 }  // namespace atomstruct

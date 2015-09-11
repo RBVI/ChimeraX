@@ -9,12 +9,14 @@
 #include <unordered_set>
 #include <vector>
 
-#include <basegeom/Graph.h>
-#include <basegeom/destruct.h>
 #include "Chain.h"
 #include "Pseudobond.h"
 #include "Ring.h"
 #include "string_types.h"
+
+#include <basegeom/ChangeTracker.h>
+#include <basegeom/Graph.h>
+#include <basegeom/destruct.h>
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -37,7 +39,7 @@ class Residue;
 
 using basegeom::ChangeTracker;
 
-class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
+class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond, AtomicStructure> {
     friend class Atom; // for IDATM stuff and _polymers_computed
     friend class Bond; // for checking if make_chains() has been run yet
 public:
