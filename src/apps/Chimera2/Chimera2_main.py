@@ -175,12 +175,6 @@ def init(argv, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
-    if sys.platform.startswith('linux'):
-        # Mesa with Intel graphics gives an inadequate OpenGL 3.0
-        # compatibility context. Setting this environment variable
-        # makes it give a core profile 3.3 context.
-        os.environ['MESA_GL_VERSION_OVERRIDE'] = '3.3'
-
     # use chimera.core's version
     import pip
     dists = pip.get_installed_distributions(local_only=True)
