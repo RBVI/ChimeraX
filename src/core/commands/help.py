@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def help(session, command_name=None):
     '''Display help.
 
@@ -52,8 +53,9 @@ def help(session, command_name=None):
     else:
         info(usage)
 
+
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(optional=[('command_name', cli.RestOfLine)],
-                         synopsis='show command usage')
+                       synopsis='show command usage')
     cli.register('help', desc, help)

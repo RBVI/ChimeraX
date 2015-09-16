@@ -31,7 +31,7 @@ class ColorArg(cli.Annotation):
         if text[0] == '#':
             token, text, rest = cli.next_token(text)
             c = Color(token)
-            c.explicit_transparency = (len(token) in (5,9,17))
+            c.explicit_transparency = (len(token) in (5, 9, 17))
             return c, text, rest
         m = _color_func.match(text)
         if m is None:
@@ -205,9 +205,9 @@ def _convert_number(number, name, *, maximum=255, clamp=True,
     if u == '%':
         n = n / 100
     elif '.' in n_str:
-         pass
+        pass
     elif u == '':
-        n =  n / maximum
+        n = n / maximum
     else:
         raise cli.AnnotationError("Unexpected units for %s" % name, u_pos)
     if clamp:
@@ -232,6 +232,7 @@ def _convert_angle(number, name):
         return n
     raise cli.AnnotationError("'%s' doesn't make sense for %s" % (u, name),
                               offset=u_pos)
+
 
 def test():
     tests = [

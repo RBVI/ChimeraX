@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def set(session, bg_color=None, silhouettes=None):
     '''Set global parameters.  With no options reports the current settings.
 
@@ -27,11 +28,11 @@ def set(session, bg_color=None, silhouettes=None):
           '  bg_color:', view.background_color, '\n'
           '  silhouettes:', view.silhouettes, '\n')
 
+
 def register_command(session):
-    from . import cli, color, ColorArg
+    from . import cli, ColorArg
     desc = cli.CmdDesc(
         keyword=[('bg_color', ColorArg), ('silhouettes', cli.BoolArg)],
         synopsis="set preferences"
-        )
+    )
     cli.register('set', desc, set)
-

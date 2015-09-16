@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def transparency(session, atoms, percent, target='s'):
     """Set transparency of atoms, ribbons, surfaces, ....
 
@@ -19,15 +20,15 @@ def transparency(session, atoms, percent, target='s'):
     if 'A' in target:
         target = 'acs'
 
-    alpha = int(2.56 * (100-percent))
-    alpha = min(255, max(0, alpha))	# 0-255 range
+    alpha = int(2.56 * (100 - percent))
+    alpha = min(255, max(0, alpha))    # 0-255 range
 
     what = []
 
     if 'a' in target:
         # atoms/bonds
         c = atoms.colors
-        c[:,3] = alpha
+        c[:, 3] = alpha
         atoms.colors = c
         what.append('%d atoms' % len(atoms))
 
@@ -39,23 +40,23 @@ def transparency(session, atoms, percent, target='s'):
             amask = s.atoms.mask(atoms)
             if vcolors is None and amask.all():
                 c = s.colors
-                c[:,3] = alpha
+                c[:, 3] = alpha
                 s.colors = c
             else:
                 if vcolors is None:
                     from numpy import empty, uint8
-                    vcolors = empty((len(s.vertices),4), uint8)
+                    vcolors = empty((len(s.vertices), 4), uint8)
                     vcolors[:] = s.color
                 v2a = s.vertex_to_atom_map()
                 v = amask[v2a]
-                vcolors[v,3] = alpha
+                vcolors[v, 3] = alpha
                 s.vertex_colors = vcolors
         what.append('%d surfaces' % len(surfs))
 
     if 'c' in target:
         residues = atoms.unique_residues
         c = residues.ribbon_colors
-        c[:,3] = alpha
+        c[:, 3] = alpha
         residues.ribbon_colors = c
         what.append('%d residues' % len(residues))
 

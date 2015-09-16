@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def stop(session):
     '''Stop a motion initiated with turn, roll or move with the frames argument.'''
     from .motion import CallForNFrames
@@ -7,6 +8,7 @@ def stop(session):
         return
     for mip in tuple(getattr(session, CallForNFrames.Attribute)):
         mip.done()
+
 
 def register_command(session):
     from . import cli

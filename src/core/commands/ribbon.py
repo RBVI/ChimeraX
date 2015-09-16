@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def ribbon(session, spec=None):
     '''Display ribbons for specified residues.
 
@@ -15,6 +16,7 @@ def ribbon(session, spec=None):
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = True
 
+
 def unribbon(session, spec=None):
     '''Undisplay ribbons for specified residues.
 
@@ -29,6 +31,7 @@ def unribbon(session, spec=None):
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = False
 
+
 def register_command(session):
     from . import cli
     from . import atomspec
@@ -36,6 +39,5 @@ def register_command(session):
                        synopsis='display ribbon for specified residues')
     cli.register('ribbon', desc, ribbon)
     desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
-                             synopsis='display ribbon for specified residues')
+                       synopsis='display ribbon for specified residues')
     cli.register('~ribbon', desc, unribbon)
-

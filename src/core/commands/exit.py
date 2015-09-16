@@ -1,8 +1,10 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def exit(session):
     '''Quit the program.'''
     session.ui.quit()
+
 
 def register_command(session):
     from . import cli

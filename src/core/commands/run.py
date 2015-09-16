@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def run(session, text, downgrade_errors=False):
     """execute a textual command
 
@@ -21,6 +22,7 @@ def run(session, text, downgrade_errors=False):
             session.logger.info(str(err))
         else:
             session.logger.error(str(err))
+
 
 def register_command(session):
     from . import cli
