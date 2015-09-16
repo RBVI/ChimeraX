@@ -1,0 +1,285 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: movie</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: movie</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>movie</b> &nbsp;<i>action</i>
+&nbsp;<a href="#options"><i>options</i></a></h3>
+<p>
+The <b>movie</b> command captures image frames from Chimera2
+and assembles them into a video (movie file).
+This command is defined by a Chimera2 tool.
+See also: <b>save</b>
+</p><p>
+One of the following <b><i>action</i></b> keywords must be specified:
+<ul>
+<li><a href="#record-options"><b>record</b></a>
+- start recording frames
+<li><a href="#encode-options"><b>encode</b></a>
+- stop any ongoing recording and
+encode the saved image frames into a movie file
+<li><b>stop</b> 
+- stop recording frames
+<li><a href="#reset-options"><b>reset</b></a>
+- reset status to zero frames saved
+<li><b>abort</b>
+- halt any encoding in progress and perform a <b>reset</b>
+<li><a href="#crossfade"><b>crossfade</b></a>
+- interpolate from the preceding frame to the following frame
+<li><a href="#duplicate"><b>duplicate</b></a>
+- expand the preceding frame into multiple frames
+<li><a href="#ignore"><b>ignore</b></a>
+- start/stop ignoring subsequent <b>movie</b> commands
+<li><b>formats</b>
+- list the available movie file formats
+<li><b>status</b>
+- report status (number of saved frames, <i>etc.</i>)
+in the <b>Log</b>
+</ul>
+<a name="options">
+Actions may have specific options and arguments, described below.
+</a>
+Action and option keywords can be truncated.
+Default values are indicated with <b>bold</b>.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
+</p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="record-options"><b>movie record</b></a> options:
+<blockquote>
+  <a name="supersample">
+  <b>supersample</b> <i>N</i></a>
+  <br>
+  Whether to render each image at a higher resolution and then sample it 
+  down to the final size.
+  Increasing <b><i>N</i></b> increases the smoothness of edges
+  within images and the calculation time with little effect on file size.
+  <b><i>N</i></b> is the number of pixels sampled in the X and Y dimensions 
+  for each pixel in the final saved image.
+  Useful values range from 1 (no supersampling) to 4 (4x4 supersampling), 
+  with 3 recommended when supersampling is done.
+  In addition, a value of 0 can be used to indicate onscreen rather than
+  offscreen rendering, without supersampling.
+  A potential disadvantage of over-supersampling is that lines
+  such as silhouettes or hydrogen-bond representations in the 
+  final images may become unacceptably thin because there is a limit
+  to how wide they can be in the initial images.
+</blockquote><blockquote>
+  <a name="size">
+  <b>size</b> <i>width,height</i></a>
+  <br>Generate images at the specified pixel <i>width</i> and <i>height</i>
+  by offscreen rendering. This option allows creating movies with 
+  image dimensions larger than the Chimera window; if size is not given,
+  the dimensions of the Chimera graphics window will be used.
+  If the specified aspect ratio (the ratio of <i>width</i> to <i>height</i>)
+  does not match that of the graphics window, the movie will show more or
+  less of the scene vertically than is visible in the graphics window.
+</blockquote><blockquote>
+  <b>format</b> jpeg&nbsp;|&nbsp;png&nbsp;|&nbsp;<b>ppm</b>
+  <br>
+  The format of saved image files. 
+</blockquote><blockquote>
+  <b>directory</b> <i>image-directory</i>
+  <br>Where image files should be saved; the default varies by platform.
+</blockquote><blockquote>
+  <b>pattern</b> <i>filename-pattern</i>
+  <br>The <i>filename-pattern</i> is a
+  string to use when naming the image files; the default
+  is <b>chimovie_xxxx-*</b>, where <b>xxxx</b> is replaced by 
+  random characters and <b>*</b> is replaced by the frame number
+  (for example, 00001, 00002, <i>etc.</i>).  Any specified 
+  <i>filename-pattern</i> should include one and only one <b>*</b>,
+  which will be replaced by the frame number.
+</blockquote><blockquote>
+  <b>limit</b> &nbsp;<i>maxframes</i>
+  <br> 
+  Record no more than <i>maxframes</i> image frames (default <b>15000</b>).
+  This safeguards against creating too many image files, as may
+  occur with certain scripting errors.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="encode-options"><b>movie encode</b></a> options:
+<blockquote>
+  <a name="output"><b>output</b></a> &nbsp;<i>pathname</i> 
+  <br>The <i>pathname</i> is the name and location of the output movie file 
+  (<font color="red">default <b>~/Desktop/movie.mp4</b></font>).
+  If file name but not location is given, the default location is the 
+  current directory, typically the same location as the movie-making script.
+  The output file format can be indicated by
+  <a href="#suffix">filename suffix</a>
+  or with the <a href="#format"><b>format</b></a> option.
+  The <b>output</b> keyword can be omitted if the pathname precedes
+  any other options, and in that case, multiple pathnames with different
+  suffixes can be given to produce multiple outputs of different formats
+  (example: <b>movie encode a.mp4 b.webm</b>).
+  If the <b>output</b> keyword is used, the option can 
+  appear anywhere in the command, even multiple times in a single command,
+  but only a single pathname can be given per use of the keyword.
+</blockquote><blockquote>
+  <a name="format"><b>format</b></a> &nbsp;h264&nbsp;|&nbsp;vp8&nbsp;|&nbsp;theora&nbsp;|&nbsp;mov&nbsp;|&nbsp;avi&nbsp;|&nbsp;mp4&nbsp;|&nbsp;mp2&nbsp;|&nbsp;mpeg&nbsp;|&nbsp;wmv
+  <br>
+Encode the movie in the specified format.  
+Format keywords and their synonyms are listed in the table below.
+Alternatively, the format can be specified by <a href="#output">output</a>
+filename suffix;
+where formats share a suffix, the newer format (higher in the table)
+will be used. The available formats can be listed with the command
+<a href="#top"><b>movie formats</b></a>.
+
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center"><b>format keyword, <br>synonyms</b></td>
+<td align="center"><b>format</b></td>
+<td align="center"><b><a name="suffix">filename suffix</a></b></td>
+</tr><tr>
+<td align="center">h264</td><td align="center">H.264
+<br>(default on Mac, Windows)</td>
+<td align="center">.mp4</td>
+</tr><tr>
+<td align="center">vp8<br>webm</td><td align="center">VP8/WebM 
+<br>(default on Linux)</td>
+<td align="center">.webm</td>
+</tr><tr>
+<td align="center">theora<br>ogg<br>ogv</td><td align="center">Theora</td>
+<td align="center">.ogv</td>
+</tr><tr>
+<td align="center">mov<br>qt<br>quicktime</td><td align="center">Quicktime</td>
+<td align="center">.mov</td>
+</tr><tr>
+<td align="center">avi</td><td align="center">AVI MSMPEG-4v2</td>
+<td align="center">.avi</td>
+</tr><tr>
+<td align="center">mp4</td><td align="center">MPEG-4</td>
+<td align="center">.mp4</td>
+</tr><tr>
+<td align="center">mp2</td><td align="center">MPEG-2</td>
+<td align="center">.mpg</td>
+</tr><tr>
+<td align="center">mpeg</td><td align="center">MPEG-1</td>
+<td align="center">.mpg</td>
+</tr><tr>
+<td align="center">wmv</td><td align="center">WMV2</td>
+<td align="center">.wmv</td>
+</tr></table>
+</blockquote><blockquote>
+  <a name="quality"><b>quality</b></a> 
+highest&nbsp;|&nbsp;higher&nbsp;|&nbsp;high&nbsp;|&nbsp;<b>good</b>&nbsp;|&nbsp;medium&nbsp;|&nbsp;fair&nbsp;|&nbsp;low
+  <br>
+  Encode the movie to play back at a variable bit rate
+  appropriate for the specified quality level.
+  Higher quality corresponds to a higher bit rate and a larger file
+  (at a given window size and <a href="#framerate">frame rate</a>).
+  For constant bit rate encoding, the <a href="#bitrate"><b>bitrate</b></a>
+  option should be used instead.
+</blockquote><blockquote>
+  <font color="red">
+  <b>qscale</b> <i>N</i> ??
+  <br>
+  </font>
+</blockquote><blockquote>
+  <a name="bitrate"><b>bitrate</b></a> <i>rate</i>
+  <br>
+  Encode the movie to play back at a constant bit rate, where
+  <i>rate</i> is the target rate in Kbits/s.
+  Generally, 200 Kbits/s gives low quality, 1000 medium, and 6000 high,
+  but this strongly depends on image dimensions and the amount of motion.
+  For HD movies (1920 x 1080 pixels), a rate of 25000 Kbits/s
+  would be expected to give high quality.
+  For variable bit rate encoding, the <a href="#quality"><b>quality</b></a>
+  option should be used instead.
+</blockquote><blockquote>
+  <a name="framerate"><b>framerate</b></a> <i>fps</i>
+  <br>The frame rate is the rate of playback in terms of image frames.  
+  The frame rate <i>fps</i> is an integer and defaults to <b>25</b> frames/s.
+</blockquote><blockquote>
+  <b>roundtrip</b> true&nbsp;|&nbsp;<b>false</b>
+  <br>Whether to include the frames in reverse order as the second half
+  of the movie.
+</blockquote><blockquote>
+  <b>resetMode</b> <b>clear</b>&nbsp;|&nbsp;keep&nbsp;|&nbsp;none
+  <br> By default, a <i><b>reset</b></i> of the frame counter to zero
+  will occur when movie encoding is complete. At the same time, the image files
+  can be deleted (<b>clear</b>, default) or retained (<b>keep</b>) for
+  some other purpose, such as movie encoding with a different program.
+  The third option, <b>none</b>, indicates that no reset should occur: 
+  the frame counter should not be zeroed and the images should not be deleted.
+  This allows subsequently re-encoding the movie using the same set of images.
+</blockquote><blockquote>
+  <a name="wait">
+  <b>wait</b> true&nbsp;|&nbsp;<b>false</b></a>
+  <br>Whether to wait for encoding to finish before proceeding.
+If multiple movies are being recorded back-to-back, it is necessary
+to wait until one is encoded before starting to record the next,
+because any recording will be halted automatically when encoding finishes.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="reset-options"><b>movie reset</b></a> 
+  [&nbsp;<b>resetMode</b> <b>clear</b>&nbsp;|&nbsp;keep&nbsp;]
+<blockquote>
+  Reset the frame counter to zero, either deleting the image files
+  (<b>clear</b>, default) or retaining them (<b>keep</b>)
+  for some other purpose such as movie encoding with a different program.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="crossfade"><b>movie crossfade</b></a>
+[&nbsp;<b>frames</b> &nbsp;<i>N</i>&nbsp;]
+<blockquote>
+<i>N</i> is the number of frames in the crossfade transition 
+(default <b>25</b>), and can be given without the <b>frames</b> keyword.
+The transition is
+a linear interpolation from the preceding image frame to the image frame
+specified right after the crossfade.
+<font color="red">The crossfade transition will not
+be shown during recording, but will be in the resulting movie.
+See the
+<a href="http://www.cgl.ucsf.edu/chimera/data/movie-howto-mar2012/movie_examples
+.html#crossfade"
+target="_blank">video mini-example</a>.
+</font>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="duplicate"><b>movie duplicate</b></a>
+[&nbsp;<b>frames</b> &nbsp;<i>N</i>&nbsp;]
+<blockquote>
+<i>N</i> is the number of times to duplicate the preceding image frame 
+(default <b>25</b>), and can be given without the <b>frames</b> keyword.
+The duplicates will not be shown during recording, 
+but will be in the resulting movie. 
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="ignore"><b>movie ignore</b></a>
+[&nbsp;<b>on</b>&nbsp;|&nbsp;off&nbsp;]
+<blockquote>
+Start ignoring subsequent <b>movie</b> commands
+(no keyword, or equivalently the keyword <b>on</b>, <b>true</b>, or <b>1</b>)
+or stop ignoring them (keyword <b>off</b>, <b>false</b>, or <b>0</b>).
+Ignoring <b>movie</b> commands may be useful during 
+script (movie content) development.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+September 2015</address>
+</body></html>
