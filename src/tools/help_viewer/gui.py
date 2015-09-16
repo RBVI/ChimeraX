@@ -83,7 +83,7 @@ class HelpUI(ToolInstance):
             from chimera.core.commands import run
             event.Veto()
             cmd = url.split(':', 1)[1]
-            run(cmd)
+            run(session, cmd)
             return
         # TODO: check if http url is within chimera docs
         # TODO: handle missing doc -- redirect to web server
