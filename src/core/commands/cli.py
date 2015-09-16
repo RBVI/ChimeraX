@@ -338,10 +338,9 @@ class Aggregate(Annotation):
             self.max_size = max_size
         if name is None:
             if ',' in annotation.name:
-                name = "a collection of %s" % annotation.name
+               self.name = "a collection of %s" % annotation.name
             else:
-                name = discard_article(annotation.name)
-                name = "some %s(s)" % name
+                self.name = "some %s(s)" % discard_article(annotation.name)
         self.prefix = prefix
 
     def add_to(self, container, element):
@@ -641,14 +640,13 @@ class Bounded(Annotation):
         self.max = max
         if name is None:
             if min and max:
-                name = "%s <= %s <= %s" % (min, annotation.name, max)
-                name = "%s >= %s and <= %s" % (annotation.name, min, max)
+                self.name = "%s >= %s and <= %s" % (annotation.name, min, max)
             elif min:
-                name = "%s >= %s" % (annotation.name, min)
+                self.name = "%s >= %s" % (annotation.name, min)
             elif max:
-                name = "%s <= %s" % (annotation.name, max)
+                self.name = "%s <= %s" % (annotation.name, max)
             else:
-                name = annotation.name
+                self.name = annotation.name
 
     def parse(self, text, session):
         value, new_text, rest = self.anno.parse(text, session)
@@ -730,7 +728,7 @@ class Or(Annotation):
         Annotation.__init__(self, name, url)
         self.annotations = annotations
         if name is None:
-            name = commas([a.name for a in annotations])[0]
+            self.name = commas([a.name for a in annotations])[0]
 
     def parse(self, text, session):
         for anno in self.annotations:
