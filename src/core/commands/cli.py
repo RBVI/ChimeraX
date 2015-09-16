@@ -698,9 +698,9 @@ class EnumOf(Annotation):
         self.values = values
         if name is None:
             if len(self.ids) == 1:
-                name = "'%s'" % self.ids[0]
+                self.name = "'%s'" % self.ids[0]
             else:
-                name = "one of %s" % commas(["'%s'" % i for i in self.ids])[0]
+                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])[0]
 
     def parse(self, text, session):
         token, text, rest = next_token(text)
