@@ -54,8 +54,8 @@ def standard_shortcuts(session):
         ('Qt', 'quit', 'Quit', ocat, noarg, fmenu),
 
         # Scene
-        ('va', 'view', 'View all', gcat, viewarg, smenu),
-        ('dv', default_view, 'Default orientation', gcat, viewarg, smenu),
+        ('va', 'view', 'View all', gcat, noarg, smenu),
+        ('dv', 'view orient', 'Default orientation', gcat, noarg, smenu),
 #        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
@@ -810,9 +810,6 @@ def show_triangle_count(session):
     log = session.logger
     log.status(msg)
     log.info(msg)
-
-def default_view(view):
-    view.initial_camera_view()
 
 def toggle_leap(session):
     from chimera.core.devices import c2leap
