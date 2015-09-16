@@ -1,8 +1,8 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def help(session, command_name=None):
-    '''Display help.
+def usage(session, command_name=None):
+    '''Display command usage.
 
     Parameters
     ----------
@@ -16,6 +16,7 @@ def help(session, command_name=None):
     status = session.logger.status
     info = session.logger.info
     if command_name is None:
+        info("Use 'usage <command>' for a command synopsis.")
         info("Use 'help <command>' to learn more about a command.")
         cmds = cli.registered_commands()
         if len(cmds) > 0:
@@ -58,4 +59,4 @@ def register_command(session):
     from . import cli
     desc = cli.CmdDesc(optional=[('command_name', cli.RestOfLine)],
                        synopsis='show command usage')
-    cli.register('help', desc, help)
+    cli.register('usage', desc, usage)
