@@ -62,7 +62,7 @@ def standard_shortcuts(session):
 #        ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
         ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
         ('hm', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
-        ('Ds', delete_selected_models, 'Delete selected models', ocat, sesarg, smenu, sep),
+        ('Ds', 'close sel', 'Delete selected models', ocat, noarg, smenu, sep),
         ('cs', s.selection.clear, 'Clear selection', gcat, noarg, smenu),
 
         ('bk', 'set bg black', 'Black background', gcat, noarg, smenu),
@@ -693,12 +693,6 @@ def display_selected_models(session):
 def hide_selected_models(session):
     for m in shortcut_models(session):
         m.display = False
-
-def delete_selected_models(session):
-    session.models.close(session.selection.models())
-
-def show_map_full_resolution(m):
-    m.new_region(ijk_step = (1,1,1), adjust_step = False)
 
 def color_by_bfactor(atoms):
     from time import time
