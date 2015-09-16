@@ -63,7 +63,7 @@ def standard_shortcuts(session):
         ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
         ('hm', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
         ('Ds', 'close sel', 'Delete selected models', ocat, noarg, smenu, sep),
-        ('cs', s.selection.clear, 'Clear selection', gcat, noarg, smenu),
+        ('cs', 'select clear', 'Clear selection', gcat, noarg, smenu),
 
         ('bk', 'set bg black', 'Black background', gcat, noarg, smenu),
         ('wb', 'set bg white', 'White background', gcat, noarg, smenu),
