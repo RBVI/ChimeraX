@@ -524,7 +524,7 @@ def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
     from bs4 import BeautifulSoup
     # return BeautifulSoup(html).get_text() -- loses line breaks
-    bs = BeautifulSoup(html)
+    bs = BeautifulSoup(html, 'html.parser')
     x = []
     for result in bs:
         s = result.string

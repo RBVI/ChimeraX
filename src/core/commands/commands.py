@@ -1,13 +1,14 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module
-    modules = ['buriedarea', 'camera', 'close', 'color', 'crossfade', 'crosslinks',
-               'delete', 'display', 'echo', 'exit', 'export', 'help', 'lighting', 'list', 'material', 
+    modules = ['buriedarea', 'camera', 'close', 'color', 'colordef', 'crossfade', 'crosslinks',
+               'delete', 'display', 'echo', 'exit', 'export', 'lighting', 'list', 'material',
                'move', 'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'ribbon', 'run',
                'sasa', 'save', 'scolor', 'set', 'split', 'stop', 'style', 'surface', 'sym',
-               'transparency', 'turn', 'view', 'wait']
+               'transparency', 'turn', 'usage', 'view', 'wait']
     for mod in modules:
         m = import_module('chimera.core.commands.%s' % mod)
         m.register_command(session)

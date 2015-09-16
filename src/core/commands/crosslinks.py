@@ -123,8 +123,7 @@ class interpolate_position:
             self.frame += 1
 
 def register_command(session):
-    from . import cli
-    from .color import ColorArg
+    from . import cli, ColorArg
     desc = cli.CmdDesc(optional = [('pbgroups', cli.PseudobondGroupsArg)],
                        keyword = [('color', ColorArg),
                                   ('radius', cli.FloatArg),

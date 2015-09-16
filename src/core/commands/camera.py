@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def camera(session, mode=None, field_of_view=None, eye_separation=None,
            screen_width=None, depth_scale=None):
     '''Change camera parameters.
@@ -56,6 +57,7 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
                ', %.5g degree field of view' % cam.field_of_view)
         session.logger.status(msg)
 
+
 def register_command(session):
     from . import cli
     # from ..graphics.cameramode import CameraModeArg
@@ -66,7 +68,7 @@ def register_command(session):
             ('eye_separation', cli.FloatArg),
             ('screen_width', cli.FloatArg),
             ('depth_scale', cli.FloatArg),
-            ],
+        ],
         synopsis='adjust camara parameters'
-        )
+    )
     cli.register('camera', desc, camera)

@@ -162,8 +162,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     v.redraw_needed = True
 
 def register_command(session):
-    from .cli import CmdDesc, BoolArg, IntArg, FloatArg, Float3Arg, StringArg, EnumOf, register
-    from .color import ColorArg
+    from . import CmdDesc, register, BoolArg, IntArg, FloatArg, Float3Arg, StringArg, EnumOf, ColorArg
     _lighting_desc = CmdDesc(
         optional = [('preset', EnumOf(('default', 'full', 'soft', 'simple', 'flat')))],
         keyword = [

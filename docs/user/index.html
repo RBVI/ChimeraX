@@ -35,8 +35,14 @@ here termed &ldquo;Chimera1.&rdquo;
  - color atomic models, cartoons, molecular surfaces</li>
  <li><a href="commands/colordef.html"><b>colordef</b></a>
  - define a color name</li>
+ <li><a href="commands/style.html"><b>style</b></a>
+ - set display style of atoms and bonds</li>
  <li><a href="commands/surface.html"><b>surface</b></a>
  - create and display molecular surfaces</li>
+ <li><a href="commands/transparency.html"><b>transparency</b></a>
+ - adjust transparency of atomic models, cartoons, molecular surfaces</li>
+ <li><a href="commands/view.html"><b>view</b></a>
+ - bring all displayed atoms or specified atoms into view</li>
 </ul>
 <li>Command-Related</i>:</li>
  <ul>
@@ -54,13 +60,14 @@ here termed &ldquo;Chimera1.&rdquo;
 </ul>
 
 <p>
-Many more commands exist, but are not yet documented in detail.
+Many more commands exist, but are not yet fully documented.
 Some are in an experimental state and could be changed significantly or
 omitted from later versions of Chimera2.
 Several current commands are listed below.
-The <b>help</b> command can be used to show brief descriptions
-of specific commands or all commands in the <b>Log</b>
-(for example, <b>help style</b> or <b>help all</b>). 
+The <b>usage</b> command can be used to show a brief description of command 
+syntax in the <b>Log</b> (for example, <b>usage set</b> or <b>usage all</b>). 
+The <b>help</b> command will show the full manual page for a command,
+if available, in a separate window (for example, <b>help style</b>).
 Some commands are much the same as the corresponding Chimera1 commands,
 except for the specification differences noted <a href="#top">above</a>.
 </p>
@@ -78,12 +85,8 @@ except for the specification differences noted <a href="#top">above</a>.
 - close model</li> 
 <li><b>list</b>
 - list current models</li>
-<li><b>style</b>
-(with options <b>stick, ball, sphere</b>)</li>
 <li><b>display/~display</b></li>
 <li><b>ribbon/~ribbon</b></li>
-<li><b>view</b>
-- bring everything into view</li>
 <li><b>lighting</b> 
 (with options including <b>soft</b> for ambient occlusion, <b>flat</b> 
 for ambient-only, <b>full</b> with shadows, <b>default</b>)</li>
@@ -111,6 +114,10 @@ target="_blank"><b>vseries</b></a></li>
 - same as Chimera1
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/molmap.html"
 target="_blank"><b>molmap</b></a></li>
+<li><b>fitmap</b>
+- same as Chimera1
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/fitmap.html"
+target="_blank"><b>fitmap</b></a></li>
 <li><b>movie</b>
 - same as Chimera1
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/movie.html"

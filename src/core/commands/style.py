@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def style(session, atoms, atom_style):
     '''Set the atom display style.
 
@@ -21,9 +22,10 @@ def style(session, atoms, atom_style):
         atoms = all_atoms(session)
     atoms.draw_modes = s
 
+
 def register_command(session):
     from . import register, CmdDesc, AtomsArg, EmptyArg, EnumOf, Or
     desc = CmdDesc(required=[("atoms", Or(AtomsArg, EmptyArg)),
                              ('atom_style', EnumOf(('sphere', 'ball', 'stick')))],
-                       synopsis='change atom depiction')
+                   synopsis='change atom depiction')
     register('style', desc, style)

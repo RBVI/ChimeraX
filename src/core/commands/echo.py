@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def echo(session, text=''):
     '''Echo text to the log.
 
@@ -18,6 +19,7 @@ def echo(session, text=''):
         text = rest
     text = ' '.join(tokens)
     session.logger.info(text)
+
 
 def register_command(session):
     from . import cli

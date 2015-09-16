@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def display(session, spec=None):
     '''Display specified atoms.
 
@@ -15,6 +16,7 @@ def display(session, spec=None):
     results = spec.evaluate(session)
     results.atoms.displays = True
 
+
 def undisplay(session, spec=None):
     '''Hide specified atoms.
 
@@ -29,6 +31,7 @@ def undisplay(session, spec=None):
     results = spec.evaluate(session)
     results.atoms.displays = False
 
+
 def register_command(session):
     from . import cli
     from . import atomspec
@@ -36,6 +39,5 @@ def register_command(session):
                        synopsis='display specified atoms')
     cli.register('display', desc, display)
     desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
-                              synopsis='undisplay specified atoms')
+                       synopsis='undisplay specified atoms')
     cli.register('~display', desc, undisplay)
-

@@ -202,7 +202,7 @@ _whitespace = re.compile("\s*")
 
 def commas(text_seq, conjunction=' or', suffix='s'):
     """Return comma separated list of words and suffix
-    
+
     :param text_seq: a sequence of text strings
     :param conjunction: a word with a leading space
     :param suffix: suffix to return if more than one string
@@ -216,6 +216,7 @@ def commas(text_seq, conjunction=' or', suffix='s'):
         return '%s%s %s' % (text_seq[0], conjunction, text_seq[1]), suffix
     text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
     return text, suffix
+
 
 def discard_article(text):
     """remove leading article from text"""
@@ -271,8 +272,14 @@ class Annotation(metaclass=abc.ABCMeta):
         Set to textual description of the annotation, including
         the leading article, *e.g.*, `"a truth value"`.
     """
-    name = "** article name, e.g., _a_ _truth value_ **"
+    name = None  #: article name, *e.g.*, "a truth value"
     url = None  #: URL for help information
+
+    def __init__(self, name=None, url=None):
+        if name is not None:
+            self.name = name
+        if url is not None:
+            self.url = url
 
     @staticmethod
     def parse(text, session):
@@ -295,12 +302,14 @@ class Aggregate(Annotation):
     """Common class for collections of values.
 
     Aggregate(annotation, constructor, add_to, min_size=None, max_size=None,
-            name=None) -> annotation
+            name=None, url=None) -> annotation
 
     :param annotation: annotation for values in the collection.
     :param min_size: minimum size of collection, default `None`.
     :param max_size: maximum size of collection, default `None`.
     :param name: optionally override name in error messages.
+    :param url: optionally give documentation URL.
+    :param prefix: optionally required prefix to aggregate.
 
     This class is typically used via :py:class:`ListOf`, :py:class:`SetOf`,
     or :py:class:`TupleOf`.
@@ -317,10 +326,11 @@ class Aggregate(Annotation):
     separator = ','
 
     def __init__(self, annotation, min_size=None,
-                 max_size=None, name=None, prefix=None):
+                 max_size=None, name=None, url=None, prefix=None):
         if (not issubclass(annotation, Annotation) and
                 not isinstance(annotation, Annotation)):
             raise ValueError("need an annotation, not %s" % annotation)
+        Annotation.__init__(self, name, url)
         self.annotation = annotation
         if min_size is not None:
             self.min_size = min_size
@@ -328,11 +338,9 @@ class Aggregate(Annotation):
             self.max_size = max_size
         if name is None:
             if ',' in annotation.name:
-                name = "a collection of %s" % annotation.name
+               self.name = "a collection of %s" % annotation.name
             else:
-                name = discard_article(annotation.name)
-                name = "some %s(s)" % name
-        self.name = name
+                self.name = "some %s(s)" % discard_article(annotation.name)
         self.prefix = prefix
 
     def add_to(self, container, element):
@@ -446,8 +454,9 @@ class TupleOf(Aggregate):
     """
     constructor = tuple
 
-    def __init__(self, annotation, size, name=None):
-        return Aggregate.__init__(self, annotation, size, size, name=name)
+    def __init__(self, annotation, size, name=None, url=None):
+        return Aggregate.__init__(self, annotation, size, size, name=name,
+                                  url=url)
 
     def add_to(self, container, value):
         return container + (value,)
@@ -462,8 +471,9 @@ class DottedTupleOf(Aggregate):
     constructor = tuple
 
     def __init__(self, annotation, min_size=None,
-                 max_size=None, name=None, prefix=None):
-        Aggregate.__init__(self, annotation, min_size, max_size, name, prefix)
+                 max_size=None, name=None, url=None, prefix=None):
+        Aggregate.__init__(self, annotation, min_size, max_size, name, url,
+                           prefix)
         if name is None:
             if ',' in annotation.name:
                 name = "a dotted list of %s" % annotation.name
@@ -614,29 +624,29 @@ class PseudobondGroupsArg(Annotation):
 class Bounded(Annotation):
     """Support bounded numerical values
 
-    Bounded(annotation, min=None, max=None, name=None) -> an Annotation
+    Bounded(annotation, min=None, max=None, name=None, url=None) -> an Annotation
 
     :param annotation: numerical annotation
     :param min: optional lower bound
     :param max: optional upper bound
     :param name: optional explicit name for annotation
+    :param url: optionally give documentation URL.
     """
 
-    def __init__(self, annotation, min=None, max=None, name=None):
+    def __init__(self, annotation, min=None, max=None, name=None, url=None):
+        Annotation.__init__(self, name, url)
         self.anno = annotation
         self.min = min
         self.max = max
         if name is None:
             if min and max:
-                name = "%s <= %s <= %s" % (min, annotation.name, max)
-                name = "%s >= %s and <= %s" % (annotation.name, min, max)
+                self.name = "%s >= %s and <= %s" % (annotation.name, min, max)
             elif min:
-                name = "%s >= %s" % (annotation.name, min)
+                self.name = "%s >= %s" % (annotation.name, min)
             elif max:
-                name = "%s <= %s" % (annotation.name, max)
+                self.name = "%s <= %s" % (annotation.name, max)
             else:
-                name = annotation.name
-        self.name = name
+                self.name = annotation.name
 
     def parse(self, text, session):
         value, new_text, rest = self.anno.parse(text, session)
@@ -652,11 +662,12 @@ class Bounded(Annotation):
 class EnumOf(Annotation):
     """Support enumerated types
 
-    EnumOf(values, ids=None, name=None) -> an Annotation
+    EnumOf(values, ids=None, name=None, url=None) -> an Annotation
 
     :param values: sequence of values
     :param ids: optional sequence of identifiers
     :param name: optional explicit name for annotation
+    :param url: optionally give documentation URL.
 
     .. data: allow_truncated
 
@@ -669,11 +680,12 @@ class EnumOf(Annotation):
 
     allow_truncated = True
 
-    def __init__(self, values, ids=None, name=None):
+    def __init__(self, values, ids=None, name=None, url=None):
         if ids is not None:
             if len(values) != len(ids):
                 raise ValueError("Must have an identifier for "
                                  "each and every value")
+        Annotation.__init__(self, name, url)
         self.values = values
         if ids is not None:
             assert(all([isinstance(x, str) for x in ids]))
@@ -684,10 +696,9 @@ class EnumOf(Annotation):
         self.values = values
         if name is None:
             if len(self.ids) == 1:
-                name = "'%s'" % self.ids[0]
+                self.name = "'%s'" % self.ids[0]
             else:
-                name = "one of %s" % commas(["'%s'" % i for i in self.ids])[0]
-        self.name = name
+                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])[0]
 
     def parse(self, text, session):
         token, text, rest = next_token(text)
@@ -705,23 +716,27 @@ class EnumOf(Annotation):
 class Or(Annotation):
     """Support two or more alternative annotations
 
-    Or(annotation, annotation [, annotation]*, name=None) -> an Annotation
+    Or(annotation, annotation [, annotation]*, name=None, url=None) -> an Annotation
 
     :param name: optional explicit name for annotation
+    :param url: optionally give documentation URL.
     """
 
-    def __init__(self, *annotations, name=None):
+    def __init__(self, *annotations, name=None, url=None):
         if len(annotations) < 2:
             raise ValueError("Need at two alternative annotations")
+        Annotation.__init__(self, name, url)
         self.annotations = annotations
         if name is None:
-            name = commas([a.name for a in annotations])[0]
-        self.name = name
+            self.name = commas([a.name for a in annotations])[0]
 
     def parse(self, text, session):
         for anno in self.annotations:
             try:
                 return anno.parse(text, session)
+            except AnnotationError as err:
+                if err.offset:
+                    raise
             except ValueError:
                 pass
         msg = commas([a.name for a in self.annotations])[0]
@@ -914,6 +929,7 @@ def _upto_semicolon(text):
 
 
 class RestOfLine(Annotation):
+    """Return the rest of the line up to a semicolon"""
     name = "the rest of line"
 
     @staticmethod
@@ -926,6 +942,7 @@ class RestOfLine(Annotation):
 
 
 class WholeRestOfLine(Annotation):
+    """Return the whole rest of the line including semicolons"""
     name = "the rest of line"
 
     @staticmethod
@@ -970,7 +987,7 @@ class Limited(Postcondition):
 
     Limited(name, min=None, max=None) -> Postcondition
 
-    :param name: name of argument to check
+    :param arg_name: name of argument to check
     :param min: optional inclusive lower bound
     :param max: optional inclusive upper bound
 
@@ -978,15 +995,15 @@ class Limited(Postcondition):
     the error is the beginning of the argument, not the end of the line.
     """
 
-    __slots__ = ['name', 'min', 'max']
+    __slots__ = ['arg_name', 'min', 'max']
 
-    def __init__(self, name, min=None, max=None):
-        self.name = name
+    def __init__(self, arg_name, min=None, max=None):
+        self.arg_name = arg_name
         self.min = min
         self.max = max
 
     def check(self, kw_args):
-        arg = kw_args.get(self.name, None)
+        arg = kw_args.get(self.arg_name, None)
         if arg is None:
             # argument not present, must be optional
             return True
@@ -1000,7 +1017,7 @@ class Limited(Postcondition):
             return True
 
     def error_message(self):
-        message = "Invalid argument %s: " % _dq_repr(self.name)
+        message = "Invalid argument %s: " % _dq_repr(self.arg_name)
         if self.min and self.max:
             return message + ("Must be greater than or equal to %s and less"
                               " than or equal to %s" % (self.min, self.max))
@@ -1854,6 +1871,7 @@ def registered_commands(multiword=False):
     """Return a list of the currently registered commands"""
     if not multiword:
         return list(_commands.keys())
+
     def cmds(cmd_map):
         for word in cmd_map.keys():
             what = cmd_map[word]
@@ -1982,7 +2000,7 @@ def alias(session, name='', text=''):
     logger = session.logger if session else None
     if not name:
         # list aliases
-        names = commas(_cmd_alias, '')
+        names = commas(list(_cmd_aliases.keys()), '')[0]
         if names:
             if logger is not None:
                 logger.info('Aliases: %s' % names)

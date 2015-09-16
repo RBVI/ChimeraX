@@ -35,7 +35,6 @@ and their code location is described with the function descriptions.
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
 | `pwd`_ - Present working directory
-| `rcolor`_ - Color ribbons
 | `roll`_ - Rotate models
 | `ribbon`_ - Display atomic structure ribbons
 | `run`_ - Run a user command string
@@ -51,6 +50,7 @@ and their code location is described with the function descriptions.
 | `sym`_ - Show molecular assemblies involving symmetry
 | `title`_ * - Show text titles with graphics
 | `toolshed`_ * - Control the Tool Shed user interface
+| `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
 | `view`_ - Move camera to view all models
 | `volume`_ - Change density map display settings
@@ -76,8 +76,8 @@ color
 
 colordef
 ========
-.. autofunction:: chimera.core.commands.color.colordef
-.. autofunction:: chimera.core.commands.color.uncolordef
+.. autofunction:: chimera.core.commands.colordef.colordef
+.. autofunction:: chimera.core.commands.colordef.uncolordef
 
 command_line
 ============
@@ -195,10 +195,6 @@ pwd
 ===
 .. autofunction:: chimera.core.commands.pwd.pwd
 
-rcolor
-======
-.. autofunction:: chimera.core.commands.color.rcolor
-
 roll
 ====
 .. autofunction:: chimera.core.commands.roll.roll
@@ -267,6 +263,10 @@ Function defined in *chimera.toolshed.cmd*
 .. automodule:: chimera.toolshed.cmd
   :members:
   :member-order: bysource
+
+transparency
+============
+.. autofunction:: chimera.core.commands.transparency.transparency
 
 turn
 ====
