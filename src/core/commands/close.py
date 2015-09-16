@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def close(session, model_ids=None):
     '''
     Close models.
@@ -20,8 +21,9 @@ def close(session, model_ids=None):
             raise UserError(e)
     m.close(mlist)
 
+
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(optional=[('model_ids', cli.ListOf(cli.ModelIdArg))],
-                          synopsis='close models')
+                       synopsis='close models')
     cli.register('close', desc, close)

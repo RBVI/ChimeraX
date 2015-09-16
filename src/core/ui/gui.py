@@ -347,18 +347,14 @@ class MainWindow(wx.Frame, PlainTextLog):
 
         help_menu = wx.Menu()
         menu_bar.Append(help_menu, "&Help")
-        for entry, dir in (('User Guide', 'user'),
+        for entry, topic in (('User Guide', 'user'),
                            ('Quick Start Guide', 'quickstart'),
                            ('Programming Guide', 'devel'),
                            ('PDB images command', 'pdbimages')):
             item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
-            def cb(evt, ses=session, d=dir):
-                from os import path
-                path = path.join(ses.app_data_dir, 'docs', d, 'index.html')
-                import pathlib
-                url = pathlib.Path(path).as_uri()
-                from webbrowser import open
-                open(url)
+            def cb(evt, ses=session, t=topic):
+                from chimera.core.commands import run
+                run(ses, 'help %s' % t)
             self.Bind(wx.EVT_MENU, cb, item)
 
     def _tool_window_destroy(self, tool_window):

@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def wait(session, frames=None):
     '''Wait before proceeding to the next command. Used in movie recording scripts.
 
@@ -19,6 +20,7 @@ def wait(session, frames=None):
         for f in range(frames):
             v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
             v.draw_new_frame()
+
 
 def register_command(session):
     from . import cli

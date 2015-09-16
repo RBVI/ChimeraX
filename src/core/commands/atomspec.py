@@ -103,7 +103,7 @@ class AtomSpecArg(Annotation):
         from ._atomspec import _atomspecParser
         parser = _atomspecParser(parseinfo=True)
         semantics = _AtomSpecSemantics(session)
-        from grako.exceptions import FailedParse
+        from grako.exceptions import FailedParse, FailedSemantics
         try:
             ast = parser.parse(token, "atom_specifier", semantics=semantics)
         except FailedSemantics as e:
@@ -481,10 +481,12 @@ class _Residue(_SubPart):
             start_number = self._number(part.start)
             if part.end is None:
                 end_number = None
+
                 def choose_type(value, v=part.start.lower()):
                     return value.lower() == v
             else:
                 end_number = self._number(part.end)
+
                 def choose_type(value, s=part.start.lower(), e=part.end.lower()):
                     v = value.lower()
                     return v >= s and v <= e
@@ -494,7 +496,7 @@ class _Residue(_SubPart):
                         return value == v
                 else:
                     def choose_number(value, s=start_number, e=end_number):
-                        return value >=s and value <= e
+                        return value >= s and value <= e
             else:
                 choose_number = None
             s = numpy.vectorize(choose_type)(res_names)
@@ -739,7 +741,7 @@ class AtomSpecResults:
                 if len(keep) > 0:
                     atoms = atoms | keep
                     imodels.add(m)
-            elif not m in self._models:
+            elif m not in self._models:
                 imodels.add(m)
         self._atoms = atoms
         self._models = imodels
@@ -875,6 +877,7 @@ def everything(session):
         An AtomSpec instance that matches everything in session.
     """
     return AtomSpecArg.parse('#*', session)[0]
+
 
 # -----------------------------------------------------------------------------
 #

@@ -8,6 +8,7 @@ _SequentialLevels = ["residues", "helix", "helices", "strands",
 
 _CmapRanges = ["full"]
 
+
 def color(session, spec, color=None, target=None, transparency=None,
           sequential=None, cmap=None, cmap_range=None):
     """Color atoms, ribbons, surfaces, ....
@@ -44,7 +45,7 @@ def color(session, spec, color=None, target=None, transparency=None,
     # Decide whether to set or preserve transparency
     opacity = None
     if transparency is not None:
-        opacity = min(255,max(0,int(2.56*(100-transparency))))
+        opacity = min(255, max(0, int(2.56 * (100 - transparency))))
     if getattr(color, 'explicit_transparency', False):
         opacity = color.uint8x4()[3]
 
@@ -66,7 +67,7 @@ def color(session, spec, color=None, target=None, transparency=None,
         if atoms is not None:
             if color in _SpecialColors:
                 c = _computed_atom_colors(atoms, color, opacity)
-                if not c is None:
+                if c is not None:
                     atoms.colors = c
             else:
                 _set_atom_colors(atoms, color, opacity)
@@ -93,14 +94,14 @@ def color(session, spec, color=None, target=None, transparency=None,
         residues = atoms.unique_residues
         if color not in _SpecialColors:
             c = residues.ribbon_colors
-            c[:,:3]= color.uint8x4()[:3]
+            c[:, :3] = color.uint8x4()[:3]
             if opacity is not None:
-                c[:,3] = opacity
+                c[:, 3] = opacity
             residues.ribbon_colors = c
         elif color == 'bychain':
             from ..colors import chain_colors
             c = chain_colors(residues.chain_ids)
-            c[:,3] = residues.ribbon_colors[:,3] if opacity is None else opacity
+            c[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
             residues.ribbon_colors = c
         what.append('%d residues' % len(residues))
 
@@ -134,41 +135,46 @@ def color(session, spec, color=None, target=None, transparency=None,
     from . import cli
     session.logger.status('Colored %s' % cli.commas(what, ' and')[0])
 
+
 def _computed_atom_colors(atoms, color, opacity):
     if color == "byelement":
         c = _element_colors(atoms, opacity)
     elif color == "byhetero":
-        c = _element_colors(atoms, opacity, skip_carbon = True)
+        c = _element_colors(atoms, opacity, skip_carbon=True)
     elif color == "bychain":
         from ..colors import chain_colors
         c = chain_colors(atoms.residues.chain_ids)
-        c[:,3] = atoms.colors[:,3] if opacity is None else opacity
+        c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
     else:
         # Other "colors" do not apply to atoms
         c = None
     return c
 
-def _element_colors(atoms, opacity = None, skip_carbon = False):
+
+def _element_colors(atoms, opacity=None, skip_carbon=False):
     if skip_carbon:
-        atoms= atoms.filter(atoms.element_numbers != 6)
+        atoms = atoms.filter(atoms.element_numbers != 6)
     from ..colors import element_colors
     c = element_colors(atoms.element_numbers)
-    c[:,3] = atoms.colors[:,3] if opacity is None else opacity
+    c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
     return c
+
 
 def _set_atom_colors(atoms, color, opacity):
     c = atoms.colors
-    c[:,:3] = color.uint8x4()[:3]	# Preserve transparency
+    c[:, :3] = color.uint8x4()[:3]    # Preserve transparency
     if opacity is not None:
-        c[:,3] = opacity
+        c[:, 3] = opacity
     atoms.colors = c
+
 
 def _set_ribbon_colors(residues, color, opacity):
     c = residues.ribbon_colors
-    c[:,:3] = color.uint8x4()[:3]	# Preserve transparency
+    c[:, :3] = color.uint8x4()[:3]    # Preserve transparency
     if opacity is not None:
-        c[:,3] = opacity
+        c[:, 3] = opacity
     residues.ribbon_colors = c
+
 
 # -----------------------------------------------------------------------------
 #
@@ -204,6 +210,7 @@ def _set_sequential_chain(selected, cmap, opacity, target):
 _SequentialColor = {
     "chains": _set_sequential_chain,
 }
+
 
 # -----------------------------------------------------------------------------
 #

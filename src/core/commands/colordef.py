@@ -1,6 +1,7 @@
 import re
 ColorNames = re.compile(r'[a-z][-_a-z0-9 ]*')
 
+
 def _find_named_color(color_dict, name):
     # handle color names with spaces
     # returns key, value, part of name that was unused
@@ -124,4 +125,3 @@ def register_command(session):
                 synopsis="remove color definition"),
         uncolordef
     )
-

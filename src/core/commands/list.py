@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def list(session):
     '''List the open model ids and names.'''
     models = session.models.list()
@@ -16,6 +17,7 @@ def list(session):
     from .cli import commas
     info, suffix = commas([id_str(id) for id in ids], ' and')
     session.logger.info("Open model%s: %s" % (suffix, info))
+
 
 def register_command(session):
     from . import cli
