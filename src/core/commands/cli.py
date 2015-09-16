@@ -710,7 +710,7 @@ class EnumOf(Annotation):
             else:
                 if ident.casefold() == folded:
                     return self.values[i], ident, rest
-        raise AnnotationError("Invalid %s" % self.name)
+        raise AnnotationError("Should be %s" % self.name)
 
 
 class Or(Annotation):
