@@ -1,6 +1,7 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
-
 from .motion import CallForNFrames
+
+
 def roll(session, axis=(0, 1, 0), angle=1.5, frames=CallForNFrames.Infinite):
     '''Rotate the scene.  Same as the turn command with infinite frames argument.
 
@@ -16,6 +17,7 @@ def roll(session, axis=(0, 1, 0), angle=1.5, frames=CallForNFrames.Infinite):
     from .turn import turn
     turn(session, axis, angle, frames)
 
+
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(
@@ -23,5 +25,5 @@ def register_command(session):
                   ('angle', cli.FloatArg),
                   ('frames', cli.PositiveIntArg)],
         synopsis='rotate models'
-        )
+    )
     cli.register('roll', desc, roll)

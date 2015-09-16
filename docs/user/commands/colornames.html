@@ -13,11 +13,6 @@ software or any revisions or derivations thereof.
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command-Line Color Specification</title>
 </head><body>
-<p>
-Compare to
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/color.html#colorname">Chimera1 color specification</a>.
-</p>
-<hr>
 
 <a name="top"></a>
 <a href="../index.html">
@@ -26,33 +21,79 @@ class="clRight" alt="Chimera2 logo"/></a>
 
 <h3>Command-Line Color Specification</h3>
 <p>
-Colors can be specified in commands with:
+Colors can be specified in commands
+(<a href="color.html"><b>color</b></a>, <i>etc.</i>) with:
 </p>
 <ul>
-<li><a href="http://www.w3schools.com/cssref/css_colornames.asp"
-target="_blank">CSS color names</a>,
+<li>CSS color names except in lowercase only, 
 optionally with spaces between words
-<li>names defined previously with the 
+<!-- 141 names in CSS3 specification -->
+  <ul>
+  <li><a href="https://en.wikipedia.org/wiki/Web_colors#X11_color_names"
+  target="_blank">grouped by similarity</a>
+  <li><a href="http://www.w3schools.com/cssref/css_colornames.asp"
+  target="_blank">listed alphabetically</a>
+  </ul>
+<li>color names defined previously with the 
 <a href="colordef.html"><b>colordef</b></a> command
-<li>CSS <b>hex</b> format (hexadecimal) 
-<li>CSS format for colorspaces:
-<b>rgb</b> (red, green, blue), 
-<b>rgba</b> (red, green, blue, opacity), 
-<b>hsl</b> (hue, saturation, lightness), 
-<b>hsla</b> (hue, saturation, lightness, opacity),
-<b>gray</b> (grayscale)
+<li>hexadecimal format starting with # and encoding
+<b>rgb</b> (3 or 6 digits) or <b>rgba</b> (4 or 8 digits)
+<li><a href="http://www.w3schools.com/cssref/css_colors_legal.asp"
+target="_blank">CSS-like specifications</a> in the following formats:
+  <ul>
+  <li><b>rgb(<i>red, green, blue</i>)</b>
+  <li><b>rgba(<i>red, green, blue, alpha</i>)</b>
+  <li><b>hsl(<i>hue, saturation, lightness</i>)</b>
+  <li><b>hsla(<i>hue, saturation, lightness, alpha</i>)</b>
+  <li><b>gray(<i>grayscale</i>)</b> 
+  </ul>
+The colorspace name must be in lowercase and immediately precede 
+the open parenthesis.  Otherwise, embedded spaces are allowed.
+Values for <i>red</i>, <i>green</i>, <i>blue</i>, <i>alpha</i>
+(increasing transparent &rarr; opaque), <i>saturation</i>, <i>lightness</i>,
+and <i>grayscale</i> (increasing black &rarr; white) can be given as:
+  <ul>
+  <li> percentages indicated with %
+  <li> fractional values in the range 0-1, indicated with a decimal point
+  (for example, 1. rather than 1)
+  </ul>
+The <i>red</i>, <i>green</i>, <i>blue</i>, and <i>grayscale</i> 
+components can also be expressed as whole numbers in the range 0-255. 
+Values for <i>hue</i> are in the range 0-360,
+corresponding to angular positions on the color wheel.
+<!--
+<li>as a shorthand, 
+the following without embedded spaces and in percentages only (no % required):
+  <ul>
+  <li><b><i>red,green,blue</i></b>
+  <li><b><i>red,green,blue,alpha</i></b>
+  </ul>
+-->
 </ul>
-</p><p>
+<p>
+Color names from CSS or <a href="colordef.html"><b>colordef</b></a>
+can be truncated, with ambiguous truncations 
+going to the shortest of the matching full color names.
+</p>
+
+<h3>Examples</h3>
+<p>
 The following all specify the same color:
 </p>
 <blockquote>
 red<br>
 #f00<br>
-#0xff0000<br>
+#FF0000FF<br>
 rgb(255, 0, 0)<br>
-rgb(100%, 0, 0)<br>
-rgba(100%, 0, 0, 1)<br>
-rgba(100%, 0, 0, 100%)<br>
+rgb(1., 0., 0.)<br>
+rgb(100%, 0%, 0%)<br>
+rgba(100%, 0%, 0%, 1)<br>
+rgba(100%, 0%, 0%, 100%)<br>
+<!--
+100,0,0</br>
+100,0,0,100</br>
+-->
+hsl(0, 1.0, 0.5)<br>
 hsl(0, 100%, 50%)
 </blockquote>
 The following specify the same shade of gray:
@@ -63,5 +104,5 @@ gray(50%)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2015</address>
+September 2015</address>
 </body></html>

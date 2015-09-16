@@ -1,6 +1,7 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
-def turn(session, axis = (0,1,0), angle = 1.5, frames=None):
+
+def turn(session, axis=(0, 1, 0), angle=1.5, frames=None):
     '''Rotate the scene.  Actually the camera is rotated about the scene center of rotation.
 
     Parameters
@@ -27,6 +28,7 @@ def turn(session, axis = (0,1,0), angle = 1.5, frames=None):
         from . import motion
         motion.CallForNFrames(rotate, frames, session)
 
+
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(
@@ -34,5 +36,5 @@ def register_command(session):
                   ('angle', cli.FloatArg)],
         optional=[('frames', cli.PositiveIntArg)],
         synopsis='rotate models'
-        )
+    )
     cli.register('turn', desc, turn)

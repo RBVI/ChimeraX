@@ -1,5 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def move(session, axis, distance, frames=None):
     '''Shift the scene.  Actually the camera is shifted and the models stay fixed.
 
@@ -26,6 +27,7 @@ def move(session, axis, distance, frames=None):
         from . import motion
         motion.CallForNFrames(translate, frames, session)
 
+
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(
@@ -33,5 +35,5 @@ def register_command(session):
                   ('distance', cli.FloatArg)],
         optional=[('frames', cli.PositiveIntArg)],
         synopsis='translate models'
-        )
+    )
     cli.register('move', desc, move)

@@ -111,7 +111,8 @@ class Render:
     def draw_depth_only(self, depth_only=True):
         # Enable only shader geometry, no colors or lighting.
         if depth_only:
-            d = ~(self.SHADER_INSTANCING | self.SHADER_SHIFT_AND_SCALE)
+            d = ~(self.SHADER_INSTANCING | self.SHADER_SHIFT_AND_SCALE |
+                  self.SHADER_TRANSPARENT_ONLY | self.SHADER_OPAQUE_ONLY)
         else:
             d = 0
         self.disable_capabilities = d
@@ -125,7 +126,8 @@ class Render:
         SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D,
         SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_MASK,
-        SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS
+        SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
+        SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
@@ -834,6 +836,8 @@ shader_options = (
     'SHADER_DEPTH_OUTLINE',
     'SHADER_VERTEX_COLORS',
     'SHADER_FRAME_NUMBER',
+    'SHADER_TRANSPARENT_ONLY',
+    'SHADER_OPAQUE_ONLY',
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)

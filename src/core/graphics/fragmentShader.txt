@@ -97,6 +97,16 @@ void main (void)
   vec4 fcolor = color;
 #endif
 
+#ifdef USE_TRANSPARENT_ONLY
+  if (fcolor.a >= 0.99)
+    discard;
+#endif
+
+#ifdef USE_OPAQUE_ONLY
+  if (fcolor.a < .99)
+    discard;
+#endif
+
 #ifdef USE_LIGHTING
   // Unit normal, with two-sided lighting.
   vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);

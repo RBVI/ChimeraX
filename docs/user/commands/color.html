@@ -24,12 +24,14 @@ class="clRight" alt="Chimera2 logo"/></a>
 <BR><b>color</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 &nbsp;<a href="#colorname"><i>colorname</i></a>&nbsp;
+[&nbsp;transparency &nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<a href="#target">target</a> &nbsp;<i>string</i>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>color</b>
 &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
 &nbsp;<b>sequential chains</b>
+[&nbsp;transparency &nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<a href="#target">target</a> &nbsp;<i>string</i>&nbsp;]
 [&nbsp;<b>cmap</b> &nbsp;<i>palette</i>&nbsp;]
 </h3>
@@ -37,7 +39,9 @@ class="clRight" alt="Chimera2 logo"/></a>
 The <b>color</b> command colors atomic models, including
 cartoon and molecular surface representations. 
 See <a href="#examples">examples</a> below.
-See also: <a href="colordef.html"><b>colordef</b></a>, <b>volume</b>
+See also: <a href="colordef.html"><b>colordef</b></a>, 
+<a href="transparency.html"><b>transparency</b></a>,
+<b>volume</b>
 </p><p>
 The absence of an atom or model specifier implies &ldquo;all.&rdquo;
 Keywords can be truncated to unique strings, and their case does not matter.
@@ -60,7 +64,6 @@ atomic representations and per-atom patches of molecular surfaces
 - color other <a href="#target">targets</a>
 (molecular surface patches, <i>etc.</i>) to match the corresponding atoms
 </ul>
-</p><p>
 The <b>sequential chains</b> method applies a range of colors,
 setting a different color for each biopolymer chain in an atomic model.
 Only the biopolymer chains are colored, not ligand and solvent residues,
@@ -69,6 +72,14 @@ Future <b>sequential</b> sub-options will allow setting a different color
 for each residue or secondary structure element along a chain,
 or for each model.
 Sequential coloring always applies to entire models (not parts of models).
+</p><p>
+The <b>transparency</b> option sets transparency
+to the specified <i>percent</i>, where 0% is completely opaque 
+and 100% is completely transparent.  
+Existing transparency is not changed unless this option is used or the
+<i>colorname</i> explicitly <a href="colornames.html">specifies</a> 
+alpha (opacity). An alpha value overrides the
+<b>transparency</b> &nbsp;<i>percent</i> if both are given.
 </p><p>
 The <a name="target"><b>target</b></a> option allows coloring only 
 a subset of the possible displays of a given atom, residue, <i>etc.</i>
@@ -92,7 +103,7 @@ without commas or spaces:
   <li><b>d</b> - distances and other pseudobond labels
 -->
   </ul>
-The default target is all of the above, 
+The default target is all of the above (<b>acs</b>), 
 <font color="brown">
 except that surface coloring is
 not yet implemented for <b>sequential</b> coloring
@@ -172,5 +183,5 @@ surface-only), create new atom attribute named <b>esp</b>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2015</address>
+September 2015</address>
 </body></html>

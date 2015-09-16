@@ -1,7 +1,8 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
-def help(session, command_name=None):
-    '''Display help.
+
+def usage(session, command_name=None):
+    '''Display command usage.
 
     Parameters
     ----------
@@ -15,27 +16,32 @@ def help(session, command_name=None):
     status = session.logger.status
     info = session.logger.info
     if command_name is None:
+        info("Use 'usage <command>' for a command synopsis.")
         info("Use 'help <command>' to learn more about a command.")
         cmds = cli.registered_commands()
-        cmds.sort()
-        if len(cmds) == 0:
-            pass
-        elif len(cmds) == 1:
-            info("The following command is available: %s" % cmds[0])
-        else:
-            info("The following commands are available: %s, and %s"
-                 % (', '.join(cmds[:-1]), cmds[-1]))
+        if len(cmds) > 0:
+            cmds.sort(key=lambda x: x[x[0] == '~':])
+            text, suffix = cli.commas(cmds, ' and')
+            info("The following command%s are available: %s" % (suffix, text))
         return
     elif command_name == 'all':
-        info("Syntax for all commands.")
-        cmds = cli.registered_commands()
-        cmds.sort()
+        info("Syntax for all commands:")
+        cmds = cli.registered_commands(multiword=True)
+        cmds.sort(key=lambda x: x[x[0] == '~':])
+        if not session.ui.is_gui:
+            for name in cmds:
+                try:
+                    info(cli.usage(name))
+                except:
+                    info('%s -- no documentation' % name)
+            return
         for name in cmds:
             try:
                 info(cli.html_usage(name), is_html=True)
             except:
                 from html import escape
-                info('<b>%s</b> no documentation' % escape(name), is_html=True)
+                info('<b>%s</b> &mdash; no documentation' % escape(name),
+                     is_html=True)
         return
 
     try:
@@ -48,8 +54,9 @@ def help(session, command_name=None):
     else:
         info(usage)
 
+
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(optional=[('command_name', cli.RestOfLine)],
-                         synopsis='show command usage')
-    cli.register('help', desc, help)
+                       synopsis='show command usage')
+    cli.register('usage', desc, usage)

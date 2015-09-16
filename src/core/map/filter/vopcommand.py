@@ -35,7 +35,7 @@ from ...errors import UserError as CommandError
 def register_vop_command():
 
     from ...commands import CmdDesc, register, BoolArg, EnumOf, IntArg, Int3Arg
-    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg, RequiredArgs
+    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
 
@@ -218,7 +218,7 @@ def register_vop_command():
                                    ('bond_point_spacing', FloatArg),
                                    ('minimal_bounds', BoolArg),
                                    ('invert', BoolArg)] + ssm_kw,
-                        postconditions=[RequiredArgs('atoms', 'radius')])
+                        required_arguments=('atoms', 'radius'))
     register('vop zone', zone_desc, vop_zone)
 
 # -----------------------------------------------------------------------------

@@ -97,6 +97,8 @@ def point_axis_bounds(points, axis):
     return b
 
 def sphere_bounds(centers, radii):
+    if len(centers) == 0:
+        return None
     from . import _geometry
     b = _geometry.sphere_bounds(centers, radii)
     return Bounds(b[0], b[1])

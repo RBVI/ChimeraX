@@ -1,0 +1,37 @@
+--- wxPython_Phoenix-3.0.3.dev1719+62a2221/wx/lib/agw/aui/framemanager.py.orig	2015-08-11 08:40:03.000000000 -0700
++++ wxPython_Phoenix-3.0.3.dev1719+62a2221/wx/lib/agw/aui/framemanager.py	2015-09-09 16:14:37.599592795 -0700
+@@ -8490,6 +8489,7 @@
+ 
+         pane = self.GetPane(wnd)
+         if not pane.IsOk():
++            return
+             raise Exception("Pane window not found")
+ 
+         if self.GetAGWFlags() & AUI_MGR_ALLOW_ACTIVE_PANE:
+@@ -8508,6 +8508,7 @@
+ 
+         pane = self.GetPane(wnd)
+         if not pane.IsOk():
++            return
+             raise Exception("Pane window not found")
+ 
+         if not pane.IsSnappable():
+@@ -8669,6 +8670,9 @@
+         if not self._frame.GetSizer():
+             return
+ 
++        if not self._frame.IsShown():
++            return
++
+         mouse = wx.GetMouseState()
+         mousePos = wx.Point(mouse.GetX(), mouse.GetY())
+         point = self._frame.ScreenToClient(mousePos)
+@@ -9734,7 +9738,7 @@
+ 
+         # if the pane is still floating, update it's floating
+         # position (that we store)
+-        if paneInfo.IsFloating():
++        if paneInfo.IsFloating() and paneInfo.frame is not None:
+             paneInfo.floating_pos = paneInfo.frame.GetPosition()
+             if paneInfo.frame._transparent != paneInfo.transparent or self._agwFlags & AUI_MGR_TRANSPARENT_DRAG:
+                 paneInfo.frame.SetTransparent(paneInfo.transparent)
