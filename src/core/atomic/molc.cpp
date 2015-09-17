@@ -1341,6 +1341,17 @@ extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *float
     }
 }
 
+extern "C" void structure_start_change_tracking(void *mol, void *vct)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
+    try {
+            m->start_change_tracking(ct);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
@@ -1365,10 +1376,10 @@ extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structur
     }
 }
 
-extern "C" void *structure_new(void *ct, PyObject* logger)
+extern "C" void *structure_new(PyObject* logger)
 {
     try {
-        AtomicStructure *m = new AtomicStructure(static_cast<ChangeTracker*>(ct), logger);
+        AtomicStructure *m = new AtomicStructure(logger);
         return m;
     } catch (...) {
         molc_error();

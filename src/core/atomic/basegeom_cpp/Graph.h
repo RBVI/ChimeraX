@@ -42,6 +42,7 @@ private:
     Edges  _edges;
 
     float  _ball_scale;
+    ChangeTracker*  _change_tracker;
     bool  _display = true;
 
 protected:
@@ -57,6 +58,7 @@ protected:
     const Vertices &  vertices() const { return _vertices; }
 
 public:
+    Graph(): _change_tracker(DiscardingChangeTracker::discarding_change_tracker()) {}
     virtual  ~Graph() {
         // need to assign to variable make it live to end of destructor
         auto du = DestructionUser(this);
@@ -68,7 +70,7 @@ public:
 
     // graphics related
     float  ball_scale() const { return _ball_scale; }
-    virtual ChangeTracker*  change_tracker() const = 0;
+    ChangeTracker*  change_tracker() { return _change_tracker; }
     bool  display() const { return _display; }
     void  set_ball_scale(float bs) {
         if (bs == _ball_scale)
@@ -86,6 +88,7 @@ public:
         change_tracker()->add_modified(dynamic_cast<FinalGraph*>(this),
             ChangeTracker::REASON_DISPLAY);
     }
+    virtual void  start_change_tracking(ChangeTracker* ct) { _change_tracker = ct; }
 };
 
 } //  namespace basegeom

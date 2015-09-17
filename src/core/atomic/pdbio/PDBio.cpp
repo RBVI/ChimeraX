@@ -14,7 +14,6 @@
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/Sequence.h>
-#include <basegeom/ChangeTracker.h>
 #include <basegeom/destruct.h>
 #include <basegeom/Graph.tcc>
 #include <logger/logger.h>
@@ -27,7 +26,6 @@ using atomstruct::AtomicStructure;
 using atomstruct::AtomName;
 using atomstruct::Bond;
 using atomstruct::ChainID;
-using atomstruct::ChangeTracker;
 using atomstruct::CoordSet;
 using atomstruct::Element;
 using atomstruct::MolResId;
@@ -911,8 +909,7 @@ read_fileno(void *f)
 }
 
 PyObject *
-read_pdb(PyObject *pdb_file, ChangeTracker* ct,
-    PyObject *py_logger, bool explode)
+read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode)
 {
     std::vector<AtomicStructure *> file_structs;
     bool reached_end;
@@ -991,7 +988,7 @@ clock_t start_t, end_t;
 #ifdef CLOCK_PROFILING
 start_t = clock();
 #endif
-        AtomicStructure *as = new AtomicStructure(ct, py_logger);
+        AtomicStructure *as = new AtomicStructure(py_logger);
         as->set_name(as_name);
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
           &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
@@ -1160,22 +1157,14 @@ docstr_read_pdb_file =
 extern "C" PyObject *
 read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 {
-    PyObject *pdb_file, *py_ct, *mols;
+    PyObject *pdb_file;
     PyObject *py_logger = Py_None;
     bool explode = true;
-    static const char *kw_list[] = {"file", "change_tracker",
-        "log", "explode", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, keywords, "OO|$Op",
-        (char **) kw_list, &pdb_file, &py_ct, &py_logger, &explode))
-            return NULL;
-    if (!PyLong_Check(py_ct)) {
-        PyErr_SetString(PyExc_ValueError,
-            "change_tracker must be an int (c_void_p.value)");
+    static const char *kw_list[] = {"file", "log", "explode", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Op",
+            (char **) kw_list, &pdb_file, &py_logger, &explode))
         return NULL;
-    }
-    ChangeTracker* ct = static_cast<ChangeTracker*>(PyLong_AsVoidPtr(py_ct));
-    mols = read_pdb(pdb_file, ct, py_logger, explode);
-    return mols;
+    return read_pdb(pdb_file, py_logger, explode);
 }
 
 static struct PyMethodDef pdbio_functions[] =

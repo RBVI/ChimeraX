@@ -63,7 +63,6 @@ private:
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
     mutable Chains*  _chains;
-    ChangeTracker*  _change_tracker;
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
@@ -95,7 +94,7 @@ private:
     mutable std::set<const Residue *>*  _rings_last_ignore;
     bool  _gc_ribbon = false;
 public:
-    AtomicStructure(ChangeTracker* ct, PyObject* logger = nullptr);
+    AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure();
 
     CoordSet *  active_coord_set() const { return _active_coord_set; };
@@ -105,7 +104,6 @@ public:
     std::map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return edges(); }
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
-    ChangeTracker*  change_tracker() const { return _change_tracker; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
     AtomicStructure*  copy() const;
     void  delete_atom(Atom* a);
@@ -156,6 +154,7 @@ public:
     // set_display() inherited from Graph
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }
+    void  start_change_tracking(ChangeTracker* ct);
     void  use_best_alt_locs();
     bool  get_gc_ribbon() const { return _gc_ribbon; }
     void  set_gc_ribbon(bool gc = true) { _gc_ribbon = gc; }

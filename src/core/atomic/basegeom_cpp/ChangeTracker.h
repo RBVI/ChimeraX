@@ -33,16 +33,17 @@ public:
 };
 
 class BASEGEOM_IMEX ChangeTracker {
-private:
+protected:
     static const int  _num_types = 7;
     template<class C>
     int  _ptr_to_type(C*);
 
+    bool  _discarding;
     // vector much faster than map...
     std::vector<Changes>  _type_changes;
 
 public:
-    ChangeTracker() : _type_changes(_num_types) {};
+    ChangeTracker() : _discarding(false), _type_changes(_num_types) {};
 
     static const std::string  REASON_ACTIVE_COORD_SET;
     static const std::string  REASON_ALT_LOC;
@@ -72,12 +73,16 @@ public:
     
     template<class C>
     void  add_created(C* ptr) {
+        if (_discarding)
+            return;
         auto& changes = _type_changes[_ptr_to_type(ptr)];
         changes.created.insert(ptr);
     }
 
     template<class C>
-    void  add_modified(C* ptr, const std::string &reason) {
+    void  add_modified(C* ptr, const std::string& reason) {
+        if (_discarding)
+            return;
         auto& changes = _type_changes[_ptr_to_type(ptr)];
         if (changes.created.find(ptr) == changes.created.end()) {
             // newly created objects don't also go in modified set
@@ -87,8 +92,10 @@ public:
     }
 
     template<class C>
-    void  add_modified(C* ptr, const std::string &reason, const std::string &reason2) {
+    void  add_modified(C* ptr, const std::string& reason, const std::string& reason2) {
         auto& changes = _type_changes[_ptr_to_type(ptr)];
+        if (_discarding)
+            return;
         if (changes.created.find(ptr) == changes.created.end()) {
             // newly created objects don't also go in modified set
             changes.modified.insert(ptr);
@@ -99,6 +106,8 @@ public:
 
     template<class C>
     void  add_deleted(C* ptr) {
+        if (_discarding)
+            return;
         auto& changes = _type_changes[_ptr_to_type(ptr)];
         ++changes.num_deleted;
         changes.created.erase(ptr);
@@ -111,6 +120,15 @@ public:
         "Atom", "Bond", "Pseudobond", "Residue", "Chain",
         "AtomicStructureData", "PseudobondGroupData"
     };
+};
+
+// Before structures are opened in Chimera, they don't generate change-tracking
+// events.  This class enables that by being the "change tracker" until the
+// point that actual change tracking is turned on.
+class BASEGEOM_IMEX DiscardingChangeTracker : public ChangeTracker {
+public:
+    DiscardingChangeTracker() : ChangeTracker() { _discarding = true; }
+    static DiscardingChangeTracker*  discarding_change_tracker();
 };
 
 template <>

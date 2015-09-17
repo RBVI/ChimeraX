@@ -8,7 +8,6 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/tmpl/Atom.h>
 #include <atomstruct/tmpl/Residue.h>
-#include <basegeom/ChangeTracker.h>
 #include <logger/logger.h>
 #include "pythonarray.h"	// Use python_voidp_array()
 #include <readcif.h>
@@ -42,7 +41,6 @@ namespace mmcif {
 
 using atomstruct::AtomName;
 using atomstruct::ChainID;
-using atomstruct::ChangeTracker;
 using atomstruct::ResName;
 
 typedef vector<string> StringVector;
@@ -65,9 +63,8 @@ void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
 struct ExtractMolecule: public readcif::CIFFile
 {
     static const char* builtin_categories[];
-    ChangeTracker* _ct;
     PyObject* _logger;
-    ExtractMolecule(ChangeTracker* ct, PyObject* logger, const StringVector& generic_categories);
+    ExtractMolecule(PyObject* logger, const StringVector& generic_categories);
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
@@ -199,8 +196,8 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
     return out;
 }
 
-ExtractMolecule::ExtractMolecule(ChangeTracker* ct, PyObject* logger, const StringVector& generic_categories):
-    _ct(ct), _logger(logger), first_model_num(INT_MAX)
+ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories):
+    _logger(logger), first_model_num(INT_MAX)
 {
     register_category("audit_conform",
         [this] (bool in_loop) {
@@ -656,7 +653,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
             if (first_model_num == INT_MAX)
                 first_model_num = model_num;
             cur_model_num = model_num;
-            mol = molecules[cur_model_num] = new AtomicStructure(_ct, _logger);
+            mol = molecules[cur_model_num] = new AtomicStructure(_logger);
             cur_residue = nullptr;
         }
 
@@ -1330,57 +1327,48 @@ structure_pointers(ExtractMolecule &e, const char *filename)
     return s_array;
 }
 
-static ChangeTracker*
-pyobj2ctp(PyObject* change_tracker_ptr)
-{
-    if (!PyLong_Check(change_tracker_ptr))
-        throw std::invalid_argument("change_tracker must be an int (c_void_p.value)");
-    return static_cast<ChangeTracker*>(PyLong_AsVoidPtr(change_tracker_ptr));
-}
-
 PyObject*
-parse_mmCIF_file(const char *filename, PyObject* change_tracker_ptr, PyObject* logger)
+parse_mmCIF_file(const char *filename, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract(pyobj2ctp(change_tracker_ptr), logger, StringVector());
+    ExtractMolecule extract(logger, StringVector());
     extract.parse_file(filename);
     return structure_pointers(extract, filename);
 }
 
 PyObject*
 parse_mmCIF_file(const char *filename, const StringVector& generic_categories,
-                 PyObject* change_tracker_ptr, PyObject* logger)
+                 PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract(pyobj2ctp(change_tracker_ptr), logger, generic_categories);
+    ExtractMolecule extract(logger, generic_categories);
     extract.parse_file(filename);
     return structure_pointers(extract, filename);
 }
 
 PyObject*
-parse_mmCIF_buffer(const unsigned char *whole_file,
-    PyObject* change_tracker_ptr, PyObject* logger)
+parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract(pyobj2ctp(change_tracker_ptr), logger, StringVector());
+    ExtractMolecule extract(logger, StringVector());
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract, "unknown mmCIF file");
 }
 
 PyObject*
 parse_mmCIF_buffer(const unsigned char *whole_file,
-   const StringVector& generic_categories, PyObject* change_tracker_ptr, PyObject* logger)
+   const StringVector& generic_categories, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract(pyobj2ctp(change_tracker_ptr), logger, generic_categories);
+    ExtractMolecule extract(logger, generic_categories);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract, "unknown mmCIF file");
 }

@@ -29,4 +29,9 @@ const std::string ChangeTracker::REASON_SEQUENCE("sequence changed");
 const std::string ChangeTracker::REASON_SERIAL_NUMBER("serial_number changed");
 const std::string ChangeTracker::REASON_SS_ID("ss_id changed");
 
+DiscardingChangeTracker  dct;
+
+DiscardingChangeTracker*
+DiscardingChangeTracker::discarding_change_tracker() { return &dct; }
+
 }  // namespace basegeom
