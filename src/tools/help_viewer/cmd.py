@@ -1,5 +1,5 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
-from chimera.core.commands import CmdDesc, NoArg, RestOfLine, Command
+from chimera.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, Command
 
 
 def help(session, set_home=False, topic=None):
@@ -49,8 +49,7 @@ def help(session, set_home=False, topic=None):
     help_viewer.show(help_file, set_home=set_home)
 
 help_desc = CmdDesc(
-    optional=[
-        ('set_home', NoArg),
-        ('topic', RestOfLine)],
+    required=[('set_home', Or(EnumOf(['sethome']), EmptyArg))],
+    optional=[('topic', RestOfLine)],
     synopsis='display help'
 )
