@@ -1,6 +1,6 @@
 # vi: set expandtab ts=4 sw=4:
 
-"""cache - Chimera 2 Tool Cache
+"""cache - Chimera2 Tool Cache
 
 The Tool Cache finds tools in the '''chimera2''' namespace package
 and keeps track of some metadata and help file information.

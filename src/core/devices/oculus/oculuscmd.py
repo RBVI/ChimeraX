@@ -56,7 +56,7 @@ def oculus_command(enable = None, panSpeed = None, session = None):
 
 
 # -----------------------------------------------------------------------------
-# Command for Chimera 2.
+# Command for Chimera2.
 #
 def oculus(session, enable, pan_speed = None):
     '''Enable stereo viewing and head motion tracking with an Oculus Rift headset.
@@ -132,7 +132,7 @@ def stop_oculus2(session):
         session.ui.main_window.graphics_window.set_redraw_interval(10)
 
 # -----------------------------------------------------------------------------
-# Register the oculus command for Chimera 2.
+# Register the oculus command for Chimera2.
 #
 def register_oculus_command():
     from ...commands import CmdDesc, BoolArg, FloatArg, register

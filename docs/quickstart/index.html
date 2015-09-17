@@ -62,9 +62,9 @@ which reveals all available options.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center>open 2bbv
-<td width=256 align=center>color #1 bychain
-<td width=256 align=center>style stick /b
+<td width=256 align=center><a href="ch2cmd:close; open 2bbv">open 2bbv</a>
+<td width=256 align=center><a href="ch2cmd:color #1 bychain">color #1 bychain</a>
+<td width=256 align=center><a href="ch2cmd:style /b stick">style /b stick</a>
 <td width=256>Mouse drag to move.
 <tr>
 <td><img src="images/open.png">
@@ -82,8 +82,8 @@ which reveals all available options.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center>~display /c
-<td width=256 align=center>ribbon /c
+<td width=256 align=center><a href="ch2cmd:~display /c">~display /c</a>
+<td width=256 align=center><a href="ch2cmd:ribbon /c">ribbon /c</a>
 <td width=256>Mouse click to select an atom.
 <td width=256>Press up-arrow key.
 <tr>
@@ -102,9 +102,9 @@ which reveals all available options.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center>color sel gold
-<td width=256 align=center>surface #1
-<td width=256 align=center>~display<br>display :HOH<br>style sphere
+<td width=256 align=center><a href="ch2cmd:color sel gold">color sel gold</a>
+<td width=256 align=center><a href="ch2cmd:surface #1">surface #1</a>
+<td width=256 align=center><a href="ch2cmd:~display; display :HOH; style sphere">~display<br>display :HOH<br>style sphere</a>
 <tr>
 <td><img src="images/color.png">
 <td><img src="images/surface.png">
@@ -119,9 +119,9 @@ which reveals all available options.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center>sym #1
-<td width=256 align=center>sym #1 assembly 1
-<td width=256 align=center>view
+<td width=256 align=center><a href="ch2cmd:sym #1">sym #1</a>
+<td width=256 align=center><a href="ch2cmd:sym #1 assembly 1">sym #1 assembly 1</a>
+<td width=256 align=center><a href="ch2cmd:view">view</a>
 <tr>
 <td>
 <pre>
@@ -145,10 +145,10 @@ XAU = crystal asymmetric unit, crystal frame (5 copies)
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center>light full
-<td width=256 align=center>sym #1 assem 3<br>set bg white<br>set silhouette true
-<td width=256 align=center>sym #1 clear<br>~display<br>ribbon<br>save ~/Desktop/2bbv.png
-<td width=256 align=center>display<br>~ribbon<br>light flat
+<td width=256 align=center><a href="ch2cmd:light full">light full</a>
+<td width=256 align=center><a href="ch2cmd:sym #1 assem 3; set bg white ; set silhouettes true; view">sym #1 assem 3<br>set bg white<br>set silhouettes true<br>view</a>
+<td width=256 align=center><a href="ch2cmd:sym #1 clear; surf close; ribbon; save ~/Desktop/2bbv.png">sym #1 clear<br>surf close<br>ribbon<br>save ~/Desktop/2bbv.png</a>
+<td width=256 align=center><a href="ch2cmd:display; ~ribbon; light flat">display<br>~ribbon<br>light flat</a>
 <tr>
 <td><img src="images/lightfull.png">
 <td><img src="images/pentamer.png">
@@ -165,11 +165,10 @@ XAU = crystal asymmetric unit, crystal frame (5 copies)
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center>buriedarea /a with /b<br><br>
-sasa #1 & ~:HOH
+<td width=256 align=center><a href="ch2cmd:buriedarea /a with /b; sasa #1 & ~:HOH">buriedarea /a with /b<br>sasa #1 &amp; ~:HOH</a>
 
-<td width=256 align=center>contacts #1
-<td width=256 align=center>movie record super 3 ; turn y 3 120 ; wait ; movie encode ~/Desktop/spin.mp4 quality high
+<td width=256 align=center><a href="ch2cmd:contacts #1">contacts #1</a>
+<td width=256 align=center><a href="ch2cmd:light full; movie record super 3 ; turn y 3 120 ; wait ; movie encode ~/Desktop/spin.mp4 quality high">light full<br>movie record super 3 ; turn y 3 120 ; wait ; movie encode ~/Desktop/spin.mp4 quality high</a>
 <tr>
 <td>
 <pre>
@@ -202,13 +201,13 @@ Example Density Map Commands
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center>open emdb:1080
-<td width=256 align=center>volume #1 level 0.9
+<td width=256 align=center><a href="ch2cmd:close; open emdb:1080">open emdb:1080</a>
+<td width=256 align=center><a href="ch2cmd:volume #1 level 0.9">volume #1 level 0.9</a>
 <td width=256>
 <img src="images/contour.png" height=40 align=right>
 Click contour level mouse mode
 then drag with right mouse button.
-<td width=256 align=center>vol #1 enclose 1e6 step 1 color tan
+<td width=256 align=center><a href="ch2cmd:vol #1 enclose 1e6 step 1 color tan">vol #1 enclose 1e6 step 1 color tan</a>
 
 <tr>
 <td><img src="images/emdb1080.png">
@@ -227,15 +226,13 @@ then drag with right mouse button.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center>light full<br>set bg gray<br>set silhouette true
-<td width=256 align=center>open 1grl
+<td width=256 align=center><a href="ch2cmd:light full; set bg gray ; set silhouettes true">light full<br>set bg gray<br>set silhouettes true</a>
+<td width=256 align=center><a href="ch2cmd:open 1grl">open 1grl</a>
 <td width=256 align=center>
 <img src="images/move_h2o.png" height=40 align=right>
 Click move selection mouse. Click atom to select.
 Then right-mouse drag to move molecule into map.
-<td width=256 align=center>fit #2 in #1<br>
-  volume #1 transparency 0.5<br>
-  color bychain
+<td width=256 align=center><a href="ch2cmd:fit #2 in #1; volume #1 transparency 0.5; color bychain">fit #2 in #1<br>volume #1 transparency 0.5<br>color bychain</a>
 <tr>
 <td><img src="images/litmap.png">
 <td><img src="images/1grl.png">
@@ -255,10 +252,10 @@ Then right-mouse drag to move molecule into map.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center>molmap #2 10<br>vol #3 style mesh
-<td width=256 align=center>vop subtract #1,3 minRMS true<br>vol #4 color pink transparency 0<br>~display ; ribbon
-<td width=256 align=center>close<br>open emdb:1273
-<td width=256 align=center>volume #1 region all showOutline true
+<td width=256 align=center><a href="ch2cmd:molmap #2 10; vol #3 style mesh">molmap #2 10<br>vol #3 style mesh</a>
+<td width=256 align=center><a href="ch2cmd:vop subtract #1,3 minRMS true; vol #4 color pink transparency 0; ~display ; ribbon">vop subtract #1,3 minRMS true<br>vol #4 color pink transparency 0<br>~display ; ribbon</a>
+<td width=256 align=center><a href="ch2cmd:close; open emdb:1273">close<br>open emdb:1273</a>
+<td width=256 align=center><a href="ch2cmd:volume #1 region all showOutline true">volume #1 region all showOutline true</a>
 <tr>
 <td><img src="images/molmap.png">
 <td><img src="images/vopsub2.png">
@@ -275,12 +272,10 @@ Then right-mouse drag to move molecule into map.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center>open eds:1a0m
-<td width=256 align=center>open 1a0m<br>
-  style stick<br>
-  vol #1 level 1.0 style mesh
-<td width=256 align=center>vop zone #1 atoms #2 radius 2<br>
-vol #3 level .5 style mesh transp 0.6
+<td width=256 align=center><a href="ch2cmd:close; open eds:1a0m">open eds:1a0m</a>
+<td width=256 align=center><a href="ch2cmd:open 1a0m; style stick; vol #1 level 1.0 style mesh">open 1a0m<br>style stick<br>vol #1 level 1.0 style mesh</a>
+<td width=256 align=center><a href="ch2cmd:vop zone #1 atoms #2 radius 2; vol #3 level .5 style mesh transp 0.6">vop zone #1 atoms #2 radius 2<br>
+  vol #3 level .5 style mesh transp 0.6</a>
 <tr>
 <td><img src="images/eds_1a0m.png">
 <td><img src="images/1a0m.png">

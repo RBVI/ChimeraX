@@ -41,6 +41,7 @@ and their code location is described with the function descriptions.
 | `sasa`_ - Compute solvent accessible surface area
 | `save`_ - Save sessions, images, density maps...
 | `scolor`_ - Color surfaces
+| `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `snav`_ - Enable space navigator input device
 | `split`_ - Split atomic structures into pieces
@@ -219,6 +220,10 @@ save
 scolor
 ======
 .. autofunction:: chimera.core.commands.scolor.scolor
+
+select
+======
+.. autofunction:: chimera.core.commands.select.select
 
 set
 ===

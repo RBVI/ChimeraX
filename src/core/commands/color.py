@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain"]
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "random"]
 
 _SequentialLevels = ["residues", "helix", "helices", "strands",
                      "SSEs", "chains", "molmodels",
@@ -103,6 +103,11 @@ def color(session, spec, color=None, target=None, transparency=None,
             c = chain_colors(residues.chain_ids)
             c[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
             residues.ribbon_colors = c
+        elif color == 'random':
+            from numpy import random, uint8
+            c = random.randint(0,255,(len(residues),4)).astype(uint8)
+            c[:,3] = 255   # No transparency
+            residues.ribbon_colors = c
         what.append('%d residues' % len(residues))
 
     if 'r' in target:
@@ -145,6 +150,10 @@ def _computed_atom_colors(atoms, color, opacity):
         from ..colors import chain_colors
         c = chain_colors(atoms.residues.chain_ids)
         c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
+    elif color == "random":
+        from numpy import random, uint8
+        c = random.randint(0,255,(len(atoms),4)).astype(uint8)
+        c[:,3] = 255   # Opaque
     else:
         # Other "colors" do not apply to atoms
         c = None

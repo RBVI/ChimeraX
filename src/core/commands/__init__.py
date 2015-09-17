@@ -11,4 +11,6 @@ from .cli import FloatArg, Float3Arg, FloatsArg
 from .cli import ModelIdArg, AtomsArg, RestOfLine
 
 from .colorarg import ColorArg, ColormapArg
-from .atomspec import AtomSpecArg
+
+from .atomspec import AtomSpecArg, ModelsArg, ObjectsArg
+from .atomspec import register_selector, deregister_selector

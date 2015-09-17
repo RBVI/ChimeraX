@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_NAME = chimera.toolshed
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = Chimera 2 Tool UI and Commands
+PKG_DESCRIPTION = Chimera2 Tool UI and Commands
 
 TOOL_NAME = toolshed
 TOOL_PKG_NAME = chimera.toolshed

@@ -2,8 +2,8 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
 """
-webapp_server: Server side for Chimera 2 web application
-========================================================
+webapp_server: Server side for Chimera2 web application
+=======================================================
 
 Communicate with WSGI app to process web app requests
 and return results.  Request and result formats are
