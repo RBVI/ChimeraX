@@ -259,6 +259,17 @@ class Log(ToolInstance, HtmlLog):
                 f.write("</body>\n"
                         "</html>\n")
                 f.close()
+            return
+        from urllib.parse import urlparse
+        parts = urlparse(url)
+        if parts.scheme in ('', 'file', 'http'):
+            event.Veto()
+            from chimera.core.commands import run
+            run(session, "help %s" % url)
+            return
+        # unknown scheme
+        event.Veto()
+        session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
 
     #
     # Implement session.State methods if deriving from ToolInstance
