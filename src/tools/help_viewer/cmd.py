@@ -1,8 +1,8 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
-from chimera.core.commands import CmdDesc, RestOfLine, Command
+from chimera.core.commands import CmdDesc, NoArg, RestOfLine, Command
 
 
-def help(session, topic=None):
+def help(session, set_home=False, topic=None):
     '''Display help
 
     Parameters
@@ -46,9 +46,11 @@ def help(session, topic=None):
 
     from .gui import get_singleton
     help_viewer = get_singleton(session)
-    help_viewer.show(help_file, set_home=False)
+    help_viewer.show(help_file, set_home=set_home)
 
 help_desc = CmdDesc(
-    optional=[('topic', RestOfLine)],
+    optional=[
+        ('set_home', NoArg),
+        ('topic', RestOfLine)],
     synopsis='display help'
 )
