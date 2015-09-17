@@ -27,7 +27,7 @@ def configure_offscreen_rendering():
     # OSMesa 10.6.2 gives an OpenGL 3.0 compatibility context on Linux with only GLSL 130 support.
     # Chimera needs OpenGL 3.3 with GLSL 330 shaders and requires only a core context.
     # Overriding Mesa to give OpenGL 3.3, gives a core context that really does support 3.3.
-    # TODO: This would not be necessary if Linux Chimera requested a core context.
+    # OSMesa doesn't allow requesting a core context, see OffscreenRenderingContext below.
     os.environ['MESA_GL_VERSION_OVERRIDE'] = '3.3'
     # Tell PyOpenGL where to find libOSMesa
     lib_suffix = '.dylib' if sys.platform == 'darwin' else '.so'

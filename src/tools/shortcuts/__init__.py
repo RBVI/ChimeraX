@@ -12,6 +12,9 @@ def start_tool(session, ti):
     spanel = gui.get_singleton(session, create = True)
     if spanel is not None:
         spanel.display(True)
+    # TODO: Is there a better place to register selectors?
+    from . import shortcuts
+    shortcuts.register_selectors(session)
     return spanel
 
 
