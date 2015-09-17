@@ -46,7 +46,7 @@ def help(session, topic=None):
 
     from .gui import get_singleton
     help_viewer = get_singleton(session)
-    help_viewer.show(help_file)
+    help_viewer.show(help_file, set_home=False)
 
 help_desc = CmdDesc(
     optional=[('topic', RestOfLine)],
