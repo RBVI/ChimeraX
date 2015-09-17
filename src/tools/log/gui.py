@@ -170,10 +170,10 @@ class Log(ToolInstance, HtmlLog):
             if ((level == self.LEVEL_ERROR and self.error_shows_dialog) or
                 (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if level == self.LEVEL_ERROR:
-                    caption = "Chimera 2 Error"
+                    caption = "Chimera2 Error"
                     icon = wx.ICON_ERROR
                 else:
-                    caption = "Chimera 2 Warning"
+                    caption = "Chimera2 Warning"
                     icon = wx.ICON_EXCLAMATION
                 style = wx.OK | wx.OK_DEFAULT | icon | wx.CENTRE
                 graphics = self.session.ui.main_window.graphics_window
