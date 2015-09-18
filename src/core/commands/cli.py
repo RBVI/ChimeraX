@@ -338,7 +338,7 @@ class Aggregate(Annotation):
             self.max_size = max_size
         if name is None:
             if ',' in annotation.name:
-               self.name = "a collection of %s" % annotation.name
+                self.name = "a collection of %s" % annotation.name
             else:
                 self.name = "some %s(s)" % discard_article(annotation.name)
         self.prefix = prefix
@@ -1866,7 +1866,7 @@ def html_usage(name, no_aliases=False):
             type = '<a href="%s">%s</a>' % (arg.url, escape(arg.name))
         usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
     if ci.synopsis:
-        usage += '<br/>%s' % ci.synopsis
+        usage = "<i>%s</i><br>%s" % (escape(ci.synopsis), usage)
     return usage
 
 
