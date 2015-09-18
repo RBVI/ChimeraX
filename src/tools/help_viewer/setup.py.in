@@ -24,6 +24,9 @@ setup(
         "PKG_NAME",
         # Add subpackage names here
     ],
+    package_data={
+        "PKG_NAME": ['*.png'],
+    },
     data_files=[
         ("", ["timestamp"]),
     ],

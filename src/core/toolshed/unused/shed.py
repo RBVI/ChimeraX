@@ -1,7 +1,7 @@
 ORIGINAL IMPLEMENTATION
 FUNCTIONALITY MOVED INTO __init__.py
 
-"""shed - Chimera 2 Tool Shed
+"""shed - Chimera2 Tool Shed
 
 The Tool Shed provides an interface for querying available and
 out-of-date packages, and for updating, installing and uninstalling

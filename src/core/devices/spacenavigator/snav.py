@@ -171,7 +171,7 @@ def find_device():
 def space_navigator(session):
     if not hasattr(session, 'space_navigator') or session.space_navigator is None:
         if hasattr(session, 'main_view'):
-            # Chimera 2
+            # Chimera2
             log = session.logger
             v = session.main_view
         else:
@@ -240,7 +240,7 @@ def snav(session, enable = None, fly = None):
         sn.fly_mode = bool(fly)
 
 # -----------------------------------------------------------------------------
-# Register the snav command for Chimera 2.
+# Register the snav command for Chimera2.
 #
 def register_snav_command():
     from ...commands import CmdDesc, BoolArg, register
