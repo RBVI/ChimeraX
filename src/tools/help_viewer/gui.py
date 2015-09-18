@@ -133,10 +133,11 @@ class HelpUI(ToolInstance):
         # Handle event
         url = event.GetURL()
         if url.startswith("ch2cmd:"):
+            from urllib.parse import unquote
             from chimera.core.commands import run
             event.Veto()
             cmd = url.split(':', 1)[1]
-            run(session, cmd)
+            run(session, unquote(cmd))
             return
         # TODO: check if http url is within chimera docs
         # TODO: handle missing doc -- redirect to web server
