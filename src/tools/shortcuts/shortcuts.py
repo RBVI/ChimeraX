@@ -77,7 +77,10 @@ def standard_shortcuts(session):
         ('la', 'lighting soft', 'Ambient lighting', gcat, noarg, mlmenu),
         ('lf', 'lighting full', 'Full lighting', gcat, noarg, mlmenu),
         ('ls', 'lighting simple', 'Simple lighting', gcat, noarg, mlmenu),
+        ('lF', 'lighting flat', 'Flat lighting', gcat, noarg, mlmenu),
 
+        ('sx', 'save ~/Desktop/image.png supersample 3', 'Save snapshot', gcat, noarg, mlmenu),
+        ('vd', 'movie record ; turn y 2 180 ; wait ; movie encode ~/Desktop/movie.mp4', 'Record spin movie', gcat, noarg, mlmenu),
 #        ('Mo', mono_mode, 'Set mono camera mode', gcat, viewarg, smenu),
 #        ('So', stereo_mode, 'Set sequential stereo mode', gcat, viewarg, smenu, sep),
 
@@ -348,10 +351,16 @@ class Keyboard_Shortcuts:
             s.logger.info(imsg)
         sc.run(s)
 
+_registered_selectors = False
 def register_selectors(session):
+    global _registered_selectors
+    if _registered_selectors:
+        return
+
     from chimera.core.commands import register_selector
     register_selector(None, "selAtoms", _sel_atoms_selector)
     register_selector(None, "selMaps", _sel_maps_selector)
+    _registered_selectors = True
 
 # Selected atoms, or if none selected then all atoms.
 def _sel_atoms_selector(session, models, results):

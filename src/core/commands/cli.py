@@ -338,7 +338,7 @@ class Aggregate(Annotation):
             self.max_size = max_size
         if name is None:
             if ',' in annotation.name:
-               self.name = "a collection of %s" % annotation.name
+                self.name = "a collection of %s" % annotation.name
             else:
                 self.name = "some %s(s)" % discard_article(annotation.name)
         self.prefix = prefix
@@ -666,6 +666,7 @@ class EnumOf(Annotation):
 
     :param values: sequence of values
     :param ids: optional sequence of identifiers
+    :param abbreviations: if not None, then override allow_truncated
     :param name: optional explicit name for annotation
     :param url: optionally give documentation URL.
 
@@ -680,7 +681,7 @@ class EnumOf(Annotation):
 
     allow_truncated = True
 
-    def __init__(self, values, ids=None, name=None, url=None):
+    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
         if ids is not None:
             if len(values) != len(ids):
                 raise ValueError("Must have an identifier for "
@@ -699,6 +700,8 @@ class EnumOf(Annotation):
                 self.name = "'%s'" % self.ids[0]
             else:
                 self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])[0]
+        if abbreviations is not None:
+            self.allow_truncated = abbreviations
 
     def parse(self, text, session):
         token, text, rest = next_token(text)
@@ -1863,7 +1866,7 @@ def html_usage(name, no_aliases=False):
             type = '<a href="%s">%s</a>' % (arg.url, escape(arg.name))
         usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
     if ci.synopsis:
-        usage += '<br/>%s' % ci.synopsis
+        usage = "<i>%s</i><br>%s" % (escape(ci.synopsis), usage)
     return usage
 
 

@@ -22,7 +22,8 @@ class _CoreSettings(Settings):
         'silhouette': False,
         # autostart map_series_gui until alternate means of installing
         # trigger is found
-        'autostart': ['cmd_line', 'mouse_modes', 'log', 'sideview', 'map_series_gui', 'shortcuts'],
+        'autostart': ['cmd_line', 'mouse_modes', 'log', 'sideview', 'map_series_gui',
+                      'molecule_display_shortcuts', 'graphics_shortcuts'],
     }
 
 def init(session):

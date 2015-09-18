@@ -6,7 +6,7 @@ from chimera.core.tools import ToolInstance
 #
 class ShortcutPanel(ToolInstance):
 
-    def __init__(self, session, tool_info):
+    def __init__(self, session, shortcuts, tool_info):
 
         super().__init__(session, tool_info)
 
@@ -15,8 +15,8 @@ class ShortcutPanel(ToolInstance):
 
         self.icon_size = 48
         self.icon_border = 4
-        self.rows = 2
-        self.columns = 6
+        self.columns = c = 6
+        self.rows = (len(shortcuts) + c - 1)//c
 
         panel_size = (300, self.rows * self.icon_size)
         from chimera.core.ui import MainToolWindow
@@ -29,20 +29,6 @@ class ShortcutPanel(ToolInstance):
         from chimera.core import map, ui, markers
         from chimera.core.map import series
         import wx
-        shortcuts = (
-            ('da', 'atomshow.png', 'Show atoms'),
-            ('ha', 'atomhide.png', 'Hide atoms'),
-            ('rb', 'ribshow.png', 'Show molecule ribbons'),
-            ('hr', 'ribhide.png', 'Hide molecule ribbons'),
-            ('ms', 'surfshow.png', 'Show molecular surface'),
-            ('hs', 'surfhide.png', 'Hide molecular surface'),
-            ('st', 'stick.png', 'Show molecule in stick style'),
-            ('sp', 'sphere.png', 'Show molecule in sphere style'),
-            ('bs', 'ball.png', 'Show molecule in ball and stick style'),
-            ('ce', 'colorbyelement.png', 'Color atoms by element'),
-            ('cc', 'colorbychain.png', 'Color atoms by chain'),
-            ('rc', 'colorrandom.png', 'Random atom colors'),
-            )
         self.buttons = []
         for i, (keys, icon_file, descrip) in enumerate(shortcuts):
             location = ((i%self.columns)*self.icon_size,(i//self.columns)*self.icon_size)
@@ -86,17 +72,50 @@ class ShortcutPanel(ToolInstance):
     def reset_state(self):
         pass
 
-def get_singleton(session, create=False):
+def get_singleton(tool_name, session, create=False):
     if not session.ui.is_gui:
         return None
-    running = session.tools.find_by_class(ShortcutPanel)
+    running = [t for t in session.tools.find_by_class(ShortcutPanel)
+               if t.tool_info.name == tool_name]
     if len(running) > 1:
         raise RuntimeError("Can only have one shortcut panel")
     if not running:
         if create:
-            tool_info = session.toolshed.find_tool('shortcuts')
-            return ShortcutPanel(session, tool_info)
+            tool_info = session.toolshed.find_tool(tool_name)
+            shortcut_list = _shortcuts[tool_name]
+            return ShortcutPanel(session, shortcut_list, tool_info)
         else:
             return None
     else:
         return running[0]
+
+_shortcuts = {
+    'molecule_display_shortcuts': (
+        ('da', 'atomshow.png', 'Show atoms'),
+        ('ha', 'atomhide.png', 'Hide atoms'),
+        ('rb', 'ribshow.png', 'Show molecule ribbons'),
+        ('hr', 'ribhide.png', 'Hide molecule ribbons'),
+        ('ms', 'surfshow.png', 'Show molecular surface'),
+        ('hs', 'surfhide.png', 'Hide molecular surface'),
+        ('st', 'stick.png', 'Show molecule in stick style'),
+        ('sp', 'sphere.png', 'Show molecule in sphere style'),
+        ('bs', 'ball.png', 'Show molecule in ball and stick style'),
+        ('ce', 'colorbyelement.png', 'Color atoms by element'),
+        ('cc', 'colorbychain.png', 'Color atoms by chain'),
+        ('rc', 'colorrandom.png', 'Random atom colors'),
+    ),
+    'graphics_shortcuts': (
+        ('wb', 'whitebg.png', 'White background'),
+        ('gb', 'graybg.png', 'Gray background'),
+        ('bk', 'blackbg.png', 'Black background'),
+        ('ls', 'simplelight.png', 'Simple lighting'),
+        ('la', 'softlight.png', 'Soft lighting'),
+        ('lf', 'fulllight.png', 'Full lighting'),
+        ('lF', 'flat.png', 'Flat lighting'),
+        ('se', 'silhouette.png', 'Silhouette edges'),
+        ('va', 'viewall.png', 'View all'),
+        ('dv', 'orient.png', 'Standard orientation'),
+        ('sx', 'camera.png', 'Save snapshot to desktop'),
+        ('vd', 'video.png', 'Record spin movie'),
+    ),
+}
