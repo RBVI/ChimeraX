@@ -33,6 +33,10 @@ def help(session, set_home=False, topic=None):
             if cmd._ci and cmd.amount_parsed == len(cmd.current_text):
                 path = os.path.join(base_dir, 'user', 'commands',
                                     '%s.html' % cmd.current_text)
+                if not os.path.exists(path):
+                    from chimera.core.commands import run
+                    run(session, "usage %s" % topic)
+                    return
             else:
                 session.logger.error("No help found for '%s'" % topic)
                 return
