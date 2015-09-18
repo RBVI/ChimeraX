@@ -7,8 +7,8 @@ print(metadata.METADATA_FILENAME)
 metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup
 
-lib_dir = "/Users/goddard/ucsf/chimera2/build/lib"
-pkg_dir = "/Users/goddard/ucsf/chimera2/build/lib/python3.4/site-packages/chimera/shortcuts"
+lib_dir = "/Users/gregc/src/chimera2/build/lib"
+pkg_dir = "/Users/gregc/src/chimera2/build/lib/python3.4/site-packages/chimera/shortcuts"
 
 setup(
     name="chimera.shortcuts",

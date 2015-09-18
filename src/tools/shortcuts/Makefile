@@ -40,6 +40,14 @@ wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
 	rm -rf $(TOOL_NAME).egg-info
 
+setup.py: setup.py.in Makefile
+	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
+	sed -e 's,PKG_DIR,$(PKG_DIR),' \
+		-e 's,LIB_DIR,$(libdir),' \
+		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
+		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
+		< setup.py.in > setup.py
+
 timestamp: always
 	echo "$(TOOL_NAME) $(PKG_VERSION)" >  timestamp
 
