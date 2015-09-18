@@ -250,9 +250,10 @@ class PseudobondManager:
     '''Per-session singleton pseudobond manager keeps track of all
     :class:`.PseudobondGroupData` objects.'''
 
-    def __init__(self):
-        f = c_function('pseudobond_create_global_manager', args = (), ret = ctypes.c_void_p)
-        set_c_pointer(self, f())
+    def __init__(self, change_tracker):
+        f = c_function('pseudobond_create_global_manager', args = (ctypes.c_void_p,),
+            ret = ctypes.c_void_p)
+        set_c_pointer(self, f(change_tracker._c_pointer))
 
     def get_group(self, category, create = True):
         '''Get an existing :class:`.PseudobondGroup` or create a new one given a category name.'''

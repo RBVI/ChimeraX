@@ -781,10 +781,10 @@ extern "C" void pseudobond_group_pseudobonds(void *pbgroups, size_t n, pyobject_
     }
 }
 
-extern "C" void *pseudobond_create_global_manager()
+extern "C" void *pseudobond_create_global_manager(void* change_tracker)
 {
     try {
-        auto pb_manager = new PBManager();
+        auto pb_manager = new PBManager(static_cast<ChangeTracker*>(change_tracker));
         return pb_manager;
     } catch (...) {
         molc_error();

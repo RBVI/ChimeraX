@@ -522,7 +522,7 @@ def common_startup(sess):
     sess.add_state_manager('main_view', sess.main_view)
     from .atomic import PseudobondManager, ChangeTracker
     sess.change_tracker = ChangeTracker()
-    sess.pb_manager = PseudobondManager()
+    sess.pb_manager = PseudobondManager(sess.change_tracker)
 
     from . import commands
     commands.register_core_commands(sess)

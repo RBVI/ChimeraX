@@ -7,9 +7,12 @@
 #include <string>
 
 #include "Group.h"
+#include <basegeom/ChangeTracker.h>
 #include <basegeom/destruct.h>
 
 namespace pseudobond {
+
+using basegeom::ChangeTracker;
 
 //classes
 template <class Grp_Class>
@@ -24,6 +27,8 @@ protected:
 public:
     Base_Manager() {}
     virtual  ~Base_Manager() {}
+
+    virtual ChangeTracker*  change_tracker() const = 0;
     virtual Grp_Class*  get_group(
             const std::string& name, int create = GRP_NONE) = 0;
     const GroupMap&  group_map() const { return _groups; }
@@ -49,6 +54,8 @@ public:
             delete name_grp.second;
         }
     };
+
+    Owner*  owner() const { return _owner; }
 };
 
 }  // namespace pseudobond

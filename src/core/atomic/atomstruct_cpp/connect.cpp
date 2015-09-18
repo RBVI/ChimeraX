@@ -18,6 +18,7 @@
 #include "tmpl/residues.h"
 #include "string_types.h"
 
+#include <iostream>
 namespace atomstruct {
 
 using basegeom::Coord;
@@ -388,13 +389,19 @@ find_and_add_metal_coordination_bonds(AtomicStructure* as)
     auto notifications_off = basegeom::DestructionNotificationsOff();
     auto mc_bonds = metal_coordination_bonds(as);
     if (mc_bonds.size() > 0) {
+std::cerr << "get/make metal coord group\n";
         auto pbg = as->pb_mgr().get_group(as->PBG_METAL_COORDINATION, 
             AS_PBManager::GRP_PER_CS);
+std::cerr << "got/made metal coord group\n";
         for (auto mc: mc_bonds) {
             for (auto& cs: as->coord_sets()) {
+std::cerr << "make metal coord pb\n";
                 pbg->new_pseudobond(mc->atoms(), cs);
+std::cerr << "made metal coord pb\n";
             }
+std::cerr << "delete metal coord actual bond\n";
             as->delete_bond(mc);
+std::cerr << "deleted metal coord actual bond\n";
         }
     }
 }
@@ -600,11 +607,16 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
                 long_bonds.push_back(b);
         }
         if (long_bonds.size() > 0) {
+std::cerr << "get/make missing structure group\n";
             auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
                 AS_PBManager::GRP_NORMAL);
+std::cerr << "got/made missing structure group\n";
             for (auto lb: long_bonds) {
+std::cerr << "make missing structure pb\n";
                 pbg->new_pseudobond(lb->atoms());
+std::cerr << "made missing structure pb\n";
                 as->delete_bond(lb);
+std::cerr << "deleted missing structure actual bond\n";
             }
         }
     }

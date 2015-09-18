@@ -8,6 +8,9 @@
 namespace atomstruct {
 
 basegeom::ChangeTracker*
+AS_PBManager::change_tracker() const { return structure()->change_tracker(); }
+
+basegeom::ChangeTracker*
 PBond::change_tracker() const { return atoms()[0]->change_tracker(); }
 
 void

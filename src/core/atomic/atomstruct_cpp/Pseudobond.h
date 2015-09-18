@@ -52,7 +52,11 @@ class Proxy_PBGroup;
 // of Proxy_PBGroup, this allows groups to be treated uniformly on the
 // Python side
 class PBManager: public pseudobond::Base_Manager<Proxy_PBGroup> {
+    ChangeTracker*  _ct;
 public:
+    PBManager(ChangeTracker* ct): _ct(ct) {}
+
+    ChangeTracker*  change_tracker() const { return _ct; }
     void  delete_group(Proxy_PBGroup*);
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
 };
@@ -131,8 +135,10 @@ private:
         pseudobond::Owned_Manager<AtomicStructure, Proxy_PBGroup>(as) {}
     void  remove_cs(const CoordSet* cs);
 public:
+    ChangeTracker*  change_tracker() const;
     void  delete_group(Proxy_PBGroup*);
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
+    AtomicStructure*  structure() const { return owner(); }
 };
 
 // Need a proxy class that can be contained/returned by the pseudobond
