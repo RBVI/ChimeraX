@@ -50,33 +50,34 @@ def standard_shortcuts(session):
 #        ('Sv', opensave.save_session, 'Save session', ocat, sesarg, fmenu),
 #        ('sv', ui.save_session_dialog, 'Save session as...', ocat, sesarg, fmenu),
 #        ('si', lambda s: opensave.save_image(None,s), 'Save image', ocat, sesarg, fmenu),
-        ('Ca', close_all_models, 'Close all models', ocat, sesarg, fmenu),
-        ('Qt', quit, 'Quit', ocat, sesarg, fmenu),
+        ('Ca', 'close', 'Close all models', ocat, noarg, fmenu),
+        ('Qt', 'quit', 'Quit', ocat, noarg, fmenu),
 
         # Scene
-        ('va', view_all, 'View all', gcat, viewarg, smenu),
-        ('dv', default_view, 'Default orientation', gcat, viewarg, smenu),
+        ('va', 'view', 'View all', gcat, noarg, smenu),
+        ('dv', 'view orient', 'Default orientation', gcat, noarg, smenu),
 #        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
 #        ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
         ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
         ('hm', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
-        ('Ds', delete_selected_models, 'Delete selected models', ocat, sesarg, smenu, sep),
-        ('cs', s.selection.clear, 'Clear selection', gcat, noarg, smenu),
+        ('Ds', 'close sel', 'Delete selected models', ocat, noarg, smenu, sep),
+        ('cs', 'select clear', 'Clear selection', gcat, noarg, smenu),
 
-        ('bk', set_background_black, 'Black background', gcat, viewarg, smenu),
-        ('wb', set_background_white, 'White background', gcat, viewarg, smenu),
-        ('gb', set_background_gray, 'Gray background', gcat, viewarg, smenu, sep),
+        ('bk', 'set bg black', 'Black background', gcat, noarg, smenu),
+        ('wb', 'set bg white', 'White background', gcat, noarg, smenu),
+        ('gb', 'set bg gray', 'Gray background', gcat, noarg, smenu, sep),
 
         ('dq', depth_cue, 'Toggle depth cue', gcat, viewarg, smenu),
         ('bl', motion_blur, 'Toggle motion blur', gcat, viewarg, smenu, sep),
 
         ('sh', toggle_shadows, 'Toggle shadows', gcat, viewarg, smenu),
         ('se', toggle_silhouettes, 'Toggle silhouette edges', gcat, viewarg, smenu),
-        ('al', ambient_lighting, 'Ambient lighting', gcat, sesarg, mlmenu),
-        ('fl', full_lighting, 'Full lighting', gcat, sesarg, mlmenu),
-        ('sl', simple_lighting, 'Simple lighting', gcat, sesarg, mlmenu),
+        ('la', 'lighting soft', 'Ambient lighting', gcat, noarg, mlmenu),
+        ('lf', 'lighting full', 'Full lighting', gcat, noarg, mlmenu),
+        ('ls', 'lighting simple', 'Simple lighting', gcat, noarg, mlmenu),
+        ('lF', 'lighting flat', 'Flat lighting', gcat, noarg, mlmenu),
 
 #        ('Mo', mono_mode, 'Set mono camera mode', gcat, viewarg, smenu),
 #        ('So', stereo_mode, 'Set sequential stereo mode', gcat, viewarg, smenu, sep),
@@ -88,12 +89,12 @@ def standard_shortcuts(session):
         # Maps
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fs', fit_subtract, 'Fit molecule in map subtracting other molecules', mapcat, sesarg, mmenu),
-        ('fr', show_map_full_resolution, 'Show map at full resolution', mapcat, maparg, mmenu),
+        ('fr', 'volume selMaps step 1', 'Show map at full resolution', mapcat, noarg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
-        ('fl', show_filled, 'Show map or surface in filled style', mapcat, sesarg, mmenu),
-        ('me', show_mesh, 'Show map or surface as mesh', mapcat, sesarg, mmenu),
-        ('gs', show_grayscale, 'Show map as grayscale', mapcat, maparg, mmenu, sep),
+        ('fl', 'volume selMaps style surface', 'Show map or surface in filled style', mapcat, noarg, mmenu),
+        ('me', 'volume selMaps style mesh', 'Show map or surface as mesh', mapcat, noarg, mmenu),
+        ('gs', 'volume selMaps style solid', 'Show map as grayscale', mapcat, noarg, mmenu, sep),
 
         ('pl', show_one_plane, 'Show one plane', mapcat, maparg, mmenu),
         ('pa', show_all_planes, 'Show all planes', mapcat, maparg, mmenu),
@@ -102,15 +103,15 @@ def standard_shortcuts(session):
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
         # Molecules
-        ('da', show_atoms, 'Display atoms', molcat, atomsarg, mlmenu),
-        ('ha', hide_atoms, 'Undisplay atoms', molcat, atomsarg, mlmenu, sep),
+        ('da', 'display selAtoms', 'Display atoms', molcat, noarg, mlmenu),
+        ('ha', '~display selAtoms', 'Undisplay atoms', molcat, noarg, mlmenu, sep),
 
-        ('bs', show_ball_and_stick, 'Display atoms in ball and stick', molcat, atomsarg, mlmenu),
-        ('sp', show_sphere, 'Display atoms in sphere style', molcat, atomsarg, mlmenu),
-        ('st', show_stick, 'Display atoms in stick style', molcat, atomsarg, mlmenu, sep),
+        ('bs', 'style selAtoms ball', 'Display atoms in ball and stick', molcat, noarg, mlmenu),
+        ('sp', 'style selAtoms sphere', 'Display atoms in sphere style', molcat, noarg, mlmenu),
+        ('st', 'style selAtoms stick', 'Display atoms in stick style', molcat, noarg, mlmenu, sep),
 
-        ('rb', show_ribbon, 'Display ribbon', molcat, atomsarg, mlmenu),
-        ('hr', hide_ribbon, 'Undisplay ribbon', molcat, atomsarg, mlmenu),
+        ('rb', 'ribbon selAtoms', 'Display ribbon', molcat, noarg, mlmenu),
+        ('hr', '~ribbon selAtoms', 'Undisplay ribbon', molcat, noarg, mlmenu),
 #        ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
@@ -119,13 +120,13 @@ def standard_shortcuts(session):
         ('hw', hide_waters, 'Hide water atoms', molcat, atomsarg, mlmenu, sep),
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
-        ('ce', color_by_element, 'Color atoms by element', molcat, atomsarg, mlmenu),
-        ('rc', random_color_atoms, 'Random color atoms', molcat, atomsarg, mlmenu),
+        ('cc', 'color selAtoms bychain', 'Color chains', molcat, noarg, mlmenu, sep),
+        ('ce', 'color selAtoms byelement', 'Color atoms by element', molcat, noarg, mlmenu),
+        ('rc', 'color selAtoms random target a', 'Random color atoms', molcat, noarg, mlmenu),
         ('bf', color_by_bfactor, 'Color by bfactor', molcat, atomsarg, mlmenu),
-        ('cc', color_by_chain, 'Color chains', molcat, atomsarg, mlmenu, sep),
 
-        ('ms', lambda m,s=s: show_molecular_surface(m,s), 'Show molecular surface', molcat, atomsarg, mlmenu),
-        ('sa', lambda m,s=s: accessible_surface_area(m,s), 'Compute solvent accesible surface area', molcat, atomsarg, mlmenu, sep),
+        ('ms', 'surface selAtoms', 'Show molecular surface', molcat, noarg, mlmenu),
+        ('sa', 'sasa selAtoms', 'Compute solvent accesible surface area', molcat, noarg, mlmenu, sep),
 
         ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),
 
@@ -136,7 +137,13 @@ def standard_shortcuts(session):
 
         # Surfaces
         ('ds', display_surface, 'Display surface', surfcat, sesarg, sfmenu),
-        ('hs', hide_surface, 'Hide surface', surfcat, sesarg, sfmenu),
+        ('hs', 'surface selAtoms hide', 'Hide surface', surfcat, noarg, sfmenu),
+# TODO: hs used to also hide non-molecular surfaces.
+#        ('hs', hide_surface, 'Hide surface', surfcat, sesarg, sfmenu),
+# TODO: Show filled and mesh used to work on surfaces, now only maps.
+        ('sf', show_filled, 'Show map or surface in filled style', mapcat, sesarg, mmenu),
+        ('sm', show_mesh, 'Show surface as mesh', mapcat, sesarg, mmenu),
+        ('sd', show_dots, 'Show surface as dots', mapcat, sesarg, mmenu),
         ('tt', toggle_surface_transparency, 'Toggle surface transparency', surfcat, sesarg, sfmenu),
         ('t5', show_surface_transparent, 'Make surface transparent', surfcat, sesarg, sfmenu),
         ('t0', show_surface_opaque, 'Make surface opaque', surfcat, sesarg, sfmenu),
@@ -201,14 +208,15 @@ class Shortcut:
                  session_arg = False):
         '''
         A keyboard shortcut is a key sequence and function to call when
-        that key sequence is entered.  Shortcuts are put in categories and have
+        that key sequence is entered.  The function can be a string in which case
+        it is a user command.  Shortcuts are put in categories and have
         textual descriptions for automatically creating documentation.  A shortcut
         function can take no arguments or it can take a map, molecule, surface or
         view argument.
         '''
         self.key_seq = key_seq
         self.key_name = key_seq if key_name is None else key_name
-        self.func = func
+        self.func = func		# Python function or string command
         self.description = description
         self.category = category
         self.menu = menu
@@ -225,6 +233,14 @@ class Shortcut:
     def run(self, session):
         f = self.func
         s = session
+
+        # User command string
+        if isinstance(f, str):
+            from chimera.core import commands
+            commands.run(s ,f)
+            return
+
+        # Python function
         if self.atoms_arg:
             f(shortcut_atoms(s))
         elif self.each_map:
@@ -290,7 +306,7 @@ class Keyboard_Shortcuts:
     #    t = event.text()
     #    print(event, t, type(t), len(t), str(t), t.encode(), '%x' % event.key(), '%x' % int(event.modifiers()), event.count())
 
-        c = event.UnicodeKey
+        c = chr(event.UnicodeKey)
         self.keys += c
         self.try_shortcut()
 
@@ -322,12 +338,39 @@ class Keyboard_Shortcuts:
         sc = self.shortcuts.get(keys)
         if sc is None:
             return
-        msg = '%s - %s' % (sc.key_name, sc.description)
         s = self.session
-        s.logger.status(msg)
-#        s.logger.info(msg, color = '#808000')
-        s.logger.info(msg)
+        smsg = '%s - %s' % (sc.key_name, sc.description)
+        s.logger.status(smsg)
+        if isinstance(sc.func, str):
+            imsg = '%s (%s)<br><font color="#0000ff">%s</font>' % (sc.description, sc.key_name, sc.func)
+            s.logger.info(imsg, is_html = True)
+        else:
+            imsg = '%s (%s)' % (sc.description, sc.key_name)
+            s.logger.info(imsg)
         sc.run(s)
+
+_registered_selectors = False
+def register_selectors(session):
+    global _registered_selectors
+    if _registered_selectors:
+        return
+
+    from chimera.core.commands import register_selector
+    register_selector(None, "selAtoms", _sel_atoms_selector)
+    register_selector(None, "selMaps", _sel_maps_selector)
+    _registered_selectors = True
+
+# Selected atoms, or if none selected then all atoms.
+def _sel_atoms_selector(session, models, results):
+    atoms = shortcut_atoms(session)
+    for m in atoms.unique_structures:
+        results.add_model(m)
+    results.add_atoms(atoms)
+
+# Selected maps, or if none selected then displayed maps.
+def _sel_maps_selector(session, models, results):
+    for m in shortcut_maps(session):
+        results.add_model(m)
 
 def shortcut_models(session, mclass = None):
     sel = session.selection
@@ -376,32 +419,17 @@ def shortcut_surfaces_and_maps(session):
     sm = [m for m in models if isinstance(m,Volume) or not m.empty_drawing()]
     return sm
 
-def close_all_models(session):
-    models = session.models
-    mlist = models.list()
-    models.remove(mlist)
-    for m in mlist:
-        m.delete()
-#    session.scenes.delete_all_scenes()
-#    session.file_history.show_thumbnails()
-
 def show_mesh(session):
-    from chimera.core.map import Volume
-    for m in shortcut_surfaces_and_maps(session):
-        if isinstance(m, Volume):
-            m.set_representation('mesh')
-            m.show()
-        else:
-            m.display_style = m.Mesh
+    for m in shortcut_surfaces(session):
+        m.display_style = m.Mesh
 
 def show_filled(session):
-    from chimera.core.map import Volume
-    for m in shortcut_surfaces_and_maps(session):
-        if isinstance(m, Volume):
-            m.set_representation('surface')
-            m.show()
-        else:
-            m.display_style = m.Solid
+    for m in shortcut_surfaces(session):
+        m.display_style = m.Solid
+
+def show_dots(session):
+    for m in shortcut_surfaces(session):
+        m.display_style = m.Dot
 
 def show_grayscale(m):
   m.set_representation('solid')
@@ -623,7 +651,7 @@ def toggle_surface_transparency(session):
                 opaque = (c[:,3] == 255)
                 c[:,3] = 255                # Make transparent opaque
                 c[opaque,3] = 128           # and opaque transparent.
-                d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
+                d.colors = c
 
 def show_surface_transparent(session, alpha = 0.5):
     from chimera.core.map import Volume
@@ -639,7 +667,7 @@ def show_surface_transparent(session, alpha = 0.5):
             for d in m.all_drawings():
                 c = d.colors
                 c[:,3] = a
-                d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
+                d.colors = c
                 if not d.vertex_colors is None:
                     vcolors = d.vertex_colors
                     vcolors[:,3] = a
@@ -647,15 +675,6 @@ def show_surface_transparent(session, alpha = 0.5):
 
 def show_surface_opaque(session):
     show_surface_transparent(session, alpha = 1)
-
-def set_background_color(viewer, color):
-    viewer.background_color = color
-def set_background_black(viewer):
-    set_background_color(viewer, (0,0,0,1))
-def set_background_gray(viewer):
-    set_background_color(viewer, (0.5,0.5,0.5,1))
-def set_background_white(viewer):
-    set_background_color(viewer, (1,1,1,1))
 
 def toggle_shadows(viewer):
     viewer.shadows = not viewer.shadows
@@ -682,28 +701,6 @@ def hide_selected_models(session):
     for m in shortcut_models(session):
         m.display = False
 
-def delete_selected_models(session):
-    session.models.close(session.selection.models())
-
-def show_map_full_resolution(m):
-    m.new_region(ijk_step = (1,1,1), adjust_step = False)
-
-def show_molecular_surface(atoms, session):
-    mols = atoms.unique_structures
-    from chimera.core.commands.surface import surface
-    for m in mols:
-        surface(session, m.atoms)
-
-def color_by_element(atoms):
-    from chimera.core import colors
-    colors.color_by_element(atoms)
-
-def random_color_atoms(atoms):
-    from numpy import random, uint8
-    colors = random.randint(0,255,(len(atoms),4)).astype(uint8)
-    colors[:,3] = 255   # No transparency
-    atoms.colors = colors
-
 def color_by_bfactor(atoms):
     from time import time
     t0 = time()
@@ -716,40 +713,9 @@ def color_by_bfactor(atoms):
     print ('set colors by b-factors for %d atoms in %.3f seconds, %.0f atoms/sec'
            % (len(atoms), t1-t0, len(atoms)/(t1-t0)))
 
-def color_by_chain(atoms):
-    from chimera.core import colors
-    colors.color_by_chain(atoms)
-
 def color_one_color(m):
     m.single_color()
 
-def ambient_lighting(session):
-    from chimera.core.commands.lighting import lighting
-    lighting(session, 'soft')
-def full_lighting(session):
-    from chimera.core.commands.lighting import lighting
-    lighting(session, 'full')
-def simple_lighting(session):
-    from chimera.core.commands.lighting import lighting
-    lighting(session, 'simple')
-
-def show_atoms(atoms):
-    atoms.displays = True
-def hide_atoms(atoms):
-    atoms.displays = False
-def show_sphere(atoms):
-    from chimera.core.atomic import Atom
-    atoms.draw_modes = Atom.SPHERE_STYLE
-def show_stick(atoms):
-    from chimera.core.atomic import Atom
-    atoms.draw_modes = Atom.STICK_STYLE
-def show_ball_and_stick(atoms):
-    from chimera.core.atomic import Atom
-    atoms.draw_modes = Atom.BALL_STYLE
-def show_ribbon(atoms):
-    atoms.unique_residues.ribbon_displays = True
-def hide_ribbon(atoms):
-    atoms.unique_residues.ribbon_displays = False
 def fatter_ribbons(m):
     m.set_ribbon_radius(2*m.ribbon_radius)
 def thinner_ribbons(m):
@@ -770,22 +736,6 @@ def molecule_bonds(m, session):
         log.info(msg)
         if missing:
             log.info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
-def accessible_surface_area(atoms, session, probe_radius = 1.4):
-    na = len(atoms)
-    if na > 0:
-        from numpy import concatenate
-        xyz = atoms.scene_coords
-        r = atoms.radii + probe_radius
-        from chimera.core import surface
-        areas = surface.spheres_surface_area(xyz, r)
-        area = areas.sum()
-        name = ','.join(m.name for m in atoms.unique_structures) + ' %d atoms' % na
-        msg = 'Accessible surface area of %s = %.5g' % (name, areas.sum())
-    else:
-        msg = 'No atoms selected for accessible surface area'
-    log = session.logger
-    log.status(msg)
-    log.info(msg)
 
 def list_keyboard_shortcuts(session):
     m = session.main_window
@@ -868,12 +818,6 @@ def show_triangle_count(session):
     log.status(msg)
     log.info(msg)
 
-def default_view(view):
-    view.initial_camera_view()
-
-def view_all(view):
-    view.view_all()
-
 def toggle_leap(session):
     from chimera.core.devices import c2leap
     c2leap.toggle_leap(session)
@@ -940,9 +884,6 @@ def toggle_space_navigator_fly_mode(session):
 def space_navigator_collisions(session):
     from chimera.core.devices import spacenavigator
     spacenavigator.avoid_collisions(session)
-
-def quit(session):
-    session.ui.quit()
 
 def undisplay_half(session):
     for m in session.models_list():

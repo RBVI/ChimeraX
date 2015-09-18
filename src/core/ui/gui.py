@@ -1,6 +1,6 @@
 # vi: set expandtab ts=4 sw=4:
 """
-gui: Main Chimera 2 user interface
+gui: Main Chimera2 user interface
 ==================================
 
 The principal class that tool writers will use from this module is
@@ -59,7 +59,7 @@ class UI(wx.App):
         w, h = bitmap.GetSize()
         self.splash.SetTextPosition((0, int(0.9 * h)))
         self.splash.SetTextColour(wx.RED)
-        self.splash.SetText("Initializing Chimera 2")
+        self.splash.SetText("Initializing Chimera2")
         self.splash._painted = False
         num_yields = 0
         while not self.splash._painted:
@@ -157,7 +157,7 @@ from ..logger import PlainTextLog
 class MainWindow(wx.Frame, PlainTextLog):
 
     def __init__(self, ui, session):
-        wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
+        wx.Frame.__init__(self, None, title="Chimera2", size=(1000, 700))
 
         from wx.lib.agw.aui import AuiManager, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
@@ -294,7 +294,7 @@ class MainWindow(wx.Frame, PlainTextLog):
         self.status_bar = self.CreateStatusBar(3,
             wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
             | wx.FULL_REPAINT_ON_RESIZE)
-        greeting = "Welcome to Chimera 2"
+        greeting = "Welcome to Chimera2"
         greeting_size = wx.Window.GetTextExtent(self, greeting)
         self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
         self.status_bar.SetStatusText("", 0)
@@ -354,7 +354,7 @@ class MainWindow(wx.Frame, PlainTextLog):
             item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
             def cb(evt, ses=session, t=topic):
                 from chimera.core.commands import run
-                run(ses, 'help %s' % t)
+                run(ses, 'help sethome %s' % t)
             self.Bind(wx.EVT_MENU, cb, item)
 
     def _tool_window_destroy(self, tool_window):

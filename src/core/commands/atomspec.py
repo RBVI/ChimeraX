@@ -71,6 +71,7 @@ class AtomSpecArg(Annotation):
 
     """
     name = "an atom specifier"
+    url = "user/commands/atomspec.html"
 
     @staticmethod
     def parse(text, session):
@@ -890,3 +891,15 @@ class ModelsArg(Annotation):
         aspec, text, rest = AtomSpecArg.parse(text, session)
         models = aspec.evaluate(session).models
         return models, text, rest
+
+# -----------------------------------------------------------------------------
+#
+class ObjectsArg(Annotation):
+    """Parse command objects specifier"""
+    name = "objects"
+
+    @staticmethod
+    def parse(text, session):
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        objects = aspec.evaluate(session)
+        return objects, text, rest

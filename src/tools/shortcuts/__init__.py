@@ -1,6 +1,5 @@
 # vi: set expandtab ts=4 sw=4:
 
-
 #
 # 'start_tool' is called to start an instance of the tool
 #
@@ -9,9 +8,14 @@ def start_tool(session, ti):
     # a single tool in the entire package, so we do not need to
     # look at the name in 'ti.name'
     from . import gui
-    spanel = gui.get_singleton(session, create = True)
+    spanel = gui.get_singleton(ti.name, session, create = True)
     if spanel is not None:
         spanel.display(True)
+
+    # TODO: Is there a better place to register selectors?
+    from . import shortcuts
+    shortcuts.register_selectors(session)
+
     return spanel
 
 

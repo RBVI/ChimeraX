@@ -42,7 +42,7 @@ class Play_Series:
   def view(self):
     s = self.session
     if hasattr(s, 'main_view'):
-      v = s.main_view        # Chimera 2
+      v = s.main_view        # Chimera2
     else:
       v = s.view	     # Hydra
     return v

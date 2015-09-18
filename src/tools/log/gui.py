@@ -170,10 +170,10 @@ class Log(ToolInstance, HtmlLog):
             if ((level == self.LEVEL_ERROR and self.error_shows_dialog) or
                 (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if level == self.LEVEL_ERROR:
-                    caption = "Chimera 2 Error"
+                    caption = "Chimera2 Error"
                     icon = wx.ICON_ERROR
                 else:
-                    caption = "Chimera 2 Warning"
+                    caption = "Chimera2 Warning"
                     icon = wx.ICON_EXCLAMATION
                 style = wx.OK | wx.OK_DEFAULT | icon | wx.CENTRE
                 graphics = self.session.ui.main_window.graphics_window
@@ -259,6 +259,21 @@ class Log(ToolInstance, HtmlLog):
                 f.write("</body>\n"
                         "</html>\n")
                 f.close()
+            return
+        from urllib.parse import urlparse
+        parts = urlparse(url)
+        if parts.scheme in ('', 'file', 'http'):
+            if parts.path == '/':
+                # Ingore file:/// URL event that Mac generates
+                # for each call to SetPage()
+                return
+            event.Veto()
+            from chimera.core.commands import run
+            run(session, "help %s" % url)
+            return
+        # unknown scheme
+        event.Veto()
+        session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
 
     #
     # Implement session.State methods if deriving from ToolInstance

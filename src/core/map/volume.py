@@ -1809,7 +1809,7 @@ class Volume(Model):
       self.surface_piece_change_handler = None
 
 
-  # State save/restore in Chimera 2
+  # State save/restore in Chimera2
   def take_snapshot(self, phase, session, flags):
     pass
   def restore_snapshot(self, phase, session, version, data):
