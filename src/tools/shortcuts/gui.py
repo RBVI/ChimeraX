@@ -112,5 +112,10 @@ _shortcuts = {
         ('la', 'softlight.png', 'Soft lighting'),
         ('lf', 'fulllight.png', 'Full lighting'),
         ('lF', 'flat.png', 'Flat lighting'),
+        ('se', 'silhouette.png', 'Silhouette edges'),
+        ('va', 'viewall.png', 'View all'),
+        ('dv', 'orient.png', 'Standard orientation'),
+        ('sx', 'camera.png', 'Save snapshot to desktop'),
+        ('vd', 'video.png', 'Record spin movie'),
     ),
 }

@@ -79,6 +79,8 @@ def standard_shortcuts(session):
         ('ls', 'lighting simple', 'Simple lighting', gcat, noarg, mlmenu),
         ('lF', 'lighting flat', 'Flat lighting', gcat, noarg, mlmenu),
 
+        ('sx', 'save ~/Desktop/image.png supersample 3', 'Save snapshot', gcat, noarg, mlmenu),
+        ('vd', 'movie record ; turn y 2 180 ; wait ; movie encode ~/Desktop/movie.mp4', 'Record spin movie', gcat, noarg, mlmenu),
 #        ('Mo', mono_mode, 'Set mono camera mode', gcat, viewarg, smenu),
 #        ('So', stereo_mode, 'Set sequential stereo mode', gcat, viewarg, smenu, sep),
 
