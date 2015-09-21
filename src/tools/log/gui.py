@@ -262,7 +262,7 @@ class Log(ToolInstance, HtmlLog):
             return
         from urllib.parse import urlparse
         parts = urlparse(url)
-        if parts.scheme in ('', 'file', 'http'):
+        if parts.scheme in ('', 'help', 'file', 'http'):
             if parts.path == '/':
                 # Ingore file:/// URL event that Mac generates
                 # for each call to SetPage()
