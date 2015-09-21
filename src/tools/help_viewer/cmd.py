@@ -43,15 +43,20 @@ def help(session, topic=None, *, option=None):
             cmd = Command(None)
             cmd.current_text = topic
             cmd._find_command_name(True, no_aliases=True)
-            # TODO: handle multi word command names
-            #  -- use first word for filename and rest for #tag
-            if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
+            if cmd.amount_parsed != len(cmd.current_text):
                 if is_query:
                     return False
                 session.logger.error("No help found for '%s'" % topic)
                 return
+            # handle multi word command names
+            #  -- use first word for filename and rest for #fragment
+            if ' ' not in cmd.current_text:
+                cmd_name = cmd.current_text
+                fragment = ""
+            else:
+                cmd_name, fragment = cmd.current_text.split(None, 1)
             path = os.path.join(base_dir, 'user', 'commands',
-                                '%s.html' % cmd.current_text)
+                                '%s.html' % cmd_name)
             if not os.path.exists(path):
                 if is_query:
                     return False
@@ -60,9 +65,9 @@ def help(session, topic=None, *, option=None):
                 return
             if is_query:
                 return True
-        from urllib.parse import urljoin
+        from urllib.parse import urlunparse
         from urllib.request import pathname2url
-        url = urljoin('file:', pathname2url(path))
+        url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
 
     if session.ui.is_gui:
         from .gui import get_singleton
