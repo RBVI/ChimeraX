@@ -182,8 +182,8 @@ class Models(State):
         d = self.drawing if parent is None else parent
         for m in models:
             d.add_drawing(m)
-            if hasattr(m, 'start_change_tracking'):
-                m.start_change_tracking(self._session.change_tracker)
+            if hasattr(m, '_start_change_tracking'):
+                m._start_change_tracking(self._session().change_tracker)
 
         # Assign id numbers
         if parent is None:

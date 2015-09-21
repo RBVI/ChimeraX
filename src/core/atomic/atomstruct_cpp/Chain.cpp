@@ -151,6 +151,8 @@ void
 Chain::remove_residue(Residue* r) {
     auto ri = std::find(_residues.begin(), _residues.end(), r);
     *ri = nullptr;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
+        ChangeTracker::REASON_RESIDUES);
     if (no_structure_left()) {
         if (basegeom::DestructionCoordinator::destruction_parent() != _structure)
             _structure->remove_chain(this);
@@ -165,8 +167,6 @@ Chain::remove_residue(Residue* r) {
         }
     }
     r->set_chain(nullptr);
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
-        ChangeTracker::REASON_RESIDUES);
 }
 
 void 
