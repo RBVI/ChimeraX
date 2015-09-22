@@ -27,7 +27,7 @@ Residue::Residue(AtomicStructure *as, const ResName& name,
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
     _is_helix(false), _is_het(false), _is_sheet(false), _name(name),
     _position(pos), _ss_id(-1), _ribbon_display(false), _ribbon_rgba({160,160,0,255}),
-    _ribbon_style(RIBBON_STRIP), _ribbon_adjust(-1.0),
+    _ribbon_style(RIBBON_RIBBON), _ribbon_adjust(-1.0),
     _structure(as)
 {
 }
