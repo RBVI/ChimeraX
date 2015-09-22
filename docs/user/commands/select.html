@@ -1,0 +1,63 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: select</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: select</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>select</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>select</b> (&nbsp;add&nbsp;|&nbsp;subtract&nbsp;|&nbsp;intersect&nbsp;) 
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>select</b> clear
+</h3>
+<p>
+The <b>select</b> command makes a new selection or modifies
+an existing selection. 
+A <a name="seldef"><b><i>selection</i></b></a>:
+</p>
+<ul>
+<li>is shown with green outlines in the main window
+<li>specifies items (models or their parts) for subsequent operations, namely:
+  <ul>
+  <li>indicates scope of action of <b>Molecule Display</b> icons
+  <li>can be <a href="atomspec.html">specified</a> in subsequent commands
+  with the word <b>sel</b>
+  </ul>
+<li>can be made by clicking on items in the main window or by using
+various commands (including <b>select</b>) and tools
+<li>can be broadened with the up arrow key, narrowed with the down arrow key
+</ul>
+<p>
+If no keyword option is used, <b>select</b> creates a new selection 
+containing the <a href="atomspec.html">specified</a> items,
+replacing any previous selection.
+</p><p>
+Otherwise, <b>select</b> can be used to <b>add</b>, <b>subtract</b>, 
+or <b>intersect</b> the <a href="atomspec.html">specified</a> items
+with the current selection, or to <b>clear</b> it by deselecting everything.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+September 2015</address>
+</body></html>

@@ -25,6 +25,7 @@ class ATOMSTRUCT_IMEX Residue {
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
+    enum Style { RIBBON_RIBBON = 0, RIBBON_PIPE = 1 };
 private:
     friend class AtomicStructure;
     Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);
@@ -50,6 +51,8 @@ private:
     int  _ss_id;
     bool  _ribbon_display;
     Rgba  _ribbon_rgba;
+    int  _ribbon_style;
+    float  _ribbon_adjust;
     AtomicStructure *  _structure;
 public:
     void  add_atom(Atom*);
@@ -89,10 +92,16 @@ public:
     // graphics related
     bool  ribbon_display() const { return _ribbon_display; }
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
+    int  ribbon_style() const { return _ribbon_style; }
+    float  ribbon_adjust() const;
     void  set_ribbon_display(bool d)
         { structure()->set_gc_ribbon(); _ribbon_display = d; }
     void  set_ribbon_color(const Rgba& rgba)
         { structure()->set_gc_ribbon(); _ribbon_rgba = rgba; }
+    void  set_ribbon_style(int s)
+        { structure()->set_gc_ribbon(); _ribbon_style = s; }
+    void  set_ribbon_adjust(float a)
+        { structure()->set_gc_ribbon(); _ribbon_adjust = a; }
 };
 
 #include "Chain.h"
@@ -102,6 +111,19 @@ Residue::chain_id() const
     if (_chain != nullptr)
         return _chain->chain_id();
     return _chain_id;
+}
+
+inline float
+Residue::ribbon_adjust() const
+{
+    if (_ribbon_adjust >= 0)
+        return _ribbon_adjust;
+    else if (_is_sheet)
+        return 0.7;
+    else if (_is_helix)
+        return 0.0;
+    else
+        return 0.0;
 }
 
 }  // namespace atomstruct

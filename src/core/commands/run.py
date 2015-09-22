@@ -1,7 +1,7 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def run(session, text, downgrade_errors=False):
+def run(session, text, *, downgrade_errors=False):
     """execute a textual command
 
     Parameters
@@ -16,7 +16,7 @@ def run(session, text, downgrade_errors=False):
     command = cli.Command(session)
     try:
         command.parse_text(text, final=True)
-        command.execute()
+        return command.execute()
     except UserError as err:
         if downgrade_errors:
             session.logger.info(str(err))

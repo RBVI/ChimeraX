@@ -466,6 +466,14 @@ class Residues(Collection):
     set with such an array (or equivalent sequence), or with a single
     RGBA value.
     '''
+    ribbon_styles = cvec_property('residue_ribbon_style', int32)
+    '''A numpy int array of cartoon styles.  See constants in :class:Ribbon.'''
+    ribbon_adjusts = cvec_property('residue_ribbon_adjust', float32)
+    '''A numpy float array of adjustment factors for the position of ribbon
+    control points.  Factors range from zero to one, with zero being using the
+    actual atomic coordinates as control point, and one being using the idealized
+    secondary structure position as control point.  A negative value means to
+    use the default of zero for turns and helices and 0.7 for strands.'''
 
     @property
     def unique_structures(self):
