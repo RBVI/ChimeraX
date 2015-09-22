@@ -874,6 +874,30 @@ extern "C" void set_residue_ribbon_display(void *residues, size_t n, npy_bool *r
     error_wrap_array_set(r, n, &Residue::set_ribbon_display, ribbon_display);
 }
 
+extern "C" void residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::ribbon_style, ribbon_style);
+}
+
+extern "C" void set_residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_ribbon_style, ribbon_style);
+}
+
+extern "C" void residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::ribbon_adjust, ribbon_adjust);
+}
+
+extern "C" void set_residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_ribbon_adjust, ribbon_adjust);
+}
+
 extern "C" void residue_structure(void *residues, size_t n, pyobject_t *molp)
 {
     Residue **r = static_cast<Residue **>(residues);

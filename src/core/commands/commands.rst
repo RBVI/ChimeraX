@@ -7,6 +7,7 @@ and their code location is described with the function descriptions.
 
 | `buriedarea`_ - Compute buried area between atomic structures
 | `camera`_ - Change camera settings
+| `cartoon`_ * - Display atomic structure ribbons or pipes/planks
 | `close`_ - Close models
 | `color`_ - Color atoms, ribbons and surfaces
 | `colordef`_ - Define new colors
@@ -66,6 +67,11 @@ buriedarea
 camera
 ======
 .. autofunction:: chimera.core.commands.camera.camera
+
+cartoon
+======
+.. autofunction:: chimera.exp_cmd.cartoon.cartoon
+.. autofunction:: chimera.exp_cmd.cartoon.uncartoon
 
 close
 =====

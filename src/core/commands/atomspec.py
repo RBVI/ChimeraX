@@ -71,7 +71,7 @@ class AtomSpecArg(Annotation):
 
     """
     name = "an atom specifier"
-    url = "user/commands/atomspec.html"
+    url = "help:user/commands/atomspec.html"
 
     @staticmethod
     def parse(text, session):
