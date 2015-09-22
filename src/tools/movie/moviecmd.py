@@ -249,7 +249,7 @@ def movie_status(session):
 def movie_formats(session):
     '''Report the available video formats to the log.'''
     from . import formats
-    flist = '\n'.join('\t%s\t=\t %s (.%s)' % (n, f['label'], f['suffix'])
+    flist = '\n'.join('\t%s\t=\t %s (.%s)' % (name, f['label'], f['suffix'])
                       for name, f in formats.formats.items())
     fnames = ' '.join(f for f in formats.formats.keys())
     session.logger.info('Movie encoding formats:\n%s\n' % flist)
