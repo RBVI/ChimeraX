@@ -1429,12 +1429,18 @@ class Command:
                     raise UserError(cond.error_message())
         self._error_checked = True
 
-    def execute(self, _used_aliases=None):
+    def execute(self, log=True, _used_aliases=None):
         """If command is valid, execute it with given session."""
 
         session = self._session()  # resolve back reference
         if not self._error_checked:
             self.error_check()
+        if log:
+            ctext = self.current_text
+            from html import escape
+            cname, cargs = [escape(s) for s in (ctext.split(maxsplit=1)+[''])[:2]]
+            msg = ('<a href="help:user/commands/%s.html">%s</a> %s' % (cname, cname, cargs))
+            session.logger.info(msg, is_html = True)
         results = []
         for (cmd_name, ci, kw_args) in self._multiple:
             try:
@@ -1537,7 +1543,7 @@ class Command:
                     text = self.current_text[self.amount_parsed:]
                     continue
                 if word:
-                    self._error = "Unknown command"
+                    self._error = "Unknown command: %s" % self.current_text
                 return
             self.amount_parsed += len(chars)
             if isinstance(what, _Defer):
