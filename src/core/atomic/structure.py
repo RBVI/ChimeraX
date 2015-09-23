@@ -758,7 +758,7 @@ class PickedAtom(Pick):
 def atom_description(atom):
     m = atom.structure
     r = atom.residue
-    d = '%s #%s.%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
+    d = '%s #%s/%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
     return d
 
 # -----------------------------------------------------------------------------

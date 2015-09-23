@@ -236,10 +236,12 @@ class Shortcut:
         f = self.func
         s = session
 
+        self.log(s.logger)
+
         # User command string
         if isinstance(f, str):
             from chimera.core import commands
-            commands.run(s ,f)
+            commands.run(s, f)
             return
 
         # Python function
@@ -264,7 +266,13 @@ class Shortcut:
             f(s)
         else:
             f()
-    
+
+    def log(self, logger):
+        smsg = '%s - %s' % (self.key_name, self.description)
+        logger.status(smsg)
+        imsg = '%s (%s)' % (self.description, self.key_name)
+        logger.info(imsg)
+
 class Keyboard_Shortcuts:
     '''
     Maintain a list of multi-key keyboard shortcuts and run them in response to key presses.
@@ -305,8 +313,9 @@ class Keyboard_Shortcuts:
         elif event.KeyCode == 317:        # Down arrow
             self.session.selection.demote()
 
-    #    t = event.text()
-    #    print(event, t, type(t), len(t), str(t), t.encode(), '%x' % event.key(), '%x' % int(event.modifiers()), event.count())
+#        t = event.text()
+#        print(event, t, type(t), len(t), str(t), t.encode(), '%x' % event.key(),
+#              '%x' % int(event.modifiers()), event.count())
 
         c = chr(event.UnicodeKey)
         self.keys += c
@@ -338,18 +347,8 @@ class Keyboard_Shortcuts:
 
     def run_shortcut(self, keys):
         sc = self.shortcuts.get(keys)
-        if sc is None:
-            return
-        s = self.session
-        smsg = '%s - %s' % (sc.key_name, sc.description)
-        s.logger.status(smsg)
-        if isinstance(sc.func, str):
-            imsg = '%s (%s)<br><font color="#0000ff">%s</font>' % (sc.description, sc.key_name, sc.func)
-            s.logger.info(imsg, is_html = True)
-        else:
-            imsg = '%s (%s)' % (sc.description, sc.key_name)
-            s.logger.info(imsg)
-        sc.run(s)
+        if sc is not None:
+            sc.run(self.session)
 
 _registered_selectors = False
 def register_selectors(session):

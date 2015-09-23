@@ -22,6 +22,8 @@ class GraphicsWindow(wx.Panel):
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         self.SetSizerAndFit(sizer)
 
+        self.popup = Popup(parent)        # For display of atom spec balloons
+
         self.redraw_interval = 16  # milliseconds
         # perhaps redraw interval should be 10 to reduce
         # frame drops at 60 frames/sec
@@ -54,6 +56,43 @@ class GraphicsWindow(wx.Panel):
         # 'x or y' is the "lambda way" of saying 'if not x: y'
         wx.CallAfter(lambda s=self:
             s.view.draw_new_frame() or s.mouse_modes.mouse_pause_tracking())
+
+
+class Popup(wx.PopupWindow):
+
+    def __init__(self, parent, style = wx.BORDER_SIMPLE):
+        wx.PopupWindow.__init__(self, parent, style)
+        self._panel = wx.Panel(self)
+#        self._panel.SetBackgroundColour((220,220,220))  # RGB 0-255
+        self._pad = p = 2
+        self._text = wx.StaticText(self._panel, -1, '', pos=(p,p))
+
+    def show_text(self, text, position):
+        t = self._text
+        t.SetLabel(text)
+        sz = t.GetBestSize()
+        p = 2*self._pad
+        self.SetSize( (sz.width+p, sz.height+p) )
+        self._panel.SetSize( (sz.width+p, sz.height+p) )
+        offset = (0,0)
+        xy = self.GetParent().ClientToScreen(position)
+        self.Position(xy, offset)
+
+        # Popup takes focus on Mac, restore it after showing popup.
+        fw = self.FindFocus()
+
+        self.Show(True)
+
+        if fw:
+            # fw.SetFocus() does not work on Mac.
+            # Apparently wx cannot change the focus between top level windows.
+            # But we can raise a different top level, and luckily this does
+            # not raise it above the popup.
+            fw.GetTopLevelParent().Raise()
+
+    def hide(self):
+        self.Show(False)
+
 
 from wx import glcanvas
 

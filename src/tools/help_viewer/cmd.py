@@ -61,7 +61,7 @@ def help(session, topic=None, *, option=None):
                 if is_query:
                     return False
                 from chimera.core.commands import run
-                run(session, "usage %s" % topic)
+                run(session, "usage %s" % topic, log = False)
                 return
             if is_query:
                 return True

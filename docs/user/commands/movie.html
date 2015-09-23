@@ -74,8 +74,8 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
   within images and the calculation time with little effect on file size.
   <b><i>N</i></b> is the number of pixels sampled in the X and Y dimensions 
   for each pixel in the final saved image.
-  Useful values range from 1 (no supersampling) to 4 (4x4 supersampling), 
-  with 3 recommended when supersampling is done.
+  Useful values range from 1 (no supersampling, default) to 4 
+  (4x4 supersampling), with 3 recommended when supersampling is done.
   In addition, a value of 0 can be used to indicate onscreen rather than
   offscreen rendering, without supersampling.
   A potential disadvantage of over-supersampling is that lines
@@ -87,8 +87,8 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
   <b>size</b> <i>width,height</i></a>
   <br>Generate images at the specified pixel <i>width</i> and <i>height</i>
   by offscreen rendering. This option allows creating movies with 
-  image dimensions larger than the Chimera window; if size is not given,
-  the dimensions of the Chimera graphics window will be used.
+  image dimensions larger than the graphics window; if size is not given,
+  the dimensions of the graphics window will be used.
   If the specified aspect ratio (the ratio of <i>width</i> to <i>height</i>)
   does not match that of the graphics window, the movie will show more or
   less of the scene vertically than is visible in the graphics window.
@@ -108,6 +108,9 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
   (for example, 00001, 00002, <i>etc.</i>).  Any specified 
   <i>filename-pattern</i> should include one and only one <b>*</b>,
   which will be replaced by the frame number.
+  Alternatively, a printf style specification like <b>%04d</b>
+  can be used instead of <b>*</b> to control the number of digits in the
+  frame-number portion of the name.
 </blockquote><blockquote>
   <b>limit</b> &nbsp;<i>maxframes</i>
   <br> 
@@ -121,7 +124,7 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 <blockquote>
   <a name="output"><b>output</b></a> &nbsp;<i>pathname</i> 
   <br>The <i>pathname</i> is the name and location of the output movie file 
-  (<font color="red">default <b>~/Desktop/movie.mp4</b></font>).
+  (default depends on platform, <b>~/Desktop/movie.mp4</b> on Mac).
   If file name but not location is given, the default location is the 
   current directory, typically the same location as the movie-making script.
   The output file format can be indicated by
@@ -210,7 +213,7 @@ highest&nbsp;|&nbsp;higher&nbsp;|&nbsp;high&nbsp;|&nbsp;<b>good</b>&nbsp;|&nbsp;
   <br>The frame rate is the rate of playback in terms of image frames.  
   The frame rate <i>fps</i> is an integer and defaults to <b>25</b> frames/s.
 </blockquote><blockquote>
-  <b>roundtrip</b> true&nbsp;|&nbsp;<b>false</b>
+  <b>roundTrip</b> true&nbsp;|&nbsp;<b>false</b>
   <br>Whether to include the frames in reverse order as the second half
   of the movie.
 </blockquote><blockquote>
@@ -249,13 +252,6 @@ because any recording will be halted automatically when encoding finishes.
 The transition is
 a linear interpolation from the preceding image frame to the image frame
 specified right after the crossfade.
-<font color="red">The crossfade transition will not
-be shown during recording, but will be in the resulting movie.
-See the
-<a href="http://www.cgl.ucsf.edu/chimera/data/movie-howto-mar2012/movie_examples
-.html#crossfade"
-target="_blank">video mini-example</a>.
-</font>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
