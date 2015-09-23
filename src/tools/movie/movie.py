@@ -78,6 +78,8 @@ class Movie:
     def stop_recording(self):
         if not self.is_recording():
             raise MovieError("Not currently recording")
+        if self.postprocess_frames:
+            self.capture_image()        # Finish crossfade if one is in progress.
         v = self.session.main_view
         v.remove_callback('rendered frame', self.capture_image)
         self.recording = False
@@ -257,7 +259,8 @@ class Movie:
         if self.is_recording():
             self.postprocess_action = action
             self.postprocess_frames = frames
-            self.capture_image()	# Capture all frames right now.
+            if action == 'duplicate':
+                self.capture_image()	# Capture all frames right now.
         else:
             self._notifyStatus('movie %s when not recording' % action)
 
