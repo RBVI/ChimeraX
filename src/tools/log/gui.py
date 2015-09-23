@@ -262,14 +262,14 @@ class Log(ToolInstance, HtmlLog):
             return
         from urllib.parse import urlparse
         parts = urlparse(url)
-        if parts.scheme in ('', 'file', 'http'):
+        if parts.scheme in ('', 'help', 'file', 'http'):
             if parts.path == '/':
                 # Ingore file:/// URL event that Mac generates
                 # for each call to SetPage()
                 return
             event.Veto()
             from chimera.core.commands import run
-            run(session, "help %s" % url)
+            run(session, "help %s" % url, log = False)
             return
         # unknown scheme
         event.Veto()

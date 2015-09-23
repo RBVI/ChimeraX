@@ -354,7 +354,7 @@ class MainWindow(wx.Frame, PlainTextLog):
             item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
             def cb(evt, ses=session, t=topic):
                 from chimera.core.commands import run
-                run(ses, 'help sethome %s' % t)
+                run(ses, 'help sethome help:%s' % t)
             self.Bind(wx.EVT_MENU, cb, item)
 
     def _tool_window_destroy(self, tool_window):

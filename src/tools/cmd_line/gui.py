@@ -112,8 +112,6 @@ class CommandLine(ToolInstance):
             try:
                 cmd = Command(session, cmd_text, final=True)
                 cmd.error_check()
-                session.logger.info('<p>%s' % escape(cmd.current_text),
-                                    is_html=True)
                 cmd.execute()
             except SystemExit:
                 # TODO: somehow quit application

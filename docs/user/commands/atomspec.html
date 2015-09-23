@@ -33,7 +33,7 @@ can be specified in commands using:
 <ul>
 <li><a href="#hierarchy">hierarchical specifiers</a>
 - model number, chain, residue, atom name
-<li>the word <b>sel</b> - the current selection
+<li>the word <b>sel</b> - the current <a href="select.html#seldef">selection</a>
 <li><a href="#zones">zones</a> - by distance from other items
 <font color="brown">(not yet implemented)</font>
 <li><a href="#builtin">built-in classifications, user-defined targets</a>
@@ -829,21 +829,14 @@ excluding the ions themselves
 Surfaces and Other Model Types</h2>
 <p>
 Some commands can apply to things other than atomic models 
-(atomic coordinates) and 
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/representation.html#surfaces">molecular surfaces</a>. 
+(atomic coordinates) and <a href="surface.html">molecular surfaces</a>. 
 To handle such cases, &ldquo;atom specification&rdquo;
 has been extended as follows:
 <ul>
-<li>an entire <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/surfattrib.html#surfmodels">surface model</a> 
-(all of its pieces) can be specified by model number preceded by #,
-or by <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/selection.html">selection</a> and
+<li>a surface model can be specified by model number preceded by #,
+or by <a href="select.html#seldef">selection</a> and
 using the word <b>sel</b>
-<li><a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/surfattrib.html#surfpiecedef">surface pieces</a> 
-can be specified individually by 
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/selection.html#pickselect">selection from the screen</a>
-and using the word <b>sel</b>
-<li><a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/vrmlattrib.html">other types of models</a> 
-can be specified by model number preceded by #
+<li>other types of models can be specified by model number preceded by #
 </ul>
 Which of these can be used and whether they can be
 <a href="#combinations">combined</a> with atom specifications

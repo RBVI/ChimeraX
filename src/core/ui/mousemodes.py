@@ -119,11 +119,17 @@ class MouseModes:
             # Require mouse move before setting timer to avoid
             # repeated mouse pause callbacks at same point.
             self.last_mouse_time = t
+            self.mouse_move_after_pause()
 
     def mouse_pause(self):
         m = self.mouse_modes.get('pause')
         if m:
             m.pause(self.mouse_pause_position)
+
+    def mouse_move_after_pause(self):
+        m = self.mouse_modes.get('pause')
+        if m:
+            m.move_after_pause()
 
 class MouseMode:
 
@@ -162,6 +168,9 @@ class MouseMode:
         pass
 
     def pause(self, position):
+        pass
+
+    def move_after_pause(self):
         pass
 
     def pixel_size(self, min_scene_frac = 1e-5):
@@ -318,10 +327,17 @@ class ObjectIdMouseMode(MouseMode):
     def pause(self, position):
         x,y = position
         p = self.view.first_intercept(x,y)
+
+        # Show atom spec balloon
+        pu = self.session.ui.main_window.graphics_window.popup
         if p:
-            self.session.logger.status('Mouse over %s' % p.description())
-        # TODO: Clear status if it is still showing mouse over message but mouse is over nothing.
-        #      Don't want to clear a different status message, only mouse over message.
+            pu.show_text(p.description(), (x+10,y))
+        else:
+            pu.hide()
+
+    def move_after_pause(self):
+        # Hide atom spec balloon
+        self.session.ui.main_window.graphics_window.popup.hide()
 
 class MouseEvent:
     def __init__(self, event):

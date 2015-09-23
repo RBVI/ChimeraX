@@ -2,7 +2,7 @@
 from chimera.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, Command
 
 
-def help(session, set_home=False, topic=None):
+def help(session, topic=None, *, option=None, is_query=False):
     '''Display help
 
     Parameters
@@ -11,49 +11,83 @@ def help(session, set_home=False, topic=None):
         Show documentation for the specified topic.  If no topic is
         specified then the overview is shown.  Topics that are command names
         can be abbreviated.
+    is_query : bool
+        Instead of showing the documetation, return if it exists.
     '''
-    if topic is not None and topic.startswith(('file:', 'http:')):
+    if topic is None:
+        if is_query:
+            return True
+        topic = 'help:user'
+    if topic.startswith(('file:', 'http:')):
+        if is_query:
+            return False
         url = topic
     else:
-        import os
-        base_dir = os.path.join(session.app_data_dir, 'docs')
-
-        if topic is None:
-            topic = 'user'
-
-        path = os.path.join(base_dir, topic)
-        if os.path.exists(path):
+        path = ""
+        fragment = ""
+        if topic.startswith('help:'):
+            import os
+            base_dir = os.path.join(session.app_data_dir, 'docs')
+            from urllib.parse import urlparse
+            from urllib.request import url2pathname
+            (_, _, url_path, _, _, fragment) = urlparse(topic)
+            path = os.path.join(base_dir, url2pathname(url_path))
+            if not os.path.exists(path):
+                if is_query:
+                    return False
+                session.logger.error("No help found for '%s'" % path)
+                return
+            if is_query:
+                return True
             if os.path.isdir(path):
                 path += '/index.html'
         else:
+            import os
+            base_dir = os.path.join(session.app_data_dir, 'docs')
+
             # check if topic matches a command name
             cmd = Command(None)
             cmd.current_text = topic
             cmd._find_command_name(True, no_aliases=True)
-            if cmd._ci and cmd.amount_parsed == len(cmd.current_text):
-                path = os.path.join(base_dir, 'user', 'commands',
-                                    '%s.html' % cmd.current_text)
-                if not os.path.exists(path):
-                    from chimera.core.commands import run
-                    run(session, "usage %s" % topic)
-                    return
-            else:
+            if cmd.command_name is None:
+                if is_query:
+                    return False
                 session.logger.error("No help found for '%s'" % topic)
                 return
-        from urllib.parse import quote
-        url = 'file://' + quote(path)
+            # handle multi word command names
+            #  -- use first word for filename and rest for #fragment
+            if ' ' not in cmd.command_name:
+                cmd_name = cmd.command_name
+                fragment = ""
+            else:
+                cmd_name, fragment = cmd.command_name.split(maxsplit=1)
+            path = os.path.join(base_dir, 'user', 'commands',
+                                '%s.html' % cmd_name)
+            if not os.path.exists(path):
+                if is_query:
+                    return False
+                from chimera.core.commands import run
+                run(session, "usage %s" % topic, log=False)
+                return
+            if is_query:
+                return True
+        from urllib.parse import urlunparse
+        from urllib.request import pathname2url
+        url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
 
     if session.ui.is_gui:
         from .gui import get_singleton
         help_viewer = get_singleton(session)
-        help_viewer.show(url, set_home=set_home)
+        help_viewer.show(url, set_home=option == 'sethome')
     else:
         import webbrowser
         webbrowser.open(url)
 
 help_desc = CmdDesc(
-    required=[('set_home',
-               Or(EnumOf(['sethome'], abbreviations=False), EmptyArg))],
+    required=[
+        ('option',
+         Or(EnumOf(['sethome'], abbreviations=False), EmptyArg))
+    ],
     optional=[('topic', RestOfLine)],
     synopsis='display help'
 )

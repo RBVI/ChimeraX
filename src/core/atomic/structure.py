@@ -53,6 +53,7 @@ class AtomicStructure(AtomicStructureData, Model):
         xsc_arrow_tail = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
         self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
         self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
+        self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
         self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
         self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
         self._ribbon_selected_residues = set()
@@ -316,6 +317,10 @@ class AtomicStructure(AtomicStructureData, Model):
             coords, guides = rlist.get_polymer_spline()
             if len(coords) < 4:
                 continue
+            # Perform any smoothing (e.g., strand smoothing
+            # to remove lasagna sheets, pipes and planks
+            # display as cylinders and planes, etc.)
+            self._smooth_ribbon(rlist, coords, guides)
             any_ribbon = True
             ribbon = Ribbon(coords, guides)
             offset = 0
@@ -340,8 +345,11 @@ class AtomicStructure(AtomicStructureData, Model):
             was_strand = False
             for i in range(len(rlist)):
                 if is_sheet[i]:
-                    xss.append(self._ribbon_xs_strand)
-                    was_strand = True
+                    if was_strand:
+                        xss.append(self._ribbon_xs_strand)
+                    else:
+                        xss.append(self._ribbon_xs_strand_start)
+                        was_strand = True
                 else:
                     if was_strand:
                         xss[-1] = self._ribbon_xs_arrow
@@ -435,6 +443,84 @@ class AtomicStructure(AtomicStructureData, Model):
             rp.first_intercept = MethodType(_ribbon_first_intercept, rp)
             # Save mappings for picking
             self._ribbon_t2r[rp] = t2r
+
+    def _smooth_ribbon(self, rlist, coords, guides):
+        # TODO: check current smoothing options
+        smooth_helices = False
+        smooth_strands = True
+        if not smooth_helices and not smooth_strands:
+            return
+        from numpy import logical_and, logical_not
+        from numpy import dot, newaxis, mean
+        from numpy.linalg import norm
+        import math
+        from .ribbon import normalize, normalize_vector_array
+        ribbon_adjusts = rlist.ribbon_adjusts
+        helices = rlist.is_helix
+        if smooth_helices:
+            for start, end in self._ss_ranges(helices):
+                ss_coords = coords[start:end]
+                adjusts = ribbon_adjusts[start:end][:, newaxis]
+                axes, vals, centroid, rel_coords = self._ss_axes(ss_coords)
+                # Compute position of cylinder center corresponding to
+                # helix control point atoms
+                axis = axes[0]
+                axis_pos = dot(rel_coords, axis)[:, newaxis]
+                cyl_centers = centroid + axis * axis_pos
+                # Compute radius of cylinder
+                spokes = ss_coords - cyl_centers
+                cyl_radius = mean(norm(spokes, axis=1))
+                #from math import sqrt
+                #cyl_radius = sqrt(vals[1] * vals[1] + vals[2] * vals[2])
+                # Compute smoothed position of helix control point atoms
+                ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
+                new_coords = ss_coords + adjusts * (ideal - ss_coords)
+                # Update both control point and guide coordinates
+                coords[start:end] = new_coords
+                guides[start:end] = new_coords + axis
+        if smooth_strands:
+            strands = logical_and(rlist.is_sheet, logical_not(helices))
+            for start, end in self._ss_ranges(strands):
+                ss_coords = coords[start:end]
+                adjusts = ribbon_adjusts[start:end][:, newaxis]
+                axes, vals, centroid, rel_coords = self._ss_axes(ss_coords)
+                # Compute position for strand control point atom on
+                # axis by projection
+                axis = normalize(axes[0])
+                axis_pos = dot(rel_coords, axis)[:, newaxis]
+                ideal = centroid + axis * axis_pos
+                new_coords = ss_coords + adjusts * (ideal - ss_coords)
+                # Compute guide atom position relative to control point atom
+                delta_guides = guides[start:end] - ss_coords
+                # Update both control point and guide coordinates
+                coords[start:end] = new_coords
+                guides[start:end] = new_coords + delta_guides
+
+    def _ss_ranges(self, ba):
+        # Return ranges of True in boolean array "ba"
+        ranges = []
+        start = -1
+        for n, bn in enumerate(ba):
+            if bn:
+                if start < 0:
+                    start = n
+            else:
+                if start >= 0:
+                    if n - start > 2:
+                        ranges.append((start, n))
+                    start = -1
+        if start >= 0 and len(ba) - start > 2:
+            ranges.append((start, len(ba)))
+        return ranges
+
+    def _ss_axes(self, ss_coords):
+        from numpy import mean
+        from numpy.linalg import svd
+        centroid = mean(ss_coords, axis=0)
+        rel_coords = ss_coords - centroid
+        ignore, vals, vecs = svd(rel_coords)
+        axes = vecs.take(vals.argsort()[::-1], 1)
+        return axes, vals, centroid, rel_coords
 
     def _update_ribbon_graphics(self):
         # Set selected ribbons in graphics
@@ -672,7 +758,7 @@ class PickedAtom(Pick):
 def atom_description(atom):
     m = atom.structure
     r = atom.residue
-    d = '%s #%s.%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
+    d = '%s #%s/%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
     return d
 
 # -----------------------------------------------------------------------------

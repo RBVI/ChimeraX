@@ -95,6 +95,10 @@ class Atom:
     '''Whether atom is hidden (overrides display).  Integer bitmask.'''
     visible = c_property('atom_visible', uint8, read_only = True)
     '''Whether atom is display and not hidden.  Read only integer.'''
+    RIBBON_RIBBON = 1
+    '''Draw mode that display cartoons as ribbons'''
+    RIBBON_PIPE = 1
+    '''Draw mode that display cartoons as pipes and planks'''
 
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
@@ -291,9 +295,17 @@ class Residue:
     ss_id = c_property('residue_ss_id', int32)
     '''Secondary structure id number. Integer value.'''
     ribbon_display = c_property('residue_ribbon_display', npy_bool)
-    '''Whether to display the residue in ribbon style. Boolean value.'''
+    '''Whether to display the residue as a ribbon/pipe/plank. Boolean value.'''
     ribbon_color = c_property('residue_ribbon_color', uint8, 4)
     '''Ribbon color RGBA length 4 numpy uint8 array.'''
+    ribbon_style = c_property('residue_ribbon_style', int32)
+    '''Whether the residue is displayed as a ribbon or a pipe/plank. Boolean value.'''
+    RIBBON = 0
+    '''Ribbon style = ribbon.'''
+    PIPE = 1
+    '''Ribbon style = pipe/plank.'''
+    ribbon_adjust = c_property('residue_ribbon_color', float32)
+    '''Smoothness adjustment factor (no adjustment = 0 <= factor <= 1 = idealized).'''
     name = c_property('residue_name', string, read_only = True)
     '''Residue name. Maximum length 4 characters. Read only.'''
     num_atoms = c_property('residue_num_atoms', size_t, read_only = True)

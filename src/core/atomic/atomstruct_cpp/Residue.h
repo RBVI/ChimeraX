@@ -25,6 +25,7 @@ class ATOMSTRUCT_IMEX Residue {
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
+    enum Style { RIBBON_RIBBON = 0, RIBBON_PIPE = 1 };
 private:
     friend class AtomicStructure;
     Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);
@@ -46,6 +47,8 @@ private:
     int  _ss_id;
     bool  _ribbon_display;
     Rgba  _ribbon_rgba;
+    int  _ribbon_style;
+    float  _ribbon_adjust;
     AtomicStructure *  _structure;
 public:
     void  add_atom(Atom*);
@@ -83,10 +86,14 @@ public:
     static const std::set<AtomName> na_max_backbone_names;
 
     // graphics related
-    bool  ribbon_display() const { return _ribbon_display; }
+    float  ribbon_adjust() const;
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
-    void  set_ribbon_display(bool d);
+    bool  ribbon_display() const { return _ribbon_display; }
+    int  ribbon_style() const { return _ribbon_style; }
+    void  set_ribbon_adjust(float a);
     void  set_ribbon_color(const Rgba& rgba);
+    void  set_ribbon_display(bool d);
+    void  set_ribbon_style(int s);
 };
 
 }  // namespace atomstruct
@@ -104,9 +111,20 @@ Residue::chain_id() const
     return _chain_id;
 }
 
+inline float
+Residue::ribbon_adjust() const {
+    if (_ribbon_adjust >= 0)
+        return _ribbon_adjust;
+    else if (_is_sheet)
+        return 0.7;
+    else if (_is_helix)
+        return 0.0;
+    else
+        return 0.0;
+}
+
 inline void
-Residue::set_is_helix(bool ih)
-{
+Residue::set_is_helix(bool ih) {
     if (ih == _is_helix)
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_HELIX);
@@ -114,8 +132,7 @@ Residue::set_is_helix(bool ih)
 }
 
 inline void
-Residue::set_is_het(bool ih)
-{
+Residue::set_is_het(bool ih) {
     if (ih == _is_het)
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_HET);
@@ -123,12 +140,29 @@ Residue::set_is_het(bool ih)
 }
 
 inline void
-Residue::set_is_sheet(bool is)
-{
+Residue::set_is_sheet(bool is) {
     if (is == _is_sheet)
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_SHEET);
     _is_sheet = is;
+}
+
+inline void
+Residue::set_ribbon_adjust(float a) {
+    if (a == _ribbon_adjust)
+        return;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_ADJUST);
+    _structure->set_gc_ribbon();
+    _ribbon_adjust = a;
+}
+
+inline void
+Residue::set_ribbon_color(const Rgba& rgba) {
+    if (rgba == _ribbon_rgba)
+        return;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_COLOR);
+    _structure->set_gc_ribbon();
+    _ribbon_rgba = rgba;
 }
 
 inline void
@@ -141,12 +175,12 @@ Residue::set_ribbon_display(bool d) {
 }
 
 inline void
-Residue::set_ribbon_color(const Rgba& rgba) {
-    if (rgba == _ribbon_rgba)
+Residue::set_ribbon_style(int s) {
+    if (s == _ribbon_style)
         return;
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_COLOR);
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_STYLE);
     _structure->set_gc_ribbon();
-    _ribbon_rgba = rgba;
+    _ribbon_style = s;
 }
 
 inline void

@@ -64,8 +64,10 @@ public:
     static const std::string  REASON_OCCUPANCY;
     static const std::string  REASON_RADIUS;
     static const std::string  REASON_RESIDUES;
-    static const std::string  REASON_RIBBON_DISPLAY;
+    static const std::string  REASON_RIBBON_ADJUST;
     static const std::string  REASON_RIBBON_COLOR;
+    static const std::string  REASON_RIBBON_DISPLAY;
+    static const std::string  REASON_RIBBON_STYLE;
     static const std::string  REASON_SELECTED;
     static const std::string  REASON_SEQUENCE;
     static const std::string  REASON_SERIAL_NUMBER;
