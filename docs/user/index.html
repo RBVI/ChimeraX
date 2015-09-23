@@ -35,6 +35,8 @@ here termed &ldquo;Chimera1.&rdquo;
  - color atomic models, cartoons, molecular surfaces</li>
  <li><a href="commands/colordef.html"><b>colordef</b></a>
  - define a color name</li>
+ <li><a href="commands/open.html"><b>open</b></a>
+  - open local file or fetch from repository</li> 
  <li><a href="commands/select.html"><b>select</b></a>
  - select items (models or their parts) for subsequent operations</li>
  <li><a href="commands/style.html"><b>style</b></a>
@@ -66,27 +68,18 @@ Many more commands exist, but are not yet fully documented.
 Some are experimental and could be changed significantly or
 omitted from later versions of Chimera2.
 Several current commands are listed below.
-The <b>usage</b> command can be used to show a brief description of command 
-syntax in the <b>Log</b> (for example, <b>usage set</b> or <b>usage all</b>). 
-The <b>help</b> command will show the full manual page for a command,
-if available, in a separate window (for example, <b>help style</b>).
+The <b>usage</b> command can be used to show a brief description of
+a command in the <b>Log</b> (for example, <b>usage set</b>). 
+The <b>help</b> command (for example, <b>help style</b>) shows the 
+full manual page for a command if available, otherwise just the usage.
 Some commands are much the same as the corresponding Chimera1 commands,
 except for the specification differences noted <a href="#top">above</a>.
 </p>
 <ul>
-<li><b>open</b> 
-- open local file or fetch from repository
-  <ul>
-  <li>first model is #1</li>
-  <li>default for 4-character ID is to fetch mmCIF; use <b>pdb:</b> prefix 
-  to fetch PDB, <b>emdb:</b> to fetch from EMDB, <b>eds:</b> to fetch 
-  from EDS</li>
-  </ul>
-</li> 
-<li><b>close</b> 
-- close model</li> 
 <li><b>list</b>
 - list current models</li>
+<li><b>close</b> 
+- close model</li> 
 <li><b>display/~display</b></li>
 <li><b>ribbon/~ribbon</b></li>
 <li><b>lighting</b> 
