@@ -1422,8 +1422,10 @@ class Command:
         for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
             missing = [kw for kw in ci._required_arguments if kw not in kw_args]
             if missing:
-                # TODO
-                raise UserError("Missing required '%s' argument" % missing)
+                arg_names, suffix = commas(
+                    ["'%s'" % m for m in missing], ' and')
+                raise UserError("Missing required %s argument%s" % (
+                    arg_names, suffix))
             for cond in ci._postconditions:
                 if not cond.check(kw_args):
                     raise UserError(cond.error_message())
@@ -1613,7 +1615,7 @@ class Command:
                     # exactly matches keyword, so done with positional arguments
                     break
             else:
-                self._error = 'Missing required "%s" argument' % _user_kw(kw_name)
+                self._error = "Missing required '%s' argument" % _user_kw(kw_name)
             m = _whitespace.match(text)
             start = m.end()
             if start:
