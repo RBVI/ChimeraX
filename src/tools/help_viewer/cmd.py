@@ -2,7 +2,7 @@
 from chimera.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, Command
 
 
-def help(session, topic=None, *, option=None):
+def help(session, topic=None, *, option=None, is_query=False):
     '''Display help
 
     Parameters
@@ -11,8 +11,9 @@ def help(session, topic=None, *, option=None):
         Show documentation for the specified topic.  If no topic is
         specified then the overview is shown.  Topics that are command names
         can be abbreviated.
+    is_query : bool
+        Instead of showing the documetation, return if it exists.
     '''
-    is_query = option == 'query'
     if topic is None:
         if is_query:
             return True
@@ -85,7 +86,7 @@ def help(session, topic=None, *, option=None):
 help_desc = CmdDesc(
     required=[
         ('option',
-         Or(EnumOf(['query', 'sethome'], abbreviations=False), EmptyArg))
+         Or(EnumOf(['sethome'], abbreviations=False), EmptyArg))
     ],
     optional=[('topic', RestOfLine)],
     synopsis='display help'
