@@ -2,13 +2,19 @@
 
 #include "Atom.h"
 #include "AtomicStructure.h"
-#include <basegeom/destruct.h>
 #include "Pseudobond.h"
+#include <basegeom/destruct.h>
+#include <pseudobond/Manager.tcc>
+
+namespace pseudobond {
+
+// force instantiation
+template class Owned_Manager<atomstruct::AtomicStructure, atomstruct::Proxy_PBGroup>;
+//template Owned_Manager<atomstruct::AtomicStructure, atomstruct::Proxy_PBGroup>::Owned_Manager(atomstruct::Proxy_PBGroup*);
+
+}
 
 namespace atomstruct {
-
-basegeom::ChangeTracker*
-AS_PBManager::change_tracker() const { return structure()->change_tracker(); }
 
 basegeom::ChangeTracker*
 PBond::change_tracker() const { return atoms()[0]->change_tracker(); }

@@ -465,7 +465,6 @@ class ChangeTracker:
     def __init__(self):
         f = c_function('change_tracker_create', args = (), ret = ctypes.c_void_p)
         set_c_pointer(self, f())
-        self.deleted = {}
 
     @property
     def changes(self):
@@ -473,12 +472,11 @@ class ChangeTracker:
             ret = ctypes.py_object)
         data = f(self._c_pointer)
         class Changes:
-            def __init__(self, created, modified, reasons, total_deleted, deleted):
+            def __init__(self, created, modified, reasons, total_deleted):
                 self.created = created
                 self.modified = modified
                 self.reasons = reasons
                 self.total_deleted = total_deleted
-                self.deleted = deleted
         final_changes = {}
         for k, v in data.items():
             created_ptrs, mod_ptrs, reasons, tot_del = v
@@ -489,7 +487,7 @@ class ChangeTracker:
             collection = temp_ns['collection']
             fc_key = k[:-4] if k.endswith("Data") else k
             final_changes[fc_key] = Changes(collection(created_ptrs),
-                collection(mod_ptrs), reasons, tot_del, self.deleted.get(fc_key, set()))
+                collection(mod_ptrs), reasons, tot_del)
         return final_changes
 
     @property

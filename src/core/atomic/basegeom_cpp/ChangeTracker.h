@@ -20,7 +20,6 @@ class Proxy_PBGroup;
     
 }
 
-#include <iostream>
 namespace basegeom {
 
 class Changes {
@@ -44,9 +43,7 @@ protected:
     std::vector<Changes>  _type_changes;
 
 public:
-    ChangeTracker() : _discarding(false), _type_changes(_num_types) {
-std::cerr << "(base) ChangeTracker address: " << (long)this << "\n";
-    };
+    ChangeTracker() : _discarding(false), _type_changes(_num_types) {};
 
     static const std::string  REASON_ACTIVE_COORD_SET;
     static const std::string  REASON_ALT_LOC;
@@ -130,9 +127,7 @@ std::cerr << "(base) ChangeTracker address: " << (long)this << "\n";
 // point that actual change tracking is turned on.
 class BASEGEOM_IMEX DiscardingChangeTracker : public ChangeTracker {
 public:
-    DiscardingChangeTracker() : ChangeTracker() { _discarding = true; 
-std::cerr << "DiscardingChangeTracker address: " << (long)this << "\n";
-    }
+    DiscardingChangeTracker() : ChangeTracker() { _discarding = true; }
     static DiscardingChangeTracker*  discarding_change_tracker();
 };
 

@@ -988,9 +988,7 @@ clock_t start_t, end_t;
 #ifdef CLOCK_PROFILING
 start_t = clock();
 #endif
-std::cerr << "new structure\n";
         AtomicStructure *as = new AtomicStructure(py_logger);
-std::cerr << "newed structure\n";
         as->set_name(as_name);
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
           &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
@@ -1101,20 +1099,14 @@ start_t = end_t;
                 }
             }
 
-std::cerr << "assign SS\n";
             assign_secondary_structure(fs, ss_map[fs], py_logger);
 
-std::cerr << "link up\n";
             Links &links = link_map[fs];
             for (Links::iterator li = links.begin(); li != links.end(); ++li)
                 link_up(*li, fs, &conect_atoms, py_logger);
-std::cerr << "connect struct\n";
             connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs]);
-std::cerr << "prune short\n";
             prune_short_bonds(fs);
-std::cerr << "use best alt locs\n";
             fs->use_best_alt_locs();
-std::cerr << "used best alt locs\n";
         }
 #ifdef CLOCK_PROFILING
 end_t = clock();

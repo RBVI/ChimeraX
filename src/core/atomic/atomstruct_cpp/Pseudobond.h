@@ -52,11 +52,9 @@ class Proxy_PBGroup;
 // of Proxy_PBGroup, this allows groups to be treated uniformly on the
 // Python side
 class PBManager: public pseudobond::Base_Manager<Proxy_PBGroup> {
-    ChangeTracker*  _ct;
 public:
-    PBManager(ChangeTracker* ct): _ct(ct) {}
+    PBManager(ChangeTracker* ct): Base_Manager<Proxy_PBGroup>(ct) {}
 
-    ChangeTracker*  change_tracker() const { return _ct; }
     void  delete_group(Proxy_PBGroup*);
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
 };
@@ -168,6 +166,7 @@ private:
             delete static_cast<Owned_PBGroup*>(_proxied);
         else
             delete static_cast<CS_PBGroup*>(_proxied);
+        manager()->change_tracker()->add_deleted(this);
     }
     void  init(int grp_type) {
         _group_type = grp_type;
@@ -180,6 +179,7 @@ private:
         if (_group_type == AS_PBManager::GRP_PER_CS)
             static_cast<CS_PBGroup*>(_proxied)->remove_cs(cs);
     }
+
 public:
     const std::string&  category() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
@@ -203,6 +203,7 @@ public:
             static_cast<AS_PBManager*>(_manager)->delete_group(this);
     }
     int  group_type() const { return _group_type; }
+    BaseManager*  manager() const { return _manager; }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<Owned_PBGroup*>(_proxied)->new_pseudobond(a1, a2);
