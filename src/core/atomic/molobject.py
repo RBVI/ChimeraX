@@ -478,6 +478,17 @@ class ChangeTracker:
         f = c_function('change_tracker_create', args = (), ret = ctypes.c_void_p)
         set_c_pointer(self, f())
 
+    def add_modified(self, modded, reason):
+        f = c_function('change_tracker_add_modified',
+            args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
+        from .molarray import Collection
+        if isinstance(modded, Collection):
+            class_num = self._class_to_int(modded.object_class)
+            for ptr in modded.pointers:
+                f(self._c_pointer, class_num, ptr, reason.encode('utf-8'))
+        else:
+            f(self._c_pointer, self._class_to_int(modded.__class__), modded._c_pointer,
+                reason.encode('utf-8'))
     @property
     def changes(self):
         f = c_function('change_tracker_changes', args = (ctypes.c_void_p,),
@@ -502,10 +513,23 @@ class ChangeTracker:
                 collection(mod_ptrs), reasons, tot_del)
         return final_changes
 
-    @property
-    def ptr_val(self):
-        """C pointer value, as an int.  For passing through to C++ layer"""
-        return self._c_pointer.value
+    def _class_to_int(self, klass):
+        # has to tightly coordinate wih change_track_add_modified
+        if klass.__name__ == "Atom":
+            return 0
+        if klass.__name__ == "Bond":
+            return 1
+        if klass.__name__ == "Pseudobond":
+            return 2
+        if klass.__name__ == "Residue":
+            return 3
+        if klass.__name__ == "Chain":
+            return 4
+        if klass.__name__ == "AtomicStructure":
+            return 5
+        if klass.__name__ == "PseudobondGroup":
+            return 6
+        raise AssertionError("Unknown class for change tracking")
 
 # -----------------------------------------------------------------------------
 #

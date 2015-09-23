@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 '''
 molarray: Collections of molecular objects
 ==========================================
@@ -106,6 +107,16 @@ class Collection:
                        ret = ctypes.c_ssize_t)
         i = f(self._c_pointers, len(self), object._c_pointer)
         return i
+
+    @property
+    def object_class(self):
+        return self._object_class
+    @property
+    def objects_class(self):
+        return self._objects_class
+    @property
+    def pointers(self):
+        return self._pointers
 
     def __or__(self, objects):
         '''The or operator | takes the union of two collections removing duplicates.'''
