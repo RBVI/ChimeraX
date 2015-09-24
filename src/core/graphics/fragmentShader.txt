@@ -2,19 +2,19 @@
 
 #ifdef USE_TEXTURE_MASK
 
-in vec2 tex_coord;
+in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
 uniform vec4 color;
 out vec4 frag_color;
 void main (void)
 {
-  float f = ceil(texture(tex2d, tex_coord).r);
+  float f = ceil(texture(tex2d, tex_coord_2d).r);
   frag_color = color * f;
 }
 
 #elif defined(USE_DEPTH_OUTLINE)
 
-in vec2 tex_coord;
+in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
 uniform vec4 color;
 uniform vec4 depth_shift_and_jump;
@@ -22,8 +22,8 @@ out vec4 frag_color;
 
 void main (void)
 {
-  float d0 = texture(tex2d, tex_coord).r;
-  float ds = texture(tex2d, vec2(tex_coord.s+depth_shift_and_jump.s, tex_coord.t+depth_shift_and_jump.t)).r;
+  float d0 = texture(tex2d, tex_coord_2d).r;
+  float ds = texture(tex2d, vec2(tex_coord_2d.s+depth_shift_and_jump.s, tex_coord_2d.t+depth_shift_and_jump.t)).r;
   float nf = depth_shift_and_jump.q;	// Correct depth compression based on perspective near/far ratio.
   float nf1 = 1-nf;
   if (nf*(ds-d0) < depth_shift_and_jump.p * (1-nf1*ds) * (1-nf1*d0))
@@ -78,8 +78,13 @@ uniform vec4 color;
 #endif
 
 #ifdef USE_TEXTURE_2D
-in vec2 tex_coord;
+in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
+#endif
+
+#ifdef USE_TEXTURE_CUBEMAP
+in vec3 tex_coord_cubemap;
+uniform samplerCube texcube;
 #endif
 
 #ifdef USE_TEXTURE_3D_AMBIENT
@@ -92,9 +97,13 @@ out vec4 frag_color;
 void main (void)
 {
 #ifdef USE_TEXTURE_2D
-  vec4 fcolor = texture(tex2d, tex_coord) * color;
+  vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
+#else
+#ifdef USE_TEXTURE_CUBEMAP
+  vec4 fcolor = texture(texcube, tex_coord_cubemap) * color;
 #else
   vec4 fcolor = color;
+#endif
 #endif
 
 #ifdef USE_TRANSPARENT_ONLY

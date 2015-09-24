@@ -648,14 +648,13 @@ class Drawing:
         at = self.ambient_texture
         if at is not None:
             at.bind_texture()
-            renderer.set_ambient_texture_transform(
-                self.ambient_texture_transform)
+            renderer.set_ambient_texture_transform(self.ambient_texture_transform)
 
         # Draw triangles
         ds.draw(self.display_style)
 
-        if self.texture is not None:
-            self.texture.unbind_texture()
+        if t is not None:
+            t.unbind_texture()
 
     def _shader_options(self, transparent_only = False, opaque_only = False):
         sopt = self._shader_opt
@@ -667,7 +666,10 @@ class Drawing:
             if (self.vertex_colors is not None) or len(self._colors) > 1:
                 sopt |= Render.SHADER_VERTEX_COLORS
             if self.texture is not None:
-                sopt |= Render.SHADER_TEXTURE_2D
+                if self.texture.is_cubemap:
+                    sopt |= Render.SHADER_TEXTURE_CUBEMAP
+                else:
+                    sopt |= Render.SHADER_TEXTURE_2D
             if self.ambient_texture is not None:
                 sopt |= Render.SHADER_TEXTURE_3D_AMBIENT
             if self.positions.shift_and_scale_array() is not None:
@@ -867,7 +869,7 @@ class Drawing:
             ('vertices', opengl.VERTEX_BUFFER),
             ('normals', opengl.NORMAL_BUFFER),
             ('vertex_colors', opengl.VERTEX_COLOR_BUFFER),
-            ('texture_coordinates', opengl.TEXTURE_COORDS_2D_BUFFER),
+            ('texture_coordinates', opengl.TEXTURE_COORDS_BUFFER),
         )
 
         self._vertex_buffers = vb = []

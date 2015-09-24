@@ -1062,7 +1062,12 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 }
             }
         }
-        PyObject *o = PyTuple_New(2);
+        PyObject *o = PyTuple_New(3);
+        void **adata;
+        PyObject *alist = python_voidp_array(centers.size(), &adata);
+        for (auto atom : centers)
+            *adata++ = atom;
+        PyTuple_SetItem(o, 0, alist);
         float *data;
         PyObject *ca = python_float_array(centers.size(), 3, &data);
         for (auto atom : centers) {
@@ -1071,7 +1076,7 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
             *data++ = c[1];
             *data++ = c[2];
         }
-        PyTuple_SetItem(o, 0, ca);
+        PyTuple_SetItem(o, 1, ca);
         if (has_guides) {
             PyObject *ga = python_float_array(guides.size(), 3, &data);
             for (auto atom : guides) {
@@ -1080,11 +1085,11 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 *data++ = c[1];
                 *data++ = c[2];
             }
-            PyTuple_SetItem(o, 1, ga);
+            PyTuple_SetItem(o, 2, ga);
         }
         else {
             Py_INCREF(Py_None);
-            PyTuple_SetItem(o, 1, Py_None);
+            PyTuple_SetItem(o, 2, Py_None);
         }
         return o;
     } catch (...) {

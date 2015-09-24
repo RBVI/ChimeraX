@@ -68,13 +68,6 @@ class Movie:
     def is_recording(self):
         return self.recording
 
-    def postprocess(self, action, frames):
-        if self.frame_count < 0:
-            # Need an initial image to do a crossfade.
-            self.capture_image()
-        self.postprocess_action = action
-        self.postprocess_frames = frames
-
     def cancelCB(self):
         # If user cancels inside of capture_image, this callback
         # is never invoked because of the exception thrown in saveImage
@@ -85,6 +78,8 @@ class Movie:
     def stop_recording(self):
         if not self.is_recording():
             raise MovieError("Not currently recording")
+        if self.postprocess_frames:
+            self.capture_image()        # Finish crossfade if one is in progress.
         v = self.session.main_view
         v.remove_callback('rendered frame', self.capture_image)
         self.recording = False
@@ -262,7 +257,10 @@ class Movie:
 
     def postprocess(self, action, frames):
         if self.is_recording():
-            self.postprocess(action, frames)
+            self.postprocess_action = action
+            self.postprocess_frames = frames
+            if action == 'duplicate':
+                self.capture_image()	# Capture all frames right now.
         else:
             self._notifyStatus('movie %s when not recording' % action)
 

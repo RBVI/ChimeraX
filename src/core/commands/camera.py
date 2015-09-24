@@ -7,8 +7,8 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
 
     Parameters
     ----------
-    mode : N/A
-        Currently not used.
+    mode : string
+        Controls type of projection, currently "mono" or "360"
     field_of_view : float
         Horizontal field of view in degrees.
     eye_separation : float
@@ -23,6 +23,12 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
     cam = session.main_view.camera
     has_arg = False
     if mode is not None:
+        if mode == 'mono':
+            from ..graphics import mono_camera_mode
+            cam.mode = mono_camera_mode
+        elif mode == '360':
+            from ..graphics.camera360 import equirect_camera_mode
+            equirect_camera_mode.set_camera_mode(cam)
         has_arg = True
         # TODO
     if field_of_view is not None:
@@ -59,16 +65,15 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
 
 
 def register_command(session):
-    from . import cli
-    # from ..graphics.cameramode import CameraModeArg
-    desc = cli.CmdDesc(
+    from . import CmdDesc, register, FloatArg, EnumOf
+    desc = CmdDesc(
         optional=[
-            # ('mode', CameraModeArg),
-            ('field_of_view', cli.FloatArg),
-            ('eye_separation', cli.FloatArg),
-            ('screen_width', cli.FloatArg),
-            ('depth_scale', cli.FloatArg),
+            ('mode', EnumOf(('mono', '360'))),
+            ('field_of_view', FloatArg),
+            ('eye_separation', FloatArg),
+            ('screen_width', FloatArg),
+            ('depth_scale', FloatArg),
         ],
         synopsis='adjust camara parameters'
     )
-    cli.register('camera', desc, camera)
+    register('camera', desc, camera)

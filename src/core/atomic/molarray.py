@@ -495,7 +495,9 @@ class Residues(Collection):
         f = c_function('residue_polymer_spline',
                        args = [ctypes.c_void_p, ctypes.c_size_t],
                        ret = ctypes.py_object)
-        return f(self._c_pointers, len(self))
+        atom_pointers, centers, guides = f(self._c_pointers, len(self))
+        atoms = Atoms(atom_pointers)
+        return atoms, centers, guides
 
 # -----------------------------------------------------------------------------
 #

@@ -269,7 +269,7 @@ class Log(ToolInstance, HtmlLog):
                 return
             event.Veto()
             from chimera.core.commands import run
-            run(session, "help %s" % url)
+            run(session, "help %s" % url, log = False)
             return
         # unknown scheme
         event.Veto()

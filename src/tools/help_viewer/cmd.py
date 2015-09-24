@@ -2,7 +2,7 @@
 from chimera.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, Command
 
 
-def help(session, topic=None, *, option=None):
+def help(session, topic=None, *, option=None, is_query=False):
     '''Display help
 
     Parameters
@@ -11,8 +11,9 @@ def help(session, topic=None, *, option=None):
         Show documentation for the specified topic.  If no topic is
         specified then the overview is shown.  Topics that are command names
         can be abbreviated.
+    is_query : bool
+        Instead of showing the documetation, return if it exists.
     '''
-    is_query = option == 'query'
     if topic is None:
         if is_query:
             return True
@@ -22,14 +23,19 @@ def help(session, topic=None, *, option=None):
             return False
         url = topic
     else:
+        path = ""
+        fragment = ""
         if topic.startswith('help:'):
             import os
             base_dir = os.path.join(session.app_data_dir, 'docs')
-            path = os.path.join(base_dir, topic[5:])
+            from urllib.parse import urlparse
+            from urllib.request import url2pathname
+            (_, _, url_path, _, _, fragment) = urlparse(topic)
+            path = os.path.join(base_dir, url2pathname(url_path))
             if not os.path.exists(path):
                 if is_query:
                     return False
-                session.logger.error("No help found for '%s'" % topic)
+                session.logger.error("No help found for '%s'" % path)
                 return
             if is_query:
                 return True
@@ -43,26 +49,31 @@ def help(session, topic=None, *, option=None):
             cmd = Command(None)
             cmd.current_text = topic
             cmd._find_command_name(True, no_aliases=True)
-            # TODO: handle multi word command names
-            #  -- use first word for filename and rest for #tag
-            if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
+            if cmd.command_name is None:
                 if is_query:
                     return False
                 session.logger.error("No help found for '%s'" % topic)
                 return
+            # handle multi word command names
+            #  -- use first word for filename and rest for #fragment
+            if ' ' not in cmd.command_name:
+                cmd_name = cmd.command_name
+                fragment = ""
+            else:
+                cmd_name, fragment = cmd.command_name.split(maxsplit=1)
             path = os.path.join(base_dir, 'user', 'commands',
-                                '%s.html' % cmd.current_text)
+                                '%s.html' % cmd_name)
             if not os.path.exists(path):
                 if is_query:
                     return False
                 from chimera.core.commands import run
-                run(session, "usage %s" % topic)
+                run(session, "usage %s" % topic, log=False)
                 return
             if is_query:
                 return True
-        from urllib.parse import urljoin
+        from urllib.parse import urlunparse
         from urllib.request import pathname2url
-        url = urljoin('file:', pathname2url(path))
+        url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
 
     if session.ui.is_gui:
         from .gui import get_singleton
@@ -75,7 +86,7 @@ def help(session, topic=None, *, option=None):
 help_desc = CmdDesc(
     required=[
         ('option',
-         Or(EnumOf(['query', 'sethome'], abbreviations=False), EmptyArg))
+         Or(EnumOf(['sethome'], abbreviations=False), EmptyArg))
     ],
     optional=[('topic', RestOfLine)],
     synopsis='display help'

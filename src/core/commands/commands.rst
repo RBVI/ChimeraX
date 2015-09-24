@@ -37,7 +37,6 @@ and their code location is described with the function descriptions.
 | `perframe`_ - Run a command for every rendered frame
 | `pwd`_ - Present working directory
 | `roll`_ - Rotate models
-| `ribbon`_ - Display atomic structure ribbons
 | `run`_ - Run a user command string
 | `sasa`_ - Compute solvent accessible surface area
 | `save`_ - Save sessions, images, density maps...
@@ -205,11 +204,6 @@ pwd
 roll
 ====
 .. autofunction:: chimera.core.commands.roll.roll
-
-ribbon
-======
-.. autofunction:: chimera.core.commands.ribbon.ribbon
-.. autofunction:: chimera.core.commands.ribbon.unribbon
 
 run
 ===

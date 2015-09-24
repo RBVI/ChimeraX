@@ -1419,24 +1419,43 @@ class Command:
         """
         if self._error:
             raise UserError(self._error)
-        for (cmd_name, ci, kw_args) in self._multiple:
+        for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
             missing = [kw for kw in ci._required_arguments if kw not in kw_args]
             if missing:
-                # TODO
-                raise UserError("Missing required '%s' argument" % missing)
+                arg_names, suffix = commas(
+                    ["'%s'" % m for m in missing], ' and')
+                raise UserError("Missing required %s argument%s" % (
+                    arg_names, suffix))
             for cond in ci._postconditions:
                 if not cond.check(kw_args):
                     raise UserError(cond.error_message())
         self._error_checked = True
 
-    def execute(self, _used_aliases=None):
+    def execute(self, log=True, _used_aliases=None):
         """If command is valid, execute it with given session."""
 
         session = self._session()  # resolve back reference
         if not self._error_checked:
             self.error_check()
         results = []
-        for (cmd_name, ci, kw_args) in self._multiple:
+        for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
+            if log:
+                if ' ' not in cmd_name:
+                    cname = cmd_name
+                    fragment = ""
+                else:
+                    cname, fragment = cmd_name.split(maxsplit=1)
+                path = "user/commands/%s.html" % cname
+                from urllib.request import pathname2url
+                href = "help:%s" % pathname2url(path)
+                if fragment:
+                    href += "#%s" % fragment
+                cargs = cmd_text[len(cmd_name):]
+                from html import escape
+                msg = '<a href="%s">%s</a>%s' % (
+                    href, escape(cmd_name), escape(cargs))
+                print('logging: %r' % msg)
+                session.logger.info(msg, is_html=True)
             try:
                 if not isinstance(ci.function, Alias):
                     results.append(ci.function(session, **kw_args))
@@ -1510,6 +1529,7 @@ class Command:
         self._error = "Missing command"
         self.word_map = None  # filled in when partial command is matched
         word_map = _commands
+        cmd_name = None
         start = self.amount_parsed
         while 1:
             m = _whitespace.match(self.current_text, self.amount_parsed)
@@ -1517,6 +1537,7 @@ class Command:
             text = self.current_text[self.amount_parsed:]
             if not text:
                 self.word_map = word_map  # if caller interested in partial cmds
+                self.command_name = cmd_name
                 return
             word, chars, text = next_token(text)
             if _debugging:
@@ -1537,9 +1558,11 @@ class Command:
                     text = self.current_text[self.amount_parsed:]
                     continue
                 if word:
-                    self._error = "Unknown command"
+                    self._error = "Unknown command: %s" % self.current_text
                 return
             self.amount_parsed += len(chars)
+            cmd_name = self.current_text[start:self.amount_parsed]
+            cmd_name = ' '.join(cmd_name.split())   # canonicalize
             if isinstance(what, _Defer):
                 what = _lazy_register(word_map, word)
             if isinstance(what, dict):
@@ -1549,8 +1572,6 @@ class Command:
                                % self.current_text[start:self.amount_parsed])
                 continue
             assert(isinstance(what, CmdDesc))
-            cmd_name = self.current_text[start:self.amount_parsed]
-            cmd_name = ' '.join(cmd_name.split())   # canonicalize
             if no_aliases:
                 if isinstance(what.function, Alias):
                     if cmd_name not in _aliased_commands:
@@ -1590,11 +1611,11 @@ class Command:
                 tmp = text.split(None, 1)
                 if not tmp:
                     break
-                if tmp[0] in self._ci._keyword_map:
+                if _canonical_kw(tmp[0]) in self._ci._keyword_map:
                     # exactly matches keyword, so done with positional arguments
                     break
             else:
-                self._error = 'Missing required "%s" argument' % _user_kw(kw_name)
+                self._error = "Missing required '%s' argument" % _user_kw(kw_name)
             m = _whitespace.match(text)
             start = m.end()
             if start:
@@ -1718,6 +1739,7 @@ class Command:
         self.current_text = text
 
         while 1:
+            start = self.amount_parsed
             self._find_command_name(final, no_aliases=no_aliases, used_aliases=_used_aliases)
             if not self._ci:
                 return
@@ -1727,7 +1749,9 @@ class Command:
             self._process_keyword_arguments(final)
             if self._error:
                 return
-            self._multiple.append((self.command_name, self._ci, self._kw_args))
+            self._multiple.append((
+                self.command_name, self.current_text[start:self.amount_parsed],
+                self._ci, self._kw_args))
             self.command_name = None
             self._ci = None
             self._kw_args = {}
