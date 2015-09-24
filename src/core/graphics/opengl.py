@@ -123,7 +123,7 @@ class Render:
         '''
         Return a shader that supports the specified capabilities.
         The capabilities are specified as at bit field of values from
-        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D,
+        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_CUBEMAP,
         SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_MASK,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
@@ -162,8 +162,10 @@ class Render:
         self.set_projection_matrix()
         self.set_model_matrix()
         if (self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_MASK & c
-                or self.SHADER_DEPTH_OUTLINE & c):
+            or self.SHADER_DEPTH_OUTLINE & c):
             shader.set_integer("tex2d", 0)    # Texture unit 0.
+        if self.SHADER_TEXTURE_CUBEMAP & c:
+            shader.set_integer("texcube", 0)
         if not self.SHADER_VERTEX_COLORS & c:
             self.set_single_color()
         if self.SHADER_FRAME_NUMBER & c:
@@ -638,6 +640,7 @@ class Render:
         # Use flat single color rendering.
         self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS
                                          | self.SHADER_TEXTURE_2D
+                                         | self.SHADER_TEXTURE_CUBEMAP
                                          | self.SHADER_LIGHTING)
         # Depth test GL_LEQUAL results in z-fighting:
         self.set_depth_range(0, 0.999999)
@@ -827,6 +830,7 @@ shader_options = (
     'SHADER_LIGHTING',
     'SHADER_DEPTH_CUE',
     'SHADER_TEXTURE_2D',
+    'SHADER_TEXTURE_CUBEMAP',
     'SHADER_TEXTURE_3D_AMBIENT',
     'SHADER_SHADOWS',
     'SHADER_MULTISHADOW',
@@ -924,9 +928,10 @@ class Framebuffer:
 
         if isinstance(color_buf, Texture):
             level = 0
+            target = GL.GL_TEXTURE_2D if not color_buf.is_cubemap else GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X
             GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
                                       GL.GL_COLOR_ATTACHMENT0,
-                                      GL.GL_TEXTURE_2D, color_buf.id, level)
+                                      target, color_buf.id, level)
         elif color_buf is not None:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
                                          GL.GL_COLOR_ATTACHMENT0,
@@ -950,6 +955,13 @@ class Framebuffer:
             return None
 
         return fbo
+
+    def set_cubemap_face(self, face):
+        level = 0
+        GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
+                                  GL.GL_COLOR_ATTACHMENT0,
+                                  GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X+face, 
+                                  self.color_texture.id, level)
 
     def valid(self):
         return self.fbo is not None
@@ -1072,7 +1084,7 @@ class Bindings:
     The bindings are for a specific shader program since they use the
     shader variable ids.
     '''
-    attribute_id = {'position': 0, 'tex_coord_2d': 1, 'normal': 2, 'vcolor': 3,
+    attribute_id = {'position': 0, 'tex_coord': 1, 'normal': 2, 'vcolor': 3,
                     'instance_shift_and_scale': 4, 'instance_placement': 5}
 
     def __init__(self):
@@ -1184,8 +1196,8 @@ INSTANCE_MATRIX_BUFFER = BufferType(
 INSTANCE_COLOR_BUFFER = BufferType(
     'vcolor', instance_buffer=True, value_type=uint8, normalize=True,
     requires_capabilities=Render.SHADER_VERTEX_COLORS)
-TEXTURE_COORDS_2D_BUFFER = BufferType(
-    'tex_coord_2d',
+TEXTURE_COORDS_BUFFER = BufferType(
+    'tex_coord',
     requires_capabilities=Render.SHADER_TEXTURE_2D | Render.SHADER_TEXTURE_MASK
     | Render.SHADER_DEPTH_OUTLINE)
 ELEMENT_BUFFER = BufferType(None, buffer_type=GL.GL_ELEMENT_ARRAY_BUFFER,
@@ -1413,12 +1425,13 @@ class Texture:
     and nearest interpolation is set.  The c = 2 mode uses the second
     component as alpha and the first componet for red, green, blue.
     '''
-    def __init__(self, data=None, dimension=2):
+    def __init__(self, data=None, dimension=2, cube_map=False):
 
         self.id = None
         self.dimension = dimension
-        self.gl_target = (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D,
-                          GL.GL_TEXTURE_3D)[dimension - 1]
+        self.gl_target = (GL.GL_TEXTURE_CUBE_MAP if cube_map else
+                          (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
+        self.is_cubemap = cube_map
 
         if data is not None:
             size = tuple(data.shape[dimension - 1::-1])
@@ -1471,29 +1484,25 @@ class Texture:
             GL.glTexImage1D(gl_target, 0, iformat, size[0], 0, format, tdtype,
                             data)
         elif dim == 2:
-            GL.glTexImage2D(gl_target, 0, iformat, size[0], size[1], 0, format,
-                            tdtype, data)
+            if self.is_cubemap:
+                for face in range(6):
+                    GL.glTexImage2D(GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X+face,
+                                    0, iformat, size[0], size[1], 0, format,
+                                    tdtype, data)
+            else:
+                GL.glTexImage2D(gl_target, 0, iformat, size[0], size[1], 0, format,
+                                tdtype, data)
         elif dim == 3:
             GL.glTexImage3D(gl_target, 0, iformat, size[0], size[1], size[2],
                             0, format, tdtype, data)
 
-        GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR,
-                            (0, 0, 0, 0))
-        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S,
-                           GL.GL_CLAMP_TO_BORDER)
+        GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR, (0, 0, 0, 0))
+        clamp = GL.GL_CLAMP_TO_EDGE if self.is_cubemap else GL.GL_CLAMP_TO_BORDER
+        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S, clamp)
         if dim >= 2:
-            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_T,
-                               GL.GL_CLAMP_TO_BORDER)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_T, clamp)
         if dim >= 3:
-            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_R,
-                               GL.GL_CLAMP_TO_BORDER)
-
-#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S,
-#                           GL.GL_CLAMP_TO_EDGE)
-#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_T,
-#                           GL.GL_CLAMP_TO_EDGE)
-#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_R,
-#                           GL.GL_CLAMP_TO_EDGE)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_R, clamp)
 
 #        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
 #        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
@@ -1610,7 +1619,7 @@ class TextureWindow:
         vb.update_buffer_data(array(((-1, -1, 0), (1, -1, 0), (1, 1, 0),
                                     (-1, 1, 0)), float32))
         vao.bind_shader_variable(vb)
-        self.tex_coord_buf = tcb = Buffer(TEXTURE_COORDS_2D_BUFFER)
+        self.tex_coord_buf = tcb = Buffer(TEXTURE_COORDS_BUFFER)
         tcb.update_buffer_data(array(((0, 0), (1, 0), (1, 1), (0, 1)),
                                      float32))
         vao.bind_shader_variable(tcb)
