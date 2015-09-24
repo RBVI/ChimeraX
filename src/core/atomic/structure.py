@@ -43,6 +43,7 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_drawing = None
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
+        self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         # Cross section coordinates are 2D and counterclockwise
         from .ribbon import XSection
         xsc_helix = [( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
@@ -224,8 +225,9 @@ class AtomicStructure(AtomicStructureData, Model):
         a = self.atoms
         p.selected_positions = a.selected if a.num_selected > 0 else None
 
-    def _atom_display_radii(self):
-        a = self.atoms
+    def _atom_display_radii(self, a=None):
+        if a is None:
+            a = self.atoms
         r = a.radii.copy()
         dm = a.draw_modes
         from .molobject import Atom
@@ -297,7 +299,7 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _create_ribbon_graphics(self):
         from .ribbon import Ribbon, XSection
-        from numpy import concatenate, array, uint8
+        from numpy import concatenate, array, uint8, zeros
         polymers = self.polymers(False, False)
         if self._ribbon_drawing is None:
             self._ribbon_drawing = p = self.new_drawing('ribbon')
@@ -307,20 +309,23 @@ class AtomicStructure(AtomicStructureData, Model):
             p.remove_all_drawings()
         self._ribbon_t2r = {}
         self._ribbon_r2t = {}
+        self._ribbon_tether = []
         for rlist in polymers:
             rp = p.new_drawing(rlist.strs[0])
             t2r = []
+            # Always call get_polymer_spline to make sure hide bits are
+            # properly set when ribbons are completely undisplayed
+            atoms, coords, guides = rlist.get_polymer_spline()
             displays = rlist.ribbon_displays
             if displays.sum() == 0:
                 continue
-            #coords, guides = self._get_polymer_spline(rlist)
-            coords, guides = rlist.get_polymer_spline()
-            if len(coords) < 4:
+            if len(atoms) < 4:
                 continue
             # Perform any smoothing (e.g., strand smoothing
             # to remove lasagna sheets, pipes and planks
             # display as cylinders and planes, etc.)
-            self._smooth_ribbon(rlist, coords, guides)
+            tethered = zeros(len(atoms), bool)
+            self._smooth_ribbon(rlist, coords, guides, atoms, tethered)
             any_ribbon = True
             ribbon = Ribbon(coords, guides)
             offset = 0
@@ -444,57 +449,73 @@ class AtomicStructure(AtomicStructureData, Model):
             # Save mappings for picking
             self._ribbon_t2r[rp] = t2r
 
-    def _smooth_ribbon(self, rlist, coords, guides):
-        # TODO: check current smoothing options
-        smooth_helices = False
-        smooth_strands = True
-        if not smooth_helices and not smooth_strands:
-            return
+            # Create tethers if necessary
+            from numpy import any
+            if any(tethered):
+                tp = p.new_drawing(rlist.strs[0] + "_tethers")
+                from types import MethodType
+                tp.first_intercept = MethodType(_tether_first_intercept, tp)
+                from .. import surface
+                va, na, ta = surface.cone_geometry(nc = 4, caps = False)
+                tp.geometry = va, ta
+                tp.normals = na
+                self._ribbon_tether.append((tp, coords[tethered], atoms.filter(tethered)))
+        self._update_ribbon_tethers()
+
+    def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered):
         from numpy import logical_and, logical_not
         from numpy import dot, newaxis, mean
         from numpy.linalg import norm
         import math
         from .ribbon import normalize, normalize_vector_array
         ribbon_adjusts = rlist.ribbon_adjusts
+        # Smooth helices
         helices = rlist.is_helix
-        if smooth_helices:
-            for start, end in self._ss_ranges(helices):
-                ss_coords = coords[start:end]
-                adjusts = ribbon_adjusts[start:end][:, newaxis]
-                axes, vals, centroid, rel_coords = self._ss_axes(ss_coords)
-                # Compute position of cylinder center corresponding to
-                # helix control point atoms
-                axis = axes[0]
-                axis_pos = dot(rel_coords, axis)[:, newaxis]
-                cyl_centers = centroid + axis * axis_pos
-                # Compute radius of cylinder
-                spokes = ss_coords - cyl_centers
-                cyl_radius = mean(norm(spokes, axis=1))
-                #from math import sqrt
-                #cyl_radius = sqrt(vals[1] * vals[1] + vals[2] * vals[2])
-                # Compute smoothed position of helix control point atoms
-                ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
-                new_coords = ss_coords + adjusts * (ideal - ss_coords)
-                # Update both control point and guide coordinates
-                coords[start:end] = new_coords
-                guides[start:end] = new_coords + axis
-        if smooth_strands:
-            strands = logical_and(rlist.is_sheet, logical_not(helices))
-            for start, end in self._ss_ranges(strands):
-                ss_coords = coords[start:end]
-                adjusts = ribbon_adjusts[start:end][:, newaxis]
-                axes, vals, centroid, rel_coords = self._ss_axes(ss_coords)
-                # Compute position for strand control point atom on
-                # axis by projection
-                axis = normalize(axes[0])
-                axis_pos = dot(rel_coords, axis)[:, newaxis]
-                ideal = centroid + axis * axis_pos
-                new_coords = ss_coords + adjusts * (ideal - ss_coords)
-                # Compute guide atom position relative to control point atom
-                delta_guides = guides[start:end] - ss_coords
-                # Update both control point and guide coordinates
-                coords[start:end] = new_coords
-                guides[start:end] = new_coords + delta_guides
+        for start, end in self._ss_ranges(helices):
+            ss_coords = coords[start:end]
+            adjusts = ribbon_adjusts[start:end][:, newaxis]
+            axes, vals, centroid, rel_coords = self._ss_axes(ss_coords)
+            # Compute position of cylinder center corresponding to
+            # helix control point atoms
+            axis = axes[0]
+            axis_pos = dot(rel_coords, axis)[:, newaxis]
+            cyl_centers = centroid + axis * axis_pos
+            # Compute radius of cylinder
+            spokes = ss_coords - cyl_centers
+            cyl_radius = mean(norm(spokes, axis=1))
+            #from math import sqrt
+            #cyl_radius = sqrt(vals[1] * vals[1] + vals[2] * vals[2])
+            # Compute smoothed position of helix control point atoms
+            ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
+            offsets = adjusts * (ideal - ss_coords)
+            new_coords = ss_coords + offsets
+            # Update both control point and guide coordinates
+            coords[start:end] = new_coords
+            guides[start:end] = new_coords + axis
+            # Update the tethered array (we compare against self.bond_radius
+            # because we want to create cones for the "worst" case which is
+            # when the atoms are displayed in stick mode, with radius self.bond_radius)
+            tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+        # Smooth strands
+        strands = logical_and(rlist.is_sheet, logical_not(helices))
+        for start, end in self._ss_ranges(strands):
+            ss_coords = coords[start:end]
+            adjusts = ribbon_adjusts[start:end][:, newaxis]
+            axes, vals, centroid, rel_coords = self._ss_axes(ss_coords)
+            # Compute position for strand control point atom on
+            # axis by projection
+            axis = normalize(axes[0])
+            axis_pos = dot(rel_coords, axis)[:, newaxis]
+            ideal = centroid + axis * axis_pos
+            offsets = adjusts * (ideal - ss_coords)
+            new_coords = ss_coords + offsets
+            # Compute guide atom position relative to control point atom
+            delta_guides = guides[start:end] - ss_coords
+            # Update both control point and guide coordinates
+            coords[start:end] = new_coords
+            guides[start:end] = new_coords + delta_guides
+            # Update the tethered array
+            tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
     def _ss_ranges(self, ba):
         # Return ranges of True in boolean array "ba"
@@ -562,6 +583,17 @@ class AtomicStructure(AtomicStructureData, Model):
                 for start, end in residues[2]:
                     m[start:end] = True
                 p.selected_triangles_mask = m
+        self._update_ribbon_tethers()
+
+    def _update_ribbon_tethers(self):
+        for tp, xyz1, atoms in self._ribbon_tether:
+            xyz2 = atoms.coords
+            radii = self._atom_display_radii(atoms)
+            tp.positions = _tethered_cone_placements(xyz1, xyz2, radii)
+            tp.display_positions = atoms.visibles
+            colors = atoms.colors
+            colors[:,3] *= 0.5      # Half transparent tethers
+            tp.colors = colors
 
     def bounds(self, positions = True):
         # TODO: Cache bounds
@@ -738,6 +770,11 @@ def _ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
     triangle_range = t2r[n - 1]
     return PickedResidue(triangle_range.residue, pd.distance)
 
+def _tether_first_intercept(self, mxyz1, mxyz2, exclude = None):
+    # TODO: for now, we pick nothing, but it should either pick
+    # the residue or the guide atom
+    return None
+
 # -----------------------------------------------------------------------------
 #
 from ..graphics import Pick
@@ -845,6 +882,13 @@ def _bond_cylinder_placements(axyz0, axyz1, radius, half_bond):
   from ..geometry import Places
   pl = Places(opengl_array = pt)
   return pl
+
+# -----------------------------------------------------------------------------
+#
+def _tethered_cone_placements(xyz0, xyz1, radius):
+    import numpy
+    halfbond = numpy.zeros(len(radius), bool)
+    return _bond_cylinder_placements(xyz0, xyz1, radius, halfbond)
 
 # -----------------------------------------------------------------------------
 #
