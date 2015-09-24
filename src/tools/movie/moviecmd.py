@@ -185,6 +185,12 @@ def encode_op(session, output=None, format=None, quality=None, qscale=None, bitr
     if format is None:
         if output:
             format = format_from_file_suffix(output)
+            if format is None:
+                suffixes = set(fmt['suffix'] for fmt in formats.formats.values())
+                sufs = ', '.join('*.%s' % s for s in suffixes)
+                from os.path import basename
+                raise CommandError('Unrecognized movie file suffix %s, use %s'
+                                   % (basename(output), sufs))
     if format is None:
         fmt_name = formats.default_video_format
     elif format.lower() in formats.formats:
