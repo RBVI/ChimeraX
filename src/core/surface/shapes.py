@@ -112,3 +112,55 @@ def dashed_cylinder_geometry(segments = 5, radius = 1, height = 1, nz = 2, nc = 
     from numpy import concatenate
     vd, nd, td = concatenate(vs), concatenate(ns), concatenate(ts)
     return vd, nd, td
+
+
+# -----------------------------------------------------------------------------
+#
+def cone_geometry(radius = 1, height = 1, nc = 10, caps = True):
+    '''
+    Return vertex, normal vector and triangle arrays for cone geometry
+    with specified radius and height with point of cone at origin
+    '''
+    from numpy import ones, empty, float32, arange, cos, sin, int32, pi
+    vc = nc * 2
+    tc = nc
+    if caps:
+        vc += (nc + 1)
+        tc += nc
+    varray = empty((vc, 3), float32)
+    narray = empty((vc, 3), float32)
+    tarray = empty((tc, 3), float32)
+
+    # Compute a circle (which may be used twice if caps is true)
+    angles = (2 * pi / nc) * arange(nc)
+    import sys
+    circle = empty((nc, 2), float32)
+    circle[:,0] = cos(angles)
+    circle[:,1] = sin(angles)
+
+    # Create cone faces (first nc*2 vertices)
+    # The normals are wrong, but let's see how they look
+    nc2 = nc * 2
+    varray[:nc] = (0, 0, -0.5)      # point of cone (multiple normals)
+    narray[:nc,:2] = circle
+    narray[:nc,2] = 0
+    varray[nc:nc2,:2] = circle      # base of cone
+    varray[nc:nc2,2] = 0.5
+    narray[nc:nc2,:2] = circle      # wrong, but close (enough?)
+    narray[nc:nc2,2] = 0
+    tarray[:nc,0] = arange(nc)
+    tarray[:nc,1] = (arange(nc) + 1) % nc + nc
+    tarray[:nc,2] = arange(nc) + nc
+
+    # Create cone base (last nc+1 vertices)
+    if caps:
+        varray[nc2] = (0, 0, 0.5)
+        varray[nc2+1:,:2] = circle
+        varray[nc2+1:,2] = 0.5
+        narray[nc2:] = (0, 0, 1)
+        tarray[nc2:,0] = nc2
+        tarray[nc2:,1] = (arange(nc) + 1) % nc + nc2 + 1
+        tarray[nc2:,2] = arange(nc) + nc2 + 1
+
+    return varray, narray, tarray
+

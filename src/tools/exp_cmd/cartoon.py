@@ -67,3 +67,8 @@ def initialize(command_name):
     desc = CmdDesc(optional=[("spec", AtomSpecArg)],
                    synopsis='undisplay cartoon for specified residues')
     register("~" + command_name, desc, uncartoon)
+
+    if command_name != "ribbon":
+        from chimera.core.commands import alias
+        alias(None, "ribbon", command_name + " $*")
+        alias(None, "~ribbon", "~" + command_name + " $*")
