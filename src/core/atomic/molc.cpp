@@ -345,6 +345,17 @@ extern "C" void set_atom_draw_mode(void *atoms, size_t n, int32_t *modes)
     error_wrap_array_set<Atom, int, int>(a, n, &Atom::set_draw_mode, modes);
 }
 
+extern "C" void atom_element(void *atoms, size_t n, pyobject_t *resp)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            resp[i] = (pyobject_t*)(&(a[i]->element()));
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void atom_element_name(void *atoms, size_t n, pyobject_t *names)
 {
     Atom **a = static_cast<Atom **>(atoms);

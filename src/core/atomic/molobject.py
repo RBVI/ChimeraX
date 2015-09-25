@@ -16,6 +16,8 @@ def _atom_pair(p):
 def _bonds(b):
     from .molarray import Bonds
     return Bonds(b)
+def _element(e):
+    return object_map(e, Element)
 def _pseudobonds(b):
     from .molarray import Pseudobonds
     return Pseudobonds(b)
@@ -69,6 +71,8 @@ class Atom:
     draw_mode = c_property('atom_draw_mode', int32)
     '''Controls how the atom is depicted.  Can be SPHERE_STYLE, BALL_STYLE or
     STICK_STYLE.'''
+    element = c_property('atom_element', cptr, astype = _element, read_only = True)
+    ''':class:`Element` corresponding to the chemical element for the atom.'''
     element_name = c_property('atom_element_name', string, read_only = True)
     '''Chemical element name. Read only.'''
     element_number = c_property('atom_element_number', uint8, read_only = True)
@@ -466,23 +470,15 @@ class AtomicStructureData:
 #
 class Element:
     '''A chemical element having a name, number, mass, and other physical properties.'''
-    def __init__(self, e_pointer = None, name = None, number = 6):
-        if e_pointer is None:
-            # Create a new element
-            if name:
-                f = c_function('element_new_name', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
-                e_pointer = f(name)
-            else:
-                f = c_function('element_new_number', args = (ctypes.c_int,), ret = ctypes.c_void_p)
-                e_pointer = f(number)
-        set_c_pointer(self, e_pointer)
+    def __init__(self, element_pointer):
+        set_c_pointer(self, element_pointer)
 
     name = c_property('element_name', string, read_only = True)
     '''Element name, for example C for carbon. Read only.'''
     number = c_property('element_number', uint8, read_only = True)
     '''Element atomic number, for example 6 for carbon. Read only.'''
     mass = c_property('element_mass', float32, read_only = True)
-    '''Element atomic mass, average mass divided by 1/12 mass of carbon,
+    '''Element atomic mass,
     taken from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
     Read only.'''
     is_metal = c_property('element_is_metal', npy_bool, read_only = True)
