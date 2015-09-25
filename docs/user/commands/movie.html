@@ -98,7 +98,8 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
   The format of saved image files. 
 </blockquote><blockquote>
   <b>directory</b> <i>image-directory</i>
-  <br>Where image files should be saved; the default varies by platform.
+  <br>An existing directory in which image files should be saved; 
+  the default varies by platform.
 </blockquote><blockquote>
   <b>pattern</b> <i>filename-pattern</i>
   <br>The <i>filename-pattern</i> is a
@@ -108,9 +109,6 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
   (for example, 00001, 00002, <i>etc.</i>).  Any specified 
   <i>filename-pattern</i> should include one and only one <b>*</b>,
   which will be replaced by the frame number.
-  Alternatively, a printf style specification like <b>%04d</b>
-  can be used instead of <b>*</b> to control the number of digits in the
-  frame-number portion of the name.
 </blockquote><blockquote>
   <b>limit</b> &nbsp;<i>maxframes</i>
   <br> 
@@ -125,27 +123,24 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
   <a name="output"><b>output</b></a> &nbsp;<i>pathname</i> 
   <br>The <i>pathname</i> is the name and location of the output movie file 
   (default depends on platform, <b>~/Desktop/movie.mp4</b> on Mac).
-  If file name but not location is given, the default location is the 
-  current directory, typically the same location as the movie-making script.
   The output file format can be indicated by
   <a href="#suffix">filename suffix</a>
   or with the <a href="#format"><b>format</b></a> option.
   The <b>output</b> keyword can be omitted if the pathname precedes
-  any other options, and in that case, multiple pathnames with different
-  suffixes can be given to produce multiple outputs of different formats
-  (example: <b>movie encode a.mp4 b.webm</b>).
+  any other options, and in that case, multiple pathnames 
+  separated by commas only can be given (example: <span class="nowrap">
+  <b>movie encode ~/Desktop/mymovie.mp4,~/Desktop/mymovie.avi</b></span>).
   If the <b>output</b> keyword is used, the option can 
   appear anywhere in the command, even multiple times in a single command,
   but only a single pathname can be given per use of the keyword.
 </blockquote><blockquote>
-  <a name="format"><b>format</b></a> &nbsp;h264&nbsp;|&nbsp;vp8&nbsp;|&nbsp;theora&nbsp;|&nbsp;mov&nbsp;|&nbsp;avi&nbsp;|&nbsp;mp4&nbsp;|&nbsp;mp2&nbsp;|&nbsp;mpeg&nbsp;|&nbsp;wmv
+  <a name="format"><b>format</b></a> &nbsp;h264&nbsp;|&nbsp;mov&nbsp;|&nbsp;qt&nbsp;|&nbsp;quicktime&nbsp;|&nbsp;avi&nbsp;|&nbsp;wmv
   <br>
 Encode the movie in the specified format.  
 Format keywords and their synonyms are listed in the table below.
 Alternatively, the format can be specified by <a href="#output">output</a>
-filename suffix;
-where formats share a suffix, the newer format (higher in the table)
-will be used. The available formats can be listed with the command
+filename suffix.
+The available formats can be listed with the command
 <a href="#top"><b>movie formats</b></a>.
 
 <table border cellpadding="4" cellspacing="0"><tr>
@@ -157,27 +152,11 @@ will be used. The available formats can be listed with the command
 <br>(default on Mac, Windows)</td>
 <td align="center">.mp4</td>
 </tr><tr>
-<td align="center">vp8<br>webm</td><td align="center">VP8/WebM 
-<br>(default on Linux)</td>
-<td align="center">.webm</td>
-</tr><tr>
-<td align="center">theora<br>ogg<br>ogv</td><td align="center">Theora</td>
-<td align="center">.ogv</td>
-</tr><tr>
 <td align="center">mov<br>qt<br>quicktime</td><td align="center">Quicktime</td>
 <td align="center">.mov</td>
 </tr><tr>
 <td align="center">avi</td><td align="center">AVI MSMPEG-4v2</td>
 <td align="center">.avi</td>
-</tr><tr>
-<td align="center">mp4</td><td align="center">MPEG-4</td>
-<td align="center">.mp4</td>
-</tr><tr>
-<td align="center">mp2</td><td align="center">MPEG-2</td>
-<td align="center">.mpg</td>
-</tr><tr>
-<td align="center">mpeg</td><td align="center">MPEG-1</td>
-<td align="center">.mpg</td>
 </tr><tr>
 <td align="center">wmv</td><td align="center">WMV2</td>
 <td align="center">.wmv</td>
@@ -187,16 +166,21 @@ will be used. The available formats can be listed with the command
 highest&nbsp;|&nbsp;higher&nbsp;|&nbsp;high&nbsp;|&nbsp;<b>good</b>&nbsp;|&nbsp;medium&nbsp;|&nbsp;fair&nbsp;|&nbsp;low
   <br>
   Encode the movie to play back at a variable bit rate
-  appropriate for the specified quality level.
+  appropriate for the specified quality level, default <b>good</b>.
   Higher quality corresponds to a higher bit rate and a larger file
   (at a given window size and <a href="#framerate">frame rate</a>).
-  For constant bit rate encoding, the <a href="#bitrate"><b>bitrate</b></a>
-  option should be used instead.
+  The <a href="#qscale"><b>qscale</b></a> option can be used for finer control.
+  When specified by the user,
+  <b>quality</b> overrides <a href="#qscale"><b>qscale</b></a> and
+  <a href="#bitrate"><b>bitrate</b></a> (constant bit rate encoding).
 </blockquote><blockquote>
-  <font color="red">
-  <b>qscale</b> <i>N</i> ??
+  <a name="qscale"><b>qscale</b></a> <i>factor</i>
   <br>
-  </font>
+  Encode the movie to play back at a variable bit rate, where the
+  quality <i>factor</i> is an integer that can range 
+  from 1 (highest quality and highest data rates) 
+  to 31 (lowest quality).  This option overrides
+  <a href="#bitrate"><b>bitrate</b></a> (constant bit rate encoding).
 </blockquote><blockquote>
   <a name="bitrate"><b>bitrate</b></a> <i>rate</i>
   <br>
@@ -206,8 +190,6 @@ highest&nbsp;|&nbsp;higher&nbsp;|&nbsp;high&nbsp;|&nbsp;<b>good</b>&nbsp;|&nbsp;
   but this strongly depends on image dimensions and the amount of motion.
   For HD movies (1920 x 1080 pixels), a rate of 25000 Kbits/s
   would be expected to give high quality.
-  For variable bit rate encoding, the <a href="#quality"><b>quality</b></a>
-  option should be used instead.
 </blockquote><blockquote>
   <a name="framerate"><b>framerate</b></a> <i>fps</i>
   <br>The frame rate is the rate of playback in terms of image frames.  
@@ -251,7 +233,8 @@ because any recording will be halted automatically when encoding finishes.
 (default <b>25</b>), and can be given without the <b>frames</b> keyword.
 The transition is
 a linear interpolation from the preceding image frame to the image frame
-specified right after the crossfade.
+specified right after the crossfade. The crossfade transition will not
+be shown during recording, but will be in the resulting movie.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
