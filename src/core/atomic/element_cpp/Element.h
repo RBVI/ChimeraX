@@ -25,6 +25,7 @@
 
 #include <iostream>
 #include <map>
+#include <set>
 
 #include "imex.h"
 
@@ -47,7 +48,7 @@ public:
         Fr, Ra, Ac,
         Th, Pa, U, Np, Pu, Am, Cm, Bk, Cf, Es, Fm, Md, No, Lr,
         Rf, Db, Sg, Bh, Hs, Mt, Ds, Rg,
-        Uub, Uut, Uuq, Uup, Uuh, Uus, Uuo
+        Cn, Uut, Fl, Uup, Uuh, Uus, Uuo
     };
     static float    bond_radius(const Element&);
     static float    bond_length(const Element&, const Element&);
@@ -57,7 +58,10 @@ private:
     Element(const Element&);
     Element& operator=(const Element&);
 
+    static std::set<int>  _alkali_metals;
     static std::map<int, const Element*>  _elements;
+    static std::set<int>  _halides;
+    static std::set<int>  _noble_gases;
 
     static AS    atomic_number(const char *name);
     AS        as;        // atomic number
@@ -68,10 +72,17 @@ public:
     static const Element&  get_element(int i);
 
     long  hash() const { return number(); }
+    bool  is_alkali_metal() const
+        { return _alkali_metals.find(number()) != _alkali_metals.end(); }
+    bool  is_halide() const
+        { return _halides.find(number()) != _halides.end(); }
     bool  is_metal() const;
+    bool  is_noble_gas() const
+        { return _noble_gases.find(number()) != _noble_gases.end(); }
     float  mass() const;        // standard atomic weight
     const char*  name() const;
     int  number() const { return int(as); }
+    int  valence() const;
 
     bool  operator==(const Element &a) const { return as == a.as; }
     bool  operator!=(const Element &a) const { return as != a.as; }

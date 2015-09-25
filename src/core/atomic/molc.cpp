@@ -1502,10 +1502,54 @@ extern "C" void element_mass(void *elements, size_t n, float *mass)
     error_wrap_array_get(e, n, &Element::mass, mass);
 }
 
+extern "C" void *element_number_get_element(int en)
+{
+    try {
+        return (void*)(&Element::get_element(en));
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void *element_name_get_element(const char *en)
+{
+    try {
+        return (void*)(&Element::get_element(en));
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void element_is_alkali_metal(void *elements, size_t n, npy_bool *a_metal)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::is_alkali_metal, a_metal);
+}
+
+extern "C" void element_is_halide(void *elements, size_t n, npy_bool *halide)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::is_halide, halide);
+}
+
 extern "C" void element_is_metal(void *elements, size_t n, npy_bool *metal)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::is_metal, metal);
+}
+
+extern "C" void element_is_noble_gas(void *elements, size_t n, npy_bool *ngas)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::is_noble_gas, ngas);
+}
+
+extern "C" void element_valence(void *elements, size_t n, uint8_t *valence)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::valence, valence);
 }
 
 static void *init_numpy()

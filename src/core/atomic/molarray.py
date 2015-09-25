@@ -399,9 +399,20 @@ class Elements(Collection):
     '''Returns a :mod:`numpy` array of atomic masses,
     taken from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
     Read only.'''
+    is_alkali_metal = cvec_property('element_is_alkali_metal', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom an alkali metal. Read only.'''
+    is_halide = cvec_property('element_is_halide', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom a halide. Read only.'''
     is_metal = cvec_property('element_is_metal', npy_bool, read_only = True)
     '''Returns a :mod:`numpy` array of booleans, where True indicates the
     element is atom a metal. Read only.'''
+    is_noble_gas = cvec_property('element_is_noble_gas', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom a noble gas. Read only.'''
+    valences = cvec_property('element_valence', uint8, read_only = True)
+    '''Returns a :mod:`numpy` array of atomic valence numbers (integers). Read only.'''
 
 
 # -----------------------------------------------------------------------------

@@ -481,8 +481,26 @@ class Element:
     '''Element atomic mass,
     taken from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
     Read only.'''
+    is_alkali_metal = c_property('element_is_alkali_metal', npy_bool, read_only = True)
+    '''Is atom an alkali metal. Read only.'''
+    is_halide = c_property('element_is_halide', npy_bool, read_only = True)
+    '''Is atom a halide. Read only.'''
     is_metal = c_property('element_is_metal', npy_bool, read_only = True)
     '''Is atom a metal. Read only.'''
+    is_noble_gas = c_property('element_is_noble_gas', npy_bool, read_only = True)
+    '''Is atom a noble_gas. Read only.'''
+    valence = c_property('element_valence', uint8, read_only = True)
+    '''Element valence number, for example 7 for chlorine. Read only.'''
+
+    def get_element(name_or_number):
+        '''Get the Element that corresponds to an atomic name or number'''
+        if type(name_or_number) == type(1):
+            f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+        elif type(name_or_number) == type(""):
+            f = c_function('element_name_get_element', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
+        else:
+            raise ValueError("'get_element' arg must be string or int")
+        return _element(f(name_or_number))
 
 # -----------------------------------------------------------------------------
 #
