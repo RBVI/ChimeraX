@@ -483,8 +483,8 @@ class Element:
     Read only.'''
     is_alkali_metal = c_property('element_is_alkali_metal', npy_bool, read_only = True)
     '''Is atom an alkali metal. Read only.'''
-    is_halide = c_property('element_is_halide', npy_bool, read_only = True)
-    '''Is atom a halide. Read only.'''
+    is_halogen = c_property('element_is_halogen', npy_bool, read_only = True)
+    '''Is atom a halogen. Read only.'''
     is_metal = c_property('element_is_metal', npy_bool, read_only = True)
     '''Is atom a metal. Read only.'''
     is_noble_gas = c_property('element_is_noble_gas', npy_bool, read_only = True)

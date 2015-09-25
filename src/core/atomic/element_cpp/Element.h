@@ -60,7 +60,7 @@ private:
 
     static std::set<int>  _alkali_metals;
     static std::map<int, const Element*>  _elements;
-    static std::set<int>  _halides;
+    static std::set<int>  _halogens;
     static std::set<int>  _noble_gases;
 
     static AS    atomic_number(const char *name);
@@ -74,8 +74,8 @@ public:
     long  hash() const { return number(); }
     bool  is_alkali_metal() const
         { return _alkali_metals.find(number()) != _alkali_metals.end(); }
-    bool  is_halide() const
-        { return _halides.find(number()) != _halides.end(); }
+    bool  is_halogen() const
+        { return _halogens.find(number()) != _halogens.end(); }
     bool  is_metal() const;
     bool  is_noble_gas() const
         { return _noble_gases.find(number()) != _noble_gases.end(); }

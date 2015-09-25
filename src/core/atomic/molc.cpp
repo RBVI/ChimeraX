@@ -1528,10 +1528,10 @@ extern "C" void element_is_alkali_metal(void *elements, size_t n, npy_bool *a_me
     error_wrap_array_get(e, n, &Element::is_alkali_metal, a_metal);
 }
 
-extern "C" void element_is_halide(void *elements, size_t n, npy_bool *halide)
+extern "C" void element_is_halogen(void *elements, size_t n, npy_bool *halogen)
 {
     Element **e = static_cast<Element **>(elements);
-    error_wrap_array_get(e, n, &Element::is_halide, halide);
+    error_wrap_array_get(e, n, &Element::is_halogen, halogen);
 }
 
 extern "C" void element_is_metal(void *elements, size_t n, npy_bool *metal)

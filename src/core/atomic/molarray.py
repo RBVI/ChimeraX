@@ -402,9 +402,9 @@ class Elements(Collection):
     is_alkali_metal = cvec_property('element_is_alkali_metal', npy_bool, read_only = True)
     '''Returns a :mod:`numpy` array of booleans, where True indicates the
     element is atom an alkali metal. Read only.'''
-    is_halide = cvec_property('element_is_halide', npy_bool, read_only = True)
+    is_halogen = cvec_property('element_is_halogen', npy_bool, read_only = True)
     '''Returns a :mod:`numpy` array of booleans, where True indicates the
-    element is atom a halide. Read only.'''
+    element is atom a halogen. Read only.'''
     is_metal = cvec_property('element_is_metal', npy_bool, read_only = True)
     '''Returns a :mod:`numpy` array of booleans, where True indicates the
     element is atom a metal. Read only.'''

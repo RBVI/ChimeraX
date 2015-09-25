@@ -290,7 +290,7 @@ std::set<int> Element::_alkali_metals = {
     3 /* Li */, 11 /* Na */, 19 /* K */, 37 /* Rb */, 55 /* Cs */, 87 /* Fr */
 };
 
-std::set<int> Element::_halides = {
+std::set<int> Element::_halogens = {
     9 /* F */, 17 /* Cl */, 35 /* Br */, 53 /* I */, 85 /* At */, 117 /* Uus */
 };
 
