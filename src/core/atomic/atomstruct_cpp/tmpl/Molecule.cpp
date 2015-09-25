@@ -25,7 +25,7 @@ Molecule::set_active_coord_set(CoordSet *cs)
 }
 
 Atom *
-Molecule::new_atom(const AtomName& n, atomstruct::Element e)
+Molecule::new_atom(const AtomName& n, const element::Element& e)
 {
     Atom *_inst_ = new Atom(this, n, e);
     _atoms.insert(_inst_);

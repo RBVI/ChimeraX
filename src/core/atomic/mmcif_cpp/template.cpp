@@ -250,7 +250,7 @@ ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
             z = readcif::str_to_float(start);
         });
     while (parse_row(pv)) {
-        Element elem(symbol);
+        const Element& elem = Element::get_element(symbol);
         tmpl::Atom* a = templates->new_atom(name, elem);
         tmpl::Coord c(x, y, z);
         a->set_coord(c);

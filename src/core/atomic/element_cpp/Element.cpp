@@ -20,10 +20,12 @@
 
 // $Id: Element.cpp 36237 2012-04-26 00:02:50Z goddard $
 
-#include "Element.h"
+#include <set>
 #include <ctype.h>
 
-namespace atomstruct {
+#include "Element.h"
+
+namespace element {
 
 char const * const symbols[] = {
     "LP",  "H", "He", "Li", "Be",  "B",  "C",  "N",  "O",
@@ -38,7 +40,7 @@ char const * const symbols[] = {
     "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac",
     "Th", "Pa",  "U", "Np", "Pu", "Am", "Cm", "Bk", "Cf",
     "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh",
-    "Hs", "Mt", "Ds", "Rg", "Uub", "Uut", "Uuq", "Uup", "Uuh",
+    "Hs", "Mt", "Ds", "Rg", "Cn", "Uut", "Fl", "Uup", "Uuh",
     "Uus", "Uuo"
 };
 
@@ -192,9 +194,9 @@ const float standard_mass[] = {
     /* Mt */ 268.0,
     /* Ds */ 271.0,
     /* Rg */ 272.0,
-    /* Uub */ 285.0,
+    /* Cn */ 285.0,
     /* Uut */ 284.0,
-    /* Uuq */ 289.0,
+    /* Fl */ 289.0,
     /* Uup */ 288.0,
     /* Uuh */ 292.0,
     /* Uus */ 291.0,
@@ -202,20 +204,6 @@ const float standard_mass[] = {
 };
 
 const int NUM_MASS = sizeof standard_mass / sizeof standard_mass[0];
-
-const char *
-Element::name() const {
-    if (as >= NUM_SYMBOLS)
-        return "??";
-    return symbols[as];
-}
-
-float
-Element::mass() const {
-    if (as >= NUM_MASS)
-        return 0.00;
-    return standard_mass[as];
-}
 
 Element::AS
 Element::atomic_number(const char *name)
@@ -264,26 +252,51 @@ Element::atomic_number(const char *name)
         default: return LONE_PAIR;
         }
 
-    for (e = symbols + 1; e < &symbols[Uub + 1]; e += 1)
+    for (e = symbols + 1; e < symbols + NUM_SYMBOLS; e += 1)
         if (symbol[0] == (*e)[0] && symbol[1] == (*e)[1])
             return AS(e - symbols);
     return LONE_PAIR;
 }
 
 float
-Element::bond_radius(Element a)
+Element::bond_radius(const Element& e)
 {
-    if (a.number() < 0 || a.number() >= NUM_COVALENT)
+    if (e.number() < 0 || e.number() >= NUM_COVALENT)
         return 0.0;
     else
-        return covalent[a.number()];
+        return covalent[e.number()];
 }
 
 float
-Element::bond_length(Element a0, Element a1)
+Element::bond_length(const Element& e0, const Element& e1)
 {
-    return bond_radius(a0) + bond_radius(a1);
+    return bond_radius(e0) + bond_radius(e1);
 }
+
+std::map<int, const Element*>  Element::_elements;
+
+const Element&
+Element::get_element(int i)
+{
+    auto ei = _elements.find(i);
+    if (ei != _elements.end())
+        return *(*ei).second;
+    Element* e = new Element((AS)i);
+    _elements[i] = e;
+    return *e;
+}
+
+std::set<int> Element::_alkali_metals = {
+    3 /* Li */, 11 /* Na */, 19 /* K */, 37 /* Rb */, 55 /* Cs */, 87 /* Fr */
+};
+
+std::set<int> Element::_halides = {
+    9 /* F */, 17 /* Cl */, 35 /* Br */, 53 /* I */, 85 /* At */, 117 /* Uus */
+};
+
+std::set<int> Element::_noble_gases = {
+    2 /* He */, 10 /* Ne */, 18 /* Ar */, 36 /* Kr */, 54 /* Xe */, 86 /* Rn */, 118 /* UUo */
+};
 
 bool
 Element::is_metal() const
@@ -296,4 +309,28 @@ Element::is_metal() const
         (n >= 55 && n <= 84) || (n >= 87 && n <= 103));
 }
 
-}  // namespace atomstruct
+const char *
+Element::name() const {
+    if (as >= NUM_SYMBOLS)
+        return "??";
+    return symbols[as];
+}
+
+float
+Element::mass() const {
+    if (as >= NUM_MASS)
+        return 0.00;
+    return standard_mass[as];
+}
+
+int
+Element::valence() const
+{
+    int n = number();
+    if (n == 1) return 1;
+    if (n <= 20) return (n - 2) % 8;
+    if (n <= 56) return (n - 18) % 18;
+    return (n - 54) % 32;
+}
+
+}  // namespace element
