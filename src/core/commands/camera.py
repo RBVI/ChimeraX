@@ -27,8 +27,8 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
             from ..graphics import mono_camera_mode
             cam.mode = mono_camera_mode
         elif mode == '360':
-            from ..graphics.camera360 import equirect_camera_mode
-            equirect_camera_mode.set_camera_mode(cam)
+            from ..graphics.camera360 import mono_360_camera_mode
+            mono_360_camera_mode.set_camera_mode(cam)
         has_arg = True
         # TODO
     if field_of_view is not None:
