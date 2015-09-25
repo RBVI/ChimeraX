@@ -181,8 +181,10 @@ class AtomicStructure(AtomicStructureData, Model):
         if self._gc_ribbon:
             # Do this before fetching bits because ribbon creation changes some
             # display and hide bits
-            self._create_ribbon_graphics()
-            self._gc_ribbon = False
+            try:
+                self._create_ribbon_graphics()
+            finally:
+                self._gc_ribbon = False
         c, s, se = self._gc_color, self._gc_shape, self._gc_select
         if c or s or se:
             self._gc_color = self._gc_shape = self._gc_select = False
@@ -316,7 +318,11 @@ class AtomicStructure(AtomicStructureData, Model):
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
             atoms, coords, guides = rlist.get_polymer_spline()
-            displays = rlist.ribbon_displays
+            residues = atoms.residues
+            # Use residues instead of rlist below because rlist may contain
+            # residues that do not participate in ribbon (e.g., because
+            # it does not have a CA)
+            displays = residues.ribbon_displays
             if displays.sum() == 0:
                 continue
             if len(atoms) < 4:
@@ -325,7 +331,7 @@ class AtomicStructure(AtomicStructureData, Model):
             # to remove lasagna sheets, pipes and planks
             # display as cylinders and planes, etc.)
             tethered = zeros(len(atoms), bool)
-            self._smooth_ribbon(rlist, coords, guides, atoms, tethered)
+            self._smooth_ribbon(residues, coords, guides, atoms, tethered)
             any_ribbon = True
             ribbon = Ribbon(coords, guides)
             offset = 0
@@ -342,13 +348,13 @@ class AtomicStructure(AtomicStructureData, Model):
             else:
                 seg_cap = self.ribbon_divisions
                 seg_blend = seg_cap + 1
-            is_helix = rlist.is_helix
-            is_sheet = rlist.is_sheet
-            colors = rlist.ribbon_colors
+            is_helix = residues.is_helix
+            is_sheet = residues.is_sheet
+            colors = residues.ribbon_colors
             # Assign cross sections
             xss = []
             was_strand = False
-            for i in range(len(rlist)):
+            for i in range(len(residues)):
                 if is_sheet[i]:
                     if was_strand:
                         xss.append(self._ribbon_xs_strand)
@@ -379,15 +385,15 @@ class AtomicStructure(AtomicStructureData, Model):
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
                 prev_band = s.back_band
-                triangle_range = RibbonTriangleRange(t_start, t_end, rp, rlist[0])
+                triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[0])
                 t2r.append(triangle_range)
-                self._ribbon_r2t[rlist[0]] = triangle_range
+                self._ribbon_r2t[residues[0]] = triangle_range
                 t_start = t_end
             else:
                 capped = True
                 prev_band = None
             # Middle residues
-            for i in range(1, len(rlist) - 1):
+            for i in range(1, len(residues) - 1):
                 if not displays[i]:
                     continue
                 seg = capped and seg_cap or seg_blend
@@ -414,9 +420,9 @@ class AtomicStructure(AtomicStructureData, Model):
                 else:
                     prev_band = s.back_band
                 capped = next_cap
-                triangle_range = RibbonTriangleRange(t_start, t_end, rp, rlist[i])
+                triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[i])
                 t2r.append(triangle_range)
-                self._ribbon_r2t[rlist[i]] = triangle_range
+                self._ribbon_r2t[residues[i]] = triangle_range
                 t_start = t_end
             # Last residue
             if displays[-1]:
@@ -433,9 +439,9 @@ class AtomicStructure(AtomicStructureData, Model):
                 if prev_band:
                     triangle_list.append(xss[-1].blend(prev_band, s.front_band))
                     t_end += len(triangle_list[-1])
-                triangle_range = RibbonTriangleRange(t_start, t_end, rp, rlist[-1])
+                triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[-1])
                 t2r.append(triangle_range)
-                self._ribbon_r2t[rlist[-1]] = triangle_range
+                self._ribbon_r2t[residues[-1]] = triangle_range
                 t_start = t_end
             # Create drawing from arrays
             rp.display = True
@@ -452,7 +458,7 @@ class AtomicStructure(AtomicStructureData, Model):
             # Create tethers if necessary
             from numpy import any
             if any(tethered):
-                tp = p.new_drawing(rlist.strs[0] + "_tethers")
+                tp = p.new_drawing(residues.strs[0] + "_tethers")
                 from types import MethodType
                 tp.first_intercept = MethodType(_tether_first_intercept, tp)
                 from .. import surface
