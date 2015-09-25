@@ -488,6 +488,34 @@ extern "C" size_t atom_num_selected(void *atoms, size_t n)
     }
 }
 
+extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        // Hide control point atoms as appropriate
+        for (size_t i = 0; i != n; ++i) {
+            Atom *atom = a[i];
+            bool hide;
+            if (!atom->residue()->ribbon_display())
+                hide = false;
+            else {
+                hide = true;
+                for (auto neighbor : atom->neighbors())
+                    if (neighbor->visible()) {
+                        hide = false;
+                        break;
+                    }
+            }
+            if (hide)
+                atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+            else
+                atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void bond_atoms(void *bonds, size_t n, pyobject_t *atoms)
 {
     Bond **b = static_cast<Bond **>(bonds);
@@ -1062,6 +1090,8 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 }
             }
         }
+
+        // Create Python return value: tuple of (atoms, control points, guide points)
         PyObject *o = PyTuple_New(3);
         void **adata;
         PyObject *alist = python_voidp_array(centers.size(), &adata);

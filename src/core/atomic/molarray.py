@@ -310,6 +310,13 @@ class Atoms(Collection):
         mols = self.unique_structures
         c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
+    def update_ribbon_visibility(self):
+        '''Update the 'hide' status for ribbon control point atoms, which
+	are hidden unless any of its neighbors are visible.'''
+        f = c_function('atom_update_ribbon_visibility',
+                       args = [ctypes.c_void_p, ctypes.c_size_t])
+        f(self._c_pointers, len(self))
+
 # -----------------------------------------------------------------------------
 #
 class Bonds(Collection):

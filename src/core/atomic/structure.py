@@ -465,7 +465,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 va, na, ta = surface.cone_geometry(nc = 4, caps = False)
                 tp.geometry = va, ta
                 tp.normals = na
-                self._ribbon_tether.append((tp, coords[tethered], atoms.filter(tethered)))
+                self._ribbon_tether.append((tp, coords[tethered], atoms.filter(tethered), atoms))
         self._update_ribbon_tethers()
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered):
@@ -592,7 +592,8 @@ class AtomicStructure(AtomicStructureData, Model):
         self._update_ribbon_tethers()
 
     def _update_ribbon_tethers(self):
-        for tp, xyz1, atoms in self._ribbon_tether:
+        for tp, xyz1, atoms, all_atoms in self._ribbon_tether:
+            all_atoms.update_ribbon_visibility()
             xyz2 = atoms.coords
             radii = self._atom_display_radii(atoms)
             tp.positions = _tethered_cone_placements(xyz1, xyz2, radii)
