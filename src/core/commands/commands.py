@@ -6,7 +6,7 @@ def register_core_commands(session):
     from importlib import import_module
     modules = ['buriedarea', 'camera', 'close', 'color', 'colordef', 'crossfade', 'crosslinks',
                'delete', 'display', 'echo', 'exit', 'export', 'lighting', 'list', 'material',
-               'move', 'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'ribbon', 'run',
+               'move', 'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',
                'sasa', 'save', 'scolor', 'select', 'set', 'split', 'stop', 'style', 'surface', 'sym',
                'transparency', 'turn', 'usage', 'view', 'wait']
     for mod in modules:
