@@ -177,7 +177,7 @@ connect_residue_by_template(Residue* r, const tmpl::Residue* tr,
     connect_residue_by_distance(r, &known_connectivity);
 }
 
-static std::map<Element, unsigned long>  _saturationMap = {
+static std::map<Element::AS, unsigned long>  _saturationMap = {
     {Element::H, 1},
     {Element::O, 2}
 };
@@ -185,7 +185,7 @@ static bool
 saturated(Atom* a)
 {
     int target = 4;
-    auto info = _saturationMap.find(a->element());
+    auto info = _saturationMap.find((Element::AS)a->element().number());
     if (info != _saturationMap.end())
         target = (*info).second;
     int num_bonds = a->bonds().size();

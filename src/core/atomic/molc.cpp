@@ -1436,7 +1436,7 @@ extern "C" void *structure_new_atom(void *mol, const char *atom_name, const char
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
     try {
-        Atom *a = m->new_atom(atom_name, Element(element_name));
+        Atom *a = m->new_atom(atom_name, Element::get_element(element_name));
         return a;
     } catch (...) {
         molc_error();
@@ -1462,28 +1462,6 @@ extern "C" void *structure_new_residue(void *mol, const char *residue_name, cons
     try {
         Residue *r = m->new_residue(residue_name, chain_id, pos, ' ');
         return r;
-    } catch (...) {
-        molc_error();
-        return nullptr;
-    }
-}
-
-extern "C" void *element_new_name(const char *name)
-{
-    try {
-        Element *e = new Element(name);
-        return e;
-    } catch (...) {
-        molc_error();
-        return nullptr;
-    }
-}
-
-extern "C" void *element_new_number(size_t number)
-{
-    try {
-        Element *e = new Element(number);
-        return e;
     } catch (...) {
         molc_error();
         return nullptr;

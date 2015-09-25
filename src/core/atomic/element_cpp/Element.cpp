@@ -23,7 +23,7 @@
 #include "Element.h"
 #include <ctype.h>
 
-namespace atomstruct {
+namespace element {
 
 char const * const symbols[] = {
     "LP",  "H", "He", "Li", "Be",  "B",  "C",  "N",  "O",
@@ -203,20 +203,6 @@ const float standard_mass[] = {
 
 const int NUM_MASS = sizeof standard_mass / sizeof standard_mass[0];
 
-const char *
-Element::name() const {
-    if (as >= NUM_SYMBOLS)
-        return "??";
-    return symbols[as];
-}
-
-float
-Element::mass() const {
-    if (as >= NUM_MASS)
-        return 0.00;
-    return standard_mass[as];
-}
-
 Element::AS
 Element::atomic_number(const char *name)
 {
@@ -271,18 +257,31 @@ Element::atomic_number(const char *name)
 }
 
 float
-Element::bond_radius(Element a)
+Element::bond_radius(const Element& e)
 {
-    if (a.number() < 0 || a.number() >= NUM_COVALENT)
+    if (e.number() < 0 || e.number() >= NUM_COVALENT)
         return 0.0;
     else
-        return covalent[a.number()];
+        return covalent[e.number()];
 }
 
 float
-Element::bond_length(Element a0, Element a1)
+Element::bond_length(const Element& e0, const Element& e1)
 {
-    return bond_radius(a0) + bond_radius(a1);
+    return bond_radius(e0) + bond_radius(e1);
+}
+
+std::map<int, const Element*>  Element::_elements;
+
+const Element&
+Element::get_element(int i)
+{
+    auto ei = _elements.find(i);
+    if (ei != _elements.end())
+        return *(*ei).second;
+    Element* e = new Element((AS)i);
+    _elements[i] = e;
+    return *e;
 }
 
 bool
@@ -296,4 +295,18 @@ Element::is_metal() const
         (n >= 55 && n <= 84) || (n >= 87 && n <= 103));
 }
 
-}  // namespace atomstruct
+const char *
+Element::name() const {
+    if (as >= NUM_SYMBOLS)
+        return "??";
+    return symbols[as];
+}
+
+float
+Element::mass() const {
+    if (as >= NUM_MASS)
+        return 0.00;
+    return standard_mass[as];
+}
+
+}  // namespace element

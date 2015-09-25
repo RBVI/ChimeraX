@@ -1,6 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
-#ifndef atomstruct_Element
-#define atomstruct_Element
+#ifndef element_Element
+#define element_Element
 
 // Copyright (c) 1996-2009 The Regents of the University of California.
 // All rights reserved.
@@ -24,11 +24,13 @@
 // $Id: Element.h 36237 2012-04-26 00:02:50Z goddard $
 
 #include <iostream>
+#include <map>
+
 #include "imex.h"
 
-namespace atomstruct {
+namespace element {
 
-class ATOMSTRUCT_IMEX Element {
+class ELEMENT_IMEX Element {
 public:
     // Atomic Symbols:
     enum AS {
@@ -47,32 +49,42 @@ public:
         Rf, Db, Sg, Bh, Hs, Mt, Ds, Rg,
         Uub, Uut, Uuq, Uup, Uuh, Uus, Uuo
     };
-    static float    bond_radius(Element);
-    static float    bond_length(Element, Element);
+    static float    bond_radius(const Element&);
+    static float    bond_length(const Element&, const Element&);
 private:
+    Element(AS a): as(a) {}
+    // prevent copy/assignment
+    Element(const Element&);
+    Element& operator=(const Element&);
+
+    static std::map<int, const Element*>  _elements;
+
     static AS    atomic_number(const char *name);
     AS        as;        // atomic number
 public:
-    explicit Element(const char *name): as(atomic_number(name)) {}
-    explicit Element(int i): as(AS(i)) {}
-        Element(AS a): as(a) {}
-    const char    *name() const;
-    int    number() const { return int(as); }
-    float    mass() const;        // standard atomic weight
-    bool    is_metal() const;
-    long    hash() const { return number(); }
-    bool    operator==(const Element &a) const { return as == a.as; }
-    bool    operator!=(const Element &a) const { return as != a.as; }
-    bool    operator<(const Element &a) const { return as < a.as; }
-    bool    operator<=(const Element &a) const { return as <= a.as; }
-    bool    operator>(const Element &a) const { return as > a.as; }
-    bool    operator>=(const Element &a) const { return as >= a.as; }
-    bool    operator==(AS sym) const { return as == sym; }
-    bool    operator!=(AS sym) const { return as != sym; }
-    bool    operator<(AS sym) const { return as < sym; }
-    bool    operator<=(AS sym) const { return as <= sym; }
-    bool    operator>(AS sym) const { return as > sym; }
-    bool    operator>=(AS sym) const { return as >= sym; }
+    static const Element&  get_element(const char* name) {
+        return get_element(atomic_number(name));
+    }
+    static const Element&  get_element(int i);
+
+    long  hash() const { return number(); }
+    bool  is_metal() const;
+    float  mass() const;        // standard atomic weight
+    const char*  name() const;
+    int  number() const { return int(as); }
+
+    bool  operator==(const Element &a) const { return as == a.as; }
+    bool  operator!=(const Element &a) const { return as != a.as; }
+    bool  operator<(const Element &a) const { return as < a.as; }
+    bool  operator<=(const Element &a) const { return as <= a.as; }
+    bool  operator>(const Element &a) const { return as > a.as; }
+    bool  operator>=(const Element &a) const { return as >= a.as; }
+    bool  operator==(AS sym) const { return as == sym; }
+    bool  operator!=(AS sym) const { return as != sym; }
+    bool  operator<(AS sym) const { return as < sym; }
+    bool  operator<=(AS sym) const { return as <= sym; }
+    bool  operator>(AS sym) const { return as > sym; }
+    bool  operator>=(AS sym) const { return as >= sym; }
 };
 
 inline std::ostream &
@@ -82,6 +94,6 @@ operator<<(std::ostream &os, const Element &a)
     return os;
 }
 
-}  // namespace atomstruct
+}  // namespace element
 
-#endif  // atomstruct_Element
+#endif  // element_Element

@@ -11,6 +11,7 @@
 
 #include <basegeom/Graph.h>
 #include <basegeom/destruct.h>
+#include <element/Element.h>
 #include "Chain.h"
 #include "Pseudobond.h"
 #include "Ring.h"
@@ -30,8 +31,9 @@ class Atom;
 class Bond;
 class Chain;
 class CoordSet;
-class Element;
 class Residue;
+
+using element::Element;
 
 class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
     friend class Atom; // for IDATM stuff and _polymers_computed
@@ -120,7 +122,7 @@ public:
     void  make_chains() const;
     std::map<std::string, std::vector<std::string>> metadata;
     const std::string&  name() const { return _name; }
-    Atom *  new_atom(const char* name, Element e);
+    Atom *  new_atom(const char* name, const Element& e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();
     CoordSet *  new_coord_set(int index);
