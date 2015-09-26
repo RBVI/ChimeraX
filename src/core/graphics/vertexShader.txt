@@ -68,6 +68,11 @@ layout(location = 5) in mat4 instance_placement;
 uniform float frame_number;
 #endif
 
+#ifdef USE_STEREO_360
+uniform vec4 camera_origin_and_shift;
+uniform vec4 camera_vertical;
+#endif
+
 void main(void)
 {
 #ifdef USE_SHIFT_AND_SCALE
@@ -78,6 +83,11 @@ void main(void)
   #else
     vec4 vi = vec4(position,1);
   #endif
+#endif
+
+#ifdef USE_STEREO_360
+  vec3 eye_axis = normalize(cross((vi.xyz - camera_origin_and_shift.xyz), camera_vertical.xyz));
+  vi = vec4(vi.xyz - camera_origin_and_shift.w * eye_axis, 1);
 #endif
 
   vec4 vEye = model_view_matrix * vi;

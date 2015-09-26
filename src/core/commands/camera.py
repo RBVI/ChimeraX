@@ -29,6 +29,9 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
         elif mode == '360':
             from ..graphics.camera360 import mono_360_camera_mode
             mono_360_camera_mode.set_camera_mode(cam)
+        elif mode == '360s':
+            from ..graphics.camera360 import stereo_360_camera_mode
+            stereo_360_camera_mode.set_camera_mode(cam, view._render)
         has_arg = True
         # TODO
     if field_of_view is not None:
@@ -68,7 +71,7 @@ def register_command(session):
     from . import CmdDesc, register, FloatArg, EnumOf
     desc = CmdDesc(
         optional=[
-            ('mode', EnumOf(('mono', '360'))),
+            ('mode', EnumOf(('mono', '360', '360s'))),
             ('field_of_view', FloatArg),
             ('eye_separation', FloatArg),
             ('screen_width', FloatArg),

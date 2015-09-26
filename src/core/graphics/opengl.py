@@ -95,6 +95,9 @@ class Render:
         self.single_color = (1, 1, 1, 1)
         self.frame_number = 0
 
+	# Camera origin, y, and xshift for SHADER_STEREO_360 mode
+        self._stereo_360_params = ((0,0,0),(0,1,0),0)
+
     def default_framebuffer(self):
         if self._default_framebuffer is None:
             self._default_framebuffer = Framebuffer(color=False, depth=False)
@@ -127,7 +130,7 @@ class Render:
         SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_MASK,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
-        SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY
+        SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY, SHADER_STEREO_360
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
@@ -170,6 +173,8 @@ class Render:
             self.set_single_color()
         if self.SHADER_FRAME_NUMBER & c:
             self.set_frame_number()
+        if self.SHADER_STEREO_360 & c:
+            self.set_stereo_360_params()
 
     def push_framebuffer(self, fb):
         self.framebuffer_stack.append(fb)
@@ -813,6 +818,17 @@ class Render:
     def finish_rendering(self):
         GL.glFinish()
 
+    def set_stereo_360_params(self, camera_origin = None, camera_y = None, x_shift = None):
+        if camera_origin is None:
+            camera_origin, camera_y, x_shift = self._stereo_360_params
+        else:
+            self._stereo_360_params = (camera_origin, camera_y, x_shift)
+
+        p = self.current_shader_program
+        if p is None:
+            return
+        p.set_float4("camera_origin_and_shift", tuple(camera_origin) + (x_shift,))
+        p.set_float4("camera_vertical", tuple(camera_y) + (0,))
 
 def disk_grid(radius, exclude_origin=True):
     r = int(radius)
@@ -842,6 +858,7 @@ shader_options = (
     'SHADER_FRAME_NUMBER',
     'SHADER_TRANSPARENT_ONLY',
     'SHADER_OPAQUE_ONLY',
+    'SHADER_STEREO_360',
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
