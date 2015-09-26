@@ -29,6 +29,7 @@ public:
     std::set<std::string>   reasons;
     long  num_deleted = 0;
 
+    bool  changed const { return !(created.empty() && modified.empty() && num_deleted==0); }
     void  clear() { created.clear(); modified.clear(); reasons.clear(); num_deleted=0; }
 };
 
@@ -116,6 +117,13 @@ public:
         changes.modified.erase(ptr);
     }
 
+    bool  changed() const {
+        for (auto& changes: _type_changes) {
+            if (changes.changed())
+                return true;
+        }
+        return false;
+    }
     void  clear() { for (auto& changes: _type_changes) changes.clear(); }
     const std::vector<Changes>&  get_changes() const { return _type_changes; }
     const std::string  python_class_names[_num_types] = {
