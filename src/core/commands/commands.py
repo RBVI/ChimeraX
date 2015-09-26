@@ -6,7 +6,7 @@ def register_core_commands(session):
     from importlib import import_module
     modules = ['buriedarea', 'camera', 'close', 'color', 'colordef', 'crossfade', 'crosslinks',
                'delete', 'display', 'echo', 'exit', 'export', 'lighting', 'list', 'material',
-               'move', 'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'ribbon', 'run',
+               'move', 'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',
                'sasa', 'save', 'scolor', 'select', 'set', 'split', 'stop', 'style', 'surface', 'sym',
                'transparency', 'turn', 'usage', 'view', 'wait']
     for mod in modules:
@@ -32,7 +32,21 @@ def register_core_commands(session):
     from . import atomspec
     atomspec.register_selector(None, "sel", _sel_selector)
     atomspec.register_selector(None, "strands", _strands_selector)
+    from ..atomic.molobject import Element
+    for i in range(1, 115):
+        e = Element.get_element(i)
+        atomspec.register_selector(None, e.name,
+            lambda ses, models, results, sym=e.name: _element_selector(sym, models, results))
 
+
+def _element_selector(symbol, models, results):
+    from ..atomic import AtomicStructure
+    for m in models:
+        if isinstance(m, AtomicStructure):
+            atoms = m.atoms.filter(m.atoms.element_names == symbol)
+            if len(atoms) > 0:
+                results.add_model(m)
+                results.add_atoms(atoms)
 
 def _sel_selector(session, models, results):
     from ..atomic import AtomicStructure

@@ -3,11 +3,11 @@
 #if defined(USE_TEXTURE_MASK) || defined(USE_DEPTH_OUTLINE)
 
 layout(location = 0) in vec3 position;
-layout(location = 1) in vec2 tex_coord_2d;
-out vec2 tex_coord;
+layout(location = 1) in vec2 tex_coord;
+out vec2 tex_coord_2d;
 void main(void)
 {
-  tex_coord = tex_coord_2d;
+  tex_coord_2d = tex_coord;
   gl_Position = vec4(position,1);
 }
 
@@ -47,8 +47,13 @@ out vec4 color;
 #endif
 
 #ifdef USE_TEXTURE_2D
-layout(location = 1) in vec2 tex_coord_2d;
-out vec2 tex_coord;
+layout(location = 1) in vec2 tex_coord;
+out vec2 tex_coord_2d;
+#endif
+
+#ifdef USE_TEXTURE_CUBEMAP
+layout(location = 1) in vec3 tex_coord;
+out vec3 tex_coord_cubemap;
 #endif
 
 #ifdef USE_SHIFT_AND_SCALE
@@ -102,7 +107,11 @@ void main(void)
 #endif
 
 #ifdef USE_TEXTURE_2D
-  tex_coord = tex_coord_2d;
+  tex_coord_2d = tex_coord;
+#endif
+
+#ifdef USE_TEXTURE_CUBEMAP
+  tex_coord_cubemap = tex_coord;
 #endif
 
   gl_Position = projection_matrix * vEye;

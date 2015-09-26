@@ -185,6 +185,12 @@ def encode_op(session, output=None, format=None, quality=None, qscale=None, bitr
     if format is None:
         if output:
             format = format_from_file_suffix(output)
+            if format is None:
+                suffixes = set(fmt['suffix'] for fmt in formats.formats.values())
+                sufs = ', '.join('*.%s' % s for s in suffixes)
+                from os.path import basename
+                raise CommandError('Unrecognized movie file suffix %s, use %s'
+                                   % (basename(output), sufs))
     if format is None:
         fmt_name = formats.default_video_format
     elif format.lower() in formats.formats:
@@ -221,36 +227,35 @@ def movie_crossfade(session, frames=25):
     '''Linear interpolate between the current graphics image and the next image
     over a specified number of frames.
     '''
-    if ignore_movie_commands(session):
+    if ignore_movie_commands(session) or no_movie(session):
         return
     session.movie.postprocess('crossfade', frames)
 
 def movie_duplicate(session, frames=25):
     '''Repeat the current image frame a specified number of frames
     so that the video does not change during playback.'''
-    if ignore_movie_commands(session):
+    if ignore_movie_commands(session) or no_movie(session):
         return
     session.movie.postprocess('duplicate', frames)
 
 def movie_stop(session):
     '''Stop recording video frames. Using the movie encode command also stops recording.'''
-    if ignore_movie_commands(session):
+    if ignore_movie_commands(session) or no_movie(session):
         return
     session.movie.stop_recording()
 
 def movie_abort(session):
     '''Stop movie recording and delete any recorded frames.'''
-    if ignore_movie_commands(session):
+    if ignore_movie_commands(session) or no_movie(session):
         return
     session.movie.stop_encoding()
 
 def movie_reset(session, reset_mode = RESET_CLEAR):
     '''Clear images saved with movie record.'''
-    if ignore_movie_commands(session):
+    if ignore_movie_commands(session) or no_movie(session):
         return
     clr = (reset_mode == RESET_CLEAR)
-    if hasattr(session, 'movie'):
-        session.movie.resetRecorder(clearFrames=clr)
+    session.movie.resetRecorder(clearFrames=clr)
 
 def movie_ignore(session, ignore = True):
     '''Ignore subsequent movie commands except for the movie ignore command.
@@ -262,9 +267,15 @@ def ignore_movie_commands(session):
     ignore = getattr(session, 'ignore_movie_commands', False)
     return ignore
 
+def no_movie(session):
+    if not hasattr(session, 'movie'):
+        session.logger.warning('No movie being recorded.')
+        return True
+    return False
+
 def movie_status(session):
     '''Report recording status such as number of frames saved to the log.'''
-    if ignore_movie_commands(session):
+    if ignore_movie_commands(session) or no_movie(session):
         return
     session.movie.dumpStatusInfo()
 

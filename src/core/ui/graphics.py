@@ -68,6 +68,16 @@ class Popup(wx.PopupWindow):
         self._text = wx.StaticText(self._panel, -1, '', pos=(p,p))
 
     def show_text(self, text, position):
+
+        import sys
+        mac = (sys.platform == 'darwin')
+        if mac:
+            # On Mac balloons rise above other apps that cover the Chimear app
+            # when mousing over those apps even when Chimera does not have focus.
+            fw = wx.Window.FindFocus()
+            if fw is None:
+                return
+
         t = self._text
         t.SetLabel(text)
         sz = t.GetBestSize()
@@ -78,12 +88,10 @@ class Popup(wx.PopupWindow):
         xy = self.GetParent().ClientToScreen(position)
         self.Position(xy, offset)
 
-        # Popup takes focus on Mac, restore it after showing popup.
-        fw = self.FindFocus()
-
         self.Show(True)
 
-        if fw:
+        if mac and fw:
+            # Popup takes focus on Mac, restore it after showing popup.
             # fw.SetFocus() does not work on Mac.
             # Apparently wx cannot change the focus between top level windows.
             # But we can raise a different top level, and luckily this does

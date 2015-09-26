@@ -75,11 +75,17 @@ if ($#location == 1) then
 	end
 	set location = ($tmp)
 endif
-echo '#include "resinternal.h"' > $1.cpp
+echo '// vi: set expandtab ts=4 sw=4:' > $1.cpp
 echo '' >> $1.cpp
-echo 'namespace tmpl {' > $1.cpp
+echo '#include "Atom.h"' >> $1.cpp
+echo '#include <element/Element.h>' >> $1.cpp
+echo '#include "Molecule.h"' >> $1.cpp
+echo '#include "Residue.h"' >> $1.cpp
+echo '#include "resinternal.h"' >> $1.cpp
 echo '' >> $1.cpp
-echo 'using atomstruct::Element;' > $1.cpp
+echo 'namespace tmpl {' >> $1.cpp
+echo '' >> $1.cpp
+echo 'using element::Element;' >> $1.cpp
 echo '' >> $1.cpp
 @ i = 1
 while ($i <= $#residues)
@@ -102,5 +108,5 @@ while ($i <= $#residues)
 	@ i++
 end
 echo '}' >> $1.cpp
-echo '}  // namespace template' >> $1.cpp
+echo '}  // namespace tmpl' >> $1.cpp
 rm $$.awk

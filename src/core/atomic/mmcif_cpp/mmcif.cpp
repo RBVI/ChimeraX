@@ -696,7 +696,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
             a = cur_residue->find_atom(atom_name);
             a->set_alt_loc(alt_id, true);
         } else {
-            Element elem(symbol);
+            const Element& elem = Element::get_element(symbol);
             a = mol->new_atom(atom_name, elem);
             cur_residue->add_atom(a);
             if (alt_id)

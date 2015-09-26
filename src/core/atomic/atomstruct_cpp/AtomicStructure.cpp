@@ -6,7 +6,6 @@
 #include <basegeom/Graph.tcc>
 #include "Bond.h"
 #include "CoordSet.h"
-#include "Element.h"
 #include <logger/logger.h>
 #include "Pseudobond.h"
 #include "Residue.h"
@@ -520,7 +519,7 @@ AtomicStructure::make_chains() const
 }
 
 Atom *
-AtomicStructure::new_atom(const char* name, Element e)
+AtomicStructure::new_atom(const char* name, const Element& e)
 {
     Atom *a = new Atom(this, name, e);
     add_vertex(a);

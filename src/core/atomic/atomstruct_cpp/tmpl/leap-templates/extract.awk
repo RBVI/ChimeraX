@@ -29,13 +29,15 @@ $1 ~ /^!/ {
 	} else if (state == "atoms") {
 #!entry.XXX.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
 # "N" "N" 0 1 131072 1 7 -0.4630000000
-		atoms[$6] = "" $1 ", Element(" $7 ")"
+		#atoms[$6] = "" $1 ", Element::get_element(" $7 ")"
+		atoms[$6] = "" $1
 		gsub("\"", "", $1)
 		gsub("\\+", "p", $1)
 		gsub("-", "m", $1)
 		gsub("\\*", "_", $1)
 		gsub("'", "q", $1)
 		atomname[$6] = "atom_" $1
+		element_num[$6] = $7
 	} else if (state == "connect") {
 #!entry.XXX.unit.connect array int
 # 1
@@ -63,7 +65,7 @@ END {
 	print "	Coord c;"
 	print "	Residue *r = m->new_residue(\"YYY\");"
 	for (i in atoms) {
-		print "	Atom *" atomname[i] " = m->new_atom(" atoms[i] ");"
+		print "	Atom *" atomname[i] " = m->new_atom(" atoms[i] ", Element::get_element(" element_num[i] "));"
 		print "	r->add_atom(" atomname[i] ");"
 # coordinate template values
 		print "	c.set_xyz(" x[i] "," y[i] "," z[i] ");"

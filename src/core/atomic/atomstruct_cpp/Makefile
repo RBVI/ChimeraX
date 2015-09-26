@@ -15,7 +15,7 @@ ifneq ($(OS),Windows)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 #seq_assoc.o : CXXFLAGS += -Wno-sign-compare
 endif
-LIBS	+= -L$(libdir) -ltmpl -llogger -lbasegeom -larrays $(PYTHON_LIB)
+LIBS	+= -L$(libdir) -lelement -ltmpl -llogger -lbasegeom -larrays $(PYTHON_LIB)
 
 $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
 	$(SHLIB_LINK)

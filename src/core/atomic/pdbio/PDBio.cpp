@@ -399,27 +399,26 @@ start_t = end_t;
                 a->set_coord(c);
                 break;
             }
-            Element *e;
+            const Element *e;
             if (!is_babel) {
                 if (record.atom.element[0] != '\0')
-                    e = new Element(record.atom.element);
+                    e = &Element::get_element(record.atom.element);
                 else {
                     if (strlen(record.atom.name) == 4
                     && record.atom.name[0] == 'H')
-                        e = new Element(1);
+                        e = &Element::get_element(1);
                     else
-                        e = new Element(record.atom.name);
+                        e = &Element::get_element(record.atom.name);
                     if ((e->number() > 83 || e->number() == 61
                       || e->number() == 43 || e->number() == 0)
                       && record.atom.name[0] != ' ') {
                         // probably one of those funky PDB
                         // non-standard-residue atom names;
                         // try _just_ the second character...
-                        delete e;
                         char atsym[2];
                         atsym[0] = record.atom.name[1];
                         atsym[1] = '\0';
-                        e = new Element(atsym);
+                        e = &Element::get_element(atsym);
                     }
                 }
 
@@ -438,7 +437,6 @@ start_t = end_t;
                   isalpha(record.atom.name[1])))
                   ) {
                       // presumably a Babel "PDB" file
-                    delete e;
                     is_babel = true;
                 }
             }
@@ -455,7 +453,7 @@ start_t = end_t;
                     babel_name[1] = record.atom.name[name_start+1];
                 else
                     babel_name[1] = '\0';
-                e = new Element(babel_name);
+                e = &Element::get_element(babel_name);
                 
             }
             Atom *a;
@@ -488,7 +486,6 @@ start_t = end_t;
             }
             if (e->number() == 0 && aname != "LP" && aname != "lp")
                 redo_elements = true;
-            delete e;
             if (in_model == 0 && asn.find(record.atom.serial) != asn.end())
                 logger::warning(py_logger, "Duplicate atom serial number"
                     " found: ", record.atom.serial);
@@ -644,7 +641,7 @@ start_t = clock();
                 continue;
             test_name[0] = a->name()[0];
             test_name[1] = '\0';
-            Element e1(test_name);
+            const Element& e1 = Element::get_element(test_name);
             if (e1.number() != 0) {
                 a->_switch_initial_element(e1);
                 continue;
@@ -652,7 +649,7 @@ start_t = clock();
             if (a->name().size() < 2)
                 continue;
             test_name[1] = a->name()[1];
-            Element e2(test_name);
+            const Element& e2 = Element::get_element(test_name);
             if (e2.number() != 0)
                 a->_switch_initial_element(e2);
         }

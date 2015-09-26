@@ -5,7 +5,7 @@
 #include <vector>
 #include "Bond.h"
 #include "CoordSet.h"
-#include "../Element.h"
+#include <element/Element.h>
 #include "../imex.h"
 #include "../string_types.h"
 
@@ -13,7 +13,7 @@ namespace tmpl {
 
 using atomstruct::AtomName;
 using atomstruct::AtomType;
-using atomstruct::Element;
+using element::Element;
 
 class Molecule;
 class Residue;
@@ -29,7 +29,7 @@ private:
         Atom(const Atom &);    // disable
         ~Atom();
     Bonds         _bonds;
-    Element       _element;
+    const Element*       _element;
     AtomType      _idatm_type;
     mutable unsigned int _index;
     Molecule*     _molecule;
@@ -44,7 +44,7 @@ public:
         _neighbors.push_back(b->other_atom(this));
     }
     const Bonds&  bonds() const { return _bonds; }
-    Element       element() const { return _element; }
+    const Element&       element() const { return *_element; }
     Molecule*     molecule() const { return _molecule; }
     Residue*      residue() const { return _residue; }
     const AtomName&     name() const { return _name; }
@@ -57,7 +57,7 @@ public:
     const AtomType&  idatm_type() const { return _idatm_type; }
     void    set_idatm_type(const AtomType& i) { _idatm_type = i; }
 private:
-    Atom(Molecule *, const AtomName& n, atomstruct::Element e);
+    Atom(Molecule *, const AtomName& n, const Element &e);
 };
 
 }  // namespace tmpl
