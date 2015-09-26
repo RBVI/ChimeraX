@@ -345,6 +345,17 @@ extern "C" void set_atom_draw_mode(void *atoms, size_t n, int32_t *modes)
     error_wrap_array_set<Atom, int, int>(a, n, &Atom::set_draw_mode, modes);
 }
 
+extern "C" void atom_element(void *atoms, size_t n, pyobject_t *resp)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            resp[i] = (pyobject_t*)(&(a[i]->element()));
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void atom_element_name(void *atoms, size_t n, pyobject_t *names)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -485,6 +496,34 @@ extern "C" size_t atom_num_selected(void *atoms, size_t n)
     } catch (...) {
         molc_error();
         return 0;
+    }
+}
+
+extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        // Hide control point atoms as appropriate
+        for (size_t i = 0; i != n; ++i) {
+            Atom *atom = a[i];
+            bool hide;
+            if (!atom->residue()->ribbon_display())
+                hide = false;
+            else {
+                hide = true;
+                for (auto neighbor : atom->neighbors())
+                    if (neighbor->visible()) {
+                        hide = false;
+                        break;
+                    }
+            }
+            if (hide)
+                atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+            else
+                atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+        }
+    } catch (...) {
+        molc_error();
     }
 }
 
@@ -1062,6 +1101,8 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 }
             }
         }
+
+        // Create Python return value: tuple of (atoms, control points, guide points)
         PyObject *o = PyTuple_New(3);
         void **adata;
         PyObject *alist = python_voidp_array(centers.size(), &adata);
@@ -1406,7 +1447,7 @@ extern "C" void *structure_new_atom(void *mol, const char *atom_name, const char
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
     try {
-        Atom *a = m->new_atom(atom_name, Element(element_name));
+        Atom *a = m->new_atom(atom_name, Element::get_element(element_name));
         return a;
     } catch (...) {
         molc_error();
@@ -1438,28 +1479,6 @@ extern "C" void *structure_new_residue(void *mol, const char *residue_name, cons
     }
 }
 
-extern "C" void *element_new_name(const char *name)
-{
-    try {
-        Element *e = new Element(name);
-        return e;
-    } catch (...) {
-        molc_error();
-        return nullptr;
-    }
-}
-
-extern "C" void *element_new_number(size_t number)
-{
-    try {
-        Element *e = new Element(number);
-        return e;
-    } catch (...) {
-        molc_error();
-        return nullptr;
-    }
-}
-
 extern "C" void element_name(void *elements, size_t n, pyobject_t *names)
 {
     Element **e = static_cast<Element **>(elements);
@@ -1483,10 +1502,54 @@ extern "C" void element_mass(void *elements, size_t n, float *mass)
     error_wrap_array_get(e, n, &Element::mass, mass);
 }
 
+extern "C" void *element_number_get_element(int en)
+{
+    try {
+        return (void*)(&Element::get_element(en));
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void *element_name_get_element(const char *en)
+{
+    try {
+        return (void*)(&Element::get_element(en));
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void element_is_alkali_metal(void *elements, size_t n, npy_bool *a_metal)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::is_alkali_metal, a_metal);
+}
+
+extern "C" void element_is_halogen(void *elements, size_t n, npy_bool *halogen)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::is_halogen, halogen);
+}
+
 extern "C" void element_is_metal(void *elements, size_t n, npy_bool *metal)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::is_metal, metal);
+}
+
+extern "C" void element_is_noble_gas(void *elements, size_t n, npy_bool *ngas)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::is_noble_gas, ngas);
+}
+
+extern "C" void element_valence(void *elements, size_t n, uint8_t *valence)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::valence, valence);
 }
 
 static void *init_numpy()

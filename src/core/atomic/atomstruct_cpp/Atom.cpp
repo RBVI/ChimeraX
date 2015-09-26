@@ -11,9 +11,9 @@
 
 namespace atomstruct {
 
-Atom::Atom(AtomicStructure *as, const char* name, Element e):
+Atom::Atom(AtomicStructure* as, const char* name, const Element& e):
     BaseSphere<Atom, Bond>(-1.0), // -1 indicates not explicitly set
-    _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(e),
+    _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(&e),
     _is_backbone(false), _name(name), _residue(NULL), _serial_number(-1),
     _structure(as)
 {

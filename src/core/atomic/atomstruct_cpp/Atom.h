@@ -11,7 +11,7 @@
 #include <basegeom/Coord.h>
 #include <basegeom/Point.h>
 #include <basegeom/Sphere.h>
-#include "Element.h"
+#include <element/Element.h>
 #include "imex.h"
 #include "string_types.h"
 
@@ -20,6 +20,7 @@ namespace atomstruct {
 using basegeom::BaseSphere;
 using basegeom::GraphicsContainer;
 using basegeom::Point;
+using element::Element;
 
 class AtomicStructure;
 class Bond;
@@ -47,7 +48,7 @@ public:
 
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
-    Atom(AtomicStructure *as, const char* name, Element e);
+    Atom(AtomicStructure *as, const char* name, const Element& e);
     char  _alt_loc;
     typedef struct {
         std::vector<float> *  aniso_u;
@@ -63,7 +64,7 @@ private:
     unsigned int  _coord_index;
     void  _coordset_set_coord(const Point &);
     void  _coordset_set_coord(const Point &, CoordSet *cs);
-    Element  _element;
+    const Element*  _element;
     AtomType  _explicit_idatm_type;
     bool  _is_backbone;
     AtomName  _name;
@@ -75,7 +76,7 @@ private:
 public:
     // so that I/O routines can cheaply "change their minds" about element
     // types during early structure creation
-    void  _switch_initial_element(Element e) { _element = e; }
+    void  _switch_initial_element(const Element& e) { _element = &e; }
 
 public:
     void  add_bond(Bond *b) { add_connection(b); }
@@ -88,7 +89,7 @@ public:
     int  coordination(int value_if_unknown) const;
     virtual const basegeom::Coord &coord() const;
     float  default_radius() const;
-    Element  element() const { return _element; }
+    const Element&  element() const { return *_element; }
     static const IdatmInfoMap&  get_idatm_info_map();
     bool  has_alt_loc(char al) const
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
