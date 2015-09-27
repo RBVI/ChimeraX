@@ -517,10 +517,14 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
                         break;
                     }
             }
-            if (hide)
-                atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
-            else
-                atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+            if (hide) {
+                if ((atom->hide() & Atom::HIDE_RIBBON) == 0)
+                    atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+            }
+            else {
+                if ((atom->hide() & Atom::HIDE_RIBBON) != 0)
+                    atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+            }
         }
     } catch (...) {
         molc_error();
