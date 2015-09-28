@@ -101,8 +101,8 @@ class MapSeries(ToolInstance):
         n = s0.number_of_times()
         if t >= n - 1:
             t = 0
-        from chimera.core.map.series.vseries_command import play_op
-        p = play_op(self.session, self.series, start=t, loop=True, cacheFrames=n)
+        from chimera.core.map.series.vseries_command import vseries_play
+        p = vseries_play(self.session, self.series, start=t, loop=True, cache_frames=n)
 
         def update_slider(t, self=self):
             self.slider.SetValue(t)
@@ -114,8 +114,8 @@ class MapSeries(ToolInstance):
     def stop(self):
         if self.series is None:
             return
-        from chimera.core.map.series.vseries_command import stop_op
-        stop_op(self.session, self.series)
+        from chimera.core.map.series.vseries_command import vseries_stop
+        vseries_stop(self.session, self.series)
         self.playing = False
         self.set_play_button_icon(play=True)
 

@@ -151,7 +151,12 @@ class View:
             self._call_callbacks('new frame')
             changed = self._check_for_drawing_change()
             if changed:
-                self.draw(check_for_changes = False)
+                try:
+                    self.draw(check_for_changes = False)
+                except:
+                    # Stop redraw if an error occurs to avoid continuous stream of errors.
+                    self._block_redraw()
+                    raise
                 self._call_callbacks('rendered frame')
         finally:
             self._unblock_redraw()

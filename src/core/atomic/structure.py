@@ -188,6 +188,8 @@ class AtomicStructure(AtomicStructureData, Model):
         c, s, se = self._gc_color, self._gc_shape, self._gc_select
         if c or s or se:
             self._gc_color = self._gc_shape = self._gc_select = False
+            if s:
+                self._update_ribbon_tethers()
             self._update_graphics()
             self.redraw_needed(shape_changed = s, selection_changed = se)
             if s:
@@ -466,7 +468,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 tp.geometry = va, ta
                 tp.normals = na
                 self._ribbon_tether.append((tp, coords[tethered], atoms.filter(tethered), atoms))
-        self._update_ribbon_tethers()
+        self._gc_shape = True
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered):
         from numpy import logical_and, logical_not
@@ -589,7 +591,6 @@ class AtomicStructure(AtomicStructureData, Model):
                 for start, end in residues[2]:
                     m[start:end] = True
                 p.selected_triangles_mask = m
-        self._update_ribbon_tethers()
 
     def _update_ribbon_tethers(self):
         for tp, xyz1, atoms, all_atoms in self._ribbon_tether:
