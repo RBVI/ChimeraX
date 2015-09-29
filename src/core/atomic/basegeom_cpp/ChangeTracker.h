@@ -29,7 +29,7 @@ public:
     std::set<std::string>   reasons;
     long  num_deleted = 0;
 
-    bool  changed const { return !(created.empty() && modified.empty() && num_deleted==0); }
+    bool  changed() const { return !(created.empty() && modified.empty() && num_deleted==0); }
     void  clear() { created.clear(); modified.clear(); reasons.clear(); num_deleted=0; }
 };
 
