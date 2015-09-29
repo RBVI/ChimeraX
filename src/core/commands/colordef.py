@@ -6,7 +6,20 @@ def _find_named_color(color_dict, name):
     # handle color names with spaces
     # returns key, value, part of name that was unused
     num_colors = len(color_dict)
-    words = name.split(maxsplit=10)
+    # extract up to 10 words from name
+    from . import cli
+    text = name
+    words = []
+    while len(words) < 10:
+        m = cli._whitespace.match(text)
+        text = text[m.end():]
+        if not text:
+            break
+        word, _, rest = cli.next_token(text, no_raise=True)
+        if not word or word == ';':
+            break
+        words.append(word)
+        text = rest
     real_name = None
     last_real_name = None
     w = 0
