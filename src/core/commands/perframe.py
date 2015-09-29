@@ -39,7 +39,7 @@ def perframe(session, command, frames = None, interval = 1, format = None,
         'show_commands': show_commands,
         'frame_num': 1,
     }
-    def cb(data = data, session = session):
+    def cb(*_, data = data, session = session):
         _perframe_callback(data, session)
     data['handler'] = session.triggers.add_handler('new frame', cb)
     if not hasattr(session, 'perframe_handlers'):

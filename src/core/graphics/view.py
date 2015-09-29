@@ -59,8 +59,6 @@ class View:
         self._time_graphics = False
         self.update_lighting = False
         self._block_redraw_count = 0
-        self._callbacks = {'new frame':[], 'graphics update': [],
-                           'rendered frame':[], 'shape changed':[]}
 
         self._overlays = []
         self._2d_overlays = []
@@ -138,9 +136,9 @@ class View:
     def draw_new_frame(self):
         '''
         Draw the scene if it has changed or camera or rendering options have changed.
-        Before checking if the scene has changed call the "new frame" callbacks
+        Before checking if the scene has changed fire the "new frame" trigger
         typically used by movie recording to animate such as rotating the view, fading
-        models in and out, ....  If the scene is drawn call the "rendered frame" callbacks
+        models in and out, ....  If the scene is drawn fire the "rendered frame" trigger
         after drawing.  Return true if draw, otherwise false.
         '''
         if self._block_redraw_count > 0:
@@ -149,7 +147,7 @@ class View:
         
         self._block_redraw()
         try:
-            self._call_callbacks('new frame')
+            self.session.triggers.activate_trigger('new frame', self)
             changed = self._check_for_drawing_change()
             if changed:
                 try:
@@ -158,7 +156,7 @@ class View:
                     # Stop redraw if an error occurs to avoid continuous stream of errors.
                     self._block_redraw()
                     raise
-                self._call_callbacks('rendered frame')
+                self.session.triggers.activate_trigger('rendered frame', self)
         finally:
             self._unblock_redraw()
 
@@ -253,7 +251,7 @@ class View:
             self.redraw_needed = False
 
     def _check_for_drawing_change(self):
-        self._call_callbacks('graphics update')
+        self.session.triggers.activate_trigger('graphics update', self)
 
         c = self.camera
         dm = self._drawing_manager
@@ -262,7 +260,7 @@ class View:
             return False
 
         if dm.shape_changed:
-            self._call_callbacks('shape changed')	# Used for updating pseudobond graphics
+            self.session.triggers.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
             self._update_center_of_rotation = True
 
         if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
@@ -584,31 +582,6 @@ class View:
         tracking and graphics update.
         '''
         self._render.finish_rendering()
-
-    def add_callback(self, type, cb):
-        '''Add a function to be called before each redraw (type = "new frame"),
-        before each redraw after new frame callbacks (type = "graphics update"),
-        after each redraw (type = "rendered frame"), or before redrawing when the
-        shape has changed (type = "shape changed").  The callback functions
-        take no arguments.'''
-        if cb in self._callbacks[type]:
-            raise RuntimeError('Callback already in callback list when adding %s' % type)
-        self._callbacks[type].append(cb)
-
-    def remove_callback(self, type, cb):
-        '''Remove a callback that was added with add_callback().'''
-        self._callbacks[type].remove(cb)
-
-    def _call_callbacks(self, type):
-        cbs = tuple(self._callbacks[type])
-        for cb in cbs:
-            try:
-                cb()
-            except:
-                import traceback
-                self.log.warning('%s callback raised error\n%s'
-                                 % (type, traceback.format_exc()))
-                self.remove_callback(type, cb)
 
     def _multishadow_directions(self):
 

@@ -4,7 +4,7 @@ class Space_Navigator:
 
     def __init__(self, session):
 
-        self.view = session.view
+        self.view = session.main_view
         self.log = session.log
 		self.ses_triggers = session.triggers
 

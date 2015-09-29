@@ -2355,7 +2355,7 @@ class cycle_through_planes:
     self.handler = self.next_plane_cb
     session.triggers.add_handler('new frame', self.handler)
 
-  def next_plane_cb(self):
+  def next_plane_cb(self, *_):
     
     p = self.plane
     if self.step * (self.plast - p) >= 0:

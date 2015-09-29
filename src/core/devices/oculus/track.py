@@ -5,7 +5,7 @@ class Oculus_Rift:
 
     def __init__(self, session):
 
-        self.view = session.view
+        self.view = session.main_view
         self.ses_triggers = session.triggers
 
         self.last_translation = None
