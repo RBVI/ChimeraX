@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 #
 class Oculus_Rift:
@@ -5,7 +6,7 @@ class Oculus_Rift:
     def __init__(self, session):
 
         self.view = session.view
-		self.ses_triggers = session.triggers
+        self.ses_triggers = session.triggers
 
         self.last_translation = None
         self.last_rotation = None

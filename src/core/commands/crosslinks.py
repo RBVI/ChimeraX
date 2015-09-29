@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 def crosslinks(session, pbgroups = None, color = None, radius = None, minimize = None, iterations = 10, frames = None):
     '''
     Move atomic models to minimize crosslink lengths.
@@ -115,8 +116,8 @@ class interpolate_position:
         fr = self.frame
         if fr >= self.frames:
             m.position = self.pos1
-			from ..triggerset import DEREGISTER
-			return DEREGISTER
+            from ..triggerset import DEREGISTER
+            return DEREGISTER
         else:
             f = fr / self.frames
             from ..geometry import translation, rotation

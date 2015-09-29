@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Optimize N random placements of a model and collect unique fits.
 #
@@ -313,7 +314,7 @@ def move_step(move_table, session):
             del mt[m]
 
     if len(mt) == 0:
-		from ...triggerset import DEREGISTER
+        from ...triggerset import DEREGISTER
         return DEREGISTER
 
 # -----------------------------------------------------------------------------

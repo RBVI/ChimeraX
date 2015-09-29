@@ -2364,7 +2364,7 @@ class cycle_through_planes:
                   save_in_region_queue = False)
     else:
       self.handler = None
-      from ../triggerset import DEREGISTER
+      from ..triggerset import DEREGISTER
       return DEREGISTER
 
 # -----------------------------------------------------------------------------

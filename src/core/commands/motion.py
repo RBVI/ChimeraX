@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 class CallForNFrames:
     # CallForNFrames acts like a function that keeps track of per-frame
     # functions.  But those functions need state, so that state is
@@ -13,7 +14,7 @@ class CallForNFrames:
         self.n = n
         self.session = session
         self.frame = 0
-		self.handler = session.triggers.add_handler('new frame', self)
+        self.handler = session.triggers.add_handler('new frame', self)
         if not hasattr(session, self.Attribute):
             setattr(session, self.Attribute, set([self]))
         else:
@@ -29,7 +30,7 @@ class CallForNFrames:
 
     def done(self):
         s = self.session
-		s.triggers.delete_handler(self.handler)
+        s.triggers.delete_handler(self.handler)
         getattr(s, self.Attribute).remove(self)
 
 
