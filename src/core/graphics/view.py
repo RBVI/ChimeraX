@@ -12,10 +12,11 @@ class View:
     '''
     VIEW_STATE_VERSION = 1
 
-    def __init__(self, drawing, window_size, opengl_context, log, track=True):
+    def __init__(self, session, window_size, opengl_context, *, track=True):
 
-        self.drawing = drawing
-        self.log = log
+        self.session = session
+        self.drawing = session.models.drawing
+        self.log = session.log
         self.window_size = window_size		# pixels
         self._opengl_context = opengl_context
 

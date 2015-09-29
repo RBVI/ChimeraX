@@ -9,7 +9,7 @@ def start_oculus(session):
         # Activate opengl context before initializing oculus rift device.
         win.opengl_context.make_current()
         from .track import Oculus_Rift, Oculus_Rift_Camera_Mode
-        session.oculus = oc = Oculus_Rift(session.view)
+        session.oculus = oc = Oculus_Rift(session)
         oc.window = win
         if oc.connected:
             # Move window to oculus screen and switch to full screen mode.
@@ -100,7 +100,7 @@ def start_oculus2(session):
     # Activate opengl context before initializing oculus rift device.
     win.opengl_context.make_current()
     from .track import Oculus_Rift, Oculus_Rift_Camera_Mode
-    oc = Oculus_Rift(v)
+    oc = Oculus_Rift(session)
     session.oculus.append(oc)
     oc.window = win
     if oc.connected:
