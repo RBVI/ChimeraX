@@ -14,7 +14,7 @@ TOOL_PKG_NAME = chimera.exp_cmd
 TOOL_DISPLAY_NAME = Experimental Commands
 TOOL_CATEGORY = General
 TOOL_SYNOPSIS = Experimental commands that may go away
-COMMAND_NAME = cartoon
+COMMAND_NAME = cartoon,~cartoon,ribbon,~ribbon
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
