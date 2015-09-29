@@ -1611,8 +1611,9 @@ class Command:
                 tmp = text.split(None, 1)
                 if not tmp:
                     break
-                if _canonical_kw(tmp[0]) in self._ci._keyword_map:
-                    # exactly matches keyword, so done with positional arguments
+                tmp = _canonical_kw(tmp[0])
+                if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
+                    # matches keyword, so done with positional arguments
                     break
             else:
                 self._error = "Missing required '%s' argument" % _user_kw(kw_name)
