@@ -1630,7 +1630,7 @@ class Command:
                 _, tmp, _ = next_token(text, no_raise=True)
                 if not tmp:
                     break
-                tmp = _canonical_kw(tmp[0])
+                tmp = _canonical_kw(tmp)
                 if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
                     break
             try:
