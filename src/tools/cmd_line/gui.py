@@ -56,9 +56,9 @@ class CommandLine(ToolInstance):
         if event.KeyCode == 13:          # Return
             self.on_enter(event)
         elif event.KeyCode == 14:        # Ctrl-N
-            self.history_dialog.down()
+            self.history_dialog.down(event.GetModifiers() & wx.MOD_SHIFT)
         elif event.KeyCode == 16:        # Ctrl-P
-            self.history_dialog.up()
+            self.history_dialog.up(event.GetModifiers() & wx.MOD_SHIFT)
         elif event.KeyCode == 21:        # Ctrl-U
             self.cmd_clear()
         elif event.KeyCode == 27:         # Escape
@@ -159,15 +159,16 @@ class CommandLine(ToolInstance):
         # history forward/back, as well as getting other relevant
         # control-key events before the ComboBox KeyDown handler
         # consumes them
+        shifted = event.GetModifiers() & wx.MOD_SHIFT
         if event.KeyCode == 315:  # up arrow
-            self.history_dialog.up()
+            self.history_dialog.up(shifted)
         elif event.KeyCode == 317:  # down arrow
-            self.history_dialog.down()
+            self.history_dialog.down(shifted)
         elif event.GetModifiers() & wx.MOD_RAW_CONTROL:
             if event.KeyCode == 78:
-                self.history_dialog.down()
+                self.history_dialog.down(shifted)
             elif event.KeyCode == 80:
-                self.history_dialog.up()
+                self.history_dialog.up(shifted)
             elif event.KeyCode == 85:
                 self.cmd_clear()
             else:
@@ -311,14 +312,25 @@ class _HistoryDialog:
             # TODO
             return
 
-    def down(self):
+    def down(self, shifted):
         sels = self.listbox.GetSelections()
         if len(sels) != 1:
             return
-        sel = sels[0]
+        orig_sel = sel = sels[0]
+        match_against = None
+        if shifted:
+            words = self.controller.text.Value.strip().split()
+            if words:
+                match_against = words[0]
+        if match_against:
+            last = self.listbox.GetCount() - 1
+            while sel < last:
+                if self.listbox.GetString(sel+1).startswith(match_against):
+                    break
+                sel += 1
         if sel == self.listbox.GetCount() - 1:
             return
-        self.listbox.Deselect(sel)
+        self.listbox.Deselect(orig_sel)
         self.listbox.SetSelection(sel + 1)
         self.controller.cmd_replace(self.listbox.GetString(sel + 1))
 
@@ -345,14 +357,24 @@ class _HistoryDialog:
             return
         self.controller.cmd_replace(self.listbox.GetString(sels[0]))
 
-    def up(self):
+    def up(self, shifted):
         sels = self.listbox.GetSelections()
         if len(sels) != 1:
             return
-        sel = sels[0]
+        orig_sel = sel = sels[0]
+        match_against = None
+        if shifted:
+            words = self.controller.text.Value.strip().split()
+            if words:
+                match_against = words[0]
+        if match_against:
+            while sel > 0:
+                if self.listbox.GetString(sel-1).startswith(match_against):
+                    break
+                sel -= 1
         if sel == 0:
             return
-        self.listbox.Deselect(sel)
+        self.listbox.Deselect(orig_sel)
         self.listbox.SetSelection(sel - 1)
         self.controller.cmd_replace(self.listbox.GetString(sel - 1))
 
