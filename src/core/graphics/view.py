@@ -151,6 +151,9 @@ class View:
             if self.track:
                 self.session.triggers.activate_trigger('new frame', self)
             changed = self._check_for_drawing_change()
+            if self.track:
+                from ..atomic import check_for_changes
+                check_for_changes(self.session)
             if changed:
                 try:
                     self.draw(check_for_changes = False)
@@ -883,6 +886,25 @@ class _RedrawNeeded:
         if selection_changed:
             self.cached_any_part_selected = None
 
+
+# check_for_changes defined here despite being publicly made available
+# in atomic module because it uses internal View methods
+def _check_for_changes(session):
+    """Check for, and propagate Chimera atomic data changes.
+
+    This is called once per frame, and whenever otherwise needed.
+    """
+    ct = session.change_tracker
+    if not ct.changed:
+        return
+    mv = session.main_view
+    mv._block_redraw()
+    try:
+        changes = ct.changes
+        ct.clear()
+        session.triggers.activate_trigger("atomic changes", changes)
+    finally:
+        mv._unblock_redraw()
 
 def _drawing_bounds(drawings, open_drawing):
     if drawings is None:
