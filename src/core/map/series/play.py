@@ -60,7 +60,7 @@ class Play_Series:
 
     if self.play_handler is None:
       self.play_handler = h = self.next_time_cb
-      self.view().add_callback('new frame', h)
+      self.handler = self.session.triggers.add_handler('new frame', h)
   
   # ---------------------------------------------------------------------------
   #
@@ -68,12 +68,12 @@ class Play_Series:
 
     h = self.play_handler
     if h:
-      self.view().remove_callback('new frame', h)
+      self.session.triggers.delete_handler(self.handler)
       self.play_handler = None
 
   # ---------------------------------------------------------------------------
   #
-  def next_time_cb(self):
+  def next_time_cb(self, *_):
 
     if self.delay_next_frame():
       return

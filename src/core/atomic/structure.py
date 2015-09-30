@@ -79,12 +79,11 @@ class AtomicStructure(AtomicStructureData, Model):
         return m
 
     def added_to_session(self, session):
-        v = session.main_view
-        v.add_callback('graphics update', self._update_graphics_if_needed)
+        self.handler = session.triggers.add_handler('graphics update',
+            self._update_graphics_if_needed)
 
     def removed_from_session(self, session):
-        v = session.main_view
-        v.remove_callback('graphics update', self._update_graphics_if_needed)
+        session.triggers.delete_handler(self.handler)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
@@ -177,7 +176,7 @@ class AtomicStructure(AtomicStructureData, Model):
         self._atoms = None
         self._atom_bounds_needs_update = True
 
-    def _update_graphics_if_needed(self):
+    def _update_graphics_if_needed(self, *_):
         if self._gc_ribbon:
             # Do this before fetching bits because ribbon creation changes some
             # display and hide bits

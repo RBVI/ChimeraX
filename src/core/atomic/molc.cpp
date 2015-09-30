@@ -1200,6 +1200,17 @@ extern "C" void *change_tracker_create()
     }
 }
 
+extern "C" npy_bool change_tracker_changed(void *vct)
+{
+    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
+    try {
+        return ct->changed();
+    } catch (...) {
+        molc_error();
+        return false;
+    }
+}
+
 extern "C" PyObject* change_tracker_changes(void *vct)
 {
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
@@ -1245,6 +1256,16 @@ extern "C" PyObject* change_tracker_changes(void *vct)
         molc_error();
     }
     return changes_data;
+}
+
+extern "C" void change_tracker_clear(void *vct)
+{
+    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
+    try {
+        return ct->clear();
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" void change_tracker_add_modified(void *vct, int class_num, void *modded,

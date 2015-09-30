@@ -65,7 +65,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
     TOP_SIDE = 1
     RIGHT_SIDE = 2
 
-    def __init__(self, parent, view, main_view, size, side=RIGHT_SIDE):
+    def __init__(self, parent, view, session, size, side=RIGHT_SIDE):
         import sys
         attribs = [
             glcanvas.WX_GL_RGBA,
@@ -83,7 +83,8 @@ class SideViewCanvas(glcanvas.GLCanvas):
             raise AssertionError(
                 "Missing required OpenGL capabilities for Side View")
         self.view = view
-        self.main_view = main_view
+        self.session = session
+        self.main_view = session.main_view
         self.side = side
         # self.side = self.TOP_SIDE  # DEBUG
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs,
@@ -111,12 +112,12 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.applique.display_style = Drawing.Mesh
         self.applique.use_lighting = False
         self.view.add_2d_overlay(self.applique)
-        self.main_view.add_callback('rendered frame', self._redraw)
+        self.handler = session.triggers.add_handler('rendered frame', self._redraw)
 
     def on_destroy(self, event):
-        self.main_view.remove_callback('rendered frame', self._redraw)
+        self.session.triggers.delete_handler(self.handler)
 
-    def _redraw(self):
+    def _redraw(self, *_):
         # wx.CallAfter(self.draw)
         self.draw()
 
@@ -297,15 +298,14 @@ class SideViewUI(ToolInstance):
         # UI content code
         from chimera.core.graphics.view import View
         self.opengl_context = oc = session.main_view.opengl_context()
-        self.view = View(session.models.drawing, wx.DefaultSize, oc,
-                         session.logger, track=False)
+        self.view = View(session, wx.DefaultSize, oc, track=False)
         self.view.camera = OrthoCamera()
         if self.display_name.startswith('Top'):
             side = SideViewCanvas.TOP_SIDE
         else:
             side = SideViewCanvas.RIGHT_SIDE
         self.opengl_canvas = SideViewCanvas(
-            parent, self.view, session.main_view, self.SIZE, side=side)
+            parent, self.view, session, self.SIZE, side=side)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)

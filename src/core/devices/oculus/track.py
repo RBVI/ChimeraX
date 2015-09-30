@@ -1,10 +1,12 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 #
 class Oculus_Rift:
 
-    def __init__(self, view):
+    def __init__(self, session):
 
-        self.view = view
+        self.view = session.main_view
+        self.ses_triggers = session.triggers
 
         self.last_translation = None
         self.last_rotation = None
@@ -39,7 +41,7 @@ class Oculus_Rift:
             _oculus.initialize()
             self.parameters = _oculus.parameters()      # Interpupillary distance not set until initialize called.
             self.frame_cb = self.use_oculus_orientation
-            self.view.add_callback('new frame', self.frame_cb)
+            self.handler = self.ses_triggers.add_handler('new frame', self.frame_cb)
         return True
 
     def close(self):
@@ -54,7 +56,7 @@ class Oculus_Rift:
     def stop_event_processing(self):
 
         if self.frame_cb:
-            self.view.remove_callback('new frame', self.frame_cb)
+            self.ses_triggers.delete_handler(self.handler)
             self.frame_cb = None
             if self.connected:
                 from . import _oculus
@@ -100,7 +102,7 @@ class Oculus_Rift:
         sx, sy = w * (lt/(rt+lt) - 0.5), h * (dt/(ut+dt) - 0.5)
         return sx, sy
 
-    def use_oculus_orientation(self):
+    def use_oculus_orientation(self, *_):
 
         v = self.view
         c = v.camera

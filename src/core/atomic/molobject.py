@@ -494,6 +494,11 @@ class ChangeTracker:
             f(self._c_pointer, self._class_to_int(modded.__class__), modded._c_pointer,
                 reason.encode('utf-8'))
     @property
+    def changed(self):
+        f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = npy_bool)
+        return f(self._c_pointer)
+
+    @property
     def changes(self):
         f = c_function('change_tracker_changes', args = (ctypes.c_void_p,),
             ret = ctypes.py_object)
@@ -516,6 +521,10 @@ class ChangeTracker:
             final_changes[fc_key] = Changes(collection(created_ptrs),
                 collection(mod_ptrs), reasons, tot_del)
         return final_changes
+
+    def clear(self):
+        f = c_function('change_tracker_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def _class_to_int(self, klass):
         # has to tightly coordinate wih change_track_add_modified

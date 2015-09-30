@@ -502,6 +502,8 @@ def common_startup(sess):
     assert(hasattr(sess, 'debug'))
     from . import triggerset
     sess.triggers = triggerset.TriggerSet()
+    from .core_triggers import register_core_triggers
+    register_core_triggers(sess.triggers)
     sess.scenes = Scenes(sess)
     sess.add_state_manager('scenes', sess.scenes)
     from . import models
@@ -518,7 +520,7 @@ def common_startup(sess):
     if _monkey_patch:
         State.register(View)
     _monkey_patch = False
-    sess.main_view = View(sess.models.drawing, (256, 256), None, sess.logger)
+    sess.main_view = View(sess, (256, 256), None)
     sess.add_state_manager('main_view', sess.main_view)
     from .atomic import PseudobondManager, ChangeTracker
     sess.change_tracker = ChangeTracker()
@@ -527,7 +529,9 @@ def common_startup(sess):
     from . import commands
     commands.register_core_commands(sess)
 
-    # file formats
+    _register_core_file_formats()
+
+def _register_core_file_formats():
     from . import stl
     stl.register()
     from .atomic import pdb
