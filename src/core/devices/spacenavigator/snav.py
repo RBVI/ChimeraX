@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 #
 class Space_Navigator:
@@ -6,7 +7,7 @@ class Space_Navigator:
 
         self.view = session.main_view
         self.log = session.log
-		self.ses_triggers = session.triggers
+        self.ses_triggers = session.triggers
 
         self.speed = 1
         self.dominant = True    # Don't simultaneously rotate and translate
@@ -32,7 +33,7 @@ class Space_Navigator:
 
         if self.device:
             self.handler = self.ses_triggers.add_handler('new frame',
-				self.check_space_navigator)
+                self.check_space_navigator)
             self.processing_events = True
             return True
 
@@ -172,7 +173,7 @@ def find_device():
 #
 def space_navigator(session):
     if not hasattr(session, 'space_navigator') or session.space_navigator is None:
-		session.space_navigator = Space_Navigator(session)
+        session.space_navigator = Space_Navigator(session)
     return session.space_navigator
 
 # -----------------------------------------------------------------------------

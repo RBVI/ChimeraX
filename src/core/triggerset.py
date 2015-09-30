@@ -170,7 +170,7 @@ class _Trigger:
             if self._default_one_time:
                 self._pending_del.append(handler)
             try:
-                ret = handler.invoke(data, self.remove_bad_handlers)
+                ret = handler.invoke(data, self._remove_bad_handlers)
             except:
                 self._locked = locked
                 raise

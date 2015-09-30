@@ -16,9 +16,10 @@ class View:
 
         self.session = session
         self.drawing = session.models.drawing
-        self.log = session.log
+        self.log = session.logger
         self.window_size = window_size		# pixels
         self._opengl_context = opengl_context
+        self.track = track
 
         # Red, green, blue, opacity, 0-1 range.
         try:
@@ -69,7 +70,7 @@ class View:
 
         self._drawing_manager = dm = _RedrawNeeded()
         if track:
-            drawing.set_redraw_callback(dm)
+            self.drawing.set_redraw_callback(dm)
 
     def take_snapshot(self, phase, session, flags):
         from ..session import State
@@ -147,7 +148,8 @@ class View:
         
         self._block_redraw()
         try:
-            self.session.triggers.activate_trigger('new frame', self)
+            if self.track:
+                self.session.triggers.activate_trigger('new frame', self)
             changed = self._check_for_drawing_change()
             if changed:
                 try:
@@ -156,7 +158,8 @@ class View:
                     # Stop redraw if an error occurs to avoid continuous stream of errors.
                     self._block_redraw()
                     raise
-                self.session.triggers.activate_trigger('rendered frame', self)
+                if self.track:
+                    self.session.triggers.activate_trigger('rendered frame', self)
         finally:
             self._unblock_redraw()
 
@@ -251,7 +254,8 @@ class View:
             self.redraw_needed = False
 
     def _check_for_drawing_change(self):
-        self.session.triggers.activate_trigger('graphics update', self)
+        if self.track:
+            self.session.triggers.activate_trigger('graphics update', self)
 
         c = self.camera
         dm = self._drawing_manager
@@ -260,7 +264,8 @@ class View:
             return False
 
         if dm.shape_changed:
-            self.session.triggers.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
+            if self.track:
+                self.session.triggers.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
             self._update_center_of_rotation = True
 
         if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
