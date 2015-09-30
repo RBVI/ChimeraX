@@ -34,7 +34,7 @@ def open_mmcif(session, filename, name, *args, **kw):
         _mmcif.set_Python_locate_function(
             lambda name: _get_template(name, session.app_dirs, session.logger))
         pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories,
-                                           session.logger)
+                                       session.logger)
 
     models = [structure.AtomicStructure(name, p) for p in pointers]
     for m in models:

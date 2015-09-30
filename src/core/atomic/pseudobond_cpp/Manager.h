@@ -7,9 +7,12 @@
 #include <string>
 
 #include "Group.h"
+#include <basegeom/ChangeTracker.h>
 #include <basegeom/destruct.h>
 
 namespace pseudobond {
+
+using basegeom::ChangeTracker;
 
 //classes
 template <class Grp_Class>
@@ -20,10 +23,20 @@ public:
     static const int GRP_NORMAL = GRP_NONE + 1;
     typedef std::map<std::string, Grp_Class*>  GroupMap;
 protected:
+    ChangeTracker*  _change_tracker;
     GroupMap  _groups;
 public:
-    Base_Manager() {}
-    virtual  ~Base_Manager() {}
+    Base_Manager(ChangeTracker* ct): _change_tracker(ct) {}
+    virtual  ~Base_Manager() {
+        // assign to var so it lives to end of destructor
+        auto du = basegeom::DestructionUser(this);
+        // delete groups while DestructionUser active
+        for (auto name_grp: this->_groups) {
+            delete name_grp.second;
+        }
+    }
+
+    ChangeTracker*  change_tracker() { return _change_tracker; }
     virtual Grp_Class*  get_group(
             const std::string& name, int create = GRP_NONE) = 0;
     const GroupMap&  group_map() const { return _groups; }
@@ -34,21 +47,10 @@ class Owned_Manager: public Base_Manager<Grp_Class> {
 protected:
     Owner*  _owner;
 public:
-    Owned_Manager(Owner* owner): _owner(owner) {}
-    virtual  ~Owned_Manager() {
-        // assign to var so it lives to end of destructor,
-        // and only do this in owned managers and not the
-        // global manager since the global manager is only
-        // destroyed at program exit (and therefore races
-        // against the destruction of the DestructionCoordinator)
-        // [so move this into ~Base_Manager once global managers
-        // are per session]
-        auto du = basegeom::DestructionUser(this);
-        // delete groups while DestructionUser active
-        for (auto name_grp: this->_groups) {
-            delete name_grp.second;
-        }
-    };
+    Owned_Manager(Owner* owner);
+    virtual  ~Owned_Manager() {}
+
+    Owner*  owner() const { return _owner; }
 };
 
 }  // namespace pseudobond

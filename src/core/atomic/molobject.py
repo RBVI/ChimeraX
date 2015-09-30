@@ -16,6 +16,8 @@ def _atom_pair(p):
 def _bonds(b):
     from .molarray import Bonds
     return Bonds(b)
+def _element(e):
+    return object_map(e, Element)
 def _pseudobonds(b):
     from .molarray import Pseudobonds
     return Pseudobonds(b)
@@ -69,6 +71,8 @@ class Atom:
     draw_mode = c_property('atom_draw_mode', int32)
     '''Controls how the atom is depicted.  Can be SPHERE_STYLE, BALL_STYLE or
     STICK_STYLE.'''
+    element = c_property('atom_element', cptr, astype = _element, read_only = True)
+    ''':class:`Element` corresponding to the chemical element for the atom.'''
     element_name = c_property('atom_element_name', string, read_only = True)
     '''Chemical element name. Read only.'''
     element_number = c_property('atom_element_number', uint8, read_only = True)
@@ -142,7 +146,7 @@ class Bond:
     '''
     Whether to display the bond, with 3 possible integer values:
     ALWAYS_DISPLAY, NEVER_DISPLAY, SMART_DISPLAY.
-    TODO: Value is not currently ignored, smart display is always used.
+    TODO: Value is currently ignored, smart display is always used.
     '''
     halfbond = c_property('bond_halfbond', npy_bool)
     '''
@@ -191,7 +195,7 @@ class Pseudobond:
     display = c_property('pseudobond_display', uint8)
     '''Whether to display the bond, with 3 possible integer values:
     ALWAYS_DISPLAY, NEVER_DISPLAY, SMART_DISPLAY.
-    TODO: Value is not currently ignored, smart display is always used.
+    TODO: Value is currently ignored, smart display is always used.
     '''
     halfbond = c_property('pseudobond_halfbond', npy_bool)
     '''
@@ -254,9 +258,10 @@ class PseudobondManager:
     '''Per-session singleton pseudobond manager keeps track of all
     :class:`.PseudobondGroupData` objects.'''
 
-    def __init__(self):
-        f = c_function('pseudobond_create_global_manager', args = (), ret = ctypes.c_void_p)
-        set_c_pointer(self, f())
+    def __init__(self, change_tracker):
+        f = c_function('pseudobond_create_global_manager', args = (ctypes.c_void_p,),
+            ret = ctypes.c_void_p)
+        set_c_pointer(self, f(change_tracker._c_pointer))
 
     def get_group(self, category, create = True):
         '''Get an existing :class:`.PseudobondGroup` or create a new one given a category name.'''
@@ -358,10 +363,10 @@ class AtomicStructureData:
     This base class manages the atomic data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
-    def __init__(self, mol_pointer = None):
+    def __init__(self, mol_pointer=None, logger=None):
         if mol_pointer is None:
             # Create a new atomic structure
-            mol_pointer = c_function('structure_new', args = (), ret = ctypes.c_void_p)()
+            mol_pointer = c_function('structure_new', args = (ctypes.py_object), ret = ctypes.c_void_p)()
         set_c_pointer(self, mol_pointer)
 
     def delete(self):
@@ -456,6 +461,11 @@ class AtomicStructureData:
                     ret = ctypes.c_int)
         return f(self._c_pointer, ints, floats, misc)
 
+    def _start_change_tracking(self, change_tracker):
+        f = c_function('structure_start_change_tracking',
+                args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, change_tracker._c_pointer)
+
     # Graphics changed flags used by rendering code.  Private.
     _gc_color = c_property('structure_gc_color', npy_bool)
     _gc_select = c_property('structure_gc_select', npy_bool)
@@ -464,29 +474,102 @@ class AtomicStructureData:
 
 # -----------------------------------------------------------------------------
 #
+class ChangeTracker:
+    '''Per-session singleton change tracker keeps track of all
+    atomic data changes'''
+
+    def __init__(self):
+        f = c_function('change_tracker_create', args = (), ret = ctypes.c_void_p)
+        set_c_pointer(self, f())
+
+    def add_modified(self, modded, reason):
+        f = c_function('change_tracker_add_modified',
+            args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
+        from .molarray import Collection
+        if isinstance(modded, Collection):
+            class_num = self._class_to_int(modded.object_class)
+            for ptr in modded.pointers:
+                f(self._c_pointer, class_num, ptr, reason.encode('utf-8'))
+        else:
+            f(self._c_pointer, self._class_to_int(modded.__class__), modded._c_pointer,
+                reason.encode('utf-8'))
+    @property
+    def changes(self):
+        f = c_function('change_tracker_changes', args = (ctypes.c_void_p,),
+            ret = ctypes.py_object)
+        data = f(self._c_pointer)
+        class Changes:
+            def __init__(self, created, modified, reasons, total_deleted):
+                self.created = created
+                self.modified = modified
+                self.reasons = reasons
+                self.total_deleted = total_deleted
+        final_changes = {}
+        for k, v in data.items():
+            created_ptrs, mod_ptrs, reasons, tot_del = v
+            temp_ns = {}
+            # can't effectively use locals() as the third argument for some
+            # obscure Python 3 reason
+            exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
+            collection = temp_ns['collection']
+            fc_key = k[:-4] if k.endswith("Data") else k
+            final_changes[fc_key] = Changes(collection(created_ptrs),
+                collection(mod_ptrs), reasons, tot_del)
+        return final_changes
+
+    def _class_to_int(self, klass):
+        # has to tightly coordinate wih change_track_add_modified
+        if klass.__name__ == "Atom":
+            return 0
+        if klass.__name__ == "Bond":
+            return 1
+        if klass.__name__ == "Pseudobond":
+            return 2
+        if klass.__name__ == "Residue":
+            return 3
+        if klass.__name__ == "Chain":
+            return 4
+        if klass.__name__ == "AtomicStructure":
+            return 5
+        if klass.__name__ == "PseudobondGroup":
+            return 6
+        raise AssertionError("Unknown class for change tracking")
+
+# -----------------------------------------------------------------------------
+#
 class Element:
     '''A chemical element having a name, number, mass, and other physical properties.'''
-    def __init__(self, e_pointer = None, name = None, number = 6):
-        if e_pointer is None:
-            # Create a new element
-            if name:
-                f = c_function('element_new_name', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
-                e_pointer = f(name)
-            else:
-                f = c_function('element_new_number', args = (ctypes.c_int,), ret = ctypes.c_void_p)
-                e_pointer = f(number)
-        set_c_pointer(self, e_pointer)
+    def __init__(self, element_pointer):
+        set_c_pointer(self, element_pointer)
 
     name = c_property('element_name', string, read_only = True)
     '''Element name, for example C for carbon. Read only.'''
     number = c_property('element_number', uint8, read_only = True)
     '''Element atomic number, for example 6 for carbon. Read only.'''
     mass = c_property('element_mass', float32, read_only = True)
-    '''Element atomic mass, average mass divided by 1/12 mass of carbon,
+    '''Element atomic mass,
     taken from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
     Read only.'''
+    is_alkali_metal = c_property('element_is_alkali_metal', npy_bool, read_only = True)
+    '''Is atom an alkali metal. Read only.'''
+    is_halogen = c_property('element_is_halogen', npy_bool, read_only = True)
+    '''Is atom a halogen. Read only.'''
     is_metal = c_property('element_is_metal', npy_bool, read_only = True)
     '''Is atom a metal. Read only.'''
+    is_noble_gas = c_property('element_is_noble_gas', npy_bool, read_only = True)
+    '''Is atom a noble_gas. Read only.'''
+    valence = c_property('element_valence', uint8, read_only = True)
+    '''Element valence number, for example 7 for chlorine. Read only.'''
+
+    def get_element(name_or_number):
+        '''Get the Element that corresponds to an atomic name or number'''
+        if type(name_or_number) == type(1):
+            f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+        elif type(name_or_number) == type(""):
+            f = c_function('element_name_get_element', args = (ctypes.c_char_p,), ret = ctypes.c_void_p)
+        else:
+            raise ValueError("'get_element' arg must be string or int")
+        return _element(f(name_or_number))
 
 # -----------------------------------------------------------------------------
 #

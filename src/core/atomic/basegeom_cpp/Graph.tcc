@@ -11,9 +11,9 @@
 
 namespace basegeom {
     
-template <class Vertex, class Edge>
+template <class Vertex, class Edge, class FinalGraph>
 void
-Graph<Vertex, Edge>::delete_edge(Edge *e)
+Graph<Vertex, Edge, FinalGraph>::delete_edge(Edge *e)
 {
     typename Edges::iterator i = std::find_if(_edges.begin(), _edges.end(),
         [&e](Edge* ue) { return ue == e; });
@@ -27,9 +27,9 @@ Graph<Vertex, Edge>::delete_edge(Edge *e)
     delete e;
 }
 
-template <class Vertex, class Edge>
+template <class Vertex, class Edge, class FinalGraph>
 void
-Graph<Vertex, Edge>::delete_vertex(Vertex *v)
+Graph<Vertex, Edge, FinalGraph>::delete_vertex(Vertex *v)
 {
     typename Vertices::iterator i = std::find_if(_vertices.begin(), _vertices.end(),
         [&v](Vertex* uv) { return uv == v; });
@@ -43,9 +43,9 @@ Graph<Vertex, Edge>::delete_vertex(Vertex *v)
     delete v;
 }
 
-template <class Vertex, class Edge>
+template <class Vertex, class Edge, class FinalGraph>
 void
-Graph<Vertex, Edge>::delete_vertices(const std::set<Vertex*>& vertices)
+Graph<Vertex, Edge, FinalGraph>::delete_vertices(const std::set<Vertex*>& vertices)
 {
     auto db = DestructionBatcher(this);
     // remove_if doesn't swap the removed items into the end of the vector,

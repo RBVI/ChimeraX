@@ -8,6 +8,7 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "Residue.h"
+#include <basegeom/destruct.h>
 #include "tmpl/TemplateCache.h"
 
 namespace atomstruct {
@@ -30,6 +31,14 @@ Residue::Residue(AtomicStructure *as, const ResName& name,
     _ribbon_style(RIBBON_RIBBON), _ribbon_adjust(-1.0),
     _structure(as)
 {
+    _structure->change_tracker()->add_created(this);
+}
+
+Residue::~Residue() {
+    auto du = basegeom::DestructionUser(this);
+    if (_chain != nullptr)
+        _chain->remove_residue(this);
+    _structure->change_tracker()->add_deleted(this);
 }
 
 void

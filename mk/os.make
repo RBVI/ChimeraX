@@ -63,7 +63,7 @@ ifneq (,$(MACOSX_DEPLOYMENT_TARGET))
 	ifneq (,$(wildcard $(XCODE_SDKS)))
 		SYSROOT = $(XCODE_SDKS)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
 	else
-		$(error unable to find SYSROOT for $(MACOSX_DEPLOYMENT_TARGET))
+        $(error unable to find SYSROOT for $(MACOSX_DEPLOYMENT_TARGET))
 	endif
 else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.9.sdk))
 	export MACOSX_DEPLOYMENT_TARGET=10.9
@@ -82,7 +82,7 @@ else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.6.sdk))
 	SYSROOT = $(XCODE_SDKS)/MacOSX10.6.sdk
 	SDK = macosx10.6
 else
-	$(error Unable to find Xcode sysroot)
+    $(error Unable to find Xcode sysroot)
 endif
 	# sysctl needs to be on path for numpy, numexpr, pytables
 	export PATH := $(PATH):/usr/sbin

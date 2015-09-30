@@ -15,7 +15,7 @@ ifneq ($(OS),Windows)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 #seq_assoc.o : CXXFLAGS += -Wno-sign-compare
 endif
-LIBS	+= -L$(libdir) -ltmpl -llogger -lbasegeom -larrays $(PYTHON_LIB)
+LIBS	+= -L$(libdir) -lelement -ltmpl -llogger -lbasegeom -larrays $(PYTHON_LIB)
 
 $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
 	$(SHLIB_LINK)
@@ -32,7 +32,7 @@ clean:
 $(SUBDIR_INSTALL): imex.h
 
 Atom.o: $(includedir)/basegeom/Coord.h $(includedir)/basegeom/Point.h \
-	$(includedir)/basegeom/Sphere.h
+	$(includedir)/basegeom/Sphere.h $(includedir)/basegeom/Connectible.h
 AtomTypes.o: $(includedir)/basegeom/Coord.h
 AtomicStructure.o: $(includedir)/basegeom/Graph.h \
 	$(includedir)/basegeom/Graph.tcc $(includedir)/basegeom/destruct.h

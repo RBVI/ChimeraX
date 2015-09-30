@@ -9,11 +9,14 @@ def start_tool(session, ti):
 
 
 #
-# 'register_command' is called by the toolshed on start up
+# 'register_command' is the delayed command registration callback
 #
 def register_command(command_name):
     from importlib import import_module
-    module_name = "." + command_name
+    if command_name.startswith('~'):
+        module_name = "." + command_name[1:]
+    else:
+        module_name = "." + command_name
     try:
         m = import_module(module_name, __package__)
     except ImportError:

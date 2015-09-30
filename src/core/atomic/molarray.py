@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 '''
 molarray: Collections of molecular objects
 ==========================================
@@ -43,6 +44,10 @@ def _atoms(a):
     return Atoms(a)
 def _bonds(a):
     return Bonds(a)
+def _pseudobonds(a):
+	return Pseudobonds(a)
+def _elements(a):
+    return Elements(a)
 def _residues(a):
     return Residues(a)
 def _chains(a):
@@ -104,6 +109,16 @@ class Collection:
                        ret = ctypes.c_ssize_t)
         i = f(self._c_pointers, len(self), object._c_pointer)
         return i
+
+    @property
+    def object_class(self):
+        return self._object_class
+    @property
+    def objects_class(self):
+        return self._objects_class
+    @property
+    def pointers(self):
+        return self._pointers
 
     def __or__(self, objects):
         '''The or operator | takes the union of two collections removing duplicates.'''
@@ -226,6 +241,12 @@ class Atoms(Collection):
     set with such an array (or equivalent sequence), or with a
     single integer value.
     '''
+    elements = cvec_property('atom_element', cptr, astype = _elements, read_only = True)
+    '''
+    Returns a :class:`Elements` whose data items
+    correspond in a 1-to-1 fashion with the items in the Atoms.
+    Read only. 
+    '''
     element_names = cvec_property('atom_element_name', string, read_only = True)
     '''Returns a numpy array of chemical element names. Read only.'''
     element_numbers = cvec_property('atom_element_number', uint8, read_only = True)
@@ -310,6 +331,13 @@ class Atoms(Collection):
         mols = self.unique_structures
         c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
+    def update_ribbon_visibility(self):
+        '''Update the 'hide' status for ribbon control point atoms, which
+	are hidden unless any of its neighbors are visible.'''
+        f = c_function('atom_update_ribbon_visibility',
+                       args = [ctypes.c_void_p, ctypes.c_size_t])
+        f(self._c_pointers, len(self))
+
 # -----------------------------------------------------------------------------
 #
 class Bonds(Collection):
@@ -362,6 +390,42 @@ class Bonds(Collection):
     Can be set with such an array (or equivalent sequence), or with a
     single floating-point number.
     '''
+
+# -----------------------------------------------------------------------------
+#
+class Elements(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Holds a collection of C++ Elements (chemical elements) and provides access to some of
+    their attributes.  Used for the same reasons as the :class:`Atoms` class.
+    '''
+    def __init__(self, element_pointers):
+        Collection.__init__(self, element_pointers, molobject.Element, Elements)
+
+    names = cvec_property('element_name', string, read_only = True)
+    '''Returns a numpy array of chemical element names. Read only.'''
+    numbers = cvec_property('element_number', uint8, read_only = True)
+    '''Returns a :mod:`numpy` array of atomic numbers (integers). Read only.'''
+    masses = cvec_property('element_mass', float32, read_only = True)
+    '''Returns a :mod:`numpy` array of atomic masses,
+    taken from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
+    Read only.'''
+    is_alkali_metal = cvec_property('element_is_alkali_metal', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom an alkali metal. Read only.'''
+    is_halogen = cvec_property('element_is_halogen', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom a halogen. Read only.'''
+    is_metal = cvec_property('element_is_metal', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom a metal. Read only.'''
+    is_noble_gas = cvec_property('element_is_noble_gas', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom a noble gas. Read only.'''
+    valences = cvec_property('element_valence', uint8, read_only = True)
+    '''Returns a :mod:`numpy` array of atomic valence numbers (integers). Read only.'''
+
 
 # -----------------------------------------------------------------------------
 #
@@ -562,6 +626,27 @@ class AtomicStructureDatas(Collection):
     '''
     metadata = cvec_property('metadata', pyobject, read_only = True)
     '''Return a list of dictionaries with metadata. Read only.'''
+
+
+# -----------------------------------------------------------------------------
+#
+class PseudobondGroupDatas(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Collection of C++ pseudobond group objects.
+    '''
+    def __init__(self, pbg_pointers):
+        Collection.__init__(self, pbg_pointers, molobject.PseudobondGroupData,
+			PseudobondGroupDatas)
+
+    pseudobonds = cvec_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
+		astype = _pseudobonds, read_only = True, per_object = False)
+    '''A single :class:`.Pseudobonds` object containing pseudobonds for all groups. Read only.'''
+    names = cvec_property('pseudobond_group_category', string, read_only = True)
+    '''A numpy string array of categories of each group.'''
+    num_bonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
+    '''Number of pseudobonds in each group. Read only.'''
 
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.

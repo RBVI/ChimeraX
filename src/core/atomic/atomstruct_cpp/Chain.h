@@ -40,8 +40,8 @@ private:
     }
 
 public:
-    Chain(const ChainID& chain_id, AtomicStructure* as): Sequence(),
-        _chain_id(chain_id), _from_seqres(false), _structure(as) {}
+    Chain(const ChainID& chain_id, AtomicStructure* as);
+    virtual ~Chain();
 
     const ChainID&  chain_id() const { return _chain_id; }
     // is character sequence derived from SEQRES records (or equivalent)?

@@ -20,6 +20,9 @@ public:
         b = *i++;
         a = *i;
     }
+    bool  operator==(const Rgba& other) const {
+        return other.r == r && other.g == g && other.b == b && other.a == a;
+    }
 };
 
 } //  namespace basegeom

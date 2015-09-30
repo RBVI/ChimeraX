@@ -9,12 +9,15 @@
 #include <unordered_set>
 #include <vector>
 
-#include <basegeom/Graph.h>
-#include <basegeom/destruct.h>
 #include "Chain.h"
 #include "Pseudobond.h"
 #include "Ring.h"
 #include "string_types.h"
+
+#include <basegeom/ChangeTracker.h>
+#include <basegeom/Graph.h>
+#include <basegeom/destruct.h>
+#include <element/Element.h>
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -24,16 +27,20 @@ struct _object;
 typedef _object PyObject;
 #endif
     
+namespace basegeom { class ChangeTracker; }
+
 namespace atomstruct {
 
 class Atom;
 class Bond;
 class Chain;
 class CoordSet;
-class Element;
 class Residue;
 
-class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
+using basegeom::ChangeTracker;
+using element::Element;
+
+class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond, AtomicStructure> {
     friend class Atom; // for IDATM stuff and _polymers_computed
     friend class Bond; // for checking if make_chains() has been run yet
 public:
@@ -120,7 +127,7 @@ public:
     void  make_chains() const;
     std::map<std::string, std::vector<std::string>> metadata;
     const std::string&  name() const { return _name; }
-    Atom *  new_atom(const char* name, Element e);
+    Atom *  new_atom(const char* name, const Element& e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();
     CoordSet *  new_coord_set(int index);
@@ -148,6 +155,7 @@ public:
     // set_display() inherited from Graph
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }
+    void  start_change_tracking(ChangeTracker* ct);
     void  use_best_alt_locs();
     bool  get_gc_ribbon() const { return _gc_ribbon; }
     void  set_gc_ribbon(bool gc = true) { _gc_ribbon = gc; }

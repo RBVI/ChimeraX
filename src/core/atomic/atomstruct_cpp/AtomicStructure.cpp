@@ -6,7 +6,6 @@
 #include <basegeom/Graph.tcc>
 #include "Bond.h"
 #include "CoordSet.h"
-#include "Element.h"
 #include <logger/logger.h>
 #include "Pseudobond.h"
 #include "Residue.h"
@@ -24,12 +23,14 @@ const char*  AtomicStructure::PBG_METAL_COORDINATION = "metal coordination bonds
 const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 const char*  AtomicStructure::PBG_HYDROGEN_BONDS = "hydrogen bonds";
 
-AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(nullptr),
-    _chains(nullptr), _idatm_valid(false), _logger(logger),
-    _name("unknown AtomicStructure"), _pb_mgr(this), _polymers_computed(false),
-    _recompute_rings(true), asterisks_translated(false), is_traj(false),
+AtomicStructure::AtomicStructure(PyObject* logger):
+    _active_coord_set(NULL), _chains(nullptr),
+    _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure"),
+    _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
+    asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0)
 {
+    change_tracker()->add_created(this);
 }
 
 AtomicStructure::~AtomicStructure() {
@@ -45,6 +46,7 @@ AtomicStructure::~AtomicStructure() {
         delete r;
     for (auto cs: _coord_sets)
         delete cs;
+    change_tracker()->add_deleted(this);
 }
 
 AtomicStructure *AtomicStructure::copy() const
@@ -517,7 +519,7 @@ AtomicStructure::make_chains() const
 }
 
 Atom *
-AtomicStructure::new_atom(const char* name, Element e)
+AtomicStructure::new_atom(const char* name, const Element& e)
 {
     Atom *a = new Atom(this, name, e);
     add_vertex(a);
@@ -864,7 +866,29 @@ AtomicStructure::set_active_coord_set(CoordSet *cs)
     if (_active_coord_set != new_active) {
         _active_coord_set = new_active;
         set_gc_shape();
+        change_tracker()->add_modified(this, ChangeTracker::REASON_ACTIVE_COORD_SET);
     }
+}
+
+void
+AtomicStructure::start_change_tracking(ChangeTracker* ct)
+{
+    Graph::start_change_tracking(ct);
+    for (auto a: atoms())
+        ct->add_created(a);
+    for (auto b: bonds())
+        ct->add_created(b);
+    for (auto cat_pbg: pb_mgr().group_map()) {
+        auto pbg = cat_pbg.second;
+        ct->add_created(pbg);
+        for (auto pb: pbg->pseudobonds())
+            ct->add_created(pb);
+    }
+    for (auto r: residues())
+        ct->add_created(r);
+    for (auto ch: chains())
+        ct->add_created(ch);
+    ct->add_created(this);
 }
 
 void

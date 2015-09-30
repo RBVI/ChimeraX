@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # Mouse mode to place markers on surfaces
 from .ui import MouseMode
 class MarkerMouseMode(MouseMode):
@@ -53,7 +54,8 @@ def marker_molecule(session):
     m = ms['molecule']
     if m is None:
         from . import structure
-        ms['molecule'] = m = structure.AtomicStructure('markers')
+        ms['molecule'] = m = structure.AtomicStructure('markers',
+            logger=session.logger)
         session.models.add([m])
     return m
 

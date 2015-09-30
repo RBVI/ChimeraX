@@ -16,18 +16,26 @@ private:
 public:
     BaseSphere(float radius): _radius(radius) {}
     virtual  ~BaseSphere() {}
-    virtual void  set_radius(float r)
-        {   if (_radius != r) {
-                this->graphics_container()->set_gc_shape();
-                _radius = r;
-            }
-        }
+    virtual void  set_radius(float r) {
+        if (r == _radius)
+            return;
+        this->graphics_container()->set_gc_shape();
+        this->change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
+            ChangeTracker::REASON_RADIUS);
+        _radius = r;
+    }
     virtual float  radius() const { return _radius; }
 
     // graphics related
     int  draw_mode() const { return _draw_mode; }
-    void  set_draw_mode(int dm)
-        { this->graphics_container()->set_gc_shape(); _draw_mode = dm; }
+    void  set_draw_mode(int dm) {
+        if (dm == _draw_mode)
+            return;
+        this->graphics_container()->set_gc_shape();
+        this->change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
+            ChangeTracker::REASON_DRAW_MODE);
+        _draw_mode = dm;
+    }
 };
 
 template <class FinalConnectible, class FinalConnection>

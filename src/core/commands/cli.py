@@ -848,7 +848,7 @@ def unescape_with_index_map(text):
     return text, index_map
 
 
-def next_token(text):
+def next_token(text, *, no_raise=False):
     """
     Extract next token from given text.
 
@@ -875,6 +875,8 @@ def next_token(text):
         else:
             end = len(text)
             token = text[start + 1:end]
+            if no_raise:
+                return '', '', text
             raise AnnotationError("incomplete quoted text")
         token = unescape(token)
     elif text[start] == "'":
@@ -887,6 +889,8 @@ def next_token(text):
         else:
             end = len(text)
             token = text[start + 1:end]
+            if no_raise:
+                return '', '', text
             raise AnnotationError("incomplete quoted text")
         token = unescape(token)
     elif text[start] == ';':
@@ -1454,7 +1458,6 @@ class Command:
                 from html import escape
                 msg = '<a href="%s">%s</a>%s' % (
                     href, escape(cmd_name), escape(cargs))
-                print('logging: %r' % msg)
                 session.logger.info(msg, is_html=True)
             try:
                 if not isinstance(ci.function, Alias):
@@ -1539,10 +1542,12 @@ class Command:
                 self.word_map = word_map  # if caller interested in partial cmds
                 self.command_name = cmd_name
                 return
+            if _debugging:
+                orig_text = text
             word, chars, text = next_token(text)
             if _debugging:
-                print('cmd next_token(%r) -> %r %r %r' % (text, word, chars,
-                                                          text))
+                print('cmd next_token(%r) -> %r %r %r' % (
+                    orig_text, word, chars, text))
             what = word_map.get(word, None)
             if what is None:
                 self.completion_prefix = word
@@ -1608,12 +1613,6 @@ class Command:
         for kw_name, anno in positional.items():
             if kw_name in self._ci._optional:
                 self._error = ""
-                tmp = text.split(None, 1)
-                if not tmp:
-                    break
-                if _canonical_kw(tmp[0]) in self._ci._keyword_map:
-                    # exactly matches keyword, so done with positional arguments
-                    break
             else:
                 self._error = "Missing required '%s' argument" % _user_kw(kw_name)
             m = _whitespace.match(text)
@@ -1625,6 +1624,15 @@ class Command:
                 break
             if text[0] == ';':
                 break
+            if kw_name in self._ci._optional:
+                # check if next token matches a keyword and if so,
+                # terminate positional arguments
+                _, tmp, _ = next_token(text, no_raise=True)
+                if not tmp:
+                    break
+                tmp = _canonical_kw(tmp)
+                if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
+                    break
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 if is_python_keyword(kw_name):
@@ -1660,9 +1668,12 @@ class Command:
         if not text:
             return
         while 1:
+            if _debugging:
+                orig_text = text
             word, chars, text = next_token(text)
             if _debugging:
-                print('key next_token(%r) -> %r %r' % (text, word, chars))
+                print('key next_token(%r) -> %r %r %r' % (
+                    orig_text, word, chars, text))
             if not word or word == ';':
                 break
 
@@ -1739,10 +1750,10 @@ class Command:
         self.current_text = text
 
         while 1:
-            start = self.amount_parsed
             self._find_command_name(final, no_aliases=no_aliases, used_aliases=_used_aliases)
             if not self._ci:
                 return
+            start = self.amount_parsed - len(self.command_name)
             self._process_positional_arguments()
             if self._error:
                 return

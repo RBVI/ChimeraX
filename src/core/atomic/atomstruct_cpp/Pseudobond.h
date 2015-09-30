@@ -16,9 +16,10 @@ class Atom;
 class AtomicStructure;
 class CoordSet;
 
+using basegeom::ChangeTracker;
 using basegeom::GraphicsContainer;
 
-class ATOMSTRUCT_IMEX PBond: public basegeom::Connection<Atom>
+class ATOMSTRUCT_IMEX PBond: public basegeom::Connection<Atom, PBond>
 {
     friend class PBGroup;
     friend class Owned_PBGroup;
@@ -27,7 +28,7 @@ private:
     GraphicsContainer*  _gc;
 
     PBond(Atom* a1, Atom* a2, GraphicsContainer* gc):
-        basegeom::Connection<Atom>(a1, a2), _gc(gc) {};
+        basegeom::Connection<Atom, PBond>(a1, a2), _gc(gc) {};
 protected:
     const char*  err_msg_loop() const
         { return "Can't form pseudobond to itself"; }
@@ -37,6 +38,7 @@ public:
     virtual ~PBond() {}
     typedef End_points  Atoms;
     const Atoms&  atoms() const { return end_points(); }
+    ChangeTracker*  change_tracker() const;
     GraphicsContainer*  graphics_container() const { return _gc; }
     GraphicsContainer*  group() const { return graphics_container(); }
 };
@@ -51,6 +53,8 @@ class Proxy_PBGroup;
 // Python side
 class PBManager: public pseudobond::Base_Manager<Proxy_PBGroup> {
 public:
+    PBManager(ChangeTracker* ct): Base_Manager<Proxy_PBGroup>(ct) {}
+
     void  delete_group(Proxy_PBGroup*);
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
 };
@@ -129,8 +133,10 @@ private:
         pseudobond::Owned_Manager<AtomicStructure, Proxy_PBGroup>(as) {}
     void  remove_cs(const CoordSet* cs);
 public:
+    ChangeTracker*  change_tracker() const;
     void  delete_group(Proxy_PBGroup*);
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
+    AtomicStructure*  structure() const { return owner(); }
 };
 
 // Need a proxy class that can be contained/returned by the pseudobond
@@ -160,6 +166,7 @@ private:
             delete static_cast<Owned_PBGroup*>(_proxied);
         else
             delete static_cast<CS_PBGroup*>(_proxied);
+        manager()->change_tracker()->add_deleted(this);
     }
     void  init(int grp_type) {
         _group_type = grp_type;
@@ -172,6 +179,7 @@ private:
         if (_group_type == AS_PBManager::GRP_PER_CS)
             static_cast<CS_PBGroup*>(_proxied)->remove_cs(cs);
     }
+
 public:
     const std::string&  category() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
@@ -195,6 +203,7 @@ public:
             static_cast<AS_PBManager*>(_manager)->delete_group(this);
     }
     int  group_type() const { return _group_type; }
+    BaseManager*  manager() const { return _manager; }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<Owned_PBGroup*>(_proxied)->new_pseudobond(a1, a2);

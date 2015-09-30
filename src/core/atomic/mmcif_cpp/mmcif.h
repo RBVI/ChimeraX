@@ -20,8 +20,8 @@ PyObject*   parse_mmCIF_file(const char* filename,
                              PyObject* logger);
 PyObject*   parse_mmCIF_buffer(const unsigned char* buffer, PyObject* logger);
 PyObject*   parse_mmCIF_buffer(const unsigned char* buffer,
-                               const std::vector<std::string> &extra_categories,
-                               PyObject* logger);
+                             const std::vector<std::string> &extra_categories,
+                             PyObject* logger);
 void        load_mmCIF_templates(const char* filename);
 void        set_Python_locate_function(PyObject* function);
 

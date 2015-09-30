@@ -1347,7 +1347,7 @@ clock_t start_t = clock();
             for (auto b_a: possibly_ambiguous) {
                 Bond *b = b_a.first;
                 Atom *a = b_a.second;
-                Element e = a->element();
+                const Element& e = a->element();
                 Real certainty;
                 if (e == Element::O) {
                     certainty = b->sqlength() - p3o2c2;
@@ -1536,7 +1536,7 @@ clock_t start_t = clock();
             // on number of needed electrons)
             std::set<Atom *> protonatable_Ns;
             for (auto a: atoms) {
-                Element e = a->element();
+                const Element& e = a->element();
                 if (e == Element::N) {
                     if (a->bonds().size() == 2)
                         protonatable_Ns.insert(a);
@@ -2175,7 +2175,7 @@ flip_assign(std::vector<Bond*>& flippable, std::set<Atom*>& atoms,
                 for (auto a: b->atoms()) {
                     if (atoms.find(a) != atoms.end())
                         continue;
-                    Element e = a->element();
+                    const Element& e = a->element();
                     if (e == Element::O) {
                         if (connected[b] == 1)
                             a->set_computed_idatm_type("O3");
