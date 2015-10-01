@@ -53,6 +53,7 @@ class CommandLine(ToolInstance):
         super().delete()
 
     def forwarded_keystroke(self, event):
+        import wx
         if event.KeyCode == 13:          # Return
             self.on_enter(event)
         elif event.KeyCode == 14:        # Ctrl-N
