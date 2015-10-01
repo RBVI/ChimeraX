@@ -1,7 +1,22 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def cartoon(session, spec=None, adjust=None, style=None):
+from chimera.core.atomic import Residue, AtomicStructure
+_StyleMap = {
+        "ribbon": Residue.RIBBON,
+        "pipe": Residue.PIPE,
+        "plank": Residue.PIPE,
+        "pandp": Residue.PIPE,
+}
+_TetherShapeMap = {
+        "cone": AtomicStructure.TETHER_CONE,
+        "cylinder": AtomicStructure.TETHER_CYLINDER,
+        "steeple": AtomicStructure.TETHER_REVERSE_CONE,
+}
+
+
+def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=True,
+            tether_scale=None, tether_shape=None, tether_sides=None, tether_opacity=None):
     '''Display cartoon for specified residues.
 
     Parameters
@@ -18,6 +33,27 @@ def cartoon(session, spec=None, adjust=None, style=None):
     style : string
         Set "Ribbon" style.  Value may be "ribbon" for normal ribbons, or one of "pipe",
         "plank", or "pandp" to display residues as pipes and planks.
+    hide_backbone : boolean
+        Set whether displaying a ribbon hides the sphere/ball/stick representation of
+        backbone atoms.
+    tether_scale : floating point number
+        Scale factor relative to atom display radius.  A scale factor of zero means the
+        tether is not displayed.
+        This parameter applies at the atomic structure level, so setting it for any residue
+        sets it for the entire structure.
+    tether_shape : string
+        Sets shape of tethers.  "cone" has point on ribbon and base at atom.
+        "steeple" has point at atom and base on ribbon.  "cylinder" is bond-like.
+        This parameter applies at the atomic structure level, so setting it for any residue
+        sets it for the entire structure.
+    tether_sides : integer
+        Number of sides for either the cylinder or cone base depending on tether shape.
+        This parameter applies at the atomic structure level, so setting it for any residue
+        sets it for the entire structure.
+    tether_opacity : floating point number
+        Scale factor relative to atom opacity.
+        This parameter applies at the atomic structure level, so setting it for any residue
+        sets it for the entire structure.
     '''
     if spec is None:
         from chimera.core.commands import atomspec
@@ -31,13 +67,19 @@ def cartoon(session, spec=None, adjust=None, style=None):
             adjust = -1.0
         residues.ribbon_adjusts = adjust
     if style is not None:
-        # Convert to C++ value
-        from atomic import Residue
-        if style == "ribbon":
-            s = Residue.RIBBON
-        elif style in ["pipe", "plank", "pandp"]:
-            s = Residue.PIPE
-        residue.ribbon_styles = s
+        s = _StyleMap.get(s, Residue.RIBBON)
+        residues.ribbon_styles = s
+    if hide_backbone is not None:
+        residues.ribbon_hide_backbones = hide_backbone
+    if tether_scale is not None:
+        residues.unique_structures.ribbon_tether_scales = tether_scale
+    if tether_shape is not None:
+        ts = _TetherShapeMap.get(tether_shape, AtomicStructure.TETHER_CONE)
+        residues.unique_structures.ribbon_tether_shapes = ts
+    if tether_sides is not None:
+        residues.unique_structures.ribbon_tether_sides = tether_sides
+    if tether_opacity is not None:
+        residues.unique_structures.ribbon_tether_opacities = tether_opacity
 
 
 def uncartoon(session, spec=None):
@@ -57,15 +99,22 @@ def uncartoon(session, spec=None):
 
 def initialize(command_name):
     from chimera.core.commands import register
-    from chimera.core.commands import CmdDesc, AtomSpecArg, Or, Bounded, FloatArg, EnumOf
+    from chimera.core.commands import CmdDesc, AtomSpecArg
     if command_name.startswith('~'):
         desc = CmdDesc(optional=[("spec", AtomSpecArg)],
                        synopsis='undisplay cartoon for specified residues')
         register(command_name, desc, uncartoon)
     else:
+        from chimera.core.commands import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg
         desc = CmdDesc(optional=[("spec", AtomSpecArg),
                                  ("adjust", Or(Bounded(FloatArg, 0.0, 1.0),
                                                EnumOf(["default"]))),
-                                 ("style", EnumOf(["ribbon", "pipe", "plank", "pandp"]))],
+                                 ("style", EnumOf(list(_StyleMap.keys()))),
+                                 ("hide_backbone", BoolArg),
+                                 ("tether_scale", Bounded(FloatArg, 0.0, 1.0)),
+                                 ("tether_shape", EnumOf(list(_TetherShapeMap.keys()))),
+                                 ("tether_sides", Bounded(IntArg, 3, 10)),
+                                 ("tether_opacity", Bounded(FloatArg, 0.0, 1.0)),
+                                 ],
                        synopsis='display cartoon for specified residues')
         register(command_name, desc, cartoon)

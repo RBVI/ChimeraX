@@ -300,15 +300,17 @@ class Residue:
     '''Secondary structure id number. Integer value.'''
     ribbon_display = c_property('residue_ribbon_display', npy_bool)
     '''Whether to display the residue as a ribbon/pipe/plank. Boolean value.'''
+    ribbon_hide_backbone = c_property('residue_ribbon_hide_backbone', npy_bool)
+    '''Whether a ribbon automatically hides the residue backbone atoms. Boolean value.'''
     ribbon_color = c_property('residue_ribbon_color', uint8, 4)
     '''Ribbon color RGBA length 4 numpy uint8 array.'''
     ribbon_style = c_property('residue_ribbon_style', int32)
-    '''Whether the residue is displayed as a ribbon or a pipe/plank. Boolean value.'''
+    '''Whether the residue is displayed as a ribbon or a pipe/plank. Integer value.'''
     RIBBON = 0
     '''Ribbon style = ribbon.'''
     PIPE = 1
     '''Ribbon style = pipe/plank.'''
-    ribbon_adjust = c_property('residue_ribbon_color', float32)
+    ribbon_adjust = c_property('residue_ribbon_adjust', float32)
     '''Smoothness adjustment factor (no adjustment = 0 <= factor <= 1 = idealized).'''
     name = c_property('residue_name', string, read_only = True)
     '''Residue name. Maximum length 4 characters. Read only.'''
@@ -398,6 +400,17 @@ class AtomicStructureData:
     belonging to this structure. Read only.'''
     metadata = c_property('metadata', pyobject, read_only = True)
     '''Dictionary with metadata. Read only.'''
+    ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32)
+    '''Ribbon tether thickness scale factor (1.0 = match displayed atom radius, 0=invisible).'''
+    ribbon_tether_shape = c_property('structure_ribbon_tether_shape', int32)
+    '''Ribbon tether shape. Integer value.'''
+    TETHER_CONE = 0
+    TETHER_REVERSE_CONE = 1
+    TETHER_CYLINDER = 2
+    ribbon_tether_sides = c_property('structure_ribbon_tether_sides', int32)
+    '''Number of sides for ribbon tether. Integer value.'''
+    ribbon_tether_opacity = c_property('structure_ribbon_tether_opacity', float32)
+    '''Ribbon tether opacity scale factor (relative to the atom).'''
 
     def _copy(self):
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)

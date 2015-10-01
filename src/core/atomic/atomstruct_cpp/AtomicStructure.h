@@ -56,6 +56,9 @@ public:
     // The MSR-finding step of ring perception depends on the iteration
     // being in ascending order (which std::set guarantees), so use std::set
     typedef std::set<Ring> Rings;
+    enum TetherShape { RIBBON_TETHER_CONE = 0,
+                       RIBBON_TETHER_REVERSE_CONE = 1,
+                       RIBBON_TETHER_CYLINDER = 2 };
 private:
     friend class Chain;
     void  remove_chain(Chain* chain);
@@ -94,6 +97,10 @@ private:
     mutable bool  _rings_last_cross_residues;
     mutable std::set<const Residue *>*  _rings_last_ignore;
     bool  _gc_ribbon = false;
+    float  _ribbon_tether_scale;
+    TetherShape  _ribbon_tether_shape;
+    int  _ribbon_tether_sides;
+    float  _ribbon_tether_opacity;
 public:
     AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure();
@@ -159,7 +166,51 @@ public:
     void  use_best_alt_locs();
     bool  get_gc_ribbon() const { return _gc_ribbon; }
     void  set_gc_ribbon(bool gc = true) { _gc_ribbon = gc; }
+    float  ribbon_tether_scale() const { return _ribbon_tether_scale; }
+    TetherShape  ribbon_tether_shape() const { return _ribbon_tether_shape; }
+    int  ribbon_tether_sides() const { return _ribbon_tether_sides; }
+    float  ribbon_tether_opacity() const { return _ribbon_tether_opacity; }
+    void  set_ribbon_tether_scale(float s);
+    void  set_ribbon_tether_shape(TetherShape ts);
+    void  set_ribbon_tether_sides(int s);
+    void  set_ribbon_tether_opacity(float o);
 };
+
+inline void
+AtomicStructure::set_ribbon_tether_scale(float s) {
+    if (s == _ribbon_tether_scale)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
+    set_gc_ribbon();
+    _ribbon_tether_scale = s;
+}
+
+inline void
+AtomicStructure::set_ribbon_tether_shape(TetherShape ts) {
+    if (ts == _ribbon_tether_shape)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
+    set_gc_ribbon();
+    _ribbon_tether_shape = ts;
+}
+
+inline void
+AtomicStructure::set_ribbon_tether_sides(int s) {
+    if (s == _ribbon_tether_sides)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
+    set_gc_ribbon();
+    _ribbon_tether_sides = s;
+}
+
+inline void
+AtomicStructure::set_ribbon_tether_opacity(float o) {
+    if (o == _ribbon_tether_opacity)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
+    set_gc_ribbon();
+    _ribbon_tether_opacity = o;
+}
 
 }  // namespace atomstruct
 

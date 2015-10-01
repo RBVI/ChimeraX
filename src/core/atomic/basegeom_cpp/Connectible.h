@@ -77,7 +77,14 @@ public:
     void  set_hide(int h) {
         if (h == _hide)
             return;
-        graphics_container()->set_gc_shape();
+        if (h) {
+            if (!_hide)
+                graphics_container()->set_gc_shape();
+        }
+        else {
+            if (_hide)
+                graphics_container()->set_gc_shape();
+        }
         change_tracker()->add_modified(dynamic_cast<FinalConnectible*>(this),
             ChangeTracker::REASON_HIDE);
         _hide = h;

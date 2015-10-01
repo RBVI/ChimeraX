@@ -69,6 +69,8 @@ public:
     static const std::string  REASON_RIBBON_COLOR;
     static const std::string  REASON_RIBBON_DISPLAY;
     static const std::string  REASON_RIBBON_STYLE;
+    static const std::string  REASON_RIBBON_HIDE_BACKBONE;
+    static const std::string  REASON_RIBBON_TETHER;
     static const std::string  REASON_SELECTED;
     static const std::string  REASON_SEQUENCE;
     static const std::string  REASON_SERIAL_NUMBER;
