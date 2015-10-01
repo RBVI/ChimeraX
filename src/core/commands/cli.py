@@ -1911,11 +1911,17 @@ def registered_commands(multiword=False):
         return list(_commands.keys())
 
     def cmds(cmd_map):
-        for word in cmd_map.keys():
+        used_words = set()
+        words = set(cmd_map.keys())
+        while words:
+            word = words.pop()
             what = cmd_map[word]
             if isinstance(what, _Defer):
                 what = _lazy_register(cmd_map, word)
+                words = set(cmd_map.keys())
+                words.difference_update(used_words)
                 continue
+            used_words.add(word)
             if isinstance(what, CmdDesc):
                 yield word
                 continue
