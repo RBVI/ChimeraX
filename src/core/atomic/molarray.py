@@ -538,6 +538,9 @@ class Residues(Collection):
     actual atomic coordinates as control point, and one being using the idealized
     secondary structure position as control point.  A negative value means to
     use the default of zero for turns and helices and 0.7 for strands.'''
+    ribbon_hide_backbones = cvec_property('residue_ribbon_hide_backbone', npy_bool)
+    '''A :mod:`numpy` array of booleans. Whether a ribbon automatically hides
+    the residue backbone atoms.'''
 
     @property
     def unique_structures(self):
@@ -624,8 +627,16 @@ class AtomicStructureDatas(Collection):
     group categories (strings) and whose values are
     :class:`.Pseudobonds`. Read only.
     '''
+    ribbon_tether_scales = cvec_property('structure_ribbon_tether_scale', float32)
+    '''Returns an array of scale factors for ribbon tethers.'''
+    ribbon_tether_sides = cvec_property('structure_ribbon_tether_sides', int32)
+    '''Returns an array of numbers of sides for ribbon tethers.'''
+    ribbon_tether_shapes = cvec_property('structure_ribbon_tether_shape', int32)
+    '''Returns an array of shapes for ribbon tethers.'''
     metadata = cvec_property('metadata', pyobject, read_only = True)
     '''Return a list of dictionaries with metadata. Read only.'''
+    ribbon_tether_opacities = cvec_property('structure_ribbon_tether_opacity', float32)
+    '''Returns an array of opacity scale factor for ribbon tethers.'''
 
 
 # -----------------------------------------------------------------------------

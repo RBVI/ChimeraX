@@ -25,7 +25,8 @@ class ATOMSTRUCT_IMEX Residue {
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
-    enum Style { RIBBON_RIBBON = 0, RIBBON_PIPE = 1 };
+    enum Style { RIBBON_RIBBON = 0,
+                 RIBBON_PIPE = 1 };
 private:
     friend class AtomicStructure;
     Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);
@@ -46,8 +47,9 @@ private:
     int  _position;
     int  _ss_id;
     bool  _ribbon_display;
+    bool  _ribbon_hide_backbone;
     Rgba  _ribbon_rgba;
-    int  _ribbon_style;
+    Style  _ribbon_style;
     float  _ribbon_adjust;
     AtomicStructure *  _structure;
 public:
@@ -89,11 +91,13 @@ public:
     float  ribbon_adjust() const;
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
     bool  ribbon_display() const { return _ribbon_display; }
-    int  ribbon_style() const { return _ribbon_style; }
+    bool  ribbon_hide_backbone() const { return _ribbon_hide_backbone; }
+    Style  ribbon_style() const { return _ribbon_style; }
     void  set_ribbon_adjust(float a);
     void  set_ribbon_color(const Rgba& rgba);
     void  set_ribbon_display(bool d);
-    void  set_ribbon_style(int s);
+    void  set_ribbon_hide_backbone(bool d);
+    void  set_ribbon_style(Style s);
 };
 
 }  // namespace atomstruct
@@ -175,7 +179,16 @@ Residue::set_ribbon_display(bool d) {
 }
 
 inline void
-Residue::set_ribbon_style(int s) {
+Residue::set_ribbon_hide_backbone(bool d) {
+    if (d == _ribbon_hide_backbone)
+        return;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_HIDE_BACKBONE);
+    _structure->set_gc_ribbon();
+    _ribbon_hide_backbone = d;
+}
+
+inline void
+Residue::set_ribbon_style(Style s) {
     if (s == _ribbon_style)
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_STYLE);

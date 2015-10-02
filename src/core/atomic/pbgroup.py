@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 from .molobject import PseudobondGroupData
 from ..models import Model
 class PseudobondGroup(PseudobondGroupData, Model):
@@ -22,26 +23,25 @@ class PseudobondGroup(PseudobondGroupData, Model):
         PseudobondGroupData.delete(self)
 
     def added_to_session(self, session):
-        v = session.main_view
-        v.add_callback('graphics update', self._update_graphics_if_needed)
-
         # Detect when atoms moved so pseudobonds must be redrawn.
         # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
-        v.add_callback('shape changed', self.update_graphics)
+        self.handlers = [
+            session.triggers.add_handler('graphics update',self._update_graphics_if_needed),
+            session.triggers.add_handler('shape changed', self.update_graphics)
+        ]
 
     def removed_from_session(self, session):
-        v = session.main_view
-        v.remove_callback('graphics update', self._update_graphics_if_needed)
-        v.remove_callback('shape changed', self.update_graphics)
+        while self.handlers:
+            session.delete_handler(self.handlers.pop())
 
-    def _update_graphics_if_needed(self):
+    def _update_graphics_if_needed(self, *_):
         c, s, se = self._gc_color, self._gc_shape, self._gc_select
         if c or s or se:
             self._gc_color = self._gc_shape = self._gc_select = False
             self._update_graphics()
             self.redraw_needed(shape_changed = s, selection_changed = se)
 
-    def _update_graphics(self):
+    def _update_graphics(self, *_):
 
         pbonds = self.pseudobonds
         d = self._pbond_drawing

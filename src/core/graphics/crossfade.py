@@ -11,20 +11,19 @@ class CrossFade(Drawing):
     cross-fade to be rendered.  It is automatically added to the View
     when constructed and removes itself from the View when the fade
     is complete.  '''
-    def __init__(self, viewer, frames):
+    def __init__(self, session, frames):
 
         Drawing.__init__(self, 'cross fade')
-        self.viewer = viewer
         self.frames = frames
         self.frame = 0
         self.rgba = None
 
-        self.capture_image()
+        self.capture_image(session)
 
-    def capture_image(self):
+    def capture_image(self, session):
 
         # Capture current image
-        v = self.viewer
+        v = session.main_view
         self.rgba = v.frame_buffer_rgba()
 
         # Make textured square surface piece
@@ -32,17 +31,16 @@ class CrossFade(Drawing):
         rgba_drawing(self.rgba, (-1, -1), (2, 2), self)
 
         v.add_overlay(self)
-        v.add_callback('new frame', self.next_frame)
+        session.triggers.add_handler('new frame', self.next_frame)
 
-    def next_frame(self):
+    def next_frame(self, trigger, view):
 
         f, n = self.frame + 1, self.frames
         if f >= n:
-            v = self.viewer
-            v.remove_callback('new frame', self.next_frame)
-            v.remove_overlays([self])
+            view.remove_overlays([self])
             self.remove_all_drawings()
-            return
+            from ..triggerset import DEREGISTER
+            return DEREGISTER
 
         # Increase texture transparency
         self.frame = f

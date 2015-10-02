@@ -10,7 +10,7 @@ def crossfade(session, frames=30):
         Linear interpolate between the current and next image over this number of frames.
     '''
     from ..graphics import CrossFade
-    CrossFade(session.main_view, frames)
+    CrossFade(session, frames)
 
 
 def register_command(session):

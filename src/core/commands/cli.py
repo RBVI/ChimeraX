@@ -1604,12 +1604,15 @@ class Command:
         #   updates amount_parsed
         #   updates possible completions
         #   if successful, updates self._kw_args
+        # for better error messages return:
+        #   (last successful annotation, failed optional annotation)
         session = self._session()  # resolve back reference
         text = self.current_text[self.amount_parsed:]
         positional = self._ci._required.copy()
         positional.update(self._ci._optional)
         self.completion_prefix = ''
         self.completions = []
+        last_anno = None
         for kw_name, anno in positional.items():
             if kw_name in self._ci._optional:
                 self._error = ""
@@ -1621,18 +1624,18 @@ class Command:
                 self.amount_parsed += start
                 text = text[start:]
             if not text:
-                break
+                return None, None
             if text[0] == ';':
-                break
+                return None, None
             if kw_name in self._ci._optional:
                 # check if next token matches a keyword and if so,
                 # terminate positional arguments
                 _, tmp, _ = next_token(text, no_raise=True)
                 if not tmp:
-                    break
+                    return None, None
                 tmp = _canonical_kw(tmp)
                 if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
-                    break
+                    return None, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 if is_python_keyword(kw_name):
@@ -1640,6 +1643,7 @@ class Command:
                 else:
                     self._kw_args[kw_name] = value
                 self._error = ""
+                last_anno = anno
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset:
                     # We got an error with an offset, that means that an
@@ -1648,15 +1652,16 @@ class Command:
                     self.amount_parsed += err.offset
                     self._error = 'Invalid "%s" argument: %s' % (
                         _user_kw(kw_name), err)
-                    return
+                    return None, None
                 if kw_name in self._ci._required:
                     self._error = 'Invalid "%s" argument: %s' % (
                         _user_kw(kw_name), err)
-                    return
+                    return None, None
                 # optional and wrong type, try as keyword
-                break
+                return last_anno, anno
+        return last_anno, None
 
-    def _process_keyword_arguments(self, final):
+    def _process_keyword_arguments(self, final, prev_annos):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
@@ -1691,10 +1696,16 @@ class Command:
                     text = self.current_text[self.amount_parsed:]
                     self.completions = []
                     continue
+                expected = []
+                if isinstance(prev_annos[0], Aggregate):
+                    expected.append("'%s'" % prev_annos[0].separator)
+                if prev_annos[1] is not None:
+                    expected.append(prev_annos[1].name)
                 if len(self._ci._keyword_map) > 0:
-                    self._error = "Expected keyword, got '%s'" % word
+                    expected.append("a keyword")
                 else:
-                    self._error = "Too many arguments"
+                    expected.append("fewer arguments")
+                self._error = "Expected " + commas(expected)[0]
                 return
             self.amount_parsed += len(chars)
             m = _whitespace.match(text)
@@ -1717,6 +1728,7 @@ class Command:
                     self._kw_args['%s_' % kw_name] = value
                 else:
                     self._kw_args[kw_name] = value
+                prev_annos = (anno, None)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
@@ -1754,10 +1766,10 @@ class Command:
             if not self._ci:
                 return
             start = self.amount_parsed - len(self.command_name)
-            self._process_positional_arguments()
+            prev_annos = self._process_positional_arguments()
             if self._error:
                 return
-            self._process_keyword_arguments(final)
+            self._process_keyword_arguments(final, prev_annos)
             if self._error:
                 return
             self._multiple.append((
@@ -1911,11 +1923,17 @@ def registered_commands(multiword=False):
         return list(_commands.keys())
 
     def cmds(cmd_map):
-        for word in cmd_map.keys():
+        used_words = set()
+        words = set(cmd_map.keys())
+        while words:
+            word = words.pop()
             what = cmd_map[word]
             if isinstance(what, _Defer):
                 what = _lazy_register(cmd_map, word)
+                words = set(cmd_map.keys())
+                words.difference_update(used_words)
                 continue
+            used_words.add(word)
             if isinstance(what, CmdDesc):
                 yield word
                 continue

@@ -79,12 +79,11 @@ class AtomicStructure(AtomicStructureData, Model):
         return m
 
     def added_to_session(self, session):
-        v = session.main_view
-        v.add_callback('graphics update', self._update_graphics_if_needed)
+        self.handler = session.triggers.add_handler('graphics update',
+            self._update_graphics_if_needed)
 
     def removed_from_session(self, session):
-        v = session.main_view
-        v.remove_callback('graphics update', self._update_graphics_if_needed)
+        session.triggers.delete_handler(self.handler)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
@@ -177,7 +176,7 @@ class AtomicStructure(AtomicStructureData, Model):
         self._atoms = None
         self._atom_bounds_needs_update = True
 
-    def _update_graphics_if_needed(self):
+    def _update_graphics_if_needed(self, *_):
         if self._gc_ribbon:
             # Do this before fetching bits because ribbon creation changes some
             # display and hide bits
@@ -459,15 +458,22 @@ class AtomicStructure(AtomicStructureData, Model):
 
             # Create tethers if necessary
             from numpy import any
-            if any(tethered):
+            m = residues[0].structure
+            if m.ribbon_tether_scale > 0 and any(tethered):
                 tp = p.new_drawing(residues.strs[0] + "_tethers")
                 from types import MethodType
                 tp.first_intercept = MethodType(_tether_first_intercept, tp)
+                nc = m.ribbon_tether_sides
                 from .. import surface
-                va, na, ta = surface.cone_geometry(nc = 4, caps = False)
+                if m.ribbon_tether_shape == AtomicStructureData.TETHER_CYLINDER:
+                    va, na, ta = surface.cylinder_geometry(nc = nc, nz = 2, caps = False)
+                else:
+                    # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
+                    va, na, ta = surface.cone_geometry(nc = nc, caps = False)
                 tp.geometry = va, ta
                 tp.normals = na
-                self._ribbon_tether.append((tp, coords[tethered], atoms.filter(tethered), atoms))
+                self._ribbon_tether.append((tp, coords[tethered], atoms.filter(tethered), atoms,
+                                            m.ribbon_tether_shape, m.ribbon_tether_scale))
         self._gc_shape = True
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered):
@@ -593,11 +599,11 @@ class AtomicStructure(AtomicStructureData, Model):
                 p.selected_triangles_mask = m
 
     def _update_ribbon_tethers(self):
-        for tp, xyz1, atoms, all_atoms in self._ribbon_tether:
+        for tp, xyz1, atoms, all_atoms, shape, scale in self._ribbon_tether:
             all_atoms.update_ribbon_visibility()
             xyz2 = atoms.coords
-            radii = self._atom_display_radii(atoms)
-            tp.positions = _tethered_cone_placements(xyz1, xyz2, radii)
+            radii = self._atom_display_radii(atoms) * scale
+            tp.positions = _tether_placements(xyz1, xyz2, radii, shape)
             tp.display_positions = atoms.visibles
             colors = atoms.colors
             colors[:,3] *= 0.5      # Half transparent tethers
@@ -893,10 +899,13 @@ def _bond_cylinder_placements(axyz0, axyz1, radius, half_bond):
 
 # -----------------------------------------------------------------------------
 #
-def _tethered_cone_placements(xyz0, xyz1, radius):
+def _tether_placements(xyz0, xyz1, radius, shape):
     import numpy
     halfbond = numpy.zeros(len(radius), bool)
-    return _bond_cylinder_placements(xyz0, xyz1, radius, halfbond)
+    if shape == AtomicStructureData.TETHER_REVERSE_CONE:
+        return _bond_cylinder_placements(xyz1, xyz0, radius, halfbond)
+    else:
+        return _bond_cylinder_placements(xyz0, xyz1, radius, halfbond)
 
 # -----------------------------------------------------------------------------
 #

@@ -27,6 +27,8 @@ AtomicStructure::AtomicStructure(PyObject* logger):
     _active_coord_set(NULL), _chains(nullptr),
     _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure"),
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
+    _ribbon_tether_scale(1.0), _ribbon_tether_shape(RIBBON_TETHER_CONE),
+    _ribbon_tether_sides(4), _ribbon_tether_opacity(0.5),
     asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0)
 {

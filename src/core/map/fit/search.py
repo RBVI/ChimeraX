@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Optimize N random placements of a model and collect unique fits.
 #
@@ -286,14 +287,13 @@ def move_models(models, transforms, base_model, frames, session):
             move_table[m] = [tf, base_model, frames]
     if move_table and add:
         cb = []
-        def mstep(mt = move_table, cb = cb):
-            move_step(mt, cb, session)
-        cb.append(mstep)
-        session.view.add_callback('new frame', mstep)
+        def mstep(*_, mt = move_table):
+            return move_step(mt, session)
+        session.triggers.add_handler('new frame', mstep)
 
 # -----------------------------------------------------------------------------
 #
-def move_step(move_table, cb, session):
+def move_step(move_table, session):
 
     mt = session.move_table
     for m, (rxf, base_model, frames) in tuple(mt.items()):
@@ -314,7 +314,8 @@ def move_step(move_table, cb, session):
             del mt[m]
 
     if len(mt) == 0:
-        session.view.remove_callback('new frame', cb[0])
+        from ...triggerset import DEREGISTER
+        return DEREGISTER
 
 # -----------------------------------------------------------------------------
 #

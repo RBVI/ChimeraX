@@ -53,6 +53,7 @@ class CommandLine(ToolInstance):
         super().delete()
 
     def forwarded_keystroke(self, event):
+        import wx
         if event.KeyCode == 13:          # Return
             self.on_enter(event)
         elif event.KeyCode == 14:        # Ctrl-N
@@ -317,9 +318,10 @@ class _HistoryDialog:
         if len(sels) != 1:
             return
         orig_sel = sel = sels[0]
+        orig_text = self.controller.text.Value
         match_against = None
         if shifted:
-            words = self.controller.text.Value.strip().split()
+            words = orig_text.strip().split()
             if words:
                 match_against = words[0]
         if match_against:
@@ -332,7 +334,10 @@ class _HistoryDialog:
             return
         self.listbox.Deselect(orig_sel)
         self.listbox.SetSelection(sel + 1)
-        self.controller.cmd_replace(self.listbox.GetString(sel + 1))
+        new_text = self.listbox.GetString(sel + 1)
+        self.controller.cmd_replace(new_text)
+        if orig_text == new_text:
+            self.down(shifted)
 
     def on_append_change(self, event):
         self.overwrite_disclaimer.Show(self.save_append_CheckBox.Value)
@@ -362,9 +367,10 @@ class _HistoryDialog:
         if len(sels) != 1:
             return
         orig_sel = sel = sels[0]
+        orig_text = self.controller.text.Value
         match_against = None
         if shifted:
-            words = self.controller.text.Value.strip().split()
+            words = orig_text.strip().split()
             if words:
                 match_against = words[0]
         if match_against:
@@ -376,7 +382,10 @@ class _HistoryDialog:
             return
         self.listbox.Deselect(orig_sel)
         self.listbox.SetSelection(sel - 1)
-        self.controller.cmd_replace(self.listbox.GetString(sel - 1))
+        new_text = self.listbox.GetString(sel - 1)
+        self.controller.cmd_replace(new_text)
+        if orig_text == new_text:
+            self.up(shifted)
 
     def update_list(self):
         c = self.controller

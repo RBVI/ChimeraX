@@ -2353,9 +2353,9 @@ class cycle_through_planes:
     self.depth = pdepth
 
     self.handler = self.next_plane_cb
-    session.view.add_callback('new frame', self.handler)
+    session.triggers.add_handler('new frame', self.handler)
 
-  def next_plane_cb(self):
+  def next_plane_cb(self, *_):
     
     p = self.plane
     if self.step * (self.plast - p) >= 0:
@@ -2363,8 +2363,9 @@ class cycle_through_planes:
       show_planes(self.volume, self.axis, p, self.depth,
                   save_in_region_queue = False)
     else:
-      self.session.view.remove_callback('new frame', self.handler)
       self.handler = None
+      from ..triggerset import DEREGISTER
+      return DEREGISTER
 
 # -----------------------------------------------------------------------------
 #
