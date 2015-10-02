@@ -61,10 +61,13 @@ class ToolInstance(State):
         If True, then tool survives across sessions.
     SESSION_SKIP : bool, class-level optional
         If True, then tool is not saved in sessions.
+    help : str
+        URL for tool's help
     """
 
     SESSION_ENDURING = False
     SESSION_SKIP = False
+    help = None
 
     def __init__(self, session, tool_info, id=None, **kw):
         self.id = id
