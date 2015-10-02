@@ -105,8 +105,8 @@ def color(session, spec, color=None, target=None, transparency=None,
             residues.ribbon_colors = c
         elif color == 'random':
             from numpy import random, uint8
-            c = random.randint(0,255,(len(residues),4)).astype(uint8)
-            c[:,3] = 255   # No transparency
+            c = random.randint(0, 255, (len(residues), 4)).astype(uint8)
+            c[:, 3] = 255   # No transparency
             residues.ribbon_colors = c
         what.append('%d residues' % len(residues))
 
@@ -138,7 +138,7 @@ def color(session, spec, color=None, target=None, transparency=None,
         what.append('nothing')
 
     from . import cli
-    session.logger.status('Colored %s' % cli.commas(what, ' and')[0])
+    session.logger.status('Colored %s' % cli.commas(what, ' and'))
 
 
 def _computed_atom_colors(atoms, color, opacity):
@@ -152,8 +152,8 @@ def _computed_atom_colors(atoms, color, opacity):
         c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
     elif color == "random":
         from numpy import random, uint8
-        c = random.randint(0,255,(len(atoms),4)).astype(uint8)
-        c[:,3] = 255   # Opaque
+        c = random.randint(0, 255, (len(atoms), 4)).astype(uint8)
+        c[:, 3] = 255   # Opaque
     else:
         # Other "colors" do not apply to atoms
         c = None

@@ -21,7 +21,8 @@ def usage(session, command_name=None):
         cmds = cli.registered_commands()
         if len(cmds) > 0:
             cmds.sort(key=lambda x: x[x[0] == '~':])
-            text, suffix = cli.commas(cmds, ' and')
+            text = cli.commas(cmds, ' and')
+            suffix = cli.plural(cmds)
             info("The following command%s are available: %s" % (suffix, text))
         return
     elif command_name == 'all':

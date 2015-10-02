@@ -200,12 +200,11 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
-def commas(text_seq, conjunction=' or', suffix='s'):
-    """Return comma separated list of words and suffix
+def commas(text_seq, conjunction=' or'):
+    """Return comma separated list of words
 
     :param text_seq: a sequence of text strings
     :param conjunction: a word with a leading space
-    :param suffix: suffix to return if more than one string
     """
     seq_len = len(text_seq)
     if seq_len == 0:
@@ -213,9 +212,37 @@ def commas(text_seq, conjunction=' or', suffix='s'):
     if seq_len == 1:
         return text_seq[0], ""
     if seq_len == 2:
-        return '%s%s %s' % (text_seq[0], conjunction, text_seq[1]), suffix
+        return '%s%s %s' % (text_seq[0], conjunction, text_seq[1])
     text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
-    return text, suffix
+    return text
+
+
+def plural(seq, suffix='s'):
+    """Return plural suffix based on length of sequence
+
+    :param seq: a sequence of objects
+    :param suffix: suffix to return if more than one string, default 's'
+    """
+    seq_len = len(seq)
+    if seq_len in (0, 1):
+        return ""
+    return suffix
+
+
+def plural_of(word):
+    """Return American English plural of word
+
+    :param word: the word to form the plural version
+    """
+    if word.endswith(('o', 'sh', 'ch')):
+        return word + 'es'
+    if word.endswith('y'):
+        if word[-2] in 'aeiou':
+            return word + 's'
+        else:
+            return word[:-1] + 'ies'
+    # TODO: special case words, e.g. leaf -> leaves, hoof -> hooves
+    return word + 's'
 
 
 def discard_article(text):
@@ -340,7 +367,7 @@ class Aggregate(Annotation):
             if ',' in annotation.name:
                 self.name = "a collection of %s" % annotation.name
             else:
-                self.name = "some %s(s)" % discard_article(annotation.name)
+                self.name = "some %s" % plural_of(discard_article(annotation.name))
         self.prefix = prefix
 
     def add_to(self, container, element):
@@ -412,15 +439,17 @@ class Aggregate(Annotation):
                 qual = "exactly"
             else:
                 qual = "at least"
-            raise AnnotationError("Need %s %d %s" % (qual, self.min_size,
-                                                     self.name), len(used))
+            raise AnnotationError("Need %s %d '%s'-separated %s" % (
+                qual, self.min_size, self.separator,
+                discard_article(self.name)), len(used))
         if len(result) > self.max_size:
             if self.min_size == self.max_size:
                 qual = "exactly"
             else:
                 qual = "at most"
-            raise AnnotationError("Need %s %d %s" % (qual, self.max_size,
-                                                     self.name), len(used))
+            raise AnnotationError("Need %s %d '%s'-separated %s" % (
+                qual, self.max_size, self.separator,
+                discard_article(self.name)), len(used))
         return result, used, rest
 
 
@@ -478,8 +507,7 @@ class DottedTupleOf(Aggregate):
             if ',' in annotation.name:
                 name = "a dotted list of %s" % annotation.name
             else:
-                # discard article
-                name = annotation.name.split(None, 1)[1]
+                name = discard_article(annotation.name)
                 name = "dotted %s(s)" % name
             self.name = name
 
@@ -699,7 +727,7 @@ class EnumOf(Annotation):
             if len(self.ids) == 1:
                 self.name = "'%s'" % self.ids[0]
             else:
-                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])[0]
+                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])
         if abbreviations is not None:
             self.allow_truncated = abbreviations
 
@@ -731,7 +759,7 @@ class Or(Annotation):
         Annotation.__init__(self, name, url)
         self.annotations = annotations
         if name is None:
-            self.name = commas([a.name for a in annotations])[0]
+            self.name = commas([a.name for a in annotations])
 
     def parse(self, text, session):
         for anno in self.annotations:
@@ -742,7 +770,7 @@ class Or(Annotation):
                     raise
             except ValueError:
                 pass
-        msg = commas([a.name for a in self.annotations])[0]
+        msg = commas([a.name for a in self.annotations])
         raise AnnotationError("Expected %s" % msg)
 
 
@@ -1426,10 +1454,11 @@ class Command:
         for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
             missing = [kw for kw in ci._required_arguments if kw not in kw_args]
             if missing:
-                arg_names, suffix = commas(
-                    ["'%s'" % m for m in missing], ' and')
+                arg_names = ["'%s'" % m for m in missing]
+                msg = commas(arg_names, ' and')
+                suffix = plural(arg_names)
                 raise UserError("Missing required %s argument%s" % (
-                    arg_names, suffix))
+                    msg, suffix))
             for cond in ci._postconditions:
                 if not cond.check(kw_args):
                     raise UserError(cond.error_message())
@@ -1705,7 +1734,7 @@ class Command:
                     expected.append("a keyword")
                 else:
                     expected.append("fewer arguments")
-                self._error = "Expected " + commas(expected)[0]
+                self._error = "Expected " + commas(expected)
                 return
             self.amount_parsed += len(chars)
             m = _whitespace.match(text)
@@ -2056,7 +2085,7 @@ def alias(session, name='', text=''):
     logger = session.logger if session else None
     if not name:
         # list aliases
-        names = commas(list(_cmd_aliases.keys()), '')[0]
+        names = commas(list(_cmd_aliases.keys()), '')
         if names:
             if logger is not None:
                 logger.info('Aliases: %s' % names)
