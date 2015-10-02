@@ -1,0 +1,94 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Command Line Interface</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Tool: Command Line Interface</h3>
+<p>
+<a href="../index.html#commands">Chimera2 commands</a>
+are entered at the <b>Command Line Interface</b>.
+Like other tools, this interface can be shown from the <b>Tools</b> menu 
+and closed by clicking the small &ldquo;x&rdquo; near its top right corner.
+</p><p>
+Sometimes it is necessary to click in the graphics window or
+command line to take back focus from some other dialog so that command 
+keystrokes will register.
+</p><p>
+When the focus is in the command line or graphics window,
+<b>Ctrl-u</b> erases the command line contents, and
+the command history can be navigated with
+<b>Ctrl-p</b> (previous command) and <b>Ctrl-n</b> (next command).
+Additionally pressing <b>Shift</b> indicates navigating to
+the next/previous occurrence of the same command name
+(the first space-delimited set of characters) as currently in the line
+instead of to whatever command is immediately adjacent in the history.
+Navigation skips commands for which the entire line is identical.
+When the mouse focus is in the command line (not the graphics window),
+another way to navigate the history is with
+the keyboard <b>up arrow</b> and <b>down arrow</b>,
+alone or in combination with <b>Shift</b>.
+</p><p>
+The inverted triangle to the right of the command line marks a pulldown menu.
+The menu includes:
+<ul>
+<li>the most recently entered commands
+<li><b>Command History...</b> for showing the full
+<a href="#history"><b>Command History</b></a>
+<li><b>Remove duplicate consecutive commands</b> -
+where the same command was used multiple times in a row,
+remove all but one occurrence from the history
+</ul>
+
+<a name="history"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Command History</h3>
+<p>
+The <b>Command History</b> lists previously used commands.
+The commands can be re-executed and/or saved to a file.
+The <b>Command History</b> can be opened from the pulldown menu marked by 
+a triangle to the right of the <a href="#top"><b>Command Line Interface</b></a>.
+See also: <b>Log</b>
+</p><p>
+In the <b>Command History</b>,
+individual commands or blocks of commands may be
+<b><i>chosen</i></b> (highlighted) using the left mouse button.
+<b>Ctrl</b>-click adds to an existing choice rather than replacing it.
+To choose a block of commands without dragging,
+click on the first (or last) and then <b>Shift</b>-click on the
+last (or first) in the desired block.
+</p><p>
+<b>Record...</b> brings up a dialog for saving or appending commands to a 
+text file. The chosen commands or all commands in the history can be saved.
+The filename suffix <b>.c2cmd</b> is recommended for the Chimera2 command
+<a href="../commands/open.html#local">file type</a>.
+</p><p>
+<b>Execute</b> executes the chosen commands in the order shown;
+double-clicking an individual command executes that command.
+<b>Delete</b> removes the chosen commands from the history.
+<b>Copy</b> copies the chosen commands as plain text that can be
+pasted into another application window.
+</p><p>
+The history is stored in a file and carries over between
+different Chimera2 sessions.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+September 2015</address>
+</body></html>
