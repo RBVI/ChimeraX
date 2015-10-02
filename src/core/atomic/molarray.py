@@ -637,6 +637,8 @@ class AtomicStructureDatas(Collection):
     '''Return a list of dictionaries with metadata. Read only.'''
     ribbon_tether_opacities = cvec_property('structure_ribbon_tether_opacity', float32)
     '''Returns an array of opacity scale factor for ribbon tethers.'''
+    ribbon_show_spines = cvec_property('structure_ribbon_show_spine', npy_bool)
+    '''Returns an array of booleans of whether to show ribbon spines.'''
 
 
 # -----------------------------------------------------------------------------

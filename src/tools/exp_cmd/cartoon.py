@@ -16,7 +16,8 @@ _TetherShapeMap = {
 
 
 def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=True,
-            tether_scale=None, tether_shape=None, tether_sides=None, tether_opacity=None):
+            tether_scale=None, tether_shape=None, tether_sides=None, tether_opacity=None,
+            show_spine=False):
     '''Display cartoon for specified residues.
 
     Parameters
@@ -54,6 +55,10 @@ def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=True,
         Scale factor relative to atom opacity.
         This parameter applies at the atomic structure level, so setting it for any residue
         sets it for the entire structure.
+    show_spine : boolean
+        Display ribbon "spine" (horizontal lines across center of ribbon).
+        This parameter applies at the atomic structure level, so setting it for any residue
+        sets it for the entire structure.
     '''
     if spec is None:
         from chimera.core.commands import atomspec
@@ -80,6 +85,8 @@ def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=True,
         residues.unique_structures.ribbon_tether_sides = tether_sides
     if tether_opacity is not None:
         residues.unique_structures.ribbon_tether_opacities = tether_opacity
+    if show_spine is not None:
+        residues.unique_structures.ribbon_show_spines = show_spine
 
 
 def uncartoon(session, spec=None):
@@ -115,6 +122,7 @@ def initialize(command_name):
                                  ("tether_shape", EnumOf(list(_TetherShapeMap.keys()))),
                                  ("tether_sides", Bounded(IntArg, 3, 10)),
                                  ("tether_opacity", Bounded(FloatArg, 0.0, 1.0)),
+                                 ("show_spine", BoolArg),
                                  ],
                        synopsis='display cartoon for specified residues')
         register(command_name, desc, cartoon)

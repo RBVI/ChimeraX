@@ -97,10 +97,11 @@ private:
     mutable bool  _rings_last_cross_residues;
     mutable std::set<const Residue *>*  _rings_last_ignore;
     bool  _gc_ribbon = false;
-    float  _ribbon_tether_scale;
-    TetherShape  _ribbon_tether_shape;
-    int  _ribbon_tether_sides;
-    float  _ribbon_tether_opacity;
+    float  _ribbon_tether_scale = 1.0;
+    TetherShape  _ribbon_tether_shape = RIBBON_TETHER_CONE;
+    int  _ribbon_tether_sides = 4;
+    float  _ribbon_tether_opacity = 0.5;
+    bool  _ribbon_show_spine = false;
 public:
     AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure();
@@ -170,10 +171,12 @@ public:
     TetherShape  ribbon_tether_shape() const { return _ribbon_tether_shape; }
     int  ribbon_tether_sides() const { return _ribbon_tether_sides; }
     float  ribbon_tether_opacity() const { return _ribbon_tether_opacity; }
+    bool  ribbon_show_spine() const { return _ribbon_show_spine; }
     void  set_ribbon_tether_scale(float s);
     void  set_ribbon_tether_shape(TetherShape ts);
     void  set_ribbon_tether_sides(int s);
     void  set_ribbon_tether_opacity(float o);
+    void  set_ribbon_show_spine(bool ss);
 };
 
 inline void
@@ -210,6 +213,15 @@ AtomicStructure::set_ribbon_tether_opacity(float o) {
     change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
     set_gc_ribbon();
     _ribbon_tether_opacity = o;
+}
+
+inline void
+AtomicStructure::set_ribbon_show_spine(bool ss) {
+    if (ss == _ribbon_show_spine)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_STYLE);
+    set_gc_ribbon();
+    _ribbon_show_spine = ss;
 }
 
 }  // namespace atomstruct
