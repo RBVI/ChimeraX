@@ -1940,7 +1940,7 @@ def html_usage(name, no_aliases=False):
             type = escape(arg.name)
         else:
             type = '<a href="%s">%s</a>' % (arg.url, escape(arg.name))
-        usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
+        usage += ' <nobr>[<b>%s</b> <i>%s</i>]</nobr>' % (escape(arg_name), type)
     if ci.synopsis:
         usage = "<i>%s</i><br>%s" % (escape(ci.synopsis), usage)
     return usage
