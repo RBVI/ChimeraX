@@ -1,33 +1,35 @@
-# vi: set expandtab ts=4 sw=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 
 from chimera.core.tools import ToolInstance
 from chimera.core.logger import HtmlLog
 
 context_menu_css = """
 .context-menu {
-	display: none;
-	position: absolute;
-	z-index: 100;
-	border: solid 1px #000000;
-	box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
-	cursor: pointer;
+    display: none;
+    position: absolute;
+    z-index: 100;
+    border: solid 1px #000000;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
 }
 .context-menu-items {
-	list-style-type: none;
-	padding: 0;
-	margin: 0;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
 }
 .context-menu-item a:link, a:visited {
-	display: block;
-	color: #000;
-	text-decoration: none;
-	padding: 4px 8px;
+    display: block;
+    color: #000;
+    background-color: #fff;
+    opacity: 1;
+    text-decoration: none;
+    padding: 4px 8px;
 }
 .context-menu-item a:hover, a:active {
-	background-color: #cccccc;
+    background-color: #cccccc;
 }
 .context-menu-active {
-	display: block;
+    display: block;
 }
 """
 
@@ -55,53 +57,51 @@ context_menu_html = """
 
 context_menu_script = """
 (function() {
-	"use strict";
+    "use strict";
 
-	var context_menu = document.querySelector(".context-menu");
-	var context_menu_shown = false;
-	var active_css = "context-menu-active";
+    var context_menu = document.querySelector(".context-menu");
+    var context_menu_shown = false;
+    var active_css = "context-menu-active";
 
-	function show_context_menu() {
-		if (!context_menu_shown) {
-			context_menu_shown = true;
-			context_menu.classList.add(active_css);
-		}
-	}
+    function show_context_menu() {
+        if (!context_menu_shown) {
+            context_menu_shown = true;
+            context_menu.classList.add(active_css);
+        }
+    }
 
-	function hide_context_menu() {
-		if (context_menu_shown) {
-			context_menu_shown = false;
-			context_menu.classList.remove(active_css);
-		}
-	}
+    function hide_context_menu() {
+        if (context_menu_shown) {
+            context_menu_shown = false;
+            context_menu.classList.remove(active_css);
+        }
+    }
 
-	function position_menu(menu, e) {
-		var x = e.pageX;
-		var y = e.pageY;
+    function position_menu(menu, e) {
+        var x = e.pageX;
+        var y = e.pageY;
 
-		menu.style.left = x + "px";
-		menu.style.top = y + "px";
-	}
+        menu.style.left = x + "px";
+        menu.style.top = y + "px";
+    }
 
-	function init()
-	{
-		document.addEventListener("contextmenu", function (e) {
-			e.preventDefault();
-			show_context_menu();
-			position_menu(context_menu, e);
-		});
+    function init() {
+        document.addEventListener("contextmenu", function (e) {
+                e.preventDefault();
+                show_context_menu();
+                position_menu(context_menu, e);
+        });
 
-		document.addEventListener("click", function (e) {
-			var button = e.which;
-			if (button === 1)	// left button used
-				hide_context_menu();
-		});
+        document.addEventListener("click", function (e) {
+                var button = e.which;
+                if (button === 1)	// left button used
+                        hide_context_menu();
+        });
 
-		context_menu.addEventListener("mouseleave", hide_context_menu);
-	}
+        context_menu.addEventListener("mouseleave", hide_context_menu);
+    }
 
-	init();
-
+    init();
 })();
 """
 
