@@ -489,7 +489,7 @@ if __name__ == '__main__':
             ConfigFile.__init__(self, session, 'test', '1.2.0')
             print('preferences file:', self._filename, flush=True)
 
-    prefs = _ToolPreferences(Chimera2_session)  # noqa
+    prefs = _ToolPreferences(session)  # noqa
 
     assert(not prefs.on_disk())
 
