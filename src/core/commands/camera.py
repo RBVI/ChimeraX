@@ -77,6 +77,6 @@ def register_command(session):
             ('screen_width', FloatArg),
             ('depth_scale', FloatArg),
         ],
-        synopsis='adjust camara parameters'
+        synopsis='adjust camera parameters'
     )
     register('camera', desc, camera)
