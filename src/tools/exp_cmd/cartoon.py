@@ -113,16 +113,16 @@ def initialize(command_name):
         register(command_name, desc, uncartoon)
     else:
         from chimera.core.commands import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg
-        desc = CmdDesc(optional=[("spec", AtomSpecArg),
-                                 ("adjust", Or(Bounded(FloatArg, 0.0, 1.0),
+        desc = CmdDesc(optional=[("spec", AtomSpecArg)],
+                       keyword=[("adjust", Or(Bounded(FloatArg, 0.0, 1.0),
                                                EnumOf(["default"]))),
-                                 ("style", EnumOf(list(_StyleMap.keys()))),
-                                 ("hide_backbone", BoolArg),
-                                 ("tether_scale", Bounded(FloatArg, 0.0, 1.0)),
-                                 ("tether_shape", EnumOf(list(_TetherShapeMap.keys()))),
-                                 ("tether_sides", Bounded(IntArg, 3, 10)),
-                                 ("tether_opacity", Bounded(FloatArg, 0.0, 1.0)),
-                                 ("show_spine", BoolArg),
-                                 ],
+                                ("style", EnumOf(list(_StyleMap.keys()))),
+                                ("hide_backbone", BoolArg),
+                                ("tether_scale", Bounded(FloatArg, 0.0, 1.0)),
+                                ("tether_shape", EnumOf(list(_TetherShapeMap.keys()))),
+                                ("tether_sides", Bounded(IntArg, 3, 10)),
+                                ("tether_opacity", Bounded(FloatArg, 0.0, 1.0)),
+                                ("show_spine", BoolArg),
+                                ],
                        synopsis='display cartoon for specified residues')
         register(command_name, desc, cartoon)
