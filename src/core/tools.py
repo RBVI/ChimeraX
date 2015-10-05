@@ -80,7 +80,7 @@ class ToolInstance(State):
     @property
     def session(self):
         """Read-only property for session that contains this tool instance."""
-        return self._session() 
+        return self._session()
 
     def delete(self):
         """Delete this tool instance.
@@ -106,6 +106,12 @@ class ToolInstance(State):
         """
         if self.session.ui.is_gui:
             self.session.ui.set_tool_shown(self, b)
+
+    def display_help(self):
+        """Show the help for this tool in the help viewer."""
+        from chimera.core.commands import run
+        run(self.session,
+            'help %s' % self.help if self.help is not None else "")
 
 
 class Tools(State):

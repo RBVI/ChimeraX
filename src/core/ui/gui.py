@@ -601,9 +601,8 @@ class _Wx:
         ti = self.tool_window.tool_instance
         if ti.help is not None:
             menu.Append(help_id, "Help")
-            def help_func(event, ses=ti.session, t=ti.help):
-                from chimera.core.commands import run
-                run(ses, 'help %s' % t)
+            def help_func(event, tool_instance=ti):
+                tool_instance.display_help()
             self.ui_area.Bind(wx.EVT_MENU, help_func, id=help_id)
         else:
             menu.Append(help_id, "No help available")
