@@ -53,14 +53,15 @@ class Movie:
         self.encoder = None
         self.encoding_thread = None
         self.resetMode = None
+        self._image_capture_handler = None
 
 #        from chimera import triggers, COMMAND_ERROR, SCRIPT_ABORT
 #        triggers.addHandler(COMMAND_ERROR, self.haltRecording, None)
 #        triggers.addHandler(SCRIPT_ABORT, self.haltRecording, None)
 
     def start_recording(self):
-        v = self.session.main_view
-        v.add_callback('rendered frame', self.capture_image)
+        t = self.session.triggers
+        self._image_capture_handler = t.add_handler('rendered frame', self.capture_image)
         self.recording = True
 #        from chimera.tasks import Task
 #        self.task = Task("record movie", self.cancelCB)
@@ -80,8 +81,8 @@ class Movie:
             raise MovieError("Not currently recording")
         if self.postprocess_frames:
             self.capture_image()        # Finish crossfade if one is in progress.
-        v = self.session.main_view
-        v.remove_callback('rendered frame', self.capture_image)
+        t = self.session.triggers
+        t.delete_handler(self._image_capture_handler)
         self.recording = False
 #        self.task.finished()
         self.task = None
@@ -131,7 +132,7 @@ class Movie:
         return status_str
                 
 
-    def capture_image(self):
+    def capture_image(self, *_):
 
         f = self.frame_count + 1 + self.postprocess_frames
         if not self.limit is None and f >= self.limit:
