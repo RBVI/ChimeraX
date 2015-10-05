@@ -1876,9 +1876,12 @@ def usage(name, no_aliases=False):
         num_opt += 1
     usage += ']' * num_opt
     for arg_name in ci._keyword:
-        type = ci._keyword[arg_name].name
+        arg_type = ci._keyword[arg_name]
         arg_name = _user_kw(arg_name)
-        usage += ' [%s _%s_]' % (arg_name, type)
+        if arg_type is NoArg:
+            usage += ' [%s]' % arg_name
+            continue
+        usage += ' [%s _%s_]' % (arg_name, arg_type.name)
     if ci.synopsis:
         usage += ' -- %s' % ci.synopsis
     return usage
@@ -1913,34 +1916,37 @@ def html_usage(name, no_aliases=False):
             cmd._ci.url, escape(cmd.command_name))
     ci = cmd._ci
     for arg_name in ci._required:
-        arg = ci._required[arg_name]
+        arg_type = ci._required[arg_name]
         arg_name = _user_kw(arg_name)
-        type = arg.name
-        if arg.url is None:
+        type = arg_type.name
+        if arg_type.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
         usage += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
     num_opt = 0
     for arg_name in ci._optional:
         num_opt += 1
-        arg = ci._optional[arg_name]
+        arg_type = ci._optional[arg_name]
         arg_name = _user_kw(arg_name)
-        type = arg.name
-        if arg.url is None:
+        type = arg_type.name
+        if arg_type.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
         usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
     usage += ']' * num_opt
     for arg_name in ci._keyword:
-        arg = ci._keyword[arg_name]
+        arg_type = ci._keyword[arg_name]
         arg_name = _user_kw(arg_name)
-        if arg.url is None:
-            type = escape(arg.name)
+        if arg_type is NoArg:
+            type = ""
         else:
-            type = '<a href="%s">%s</a>' % (arg.url, escape(arg.name))
-        usage += ' <nobr>[<b>%s</b> <i>%s</i>]</nobr>' % (escape(arg_name), type)
+            type = "<i>%s</i>" % escape(arg_type.name)
+            if arg_type.url is not None:
+                type = '<a href="%s">%s</a>' % (arg_type.url, type)
+            type = ' ' + type
+        usage += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(arg_name), type)
     if ci.synopsis:
         usage = "<i>%s</i><br>%s" % (escape(ci.synopsis), usage)
     return usage
