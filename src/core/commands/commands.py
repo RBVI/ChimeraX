@@ -32,6 +32,9 @@ def register_core_commands(session):
     from . import atomspec
     atomspec.register_selector(None, "sel", _sel_selector)
     atomspec.register_selector(None, "strands", _strands_selector)
+    atomspec.register_selector(None, "sheet", _strands_selector)
+    atomspec.register_selector(None, "helices", _helices_selector)
+    atomspec.register_selector(None, "turns", _turns_selector)
     from ..atomic.molobject import Element
     for i in range(1, 115):
         e = Element.get_element(i)
@@ -66,3 +69,25 @@ def _strands_selector(session, models, results):
             if strands:
                 results.add_model(m)
                 results.add_atoms(strands.atoms)
+
+
+def _helices_selector(session, models, results):
+    from ..atomic import AtomicStructure
+    for m in models:
+        if isinstance(m, AtomicStructure):
+            helices = m.residues.filter(m.residues.is_helix)
+            if helices:
+                results.add_model(m)
+                results.add_atoms(helices.atoms)
+
+
+def _turns_selector(session, models, results):
+    from ..atomic import AtomicStructure
+    for m in models:
+        if isinstance(m, AtomicStructure):
+            from numpy import logical_not, logical_or
+            is_turn = logical_not(logical_or(m.residues.is_sheet, m.residues.is_helix))
+            turns = m.residues.filter(is_turn)
+            if turns:
+                results.add_model(m)
+                results.add_atoms(turns.atoms)
