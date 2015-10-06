@@ -85,7 +85,6 @@ def _strands_selector(session, models, results):
                 results.add_model(m)
                 results.add_atoms(strands.atoms)
 
-<<<<<<< HEAD
 def _structure_category_selector(cat, models, results):
     from ..atomic import AtomicStructure
     for m in models:
@@ -94,8 +93,6 @@ def _structure_category_selector(cat, models, results):
             if len(atoms) > 0:
                 results.add_model(m)
                 results.add_atoms(atoms)
-
-=======
 
 def _helices_selector(session, models, results):
     from ..atomic import AtomicStructure
@@ -117,4 +114,3 @@ def _turns_selector(session, models, results):
             if turns:
                 results.add_model(m)
                 results.add_atoms(turns.atoms)
->>>>>>> 3f388144ab581bec782b450b0bfc8d8319a53c98
