@@ -1,8 +1,8 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def camera(session, mode=None, field_of_view=None, eye_separation=None,
-           screen_width=None, depth_scale=None):
+def camera(session, mode=None, field_of_view=None,
+           eye_separation=None, pixel_eye_separation=None):
     '''Change camera parameters.
 
     Parameters
@@ -12,17 +12,20 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
     field_of_view : float
         Horizontal field of view in degrees.
     eye_separation : float
-        Distance between eyes for stereo camera modes.  Can use any units and must specify
-        screen width too.  Only eye_separation divided by screen width is used.
-    screen_width : float
-        Width of screen in same units as eye separation.  Only used for stereo camera modes.
-    depth_scale : float
-        Scale the eye separation by this factor.  Only used in stereo camera modes.
+        Distance between left/right eye cameras for stereo camera modes in scene distance units.
+    pixel_eye_separation : float
+        Physical distance between viewer eyes for stereo camera modes in screen pixels.
+        This is needed for shutter glasses stereo so that an object very far away appears
+        has left/right eye images separated by the viewer's physical eye spacing.
+        Usually this need not be set and will be figured out from the pixels/inch reported
+        by the display.  But for projectors the size of the displayed image is unknown and
+        it is necessary to set this option to get comfortable stereoscopic viewing.
     '''
     view = session.main_view
     cam = session.main_view.camera
     has_arg = False
     if mode is not None:
+        has_arg = True
         if mode == 'mono':
             from ..graphics import mono_camera_mode
             cam.mode = mono_camera_mode
@@ -32,26 +35,19 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
         elif mode == '360s':
             from ..graphics.camera360 import stereo_360_camera_mode
             stereo_360_camera_mode.set_camera_mode(cam, view._render)
-        has_arg = True
-        # TODO
     if field_of_view is not None:
         has_arg = True
         cam.field_of_view = field_of_view
         cam.redraw_needed = True
-    if eye_separation is not None or screen_width is not None:
+    if eye_separation is not None:
         has_arg = True
-        if eye_separation is None or screen_width is None:
-            from ..errors import UserError
-            raise UserError("Must specifiy both eye-separation and"
-                            " screen-width -- only ratio is used")
-        cam.eye_separation_pixels = (eye_separation / screen_width) * \
-            view.screen().size().width()
+        cam.eye_separation_scene = eye_separation
         cam.redraw_needed = True
-    if depth_scale is not None:
+    if pixel_eye_separation is not None:
         has_arg = True
-        cam.eye_separation_pixels *= depth_scale
-        cam.eye_separation_scene *= depth_scale
+        cam.eye_separation_pixels = pixel_eye_separation
         cam.redraw_needed = True
+
     if not has_arg:
         msg = (
             'Camera parameters:\n' +
@@ -74,8 +70,7 @@ def register_command(session):
             ('mode', EnumOf(('mono', '360', '360s'))),
             ('field_of_view', FloatArg),
             ('eye_separation', FloatArg),
-            ('screen_width', FloatArg),
-            ('depth_scale', FloatArg),
+            ('pixel_eye_separation', FloatArg),
         ],
         synopsis='adjust camera parameters'
     )
