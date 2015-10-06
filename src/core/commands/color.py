@@ -37,6 +37,8 @@ def color(session, spec, color=None, target=None, transparency=None,
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     atoms = results.atoms
+    if color == "byhetero":
+        atoms = atoms.filter(atoms.element_numbers != 6)
 
     default_target = (target is None)
     if default_target:
@@ -142,10 +144,8 @@ def color(session, spec, color=None, target=None, transparency=None,
 
 
 def _computed_atom_colors(atoms, color, opacity):
-    if color == "byelement":
+    if color == "byelement" or color == "byhetero":
         c = _element_colors(atoms, opacity)
-    elif color == "byhetero":
-        c = _element_colors(atoms, opacity, skip_carbon=True)
     elif color == "bychain":
         from ..colors import chain_colors
         c = chain_colors(atoms.residues.chain_ids)
@@ -160,9 +160,7 @@ def _computed_atom_colors(atoms, color, opacity):
     return c
 
 
-def _element_colors(atoms, opacity=None, skip_carbon=False):
-    if skip_carbon:
-        atoms = atoms.filter(atoms.element_numbers != 6)
+def _element_colors(atoms, opacity=None):
     from ..colors import element_colors
     c = element_colors(atoms.element_numbers)
     c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
