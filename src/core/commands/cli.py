@@ -208,9 +208,9 @@ def commas(text_seq, conjunction=' or'):
     """
     seq_len = len(text_seq)
     if seq_len == 0:
-        return "", ""
+        return ""
     if seq_len == 1:
-        return text_seq[0], ""
+        return text_seq[0]
     if seq_len == 2:
         return '%s%s %s' % (text_seq[0], conjunction, text_seq[1])
     text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
@@ -253,7 +253,7 @@ def discard_article(text):
     return text
 
 
-def _dq_repr(obj):
+def dq_repr(obj):
     """Like repr, but use double quotes"""
     r = repr(obj)
     if r[0] != "'":
@@ -1052,7 +1052,7 @@ class Limited(Postcondition):
             return True
 
     def error_message(self):
-        message = "Invalid argument %s: " % _dq_repr(self.arg_name)
+        message = "Invalid argument %s: " % dq_repr(self.arg_name)
         if self.min and self.max:
             return message + ("Must be greater than or equal to %s and less"
                               " than or equal to %s" % (self.min, self.max))
@@ -1292,7 +1292,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
         if not isinstance(function, Alias):
             raise
         if logger is not None:
-            logger.warn("alias %s hides existing command" % _dq_repr(name))
+            logger.warn("alias %s hides existing command" % dq_repr(name))
     if isinstance(function, _Defer):
         cmd_desc = function
     else:
@@ -1311,8 +1311,8 @@ def register(name, cmd_desc=(), function=None, logger=None):
             _aliased_commands[name] = cmd_desc
         else:
             if logger is not None:
-                logger.warn("command %s is replacing existing command" %
-                            _dq_repr(name))
+                logger.info("FYI: command %s is replacing existing command" %
+                            dq_repr(name))
             cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
@@ -1859,6 +1859,7 @@ def usage(name, no_aliases=False):
 
     if cmd.word_map is not None:
         # partial command match
+        name = cmd.command_name
         usage = 'Choices are:\n'
         usage += '\n'.join(['  %s %s' % (name, w)
                             for w in cmd.word_map])
@@ -1876,9 +1877,12 @@ def usage(name, no_aliases=False):
         num_opt += 1
     usage += ']' * num_opt
     for arg_name in ci._keyword:
-        type = ci._keyword[arg_name].name
+        arg_type = ci._keyword[arg_name]
         arg_name = _user_kw(arg_name)
-        usage += ' [%s _%s_]' % (arg_name, type)
+        if arg_type is NoArg:
+            usage += ' [%s]' % arg_name
+            continue
+        usage += ' [%s _%s_]' % (arg_name, arg_type.name)
     if ci.synopsis:
         usage += ' -- %s' % ci.synopsis
     return usage
@@ -1900,6 +1904,7 @@ def html_usage(name, no_aliases=False):
 
     if cmd.word_map is not None:
         # partial command match
+        name = cmd.command_name
         usage = 'Choices are:<br/><ul>'
         usage += '<br/>'.join(['<li> %s %s' % (escape(name), w)
                                for w in cmd.word_map])
@@ -1913,34 +1918,37 @@ def html_usage(name, no_aliases=False):
             cmd._ci.url, escape(cmd.command_name))
     ci = cmd._ci
     for arg_name in ci._required:
-        arg = ci._required[arg_name]
+        arg_type = ci._required[arg_name]
         arg_name = _user_kw(arg_name)
-        type = arg.name
-        if arg.url is None:
+        type = arg_type.name
+        if arg_type.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
         usage += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
     num_opt = 0
     for arg_name in ci._optional:
         num_opt += 1
-        arg = ci._optional[arg_name]
+        arg_type = ci._optional[arg_name]
         arg_name = _user_kw(arg_name)
-        type = arg.name
-        if arg.url is None:
+        type = arg_type.name
+        if arg_type.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
         usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
     usage += ']' * num_opt
     for arg_name in ci._keyword:
-        arg = ci._keyword[arg_name]
+        arg_type = ci._keyword[arg_name]
         arg_name = _user_kw(arg_name)
-        if arg.url is None:
-            type = escape(arg.name)
+        if arg_type is NoArg:
+            type = ""
         else:
-            type = '<a href="%s">%s</a>' % (arg.url, escape(arg.name))
-        usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
+            type = "<i>%s</i>" % escape(arg_type.name)
+            if arg_type.url is not None:
+                type = '<a href="%s">%s</a>' % (arg_type.url, type)
+            type = ' ' + type
+        usage += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(arg_name), type)
     if ci.synopsis:
         usage = "<i>%s</i><br>%s" % (escape(ci.synopsis), usage)
     return usage
@@ -2069,39 +2077,25 @@ class Alias:
 _cmd_aliases = {}
 
 
-@register('alias', CmdDesc(optional=[('name', StringArg),
-                                     ('text', WholeRestOfLine)],
-                           synopsis='list or define a command alias'))
-def alias(session, name='', text=''):
+def alias(name='', text='', logger=None):
     """Create command alias
 
     :param name: optional name of the alias
     :param text: optional text of the alias
+    :param logger: optional logger
 
     If the alias name is not given, then a text list of all the aliases is
     returned.  If alias text is not given, the text of the named alias
     is returned.  If both arguments are given, then a new alias is made.
     """
-    logger = session.logger if session else None
     if not name:
         # list aliases
-        names = commas(list(_cmd_aliases.keys()), '')
-        if names:
-            if logger is not None:
-                logger.info('Aliases: %s' % names)
-        else:
-            if logger is not None:
-                logger.status('No aliases.')
-        return
+        return list(_cmd_aliases.keys())
     if not text:
-        if logger is not None:
-            if name not in _cmd_aliases:
-                logger.status('No alias named %s found.' % _dq_repr(name))
-            else:
-                logger.info('Aliased %s to %s' % (
-                    _dq_repr(name),
-                    _dq_repr(_cmd_aliases[name].original_text)))
-        return
+        if name not in _cmd_aliases:
+            return None
+        else:
+            return _cmd_aliases[name].original_text
     name = ' '.join(name.split())   # canonicalize
     cmd = Alias(text)
     tmp = Command(None)
@@ -2119,9 +2113,7 @@ def alias(session, name='', text=''):
     _cmd_aliases[name] = cmd
 
 
-@register('~alias', CmdDesc(required=[('name', StringArg)],
-                            synopsis='remove a command alias'))
-def unalias(session, name):
+def unalias(name):
     """Remove command alias
 
     :param name: name of the alias
@@ -2132,7 +2124,7 @@ def unalias(session, name):
     try:
         del _cmd_aliases[name]
     except KeyError:
-        raise UserError('No alias named %s exists' % _dq_repr(name))
+        raise UserError('No alias named %s exists' % dq_repr(name))
 
     cmd_map = _commands
     for word in words[:-1]:

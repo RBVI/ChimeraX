@@ -395,7 +395,7 @@ def init(argv, event_loop=True):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
             global_dict = {
-                '%s_session' % sess.app_dirs.appname: sess
+                'session': sess
             }
             runpy.run_module(opts.module, init_globals=global_dict,
                              run_name='__main__', alter_sys=True)

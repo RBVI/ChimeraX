@@ -357,7 +357,7 @@ def usage():
 def main():
     import getopt
     import sys
-    session = Chimera2_session  # noqa
+    session = session  # noqa
     try:
         opts, args = getopt.getopt(
             sys.argv[1:], "ahi:", ["all", "help"])

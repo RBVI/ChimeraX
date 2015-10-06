@@ -31,6 +31,7 @@ const std::string ChangeTracker::REASON_RIBBON_TETHER("ribbon_tether_* changed")
 const std::string ChangeTracker::REASON_SELECTED("selected changed");
 const std::string ChangeTracker::REASON_SEQUENCE("sequence changed");
 const std::string ChangeTracker::REASON_SERIAL_NUMBER("serial_number changed");
+const std::string ChangeTracker::REASON_STRUCTURE_CATEGORY("structure_category changed");
 const std::string ChangeTracker::REASON_SS_ID("ss_id changed");
 
 DiscardingChangeTracker  dct;

@@ -42,12 +42,13 @@ Bond::Bond(AtomicStructure *as, Atom *a1, Atom *a2):
             }
         }
     }
+    a1->structure()->_structure_cats_dirty = true;
 }
 
 static bool
 _polymer_res(Residue* r, Atom* a, bool* is_nucleic)
 {
-    const std::set<AtomName>* min_names;
+    const std::set<const AtomName>* min_names;
     AtomName missing_ok;
     if (a->name() == "O3'" || a->name() == "P") {
         // nucleic
@@ -75,7 +76,7 @@ _polymer_res(Residue* r, Atom* a, bool* is_nucleic)
 }
 
 static void
-_set_backbone(Residue* r, const std::set<AtomName>& names)
+_set_backbone(Residue* r, const std::set<const AtomName>& names)
 {
     for (auto a: r->atoms()) {
         if (names.find(a->name()) != names.end())

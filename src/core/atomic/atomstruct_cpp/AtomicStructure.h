@@ -41,8 +41,8 @@ using basegeom::ChangeTracker;
 using element::Element;
 
 class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond, AtomicStructure> {
-    friend class Atom; // for IDATM stuff and _polymers_computed
-    friend class Bond; // for checking if make_chains() has been run yet
+    friend class Atom; // for IDATM stuff and _polymers_computed and structure categories
+    friend class Bond; // for checking if make_chains() has been run yet, struct categories
 public:
     typedef Vertices  Atoms;
     typedef Edges  Bonds;
@@ -69,6 +69,7 @@ private:
     mutable Chains*  _chains;
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
+    void  _compute_structure_cats() const;
     CoordSets  _coord_sets;
     void  _delete_atom(Atom* a);
     void  _delete_residue(Residue* r, const Residues::iterator& ri);
@@ -102,6 +103,7 @@ private:
     int  _ribbon_tether_sides = 4;
     float  _ribbon_tether_opacity = 0.5;
     bool  _ribbon_show_spine = false;
+    mutable bool  _structure_cats_dirty;
 public:
     AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure();
@@ -111,6 +113,8 @@ public:
     const Atoms &    atoms() const { return vertices(); }
     // ball_scale() inherited from Graph
     std::map<Residue *, char>  best_alt_locs() const;
+    void  bonded_groups(std::vector<std::vector<Atom*>>* groups,
+        bool consider_missing_structure) const;
     const Bonds &    bonds() const { return edges(); }
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     const CoordSets &  coord_sets() const { return _coord_sets; }

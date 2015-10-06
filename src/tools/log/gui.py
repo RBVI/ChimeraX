@@ -111,12 +111,14 @@ class Log(ToolInstance, HtmlLog):
     SESSION_ENDURING = True
     SIZE = (300, 500)
     STATE_VERSION = 1
+    help = "help:user/tools/log.html"
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
         self.warning_shows_dialog = True
         self.error_shows_dialog = True
         from chimera.core.ui import MainToolWindow
+
         class LogWindow(MainToolWindow):
             close_destroys = False
         self.tool_window = LogWindow(self, size=self.SIZE)
@@ -139,8 +141,8 @@ class Log(ToolInstance, HtmlLog):
         self.log_window.Bind(wx.EVT_CLOSE, self.on_close)
         self.log_window.Bind(html2.EVT_WEBVIEW_LOADED, self.on_load)
         self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
-            id=self.log_window.GetId())
-        #self.log_window.SetPage(self.page_source, "")
+                             id=self.log_window.GetId())
+        # self.log_window.SetPage(self.page_source, "")
         self.show_page_source()
 
     #
@@ -168,7 +170,7 @@ class Log(ToolInstance, HtmlLog):
                 self.page_source += "<br>\n"
         else:
             if ((level == self.LEVEL_ERROR and self.error_shows_dialog) or
-                (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
+                    (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if level == self.LEVEL_ERROR:
                     caption = "Chimera2 Error"
                     icon = wx.ICON_ERROR
@@ -226,12 +228,11 @@ class Log(ToolInstance, HtmlLog):
         session = self.session
         # Handle event
         url = event.GetURL()
-        import sys
         if url.startswith("log:"):
             event.Veto()
             cmd = url.split(':', 1)[1]
             if cmd == 'help':
-                pass # TODO: self.help_func()?
+                self.display_help()
             elif cmd == 'clear':
                 self.page_source = ""
                 self.show_page_source()
@@ -239,10 +240,10 @@ class Log(ToolInstance, HtmlLog):
                 pass  # TODO
             if cmd == 'save':
                 from chimera.core.ui.open_save import SaveDialog
-                save_dialog = SaveDialog(self.log_window, "Save Log",
-                        defaultFile="log",
-                        wildcard="HTML files (*.html)|*.html",
-                        add_extension=".html")
+                save_dialog = SaveDialog(
+                    self.log_window, "Save Log", defaultFile="log",
+                    wildcard="HTML files (*.html)|*.html",
+                    add_extension=".html")
                 import wx
                 if save_dialog.ShowModal() == wx.ID_CANCEL:
                     return
@@ -269,7 +270,7 @@ class Log(ToolInstance, HtmlLog):
                 return
             event.Veto()
             from chimera.core.commands import run
-            run(session, "help %s" % url, log = False)
+            run(session, "help %s" % url, log=False)
             return
         # unknown scheme
         event.Veto()
