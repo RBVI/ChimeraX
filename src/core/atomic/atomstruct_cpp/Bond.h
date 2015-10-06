@@ -33,7 +33,7 @@ private:
     mutable Rings  _rings;
 
 public:
-    virtual ~Bond() {}
+    virtual ~Bond();
     const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
     const Atoms&  atoms() const { return end_points(); }
@@ -62,6 +62,8 @@ public:
 #include "AtomicStructure.h"
 
 namespace atomstruct {
+
+inline Bond::~Bond() { atoms()[0]->structure()->_structure_cats_dirty = true; }
 
 inline basegeom::ChangeTracker*
 Bond::change_tracker() const { return atoms()[0]->change_tracker(); }

@@ -481,6 +481,30 @@ extern "C" void atom_selected(void *atoms, size_t n, npy_bool *sel)
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::selected, sel);
 }
 
+extern "C" void atom_structure_category(void *atoms, size_t n, pyobject_t *names)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        const char *cat_name;
+        for (size_t i = 0; i != n; ++i) {
+            auto cat = a[i]->structure_category();
+            if (cat == Atom::StructCat::Main)
+                cat_name = "main";
+            else if (cat == Atom::StructCat::Solvent)
+                cat_name = "solvent";
+            else if (cat == Atom::StructCat::Ligand)
+                cat_name = "ligand";
+            else if (cat == Atom::StructCat::Ions)
+                cat_name = "ions";
+            else
+                throw std::range_error("Unknown structure category");
+            names[i] = unicode_from_string(cat_name);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void set_atom_selected(void *atoms, size_t n, npy_bool *sel)
 {
     Atom **a = static_cast<Atom **>(atoms);

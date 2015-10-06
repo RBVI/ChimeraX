@@ -93,6 +93,8 @@ class Atom:
     ''':class:`Residue` the atom belongs to.'''
     selected = c_property('atom_selected', npy_bool)
     '''Whether the atom is selected.'''
+    structure_category = c_property('atom_structure_category', string, read_only=True)
+    '''Whether atom is ligand, ion, etc.'''
     HIDE_RIBBON = 0x1
     '''Hide mask for backbone atoms in ribbon.'''
     hide = c_property('atom_hide', int32)
