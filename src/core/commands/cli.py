@@ -253,7 +253,7 @@ def discard_article(text):
     return text
 
 
-def _dq_repr(obj):
+def dq_repr(obj):
     """Like repr, but use double quotes"""
     r = repr(obj)
     if r[0] != "'":
@@ -1052,7 +1052,7 @@ class Limited(Postcondition):
             return True
 
     def error_message(self):
-        message = "Invalid argument %s: " % _dq_repr(self.arg_name)
+        message = "Invalid argument %s: " % dq_repr(self.arg_name)
         if self.min and self.max:
             return message + ("Must be greater than or equal to %s and less"
                               " than or equal to %s" % (self.min, self.max))
@@ -1292,7 +1292,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
         if not isinstance(function, Alias):
             raise
         if logger is not None:
-            logger.warn("alias %s hides existing command" % _dq_repr(name))
+            logger.warn("alias %s hides existing command" % dq_repr(name))
     if isinstance(function, _Defer):
         cmd_desc = function
     else:
@@ -1311,8 +1311,8 @@ def register(name, cmd_desc=(), function=None, logger=None):
             _aliased_commands[name] = cmd_desc
         else:
             if logger is not None:
-                logger.warn("command %s is replacing existing command" %
-                            _dq_repr(name))
+                logger.info("FYI: command %s is replacing existing command" %
+                            dq_repr(name))
             cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
@@ -1859,6 +1859,7 @@ def usage(name, no_aliases=False):
 
     if cmd.word_map is not None:
         # partial command match
+        name = cmd.command_name
         usage = 'Choices are:\n'
         usage += '\n'.join(['  %s %s' % (name, w)
                             for w in cmd.word_map])
@@ -1903,6 +1904,7 @@ def html_usage(name, no_aliases=False):
 
     if cmd.word_map is not None:
         # partial command match
+        name = cmd.command_name
         usage = 'Choices are:<br/><ul>'
         usage += '<br/>'.join(['<li> %s %s' % (escape(name), w)
                                for w in cmd.word_map])
@@ -2075,39 +2077,25 @@ class Alias:
 _cmd_aliases = {}
 
 
-@register('alias', CmdDesc(optional=[('name', StringArg),
-                                     ('text', WholeRestOfLine)],
-                           synopsis='list or define a command alias'))
-def alias(session, name='', text=''):
+def alias(name='', text='', logger=None):
     """Create command alias
 
     :param name: optional name of the alias
     :param text: optional text of the alias
+    :param logger: optional logger
 
     If the alias name is not given, then a text list of all the aliases is
     returned.  If alias text is not given, the text of the named alias
     is returned.  If both arguments are given, then a new alias is made.
     """
-    logger = session.logger if session else None
     if not name:
         # list aliases
-        names = commas(list(_cmd_aliases.keys()), '')
-        if names:
-            if logger is not None:
-                logger.info('Aliases: %s' % names)
-        else:
-            if logger is not None:
-                logger.status('No aliases.')
-        return
+        return list(_cmd_aliases.keys())
     if not text:
-        if logger is not None:
-            if name not in _cmd_aliases:
-                logger.status('No alias named %s found.' % _dq_repr(name))
-            else:
-                logger.info('Aliased %s to %s' % (
-                    _dq_repr(name),
-                    _dq_repr(_cmd_aliases[name].original_text)))
-        return
+        if name not in _cmd_aliases:
+            return None
+        else:
+            return _cmd_aliases[name].original_text
     name = ' '.join(name.split())   # canonicalize
     cmd = Alias(text)
     tmp = Command(None)
@@ -2125,9 +2113,7 @@ def alias(session, name='', text=''):
     _cmd_aliases[name] = cmd
 
 
-@register('~alias', CmdDesc(required=[('name', StringArg)],
-                            synopsis='remove a command alias'))
-def unalias(session, name):
+def unalias(name):
     """Remove command alias
 
     :param name: name of the alias
@@ -2138,7 +2124,7 @@ def unalias(session, name):
     try:
         del _cmd_aliases[name]
     except KeyError:
-        raise UserError('No alias named %s exists' % _dq_repr(name))
+        raise UserError('No alias named %s exists' % dq_repr(name))
 
     cmd_map = _commands
     for word in words[:-1]:

@@ -4,13 +4,21 @@
 def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module
-    modules = ['buriedarea', 'camera', 'close', 'color', 'colordef', 'crossfade', 'crosslinks',
-               'delete', 'display', 'echo', 'exit', 'export', 'lighting', 'list', 'material',
-               'move', 'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',
-               'sasa', 'save', 'scolor', 'select', 'set', 'split', 'stop', 'style', 'surface', 'sym',
-               'transparency', 'turn', 'usage', 'view', 'wait']
+    # Remember that the order is important, when a command name is
+    # abbreviated, the one registered that matches wins, not the first
+    # in alphabetical order.
+    modules = [
+        'alias_cmd', 'buriedarea',
+        'camera', 'close', 'color', 'colordef', 'crossfade', 'crosslinks',
+        'delete', 'display', 'echo', 'exit', 'export',
+        'lighting', 'list', 'material', 'move',
+        'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',
+        'save', 'sasa', 'scolor', 'select', 'set', 'split',
+        'stop', 'style', 'surface', 'sym',
+        'transparency', 'turn', 'usage', 'view', 'wait'
+    ]
     for mod in modules:
-        m = import_module('chimera.core.commands.%s' % mod)
+        m = import_module(".%s" % mod, __package__)
         m.register_command(session)
 
     from .. import map

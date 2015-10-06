@@ -18,7 +18,7 @@ def register_command(command_name):
     from . import cmd
     from chimera.core.commands import alias, register
     if command_name == "ts":
-        alias(None, "ts", "toolshed $*")
+        alias("ts", "toolshed $*")
         return
     register(command_name + " list", cmd.ts_list_desc, cmd.ts_list)
     register(command_name + " refresh", cmd.ts_refresh_desc, cmd.ts_refresh)
