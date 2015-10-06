@@ -39,8 +39,6 @@ def register_core_commands(session):
     # Selectors
     from . import atomspec
     atomspec.register_selector(None, "sel", _sel_selector)
-    atomspec.register_selector(None, "strands", _strands_selector)
-<<<<<<< HEAD
     atomspec.register_selector(None, "ions",
         lambda s, m, r: _structure_category_selector("ions", m, r))
     atomspec.register_selector(None, "ligand",
@@ -49,11 +47,9 @@ def register_core_commands(session):
         lambda s, m, r: _structure_category_selector("main", m, r))
     atomspec.register_selector(None, "solvent",
         lambda s, m, r: _structure_category_selector("solvent", m, r))
-=======
-    atomspec.register_selector(None, "sheet", _strands_selector)
-    atomspec.register_selector(None, "helices", _helices_selector)
-    atomspec.register_selector(None, "turns", _turns_selector)
->>>>>>> 3f388144ab581bec782b450b0bfc8d8319a53c98
+    atomspec.register_selector(None, "strand", _strands_selector)
+    atomspec.register_selector(None, "helix", _helices_selector)
+    atomspec.register_selector(None, "coil", _turns_selector)
     from ..atomic.molobject import Element
     for i in range(1, 115):
         e = Element.get_element(i)
