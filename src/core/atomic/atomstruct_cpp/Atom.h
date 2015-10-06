@@ -39,9 +39,7 @@ public:
     // HIDE_ constants are masks for hide bits in basegeom::Connectible
     static const unsigned int  HIDE_RIBBON = 0x1;
     typedef Connections Bonds;
-    enum IdatmGeometry {
-        Ion=0, Single=1, Linear=2, Planar=3, Tetrahedral=4
-    };
+    enum IdatmGeometry { Ion=0, Single=1, Linear=2, Planar=3, Tetrahedral=4 };
     struct IdatmInfo {
         IdatmGeometry  geometry;
         unsigned int  substituents;
@@ -49,6 +47,7 @@ public:
     };
     typedef std::map<AtomType, IdatmInfo> IdatmInfoMap;
     typedef std::vector<const Ring*>  Rings;
+    enum class StructCat { Unassigned, Main, Ligand, Ions, Solvent };
 
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
@@ -78,7 +77,9 @@ private:
     Residue *  _residue;
     mutable Rings  _rings;
     int  _serial_number;
+    void  _set_structure_category(Atom::StructCat sc) const;
     AtomicStructure *  _structure;
+    mutable StructCat  _structure_category;
 public:
     // so that I/O routines can cheaply "change their minds" about element
     // types during early structure creation
@@ -128,6 +129,7 @@ public:
     void  set_serial_number(int);
     std::string  str() const;
     AtomicStructure*  structure() const { return _structure; }
+    StructCat  structure_category() const;
 
     // change tracking
     ChangeTracker*  change_tracker() const;
@@ -160,6 +162,16 @@ Atom::is_backbone() const {
 }
 
 inline void
+Atom::_set_structure_category(Atom::StructCat sc) const
+{
+    if (sc == _structure_category)
+        return;
+    change_tracker()->add_modified(const_cast<Atom*>(this),
+        ChangeTracker::REASON_STRUCTURE_CATEGORY);
+    _structure_category = sc;
+}
+
+inline void
 Atom::set_computed_idatm_type(const char* it) {
     if (!idatm_is_explicit() && _computed_idatm_type != it) {
         change_tracker()->add_modified(this, ChangeTracker::REASON_IDATM_TYPE);
@@ -185,6 +197,12 @@ Atom::set_is_backbone(bool ibb) {
         return;
     change_tracker()->add_modified(this, ChangeTracker::REASON_IS_BACKBONE);
     _is_backbone = ibb;
+}
+
+inline Atom::StructCat
+Atom::structure_category() const {
+    if (structure()->_structure_cats_dirty) structure()->_compute_structure_cats();
+    return _structure_category;
 }
 
 }  // namespace atomstruct

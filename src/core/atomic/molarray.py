@@ -89,6 +89,8 @@ class Collection:
     def __len__(self):
         '''Number of objects in collection.'''
         return len(self._pointers)
+    def __bool__(self):
+        return len(self) > 0
     def __iter__(self):
         '''Iterator over collection objects.'''
         if not hasattr(self, '_object_list'):

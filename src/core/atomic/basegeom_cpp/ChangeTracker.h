@@ -74,6 +74,7 @@ public:
     static const std::string  REASON_SELECTED;
     static const std::string  REASON_SEQUENCE;
     static const std::string  REASON_SERIAL_NUMBER;
+    static const std::string  REASON_STRUCTURE_CATEGORY;
     static const std::string  REASON_SS_ID;
     
     template<class C>

@@ -16,14 +16,15 @@ Atom::Atom(AtomicStructure* as, const char* name, const Element& e):
     BaseSphere<Atom, Bond>(-1.0), // -1 indicates not explicitly set
     _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(&e),
     _is_backbone(false), _name(name), _residue(NULL), _serial_number(-1),
-    _structure(as)
+    _structure(as), _structure_category(Atom::StructCat::Unassigned)
 {
-    _structure->change_tracker()->add_created(this);
+    structure()->change_tracker()->add_created(this);
+    structure()->_structure_cats_dirty = true;
 }
 
 Atom::~Atom()
 {
-    _structure->change_tracker()->add_deleted(this);
+    structure()->change_tracker()->add_deleted(this);
 }
 
 std::set<char>

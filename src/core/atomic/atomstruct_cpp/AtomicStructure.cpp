@@ -11,7 +11,7 @@
 #include "Residue.h"
 #include "seq_assoc.h"
 
-#include <algorithm>  // for std::find, std::sort, std::remove_if
+#include <algorithm>  // for std::find, std::sort, std::remove_if, std::min
 #include <map>
 #include "Python.h"
 #include <stdexcept>
@@ -28,7 +28,7 @@ AtomicStructure::AtomicStructure(PyObject* logger):
     _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure"),
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
     _ribbon_tether_scale(1.0), _ribbon_tether_shape(RIBBON_TETHER_CONE),
-    _ribbon_tether_sides(4), _ribbon_tether_opacity(0.5),
+    _ribbon_tether_sides(4), _ribbon_tether_opacity(0.5), _structure_cats_dirty(true),
     asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0)
 {
@@ -49,6 +49,50 @@ AtomicStructure::~AtomicStructure() {
     for (auto cs: _coord_sets)
         delete cs;
     change_tracker()->add_deleted(this);
+}
+
+void
+AtomicStructure::bonded_groups(std::vector<std::vector<Atom*>>* groups,
+    bool consider_missing_structure) const
+{
+    // find connected atomic structures, considering missing-structure pseudobonds
+    std::map<Atom*, std::vector<Atom*>> pb_connections;
+    if (consider_missing_structure) {
+        auto pbg = (Owned_PBGroup*) const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
+            PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
+        if (pbg != nullptr) {
+            for (auto& pb: pbg->pseudobonds()) {
+                auto a1 = pb->atoms()[0];
+                auto a2 = pb->atoms()[1];
+                pb_connections[a1].push_back(a2);
+                pb_connections[a2].push_back(a1);
+            }
+        }
+    }
+    std::set<Atom*> seen;
+    for (auto a: atoms()) {
+        if (seen.find(a) != seen.end())
+            continue;
+        groups->emplace_back();
+        std::vector<Atom*>& bonded = groups->back();
+        std::set<Atom*> pending;
+        pending.insert(a);
+        while (pending.size() > 0) {
+            Atom* pa = *(pending.begin());
+            pending.erase(pa);
+            if (seen.find(pa) != seen.end())
+                continue;
+            seen.insert(pa);
+            bonded.push_back(pa);
+            if (pb_connections.find(pa) != pb_connections.end()) {
+                for (auto conn: pb_connections[pa]) {
+                    pending.insert(conn);
+                }
+            }
+            for (auto nb: pa->neighbors())
+                pending.insert(nb);
+        }
+    }
 }
 
 AtomicStructure *AtomicStructure::copy() const
@@ -238,6 +282,194 @@ AtomicStructure::best_alt_locs() const
     }
 
     return best_locs;
+}
+
+void
+AtomicStructure::_compute_structure_cats() const
+{
+    std::vector<std::vector<Atom*>> bonded;
+    bonded_groups(&bonded, true);
+    std::map<Atom*, std::vector<Atom*>*> group_lookup;
+    std::map<Atom*, Atom*> atom_to_root;
+    for (auto& grp: bonded) {
+        auto root = grp[0];
+        group_lookup[root] = &grp;
+        for (auto a: grp)
+            atom_to_root[a] = root;
+    }
+
+    //segregate into small solvents / other
+    std::vector<Atom*> small_solvents;
+    std::set<Atom*> root_set;
+    for (auto root_grp: group_lookup) {
+        auto root = root_grp.first;
+        auto grp = root_grp.second;
+        if (grp->size() < 4 && Residue::std_solvent_names.find(root->residue()->name())
+        != Residue::std_solvent_names.end())
+            small_solvents.push_back(root);
+        else if (grp->size() == 1 && root->residue()->atoms().size() == 1
+        && root->element().number() > 4 && root->element().number() < 9)
+            small_solvents.push_back(root);
+        else
+            root_set.insert(root);
+    }
+
+    // determine/assign solvent
+    std::map<std::string, std::vector<Atom*>> solvents;
+    solvents["small solvents"] = small_solvents;
+    for (auto root: root_set) {
+        auto grp_size = group_lookup[root]->size();
+        if (grp_size > 10)
+            continue;
+        if (grp_size != root->residue()->atoms().size())
+            continue;
+
+        // potential solvent
+        solvents[static_cast<const char*>(root->residue()->name())].push_back(root);
+    }
+    std::string best_solvent_name;
+    size_t best_solvent_size = 10;
+    for (auto& sn_roots: solvents) {
+        auto sn = sn_roots.first;
+        auto& roots = sn_roots.second;
+        if (roots.size() < best_solvent_size)
+            continue;
+        best_solvent_name = sn;
+        best_solvent_size = roots.size();
+    }
+    for (auto root: small_solvents)
+        for (auto a: *(group_lookup[root]))
+            a->_set_structure_category(Atom::StructCat::Solvent);
+    if (!best_solvent_name.empty() && best_solvent_name != "small solvents") {
+        for (auto root: solvents[best_solvent_name]) {
+            root_set.erase(root);
+            for (auto a: *(group_lookup[root]))
+                a->_set_structure_category(Atom::StructCat::Solvent);
+        }
+    }
+
+    // assign ions
+    std::set<Atom*> ions;
+    for (auto root: root_set) {
+        if (group_lookup[root]->size() == 1) {
+            if (root->element().number() > 1 && !root->element().is_noble_gas())
+                ions.insert(root);
+        }
+            
+    }
+    // possibly expand ion to remainder of residue (coordination complex)
+    std::set<Residue*> checked_residues;
+    auto ions_copy = ions;
+    for (auto root: ions_copy) {
+        if (group_lookup[root]->size() == root->residue()->atoms().size())
+            continue;
+        if (checked_residues.find(root->residue()) != checked_residues.end())
+            continue;
+        checked_residues.insert(root->residue());
+        std::set<Atom*> seen_roots = { root };
+        for (auto a: root->residue()->atoms()) {
+            auto rt = atom_to_root[a];
+            if (seen_roots.find(rt) != seen_roots.end())
+                continue;
+            seen_roots.insert(rt);
+        }
+        // add segments of less than 5 heavy atoms
+        for (auto rt: seen_roots) {
+            if (ions.find(rt) != ions.end())
+                continue;
+            int num_heavys = 0;
+            for (auto a: *(group_lookup[rt])) {
+                if (a->element().number() > 1) {
+                    ++num_heavys;
+                    if (num_heavys > 4)
+                        break;
+                }
+            }
+            if (num_heavys < 5)
+                ions.insert(rt);
+        }
+    }
+    for (auto root: ions) {
+        root_set.erase(root);
+        for (auto a: *(group_lookup[root]))
+            a->_set_structure_category(Atom::StructCat::Ions);
+    }
+
+    if (root_set.empty()) {
+        _structure_cats_dirty = false;
+        return;
+    }
+
+    // assign ligand
+
+    // find longest chain
+    std::vector<Atom*>* longest = nullptr;
+    for (auto root: root_set) {
+        auto grp = group_lookup[root];
+        if (longest == nullptr || grp->size() > longest->size())
+            longest = grp;
+    }
+    
+    std::vector<Atom*> ligands;
+    auto ligand_cutoff = std::min(longest->size()/4, (size_t)250);
+    for (auto root: root_set) {
+        auto grp = group_lookup[root];
+        if (grp->size() < ligand_cutoff) {
+            // fewer than 10 residues?
+            std::set<Residue*> residues;
+            for (auto a: *grp) {
+                residues.insert(a->residue());
+            }
+            if (residues.size() < 10) {
+                // ensure it isn't part of a longer chain,
+                // some of which is missing...
+                bool long_chain = true;
+                if (root->residue()->chain() == nullptr)
+                    long_chain = false;
+                else if (root->residue()->chain()->residues().size() < 10)
+                    long_chain = false;
+                if (!long_chain)
+                    ligands.push_back(root);
+            }
+        }
+    }
+    for (auto root: ligands) {
+        root_set.erase(root);
+        for (auto a: *(group_lookup[root]))
+            a->_set_structure_category(Atom::StructCat::Ligand);
+    }
+
+    // remainder in "main" category
+    for (auto root: root_set) {
+        std::set<Residue*> root_residues;
+        auto grp = group_lookup[root];
+        for (auto a: *grp) {
+            a->_set_structure_category(Atom::StructCat::Main);
+            root_residues.insert(a->residue());
+        }
+        // try to reclassify bound ligands as ligand
+        std::set<Chain*> root_chains;
+        for (auto r: root_residues)
+            if (r->chain() != nullptr)
+                root_chains.insert(r->chain());
+        std::set<Residue*> seq_residues;
+        for (auto chain: root_chains) {
+            for (auto r: chain->residues()) {
+                if (r != nullptr)
+                    seq_residues.insert(r);
+            }
+        }
+        if (seq_residues.empty())
+            continue;
+        std::vector<Residue*> bound;
+        std::set_difference(root_residues.begin(), root_residues.end(),
+            seq_residues.begin(), seq_residues.end(), std::inserter(bound, bound.end()));
+        for (auto br: bound) {
+            for (auto a: br->atoms())
+                a->_set_structure_category(Atom::StructCat::Ligand);
+        }
+    }
+    _structure_cats_dirty = false;
 }
 
 void
