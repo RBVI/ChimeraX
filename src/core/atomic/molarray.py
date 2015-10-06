@@ -273,6 +273,8 @@ class Atoms(Collection):
     '''
     selected = cvec_property('atom_selected', npy_bool)
     '''numpy bool array whether each atom is selected.'''
+    structure_categories = cvec_property('atom_structure_category', string, read_only=True)
+    '''Numpy array of whether atom is ligand, ion, etc.'''
 
     @property
     def num_selected(self):

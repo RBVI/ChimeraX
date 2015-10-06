@@ -32,6 +32,14 @@ def register_core_commands(session):
     from . import atomspec
     atomspec.register_selector(None, "sel", _sel_selector)
     atomspec.register_selector(None, "strands", _strands_selector)
+    atomspec.register_selector(None, "ions",
+        lambda s, m, r: _structure_category_selector("ions", m, r))
+    atomspec.register_selector(None, "ligand",
+        lambda s, m, r: _structure_category_selector("ligand", m, r))
+    atomspec.register_selector(None, "main",
+        lambda s, m, r: _structure_category_selector("main", m, r))
+    atomspec.register_selector(None, "solvent",
+        lambda s, m, r: _structure_category_selector("solvent", m, r))
     from ..atomic.molobject import Element
     for i in range(1, 115):
         e = Element.get_element(i)
@@ -66,3 +74,13 @@ def _strands_selector(session, models, results):
             if strands:
                 results.add_model(m)
                 results.add_atoms(strands.atoms)
+
+def _structure_category_selector(cat, models, results):
+    from ..atomic import AtomicStructure
+    for m in models:
+        if isinstance(m, AtomicStructure):
+            atoms = m.atoms.filter(m.atoms.structure_categories == cat)
+            if len(atoms) > 0:
+                results.add_model(m)
+                results.add_atoms(atoms)
+
