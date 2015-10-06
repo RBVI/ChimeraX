@@ -3,15 +3,15 @@
 
 from chimera.core.atomic import Residue, AtomicStructure
 _StyleMap = {
-        "ribbon": Residue.RIBBON,
-        "pipe": Residue.PIPE,
-        "plank": Residue.PIPE,
-        "pandp": Residue.PIPE,
+    "ribbon": Residue.RIBBON,
+    "pipe": Residue.PIPE,
+    "plank": Residue.PIPE,
+    "pandp": Residue.PIPE,
 }
 _TetherShapeMap = {
-        "cone": AtomicStructure.TETHER_CONE,
-        "cylinder": AtomicStructure.TETHER_CYLINDER,
-        "steeple": AtomicStructure.TETHER_REVERSE_CONE,
+    "cone": AtomicStructure.TETHER_CONE,
+    "cylinder": AtomicStructure.TETHER_CYLINDER,
+    "steeple": AtomicStructure.TETHER_REVERSE_CONE,
 }
 
 
@@ -72,7 +72,7 @@ def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=True,
             adjust = -1.0
         residues.ribbon_adjusts = adjust
     if style is not None:
-        s = _StyleMap.get(s, Residue.RIBBON)
+        s = _StyleMap.get(style, Residue.RIBBON)
         residues.ribbon_styles = s
     if hide_backbone is not None:
         residues.ribbon_hide_backbones = hide_backbone
@@ -115,7 +115,7 @@ def initialize(command_name):
         from chimera.core.commands import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg
         desc = CmdDesc(optional=[("spec", AtomSpecArg)],
                        keyword=[("adjust", Or(Bounded(FloatArg, 0.0, 1.0),
-                                               EnumOf(["default"]))),
+                                              EnumOf(["default"]))),
                                 ("style", EnumOf(list(_StyleMap.keys()))),
                                 ("hide_backbone", BoolArg),
                                 ("tether_scale", Bounded(FloatArg, 0.0, 1.0)),
