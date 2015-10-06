@@ -34,7 +34,7 @@ def open_mmcif(session, filename, name, *args, **kw):
         _mmcif.set_Python_locate_function(
             lambda name: _get_template(name, session.app_dirs, session.logger))
         pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories,
-                                       session.logger)
+                                           session.logger)
 
     models = [structure.AtomicStructure(name, p) for p in pointers]
     for m in models:
@@ -180,9 +180,11 @@ class MMCIFTable:
         t = self.tags
         missing = [n for n in field_names if n not in t]
         if missing:
-            from chimera.core.commands.cli import commas
-            missed, missed_suffix = commas(missing, ' and')
-            have, have_suffix = commas(t, ' and')
+            from chimera.core.commands.cli import commas, plural
+            missed = commas(missing, ' and')
+            missed_suffix = plural(missing)
+            have = commas(t, ' and')
+            have_suffix = plural(t)
             raise ValueError(
                 'Field%s %s not in table "%s", have field%s %s'
                 % (missed_suffix, missed, self.table_name, have_suffix, have))

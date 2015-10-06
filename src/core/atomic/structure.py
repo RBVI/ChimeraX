@@ -302,7 +302,7 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _create_ribbon_graphics(self):
         from .ribbon import Ribbon, XSection
-        from numpy import concatenate, array, uint8, zeros
+        from numpy import concatenate, array, zeros
         polymers = self.polymers(False, False)
         if self._ribbon_drawing is None:
             self._ribbon_drawing = p = self.new_drawing('ribbon')
@@ -332,27 +332,48 @@ class AtomicStructure(AtomicStructureData, Model):
             # to remove lasagna sheets, pipes and planks
             # display as cylinders and planes, etc.)
             tethered = zeros(len(atoms), bool)
-            self._smooth_ribbon(residues, coords, guides, atoms, tethered)
+            self._smooth_ribbon(residues, coords, guides, atoms, tethered, p)
+            if False:
+                # Debugging code to display line from control point to guide
+                cp = p.new_drawing(rlist.strs[0] + " control points")
+                from types import MethodType
+                cp.first_intercept = MethodType(_tether_first_intercept, cp)
+                from .. import surface
+                va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
+                cp.geometry = va, ta
+                cp.normals = na
+                from numpy import empty, float32
+                cp_radii = empty(len(coords), float)
+                cp_radii.fill(0.1)
+                cp.positions = _tether_placements(coords, guides, cp_radii, self.TETHER_CYLINDER)
+                cp_colors = empty((len(coords), 4), float)
+                cp_colors[:] = (255,0,0,255)
+                cp.colors = cp_colors
+
+            # Generate ribbon
             any_ribbon = True
             ribbon = Ribbon(coords, guides)
-            offset = 0
+            v_start = 0         # for tracking starting vertex index for each residue
+            t_start = 0         # for tracking starting triangle index for each residue
             vertex_list = []
             normal_list = []
             color_list = []
             triangle_list = []
-            # Draw first and last residue differently because they
-            # are each only a single half segment, where the middle
-            # residues are each two half segments.
+            colors = residues.ribbon_colors
+            if self.ribbon_show_spine:
+                spine_colors = None
+                spine_xyz1 = None
+                spine_xyz2 = None
+            # Odd number of segments gets blending, even has sharp edge
             if self.ribbon_divisions % 2 == 1:
                 seg_blend = self.ribbon_divisions
                 seg_cap = seg_blend + 1
             else:
                 seg_cap = self.ribbon_divisions
                 seg_blend = seg_cap + 1
+            # Assign cross sections
             is_helix = residues.is_helix
             is_sheet = residues.is_sheet
-            colors = residues.ribbon_colors
-            # Assign cross sections
             xss = []
             was_strand = False
             for i in range(len(residues)):
@@ -370,16 +391,25 @@ class AtomicStructure(AtomicStructureData, Model):
                     else:
                         xss.append(self._ribbon_xs_turn)
                     was_strand = False
-            # Per-residue state variables
-            t_start = 0
+
+            # Draw first and last residue differently because they
+            # are each only a single half segment, while the middle
+            # residues are each two half segments.
+
             # First residues
             if displays[0]:
                 capped = displays[0] != displays[1] or xss[0] != xss[1]
                 seg = capped and seg_cap or seg_blend
                 centers, tangents, normals = ribbon.segment(0, ribbon.FRONT, seg)
+                if self.ribbon_show_spine:
+                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
+                                                                                     centers, normals,
+                                                                                     spine_colors,
+                                                                                     spine_xyz1,
+                                                                                     spine_xyz2)
                 s = xss[0].extrude(centers, tangents, normals, colors[0],
-                                   True, capped, offset)
-                offset += len(s.vertices)
+                                   True, capped, v_start)
+                v_start += len(s.vertices)
                 t_end = t_start + len(s.triangles)
                 vertex_list.append(s.vertices)
                 normal_list.append(s.normals)
@@ -399,15 +429,27 @@ class AtomicStructure(AtomicStructureData, Model):
                     continue
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg)
+                if self.ribbon_show_spine:
+                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
+                                                                                     front_c, front_n,
+                                                                                     spine_colors,
+                                                                                     spine_xyz1,
+                                                                                     spine_xyz2)
                 next_cap = displays[i] != displays[i + 1] or xss[i] != xss[i + 1]
                 seg = next_cap and seg_cap or seg_blend
                 back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg)
+                if self.ribbon_show_spine:
+                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
+                                                                                     back_c, back_n,
+                                                                                     spine_colors,
+                                                                                     spine_xyz1,
+                                                                                     spine_xyz2)
                 centers = concatenate((front_c, back_c))
                 tangents = concatenate((front_t, back_t))
                 normals = concatenate((front_n, back_n))
                 s = xss[i].extrude(centers, tangents, normals, colors[i],
-                                   capped, next_cap, offset)
-                offset += len(s.vertices)
+                                   capped, next_cap, v_start)
+                v_start += len(s.vertices)
                 t_end = t_start + len(s.triangles)
                 vertex_list.append(s.vertices)
                 normal_list.append(s.normals)
@@ -429,9 +471,15 @@ class AtomicStructure(AtomicStructureData, Model):
             if displays[-1]:
                 seg = capped and seg_cap or seg_blend
                 centers, tangents, normals = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, last=True)
+                if self.ribbon_show_spine:
+                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
+                                                                                     centers, normals,
+                                                                                     spine_colors,
+                                                                                     spine_xyz1,
+                                                                                     spine_xyz2)
                 s = xss[-1].extrude(centers, tangents, normals, colors[-1],
-                                    capped, True, offset)
-                offset += len(s.vertices)
+                                    capped, True, v_start)
+                v_start += len(s.vertices)
                 t_end = t_start + len(s.triangles)
                 vertex_list.append(s.vertices)
                 normal_list.append(s.normals)
@@ -444,6 +492,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 t2r.append(triangle_range)
                 self._ribbon_r2t[residues[-1]] = triangle_range
                 t_start = t_end
+
             # Create drawing from arrays
             rp.display = True
             rp.vertices = concatenate(vertex_list)
@@ -466,17 +515,32 @@ class AtomicStructure(AtomicStructureData, Model):
                 nc = m.ribbon_tether_sides
                 from .. import surface
                 if m.ribbon_tether_shape == AtomicStructureData.TETHER_CYLINDER:
-                    va, na, ta = surface.cylinder_geometry(nc = nc, nz = 2, caps = False)
+                    va, na, ta = surface.cylinder_geometry(nc=nc, nz=2, caps=False)
                 else:
                     # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
-                    va, na, ta = surface.cone_geometry(nc = nc, caps = False)
+                    va, na, ta = surface.cone_geometry(nc=nc, caps=False)
                 tp.geometry = va, ta
                 tp.normals = na
                 self._ribbon_tether.append((tp, coords[tethered], atoms.filter(tethered), atoms,
                                             m.ribbon_tether_shape, m.ribbon_tether_scale))
+
+            # Create spine if necessary
+            if self.ribbon_show_spine:
+                sp = p.new_drawing(rlist.strs[0] + " spine")
+                from types import MethodType
+                sp.first_intercept = MethodType(_tether_first_intercept, sp)
+                from .. import surface
+                va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
+                sp.geometry = va, ta
+                sp.normals = na
+                from numpy import empty, float32
+                spine_radii = empty(len(spine_colors), float32)
+                spine_radii.fill(0.3)
+                sp.positions = _tether_placements(spine_xyz1, spine_xyz2, spine_radii, self.TETHER_CYLINDER)
+                sp.colors = spine_colors
         self._gc_shape = True
 
-    def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered):
+    def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered, p):
         from numpy import logical_and, logical_not
         from numpy import dot, newaxis, mean
         from numpy.linalg import norm
@@ -484,8 +548,9 @@ class AtomicStructure(AtomicStructureData, Model):
         from .ribbon import normalize, normalize_vector_array
         ribbon_adjusts = rlist.ribbon_adjusts
         # Smooth helices
+        ss_ids = rlist.ss_id
         helices = rlist.is_helix
-        for start, end in self._ss_ranges(helices):
+        for start, end in self._ss_ranges(helices, ss_ids):
             ss_coords = coords[start:end]
             adjusts = ribbon_adjusts[start:end][:, newaxis]
             axes, vals, centroid, rel_coords = self._ss_axes(ss_coords)
@@ -494,6 +559,9 @@ class AtomicStructure(AtomicStructureData, Model):
             axis = axes[0]
             axis_pos = dot(rel_coords, axis)[:, newaxis]
             cyl_centers = centroid + axis * axis_pos
+            if False:
+                # Debugging code to display center of secondary structure
+                self._ss_display(rlist.strs[0] + " helix " + str(start), cyl_centers)
             # Compute radius of cylinder
             spokes = ss_coords - cyl_centers
             cyl_radius = mean(norm(spokes, axis=1))
@@ -503,16 +571,23 @@ class AtomicStructure(AtomicStructureData, Model):
             ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
             offsets = adjusts * (ideal - ss_coords)
             new_coords = ss_coords + offsets
+            # Compute guide atom position relative to control point atom
+            delta_guides = guides[start:end] - ss_coords
             # Update both control point and guide coordinates
             coords[start:end] = new_coords
+            # Move the guide location so that it forces the
+            # ribbon parallel to the axis
             guides[start:end] = new_coords + axis
+            # Originally, we just update the guide location to
+            # the same relative place as before
+            #   guides[start:end] = new_coords + delta_guides
             # Update the tethered array (we compare against self.bond_radius
             # because we want to create cones for the "worst" case which is
             # when the atoms are displayed in stick mode, with radius self.bond_radius)
             tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
         # Smooth strands
         strands = logical_and(rlist.is_sheet, logical_not(helices))
-        for start, end in self._ss_ranges(strands):
+        for start, end in self._ss_ranges(strands, ss_ids):
             ss_coords = coords[start:end]
             adjusts = ribbon_adjusts[start:end][:, newaxis]
             axes, vals, centroid, rel_coords = self._ss_axes(ss_coords)
@@ -521,6 +596,9 @@ class AtomicStructure(AtomicStructureData, Model):
             axis = normalize(axes[0])
             axis_pos = dot(rel_coords, axis)[:, newaxis]
             ideal = centroid + axis * axis_pos
+            if False:
+                # Debugging code to display center of secondary structure
+                self._ss_display(rlist.strs[0] + " helix " + str(start), ideal)
             offsets = adjusts * (ideal - ss_coords)
             new_coords = ss_coords + offsets
             # Compute guide atom position relative to control point atom
@@ -531,13 +609,19 @@ class AtomicStructure(AtomicStructureData, Model):
             # Update the tethered array
             tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
-    def _ss_ranges(self, ba):
+    def _ss_ranges(self, ba, ss_ids):
         # Return ranges of True in boolean array "ba"
         ranges = []
         start = -1
+        start_id = None
         for n, bn in enumerate(ba):
             if bn:
                 if start < 0:
+                    start = n
+                elif ss_ids[n] != start_id:
+                    if n - start > 2:
+                        ranges.append((start, n))
+                    start_id = ss_ids[n]
                     start = n
             else:
                 if start >= 0:
@@ -556,6 +640,36 @@ class AtomicStructure(AtomicStructureData, Model):
         ignore, vals, vecs = svd(rel_coords)
         axes = vecs.take(vals.argsort()[::-1], 1)
         return axes, vals, centroid, rel_coords
+
+
+    def _ss_display(self, name, centers):
+        ssp = p.new_drawing(name)
+        from types import MethodType
+        ssp.first_intercept = MethodType(_tether_first_intercept, ssp)
+        from .. import surface
+        va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
+        ssp.geometry = va, ta
+        ssp.normals = na
+        from numpy import empty, float32
+        ss_radii = empty(len(centers) - 1, float32)
+        ss_radii.fill(0.2)
+        ssp.positions = _tether_placements(centers[:-1], centers[1:], ss_radii, self.TETHER_CYLINDER)
+        ss_colors = empty((len(ss_radii), 4), float32)
+        ss_colors[:] = (0,255,0,255)
+        ssp.colors = ss_colors
+
+    def _ribbon_update_spine(self, c, centers, normals, spine_colors, spine_xyz1, spine_xyz2):
+        from numpy import empty
+        xyz1 = centers + normals
+        xyz2 = centers - normals
+        color = empty((len(xyz1), 4), int)
+        color[:] = c
+        if spine_colors is None:
+            return color, xyz1, xyz2
+        else:
+            from numpy import concatenate
+            return (concatenate([spine_colors, color]), concatenate([spine_xyz1, xyz1]),
+                    concatenate([spine_xyz2, xyz2]))
 
     def _update_ribbon_graphics(self):
         # Set selected ribbons in graphics
@@ -606,7 +720,7 @@ class AtomicStructure(AtomicStructureData, Model):
             tp.positions = _tether_placements(xyz1, xyz2, radii, shape)
             tp.display_positions = atoms.visibles
             colors = atoms.colors
-            colors[:,3] *= 0.5      # Half transparent tethers
+            colors[:,3] *= self.ribbon_tether_opacity
             tp.colors = colors
 
     def bounds(self, positions = True):

@@ -1122,32 +1122,30 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 else
                     has_guides = false;
             }
-            if (r[i]->ribbon_hide_backbone()) {
-                if (r[i]->ribbon_display()) {
-                    // Ribbon is shown, so hide backbone atoms and bonds
-                    for (auto atom: a)
-                        if ((atom->hide() & Atom::HIDE_RIBBON) == 0
-                                && atom->is_backbone() && atom != center)
-                            atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
-                    for (auto bond: r[i]->bonds_between(r[i])) {
-                        auto atoms = bond->atoms();
-                        if ((bond->hide() & Bond::HIDE_RIBBON) == 0
-                                && atoms[0]->is_backbone() && atoms[1]->is_backbone())
-                            bond->set_hide(bond->hide() | Bond::HIDE_RIBBON);
-                    }
+            if (r[i]->ribbon_display() && r[i]->ribbon_hide_backbone()) {
+                // Ribbon is shown, so hide backbone atoms and bonds
+                for (auto atom: a)
+                    if ((atom->hide() & Atom::HIDE_RIBBON) == 0
+                            && atom->is_backbone() && atom != center)
+                        atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+                for (auto bond: r[i]->bonds_between(r[i])) {
+                    auto atoms = bond->atoms();
+                    if ((bond->hide() & Bond::HIDE_RIBBON) == 0
+                            && atoms[0]->is_backbone() && atoms[1]->is_backbone())
+                        bond->set_hide(bond->hide() | Bond::HIDE_RIBBON);
                 }
-                else {
-                    // Ribbon is not shown, so unhide backbone atoms and bonds
-                    for (auto atom: a)
-                        if ((atom->hide() & Atom::HIDE_RIBBON) != 0
-                                && atom->is_backbone() && atom != center)
-                            atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
-                    for (auto bond: r[i]->bonds_between(r[i])) {
-                        auto atoms = bond->atoms();
-                        if ((bond->hide() & Bond::HIDE_RIBBON) != 0
-                                && atoms[0]->is_backbone() && atoms[1]->is_backbone())
-                            bond->set_hide(bond->hide() & ~Bond::HIDE_RIBBON);
-                    }
+            }
+            else {
+                // Ribbon is not shown, so unhide backbone atoms and bonds
+                for (auto atom: a)
+                    if ((atom->hide() & Atom::HIDE_RIBBON) != 0
+                            && atom->is_backbone() && atom != center)
+                        atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+                for (auto bond: r[i]->bonds_between(r[i])) {
+                    auto atoms = bond->atoms();
+                    if ((bond->hide() & Bond::HIDE_RIBBON) != 0
+                            && atoms[0]->is_backbone() && atoms[1]->is_backbone())
+                        bond->set_hide(bond->hide() & ~Bond::HIDE_RIBBON);
                 }
             }
         }
@@ -1561,6 +1559,18 @@ extern "C" void set_structure_ribbon_tether_opacity(void *mols, size_t n, float3
 {
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
     error_wrap_array_set(m, n, &AtomicStructure::set_ribbon_tether_opacity, ribbon_tether_opacity);
+}
+
+extern "C" void structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_get(m, n, &AtomicStructure::ribbon_show_spine, ribbon_show_spine);
+}
+
+extern "C" void set_structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_set(m, n, &AtomicStructure::set_ribbon_show_spine, ribbon_show_spine);
 }
 
 extern "C" void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)

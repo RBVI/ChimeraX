@@ -67,7 +67,7 @@ In particular, the follow command line arguments are useful:
     and the rest of the arguments are in :py:obj:`sys.argv`.
     Implies ``--nogui`` and ``--silent``.
     This is done after Chimera2 has started up, so a Chimera2 session
-    is available in the global variable ``Chimera2_session``.
+    is available in the global variable ``session``.
     The module name is ``__main__`` instead of a sandbox name that
     is used for normal :py:mod:`~chimera.core.scripting`.
 

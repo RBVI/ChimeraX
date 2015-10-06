@@ -598,10 +598,12 @@ class _Wx:
         help_id = wx.NewId()
         # TODO: once help system more fleshed out, look for help attribute
         # or method in tool window instance and do something appropriate...
-        if False:
-            self.ui_area.Bind(wx.EVT_MENU, lambda evt: self.help_func(),
-                id=help_id)
+        ti = self.tool_window.tool_instance
+        if ti.help is not None:
             menu.Append(help_id, "Help")
+            def help_func(event, tool_instance=ti):
+                tool_instance.display_help()
+            self.ui_area.Bind(wx.EVT_MENU, help_func, id=help_id)
         else:
             menu.Append(help_id, "No help available")
             menu.Enable(help_id, False)

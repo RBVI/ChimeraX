@@ -406,6 +406,8 @@ class AtomicStructureData:
     '''Ribbon tether thickness scale factor (1.0 = match displayed atom radius, 0=invisible).'''
     ribbon_tether_shape = c_property('structure_ribbon_tether_shape', int32)
     '''Ribbon tether shape. Integer value.'''
+    ribbon_show_spine = c_property('structure_ribbon_show_spine', npy_bool)
+    '''Display ribbon spine. Boolean.'''
     TETHER_CONE = 0
     TETHER_REVERSE_CONE = 1
     TETHER_CYLINDER = 2

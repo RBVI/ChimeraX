@@ -26,19 +26,18 @@ class="clRight" alt="Chimera2 logo"/></a>
 <p>
 The <b>movie</b> command captures image frames from Chimera2
 and assembles them into a video (movie file).
-This command is defined by a Chimera2 tool.
 See also: <b>save</b>
 </p><p>
 One of the following <b><i>action</i></b> keywords must be specified:
 <ul>
-<li><a href="#record-options"><b>record</b></a>
+<li><a href="#record"><b>record</b></a>
 - start recording frames
-<li><a href="#encode-options"><b>encode</b></a>
+<li><a href="#encode"><b>encode</b></a>
 - stop any ongoing recording and
 encode the saved image frames into a movie file
 <li><b>stop</b> 
 - stop recording frames
-<li><a href="#reset-options"><b>reset</b></a>
+<li><a href="#reset"><b>reset</b></a>
 - reset status to zero frames saved
 <li><b>abort</b>
 - halt any encoding in progress and perform a <b>reset</b>
@@ -63,7 +62,7 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 </p>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="record-options"><b>movie record</b></a> options:
+<a name="record"><b>movie record</b></a> options:
 <blockquote>
   <a name="supersample">
   <b>supersample</b> <i>N</i></a>
@@ -118,7 +117,7 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="encode-options"><b>movie encode</b></a> options:
+<a name="encode"><b>movie encode</b></a> options:
 <blockquote>
   <a name="output"><b>output</b></a> &nbsp;<i>pathname</i> 
   <br>The <i>pathname</i> is the name and location of the output movie file 
@@ -217,7 +216,7 @@ because any recording will be halted automatically when encoding finishes.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="reset-options"><b>movie reset</b></a> 
+<a name="reset"><b>movie reset</b></a> 
   [&nbsp;<b>resetMode</b> <b>clear</b>&nbsp;|&nbsp;keep&nbsp;]
 <blockquote>
   Reset the frame counter to zero, either deleting the image files

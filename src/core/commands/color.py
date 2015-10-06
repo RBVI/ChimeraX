@@ -37,6 +37,8 @@ def color(session, spec, color=None, target=None, transparency=None,
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     atoms = results.atoms
+    if color == "byhetero":
+        atoms = atoms.filter(atoms.element_numbers != 6)
 
     default_target = (target is None)
     if default_target:
@@ -105,8 +107,8 @@ def color(session, spec, color=None, target=None, transparency=None,
             residues.ribbon_colors = c
         elif color == 'random':
             from numpy import random, uint8
-            c = random.randint(0,255,(len(residues),4)).astype(uint8)
-            c[:,3] = 255   # No transparency
+            c = random.randint(0, 255, (len(residues), 4)).astype(uint8)
+            c[:, 3] = 255   # No transparency
             residues.ribbon_colors = c
         what.append('%d residues' % len(residues))
 
@@ -138,31 +140,27 @@ def color(session, spec, color=None, target=None, transparency=None,
         what.append('nothing')
 
     from . import cli
-    session.logger.status('Colored %s' % cli.commas(what, ' and')[0])
+    session.logger.status('Colored %s' % cli.commas(what, ' and'))
 
 
 def _computed_atom_colors(atoms, color, opacity):
-    if color == "byelement":
+    if color == "byelement" or color == "byhetero":
         c = _element_colors(atoms, opacity)
-    elif color == "byhetero":
-        c = _element_colors(atoms, opacity, skip_carbon=True)
     elif color == "bychain":
         from ..colors import chain_colors
         c = chain_colors(atoms.residues.chain_ids)
         c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
     elif color == "random":
         from numpy import random, uint8
-        c = random.randint(0,255,(len(atoms),4)).astype(uint8)
-        c[:,3] = 255   # Opaque
+        c = random.randint(0, 255, (len(atoms), 4)).astype(uint8)
+        c[:, 3] = 255   # Opaque
     else:
         # Other "colors" do not apply to atoms
         c = None
     return c
 
 
-def _element_colors(atoms, opacity=None, skip_carbon=False):
-    if skip_carbon:
-        atoms = atoms.filter(atoms.element_numbers != 6)
+def _element_colors(atoms, opacity=None):
     from ..colors import element_colors
     c = element_colors(atoms.element_numbers)
     c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity

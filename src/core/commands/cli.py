@@ -200,22 +200,49 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
-def commas(text_seq, conjunction=' or', suffix='s'):
-    """Return comma separated list of words and suffix
+def commas(text_seq, conjunction=' or'):
+    """Return comma separated list of words
 
     :param text_seq: a sequence of text strings
     :param conjunction: a word with a leading space
-    :param suffix: suffix to return if more than one string
     """
     seq_len = len(text_seq)
     if seq_len == 0:
-        return "", ""
+        return ""
     if seq_len == 1:
-        return text_seq[0], ""
+        return text_seq[0]
     if seq_len == 2:
-        return '%s%s %s' % (text_seq[0], conjunction, text_seq[1]), suffix
+        return '%s%s %s' % (text_seq[0], conjunction, text_seq[1])
     text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
-    return text, suffix
+    return text
+
+
+def plural(seq, suffix='s'):
+    """Return plural suffix based on length of sequence
+
+    :param seq: a sequence of objects
+    :param suffix: suffix to return if more than one string, default 's'
+    """
+    seq_len = len(seq)
+    if seq_len in (0, 1):
+        return ""
+    return suffix
+
+
+def plural_of(word):
+    """Return American English plural of word
+
+    :param word: the word to form the plural version
+    """
+    if word.endswith(('o', 'sh', 'ch')):
+        return word + 'es'
+    if word.endswith('y'):
+        if word[-2] in 'aeiou':
+            return word + 's'
+        else:
+            return word[:-1] + 'ies'
+    # TODO: special case words, e.g. leaf -> leaves, hoof -> hooves
+    return word + 's'
 
 
 def discard_article(text):
@@ -226,7 +253,7 @@ def discard_article(text):
     return text
 
 
-def _dq_repr(obj):
+def dq_repr(obj):
     """Like repr, but use double quotes"""
     r = repr(obj)
     if r[0] != "'":
@@ -340,7 +367,7 @@ class Aggregate(Annotation):
             if ',' in annotation.name:
                 self.name = "a collection of %s" % annotation.name
             else:
-                self.name = "some %s(s)" % discard_article(annotation.name)
+                self.name = "some %s" % plural_of(discard_article(annotation.name))
         self.prefix = prefix
 
     def add_to(self, container, element):
@@ -412,15 +439,17 @@ class Aggregate(Annotation):
                 qual = "exactly"
             else:
                 qual = "at least"
-            raise AnnotationError("Need %s %d %s" % (qual, self.min_size,
-                                                     self.name), len(used))
+            raise AnnotationError("Need %s %d '%s'-separated %s" % (
+                qual, self.min_size, self.separator,
+                discard_article(self.name)), len(used))
         if len(result) > self.max_size:
             if self.min_size == self.max_size:
                 qual = "exactly"
             else:
                 qual = "at most"
-            raise AnnotationError("Need %s %d %s" % (qual, self.max_size,
-                                                     self.name), len(used))
+            raise AnnotationError("Need %s %d '%s'-separated %s" % (
+                qual, self.max_size, self.separator,
+                discard_article(self.name)), len(used))
         return result, used, rest
 
 
@@ -478,8 +507,7 @@ class DottedTupleOf(Aggregate):
             if ',' in annotation.name:
                 name = "a dotted list of %s" % annotation.name
             else:
-                # discard article
-                name = annotation.name.split(None, 1)[1]
+                name = discard_article(annotation.name)
                 name = "dotted %s(s)" % name
             self.name = name
 
@@ -699,7 +727,7 @@ class EnumOf(Annotation):
             if len(self.ids) == 1:
                 self.name = "'%s'" % self.ids[0]
             else:
-                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])[0]
+                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])
         if abbreviations is not None:
             self.allow_truncated = abbreviations
 
@@ -731,7 +759,7 @@ class Or(Annotation):
         Annotation.__init__(self, name, url)
         self.annotations = annotations
         if name is None:
-            self.name = commas([a.name for a in annotations])[0]
+            self.name = commas([a.name for a in annotations])
 
     def parse(self, text, session):
         for anno in self.annotations:
@@ -742,7 +770,7 @@ class Or(Annotation):
                     raise
             except ValueError:
                 pass
-        msg = commas([a.name for a in self.annotations])[0]
+        msg = commas([a.name for a in self.annotations])
         raise AnnotationError("Expected %s" % msg)
 
 
@@ -1024,7 +1052,7 @@ class Limited(Postcondition):
             return True
 
     def error_message(self):
-        message = "Invalid argument %s: " % _dq_repr(self.arg_name)
+        message = "Invalid argument %s: " % dq_repr(self.arg_name)
         if self.min and self.max:
             return message + ("Must be greater than or equal to %s and less"
                               " than or equal to %s" % (self.min, self.max))
@@ -1264,7 +1292,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
         if not isinstance(function, Alias):
             raise
         if logger is not None:
-            logger.warn("alias %s hides existing command" % _dq_repr(name))
+            logger.warn("alias %s hides existing command" % dq_repr(name))
     if isinstance(function, _Defer):
         cmd_desc = function
     else:
@@ -1283,8 +1311,8 @@ def register(name, cmd_desc=(), function=None, logger=None):
             _aliased_commands[name] = cmd_desc
         else:
             if logger is not None:
-                logger.warn("command %s is replacing existing command" %
-                            _dq_repr(name))
+                logger.info("FYI: command %s is replacing existing command" %
+                            dq_repr(name))
             cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
@@ -1426,10 +1454,11 @@ class Command:
         for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
             missing = [kw for kw in ci._required_arguments if kw not in kw_args]
             if missing:
-                arg_names, suffix = commas(
-                    ["'%s'" % m for m in missing], ' and')
+                arg_names = ["'%s'" % m for m in missing]
+                msg = commas(arg_names, ' and')
+                suffix = plural(arg_names)
                 raise UserError("Missing required %s argument%s" % (
-                    arg_names, suffix))
+                    msg, suffix))
             for cond in ci._postconditions:
                 if not cond.check(kw_args):
                     raise UserError(cond.error_message())
@@ -1604,12 +1633,15 @@ class Command:
         #   updates amount_parsed
         #   updates possible completions
         #   if successful, updates self._kw_args
+        # for better error messages return:
+        #   (last successful annotation, failed optional annotation)
         session = self._session()  # resolve back reference
         text = self.current_text[self.amount_parsed:]
         positional = self._ci._required.copy()
         positional.update(self._ci._optional)
         self.completion_prefix = ''
         self.completions = []
+        last_anno = None
         for kw_name, anno in positional.items():
             if kw_name in self._ci._optional:
                 self._error = ""
@@ -1621,18 +1653,18 @@ class Command:
                 self.amount_parsed += start
                 text = text[start:]
             if not text:
-                break
+                return None, None
             if text[0] == ';':
-                break
+                return None, None
             if kw_name in self._ci._optional:
                 # check if next token matches a keyword and if so,
                 # terminate positional arguments
                 _, tmp, _ = next_token(text, no_raise=True)
                 if not tmp:
-                    break
+                    return None, None
                 tmp = _canonical_kw(tmp)
                 if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
-                    break
+                    return None, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 if is_python_keyword(kw_name):
@@ -1640,6 +1672,7 @@ class Command:
                 else:
                     self._kw_args[kw_name] = value
                 self._error = ""
+                last_anno = anno
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset:
                     # We got an error with an offset, that means that an
@@ -1648,15 +1681,16 @@ class Command:
                     self.amount_parsed += err.offset
                     self._error = 'Invalid "%s" argument: %s' % (
                         _user_kw(kw_name), err)
-                    return
+                    return None, None
                 if kw_name in self._ci._required:
                     self._error = 'Invalid "%s" argument: %s' % (
                         _user_kw(kw_name), err)
-                    return
+                    return None, None
                 # optional and wrong type, try as keyword
-                break
+                return last_anno, anno
+        return last_anno, None
 
-    def _process_keyword_arguments(self, final):
+    def _process_keyword_arguments(self, final, prev_annos):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
@@ -1691,10 +1725,16 @@ class Command:
                     text = self.current_text[self.amount_parsed:]
                     self.completions = []
                     continue
+                expected = []
+                if isinstance(prev_annos[0], Aggregate):
+                    expected.append("'%s'" % prev_annos[0].separator)
+                if prev_annos[1] is not None:
+                    expected.append(prev_annos[1].name)
                 if len(self._ci._keyword_map) > 0:
-                    self._error = "Expected keyword, got '%s'" % word
+                    expected.append("a keyword")
                 else:
-                    self._error = "Too many arguments"
+                    expected.append("fewer arguments")
+                self._error = "Expected " + commas(expected)
                 return
             self.amount_parsed += len(chars)
             m = _whitespace.match(text)
@@ -1717,6 +1757,7 @@ class Command:
                     self._kw_args['%s_' % kw_name] = value
                 else:
                     self._kw_args[kw_name] = value
+                prev_annos = (anno, None)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
@@ -1754,10 +1795,10 @@ class Command:
             if not self._ci:
                 return
             start = self.amount_parsed - len(self.command_name)
-            self._process_positional_arguments()
+            prev_annos = self._process_positional_arguments()
             if self._error:
                 return
-            self._process_keyword_arguments(final)
+            self._process_keyword_arguments(final, prev_annos)
             if self._error:
                 return
             self._multiple.append((
@@ -1818,6 +1859,7 @@ def usage(name, no_aliases=False):
 
     if cmd.word_map is not None:
         # partial command match
+        name = cmd.command_name
         usage = 'Choices are:\n'
         usage += '\n'.join(['  %s %s' % (name, w)
                             for w in cmd.word_map])
@@ -1835,9 +1877,12 @@ def usage(name, no_aliases=False):
         num_opt += 1
     usage += ']' * num_opt
     for arg_name in ci._keyword:
-        type = ci._keyword[arg_name].name
+        arg_type = ci._keyword[arg_name]
         arg_name = _user_kw(arg_name)
-        usage += ' [%s _%s_]' % (arg_name, type)
+        if arg_type is NoArg:
+            usage += ' [%s]' % arg_name
+            continue
+        usage += ' [%s _%s_]' % (arg_name, arg_type.name)
     if ci.synopsis:
         usage += ' -- %s' % ci.synopsis
     return usage
@@ -1859,6 +1904,7 @@ def html_usage(name, no_aliases=False):
 
     if cmd.word_map is not None:
         # partial command match
+        name = cmd.command_name
         usage = 'Choices are:<br/><ul>'
         usage += '<br/>'.join(['<li> %s %s' % (escape(name), w)
                                for w in cmd.word_map])
@@ -1872,34 +1918,37 @@ def html_usage(name, no_aliases=False):
             cmd._ci.url, escape(cmd.command_name))
     ci = cmd._ci
     for arg_name in ci._required:
-        arg = ci._required[arg_name]
+        arg_type = ci._required[arg_name]
         arg_name = _user_kw(arg_name)
-        type = arg.name
-        if arg.url is None:
+        type = arg_type.name
+        if arg_type.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
         usage += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
     num_opt = 0
     for arg_name in ci._optional:
         num_opt += 1
-        arg = ci._optional[arg_name]
+        arg_type = ci._optional[arg_name]
         arg_name = _user_kw(arg_name)
-        type = arg.name
-        if arg.url is None:
+        type = arg_type.name
+        if arg_type.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
         usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
     usage += ']' * num_opt
     for arg_name in ci._keyword:
-        arg = ci._keyword[arg_name]
+        arg_type = ci._keyword[arg_name]
         arg_name = _user_kw(arg_name)
-        if arg.url is None:
-            type = escape(arg.name)
+        if arg_type is NoArg:
+            type = ""
         else:
-            type = '<a href="%s">%s</a>' % (arg.url, escape(arg.name))
-        usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
+            type = "<i>%s</i>" % escape(arg_type.name)
+            if arg_type.url is not None:
+                type = '<a href="%s">%s</a>' % (arg_type.url, type)
+            type = ' ' + type
+        usage += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(arg_name), type)
     if ci.synopsis:
         usage = "<i>%s</i><br>%s" % (escape(ci.synopsis), usage)
     return usage
@@ -1911,11 +1960,17 @@ def registered_commands(multiword=False):
         return list(_commands.keys())
 
     def cmds(cmd_map):
-        for word in cmd_map.keys():
+        used_words = set()
+        words = set(cmd_map.keys())
+        while words:
+            word = words.pop()
             what = cmd_map[word]
             if isinstance(what, _Defer):
                 what = _lazy_register(cmd_map, word)
+                words = set(cmd_map.keys())
+                words.difference_update(used_words)
                 continue
+            used_words.add(word)
             if isinstance(what, CmdDesc):
                 yield word
                 continue
@@ -2022,39 +2077,25 @@ class Alias:
 _cmd_aliases = {}
 
 
-@register('alias', CmdDesc(optional=[('name', StringArg),
-                                     ('text', WholeRestOfLine)],
-                           synopsis='list or define a command alias'))
-def alias(session, name='', text=''):
+def alias(name='', text='', logger=None):
     """Create command alias
 
     :param name: optional name of the alias
     :param text: optional text of the alias
+    :param logger: optional logger
 
     If the alias name is not given, then a text list of all the aliases is
     returned.  If alias text is not given, the text of the named alias
     is returned.  If both arguments are given, then a new alias is made.
     """
-    logger = session.logger if session else None
     if not name:
         # list aliases
-        names = commas(list(_cmd_aliases.keys()), '')[0]
-        if names:
-            if logger is not None:
-                logger.info('Aliases: %s' % names)
-        else:
-            if logger is not None:
-                logger.status('No aliases.')
-        return
+        return list(_cmd_aliases.keys())
     if not text:
-        if logger is not None:
-            if name not in _cmd_aliases:
-                logger.status('No alias named %s found.' % _dq_repr(name))
-            else:
-                logger.info('Aliased %s to %s' % (
-                    _dq_repr(name),
-                    _dq_repr(_cmd_aliases[name].original_text)))
-        return
+        if name not in _cmd_aliases:
+            return None
+        else:
+            return _cmd_aliases[name].original_text
     name = ' '.join(name.split())   # canonicalize
     cmd = Alias(text)
     tmp = Command(None)
@@ -2072,9 +2113,7 @@ def alias(session, name='', text=''):
     _cmd_aliases[name] = cmd
 
 
-@register('~alias', CmdDesc(required=[('name', StringArg)],
-                            synopsis='remove a command alias'))
-def unalias(session, name):
+def unalias(name):
     """Remove command alias
 
     :param name: name of the alias
@@ -2085,7 +2124,7 @@ def unalias(session, name):
     try:
         del _cmd_aliases[name]
     except KeyError:
-        raise UserError('No alias named %s exists' % _dq_repr(name))
+        raise UserError('No alias named %s exists' % dq_repr(name))
 
     cmd_map = _commands
     for word in words[:-1]:

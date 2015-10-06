@@ -4,13 +4,21 @@
 def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module
-    modules = ['buriedarea', 'camera', 'close', 'color', 'colordef', 'crossfade', 'crosslinks',
-               'delete', 'display', 'echo', 'exit', 'export', 'lighting', 'list', 'material',
-               'move', 'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',
-               'sasa', 'save', 'scolor', 'select', 'set', 'split', 'stop', 'style', 'surface', 'sym',
-               'transparency', 'turn', 'usage', 'view', 'wait']
+    # Remember that the order is important, when a command name is
+    # abbreviated, the one registered that matches wins, not the first
+    # in alphabetical order.
+    modules = [
+        'alias_cmd', 'buriedarea',
+        'camera', 'close', 'color', 'colordef', 'crossfade', 'crosslinks',
+        'delete', 'display', 'echo', 'exit', 'export',
+        'lighting', 'list', 'material', 'move',
+        'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',
+        'save', 'sasa', 'scolor', 'select', 'set', 'split',
+        'stop', 'style', 'surface', 'sym',
+        'transparency', 'turn', 'usage', 'view', 'wait'
+    ]
     for mod in modules:
-        m = import_module('chimera.core.commands.%s' % mod)
+        m = import_module(".%s" % mod, __package__)
         m.register_command(session)
 
     from .. import map
@@ -32,6 +40,7 @@ def register_core_commands(session):
     from . import atomspec
     atomspec.register_selector(None, "sel", _sel_selector)
     atomspec.register_selector(None, "strands", _strands_selector)
+<<<<<<< HEAD
     atomspec.register_selector(None, "ions",
         lambda s, m, r: _structure_category_selector("ions", m, r))
     atomspec.register_selector(None, "ligand",
@@ -40,6 +49,11 @@ def register_core_commands(session):
         lambda s, m, r: _structure_category_selector("main", m, r))
     atomspec.register_selector(None, "solvent",
         lambda s, m, r: _structure_category_selector("solvent", m, r))
+=======
+    atomspec.register_selector(None, "sheet", _strands_selector)
+    atomspec.register_selector(None, "helices", _helices_selector)
+    atomspec.register_selector(None, "turns", _turns_selector)
+>>>>>>> 3f388144ab581bec782b450b0bfc8d8319a53c98
     from ..atomic.molobject import Element
     for i in range(1, 115):
         e = Element.get_element(i)
@@ -75,6 +89,7 @@ def _strands_selector(session, models, results):
                 results.add_model(m)
                 results.add_atoms(strands.atoms)
 
+<<<<<<< HEAD
 def _structure_category_selector(cat, models, results):
     from ..atomic import AtomicStructure
     for m in models:
@@ -84,3 +99,26 @@ def _structure_category_selector(cat, models, results):
                 results.add_model(m)
                 results.add_atoms(atoms)
 
+=======
+
+def _helices_selector(session, models, results):
+    from ..atomic import AtomicStructure
+    for m in models:
+        if isinstance(m, AtomicStructure):
+            helices = m.residues.filter(m.residues.is_helix)
+            if helices:
+                results.add_model(m)
+                results.add_atoms(helices.atoms)
+
+
+def _turns_selector(session, models, results):
+    from ..atomic import AtomicStructure
+    for m in models:
+        if isinstance(m, AtomicStructure):
+            from numpy import logical_not, logical_or
+            is_turn = logical_not(logical_or(m.residues.is_sheet, m.residues.is_helix))
+            turns = m.residues.filter(is_turn)
+            if turns:
+                results.add_model(m)
+                results.add_atoms(turns.atoms)
+>>>>>>> 3f388144ab581bec782b450b0bfc8d8319a53c98

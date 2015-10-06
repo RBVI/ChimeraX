@@ -11,6 +11,7 @@ class CommandLine(ToolInstance):
 
     show_history_label = "Command History..."
     compact_label = "Remove duplicate consecutive commands"
+    help = "help:user/tools/cli.html"
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
