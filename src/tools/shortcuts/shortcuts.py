@@ -805,7 +805,11 @@ def show_scenes(session):
     session.scenes.show_thumbnails(toggle = True)
 
 def show_framerate(session):
-    session.main_view.report_framerate()
+    def report_rate(fps, log=session.logger):
+        msg = '%.1f frames/sec' % fps
+        log.status(msg)
+        log.info(msg)
+    session.main_view.report_framerate(report_rate)
 
 def show_triangle_count(session):
     models = session.models.list()

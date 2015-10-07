@@ -13,11 +13,10 @@ class View:
     VIEW_STATE_VERSION = 1
 
     def __init__(self, drawing, *, window_size = (256,256), opengl_context = None,
-                 trigger_set = None, log = None):
+                 trigger_set = None):
 
         self.triggers = trigger_set
         self.drawing = drawing
-        self.log = log
         self.window_size = window_size		# pixels
         self._opengl_context = opengl_context
 
@@ -497,16 +496,17 @@ class View:
             return ((vw * h) // vh, h)
         return (vw, vh)
 
-    def report_framerate(self, time=None, monitor_period=1.0):
+    def report_framerate(self, report_rate, monitor_period=1.0, _minimum_render_time=None):
         '''
         Report a status message giving the current rendering rate in
         frames per second.  This is computed without the vertical sync
         which normally limits the frame rate to typically 60 frames
         per second.  The minimum drawing time used over a one second
-        interval is used. The message is shown in the status line and
-        log after the one second has elapsed.
+        interval is used. The report_rate function is called with
+        the frame rate in frames per second.
         '''
-        if time is None:
+        if _minimum_render_time is None:
+            self._framerate_callback = report_rate
             from time import time
             self._time_graphics = time() + monitor_period
             self.minimum_render_time = None
@@ -514,10 +514,7 @@ class View:
             self.redraw_needed = True
         else:
             self._time_graphics = 0
-            msg = '%.1f frames/sec' % (1.0 / time,)
-            l = self.log
-            l.status(msg)
-            l.info(msg)
+            self._framerate_callback(1.0/_minimum_render_time)
 
     def _start_timing(self):
         if self._time_graphics:
@@ -535,7 +532,7 @@ class View:
             if mint is None or rt < mint:
                 self.minimum_render_time = mint = rt
             if t > self._time_graphics:
-                self.report_framerate(mint)
+                self.report_framerate(None, _minimum_render_time = mint)
             else:
                 self.redraw_needed = True
 
