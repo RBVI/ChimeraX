@@ -452,8 +452,6 @@ def _initialize():
         open_func=open, export_func=save)
 _initialize()
 
-_monkey_patch = True
-
 
 class Selection:
 
@@ -516,13 +514,13 @@ def common_startup(sess):
     sess.user_colormaps = colors.UserColormaps()
     sess.add_state_manager('user_colormaps', sess.user_colormaps)
     from .graphics.view import View
-    global _monkey_patch
-    if _monkey_patch:
-        State.register(View)
-    _monkey_patch = False
     sess.main_view = View(sess.models.drawing, window_size = (256, 256),
                           trigger_set = sess.triggers)
-    sess.add_state_manager('main_view', sess.main_view)
+    try:
+        from .core_settings import settings
+        sess.main_view.background_color = settings.bg_color.rgba
+    except ImportError:
+        pass
     from .updateloop import UpdateLoop
     sess.update_loop = UpdateLoop()
     from .atomic import PseudobondManager, ChangeTracker

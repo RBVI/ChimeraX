@@ -10,8 +10,6 @@ class View:
     A View is the graphics windows that shows 3-dimensional drawings.
     It manages the camera and renders the drawing when needed.
     '''
-    VIEW_STATE_VERSION = 1
-
     def __init__(self, drawing, *, window_size = (256,256), opengl_context = None,
                  trigger_set = None):
 
@@ -21,11 +19,7 @@ class View:
         self._opengl_context = opengl_context
 
         # Red, green, blue, opacity, 0-1 range.
-        try:
-            from ..core_settings import settings
-            self._background_rgba = settings.bg_color.rgba
-        except ImportError:
-            self._background_rgba = (0, 0, 0, 1)
+        self._background_rgba = (0, 0, 0, 1)
 
         # Create camera
         from .camera import Camera
@@ -69,34 +63,6 @@ class View:
         self._drawing_manager = dm = _RedrawNeeded()
         if trigger_set:
             self.drawing.set_redraw_callback(dm)
-
-    def take_snapshot(self, phase, session, flags):
-        from ..session import State
-        if phase == State.SAVE_PHASE:
-            data = [self.center_of_rotation, self.window_size,
-                    self.background_color,
-                    self.camera.take_snapshot(session, phase, flags)]
-            return [self.VIEW_STATE_VERSION, data]
-        if phase == State.CLEANUP_PHASE:
-            self.camera.take_snapshot(session, phase, flags)
-
-    def restore_snapshot(self, phase, session, version, data):
-        from ..session import State, RestoreError
-        if version != self.VIEW_STATE_VERSION or len(data) == 0:
-            raise RestoreError("Unexpected version or data")
-        if phase == State.CREATE_PHASE:
-            (self.center_of_rotation, self.window_size,
-             self.background_color) = data[:3]
-            from .camera import Camera
-            self.camera = Camera()
-        self.camera.restore_snapshot(phase, session, data[3][0], data[3][1])
-
-    def reset_state(self):
-        """Reset state to data-less state"""
-        from numpy import array, float32
-        self.center_of_rotation = array((0, 0, 0), float32)
-        # self.window_size = ?
-        self.background_color = (0, 0, 0, 1)
 
     def initialize_context(self, oc):
         if self._opengl_context is not None:
