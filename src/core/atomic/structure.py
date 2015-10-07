@@ -255,10 +255,12 @@ class AtomicStructure(AtomicStructureData, Model):
             p.geometry = va, ta
             p.normals = na
 
-        xyz1, xyz2 = bond_atoms[0].coords, bond_atoms[1].coords
+        ba1, ba2 = bond_atoms
+        xyz1, xyz2 = ba1.coords, ba2.coords
         p.positions = _bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
         p.display_positions = self._shown_bond_cylinders(bond_atoms, half_bond_coloring)
         self._set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
+        p.selected_positions = _selected_bond_cylinders(bond_atoms, half_bond_coloring)
 
     def _set_bond_colors(self, drawing, bond_atoms, bond_colors, half_bond_coloring):
         p = drawing
@@ -1010,6 +1012,20 @@ def _bond_cylinder_placements(axyz0, axyz1, radius, half_bond):
   from ..geometry import Places
   pl = Places(opengl_array = pt)
   return pl
+
+# -----------------------------------------------------------------------------
+# Bond is selected if both atoms are selected.
+#
+def _selected_bond_cylinders(bond_atoms, half_bond):
+    ba1, ba2 = bond_atoms
+    if ba1.num_selected > 0 and ba2.num_selected > 0:
+        from numpy import logical_and, concatenate
+        sel = logical_and(ba1.selected,ba2.selected)
+        if half_bond.any():
+            sel = concatenate((sel,sel))
+    else:
+        sel = None
+    return sel
 
 # -----------------------------------------------------------------------------
 #
