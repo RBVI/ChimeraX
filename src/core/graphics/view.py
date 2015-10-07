@@ -12,14 +12,14 @@ class View:
     '''
     VIEW_STATE_VERSION = 1
 
-    def __init__(self, session, window_size, opengl_context, *, track=True):
+    def __init__(self, drawing, *, window_size = (256,256), opengl_context = None,
+                 trigger_set = None, log = None):
 
-        self.session = session
-        self.drawing = session.models.drawing
-        self.log = session.logger
+        self.triggers = trigger_set
+        self.drawing = drawing
+        self.log = log
         self.window_size = window_size		# pixels
         self._opengl_context = opengl_context
-        self.track = track
 
         # Red, green, blue, opacity, 0-1 range.
         try:
@@ -59,7 +59,6 @@ class View:
         self.redraw_needed = True
         self._time_graphics = False
         self.update_lighting = False
-        self._block_redraw_count = 0
 
         self._overlays = []
         self._2d_overlays = []
@@ -69,7 +68,7 @@ class View:
         self._update_center_of_rotation = False
 
         self._drawing_manager = dm = _RedrawNeeded()
-        if track:
+        if trigger_set:
             self.drawing.set_redraw_callback(dm)
 
     def take_snapshot(self, phase, session, flags):
@@ -134,42 +133,6 @@ class View:
         w, h = self.window_size
         r.initialize_opengl(w, h)
 
-    def draw_new_frame(self):
-        '''
-        Draw the scene if it has changed or camera or rendering options have changed.
-        Before checking if the scene has changed fire the "new frame" trigger
-        typically used by movie recording to animate such as rotating the view, fading
-        models in and out, ....  If the scene is drawn fire the "rendered frame" trigger
-        after drawing.  Return true if draw, otherwise false.
-        '''
-        if self._block_redraw_count > 0:
-            # Avoid redrawing during callbacks of the current redraw.
-            return False
-        
-        self._block_redraw()
-        try:
-            if self.track:
-                self.session.triggers.activate_trigger('new frame', self)
-            changed = self._check_for_drawing_change()
-            if self.track:
-                from ..atomic import check_for_changes
-                check_for_changes(self.session)
-            if changed:
-                try:
-                    self.draw(check_for_changes = False)
-                except:
-                    # Stop redraw if an error occurs to avoid continuous stream of errors.
-                    self._block_redraw()
-                    raise
-                if self.track:
-                    self.session.triggers.activate_trigger('rendered frame', self)
-        finally:
-            self._unblock_redraw()
-
-        self.frame_number += 1
-
-        return changed
-
     def draw(self, camera = None, drawings = None,
              check_for_changes = True, swap_buffers = True):
         '''
@@ -178,7 +141,7 @@ class View:
         self._use_opengl()
 
         if check_for_changes:
-            self._check_for_drawing_change()
+            self.check_for_drawing_change()
 
         if camera is None:
             camera = self.camera
@@ -256,9 +219,10 @@ class View:
                 self._opengl_context.swap_buffers()
             self.redraw_needed = False
 
-    def _check_for_drawing_change(self):
-        if self.track:
-            self.session.triggers.activate_trigger('graphics update', self)
+    def check_for_drawing_change(self):
+        trig = self.triggers
+        if trig:
+            trig.activate_trigger('graphics update', self)
 
         c = self.camera
         dm = self._drawing_manager
@@ -267,8 +231,8 @@ class View:
             return False
 
         if dm.shape_changed:
-            if self.track:
-                self.session.triggers.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
+            if trig:
+                trig.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
             self._update_center_of_rotation = True
 
         if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
@@ -281,13 +245,6 @@ class View:
         self.redraw_needed = True
 
         return True
-
-    def _block_redraw(self):
-        # Avoid redrawing when we are already in the middle of drawing.
-        self._block_redraw_count += 1
-
-    def _unblock_redraw(self):
-        self._block_redraw_count -= 1
 
     def get_background_color(self):
         return self._background_rgba
@@ -681,7 +638,7 @@ class View:
         '''Return bounds of drawing, displayed part only.'''
         dm = self._drawing_manager
         b = dm.cached_drawing_bounds
-        if b is None or self._check_for_drawing_change():
+        if b is None or self.check_for_drawing_change():
             dm.cached_drawing_bounds = b = self.drawing.bounds()
         return b
 
@@ -886,25 +843,6 @@ class _RedrawNeeded:
         if selection_changed:
             self.cached_any_part_selected = None
 
-
-# check_for_changes defined here despite being publicly made available
-# in atomic module because it uses internal View methods
-def _check_for_changes(session):
-    """Check for, and propagate Chimera atomic data changes.
-
-    This is called once per frame, and whenever otherwise needed.
-    """
-    ct = session.change_tracker
-    if not ct.changed:
-        return
-    mv = session.main_view
-    mv._block_redraw()
-    try:
-        changes = ct.changes
-        ct.clear()
-        session.triggers.activate_trigger("atomic changes", changes)
-    finally:
-        mv._unblock_redraw()
 
 def _drawing_bounds(drawings, open_drawing):
     if drawings is None:

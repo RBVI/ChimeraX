@@ -298,7 +298,7 @@ class SideViewUI(ToolInstance):
         # UI content code
         from chimera.core.graphics.view import View
         self.opengl_context = oc = session.main_view.opengl_context()
-        self.view = View(session, wx.DefaultSize, oc, track=False)
+        self.view = View(session.models.drawing, window_size = wx.DefaultSize, opengl_context = oc)
         self.view.camera = OrthoCamera()
         if self.display_name.startswith('Top'):
             side = SideViewCanvas.TOP_SIDE

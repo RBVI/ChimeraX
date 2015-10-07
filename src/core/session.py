@@ -520,8 +520,11 @@ def common_startup(sess):
     if _monkey_patch:
         State.register(View)
     _monkey_patch = False
-    sess.main_view = View(sess, (256, 256), None)
+    sess.main_view = View(sess.models.drawing, window_size = (256, 256),
+                          trigger_set = sess.triggers)
     sess.add_state_manager('main_view', sess.main_view)
+    from .updateloop import UpdateLoop
+    sess.update_loop = UpdateLoop()
     from .atomic import PseudobondManager, ChangeTracker
     sess.change_tracker = ChangeTracker()
     sess.pb_manager = PseudobondManager(sess.change_tracker)

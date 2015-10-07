@@ -11,6 +11,7 @@ class GraphicsWindow(wx.Panel):
         wx.Panel.__init__(self, parent,
             style=wx.TAB_TRAVERSAL | wx.NO_BORDER | wx.WANTS_CHARS)
         self.timer = None
+        self.session = ui.session
         self.view = ui.session.main_view
         self.opengl_canvas = OpenGLCanvas(self, self.view, ui)
         from wx.glcanvas import GLContext
@@ -55,7 +56,8 @@ class GraphicsWindow(wx.Panel):
 
         # 'x or y' is the "lambda way" of saying 'if not x: y'
         wx.CallAfter(lambda s=self:
-            s.view.draw_new_frame() or s.mouse_modes.mouse_pause_tracking())
+                     s.session.update_loop.draw_new_frame(s.session)
+                     or s.mouse_modes.mouse_pause_tracking())
 
 
 class Popup(wx.PopupWindow):
