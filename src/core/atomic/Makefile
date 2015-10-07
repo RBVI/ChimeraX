@@ -9,7 +9,7 @@ include $(TOP)/mk/subdir.make
 PKG_DIR = $(PYSITEDIR)/chimera/core/atomic
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/atomic
 
-PYSRCS = __init__.py mmcif.py molc.py molarray.py molobject.py molsurf.py \
+PYSRCS = __init__.py changes.py mmcif.py molc.py molarray.py molobject.py molsurf.py \
 	 pbgroup.py pdb.py readpbonds.py ribbon.py structure.py
 LIBNAME = molc
 
