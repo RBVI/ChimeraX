@@ -82,11 +82,11 @@ public:
         const char* template_dir, const char* extension) const;
 
     // handy
-    static const std::set<const AtomName>  aa_min_backbone_names;
-    static const std::set<const AtomName>  aa_max_backbone_names;
-    static const std::set<const AtomName>  na_min_backbone_names;
-    static const std::set<const AtomName>  na_max_backbone_names;
-    static const std::set<const ResName>  std_solvent_names;
+    static const std::set<AtomName>  aa_min_backbone_names;
+    static const std::set<AtomName>  aa_max_backbone_names;
+    static const std::set<AtomName>  na_min_backbone_names;
+    static const std::set<AtomName>  na_max_backbone_names;
+    static const std::set<ResName>  std_solvent_names;
 
     // graphics related
     float  ribbon_adjust() const;
