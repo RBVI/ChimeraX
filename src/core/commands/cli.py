@@ -217,24 +217,31 @@ def commas(text_seq, conjunction=' or'):
     return text
 
 
-def plural(seq, suffix='s'):
-    """Return plural suffix based on length of sequence
+def plural_form(seq, word, plural=None):
+    """Return plural of word based on length of sequence
 
     :param seq: a sequence of objects
-    :param suffix: suffix to return if more than one string, default 's'
+    :param word: word to form the plural of
+    :param plural: optional explicit plural of word, otherwise best guess
     """
     seq_len = len(seq)
     if seq_len in (0, 1):
-        return ""
-    return suffix
+        return word
+    if plural is None:
+        return plural_of(word)
+    return plural
 
 
 def plural_of(word):
-    """Return American English plural of word
+    """Return American English plural of the word
 
     :param word: the word to form the plural version
     """
-    if word.endswith(('o', 'sh', 'ch')):
+    if word.endswith('o'):
+        if word.casefold() in ('zero', 'photo', 'quarto'):
+            return word + 's'
+        return word + 'es'
+    if word.endswith(('sh', 'ch', 's', 'x')):
         return word + 'es'
     if word.endswith('y'):
         if word[-2] in 'aeiou':
@@ -1456,9 +1463,8 @@ class Command:
             if missing:
                 arg_names = ["'%s'" % m for m in missing]
                 msg = commas(arg_names, ' and')
-                suffix = plural(arg_names)
-                raise UserError("Missing required %s argument%s" % (
-                    msg, suffix))
+                noun = plural_form(arg_names, 'argument')
+                raise UserError("Missing required %s %s" % (msg, noun))
             for cond in ci._postconditions:
                 if not cond.check(kw_args):
                     raise UserError(cond.error_message())
