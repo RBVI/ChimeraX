@@ -121,8 +121,8 @@ def standard_shortcuts(session):
         ('sw', 'display solvent', 'Show water atoms', molcat, noarg, mlmenu),
         ('hw', '~display solvent', 'Hide water atoms', molcat, noarg, mlmenu, sep),
 
-        ('sb', show_bonds, 'Show bonds', molcat, atomsarg, mlmenu),
-        ('hb', hide_bonds, 'Hide bonds', molcat, atomsarg, mlmenu),
+        ('db', 'display selAtoms bonds', 'Display bonds', molcat, noarg, mlmenu),
+        ('hb', '~display selAtoms bonds', 'Hide bonds', molcat, noarg, mlmenu),
 
         ('Hb', 'color selAtoms halfbond true', 'Half bond coloring', molcat, noarg, mlmenu),
         ('Sb', 'color selAtoms halfbond false', 'Single color bonds', molcat, noarg, mlmenu),
@@ -930,11 +930,6 @@ def restore_position(session):
 def minimize_crosslinks(atoms, session):
     from chimera.core.crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
-
-def show_bonds(atoms):
-    atoms.inter_bonds.displays = True
-def hide_bonds(atoms):
-    atoms.inter_bonds.displays = False
 
 def keyboard_shortcuts(session):
     ks = getattr(session, 'keyboard_shortcuts', None)
