@@ -9,14 +9,16 @@ def start_tool(session, ti):
     # look at the name in 'ti.name' to see which is being started.
 
     # Starting tools may only work in GUI mode, or in all modes.
-    # If a tool instance is SESSION_ENDURING, then return the
-    # singleton.
+    # To avoid starting when not in GUI mode, uncomment the next two lines:
+    #if not session.ui.is_gui:
+    #    return
     from .gui import ToolUI
     return ToolUI(session, ti)     # UI should register itself with tool state manager
 
 
 #
-# 'register_command' is called by the toolshed on start up
+# 'register_command' is called by the toolshed on start up, if your setup.py says
+# that your tool provides a command
 #
 def register_command(command_name):
     from . import cmd

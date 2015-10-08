@@ -45,7 +45,7 @@ class HelpUI(ToolInstance):
     def __init__(self, session, tool_info):
         super().__init__(session, tool_info)
         # 'display_name' defaults to class name with spaces inserted
-        # between lower-then-upper-case characters (therefore "Tool UI"
+        # between lower-then-upper-case characters (therefore "Help UI"
         # in this case), so only override if different name desired
         self.display_name = "%s Help Viewer" % session.app_dirs.appname
         self.home_page = None

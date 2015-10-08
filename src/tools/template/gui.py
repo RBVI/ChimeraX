@@ -15,7 +15,8 @@ from chimera.core.tools import ToolInstance
 
 class ToolUI(ToolInstance):
 
-    SESSION_ENDURING = False    # default
+    SESSION_ENDURING = False
+    # if SESSION_ENDURING is True, tool instance not deleted at session closure
     SIZE = (500, 25)
     VERSION = 1
 
