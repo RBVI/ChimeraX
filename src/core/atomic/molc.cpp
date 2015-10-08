@@ -646,6 +646,31 @@ extern "C" void set_bond_color(void *bonds, size_t n, uint8_t *rgba)
     }
 }
 
+extern "C" PyObject *bond_half_colors(void *bonds, size_t n)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    uint8_t *rgba1;
+    PyObject *colors = python_uint8_array(2*n, 4, &rgba1);
+    uint8_t *rgba2 = rgba1 + 4*n;
+    try {
+        const Rgba *c1, *c2;
+        for (size_t i = 0; i < n; ++i) {
+	  Bond *bond = b[i];
+	  if (bond->halfbond()) {
+	      c1 = &bond->atoms()[0]->color();
+	      c2 = &bond->atoms()[1]->color();
+	  } else {
+	      c1 = c2 = &bond->color();
+	  }
+	  *rgba1++ = c1->r; *rgba1++ = c1->g; *rgba1++ = c1->b; *rgba1++ = c1->a;
+	  *rgba2++ = c2->r; *rgba2++ = c2->g; *rgba2++ = c2->b; *rgba2++ = c2->a;
+	}
+    } catch (...) {
+        molc_error();
+    }
+    return colors;
+}
+
 extern "C" void bond_display(void *bonds, size_t n, npy_bool *disp)
 {
     Bond **b = static_cast<Bond **>(bonds);
@@ -770,6 +795,31 @@ extern "C" void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
+{
+    PBond **b = static_cast<PBond **>(pbonds);
+    uint8_t *rgba1;
+    PyObject *colors = python_uint8_array(2*n, 4, &rgba1);
+    uint8_t *rgba2 = rgba1 + 4*n;
+    try {
+        const Rgba *c1, *c2;
+        for (size_t i = 0; i < n; ++i) {
+	  PBond *bond = b[i];
+	  if (bond->halfbond()) {
+	      c1 = &bond->atoms()[0]->color();
+	      c2 = &bond->atoms()[1]->color();
+	  } else {
+	      c1 = c2 = &bond->color();
+	  }
+	  *rgba1++ = c1->r; *rgba1++ = c1->g; *rgba1++ = c1->b; *rgba1++ = c1->a;
+	  *rgba2++ = c2->r; *rgba2++ = c2->g; *rgba2++ = c2->b; *rgba2++ = c2->a;
+	}
+    } catch (...) {
+        molc_error();
+    }
+    return colors;
 }
 
 extern "C" void pseudobond_display(void *pbonds, size_t n, npy_bool *disp)

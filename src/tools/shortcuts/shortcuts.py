@@ -124,6 +124,9 @@ def standard_shortcuts(session):
         ('sb', show_bonds, 'Show bonds', molcat, atomsarg, mlmenu),
         ('hb', hide_bonds, 'Hide bonds', molcat, atomsarg, mlmenu),
 
+        ('Hb', half_bond_color, 'Half bond coloring', molcat, atomsarg, mlmenu),
+        ('Sb', single_bond_color, 'Single color bonds', molcat, atomsarg, mlmenu),
+
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('cc', 'color selAtoms bychain', 'Color chains', molcat, noarg, mlmenu, sep),
         ('ce', 'color selAtoms byelement', 'Color atoms by element', molcat, noarg, mlmenu),
@@ -932,6 +935,11 @@ def show_bonds(atoms):
     atoms.inter_bonds.displays = True
 def hide_bonds(atoms):
     atoms.inter_bonds.displays = False
+
+def half_bond_color(atoms):
+    atoms.inter_bonds.halfbonds = True
+def single_bond_color(atoms):
+    atoms.inter_bonds.halfbonds = False
 
 def keyboard_shortcuts(session):
     ks = getattr(session, 'keyboard_shortcuts', None)

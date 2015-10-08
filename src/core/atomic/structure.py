@@ -129,7 +129,6 @@ class AtomicStructure(AtomicStructureData, Model):
         for name, pbg in self.pseudobond_groups.items():
             pb = pbg.pseudobonds
             pb.radii = self.pseudobond_radius
-            pb.halfbonds = False
             pb.colors = pb_colors.get(name, (255,255,0,255))
 
     def _make_drawing(self, initialize_graphical_attributes):
@@ -229,7 +228,6 @@ class AtomicStructure(AtomicStructureData, Model):
         return r
 
     def _update_bond_graphics(self, bonds):
-        ba1, ba2 = bond_atoms = bonds.atoms
         p = self._bonds_drawing
         if p is None:
             if bonds.num_shown == 0:
@@ -244,29 +242,11 @@ class AtomicStructure(AtomicStructureData, Model):
             p.geometry = va, ta
             p.normals = na
 
-        xyz1, xyz2 = ba1.coords, ba2.coords
-        half_bond_coloring = bonds.halfbonds
-        p.positions = _bond_cylinder_placements(xyz1, xyz2, bonds.radii, half_bond_coloring)
-        p.display_positions = self._shown_bond_cylinders(bonds, half_bond_coloring)
-        p.colors = self._bond_colors(bond_atoms, bonds.colors, half_bond_coloring)
-        p.selected_positions = _selected_bond_cylinders(bond_atoms, half_bond_coloring)
-
-    def _bond_colors(self, bond_atoms, bond_colors, half_bond_coloring):
-        if half_bond_coloring.any():
-            bc0,bc1 = bond_atoms[0].colors, bond_atoms[1].colors
-            from numpy import concatenate
-            c = concatenate((bc0,bc1))
-        else:
-            c = bond_colors
-        return c
-
-    def _shown_bond_cylinders(self, bonds, half_bond_coloring):
-        sb = bonds.showns
-        if half_bond_coloring.any():
-            import numpy
-            sb2 = numpy.concatenate((sb,sb))
-            return sb2
-        return sb
+        ba1, ba2 = bond_atoms = bonds.atoms
+        p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, bonds.radii)
+        p.display_positions = _shown_bond_cylinders(bonds)
+        p.colors = c = bonds.half_colors
+        p.selected_positions = _selected_bond_cylinders(bond_atoms)
 
     def _update_pseudobond_graphics(self, name, pbonds):
         pg = self._pseudobond_group_drawings
@@ -278,11 +258,10 @@ class AtomicStructure(AtomicStructureData, Model):
         else:
             p = pg[name]
 
-        ba1, ba2 = bond_atoms = pbonds.atoms
-        half_bond_coloring = pbonds.halfbonds
-        p.positions = _bond_cylinder_placements(ba1.coords, ba2.coords, pbonds.radii, half_bond_coloring)
-        p.display_positions = self._shown_bond_cylinders(pbonds, half_bond_coloring)
-        p.colors = self._bond_colors(bond_atoms, pbonds.colors, half_bond_coloring)
+        ba1, ba2 = pbonds.atoms
+        p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, pbonds.radii)
+        p.display_positions = _shown_bond_cylinders(pbonds)
+        p.colors = pbonds.half_colors
 
     def _create_ribbon_graphics(self):
         from .ribbon import Ribbon, XSection
@@ -949,24 +928,16 @@ class RibbonTriangleRange:
     def __gt__(self, other): return self.start >= other
 
 # -----------------------------------------------------------------------------
-# Return 4x4 matrices taking prototype cylinder to bond location.
+# Return 4x4 matrices taking one prototype cylinder to each bond location.
 #
-def _bond_cylinder_placements(axyz0, axyz1, radius, half_bond):
-
-  # TODO: Allow per-bond variation in half-bond mode.
-  half_bond = half_bond.any()
+def _bond_cylinder_placements(axyz0, axyz1, radius):
 
   n = len(axyz0)
   from numpy import empty, float32, transpose, sqrt, array
-  nc = 2*n if half_bond else n
-  p = empty((nc,4,4), float32)
+  p = empty((n,4,4), float32)
   
   p[:,3,:] = (0,0,0,1)
-  if half_bond:
-    p[:n,:3,3] = 0.75*axyz0 + 0.25*axyz1
-    p[n:,:3,3] = 0.25*axyz0 + 0.75*axyz1
-  else:
-    p[:,:3,3] = 0.5*(axyz0 + axyz1)
+  p[:,:3,3] = 0.5*(axyz0 + axyz1)
 
   v = axyz1 - axyz0
   d = sqrt((v*v).sum(axis = 1))
@@ -981,30 +952,71 @@ def _bond_cylinder_placements(axyz0, axyz1, radius, half_bond):
   c1 = 1.0/(1+c)
   cx,cy = c1*wx, c1*wy
   r = radius
-  h = 0.5*d if half_bond else d
+  h = d
   rs = array(((r*(cx*wx + c), r*cx*wy,  h*wy),
               (r*cy*wx, r*(cy*wy + c), -h*wx),
               (-r*wy, r*wx, h*c)), float32).transpose((2,0,1))
-  if half_bond:
-    p[:n,:3,:3] = rs
-    p[n:,:3,:3] = rs
-  else:
-    p[:,:3,:3] = rs
+  p[:,:3,:3] = rs
   pt = transpose(p,(0,2,1))
   from ..geometry import Places
   pl = Places(opengl_array = pt)
   return pl
 
 # -----------------------------------------------------------------------------
+# Return 4x4 matrices taking two prototype cylinders to each bond location.
+#
+def _halfbond_cylinder_placements(axyz0, axyz1, radius):
+
+  n = len(axyz0)
+  from numpy import empty, float32, transpose, sqrt, array
+  p = empty((2*n,4,4), float32)
+  
+  p[:,3,:] = (0,0,0,1)
+  p[:n,:3,3] = 0.75*axyz0 + 0.25*axyz1
+  p[n:,:3,3] = 0.25*axyz0 + 0.75*axyz1
+
+  v = axyz1 - axyz0
+  d = sqrt((v*v).sum(axis = 1))
+  for a in (0,1,2):
+    v[:,a] /= d
+
+  c = v[:,2]
+  # TODO: Handle degenerate -z axis case
+#  if c <= -1:
+#    return ((1,0,0),(0,-1,0),(0,0,-1))      # Rotation by 180 about x
+  wx, wy = -v[:,1],v[:,0]
+  c1 = 1.0/(1+c)
+  cx,cy = c1*wx, c1*wy
+  r = radius
+  h = 0.5*d
+  rs = array(((r*(cx*wx + c), r*cx*wy,  h*wy),
+              (r*cy*wx, r*(cy*wy + c), -h*wx),
+              (-r*wy, r*wx, h*c)), float32).transpose((2,0,1))
+  p[:n,:3,:3] = rs
+  p[n:,:3,:3] = rs
+  pt = transpose(p,(0,2,1))
+  from ..geometry import Places
+  pl = Places(opengl_array = pt)
+  return pl
+
+# -----------------------------------------------------------------------------
+# Display mask for 2 cylinders representing each bond.
+#
+def _shown_bond_cylinders(bonds):
+    sb = bonds.showns
+    import numpy
+    sb2 = numpy.concatenate((sb,sb))
+    return sb2
+
+# -----------------------------------------------------------------------------
 # Bond is selected if both atoms are selected.
 #
-def _selected_bond_cylinders(bond_atoms, half_bond):
+def _selected_bond_cylinders(bond_atoms):
     ba1, ba2 = bond_atoms
     if ba1.num_selected > 0 and ba2.num_selected > 0:
         from numpy import logical_and, concatenate
         sel = logical_and(ba1.selected,ba2.selected)
-        if half_bond.any():
-            sel = concatenate((sel,sel))
+        sel = concatenate((sel,sel))
     else:
         sel = None
     return sel
@@ -1012,12 +1024,10 @@ def _selected_bond_cylinders(bond_atoms, half_bond):
 # -----------------------------------------------------------------------------
 #
 def _tether_placements(xyz0, xyz1, radius, shape):
-    import numpy
-    halfbond = numpy.zeros(len(radius), bool)
     if shape == AtomicStructureData.TETHER_REVERSE_CONE:
-        return _bond_cylinder_placements(xyz1, xyz0, radius, halfbond)
+        return _bond_cylinder_placements(xyz1, xyz0, radius)
     else:
-        return _bond_cylinder_placements(xyz0, xyz1, radius, halfbond)
+        return _bond_cylinder_placements(xyz0, xyz1, radius)
 
 # -----------------------------------------------------------------------------
 #

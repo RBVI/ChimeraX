@@ -411,6 +411,12 @@ class Bonds(Collection):
         f = c_function('bonds_num_shown', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.c_size_t)
         return f(self._c_pointers, len(self))
 
+    @property
+    def half_colors(self):
+        '''2N x 4 RGBA uint8 numpy array of half bond colors.'''
+        f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
+        return f(self._c_pointers, len(self))
+
 # -----------------------------------------------------------------------------
 #
 class Elements(Collection):
@@ -498,6 +504,12 @@ class Pseudobonds(Collection):
     '''
     Whether each pseudobond is displayed, visible and has both atoms shown.
     '''
+
+    @property
+    def half_colors(self):
+        '''2N x 4 RGBA uint8 numpy array of half bond colors.'''
+        f = c_function('pseudobond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
+        return f(self._c_pointers, len(self))
 
 # -----------------------------------------------------------------------------
 #
