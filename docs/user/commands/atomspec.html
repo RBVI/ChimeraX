@@ -37,8 +37,7 @@ can be specified in <a href="../index.html#commands">commands</a> using:
 <li><a href="#zones">zones</a> - by distance from other items
 <font color="brown">(not yet implemented)</font>
 <li><a href="#builtin">built-in classifications, user-defined targets</a>
-<font color="brown">(not yet implemented</font> 
-except for element symbols, <i>e.g.</i> <b>C</b> or <b>Mg</b> can be used)
+<font color="brown">(the latter are not yet implemented)</font> 
 <li><a href="#descriptors">attribute</a> names and values
 <font color="brown">(not yet implemented)</font>
 </ul>
@@ -60,7 +59,7 @@ Hierarchical Specifiers</h2>
 <tr><th>Symbol</th> <th>Reference Level</th> <th>Definition</th>
 </tr><tr>
 <td align=center><b>#</b></td> <td align=center>model</td> 
-<td>model number assigned to the data in Chimera 
+<td>model number assigned to the data in Chimera2 
 <br>(hierarchical, with positive integers separated by dots:
 N, N.N, N.N.N, <i>etc.</i>)
 </td>
@@ -275,9 +274,11 @@ Examples:
 <p>
 Atoms, residues or atomic models within or beyond some distance of a 
 reference set of atoms can be specified as a zone.
+<!--
 (These zones are based on atom centers only, but the
 the command <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/zonesel.html"><b>zonesel</b></a> allows 
 basing zones on surfaces and including surfaces in zones.)
+-->
 </p><p>
 A zone specification has the following parts:
 <ol>
@@ -313,10 +314,62 @@ in GTP residue(s) of model 1
 <hr>
 <a name="builtin"></a>
 <h2><a href="#top" class="nounder"><b>&larr;</b></a>
-Built-in Classifications and User-Defined Targets
-<font color="brown">(not yet implemented)</font></h2>
+Built-in Classifications and User-Defined Targets</h2>
 <p>
-Built-in classifications include
+<font color="brown">
+User-defined targets are not yet implemented.
+</font>
+</p><p>
+Built-in classifications include:
+<ul>
+<li>element symbols: <b>C</b>, <b>Fe</b>, <i>etc.</i>
+<li>protein/peptide secondary structure types:
+<b>helix</b>, <b>strand</b>, <b>coil</b>
+<li>the following <a name="surfcats">mutually exclusive categories</a>:
+<table border width="95%" cellpadding="4" cellspacing="0">
+<tr><th>Name</th> 
+<th>Category membership rules, in order of application</th></tr>
+<tr><td align=center><b>solvent</b></td>
+<td>
+of the following two, the set with the greater number of residues:
+<ul>
+<li> &ldquo;small solvent&rdquo; candidate set:
+residues of up to 3 atoms named WAT, HOH, and DOD, plus singleton atoms
+(<i>i.e.</i>, not covalently bonded to other atoms)
+of atomic number 6-8 in single-atom residues
+<li> &ldquo;other solvent&rdquo; candidate set:  
+excluding residues in the &ldquo;small solvent&rdquo; set, 
+the most prevalent type of residue that is not covalently bonded 
+to other residues, has &le; 10 atoms per residue, and is present in
+at least 10 copies in the structure
+</ul>
+</td>
+<tr><td align=center><b>ions</b></td>
+<td>
+non-solvent singleton atoms other than noble gases, 
+plus covalently bonded groups of &le; 4 atoms 
+(not counting hydrogens) in the same residues as those singletons
+</td>
+<tr><td align=center><b>ligand</b></td>
+<td>
+singleton atoms that are noble gases;
+single residues or bonded sequences of residues
+with &lt; 10 residues per bonded sequence, 
+&lt; 250 atoms, and &lt; 1/4 the number of atoms
+in the largest bonded sequence of residues in the model;
+residues bonded to a chain but not included in its main sequence
+(<i>e.g.</i>, retinal in rhodopsin, glycosylations)
+</td>
+<tr><td align=center><b>main</b></td>
+<td>
+all remaining atoms
+</td>
+</table>
+</ul>
+<p>
+Built-in classifications cannot be redefined by the user.
+</p>
+<!--
 any of the terminal entries in the following sections of the
 <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide//menu.html#menuselect"><b>Select</b> menu</a>:
    <ul>
@@ -331,8 +384,8 @@ For example, <b>Structure</b> includes
   <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/volumepathtracer/framevolpath.html"
   target="_top"><b>markers</b></a>
   <li>protein secondary structure: <b>helix</b>, <b>strand</b>, <b>coil</b>
-  <li><a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">automatic categories for surface 
-  calculation</a>:  <b>main</b>, <b>ligand</b>, <b>solvent</b>, <b>ions</b>
+  <li><a href="#surfcats">automatic categories</a>:
+  <b>main</b>, <b>ligand</b>, <b>solvent</b>, <b>ions</b>
   </ul>
 ... whereas <b>Chemistry</b> includes 
 all of the element symbols (<b>C</b>, <b>Fe</b>, <i>etc.</i>)
@@ -386,8 +439,9 @@ see <a href="#combinations">combinations</a>)
 <blockquote>
 <b>solvent</b>
 </blockquote>
-- atoms <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">automatically categorized</a>
+- atoms <a href="#surfcats">automatically categorized</a>
 as <b>solvent</b>
+-->
 
 <hr>
 <a name="descriptors"></a>
@@ -510,12 +564,6 @@ ball+stick, bs, b+s); see <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGui
 </tr> <tr>
 <td align=center><b>serialNumber=</b><i>n</i></td>
 <td><i>n</i> is the atom serial number in the input file</td>
-</tr> <tr>
-<td align=center><b>surfaceCategory=</b><i>category</i></td>
-<td><i>category</i> is the name of the surface calculation category 
-to which the atom
-has been assigned <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">automatically</a>
-or manually using <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/msms.html"><b>surfcat</b></a></td>
 </tr> <tr>
 <td align=center><b>surfaceDisplay</b></td>
 <td>whether molecular surface display is turned on for the atom
@@ -704,7 +752,7 @@ Attribute</b></a>, <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/mida
 <li> by combining other attributes using the
 <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/calculator/calculator.html"><b>Attribute 
 Calculator</b></a>
-<li> by various other Chimera tools such as
+<li> by various other Chimera2 tools such as
 <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/addcharge/addcharge.html"><b>Add 
 Charge</b></a>,
 <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/surfvol/surfvol.html"><b>Area/Volume 
@@ -727,7 +775,7 @@ attributes</a>. Additional attributes are listed in
 and yet others may be generated only when a particular tool is used, 
 or created arbitrarily by the user.
 </p><p>
-Attribute name lookup in Chimera:
+Attribute name lookup in Chimera2:
 <ul>
 <li>attribute names are shown in the <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/help.html#balloon">balloon 
 help</a> of <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/modelattrib.html">attribute inspector</a> dialogs
@@ -742,7 +790,7 @@ by Attribute</b></a> lists most numerical ones
 lists most residue attributes
 <br><br>
 <li>Data descriptors (attributes) defined in the C++
-layer of Chimera can be listed by entering the following into
+layer of Chimera2 can be listed by entering the following into
 <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/idle/idle.html"><b>IDLE</b></a> (under
 <b>Tools... General Controls</b>):
 <blockquote>
@@ -799,13 +847,11 @@ that are within 10 &Aring; of model 2
 <blockquote>
 <b>(ligand | protein) @&lt;= 4.8</b>
 </blockquote>
-- atoms within 4.8 &Aring; of 
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">ligand</a> or protein
+- atoms within 4.8 &Aring; of <a href="#surfcats">ligand</a> or protein
 <blockquote>
 <b>ligand | (protein @&lt;= 4.8)</b>
 </blockquote>
-- <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">ligand</a> 
-plus atoms within 4.8 &Aring; of protein
+- <a href="#surfcats">ligand</a> plus atoms within 4.8 &Aring; of protein
 <blockquote>
 <b>Ng+ | N3+</b>
 </blockquote>
@@ -820,7 +866,7 @@ formally positive nitrogens (see <a href="http://www.cgl.ucsf.edu/chimera/docs/U
 <blockquote>
 <b>(ions @&lt;= 4) &amp; ~ions</b>
 </blockquote>
-- atoms within 4 &Aring; of <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/surface.html#surfcats">ions</a>,
+- atoms within 4 &Aring; of <a href="#surfcats">ions</a>,
 excluding the ions themselves
 </p>
 
@@ -846,5 +892,5 @@ depends on the command.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2015</address>
+October 2015</address>
 </body></html> 
