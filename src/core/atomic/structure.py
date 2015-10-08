@@ -175,7 +175,15 @@ class AtomicStructure(AtomicStructureData, Model):
                 self._create_ribbon_graphics()
             finally:
                 self._gc_ribbon = False
+        # Molecule changes
         c, s, se = self._gc_color, self._gc_shape, self._gc_select
+        # Check for pseudobond changes
+        for pbg in self.pseudobond_groups.values():
+            c |= pbg._gc_color
+            s |= pbg._gc_shape
+            se |= pbg._gc_select
+            pbg._gc_color = pbg._gc_shape = pbg._gc_select = False
+        # Update graphics
         if c or s or se:
             self._gc_color = self._gc_shape = self._gc_select = False
             if s:
