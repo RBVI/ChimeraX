@@ -10,7 +10,7 @@ _CmapRanges = ["full"]
 
 
 def color(session, spec, color=None, target=None, transparency=None,
-          sequential=None, cmap=None, cmap_range=None):
+          sequential=None, cmap=None, cmap_range=None, halfbond=None):
     """Color atoms, ribbons, surfaces, ....
 
     Parameters
@@ -31,6 +31,9 @@ def color(session, spec, color=None, target=None, transparency=None,
       Color map to use with sequential coloring
     cmap_range : 2 comma-separated floats or "full"
       Specifies the range of value used for sampling from a color map.
+    halfbond : bool
+      Whether to color each half of a bond to match the connected atoms.
+      If halfbond is false the bond is given the single color assigned to the bond.
     """
     if spec is None:
         from . import atomspec
@@ -66,7 +69,7 @@ def color(session, spec, color=None, target=None, transparency=None,
 
     if 'a' in target:
         # atoms/bonds
-        if atoms is not None:
+        if atoms is not None and color is not None:
             if color in _SpecialColors:
                 c = _computed_atom_colors(atoms, color, opacity)
                 if c is not None:
@@ -79,7 +82,7 @@ def color(session, spec, color=None, target=None, transparency=None,
         if not default_target:
             session.logger.warning('Label colors not supported yet')
 
-    if 's' in target:
+    if 's' in target and color is not None:
         from .scolor import scolor
         if color in _SpecialColors:
             if 'a' in target:
@@ -92,7 +95,7 @@ def color(session, spec, color=None, target=None, transparency=None,
             ns = scolor(session, atoms, color, opacity=opacity)
         what.append('%d surfaces' % ns)
 
-    if 'c' in target:
+    if 'c' in target and color is not None:
         residues = atoms.unique_residues
         if color not in _SpecialColors:
             c = residues.ribbon_colors
@@ -125,8 +128,13 @@ def color(session, spec, color=None, target=None, transparency=None,
             session.logger.warning('Model-level colors not supported yet')
 
     if 'b' in target:
-        if not default_target:
-            session.logger.warning('Bond colors not supported yet')
+        if atoms is not None:
+            bonds = atoms.inter_bonds
+            if color not in _SpecialColors and color is not None:
+                bonds.colors = color.uint8x4()
+            if halfbond is not None:
+                bonds.halfbonds = halfbond
+            what.append('%d bonds' % len(bonds))
 
     if 'p' in target:
         if not default_target:
@@ -223,13 +231,14 @@ _SequentialColor = {
 #
 def register_command(session):
     from . import register, CmdDesc, ColorArg, ColormapArg, AtomSpecArg
-    from . import EmptyArg, Or, EnumOf, StringArg, TupleOf, FloatArg
+    from . import EmptyArg, Or, EnumOf, StringArg, TupleOf, FloatArg, BoolArg
     desc = CmdDesc(required=[('spec', Or(AtomSpecArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors)))],
                    keyword=[('target', StringArg),
                             ('transparency', FloatArg),
                             ('sequential', EnumOf(_SequentialLevels)),
                             ('cmap', ColormapArg),
-                            ('cmap_range', Or(TupleOf(FloatArg, 2), EnumOf(_CmapRanges)))],
+                            ('cmap_range', Or(TupleOf(FloatArg, 2), EnumOf(_CmapRanges))),
+                            ('halfbond', BoolArg)],
                    synopsis="color objects")
     register('color', desc, color)
