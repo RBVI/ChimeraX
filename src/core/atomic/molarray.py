@@ -234,7 +234,7 @@ class Atoms(Collection):
     Returns whether the Atoms should be visible (displayed and not hidden).
     Returns a :mod:`numpy` array of boolean values.  Read only.
     '''
-    draw_modes = cvec_property('atom_draw_mode', int32)
+    draw_modes = cvec_property('atom_draw_mode', uint8)
     '''
     Controls how the Atoms should be depicted, *e.g.* sphere,
     ball, *etc.*  The values are integers, SPHERE_STYLE, BALL_STYLE
@@ -291,6 +291,12 @@ class Atoms(Collection):
     def unique_residues(self):
         '''The unique :class:`Residues` for these atoms.'''
         return Residues(unique(self.residues._pointers))
+
+    @property
+    def inter_bonds(self):
+        ''':class:`Bonds object` where both atoms are in this collection'''
+        f = c_function('atom_inter_bonds', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
+        return Bonds(f(self._c_pointers, len(self)))
 
     @property
     def by_structure(self):
@@ -365,14 +371,13 @@ class Bonds(Collection):
     set with such an array (or equivalent sequence), or with a single
     RGBA value.
     '''
-    displays = cvec_property('bond_display', int32)
+    displays = cvec_property('bond_display', npy_bool)
     '''
     Controls whether the Bonds should be displayed.
-    The values are integers defined in the :class:`.Bond` class.
-    TODO: No values are defined and value not used for rendering.
-    Returns a :mod:`numpy` array of integers.  Can be
+    Returns a :mod:`numpy` array of bool.  Can be
     set with such an array (or equivalent sequence), or with a
-    single integer value.
+    single value.  Bonds are shown only if display is
+    true, hide is false, and both atoms are shown.
     '''
     visibles = cvec_property('bond_visible', int32, read_only = True)
     '''
@@ -394,6 +399,23 @@ class Bonds(Collection):
     Can be set with such an array (or equivalent sequence), or with a
     single floating-point number.
     '''
+    showns = cvec_property('bond_shown', npy_bool, read_only = True)
+    '''
+    Whether each bond is displayed, visible and has both atoms shown,
+    and at least one atom is not Sphere style.
+    '''
+
+    @property
+    def num_shown(self):
+        '''Number of bonds shown.'''
+        f = c_function('bonds_num_shown', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.c_size_t)
+        return f(self._c_pointers, len(self))
+
+    @property
+    def half_colors(self):
+        '''2N x 4 RGBA uint8 numpy array of half bond colors.'''
+        f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
+        return f(self._c_pointers, len(self))
 
 # -----------------------------------------------------------------------------
 #
@@ -456,13 +478,13 @@ class Pseudobonds(Collection):
     set with such an array (or equivalent sequence), or with a single
     RGBA value.
     '''
-    displays = cvec_property('pseudobond_display', int32)
+    displays = cvec_property('pseudobond_display', npy_bool)
     '''
     Controls whether the pseudobonds should be displayed.
-    TODO: No values are defined and value not used for rendering.
-    Returns a :mod:`numpy` array of integers.  Can be
+    Returns a :mod:`numpy` array of bool.  Can be
     set with such an array (or equivalent sequence), or with a
-    single integer value.
+    single value.  Pseudobonds are shown only if display is
+    true, hide is false, and both atoms are shown.
     '''
     halfbonds = cvec_property('pseudobond_halfbond', npy_bool)
     '''
@@ -478,6 +500,16 @@ class Pseudobonds(Collection):
     Can be set with such an array (or equivalent sequence), or with a
     single floating-point number.
     '''
+    showns = cvec_property('pseudobond_shown', npy_bool, read_only = True)
+    '''
+    Whether each pseudobond is displayed, visible and has both atoms shown.
+    '''
+
+    @property
+    def half_colors(self):
+        '''2N x 4 RGBA uint8 numpy array of half bond colors.'''
+        f = c_function('pseudobond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
+        return f(self._c_pointers, len(self))
 
 # -----------------------------------------------------------------------------
 #

@@ -28,7 +28,7 @@ private:
     GraphicsContainer*  _gc;
 
     PBond(Atom* a1, Atom* a2, GraphicsContainer* gc):
-        basegeom::Connection<Atom, PBond>(a1, a2), _gc(gc) {};
+        basegeom::Connection<Atom, PBond>(a1, a2), _gc(gc) { _halfbond = false; };
 protected:
     const char*  err_msg_loop() const
         { return "Can't form pseudobond to itself"; }

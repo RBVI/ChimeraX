@@ -59,32 +59,12 @@ class PseudobondGroup(PseudobondGroupData, Model):
             d.normals = na
             d.triangles = ta
 
-        bond_atoms = pbonds.atoms
-        radii = pbonds.radii
-        bond_colors = pbonds.colors
-        half_bond_coloring = pbonds.halfbonds
+        ba1, ba2 = pbonds.atoms
         to_pbg = self.scene_position.inverse()
-        axyz0, axyz1 = to_pbg*bond_atoms[0].scene_coords, to_pbg*bond_atoms[1].scene_coords
-        d.positions = structure._bond_cylinder_placements(axyz0, axyz1, radii, half_bond_coloring)
-        d.display_positions = self._shown_bond_cylinders(bond_atoms, half_bond_coloring)
-        d.colors = self._bond_colors(bond_atoms, bond_colors, half_bond_coloring)
-
-    def _bond_colors(self, bond_atoms, bond_colors, half_bond_coloring):
-        if half_bond_coloring.any():
-            bc0,bc1 = bond_atoms[0].colors, bond_atoms[1].colors
-            from numpy import concatenate
-            c = concatenate((bc0,bc1))
-        else:
-            c = bond_colors
-        return c
-
-    def _shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
-        sb = bond_atoms[0].displays & bond_atoms[1].displays  # Show bond if both atoms shown
-        if half_bond_coloring.any():
-            from numpy import concatenate
-            sb2 = concatenate((sb,sb))
-            return sb2
-        return sb
+        axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
+        d.positions = structure._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
+        d.display_positions = structure._shown_bond_cylinders(pbonds)
+        d.colors = pbonds.half_colors
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
