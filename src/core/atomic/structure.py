@@ -123,6 +123,7 @@ class AtomicStructure(AtomicStructureData, Model):
         from ..colors import element_colors
         a.colors = element_colors(a.element_numbers)
         b = self.bonds
+        b.colors = (170,170,170,255)
         b.radii = self.bond_radius
         pb_colors = {'metal coordination bonds':(147,112,219,255)}
         for name, pbg in self.pseudobond_groups.items():
@@ -132,24 +133,15 @@ class AtomicStructure(AtomicStructureData, Model):
             pb.colors = pb_colors.get(name, (255,255,0,255))
 
     def _make_drawing(self, initialize_graphical_attributes):
-
         if initialize_graphical_attributes:
             self._initialize_graphical_attributes()
 
-        a = self.atoms
-        coords = a.coords
-        radii = self._atom_display_radii()
-        colors = a.colors
-        display = a.displays
-        b = self.bonds
-        pbgs = self.pseudobond_groups
-
         # Create graphics
-        self._create_atom_spheres(coords, radii, colors, display)
-        self._update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
-        for name, pbg in pbgs.items():
-            pb = pbg.pseudobonds
-            self._update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
+        a = self.atoms
+        self._create_atom_spheres(a.coords, self._atom_display_radii(), a.colors, a.displays)
+        self._update_bond_graphics(self.bonds)
+        for name, pbg in self.pseudobond_groups.items():
+            self._update_pseudobond_graphics(name, pbg.pseudobonds)
         self._create_ribbon_graphics()
 
     def _create_atom_spheres(self, coords, radii, colors, display):
@@ -196,13 +188,11 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _update_graphics(self):
         a = self.atoms
-        b = self.bonds
         self._update_atom_graphics(a.coords, self._atom_display_radii(), a.colors, a.visibles)
-        self._update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
+        self._update_bond_graphics(self.bonds)
         pbgs = self.pseudobond_groups
         for name, pbg in pbgs.items():
-            pb = pbg.pseudobonds
-            self._update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
+            self._update_pseudobond_graphics(name, pbg.pseudobonds)
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, coords, radii, colors, display):
@@ -238,12 +228,11 @@ class AtomicStructure(AtomicStructureData, Model):
         r[dm == Atom.STICK_STYLE] = self.bond_radius
         return r
 
-    def _update_bond_graphics(self, bond_atoms, draw_mode, radii,
-                              bond_colors, half_bond_coloring):
+    def _update_bond_graphics(self, bonds):
+        ba1, ba2 = bond_atoms = bonds.atoms
         p = self._bonds_drawing
         if p is None:
-            from .molobject import Atom
-            if (draw_mode == Atom.SPHERE_STYLE).all():
+            if bonds.num_shown == 0:
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
             # Suppress bond picking since bond selections are not supported.
@@ -255,39 +244,31 @@ class AtomicStructure(AtomicStructureData, Model):
             p.geometry = va, ta
             p.normals = na
 
-        ba1, ba2 = bond_atoms
         xyz1, xyz2 = ba1.coords, ba2.coords
-        p.positions = _bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
-        p.display_positions = self._shown_bond_cylinders(bond_atoms, half_bond_coloring)
-        self._set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
+        half_bond_coloring = bonds.halfbonds
+        p.positions = _bond_cylinder_placements(xyz1, xyz2, bonds.radii, half_bond_coloring)
+        p.display_positions = self._shown_bond_cylinders(bonds, half_bond_coloring)
+        p.colors = self._bond_colors(bond_atoms, bonds.colors, half_bond_coloring)
         p.selected_positions = _selected_bond_cylinders(bond_atoms, half_bond_coloring)
 
-    def _set_bond_colors(self, drawing, bond_atoms, bond_colors, half_bond_coloring):
-        p = drawing
-        if p is None:
-            return
-
+    def _bond_colors(self, bond_atoms, bond_colors, half_bond_coloring):
         if half_bond_coloring.any():
             bc0,bc1 = bond_atoms[0].colors, bond_atoms[1].colors
             from numpy import concatenate
-            p.colors = concatenate((bc0,bc1))
+            c = concatenate((bc0,bc1))
         else:
-            p.colors = bond_colors
+            c = bond_colors
+        return c
 
-    def _shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
-        sb = bond_atoms[0].visibles & bond_atoms[1].visibles  # Show bond if both atoms shown
-        from .molobject import Atom
-        ns = ((bond_atoms[0].draw_modes != Atom.SPHERE_STYLE) |
-              (bond_atoms[1].draw_modes != Atom.SPHERE_STYLE))       # Don't show if both atoms in sphere style
-        import numpy
-        numpy.logical_and(sb,ns,sb)
+    def _shown_bond_cylinders(self, bonds, half_bond_coloring):
+        sb = bonds.showns
         if half_bond_coloring.any():
+            import numpy
             sb2 = numpy.concatenate((sb,sb))
             return sb2
         return sb
 
-    def _update_pseudobond_graphics(self, name, bond_atoms, radii,
-                                    bond_colors, half_bond_coloring):
+    def _update_pseudobond_graphics(self, name, pbonds):
         pg = self._pseudobond_group_drawings
         if not name in pg:
             pg[name] = p = self.new_drawing(name)
@@ -297,10 +278,11 @@ class AtomicStructure(AtomicStructureData, Model):
         else:
             p = pg[name]
 
-        xyz1, xyz2 = bond_atoms[0].coords, bond_atoms[1].coords
-        p.positions = _bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
-        p.display_positions = self._shown_bond_cylinders(bond_atoms, half_bond_coloring)
-        self._set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
+        ba1, ba2 = bond_atoms = pbonds.atoms
+        half_bond_coloring = pbonds.halfbonds
+        p.positions = _bond_cylinder_placements(ba1.coords, ba2.coords, pbonds.radii, half_bond_coloring)
+        p.display_positions = self._shown_bond_cylinders(pbonds, half_bond_coloring)
+        p.colors = self._bond_colors(bond_atoms, pbonds.colors, half_bond_coloring)
 
     def _create_ribbon_graphics(self):
         from .ribbon import Ribbon, XSection

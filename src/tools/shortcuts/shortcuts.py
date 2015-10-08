@@ -118,8 +118,11 @@ def standard_shortcuts(session):
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
 #        ('la', show_ligands, 'Show ligand atoms', molcat, molarg, mlmenu),
-        ('sw', show_waters, 'Show water atoms', molcat, atomsarg, mlmenu),
-        ('hw', hide_waters, 'Hide water atoms', molcat, atomsarg, mlmenu, sep),
+        ('sw', 'display solvent', 'Show water atoms', molcat, noarg, mlmenu),
+        ('hw', '~display solvent', 'Hide water atoms', molcat, noarg, mlmenu, sep),
+
+        ('sb', show_bonds, 'Show bonds', molcat, atomsarg, mlmenu),
+        ('hb', hide_bonds, 'Hide bonds', molcat, atomsarg, mlmenu),
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('cc', 'color selAtoms bychain', 'Color chains', molcat, noarg, mlmenu, sep),
@@ -723,10 +726,6 @@ def thinner_ribbons(m):
     m.set_ribbon_radius(0.5*m.ribbon_radius)
 def show_ligands(m):
     m.show_ligand_atoms()
-def show_waters(atoms):
-    atoms.displays |= (atoms.residues.names == 'HOH')
-def hide_waters(atoms):
-    atoms.displays &= (atoms.residues.names != 'HOH')
 def molecule_bonds(m, session):
     if m.bonds is None:
         from chimera.core.atomic import connect
@@ -928,6 +927,11 @@ def restore_position(session):
 def minimize_crosslinks(atoms, session):
     from chimera.core.crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
+
+def show_bonds(atoms):
+    atoms.inter_bonds.displays = True
+def hide_bonds(atoms):
+    atoms.inter_bonds.displays = False
 
 def keyboard_shortcuts(session):
     ks = getattr(session, 'keyboard_shortcuts', None)
