@@ -1,43 +1,56 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def display(session, spec=None):
+def display(session, atoms=None, bonds=None):
     '''Display specified atoms.
 
     Parameters
     ----------
-    spec : atom specifier
-        Show the specified atoms. If no atom specifier is given then all atoms are shown.
+    atoms : Atoms
+        Show the specified atoms. If atoms is None then all atoms are shown.
         Atoms that are already shown remain shown.
+    bonds : bool or None
+        If not None, show or hide bonds between specified atoms.
     '''
-    if spec is None:
-        from . import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
-    results.atoms.displays = True
+    if atoms is None:
+        from .. import atomic
+        atoms = atomic.all_atoms(session)
+
+    atoms.displays = True
+
+    if bonds is not None:
+        atoms.inter_bonds.displays = bonds
 
 
-def undisplay(session, spec=None):
+def undisplay(session, atoms=None, bonds=None):
     '''Hide specified atoms.
 
     Parameters
     ----------
-    spec : atom specifier
+    atoms : atom specifier
         Hide the specified atoms. If no atom specifier is given then all atoms are hidden.
+        If bonds option is specified than atoms are not hidden, only bonds are hidden.
+    bonds : bool or None
+        If not None, hide bonds between specified atoms.
     '''
-    if spec is None:
-        from . import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
-    results.atoms.displays = False
+    if atoms is None:
+        from .. import atomic
+        atoms = atomic.all_atoms(session)
+
+    if bonds is None:
+        atoms.displays = False
+
+    if bonds is not None:
+        atoms.inter_bonds.displays = False
 
 
 def register_command(session):
-    from . import cli
-    from . import atomspec
-    desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
-                       synopsis='display specified atoms')
-    cli.register('display', desc, display)
-    desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
-                       synopsis='undisplay specified atoms')
-    cli.register('~display', desc, undisplay)
+    from . import CmdDesc, register, AtomsArg, NoArg
+    desc = CmdDesc(optional=[("atoms", AtomsArg)],
+                   keyword=[('bonds', NoArg)],
+                   synopsis='display specified atoms')
+    register('display', desc, display)
+    desc = CmdDesc(optional=[("atoms", AtomsArg)],
+                   keyword=[('bonds', NoArg)],
+                   synopsis='undisplay specified atoms')
+    register('~display', desc, undisplay)
