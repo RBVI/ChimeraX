@@ -35,7 +35,7 @@ def help(session, topic=None, *, option=None, is_query=False):
             if not os.path.exists(path):
                 if is_query:
                     return False
-                session.logger.error("No help found for '%s'" % path)
+                session.logger.error("No help found for '%s'" % topic)
                 return
             if is_query:
                 return True

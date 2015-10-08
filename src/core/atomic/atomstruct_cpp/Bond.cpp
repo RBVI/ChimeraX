@@ -42,6 +42,7 @@ Bond::Bond(AtomicStructure *as, Atom *a1, Atom *a2):
             }
         }
     }
+    a1->structure()->_structure_cats_dirty = true;
 }
 
 static bool

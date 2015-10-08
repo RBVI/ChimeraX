@@ -64,7 +64,7 @@ def transparency(session, atoms, percent, target='s'):
         what.append('nothing')
 
     from . import cli
-    session.logger.status('Set transparency of %s' % cli.commas(what, ' and')[0])
+    session.logger.status('Set transparency of %s' % cli.commas(what, ' and'))
 
 
 # -----------------------------------------------------------------------------

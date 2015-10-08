@@ -2,5 +2,5 @@
 
 
 def initialize(command_name):
-    from .cartoon import initialize
-    initialize(command_name)
+    from chimera.core.commands import alias
+    alias(command_name, "%s $*" % command_name.replace("ribbon", "cartoon"))

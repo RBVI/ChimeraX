@@ -89,6 +89,8 @@ class Collection:
     def __len__(self):
         '''Number of objects in collection.'''
         return len(self._pointers)
+    def __bool__(self):
+        return len(self) > 0
     def __iter__(self):
         '''Iterator over collection objects.'''
         if not hasattr(self, '_object_list'):
@@ -271,6 +273,8 @@ class Atoms(Collection):
     '''
     selected = cvec_property('atom_selected', npy_bool)
     '''numpy bool array whether each atom is selected.'''
+    structure_categories = cvec_property('atom_structure_category', string, read_only=True)
+    '''Numpy array of whether atom is ligand, ion, etc.'''
 
     @property
     def num_selected(self):
@@ -637,6 +641,8 @@ class AtomicStructureDatas(Collection):
     '''Return a list of dictionaries with metadata. Read only.'''
     ribbon_tether_opacities = cvec_property('structure_ribbon_tether_opacity', float32)
     '''Returns an array of opacity scale factor for ribbon tethers.'''
+    ribbon_show_spines = cvec_property('structure_ribbon_show_spine', npy_bool)
+    '''Returns an array of booleans of whether to show ribbon spines.'''
 
 
 # -----------------------------------------------------------------------------

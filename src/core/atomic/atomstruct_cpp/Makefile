@@ -11,9 +11,8 @@ DIRNAME := $(DIRNAME:_cpp=)
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.o)
 INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS)
-ifneq ($(OS),Windows)
+ifeq ($(OS),Darwin)
 CXXFLAGS	+= -Wno-logical-op-parentheses
-#seq_assoc.o : CXXFLAGS += -Wno-sign-compare
 endif
 LIBS	+= -L$(libdir) -lelement -ltmpl -llogger -lbasegeom -larrays $(PYTHON_LIB)
 

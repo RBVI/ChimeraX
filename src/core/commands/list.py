@@ -14,8 +14,10 @@ def list(session):
         return '.'.join(str(x) for x in id)
     ids = [m.id for m in models]
     ids.sort()
-    from .cli import commas
-    info, suffix = commas([id_str(id) for id in ids], ' and')
+    from .cli import commas, plural
+    id_names = [id_str(id) for id in ids]
+    info = commas(id_names, ' and')
+    suffix = plural(id_names)
     session.logger.info("Open model%s: %s" % (suffix, info))
 
 

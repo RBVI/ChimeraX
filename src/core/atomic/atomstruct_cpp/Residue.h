@@ -45,12 +45,12 @@ private:
     bool  _is_sheet;
     ResName  _name;
     int  _position;
-    int  _ss_id;
+    float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
     Rgba  _ribbon_rgba;
     Style  _ribbon_style;
-    float  _ribbon_adjust;
+    int  _ss_id;
     AtomicStructure *  _structure;
 public:
     void  add_atom(Atom*);
@@ -82,10 +82,11 @@ public:
         const char* template_dir, const char* extension) const;
 
     // handy
-    static const std::set<AtomName> aa_min_backbone_names;
-    static const std::set<AtomName> aa_max_backbone_names;
-    static const std::set<AtomName> na_min_backbone_names;
-    static const std::set<AtomName> na_max_backbone_names;
+    static const std::set<AtomName>  aa_min_backbone_names;
+    static const std::set<AtomName>  aa_max_backbone_names;
+    static const std::set<AtomName>  na_min_backbone_names;
+    static const std::set<AtomName>  na_max_backbone_names;
+    static const std::set<ResName>  std_solvent_names;
 
     // graphics related
     float  ribbon_adjust() const;

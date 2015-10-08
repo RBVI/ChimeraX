@@ -1,33 +1,35 @@
-# vi: set expandtab ts=4 sw=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 
 from chimera.core.tools import ToolInstance
 from chimera.core.logger import HtmlLog
 
 context_menu_css = """
 .context-menu {
-	display: none;
-	position: absolute;
-	z-index: 100;
-	border: solid 1px #000000;
-	box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
-	cursor: pointer;
+    display: none;
+    position: absolute;
+    z-index: 100;
+    border: solid 1px #000000;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
 }
 .context-menu-items {
-	list-style-type: none;
-	padding: 0;
-	margin: 0;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
 }
 .context-menu-item a:link, a:visited {
-	display: block;
-	color: #000;
-	text-decoration: none;
-	padding: 4px 8px;
+    display: block;
+    color: #000;
+    background-color: #fff;
+    opacity: 1;
+    text-decoration: none;
+    padding: 4px 8px;
 }
 .context-menu-item a:hover, a:active {
-	background-color: #cccccc;
+    background-color: #cccccc;
 }
 .context-menu-active {
-	display: block;
+    display: block;
 }
 """
 
@@ -55,53 +57,51 @@ context_menu_html = """
 
 context_menu_script = """
 (function() {
-	"use strict";
+    "use strict";
 
-	var context_menu = document.querySelector(".context-menu");
-	var context_menu_shown = false;
-	var active_css = "context-menu-active";
+    var context_menu = document.querySelector(".context-menu");
+    var context_menu_shown = false;
+    var active_css = "context-menu-active";
 
-	function show_context_menu() {
-		if (!context_menu_shown) {
-			context_menu_shown = true;
-			context_menu.classList.add(active_css);
-		}
-	}
+    function show_context_menu() {
+        if (!context_menu_shown) {
+            context_menu_shown = true;
+            context_menu.classList.add(active_css);
+        }
+    }
 
-	function hide_context_menu() {
-		if (context_menu_shown) {
-			context_menu_shown = false;
-			context_menu.classList.remove(active_css);
-		}
-	}
+    function hide_context_menu() {
+        if (context_menu_shown) {
+            context_menu_shown = false;
+            context_menu.classList.remove(active_css);
+        }
+    }
 
-	function position_menu(menu, e) {
-		var x = e.pageX;
-		var y = e.pageY;
+    function position_menu(menu, e) {
+        var x = e.pageX;
+        var y = e.pageY;
 
-		menu.style.left = x + "px";
-		menu.style.top = y + "px";
-	}
+        menu.style.left = x + "px";
+        menu.style.top = y + "px";
+    }
 
-	function init()
-	{
-		document.addEventListener("contextmenu", function (e) {
-			e.preventDefault();
-			show_context_menu();
-			position_menu(context_menu, e);
-		});
+    function init() {
+        document.addEventListener("contextmenu", function (e) {
+                e.preventDefault();
+                show_context_menu();
+                position_menu(context_menu, e);
+        });
 
-		document.addEventListener("click", function (e) {
-			var button = e.which;
-			if (button === 1)	// left button used
-				hide_context_menu();
-		});
+        document.addEventListener("click", function (e) {
+                var button = e.which;
+                if (button === 1)	// left button used
+                        hide_context_menu();
+        });
 
-		context_menu.addEventListener("mouseleave", hide_context_menu);
-	}
+        context_menu.addEventListener("mouseleave", hide_context_menu);
+    }
 
-	init();
-
+    init();
 })();
 """
 
@@ -111,12 +111,14 @@ class Log(ToolInstance, HtmlLog):
     SESSION_ENDURING = True
     SIZE = (300, 500)
     STATE_VERSION = 1
+    help = "help:user/tools/log.html"
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
         self.warning_shows_dialog = True
         self.error_shows_dialog = True
         from chimera.core.ui import MainToolWindow
+
         class LogWindow(MainToolWindow):
             close_destroys = False
         self.tool_window = LogWindow(self, size=self.SIZE)
@@ -139,8 +141,8 @@ class Log(ToolInstance, HtmlLog):
         self.log_window.Bind(wx.EVT_CLOSE, self.on_close)
         self.log_window.Bind(html2.EVT_WEBVIEW_LOADED, self.on_load)
         self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
-            id=self.log_window.GetId())
-        #self.log_window.SetPage(self.page_source, "")
+                             id=self.log_window.GetId())
+        # self.log_window.SetPage(self.page_source, "")
         self.show_page_source()
 
     #
@@ -168,7 +170,7 @@ class Log(ToolInstance, HtmlLog):
                 self.page_source += "<br>\n"
         else:
             if ((level == self.LEVEL_ERROR and self.error_shows_dialog) or
-                (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
+                    (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if level == self.LEVEL_ERROR:
                     caption = "Chimera2 Error"
                     icon = wx.ICON_ERROR
@@ -226,12 +228,11 @@ class Log(ToolInstance, HtmlLog):
         session = self.session
         # Handle event
         url = event.GetURL()
-        import sys
         if url.startswith("log:"):
             event.Veto()
             cmd = url.split(':', 1)[1]
             if cmd == 'help':
-                pass # TODO: self.help_func()?
+                self.display_help()
             elif cmd == 'clear':
                 self.page_source = ""
                 self.show_page_source()
@@ -239,10 +240,10 @@ class Log(ToolInstance, HtmlLog):
                 pass  # TODO
             if cmd == 'save':
                 from chimera.core.ui.open_save import SaveDialog
-                save_dialog = SaveDialog(self.log_window, "Save Log",
-                        defaultFile="log",
-                        wildcard="HTML files (*.html)|*.html",
-                        add_extension=".html")
+                save_dialog = SaveDialog(
+                    self.log_window, "Save Log", defaultFile="log",
+                    wildcard="HTML files (*.html)|*.html",
+                    add_extension=".html")
                 import wx
                 if save_dialog.ShowModal() == wx.ID_CANCEL:
                     return
@@ -269,7 +270,7 @@ class Log(ToolInstance, HtmlLog):
                 return
             event.Veto()
             from chimera.core.commands import run
-            run(session, "help %s" % url, log = False)
+            run(session, "help %s" % url, log=False)
             return
         # unknown scheme
         event.Veto()
