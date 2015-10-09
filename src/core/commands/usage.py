@@ -22,8 +22,9 @@ def usage(session, command_name=None):
         if len(cmds) > 0:
             cmds.sort(key=lambda x: x[x[0] == '~':])
             text = cli.commas(cmds, ' and')
-            suffix = cli.plural(cmds)
-            info("The following command%s are available: %s" % (suffix, text))
+            noun = cli.plural_form(cmds, 'command')
+            verb = cli.plural_form(cmds, 'is', 'are')
+            info("The following %s %s available: %s" % (noun, verb, text))
         return
     elif command_name == 'all':
         info("Syntax for all commands:")

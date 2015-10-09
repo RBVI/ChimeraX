@@ -19,7 +19,8 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
-app-install:
+app-install: install
+	# TODO: figure out way to make below work, so we don't depend on SOURCE
 	#$(RSYNC) $(PYSITEDIR)/pycollada-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
 	cd $(SOURCE) &&	$(APP_PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 

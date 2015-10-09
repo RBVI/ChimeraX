@@ -16,9 +16,9 @@ def alias(session, name='', text=''):
         # list aliases
         aliases = cli.alias()
         names = cli.commas(aliases, ' and')
-        suffix = cli.plural(aliases, 'es')
+        noun = cli.plural_form(aliases, 'Alias')
         if names:
-            logger.info('Alias%s: %s' % (suffix, names))
+            logger.info('%s: %s' % (noun, names))
         else:
             logger.status('No aliases.')
         return
