@@ -266,10 +266,11 @@ class AtomicStructure(AtomicStructureData, Model):
         else:
             p = pg[name]
 
-        ba1, ba2 = pbonds.atoms
+        ba1, ba2 = bond_atoms = pbonds.atoms
         p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, pbonds.radii)
         p.display_positions = _shown_bond_cylinders(pbonds)
         p.colors = pbonds.half_colors
+        p.selected_positions = _selected_bond_cylinders(bond_atoms)
 
     def _create_ribbon_graphics(self):
         from .ribbon import Ribbon, XSection

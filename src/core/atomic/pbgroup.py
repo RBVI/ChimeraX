@@ -59,12 +59,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
             d.normals = na
             d.triangles = ta
 
-        ba1, ba2 = pbonds.atoms
+        ba1, ba2 = bond_atoms = pbonds.atoms
         to_pbg = self.scene_position.inverse()
         axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
         d.positions = structure._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
         d.display_positions = structure._shown_bond_cylinders(pbonds)
         d.colors = pbonds.half_colors
+        d.selected_positions = structure._selected_bond_cylinders(bond_atoms)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
