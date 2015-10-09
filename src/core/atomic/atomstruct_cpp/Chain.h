@@ -48,6 +48,7 @@ public:
     bool  from_seqres() const { return _from_seqres; }
     const Residues&  residues() const { return _residues; }
     Residue*  get(unsigned i) const { return _residues[i]; }
+    bool  is_sequence() const { return _structure == nullptr; }
     Chain&  operator+=(Chain&);
     void  pop_back();
     void  pop_front();

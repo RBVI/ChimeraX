@@ -57,6 +57,7 @@ public:
     Contents::iterator  insert(Contents::const_iterator pos,
         Contents::size_type n, Contents::value_type val)
         { _clear_cache(); return _contents.insert(pos, n, val); }
+    virtual bool  is_sequence() const { return true; }
     Sequence&  operator+=(const Sequence&);
     void  pop_back() { _clear_cache(); _contents.pop_back(); }
     void  pop_front() { _clear_cache(); _contents.erase(_contents.begin()); }

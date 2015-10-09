@@ -12,9 +12,9 @@ install: $(SOURCE)
 	-mkdir $(datadir)/xdg-utils
 	$(RSYNC) $(SOURCE)/scripts/xdg-* $(datadir)/xdg-utils
 
-app-install:;
+app-install:
 	-mkdir $(app_datadir)/xdg-utils
-	$(RSYNC) $(SOURCE)/scripts/xdg-* $(app_datadir)/xdg-utils
+	$(RSYNC) $(datadir)/xdg-utils $(app_datadir)/xdg-utils
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

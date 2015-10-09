@@ -29,7 +29,8 @@ install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
 	cd $(PYOPENGL_SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 	cd $(ACCELERATE_SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
-app-install:
+app-install: install
+	# TODO: figure out way to make below work, so we don't depend on SOURCE
 	#$(RSYNC) $(PYSITEDIR)/PyOpenGL-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
 	#$(RSYNC) $(PYSITEDIR)/PyOpenGL_accelerate-$(VERSION)-py$(PYTHON_VERSION)-*.egg $(APP_PYSITEDIR)
 	cd $(PYOPENGL_SOURCE) && $(APP_PYTHON_EXE) setup.py build $(SETUP_BUILD) install

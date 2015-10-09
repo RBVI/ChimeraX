@@ -19,7 +19,7 @@ done using arrays of attributes.  To get a list of atoms use list(x) where
 x is an Atoms collection. Collections behave as Python iterators so constructs
 such as a "for" loop over an Atoms collection is valid: "for a in atoms: ...".
 
-There are collections Atoms, Bonds, Pseudobonds, Residues, Chains, AtomicStructureDatas.
+There are collections Atoms, Bonds, Pseudobonds, Residues, Chains, AtomicStructures.
 
 Some attributes return collections instead of numpy arrays.  For example,
 atoms.residues returns a Residues collection that has one residue for each atom
@@ -53,6 +53,8 @@ def _residues(a):
 def _chains(a):
     return Chains(a)
 def _atomic_structures(p):
+    return AtomicStructures(p)
+def _atomic_structure_datas(p):
     return AtomicStructureDatas(p)
 def _residues(p):
     return Residues(p)
@@ -676,6 +678,17 @@ class AtomicStructureDatas(Collection):
     ribbon_show_spines = cvec_property('structure_ribbon_show_spine', npy_bool)
     '''Returns an array of booleans of whether to show ribbon spines.'''
 
+# -----------------------------------------------------------------------------
+#
+class AtomicStructures(AtomicStructureDatas):
+    '''
+    Bases: :class:`.AtomicStructureDatas`
+
+    Collection of Python atomic structure objects.
+    '''
+    def __init__(self, mol_pointers):
+        from . import structure
+        Collection.__init__(self, mol_pointers, structure.AtomicStructure, AtomicStructures)
 
 # -----------------------------------------------------------------------------
 #
@@ -696,6 +709,18 @@ class PseudobondGroupDatas(Collection):
     '''A numpy string array of categories of each group.'''
     num_bonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
     '''Number of pseudobonds in each group. Read only.'''
+
+# -----------------------------------------------------------------------------
+#
+class PseudobondGroups(PseudobondGroupDatas):
+    '''
+    Bases: :class:`.PseudobondGroupDatas`
+
+    Collection of Python pseudobond group objects.
+    '''
+    def __init__(self, pbg_pointers):
+        from . import pbgroup
+        Collection.__init__(self, pbg_pointers, pbgroup.PseudobondGroup, PseudobondGroups)
 
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.

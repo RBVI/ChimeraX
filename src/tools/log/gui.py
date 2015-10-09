@@ -132,7 +132,7 @@ class Log(ToolInstance, HtmlLog):
         self._image_count = count()
         from wx import html2
         self.log_window = html2.WebView.New(parent, size=self.SIZE)
-        self.log_window.EnableContextMenu(False)
+        self.log_window.EnableContextMenu(True)
         self.log_window.EnableHistory(False)
         self.page_source = ""
         sizer = wx.BoxSizer(wx.VERTICAL)
