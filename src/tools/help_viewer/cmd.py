@@ -96,10 +96,10 @@ def help(session, topic=None, *, option=None, is_query=False):
         webbrowser.open(url)
 
 help_desc = CmdDesc(
-    required=[
+    optional=[
         ('option',
-         Or(EnumOf(['sethome'], abbreviations=False), EmptyArg))
+         Or(EnumOf(['sethome'], abbreviations=False), EmptyArg)),
+        ('topic', RestOfLine)
     ],
-    optional=[('topic', RestOfLine)],
     synopsis='display help'
 )
