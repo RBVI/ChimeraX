@@ -16,13 +16,27 @@ def get_singleton(session, create=False):
     else:
         return running[0]
 
-def log(session, show = None, hide = None, warning_dialog = None, error_dialog = None, test = None):
-    '''Control setting for the Log window.
+def log(session, show = False, hide = False, clear = False, save_path = None,
+        thumbnail = False, width = 100, height = 100,
+        warning_dialog = None, error_dialog = None, test = None):
+    '''Operations on the Log window.
 
     Parameters
     ----------
     show : bool
+      Show the log panel.
     hide : bool
+      Hide the log panel.
+    clear : bool
+      Erase the log contents.
+    save_path : string
+      Save log contents as html to a file.
+    thumbnail : bool
+      Place a thumbnail image of the current graphics in the log.
+    height : int
+      Height in pixels of thumbnail image.
+    width : int
+      Width in pixels of thumbnail image.
     warning_dialog : bool
       If true, warnings popup a separate dialog, if false no warning dialog is shown.
       In either case the warning appears in the log text.
@@ -39,6 +53,13 @@ def log(session, show = None, hide = None, warning_dialog = None, error_dialog =
             log.display(False)
         if show:
             log.display(True)
+        if clear:
+            log.clear()
+        if not save_path is None:
+            log.save(save_path)
+        if thumbnail:
+            im = session.main_view.image(width, height)
+            log.log(log.LEVEL_INFO, 'graphics image', (im, True), True)
         if test:
             log_test(session)
         if not warning_dialog is None:
@@ -46,9 +67,14 @@ def log(session, show = None, hide = None, warning_dialog = None, error_dialog =
         if not error_dialog is None:
             log.error_shows_dialog = error_dialog
 
-from chimera.core.commands import CmdDesc, NoArg, BoolArg
+from chimera.core.commands import CmdDesc, NoArg, BoolArg, IntArg, StringArg
 log_desc = CmdDesc(keyword = [('show', NoArg),
                               ('hide', NoArg),
+                              ('clear', NoArg),
+                              ('thumbnail', NoArg),
+                              ('width', IntArg),
+                              ('height', IntArg),
+                              ('save_path', StringArg),
                               ('warning_dialog', BoolArg),
                               ('error_dialog', BoolArg),
                               ('test', NoArg)])

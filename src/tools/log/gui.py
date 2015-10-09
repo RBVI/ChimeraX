@@ -42,6 +42,9 @@ context_menu_html = """
         </li>
         -->
         <li class="context-menu-item">
+            <a href="log:image" class="context-menu-link"> Insert image </a>
+        </li>
+        <li class="context-menu-item">
             <a href="log:save" class="context-menu-link"> Save </a>
         </li>
         <li class="context-menu-item">
@@ -234,11 +237,10 @@ class Log(ToolInstance, HtmlLog):
             if cmd == 'help':
                 self.display_help()
             elif cmd == 'clear':
-                self.page_source = ""
-                self.show_page_source()
+                self.clear()
             elif cmd == 'copy':
                 pass  # TODO
-            if cmd == 'save':
+            elif cmd == 'save':
                 from chimera.core.ui.open_save import SaveDialog
                 save_dialog = SaveDialog(
                     self.log_window, "Save Log", defaultFile="log",
@@ -248,18 +250,10 @@ class Log(ToolInstance, HtmlLog):
                 if save_dialog.ShowModal() == wx.ID_CANCEL:
                     return
                 filename = save_dialog.GetPath()
-                f = open(filename, 'w')
-                f.write("<!DOCTYPE html>\n"
-                        "<html>\n"
-                        "<head>\n"
-                        "<title> Chimera2 Log </title>\n"
-                        "</head>\n"
-                        "<body>\n"
-                        "<h1> Chimera2 Log </h1>\n")
-                f.write(self.page_source)
-                f.write("</body>\n"
-                        "</html>\n")
-                f.close()
+                self.save(filename)
+            elif cmd == 'image':
+                from .cmd import log
+                log(self.session, thumbnail = True)
             return
         from urllib.parse import urlparse
         parts = urlparse(url)
@@ -275,6 +269,26 @@ class Log(ToolInstance, HtmlLog):
         # unknown scheme
         event.Veto()
         session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
+
+    def clear(self):
+        self.page_source = ""
+        self.show_page_source()
+
+    def save(self, path):
+        from os.path import expanduser
+        path = expanduser(path)
+        f = open(path, 'w')
+        f.write("<!DOCTYPE html>\n"
+                "<html>\n"
+                "<head>\n"
+                "<title> Chimera2 Log </title>\n"
+                "</head>\n"
+                "<body>\n"
+                "<h1> Chimera2 Log </h1>\n")
+        f.write(self.page_source)
+        f.write("</body>\n"
+                "</html>\n")
+        f.close()
 
     #
     # Implement session.State methods if deriving from ToolInstance
