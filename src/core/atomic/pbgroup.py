@@ -81,3 +81,20 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
 def all_pseudobond_groups(models):
     return [m for m in models.list() if isinstance(m, PseudobondGroup)]
+
+def interatom_pseudobonds(atoms, session):
+    # Inter-model pseudobond groups
+    pbgs = session.models.list(PseudobondGroup)
+    # Intra-model pseudobond groups
+    for m in atoms.unique_structures:
+        pbgs.extend(tuple(m.pbg_map.values()))
+    # Collect bonds
+    from . import Pseudobonds
+    ipbonds = Pseudobonds()
+    for pbg in pbgs:
+        pbonds = pbg.pseudobonds
+        a1, a2 = pbonds.atoms
+        ipb = pbonds.filter(a1.mask(atoms) & a2.mask(atoms))
+        if ipb:
+            ipbonds |= ipb
+    return ipbonds

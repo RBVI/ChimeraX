@@ -463,7 +463,7 @@ class Pseudobonds(Collection):
     their attributes. It has the same attributes as the
     :class:`Bonds` class and works in an analogous fashion.
     '''
-    def __init__(self, pbond_pointers):
+    def __init__(self, pbond_pointers = None):
         Collection.__init__(self, pbond_pointers, molobject.Pseudobond, Pseudobonds)
 
     atoms = cvec_property('pseudobond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
