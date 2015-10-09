@@ -1053,9 +1053,15 @@ def all_atomic_structures(session):
 #
 def all_atoms(session):
     '''All atoms in all structures as an :class:`.Atoms` collection.'''
+    return structure_atoms(all_atomic_structures(session))
+
+# -----------------------------------------------------------------------------
+#
+def structure_atoms(structures):
+    '''Return all atoms in specified atomic structures as an :class:`.Atoms` collection.'''
     from .molarray import Atoms
     atoms = Atoms()
-    for m in all_atomic_structures(session):
+    for m in structures:
         atoms = atoms | m.atoms
     return atoms
 
