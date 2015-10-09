@@ -20,7 +20,8 @@ def display(session, atoms=None, bonds=None):
 
     if bonds is not None:
         atoms.inter_bonds.displays = bonds
-
+        from .. import atomic
+        atomic.interatom_pseudobonds(atoms, session).displays = bonds
 
 def undisplay(session, atoms=None, bonds=None):
     '''Hide specified atoms.
@@ -42,6 +43,8 @@ def undisplay(session, atoms=None, bonds=None):
 
     if bonds is not None:
         atoms.inter_bonds.displays = False
+        from .. import atomic
+        atomic.interatom_pseudobonds(atoms, session).displays = False
 
 
 def register_command(session):

@@ -45,7 +45,7 @@ def color(session, spec, color=None, target=None, transparency=None,
 
     default_target = (target is None)
     if default_target:
-        target = 'acsmnlrbpd'
+        target = 'acsmnlrbd'
 
     # Decide whether to set or preserve transparency
     opacity = None
@@ -130,15 +130,23 @@ def color(session, spec, color=None, target=None, transparency=None,
     if 'b' in target:
         if atoms is not None:
             bonds = atoms.inter_bonds
-            if color not in _SpecialColors and color is not None:
-                bonds.colors = color.uint8x4()
-            if halfbond is not None:
-                bonds.halfbonds = halfbond
-            what.append('%d bonds' % len(bonds))
+            if len(bonds) > 0:
+                if color not in _SpecialColors and color is not None:
+                    bonds.colors = color.uint8x4()
+                if halfbond is not None:
+                    bonds.halfbonds = halfbond
+                what.append('%d bonds' % len(bonds))
 
     if 'p' in target:
-        if not default_target:
-            session.logger.warning('Pseudobond colors not supported yet')
+        if atoms is not None:
+            from .. import atomic
+            bonds = atomic.interatom_pseudobonds(atoms, session)
+            if len(bonds) > 0:
+                if color not in _SpecialColors and color is not None:
+                    bonds.colors = color.uint8x4()
+                if halfbond is not None:
+                    bonds.halfbonds = halfbond
+                what.append('%d pseudobonds' % len(bonds))
 
     if 'd' in target:
         if not default_target:
