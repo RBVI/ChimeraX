@@ -96,6 +96,8 @@ class Model(State, Drawing):
 class Models(State):
 
     VERSION = 1     # snapshot version
+    ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
+        "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
 
     def __init__(self, session):
         self._session = weakref.ref(session)
@@ -205,6 +207,20 @@ class Models(State):
             children = [c for c in model.child_drawings() if isinstance(c, Model)]
             if children:
                 m_all.extend(self.add(children, model))
+            from .atomic.structure import AtomicStructure
+            if isinstance(model, AtomicStructure):
+                from .colors import _BuiltinColors, distinguish_from, Color
+                try:
+                    model_color = _BuiltinColors[
+                        self.ATOMIC_COLOR_NAMES[model.id[0]-1]]
+                except IndexError:
+                    # pick a color that distinguishes from the standard list
+                    # as well as white and black and green (highlight), and hope...
+                    avoid = [_BuiltinColors[cn].rgba[:3] for cn in self.ATOMIC_COLOR_NAMES]
+                    avoid.extend([(0,0,0), (0,1,0), (1,1,1)])
+                    model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
+                model.atoms.colors = model_color.uint8x4()
+                model.residues.ribbon_colors = model_color.uint8x4()
 
         if parent is None:
             session = self._session()

@@ -497,6 +497,39 @@ def chain_rgba8(cid):
     return chain_colors([cid])[0]
 
 
+_df_state = {}
+def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
+    """Best effort to return an RGB that perceptually differs from the given RGBs"""
+    if rgbs and len(rgbs[0]) > 3:
+        rgbs = [rgba[:3] for rgba in rgbs]
+
+    max_diff = None
+    import random
+    global _df_state
+    if seed is not None:
+        if save_state and seed in _df_state:
+            random.setstate(_df_state[seed])
+        else:
+            random.seed(seed)
+    for i in range(num_candidates):
+        candidate = tuple([random.random() for i in range(3)])
+        if not rgbs:
+            if save_state and seed is not None:
+                _df_state[seed] = random.getstate()
+            return candidate
+        min_diff = None
+        for rgb in rgbs:
+            diff = abs(rgb[0]-candidate[0]) + abs(rgb[1]-candidate[1]) \
+                + 0.5 * abs(rgb[2]-candidate[2])
+            if min_diff is None or diff < min_diff:
+                min_diff = diff
+        if max_diff is None or min_diff > max_diff:
+            max_diff = min_diff
+            best_candidate = candidate
+    if save_state and seed is not None:
+        _df_state[seed] = random.getstate()
+    return best_candidate
+
 # -----------------------------------------------------------------------------
 #
 
@@ -721,6 +754,7 @@ _BuiltinColors = SortedDict({
     'sienna': (160, 82, 45, 255),
     'silver': (192, 192, 192, 255),
     'skyblue': (135, 206, 235, 255),
+    'sky blue': (135, 206, 235, 255),
     'slateblue': (106, 90, 205, 255),
     'slate blue': (106, 90, 205, 255),
     'slategray': (112, 128, 144, 255),
