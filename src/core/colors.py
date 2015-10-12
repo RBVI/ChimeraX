@@ -26,14 +26,14 @@ class UserColors(SortedDict, State):
 
     def __init__(self):
         SortedDict.__init__(self)
-        self.update(_BuiltinColors)
+        self.update(BuiltinColors)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
             return
         # only save differences from builtin colors
         data = {name: color for name, color in self.items()
-                if name not in _BuiltinColors or color != _BuiltinColors[name]}
+                if name not in BuiltinColors or color != BuiltinColors[name]}
         return [self.USER_COLORS_VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
@@ -46,7 +46,7 @@ class UserColors(SortedDict, State):
     def reset_state(self):
         """Reset state to data-less state"""
         self.clear()
-        self.update(_BuiltinColors)
+        self.update(BuiltinColors)
 
 
 class Color:
@@ -534,7 +534,7 @@ def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
 #
 
 # CSS4 colors + multiword color names
-_BuiltinColors = SortedDict({
+BuiltinColors = SortedDict({
     'aliceblue': (240, 248, 255, 255),
     'alice blue': (240, 248, 255, 255),
     'antiquewhite': (250, 235, 215, 255),
@@ -780,12 +780,12 @@ _BuiltinColors = SortedDict({
     'yellowgreen': (154, 205, 50, 255),
     'yellow green': (154, 205, 50, 255),
 })
-_BuiltinColors['transparent'] = (0, 0, 0, 0)
+BuiltinColors['transparent'] = (0, 0, 0, 0)
 
 
 def _init():
-    for name in _BuiltinColors:
-        rgb = _BuiltinColors[name]
+    for name in BuiltinColors:
+        rgb = BuiltinColors[name]
         color = Color([x / 255 for x in rgb])
-        _BuiltinColors[name] = color
+        BuiltinColors[name] = color
 _init()

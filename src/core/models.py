@@ -209,10 +209,10 @@ class Models(State):
                 m_all.extend(self.add(children, model))
             from .atomic.structure import AtomicStructure
             if isinstance(model, AtomicStructure):
-                from .colors import _BuiltinColors, distinguish_from, Color
+                from .colors import BuiltinColors, distinguish_from, Color
                 bg_color = self._session().main_view.background_color
                 try:
-                    model_color = _BuiltinColors[
+                    model_color = BuiltinColors[
                         self.ATOMIC_COLOR_NAMES[model.id[0]-1]]
                     if (model_color.rgba[:3] == bg_color[:3]).all():
                         # force use of another color...
@@ -220,7 +220,7 @@ class Models(State):
                 except IndexError:
                     # pick a color that distinguishes from the standard list
                     # as well as white and black and green (highlight), and hope...
-                    avoid = [_BuiltinColors[cn].rgba[:3] for cn in self.ATOMIC_COLOR_NAMES]
+                    avoid = [BuiltinColors[cn].rgba[:3] for cn in self.ATOMIC_COLOR_NAMES]
                     avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
                     model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
                 model.atoms.colors = model_color.uint8x4()
