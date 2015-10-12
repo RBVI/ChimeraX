@@ -879,6 +879,9 @@ def everything(session):
     """
     return AtomSpecArg.parse('#*', session)[0]
 
+def all_objects(session):
+    '''Return AtomSpecResults that matches everything.'''
+    return everything(session).evaluate(session)
 
 # -----------------------------------------------------------------------------
 #
