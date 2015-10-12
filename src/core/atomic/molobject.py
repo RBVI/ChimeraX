@@ -330,7 +330,17 @@ class Residue:
 
 # -----------------------------------------------------------------------------
 #
-class Chain:
+class Sequence:
+    '''
+    A polymeric sequence.  Offers string-like interface.
+    '''
+
+    def __init__(self, seq_pointer):
+        set_c_pointer(self, seq_pointer)
+
+# -----------------------------------------------------------------------------
+#
+class Chain(Sequence):
     '''
     A single polymer chain such as a protein, DNA or RNA strand.
     A chain has a sequence associated with it.  A chain may have breaks.
@@ -339,7 +349,7 @@ class Chain:
     TODO: C++ sequence object is currently not available in Python.
     '''
     def __init__(self, chain_pointer):
-        set_c_pointer(self, chain_pointer)
+        super().__init__(chain_pointer)
 
     chain_id = c_property('chain_chain_id', string, read_only = True)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
