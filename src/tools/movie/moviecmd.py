@@ -268,7 +268,7 @@ def ignore_movie_commands(session):
     return ignore
 
 def no_movie(session):
-    if not hasattr(session, 'movie'):
+    if not hasattr(session, 'movie') or session.movie is None:
         session.logger.warning('No movie being recorded.')
         return True
     return False
