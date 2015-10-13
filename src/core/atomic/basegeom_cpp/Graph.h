@@ -7,6 +7,7 @@
 
 #include "ChangeTracker.h"
 #include "destruct.h"
+#include "Rgba.h"
 
 namespace basegeom {
 
@@ -80,6 +81,7 @@ public:
         change_tracker()->add_modified(dynamic_cast<FinalGraph*>(this),
             ChangeTracker::REASON_BALL_SCALE);
     }
+    virtual void  set_color(const Rgba&);
     void  set_display(bool d) {
         if (d == _display)
             return;

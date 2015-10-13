@@ -6,6 +6,7 @@
 #include <set>
 
 #include "Connectible.tcc"
+#include "Connection.h"
 #include "destruct.h"
 #include "Graph.h"
 
@@ -76,6 +77,16 @@ Graph<Vertex, Edge, FinalGraph>::delete_vertices(const std::set<Vertex*>& vertic
         });
     _edges.erase(new_e_end, _edges.end());
     set_gc_shape();
+}
+
+template <class Vertex, class Edge, class FinalGraph>
+void
+Graph<Vertex, Edge, FinalGraph>::set_color(const Rgba& rgba)
+{
+    for (auto v: _vertices)
+        v->set_color(rgba);
+    for (auto e: _edges)
+        e->set_color(rgba);
 }
 
 } //  namespace basegeom

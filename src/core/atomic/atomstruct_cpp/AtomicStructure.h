@@ -16,6 +16,7 @@
 
 #include <basegeom/ChangeTracker.h>
 #include <basegeom/Graph.h>
+#include <basegeom/Rgba.h>
 #include <basegeom/destruct.h>
 #include <element/Element.h>
 
@@ -38,6 +39,7 @@ class CoordSet;
 class Residue;
 
 using basegeom::ChangeTracker;
+using basegeom::Rgba;
 using element::Element;
 
 class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond, AtomicStructure> {
@@ -164,11 +166,14 @@ public:
     int  session_info(PyObject* ints, PyObject* floats, PyObject* strings) const;
     void  set_active_coord_set(CoordSet *cs);
     // set_ball_scale() inherited from Graph
+    void  set_color(const Rgba& rgba);
     // set_display() inherited from Graph
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }
     void  start_change_tracking(ChangeTracker* ct);
     void  use_best_alt_locs();
+
+    // ribbon stuff
     bool  get_gc_ribbon() const { return _gc_ribbon; }
     void  set_gc_ribbon(bool gc = true) { _gc_ribbon = gc; }
     float  ribbon_tether_scale() const { return _ribbon_tether_scale; }
@@ -243,6 +248,15 @@ inline void
 atomstruct::AtomicStructure::remove_chain(Chain* chain)
 {
     _chains->erase(std::find(_chains->begin(), _chains->end(), chain));
+}
+
+#include "Residue.h"
+inline void
+atomstruct::AtomicStructure::set_color(const Rgba& rgba)
+{
+    basegeom::Graph<Atom, Bond, AtomicStructure>::set_color(rgba);
+    for (auto r: residues())
+        r->set_ribbon_color(rgba);
 }
 
 #endif  // atomstruct_AtomicStructure

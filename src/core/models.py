@@ -184,8 +184,6 @@ class Models(State):
         d = self.drawing if parent is None else parent
         for m in models:
             d.add_drawing(m)
-            if hasattr(m, '_start_change_tracking'):
-                m._start_change_tracking(self._session().change_tracker)
 
         # Assign id numbers
         if parent is None:
@@ -223,8 +221,8 @@ class Models(State):
                     avoid = [BuiltinColors[cn].rgba[:3] for cn in self.ATOMIC_COLOR_NAMES]
                     avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
                     model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
-                model.atoms.colors = model_color.uint8x4()
-                model.residues.ribbon_colors = model_color.uint8x4()
+                model.set_color(model_color.uint8x4())
+                m._start_change_tracking(self._session().change_tracker)
 
         if parent is None:
             session = self._session()
