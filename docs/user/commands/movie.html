@@ -26,7 +26,7 @@ class="clRight" alt="Chimera2 logo"/></a>
 <p>
 The <b>movie</b> command captures image frames from Chimera2
 and assembles them into a video (movie file).
-See also: <b>save</b>
+See also: <a href="wait.html"><b>wait</b></a>, <b>save</b>
 </p><p>
 One of the following <b><i>action</i></b> keywords must be specified:
 <ul>
@@ -192,6 +192,15 @@ highest&nbsp;|&nbsp;higher&nbsp;|&nbsp;high&nbsp;|&nbsp;<b>good</b>&nbsp;|&nbsp;
   <a name="framerate"><b>framerate</b></a> <i>fps</i>
   <br>The frame rate is the rate of playback in terms of image frames.  
   The frame rate <i>fps</i> is an integer and defaults to <b>25</b> frames/s.
+  <p>
+  In Chimera2, the target or intended graphics frame rate is 60 fps (default). 
+  The actual frame rate may be lower depending on computer performance and
+  what is being displayed.  Recording generally slows the process further;
+  however, the frame rate of the resulting movie is controlled independently
+  with the <b>framerate</b> option described above.
+  Thus, movie playback may be faster or slower than the original process 
+  in Chimera2.
+  </p>
 </blockquote><blockquote>
   <b>roundTrip</b> true&nbsp;|&nbsp;<b>false</b>
   <br>Whether to include the frames in reverse order as the second half
@@ -258,5 +267,5 @@ script (movie content) development.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2015</address>
+October 2015</address>
 </body></html>
