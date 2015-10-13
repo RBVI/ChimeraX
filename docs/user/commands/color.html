@@ -24,16 +24,18 @@ class="clRight" alt="Chimera2 logo"/></a>
 <BR><b>color</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 &nbsp;<a href="#colorname"><i>colorname</i></a>&nbsp;
-[&nbsp;transparency &nbsp;<i>percent</i>&nbsp;]
-[&nbsp;<a href="#target">target</a> &nbsp;<i>string</i>&nbsp;]
+[&nbsp;transparency&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#target">target</a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+[&nbsp;halfbond&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>color</b>
 &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
 &nbsp;<b>sequential chains</b>
-[&nbsp;transparency &nbsp;<i>percent</i>&nbsp;]
-[&nbsp;<a href="#target">target</a> &nbsp;<i>string</i>&nbsp;]
-[&nbsp;<b>cmap</b> &nbsp;<i>palette</i>&nbsp;]
+[&nbsp;transparency&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#target">target</a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+[&nbsp;halfbond&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>cmap</b>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 </h3>
 <p>
 The <b>color</b> command colors atomic models, including
@@ -44,12 +46,15 @@ See also: <a href="colordef.html"><b>colordef</b></a>,
 <b>volume</b>
 </p><p>
 The absence of an atom or model specifier implies &ldquo;all.&rdquo;
+Bonds and pseudobonds are considered as specified when both flanking atoms
+are specified.
+</p><p>
 Keywords can be truncated to unique strings, and their case does not matter.
 <!--
-Synonyms for true: True, 1.  Synonyms for false: False, 0.
 A vertical bar &ldquo;|&rdquo; designates mutually exclusive options, and
 default settings are indicated with <b>bold</b>.
 -->
+Synonyms for true: True, 1.  Synonyms for false: False, 0.
 </p><p>
 For simple coloring, the <a name="colorname"><i>colorname</i></a> can be:
 <ul>
@@ -86,31 +91,44 @@ a subset of the possible displays of a given atom, residue, <i>etc.</i>
 The <i>string</i> can be any combination of the following letters,
 without commas or spaces:
   <ul>
-  <li><b>a</b> - atoms/bonds (halfbond coloring)
+  <li><b>a</b> - atoms/bonds
+  (coloring shown for bonds in <a href="#halfbond">halfbond mode</a>)
+  <li><b>b</b> - bonds-only
+  (coloring shown for bonds not in <a href="#halfbond">halfbond mode</a>)
 <!--
   <li><b>l</b> - atom labels
 -->
   <li><b>c</b> - cartoons (divisible to per-residue segments)
   <li><b>s</b> - surfaces
   (molecular surfaces divisible to per-atom patches)
+  <li><b>p</b> - pseudobonds-only
+  (coloring shown for pseudobonds not in <a href="#halfbond">halfbond mode</a>)
 <!--
   <li><b>r</b> - residue labels
   <li><b>n</b> - nonmolecular models (model-level color)
   <li><b>m</b> - molecular models (model-level color)
-  <li><b>b</b> - bonds only 
-   (halfbond mode off) with both end atoms specified
-  <li><b>p</b> - pseudobonds with both end atoms specified
   <li><b>d</b> - distances and other pseudobond labels
 -->
   </ul>
-The default target is all of the above (<b>acs</b>), 
+The default target is <b>abcs</b>, 
 <font color="brown">
 except that surface coloring is
 not yet implemented for <b>sequential</b> coloring
+</font>
 (if atoms have been colored sequentially, however,
 the surface can be colored to match the atoms with the command: 
-<b>color byatom target s</b>).
-</font>
+<b>color byatom target s</b>). 
+</p><p>
+By default, bonds are shown in
+<a name="halfbond"><b><i>halfbond mode</i></b></a>,
+with color and transparency settings from the flanking atoms.
+Turning halfbond mode off for a bond (or pseudobond) reveals its
+own color/transparency settings independent of the atoms.
+The <b>halfbond</b> option can be used to toggle halfbond mode
+regardless of whether a color is given in the command.
+This option affects only the specified bonds 
+(not specified pseudobonds), except obeying the 
+<a href="#target">target</a> when it includes <b>p</b>.
 </p><p>
 The <b>cmap</b> option specifies a <i>palette</i> for sequential
 coloring (colors listed in ascending value order):
@@ -140,6 +158,11 @@ Example <a href="#top"><b>color</b></a> commands:
 <b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;target a</b>
 </blockquote>
 - color residues 12 and 260-275 in chains A and B, atoms/bonds only
+<blockquote>
+<b>color <a href="atomspec.html#builtin">pbonds</a> &nbsp;yellow
+&nbsp;targ p</b>
+</blockquote>
+- color all pseudobonds yellow, but not their flanking atoms
 <blockquote>
 <b>color &nbsp;seq chain &nbsp;targ c</b>
 </blockquote>
@@ -183,5 +206,5 @@ surface-only), create new atom attribute named <b>esp</b>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2015</address>
+October 2015</address>
 </body></html>
