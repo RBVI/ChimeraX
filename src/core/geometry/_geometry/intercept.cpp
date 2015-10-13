@@ -18,6 +18,11 @@ static bool closest_sphere_intercept(const float *centers, int n, int cstride0, 
 				     const float *radii, int rstride,
 				     const float *xyz1, const float *xyz2,
 				     float *fmin, int *snum);
+static bool closest_cylinder_intercept(const float *base1, int n, int b1stride0, int b1stride1,
+				       const float *base2, int b2stride0, int b2stride1,
+				       const float *radii, int rstride,
+				       const float *xyz1, const float *xyz2,
+				       float *fmin, int *cnum);
 
 // ----------------------------------------------------------------------------
 // Find closest triangle intercepting line segment between xyz1 and xyz2.
@@ -227,5 +232,131 @@ static bool closest_sphere_intercept(const float *centers, int n, int cstride0, 
 
   *fmin = dc/d;
   *snum = sc;
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+// Find closest cylinder point intersectiong the line segment between xyz1 and xyz2.
+// Intercept with cylinder end caps is not considered.
+// Returns fraction of way along segment and the cylinder number.
+//
+extern "C"
+PyObject *closest_cylinder_intercept(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray base1, base2, radii;
+  float xyz1[3], xyz2[3];
+  const char *kwlist[] = {"base1", "base2", "radii", "xyz1", "xyz2", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &base1,
+				   parse_float_n3_array, &base2,
+				   parse_float_n_array, &radii,
+				   parse_float_3_array, &xyz1,
+				   parse_float_3_array, &xyz2))
+    return NULL;
+
+  if (radii.size(0) != base1.size(0) || base2.size(0) != base1.size(0))
+    {
+      PyErr_SetString(PyExc_ValueError,
+		      "closest_cylinder_intercept(): radii, base1, and base2 arrays must have same size");
+      return NULL;
+    }
+
+  float fmin;
+  int c;
+  PyObject *py_fmin, *py_cnum;
+  if (closest_cylinder_intercept(base1.values(), base1.size(0), base1.stride(0), base1.stride(1),
+				 base2.values(), base1.stride(0), base1.stride(1),
+				 radii.values(), radii.stride(0),
+				 xyz1, xyz2, &fmin, &c))
+    {
+      py_fmin = PyFloat_FromDouble(fmin);
+      py_cnum = PyLong_FromLong(c);
+    }
+  else
+    {
+      py_fmin = Py_None; Py_INCREF(Py_None);
+      py_cnum = Py_None; Py_INCREF(Py_None);
+    }
+  PyObject *t = python_tuple(py_fmin, py_cnum);
+
+  return t;
+}
+
+// ----------------------------------------------------------------------------
+//
+static bool closest_cylinder_intercept(const float *base1, int n, int b1stride0, int b1stride1,
+				       const float *base2, int b2stride0, int b2stride1,
+				       const float *radii, int rstride,
+				       const float *xyz1, const float *xyz2,
+				       float *fmin, int *cnum)
+{
+  float cx = xyz1[0], cy = xyz1[1], cz = xyz1[2];
+  float dx = xyz2[0]-xyz1[0], dy = xyz2[1]-xyz1[1], dz = xyz2[2]-xyz1[2];
+  float d2 = dx*dx + dy*dy + dz*dz;
+  if (d2 == 0)
+    return false;
+
+  // Optimization to quickly detect if infinite line misses infinite cylinder.
+  float px = -dz, pz = dx, pn = sqrtf(dx*dx + dz*dz);
+  if (pn > 0)
+    { px /= pn; pz /= pn; }
+  float pc = -(px*cx + pz*cz);
+
+  float fc = 2;
+  int cc;
+  for (int c = 0 ; c < n ; ++c)
+    {
+      int s3 = b1stride0*c;
+      float bx = base1[s3], by = base1[s3+b1stride1], bz = base1[s3+2*b1stride1], r = radii[c*rstride];
+      s3 = b2stride0*c;
+      float b2x = base2[s3], b2y = base2[s3+b2stride1], b2z = base2[s3+2*b2stride1];
+
+      // Optimization to quickly detect if infinite line misses infinite cylinder.
+      float w1 = px*bx + pz*bz + pc, w2 = px*b2x + pz*b2z + pc;
+      if ((w1 > r && w2 > r) || (w1 < -r && w2 < -r))
+	continue;
+
+      float ax = b2x-bx, ay = b2y-by, az = b2z-bz;
+      float a2 = ax*ax + ay*ay + az*az;
+      float ad = ax*dx + ay*dy + az*dz;
+      float ad2 = ad*ad;
+      float ex = cx-bx, ey = cy-by, ez = cz-bz;
+      float e2 = ex*ex + ey*ey + ez*ez;
+      float ed = ex*dx + ey*dy + ez*dz;
+      float ea = ex*ax + ey*ay + ez*az;
+      float r2 = r*r;
+
+      float q2 = a2*d2 - ad2, q1 = ed*a2 - ea*ad, q0 = e2*a2 - r2*a2 - ea*ea;
+      if (q2 <= 0)
+	continue;	// No intercept, line parallel to cylinder
+
+      float qd = q1*q1 - q2*q0;
+      if (qd < 0)
+	continue;	// No intercept, cylinder radius too small.
+
+      float q = sqrtf(qd);
+      float f1 = (-q1 - q) / q2, f2 = (-q1 + q) / q2;
+      float p1 = ea + f1*ad, p2 = ea + f2*ad;
+      float f;
+      if (f1 >= 0 && f1 <= 1 && p1 >= 0 && p1 <= a2)
+	f = f1;
+      else if (f2 >= 0 && f2 <= 1 && p2 >= 0 && p2 <= a2)
+	f = f2;
+      else
+	continue;	// Intercepts beyond ends of line segment or beyond ends of cylinder
+
+      if (f >= fc)
+	continue;	// Already have a closer cylinder
+
+      fc = f;
+      cc = c;
+    }
+
+  if (fc > 1)
+    return false;
+
+  *fmin = fc;
+  *cnum = cc;
   return true;
 }

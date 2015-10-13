@@ -37,9 +37,35 @@ static struct PyMethodDef geometry_cpp_methods[] =
 
   /* intercept.h */
   {const_cast<char*>("closest_triangle_intercept"), (PyCFunction)closest_triangle_intercept,
-   METH_VARARGS|METH_KEYWORDS, NULL},
+   METH_VARARGS|METH_KEYWORDS,
+   "closest_triangle_intercept(float varray[n,3], int tarray[m,3], float xyz1[3], float xyz2[3])\n"
+   "    -> (float fmin, int tnum)\n"
+   "\n"
+   "Find first triangle intercept along line segment from xyz1 to xyz2.\n"
+   "Returns fraction of distance from xyz1 to xyz2 and triangle number.\n"
+   "Both return values are None if the line segment does not intersect a triangle.\n"
+   "Implemented in C++.\n"
+  },
   {const_cast<char*>("closest_sphere_intercept"), (PyCFunction)closest_sphere_intercept,
-   METH_VARARGS|METH_KEYWORDS, NULL},
+   METH_VARARGS|METH_KEYWORDS,
+   "closest_sphere_intercept(float centers[n,3], float radii[n], float xyz1[3], float xyz2[3])\n"
+   "    -> (float fmin, int snum)\n"
+   "\n"
+   "Find first sphere intercept along line segment from xyz1 to xyz2.\n"
+   "Returns fraction of distance from xyz1 to xyz2 and sphere number.\n"
+   "Both return values are None if the line segment does not intersect a sphere.\n"
+   "Implemented in C++.\n"
+  },
+  {const_cast<char*>("closest_cylinder_intercept"), (PyCFunction)closest_cylinder_intercept,
+   METH_VARARGS|METH_KEYWORDS,
+   "closest_cylinder_intercept(float cxyz1[n,3], float cxyz2[n,3], float radii[n], float xyz1[3], float xyz2[3])\n"
+   "    -> (float fmin, int snum)\n"
+   "\n"
+   "Find first cylinder intercept along line segment from xyz1 to xyz2.\n"
+   "Returns fraction of distance from xyz1 to xyz2 and cylinder number.\n"
+   "Both return values are None if the line segment does not intersect a cylinder.\n"
+   "Implemented in C++.\n"
+  },
 
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
