@@ -750,6 +750,12 @@ extern "C" void set_bond_radius(void *bonds, size_t n, float32_t *radii)
     error_wrap_array_set<Bond, float>(b, n, &Bond::set_radius, radii);
 }
 
+extern "C" void bond_structure(void *bonds, size_t n, pyobject_t *molp)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_get(b, n, &Bond::structure, molp);
+}
+
 extern "C" void pseudobond_atoms(void *pbonds, size_t n, pyobject_t *atoms)
 {
     PBond **b = static_cast<PBond **>(pbonds);
