@@ -800,15 +800,25 @@ class Drawing:
                 p = self._first_intercept_excluding_children(mxyz1, mxyz2)
                 if p and (pclosest is None or p.distance < pclosest.distance):
                     pclosest = p
-            cd = self.child_drawings()
-            if cd:
-                pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
-                for d in cd:
-                    if d.display and (exclude is None or not hasattr(d, exclude)):
-                        for cp, (cxyz1, cxyz2) in enumerate(pos):
-                            p = d.first_intercept(cxyz1, cxyz2, exclude)
-                            if p and (pclosest is None or p.distance < pclosest.distance):
-                                pclosest = p
+            p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude)
+            if p and (pclosest is None or p.distance < pclosest.distance):
+                pclosest = p
+        return pclosest
+
+    def first_intercept_children(self, child_drawings, mxyz1, mxyz2, exclude=None):
+        '''
+        Like first_intercept() but check for intercepts with just the specified children.
+        '''
+        if len(child_drawings) == 0:
+            return None
+        pclosest = None
+        pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
+        for d in child_drawings:
+            if d.display and (exclude is None or not hasattr(d, exclude)):
+                for cp, (cxyz1, cxyz2) in enumerate(pos):
+                    p = d.first_intercept(cxyz1, cxyz2, exclude)
+                    if p and (pclosest is None or p.distance < pclosest.distance):
+                        pclosest = p
         return pclosest
 
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
