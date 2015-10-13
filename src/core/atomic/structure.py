@@ -853,7 +853,25 @@ def _atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
     return s
 
 def _bond_first_intercept(self, mxyz1, mxyz2, exclude = None):
-    return None
+    bonds = self.parent.bonds
+    bshown = bonds.showns
+    bs = bonds.filter(bshown)
+    a1, a2 = bs.atoms
+    xyz1, xyz2, r = a1.coords, a2.coords, bs.radii
+
+    # Check for atom sphere intercept
+    from .. import geometry
+    fmin, bnum = geometry.closest_cylinder_intercept(xyz1, xyz2, r, mxyz1, mxyz2)
+
+    if fmin is None:
+        return None
+
+    # Remap index to include undisplayed positions
+    bnum = bshown.nonzero()[0][bnum]
+
+    # Create pick object
+    s = PickedBond(bonds[bnum], fmin)
+    return s
 
 def _ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
     # TODO check intercept of bounding box as optimization
@@ -896,6 +914,42 @@ def atom_description(atom):
     m = atom.structure
     r = atom.residue
     d = '%s #%s/%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
+    return d
+
+# -----------------------------------------------------------------------------
+#
+from ..graphics import Pick
+class PickedBond(Pick):
+    def __init__(self, bond, distance):
+        Pick.__init__(self, distance)
+        self.bond = bond
+    def description(self):
+        return bond_description(self.bond)
+    def drawing(self):
+        return self.bond.structure
+    def select(self, toggle = False):
+        b = self.bond
+        for a in b.atoms:
+            b.structure.select_atom(a, toggle)
+
+# -----------------------------------------------------------------------------
+#
+def bond_description(bond):
+    m = bond.structure
+    a1, a2 = bond.atoms
+    r1, r2 = a1.residue, a2.residue
+    if r1 == r2:
+        d = 'bond %s #%s/%s %s %d %s - %s' % (m.name, m.id_string(), r1.chain_id,
+                                              r1.name, r1.number, a1.name, a2.name)
+    elif r1.chain_id == r2.chain_id:
+        d = 'bond %s #%s/%s %s %d %s - %s %d %s' % (m.name, m.id_string(), r1.chain_id,
+                                                    r1.name, r1.number, a1.name,
+                                                    r2.name, r2.number, a2.name)
+    else:
+        d = 'bond %s #%s/%s %s %d %s - /%s %s %d %s' % (m.name, m.id_string(),
+                                                    r1.chain_id, r1.name, r1.number, a1.name,
+                                                    r2.chain_id, r2.name, r2.number, a2.name)
+
     return d
 
 # -----------------------------------------------------------------------------
