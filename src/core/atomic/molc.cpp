@@ -1433,6 +1433,21 @@ extern "C" void change_tracker_add_modified(void *vct, int class_num, void *modd
     }
 }
 
+extern "C" void set_structure_color(void *mol, uint8_t *rgba)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        Rgba c;
+        c.r = *rgba++;
+        c.g = *rgba++;
+        c.b = *rgba++;
+        c.a = *rgba++;
+        m->set_color(c);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void *structure_copy(void *mol)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
