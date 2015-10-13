@@ -445,8 +445,6 @@ class ToolWindow:
         return self.__toolkit.shown
 
     def _set_shown(self, shown):
-        if shown == self.__toolkit.shown:
-            return
         self.tool_instance.session.ui.main_window._tool_window_request_shown(
             self, shown)
 
@@ -614,9 +612,12 @@ class _Wx:
         return self.ui_area.Shown
 
     def _set_shown(self, shown):
-        if shown == self.ui_area.Shown:
-            return
         aui_mgr = self.main_window.aui_mgr
+        if shown == self.ui_area.Shown:
+            if shown:
+                #ensure it's on top
+                aui_mgr.ShowPane(self.ui_area, True)
+            return
         if shown:
             if self._pane_info:
                 # has been hidden at least once
@@ -628,5 +629,8 @@ class _Wx:
         aui_mgr.Update()
 
         self.ui_area.Shown = shown
+        if shown:
+            #ensure it's on top
+            aui_mgr.ShowPane(self.ui_area, True)
 
     shown = property(_get_shown, _set_shown)

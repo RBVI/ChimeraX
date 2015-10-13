@@ -414,7 +414,7 @@ class Logger:
             if last_resort:
                 msg = self._html_to_plain(msg, image, is_html)
                 if prev_newline:
-                    output = "{}: {}".format(level.upper(), msg)
+                    output = "{}: {}".format(Log.LEVEL_DESCRIPTS[level].upper(), msg)
                 else:
                     output = msg
                 print(output, end="", file=last_resort)
