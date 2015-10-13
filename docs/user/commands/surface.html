@@ -86,11 +86,6 @@ However, if a single surface model is based on atoms from more than one model
 (for example, generated with <b>surf enclose #1,2</b>), it will be assigned 
 a number at the same level as the atomic models (for example, #3).
 </p>
-<font color="brown"><p>
-Currently, the default surfaces simply include the biopolymer chains
-rather than <a href="atomspec.html#surfcats">category <b>main</b></a>
-divided up by chain ID.
-</p></font>
 
 <p class="nav">
 [<a href="#top">back to top</a>]
@@ -120,20 +115,12 @@ biopolymer chains with different chain IDs into a single molecular envelope.
 </p><p>
 The <b>include</b> option can be used to force including atoms that
 would otherwise be ignored 
-<!--
-(any subset of the atoms 
-<a href="atomspec.html#surfcats">categorized</a>
-as <b>ligand</b>, <b>solvent</b>, or <b>ions</b>) 
--->
 (residues not within a biopolymer chain, such as ligands, solvent, and ions)
 into the same envelope as the biopolymer atoms with the same chain ID.
 For convenience, however, if
 <a href="atomspec.html"><i>atom-spec1</i></a>
 contains only such atoms, they will be surfaced separately
-<!--
-(grouped by <a href="atomspec.html#surfcats">category</a> and chain ID)
--->
-and the <b>include</b> option is not needed.
+(grouped by chain ID) and the <b>include</b> option is not needed.
 </p><p>
 The <b>replace</b> option (default <b>true</b>)
 indicates removing all previously created surface models 
