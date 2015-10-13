@@ -821,9 +821,9 @@ class Drawing:
             return None
         # TODO: Check intercept of bounding box as optimization
         p = None
-        from ._graphics import closest_geometry_intercept
+        from ..geometry import closest_triangle_intercept
         if self.positions.is_identity():
-            fmin, tmin = closest_geometry_intercept(va, ta, mxyz1, mxyz2)
+            fmin, tmin = closest_triangle_intercept(va, ta, mxyz1, mxyz2)
             if fmin is not None:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
@@ -832,7 +832,7 @@ class Drawing:
             for c, tf in enumerate(self.positions):
                 if dp is None or dp[c]:
                     cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-                    fmin, tmin = closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+                    fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
                     if fmin is not None and (p is None or fmin < p.distance):
                         p = TrianglePick(fmin, tmin, c, self)
         return p

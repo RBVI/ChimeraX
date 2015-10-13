@@ -5,6 +5,7 @@
 #include "bounds.h"			// use sphere_bounds, ...
 #include "closepoints.h"		// use find_close_points, ...
 #include "distancespy.h"		// use py_distances_from_origin, ...
+#include "intercept.h"			// use closest_geometry_intercept
 #include "spline.h"			// use natural_cubic_spline
 #include "transform.h"			// use affine_transform_vertices, ...
 #include "vector_ops.h"			// use inner_product_64
@@ -33,6 +34,12 @@ static struct PyMethodDef geometry_cpp_methods[] =
   {const_cast<char*>("distances_perpendicular_to_axis"), py_distances_perpendicular_to_axis, METH_VARARGS, NULL},
   {const_cast<char*>("distances_parallel_to_axis"), py_distances_parallel_to_axis, METH_VARARGS, NULL},
   {const_cast<char*>("maximum_norm"), (PyCFunction)py_maximum_norm, METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* intercept.h */
+  {const_cast<char*>("closest_triangle_intercept"), (PyCFunction)closest_triangle_intercept,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("closest_sphere_intercept"), (PyCFunction)closest_sphere_intercept,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,

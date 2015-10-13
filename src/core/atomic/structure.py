@@ -837,8 +837,8 @@ def _atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
     xyz,r = (xyzr[:,:3], xyzr[:,3]) if dp is None else (xyzr[dp,:3], xyzr[dp,3])
 
     # Check for atom sphere intercept
-    from .. import graphics
-    fmin, anum = graphics.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
+    from .. import geometry
+    fmin, anum = geometry.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
 
     if fmin is None:
         return None
