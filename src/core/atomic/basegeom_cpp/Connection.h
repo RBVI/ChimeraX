@@ -17,8 +17,6 @@ using ::basegeom::ChangeTracker;
 template <class End, class FinalConnection>
 class Connection {
 public:
-    enum class BondDisplay : unsigned char { Never, Smart, Always,
-                                                MAX_VAL = Always };
     typedef End*  End_points[2];
 
 protected:
@@ -29,7 +27,7 @@ protected:
 
     End_points  _end_points;
 
-    BondDisplay  _display = BondDisplay::Smart;
+    bool  _display = true;
     int  _hide = 0;
     bool  _halfbond = true;
     float  _radius = 1.0;
@@ -55,7 +53,7 @@ public:
 
     // graphics related
     const Rgba&  color() const { return _rgba; }
-    BondDisplay  display() const { return _display; }
+    bool  display() const { return _display; }
     bool  halfbond() const { return _halfbond; }
     virtual GraphicsContainer*  graphics_container() const = 0;
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a)
@@ -68,18 +66,13 @@ public:
             ChangeTracker::REASON_COLOR);
         _rgba = rgba;
     }
-    void  set_display(BondDisplay d) {
+    void  set_display(bool d) {
         if (d == _display)
             return;
         graphics_container()->set_gc_shape();
         change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
             ChangeTracker::REASON_DISPLAY);
         _display = d;
-    }
-    void  set_display(unsigned char d) { 
-        if (d > static_cast<unsigned char>(BondDisplay::MAX_VAL))
-            throw std::out_of_range("Invalid bond display value.");
-        set_display(static_cast<BondDisplay>(d));
     }
     void  set_halfbond(bool hb) {
         if (hb == _halfbond)
@@ -107,8 +100,10 @@ public:
             ChangeTracker::REASON_HIDE);
         _hide = h;
     }
-    BondDisplay  visible() const
-        { return _hide ? BondDisplay::Never : _display; }
+    virtual bool shown() const
+        { return visible() && _end_points[0]->visible() && _end_points[1]->visible(); }
+    bool  visible() const
+        { return _hide ? false : _display; }
 };
 
 template <class End, class FinalConnection>

@@ -1,5 +1,5 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
-from chimera.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, Command
+from chimera.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, Command, run, cli
 
 
 def help(session, topic=None, *, option=None, is_query=False):
@@ -48,7 +48,18 @@ def help(session, topic=None, *, option=None, is_query=False):
             # check if topic matches a command name
             cmd = Command(None)
             cmd.current_text = topic
-            cmd._find_command_name(True, no_aliases=True)
+            cmd._find_command_name(True)
+            is_alias = False
+            if cmd.command_name is not None:
+                alias = cli.alias(cmd.command_name)
+                while alias:
+                    is_alias = True
+                    cmd = Command(None)
+                    cmd.current_text = alias
+                    cmd._find_command_name(True)
+                    if cmd.command_name is None:
+                        break
+                    alias = cli.alias(cmd.command_name)
             if cmd.command_name is None:
                 if is_query:
                     return False
@@ -63,11 +74,12 @@ def help(session, topic=None, *, option=None, is_query=False):
                 cmd_name, fragment = cmd.command_name.split(maxsplit=1)
             path = os.path.join(base_dir, 'user', 'commands',
                                 '%s.html' % cmd_name)
+            if is_alias:
+                run(session, "usage %s" % topic, log=False)
             if not os.path.exists(path):
                 if is_query:
                     return False
-                from chimera.core.commands import run
-                run(session, "usage %s" % topic, log=False)
+                run(session, "usage %s" % cmd_name, log=False)
                 return
             if is_query:
                 return True
@@ -84,10 +96,10 @@ def help(session, topic=None, *, option=None, is_query=False):
         webbrowser.open(url)
 
 help_desc = CmdDesc(
-    required=[
+    optional=[
         ('option',
-         Or(EnumOf(['sethome'], abbreviations=False), EmptyArg))
+         Or(EnumOf(['sethome'], abbreviations=False), EmptyArg)),
+        ('topic', RestOfLine)
     ],
-    optional=[('topic', RestOfLine)],
     synopsis='display help'
 )

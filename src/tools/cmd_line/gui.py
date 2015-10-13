@@ -34,7 +34,6 @@ class CommandLine(ToolInstance):
         self.history_dialog.populate()
         session.ui.register_for_keystrokes(self)
         session.tools.add([self])
-        self._last_thumb = None
         # since only TextCtrls have the EmulateKeyPress method,
         # create a completely hidden TextCtrl so that we can
         # process forwarded keystrokes and copy the result back
@@ -138,19 +137,6 @@ class CommandLine(ToolInstance):
                 session.logger.error(traceback.format_exc())
             else:
                 self.history_dialog.add(cmd_text)
-                thumb = session.main_view.image(width=100, height=100)
-                log_thumb = False
-                if thumb.getcolors(1) is None:
-                    # image not just a solid background color;
-                    # ensure it differs from previous thumbnail
-                    thumb_data = thumb.tobytes()
-                    if thumb_data != self._last_thumb:
-                        self._last_thumb = thumb_data
-                        log_thumb = True
-                else:
-                    self._last_thumb = None
-                if log_thumb:
-                    session.logger.info("graphics image", image=thumb)
         self.text.SetValue(cmd_text)
         self.text.SelectAll()
 

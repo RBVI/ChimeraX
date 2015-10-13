@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 from numpy import uint8, int32, float64, float32, bool as npy_bool
-from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, ctype_type_to_numpy
+from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, ctype_type_to_numpy, pointer
 import ctypes
 size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 
@@ -62,13 +62,13 @@ class Atom:
     '''Coordinates as a numpy length 3 array, 64-bit float values.'''
     display = c_property('atom_display', npy_bool)
     '''Whether to display the atom. Boolean value.'''
-    SPHERE_STYLE = 1
+    SPHERE_STYLE = 0
     '''Draw mode that uses full atom radius.'''
-    BALL_STYLE = 2
+    BALL_STYLE = 1
     '''Draw mode that displays a reduced atom radius, but larger than bond radius.'''
-    STICK_STYLE = 3
+    STICK_STYLE = 2
     '''Draw mode that displays an atom size that matches bond radius.'''
-    draw_mode = c_property('atom_draw_mode', int32)
+    draw_mode = c_property('atom_draw_mode', uint8)
     '''Controls how the atom is depicted.  Can be SPHERE_STYLE, BALL_STYLE or
     STICK_STYLE.'''
     element = c_property('atom_element', cptr, astype = _element, read_only = True)
@@ -138,17 +138,10 @@ class Bond:
     '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
     color = c_property('bond_color', uint8, 4)
     '''Color RGBA length 4 numpy uint8 array.'''
-    NEVER_DISPLAY = 1
-    '''Value of display attribute, bond is not shown.'''
-    ALWAYS_DISPLAY = 2
-    '''Value of display attribute, bond is shown.'''
-    SMART_DISPLAY = 3
-    '''Value of display attribute, bond is shown only if both atoms are shown.'''
-    display = c_property('bond_display', uint8)
+    display = c_property('bond_display', npy_bool)
     '''
-    Whether to display the bond, with 3 possible integer values:
-    ALWAYS_DISPLAY, NEVER_DISPLAY, SMART_DISPLAY.
-    TODO: Value is currently ignored, smart display is always used.
+    Whether to display the bond if both atoms are shown.
+    Can be overriden by the hide attribute.
     '''
     halfbond = c_property('bond_halfbond', npy_bool)
     '''
@@ -161,8 +154,10 @@ class Bond:
     '''Hide mask for backbone bonds in ribbon.'''
     hide = c_property('bond_hide', int32)
     '''Whether bond is hidden (overrides display).  Integer bitmask.'''
-    visible = c_property('bond_visible', uint8, read_only = True)
-    '''Whether bond is display and not hidden.  Read only integer.'''
+    shown = c_property('bond_shown', npy_bool, read_only = True)
+    '''Whether bond is visible and both atoms are shown and at least one is not Sphere style. Read only.'''
+    visible = c_property('bond_visible', npy_bool, read_only = True)
+    '''Whether bond is display and not hidden. Read only.'''
 
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
@@ -188,16 +183,10 @@ class Pseudobond:
     '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
     color = c_property('pseudobond_color', uint8, 4)
     '''Color RGBA length 4 numpy uint8 array.'''
-    NEVER_DISPLAY = 1
-    '''Value of display attribute, bond is not shown.'''
-    ALWAYS_DISPLAY = 2
-    '''Value of display attribute, bond is shown.'''
-    SMART_DISPLAY = 3
-    '''Value of display attribute, bond is shown only if both atoms are shown.'''
-    display = c_property('pseudobond_display', uint8)
-    '''Whether to display the bond, with 3 possible integer values:
-    ALWAYS_DISPLAY, NEVER_DISPLAY, SMART_DISPLAY.
-    TODO: Value is currently ignored, smart display is always used.
+    display = c_property('pseudobond_display', npy_bool)
+    '''
+    Whether to display the bond if both atoms are shown.
+    Can be overriden by the hide attribute.
     '''
     halfbond = c_property('pseudobond_halfbond', npy_bool)
     '''
@@ -206,6 +195,8 @@ class Pseudobond:
     '''
     radius = c_property('pseudobond_radius', float32)
     '''Displayed cylinder radius for the bond.'''
+    shown = c_property('pseudobond_shown', npy_bool, read_only = True)
+    '''Whether bond is visible and both atoms are shown. Read only.'''
 
     @property
     def length(self):
@@ -477,6 +468,12 @@ class AtomicStructureData:
                         ctypes.py_object),
                     ret = ctypes.c_int)
         return f(self._c_pointer, ints, floats, misc)
+
+    def set_color(self, rgba):
+        '''Set color of atoms, bonds, and residues'''
+        f = c_function('set_structure_color',
+                    args = (ctypes.c_void_p, ctypes.c_void_p))
+        return f(self._c_pointer, pointer(rgba))
 
     def _start_change_tracking(self, change_tracker):
         f = c_function('structure_start_change_tracking',

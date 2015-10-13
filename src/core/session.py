@@ -529,6 +529,7 @@ def common_startup(sess):
 
     from . import commands
     commands.register_core_commands(sess)
+    commands.register_core_selectors(sess)
 
     _register_core_file_formats()
 
