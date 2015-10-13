@@ -33,11 +33,12 @@ can be specified in <a href="../index.html#commands">commands</a> using:
 <ul>
 <li><a href="#hierarchy">hierarchical specifiers</a>
 - model number, chain, residue, atom name
-<li>the word <b>sel</b> - the current <a href="select.html#seldef">selection</a>
+<li><a href="#builtin">built-in classifications, user-defined targets</a>
+- <b>sel</b> (current <a href="select.html#seldef">selection</a>),
+<b>helix</b>, <b>strand</b>, <b>solvent</b>, element symbols, <i>etc.</i>
+<font color="brown">(user-defined targets not yet implemented)</font> 
 <li><a href="#zones">zones</a> - by distance from other items
 <font color="brown">(not yet implemented)</font>
-<li><a href="#builtin">built-in classifications, user-defined targets</a>
-<font color="brown">(the latter are not yet implemented)</font> 
 <li><a href="#descriptors">attribute</a> names and values
 <font color="brown">(not yet implemented)</font>
 </ul>
@@ -268,67 +269,36 @@ Examples:
 </p>
 
 <hr>
-<a name="zones"></a>
-<h2><a href="#top" class="nounder"><b>&larr;</b></a> Zones
-<font color="brown">(not yet implemented)</font></h2>
-<p>
-Atoms, residues or atomic models within or beyond some distance of a 
-reference set of atoms can be specified as a zone.
-<!--
-(These zones are based on atom centers only, but the
-the command <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/zonesel.html"><b>zonesel</b></a> allows 
-basing zones on surfaces and including surfaces in zones.)
--->
-</p><p>
-A zone specification has the following parts:
-<ol>
-<li>reference-atom specification
-<li><b><i>zone operator</i></b>, comprising both:
-  <ul>
-  <li>a level symbol: <b>@</b> (atom-based cutoff),
-   <b>:</b> (residue-based), or <b>#</b> (atomic model-based)
-  <li>an inequality symbol: 
-    <b>&lt;</b> (less than), <b>&gt;</b> (greater than), 
-    <b>&lt;=</b> (less than or equal to), or
-    <b>&gt;=</b> (greater than or equal to)
-  </ul>
-<li>distance cutoff
-</ol>
-Examples:
-<blockquote>
-<b>@nz &nbsp;@&lt;= &nbsp;3.8</b>
-</blockquote>
-- atoms within 3.8 &Aring; of atoms named NZ
-<blockquote>
-<b>#1:gtp &nbsp;:&lt; &nbsp;10.5</b>
-</blockquote>
-- residues with any atom less than 10.5 &Aring; from any atom 
-in GTP residue(s) of model 1
-<blockquote>
-<b>#1:gtp &nbsp;:&gt;= &nbsp;10.5</b>
-</blockquote>
-- residues without any atom less than 10.5 &Aring; from any atom 
-in GTP residue(s) of model 1
-</p>
-
-<hr>
 <a name="builtin"></a>
 <h2><a href="#top" class="nounder"><b>&larr;</b></a>
 Built-in Classifications and User-Defined Targets</h2>
 <p>
-<font color="brown">
-User-defined targets are not yet implemented.
-</font>
-</p><p>
 Built-in classifications include:
 <ul>
-<li>element symbols: <b>C</b>, <b>Fe</b>, <i>etc.</i>
+<li>the mutually exclusive categories
+(membership rules given <a href="#surfcats">below</a>):
+<b>solvent</b>, <b>ions</b>, <b>ligand</b>, <b>main</b>
 <li>protein/peptide secondary structure types:
 <b>helix</b>, <b>strand</b>, <b>coil</b>
-<li>the following <a name="surfcats">mutually exclusive categories</a>:
+<li>element symbols: <b>C</b>, <b>Fe</b>, <i>etc.</i>
+<li><b>sel</b> - the current <a href="select.html#seldef">selection</a>
+<li><b>selAtoms</b> - the current <a href="select.html#seldef">selection</a>,
+or if nothing is selected, everything
+<li><b>pbonds</b> - all pseudobonds and their flanking atoms.
+<a name="pbdef">
+A <b><i>pseudobond</i></b></a> is drawn to
+signify a connection other than a covalent bond, such as a 
+metal coordination bond or a missing peptide segment.
+A <b><i>pseudobond group</i></b> is a named set 
+of pseudobonds that can be treated collectively.
+</ul>
+<p>
+Built-in classifications cannot be redefined by the user.
+</p>
+<a name="surfcats"></a>
 <table border width="95%" cellpadding="4" cellspacing="0">
-<tr><th>Name</th> 
-<th>Category membership rules, in order of application</th></tr>
+<tr><td align="center">Category</td> 
+<td align="center">Membership rules, in order of application</td></tr>
 <tr><td align=center><b>solvent</b></td>
 <td>
 of the following two, the set with the greater number of residues:
@@ -365,9 +335,10 @@ residues bonded to a chain but not included in its main sequence
 all remaining atoms
 </td>
 </table>
-</ul>
 <p>
-Built-in classifications cannot be redefined by the user.
+<font color="brown">
+User-defined targets are not yet implemented.
+</font>
 </p>
 <!--
 any of the terminal entries in the following sections of the
@@ -442,6 +413,50 @@ see <a href="#combinations">combinations</a>)
 - atoms <a href="#surfcats">automatically categorized</a>
 as <b>solvent</b>
 -->
+
+<hr>
+<a name="zones"></a>
+<h2><a href="#top" class="nounder"><b>&larr;</b></a> Zones
+<font color="brown">(not yet implemented)</font></h2>
+<p>
+Atoms, residues or atomic models within or beyond some distance of a 
+reference set of atoms can be specified as a zone.
+<!--
+(These zones are based on atom centers only, but the
+the command <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/zonesel.html"><b>zonesel</b></a> allows 
+basing zones on surfaces and including surfaces in zones.)
+-->
+</p><p>
+A zone specification has the following parts:
+<ol>
+<li>reference-atom specification
+<li><b><i>zone operator</i></b>, comprising both:
+  <ul>
+  <li>a level symbol: <b>@</b> (atom-based cutoff),
+   <b>:</b> (residue-based), or <b>#</b> (atomic model-based)
+  <li>an inequality symbol: 
+    <b>&lt;</b> (less than), <b>&gt;</b> (greater than), 
+    <b>&lt;=</b> (less than or equal to), or
+    <b>&gt;=</b> (greater than or equal to)
+  </ul>
+<li>distance cutoff
+</ol>
+Examples:
+<blockquote>
+<b>@nz &nbsp;@&lt;= &nbsp;3.8</b>
+</blockquote>
+- atoms within 3.8 &Aring; of atoms named NZ
+<blockquote>
+<b>#1:gtp &nbsp;:&lt; &nbsp;10.5</b>
+</blockquote>
+- residues with any atom less than 10.5 &Aring; from any atom 
+in GTP residue(s) of model 1
+<blockquote>
+<b>#1:gtp &nbsp;:&gt;= &nbsp;10.5</b>
+</blockquote>
+- residues without any atom less than 10.5 &Aring; from any atom 
+in GTP residue(s) of model 1
+</p>
 
 <hr>
 <a name="descriptors"></a>

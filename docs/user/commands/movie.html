@@ -126,12 +126,11 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
   <a href="#suffix">filename suffix</a>
   or with the <a href="#format"><b>format</b></a> option.
   The <b>output</b> keyword can be omitted if the pathname precedes
-  any other options, and in that case, multiple pathnames 
-  separated by commas only can be given (example: <span class="nowrap">
+  any other options, but if the <b>output</b> keyword is used, the option can 
+  appear anywhere in the command.
+  Multiple pathnames separated only by commas can be given 
+  (example: <span class="nowrap">
   <b>movie encode ~/Desktop/mymovie.mp4,~/Desktop/mymovie.avi</b></span>).
-  If the <b>output</b> keyword is used, the option can 
-  appear anywhere in the command, even multiple times in a single command,
-  but only a single pathname can be given per use of the keyword.
 </blockquote><blockquote>
   <a name="format"><b>format</b></a> &nbsp;h264&nbsp;|&nbsp;mov&nbsp;|&nbsp;qt&nbsp;|&nbsp;quicktime&nbsp;|&nbsp;avi&nbsp;|&nbsp;wmv
   <br>
