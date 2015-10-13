@@ -147,9 +147,6 @@ class AtomicStructure(AtomicStructureData, Model):
         p = self._atoms_drawing
         if p is None:
             self._atoms_drawing = p = self.new_drawing('atoms')
-            # Add atom picking method to the atom drawing
-            from types import MethodType
-            p.first_intercept = MethodType(_atom_first_intercept, p)
 
         n = len(coords)
         self.triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
@@ -241,9 +238,6 @@ class AtomicStructure(AtomicStructureData, Model):
             if bonds.num_shown == 0:
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
-            # Suppress bond picking since bond selections are not supported.
-            from types import MethodType
-            p.first_intercept = MethodType(_bond_first_intercept, p)
             from .. import surface
             # Use 3 z-sections so cylinder ends match in half-bond mode.
             va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
@@ -308,8 +302,6 @@ class AtomicStructure(AtomicStructureData, Model):
             if False:
                 # Debugging code to display line from control point to guide
                 cp = p.new_drawing(rlist.strs[0] + " control points")
-                from types import MethodType
-                cp.first_intercept = MethodType(_tether_first_intercept, cp)
                 from .. import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
                 cp.geometry = va, ta
@@ -471,9 +463,6 @@ class AtomicStructure(AtomicStructureData, Model):
             rp.normals = concatenate(normal_list)
             rp.triangles = concatenate(triangle_list)
             rp.vertex_colors = concatenate(color_list)
-            rp.atomic_structure = self
-            from types import MethodType
-            rp.first_intercept = MethodType(_ribbon_first_intercept, rp)
             # Save mappings for picking
             self._ribbon_t2r[rp] = t2r
 
@@ -482,8 +471,6 @@ class AtomicStructure(AtomicStructureData, Model):
             m = residues[0].structure
             if m.ribbon_tether_scale > 0 and any(tethered):
                 tp = p.new_drawing(residues.strs[0] + "_tethers")
-                from types import MethodType
-                tp.first_intercept = MethodType(_tether_first_intercept, tp)
                 nc = m.ribbon_tether_sides
                 from .. import surface
                 if m.ribbon_tether_shape == AtomicStructureData.TETHER_CYLINDER:
@@ -499,8 +486,6 @@ class AtomicStructure(AtomicStructureData, Model):
             # Create spine if necessary
             if self.ribbon_show_spine:
                 sp = p.new_drawing(rlist.strs[0] + " spine")
-                from types import MethodType
-                sp.first_intercept = MethodType(_tether_first_intercept, sp)
                 from .. import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
                 sp.geometry = va, ta
@@ -616,8 +601,6 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _ss_display(self, name, centers):
         ssp = p.new_drawing(name)
-        from types import MethodType
-        ssp.first_intercept = MethodType(_tether_first_intercept, ssp)
         from .. import surface
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
         ssp.geometry = va, ta
@@ -726,6 +709,94 @@ class AtomicStructure(AtomicStructureData, Model):
             return None
         return rd.bounds()
 
+    def first_intercept(self, mxyz1, mxyz2, exclude=None):
+        if not self.display or (exclude and hasattr(self, exclude)):
+            return None
+        # TODO check intercept of bounding box as optimization
+        pa = self._atom_first_intercept(mxyz1, mxyz2)
+        pb = self._bond_first_intercept(mxyz1, mxyz2)
+        if pb and pa:
+            a = pa.atom
+            if a.draw_mode == a.STICK_STYLE and a in pb.bond.atoms:
+                pb = None	# Pick atom if stick bond and its atom are picked.
+        pr = self._ribbon_first_intercept(mxyz1, mxyz2)
+        # Handle molecular surfaces
+        ps = self.first_intercept_children(self.child_models(), mxyz1, mxyz2, exclude)
+        picks = [pa, pb, pr, ps]
+
+        # TODO: for now, tethers pick nothing, but it should either pick
+        #       the residue or the guide atom.
+
+        pclosest = None
+        for p in picks:
+            if p and (pclosest is None or p.distance < pclosest.distance):
+                pclosest = p
+        return pclosest
+
+    def _atom_first_intercept(self, mxyz1, mxyz2):
+        d = self._atoms_drawing
+        if d is None or not d.display:
+            return None
+
+        xyzr = d.positions.shift_and_scale_array()
+        dp = d.display_positions
+        xyz,r = (xyzr[:,:3], xyzr[:,3]) if dp is None else (xyzr[dp,:3], xyzr[dp,3])
+
+        # Check for atom sphere intercept
+        from .. import geometry
+        fmin, anum = geometry.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
+
+        if fmin is None:
+            return None
+
+        if not dp is None:
+            anum = dp.nonzero()[0][anum]    # Remap index to include undisplayed positions
+        atom = self.atoms[anum]
+
+        # Create pick object
+        s = PickedAtom(atom, fmin)
+
+        return s
+
+    def _bond_first_intercept(self, mxyz1, mxyz2):
+        d = self._bonds_drawing
+        if d is None or not d.display:
+            return None
+
+        bonds = self.bonds
+        bshown = bonds.showns
+        bs = bonds.filter(bshown)
+        a1, a2 = bs.atoms
+        xyz1, xyz2, r = a1.coords, a2.coords, bs.radii
+
+        # Check for atom sphere intercept
+        from .. import geometry
+        fmin, bnum = geometry.closest_cylinder_intercept(xyz1, xyz2, r, mxyz1, mxyz2)
+
+        if fmin is None:
+            return None
+
+        # Remap index to include undisplayed positions
+        bnum = bshown.nonzero()[0][bnum]
+
+        # Create pick object
+        s = PickedBond(bonds[bnum], fmin)
+
+        return s
+
+    def _ribbon_first_intercept(self, mxyz1, mxyz2):
+        pclosest = None
+        for d, t2r in self._ribbon_t2r.items():
+            if d.display:
+                p = d.first_intercept(mxyz1, mxyz2)
+                if p and (pclosest is None or p.distance < pclosest.distance):
+                    from bisect import bisect_right
+                    n = bisect_right(t2r, p.triangle_number)
+                    if n > 0:
+                        triangle_range = t2r[n - 1]
+                        pclosest = PickedResidue(triangle_range.residue, p.distance)
+        return pclosest
+
     def select_atom(self, atom, toggle=False, selected=True):
         '''
         Select or unselect a specified :class:`.Atom`.
@@ -829,69 +900,6 @@ class AtomicStructure(AtomicStructureData, Model):
         from .molsurf import MolecularSurface
         surfs = [s for s in self.child_models() if isinstance(s, MolecularSurface)]
         return surfs
-
-def _atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
-    # TODO check intercept of bounding box as optimization
-    xyzr = self.positions.shift_and_scale_array()
-    dp = self.display_positions
-    xyz,r = (xyzr[:,:3], xyzr[:,3]) if dp is None else (xyzr[dp,:3], xyzr[dp,3])
-
-    # Check for atom sphere intercept
-    from .. import geometry
-    fmin, anum = geometry.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
-
-    if fmin is None:
-        return None
-
-    if not dp is None:
-        anum = dp.nonzero()[0][anum]    # Remap index to include undisplayed positions
-    atom = self.parent.atoms[anum]
-
-    # Create pick object
-    s = PickedAtom(atom, fmin)
-
-    return s
-
-def _bond_first_intercept(self, mxyz1, mxyz2, exclude = None):
-    bonds = self.parent.bonds
-    bshown = bonds.showns
-    bs = bonds.filter(bshown)
-    a1, a2 = bs.atoms
-    xyz1, xyz2, r = a1.coords, a2.coords, bs.radii
-
-    # Check for atom sphere intercept
-    from .. import geometry
-    fmin, bnum = geometry.closest_cylinder_intercept(xyz1, xyz2, r, mxyz1, mxyz2)
-
-    if fmin is None:
-        return None
-
-    # Remap index to include undisplayed positions
-    bnum = bshown.nonzero()[0][bnum]
-
-    # Create pick object
-    s = PickedBond(bonds[bnum], fmin)
-    return s
-
-def _ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
-    # TODO check intercept of bounding box as optimization
-    from ..graphics import Drawing
-    pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
-    if pd is None:
-        return None
-    best = pd.distance
-    t2r = self.atomic_structure._ribbon_t2r[pd.drawing()]
-    from bisect import bisect_right
-    n = bisect_right(t2r, pd.triangle_number)
-    if not n:
-        return None
-    triangle_range = t2r[n - 1]
-    return PickedResidue(triangle_range.residue, pd.distance)
-
-def _tether_first_intercept(self, mxyz1, mxyz2, exclude = None):
-    # TODO: for now, we pick nothing, but it should either pick
-    # the residue or the guide atom
-    return None
 
 # -----------------------------------------------------------------------------
 #
