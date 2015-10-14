@@ -24,6 +24,28 @@ static bool closest_cylinder_intercept(const float *base1, int n, int b1stride0,
 				       const float *xyz1, const float *xyz2,
 				       float *fmin, int *cnum);
 
+const char *closest_triangle_intercept_doc = 
+  "closest_triangle_intercept(vertices, tarray, xyz1, xyz2) -> f, tnum\n"
+  "\n"
+  "Find first triangle intercept along line segment from xyz1 to xyz2.\n"
+  "Implemented in C++.\n"
+  "\n"
+  "Parameters\n"
+  "----------\n"
+  "vertices : n by 3 float array\n"
+  "  triangle vertex x,y,z coordinates.\n"
+  "triangles : m by 3 int array\n"
+  "  vertex indices specifying 3 vertices for each triangle.\n"
+  "xyz1, xyz2 : float 3-tuples\n"
+  "  x,y,z coordinates of line segment endpoints.\n"
+  "\n"
+  "Returns\n"
+  "-------\n"
+  "f : float\n"
+  "  fraction of distance from xyz1 to xyz2.  None if no intercept.\n"
+  "tnum : int\n"
+  "  triangle number, or None if no intercept.\n";
+
 // ----------------------------------------------------------------------------
 // Find closest triangle intercepting line segment between xyz1 and xyz2.
 // The vertex array is xyz points (n by 3, NumPy single).
@@ -32,7 +54,7 @@ static bool closest_cylinder_intercept(const float *base1, int n, int b1stride0,
 // Returns fraction of way along segment triangle index.
 //
 extern "C"
-PyObject *closest_triangle_intercept(PyObject *s, PyObject *args, PyObject *keywds)
+PyObject *closest_triangle_intercept(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray vertices;
   IArray triangles;
@@ -145,6 +167,28 @@ static bool triangle_intercept(const float *va, const float *vb,
   return true;
 }
 
+const char *closest_sphere_intercept_doc =
+  "closest_sphere_intercept(centers, radii, xyz1, xyz2) -> f, snum\n"
+  "\n"
+  "Find first sphere intercept along line segment from xyz1 to xyz2.\n"
+  "Implemented in C++.\n"
+  "\n"
+  "Parameters\n"
+  "----------\n"
+  "centers : n by 3 float array\n"
+  "  x,y,z sphere center coordinates.\n"
+  "radii : length n float array\n"
+  "  sphere radii.\n"
+  "xyz1, xyz2 : float 3-tuples\n"
+  "  x,y,z coordinates of line segment endpoints.\n"
+  "\n"
+  "Returns\n"
+  "-------\n"
+  "f : float\n"
+  "  fraction of distance from xyz1 to xyz2.  None if no intercept.\n"
+  "snum : int\n"
+  "  sphere number, or None if no intercept.\n";
+
 // ----------------------------------------------------------------------------
 // Find closest sphere point intersectiong the line segment between xyz1 and xyz2.
 // Returns fraction of way along segment and the sphere number.
@@ -234,6 +278,28 @@ static bool closest_sphere_intercept(const float *centers, int n, int cstride0, 
   *snum = sc;
   return true;
 }
+
+const char *closest_cylinder_intercept_doc =
+  "closest_cylinder_intercept(base1, base2, radii, xyz1, xyz2) -> f, cnum\n"
+  "\n"
+  "Find first cylinder intercept along line segment from xyz1 to xyz2.\n"
+  "Cylinder endcaps are not considered. Implemented in C++.\n"
+  "\n"
+  "Parameters\n"
+  "----------\n"
+  "base1, base2 : n by 3 float arrays\n"
+  "  x,y,z cylinder end center coordinates.\n"
+  "radii : float array\n"
+  "  cylinder radii.\n"
+  "xyz1, xyz2 : float 3-tuples\n"
+  "  x,y,z coordinates of line segment endpoints.\n"
+  "\n"
+  "Returns\n"
+  "-------\n"
+  "f : float\n"
+  "  fraction of distance from xyz1 to xyz2.  None if no intercept.\n"
+  "cnum : int\n"
+  "  cylinder number, or None if no intercept.\n";
 
 // ----------------------------------------------------------------------------
 // Find closest cylinder point intersectiong the line segment between xyz1 and xyz2.

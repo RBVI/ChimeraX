@@ -32,7 +32,7 @@ from ._geometry import distances_perpendicular_to_axis
 from ._geometry import maximum_norm
 
 '''Inner product of two vectors accumulated as a 64-bit float result.'''
-from .matrix import inner_product_64
+from ._geometry import inner_product_64
 
 
 def inner_product(u, v):

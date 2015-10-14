@@ -110,7 +110,10 @@ public:
     this->closest = new int[n];
     this->d2 = new float[n];
     for (int k = 0 ; k < n ; ++k)
-      d2[k] = NO_DISTANCE;
+      {
+	d2[k] = NO_DISTANCE;
+	closest[k] = -1;
+      }
   }
   virtual ~Nearest_Points()
   {
@@ -1239,6 +1242,33 @@ static bool boxes_are_close(const Box &box1, const Box &box2, float distance)
 
 // ----------------------------------------------------------------------------
 //
+const char *find_close_points_doc =
+  "find_close_points(xyz1, xyz2, max_distance) -> i1, i2\n"
+  "\n"
+  "Find close points between two sets of points, returning indices\n"
+  "for each point that is close to some point in the other set.\n"
+  "It does not report all pairs of close points, only which points\n"
+  "have some close neighbor in the other set.\n"
+  "The calculation is optimized for specified maximum distance small compared\n"
+  "to the extent of the point sets, so that only positions close to\n"
+  "a point need to be considered.\n"
+  "Implemented in C++.\n"
+  "\n"
+  "Parameters\n"
+  "----------\n"
+  "xyz1 : n by 3 float array\n"
+  "xyz2 : m by 3 float array\n"
+  "max_distance : float\n"
+  "  consider only points less than this distance away.\n"
+  "\n"
+  "Returns\n"
+  "-------\n"
+  "i1, i2 : numpy int32 arrays\n"
+  "  Two arrays of indices into the xyz1 and xyz2 arrays.\n"
+  "  The index arrays are generally not of the same length.\n";
+
+// ----------------------------------------------------------------------------
+//
 extern "C" PyObject *find_close_points(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray xyz1, xyz2;
@@ -1262,6 +1292,43 @@ extern "C" PyObject *find_close_points(PyObject *, PyObject *args, PyObject *key
 
   return python_tuple(c_array_to_python(i1), c_array_to_python(i2));
 }
+
+// ----------------------------------------------------------------------------
+//
+const char *find_closest_points_doc =
+  "find_closest_points(xyz1, xyz2, max_distance [, scale2]) -> i1, i2, near1\n"
+  "\n"
+  "Find close points between two sets of points, returning indices\n"
+  "for each point that is close to some point in the other set, and\n"
+  "also return the closest point in set 2 for each point in set 1.\n"
+  "The calculation is optimized for specified maximum distance small compared\n"
+  "to the extent of the point sets, so that only positions close to\n"
+  "a point need to be considered.\n"
+  "Implemented in C++.\n"
+  "\n"
+  "Parameters\n"
+  "----------\n"
+  "xyz1 : n by 3 float array\n"
+  "xyz2 : m by 3 float array\n"
+  "max_distance : float\n"
+  "  consider only points less than this distance away.\n"
+  "scale2 : length m float array\n"
+  "  Optional argument giving a distance scale factor for each point in set 2.\n"
+  "  The scale factor is only used for determining the closest point, and\n"
+  "  causes the closest scaled distance to be used.  This is an obscure\n"
+  "  feature.\n"
+  "\n"
+  "Returns\n"
+  "-------\n"
+  "i1, i2 : numpy int32 array\n"
+  "  Two arrays of indices into the xyz1 and xyz2 arrays\n"
+  "  for points that are within the maximum distance of some other point\n"
+  "  in the other set.\n"
+  "near1 : numpy int32 array\n"
+  "  A third array is returned that gives the index in set 2\n"
+  "  of the closest for each point in set 1.  This array has length equal to\n"
+  "  the number of points in set 1. If a set 1 point has no point from set 2\n"
+  "  within the distance range then index returned is -1.\n";
 
 // ----------------------------------------------------------------------------
 //
@@ -1384,6 +1451,39 @@ static PyObject *index_lists(const vector<Index_List> &i)
     PyTuple_SetItem(t, k, c_array_to_python(i[k]));
   return t;
 }
+
+// ----------------------------------------------------------------------------
+//
+const char *find_close_points_sets_doc =
+  "find_close_points_sets(tp1, tp2, max_distance) -> i1, i2\n"
+  "\n"
+  "Find close points between two sets of points, returning indices\n"
+  "for each point that is close to some point in the other set.\n"
+  "Each set of points is defined by a list of pairs, each pair being an\n"
+  "array of points and an affine transform to apply to those points.\n"
+  "The calculation is optimized for specified maximum distance small compared\n"
+  "to the extent of the point sets, so that only positions close to\n"
+  "a point need to be considered.\n"
+  "Implemented in C++.\n"
+  "\n"
+  "Parameters\n"
+  "----------\n"
+  "tp1, tp2 : list of (n by 3 float array, 3 by 4 float array)\n"
+  "  The first array of each pair are x,y,z point coordinates,\n"
+  "  and the second array is an affine transformation with the\n"
+  "  first 3 columns being a 3 by 3 matrix to applied (left multiplied)\n"
+  "  to each point and the last column being a translation (added to the point)\n"
+  "  applied after the matrix multiplication.\n"
+  "max_distance : float\n"
+  "  consider only points less than this distance away.\n"
+  "\n"
+  "Returns\n"
+  "-------\n"
+  "i1, i2 : tuples of numpy int32 arrays\n"
+  "  Two tuples of arrays of indices with lengths matching\n"
+  "  the lengths of the tp1 and tp2 arguments. Each index array list\n"
+  "  indices into the corresponding transformed point array for points\n"
+  "  that have some nearby point in the other set.\n";
 
 // ----------------------------------------------------------------------------
 //
