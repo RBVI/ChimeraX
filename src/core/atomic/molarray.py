@@ -406,6 +406,8 @@ class Bonds(Collection):
     Whether each bond is displayed, visible and has both atoms shown,
     and at least one atom is not Sphere style.
     '''
+    structures = cvec_property('bond_structure', cptr, astype = _atomic_structures, read_only = True)
+    '''Returns an :class:`.AtomicStructureDatas` with the structure for each bond. Read only.'''
 
     @property
     def num_shown(self):

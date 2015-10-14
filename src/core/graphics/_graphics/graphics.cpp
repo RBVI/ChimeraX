@@ -3,7 +3,6 @@
 
 #include "blend_rgba.h"			// use blur_blend_images
 #include "count.h"			// use count_values
-#include "intercept.h"			// use closest_geometry_intercept
 #include "mesh_edges.h"			// use masked_edges
 
 namespace Graphics_Cpp
@@ -21,12 +20,6 @@ static struct PyMethodDef graphics_cpp_methods[] =
 
   /* count.h */
   {const_cast<char*>("count_value"), (PyCFunction)count_value,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
-  /* intercept.h */
-  {const_cast<char*>("closest_geometry_intercept"), (PyCFunction)closest_geometry_intercept,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("closest_sphere_intercept"), (PyCFunction)closest_sphere_intercept,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* mesh_edges.h */

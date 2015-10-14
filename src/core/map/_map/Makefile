@@ -12,8 +12,6 @@ OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 LIBS	= -L$(libdir) -larrays $(PYTHON_LIB)
 
-OPT = -g
-
 all: $(PYMOD)
 
 install: all

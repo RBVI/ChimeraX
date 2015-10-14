@@ -28,6 +28,7 @@ class CommandLine(ToolInstance):
         parent.SetSizerAndFit(sizer)
         self.history_dialog = _HistoryDialog(self)
         self.text.Bind(wx.EVT_COMBOBOX, self.on_combobox)
+        self.text.Bind(wx.EVT_TEXT, self.history_dialog._entry_modified)
         self.text.Bind(wx.EVT_TEXT_ENTER, self.on_enter)
         self.text.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         self.tool_window.manage(placement="bottom")
@@ -77,7 +78,9 @@ class CommandLine(ToolInstance):
             self.kludge_text.SetInsertionPoint(self.text.InsertionPoint)
             self.kludge_text.SetSelection(*self.text.GetTextSelection())
             self.kludge_text.EmulateKeyPress(event)
-            self.text.Value = self.kludge_text.Value
+            if self.text.Value != self.kludge_text.Value:
+                # prevent gratuituous 'text modified' events
+                self.text.Value = self.kludge_text.Value
             self.text.SetInsertionPoint(self.kludge_text.InsertionPoint)
             self.text.SetSelection(*self.kludge_text.GetSelection())
 
@@ -227,6 +230,8 @@ class _HistoryDialog:
         from chimera.core.history import FIFOHistory
         self.history = FIFOHistory(self.NUM_REMEMBERED, controller.session, "command line")
         self._record_dialog = None
+        self._search_cache = None
+        self._suspend_handler = False
 
     def add(self, item):
         self.listbox.Append(item)
@@ -307,10 +312,16 @@ class _HistoryDialog:
         orig_sel = sel = sels[0]
         orig_text = self.controller.text.Value
         match_against = None
+        self._suspend_handler = False
         if shifted:
-            words = orig_text.strip().split()
-            if words:
-                match_against = words[0]
+            if self._search_cache is None:
+                words = orig_text.strip().split()
+                if words:
+                    match_against = words[0]
+                    self._search_cache = match_against
+            else:
+                match_against = self._search_cache
+            self._suspend_handler = True
         if match_against:
             last = self.listbox.GetCount() - 1
             while sel < last:
@@ -325,6 +336,7 @@ class _HistoryDialog:
         self.controller.cmd_replace(new_text)
         if orig_text == new_text:
             self.down(shifted)
+        self._suspend_handler = False
 
     def on_append_change(self, event):
         self.overwrite_disclaimer.Show(self.save_append_CheckBox.Value)
@@ -356,10 +368,16 @@ class _HistoryDialog:
         orig_sel = sel = sels[0]
         orig_text = self.controller.text.Value
         match_against = None
+        self._suspend_handler = False
         if shifted:
-            words = orig_text.strip().split()
-            if words:
-                match_against = words[0]
+            if self._search_cache is None:
+                words = orig_text.strip().split()
+                if words:
+                    match_against = words[0]
+                    self._search_cache = match_against
+            else:
+                match_against = self._search_cache
+            self._suspend_handler = True
         if match_against:
             while sel > 0:
                 if self.listbox.GetString(sel-1).startswith(match_against):
@@ -373,12 +391,18 @@ class _HistoryDialog:
         self.controller.cmd_replace(new_text)
         if orig_text == new_text:
             self.up(shifted)
+        self._suspend_handler = False
 
     def update_list(self):
         c = self.controller
         last8 = self.history[-8:]
         last8.reverse()
         c.text.Items = last8 + [c.show_history_label, c.compact_label]
+
+    def _entry_modified(self, event):
+        if not self._suspend_handler:
+            self._search_cache = None
+        event.Skip()
 
     def _record_customize_cb(self, parent):
         import wx

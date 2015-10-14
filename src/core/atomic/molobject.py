@@ -156,6 +156,8 @@ class Bond:
     '''Whether bond is hidden (overrides display).  Integer bitmask.'''
     shown = c_property('bond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown and at least one is not Sphere style. Read only.'''
+    structure = c_property('bond_structure', cptr, astype = _atomic_structure, read_only = True)
+    ''':class:`.AtomicStructure` the bond belongs to.'''
     visible = c_property('bond_visible', npy_bool, read_only = True)
     '''Whether bond is display and not hidden. Read only.'''
 
