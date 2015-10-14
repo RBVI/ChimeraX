@@ -288,6 +288,9 @@ class AtomicStructure(AtomicStructureData, Model):
             # properly set when ribbons are completely undisplayed
             atoms, coords, guides = rlist.get_polymer_spline()
             residues = atoms.residues
+            # Always update all atom visibility so that undisplaying ribbon
+            # will bring back previously hidden backbone atoms
+            residues.atoms.update_ribbon_visibility()
             # Use residues instead of rlist below because rlist may contain
             # residues that do not participate in ribbon (e.g., because
             # it does not have a CA)
@@ -670,6 +673,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 p.selected_triangles_mask = m
 
     def _update_ribbon_tethers(self):
+        from numpy import around
         for tp, xyz1, atoms, all_atoms, shape, scale in self._ribbon_tether:
             all_atoms.update_ribbon_visibility()
             xyz2 = atoms.coords
@@ -677,7 +681,7 @@ class AtomicStructure(AtomicStructureData, Model):
             tp.positions = _tether_placements(xyz1, xyz2, radii, shape)
             tp.display_positions = atoms.visibles
             colors = atoms.colors
-            colors[:,3] *= self.ribbon_tether_opacity
+            colors[:,3] = around(colors[:,3] * self.ribbon_tether_opacity).astype(int)
             tp.colors = colors
 
     def bounds(self, positions = True):
