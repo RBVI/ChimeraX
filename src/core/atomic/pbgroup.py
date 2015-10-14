@@ -67,6 +67,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
         d.colors = pbonds.half_colors
         d.selected_positions = structure._selected_bond_cylinders(bond_atoms)
 
+    def first_intercept(self, mxyz1, mxyz2, exclude=None):
+        if not self.display or (exclude and hasattr(self, exclude)):
+            return None
+        from . import structure
+        b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
+        p = structure.PickedPseudobond(b,f) if b else None
+        return p
+
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
             return
