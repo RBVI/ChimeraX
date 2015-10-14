@@ -1,6 +1,7 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
 * Python Classes
+
  * :class:`.Atom` - a molecule atom
  * :class:`.AtomicStructure` - molecular data
  * :class:`.Atoms` - a collection of atoms
