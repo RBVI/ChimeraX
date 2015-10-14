@@ -105,7 +105,8 @@ class ToolInstance(State):
 
         """
         if self.session.ui.is_gui:
-            self.session.ui.set_tool_shown(self, b)
+            self.session.ui.thread_safe(lambda s=self, show=b:
+                s.session.ui.set_tool_shown(s, show))
 
     def display_help(self):
         """Show the help for this tool in the help viewer."""
@@ -325,6 +326,6 @@ class Tools(State):
             try:
                 ti.start(session)
             except ToolshedError as e:
-                self.session.logger.info("Tool \"%s\" failed to start"
+                session.logger.info("Tool \"%s\" failed to start"
                                          % ti.name)
                 print("{}".format(e))

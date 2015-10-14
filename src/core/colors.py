@@ -26,14 +26,14 @@ class UserColors(SortedDict, State):
 
     def __init__(self):
         SortedDict.__init__(self)
-        self.update(_BuiltinColors)
+        self.update(BuiltinColors)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
             return
         # only save differences from builtin colors
         data = {name: color for name, color in self.items()
-                if name not in _BuiltinColors or color != _BuiltinColors[name]}
+                if name not in BuiltinColors or color != BuiltinColors[name]}
         return [self.USER_COLORS_VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
@@ -46,7 +46,7 @@ class UserColors(SortedDict, State):
     def reset_state(self):
         """Reset state to data-less state"""
         self.clear()
-        self.update(_BuiltinColors)
+        self.update(BuiltinColors)
 
 
 class Color:
@@ -497,11 +497,44 @@ def chain_rgba8(cid):
     return chain_colors([cid])[0]
 
 
+_df_state = {}
+def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
+    """Best effort to return an RGB that perceptually differs from the given RGBs"""
+    if rgbs and len(rgbs[0]) > 3:
+        rgbs = [rgba[:3] for rgba in rgbs]
+
+    max_diff = None
+    import random
+    global _df_state
+    if seed is not None:
+        if save_state and seed in _df_state:
+            random.setstate(_df_state[seed])
+        else:
+            random.seed(seed)
+    for i in range(num_candidates):
+        candidate = tuple([random.random() for i in range(3)])
+        if not rgbs:
+            if save_state and seed is not None:
+                _df_state[seed] = random.getstate()
+            return candidate
+        min_diff = None
+        for rgb in rgbs:
+            diff = abs(rgb[0]-candidate[0]) + abs(rgb[1]-candidate[1]) \
+                + 0.5 * abs(rgb[2]-candidate[2])
+            if min_diff is None or diff < min_diff:
+                min_diff = diff
+        if max_diff is None or min_diff > max_diff:
+            max_diff = min_diff
+            best_candidate = candidate
+    if save_state and seed is not None:
+        _df_state[seed] = random.getstate()
+    return best_candidate
+
 # -----------------------------------------------------------------------------
 #
 
 # CSS4 colors + multiword color names
-_BuiltinColors = SortedDict({
+BuiltinColors = SortedDict({
     'aliceblue': (240, 248, 255, 255),
     'alice blue': (240, 248, 255, 255),
     'antiquewhite': (250, 235, 215, 255),
@@ -721,6 +754,7 @@ _BuiltinColors = SortedDict({
     'sienna': (160, 82, 45, 255),
     'silver': (192, 192, 192, 255),
     'skyblue': (135, 206, 235, 255),
+    'sky blue': (135, 206, 235, 255),
     'slateblue': (106, 90, 205, 255),
     'slate blue': (106, 90, 205, 255),
     'slategray': (112, 128, 144, 255),
@@ -746,12 +780,12 @@ _BuiltinColors = SortedDict({
     'yellowgreen': (154, 205, 50, 255),
     'yellow green': (154, 205, 50, 255),
 })
-_BuiltinColors['transparent'] = (0, 0, 0, 0)
+BuiltinColors['transparent'] = (0, 0, 0, 0)
 
 
 def _init():
-    for name in _BuiltinColors:
-        rgb = _BuiltinColors[name]
+    for name in BuiltinColors:
+        rgb = BuiltinColors[name]
         color = Color([x / 255 for x in rgb])
-        _BuiltinColors[name] = color
+        BuiltinColors[name] = color
 _init()

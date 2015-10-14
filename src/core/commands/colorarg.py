@@ -40,8 +40,8 @@ class ColorArg(cli.Annotation):
             if session is not None:
                 name, color, rest = _find_named_color(session.user_colors, text)
             else:
-                from ..colors import _BuiltinColors
-                name, color, rest = _find_named_color(_BuiltinColors, text)
+                from ..colors import BuiltinColors
+                name, color, rest = _find_named_color(BuiltinColors, text)
             if color is None:
                 raise ValueError("Invalid color name or specifier")
             return color, name, rest

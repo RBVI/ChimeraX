@@ -47,21 +47,23 @@ a subset of the possible displays of a given atom, residue, <i>etc.</i>
 The <i>string</i> can be any combination of the following letters,
 without commas or spaces:
   <ul>
-  <li><b>a</b> - atoms/bonds (halfbond coloring)
+  <li><b>a</b> - atoms/bonds
+  (shown for bonds in <a href="color.html#halfbond">halfbond mode</a>)
+  <li><b>b</b> - bonds-only
+  (shown for bonds not in <a href="color.html#halfbond">halfbond mode</a>)
 <!--
   <li><b>l</b> - atom labels
 -->
   <li><b>c</b> - cartoons (divisible to per-residue segments)
   <li><b>s</b> - surfaces
   (molecular surfaces divisible to per-atom patches)
-  <li><b>A</b> - all of the above (equivalent to <b>acs</b>)
+  <li><b>p</b> - pseudobonds-only
+  (shown for pseudobonds not in <a href="color.html#halfbond">halfbond mode</a>)
+  <li><b>A</b> - all of the above (equivalent to <b>abcsp</b>)
 <!--
   <li><b>r</b> - residue labels
   <li><b>n</b> - nonmolecular models (model-level color)
   <li><b>m</b> - molecular models (model-level color)
-  <li><b>b</b> - bonds only 
-   (halfbond mode off) with both end atoms specified
-  <li><b>p</b> - pseudobonds with both end atoms specified
   <li><b>d</b> - distances and other pseudobond labels
 -->
   </ul>
@@ -70,5 +72,5 @@ The default target is <b>s</b>, molecular surfaces only.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2015</address>
+October 2015</address>
 </body></html>

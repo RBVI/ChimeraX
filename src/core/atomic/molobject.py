@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 from numpy import uint8, int32, float64, float32, bool as npy_bool
-from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, ctype_type_to_numpy
+from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, ctype_type_to_numpy, pointer
 import ctypes
 size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 
@@ -470,6 +470,12 @@ class AtomicStructureData:
                         ctypes.py_object),
                     ret = ctypes.c_int)
         return f(self._c_pointer, ints, floats, misc)
+
+    def set_color(self, rgba):
+        '''Set color of atoms, bonds, and residues'''
+        f = c_function('set_structure_color',
+                    args = (ctypes.c_void_p, ctypes.c_void_p))
+        return f(self._c_pointer, pointer(rgba))
 
     def _start_change_tracking(self, change_tracker):
         f = c_function('structure_start_change_tracking',

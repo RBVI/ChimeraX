@@ -1155,8 +1155,10 @@ class ToolInfo:
         except (ImportError, AttributeError, TypeError, SyntaxError):
             raise ToolshedError("bad start callable specified for tool \"%s\""
                                 % self.name)
-        else:
-            return f(session, self, *args, **kw)
+        ti = f(session, self, *args, **kw)
+        if ti is not None:
+            ti.display(True) # in case the instance is a singleton not currently shown
+        return ti
 
     def newer_than(self, ti):
         """Return whether this :py:class:`ToolInfo` instance is newer than given one
