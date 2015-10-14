@@ -800,15 +800,25 @@ class Drawing:
                 p = self._first_intercept_excluding_children(mxyz1, mxyz2)
                 if p and (pclosest is None or p.distance < pclosest.distance):
                     pclosest = p
-            cd = self.child_drawings()
-            if cd:
-                pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
-                for d in cd:
-                    if d.display and (exclude is None or not hasattr(d, exclude)):
-                        for cp, (cxyz1, cxyz2) in enumerate(pos):
-                            p = d.first_intercept(cxyz1, cxyz2, exclude)
-                            if p and (pclosest is None or p.distance < pclosest.distance):
-                                pclosest = p
+            p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude)
+            if p and (pclosest is None or p.distance < pclosest.distance):
+                pclosest = p
+        return pclosest
+
+    def first_intercept_children(self, child_drawings, mxyz1, mxyz2, exclude=None):
+        '''
+        Like first_intercept() but check for intercepts with just the specified children.
+        '''
+        if len(child_drawings) == 0:
+            return None
+        pclosest = None
+        pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
+        for d in child_drawings:
+            if d.display and (exclude is None or not hasattr(d, exclude)):
+                for cp, (cxyz1, cxyz2) in enumerate(pos):
+                    p = d.first_intercept(cxyz1, cxyz2, exclude)
+                    if p and (pclosest is None or p.distance < pclosest.distance):
+                        pclosest = p
         return pclosest
 
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
@@ -821,9 +831,9 @@ class Drawing:
             return None
         # TODO: Check intercept of bounding box as optimization
         p = None
-        from ._graphics import closest_geometry_intercept
+        from ..geometry import closest_triangle_intercept
         if self.positions.is_identity():
-            fmin, tmin = closest_geometry_intercept(va, ta, mxyz1, mxyz2)
+            fmin, tmin = closest_triangle_intercept(va, ta, mxyz1, mxyz2)
             if fmin is not None:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
@@ -832,7 +842,7 @@ class Drawing:
             for c, tf in enumerate(self.positions):
                 if dp is None or dp[c]:
                     cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-                    fmin, tmin = closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+                    fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
                     if fmin is not None and (p is None or fmin < p.distance):
                         p = TrianglePick(fmin, tmin, c, self)
         return p
@@ -1313,31 +1323,9 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
-    def drawing(self):
-        '''The drawing immediately containing the picked object.'''
-        return None
-
     def select(self, toggle=False):
         '''Cause this picked object to be marked as selected.'''
         pass
-
-    def id_string(self):
-        '''
-        A text identifier that can be used in commands to specified the
-        picked Model. The id number is not a standard attribute
-        of Drawing, only of Model which is a subclass of Drawing,
-        and is a tuple of integers.
-        '''
-        d = self.drawing()
-        while True:
-            if hasattr(d, 'id') and d.id is not None:
-                s = '#' + '.'.join(('%d' % id) for id in d.id)
-                return s
-            if hasattr(d, 'parent') and not d.parent is None:
-                d = d.parent
-            else:
-                break
-        return '?'
 
 class TrianglePick(Pick):
     '''
@@ -1362,6 +1350,24 @@ class TrianglePick(Pick):
         fields.append('triangle %d of %d' % (self.triangle_number, len(d.triangles)))
         desc = ' '.join(fields)
         return desc
+
+    def id_string(self):
+        '''
+        A text identifier that can be used in commands to specified the
+        picked Model. The id number is not a standard attribute
+        of Drawing, only of Model which is a subclass of Drawing,
+        and is a tuple of integers.
+        '''
+        d = self.drawing()
+        while True:
+            if hasattr(d, 'id') and d.id is not None:
+                s = '#' + '.'.join(('%d' % id) for id in d.id)
+                return s
+            if hasattr(d, 'parent') and not d.parent is None:
+                d = d.parent
+            else:
+                break
+        return '?'
 
     def drawing(self):
         return self._drawing

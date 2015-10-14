@@ -544,7 +544,7 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
         for (size_t i = 0; i != n; ++i) {
             Atom *atom = a[i];
             bool hide;
-            if (!atom->residue()->ribbon_display())
+            if (!atom->residue()->ribbon_display() || !atom->residue()->ribbon_hide_backbone())
                 hide = false;
             else {
                 hide = true;
@@ -555,12 +555,10 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
                     }
             }
             if (hide) {
-                if ((atom->hide() & Atom::HIDE_RIBBON) == 0)
-                    atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+                atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
             }
             else {
-                if ((atom->hide() & Atom::HIDE_RIBBON) != 0)
-                    atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+                atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
             }
         }
     } catch (...) {
@@ -748,6 +746,12 @@ extern "C" void set_bond_radius(void *bonds, size_t n, float32_t *radii)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_set<Bond, float>(b, n, &Bond::set_radius, radii);
+}
+
+extern "C" void bond_structure(void *bonds, size_t n, pyobject_t *molp)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_get(b, n, &Bond::structure, molp);
 }
 
 extern "C" void pseudobond_atoms(void *pbonds, size_t n, pyobject_t *atoms)

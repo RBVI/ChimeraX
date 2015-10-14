@@ -137,6 +137,12 @@ def color(session, spec, color=None, target=None, transparency=None,
                     bonds.halfbonds = halfbond
                 what.append('%d bonds' % len(bonds))
 
+    if halfbond is not None and 'b' not in target and 'p' not in target and atoms is not None:
+        bonds = atoms.inter_bonds
+        if len(bonds) > 0:
+            bonds.halfbonds = halfbond
+            what.append('%d halfbonds' % len(bonds))
+
     if 'p' in target:
         if atoms is not None:
             from .. import atomic

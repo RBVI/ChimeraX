@@ -1826,9 +1826,7 @@ class PickedMap(Pick):
     self.map = v
     self.detail = detail
   def description(self):
-    return '%s %s %s' % (self.id_string(), self.map.name, self.detail)
-  def drawing(self):
-    return self.map
+    return '%s %s %s' % (self.map.id_string(), self.map.name, self.detail)
   def select(self, toggle = False):
     m = self.map
     m.selected = not m.selected if toggle else True
