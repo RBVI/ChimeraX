@@ -1323,31 +1323,9 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
-    def drawing(self):
-        '''The drawing immediately containing the picked object.'''
-        return None
-
     def select(self, toggle=False):
         '''Cause this picked object to be marked as selected.'''
         pass
-
-    def id_string(self):
-        '''
-        A text identifier that can be used in commands to specified the
-        picked Model. The id number is not a standard attribute
-        of Drawing, only of Model which is a subclass of Drawing,
-        and is a tuple of integers.
-        '''
-        d = self.drawing()
-        while True:
-            if hasattr(d, 'id') and d.id is not None:
-                s = '#' + '.'.join(('%d' % id) for id in d.id)
-                return s
-            if hasattr(d, 'parent') and not d.parent is None:
-                d = d.parent
-            else:
-                break
-        return '?'
 
 class TrianglePick(Pick):
     '''
@@ -1372,6 +1350,24 @@ class TrianglePick(Pick):
         fields.append('triangle %d of %d' % (self.triangle_number, len(d.triangles)))
         desc = ' '.join(fields)
         return desc
+
+    def id_string(self):
+        '''
+        A text identifier that can be used in commands to specified the
+        picked Model. The id number is not a standard attribute
+        of Drawing, only of Model which is a subclass of Drawing,
+        and is a tuple of integers.
+        '''
+        d = self.drawing()
+        while True:
+            if hasattr(d, 'id') and d.id is not None:
+                s = '#' + '.'.join(('%d' % id) for id in d.id)
+                return s
+            if hasattr(d, 'parent') and not d.parent is None:
+                d = d.parent
+            else:
+                break
+        return '?'
 
     def drawing(self):
         return self._drawing
