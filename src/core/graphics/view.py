@@ -708,7 +708,7 @@ class View:
         if b is None:
             return 0.001, 1  # Nothing shown
         d = sum((b.center() - cp) * vd)         # camera to center of drawings
-        r = (0.5 + self._near_far_pad) * b.width()
+        r = (1 + self._near_far_pad) * b.radius()
         near, far = (d - r, d + r)
 
         # Clamp near clip > 0.
