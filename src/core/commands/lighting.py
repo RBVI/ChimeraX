@@ -145,7 +145,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     if not ambient_color is None:
         lp.ambient_light_color = ambient_color.rgba[:3]
     if not depth_cue is None:
-        v.enable_depth_cue(depth_cue)
+        v.depth_cue = depth_cue
     if not depth_cue_start is None:
         lp.depth_cue_start = depth_cue_start
     if not depth_cue_end is None:

@@ -16,7 +16,8 @@ class View:
         self.triggers = trigger_set
         self.drawing = drawing
         self.window_size = window_size		# pixels
-        self._opengl_context = opengl_context
+        self._opengl_context = None
+        self._render = None
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 1)
@@ -26,11 +27,8 @@ class View:
         self.camera = Camera()
         '''The camera controlling the vantage shown in the graphics window.'''
 
-        if opengl_context is None:
-            self._render = None
-        else:
-            from .opengl import Render
-            self._render = Render()
+        if opengl_context:
+            self.initialize_context(opengl_context)
         self._opengl_initialized = False
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._shadows = False
@@ -71,6 +69,7 @@ class View:
         self._opengl_context = oc
         from .opengl import Render
         self._render = Render()
+        self.depth_cue = True
 
     def opengl_context(self):
         return self._opengl_context
@@ -229,19 +228,18 @@ class View:
         '''Material reflectivity parameters.'''
         return self._render.material
 
-    def enable_depth_cue(self, enable):
-        '''Turn on or off dimming with depth.'''
+    def get_depth_cue(self):
+        r = self._render
+        return bool(r.enable_capabilities & r.SHADER_DEPTH_CUE)
+    def set_depth_cue(self, enable):
         r = self._render
         if enable:
             r.enable_capabilities |= r.SHADER_DEPTH_CUE
         else:
             r.enable_capabilities &= ~r.SHADER_DEPTH_CUE
         self.redraw_needed = True
-
-    def depth_cue_enabled(self):
-        '''Is depth cue enabled. Boolean value.'''
-        r = self._render
-        return bool(r.enable_capabilities & r.SHADER_DEPTH_CUE)
+    depth_cue = property(get_depth_cue, set_depth_cue)
+    '''Is dimming with depth enabled. Boolean value.'''
 
     def get_shadows(self):
         return self._shadows

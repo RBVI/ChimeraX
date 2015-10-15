@@ -697,7 +697,7 @@ def toggle_silhouettes(viewer):
     viewer.redraw_needed = True
 
 def depth_cue(viewer):
-    viewer.enable_depth_cue(not viewer.depth_cue_enabled())
+    viewer.depth_cue = not viewer.depth_cue
     
 def selection_mouse_mode(session):
     mm = session.main_window.graphcs_window.mouse_modes
