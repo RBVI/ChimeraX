@@ -20,12 +20,13 @@ def sphere_geometry(ntri):
 
 # -----------------------------------------------------------------------------
 #
-def cylinder_geometry(radius = 1, height = 1, nz = 2, nc = 10, caps = True):
+def cylinder_geometry(radius = 1, height = 1, nz = 2, nc = 10, caps = True,
+                      hexagonal_lattice = False):
     '''
     Return vertex, normal vector and triangle arrays for cylinder geometry
     with specified radius and height centered at the origin.
     '''
-    varray, narray, tarray = unit_cylinder_geometry(nz, nc)
+    varray, narray, tarray = unit_cylinder_geometry(nz, nc, hexagonal_lattice)
     varray[:,0] *= radius
     varray[:,1] *= radius
     varray[:,2] *= height
@@ -55,7 +56,7 @@ def cylinder_geometry(radius = 1, height = 1, nz = 2, nc = 10, caps = True):
 # -----------------------------------------------------------------------------
 # Build a hexagonal lattice tube
 #
-def unit_cylinder_geometry(nz, nc):
+def unit_cylinder_geometry(nz, nc, hexagonal_lattice = False):
 
     from numpy import empty, float32, arange, cos, sin, int32, pi
     vc = nz*nc
@@ -67,11 +68,16 @@ def unit_cylinder_geometry(nz, nc):
     # Calculate vertices
     v = varray.reshape((nz,nc,3))
     angles = (2*pi/nc)*arange(nc)
-    v[::2,:,0] = cos(angles)
-    v[::2,:,1] = sin(angles)
-    angles += pi/nc
-    v[1::2,:,0] = cos(angles)
-    v[1::2,:,1] = sin(angles)
+    if hexagonal_lattice:
+      v[::2,:,0] = cos(angles)
+      v[::2,:,1] = sin(angles)
+      angles += pi/nc
+      v[1::2,:,0] = cos(angles)
+      v[1::2,:,1] = sin(angles)
+    else:
+      # Rectangular lattice
+      v[:,:,0] = cos(angles)
+      v[:,:,1] = sin(angles)
     for z in range(nz):
         v[z,:,2] = float(z)/(nz-1) - 0.5
 
