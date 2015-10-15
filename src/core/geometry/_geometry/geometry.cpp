@@ -25,9 +25,12 @@ static struct PyMethodDef geometry_cpp_methods[] =
   {const_cast<char*>("bounds_overlap"), (PyCFunction)bounds_overlap, METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* closepoints.h */
-  {const_cast<char*>("find_close_points"), (PyCFunction)find_close_points, METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("find_closest_points"), (PyCFunction)find_closest_points, METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("find_close_points_sets"), (PyCFunction)find_close_points_sets, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("find_close_points"), (PyCFunction)find_close_points,
+   METH_VARARGS|METH_KEYWORDS, find_close_points_doc},
+  {const_cast<char*>("find_closest_points"), (PyCFunction)find_closest_points,
+   METH_VARARGS|METH_KEYWORDS, find_closest_points_doc},
+  {const_cast<char*>("find_close_points_sets"), (PyCFunction)find_close_points_sets,
+   METH_VARARGS|METH_KEYWORDS, find_close_points_sets_doc},
 
   /* distancepy.h */
   {const_cast<char*>("distances_from_origin"), py_distances_from_origin, METH_VARARGS, NULL},
@@ -37,39 +40,15 @@ static struct PyMethodDef geometry_cpp_methods[] =
 
   /* intercept.h */
   {const_cast<char*>("closest_triangle_intercept"), (PyCFunction)closest_triangle_intercept,
-   METH_VARARGS|METH_KEYWORDS,
-   "closest_triangle_intercept(float varray[n,3], int tarray[m,3], float xyz1[3], float xyz2[3])\n"
-   "    -> (float fmin, int tnum)\n"
-   "\n"
-   "Find first triangle intercept along line segment from xyz1 to xyz2.\n"
-   "Returns fraction of distance from xyz1 to xyz2 and triangle number.\n"
-   "Both return values are None if the line segment does not intersect a triangle.\n"
-   "Implemented in C++.\n"
-  },
+   METH_VARARGS|METH_KEYWORDS, closest_triangle_intercept_doc},
   {const_cast<char*>("closest_sphere_intercept"), (PyCFunction)closest_sphere_intercept,
-   METH_VARARGS|METH_KEYWORDS,
-   "closest_sphere_intercept(float centers[n,3], float radii[n], float xyz1[3], float xyz2[3])\n"
-   "    -> (float fmin, int snum)\n"
-   "\n"
-   "Find first sphere intercept along line segment from xyz1 to xyz2.\n"
-   "Returns fraction of distance from xyz1 to xyz2 and sphere number.\n"
-   "Both return values are None if the line segment does not intersect a sphere.\n"
-   "Implemented in C++.\n"
-  },
+   METH_VARARGS|METH_KEYWORDS, closest_sphere_intercept_doc},
   {const_cast<char*>("closest_cylinder_intercept"), (PyCFunction)closest_cylinder_intercept,
-   METH_VARARGS|METH_KEYWORDS,
-   "closest_cylinder_intercept(float cxyz1[n,3], float cxyz2[n,3], float radii[n], float xyz1[3], float xyz2[3])\n"
-   "    -> (float fmin, int snum)\n"
-   "\n"
-   "Find first cylinder intercept along line segment from xyz1 to xyz2.\n"
-   "Returns fraction of distance from xyz1 to xyz2 and cylinder number.\n"
-   "Both return values are None if the line segment does not intersect a cylinder.\n"
-   "Implemented in C++.\n"
-  },
+   METH_VARARGS|METH_KEYWORDS, closest_cylinder_intercept_doc},
 
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
-   METH_VARARGS|METH_KEYWORDS, NULL},
+   METH_VARARGS|METH_KEYWORDS, natural_cubic_spline_doc},
 
   /* transform.h */
   {const_cast<char*>("scale_and_shift_vertices"), scale_and_shift_vertices, METH_VARARGS, NULL},
@@ -79,7 +58,7 @@ static struct PyMethodDef geometry_cpp_methods[] =
 
   /* vector_ops.h */
   {const_cast<char*>("inner_product_64"), (PyCFunction)inner_product_64,
-   METH_VARARGS|METH_KEYWORDS, NULL},
+   METH_VARARGS|METH_KEYWORDS, inner_product_64_doc},
 
   {NULL, NULL, 0, NULL}
 };

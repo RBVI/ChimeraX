@@ -279,7 +279,7 @@ def dq_repr(obj):
 def _canonical_kw(kw_name):
     """Return canonical version of a keyword argument name."""
     # Remove punctuation and case from keyword argument name.
-    return ''.join([c for c in kw_name if c not in '-_ ']).casefold()
+    return ''.join([c for c in kw_name if c not in '_ ']).casefold()
 
 
 def _user_kw(kw_name):
@@ -1182,7 +1182,7 @@ class CmdDesc:
         signature = inspect.signature(function)
         params = list(signature.parameters.values())
         if len(params) < 1 or params[0].name != "session":
-            raise ValueError("Missing initial 'session' argument")
+            raise ValueError('Missing initial "session" argument')
         for p in params[1:]:
             if (p.default != empty or p.name in self._required or
                     p.name in self._required_arguments or
@@ -1461,7 +1461,7 @@ class Command:
         for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
             missing = [kw for kw in ci._required_arguments if kw not in kw_args]
             if missing:
-                arg_names = ["'%s'" % m for m in missing]
+                arg_names = ['"%s"' % m for m in missing]
                 msg = commas(arg_names, ' and')
                 noun = plural_form(arg_names, 'argument')
                 raise UserError("Missing required %s %s" % (msg, noun))
@@ -1652,7 +1652,7 @@ class Command:
             if kw_name in self._ci._optional:
                 self._error = ""
             else:
-                self._error = "Missing required '%s' argument" % _user_kw(kw_name)
+                self._error = 'Missing required "%s" positional argument' % _user_kw(kw_name)
             m = _whitespace.match(text)
             start = m.end()
             if start:
@@ -1668,9 +1668,10 @@ class Command:
                 _, tmp, _ = next_token(text, no_raise=True)
                 if not tmp:
                     return None, None
-                tmp = _canonical_kw(tmp)
-                if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
-                    return None, None
+                if tmp[0].isalpha():
+                    tmp = _canonical_kw(tmp)
+                    if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
+                        return None, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 if is_python_keyword(kw_name):
@@ -1752,7 +1753,7 @@ class Command:
             kw_name = self._ci._keyword_map[arg_name]
             anno = self._ci._keyword[kw_name]
             if not text and anno != NoArg:
-                self._error = 'Missing "%s" argument' % _user_kw(kw_name)
+                self._error = 'Missing "%s" keyword argument' % _user_kw(kw_name)
                 break
 
             self.completion_prefix = ''
