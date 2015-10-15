@@ -34,6 +34,7 @@ class AtomicStructure(AtomicStructureData, Model):
         self.pseudobond_radius = 0.05
         self._atoms_drawing = None
         self._bonds_drawing = None
+        self._bond_subdivision = 20		# Circular cross-section segments
         self._pseudobond_group_drawings = {}    # Map PseudobondGroup to drawing
         self.triangles_per_sphere = None
         self._cached_atom_bounds = None
@@ -240,7 +241,7 @@ class AtomicStructure(AtomicStructureData, Model):
             self._bonds_drawing = p = self.new_drawing('bonds')
             from .. import surface
             # Use 3 z-sections so cylinder ends match in half-bond mode.
-            va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
+            va, na, ta = surface.cylinder_geometry(nc = self._bond_subdivision, caps = False)
             p.geometry = va, ta
             p.normals = na
 
