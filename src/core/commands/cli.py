@@ -279,7 +279,7 @@ def dq_repr(obj):
 def _canonical_kw(kw_name):
     """Return canonical version of a keyword argument name."""
     # Remove punctuation and case from keyword argument name.
-    return ''.join([c for c in kw_name if c not in '-_ ']).casefold()
+    return ''.join([c for c in kw_name if c not in '_ ']).casefold()
 
 
 def _user_kw(kw_name):
@@ -1668,9 +1668,10 @@ class Command:
                 _, tmp, _ = next_token(text, no_raise=True)
                 if not tmp:
                     return None, None
-                tmp = _canonical_kw(tmp)
-                if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
-                    return None, None
+                if tmp[0].isalpha():
+                    tmp = _canonical_kw(tmp)
+                    if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
+                        return None, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 if is_python_keyword(kw_name):
