@@ -32,10 +32,11 @@ class View:
             from .opengl import Render
             self._render = Render()
         self._opengl_initialized = False
+        self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._shadows = False
         self._shadow_map_size = 2048
         self._shadow_depth_bias = 0.005
-        self._multishadow = 0                    # Number of shadows
+        self._multishadow = 0                   # Number of shadows
         self._multishadow_map_size = 128
         self._multishadow_depth_bias = 0.05
         self._multishadow_dir = None
@@ -696,6 +697,7 @@ class View:
         near, far = self._near_far_clip(c, view_num)
         pm = c.projection_matrix((near, far), view_num, (ww, wh))
         r.set_projection_matrix(pm)
+        r.set_near_far_clip(near, far)
 
         return near / far
 
@@ -708,8 +710,8 @@ class View:
         if b is None:
             return 0.001, 1  # Nothing shown
         d = sum((b.center() - cp) * vd)         # camera to center of drawings
-        w = b.width()
-        near, far = (d - w, d + w)
+        r = (0.5 + self._near_far_pad) * b.width()
+        near, far = (d - r, d + r)
 
         # Clamp near clip > 0.
         near_min = 0.001 * (far - near) if far > near else 1

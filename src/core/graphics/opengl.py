@@ -63,6 +63,7 @@ class Render:
         self.current_model_matrix = None
         # Maps scene to camera coordinates:
         self.current_view_matrix = None
+        self._near_far_clip = (0,1)             # Scene coord distances from eye
 
         self.lighting = Lighting()
         self.material = Material()              # Currently a global material
@@ -263,6 +264,14 @@ class Render:
             if not self.lighting.move_lights_with_camera:
                 self.set_shader_lighting_parameters()
 
+    def set_near_far_clip(self, near, far):
+        '''Set the near and far clip plane distances from eye.  Used for depth cuing.'''
+        self._near_far_clip = (near, far)
+
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_DEPTH_CUE:
+            self.set_depth_cue_parameters()
+
     def set_frame_number(self, f=None):
         if f is None:
             f = self.frame_number
@@ -319,8 +328,12 @@ class Render:
             return
 
         lp = self.lighting
-        p.set_float("depth_cue_distance", lp.depth_cue_distance)
-        p.set_float("depth_cue_darkest", lp.depth_cue_darkest)
+        n,f = self._near_far_clip
+        s = n + (f-n)*lp.depth_cue_start
+        e = n + (f-n)*lp.depth_cue_end
+        p.set_float('depth_cue_start', s)
+        p.set_float('depth_cue_end', e)
+        p.set_vector('depth_cue_color', lp.depth_cue_color)
 
     def set_single_color(self, color=None):
         '''
@@ -1052,9 +1065,14 @@ class Lighting:
         self.ambient_light_intensity = 0.4
         '''Ambient light brightness.'''
 
-        # Distance where dimming begins (Angstroms):
-        self.depth_cue_distance = 15.0
-        self.depth_cue_darkest = 0.2    # Smallest dimming factor
+        self.depth_cue_start = 0.5
+        "Fraction of distance from near to far clip plane where dimming starts."
+
+        self.depth_cue_end = 1.0
+        "Fraction of distance from near to far clip plane where dimming ends."
+
+        self.depth_cue_color = (0, 0, 0)
+        '''Color to fade towards.'''
 
         self.move_lights_with_camera = True
         '''Whether lights are attached to camera, or fixed in the scene.'''
