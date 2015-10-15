@@ -888,7 +888,7 @@ Atom::set_bfactor(float bfactor)
 }
 
 void
-Atom::set_coord(const basegeom::Coord &coord, CoordSet *cs)
+Atom::set_coord(const basegeom::Coord& coord, CoordSet* cs)
 {
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
     if (cs == NULL) {

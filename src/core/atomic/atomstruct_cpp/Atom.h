@@ -118,8 +118,8 @@ public:
     void  set_alt_loc(char alt_loc, bool create=false, bool from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
     void  set_bfactor(float);
-    virtual void  set_coord(const Point & coord) { set_coord(coord, NULL); }
-    void  set_coord(const Point & coord, CoordSet * cs);
+    void  set_coord(const Point& coord) { set_coord(coord, NULL); }
+    void  set_coord(const Point& coord, CoordSet* cs);
     void  set_computed_idatm_type(const char* it);
     void  set_idatm_type(const char* it);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }

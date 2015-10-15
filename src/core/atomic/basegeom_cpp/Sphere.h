@@ -18,6 +18,9 @@ private:
 public:
     BaseSphere(float radius): _radius(radius) {}
     virtual  ~BaseSphere() {}
+
+    virtual const Coord&  coord() const = 0;
+    virtual void  set_coord(const Point& coord) = 0;
     virtual void  set_radius(float r) {
         if (r == _radius)
             return;
@@ -46,8 +49,8 @@ private:
     Coord  _coord;
 
 public:
-    virtual const Coord &  coord() const { return _coord; }
-    virtual void  set_coord(const Point & coord) { _coord = coord; }
+    virtual const Coord&  coord() const { return _coord; }
+    virtual void  set_coord(const Point& coord) { _coord = coord; }
     virtual  ~Sphere() {}
 };
 

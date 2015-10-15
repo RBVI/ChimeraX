@@ -38,16 +38,24 @@ def _pseudobond_group_map(pbgc_map):
 
 # -----------------------------------------------------------------------------
 #
-class Atom:
+class BaseSphere(type):
+    def __new__(meta, name, bases, attrs):
+        if name != meta.__name__:
+            prefix = name.lower() + '_'
+            attr = c_property(prefix + 'coord', float64, 3)
+            attr.__doc__ = '''Coordinates as a numpy length 3 array, 64-bit float values.'''
+            attrs['coord'] = attr
+        return super().__new__(meta, name, bases, attrs)
+
+# -----------------------------------------------------------------------------
+#
+class Atom(metaclass=BaseSphere):
     '''
     An atom includes physical and graphical properties such as an element name,
     coordinates in space, and color and radius for rendering.
 
     To create an Atom use the :class:`.AtomicStructure` new_atom() method.
     '''
-    def __init__(self, atom_pointer):
-        set_c_pointer(self, atom_pointer)
-
     bfactor = c_property('atom_bfactor', float32)
     '''B-factor, floating point value.'''
     bonds = c_property('atom_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
@@ -58,8 +66,8 @@ class Atom:
     '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
     color = c_property('atom_color', uint8, 4)
     '''Color RGBA length 4 numpy uint8 array.'''
-    coord = c_property('atom_coord', float64, 3)
-    '''Coordinates as a numpy length 3 array, 64-bit float values.'''
+    #coord = c_property('atom_coord', float64, 3)
+    #'''Coordinates as a numpy length 3 array, 64-bit float values.'''
     display = c_property('atom_display', npy_bool)
     '''Whether to display the atom. Boolean value.'''
     SPHERE_STYLE = 0
@@ -105,6 +113,9 @@ class Atom:
     '''Draw mode that display cartoons as ribbons'''
     RIBBON_PIPE = 1
     '''Draw mode that display cartoons as pipes and planks'''
+
+    def __init__(self, bs_pointer):
+        set_c_pointer(self, bs_pointer)
 
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
