@@ -544,7 +544,7 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
         for (size_t i = 0; i != n; ++i) {
             Atom *atom = a[i];
             bool hide;
-            if (!atom->residue()->ribbon_display())
+            if (!atom->residue()->ribbon_display() || !atom->residue()->ribbon_hide_backbone())
                 hide = false;
             else {
                 hide = true;
@@ -555,12 +555,10 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
                     }
             }
             if (hide) {
-                if ((atom->hide() & Atom::HIDE_RIBBON) == 0)
-                    atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+                atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
             }
             else {
-                if ((atom->hide() & Atom::HIDE_RIBBON) != 0)
-                    atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+                atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
             }
         }
     } catch (...) {
