@@ -133,8 +133,8 @@ def movie_encode(session, output=None, format=None, quality=None, qscale=None, b
       formats can be made.
     format : string
       Format of video file to write.  If not specified, the file suffix determines the format.
-      Use of a *.mp4 file suffix and h264 format is by far the best choice.
-      Allowed formats (file suffix) are: h264 (*.mp4), mov (*.mov), avi (.avi), wmv (.wmv).
+      Use of a .mp4 file suffix and h264 format is by far the best choice.
+      Allowed formats (file suffix) are: h264 (.mp4), mov (.mov), avi (.avi), wmv (.wmv).
     quality : string
       Quality of video, higher quality results in larger file size.  Qualities are "highest",
       "higher", "high", "good", "medium", "fair", "low".  Default "good".  This overrides
@@ -268,7 +268,7 @@ def ignore_movie_commands(session):
     return ignore
 
 def no_movie(session):
-    if not hasattr(session, 'movie'):
+    if not hasattr(session, 'movie') or session.movie is None:
         session.logger.warning('No movie being recorded.')
         return True
     return False

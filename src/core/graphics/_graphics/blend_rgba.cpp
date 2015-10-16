@@ -45,7 +45,7 @@ static void blend_colors(float f, const Reference_Counted_Array::Array<T> &m1,
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *blur_blend_images(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *blur_blend_images(PyObject *, PyObject *args, PyObject *keywds)
 {
   Reference_Counted_Array::Numeric_Array m1, m2, m, bgcolor;
   PyObject *bgcolor_py;
@@ -93,7 +93,7 @@ extern "C" PyObject *blur_blend_images(PyObject *s, PyObject *args, PyObject *ke
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *accumulate_images(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *accumulate_images(PyObject *, PyObject *args, PyObject *keywds)
 {
   Reference_Counted_Array::Numeric_Array rgba8, rgba32;
   const char *kwlist[] = {"rgba8", "rgba32", NULL};

@@ -60,8 +60,8 @@ def standard_shortcuts(session):
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
 #        ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
-        ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
-        ('hm', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
+        ('dm', 'display selModels models', 'Display selected models', ocat, noarg, smenu),
+        ('hm', '~display selModels models', 'Hide selected models', ocat, noarg, smenu),
         ('Ds', 'close sel', 'Delete selected models', ocat, noarg, smenu, sep),
         ('cs', 'select clear', 'Clear selection', gcat, noarg, smenu),
 
@@ -118,8 +118,14 @@ def standard_shortcuts(session):
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
 #        ('la', show_ligands, 'Show ligand atoms', molcat, molarg, mlmenu),
-        ('sw', show_waters, 'Show water atoms', molcat, atomsarg, mlmenu),
-        ('hw', hide_waters, 'Hide water atoms', molcat, atomsarg, mlmenu, sep),
+        ('sw', 'display solvent', 'Show water atoms', molcat, noarg, mlmenu),
+        ('hw', '~display solvent', 'Hide water atoms', molcat, noarg, mlmenu, sep),
+
+        ('db', 'display selAtoms bonds', 'Display bonds', molcat, noarg, mlmenu),
+        ('hb', '~display selAtoms bonds', 'Hide bonds', molcat, noarg, mlmenu),
+
+        ('Hb', 'color selAtoms halfbond true', 'Half bond coloring', molcat, noarg, mlmenu),
+        ('Sb', 'color selAtoms halfbond false', 'Single color bonds', molcat, noarg, mlmenu),
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('cc', 'color selAtoms bychain', 'Color chains', molcat, noarg, mlmenu, sep),
@@ -359,6 +365,7 @@ def register_selectors(session):
     from chimera.core.commands import register_selector
     register_selector(None, "selAtoms", _sel_atoms_selector)
     register_selector(None, "selMaps", _sel_maps_selector)
+    register_selector(None, "selModels", _sel_models_selector)
     _registered_selectors = True
 
 # Selected atoms, or if none selected then all atoms.
@@ -373,12 +380,17 @@ def _sel_maps_selector(session, models, results):
     for m in shortcut_maps(session):
         results.add_model(m)
 
-def shortcut_models(session, mclass = None):
+# Selected models, or if none selected then all models.
+def _sel_models_selector(session, models, results):
+    for m in shortcut_models(session):
+        results.add_model(m)
+
+def shortcut_models(session, mclass = None, undisplayed = True):
     sel = session.selection
     mlist = [m for m in sel.models() if mclass is None or isinstance(m,mclass)]
     if len(mlist) == 0:
         mlist = [m for m in session.models.list()
-                 if (mclass is None or isinstance(m,mclass)) and m.display]
+                 if (mclass is None or isinstance(m,mclass)) and (undisplayed or m.display)]
     return mlist
 
 def shortcut_maps(session):
@@ -387,7 +399,7 @@ def shortcut_maps(session):
 
 def shortcut_molecules(session):
     from chimera.core.atomic import AtomicStructure
-    return shortcut_models(session, AtomicStructure)
+    return shortcut_models(session, AtomicStructure, undisplayed = False)
 
 def shortcut_atoms(session):
     matoms = []
@@ -685,7 +697,7 @@ def toggle_silhouettes(viewer):
     viewer.redraw_needed = True
 
 def depth_cue(viewer):
-    viewer.enable_depth_cue(not viewer.depth_cue_enabled())
+    viewer.depth_cue = not viewer.depth_cue
     
 def selection_mouse_mode(session):
     mm = session.main_window.graphcs_window.mouse_modes
@@ -693,14 +705,6 @@ def selection_mouse_mode(session):
 
 def command_line(session):
     session.keyboard_shortcuts.disable_shortcuts()
-
-def display_selected_models(session):
-    for m in shortcut_models(session):
-        m.display = True
-
-def hide_selected_models(session):
-    for m in shortcut_models(session):
-        m.display = False
 
 def color_by_bfactor(atoms):
     from time import time
@@ -723,10 +727,6 @@ def thinner_ribbons(m):
     m.set_ribbon_radius(0.5*m.ribbon_radius)
 def show_ligands(m):
     m.show_ligand_atoms()
-def show_waters(atoms):
-    atoms.displays |= (atoms.residues.names == 'HOH')
-def hide_waters(atoms):
-    atoms.displays &= (atoms.residues.names != 'HOH')
 def molecule_bonds(m, session):
     if m.bonds is None:
         from chimera.core.atomic import connect

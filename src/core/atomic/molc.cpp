@@ -336,16 +336,26 @@ extern "C" void atom_visible(void *atoms, size_t n, npy_bool *visible)
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::visible, visible);
 }
 
-extern "C" void atom_draw_mode(void *atoms, size_t n, int32_t *modes)
+extern "C" void atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_get<Atom, int>(a, n, &Atom::draw_mode, modes);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            modes[i] = static_cast<uint8_t>(a[i]->draw_mode());
+    } catch (...) {
+        molc_error();
+    }
 }
 
-extern "C" void set_atom_draw_mode(void *atoms, size_t n, int32_t *modes)
+extern "C" void set_atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_set<Atom, int, int>(a, n, &Atom::set_draw_mode, modes);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            a[i]->set_draw_mode(static_cast<Atom::DrawMode>(modes[i]));
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" void atom_element(void *atoms, size_t n, pyobject_t *resp)
@@ -534,7 +544,7 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
         for (size_t i = 0; i != n; ++i) {
             Atom *atom = a[i];
             bool hide;
-            if (!atom->residue()->ribbon_display())
+            if (!atom->residue()->ribbon_display() || !atom->residue()->ribbon_hide_backbone())
                 hide = false;
             else {
                 hide = true;
@@ -545,16 +555,45 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
                     }
             }
             if (hide) {
-                if ((atom->hide() & Atom::HIDE_RIBBON) == 0)
-                    atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+                atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
             }
             else {
-                if ((atom->hide() & Atom::HIDE_RIBBON) != 0)
-                    atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+                atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
             }
         }
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" PyObject *atom_inter_bonds(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    std::set<Atom *> aset;
+    std::set<Bond *> bset;
+    try {
+        for (size_t i = 0; i < n; ++i)
+	  aset.insert(a[i]);
+        for (size_t i = 0; i < n; ++i) {
+	  const Atom::Bonds &abonds = a[i]->bonds();
+	    for (auto b = abonds.begin() ; b != abonds.end() ; ++b) {
+	      Bond *bond = *b;
+	      const Bond::Atoms &batoms = bond->atoms();
+	      if (aset.find(batoms[0]) != aset.end() &&
+		  aset.find(batoms[1]) != aset.end() &&
+		  bset.find(bond) == bset.end())
+		bset.insert(bond);
+	    }
+	}
+	void **bptr;
+	PyObject *ba = python_voidp_array(bset.size(), &bptr);
+	int i = 0;
+	for (auto b = bset.begin() ; b != bset.end() ; ++b)
+	  bptr[i++] = *b;
+        return ba;
+    } catch (...) {
+        molc_error();
+        return 0;
     }
 }
 
@@ -605,26 +644,41 @@ extern "C" void set_bond_color(void *bonds, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" void bond_display(void *bonds, size_t n, uint8_t *disp)
+extern "C" PyObject *bond_half_colors(void *bonds, size_t n)
 {
     Bond **b = static_cast<Bond **>(bonds);
+    uint8_t *rgba1;
+    PyObject *colors = python_uint8_array(2*n, 4, &rgba1);
+    uint8_t *rgba2 = rgba1 + 4*n;
     try {
-        for (size_t i = 0; i != n; ++i)
-            disp[i] = static_cast<uint8_t>(b[i]->display());
+        const Rgba *c1, *c2;
+        for (size_t i = 0; i < n; ++i) {
+	  Bond *bond = b[i];
+	  if (bond->halfbond()) {
+	      c1 = &bond->atoms()[0]->color();
+	      c2 = &bond->atoms()[1]->color();
+	  } else {
+	      c1 = c2 = &bond->color();
+	  }
+	  *rgba1++ = c1->r; *rgba1++ = c1->g; *rgba1++ = c1->b; *rgba1++ = c1->a;
+	  *rgba2++ = c2->r; *rgba2++ = c2->g; *rgba2++ = c2->b; *rgba2++ = c2->a;
+	}
     } catch (...) {
         molc_error();
     }
+    return colors;
 }
 
-extern "C" void set_bond_display(void *bonds, size_t n, uint8_t *disp)
+extern "C" void bond_display(void *bonds, size_t n, npy_bool *disp)
 {
     Bond **b = static_cast<Bond **>(bonds);
-    try {
-        for (size_t i = 0; i != n; ++i)
-            b[i]->set_display(static_cast<Bond::BondDisplay>(disp[i]));
-    } catch (...) {
-        molc_error();
-    }
+    error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::display, disp);
+}
+
+extern "C" void set_bond_display(void *bonds, size_t n, npy_bool *disp)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_set<Bond, bool, npy_bool>(b, n, &Bond::set_display, disp);
 }
 
 extern "C" void bond_hide(void *bonds, size_t n, int32_t *hide)
@@ -668,10 +722,36 @@ extern "C" void bond_radius(void *bonds, size_t n, float32_t *radii)
     error_wrap_array_get<Bond, float>(b, n, &Bond::radius, radii);
 }
 
+extern "C" void bond_shown(void *bonds, size_t n, npy_bool *shown)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::shown, shown);
+}
+
+extern "C" int bonds_num_shown(void *bonds, size_t n)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    int count = 0;
+    try {
+        for (size_t i = 0; i < n; ++i)
+	  if (b[i]->shown())
+	    count += 1;
+    } catch (...) {
+        molc_error();
+    }
+    return count;
+}
+
 extern "C" void set_bond_radius(void *bonds, size_t n, float32_t *radii)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_set<Bond, float>(b, n, &Bond::set_radius, radii);
+}
+
+extern "C" void bond_structure(void *bonds, size_t n, pyobject_t *molp)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_get(b, n, &Bond::structure, molp);
 }
 
 extern "C" void pseudobond_atoms(void *pbonds, size_t n, pyobject_t *atoms)
@@ -721,26 +801,41 @@ extern "C" void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" void pseudobond_display(void *pbonds, size_t n, uint8_t *disp)
+extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
 {
     PBond **b = static_cast<PBond **>(pbonds);
+    uint8_t *rgba1;
+    PyObject *colors = python_uint8_array(2*n, 4, &rgba1);
+    uint8_t *rgba2 = rgba1 + 4*n;
     try {
-        for (size_t i = 0; i != n; ++i)
-            disp[i] = static_cast<uint8_t>(b[i]->display());
+        const Rgba *c1, *c2;
+        for (size_t i = 0; i < n; ++i) {
+	  PBond *bond = b[i];
+	  if (bond->halfbond()) {
+	      c1 = &bond->atoms()[0]->color();
+	      c2 = &bond->atoms()[1]->color();
+	  } else {
+	      c1 = c2 = &bond->color();
+	  }
+	  *rgba1++ = c1->r; *rgba1++ = c1->g; *rgba1++ = c1->b; *rgba1++ = c1->a;
+	  *rgba2++ = c2->r; *rgba2++ = c2->g; *rgba2++ = c2->b; *rgba2++ = c2->a;
+	}
     } catch (...) {
         molc_error();
     }
+    return colors;
 }
 
-extern "C" void set_pseudobond_display(void *pbonds, size_t n, uint8_t *disp)
+extern "C" void pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
 {
     PBond **b = static_cast<PBond **>(pbonds);
-    try {
-        for (size_t i = 0; i != n; ++i)
-            b[i]->set_display(static_cast<unsigned char>(disp[i]));
-    } catch (...) {
-        molc_error();
-    }
+    error_wrap_array_get<PBond, bool, npy_bool>(b, n, &PBond::display, disp);
+}
+
+extern "C" void set_pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
+{
+    PBond **b = static_cast<PBond **>(pbonds);
+    error_wrap_array_set<PBond, bool, npy_bool>(b, n, &PBond::set_display, disp);
 }
 
 extern "C" void pseudobond_halfbond(void *pbonds, size_t n, npy_bool *halfb)
@@ -759,6 +854,12 @@ extern "C" void pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
 {
     PBond **b = static_cast<PBond **>(pbonds);
     error_wrap_array_get<PBond, float>(b, n, &PBond::radius, radii);
+}
+
+extern "C" void pseudobond_shown(void *pbonds, size_t n, npy_bool *shown)
+{
+    PBond **b = static_cast<PBond **>(pbonds);
+    error_wrap_array_get<PBond, bool, npy_bool>(b, n, &PBond::shown, shown);
 }
 
 extern "C" void set_pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
@@ -1331,6 +1432,21 @@ extern "C" void change_tracker_add_modified(void *vct, int class_num, void *modd
         } else {
             throw std::invalid_argument("Bad class value to ChangeTracker.add_modified()");
         }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_structure_color(void *mol, uint8_t *rgba)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        Rgba c;
+        c.r = *rgba++;
+        c.g = *rgba++;
+        c.b = *rgba++;
+        c.a = *rgba++;
+        m->set_color(c);
     } catch (...) {
         molc_error();
     }

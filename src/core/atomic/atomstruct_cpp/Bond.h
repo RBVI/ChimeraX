@@ -34,9 +34,11 @@ private:
 
 public:
     virtual ~Bond();
+    virtual bool shown() const;
     const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
     const Atoms&  atoms() const { return end_points(); }
+    AtomicStructure*  structure() const { return atoms()[0]->structure(); }
     // length() inherited from UniqueConnection
     const Rings&  minimum_rings(bool cross_residues = false,
             std::set<const Residue*>* ignore = nullptr) const {
@@ -64,6 +66,12 @@ public:
 namespace atomstruct {
 
 inline Bond::~Bond() { atoms()[0]->structure()->_structure_cats_dirty = true; }
+
+inline bool Bond::shown() const {
+    return Connection::shown() &&
+      (atoms()[0]->draw_mode() != Atom::DrawMode::Sphere ||
+       atoms()[0]->draw_mode() != Atom::DrawMode::Sphere);
+}
 
 inline basegeom::ChangeTracker*
 Bond::change_tracker() const { return atoms()[0]->change_tracker(); }

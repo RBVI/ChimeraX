@@ -52,9 +52,9 @@ Graphics-related Modules
 .. toctree::
     :maxdepth: 2
 
-    core/geometry/public.rst
+    core/geometry/geometry.rst
 
-    core/graphics/public.rst
+    core/graphics/graphics.rst
 
 C++ helper Modules
 ~~~~~~~~~~~~~~~~~~

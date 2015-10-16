@@ -16,9 +16,9 @@ Python Modules
 
     core/data_events.rst
 
-    core/geometry/public.rst
+    core/geometry/geometry.rst
 
-    core/graphics/public.rst
+    core/graphics/graphics.rst
 
     core/ui/gui.rst
 

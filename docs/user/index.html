@@ -41,10 +41,14 @@ here termed &ldquo;Chimera1.&rdquo;
  - color atomic models, cartoons, molecular surfaces</li>
  <li><a href="commands/colordef.html"><b>colordef</b></a>
  - define a color name</li>
+ <li><a href="commands/log.html"><b>log</b></a>
+ - clear, save to file, and other actions related to the <b>Log</b></li>
  <li><a href="commands/movie.html"><b>movie</b></a>
  - record image frames and assemble them into a movie file</li>
  <li><a href="commands/open.html"><b>open</b></a>
   - open local file or fetch from repository</li> 
+ <li><a href="commands/exit.html"><b>exit</b> or <b>quit</b></a>
+  - exit from Chimera2</li>
  <li><a href="commands/select.html"><b>select</b></a>
  - select items (models or their parts) for subsequent operations</li>
  <li><a href="commands/style.html"><b>style</b></a>
@@ -54,7 +58,10 @@ here termed &ldquo;Chimera1.&rdquo;
  <li><a href="commands/transparency.html"><b>transparency</b></a>
  - adjust transparency of atomic models, cartoons, molecular surfaces</li>
  <li><a href="commands/view.html"><b>view</b></a>
- - bring all displayed atoms or specified atoms into view</li>
+  - bring all displayed atoms or specified atoms into view</li>
+  <li><a href="commands/wait.html"><b>wait</b></a>
+  - update the display and enforce ordered execution of commands in scripts</li>
+</li>
 </ul>
 <li>Command-Related</i>:</li>
  <ul>
@@ -81,20 +88,22 @@ a command in the <b>Log</b> (for example, <b>usage set</b>).
 The <b>help</b> command (for example, <b>help style</b>) shows the 
 full manual page for a command if available, otherwise just the usage.
 Some commands are much the same as the corresponding Chimera1 commands,
-except for the specification differences noted <a href="#top">above</a>.
+except for <a href="commands/atomspec-diffsum.html">target-specification
+differences</a>.
 </p>
 <ul>
 <li><b>list</b>
 - list current models</li>
-<li><b>display/~display</b></li>
-<li><b>cartoon/~cartoon</b></li>
+<li><b>display/~display</b>
+- show/hide atoms and bonds</li>
+<li><b>cartoon/~cartoon</b>
+- show/hide ribbon representations</li>
 <li><b>lighting</b> 
 (with options including <b>soft</b> for ambient occlusion, <b>flat</b> 
 for ambient-only, <b>full</b> with shadows, <b>default</b>)</li>
 <li><b>set</b>
 (with options including <b>bgColor</b> and <b>silhouette</b>)</li>
 <li><b>delete</b></li>
-<li><b>exit</b> or <b>quit</b></li>
 <li><b>sym</b></li>
 <li><b>sasa</b></li>
 <li><b>buriedarea</b></li>
@@ -136,10 +145,6 @@ target="_blank"><b>roll</b></a></li>
 - stop all motion, like Chimera1 
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/freeze.html"
 target="_blank"><b>freeze</b></a></li>
-<li><b>wait</b>
-- same as Chimera1
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/wait.html"
-target="_blank"><b>wait</b></a></li>
 <li><b>title</b>
 - static annotation like Chimera1 
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/2dlabels.html"

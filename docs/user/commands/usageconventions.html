@@ -40,14 +40,18 @@ merely symbolic and should not be included in the typed command.
 Command names and keywords can be truncated to unique strings,
 unless a command's manual page states otherwise.
 </p><p>
-Multiple commands can be combined on a single line, separated by semicolons.
-This may be useful because the display 
-is not redrawn until the last command in a semicolon-separated series 
-has been executed; that is, multiple graphical changes such as changes in 
-representation, color, and display state can be made to appear 
-simultaneously instead of one by one.
+The display is updated as needed when a user presses return after entering
+a command, or when a <a href="wait.html"><b>wait</b></a>
+command is executed within a script.
+Multiple commands can be combined into a single line with semicolon separators.
+During interactive command entry, this may be useful for making multi-frame 
+actions start simultaneously or for suppressing the display
+of intermediate states.
+Semicolon separators are also needed for defining composite (multi-command)
+actions with <b>alias</b> or <b>perframe</b>, whether interactively or in
+a script.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2015</address>
+October 2015</address>
 </body></html>

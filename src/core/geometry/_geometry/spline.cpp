@@ -91,6 +91,30 @@ static void solve_tridiagonal(double *y, int n, double *temp)
 
 // -----------------------------------------------------------------------------
 //
+const char *natural_cubic_spline_doc =
+  "natural_cubic_spline(path, segment_subdivisions) -> spath, tangents\n"
+  "\n"
+  "Compute a natural cubic spline through path points in 3 dimensions,\n"
+  "producing a finer set of points and tangent vectors at those points.\n"
+  "Implemented in C++.\n"
+  "\n"
+  "Parameters\n"
+  "----------\n"
+  "path : n by 3 float array\n"
+  "  points that spline will pass through.\n"
+  "segment_subdivisions : int\n"
+  "  place this number of additional points between every two consecutive\n"
+  "  path points.\n"
+  "\n"
+  "Returns\n"
+  "-------\n"
+  "spath : m by 3 float array\n"
+  "  points on cubic spline including original points and subdivision points.\n"
+  "tangents : m by 3 float array\n"
+  "  tangent vector at point of returned path.\n";
+
+// -----------------------------------------------------------------------------
+//
 extern "C"
 PyObject *natural_cubic_spline(PyObject *, PyObject *args, PyObject *keywds)
 {

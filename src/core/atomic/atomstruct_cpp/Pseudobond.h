@@ -28,7 +28,7 @@ private:
     GraphicsContainer*  _gc;
 
     PBond(Atom* a1, Atom* a2, GraphicsContainer* gc):
-        basegeom::Connection<Atom, PBond>(a1, a2), _gc(gc) {};
+        basegeom::Connection<Atom, PBond>(a1, a2), _gc(gc) { _halfbond = false; };
 protected:
     const char*  err_msg_loop() const
         { return "Can't form pseudobond to itself"; }
@@ -233,6 +233,42 @@ public:
         return static_cast<CS_PBGroup*>(_proxied)->pseudobonds(cs);
     }
     decltype(_owner)  structure() const { return owner(); }
+
+    virtual void  gc_clear() {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<Owned_PBGroup*>(_proxied)->gc_clear();
+        static_cast<CS_PBGroup*>(_proxied)->gc_clear();
+    }
+    virtual bool  get_gc_color() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+	    return static_cast<Owned_PBGroup*>(_proxied)->get_gc_color();
+        return static_cast<CS_PBGroup*>(_proxied)->get_gc_color();
+    }
+    virtual bool  get_gc_select() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+	    return static_cast<Owned_PBGroup*>(_proxied)->get_gc_select();
+        return static_cast<CS_PBGroup*>(_proxied)->get_gc_select();
+    }
+    virtual bool  get_gc_shape() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+	    return static_cast<Owned_PBGroup*>(_proxied)->get_gc_shape();
+        return static_cast<CS_PBGroup*>(_proxied)->get_gc_shape();
+    }
+    virtual void  set_gc_color(bool gc = true) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<Owned_PBGroup*>(_proxied)->set_gc_color(gc);
+        static_cast<CS_PBGroup*>(_proxied)->set_gc_color(gc);
+    }
+    virtual void  set_gc_select(bool gc = true) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<Owned_PBGroup*>(_proxied)->set_gc_select(gc);
+        static_cast<CS_PBGroup*>(_proxied)->set_gc_select(gc);
+    }
+    virtual void  set_gc_shape(bool gc = true) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<Owned_PBGroup*>(_proxied)->set_gc_shape(gc);
+        static_cast<CS_PBGroup*>(_proxied)->set_gc_shape(gc);
+    }
 
 };
 

@@ -7,6 +7,7 @@
 
 #include "ChangeTracker.h"
 #include "destruct.h"
+#include "Rgba.h"
 
 namespace basegeom {
 
@@ -22,14 +23,14 @@ public:
     GraphicsContainer(): _gc_color(false), _gc_select(false),
         _gc_shape(false) {}
     virtual  ~GraphicsContainer() {}
-    void  gc_clear()
+    virtual void  gc_clear()
         { _gc_color = false; _gc_select = false; _gc_shape = false; }
-    bool  get_gc_color() const { return _gc_color; }
-    bool  get_gc_select() const { return _gc_select; }
-    bool  get_gc_shape() const { return _gc_shape; }
-    void  set_gc_color(bool gc = true) { _gc_color = gc; }
-    void  set_gc_select(bool gc = true) { _gc_select = gc; }
-    void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
+    virtual bool  get_gc_color() const { return _gc_color; }
+    virtual bool  get_gc_select() const { return _gc_select; }
+    virtual bool  get_gc_shape() const { return _gc_shape; }
+    virtual void  set_gc_color(bool gc = true) { _gc_color = gc; }
+    virtual void  set_gc_select(bool gc = true) { _gc_select = gc; }
+    virtual void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
 };
 
 template <class Vertex, class Edge, class FinalGraph>
@@ -80,6 +81,7 @@ public:
         change_tracker()->add_modified(dynamic_cast<FinalGraph*>(this),
             ChangeTracker::REASON_BALL_SCALE);
     }
+    virtual void  set_color(const Rgba&);
     void  set_display(bool d) {
         if (d == _display)
             return;

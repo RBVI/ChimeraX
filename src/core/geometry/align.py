@@ -1,9 +1,20 @@
 def align_points(xyz, ref_xyz):
     '''
-    Computes rotation and translation to align one set of positions with another.
+    Computes rotation and translation to align one set of points with another.
     The sum of the squares of the distances between corresponding positions is
-    minimized.  The xyz positions are specified as n by 3 numpy arrays.
-    Returns transform Place object and rms value.
+    minimized.
+
+    Parameters
+    ----------
+    xyz : numpy float n by 3 array
+    ref_xyz : numpy float n by 3 array
+
+    Returns
+    -------
+    place : :py:class:`.Place`
+      transformation taking xyz onto ref_xyz.
+    rms : float
+      root mean square (RMS) value calculated from distances between aligned points.
     '''
 
     # TODO: Testing if float64 has less roundoff error.

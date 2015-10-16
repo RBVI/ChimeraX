@@ -9,10 +9,12 @@ namespace basegeom {
     
 template <class FinalConnectible, class FinalConnection>
 class BaseSphere: public Connectible<FinalConnectible, FinalConnection> {
+public:
+    enum class DrawMode : unsigned char { Sphere, EndCap, Ball };
 private:
     float  _radius;
 
-    int  _draw_mode = 0;
+    DrawMode  _draw_mode = DrawMode::Sphere;
 public:
     BaseSphere(float radius): _radius(radius) {}
     virtual  ~BaseSphere() {}
@@ -27,8 +29,8 @@ public:
     virtual float  radius() const { return _radius; }
 
     // graphics related
-    int  draw_mode() const { return _draw_mode; }
-    void  set_draw_mode(int dm) {
+    DrawMode  draw_mode() const { return _draw_mode; }
+    void  set_draw_mode(DrawMode dm) {
         if (dm == _draw_mode)
             return;
         this->graphics_container()->set_gc_shape();

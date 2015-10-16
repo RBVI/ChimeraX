@@ -75,8 +75,8 @@ def colordef(session, name, color=None):
             if rest:
                 color = None
         else:
-            from ..colors import _BuiltinColors
-            real_name, color, rest = _find_named_color(_BuiltinColors, name)
+            from ..colors import BuiltinColors
+            real_name, color, rest = _find_named_color(BuiltinColors, name)
             if rest:
                 color = None
         if color is None:
