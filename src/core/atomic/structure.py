@@ -33,10 +33,15 @@ class AtomicStructure(AtomicStructureData, Model):
         self.bond_radius = 0.2
         self.pseudobond_radius = 0.05
         self._atoms_drawing = None
+        self._atom_min_triangles = 10
+        self._atom_max_triangles = 400
+        self._atom_max_total_triangles = 10000000
+        self._atom_min_triangles = 10
         self._bonds_drawing = None
-        self._bond_subdivision = 20		# Circular cross-section segments
+        self._bond_min_triangles = 24
+        self._bond_max_triangles = 160
+        self._bond_max_total_triangles = 5000000
         self._pseudobond_group_drawings = {}    # Map PseudobondGroup to drawing
-        self.triangles_per_sphere = None
         self._cached_atom_bounds = None
         self._atom_bounds_needs_update = True
 
@@ -150,13 +155,15 @@ class AtomicStructure(AtomicStructureData, Model):
             self._atoms_drawing = p = self.new_drawing('atoms')
 
         n = len(coords)
-        self.triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
+        ntri = self._atom_max_total_triangles // n
+        ntri = min(ntri, self._atom_max_triangles)
+        ntri = max(ntri, self._atom_min_triangles)
 
         # Set instanced sphere triangulation
-        from .. import surface
-        va, na, ta = surface.sphere_geometry(self.triangles_per_sphere)
+        from ..geometry.sphere import sphere_triangulation
+        va, ta = sphere_triangulation(ntri)
         p.geometry = va, ta
-        p.normals = na
+        p.normals = va
 
         self._update_atom_graphics(coords, radii, colors, display)
 
@@ -239,9 +246,14 @@ class AtomicStructure(AtomicStructureData, Model):
             if bonds.num_shown == 0:
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
+            # Compute level of detail.
+            n = len(bonds)
+            ntri = self._bond_max_total_triangles // n
+            ntri = min(ntri, self._bond_max_triangles)
+            ntri = max(ntri, self._bond_min_triangles)
+            div = ntri//4
             from .. import surface
-            # Use 3 z-sections so cylinder ends match in half-bond mode.
-            va, na, ta = surface.cylinder_geometry(nc = self._bond_subdivision, caps = False)
+            va, na, ta = surface.cylinder_geometry(nc = div, caps = False)
             p.geometry = va, ta
             p.normals = na
 
