@@ -19,9 +19,10 @@ class AtomicStructure(AtomicStructureData, Model):
     STRUCTURE_STATE_VERSION = 0
 
     def __init__(self, name, atomic_structure_pointer = None,
-                 initialize_graphical_attributes = True, logger = None):
+                 initialize_graphical_attributes = True,
+                 level_of_detail = None):
 
-        AtomicStructureData.__init__(self, atomic_structure_pointer, logger)
+        AtomicStructureData.__init__(self, atomic_structure_pointer)
         from . import molobject
         molobject.add_to_object_map(self)
 
@@ -32,15 +33,10 @@ class AtomicStructure(AtomicStructureData, Model):
         self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
         self.bond_radius = 0.2
         self.pseudobond_radius = 0.05
+        self._level_of_detail = LevelOfDetail() if level_of_detail is None else level_of_detail
+
         self._atoms_drawing = None
-        self._atom_min_triangles = 10
-        self._atom_max_triangles = 400
-        self._atom_max_total_triangles = 10000000
-        self._atom_min_triangles = 10
         self._bonds_drawing = None
-        self._bond_min_triangles = 24
-        self._bond_max_triangles = 160
-        self._bond_max_total_triangles = 5000000
         self._pseudobond_group_drawings = {}    # Map PseudobondGroup to drawing
         self._cached_atom_bounds = None
         self._atom_bounds_needs_update = True
@@ -80,7 +76,8 @@ class AtomicStructure(AtomicStructureData, Model):
         are shared between the original and the copy.
         '''
         m = AtomicStructure(name, AtomicStructureData._copy(self),
-                            initialize_graphical_attributes = False)
+                            initialize_graphical_attributes = False,
+                            level_of_detail = self._level_of_detail)
         m.positions = self.positions
         return m
 
@@ -143,29 +140,11 @@ class AtomicStructure(AtomicStructureData, Model):
 
         # Create graphics
         a = self.atoms
-        self._create_atom_spheres(a.coords, self._atom_display_radii(), a.colors, a.displays)
+        self._update_atom_graphics(a.coords, self._atom_display_radii(), a.colors, a.displays)
         self._update_bond_graphics(self.bonds)
         for name, pbg in self.pseudobond_groups.items():
             self._update_pseudobond_graphics(name, pbg)
         self._create_ribbon_graphics()
-
-    def _create_atom_spheres(self, coords, radii, colors, display):
-        p = self._atoms_drawing
-        if p is None:
-            self._atoms_drawing = p = self.new_drawing('atoms')
-
-        n = len(coords)
-        ntri = self._atom_max_total_triangles // n
-        ntri = min(ntri, self._atom_max_triangles)
-        ntri = max(ntri, self._atom_min_triangles)
-
-        # Set instanced sphere triangulation
-        from ..geometry.sphere import sphere_triangulation
-        va, ta = sphere_triangulation(ntri)
-        p.geometry = va, ta
-        p.normals = va
-
-        self._update_atom_graphics(coords, radii, colors, display)
 
     def new_atoms(self):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
@@ -208,9 +187,15 @@ class AtomicStructure(AtomicStructureData, Model):
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, coords, radii, colors, display):
+        ndisp = display.sum()
         p = self._atoms_drawing
         if p is None:
-            return
+            if ndisp == 0:
+                return
+            self._atoms_drawing = p = self.new_drawing('atoms')
+
+        # Update level of detail of spheres
+        self._level_of_detail.set_atom_sphere_geometry(ndisp, p)
 
         # Set instanced sphere center position and radius
         n = len(coords)
@@ -241,21 +226,15 @@ class AtomicStructure(AtomicStructureData, Model):
         return r
 
     def _update_bond_graphics(self, bonds):
+        nshown = bonds.num_shown
         p = self._bonds_drawing
         if p is None:
-            if bonds.num_shown == 0:
+            if nshown == 0:
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
-            # Compute level of detail.
-            n = len(bonds)
-            ntri = self._bond_max_total_triangles // n
-            ntri = min(ntri, self._bond_max_triangles)
-            ntri = max(ntri, self._bond_min_triangles)
-            div = ntri//4
-            from .. import surface
-            va, na, ta = surface.cylinder_geometry(nc = div, caps = False)
-            p.geometry = va, ta
-            p.normals = na
+
+        # Update level of detail of spheres
+        self._level_of_detail.set_bond_cylinder_geometry(nshown, p)
 
         ba1, ba2 = bond_atoms = bonds.atoms
         p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, bonds.radii)
@@ -914,6 +893,89 @@ class AtomicStructure(AtomicStructureData, Model):
         from .molsurf import MolecularSurface
         surfs = [s for s in self.child_models() if isinstance(s, MolecularSurface)]
         return surfs
+
+# -----------------------------------------------------------------------------
+#
+class LevelOfDetail:
+
+    def __init__(self):
+        self.quality = 1
+        self._atom_min_triangles = 10
+        self._atom_max_triangles = 400
+        self._atom_max_total_triangles = 10000000
+        self._step_factor = 1.2
+        self._sphere_geometries = {}	# Map ntri to (va,na,ta)
+        self._bond_min_triangles = 24
+        self._bond_max_triangles = 160
+        self._bond_max_total_triangles = 5000000
+        self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
+
+    def set_atom_sphere_geometry(self, natoms, drawing):
+        if natoms == 0:
+            return
+        ntri = self.atom_sphere_triangles(natoms)
+        ta = drawing.triangles
+        if ta is None or len(ta) != ntri:
+            # Update instanced sphere triangulation
+            w = len(ta) if ta is not None else 0
+            va, na, ta = self.sphere_geometry(ntri)
+            print ('set atom sphere size', len(ta), ntri, 'was', w)
+            drawing.vertices = va
+            drawing.normals = na
+            drawing.triangles = ta
+
+    def sphere_geometry(self, ntri):
+        # Cache sphere triangulations of different sizes.
+        sg = self._sphere_geometries
+        if not ntri in sg:
+            from ..geometry.sphere import sphere_triangulation
+            va, ta = sphere_triangulation(ntri)
+            sg[ntri] = (va,va,ta)
+        return sg[ntri]
+
+    def atom_sphere_triangles(self, natoms):
+        ntri = self.quality * self._atom_max_total_triangles // natoms
+        nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
+        ntri = self.clamp_geometric(ntri, nmin, nmax)
+        ntri = 2*(ntri//2)	# Require multiple of 2.
+        return ntri
+
+    def clamp_geometric(self, n, nmin, nmax):
+        f = self._step_factor
+        from math import log, pow
+        n1 = int(nmin*pow(f,int(log(n/nmin,f))))
+        n2 = min(n1, nmax)
+        n3 = max(n2, nmin)
+        return n3
+
+    def set_bond_cylinder_geometry(self, nbonds, drawing):
+        if nbonds == 0:
+            return
+        ntri = self.bond_cylinder_triangles(nbonds)
+        ta = drawing.triangles
+        if ta is None or len(ta) != ntri//2:
+            # Update instanced sphere triangulation
+            w = len(ta) if ta is not None else 0
+            va, na, ta = self.cylinder_geometry(div = ntri//4)
+            print ('set bond cyl size', len(ta), ntri, 'was', w)
+            drawing.vertices = va
+            drawing.normals = na
+            drawing.triangles = ta
+
+    def cylinder_geometry(self, div):
+        # Cache cylinder triangulations of different sizes.
+        cg = self._cylinder_geometries
+        if not div in cg:
+            from .. import surface
+            cg[div] = surface.cylinder_geometry(nc = div, caps = False)
+        return cg[div]
+
+    def bond_cylinder_triangles(self, nbonds):
+        ntri = self.quality * self._bond_max_total_triangles // nbonds
+        nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
+        ntri = self.clamp_geometric(ntri, nmin, nmax)
+        ntri = 4*(ntri//4)	# Require multiple of 4
+        return ntri
 
 # -----------------------------------------------------------------------------
 #
