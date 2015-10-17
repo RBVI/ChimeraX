@@ -146,6 +146,10 @@ class AtomicStructure(AtomicStructureData, Model):
             self._update_pseudobond_graphics(name, pbg)
         self._create_ribbon_graphics()
 
+    def set_subdivision(self, subdivision):
+        self._level_of_detail.quality = subdivision
+        self._update_graphics()
+
     def new_atoms(self):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
         self._atoms = None
