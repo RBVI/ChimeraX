@@ -67,7 +67,7 @@ setup(
         # Example:
         # "Chimera-Tool :: cmd_line :: chimera.cmd_line "
         # ":: Command Line Interface :: command_line :: General"
-        "Chimera-Tool :: molecule_display_shortcuts :: chimera.shortcuts :: Molecule Display :: ks :: General :: Two-letter shortcuts",
-        "Chimera-Tool :: graphics_shortcuts :: chimera.shortcuts :: Graphics :: :: General :: Two-letter shortcuts",
+        "Chimera-Tool :: molecule_display_shortcuts :: chimera.shortcuts :: Molecule Display :: ks :: General :: :: :: :: Two-letter shortcuts",
+        "Chimera-Tool :: graphics_shortcuts :: chimera.shortcuts :: Graphics :: :: General :: :: :: :: Two-letter shortcuts",
     ],
 )
