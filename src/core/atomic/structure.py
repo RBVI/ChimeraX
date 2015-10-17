@@ -16,6 +16,9 @@ class AtomicStructure(AtomicStructureData, Model):
     which provides access to the C++ structures.
     """
 
+    ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
+        "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
+
     STRUCTURE_STATE_VERSION = 0
 
     def __init__(self, name, atomic_structure_pointer = None,
@@ -82,8 +85,10 @@ class AtomicStructure(AtomicStructureData, Model):
         return m
 
     def added_to_session(self, session):
-        self.handler = session.triggers.add_handler('graphics update',
-            self._update_graphics_if_needed)
+        # TODO: Need an attribute to optionally suppress initial coloring.
+        self._set_initial_color(self.id[0], session.main_view.background_color)
+        self._start_change_tracking(session.change_tracker)
+        self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
 
     def removed_from_session(self, session):
         session.triggers.delete_handler(self.handler)
@@ -120,19 +125,33 @@ class AtomicStructure(AtomicStructureData, Model):
         return na
 
     def _initialize_graphical_attributes(self):
+        # TODO: This stuff probably should be initialized by the C++ code.
         a = self.atoms
         from .molobject import Atom
         a.draw_modes = Atom.SPHERE_STYLE
-        from ..colors import element_colors
-        a.colors = element_colors(a.element_numbers)
         b = self.bonds
-        b.colors = (170,170,170,255)
         b.radii = self.bond_radius
         pb_colors = {'metal coordination bonds':(147,112,219,255)}
         for name, pbg in self.pseudobond_groups.items():
             pb = pbg.pseudobonds
             pb.radii = self.pseudobond_radius
             pb.colors = pb_colors.get(name, (255,255,0,255))
+
+    def _set_initial_color(self, id, bg_color):
+        from ..colors import BuiltinColors, distinguish_from, Color
+        try:
+            model_color = BuiltinColors[
+                self.ATOMIC_COLOR_NAMES[id-1]]
+            if (model_color.rgba[:3] == bg_color[:3]).all():
+                # force use of another color...
+                raise IndexError("Same as background color")
+        except IndexError:
+            # pick a color that distinguishes from the standard list
+            # as well as white and black and green (highlight), and hope...
+            avoid = [BuiltinColors[cn].rgba[:3] for cn in self.ATOMIC_COLOR_NAMES]
+            avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
+            model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
+        self.set_color(model_color.uint8x4())
 
     def _make_drawing(self, initialize_graphical_attributes):
         if initialize_graphical_attributes:
@@ -923,7 +942,6 @@ class LevelOfDetail:
             # Update instanced sphere triangulation
             w = len(ta) if ta is not None else 0
             va, na, ta = self.sphere_geometry(ntri)
-            print ('set atom sphere size', len(ta), ntri, 'was', w)
             drawing.vertices = va
             drawing.normals = na
             drawing.triangles = ta
@@ -961,7 +979,6 @@ class LevelOfDetail:
             # Update instanced sphere triangulation
             w = len(ta) if ta is not None else 0
             va, na, ta = self.cylinder_geometry(div = ntri//4)
-            print ('set bond cyl size', len(ta), ntri, 'was', w)
             drawing.vertices = va
             drawing.normals = na
             drawing.triangles = ta
