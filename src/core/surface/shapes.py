@@ -7,14 +7,20 @@ def sphere_geometry(ntri):
   '''
   from . import icosahedron
   va, ta = icosahedron.icosahedron_geometry()
-  from numpy import int32, sqrt
+  from numpy import int32
   ta = ta.astype(int32)
-  from ._surface import subdivide_triangles
+
+  # Subdivide triangles
   while 4*len(ta) <= ntri:
+    from ._surface import subdivide_triangles
     va, ta = subdivide_triangles(va, ta)
+
+  # Put all vertices on sphere.
+  from numpy import sqrt
   vn = sqrt((va*va).sum(axis = 1))
   for a in (0,1,2):
     va[:,a] /= vn
+
   return va, va, ta
 
 
@@ -170,3 +176,22 @@ def cone_geometry(radius = 1, height = 1, nc = 10, caps = True):
 
     return varray, narray, tarray
 
+def octahedron_geometry():
+  '''
+  Return vertex, normal vector and triangle arrays for a radius 1 octahedron.
+  '''
+  from numpy import array, float32, int32
+  va = array(((1,0,0),(-1,0,0),(0,1,0),(0,-1,0),(0,0,1),(0,0,-1)), float32)
+  ta = array(((0,2,4),(2,1,4),(1,3,4),(3,2,4),
+              (2,0,5),(1,2,5),(3,1,5),(2,3,5)), int32)
+  return va, va, ta
+
+def tetrahedron_geometry():
+  '''
+  Return vertex, normal vector and triangle arrays for a radius 1 tetrahedron.
+  '''
+  from numpy import array, float32, int32, sqrt
+  s = 1.0/sqrt(3)
+  va = array(((s,s,s),(s,-s,-s),(-s,s,-s),(-s,-s,s)), float32)
+  ta = array(((0,1,2),(0,2,3),(0,3,1),(2,1,3)), int32)
+  return va, va, ta
