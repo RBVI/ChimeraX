@@ -44,7 +44,6 @@ class AtomicStructure(AtomicStructureData, Model):
         self._cached_atom_bounds = None
         self._atom_bounds_needs_update = True
 
-        self.ribbon_divisions = 10
         self._ribbon_drawing = None
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
@@ -349,11 +348,12 @@ class AtomicStructure(AtomicStructureData, Model):
                 spine_xyz1 = None
                 spine_xyz2 = None
             # Odd number of segments gets blending, even has sharp edge
-            if self.ribbon_divisions % 2 == 1:
-                seg_blend = self.ribbon_divisions
+            rd = self._level_of_detail._ribbon_divisions
+            if rd % 2 == 1:
+                seg_blend = rd
                 seg_cap = seg_blend + 1
             else:
-                seg_cap = self.ribbon_divisions
+                seg_cap = rd
                 seg_blend = seg_cap + 1
             # Assign cross sections
             is_helix = residues.is_helix
@@ -923,15 +923,19 @@ class LevelOfDetail:
 
     def __init__(self):
         self.quality = 1
+
         self._atom_min_triangles = 10
         self._atom_max_triangles = 400
         self._atom_max_total_triangles = 10000000
         self._step_factor = 1.2
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
+
         self._bond_min_triangles = 24
         self._bond_max_triangles = 160
         self._bond_max_total_triangles = 5000000
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
+
+        self._ribbon_divisions = 10
 
     def set_atom_sphere_geometry(self, natoms, drawing):
         if natoms == 0:
@@ -1268,3 +1272,13 @@ def selected_atoms(session):
             for matoms in m.selected_items('atoms'):
                 atoms = atoms | matoms
     return atoms
+
+# -----------------------------------------------------------------------------
+#
+def structure_residues(structures):
+    '''Return all residues in specified atomic structures as an :class:`.Atoms` collection.'''
+    from .molarray import Residues
+    res = Residues()
+    for m in structures:
+        res = res | m.residues
+    return res
