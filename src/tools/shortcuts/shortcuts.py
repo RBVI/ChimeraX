@@ -816,7 +816,7 @@ def show_triangle_count(session):
     from chimera.core.atomic import AtomicStructure
     mols = [m for m in models if isinstance(m, AtomicStructure)]
     na = sum(m.shown_atom_count() for m in mols) if mols else 0
-    nt = sum(m.shown_atom_count() * m.triangles_per_sphere for m in mols) if mols else 0
+    nt = sum(m.shown_atom_count() * len(m._atoms_drawing.triangles) for m in mols if m._atoms_drawing) if mols else 0
     n = len(models)
     msg = '%d models, %d atoms, %d atom triangles' % (n, na, nt)
     log = session.logger
