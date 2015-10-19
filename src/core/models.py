@@ -245,7 +245,6 @@ class Models(State):
         session = self._session()  # resolve back reference
         for m in mlist:
             m.removed_from_session(session)
-        session.triggers.activate_trigger(REMOVE_MODELS, mlist)
         for model in mlist:
             model_id = model.id
             if model_id is not None:
@@ -260,6 +259,9 @@ class Models(State):
         if len(self._models) == 0:
             from itertools import count as _count
             self._id_counter = _count(1)
+        # it's nice to have an accurate list of current models
+        # when firing this trigger, so do it last
+        session.triggers.activate_trigger(REMOVE_MODELS, mlist)
 
     def close(self, models):
         self.remove(models)
