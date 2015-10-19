@@ -1062,7 +1062,6 @@ class ToolInfo:
     version : readonly str
         Tool version (which is actually the same as the distribution version,
         so all tools from the same distribution share the same version).
-    
     """
 
     def __init__(self, name, installed,
@@ -1187,7 +1186,7 @@ class ToolInfo:
 
     def _register_cmd(self, command_name):
         """Called when commands need to be really registered."""
-        self._get_module().register_command(command_name)
+        self._get_module().register_command(command_name, self)
 
     def deregister_commands(self):
         """Deregister commands with cli."""
