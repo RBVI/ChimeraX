@@ -375,7 +375,16 @@ class MainWindow(wx.Frame, PlainTextLog):
         tool_window._mw_set_shown(shown)
         if is_main_window:
             for window in all_windows[1:]:
-                window._mw_set_shown(getattr(window, '_prev_shown', shown))
+                if shown:
+                    # if child window has a '_prev_shown' attr, then it was
+                    # around when main window was closed/hidden, possibly
+                    # show it and forget the _prev_shown attrs
+                    if hasattr(window, '_prev_shown'):
+                        if window._prev_shown:
+                            window._mw_set_shown(True)
+                        delattr(window, '_prev_shown')
+                else:
+                    window._mw_set_shown(False)
 
 class ToolWindow:
     """An area that a tool can populate with widgets.
