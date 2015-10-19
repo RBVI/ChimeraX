@@ -1,6 +1,8 @@
 How To Use The Tool Template
 ----------------------------
 
+0. See http://preview.rbvi.ucsf.edu/chimera2/docs/devel/core/toolshed.html
+   for documentation on toolshed API
 1. Copy the entire template directory as a new tool directory.
 2a. If you are providing a single tool and a single command (the
     most common case), do the following:

@@ -13,6 +13,9 @@ TOOL_NAME = shortcuts
 TOOL_PKG_NAME = chimera.shortcuts
 TOOL_DISPLAY_NAME = Molecule Display
 TOOL_CATEGORY = General
+TOOL_FILE_TYPES =
+TOOL_SESSION_VERSIONS = 1,1
+TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Two-letter shortcuts
 COMMAND_NAME = ks
 

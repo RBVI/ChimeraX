@@ -20,15 +20,16 @@ def open_pdb(session, filename, name, *args, **kw):
     else:
         input = _builtin_open(filename, 'rb')
 
+    log = session.logger
     from ..logger import Collator
-    with Collator(session.logger, "Summary of problems reading PDB file",
-                  kw.pop('log_errors', True)):
+    with Collator(log, "Summary of problems reading PDB file", kw.pop('log_errors', True)):
         from . import pdbio
-        pointers = pdbio.read_pdb_file(input, log=session.logger)
+        pointers = pdbio.read_pdb_file(input, log=log)
         if input != filename:
             input.close()
 
-    models = [structure.AtomicStructure(name, p) for p in pointers]
+    lod = session.atomic_level_of_detail
+    models = [structure.AtomicStructure(name, p, level_of_detail = lod) for p in pointers]
 
     return models, ("Opened PDB data containing %d atoms and %d bonds"
                     % (sum(m.num_atoms for m in models),

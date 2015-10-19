@@ -16,12 +16,16 @@ class AtomicStructure(AtomicStructureData, Model):
     which provides access to the C++ structures.
     """
 
+    ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
+        "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
+
     STRUCTURE_STATE_VERSION = 0
 
     def __init__(self, name, atomic_structure_pointer = None,
-                 initialize_graphical_attributes = True, logger = None):
+                 initialize_graphical_attributes = True,
+                 level_of_detail = None):
 
-        AtomicStructureData.__init__(self, atomic_structure_pointer, logger)
+        AtomicStructureData.__init__(self, atomic_structure_pointer)
         from . import molobject
         molobject.add_to_object_map(self)
 
@@ -32,20 +36,14 @@ class AtomicStructure(AtomicStructureData, Model):
         self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
         self.bond_radius = 0.2
         self.pseudobond_radius = 0.05
+        self._level_of_detail = LevelOfDetail() if level_of_detail is None else level_of_detail
+
         self._atoms_drawing = None
-        self._atom_min_triangles = 10
-        self._atom_max_triangles = 400
-        self._atom_max_total_triangles = 10000000
-        self._atom_min_triangles = 10
         self._bonds_drawing = None
-        self._bond_min_triangles = 24
-        self._bond_max_triangles = 160
-        self._bond_max_total_triangles = 5000000
         self._pseudobond_group_drawings = {}    # Map PseudobondGroup to drawing
         self._cached_atom_bounds = None
         self._atom_bounds_needs_update = True
 
-        self.ribbon_divisions = 10
         self._ribbon_drawing = None
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
@@ -80,13 +78,16 @@ class AtomicStructure(AtomicStructureData, Model):
         are shared between the original and the copy.
         '''
         m = AtomicStructure(name, AtomicStructureData._copy(self),
-                            initialize_graphical_attributes = False)
+                            initialize_graphical_attributes = False,
+                            level_of_detail = self._level_of_detail)
         m.positions = self.positions
         return m
 
     def added_to_session(self, session):
-        self.handler = session.triggers.add_handler('graphics update',
-            self._update_graphics_if_needed)
+        # TODO: Need an attribute to optionally suppress initial coloring.
+        self._set_initial_color(self.id[0], session.main_view.background_color)
+        self._start_change_tracking(session.change_tracker)
+        self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
 
     def removed_from_session(self, session):
         session.triggers.delete_handler(self.handler)
@@ -123,13 +124,11 @@ class AtomicStructure(AtomicStructureData, Model):
         return na
 
     def _initialize_graphical_attributes(self):
+        # TODO: This stuff probably should be initialized by the C++ code.
         a = self.atoms
         from .molobject import Atom
         a.draw_modes = Atom.SPHERE_STYLE
-        from ..colors import element_colors
-        a.colors = element_colors(a.element_numbers)
         b = self.bonds
-        b.colors = (170,170,170,255)
         b.radii = self.bond_radius
         pb_colors = {'metal coordination bonds':(147,112,219,255)}
         for name, pbg in self.pseudobond_groups.items():
@@ -137,35 +136,37 @@ class AtomicStructure(AtomicStructureData, Model):
             pb.radii = self.pseudobond_radius
             pb.colors = pb_colors.get(name, (255,255,0,255))
 
+    def _set_initial_color(self, id, bg_color):
+        from ..colors import BuiltinColors, distinguish_from, Color
+        try:
+            model_color = BuiltinColors[
+                self.ATOMIC_COLOR_NAMES[id-1]]
+            if (model_color.rgba[:3] == bg_color[:3]).all():
+                # force use of another color...
+                raise IndexError("Same as background color")
+        except IndexError:
+            # pick a color that distinguishes from the standard list
+            # as well as white and black and green (highlight), and hope...
+            avoid = [BuiltinColors[cn].rgba[:3] for cn in self.ATOMIC_COLOR_NAMES]
+            avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
+            model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
+        self.set_color(model_color.uint8x4())
+
     def _make_drawing(self, initialize_graphical_attributes):
         if initialize_graphical_attributes:
             self._initialize_graphical_attributes()
 
         # Create graphics
         a = self.atoms
-        self._create_atom_spheres(a.coords, self._atom_display_radii(), a.colors, a.displays)
+        self._update_atom_graphics(a.coords, self._atom_display_radii(), a.colors, a.displays)
         self._update_bond_graphics(self.bonds)
         for name, pbg in self.pseudobond_groups.items():
             self._update_pseudobond_graphics(name, pbg)
         self._create_ribbon_graphics()
 
-    def _create_atom_spheres(self, coords, radii, colors, display):
-        p = self._atoms_drawing
-        if p is None:
-            self._atoms_drawing = p = self.new_drawing('atoms')
-
-        n = len(coords)
-        ntri = self._atom_max_total_triangles // n
-        ntri = min(ntri, self._atom_max_triangles)
-        ntri = max(ntri, self._atom_min_triangles)
-
-        # Set instanced sphere triangulation
-        from ..geometry.sphere import sphere_triangulation
-        va, ta = sphere_triangulation(ntri)
-        p.geometry = va, ta
-        p.normals = va
-
-        self._update_atom_graphics(coords, radii, colors, display)
+    def set_subdivision(self, subdivision):
+        self._level_of_detail.quality = subdivision
+        self._update_graphics()
 
     def new_atoms(self):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
@@ -208,9 +209,15 @@ class AtomicStructure(AtomicStructureData, Model):
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, coords, radii, colors, display):
+        ndisp = display.sum()
         p = self._atoms_drawing
         if p is None:
-            return
+            if ndisp == 0:
+                return
+            self._atoms_drawing = p = self.new_drawing('atoms')
+
+        # Update level of detail of spheres
+        self._level_of_detail.set_atom_sphere_geometry(ndisp, p)
 
         # Set instanced sphere center position and radius
         n = len(coords)
@@ -241,21 +248,15 @@ class AtomicStructure(AtomicStructureData, Model):
         return r
 
     def _update_bond_graphics(self, bonds):
+        nshown = bonds.num_shown
         p = self._bonds_drawing
         if p is None:
-            if bonds.num_shown == 0:
+            if nshown == 0:
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
-            # Compute level of detail.
-            n = len(bonds)
-            ntri = self._bond_max_total_triangles // n
-            ntri = min(ntri, self._bond_max_triangles)
-            ntri = max(ntri, self._bond_min_triangles)
-            div = ntri//4
-            from .. import surface
-            va, na, ta = surface.cylinder_geometry(nc = div, caps = False)
-            p.geometry = va, ta
-            p.normals = na
+
+        # Update level of detail of spheres
+        self._level_of_detail.set_bond_cylinder_geometry(nshown, p)
 
         ba1, ba2 = bond_atoms = bonds.atoms
         p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, bonds.radii)
@@ -347,11 +348,12 @@ class AtomicStructure(AtomicStructureData, Model):
                 spine_xyz1 = None
                 spine_xyz2 = None
             # Odd number of segments gets blending, even has sharp edge
-            if self.ribbon_divisions % 2 == 1:
-                seg_blend = self.ribbon_divisions
+            rd = self._level_of_detail._ribbon_divisions
+            if rd % 2 == 1:
+                seg_blend = rd
                 seg_cap = seg_blend + 1
             else:
-                seg_cap = self.ribbon_divisions
+                seg_cap = rd
                 seg_blend = seg_cap + 1
             # Assign cross sections
             is_helix = residues.is_helix
@@ -917,6 +919,91 @@ class AtomicStructure(AtomicStructureData, Model):
 
 # -----------------------------------------------------------------------------
 #
+class LevelOfDetail:
+
+    def __init__(self):
+        self.quality = 1
+
+        self._atom_min_triangles = 10
+        self._atom_max_triangles = 400
+        self._atom_max_total_triangles = 10000000
+        self._step_factor = 1.2
+        self._sphere_geometries = {}	# Map ntri to (va,na,ta)
+
+        self._bond_min_triangles = 24
+        self._bond_max_triangles = 160
+        self._bond_max_total_triangles = 5000000
+        self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
+
+        self._ribbon_divisions = 10
+
+    def set_atom_sphere_geometry(self, natoms, drawing):
+        if natoms == 0:
+            return
+        ntri = self.atom_sphere_triangles(natoms)
+        ta = drawing.triangles
+        if ta is None or len(ta) != ntri:
+            # Update instanced sphere triangulation
+            w = len(ta) if ta is not None else 0
+            va, na, ta = self.sphere_geometry(ntri)
+            drawing.vertices = va
+            drawing.normals = na
+            drawing.triangles = ta
+
+    def sphere_geometry(self, ntri):
+        # Cache sphere triangulations of different sizes.
+        sg = self._sphere_geometries
+        if not ntri in sg:
+            from ..geometry.sphere import sphere_triangulation
+            va, ta = sphere_triangulation(ntri)
+            sg[ntri] = (va,va,ta)
+        return sg[ntri]
+
+    def atom_sphere_triangles(self, natoms):
+        ntri = self.quality * self._atom_max_total_triangles // natoms
+        nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
+        ntri = self.clamp_geometric(ntri, nmin, nmax)
+        ntri = 2*(ntri//2)	# Require multiple of 2.
+        return ntri
+
+    def clamp_geometric(self, n, nmin, nmax):
+        f = self._step_factor
+        from math import log, pow
+        n1 = int(nmin*pow(f,int(log(n/nmin,f))))
+        n2 = min(n1, nmax)
+        n3 = max(n2, nmin)
+        return n3
+
+    def set_bond_cylinder_geometry(self, nbonds, drawing):
+        if nbonds == 0:
+            return
+        ntri = self.bond_cylinder_triangles(nbonds)
+        ta = drawing.triangles
+        if ta is None or len(ta) != ntri//2:
+            # Update instanced sphere triangulation
+            w = len(ta) if ta is not None else 0
+            va, na, ta = self.cylinder_geometry(div = ntri//4)
+            drawing.vertices = va
+            drawing.normals = na
+            drawing.triangles = ta
+
+    def cylinder_geometry(self, div):
+        # Cache cylinder triangulations of different sizes.
+        cg = self._cylinder_geometries
+        if not div in cg:
+            from .. import surface
+            cg[div] = surface.cylinder_geometry(nc = div, caps = False)
+        return cg[div]
+
+    def bond_cylinder_triangles(self, nbonds):
+        ntri = self.quality * self._bond_max_total_triangles // nbonds
+        nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
+        ntri = self.clamp_geometric(ntri, nmin, nmax)
+        ntri = 4*(ntri//4)	# Require multiple of 4
+        return ntri
+
+# -----------------------------------------------------------------------------
+#
 from ..graphics import Pick
 class PickedAtom(Pick):
     def __init__(self, atom, distance):
@@ -1185,3 +1272,13 @@ def selected_atoms(session):
             for matoms in m.selected_items('atoms'):
                 atoms = atoms | matoms
     return atoms
+
+# -----------------------------------------------------------------------------
+#
+def structure_residues(structures):
+    '''Return all residues in specified atomic structures as an :class:`.Atoms` collection.'''
+    from .molarray import Residues
+    res = Residues()
+    for m in structures:
+        res = res | m.residues
+    return res

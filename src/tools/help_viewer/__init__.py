@@ -4,7 +4,7 @@
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, ti):
+def start_tool(session, tool_info):
     # Starting tools may only work in GUI mode, or in all modes.
     # Here, we check for GUI-only tool.
     if not session.ui.is_gui:
@@ -16,7 +16,7 @@ def start_tool(session, ti):
 #
 # 'register_command' is called by the toolshed on start up
 #
-def register_command(command_name):
+def register_command(command_name, tool_info):
     from . import cmd
     from chimera.core.commands import register
     register(command_name, cmd.help_desc, cmd.help)
