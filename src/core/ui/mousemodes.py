@@ -310,17 +310,23 @@ class ZoomMouseMode(MouseMode):
 
         dx, dy = self.mouse_motion(event)
         psize = self.pixel_size()
-        v = self.view
-        shift = v.camera.position.apply_without_translation((0, 0, 3*psize*dy))
-        v.translate(shift)
+        self.zoom(3*psize*dy)
 
     def wheel(self, event):
-        import sys
         d = event.wheel_value()
         psize = self.pixel_size()
+        self.zoom(100*d*psize)
+
+    def zoom(self, delta_z):
         v = self.view
-        shift = v.camera.position.apply_without_translation((0, 0, 100*d*psize))
-        v.translate(shift)
+        c = v.camera
+        if c.name() == 'orthographic':
+            c.field_width = max(c.field_width - delta_z, self.pixel_size())
+            # TODO: Make camera field_width a property so it knows to redraw.
+            c.redraw_needed = True
+        else:
+            shift = c.position.apply_without_translation((0, 0, delta_z))
+            v.translate(shift)
 
 class ObjectIdMouseMode(MouseMode):
 

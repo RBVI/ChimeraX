@@ -29,6 +29,10 @@ def camera(session, type=None, field_of_view=None,
         if type == 'mono':
             from ..graphics import MonoCamera
             view.camera = MonoCamera()
+        elif type == 'ortho':
+            from ..graphics import OrthographicCamera
+            w = view.camera.view_width(view.center_of_rotation)
+            view.camera = OrthographicCamera(w)
         elif type == '360':
             from ..graphics import Mono360Camera
             view.camera = Mono360Camera()
@@ -68,7 +72,7 @@ def register_command(session):
     from . import CmdDesc, register, FloatArg, EnumOf
     desc = CmdDesc(
         optional=[
-            ('type', EnumOf(('mono', '360', '360s'))),
+            ('type', EnumOf(('mono', 'ortho', '360', '360s'))),
             ('field_of_view', FloatArg),
             ('eye_separation', FloatArg),
             ('pixel_eye_separation', FloatArg),

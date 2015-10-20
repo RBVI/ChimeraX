@@ -179,13 +179,14 @@ class SideViewCanvas(glcanvas.GLCanvas):
             # fov is sideview's vertical field of view,
             # unlike a camera, where it is the horizontal field of view
             if self.side == self.TOP_SIDE:
-                fov = radians(main_camera.field_of_view)
+                # TODO: Handle orthographic main_camera which has no "field_of_view" attribute.
+                fov = radians(main_camera.field_of_view) if hasattr(main_camera, 'field_of_view') else 45
                 camera_axes[0] = -main_axes[2]
                 camera_axes[1] = -main_axes[0]
                 camera_axes[2] = main_axes[1]
             else:
-                fov = 2 * atan(wh / ww *
-                               tan(radians(main_camera.field_of_view / 2)))
+                fov = (2 * atan(wh / ww * tan(radians(main_camera.field_of_view / 2)))
+                       if hasattr(main_camera, 'field_of_view') else 45)
                 camera_axes[0] = -main_axes[2]
                 camera_axes[1] = main_axes[1]
                 camera_axes[2] = main_axes[0]
