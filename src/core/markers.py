@@ -53,9 +53,9 @@ def marker_molecule(session):
     ms = marker_settings(session)
     m = ms['molecule']
     if m is None:
-        from . import structure
-        ms['molecule'] = m = structure.AtomicStructure('markers',
-            logger=session.logger)
+        lod = session.atomic_level_of_detail
+        from .atomic import AtomicStructure
+        ms['molecule'] = m = AtomicStructure('markers', level_of_detail = lod)
         session.models.add([m])
     return m
 

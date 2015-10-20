@@ -157,11 +157,12 @@ from ..logger import PlainTextLog
 class MainWindow(wx.Frame, PlainTextLog):
 
     def __init__(self, ui, session):
-        wx.Frame.__init__(self, None, title="Chimera2", size=(1000, 700))
+        wx.Frame.__init__(self, None, title="Chimera2", size=(1800, 1000))
 
         from wx.lib.agw.aui import AuiManager, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
         self.aui_mgr.SetManagedWindow(self)
+        self.aui_mgr.SetDockSizeConstraint(0.5, 0.4)
 
         self.tool_pane_to_window = {}
         self.tool_instance_to_windows = {}
@@ -375,7 +376,16 @@ class MainWindow(wx.Frame, PlainTextLog):
         tool_window._mw_set_shown(shown)
         if is_main_window:
             for window in all_windows[1:]:
-                window._mw_set_shown(getattr(window, '_prev_shown', shown))
+                if shown:
+                    # if child window has a '_prev_shown' attr, then it was
+                    # around when main window was closed/hidden, possibly
+                    # show it and forget the _prev_shown attrs
+                    if hasattr(window, '_prev_shown'):
+                        if window._prev_shown:
+                            window._mw_set_shown(True)
+                        delattr(window, '_prev_shown')
+                else:
+                    window._mw_set_shown(False)
 
 class ToolWindow:
     """An area that a tool can populate with widgets.

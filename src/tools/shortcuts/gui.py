@@ -15,7 +15,7 @@ class ShortcutPanel(ToolInstance):
 
         self.icon_size = 48
         self.icon_border = 4
-        self.columns = c = 6
+        self.columns = c = 12
         self.rows = (len(shortcuts) + c - 1)//c
 
         panel_size = (300, self.rows * self.icon_size)

@@ -69,6 +69,7 @@ setup(name="PKG_NAME",
         # ":: Command Line Interface :: command_line :: General"
         "Chimera-Tool :: TOOL_NAME :: TOOL_PKG_NAME "
         ":: TOOL_DISPLAY_NAME :: COMMAND_NAME :: TOOL_CATEGORY "
+        ":: TOOL_FILE_TYPES :: TOOL_SESSION_VERSIONS :: TOOL_CUSTOM_INIT "
         ":: TOOL_SYNOPSIS",
     ],
 )

@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 class UpdateLoop:
 
     def __init__(self):
@@ -16,8 +17,7 @@ class UpdateLoop:
             return False
 
         view = session.main_view
-        self.block_redraw()
-        try:
+        with self.block_redraw():
             session.triggers.activate_trigger('new frame', self)
             from . import atomic
             atomic.check_for_changes(session)
@@ -32,16 +32,15 @@ class UpdateLoop:
                     session.logger.error('Error in drawing scene. Redraw is now stopped.\n\n' +
                                         traceback.format_exc())
                 session.triggers.activate_trigger('rendered frame', self)
-        finally:
-            self.unblock_redraw()
 
         view.frame_number += 1
 
         return changed
 
+    from contextlib import contextmanager
+    @contextmanager
     def block_redraw(self):
         # Avoid redrawing when we are already in the middle of drawing.
         self._block_redraw_count += 1
-
-    def unblock_redraw(self):
+        yield
         self._block_redraw_count -= 1

@@ -7,10 +7,7 @@ def check_for_changes(session):
     if not ct.changed:
         return
     ul = session.update_loop
-    ul.block_redraw()
-    try:
+    with ul.block_redraw():
         changes = ct.changes
         ct.clear()
         session.triggers.activate_trigger("atomic changes", changes)
-    finally:
-        ul.unblock_redraw()

@@ -17,6 +17,9 @@ TOOL_NAME = Replace with internal name
 TOOL_PKG_NAME = Replace with tool Python package name
 TOOL_DISPLAY_NAME = Replace with tool name to display to user
 TOOL_CATEGORY = Replace with tool menu category name
+TOOL_FILE_TYPES = Replace with file types
+TOOL_SESSION_VERSIONS = Replace with minimum and maximum session versions
+TOOL_CUSTOM_INIT = Replace with 'true' if custom initialization code is needed
 TOOL_SYNOPSIS = Replace with synopsis for tool
 COMMAND_NAME = Replace with one-word command name
 # Example:
@@ -24,6 +27,9 @@ COMMAND_NAME = Replace with one-word command name
 # TOOL_PKG_NAME = chimera.cmd_line
 # TOOL_DISPLAY_NAME = Command Line Interface
 # TOOL_CATEGORY = General
+# TOOL_FILE_TYPES = 
+# TOOL_SESSION_VERSIONS = 1,1
+# TOOL_CUSTOM_INIT = false
 # COMMAND_NAME = command_line
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
@@ -35,7 +41,7 @@ WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
-install: dir
+install: dir all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
@@ -61,6 +67,9 @@ setup.py: setup.py.in Makefile
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \
 		-e 's/TOOL_CATEGORY/$(TOOL_CATEGORY)/' \
+		-e 's/TOOL_FILE_TYPES/$(TOOL_FILE_TYPES)/' \
+		-e 's/TOOL_SESSION_VERSIONS/$(TOOL_SESSION_VERSIONS)/' \
+		-e 's/TOOL_CUSTOM_INIT/$(TOOL_CUSTOM_INIT)/' \
 		-e 's/TOOL_SYNOPSIS/$(TOOL_SYNOPSIS)/' \
 		-e 's/COMMAND_NAME/$(COMMAND_NAME)/' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \

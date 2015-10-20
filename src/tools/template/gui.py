@@ -15,7 +15,8 @@ from chimera.core.tools import ToolInstance
 
 class ToolUI(ToolInstance):
 
-    SESSION_ENDURING = False    # default
+    SESSION_ENDURING = False
+    # if SESSION_ENDURING is True, tool instance not deleted at session closure
     SIZE = (500, 25)
     VERSION = 1
 
@@ -28,9 +29,9 @@ class ToolUI(ToolInstance):
         if session.ui.is_gui:
             from chimera.core.ui import MainToolWindow
             self.tool_window = MainToolWindow(self, size=self.SIZE)
-            parent = self.tool_window.ui_area
-            # UI content code
             self.tool_window.manage(placement="bottom")
+            parent = self.tool_window.ui_area
+            # TODO: UI content code goes here
         # Add to running tool list for session if tool should be saved
         # in and restored from session and scenes
         session.tools.add([self])

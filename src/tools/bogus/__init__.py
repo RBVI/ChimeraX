@@ -1,19 +1,19 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def start_tool(session, ti):
+def start_tool(session, tool_info):
     # If providing more than one tool in package,
-    # look at the name in 'ti.name' to see which is being started.
+    # look at the name in 'tool_info.name' to see which is being started.
     from . import gui
     try:
-        ui = getattr(gui, ti.name + "UI")
+        ui = getattr(gui, tool_info.name + "UI")
     except AttributeError:
-        raise RuntimeError("cannot find UI for tool \"%s\"" % ti.name)
+        raise RuntimeError("cannot find UI for tool \"%s\"" % tool_info.name)
     else:
-        return ui(session, ti)
+        return ui(session, tool_info)
 
 
-def register_command(command_name):
+def register_command(command_name, tool_info):
     from . import cmd
     from chimera.core.commands import register
     desc_suffix = "_desc"

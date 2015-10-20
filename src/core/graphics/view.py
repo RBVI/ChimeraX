@@ -16,26 +16,24 @@ class View:
         self.triggers = trigger_set
         self.drawing = drawing
         self.window_size = window_size		# pixels
-        self._opengl_context = opengl_context
+        self._opengl_context = None
+        self._render = None
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 1)
 
         # Create camera
-        from .camera import Camera
-        self.camera = Camera()
-        '''The camera controlling the vantage shown in the graphics window.'''
+        from .camera import MonoCamera
+        self._camera = MonoCamera()
 
-        if opengl_context is None:
-            self._render = None
-        else:
-            from .opengl import Render
-            self._render = Render()
+        if opengl_context:
+            self.initialize_context(opengl_context)
         self._opengl_initialized = False
+        self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._shadows = False
         self._shadow_map_size = 2048
         self._shadow_depth_bias = 0.005
-        self._multishadow = 0                    # Number of shadows
+        self._multishadow = 0                   # Number of shadows
         self._multishadow_map_size = 128
         self._multishadow_depth_bias = 0.05
         self._multishadow_dir = None
@@ -70,6 +68,7 @@ class View:
         self._opengl_context = oc
         from .opengl import Render
         self._render = Render()
+        self.depth_cue = True
 
     def opengl_context(self):
         return self._opengl_context
@@ -97,6 +96,18 @@ class View:
 
         w, h = self.window_size
         r.initialize_opengl(w, h)
+
+    def _get_camera(self):
+        return self._camera
+    def _set_camera(self, camera):
+        c = self._camera
+        c.clear_special_render_modes(self._render)
+        camera.position = c.position
+        self._camera = camera
+        camera.set_special_render_modes(self._render)
+        self.redraw_needed = True
+    camera = property(_get_camera, _set_camera)
+    '''The Camera controlling the vantage shown in the graphics window.'''
 
     def draw(self, camera = None, drawings = None,
              check_for_changes = True, swap_buffers = True):
@@ -180,7 +191,7 @@ class View:
             draw_2d_overlays(self._2d_overlays, r)
 
         if swap_buffers:
-            if self.camera.mode.do_swap_buffers():
+            if self.camera.do_swap_buffers():
                 self._opengl_context.swap_buffers()
             self.redraw_needed = False
 
@@ -228,19 +239,18 @@ class View:
         '''Material reflectivity parameters.'''
         return self._render.material
 
-    def enable_depth_cue(self, enable):
-        '''Turn on or off dimming with depth.'''
+    def get_depth_cue(self):
+        r = self._render
+        return bool(r.enable_capabilities & r.SHADER_DEPTH_CUE)
+    def set_depth_cue(self, enable):
         r = self._render
         if enable:
             r.enable_capabilities |= r.SHADER_DEPTH_CUE
         else:
             r.enable_capabilities &= ~r.SHADER_DEPTH_CUE
         self.redraw_needed = True
-
-    def depth_cue_enabled(self):
-        '''Is depth cue enabled. Boolean value.'''
-        r = self._render
-        return bool(r.enable_capabilities & r.SHADER_DEPTH_CUE)
+    depth_cue = property(get_depth_cue, set_depth_cue)
+    '''Is dimming with depth enabled. Boolean value.'''
 
     def get_shadows(self):
         return self._shadows
@@ -654,7 +664,7 @@ class View:
         if b is None:
             return
         vw = self.camera.view_width(b.center())
-        if vw >= b.width():
+        if vw is None or vw >= b.width():
             # Use center of drawings for zoomed out views
             cr = b.center()
         else:
@@ -678,6 +688,8 @@ class View:
         to get a description of that object.
         '''
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
+        if xyz1 is None or xyz2 is None:
+            return None
         p = self.drawing.first_intercept(xyz1, xyz2, exclude='is_outline_box')
         if p is None:
             return None
@@ -696,6 +708,7 @@ class View:
         near, far = self._near_far_clip(c, view_num)
         pm = c.projection_matrix((near, far), view_num, (ww, wh))
         r.set_projection_matrix(pm)
+        r.set_near_far_clip(near, far)
 
         return near / far
 
@@ -708,8 +721,8 @@ class View:
         if b is None:
             return 0.001, 1  # Nothing shown
         d = sum((b.center() - cp) * vd)         # camera to center of drawings
-        w = b.width()
-        near, far = (d - w, d + w)
+        r = (1 + self._near_far_pad) * b.radius()
+        near, far = (d - r, d + r)
 
         # Clamp near clip > 0.
         near_min = 0.001 * (far - near) if far > near else 1
@@ -719,16 +732,14 @@ class View:
 
         return (near, far)
 
-    def clip_plane_points(self, window_x, window_y, camera=None,
-                          view_num=None):
+    def clip_plane_points(self, window_x, window_y, camera=None, view_num=None):
         '''
         Return two scene points at the near and far clip planes at
         the specified window pixel position.  The points are in scene
         coordinates.  '''
         c = camera if camera else self.camera
         nf = self._near_far_clip(c, view_num)
-        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size,
-                                        nf, self._render)
+        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf)
         return scene_pts
 
     def rotate(self, axis, angle, drawings=None):

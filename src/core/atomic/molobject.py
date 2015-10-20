@@ -381,7 +381,7 @@ class AtomicStructureData:
     This base class manages the atomic data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
-    def __init__(self, mol_pointer=None, logger=None):
+    def __init__(self, mol_pointer=None):
         if mol_pointer is None:
             # Create a new atomic structure
             mol_pointer = c_function('structure_new', args = (ctypes.py_object), ret = ctypes.c_void_p)()

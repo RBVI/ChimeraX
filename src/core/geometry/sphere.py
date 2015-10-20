@@ -19,7 +19,41 @@ def sphere_points(n):
         p[i, :] = (s * cos(theta), s * sin(theta), cos(phi))
     return p
 
+def sphere_triangulation(ntri):
+    '''
+    Create a sphere triangulation having exactly the specified number
+    of triangles which must be even and at least 4.  The vertices will
+    be uniformly spaced on the sphere.
+    '''
+    ntri = max(4,ntri)	# Require at least 4 triangles
+    if ntri % 2:
+        ntri += 1	# Require even number of triangles.
+    nv = 2 + ntri//2
+    va = sphere_points(nv)
+    from numpy import empty, int32
+    ta = empty((ntri,3), int32)
 
+    # Stitch spiral to form triangles.
+    ta[0,:] = (0,1,2)
+    ta[1,:] = (0,2,3)
+    t = 2
+    v1,v2 = 0,3
+    while t < ntri:
+        adv1 = (v2+1 == nv)
+        if not adv1:
+            d1 = va[v1+1] - va[v2]
+            d2 = va[v2+1] - va[v1]
+            adv1 = ((d1*d1).sum() < (d2*d2).sum())
+        if adv1:
+            ta[t,:] = (v1,v2,v1+1)
+            v1 += 1
+        else:
+            ta[t,:] = (v1,v2,v2+1)
+            v2 += 1
+        t += 1
+
+    return va, ta
+    
 def test(n=1000, color=(.7, .7, .7, 1), radius=1):
     from VolumePath import Marker_Set
     m = Marker_Set('sphere points')

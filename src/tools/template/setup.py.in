@@ -44,10 +44,11 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Vio-Informatics",
-        # Each tool should have a single line with up to seven fields:
+        # Each tool should have a single line with the following fields:
         #
         # 'Chimera-Tool' :: tool_name :: module_name
         # :: display_name :: commands :: categories
+        # :: file_types :: session_versions :: custom_init
         # :: synopsis
         #
         # 'tool_name', 'module_name' and 'display_name' are strings.
@@ -56,16 +57,38 @@ setup(
         # package name; in particular, it may be a subpackage.
         # TOOL_DISPLAY_NAME is distinct from PKG_DESCRIPTION because
         # a single package may provide multiple tools.
+        # 'file_types' is a comma-separated list of colon-separated
+        # strings.  The file_types arguments are used directly as
+        # arguments to chimera.core.io.register.
+        # 'session_versions' is a comma-separated two-tuple of
+        # integers, representing the minimum and maximum session
+        # versions that this tool can read.
+        # 'custom_init' is a string.  If not set to 'true', the tool
+        # package is not imported until actually invoked.  If set to
+        # 'true', the 'initialize' method is always called on start up.
         # 'synopsis' is a short description of the tool.  It is here
         # because it needs to be part of the metadata available for
         # uninstalled tools, so that users can get more than just a
         # name for deciding whether they want the tool or not.
-        #
-        # Example:
-        # "Chimera-Tool :: cmd_line :: chimera.cmd_line "
-        # ":: Command Line Interface :: command_line :: General"
-        "Chimera-Tool :: TOOL_NAME :: TOOL_PKG_NAME "
-        ":: TOOL_DISPLAY_NAME :: COMMAND_NAME :: TOOL_CATEGORY "
+        "Chimera-Tool "
+            # Chimera2 metadata
+        ":: TOOL_NAME "
+            # Tool name
+        ":: TOOL_PKG_NAME "
+            # Package name
+        ":: TOOL_DISPLAY_NAME "
+            # Tool display name
+        ":: COMMAND_NAME "
+            # Commands
+        ":: TOOL_CATEGORY "
+            # Menu category
+        ":: TOOL_FILE_TYPES "
+            # File types
+        ":: TOOL_SESSION_VERSIONS "
+            # Min/max session versions
+        ":: TOOL_CUSTOM_INIT "
+            # Has custom initialization code
         ":: TOOL_SYNOPSIS",
+            # Synopsis
     ],
 )

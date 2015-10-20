@@ -521,11 +521,14 @@ def common_startup(sess):
         sess.main_view.background_color = settings.bg_color.rgba
     except ImportError:
         pass
+    from .graphics.gsession import ViewState
+    sess.add_state_manager('view', ViewState(sess.main_view))
     from .updateloop import UpdateLoop
     sess.update_loop = UpdateLoop()
-    from .atomic import PseudobondManager, ChangeTracker
+    from .atomic import PseudobondManager, ChangeTracker, LevelOfDetail
     sess.change_tracker = ChangeTracker()
     sess.pb_manager = PseudobondManager(sess.change_tracker)
+    sess.atomic_level_of_detail = LevelOfDetail()
 
     from . import commands
     commands.register_core_commands(sess)
