@@ -15,8 +15,8 @@ class MouseModePanel(ToolInstance):
 
         self.icon_size = 48
         self.icon_border = 4
-        self.rows = 2
-        self.columns = 6
+        self.rows = 1
+        self.columns = 12
 
         panel_size = (300, self.rows * self.icon_size)
         from chimera.core.ui import MainToolWindow
