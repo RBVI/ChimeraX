@@ -786,7 +786,9 @@ class Drawing:
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         '''
         Find the first intercept of a line segment with the displayed part
-        of this drawing and its children.  Return a Pick object for the intercepted item.
+        of this drawing and its children.  The end points are in the parent
+        drawing coordinates and do not take account of this Drawings positions.
+        Return a Pick object for the intercepted item.
         The Pick object has a distance attribute giving the fraction (0-1)
         along the segment where the intersection occurs.
         For no intersection None is returned.  This routine is used for
@@ -815,7 +817,7 @@ class Drawing:
         pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
         for d in child_drawings:
             if d.display and (exclude is None or not hasattr(d, exclude)):
-                for cp, (cxyz1, cxyz2) in enumerate(pos):
+                for cxyz1, cxyz2 in pos:
                     p = d.first_intercept(cxyz1, cxyz2, exclude)
                     if p and (pclosest is None or p.distance < pclosest.distance):
                         pclosest = p

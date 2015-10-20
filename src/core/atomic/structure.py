@@ -733,17 +733,19 @@ class AtomicStructure(AtomicStructureData, Model):
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and hasattr(self, exclude)):
             return None
-        # TODO check intercept of bounding box as optimization
-        pa = self._atom_first_intercept(mxyz1, mxyz2)
-        pb = self._bond_first_intercept(mxyz1, mxyz2)
+        # TODO: check intercept of bounding box as optimization
+        # TODO: Handle molecule placed at multiple positions
+        xyz1, xyz2 = self.position.inverse() * (mxyz1, mxyz2)
+        pa = self._atom_first_intercept(xyz1, xyz2)
+        pb = self._bond_first_intercept(xyz1, xyz2)
         if pb and pa:
             a = pa.atom
             if a.draw_mode == a.STICK_STYLE and a in pb.bond.atoms:
                 pb = None	# Pick atom if stick bond and its atom are picked.
-        ppb = self._pseudobond_first_intercept(mxyz1, mxyz2)
-        pr = self._ribbon_first_intercept(mxyz1, mxyz2)
+        ppb = self._pseudobond_first_intercept(xyz1, xyz2)
+        pr = self._ribbon_first_intercept(xyz1, xyz2)
         # Handle molecular surfaces
-        ps = self.first_intercept_children(self.child_models(), mxyz1, mxyz2, exclude)
+        ps = self.first_intercept_children(self.child_models(), xyz1, xyz2, exclude)
         picks = [pa, pb, ppb, pr, ps]
 
         # TODO: for now, tethers pick nothing, but it should either pick

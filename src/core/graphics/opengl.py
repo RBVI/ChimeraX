@@ -708,8 +708,10 @@ class Render:
         self.set_background_color((0, 0, 0, 0))
         self.draw_background()
 
-        # Render region with texture red > 0.
-        # Texture map a full-screen quad to blend texture with frame buffer.
+        # Render region with texture red > 0, four shifted copies,
+        # then subtract unshifted copy to leave outline.  The depth
+        # buffer is not used.  (Depth buffer was used to handle occlusion
+        # in the mask texture passed to this routine.)
         tc = TextureWindow(self, self.SHADER_TEXTURE_MASK)
         texture.bind_texture()
 
@@ -779,26 +781,21 @@ class Render:
                            color=(0, 0, 0, 1), depth_jump=0.03,
                            perspective_near_far_ratio=1):
 
-        # Render pixels with depth less than neighbor pixel by at least
-        # depth_jump.  Texture map a full-screen quad to blend depth jump
-        # pixels with frame buffer.
+        # Render pixels with depth in depth_texture less than neighbor pixel
+        # by at least depth_jump. The depth buffer is not used.
         tc = TextureWindow(self, self.SHADER_DEPTH_OUTLINE)
         depth_texture.bind_texture()
 
         # Draw 4 shifted copies of mask
         w, h = depth_texture.size
         dx, dy = 1.0 / w, 1.0 / h
-        self.enable_depth_test(False)
         self.enable_blending(True)
-        GL.glDepthMask(False)   # Disable depth write
         self.set_depth_outline_color(color)
         for xs, ys in disk_grid(thickness):
             self.set_depth_outline_shift_and_jump(xs * dx, ys * dy, depth_jump,
                                                   perspective_near_far_ratio)
             tc.draw()
-        GL.glDepthMask(True)
         self.enable_blending(False)
-        self.enable_depth_test(True)
 
     def set_depth_outline_color(self, color):
 
@@ -1642,7 +1639,7 @@ class Texture:
 
 
 class TextureWindow:
-    '''Draw a texture on a full window rectangle.'''
+    '''Draw a texture on a full window rectangle. Don't test or write depth buffer.'''
     def __init__(self, render, shader_options):
 
         # Must have vao bound before compiling shader.
@@ -1678,8 +1675,10 @@ class TextureWindow:
         tcb.update_buffer_data(array(((xs, ys), (1 + xs, ys), (1 + xs, 1 + ys),
                                      (xs, 1 + ys)), float32))
         GL.glDepthMask(False)   # Don't overwrite depth buffer
+        GL.glDisable(GL.GL_DEPTH_TEST)	# Don't test depth buffer.
         eb = self.element_buf
         eb.draw_elements(eb.triangles)
+        GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glDepthMask(True)
 
 
