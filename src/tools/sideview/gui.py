@@ -14,38 +14,33 @@ import wx
 from wx import glcanvas
 from chimera.core.tools import ToolInstance
 from chimera.core.geometry import Place
+from chimera.core.graphics import Camera
 
 
 class _PixelLocations:
     pass
 
-
-class OrthoCamera:
+class OrthoCamera(Camera):
     """A limited camera for the Side View without field_of_view"""
 
     def __init__(self):
+        Camera.__init__(self)
         from chimera.core.geometry import Place
         self.position = Place()
-
-        from chimera.core.graphics.camera import mono_camera_mode
-        self.mode = mono_camera_mode
 
         self.view_width = 1
 
     def get_position(self, view_num=None):
         return self.position
 
-    def view_direction(self, view_num=None):
-        return -self.position.z_axis()
-
     def number_of_views(self):
-        return self.mode.number_of_views()
+        return 1
 
     def set_render_target(self, view_num, render):
-        self.mode.set_render_target(view_num, render)
+        render.set_mono_buffer()
 
     def combine_rendered_camera_views(self, render):
-        self.mode.combine_rendered_camera_views(render)
+        return
 
     def projection_matrix(self, near_far_clip, view_num, window_size):
         near, far = near_far_clip
@@ -197,6 +192,8 @@ class SideViewCanvas(glcanvas.GLCanvas):
             center = main_pos.origin() + (.5 * far) * \
                 main_camera.view_direction()
             main_view_width = main_camera.view_width(center)
+            if main_view_width is None:
+                main_view_width = far
             camera_pos.origin()[:] = center + camera_axes[2] * \
                 main_view_width * 5
             camera.position = camera_pos

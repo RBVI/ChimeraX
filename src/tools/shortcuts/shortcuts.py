@@ -864,10 +864,10 @@ def stereo_mode(viewer):
 
 def start_oculus(session):
     from chimera.core.devices import oculus
-    if session.main_view.camera.mode.name() == 'oculus':
-        oculus.stop_oculus2(session)
+    if session.main_view.camera.name() == 'oculus':
+        oculus.stop_oculus(session)
     else:
-        oculus.start_oculus2(session)
+        oculus.start_oculus(session)
 def oculus_move(session):
     oc = session.oculus
     if oc:

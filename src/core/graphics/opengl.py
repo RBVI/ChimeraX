@@ -832,6 +832,10 @@ class Render:
         GL.glFinish()
 
     def set_stereo_360_params(self, camera_origin = None, camera_y = None, x_shift = None):
+        '''
+        Shifts scene vertices to effectively make left/right eye camera positions face the
+        vertex being rendered.
+        '''
         if camera_origin is None:
             camera_origin, camera_y, x_shift = self._stereo_360_params
         else:

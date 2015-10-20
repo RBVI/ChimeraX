@@ -23,9 +23,8 @@ class View:
         self._background_rgba = (0, 0, 0, 1)
 
         # Create camera
-        from .camera import Camera
-        self.camera = Camera()
-        '''The camera controlling the vantage shown in the graphics window.'''
+        from .camera import MonoCamera
+        self._camera = MonoCamera()
 
         if opengl_context:
             self.initialize_context(opengl_context)
@@ -97,6 +96,18 @@ class View:
 
         w, h = self.window_size
         r.initialize_opengl(w, h)
+
+    def _get_camera(self):
+        return self._camera
+    def _set_camera(self, camera):
+        c = self._camera
+        c.clear_special_render_modes(self._render)
+        camera.position = c.position
+        self._camera = camera
+        camera.set_special_render_modes(self._render)
+        self.redraw_needed = True
+    camera = property(_get_camera, _set_camera)
+    '''The Camera controlling the vantage shown in the graphics window.'''
 
     def draw(self, camera = None, drawings = None,
              check_for_changes = True, swap_buffers = True):
@@ -180,7 +191,7 @@ class View:
             draw_2d_overlays(self._2d_overlays, r)
 
         if swap_buffers:
-            if self.camera.mode.do_swap_buffers():
+            if self.camera.do_swap_buffers():
                 self._opengl_context.swap_buffers()
             self.redraw_needed = False
 
@@ -653,7 +664,7 @@ class View:
         if b is None:
             return
         vw = self.camera.view_width(b.center())
-        if vw >= b.width():
+        if vw is None or vw >= b.width():
             # Use center of drawings for zoomed out views
             cr = b.center()
         else:
@@ -677,6 +688,8 @@ class View:
         to get a description of that object.
         '''
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
+        if xyz1 is None or xyz2 is None:
+            return None
         p = self.drawing.first_intercept(xyz1, xyz2, exclude='is_outline_box')
         if p is None:
             return None
@@ -719,16 +732,14 @@ class View:
 
         return (near, far)
 
-    def clip_plane_points(self, window_x, window_y, camera=None,
-                          view_num=None):
+    def clip_plane_points(self, window_x, window_y, camera=None, view_num=None):
         '''
         Return two scene points at the near and far clip planes at
         the specified window pixel position.  The points are in scene
         coordinates.  '''
         c = camera if camera else self.camera
         nf = self._near_far_clip(c, view_num)
-        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size,
-                                        nf, self._render)
+        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf)
         return scene_pts
 
     def rotate(self, axis, angle, drawings=None):
