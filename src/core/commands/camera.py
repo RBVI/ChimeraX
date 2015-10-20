@@ -54,17 +54,17 @@ def camera(session, type=None, field_of_view=None,
         cam.redraw_needed = True
 
     if not has_arg:
+        has_fov = hasattr(cam, 'field_of_view')
         msg = (
             'Camera parameters:\n' +
+            '    type: %s\n' % cam.name() +
             '    position: %.5g %.5g %.5g\n' % tuple(cam.position.origin()) +
-            '    view direction: %.6f %.6f %.6f\n' %
-            tuple(cam.view_direction()) +
-            '    field of view: %.5g degrees\n' % cam.field_of_view +
-            '    mode: %s\n' % cam.mode.name()
+            '    view direction: %.5g %.5g %.5g\n' % tuple(cam.view_direction()) +
+            ('    field of view: %.5g degrees\n' % cam.field_of_view if has_fov else '')
         )
         session.logger.info(msg)
-        msg = (cam.mode.name() +
-               ', %.5g degree field of view' % cam.field_of_view)
+        msg = (cam.name() +
+               (', %.5g degree field of view' % cam.field_of_view if has_fov else ''))
         session.logger.status(msg)
 
 
