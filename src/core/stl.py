@@ -13,7 +13,37 @@ from . import generic3d
 
 
 class STLModel(generic3d.Generic3DModel):
-    pass
+    @property
+    def num_triangles(self):
+        """Return number of triangles in model."""
+        return len(self.triangles)
+
+    def triangle_info(self, n):
+        """Return information about triangle ``n``."""
+        return TriangleInfo(self, n)
+
+
+class TriangleInfo:
+    """Information about an STL triangle."""
+    def __init__(self, stl, index):
+        self._stl = stl
+        self._index = index
+
+    def model(self):
+        """Return STL model containing triangle."""
+        return self._stl
+
+    def index(self):
+        """Return index of triangle in STL model."""
+        return self._index
+
+    def color(self):
+        """Return color of triangle."""
+        return self._stl.color
+
+    def coords(self):
+        """Return coordinates of each vertex of triangles."""
+        return self._stl.vertices[self._stl.triangles[self._index]]
 
 
 def open(session, filename, name, *args, **kw):
