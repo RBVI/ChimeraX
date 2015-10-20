@@ -112,7 +112,7 @@ context_menu_script = """
 class Log(ToolInstance, HtmlLog):
 
     SESSION_ENDURING = True
-    SIZE = (300, 500)
+    SIZE = (575, 500)
     STATE_VERSION = 1
     help = "help:user/tools/log.html"
 

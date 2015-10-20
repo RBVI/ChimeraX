@@ -320,8 +320,15 @@ class Tools(State):
         session = self._session()   # resolve back reference
         from .toolshed import ToolshedError
         from .core_settings import settings
+        auto_ti = [None] * len(settings.autostart)
         for ti in session.toolshed.tool_info():
-            if ti.name not in settings.autostart:
+            try:
+                auto_ti[settings.autostart.index(ti.name)] = ti
+            except ValueError:
+                continue
+        # start them in the same order as given in the setting
+        for ti in auto_ti:
+            if ti is None:
                 continue
             try:
                 ti.start(session)

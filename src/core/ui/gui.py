@@ -157,11 +157,12 @@ from ..logger import PlainTextLog
 class MainWindow(wx.Frame, PlainTextLog):
 
     def __init__(self, ui, session):
-        wx.Frame.__init__(self, None, title="Chimera2", size=(1000, 700))
+        wx.Frame.__init__(self, None, title="Chimera2", size=(1800, 1000))
 
         from wx.lib.agw.aui import AuiManager, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
         self.aui_mgr.SetManagedWindow(self)
+        self.aui_mgr.SetDockSizeConstraint(0.5, 0.4)
 
         self.tool_pane_to_window = {}
         self.tool_instance_to_windows = {}
