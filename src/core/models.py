@@ -178,7 +178,7 @@ class Models(State):
             models = [m for m in models if isinstance(m,type)]
         return models
 
-    def add(self, models, parent=None):
+    def add(self, models, parent=None, _notify=True):
         d = self.drawing if parent is None else parent
         for m in models:
             d.add_drawing(m)
@@ -202,9 +202,9 @@ class Models(State):
             self._models[model.id] = model
             children = [c for c in model.child_drawings() if isinstance(c, Model)]
             if children:
-                m_all.extend(self.add(children, model))
+                m_all.extend(self.add(children, model, _notify=False))
 
-        if parent is None:
+        if _notify:
             session = self._session()
             for m in m_all:
                 m.added_to_session(session)
