@@ -6,7 +6,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/graphics
 
 SUBDIRS	= _graphics
 
-PYSRCS = __init__.py camera.py camera360.py crossfade.py drawing.py opengl.py view.py
+PYSRCS = __init__.py camera.py camera360.py crossfade.py drawing.py gsession.py opengl.py view.py
 
 OPENGL_SHADERS = fragmentShader.txt vertexShader.txt
 

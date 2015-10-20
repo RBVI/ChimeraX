@@ -942,88 +942,11 @@ class Drawing:
     to control display of the 3 triangle edges in mesh mode.
     '''
 
-    DRAWING_STATE_VERSION = 1
-
     @property
     def masked_triangles(self):
         ta = self.triangles
         tm = self._triangle_mask
         return ta if tm is None else ta[tm,:]
-
-    def take_snapshot(self, phase, session, flags):
-        from ..session import State
-        if phase == State.CLEANUP_PHASE:
-            for c in self.child_drawings():
-                c.take_snapshot(session, phase, flags)
-            return
-        if phase != State.SAVE_PHASE:
-            return
-        # all drawing objects should have the same version
-        data = {
-            'children': [c.take_snapshot(session, phase, flags)[1]
-                         for c in self.child_drawings()],
-            'name': self.name,
-            'vertices': self.vertices,
-            'triangles': self.triangles,
-            'normals': self.normals,
-            'vertex_colors': self.vertex_colors,
-            'triangle_mask': self._triangle_mask,
-            'edge_mask': self._edge_mask,
-            'display_style': self.display_style,
-            'texture': self.texture,
-            'ambient_texture ': self.ambient_texture,
-            'ambient_texture_transform': self.ambient_texture_transform,
-            'use_lighting': self.use_lighting,
-
-            'display': self.display,
-            'display_positions': self.display_positions,
-            'selected': self.selected,
-            'selected_positions': self.selected_positions,
-            'position': self.position,
-            'positions': self.positions,
-            'selected_triangles_mask': self.selected_triangles_mask,
-            'color': self.color,
-            'colors': self.colors,
-            'geometry': self.geometry,
-        }
-        return self.DRAWING_STATE_VERSION, data
-
-    def restore_snapshot(self, phase, session, version, data):
-        from ..session import State, RestoreError
-        if version != self.DRAWING_STATE_VERSION:
-            raise RestoreError("Unexpected version or data")
-        if phase != State.CREATE_PHASE:
-            return
-        for child_data in data['children']:
-            child = self.new_drawing()
-            child.restore_snapshot(phase, session, version, child_data)
-        self.name = data['name']
-        self.vertices = data['vertices']
-        self.triangles = data['triangles']
-        self.normals = data['normals']
-        self.vertex_colors = data['vertex_colors']
-        self._triangle_mask = data['triangle_mask']
-        self._edge_mask = data['edge_mask']
-        self.display_style = data['display_style']
-        self.texture = data['texture']
-        self.ambient_texture = data['ambient_texture ']
-        self.ambient_texture_transform = data['ambient_texture_transform']
-        self.use_lighting = data['use_lighting']
-
-        self.display = data['display']
-        self.selected = data['selected']
-        self.position = data['position']
-        self.positions = data['positions']
-        self.selected_triangles_mask = data['selected_triangles_mask']
-        self.color = data['color']
-        self.colors = data['colors']
-        self.geometry = data['geometry']
-        self.display_positions = data['display_positions']
-        self.selected_positions = data['selected_positions']
-
-    def reset_state(self):
-        # delay implementing until needed
-        raise NotImplemented()
 
 def opaque_count(rgba):
     if rgba is None:
