@@ -84,7 +84,8 @@ class Collection:
         remove_deleted_pointers(pointers)
 
     def __eq__(self, atoms):
-        return (atoms._pointers == self._pointers).all()
+        import numpy
+        return numpy.array_equal(atoms._pointers, self._pointers)
     def hash(self):
         from hashlib import sha1
         return sha1(self._pointers.view(uint8)).digest()

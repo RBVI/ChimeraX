@@ -76,7 +76,7 @@ def restore_position(pstate, angle_tolerance = 1e-5, shift_tolerance = 1e-5):
         m.set_place(tf)
 
     atoms, xyz = apos
-    if not (atoms.coords == xyz).all():
+    if not numpy.array_equal(atoms.coords, xyz):
         changed = True
         atoms.coords = xyz
     return changed
