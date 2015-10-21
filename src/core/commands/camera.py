@@ -8,7 +8,7 @@ def camera(session, type=None, field_of_view=None,
     Parameters
     ----------
     type : string
-        Controls type of projection, currently "mono", "360" or "360s" (stereoscopic)
+        Controls type of projection, currently "mono", "360", "360s" (stereoscopic), stereo
     field_of_view : float
         Horizontal field of view in degrees.
     eye_separation : float
@@ -39,6 +39,14 @@ def camera(session, type=None, field_of_view=None,
         elif type == '360s':
             from ..graphics import Stereo360Camera
             view.camera = Stereo360Camera()
+        elif type == 'stereo':
+            if not getattr(session.ui, 'have_stereo', False):
+                from ..errors import UserError
+                raise UserError('Do not have stereo OpenGL context.' +
+                                ('\nUse --stereo command-line option'
+                                 if not session.ui.stereo else ''))
+            from ..graphics import StereoCamera
+            view.camera = StereoCamera()
 
     if field_of_view is not None:
         has_arg = True
@@ -72,7 +80,7 @@ def register_command(session):
     from . import CmdDesc, register, FloatArg, EnumOf
     desc = CmdDesc(
         optional=[
-            ('type', EnumOf(('mono', 'ortho', '360', '360s'))),
+            ('type', EnumOf(('mono', 'ortho', '360', '360s', 'stereo'))),
             ('field_of_view', FloatArg),
             ('eye_separation', FloatArg),
             ('pixel_eye_separation', FloatArg),

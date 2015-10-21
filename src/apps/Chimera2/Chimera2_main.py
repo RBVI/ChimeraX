@@ -73,6 +73,7 @@ def parse_arguments(argv):
     opts.load_tools = True
     opts.silent = False
     opts.status = True
+    opts.stereo = False
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = 0
@@ -87,6 +88,7 @@ def parse_arguments(argv):
         "--silent",
         "--nostatus",
         "--notools",
+        "--stereo",
         "--uninstall",
         "--usedefaults",
         "--version",
@@ -149,6 +151,8 @@ def parse_arguments(argv):
             opts.silent = opt[2] == 's'
         elif opt in ("--status", "--nostatus"):
             opts.status = opt[2] == 's'
+        elif opt in "--stereo":
+            opts.stereo = True
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
@@ -294,6 +298,7 @@ def init(argv, event_loop=True):
     # sets up logging, splash screen if gui
     # calls "sess.save_in_session(self)"
     sess.ui = ui_class(sess)
+    sess.ui.stereo = opts.stereo
     # splash step "0" will happen in the above initialization
     num_splash_steps = 2
     if opts.gui:

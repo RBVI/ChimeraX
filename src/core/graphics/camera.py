@@ -342,12 +342,16 @@ class StereoCamera(Camera):
     '''
 
     def __init__(self, eye_separation_pixels=200):
+        Camera.__init__(self)
+
+        self.field_of_view = 45
+        "Horizontal field of view in degrees."
+
         self.eye_separation_scene = 1.0
         "Stereo eye separation in scene units."
 
         self.eye_separation_pixels = eye_separation_pixels
-        """Separation of the user's eyes in screen pixels used for stereo
-        rendering."""
+        "Separation of the user's eyes in screen pixels used for stereo rendering."
 
     def name(self):
         return 'stereo'
@@ -372,6 +376,34 @@ class StereoCamera(Camera):
         '''Number of views rendered by camera mode.'''
         return 2
 
+    def initialize_view(self, center, size):
+        '''
+        Set the camera position to completely show models having specified center
+        and radius looking along the scene -z axis.
+        '''
+        view_direction = (0,0,-1)
+        ca = perspective_view_all_center(center, size, view_direction, self.field_of_view)
+        from ..geometry import translation
+        self.position = translation(ca)
+
+    def view_all(self, center, size):
+        '''
+        Return the shift that makes the camera completely show models
+        having specified center and radius.  The camera view direction
+        is not changed.
+        '''
+        ca = perspective_view_all_center(center, size, self.view_direction(), self.field_of_view)
+        return ca - self.position.origin()
+
+    def pixel_size(self, center, window_size):
+        '''
+        Return the size of a pixel in scene units for a point at position
+        center.  Center is given in scene coordinates and perspective
+        projection is accounted for.
+        '''
+        return perspective_pixel_size(center, self.position.origin(),
+                                      self.field_of_view, window_size[0])
+
     def pixel_shift(self, view_num):
         '''Shift of center away from center of render target.'''
         if view_num is None:
@@ -382,9 +414,6 @@ class StereoCamera(Camera):
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
         render.set_stereo_buffer(view_num)
-
-stereo_camera = StereoCamera()
-
 
 # glFrustum() matrix
 def frustum(left, right, bottom, top, z_near, z_far, xshift=0, yshift=0):
