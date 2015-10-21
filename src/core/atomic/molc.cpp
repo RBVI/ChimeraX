@@ -543,6 +543,8 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
         // Hide control point atoms as appropriate
         for (size_t i = 0; i != n; ++i) {
             Atom *atom = a[i];
+            if (!atom->is_backbone())
+                continue;
             bool hide;
             if (!atom->residue()->ribbon_display() || !atom->residue()->ribbon_hide_backbone())
                 hide = false;
