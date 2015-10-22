@@ -39,12 +39,73 @@ def _pseudobond_group_map(pbgc_map):
 # -----------------------------------------------------------------------------
 #
 class BaseSphere(type):
+    """'Base class' for Atom, Sphere, etc.
+
+        We avoid the diffculties of interacting through ctypes to the C++ layer
+        by using BaseSphere as a metaclass for it's 'derived' classes, which places
+        properties into them during class layout.
+    """
     def __new__(meta, name, bases, attrs):
+        connection_info = { 'Atom': ('Bond', _bonds, _atoms) }
         if name != meta.__name__:
-            prefix = name.lower() + '_'
-            attr = c_property(prefix + 'coord', float64, 3)
-            attr.__doc__ = '''Coordinates as a numpy length 3 array, 64-bit float values.'''
-            attrs['coord'] = attr
+            doc_marker = "[BS]"
+            doc_add = \
+                "{}: Generic attributes added by {}'s {} metaclass (and therefore usable " \
+                "by in any class whose metaclass is {}, such as Atom, Sphere, etc.) " \
+                "are noted by preceding their documentation with '{}'.".format(
+                doc_marker, name, meta.__name__, meta.__name__, doc_marker)
+            if "__doc__" in attrs:
+                doc = attrs['__doc__']
+                if doc:
+                    if doc[-1] == '\n':
+                        newlines = '\n'
+                    else:
+                        newlines = '\n\n'
+                else:
+                    newlines = ""
+            else:
+                doc = ""
+                newlines = ""
+            attrs["__doc__"] = doc + newlines + doc_add
+
+            #define some vars useful later
+            conn_name, conn_collective, collective = connection_info[name]
+            connection = conn_name.lower()
+            connections = connection + 's'
+            connectible = name.lower()
+            num_connections = 'num_' + connections
+
+            # property tuples are: (generic attr name, specific attr name,
+            # other args to c_property, keywords to c_property, doc string)
+            # if the specific attr name is None, then it's the same as the
+            # generic attr name
+            properties = [
+                ('coord', None, (float64, 3), {},
+                    "Coordinates as a numpy length 3 array, 64-bit float values."),
+                ('connections', connections, (cptr, num_connections),
+                    { 'astype': conn_collective, 'read_only': True },
+                    "{}s connected to this {} as an array of :py:class:`{}` objects."
+                    " Read only.".format(conn_name, connectible, conn_name)),
+                ("neighbors", None, (cptr, num_connections), { 'astype': collective,
+                    'read_only': True },
+                    ":class:`{}`\\ s connnected to this {} directly by one {}."
+                    " Read only.".format(name, connectible, connection)),
+                ("color", None, (uint8, 4), {},
+                    "Color RGBA length 4 numpy uint8 array."),
+                ("display", None, (npy_bool,), {},
+                    "Whether to display the {}. Boolean value.".format(connectible)),
+            ]
+            prefix = connectible + '_'
+            for generic_attr_name, specific_attr_name, args, kw, doc in properties:
+                if specific_attr_name is None:
+                    prop_attr_name = generic_attr_name
+                else:
+                    prop_attr_name = specific_attr_name
+                attrs[generic_attr_name] = c_property(prefix + prop_attr_name, *args, **kw,
+                    doc = doc_marker + " " + doc)
+                if specific_attr_name is not None:
+                    attrs[specific_attr_name] = c_property(prefix + prop_attr_name,
+                        *args, **kw, doc = doc)
         return super().__new__(meta, name, bases, attrs)
 
 # -----------------------------------------------------------------------------
@@ -56,20 +117,13 @@ class Atom(metaclass=BaseSphere):
 
     To create an Atom use the :class:`.AtomicStructure` new_atom() method.
     '''
-    bfactor = c_property('atom_bfactor', float32)
-    '''B-factor, floating point value.'''
-    bonds = c_property('atom_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
-    '''Bonds connected to this atom as an array of :py:class:`Bond` objects. Read only.'''
-    bonded_atoms = c_property('atom_bonded_atoms', cptr, 'num_bonds', astype = _atoms, read_only = True)
-    ''':class:`Atoms` connnected to this atom directly by one bond. Read only.'''
-    chain_id = c_property('atom_chain_id', string, read_only = True)
-    '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
-    color = c_property('atom_color', uint8, 4)
-    '''Color RGBA length 4 numpy uint8 array.'''
-    #coord = c_property('atom_coord', float64, 3)
-    #'''Coordinates as a numpy length 3 array, 64-bit float values.'''
-    display = c_property('atom_display', npy_bool)
-    '''Whether to display the atom. Boolean value.'''
+    bfactor = c_property('atom_bfactor', float32,
+        doc = "B-factor, floating point value.")
+    chain_id = c_property('atom_chain_id', string, read_only = True,
+        doc = "Protein Data Bank chain identifier. Limited to 4 characters."
+        " Read only string.")
+    #display = c_property('atom_display', npy_bool)
+    #'''Whether to display the atom. Boolean value.'''
     SPHERE_STYLE = 0
     '''Draw mode that uses full atom radius.'''
     BALL_STYLE = 1
@@ -184,8 +238,8 @@ class Pseudobond:
     '''
     A Pseudobond is a graphical line between atoms for example depicting a distance
     or a gap in an amino acid chain, often shown as a dotted or dashed line.
-    Pseudobonds can join atoms belonging to different :class:`.AtomicStructure`s
-    which is not possible with a :class:`Bond`.
+    Pseudobonds can join atoms belonging to different :class:`.AtomicStructure`\\ s
+    which is not possible with a :class:`Bond`\\ .
 
     To create a Pseudobond use the :class:`PseudobondGroup` new_pseudobond() method.
     '''
@@ -228,7 +282,7 @@ class PseudobondGroupData:
     for example "distances" or "missing segments".
 
     This base class of :class:`.PseudobondGroup` represents the C++ data while
-    the derived class handles rendering the pseudobonds. 
+    the derived class handles rendering the pseudobonds.
 
     To create a PseudobondGroup use the :class:`PseudobondManager` get_group() method.
     '''

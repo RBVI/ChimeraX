@@ -188,14 +188,13 @@ extern "C" void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
     }
 }
 
-extern "C" void atom_bonded_atoms(void *atoms, size_t n, pyobject_t *batoms)
+extern "C" void atom_neighbors(void *atoms, size_t n, pyobject_t *batoms)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const Atom::Bonds &b = a[i]->bonds();
-            for (size_t j = 0; j != b.size(); ++j)
-                *batoms++ = b[j]->other_atom(a[i]);
+            for (auto nb: a[i]->neighbors())
+                *batoms++ = nb;
         }
     } catch (...) {
         molc_error();
