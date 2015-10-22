@@ -17,7 +17,7 @@ Each Python distribution (Chimera uses :py:class:`distlib.wheel.Wheel`)
 may contain multiple tools.
 Metadata blocks in each distribution contain descriptions for tools.
 Each tool is described by a 'Chimera-Tool' entry that consists of
-seven fields separated by double colons (``::``).
+the following fields separated by double colons (``::``).
 
 1. ``Chimera-Tools`` : str constant
     Field identifying entry as tool metadata.
@@ -27,23 +27,53 @@ seven fields separated by double colons (``::``).
     Name of module or package that implements the tool.
 4. ``display_name`` : str
     Name of tool to display to users.
-5. ``commands`` : str
+5. ``command_names`` : str
     Comma-separated list of cli commands that the tool provides.
+    If non-empty, the tool must define a 'register_command' function.
 6. ``menu_categories`` : str
     Comma-separated list of menu categories in which the tool belong.
-7. ``synopsis`` : str
+7. ``file_types`` : str
+    Comma-separated list of file types (suffixes) that the tool opens.
+    If non-empty, the tool must define an 'open_file' function.
+8. ``session_versions`` : two comma-separated integers
+    Minimum and maximum session version that the tool can read.
+9. ``custom_init`` : str
+    Whether tool has initialization code that must be called when
+    Chimera2 starts.  Either 'true' or 'false'.  If 'true', tool
+    must define 'initialize' and 'finish' functions.
+10. ``synopsis`` : str
     A short description of the tool.
 
 Modules referenced in distribution metadata must define:
 
+  ``start_tool(session, ti)``
+    Called to create a tool instance.
+    ``session`` is a :py:class:`~chimera.core.session.Session` instance for the current session.
+    ``ti`` is a :py:class:`ToolInfo` instance for the tool to be started.  If no tool instance
+    is created when called, ``start_tool`` should return ``None``.  Errors should be reported
+    via exceptions.
+
+Depending on the values of metadata fields, modules may need to define:
+
   ``register_command(command_name)``
     Called when delayed command line registration occurs.
     ``command_name`` is a string of the command to be registered.
+    Must be defined if the ``commands`` metadata field is non-empty.
+    This function is called when the command line interface is invoked
+    with one of the registered command names.
 
-  ``start_tool(session, ti, *args, **kw)``
-    Called to create a tool instance.
-    ``session`` is a :py:class:`~chimera.core.session.Session` instance for the current session.
-    ``ti`` is a :py:class:`ToolInfo` instance for the tool to be started.
+  ``open_file(session, stream, name, **kw)``
+    Called to open a file.
+    Arguments and return values are as described for open functions in in core.io.
+
+  ``initialize(ti)``
+  ``finish(ti)``
+    Called to initialize and deinitialize a tool.
+    ``ti`` is a :py:class:`ToolInfo` instance.
+    Must be defined if the ``custom_init`` metadata field is set to 'true'.
+    ``initialize`` is called when the tool is first loaded and
+    ``finish`` is called when the tool is unloaded.
+    To make Chimera2 start quickly, custom initialization is discouraged.
 
 Attributes
 ----------
@@ -266,11 +296,15 @@ class Toolshed:
         _debug("reload", rebuild_cache, check_remote)
         for ti in self._installed_tool_info:
             ti.deregister_commands()
+            ti.deregister_file_types()
+            ti.finish()
         self._installed_tool_info = []
         inst_ti_list = self._load_tool_info(logger, rebuild_cache=rebuild_cache)
         for ti in inst_ti_list:
             self.add_tool_info(ti)
+            ti.initialize()
             ti.register_commands()
+            ti.register_file_types()
         if check_remote:
             self._available_tool_info = []
             self._repo_locator = None
@@ -578,9 +612,9 @@ class Toolshed:
             parts = [v.strip() for v in classifier.split("::")]
             if parts[0] != "Chimera-Tool":
                 continue
-            if len(parts) != 7:
+            if len(parts) != 10:
                 logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
-                logger.warning("Expected 7 fields and got %d." % len(parts))
+                logger.warning("Expected 10 fields and got %d." % len(parts))
                 continue
             kw = {"distribution_name": name, "distribution_version": version}
             # Name of tool
@@ -597,10 +631,41 @@ class Toolshed:
             # Menu categories in which tool should appear
             categories = parts[5]
             if categories:
-                kw["menu_categories"] = [v.strip()
-                                         for v in categories.split(',')]
+                kw["menu_categories"] = [v.strip() for v in categories.split(',')]
+            # File types that tool can open
+            file_types = parts[6]
+            if file_types:
+                types = []
+                for t in file_types.split(','):
+                    spec = [v.strip() for v in t.split(':')]
+                    if len(spec) < 3:
+                        logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
+                        logger.warning("File type has fewer than three fields.")
+                        continue
+                    types.append(spec)
+                kw["file_types"] = types
+            # Session version numbers
+            session_versions = parts[7]
+            if session_versions:
+                vs = [v.strip() for v in session_versions.split(',')]
+                if len(vs) != 2:
+                    logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
+                    logger.warning("Expected 2 version numbers and got %d." % len(vs))
+                    continue
+                try:
+                    lo = int(vs[0])
+                    hi = int(vs[1])
+                except ValueError:
+                    logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
+                    logger.warning("Found non-integer version numbers.")
+                    continue
+                kw["session_versions"] = (lo, hi)
+            # Does tool have custom initialization code?
+            custom_init = parts[8]
+            if custom_init:
+                kw["custom_init"] = (custom_init == "true")
             # Synopsis of tool
-            kw["synopsis"] = parts[6]
+            kw["synopsis"] = parts[9]
             tools.append(ToolInfo(tool_name, installed, **kw))
         return tools
 
@@ -638,7 +703,9 @@ class Toolshed:
         for ti in newly_installed:
             ti.installed = True
             self.add_tool_info(ti)
+            ti.initialize()
             ti.register_commands()
+            ti.register_file_types()
 
     def _install_dist_core(self, want, logger):
         # Add Chimera core distribution to update list
@@ -958,6 +1025,8 @@ class Toolshed:
                 keep.append(ti)
             else:
                 ti.deregister_commands()
+                ti.deregister_file_types()
+                ti.finish()
         self._installed_tool_info = keep
         self._remove_distribution(d, logger)
 
@@ -980,6 +1049,12 @@ class ToolInfo:
         True if this tool is installed locally; False otherwise.
     menu_categories : list of str
         List of categories in which this tool belong.
+    file_types : list of str
+        List of file types (suffixes) that this tool can open.
+    session_versions : tuple of two integers
+        Minimum and maximum session versions that this tool can read.
+    custom_init : boolean
+        Whether tool has custom initialization code
     name : readonly str
         The internal name of the tool.
     synopsis : readonly str
@@ -987,7 +1062,6 @@ class ToolInfo:
     version : readonly str
         Tool version (which is actually the same as the distribution version,
         so all tools from the same distribution share the same version).
-    
     """
 
     def __init__(self, name, installed,
@@ -997,7 +1071,10 @@ class ToolInfo:
                  module_name=None,
                  synopsis=None,
                  menu_categories=(),
-                 command_names=()):
+                 command_names=(),
+                 file_types=(),
+                 session_versions=(1,1),
+                 custom_init=False):
         """Initialize instance.
 
         Parameters
@@ -1018,6 +1095,12 @@ class ToolInfo:
             List of menu categories in which this tool belong.
         command_names : list of str
             List of names of cli commands to register for this tool.
+        file_types : list of str
+            List of file types (suffixes) that this tool can open.
+        session_versions : tuple of two integers
+            Minimum and maximum session versions that this tool can read.
+        custom_init : boolean
+            Whether tool has custom initialization code
 
         """
         # Public attributes
@@ -1026,6 +1109,9 @@ class ToolInfo:
         self.display_name = display_name or name
         self.menu_categories = menu_categories
         self.command_names = command_names
+        self.file_types = file_types
+        self.session_versions = session_versions
+        self.custom_init = custom_init
 
         # Private attributes
         self._distribution_name = distribution_name
@@ -1100,7 +1186,7 @@ class ToolInfo:
 
     def _register_cmd(self, command_name):
         """Called when commands need to be really registered."""
-        self._get_module().register_command(command_name)
+        self._get_module().register_command(command_name, self)
 
     def deregister_commands(self):
         """Deregister commands with cli."""
@@ -1108,6 +1194,44 @@ class ToolInfo:
         for command_name in self.command_names:
             _debug("deregister_command", command_name)
             cli.deregister(command_name)
+
+    def register_file_types(self):
+        """Register file types."""
+        from chimera.core import io
+        for args in self.file_types:
+            def cb(s=self, *args):
+                s._open_file(*args)
+            _debug("register_file_type", args)
+            io.register_format(*args, open_func=cb)
+
+    def _open_file(self, *args):
+        """Called when files need to be opened."""
+        self._get_module().open_file(*args)
+
+    def deregister_file_types(self):
+        """Deregister file types."""
+        # TODO: implement
+        pass
+
+    def initialize(self):
+        """Initialize tool by calling custom initialization code if needed."""
+        if self.custom_init:
+            try:
+                f = self._get_module().initialize
+            except (ImportError, AttributeError, TypeError, SyntaxError):
+                raise ToolshedError("no initialize function found for tool \"%s\""
+                                    % self.name)
+            f(self)
+
+    def finish(self):
+        """Deinitialize tool by calling custom finish code if needed."""
+        if self.custom_init:
+            try:
+                f = self._get_module().finish
+            except (ImportError, AttributeError, TypeError, SyntaxError):
+                raise ToolshedError("no finish function found for tool \"%s\""
+                                    % self.name)
+            f(self)
 
     def get_class(self, class_name):
         """Return tool's class with given name."""
@@ -1153,7 +1277,7 @@ class ToolInfo:
         try:
             f = self._get_module().start_tool
         except (ImportError, AttributeError, TypeError, SyntaxError):
-            raise ToolshedError("bad start callable specified for tool \"%s\""
+            raise ToolshedError("no start_tool function found for tool \"%s\""
                                 % self.name)
         ti = f(session, self, *args, **kw)
         if ti is not None:

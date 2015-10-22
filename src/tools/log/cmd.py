@@ -44,7 +44,7 @@ def log(session, show = False, hide = False, clear = False, save_path = None,
       If true, errors popup a separate dialog, if false no error dialog is shown.
       In either case the errors appears in the log text.
     '''
-    create = show or test
+    create = show
     log = get_singleton(session, create = create)
     if log is not None:
         if hide:

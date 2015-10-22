@@ -1,8 +1,9 @@
-from .camera import CameraMode
-class Mono360CameraMode(CameraMode):
+from .camera import Camera
+class Mono360Camera(Camera):
 
     def __init__(self):
 
+        Camera.__init__(self)
         self._framebuffer = None        	# Framebuffer for rendering each face
         self._cube_face_size = 1024		# Pixels
         self._projection_size = (360,180)	# Grid size for projecting cubemap.
@@ -12,10 +13,6 @@ class Mono360CameraMode(CameraMode):
     def name(self):
         '''Name of camera mode.'''
         return 'mono 360'
-
-    def set_camera_mode(self, camera):
-        camera.field_of_view = 90
-        camera.mode = self
 
     def view(self, camera_position, view_num):
         '''
@@ -30,6 +27,19 @@ class Mono360CameraMode(CameraMode):
     def number_of_views(self):
         '''Number of views rendered by camera mode.'''
         return 6
+
+    def view_all(self, center, size):
+        '''
+        Return the shift that makes the camera completely show models
+        having specified center and radius.  The camera view direction
+        is not changed.
+        '''
+        self.position = view_all_360(center, size, self.position)
+
+    def projection_matrix(self, near_far_clip, view_num, window_size):
+        '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
+        from .camera import perspective_projection_matrix
+        return perspective_projection_matrix(90, window_size, near_far_clip, self._pixel_shift)
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
@@ -59,29 +69,31 @@ class Mono360CameraMode(CameraMode):
             self._drawing = d = _equirectangular_projection_drawing(self._projection_size)
         return d
 
-class Stereo360CameraMode(CameraMode):
+    def view_width(self, point):
+        return view_width_360(point, self.position.origin())
+
+class Stereo360Camera(Camera):
 
     def __init__(self):
 
+        Camera.__init__(self)
+        self.eye_separation_scene = 0.2			# Angstroms
         self._framebuffer = {'left':None, 'right':None} # Framebuffer for rendering each face
         self._cube_face_size = 1024			# Pixels
         self._projection_size = (360,180)		# Grid size for projecting cubemap.
         self._drawing = {'left':None, 'right':None}	# Drawing of rectangle with cube map texture
         v = _cube_map_face_views()
         self._view_rotations = v + v		# Camera views for cube faces
-        self._camera = None
 
     def name(self):
         '''Name of camera mode.'''
         return 'stereo 360'
 
-    def set_camera_mode(self, camera, render):
-        camera.field_of_view = 90		# Degrees
-        camera.eye_separation_scene = 0.2	# Angstroms
-        camera.mode = self
+    def set_special_render_modes(self, render):
         render.enable_capabilities |= render.SHADER_STEREO_360
-        # TODO: Need to disable shader_stereo when switching to another mode
-        self._camera = camera
+
+    def clear_special_render_modes(self, render):
+        render.enable_capabilities &= ~render.SHADER_STEREO_360
 
     def view(self, camera_position, view_num):
         '''
@@ -96,6 +108,19 @@ class Stereo360CameraMode(CameraMode):
     def number_of_views(self):
         '''Number of views rendered by camera mode.'''
         return 12
+
+    def view_all(self, center, size):
+        '''
+        Return the shift that makes the camera completely show models
+        having specified center and radius.  The camera view direction
+        is not changed.
+        '''
+        self.position = view_all_360(center, size, self.position)
+
+    def projection_matrix(self, near_far_clip, view_num, window_size):
+        '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
+        from .camera import perspective_projection_matrix
+        return perspective_projection_matrix(90, window_size, near_far_clip, self._pixel_shift)
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
@@ -112,9 +137,8 @@ class Stereo360CameraMode(CameraMode):
         _adjust_light_directions(render, self._view_rotations[view_num])
 
     def _set_stereo_360_shader_parameters(self, render, eye):
-        c = self._camera
-        p = c.position
-        es = c.eye_separation_scene
+        p = self.position
+        es = self.eye_separation_scene
         xshift = -0.5*es if eye == 'left' else 0.5*es
         render.set_stereo_360_params(p.origin(), p.axes()[1], xshift)
 
@@ -143,6 +167,19 @@ class Stereo360CameraMode(CameraMode):
             y[:] += (1 if eye == 'left' else -1)
             y[:] /= 2
         return d
+
+    def view_width(self, point):
+        return view_width_360(point, self.position.origin())
+
+def view_width_360(point, origin):
+    from math import pi
+    from ..geometry import vector
+    return 2 * pi * vector.distance(origin, point)
+
+def view_all_360(center, size, cam_position):
+    shift = center - cam_position.origin() + 2*size*cam_position.z_axis()
+    from ..geometry import translation
+    return translation(shift) * cam_position
 
 # Camera rotations for 6 cube faces. Face order +x,-x,+y,-y,+z,-z.
 def _cube_map_face_views():
@@ -232,6 +269,3 @@ def _equirectangular_projection_drawing(size):
     d.texture_coordinates = tc
 
     return d
-
-mono_360_camera_mode = Mono360CameraMode()
-stereo_360_camera_mode = Stereo360CameraMode()

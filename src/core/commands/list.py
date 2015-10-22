@@ -14,7 +14,7 @@ def list(session):
         return '.'.join(str(x) for x in id)
     ids = [m.id for m in models]
     ids.sort()
-    from . cli import cli
+    from . import cli
     id_names = [id_str(id) for id in ids]
     info = cli.commas(id_names, ' and')
     noun = cli.plural_form(id_names, 'model')

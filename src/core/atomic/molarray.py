@@ -84,7 +84,8 @@ class Collection:
         remove_deleted_pointers(pointers)
 
     def __eq__(self, atoms):
-        return (atoms._pointers == self._pointers).all()
+        import numpy
+        return numpy.array_equal(atoms._pointers, self._pointers)
     def hash(self):
         from hashlib import sha1
         return sha1(self._pointers.view(uint8)).digest()
@@ -358,7 +359,7 @@ class Bonds(Collection):
 
     Collection of C++ bonds.
     '''
-    def __init__(self, bond_pointers):
+    def __init__(self, bond_pointers = None):
         Collection.__init__(self, bond_pointers, molobject.Bond, Bonds)
 
     atoms = cvec_property('bond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
@@ -523,7 +524,7 @@ class Residues(Collection):
 
     Collection of C++ residue objects.
     '''
-    def __init__(self, residue_pointers):
+    def __init__(self, residue_pointers = None):
         Collection.__init__(self, residue_pointers, molobject.Residue, Residues)
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False)

@@ -18,6 +18,7 @@ private:
 public:
     BaseSphere(float radius): _radius(radius) {}
     virtual  ~BaseSphere() {}
+
     virtual void  set_radius(float r) {
         if (r == _radius)
             return;

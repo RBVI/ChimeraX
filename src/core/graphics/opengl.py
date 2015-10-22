@@ -63,6 +63,7 @@ class Render:
         self.current_model_matrix = None
         # Maps scene to camera coordinates:
         self.current_view_matrix = None
+        self._near_far_clip = (0,1)             # Scene coord distances from eye
 
         self.lighting = Lighting()
         self.material = Material()              # Currently a global material
@@ -263,6 +264,14 @@ class Render:
             if not self.lighting.move_lights_with_camera:
                 self.set_shader_lighting_parameters()
 
+    def set_near_far_clip(self, near, far):
+        '''Set the near and far clip plane distances from eye.  Used for depth cuing.'''
+        self._near_far_clip = (near, far)
+
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_DEPTH_CUE:
+            self.set_depth_cue_parameters()
+
     def set_frame_number(self, f=None):
         if f is None:
             f = self.frame_number
@@ -319,8 +328,12 @@ class Render:
             return
 
         lp = self.lighting
-        p.set_float("depth_cue_distance", lp.depth_cue_distance)
-        p.set_float("depth_cue_darkest", lp.depth_cue_darkest)
+        n,f = self._near_far_clip
+        s = n + (f-n)*lp.depth_cue_start
+        e = n + (f-n)*lp.depth_cue_end
+        p.set_float('depth_cue_start', s)
+        p.set_float('depth_cue_end', e)
+        p.set_vector('depth_cue_color', lp.depth_cue_color)
 
     def set_single_color(self, color=None):
         '''
@@ -444,7 +457,7 @@ class Render:
         vendor = GL.glGetString(GL.GL_VENDOR)
         import sys
         global stencil8_needed
-        stencil8_needed = (sys.platform.startswith('linux') and
+        stencil8_needed = (sys.platform.startswith('linux') and vendor and
                            vendor.startswith((b'AMD', b'ATI')))
 
     def set_viewport(self, x, y, w, h):
@@ -695,8 +708,10 @@ class Render:
         self.set_background_color((0, 0, 0, 0))
         self.draw_background()
 
-        # Render region with texture red > 0.
-        # Texture map a full-screen quad to blend texture with frame buffer.
+        # Render region with texture red > 0, four shifted copies,
+        # then subtract unshifted copy to leave outline.  The depth
+        # buffer is not used.  (Depth buffer was used to handle occlusion
+        # in the mask texture passed to this routine.)
         tc = TextureWindow(self, self.SHADER_TEXTURE_MASK)
         texture.bind_texture()
 
@@ -766,26 +781,21 @@ class Render:
                            color=(0, 0, 0, 1), depth_jump=0.03,
                            perspective_near_far_ratio=1):
 
-        # Render pixels with depth less than neighbor pixel by at least
-        # depth_jump.  Texture map a full-screen quad to blend depth jump
-        # pixels with frame buffer.
+        # Render pixels with depth in depth_texture less than neighbor pixel
+        # by at least depth_jump. The depth buffer is not used.
         tc = TextureWindow(self, self.SHADER_DEPTH_OUTLINE)
         depth_texture.bind_texture()
 
         # Draw 4 shifted copies of mask
         w, h = depth_texture.size
         dx, dy = 1.0 / w, 1.0 / h
-        self.enable_depth_test(False)
         self.enable_blending(True)
-        GL.glDepthMask(False)   # Disable depth write
         self.set_depth_outline_color(color)
         for xs, ys in disk_grid(thickness):
             self.set_depth_outline_shift_and_jump(xs * dx, ys * dy, depth_jump,
                                                   perspective_near_far_ratio)
             tc.draw()
-        GL.glDepthMask(True)
         self.enable_blending(False)
-        self.enable_depth_test(True)
 
     def set_depth_outline_color(self, color):
 
@@ -819,6 +829,10 @@ class Render:
         GL.glFinish()
 
     def set_stereo_360_params(self, camera_origin = None, camera_y = None, x_shift = None):
+        '''
+        Shifts scene vertices to effectively make left/right eye camera positions face the
+        vertex being rendered.
+        '''
         if camera_origin is None:
             camera_origin, camera_y, x_shift = self._stereo_360_params
         else:
@@ -1052,9 +1066,14 @@ class Lighting:
         self.ambient_light_intensity = 0.4
         '''Ambient light brightness.'''
 
-        # Distance where dimming begins (Angstroms):
-        self.depth_cue_distance = 15.0
-        self.depth_cue_darkest = 0.2    # Smallest dimming factor
+        self.depth_cue_start = 0.5
+        "Fraction of distance from near to far clip plane where dimming starts."
+
+        self.depth_cue_end = 1.0
+        "Fraction of distance from near to far clip plane where dimming ends."
+
+        self.depth_cue_color = (0, 0, 0)
+        '''Color to fade towards.'''
 
         self.move_lights_with_camera = True
         '''Whether lights are attached to camera, or fixed in the scene.'''
@@ -1620,7 +1639,7 @@ class Texture:
 
 
 class TextureWindow:
-    '''Draw a texture on a full window rectangle.'''
+    '''Draw a texture on a full window rectangle. Don't test or write depth buffer.'''
     def __init__(self, render, shader_options):
 
         # Must have vao bound before compiling shader.
@@ -1656,8 +1675,10 @@ class TextureWindow:
         tcb.update_buffer_data(array(((xs, ys), (1 + xs, ys), (1 + xs, 1 + ys),
                                      (xs, 1 + ys)), float32))
         GL.glDepthMask(False)   # Don't overwrite depth buffer
+        GL.glDisable(GL.GL_DEPTH_TEST)	# Don't test depth buffer.
         eb = self.element_buf
         eb.draw_elements(eb.triangles)
+        GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glDepthMask(True)
 
 

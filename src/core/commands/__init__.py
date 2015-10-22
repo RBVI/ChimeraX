@@ -3,6 +3,7 @@ from .selectors import register_core_selectors
 from .run import run
 
 from .cli import CmdDesc, register, Command, alias
+from .cli import commas, plural_form, plural_of, discard_article
 from .cli import ListOf, SetOf, TupleOf, Or
 
 from .cli import Annotation, next_token, AnnotationError

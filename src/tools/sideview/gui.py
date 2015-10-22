@@ -14,38 +14,33 @@ import wx
 from wx import glcanvas
 from chimera.core.tools import ToolInstance
 from chimera.core.geometry import Place
+from chimera.core.graphics import Camera
 
 
 class _PixelLocations:
     pass
 
-
-class OrthoCamera:
+class OrthoCamera(Camera):
     """A limited camera for the Side View without field_of_view"""
 
     def __init__(self):
+        Camera.__init__(self)
         from chimera.core.geometry import Place
         self.position = Place()
-
-        from chimera.core.graphics.camera import mono_camera_mode
-        self.mode = mono_camera_mode
 
         self.view_width = 1
 
     def get_position(self, view_num=None):
         return self.position
 
-    def view_direction(self, view_num=None):
-        return -self.position.z_axis()
-
     def number_of_views(self):
-        return self.mode.number_of_views()
+        return 1
 
     def set_render_target(self, view_num, render):
-        self.mode.set_render_target(view_num, render)
+        render.set_mono_buffer()
 
     def combine_rendered_camera_views(self, render):
-        self.mode.combine_rendered_camera_views(render)
+        return
 
     def projection_matrix(self, near_far_clip, view_num, window_size):
         near, far = near_far_clip
@@ -66,19 +61,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
     RIGHT_SIDE = 2
 
     def __init__(self, parent, view, session, size, side=RIGHT_SIDE):
-        import sys
-        attribs = [
-            glcanvas.WX_GL_RGBA,
-            glcanvas.WX_GL_DOUBLEBUFFER,
-            glcanvas.WX_GL_DEPTH_SIZE, 1,
-            0  # terminates list for OpenGL
-        ]
-        if sys.platform.startswith('darwin'):
-            attribs[-1:-1] = [
-                glcanvas.WX_GL_CORE_PROFILE,
-                glcanvas.WX_GL_MAJOR_VERSION, 3,
-                glcanvas.WX_GL_MINOR_VERSION, 3,
-            ]
+        attribs = session.ui.opengl_attribs
         if not glcanvas.GLCanvas.IsDisplaySupported(attribs):
             raise AssertionError(
                 "Missing required OpenGL capabilities for Side View")
@@ -184,19 +167,22 @@ class SideViewCanvas(glcanvas.GLCanvas):
             # fov is sideview's vertical field of view,
             # unlike a camera, where it is the horizontal field of view
             if self.side == self.TOP_SIDE:
-                fov = radians(main_camera.field_of_view)
+                # TODO: Handle orthographic main_camera which has no "field_of_view" attribute.
+                fov = radians(main_camera.field_of_view) if hasattr(main_camera, 'field_of_view') else 45
                 camera_axes[0] = -main_axes[2]
                 camera_axes[1] = -main_axes[0]
                 camera_axes[2] = main_axes[1]
             else:
-                fov = 2 * atan(wh / ww *
-                               tan(radians(main_camera.field_of_view / 2)))
+                fov = (2 * atan(wh / ww * tan(radians(main_camera.field_of_view / 2)))
+                       if hasattr(main_camera, 'field_of_view') else 45)
                 camera_axes[0] = -main_axes[2]
                 camera_axes[1] = main_axes[1]
                 camera_axes[2] = main_axes[0]
             center = main_pos.origin() + (.5 * far) * \
                 main_camera.view_direction()
             main_view_width = main_camera.view_width(center)
+            if main_view_width is None:
+                main_view_width = far
             camera_pos.origin()[:] = center + camera_axes[2] * \
                 main_view_width * 5
             camera.position = camera_pos

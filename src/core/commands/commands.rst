@@ -68,7 +68,7 @@ camera
 .. autofunction:: chimera.core.commands.camera.camera
 
 cartoon
-======
+=======
 .. autofunction:: chimera.exp_cmd.cartoon.cartoon
 .. autofunction:: chimera.exp_cmd.cartoon.uncartoon
 
@@ -133,7 +133,7 @@ fitmap
 
 help
 ====
-.. autofunction:: chimera.core.commands.help.help
+.. autofunction:: chimera.help_viewer.cmd.help
 
 ks
 ==

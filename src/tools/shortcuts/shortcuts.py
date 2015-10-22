@@ -60,8 +60,8 @@ def standard_shortcuts(session):
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
 #        ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
-        ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
-        ('hm', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
+        ('dm', 'display selModels models', 'Display selected models', ocat, noarg, smenu),
+        ('hm', '~display selModels models', 'Hide selected models', ocat, noarg, smenu),
         ('Ds', 'close sel', 'Delete selected models', ocat, noarg, smenu, sep),
         ('cs', 'select clear', 'Clear selection', gcat, noarg, smenu),
 
@@ -365,6 +365,7 @@ def register_selectors(session):
     from chimera.core.commands import register_selector
     register_selector(None, "selAtoms", _sel_atoms_selector)
     register_selector(None, "selMaps", _sel_maps_selector)
+    register_selector(None, "selModels", _sel_models_selector)
     _registered_selectors = True
 
 # Selected atoms, or if none selected then all atoms.
@@ -379,12 +380,17 @@ def _sel_maps_selector(session, models, results):
     for m in shortcut_maps(session):
         results.add_model(m)
 
-def shortcut_models(session, mclass = None):
+# Selected models, or if none selected then all models.
+def _sel_models_selector(session, models, results):
+    for m in shortcut_models(session):
+        results.add_model(m)
+
+def shortcut_models(session, mclass = None, undisplayed = True):
     sel = session.selection
     mlist = [m for m in sel.models() if mclass is None or isinstance(m,mclass)]
     if len(mlist) == 0:
         mlist = [m for m in session.models.list()
-                 if (mclass is None or isinstance(m,mclass)) and m.display]
+                 if (mclass is None or isinstance(m,mclass)) and (undisplayed or m.display)]
     return mlist
 
 def shortcut_maps(session):
@@ -393,7 +399,7 @@ def shortcut_maps(session):
 
 def shortcut_molecules(session):
     from chimera.core.atomic import AtomicStructure
-    return shortcut_models(session, AtomicStructure)
+    return shortcut_models(session, AtomicStructure, undisplayed = False)
 
 def shortcut_atoms(session):
     matoms = []
@@ -691,7 +697,7 @@ def toggle_silhouettes(viewer):
     viewer.redraw_needed = True
 
 def depth_cue(viewer):
-    viewer.enable_depth_cue(not viewer.depth_cue_enabled())
+    viewer.depth_cue = not viewer.depth_cue
     
 def selection_mouse_mode(session):
     mm = session.main_window.graphcs_window.mouse_modes
@@ -699,14 +705,6 @@ def selection_mouse_mode(session):
 
 def command_line(session):
     session.keyboard_shortcuts.disable_shortcuts()
-
-def display_selected_models(session):
-    for m in shortcut_models(session):
-        m.display = True
-
-def hide_selected_models(session):
-    for m in shortcut_models(session):
-        m.display = False
 
 def color_by_bfactor(atoms):
     from time import time
@@ -818,7 +816,7 @@ def show_triangle_count(session):
     from chimera.core.atomic import AtomicStructure
     mols = [m for m in models if isinstance(m, AtomicStructure)]
     na = sum(m.shown_atom_count() for m in mols) if mols else 0
-    nt = sum(m.shown_atom_count() * m.triangles_per_sphere for m in mols) if mols else 0
+    nt = sum(m.shown_atom_count() * len(m._atoms_drawing.triangles) for m in mols if m._atoms_drawing) if mols else 0
     n = len(models)
     msg = '%d models, %d atoms, %d atom triangles' % (n, na, nt)
     log = session.logger
@@ -866,10 +864,10 @@ def stereo_mode(viewer):
 
 def start_oculus(session):
     from chimera.core.devices import oculus
-    if session.main_view.camera.mode.name() == 'oculus':
-        oculus.stop_oculus2(session)
+    if session.main_view.camera.name() == 'oculus':
+        oculus.stop_oculus(session)
     else:
-        oculus.start_oculus2(session)
+        oculus.start_oculus(session)
 def oculus_move(session):
     oc = session.oculus
     if oc:

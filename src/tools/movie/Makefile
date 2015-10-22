@@ -13,6 +13,9 @@ TOOL_NAME = movie
 TOOL_PKG_NAME = chimera.movie
 TOOL_DISPLAY_NAME = Movie Recording
 TOOL_CATEGORY = Hidden
+TOOL_FILE_TYPES =
+TOOL_SESSION_VERSIONS = 1,1
+TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Command to record movies
 COMMAND_NAME = movie
 
@@ -49,6 +52,9 @@ setup.py: setup.py.in Makefile
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \
 		-e 's/TOOL_CATEGORY/$(TOOL_CATEGORY)/' \
+		-e 's/TOOL_FILE_TYPES/$(TOOL_FILE_TYPES)/' \
+		-e 's/TOOL_SESSION_VERSIONS/$(TOOL_SESSION_VERSIONS)/' \
+		-e 's/TOOL_CUSTOM_INIT/$(TOOL_CUSTOM_INIT)/' \
 		-e 's/TOOL_SYNOPSIS/$(TOOL_SYNOPSIS)/' \
 		-e 's/COMMAND_NAME/$(COMMAND_NAME)/' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \

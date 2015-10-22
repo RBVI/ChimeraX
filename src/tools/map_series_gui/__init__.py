@@ -5,7 +5,7 @@ _initialized = False
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, ti):
+def start_tool(session, tool_info):
     global _initialized
     if not session.ui.is_gui:
         return None
@@ -19,13 +19,13 @@ def start_tool(session, ti):
         _initialized = True
         return None
     else:
-        return gui.MapSeries(session, ti)
+        return gui.MapSeries(session, tool_info)
 
 
 #
 # 'register_command' is called by the toolshed on start up
 #
-def register_command(command_name):
+def register_command(command_name, tool_info):
     pass        # No command
 
 

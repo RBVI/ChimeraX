@@ -1,14 +1,14 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def camera(session, mode=None, field_of_view=None,
+def camera(session, type=None, field_of_view=None,
            eye_separation=None, pixel_eye_separation=None):
     '''Change camera parameters.
 
     Parameters
     ----------
-    mode : string
-        Controls type of projection, currently "mono" or "360"
+    type : string
+        Controls type of projection, currently "mono", "360", "360s" (stereoscopic), stereo
     field_of_view : float
         Horizontal field of view in degrees.
     eye_separation : float
@@ -24,17 +24,30 @@ def camera(session, mode=None, field_of_view=None,
     view = session.main_view
     cam = session.main_view.camera
     has_arg = False
-    if mode is not None:
+    if type is not None:
         has_arg = True
-        if mode == 'mono':
-            from ..graphics import mono_camera_mode
-            cam.mode = mono_camera_mode
-        elif mode == '360':
-            from ..graphics.camera360 import mono_360_camera_mode
-            mono_360_camera_mode.set_camera_mode(cam)
-        elif mode == '360s':
-            from ..graphics.camera360 import stereo_360_camera_mode
-            stereo_360_camera_mode.set_camera_mode(cam, view._render)
+        if type == 'mono':
+            from ..graphics import MonoCamera
+            view.camera = MonoCamera()
+        elif type == 'ortho':
+            from ..graphics import OrthographicCamera
+            w = view.camera.view_width(view.center_of_rotation)
+            view.camera = OrthographicCamera(w)
+        elif type == '360':
+            from ..graphics import Mono360Camera
+            view.camera = Mono360Camera()
+        elif type == '360s':
+            from ..graphics import Stereo360Camera
+            view.camera = Stereo360Camera()
+        elif type == 'stereo':
+            if not getattr(session.ui, 'have_stereo', False):
+                from ..errors import UserError
+                raise UserError('Do not have stereo OpenGL context.' +
+                                ('\nUse --stereo command-line option'
+                                 if not session.ui.stereo else ''))
+            from ..graphics import StereoCamera
+            view.camera = StereoCamera()
+
     if field_of_view is not None:
         has_arg = True
         cam.field_of_view = field_of_view
@@ -49,17 +62,17 @@ def camera(session, mode=None, field_of_view=None,
         cam.redraw_needed = True
 
     if not has_arg:
+        has_fov = hasattr(cam, 'field_of_view')
         msg = (
             'Camera parameters:\n' +
+            '    type: %s\n' % cam.name() +
             '    position: %.5g %.5g %.5g\n' % tuple(cam.position.origin()) +
-            '    view direction: %.6f %.6f %.6f\n' %
-            tuple(cam.view_direction()) +
-            '    field of view: %.5g degrees\n' % cam.field_of_view +
-            '    mode: %s\n' % cam.mode.name()
+            '    view direction: %.5g %.5g %.5g\n' % tuple(cam.view_direction()) +
+            ('    field of view: %.5g degrees\n' % cam.field_of_view if has_fov else '')
         )
         session.logger.info(msg)
-        msg = (cam.mode.name() +
-               ', %.5g degree field of view' % cam.field_of_view)
+        msg = (cam.name() +
+               (', %.5g degree field of view' % cam.field_of_view if has_fov else ''))
         session.logger.status(msg)
 
 
@@ -67,7 +80,7 @@ def register_command(session):
     from . import CmdDesc, register, FloatArg, EnumOf
     desc = CmdDesc(
         optional=[
-            ('mode', EnumOf(('mono', '360', '360s'))),
+            ('type', EnumOf(('mono', 'ortho', '360', '360s', 'stereo'))),
             ('field_of_view', FloatArg),
             ('eye_separation', FloatArg),
             ('pixel_eye_separation', FloatArg),

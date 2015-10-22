@@ -24,5 +24,6 @@ def echo(session, text=''):
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)],
+                       non_keyword=['text'],
                        synopsis='show text in log')
     cli.register('echo', desc, echo)
