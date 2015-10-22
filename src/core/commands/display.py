@@ -29,10 +29,11 @@ def display(session, objects=None, what=None, only=False):
             other_atoms = structure_atoms(atoms.unique_structures) - atoms
             other_atoms.displays = False
     elif what == 'bonds':
-        atoms = objects.atoms
-        atoms.displays = True
-        bonds = atoms.inter_bonds
+        bonds = objects.atoms.inter_bonds
         bonds.displays = True
+        a1, a2 = bonds.atoms
+        a1.displays = True	   # Atoms need to be displayed for bond to appear
+        a2.displays = True
         if only:
             mbonds = [m.bonds for m in atoms.unique_structures]
             if mbonds:
@@ -45,6 +46,9 @@ def display(session, objects=None, what=None, only=False):
         from .. import atomic
         pbonds = atomic.interatom_pseudobonds(atoms, session)
         pbonds.displays = True
+        a1, a2 = pbonds.atoms
+        a1.displays = True	   # Atoms need to be displayed for bond to appear
+        a2.displays = True
         if only:
             pbs = sum([[pbg.pseudobonds for pbg in m.pseudobond_groups.values()]
                        for m in atoms.unique_structures], [])
