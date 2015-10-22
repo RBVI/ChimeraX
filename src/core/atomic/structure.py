@@ -500,8 +500,10 @@ class AtomicStructure(AtomicStructureData, Model):
                     va, na, ta = surface.cone_geometry(nc=nc, caps=False)
                 tp.geometry = va, ta
                 tp.normals = na
-                self._ribbon_tether.append((tp, coords[tethered], atoms.filter(tethered), atoms,
+                self._ribbon_tether.append((atoms, tp, coords[tethered], atoms.filter(tethered),
                                             m.ribbon_tether_shape, m.ribbon_tether_scale))
+            else:
+                self._ribbon_tether.append((atoms, None, None, None, None, None))
 
             # Create spine if necessary
             if self.ribbon_show_spine:
@@ -527,23 +529,23 @@ class AtomicStructure(AtomicStructureData, Model):
         # Smooth helices
         ss_ids = rlist.ss_id
         helices = rlist.is_helix
-        for start, end in self._ss_ranges(helices, ss_ids):
+        for start, end in self._ss_ranges(helices, ss_ids, 8):
+            # We only "optimize" longer helices because short
+            # ones do not contain enough information to do
+            # things intelligently
             ss_coords = coords[start:end]
             adjusts = ribbon_adjusts[start:end][:, newaxis]
-            axes, vals, centroid, rel_coords = self._ss_axes(ss_coords)
+            axis, centroid, rel_coords = self._ss_axes(ss_coords)
             # Compute position of cylinder center corresponding to
             # helix control point atoms
-            axis = axes[0]
             axis_pos = dot(rel_coords, axis)[:, newaxis]
             cyl_centers = centroid + axis * axis_pos
             if False:
                 # Debugging code to display center of secondary structure
-                self._ss_display(rlist.strs[0] + " helix " + str(start), cyl_centers)
+                self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
             # Compute radius of cylinder
             spokes = ss_coords - cyl_centers
             cyl_radius = mean(norm(spokes, axis=1))
-            #from math import sqrt
-            #cyl_radius = sqrt(vals[1] * vals[1] + vals[2] * vals[2])
             # Compute smoothed position of helix control point atoms
             ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
             offsets = adjusts * (ideal - ss_coords)
@@ -564,18 +566,18 @@ class AtomicStructure(AtomicStructureData, Model):
             tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
         # Smooth strands
         strands = logical_and(rlist.is_sheet, logical_not(helices))
-        for start, end in self._ss_ranges(strands, ss_ids):
+        for start, end in self._ss_ranges(strands, ss_ids, 4):
             ss_coords = coords[start:end]
             adjusts = ribbon_adjusts[start:end][:, newaxis]
-            axes, vals, centroid, rel_coords = self._ss_axes(ss_coords)
+            axis, centroid, rel_coords = self._ss_axes(ss_coords)
             # Compute position for strand control point atom on
             # axis by projection
-            axis = normalize(axes[0])
+            axis = normalize(axis)
             axis_pos = dot(rel_coords, axis)[:, newaxis]
             ideal = centroid + axis * axis_pos
             if False:
                 # Debugging code to display center of secondary structure
-                self._ss_display(rlist.strs[0] + " helix " + str(start), ideal)
+                self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
             offsets = adjusts * (ideal - ss_coords)
             new_coords = ss_coords + offsets
             # Compute guide atom position relative to control point atom
@@ -586,7 +588,7 @@ class AtomicStructure(AtomicStructureData, Model):
             # Update the tethered array
             tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
-    def _ss_ranges(self, ba, ss_ids):
+    def _ss_ranges(self, ba, ss_ids, min_length):
         # Return ranges of True in boolean array "ba"
         ranges = []
         start = -1
@@ -594,32 +596,32 @@ class AtomicStructure(AtomicStructureData, Model):
         for n, bn in enumerate(ba):
             if bn:
                 if start < 0:
+                    start_id = ss_ids[n]
                     start = n
                 elif ss_ids[n] != start_id:
-                    if n - start > 2:
+                    if n - start >= min_length:
                         ranges.append((start, n))
                     start_id = ss_ids[n]
                     start = n
             else:
                 if start >= 0:
-                    if n - start > 2:
+                    if n - start >= min_length:
                         ranges.append((start, n))
                     start = -1
-        if start >= 0 and len(ba) - start > 2:
+        if start >= 0 and len(ba) - start >= min_length:
             ranges.append((start, len(ba)))
         return ranges
 
     def _ss_axes(self, ss_coords):
-        from numpy import mean
+        from numpy import mean, argmax
         from numpy.linalg import svd
         centroid = mean(ss_coords, axis=0)
         rel_coords = ss_coords - centroid
         ignore, vals, vecs = svd(rel_coords)
-        axes = vecs.take(vals.argsort()[::-1], 1)
-        return axes, vals, centroid, rel_coords
+        axes = vecs[argmax(vals)]
+        return axes, centroid, rel_coords
 
-
-    def _ss_display(self, name, centers):
+    def _ss_display(self, p, name, centers):
         ssp = p.new_drawing(name)
         from .. import surface
         va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
@@ -689,15 +691,16 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _update_ribbon_tethers(self):
         from numpy import around
-        for tp, xyz1, atoms, all_atoms, shape, scale in self._ribbon_tether:
+        for all_atoms, tp, xyz1, tether_atoms, shape, scale in self._ribbon_tether:
             all_atoms.update_ribbon_visibility()
-            xyz2 = atoms.coords
-            radii = self._atom_display_radii(atoms) * scale
-            tp.positions = _tether_placements(xyz1, xyz2, radii, shape)
-            tp.display_positions = atoms.visibles
-            colors = atoms.colors
-            colors[:,3] = around(colors[:,3] * self.ribbon_tether_opacity).astype(int)
-            tp.colors = colors
+            if tp:
+                xyz2 = tether_atoms.coords
+                radii = self._atom_display_radii(tether_atoms) * scale
+                tp.positions = _tether_placements(xyz1, xyz2, radii, shape)
+                tp.display_positions = tether_atoms.visibles
+                colors = tether_atoms.colors
+                colors[:,3] = around(colors[:,3] * self.ribbon_tether_opacity).astype(int)
+                tp.colors = colors
 
     def bounds(self, positions = True):
         # TODO: Cache bounds
