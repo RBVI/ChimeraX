@@ -43,11 +43,12 @@ cartoon and molecular surface representations.
 See <a href="#examples">examples</a> below.
 See also: <a href="colordef.html"><b>colordef</b></a>, 
 <a href="transparency.html"><b>transparency</b></a>,
-<b>volume</b>
+<b>volume</b>,
+<a href="#autocolors">initial model colors</a>
 </p><p>
 The absence of an atom or model specifier implies &ldquo;all.&rdquo;
-Bonds and pseudobonds are considered as specified when both flanking atoms
-are specified.
+Bonds and <a href="../pseudobonds.html">pseudobonds</a>
+are considered as specified when both flanking atoms are specified.
 </p><p>
 Keywords can be truncated to unique strings, and their case does not matter.
 <!--
@@ -102,7 +103,8 @@ without commas or spaces:
   <li><b>s</b> - surfaces
   (molecular surfaces divisible to per-atom patches)
   <li><b>p</b> - pseudobonds-only
-  (coloring shown for pseudobonds not in <a href="#halfbond">halfbond mode</a>)
+  (coloring shown for <a href="../pseudobonds.html">pseudobonds</a>
+   not in <a href="#halfbond">halfbond mode</a>)
 <!--
   <li><b>r</b> - residue labels
   <li><b>n</b> - nonmolecular models (model-level color)
@@ -203,6 +205,42 @@ surface-only), create new atom attribute named <b>esp</b>
 </blockquote>
 - reset molecule models to default initial colors
 -->
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+<a name="autocolors"></a>
+<h3>Initial Model Colors</h3>
+<p>
+Default initial colors for atomic models are
+<b>tan</b>, <b>sky blue</b>, <b>plum</b>, <b>light green</b>, 
+<b>salmon</b>, <b>light gray</b>, <b>deep pink</b>, <b>gold</b>,
+<b>dodger blue</b> and <b>purple</b> 
+(see <a href="colornames.html">color names</a>):
+</p>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td bgcolor=#d2b48c align="center">&nbsp;#1&nbsp;</td>
+<td bgcolor=#00bfff align="center">&nbsp;#2&nbsp;</td>
+<td bgcolor=#dda0dd align="center">&nbsp;#3&nbsp;</td>
+<td bgcolor=#90ee90 align="center">&nbsp;#4&nbsp;</td>
+<td bgcolor=#fa8072 align="center">&nbsp;#5&nbsp;</td>
+<td bgcolor=#d3d3d3 align="center">&nbsp;#6&nbsp;</td>
+<td bgcolor=#ff1493 align="center">&nbsp;#7&nbsp;</td>
+<td bgcolor=#ffd700 align="center">&nbsp;#8&nbsp;</td>
+<td bgcolor=#1e90ff align="center">&nbsp;#9&nbsp;</td>
+<td bgcolor=#a020f0 align="center">
+<font color=white>&nbsp;#10&nbsp;</font></td>
+</tr>
+</table>
+<p>
+If any of the above would exactly match the background, 
+a different model color is used instead. 
+For higher model numbers, an algorithm is used to produce colors
+distinguishable from the background and from other models.
+</p><p>
+Similarly, there are default initial colors for volume data sets:
+<img src="mapcolors.png">
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
