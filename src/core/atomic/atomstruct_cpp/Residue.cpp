@@ -40,6 +40,7 @@ Residue::~Residue() {
     if (_chain != nullptr)
         _chain->remove_residue(this);
     _structure->change_tracker()->add_deleted(this);
+    _structure->set_gc_ribbon();
 }
 
 void
