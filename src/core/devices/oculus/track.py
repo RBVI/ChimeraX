@@ -218,10 +218,9 @@ class Oculus_Rift_Camera(Camera):
         '''Number of views rendered by camera.'''
         return 2
 
-    def pixel_size(self, center, window_size):
-        from ...graphics.camera import perspective_pixel_size
-        return perspective_pixel_size(center, self.position.origin(),
-                                      self.field_of_view, window_size[0])
+    def view_width(self, point):
+        from ...graphics.camera import perspective_view_width
+        return perspective_view_width(point, self.position.origin(), self.field_of_view)
 
     def pixel_shift(self, view_num):
         '''Shift of center away from center of render target.'''
@@ -232,9 +231,8 @@ class Oculus_Rift_Camera(Camera):
         return (s*sx, s*sy)
 
     def view_all(self, center, size):
-        from ...graphics.camera import perspective_view_all_center
-        ca = perspective_view_all_center(center, size, self.view_direction(), self.field_of_view)
-        return ca - self.position.origin()
+        from ...graphics import camera
+        self.position = camera.perspective_view_all(center, size, self.position, self.field_of_view)
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''

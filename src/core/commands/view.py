@@ -23,9 +23,7 @@ def view(session, atoms=None, orient=False):
     else:
         from .. import geometry
         b = geometry.sphere_bounds(atoms.scene_coords, atoms.radii)
-        shift = v.camera.view_all(b.center(), b.width())
-        v.translate(-shift)
-
+        v.view_all(b)
 
 def register_command(session):
     from . import CmdDesc, register, AtomsArg, NoArg
