@@ -62,18 +62,24 @@ def camera(session, type=None, field_of_view=None,
         cam.redraw_needed = True
 
     if not has_arg:
-        has_fov = hasattr(cam, 'field_of_view')
-        msg = (
-            'Camera parameters:\n' +
-            '    type: %s\n' % cam.name() +
-            '    position: %.5g %.5g %.5g\n' % tuple(cam.position.origin()) +
-            '    view direction: %.5g %.5g %.5g\n' % tuple(cam.view_direction()) +
-            ('    field of view: %.5g degrees\n' % cam.field_of_view if has_fov else '')
-        )
-        session.logger.info(msg)
-        msg = (cam.name() +
-               (', %.5g degree field of view' % cam.field_of_view if has_fov else ''))
-        session.logger.status(msg)
+        lines = [
+            'Camera parameters:',
+            '    type: %s' % cam.name(),
+            '    position: %.5g %.5g %.5g' % tuple(cam.position.origin()),
+            '    view direction: %.5g %.5g %.5g' % tuple(cam.view_direction())
+            ]
+        if hasattr(cam, 'field_of_view'):
+            lines.append('    field of view: %.5g degrees' % cam.field_of_view)
+        if hasattr(cam, 'eye_separation_scene'):
+            lines.append('    eye separation in scene: %.5g' % cam.eye_separation_scene)
+        if hasattr(cam, 'eye_separation_pixels'):
+            lines.append('    eye separation in screen pixels: %.5g' % cam.eye_separation_pixels)
+        session.logger.info('\n'.join(lines))
+
+        fields = ['%s camera' % cam.name()]
+        if hasattr(cam, 'field_of_view'):
+            fields.append('%.5g degree field of view' % cam.field_of_view)
+        session.logger.status(', '.join(fields))
 
 
 def register_command(session):
