@@ -293,7 +293,7 @@ class StereoCamera(Camera):
         self.field_of_view = 45
         "Horizontal field of view in degrees."
 
-        self.eye_separation_scene = 1.0
+        self.eye_separation_scene = 5.0
         "Stereo eye separation in scene units."
 
         self.eye_separation_pixels = eye_separation_pixels
