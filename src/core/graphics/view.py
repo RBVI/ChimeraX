@@ -418,10 +418,10 @@ class View:
             s0 = -0.5 + 0.5 * s
             for i in range(n):
                 for j in range(n):
-                    c.pixel_shift = (s0 + i * s, s0 + j * s)
+                    c.set_pixel_shift((s0 + i * s, s0 + j * s))
                     self.draw(c, drawings, swap_buffers = False)
                     srgba += r.frame_buffer_image(w, h)
-            c.pixel_shift = (0, 0)
+            c.set_pixel_shift((0, 0))
             srgba /= n * n
             # third index 0, 1, 2, 3 is r, g, b, a
             rgba = srgba.astype(uint8)
