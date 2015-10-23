@@ -70,6 +70,8 @@ def camera(session, type=None, field_of_view=None,
             ]
         if hasattr(cam, 'field_of_view'):
             lines.append('    field of view: %.5g degrees' % cam.field_of_view)
+        if hasattr(cam, 'field_width'):
+            lines.append('    field width: %.5g' % cam.field_width)
         if hasattr(cam, 'eye_separation_scene'):
             lines.append('    eye separation in scene: %.5g' % cam.eye_separation_scene)
         if hasattr(cam, 'eye_separation_pixels'):
