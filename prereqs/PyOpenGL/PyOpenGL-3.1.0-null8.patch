@@ -1,0 +1,19 @@
+*** OpenGL/GL/VERSION/GL_2_0.py~	Tue Oct 13 16:40:50 2015
+--- OpenGL/GL/VERSION/GL_2_0.py	Thu Oct 22 19:10:55 2015
+***************
+*** 382,388 ****
+      if not name:
+          raise ValueError( """Non-null name required""" )
+      name = as_8_bit( name )
+!     if name[-1] != _NULL_8_BYTE:
+          name = name + _NULL_8_BYTE
+      return baseOperation( program, name )
+  @_lazy( glGetAttribLocation )
+--- 382,388 ----
+      if not name:
+          raise ValueError( """Non-null name required""" )
+      name = as_8_bit( name )
+!     if name[-1:] != _NULL_8_BYTE:
+          name = name + _NULL_8_BYTE
+      return baseOperation( program, name )
+  @_lazy( glGetAttribLocation )
