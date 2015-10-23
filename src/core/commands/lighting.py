@@ -92,6 +92,8 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
             'Fill color: (%.5g,%.5g,%.5g)' % tuple(lp.fill_light_color),
             'Ambient intensity: %.5g' % lp.ambient_light_intensity,
             'Ambient color: (%.5g,%.5g,%.5g)' % tuple(lp.ambient_light_color),
+            'Depth cue: %d, start %.5g, end %.5g, color (%.5g,%.5g,%.5g)'
+              % ((v.depth_cue, lp.depth_cue_start, lp.depth_cue_end) + tuple(lp.depth_cue_color)),
             'Shadow: %s (depth map size %d, depth bias %.5g)'
               % (v.shadows, v.shadow_map_size, v.shadow_depth_bias),
             'Multishadows: %d (max %d, depth map size %d, depth bias %.5g)'
