@@ -943,11 +943,22 @@ clock_t start_t, end_t;
             "HTTPResponse class not found in http.client module");
         return NULL;
     }
-    int is_inst = PyObject_IsInstance(pdb_file, http_conn);
+    PyObject *compression_mod = PyImport_ImportModule("_compression");
+    if (compression_mod == NULL)
+        return NULL;
+    PyObject *compression_stream = PyObject_GetAttrString(compression_mod, "BaseStream");
+    if (compression_stream == NULL) {
+        Py_DECREF(compression_mod);
+        PyErr_SetString(PyExc_AttributeError,
+            "BaseStream class not found in _compression module");
+        return NULL;
+    }
+    bool is_inst = PyObject_IsInstance(pdb_file, http_conn) == 1 || 
+        PyObject_IsInstance(pdb_file, compression_stream) == 1;
     int fd;
     if (is_inst)
         // due to buffering issues, cannot handle a socket like it 
-        // was a file
+        // was a file, and compression streams return open _compressed_ file fd!
         fd = -1;
     else
         fd = PyObject_AsFileDescriptor(pdb_file);
