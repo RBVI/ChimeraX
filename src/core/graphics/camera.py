@@ -40,6 +40,21 @@ class Camera:
         '''Name indicating the type of camera, for example, "mono", "stereo", "orthographic".'''
         return 'unknown'
 
+    def get_position(self, view_num=None):
+        p = self._position if view_num is None else self.view(self._position, view_num)
+        return p
+
+    def set_position(self, p):
+        self._position = p
+        self.redraw_needed = True
+    position = property(get_position, set_position)
+    '''Location and orientation of the camera in scene coordinates. Camera
+    points along -z axis.'''
+
+    def view_direction(self, view_num=None):
+        '''The view direction of the camera in scene coordinates.'''
+        return -self.get_position(view_num).z_axis()
+
     def number_of_views(self):
         '''
         TODO: Rename views to something clearer like "axis".
@@ -62,6 +77,34 @@ class Camera:
         '''
         return (0,0)
 
+    def view_all(self, center, size):
+        '''
+        Return the shift that makes the camera completely show models
+        having specified center and radius.  The camera view direction
+        is not changed.
+        '''
+        raise NotImplementedError('Camera has no view_all() method')
+
+    def view_width(self, point):
+        '''Return the full width of the view at the distance of point.
+        The point is in scene coordinates.'''
+        raise NotImplementedError('Camera has no view_width() method')
+
+    def projection_matrix(self, near_far_clip, view_num, window_size):
+        '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
+        xps, yps = self._pixel_shift		# supersampling shift
+        vxs, vys = self.pixel_shift(view_num)	# Per-view shift
+        pixel_shift = (xps + vxs, yps + vys)
+        return perspective_projection_matrix(self.field_of_view, window_size,
+                                             near_far_clip, pixel_shift)
+
+    def clip_plane_points(self, window_x, window_y, window_size, z_distances):
+        '''
+        Return two scene points at the near and far clip planes at the
+        specified window pixel position.
+        '''
+        return [None]*len(z_distances)
+
     def set_special_render_modes(self, render):
         '''
         Set any special rendering options needed by this camera.
@@ -82,68 +125,10 @@ class Camera:
 
     def combine_rendered_camera_views(self, render):
         '''Combine camera views into a single image.'''
-        return
+        pass
 
     def do_swap_buffers(self):
         return True
-
-    def get_position(self, view_num=None):
-        p = self._position if view_num is None else self.view(self._position, view_num)
-        return p
-
-    def set_position(self, p):
-        self._position = p
-        self.redraw_needed = True
-    position = property(get_position, set_position)
-    '''Location and orientation of the camera in scene coordinates. Camera
-    points along -z axis.'''
-
-    def initialize_view(self, center, size):
-        '''
-        Set the camera position to completely show models having specified center
-        and radius looking along the scene -z axis.
-        '''
-        pass
-
-    def view_all(self, center, size):
-        '''
-        Return the shift that makes the camera completely show models
-        having specified center and radius.  The camera view direction
-        is not changed.
-        '''
-        raise NotImplementedError('Camera has no view_all() method')
-
-    def view_width(self, center):
-        '''Return the width of the view at position center which is in
-        scene coordinates.'''
-        return None
-
-    def pixel_size(self, center, window_size):
-        '''
-        Return the size of a pixel in scene units for a point at position
-        center.  Center is given in scene coordinates and perspective
-        projection is accounted for.
-        '''
-        raise NotImplementedError('Camera has no pixel_size() method')
-
-    def view_direction(self, view_num=None):
-        '''The view direction of the camera in scene coordinates.'''
-        return -self.get_position(view_num).z_axis()
-
-    def projection_matrix(self, near_far_clip, view_num, window_size):
-        '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
-        xps, yps = self._pixel_shift		# supersampling shift
-        vxs, vys = self.pixel_shift(view_num)	# Per-view shift
-        pixel_shift = (xps + vxs, yps + vys)
-        return perspective_projection_matrix(self.field_of_view, window_size,
-                                             near_far_clip, pixel_shift)
-
-    def clip_plane_points(self, window_x, window_y, window_size, z_distances):
-        '''
-        Return two scene points at the near and far clip planes at the
-        specified window pixel position.
-        '''
-        return [None]*len(z_distances)
 
 class MonoCamera(Camera):
     '''Perspective projection camera has an angular field of view measured in degrees.'''
@@ -156,39 +141,18 @@ class MonoCamera(Camera):
         '''Name indicating the type of camera, for example, "mono", "stereo", "orthographic".'''
         return 'mono'
 
-    def initialize_view(self, center, size):
-        '''
-        Set the camera position to completely show models having specified center
-        and radius looking along the scene -z axis.
-        '''
-        view_direction = (0,0,-1)
-        ca = perspective_view_all_center(center, size, view_direction, self.field_of_view)
-        from ..geometry import translation
-        self.position = translation(ca)
-
     def view_all(self, center, size):
         '''
         Return the shift that makes the camera completely show models
         having specified center and radius.  The camera view direction
         is not changed.
         '''
-        ca = perspective_view_all_center(center, size, self.view_direction(), self.field_of_view)
-        return ca - self.position.origin()
+        self.position = perspective_view_all(center, size, self.position, self.field_of_view)
 
     def view_width(self, center):
         '''Return the width of the view at position center which is in
         scene coordinates.'''
-        return perspective_view_width(center, self.position.origin(),
-                                      self.view_direction(), self.field_of_view)
-
-    def pixel_size(self, center, window_size):
-        '''
-        Return the size of a pixel in scene units for a point at position
-        center.  Center is given in scene coordinates and perspective
-        projection is accounted for.
-        '''
-        return perspective_pixel_size(center, self.position.origin(),
-                                      self.field_of_view, window_size[0])
+        return perspective_view_width(center, self.position.origin(), self.field_of_view)
 
     def clip_plane_points(self, window_x, window_y, window_size, z_distances):
         '''
@@ -200,7 +164,7 @@ class MonoCamera(Camera):
         spts = self.position * cpts  # Convert camera to scene coordinates
         return spts
 
-def perspective_view_all_center(center, size, direction, field_of_view):
+def perspective_view_all(center, size, position, field_of_view):
     '''
     Return the camera position that shows models with bounds specified by
     a center and radius. Camera has perspective projection.
@@ -208,28 +172,25 @@ def perspective_view_all_center(center, size, direction, field_of_view):
     from math import radians, tan
     fov = radians(field_of_view)
     d = 0.5 * size + 0.5 * size / tan(0.5 * fov)
+    view_direction = -position.z_axis()
     from numpy import array, float32
-    center = array(tuple((center[a] - d * direction[a]) for a in (0, 1, 2)), float32)
-    return center
+    camera_center = array(tuple((center[a] - d * view_direction[a]) for a in (0, 1, 2)), float32)
+    shift = camera_center - position.origin()
+    from ..geometry import translation
+    va_position = translation(shift) * position
+    return va_position
 
-def perspective_view_width(point, origin, view_direction, field_of_view):
+def perspective_view_width(point, origin, field_of_view):
     '''
-    Return the visible width based on the distance to the given point
+    Return the visible width at the distance to the given point
     in scene coordinates.
     '''
-    d = sum((point - origin) * view_direction)   # camera distance to point
-    from math import radians, tan
-    # view width at center
-    vw = 2 * d * tan(0.5 * radians(field_of_view))
-    return vw
-
-def perspective_pixel_size(point, origin, field_of_view, window_width):
-    '''Pixel width in scene units and point.'''
-    from math import radians, tan
-    fov = radians(field_of_view)
     from ..geometry import vector
-    ps = vector.distance(origin, point) * 2 * tan(0.5 * fov) / window_width
-    return ps
+    d = vector.distance(origin, point)
+    from math import radians
+    # view width at center
+    vw = d * radians(field_of_view)
+    return vw
 
 def perspective_projection_matrix(field_of_view, window_size, near_far_clip, pixel_shift):
     '''4x4 perspective projection matrix viewing along -z axis.'''
@@ -275,15 +236,6 @@ class OrthographicCamera(Camera):
         '''Name indicating the type of camera, for example, "mono", "stereo", "orthographic".'''
         return 'orthographic'
 
-    def initialize_view(self, center, size):
-        '''
-        Set the camera position to completely show models having specified center
-        and radius looking along the scene -z axis.
-        '''
-        self.field_width = 2*size
-        cx,cy,cz = center
-        self.position = translation((cx,cy,cz+2*size))
-
     def view_all(self, center, size):
         '''
         Return the shift that makes the camera completely show models
@@ -292,20 +244,14 @@ class OrthographicCamera(Camera):
         '''
         self.field_width = 2*size
         ca = center - 2*size*self.view_direction()
-        return ca - self.position.origin()
+        shift = ca - self.position.origin()
+        from ..geometry import translation
+        self.position = translation(shift) * self.position
 
     def view_width(self, center):
         '''Return the width of the view at position center which is in
         scene coordinates.'''
         return self.field_width
-
-    def pixel_size(self, center, window_size):
-        '''
-        Return the size of a pixel in scene units for a point at position
-        center.  Center is given in scene coordinates and perspective
-        projection is accounted for.
-        '''
-        return self.field_width / window_size[0]
 
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
@@ -342,12 +288,16 @@ class StereoCamera(Camera):
     '''
 
     def __init__(self, eye_separation_pixels=200):
+        Camera.__init__(self)
+
+        self.field_of_view = 45
+        "Horizontal field of view in degrees."
+
         self.eye_separation_scene = 1.0
         "Stereo eye separation in scene units."
 
         self.eye_separation_pixels = eye_separation_pixels
-        """Separation of the user's eyes in screen pixels used for stereo
-        rendering."""
+        "Separation of the user's eyes in screen pixels used for stereo rendering."
 
     def name(self):
         return 'stereo'
@@ -372,6 +322,19 @@ class StereoCamera(Camera):
         '''Number of views rendered by camera mode.'''
         return 2
 
+    def view_all(self, center, size):
+        '''
+        Return the shift that makes the camera completely show models
+        having specified center and radius.  The camera view direction
+        is not changed.
+        '''
+        self.position = perspective_view_all(center, size, self.position, self.field_of_view)
+
+    def view_width(self, center):
+        '''Return the width of the view at position center which is in
+        scene coordinates.'''
+        return perspective_view_width(center, self.position.origin(), self.field_of_view)
+
     def pixel_shift(self, view_num):
         '''Shift of center away from center of render target.'''
         if view_num is None:
@@ -382,9 +345,6 @@ class StereoCamera(Camera):
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
         render.set_stereo_buffer(view_num)
-
-stereo_camera = StereoCamera()
-
 
 # glFrustum() matrix
 def frustum(left, right, bottom, top, z_near, z_far, xshift=0, yshift=0):
@@ -431,10 +391,10 @@ def camera_framing_drawings(drawings):
     Create a Camera object for viewing the specified models.
     This is used for capturing thumbnail images.
     '''
-    c = Camera()
+    c = MonoCamera()
     from ..geometry import bounds
     b = bounds.union_bounds(d.bounds() for d in drawings)
     if b is None:
         return None
-    c.initialize_view(b.center(), b.width())
+    c.view_all(b.center(), b.width())
     return c

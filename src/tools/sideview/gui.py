@@ -61,19 +61,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
     RIGHT_SIDE = 2
 
     def __init__(self, parent, view, session, size, side=RIGHT_SIDE):
-        import sys
-        attribs = [
-            glcanvas.WX_GL_RGBA,
-            glcanvas.WX_GL_DOUBLEBUFFER,
-            glcanvas.WX_GL_DEPTH_SIZE, 1,
-            0  # terminates list for OpenGL
-        ]
-        if sys.platform.startswith('darwin'):
-            attribs[-1:-1] = [
-                glcanvas.WX_GL_CORE_PROFILE,
-                glcanvas.WX_GL_MAJOR_VERSION, 3,
-                glcanvas.WX_GL_MINOR_VERSION, 3,
-            ]
+        attribs = session.ui.opengl_attribs
         if not glcanvas.GLCanvas.IsDisplaySupported(attribs):
             raise AssertionError(
                 "Missing required OpenGL capabilities for Side View")

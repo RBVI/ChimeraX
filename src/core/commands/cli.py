@@ -1123,6 +1123,7 @@ class CmdDesc:
     :param optional: optional positional arguments sequence
     :param keyword: keyword arguments sequence
     :param required_arguments: sequence of argument names that must be given
+    :param non_keyword: sequence of optional arguments that cannot be keywords
     :param url: URL to help page
     :param synopsis: one line description
     :param official: True if officially supported command
@@ -1148,11 +1149,13 @@ class CmdDesc:
 
     def __init__(self, required=(), optional=(), keyword=(),
                  postconditions=(), required_arguments=(),
-                 url=None, synopsis=None, official=False):
+                 non_keyword=(), url=None, synopsis=None, official=False):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = OrderedDict(keyword)
-        self._keyword.update(self._optional)
+        optional_keywords = [i for i in self._optional.items()
+                             if i[0] not in non_keyword]
+        self._keyword.update(optional_keywords)
         # keyword_map is what would user would type
         self._keyword_map = dict([(_canonical_kw(n), n) for n in self._keyword])
         self._postconditions = postconditions
