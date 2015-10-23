@@ -41,6 +41,12 @@ class Mono360Camera(Camera):
         from .camera import perspective_projection_matrix
         return perspective_projection_matrix(90, window_size, near_far_clip, self._pixel_shift)
 
+    def set_special_render_modes(self, render):
+        # Turn off depth cue since we don't support radial depth cueing.
+        # Also don't have APIs to determine a near bound for radial depth cue
+        # if camera is in a pocket surrounded by atoms, a typical 360 camera scenario.
+        render.enable_capabilities &= ~render.SHADER_DEPTH_CUE
+
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
         fb = self._cube_face_framebuffer()
@@ -89,12 +95,6 @@ class Stereo360Camera(Camera):
         '''Name of camera mode.'''
         return 'stereo 360'
 
-    def set_special_render_modes(self, render):
-        render.enable_capabilities |= render.SHADER_STEREO_360
-
-    def clear_special_render_modes(self, render):
-        render.enable_capabilities &= ~render.SHADER_STEREO_360
-
     def view(self, camera_position, view_num):
         '''
         Return the Place coordinate frame for a specific camera view number.
@@ -117,10 +117,21 @@ class Stereo360Camera(Camera):
         '''
         self.position = view_all_360(center, size, self.position)
 
+    def view_width(self, point):
+        return view_width_360(point, self.position.origin())
+
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
         from .camera import perspective_projection_matrix
         return perspective_projection_matrix(90, window_size, near_far_clip, self._pixel_shift)
+
+    def set_special_render_modes(self, render):
+        render.enable_capabilities |= render.SHADER_STEREO_360
+        # Turn off depth cue since we don't support radial depth cueing.
+        render.enable_capabilities &= ~render.SHADER_DEPTH_CUE
+
+    def clear_special_render_modes(self, render):
+        render.enable_capabilities &= ~render.SHADER_STEREO_360
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
@@ -167,9 +178,6 @@ class Stereo360Camera(Camera):
             y[:] += (1 if eye == 'left' else -1)
             y[:] /= 2
         return d
-
-    def view_width(self, point):
-        return view_width_360(point, self.position.origin())
 
 def view_width_360(point, origin):
     from math import pi
