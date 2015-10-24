@@ -480,8 +480,11 @@ def chain_colors(cids):
             seed(c)
             rgba_256[c] = (randint(128, 255), randint(128, 255), randint(128, 255), 255)
 
-    from numpy import array, uint8
-    c = array(tuple(rgba_256[cid.lower()] for cid in cids), uint8)
+    from numpy import array, uint8, empty
+    if len(cids) == 0:
+        c = empty((0,4), uint8)
+    else:
+        c = array(tuple(rgba_256[cid.lower()] for cid in cids), uint8)
     return c
 
 

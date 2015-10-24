@@ -74,8 +74,13 @@ class Camera:
         '''
         Per view pixel shift of center away from center of render target.
         This is used for example to shift stereoscopic left/right eye images.
+        Also used for supersampled image save.
         '''
-        return (0,0)
+        return self._pixel_shift
+
+    def set_pixel_shift(self, shift):
+        '''Set per view pixel shift of center away from center of render target.'''
+        self._pixel_shift = shift
 
     def view_all(self, center, size):
         '''
