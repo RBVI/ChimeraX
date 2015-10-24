@@ -25,9 +25,10 @@ class UpdateLoop:
             if changed:
                 try:
                     view.draw(check_for_changes = False)
+                    raise ValueError("test")
                 except:
                     # Stop redraw if an error occurs to avoid continuous stream of errors.
-                    self.block_redraw()
+                    self._block_redraw_count += 1
                     import traceback
                     session.logger.error('Error in drawing scene. Redraw is now stopped.\n\n' +
                                         traceback.format_exc())
