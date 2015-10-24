@@ -21,7 +21,7 @@ def view(session, atoms=None, show=None, frames=None,
       Print the named camera views in the log.  The names are links and clicking
       them show the corresponding view.
     delete : string
-      Delete the name of a saved view.
+      Delete the name of a saved view.  Delete "all" deletes all named views.
     orient : no value
       Specifying the orient keyword moves the camera view point to
       look down the scene z axis with the x-axis horizontal and y-axis
@@ -56,7 +56,9 @@ def save_view(name, session):
 
 def delete_view(name, session):
     nv = _named_views(session)
-    if name in nv:
+    if name == 'all':
+        nv.clear()
+    elif name in nv:
         del nv[name]
 
 def show_view(name, frames, session):
