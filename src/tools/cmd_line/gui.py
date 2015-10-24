@@ -24,6 +24,8 @@ class CommandLine(ToolInstance):
         self.text = wx.ComboBox(parent, size=self.SIZE,
                                 style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
+        label = wx.StaticText(parent, label="Command:")
+        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.text, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.history_dialog = _HistoryDialog(self)

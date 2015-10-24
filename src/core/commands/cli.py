@@ -259,6 +259,28 @@ def discard_article(text):
         return text_seq[1]
     return text
 
+_small_ordinals = {
+    1: "first",
+    2: "second",
+    3: "third",
+    4: "forth",
+    5: "fifth",
+    6: "sixth",
+    7: "seventh",
+    8: "eighth",
+    9: "ninth",
+    10: "tenth",
+}
+
+
+def ordinal(i):
+    """Return ordinal number name of number"""
+    if i <= 10:
+        return _small_ordinals[i]
+    if i % 100 == 11 or i % 10 != 1:
+        return "%dth" % i
+    return "%dst" % i
+
 
 def dq_repr(obj):
     """Like repr, but use double quotes"""
@@ -1655,7 +1677,12 @@ class Command:
             if kw_name in self._ci._optional:
                 self._error = ""
             else:
-                self._error = 'Missing required "%s" positional argument' % _user_kw(kw_name)
+                if isinstance(kw_name, int):
+                    # alias argument position
+                    required = "%s requried" % ordinal(kw_name)
+                else:
+                    required = 'required "%s"' % _user_kw(kw_name)
+                self._error = 'Missing %s positional argument' % required
             m = _whitespace.match(text)
             start = m.end()
             if start:
