@@ -25,7 +25,6 @@ class UpdateLoop:
             if changed:
                 try:
                     view.draw(check_for_changes = False)
-                    raise ValueError("test")
                 except:
                     # Stop redraw if an error occurs to avoid continuous stream of errors.
                     self._block_redraw_count += 1
