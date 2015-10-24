@@ -625,6 +625,12 @@ class _Wx:
         else:
             pane_info.Layer(1)
 
+        # hack
+        if self.tool_window.tool_instance.display_name == "Log":
+            pane_info.dock_proportion = 5
+        else:
+            pane_info.dock_proportion = 1
+
         if self.tool_window.close_destroys:
             pane_info.DestroyOnClose()
         mw.aui_mgr.Update()

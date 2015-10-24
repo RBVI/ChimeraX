@@ -36,7 +36,7 @@ class ModelPanel(ToolInstance):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.table, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
-        self.tool_window.manage(placement="left")
+        self.tool_window.manage(placement="right")
 
     #
     # Implement session.State methods if deriving from ToolInstance
