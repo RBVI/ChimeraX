@@ -27,8 +27,7 @@ def alias(session, name='', text=''):
         if text is None:
             logger.status('No alias named %s found.' % cli.dq_repr(name))
         else:
-            logger.info('Aliased %s to %s' % (
-                cli.dq_repr(name), cli.dq_repr(text)))
+            logger.info('Aliased %s to: %s' % (cli.dq_repr(name), text))
         return
     cli.alias(name, text, user=True, logger=session.logger)
 

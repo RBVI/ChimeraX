@@ -305,7 +305,7 @@ class _ModelHierarchy(list):
             try:
                 mid = model.id[i]
             except IndexError:
-                mid = 1
+                return False
             if not mrl.matches(mid):
                 return False
         return True
