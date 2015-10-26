@@ -418,10 +418,10 @@ class View:
             s0 = -0.5 + 0.5 * s
             for i in range(n):
                 for j in range(n):
-                    c.pixel_shift = (s0 + i * s, s0 + j * s)
+                    c.set_pixel_shift((s0 + i * s, s0 + j * s))
                     self.draw(c, drawings, swap_buffers = False)
                     srgba += r.frame_buffer_image(w, h)
-            c.pixel_shift = (0, 0)
+            c.set_pixel_shift((0, 0))
             srgba /= n * n
             # third index 0, 1, 2, 3 is r, g, b, a
             rgba = srgba.astype(uint8)
@@ -629,17 +629,21 @@ class View:
         b = self.drawing_bounds()
         if b is None:
             return
-        self.camera.initialize_view(b.center(), b.width())
+        c = self.camera
+        from ..geometry import identity
+        c.position = identity()
+        c.view_all(b.center(), b.width())
         self.center_of_rotation = b.center()
 
-    def view_all(self):
+    def view_all(self, bounds = None):
         '''Adjust the camera to show all displayed drawings using the
         current view direction.'''
-        b = self.drawing_bounds()
-        if b is None:
-            return
-        shift = self.camera.view_all(b.center(), b.width())
-        self.translate(-shift)
+        if bounds is None:
+            bounds = self.drawing_bounds()
+            if bounds is None:
+                return
+        self.camera.view_all(bounds.center(), bounds.width())
+        self._update_center_of_rotation = True
 
     def _get_cofr(self):
         if self._update_center_of_rotation:
@@ -706,6 +710,8 @@ class View:
 
         c = self.camera if camera is None else camera
         near, far = self._near_far_clip(c, view_num)
+        # TODO: Different camera views need to use same near/far if they are part of
+        # a cube map, otherwise depth cue dimming is not continuous across cube faces.
         pm = c.projection_matrix((near, far), view_num, (ww, wh))
         r.set_projection_matrix(pm)
         r.set_near_far_clip(near, far)
@@ -780,11 +786,10 @@ class View:
         self.redraw_needed = True
 
     def pixel_size(self, p=None):
-        '''Return the pixel size in scene length units at point p in
-        the scene.'''
+        "Return the pixel size in scene length units at point p in the scene."
         if p is None:
             p = self.center_of_rotation
-        return self.camera.pixel_size(p, self.window_size)
+        return self.camera.view_width(p) / self.window_size[0]
 
 
 class OpenGLContext:

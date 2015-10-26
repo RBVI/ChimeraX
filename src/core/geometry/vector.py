@@ -45,3 +45,7 @@ def distance(p, q):
     d = p - q
     from math import sqrt
     return sqrt((d * d).sum())
+
+def interpolate_points(p1, p2, f):
+    '''Linearly interpolate from point p1 to p2 by fraction f (0 -> p1, 1 -> p2).'''
+    return (1-f)*p1 + f*p2

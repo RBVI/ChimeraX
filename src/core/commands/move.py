@@ -13,8 +13,7 @@ def move(session, axis, distance, frames=None):
     frames : integer
        Repeat the shift for N frames.
     '''
-    v = session.main_view
-    c = v.camera
+    c = session.main_view.camera
     cv = c.position
     saxis = cv.apply_without_translation(axis)  # Convert axis from camera to scene coordinates
     from ..geometry import translation
@@ -29,11 +28,11 @@ def move(session, axis, distance, frames=None):
 
 
 def register_command(session):
-    from . import cli
-    desc = cli.CmdDesc(
-        required=[('axis', cli.AxisArg),
-                  ('distance', cli.FloatArg)],
-        optional=[('frames', cli.PositiveIntArg)],
+    from .cli import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
+    desc = CmdDesc(
+        required=[('axis', AxisArg),
+                  ('distance', FloatArg)],
+        optional=[('frames', PositiveIntArg)],
         synopsis='translate models'
     )
-    cli.register('move', desc, move)
+    register('move', desc, move)

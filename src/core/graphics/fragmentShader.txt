@@ -170,7 +170,7 @@ void main (void)
 #endif
 
 #ifdef USE_DEPTH_CUE
-  float d = dot(v,v1);	// Distance from eye to fragment.
+  float d = -v.z;	// Distance from eye to fragment.
   float dim = (depth_cue_end - d) / (depth_cue_end - depth_cue_start);
   Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
 #endif

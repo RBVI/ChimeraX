@@ -8,7 +8,7 @@ def display(session, objects=None, what=None, only=False):
     objects : AtomSpecResults or None
         Atoms, bonds or models to show.  If None then all are shown.
         Objects that are already shown remain shown.
-    what : 'atoms', 'bonds', 'pseudobonds', 'cartoons', 'ribbons', 'models' or None
+    what : 'atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons', 'models' or None
         What to show.  If None then 'atoms' if any atoms specified otherwise 'models'.
     only : bool
         Show only the specified atoms/bonds/residues in each specified molecule.
@@ -29,10 +29,11 @@ def display(session, objects=None, what=None, only=False):
             other_atoms = structure_atoms(atoms.unique_structures) - atoms
             other_atoms.displays = False
     elif what == 'bonds':
-        atoms = objects.atoms
-        atoms.displays = True
-        bonds = atoms.inter_bonds
+        bonds = objects.atoms.inter_bonds
         bonds.displays = True
+        a1, a2 = bonds.atoms
+        a1.displays = True	   # Atoms need to be displayed for bond to appear
+        a2.displays = True
         if only:
             mbonds = [m.bonds for m in atoms.unique_structures]
             if mbonds:
@@ -40,11 +41,14 @@ def display(session, objects=None, what=None, only=False):
                 all_bonds = concatenate(mbonds)
                 other_bonds = all_bonds - bonds
                 other_bonds.displays = False
-    elif what == 'pseudobonds':
+    elif what in ('pseudobonds', 'pbonds'):
         atoms = objects.atoms
         from .. import atomic
         pbonds = atomic.interatom_pseudobonds(atoms, session)
         pbonds.displays = True
+        a1, a2 = pbonds.atoms
+        a1.displays = True	   # Atoms need to be displayed for bond to appear
+        a2.displays = True
         if only:
             pbs = sum([[pbg.pseudobonds for pbg in m.pseudobond_groups.values()]
                        for m in atoms.unique_structures], [])
@@ -78,7 +82,7 @@ def undisplay(session, objects=None, what=None):
     ----------
     objects : AtomSpecResults or None
         Atoms, bonds or models to hide. If None then all are hidden.
-    what : 'atoms', 'bonds', 'pseudobonds', 'cartoons', 'ribbons', 'models' or None
+    what : 'atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons', 'models' or None
         What to hide.  If None then 'atoms' if any atoms specified otherwise 'models'.
     '''
     if objects is None:
@@ -93,7 +97,7 @@ def undisplay(session, objects=None, what=None):
     elif what == 'bonds':
         atoms = objects.atoms
         atoms.inter_bonds.displays = False
-    elif what == 'pseudobonds':
+    elif what in ('pseudobonds', 'pbonds'):
         from .. import atomic
         pbonds = atomic.interatom_pseudobonds(objects.atoms, session)
         pbonds.displays = False
@@ -106,7 +110,8 @@ def undisplay(session, objects=None, what=None):
 
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, NoArg
-    what_arg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'cartoons', 'ribbons', 'models'))
+    what_arg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds',
+                       'cartoons', 'ribbons', 'models'))
     desc = CmdDesc(optional=[('objects', Or(ObjectsArg, EmptyArg)),
                              ('what', what_arg),
                              ('only', NoArg)],

@@ -457,7 +457,7 @@ class Render:
         vendor = GL.glGetString(GL.GL_VENDOR)
         import sys
         global stencil8_needed
-        stencil8_needed = (sys.platform.startswith('linux') and
+        stencil8_needed = (sys.platform.startswith('linux') and vendor and
                            vendor.startswith((b'AMD', b'ATI')))
 
     def set_viewport(self, x, y, w, h):
@@ -1001,7 +1001,7 @@ class Framebuffer:
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
 
     def delete(self):
-        if self.fbo is None:
+        if self.fbo is None or self.fbo == 0:
             return
 
         if self.color_rb is not None:

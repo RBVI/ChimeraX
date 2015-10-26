@@ -550,7 +550,7 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
             else {
                 hide = true;
                 for (auto neighbor : atom->neighbors())
-                    if (neighbor->visible()) {
+                    if (neighbor->visible() && !neighbor->is_backbone()) {
                         hide = false;
                         break;
                     }

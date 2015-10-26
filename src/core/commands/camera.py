@@ -8,7 +8,7 @@ def camera(session, type=None, field_of_view=None,
     Parameters
     ----------
     type : string
-        Controls type of projection, currently "mono", "360" or "360s" (stereoscopic)
+        Controls type of projection, currently "mono", "360", "360s" (stereoscopic), stereo
     field_of_view : float
         Horizontal field of view in degrees.
     eye_separation : float
@@ -39,6 +39,14 @@ def camera(session, type=None, field_of_view=None,
         elif type == '360s':
             from ..graphics import Stereo360Camera
             view.camera = Stereo360Camera()
+        elif type == 'stereo':
+            if not getattr(session.ui, 'have_stereo', False):
+                from ..errors import UserError
+                raise UserError('Do not have stereo OpenGL context.' +
+                                ('\nUse --stereo command-line option'
+                                 if not session.ui.stereo else ''))
+            from ..graphics import StereoCamera
+            view.camera = StereoCamera()
 
     if field_of_view is not None:
         has_arg = True
@@ -54,25 +62,33 @@ def camera(session, type=None, field_of_view=None,
         cam.redraw_needed = True
 
     if not has_arg:
-        has_fov = hasattr(cam, 'field_of_view')
-        msg = (
-            'Camera parameters:\n' +
-            '    type: %s\n' % cam.name() +
-            '    position: %.5g %.5g %.5g\n' % tuple(cam.position.origin()) +
-            '    view direction: %.5g %.5g %.5g\n' % tuple(cam.view_direction()) +
-            ('    field of view: %.5g degrees\n' % cam.field_of_view if has_fov else '')
-        )
-        session.logger.info(msg)
-        msg = (cam.name() +
-               (', %.5g degree field of view' % cam.field_of_view if has_fov else ''))
-        session.logger.status(msg)
+        lines = [
+            'Camera parameters:',
+            '    type: %s' % cam.name(),
+            '    position: %.5g %.5g %.5g' % tuple(cam.position.origin()),
+            '    view direction: %.5g %.5g %.5g' % tuple(cam.view_direction())
+            ]
+        if hasattr(cam, 'field_of_view'):
+            lines.append('    field of view: %.5g degrees' % cam.field_of_view)
+        if hasattr(cam, 'field_width'):
+            lines.append('    field width: %.5g' % cam.field_width)
+        if hasattr(cam, 'eye_separation_scene'):
+            lines.append('    eye separation in scene: %.5g' % cam.eye_separation_scene)
+        if hasattr(cam, 'eye_separation_pixels'):
+            lines.append('    eye separation in screen pixels: %.5g' % cam.eye_separation_pixels)
+        session.logger.info('\n'.join(lines))
+
+        fields = ['%s camera' % cam.name()]
+        if hasattr(cam, 'field_of_view'):
+            fields.append('%.5g degree field of view' % cam.field_of_view)
+        session.logger.status(', '.join(fields))
 
 
 def register_command(session):
     from . import CmdDesc, register, FloatArg, EnumOf
     desc = CmdDesc(
         optional=[
-            ('type', EnumOf(('mono', 'ortho', '360', '360s'))),
+            ('type', EnumOf(('mono', 'ortho', '360', '360s', 'stereo'))),
             ('field_of_view', FloatArg),
             ('eye_separation', FloatArg),
             ('pixel_eye_separation', FloatArg),

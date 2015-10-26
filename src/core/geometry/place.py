@@ -303,6 +303,17 @@ def product(plist):
         p = p*p2
     return p
 
+def interpolate_rotation(place1, place2, fraction):
+    '''
+    Interpolate the rotation parts of place1 and place2.
+    The rotation axis taking one coordinate frame to the other
+    is linearly interpolated. The translations are ignored
+    and the returned Place has translation set to zero.
+    '''
+    r1, r2 = place1.zero_translation(), place2.zero_translation()
+    center = (0,0,0)
+    return r1.interpolate(r2, center, fraction)
+
 class Places:
     ''' The Places class represents a list of 0 or more Place objects.
     The advantage of Places over using a list of Place objects is that

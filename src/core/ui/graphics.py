@@ -14,6 +14,9 @@ class GraphicsWindow(wx.Panel):
         self.session = ui.session
         self.view = ui.session.main_view
         self.opengl_canvas = OpenGLCanvas(self, self.view, ui)
+        if ui.have_stereo:
+            from ..graphics import StereoCamera
+            self.view.camera = StereoCamera()
         from wx.glcanvas import GLContext
         oc = self.opengl_context = GLContext(self.opengl_canvas)
         oc.make_current = self.make_context_current
@@ -135,11 +138,16 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         else:
             raise AssertionError("Required OpenGL depth buffer capability"
                 " not supported")
-        test_attribs = attribs + [glcanvas.WX_GL_STEREO]
-        if gl_supported(test_attribs + [0]):
-            # TODO: keep track of fact that 3D stereo is available, but
-            # don't use it
-            pass
+        if ui:
+            ui.have_stereo = False
+            if hasattr(ui, 'stereo') and ui.stereo:
+                test_attribs = attribs + [glcanvas.WX_GL_STEREO]
+                if gl_supported(test_attribs + [0]):
+                    attribs = test_attribs
+                    ui.have_stereo = True
+        if ui:
+            ui.opengl_attribs = attribs + [0]
+
         ckw = {} if size is None else {'size': size}
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs + [0],
                                    style=wx.WANTS_CHARS, **ckw)
