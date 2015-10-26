@@ -103,11 +103,8 @@ class Models(State):
         session.triggers.add_trigger(REMOVE_MODELS)
         self._models = {}
         from .graphics.drawing import Drawing
-        self.drawing = Drawing("root")
-
-        # TODO: malloc-ish management of model ids, so they may be reused
-        from itertools import count as _count
-        self._id_counter = _count(1)
+        self.drawing = r = Model("root")
+        r.id = ()
 
     def take_snapshot(self, phase, session, flags):
         if phase == self.CLEANUP_PHASE:
@@ -184,21 +181,10 @@ class Models(State):
             d.add_drawing(m)
 
         # Assign id numbers
-        if parent is None:
-            base_id = ()
-            counter = self._id_counter
-        else:
-            base_id = parent.id
-            from itertools import count as count
-            counter = count(1)
         m_all = list(models)
         for model in models:
             if model.id is None:
-                while True:
-                    id = base_id + (next(counter), )  # model id's are tuples
-                    if not id in self._models:
-                        break
-                model.id = id
+                model.id = self._next_child_id(d)
             self._models[model.id] = model
             children = [c for c in model.child_drawings() if isinstance(c, Model)]
             if children:
@@ -211,6 +197,25 @@ class Models(State):
             session.triggers.activate_trigger(ADD_MODELS, m_all)
 
         return m_all
+
+    def _next_child_id(self, parent):
+        # Find lowest unused id.  Typically all ids 1,...,N are used with no gaps
+        # and then it is fast to assign N+1 to the next model.  But if there are
+        # gaps it can take O(N**2) time to figure out ids to assign for N models.
+        # This code handles the common case of no gaps quickly.
+        nid = getattr(parent, '_next_unused_id', None)
+        if nid is None:
+            # Find next unused id.
+            cids = set(m.id[-1] for m in parent.child_models() if not m.id is None)
+            for nid in range(1,len(cids)+2):
+                if not nid in cids:
+                    break
+            if nid == len(cids)+1:
+                parent._next_unused_id = nid + 1	# No gaps in ids
+        else:
+            parent._next_unused_id = nid + 1		# No gaps in ids
+        id = parent.id + (nid,)
+        return id
 
     def add_group(self, models, name='group'):
         parent = Model(name)
@@ -235,10 +240,8 @@ class Models(State):
                 else:
                     parent = self._models[model_id[:-1]]
                 parent.remove_drawing(model, delete = False)
+                parent._next_unused_id = None
 
-        if len(self._models) == 0:
-            from itertools import count as _count
-            self._id_counter = _count(1)
         # it's nice to have an accurate list of current models
         # when firing this trigger, so do it last
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)

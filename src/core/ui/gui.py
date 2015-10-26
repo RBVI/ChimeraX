@@ -157,7 +157,10 @@ from ..logger import PlainTextLog
 class MainWindow(wx.Frame, PlainTextLog):
 
     def __init__(self, ui, session):
-        wx.Frame.__init__(self, None, title="Chimera2", size=(1800, 1000))
+        # make main window 2/3 of full screen
+        x, y = wx.DisplaySize()
+        req_size = ((2*x)/3, (2*y)/3)
+        wx.Frame.__init__(self, None, title="Chimera2", size=req_size)
 
         from wx.lib.agw.aui import AuiManager, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
@@ -585,17 +588,51 @@ class _Wx:
             if pane_info.dock_direction == aui_side:
                 layer = max(layer, pane_info.dock_layer)
         """
-        mw.aui_mgr.AddPane(self.ui_area, side, self.title)
+        notebook = None
+        if side == wx.TOP:
+            aui_side = self.aui_side_map[side]
+            side_pis = []
+            for pi in mw.aui_mgr.GetAllPanes():
+                if pi.dock_direction == aui_side:
+                    side_pis.append(pi)
+            for side_pi in side_pis:
+                if side_pi.IsNotebookControl():
+                    notebook = side_pi
+                    break
+            if not notebook and side_pis:
+                notebook = side_pis[0]
+            if notebook:
+                from wx.lib.agw.aui import AuiPaneInfo
+                pane_info = AuiPaneInfo().Top().Caption(self.title)
+        if notebook:
+            mw.aui_mgr.AddPane4(self.ui_area, pane_info, notebook)
+        else:
+            mw.aui_mgr.AddPane(self.ui_area, side, self.title)
+        pane_info = mw.aui_mgr.GetPane(self.ui_area)
         if fixed_size:
-            mw.aui_mgr.GetPane(self.ui_area).Fixed()
+            pane_info.Fixed()
         """
         mw.aui_mgr.GetPane(self.ui_area).Layer(layer+1)
         """
         if placement is None:
-           mw.aui_mgr.GetPane(self.ui_area).Float()
+            pane_info.Float()
+
+        if side == wx.BOTTOM:
+            pane_info.CaptionVisible(False)
+
+        if side in (wx.TOP, wx.BOTTOM):
+            pane_info.Layer(0)
+        else:
+            pane_info.Layer(1)
+
+        # hack
+        if self.tool_window.tool_instance.display_name == "Log":
+            pane_info.dock_proportion = 5
+        else:
+            pane_info.dock_proportion = 1
 
         if self.tool_window.close_destroys:
-            mw.aui_mgr.GetPane(self.ui_area).DestroyOnClose()
+            pane_info.DestroyOnClose()
         mw.aui_mgr.Update()
 
     def on_context_menu(self, event):

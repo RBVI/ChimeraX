@@ -255,6 +255,13 @@ class Log(ToolInstance, HtmlLog):
                 from .cmd import log
                 log(self.session, thumbnail = True)
             return
+        elif url.startswith("ch2cmd:"):
+            from urllib.parse import unquote
+            from chimera.core.commands import run
+            event.Veto()
+            cmd = url.split(':', 1)[1]
+            run(session, unquote(cmd))
+            return
         from urllib.parse import urlparse
         parts = urlparse(url)
         if parts.scheme in ('', 'help', 'file', 'http'):

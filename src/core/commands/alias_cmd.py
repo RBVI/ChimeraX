@@ -30,10 +30,10 @@ def alias(session, name='', text=''):
             logger.info('Aliased %s to %s' % (
                 cli.dq_repr(name), cli.dq_repr(text)))
         return
-    cli.alias(name, text, logger=session.logger)
+    cli.alias(name, text, user=True, logger=session.logger)
 
 
-def unalias(session, name):
+def unalias(session, name=None):
     """Remove command alias
 
     :param name: name of the alias
@@ -44,8 +44,10 @@ def unalias(session, name):
 def register_command(session):
     desc = cli.CmdDesc(optional=[('name', cli.StringArg),
                                  ('text', cli.WholeRestOfLine)],
+                       non_keyword=['name', 'text'],
                        synopsis='list or define a command alias')
     cli.register('alias', desc, alias)
-    desc = cli.CmdDesc(required=[('name', cli.StringArg)],
+    desc = cli.CmdDesc(optional=[('name', cli.StringArg)],
+                       non_keyword=['name'],
                        synopsis='remove a command alias')
     cli.register('~alias', desc, unalias)

@@ -18,7 +18,7 @@ class MouseModePanel(ToolInstance):
         self.rows = 1
         self.columns = 12
 
-        panel_size = (300, self.rows * self.icon_size)
+        panel_size = (300, 1.5 * self.rows * self.icon_size)
         from chimera.core.ui import MainToolWindow
         class MouseModesWindow(MainToolWindow):
             close_destroys = False
@@ -55,7 +55,8 @@ class MouseModePanel(ToolInstance):
             self.buttons.append(tb)
         self.buttons[3].SetValue(True)          # Zoom id default mode
 
-        tw.manage(placement="right", fixed_size = True)
+        #tw.manage(placement="top", fixed_size = True)
+        tw.manage(placement="top")
 
         session.tools.add([self])
 

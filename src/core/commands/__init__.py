@@ -8,7 +8,7 @@ from .cli import ListOf, SetOf, TupleOf, Or
 
 from .cli import Annotation, next_token, AnnotationError
 from .cli import NoArg, BoolArg, StringArg, EmptyArg, EnumOf
-from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg
+from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
 from .cli import FloatArg, Float3Arg, FloatsArg, Bounded
 from .cli import ModelIdArg, AtomsArg, RestOfLine
 

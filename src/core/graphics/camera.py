@@ -74,8 +74,13 @@ class Camera:
         '''
         Per view pixel shift of center away from center of render target.
         This is used for example to shift stereoscopic left/right eye images.
+        Also used for supersampled image save.
         '''
-        return (0,0)
+        return self._pixel_shift
+
+    def set_pixel_shift(self, shift):
+        '''Set per view pixel shift of center away from center of render target.'''
+        self._pixel_shift = shift
 
     def view_all(self, center, size):
         '''
@@ -293,7 +298,7 @@ class StereoCamera(Camera):
         self.field_of_view = 45
         "Horizontal field of view in degrees."
 
-        self.eye_separation_scene = 1.0
+        self.eye_separation_scene = 5.0
         "Stereo eye separation in scene units."
 
         self.eye_separation_pixels = eye_separation_pixels

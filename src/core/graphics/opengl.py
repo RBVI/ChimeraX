@@ -1001,7 +1001,7 @@ class Framebuffer:
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
 
     def delete(self):
-        if self.fbo is None:
+        if self.fbo is None or self.fbo == 0:
             return
 
         if self.color_rb is not None:
