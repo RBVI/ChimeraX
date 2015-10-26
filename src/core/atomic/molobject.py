@@ -106,6 +106,8 @@ class BaseSphere(type):
                 if specific_attr_name is not None:
                     attrs[specific_attr_name] = c_property(prefix + prop_attr_name,
                         *args, **kw, doc = doc)
+            for enum_val, sym_prefix in enumerate(['SPHERE', 'BALL', 'STICK']):
+                attrs[sym_prefix + '_STYLE'] = enum_val
         return super().__new__(meta, name, bases, attrs)
 
 # -----------------------------------------------------------------------------
@@ -122,14 +124,12 @@ class Atom(metaclass=BaseSphere):
     chain_id = c_property('atom_chain_id', string, read_only = True,
         doc = "Protein Data Bank chain identifier. Limited to 4 characters."
         " Read only string.")
-    #display = c_property('atom_display', npy_bool)
-    #'''Whether to display the atom. Boolean value.'''
-    SPHERE_STYLE = 0
-    '''Draw mode that uses full atom radius.'''
-    BALL_STYLE = 1
-    '''Draw mode that displays a reduced atom radius, but larger than bond radius.'''
-    STICK_STYLE = 2
-    '''Draw mode that displays an atom size that matches bond radius.'''
+    #SPHERE_STYLE = 0
+    #'''Draw mode that uses full atom radius.'''
+    #BALL_STYLE = 1
+    #'''Draw mode that displays a reduced atom radius, but larger than bond radius.'''
+    #STICK_STYLE = 2
+    #'''Draw mode that displays an atom size that matches bond radius.'''
     draw_mode = c_property('atom_draw_mode', uint8)
     '''Controls how the atom is depicted.  Can be SPHERE_STYLE, BALL_STYLE or
     STICK_STYLE.'''
