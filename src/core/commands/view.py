@@ -31,7 +31,7 @@ def view(session, atoms=None, show=None, frames=None,
     if orient:
         v.initial_camera_view()
     if atoms is None:
-        if name is None and show is None and list is None and delete is None:
+        if name is None and show is None and not list and delete is None:
             v.view_all()
     elif len(atoms) == 0:
         from ..errors import UserError
