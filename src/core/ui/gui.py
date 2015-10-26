@@ -157,8 +157,15 @@ from ..logger import PlainTextLog
 class MainWindow(wx.Frame, PlainTextLog):
 
     def __init__(self, ui, session):
-        # make main window 2/3 of full screen
-        x, y = wx.DisplaySize()
+        # make main window 2/3 of full screen of primary display
+        primary_display = None
+        for display in [wx.Display(i) for i in range(wx.Display.GetCount())]:
+            if display.IsPrimary():
+                x, y = display.GetGeometry().GetSize()
+                break
+        else:
+            # no primary display?!?
+            x, y = wx.DisplaySize()
         req_size = ((2*x)/3, (2*y)/3)
         wx.Frame.__init__(self, None, title="Chimera2", size=req_size)
 
