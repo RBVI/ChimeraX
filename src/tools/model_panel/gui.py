@@ -67,7 +67,8 @@ class ModelPanel(ToolInstance):
         pass
 
     def _changes_cb(self, trigger_name, data):
-        if "color changed" in data["Atom"].reasons:
+        reasons = data["Atom"].reasons
+        if "color changed" in reasons or 'display changed' in reasons:
             self._fill_table()
 
     def _fill_table(self, *args):
