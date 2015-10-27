@@ -36,6 +36,7 @@ class ModelPanel(ToolInstance):
         from chimera.core.models import ADD_MODELS, REMOVE_MODELS
         self.session.triggers.add_handler(ADD_MODELS, self._fill_table)
         self.session.triggers.add_handler(REMOVE_MODELS, self._fill_table)
+        self.session.triggers.add_handler("atomic changes", self._changes_cb)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.table, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
@@ -64,6 +65,10 @@ class ModelPanel(ToolInstance):
 
     def reset_state(self):
         pass
+
+    def _changes_cb(self, trigger_name, data):
+        if "color changed" in data["Atom"].reasons:
+            self._fill_table()
 
     def _fill_table(self, *args):
         import wx.grid
