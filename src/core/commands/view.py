@@ -33,6 +33,7 @@ def view(session, atoms=None, show=None, frames=None,
     if atoms is None:
         if name is None and show is None and not list and delete is None:
             v.view_all()
+            v.center_of_rotation_method = 'front center'
     elif len(atoms) == 0:
         from ..errors import UserError
         raise UserError('No atoms specified.')
@@ -40,6 +41,7 @@ def view(session, atoms=None, show=None, frames=None,
         from .. import geometry
         b = geometry.sphere_bounds(atoms.scene_coords, atoms.radii)
         v.view_all(b)
+        v.center_of_rotation = b.center()
     if name is not None:
         save_view(name, session)
     if show is not None:
