@@ -23,7 +23,7 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def __init__(self, name, atomic_structure_pointer = None,
                  initialize_graphical_attributes = True,
-                 level_of_detail = None):
+                 level_of_detail = None, smart_initial_display = True):
 
         AtomicStructureData.__init__(self, atomic_structure_pointer)
         from . import molobject
@@ -64,6 +64,7 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_selected_residues = set()
 
         self._make_drawing(initialize_graphical_attributes)
+        self._smart_initial_display = smart_initial_display
 
     def delete(self):
         '''Delete this structure.'''
@@ -84,8 +85,8 @@ class AtomicStructure(AtomicStructureData, Model):
         return m
 
     def added_to_session(self, session):
-        # TODO: Need an attribute to optionally suppress initial coloring.
-        self._set_initial_color(self.id[0], session.main_view.background_color)
+        if self._smart_initial_display:
+            self._set_initial_color(self.id[0], session.main_view.background_color)
         self._start_change_tracking(session.change_tracker)
         self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
 
