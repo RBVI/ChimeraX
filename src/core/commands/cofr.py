@@ -22,6 +22,8 @@ def cofr(session, method=None, atoms=None, pivot=None, coordinate_system=None):
     '''
     v = session.main_view
     if not method is None:
+        if method == 'frontCenter':
+            method = 'front center'
         v.center_of_rotation_method = method
     if not atoms is None:
         if len(atoms) == 0:
@@ -43,7 +45,7 @@ def cofr(session, method=None, atoms=None, pivot=None, coordinate_system=None):
 def register_command(session):
     from . import CmdDesc, register, EnumOf, EmptyArg, AtomsArg, Or, Float3Arg, ModelArg
     desc = CmdDesc(
-        optional=[('method', Or(EnumOf(('front center', 'fixed')), EmptyArg)),
+        optional=[('method', Or(EnumOf(('front center', 'frontCenter', 'fixed')), EmptyArg)),
                   ('atoms', Or(AtomsArg, EmptyArg)),
                   ('pivot', Float3Arg)],
         keyword=[('coordinate_system', ModelArg)],
