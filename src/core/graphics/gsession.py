@@ -34,7 +34,7 @@ class ViewState(State):
         """Reset state to data-less state"""
         from numpy import array, float32
         v = self.view
-        v.center_of_rotation = array((0, 0, 0), float32)
+        v.center_of_rotation_method = 'front center'
         # v.window_size = ?
         v.background_color = (0, 0, 0, 1)
 

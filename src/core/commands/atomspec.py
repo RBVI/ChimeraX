@@ -885,6 +885,21 @@ def all_objects(session):
 
 # -----------------------------------------------------------------------------
 #
+class ModelArg(Annotation):
+    """Parse command model specifier"""
+    name = "model"
+
+    @staticmethod
+    def parse(text, session):
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        if len(models) != 1:
+            from .cli import AnnotationError
+            raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
+        return tuple(models)[0], text, rest
+
+# -----------------------------------------------------------------------------
+#
 class ModelsArg(Annotation):
     """Parse command models specifier"""
     name = "models"

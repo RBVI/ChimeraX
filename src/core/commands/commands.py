@@ -7,8 +7,8 @@ def register_core_commands(session):
     # abbreviated, the one registered that matches wins, not the first
     # in alphabetical order.
     modules = [
-        'alias_cmd', 'buriedarea',
-        'camera', 'close', 'color', 'colordef', 'crossfade', 'crosslinks',
+        'alias', 'buriedarea',
+        'camera', 'close', 'cofr', 'color', 'colordef', 'crossfade', 'crosslinks',
         'delete', 'display', 'echo', 'exit', 'export',
         'lighting', 'list', 'material', 'move',
         'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',

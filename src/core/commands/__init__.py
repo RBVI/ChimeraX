@@ -14,5 +14,5 @@ from .cli import ModelIdArg, AtomsArg, RestOfLine
 
 from .colorarg import ColorArg, ColormapArg
 
-from .atomspec import AtomSpecArg, ModelsArg, ObjectsArg
+from .atomspec import AtomSpecArg, ModelArg, ModelsArg, ObjectsArg
 from .atomspec import register_selector, deregister_selector
