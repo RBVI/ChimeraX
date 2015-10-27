@@ -5,10 +5,12 @@ The *chimera.core.commands* module contains Python functions for the core comman
 available from the Chimera command-line.  Tools define additional commands noted with a (*)
 and their code location is described with the function descriptions.
 
+| `alias`_ - Define aliases for commands
 | `buriedarea`_ - Compute buried area between atomic structures
 | `camera`_ - Change camera settings
 | `cartoon`_ * - Display atomic structure ribbons or pipes/planks
 | `close`_ - Close models
+| `cofr`_ - Set center of rotation method
 | `color`_ - Color atoms, ribbons and surfaces
 | `colordef`_ - Define new colors
 | `command_line`_ * - Hide or show the command line
@@ -53,11 +55,12 @@ and their code location is described with the function descriptions.
 | `toolshed`_ * - Control the Tool Shed user interface
 | `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
-| `view`_ - Move camera to view all models
+| `view`_ - Move camera to view specified objects
 | `volume`_ - Change density map display settings
 | `vop`_ - Filter density maps
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
+| `zoom`_ - Zoom in or out
 
 buriedarea
 ==========
