@@ -62,6 +62,10 @@ and their code location is described with the function descriptions.
 | `wait`_ - Wait before executing next command
 | `zoom`_ - Zoom in or out
 
+alias
+=====
+.. autofunction:: chimera.core.commands.alias.alias
+
 buriedarea
 ==========
 .. autofunction:: chimera.core.commands.buriedarea.buriedarea
@@ -78,6 +82,10 @@ cartoon
 close
 =====
 .. autofunction:: chimera.core.commands.close.close
+
+cofr
+====
+.. autofunction:: chimera.core.commands.cofr.cofr
 
 color
 =====
@@ -301,4 +309,8 @@ vseries
 wait
 ====
 .. autofunction:: chimera.core.commands.wait.wait
+
+zoom
+====
+.. autofunction:: chimera.core.commands.zoom.zoom
 
