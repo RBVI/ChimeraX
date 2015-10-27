@@ -33,7 +33,7 @@ public:
     virtual void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
 };
 
-template <class Node, class Edge, class FinalGraph>
+template <class FinalGraph, class Node, class Edge>
 class Graph: public GraphicsContainer {
 protected:
     typedef std::vector<Node*>  Nodes;

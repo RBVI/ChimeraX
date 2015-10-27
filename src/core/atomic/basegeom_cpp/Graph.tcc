@@ -12,9 +12,9 @@
 
 namespace basegeom {
     
-template <class Node, class Edge, class FinalGraph>
+template <class FinalGraph, class Node, class Edge>
 void
-Graph<Node, Edge, FinalGraph>::delete_edge(Edge *e)
+Graph<FinalGraph, Node, Edge>::delete_edge(Edge *e)
 {
     typename Edges::iterator i = std::find_if(_edges.begin(), _edges.end(),
         [&e](Edge* ue) { return ue == e; });
@@ -28,9 +28,9 @@ Graph<Node, Edge, FinalGraph>::delete_edge(Edge *e)
     delete e;
 }
 
-template <class Node, class Edge, class FinalGraph>
+template <class FinalGraph, class Node, class Edge>
 void
-Graph<Node, Edge, FinalGraph>::delete_node(Node *n)
+Graph<FinalGraph, Node, Edge>::delete_node(Node *n)
 {
     typename Nodes::iterator i = std::find_if(_nodes.begin(), _nodes.end(),
         [&n](Node* un) { return un == n; });
@@ -44,9 +44,9 @@ Graph<Node, Edge, FinalGraph>::delete_node(Node *n)
     delete n;
 }
 
-template <class Node, class Edge, class FinalGraph>
+template <class FinalGraph, class Node, class Edge>
 void
-Graph<Node, Edge, FinalGraph>::delete_nodes(const std::set<Node*>& nodes)
+Graph<FinalGraph, Node, Edge>::delete_nodes(const std::set<Node*>& nodes)
 {
     auto db = DestructionBatcher(this);
     // remove_if doesn't swap the removed items into the end of the vector,
@@ -79,9 +79,9 @@ Graph<Node, Edge, FinalGraph>::delete_nodes(const std::set<Node*>& nodes)
     set_gc_shape();
 }
 
-template <class Node, class Edge, class FinalGraph>
+template <class FinalGraph, class Node, class Edge>
 void
-Graph<Node, Edge, FinalGraph>::set_color(const Rgba& rgba)
+Graph<FinalGraph, Node, Edge>::set_color(const Rgba& rgba)
 {
     for (auto n: _nodes)
         n->set_color(rgba);

@@ -42,7 +42,7 @@ using basegeom::ChangeTracker;
 using basegeom::Rgba;
 using element::Element;
 
-class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond, AtomicStructure> {
+class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<AtomicStructure, Atom, Bond> {
     friend class Atom; // for IDATM stuff and _polymers_computed and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
 public:
@@ -254,7 +254,7 @@ atomstruct::AtomicStructure::remove_chain(Chain* chain)
 inline void
 atomstruct::AtomicStructure::set_color(const Rgba& rgba)
 {
-    basegeom::Graph<Atom, Bond, AtomicStructure>::set_color(rgba);
+    basegeom::Graph<AtomicStructure, Atom, Bond>::set_color(rgba);
     for (auto r: residues())
         r->set_ribbon_color(rgba);
 }
