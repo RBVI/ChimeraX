@@ -46,7 +46,9 @@ class BaseSphere(type):
         properties into them during class layout.
     """
     def __new__(meta, name, bases, attrs):
-        connection_info = { 'Atom': ('Bond', _bonds, _atoms) }
+        related_class_info = {
+            'Atom': (_atoms, 'AtomicStructure', _atomic_structure, 'Bond', _bonds)
+        }
         if name != meta.__name__:
             doc_marker = "[BS]"
             doc_add = \
@@ -69,7 +71,8 @@ class BaseSphere(type):
             attrs["__doc__"] = doc + newlines + doc_add
 
             #define some vars useful later
-            conn_name, conn_collective, collective = connection_info[name]
+            (collective, container_name, container_collective, conn_name,
+                conn_collective) = related_class_info[name]
             connection = conn_name.lower()
             connections = connection + 's'
             connectible = name.lower()
@@ -88,7 +91,7 @@ class BaseSphere(type):
                     " Read only.".format(conn_name, connectible, conn_name)),
                 ("neighbors", None, (cptr, num_connections), { 'astype': collective,
                     'read_only': True },
-                    ":class:`{}`\\ s connnected to this {} directly by one {}."
+                    ":class:`.{}`\\ s connnected to this {} directly by one {}."
                     " Read only.".format(name, connectible, connection)),
                 ("color", None, (uint8, 4), {},
                     "Color RGBA length 4 numpy uint8 array."),
@@ -102,6 +105,9 @@ class BaseSphere(type):
                     "    Use reduced atom radius, but larger than bond radius\n"
                     "STICK_STYLE\n"
                     "    Match bond radius"),
+                ("graph", "structure", (cptr,),
+                    { 'astype': container_collective, 'read_only': True },
+                    ":class:`.{}` the {} belongs to".format(container_name, connectible)),
             ]
             prefix = connectible + '_'
             for generic_attr_name, specific_attr_name, args, kw, doc in properties:
@@ -142,8 +148,6 @@ class Atom(metaclass=BaseSphere):
     '''Whether this atom belongs to a polymer. Read only.'''
     is_backbone = c_property('atom_is_backbone', npy_bool)
     '''Whether this a protein or nucleic acid backbone atom.'''
-    structure = c_property('atom_structure', cptr, astype = _atomic_structure, read_only = True)
-    ''':class:`.AtomicStructure` the atom belongs to.'''
     name = c_property('atom_name', string, read_only = True)
     '''Atom name. Maximum length 4 characters. Read only.'''
     num_bonds = c_property('atom_num_bonds', size_t, read_only = True)
