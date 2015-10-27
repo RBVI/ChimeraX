@@ -634,9 +634,9 @@ class _Wx:
 
         # hack
         if self.tool_window.tool_instance.display_name == "Log":
-            pane_info.dock_proportion = 5
+            pane_info.dock_proportion = 50
         else:
-            pane_info.dock_proportion = 1
+            pane_info.dock_proportion = 15
 
         if self.tool_window.close_destroys:
             pane_info.DestroyOnClose()

@@ -18,7 +18,7 @@ class ShortcutPanel(ToolInstance):
         self.columns = c = 12
         self.rows = (len(shortcuts) + c - 1)//c
 
-        panel_size = (300, 1.5 * self.rows * self.icon_size)
+        panel_size = (300, self.rows * self.icon_size)
         from chimera.core.ui import MainToolWindow
         class ShortcutWindow(MainToolWindow):
             close_destroys = False
@@ -39,8 +39,7 @@ class ShortcutPanel(ToolInstance):
             tb.SetToolTip(wx.ToolTip(descrip))
             self.buttons.append(tb)
 
-        #tw.manage(placement="top", fixed_size = True)
-        tw.manage(placement="top")
+        tw.manage(placement="right", fixed_size = True)
 
         session.tools.add([self])
 
