@@ -94,6 +94,14 @@ class BaseSphere(type):
                     "Color RGBA length 4 numpy uint8 array."),
                 ("display", None, (npy_bool,), {},
                     "Whether to display the {}. Boolean value.".format(connectible)),
+                ("draw_mode", None, (uint8,), {},
+                    "Controls how the atom is depicted.\n\n|  Possible values:\n"
+                    "SPHERE_STYLE\n"
+                    "    Use full atom radius\n"
+                    "BALL_STYLE\n"
+                    "    Use reduced atom radius, but larger than bond radius\n"
+                    "STICK_STYLE\n"
+                    "    Match bond radius"),
             ]
             prefix = connectible + '_'
             for generic_attr_name, specific_attr_name, args, kw, doc in properties:
@@ -124,15 +132,6 @@ class Atom(metaclass=BaseSphere):
     chain_id = c_property('atom_chain_id', string, read_only = True,
         doc = "Protein Data Bank chain identifier. Limited to 4 characters."
         " Read only string.")
-    #SPHERE_STYLE = 0
-    #'''Draw mode that uses full atom radius.'''
-    #BALL_STYLE = 1
-    #'''Draw mode that displays a reduced atom radius, but larger than bond radius.'''
-    #STICK_STYLE = 2
-    #'''Draw mode that displays an atom size that matches bond radius.'''
-    draw_mode = c_property('atom_draw_mode', uint8)
-    '''Controls how the atom is depicted.  Can be SPHERE_STYLE, BALL_STYLE or
-    STICK_STYLE.'''
     element = c_property('atom_element', cptr, astype = _element, read_only = True)
     ''':class:`Element` corresponding to the chemical element for the atom.'''
     element_name = c_property('atom_element_name', string, read_only = True)
