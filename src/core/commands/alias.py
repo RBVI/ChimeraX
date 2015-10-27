@@ -14,30 +14,31 @@ def alias(session, name='', text=''):
     logger = session.logger
     if not name:
         # list aliases
-        aliases = cli.alias()
+        aliases = cli.list_aliases()
         names = cli.commas(aliases, ' and')
-        noun = cli.plural_form(aliases, 'Alias')
+        noun = cli.plural_form(aliases, 'alias')
         if names:
-            logger.info('%s: %s' % (noun, names))
+            logger.info('%d %s: %s' % (len(aliases), noun, names))
         else:
             logger.status('No aliases.')
         return
     if not text:
-        text = cli.alias(name)
+        text = cli.expand_alias(name)
         if text is None:
             logger.status('No alias named %s found.' % cli.dq_repr(name))
         else:
             logger.info('Aliased %s to: %s' % (cli.dq_repr(name), text))
         return
-    cli.alias(name, text, user=True, logger=session.logger)
+    cli.create_alias(name, text, user=True, logger=session.logger)
 
 
 def unalias(session, name=None):
     """Remove command alias
 
-    :param name: name of the alias
+    :param name: optional name of the alias
+        If not given, then remove all aliases.
     """
-    cli.unalias(name)
+    cli.remove_alias(name)
 
 
 def register_command(session):

@@ -51,7 +51,7 @@ def help(session, topic=None, *, option=None, is_query=False):
             cmd._find_command_name(True)
             is_alias = False
             if cmd.command_name is not None:
-                alias = cli.alias(cmd.command_name)
+                alias = cli.expand_alias(cmd.command_name)
                 while alias:
                     is_alias = True
                     cmd = Command(None)
@@ -59,7 +59,7 @@ def help(session, topic=None, *, option=None, is_query=False):
                     cmd._find_command_name(True)
                     if cmd.command_name is None:
                         break
-                    alias = cli.alias(cmd.command_name)
+                    alias = cli.expand_alias(cmd.command_name)
             if cmd.command_name is None:
                 if is_query:
                     return False
