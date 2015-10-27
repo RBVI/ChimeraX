@@ -530,7 +530,7 @@ AtomicStructure::delete_atoms(std::vector<Atom*> del_atoms)
             });
         _residues.erase(new_end, _residues.end());
     }
-    delete_vertices(std::set<Atom*>(del_atoms.begin(), del_atoms.end()));
+    delete_nodes(std::set<Atom*>(del_atoms.begin(), del_atoms.end()));
 }
 
 void
@@ -755,7 +755,7 @@ Atom *
 AtomicStructure::new_atom(const char* name, const Element& e)
 {
     Atom *a = new Atom(this, name, e);
-    add_vertex(a);
+    add_node(a);
     if (e.number() == 1)
         ++_num_hyds;
     return a;

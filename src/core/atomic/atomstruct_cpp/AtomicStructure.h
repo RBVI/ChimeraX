@@ -46,7 +46,7 @@ class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond, Atomic
     friend class Atom; // for IDATM stuff and _polymers_computed and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
 public:
-    typedef Vertices  Atoms;
+    typedef Nodes  Atoms;
     typedef Edges  Bonds;
     typedef std::vector<Chain*>  Chains;
     typedef std::vector<CoordSet*>  CoordSets;
@@ -112,7 +112,7 @@ public:
 
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
-    const Atoms &    atoms() const { return vertices(); }
+    const Atoms &    atoms() const { return nodes(); }
     // ball_scale() inherited from Graph
     std::map<Residue *, char>  best_alt_locs() const;
     void  bonded_groups(std::vector<std::vector<Atom*>>* groups,
@@ -241,7 +241,7 @@ atomstruct::AtomicStructure::_delete_atom(atomstruct::Atom* a)
 {
     if (a->element().number() == 1)
         --_num_hyds;
-    delete_vertex(a);
+    delete_node(a);
 }
 
 inline void
