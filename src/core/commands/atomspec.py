@@ -892,11 +892,20 @@ class ModelArg(Annotation):
     @staticmethod
     def parse(text, session):
         aspec, text, rest = AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
+        models = remove_child_models(aspec.evaluate(session).models)
         if len(models) != 1:
             from .cli import AnnotationError
             raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
         return tuple(models)[0], text, rest
+
+# -----------------------------------------------------------------------------
+#
+def remove_child_models(models):
+    s = set(models)
+    for m in models:
+        for c in m.child_models():
+            s.discard(c)
+    return tuple(s)
 
 # -----------------------------------------------------------------------------
 #
