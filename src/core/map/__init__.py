@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # -----------------------------------------------------------------------------
 # Create and show a volume madel from a Grid_Data object as defined by the

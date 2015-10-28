@@ -1,4 +1,4 @@
-# vi:set shiftwidth=4 expandtab:
+# vim:set shiftwidth=4 expandtab:
 """
 math3d: Support for coordinate-free geometry using numpy
 ========================================================

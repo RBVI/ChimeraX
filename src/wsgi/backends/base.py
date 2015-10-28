@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 #
 # Backend management code.  All backends are in "backends" subdirectory.
 # All active backend modules are listed in the "__all__" variable in

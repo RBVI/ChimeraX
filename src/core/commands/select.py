@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def select(session, objects=None, add=None, subtract=None, intersect=None, clear=False):
     '''Select specified objects.

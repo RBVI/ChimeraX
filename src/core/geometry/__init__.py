@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 from .place import Place, Places, identity, rotation, vector_rotation, translation, scale
 from .place import product, orthonormal_frame, interpolate_rotation
 from .vector import interpolate_points

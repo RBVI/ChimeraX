@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
 def cofr(session, method=None, atoms=None, pivot=None, coordinate_system=None):
