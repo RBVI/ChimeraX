@@ -26,11 +26,15 @@ def cofr(session, method=None, atoms=None, pivot=None, coordinate_system=None):
             method = 'front center'
         v.center_of_rotation_method = method
     if not atoms is None:
+        datoms = atoms.filter(atoms.displays)	# Displayed atoms
         if len(atoms) == 0:
             from ..errors import UserError
             raise UserError('No atoms specified.')
+        elif len(datoms) == 0:
+            from ..errors import UserError
+            raise UserError('No displayed atoms specified.')
         from .. import geometry
-        b = geometry.sphere_bounds(atoms.scene_coords, atoms.radii)
+        b = geometry.sphere_bounds(datoms.scene_coords, datoms.radii)
         v.center_of_rotation = b.center()
     if not pivot is None:
         p = pivot if coordinate_system is None else coordinate_system.scene_position * pivot
