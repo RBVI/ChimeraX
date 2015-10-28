@@ -178,7 +178,8 @@ class Assembly:
         for chain_ids, operator_expr, ops in self.chain_ops:
             if chain_id in chain_ids:
                 cops.extend(ops)
-        return cops
+        from ..geometry import Places
+        return Places(cops)
 
     def _molecule_copies(self, mol, session):
         copies = getattr(mol, '_sym_copies', [])
