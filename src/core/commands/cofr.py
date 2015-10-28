@@ -1,18 +1,19 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def cofr(session, method=None, atoms=None, pivot=None, coordinate_system=None):
+def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None):
     '''
     Set center of rotation method to "front center" or "fixed".  For fixed can
-    specify the pivot point as the center of specified atoms, or as a 3-tuple of numbers
-    and optionally a model whose coordinate system is used for 3-tuples.
+    specify the pivot point as the center of specified displayed objects,
+    or as a 3-tuple of numbers and optionally a model whose coordinate system
+    is used for 3-tuples.
 
     Parameters
     ----------
     method : string
       "front center" or "fixed" specifies how the center of rotation point is defined.
-    atoms : Atoms
-      Set the method to "fixed" and use the center of the bounding box of these atoms
+    objects : AtomSpecResults
+      Set the method to "fixed" and use the center of the bounding box of these objects
       as the pivot point.
     pivot : 3 floats
       Set the method to "fixed" and used the specified point as center of rotation.
@@ -25,22 +26,21 @@ def cofr(session, method=None, atoms=None, pivot=None, coordinate_system=None):
         if method == 'frontCenter':
             method = 'front center'
         v.center_of_rotation_method = method
-    if not atoms is None:
-        datoms = atoms.filter(atoms.displays)	# Displayed atoms
-        if len(atoms) == 0:
+    if not objects is None:
+        if objects.empty():
             from ..errors import UserError
-            raise UserError('No atoms specified.')
-        elif len(datoms) == 0:
+            raise UserError('No objects specified.')
+        disp = objects.displayed()
+        if disp.empty():
             from ..errors import UserError
-            raise UserError('No displayed atoms specified.')
-        from .. import geometry
-        b = geometry.sphere_bounds(datoms.scene_coords, datoms.radii)
+            raise UserError('No displayed objects specified.')
+        b = disp.bounds()
         v.center_of_rotation = b.center()
     if not pivot is None:
         p = pivot if coordinate_system is None else coordinate_system.scene_position * pivot
         from numpy import array, float32
         v.center_of_rotation = array(p, float32)
-    if method is None and atoms is None and pivot is None:
+    if method is None and objects is None and pivot is None:
         msg = 'Center of rotation: %.5g %.5g %.5g' % tuple(v.center_of_rotation)
         log = session.logger
         log.status(msg)
@@ -54,10 +54,10 @@ def uncofr(session):
     v.center_of_rotation_method = 'front center'
         
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, EmptyArg, AtomsArg, Or, Float3Arg, ModelArg
+    from . import CmdDesc, register, EnumOf, EmptyArg, ObjectsArg, Or, Float3Arg, ModelArg
     desc = CmdDesc(
         optional=[('method', Or(EnumOf(('front center', 'frontCenter', 'fixed')), EmptyArg)),
-                  ('atoms', Or(AtomsArg, EmptyArg)),
+                  ('objects', Or(ObjectsArg, EmptyArg)),
                   ('pivot', Float3Arg)],
         keyword=[('coordinate_system', ModelArg)],
         synopsis='set center of rotation method')
