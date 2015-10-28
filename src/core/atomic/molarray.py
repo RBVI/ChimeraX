@@ -187,7 +187,7 @@ class Collection:
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
 
-def concatenate(collections):
+def concatenate(collections, object_class = None):
     '''Concatenate any number of collections returning a new collection.
     All collections must have the same type.
     
@@ -195,9 +195,12 @@ def concatenate(collections):
     ----------
     collections : sequence of :class:`.Collection` objects
     '''
-    cl = collections[0]._objects_class
-    from numpy import concatenate as concat
-    c = cl(concat([a._pointers for a in collections]))
+    cl = collections[0]._objects_class if object_class is None else object_class
+    if len(collections) == 0:
+        c = object_class()
+    else:
+        from numpy import concatenate as concat
+        c = cl(concat([a._pointers for a in collections]))
     return c
 
 # -----------------------------------------------------------------------------
@@ -338,6 +341,28 @@ class Atoms(Collection):
                                                     ctypes.c_void_p, ctypes.c_void_p])
         f(self._c_pointers, n, mols._c_pointers, len(mols), pointer(mtable), pointer(xyz))
         return xyz
+
+    @property
+    def scene_bounds(self):
+        '''Return scene bounds of atoms including instances of all parent models.'''
+        blist = []
+        from ..geometry import sphere_bounds, copy_tree_bounds, union_bounds
+        for m, a in self.by_structure:
+            ba = sphere_bounds(a.coords, a.radii)
+            ib = copy_tree_bounds(ba, [d.positions for d in m.drawing_lineage])
+            blist.append(ib)
+        return union_bounds(blist)
+
+    @property
+    def shown_atoms(self):
+        '''
+        Subset of Atoms including atoms that are displayed with
+        displayed structure and displayed parents.
+        '''
+        da = self.filter(self.displays | self.residues.ribbon_displays)
+        datoms = concatenate([a for m, a in da.by_structure
+                              if m.display and m.parents_displayed], Atoms)
+        return datoms
 
     def delete(self):
         '''Delete the C++ Atom objects'''
