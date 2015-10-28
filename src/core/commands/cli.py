@@ -1324,7 +1324,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
         if not isinstance(function, Alias):
             raise
         if logger is not None:
-            logger.warn("alias %s hides existing command" % dq_repr(name))
+            logger.warning("alias %s hides existing command" % dq_repr(name))
     if isinstance(function, _Defer):
         cmd_desc = function
     else:
@@ -1907,7 +1907,7 @@ def usage(name, no_aliases=False):
     ci = cmd._ci
     for arg_name in ci._required:
         type = ci._required[arg_name].name
-        usage += ' _%s_' % type
+        usage += '%s (%s)' % (arg_name, type)
     num_opt = 0
     for arg_name in ci._optional:
         type = ci._optional[arg_name].name
@@ -2117,11 +2117,28 @@ class Alias:
 _cmd_aliases = {}
 
 
-def alias(name='', text='', *, user=False, logger=None):
+def list_aliases(user=True):
+    """List all aliases
+    
+    :param user: if True, then only list user-defined aliases
+    """
+    if not user:
+        return list(_cmd_aliases.keys())
+    return [a for a in _cmd_aliases if _cmd_aliases[a].user_generated]
+
+
+def expand_alias(name):
+    """Return expanded version of named alias"""
+    if name not in _cmd_aliases:
+        return None
+    return _cmd_aliases[name].original_text
+
+
+def create_alias(name, text, *, user=False, logger=None):
     """Create command alias
 
-    :param name: optional name of the alias
-    :param text: optional text of the alias
+    :param name: name of the alias
+    :param text: text of the alias
     :param user: boolean, true if user created alias
     :param logger: optional logger
 
@@ -2129,15 +2146,6 @@ def alias(name='', text='', *, user=False, logger=None):
     returned.  If alias text is not given, the text of the named alias
     is returned.  If both arguments are given, then a new alias is made.
     """
-    if not name:
-        # list aliases
-        return list(_cmd_aliases.keys())
-    if not text:
-        if name not in _cmd_aliases:
-            return None
-        else:
-            print('alias', _cmd_aliases[name], flush=True)
-            return _cmd_aliases[name].original_text
     name = ' '.join(name.split())   # canonicalize
     cmd = Alias(text, user=user)
     tmp = Command(None)
@@ -2155,7 +2163,7 @@ def alias(name='', text='', *, user=False, logger=None):
     _cmd_aliases[name] = cmd
 
 
-def unalias(name=None):
+def remove_alias(name=None):
     """Remove command alias
 
     :param name: name of the alias
