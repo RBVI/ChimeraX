@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "random"]
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "helix", "helices", "strands",
                      "SSEs", "chains", "molmodels",
@@ -87,7 +87,7 @@ def color(session, spec, color=None, target=None, transparency=None,
         if color in _SpecialColors:
             if 'a' in target:
                 ns = scolor(session, atoms, opacity=opacity, byatom=True)
-            else:
+            elif color == 'fromatoms':
                 # Surface colored different from atoms
                 c = _computed_atom_colors(atoms, color, opacity)
                 ns = scolor(session, atoms, opacity=opacity, byatom=True, per_atom_colors=c)
@@ -166,7 +166,7 @@ def color(session, spec, color=None, target=None, transparency=None,
 
 
 def _computed_atom_colors(atoms, color, opacity):
-    if color == "byelement" or color == "byhetero":
+    if color in ("byatom", "byelement", "byhetero"):
         c = _element_colors(atoms, opacity)
     elif color == "bychain":
         from ..colors import chain_colors
