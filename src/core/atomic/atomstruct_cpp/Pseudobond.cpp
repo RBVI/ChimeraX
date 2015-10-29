@@ -104,7 +104,13 @@ AS_PBManager::get_group(const std::string& name, int create)
         return nullptr;
 
     grp = new Proxy_PBGroup(static_cast<Proxy_PBGroup::BaseManager*>(this),
-        name, _owner, create);
+        name, owner(), create);
+    if (name == owner()->PBG_METAL_COORDINATION)
+        grp->set_default_color(147, 112, 219);
+    else if (name == owner()->PBG_MISSING_STRUCTURE)
+        grp->set_default_halfbond(true);
+    else if (name == owner()->PBG_HYDROGEN_BONDS)
+        grp->set_default_color(0, 204, 230);
     _groups[name] = grp;
     return grp;
 }
@@ -146,6 +152,8 @@ CS_PBGroup::new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs)
 {
     _check_ownership(a1, a2);
     PBond* pb = new PBond(a1, a2, this);
+    pb->set_color(get_default_color());
+    pb->set_halfbond(get_default_halfbond());
     auto pbi = _pbonds.find(cs);
     if (pbi == _pbonds.end()) {
         _pbonds[cs].insert(pb);
