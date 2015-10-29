@@ -17,6 +17,8 @@
 #include <algorithm>
 #include <WrapPy3.h>
 
+#undef LEAVING_ATOMS
+
 using std::string;
 using std::vector;
 using std::hash;
@@ -72,7 +74,9 @@ struct ExtractTemplate: public readcif::CIFFile
 
     vector<tmpl::Residue*> all_residues;
     tmpl::Residue* residue;         // current residue
+#ifdef LEAVING_ATOMS
     set<tmpl::Atom*> leaving_atoms; // in current residue
+#endif
     string type;                    // residue type
     bool is_peptide;
     bool is_nucleotide;
@@ -101,7 +105,9 @@ ExtractTemplate::data_block(const string& /*name*/)
     if (residue != NULL)
         finished_parse();
     residue = NULL;
+#ifdef LEAVING_ATOMS
     leaving_atoms.clear();
+#endif
     type.clear();
 }
 
@@ -116,7 +122,7 @@ ExtractTemplate::finished_parse()
     // residues are "well known".  Links with other residue types are
     // explicitly given, so no need to figure which atoms are the
     // linking atoms.
-#if 0
+#ifdef LEAVING_ATOMS
     for (auto& akv: residue->atoms_map()) {
         auto& a1 = akv.second;
         if (leaving_atoms.find(a1) != leaving_atoms.end())
@@ -212,7 +218,9 @@ ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
     AtomName  name;
     char    symbol[3];
     float   x, y, z;
+#ifdef LEAVING_ATOMS
     bool    leaving = false;
+#endif
 
     CIFFile::ParseValues pv;
     pv.reserve(8);
@@ -233,10 +241,12 @@ ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
             else
                 symbol[2] = '\0';
         });
+#ifdef LEAVING_ATOMS
     pv.emplace_back(get_column("pdbx_leaving_atom_flag", false), false,
         [&] (const char* start, const char*) {
             leaving = *start == 'Y' || *start == 'y';
         });
+#endif
     pv.emplace_back(get_column("model_Cartn_x", true), false,
         [&] (const char* start, const char*) {
             x = readcif::str_to_float(start);
@@ -255,8 +265,10 @@ ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
         tmpl::Coord c(x, y, z);
         a->set_coord(c);
         residue->add_atom(a);
+#ifdef LEAVING_ATOMS
         if (leaving)
             leaving_atoms.insert(a);
+#endif
     }
 }
 
