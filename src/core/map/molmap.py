@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 # -----------------------------------------------------------------------------
 # Simulate an electron density map for an atomic model at a specfied
 # resolution.  The simulated map is useful for fitting the model into

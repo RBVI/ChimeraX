@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 from .. import io
 from ..models import Model
 from ..session import RestoreError
@@ -22,7 +22,6 @@ class AtomicStructure(AtomicStructureData, Model):
     STRUCTURE_STATE_VERSION = 0
 
     def __init__(self, name, atomic_structure_pointer = None,
-                 initialize_graphical_attributes = True,
                  level_of_detail = None, smart_initial_display = True):
 
         AtomicStructureData.__init__(self, atomic_structure_pointer)
@@ -63,7 +62,7 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
         self._ribbon_selected_residues = set()
 
-        self._make_drawing(initialize_graphical_attributes)
+        self._make_drawing()
         self._smart_initial_display = smart_initial_display
 
     def delete(self):
@@ -79,7 +78,6 @@ class AtomicStructure(AtomicStructureData, Model):
         are shared between the original and the copy.
         '''
         m = AtomicStructure(name, AtomicStructureData._copy(self),
-                            initialize_graphical_attributes = False,
                             level_of_detail = self._level_of_detail)
         m.positions = self.positions
         return m
@@ -124,19 +122,6 @@ class AtomicStructure(AtomicStructureData, Model):
         na = sum(self.atoms.displays) if self.display else 0
         return na
 
-    def _initialize_graphical_attributes(self):
-        # TODO: This stuff probably should be initialized by the C++ code.
-        a = self.atoms
-        from .molobject import Atom
-        a.draw_modes = Atom.SPHERE_STYLE
-        b = self.bonds
-        b.radii = self.bond_radius
-        pb_colors = {'metal coordination bonds':(147,112,219,255)}
-        for name, pbg in self.pseudobond_groups.items():
-            pb = pbg.pseudobonds
-            pb.radii = self.pseudobond_radius
-            pb.colors = pb_colors.get(name, (255,255,0,255))
-
     def _set_initial_color(self, id, bg_color):
         from ..colors import BuiltinColors, distinguish_from, Color
         try:
@@ -153,10 +138,7 @@ class AtomicStructure(AtomicStructureData, Model):
             model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
         self.set_color(model_color.uint8x4())
 
-    def _make_drawing(self, initialize_graphical_attributes):
-        if initialize_graphical_attributes:
-            self._initialize_graphical_attributes()
-
+    def _make_drawing(self):
         # Create graphics
         a = self.atoms
         self._update_atom_graphics(a.coords, self._atom_display_radii(), a.colors, a.displays)

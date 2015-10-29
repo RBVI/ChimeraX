@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def perframe(session, command, frames = None, interval = 1, format = None,
              zero_pad_width = None, range = None, show_commands = False):

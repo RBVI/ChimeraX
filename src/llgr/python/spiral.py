@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 #	Copyright 2004-2008 by the Regents of the University of California.
 #	All rights reserved.  This software provided pursuant to a
 #	license agreement containing restrictions on its disclosure,

@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # Mouse mode to place markers on surfaces
 from .ui import MouseMode
 class MarkerMouseMode(MouseMode):

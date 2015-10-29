@@ -1,5 +1,5 @@
 #!/bin/env python
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # --- UCSF Chimera Copyright ---
 # Copyright (c) 2000-2014 Regents of the University of California.

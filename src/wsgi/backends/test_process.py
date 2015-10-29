@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 from base import register
 
 @register(__name__.split('.')[-1])

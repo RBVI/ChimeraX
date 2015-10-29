@@ -1,5 +1,5 @@
 #!/bin/env python
-# vi: set expandtab shiftwidth=4 softtabstop=4 fileencoding=utf-8:
+# vim: set expandtab shiftwidth=4 softtabstop=4 fileencoding=utf-8:
 # Copyright © 2010-2015 Regents of the University of California.
 # All Rights Reserved.
 #

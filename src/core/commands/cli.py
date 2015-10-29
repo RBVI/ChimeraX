@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 cli: Application command line support
 =====================================
@@ -1558,6 +1558,8 @@ class Command:
                 if len(traceback.extract_tb(exc_traceback)) > 2:
                     raise
                 raise UserError(err)
+            from .. import atomic
+            atomic.check_for_changes(session)
         return results
 
     def _replace(self, chars, replacement):

@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 from chimera.core.tools import ToolInstance
 from chimera.core.logger import HtmlLog
