@@ -85,9 +85,9 @@ def color(session, spec, color=None, target=None, transparency=None,
     if 's' in target and color is not None:
         from .scolor import scolor
         if color in _SpecialColors:
-            if 'a' in target:
+            if color == 'fromatoms':
                 ns = scolor(session, atoms, opacity=opacity, byatom=True)
-            elif color == 'fromatoms':
+            else:
                 # Surface colored different from atoms
                 c = _computed_atom_colors(atoms, color, opacity)
                 ns = scolor(session, atoms, opacity=opacity, byatom=True, per_atom_colors=c)
