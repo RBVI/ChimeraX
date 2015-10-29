@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 from chimera.core.tools import ToolInstance
 
@@ -21,11 +21,14 @@ class ModelPanel(ToolInstance):
         import wx
         import wx.grid
         self.table = wx.grid.Grid(parent, size=(200, 150))
-        self.table.CreateGrid(5, 2)
+        self.table.CreateGrid(5, 3)
         self.table.SetColLabelValue(0, "ID")
         self.table.SetColSize(0, 25)
-        self.table.SetColLabelValue(1, "Name")
+        self.table.SetColLabelValue(1, " ")
+        self.table.SetColSize(1, -1)
+        self.table.SetColLabelValue(2, "Name")
         self.table.HideRowLabels()
+        self.table.SetDefaultCellAlignment(wx.ALIGN_CENTRE, wx.ALIGN_BOTTOM)
         self.table.EnableEditing(False)
         self.table.SelectionMode = wx.grid.Grid.GridSelectRows
         self.table.CellHighlightPenWidth = 0
@@ -33,6 +36,7 @@ class ModelPanel(ToolInstance):
         from chimera.core.models import ADD_MODELS, REMOVE_MODELS
         self.session.triggers.add_handler(ADD_MODELS, self._fill_table)
         self.session.triggers.add_handler(REMOVE_MODELS, self._fill_table)
+        self.session.triggers.add_handler("atomic changes", self._changes_cb)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.table, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
@@ -62,10 +66,15 @@ class ModelPanel(ToolInstance):
     def reset_state(self):
         pass
 
+    def _changes_cb(self, trigger_name, data):
+        reasons = data["Atom"].reasons
+        if "color changed" in reasons or 'display changed' in reasons:
+            self._fill_table()
+
     def _fill_table(self, *args):
         import wx.grid
         # prevent repaints untill the end of this method...
-        gul = wx.grid.GridUpdateLocker(self.table)
+        locker = wx.grid.GridUpdateLocker(self.table)
         nr = self.table.NumberRows
         if nr:
             self.table.DeleteRows(0, nr)
@@ -74,5 +83,23 @@ class ModelPanel(ToolInstance):
         models = sorted(models, key=lambda m: m.id)
         for i, model in enumerate(models):
             self.table.SetCellValue(i, 0, model.id_string())
-            self.table.SetCellValue(i, 1, getattr(model, "name", "(unnamed)"))
+            self.table.SetCellBackgroundColour(i, 1, self._model_color(model))
+            self.table.SetCellValue(i, 2, getattr(model, "name", "(unnamed)"))
         self.table.AutoSizeColumns()
+
+    def _model_color(self, model):
+        # should be done generically
+        atoms = getattr(model, 'atoms', None)
+        if atoms:
+            shown = atoms.filter(atoms.displays)
+            if shown:
+                colors = shown.colors
+                # find most common color
+                import numpy
+                axis = 0
+                unique, indices = numpy.unique(colors, return_inverse=True)
+                rgba = unique[numpy.argmax(numpy.apply_along_axis(numpy.bincount, axis,
+                    indices.reshape(colors.shape), None, numpy.max(indices)+1), axis=axis)]
+                import wx
+                return wx.Colour(*rgba)
+        return None

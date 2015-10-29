@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 from chimera.core.tools import ToolInstance
 
@@ -14,35 +14,69 @@ class ShortcutPanel(ToolInstance):
         self.keyboard_shortcuts = keyboard_shortcuts(session)
 
         self.icon_size = 48
+        self.max_icon_size = 48
+        self.min_icon_size = 24
         self.icon_border = 4
-        self.columns = c = 12
-        self.rows = (len(shortcuts) + c - 1)//c
 
-        panel_size = (300, 1.5 * self.rows * self.icon_size)
+        columns = 12
+        rows = (len(shortcuts) + columns - 1)//columns
+        min_panel_width = self.icon_size
+        panel_height = rows * self.icon_size
+        panel_size = (min_panel_width, panel_height)
+
         from chimera.core.ui import MainToolWindow
         class ShortcutWindow(MainToolWindow):
             close_destroys = False
-        tw = ShortcutWindow(self, size=panel_size)
-        self.tool_window = tw
+
+        self.tool_window = tw = ShortcutWindow(self, size=panel_size)
         parent = tw.ui_area
 
-        from chimera.core import map, ui, markers
-        from chimera.core.map import series
+        self.buttons = self.create_buttons(shortcuts, parent)
+
+        tw.manage(placement="right", fixed_size = True)
+
         import wx
-        self.buttons = []
+        parent.Bind(wx.EVT_SIZE, self.resize_cb)
+
+        session.tools.add([self])
+
+    def create_buttons(self, shortcuts, parent):
+
+        import wx
+        buttons = []
         for i, (keys, icon_file, descrip) in enumerate(shortcuts):
-            location = ((i%self.columns)*self.icon_size,(i//self.columns)*self.icon_size)
-            tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file), location)
+            tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file))
+            tb.icon_file = icon_file
             def button_press_cb(event, keys=keys, ks=self.keyboard_shortcuts):
                 ks.run_shortcut(keys)
             parent.Bind(wx.EVT_BUTTON, button_press_cb, id=i+1)
             tb.SetToolTip(wx.ToolTip(descrip))
-            self.buttons.append(tb)
+            buttons.append(tb)
+        return buttons
 
-        #tw.manage(placement="top", fixed_size = True)
-        tw.manage(placement="top")
+    def resize_cb(self, event):
+        size = event.GetSize()
+        w, h = size.GetWidth(), size.GetHeight()
+        icon_size = min(self.max_icon_size, max(self.min_icon_size, w // len(self.buttons)))
+        if icon_size == self.icon_size:
+            return
 
-        session.tools.add([self])
+        n = len(self.buttons)
+        num_per_row = w//icon_size
+        rows = max(1, h//icon_size)
+        columns = (n + rows - 1) // rows
+        self.resize_buttons(columns, icon_size)
+
+        # TODO: Try resizing pane height
+        # self.tool_window.ui_area.SetSize((w,100))
+
+    def resize_buttons(self, columns, icon_size):
+        for i,b in enumerate(self.buttons):
+            b.SetBitmap(self.bitmap(b.icon_file))
+            b.SetSize((icon_size,icon_size))
+            pos = ((i%columns)*icon_size,(i//columns)*icon_size)
+            b.SetPosition(pos)
+        self.icon_size = icon_size
 
     def bitmap(self, filename):
         width = height = self.icon_size - 2*self.icon_border

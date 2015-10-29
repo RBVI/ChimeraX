@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.

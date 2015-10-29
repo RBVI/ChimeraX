@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 View
 ====
@@ -19,17 +19,19 @@ class View:
         self._opengl_context = None
         self._render = None
 
+        if opengl_context:
+            self.initialize_context(opengl_context)
+        self._opengl_initialized = False
+
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 1)
 
         # Create camera
         from .camera import MonoCamera
         self._camera = MonoCamera()
-
-        if opengl_context:
-            self.initialize_context(opengl_context)
-        self._opengl_initialized = False
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
+
+        # Shadows
         self._shadows = False
         self._shadow_map_size = 2048
         self._shadow_depth_bias = 0.005
@@ -41,22 +43,27 @@ class View:
         self._multishadow_depth = None
         self._multishadow_update_needed = False
 
+        # Silhouette edges
         self.silhouettes = False
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0, 0, 0, 1)    # black
         self.silhouette_depth_jump = 0.03       # fraction of scene depth
 
+        # Graphics overlays, used for example for crossfade
+        self._overlays = []
+        self._2d_overlays = []
+
+        # Center of rotation
+        from numpy import array, float32
+        self._center_of_rotation = array((0, 0, 0), float32)
+        self._update_center_of_rotation = False
+        self._center_of_rotation_method = 'front center'
+
+        # Redrawing
         self.frame_number = 1
         self.redraw_needed = True
         self._time_graphics = False
         self.update_lighting = False
-
-        self._overlays = []
-        self._2d_overlays = []
-
-        from numpy import array, float32
-        self._center_of_rotation = array((0, 0, 0), float32)
-        self._update_center_of_rotation = False
 
         self._drawing_manager = dm = _RedrawNeeded()
         if trigger_set:
@@ -633,7 +640,7 @@ class View:
         from ..geometry import identity
         c.position = identity()
         c.view_all(b.center(), b.width())
-        self.center_of_rotation = b.center()
+        self._update_center_of_rotation = True
 
     def view_all(self, bounds = None):
         '''Adjust the camera to show all displayed drawings using the
@@ -643,7 +650,8 @@ class View:
             if bounds is None:
                 return
         self.camera.view_all(bounds.center(), bounds.width())
-        self._update_center_of_rotation = True
+        if self._center_of_rotation_method == 'front center':
+            self._update_center_of_rotation = True
 
     def _get_cofr(self):
         if self._update_center_of_rotation:
@@ -654,8 +662,16 @@ class View:
         return self._center_of_rotation
     def _set_cofr(self, cofr):
         self._center_of_rotation = cofr
+        self._center_of_rotation_method = 'fixed'
         self._update_center_of_rotation = False
     center_of_rotation = property(_get_cofr, _set_cofr)
+
+    def _get_cofr_method(self):
+        return self._center_of_rotation_method
+    def _set_cofr_method(self, method):
+        self._center_of_rotation_method = method
+        self._update_center_of_rotation = True
+    center_of_rotation_method = property(_get_cofr_method, _set_cofr_method)
 
     def _compute_center_of_rotation(self):
         '''
@@ -663,7 +679,19 @@ class View:
         Use bounding box center if zoomed out, or the front center
         point if zoomed in.
         '''
-        self._update_center = False
+        m = self._center_of_rotation_method
+        if m == 'front center':
+            p = self._front_center_cofr()
+        elif m == 'fixed':
+            p = self._center_of_rotation
+        return p
+
+    def _front_center_cofr(self):
+        '''
+        Compute the center of rotation of displayed drawings.
+        Use bounding box center if zoomed out, or the front center
+        point if zoomed in.
+        '''
         b = self.drawing_bounds()
         if b is None:
             return
@@ -769,7 +797,8 @@ class View:
     def translate(self, shift, drawings=None):
         '''Move camera to simulate a translation of drawings.  Translation
         is in scene coordinates.'''
-        self._update_center_of_rotation = True
+        if self._center_of_rotation_method == 'front center':
+            self._update_center_of_rotation = True
         from ..geometry import place
         t = place.translation(shift)
         self.move(t, drawings)

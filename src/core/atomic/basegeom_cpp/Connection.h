@@ -30,7 +30,7 @@ protected:
     bool  _display = true;
     int  _hide = 0;
     bool  _halfbond = true;
-    float  _radius = 1.0;
+    float  _radius = 0.2;
     Rgba  _rgba;
 public:
     Connection(End *e1, End *e2);

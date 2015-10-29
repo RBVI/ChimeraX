@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 Drawing
 =======
@@ -274,6 +274,13 @@ class Drawing:
     display_positions = property(get_display_positions, set_display_positions)
     '''Mask specifying which copies are displayed.'''
 
+    @property
+    def parents_displayed(self):
+        for d in self.drawing_lineage[:-1]:
+            if not d.display:
+                return False
+        return True
+
     def get_selected(self):
         sp = self._selected_positions
         tmask = self._selected_triangles_mask
@@ -425,6 +432,9 @@ class Drawing:
         return self._positions
 
     def set_positions(self, positions):
+        from ..geometry import Places
+        if positions and not isinstance(positions, Places):
+            raise ValueError('Got %s instead of Places' % str(type(positions)))
         self._positions = positions
         self._displayed_positions = None
         self._selected_positions = None

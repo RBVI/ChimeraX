@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 Status_Okay = "200 OK"
 
 ContentType_HTML = "text/html"

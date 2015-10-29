@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 bounds: Bounding boxes
 ======================
@@ -16,9 +16,9 @@ class Bounds:
         xmin = xyz_min if isinstance(xyz_min, ndarray) else array(xyz_min, float32)
         xmax = xyz_max if isinstance(xyz_max, ndarray) else array(xyz_max, float32)
 
-        self.xyz_min = xyz_min
+        self.xyz_min = xmin
         "Minimum x,y,z bounds as numpy float32 array."
-        self.xyz_max = xyz_max
+        self.xyz_max = xmax
         "Maximum x,y,z bounds as numpy float32 array."
 
     def center(self):
@@ -90,7 +90,7 @@ def union_bounds(blist):
 def copies_bounding_box(bounds, positions):
     '''
     Return :py:class:`.Bounds` that covers a specified bounding
-    box and multiple :py:class:`.Places`.
+    box replicated at :py:class:`.Places`.
     '''
     if bounds is None:
         return None
@@ -109,6 +109,15 @@ def copies_bounding_box(bounds, positions):
                    (x0, y0, z1), (x1, y0, z1), (x0, y1, z1), (x1, y1, z1))
         b = union_bounds(point_bounds(p * corners) for p in positions)
     return b
+
+def copy_tree_bounds(bounds, positions_list):
+    '''
+    Return :py:class:`.Bounds` that covers a specified bounding
+    box replicated at a hierarchy of :py:class:`.Places`.
+    '''
+    for p in reversed(positions_list):
+        bounds = copies_bounding_box(bounds, p)
+    return bounds
 
 def sphere_bounds(centers, radii):
     '''

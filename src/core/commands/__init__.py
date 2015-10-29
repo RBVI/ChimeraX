@@ -2,7 +2,7 @@ from .commands import register_core_commands
 from .selectors import register_core_selectors
 from .run import run
 
-from .cli import CmdDesc, register, Command, alias
+from .cli import CmdDesc, register, Command, create_alias
 from .cli import commas, plural_form, plural_of, discard_article
 from .cli import ListOf, SetOf, TupleOf, Or
 
@@ -14,5 +14,5 @@ from .cli import ModelIdArg, AtomsArg, RestOfLine
 
 from .colorarg import ColorArg, ColormapArg
 
-from .atomspec import AtomSpecArg, ModelsArg, ObjectsArg
+from .atomspec import AtomSpecArg, ModelArg, ModelsArg, ObjectsArg
 from .atomspec import register_selector, deregister_selector

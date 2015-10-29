@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def sasa(session, atoms = None, probe_radius = 1.4, sum = None):
     '''

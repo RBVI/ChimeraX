@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # Analytic computation of solvent accessible surface area, ie. the surface area of a union of spheres.
 
 from math import pi, cos, sin, sqrt, atan2, acos

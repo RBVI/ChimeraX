@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.

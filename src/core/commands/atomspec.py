@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 atomspec: atom specifier cli annotation and evaluation
 ======================================================
@@ -305,7 +305,7 @@ class _ModelHierarchy(list):
             try:
                 mid = model.id[i]
             except IndexError:
-                mid = 1
+                return False
             if not mrl.matches(mid):
                 return False
         return True
@@ -709,10 +709,10 @@ class AtomSpecResults:
     models : readonly list of chimera.core.models.Model
         List of models that matches the atom specifier
     """
-    def __init__(self):
-        self._models = set()
+    def __init__(self, atoms = None, models = None):
+        self._models = set() if models is None else set(models)
         from ..atomic import Atoms
-        self._atoms = Atoms()
+        self._atoms = Atoms() if atoms is None else atoms
 
     def add_model(self, m):
         """Add model to atom spec results."""
@@ -769,6 +769,20 @@ class AtomSpecResults:
         atom_spec._atoms = right._atoms & left._atoms
         return atom_spec
 
+    def empty(self):
+        return len(self._atoms) == 0 and len(self._models) == 0
+
+    def displayed(self):
+        '''Return AtomSpecResults containing only displayed atoms and models.'''
+	# Displayed models
+        dmodels = set(m for m in self.models if m.display and m.parents_displayed)
+        return AtomSpecResults(self.atoms.shown_atoms, dmodels)
+
+    def bounds(self):
+        from ..atomic import AtomicStructure
+        bm = [m.bounds() for m in self.models if not isinstance(m, AtomicStructure)]
+        from ..geometry import union_bounds
+        return union_bounds(bm + [self.atoms.scene_bounds])
 #
 # Selector registration and use
 #
@@ -882,6 +896,30 @@ def everything(session):
 def all_objects(session):
     '''Return AtomSpecResults that matches everything.'''
     return everything(session).evaluate(session)
+
+# -----------------------------------------------------------------------------
+#
+class ModelArg(Annotation):
+    """Parse command model specifier"""
+    name = "model"
+
+    @staticmethod
+    def parse(text, session):
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = remove_child_models(aspec.evaluate(session).models)
+        if len(models) != 1:
+            from .cli import AnnotationError
+            raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
+        return tuple(models)[0], text, rest
+
+# -----------------------------------------------------------------------------
+#
+def remove_child_models(models):
+    s = set(models)
+    for m in models:
+        for c in m.child_models():
+            s.discard(c)
+    return tuple(s)
 
 # -----------------------------------------------------------------------------
 #

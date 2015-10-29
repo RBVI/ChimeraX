@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 class MouseModes:
 
@@ -47,12 +47,14 @@ class MouseModes:
     def dispatch_mouse_event(self, event, button, action):
         if action in ('mouse_down', 'mouse_double'):
             # remember button for later drag events
-            self.graphics_window.opengl_canvas.CaptureMouse()
+            if not self.graphics_window.opengl_canvas.HasCapture():
+                self.graphics_window.opengl_canvas.CaptureMouse()
         elif action == 'mouse_drag':
             if not event.Dragging():
                 return
         elif action == 'mouse_up':
-            self.graphics_window.opengl_canvas.ReleaseMouse()
+            if self.graphics_window.opengl_canvas.HasCapture():
+                self.graphics_window.opengl_canvas.ReleaseMouse()
         if button is None:
             if event.LeftIsDown():
                 button = "middle" if event.AltDown() else "left"
