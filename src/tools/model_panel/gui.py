@@ -86,17 +86,22 @@ class ModelPanel(ToolInstance):
 
     def _model_color(self, model):
         # should be done generically
+        residues = getattr(model, 'residues', None)
+        if residues:
+            ribbon_displays = residues.ribbon_displays
+            if ribbon_displays.any():
+                ribbon_colors = residues.filter(ribbon_displays).ribbon_colors
+                if (ribbon_colors == ribbon_colors[0]).all():
+                    import wx
+                    return wx.Colour(*tuple(ribbon_colors[0]))
         atoms = getattr(model, 'atoms', None)
         if atoms:
             shown = atoms.filter(atoms.displays)
-            if shown:
-                colors = shown.colors
-                # find most common color
-                import numpy
-                axis = 0
-                unique, indices = numpy.unique(colors, return_inverse=True)
-                rgba = unique[numpy.argmax(numpy.apply_along_axis(numpy.bincount, axis,
-                    indices.reshape(colors.shape), None, numpy.max(indices)+1), axis=axis)]
-                import wx
-                return wx.Colour(*rgba)
+            shown_carbons = shown.filter(shown.element_numbers == 6)
+            if shown_carbons:
+                colors = shown_carbons.colors
+                # are they all the same?
+                if (colors == colors[0]).all():
+                    import wx
+                    return wx.Colour(*tuple(colors[0]))
         return None
