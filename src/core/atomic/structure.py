@@ -84,7 +84,8 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def added_to_session(self, session):
         if self._smart_initial_display:
-            self._set_initial_color(self.id[0], session.main_view.background_color)
+            color = self.initial_color(session.main_view.background_color)
+            self.set_color(color.uint8x4())
         self._start_change_tracking(session.change_tracker)
         self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
 
@@ -122,11 +123,11 @@ class AtomicStructure(AtomicStructureData, Model):
         na = sum(self.atoms.displays) if self.display else 0
         return na
 
-    def _set_initial_color(self, id, bg_color):
+    def initial_color(self, bg_color):
         from ..colors import BuiltinColors, distinguish_from, Color
         try:
-            model_color = BuiltinColors[
-                self.ATOMIC_COLOR_NAMES[id-1]]
+            cname = self.ATOMIC_COLOR_NAMES[self.id[0]-1]
+            model_color = BuiltinColors[cname]
             if (model_color.rgba[:3] == bg_color[:3]).all():
                 # force use of another color...
                 raise IndexError("Same as background color")
@@ -136,7 +137,7 @@ class AtomicStructure(AtomicStructureData, Model):
             avoid = [BuiltinColors[cn].rgba[:3] for cn in self.ATOMIC_COLOR_NAMES]
             avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
             model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
-        self.set_color(model_color.uint8x4())
+        return model_color
 
     def _make_drawing(self):
         # Create graphics
