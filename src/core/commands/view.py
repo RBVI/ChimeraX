@@ -39,10 +39,10 @@ def view(session, objects=None, show=None, frames=None,
             from ..errors import UserError
             raise UserError('No objects specified.')
         disp = objects.displayed()
-        if disp.empty():
+        b = disp.bounds()
+        if b is None:
             from ..errors import UserError
             raise UserError('No displayed objects specified.')
-        b = disp.bounds()
         v.view_all(b)
         v.center_of_rotation = b.center()
     if name is not None:
