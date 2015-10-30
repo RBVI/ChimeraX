@@ -75,17 +75,15 @@ class PseudobondGroup(PseudobondGroupData, Model):
         p = structure.PickedPseudobond(b,f) if b else None
         return p
 
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
+    def take_snapshot(self, session, flags):
         data = {}
-        return [self.STRUCTURE_STATE_VERSION, data]
+        return data
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
             raise RestoreError("Unexpected version or data")
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
 def all_pseudobond_groups(models):

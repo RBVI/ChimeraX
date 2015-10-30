@@ -84,7 +84,9 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def added_to_session(self, session):
         if self._smart_initial_display:
-            self._set_initial_color(self.id[0], session.main_view.background_color)
+            color = self.initial_color(session.main_view.background_color)
+            self.set_color(color.uint8x4())
+
             from ..commands import Command
             lighting = "shadows true"
             if self.num_chains == 0:
@@ -110,23 +112,22 @@ class AtomicStructure(AtomicStructureData, Model):
                 if len([m for m in session.models.list()
                         if isinstance(m, self.__class__)]) == 1:
                     Command(session, "lighting " + lighting, final=True).execute(log=False)
+
         self._start_change_tracking(session.change_tracker)
         self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
 
     def removed_from_session(self, session):
         session.triggers.delete_handler(self.handler)
 
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
+    def take_snapshot(self, session, flags):
         data = {}
-        return [self.STRUCTURE_STATE_VERSION, data]
+        return data
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
             raise RestoreError("Unexpected version or data")
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
     @property
@@ -147,11 +148,11 @@ class AtomicStructure(AtomicStructureData, Model):
         na = sum(self.atoms.displays) if self.display else 0
         return na
 
-    def _set_initial_color(self, id, bg_color):
+    def initial_color(self, bg_color):
         from ..colors import BuiltinColors, distinguish_from, Color
         try:
-            model_color = BuiltinColors[
-                self.ATOMIC_COLOR_NAMES[id-1]]
+            cname = self.ATOMIC_COLOR_NAMES[self.id[0]-1]
+            model_color = BuiltinColors[cname]
             if (model_color.rgba[:3] == bg_color[:3]).all():
                 # force use of another color...
                 raise IndexError("Same as background color")
@@ -161,7 +162,7 @@ class AtomicStructure(AtomicStructureData, Model):
             avoid = [BuiltinColors[cn].rgba[:3] for cn in self.ATOMIC_COLOR_NAMES]
             avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
             model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
-        self.set_color(model_color.uint8x4())
+        return model_color
 
     def _make_drawing(self):
         # Create graphics

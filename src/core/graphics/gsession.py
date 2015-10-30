@@ -2,84 +2,66 @@
 
 from ..session import State
 
+
 class ViewState(State):
-    VIEW_STATE_VERSION = 1
-    def __init__(self, view):
-        self.view = view
 
-    def take_snapshot(self, session, phase, flags):
-        v = self.view
+    def __init__(self, session, attribute):
+        self.view_attr = attribute
+
+    def take_snapshot(self, session, flags):
+        v = getattr(session, self.view_attr)
         cs = CameraState(v.camera)
-        if phase == State.SAVE_PHASE:
-            data = [v.center_of_rotation, v.window_size,
-                    v.background_color,
-                    cs.take_snapshot(session, phase, flags)]
-            return [self.VIEW_STATE_VERSION, data]
-        if phase == State.CLEANUP_PHASE:
-            cs.take_snapshot(session, phase, flags)
+        data = [self.view_attr, v.center_of_rotation, v.window_size,
+                v.background_color, cs.take_snapshot(session, flags)]
+        return data
 
-    def restore_snapshot(self, phase, session, version, data):
-        if version != self.VIEW_STATE_VERSION or len(data) == 0:
-            from ..session import RestoreError
-            raise RestoreError("Unexpected version or data")
-        v = self.view
-        if phase == State.CREATE_PHASE:
-            (v.center_of_rotation, v.window_size,
-             v.background_color) = data[:3]
-            from .camera import MonoCamera
-            v.camera = MonoCamera()
-        CameraState(v.camera).restore_snapshot(phase, session, data[3][0], data[3][1])
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        self.view_attr = data[0]
+        v = getattr(session, self.view_attr)
+        (v.center_of_rotation, _,   # TODO: skip v.window_size
+         v.background_color) = data[1:4]
+        from .camera import MonoCamera
+        v.camera = MonoCamera()
+        CameraState(v.camera).restore_snapshot_init(
+            session, tool_info, version, data[4])
 
-    def reset_state(self):
+    def reset_state(self, session):
         """Reset state to data-less state"""
-        from numpy import array, float32
-        v = self.view
+        v = getattr(session, self.view_attr)
         v.center_of_rotation_method = 'front center'
         # v.window_size = ?
         v.background_color = (0, 0, 0, 1)
 
+
 class CameraState(State):
-    CAMERA_STATE_VERSION = 1 
+
     def __init__(self, camera):
         self.camera = camera
 
-    def take_snapshot(self, session, phase, flags): 
-        if phase != State.SAVE_PHASE: 
-            return 
+    def take_snapshot(self, session, flags):
         c = self.camera
         data = [c.position, c.field_of_view]
-        return [self.CAMERA_STATE_VERSION, data] 
+        return data
 
-    def restore_snapshot(self, phase, session, version, data): 
-        if version != self.CAMERA_STATE_VERSION or len(data) == 0: 
-            from ..session import RestoreError 
-            raise RestoreError("Unexpected version or data") 
-        if phase != State.CREATE_PHASE: 
-            return 
+    def restore_snapshot_init(self, session, tool_info, version, data):
         c = self.camera
-        (c.position, c.field_of_view) = data 
+        (c.position, c.field_of_view) = data
 
-    def reset_state(self): 
-        # delay implementing until needed 
-        raise NotImplemented() 
+    def reset_state(self, session):
+        # delay implementing until needed
+        raise NotImplemented()
+
 
 class DrawingState(State):
-    DRAWING_STATE_VERSION = 1
+
     def __init__(self, drawing):
         self.drawing = drawing
 
-    def take_snapshot(self, session, phase, flags):
+    def take_snapshot(self, session, flags):
         d = self.drawing
-        if phase == State.CLEANUP_PHASE:
-            for c in d.child_drawings():
-                DrawingState(c).take_snapshot(session, phase, flags)
-            return
-        if phase != State.SAVE_PHASE:
-            return
         # all drawing objects should have the same version
         data = {
-            'children': [c.take_snapshot(session, phase, flags)[1]
-                         for c in d.child_drawings()],
+            'children': [c for c in d.child_drawings()],
             'name': d.name,
             'vertices': d.vertices,
             'triangles': d.triangles,
@@ -104,18 +86,13 @@ class DrawingState(State):
             'colors': d.colors,
             'geometry': d.geometry,
         }
-        return self.DRAWING_STATE_VERSION, data
+        return data
 
-    def restore_snapshot(self, phase, session, version, data):
-        if version != self.DRAWING_STATE_VERSION:
-            from ..session import RestoreError
-            raise RestoreError("Unexpected version or data")
-        if phase != State.CREATE_PHASE:
-            return
+    def restore_snapshot_init(self, session, tool_info, version, data):
         d = self.drawing
         for child_data in data['children']:
             child = d.new_drawing()
-            DrawingState(child).restore_snapshot(phase, session, version, child_data)
+            DrawingState(child).restore_snapshot(session, tool_info, version, child_data)
         d.name = data['name']
         d.vertices = data['vertices']
         d.triangles = data['triangles']
@@ -140,6 +117,6 @@ class DrawingState(State):
         d.display_positions = data['display_positions']
         d.selected_positions = data['selected_positions']
 
-    def reset_state(self):
+    def reset_state(self, session):
         # delay implementing until needed
         raise NotImplemented()

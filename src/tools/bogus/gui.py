@@ -16,7 +16,6 @@ from chimera.core.tools import ToolInstance
 class bogusUI(ToolInstance):
 
     SIZE = (500, 25)
-    VERSION = 1
 
     _PageTemplate = """<html>
 <head>
@@ -113,23 +112,15 @@ ACTION_BUTTONS
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        version = self.VERSION
+    def take_snapshot(self, session, flags):
         data = {}
-        return [version, data]
+        return data
 
     def restore_snapshot(self, phase, session, version, data):
         from chimera.core.session import RestoreError
-        if version != self.VERSION or len(data) > 0:
+        if len(data) > 0:
             raise RestoreError("unexpected version or data")
-        if phase == self.CREATE_PHASE:
-            # Restore all basic-type attributes
-            pass
-        else:
-            # Resolve references to objects
-            pass
+        pass
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass

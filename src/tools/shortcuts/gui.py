@@ -6,6 +6,9 @@ from chimera.core.tools import ToolInstance
 #
 class ShortcutPanel(ToolInstance):
 
+    SESSION_ENDURING = True
+    SESSION_SKIP = True  # TODO: remove this
+
     def __init__(self, session, shortcuts, tool_info):
 
         super().__init__(session, tool_info)
@@ -104,7 +107,7 @@ class ShortcutPanel(ToolInstance):
     def restore_snapshot(self, phase, session, version, data):
         pass
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
 def get_singleton(tool_name, session, create=False):

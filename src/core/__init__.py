@@ -11,6 +11,23 @@ __copyright__ = (
     "  See http://www.cgl.ucsf.edu/chimera/ for license details."
 )
 _class_cache = {}
+# list modules classes are found in
+_class_class_init = {
+    'AtomicStructure': '.atomic',
+    'Generic3DModel': '.generic3d',
+    'Model': '.models',
+    'Models': '.models',
+    'MolecularSurface': '.molsurf',
+    'STLModel': '.stl',
+    'Job': '.tasks',
+    'Tasks': '.tasks',
+    'Tools': '.tools',
+    'TriangleInfo': '.stl',
+    'UserColors': '.colors',
+    'UserColormaps': '.colors',
+    'ViewState': '.graphics.gsession',
+    '_Input': '.ui.nogui',
+}
 
 
 def get_class(class_name):
@@ -25,26 +42,13 @@ def get_class(class_name):
         return _class_cache[class_name]
     except KeyError:
         pass
-    if class_name == 'AtomicStructure':
-        from . import atomic
-        cls = atomic.AtomicStructure
-    elif class_name == 'Generic3DModel':
-        from . import generic3d
-        cls = generic3d.Generic3DModel
-    elif class_name == 'MolecularSurface':
-        from . import molsurf
-        cls = molsurf.MolecularSurface
-    elif class_name == 'STLModel':
-        from . import stl
-        cls = stl.STLModel
-    elif class_name == 'Job':
-        from . import tasks
-        cls = tasks.Job
-    elif class_name == '_Input':
-        from .ui import nogui
-        cls = nogui._Input
+    module_name = _class_class_init.get(class_name, None)
+    if module_name is None:
+        cls = None
     else:
-        return None
+        import importlib
+        mod = importlib.import_module(module_name, __package__)
+        cls = getattr(mod, class_name)
     _class_cache[class_name] = cls
     return cls
 

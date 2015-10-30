@@ -18,94 +18,270 @@ or for comparing two sessions.
 Session data, ie., data that is archived, uses the :py:class:`State` API.
 """
 
-import weakref
-from . import serialize
-from .state import State, RestoreError
+from .state import State, copy_state, dereference_state
+from .commands import CmdDesc, StringArg, register, commas
 
 _builtin_open = open
+#: session file suffix
 SESSION_SUFFIX = ".c2ses"
 
-class Scenes(State):
-    """Manage scenes within a session"""
-    VERSION = 1
+# triggers:
 
-    def __init__(self, session):
-        self._session = weakref.ref(session)
-        self._scenes = {}
+#: trigger when starting to save a session
+BEGIN_SAVE_SESSION = "start saving session"
+#: trigger when done saving a session
+END_SAVE_SESSION = "finished saving session"
+#: trigger when starting to save a session
+BEGIN_RESTORE_SESSION = "start restoring session"
+#: trigger when done saving a session
+END_RESTORE_SESSION = "finished restoring session"
 
-    def save(self, name, metadata=None):
-        """Save snapshot of current state in a scene.
+#: version of session file that is written
+CORE_SESSION_VERSION = 1
 
-        The state consists of the registered attributes that support
-        the State API.  The metadata should be a dictionary of
-        metadata about the scene.  For example, a thumbnail image.
-        metadata contents must be serializable like State data.
+
+class _UniqueName:
+    # uids are (class_name, ordinal)
+    # The class_name is either the name of a core class
+    # or a tuple (tool name, class name)
+
+    _cls_ordinals = {}  # {class: ordinal}
+    _uid_to_obj = {}    # {uid: obj}
+    _obj_to_uid = {}    # {id(obj): uid}
+    _tool_infos = set()
+
+    __slots__ = ['uid']
+
+    @classmethod
+    def reset(cls):
+        cls._cls_ordinals.clear()
+        cls._uid_to_obj.clear()
+        cls._obj_to_uid.clear()
+
+    @classmethod
+    def lookup(cls, unique_name):
+        return cls._uid_to_obj.get(unique_name.uid, None)
+
+    @classmethod
+    def add(cls, uid, obj):
+        # allows for non-_UniqueName uids
+        cls._uid_to_obj[uid] = obj
+        cls._obj_to_uid[id(obj)] = uid
+
+    def obj(self):
+        return self._uid_obj[self.uid]
+
+    def __init__(self, uid):
+        self.uid = uid
+
+    @classmethod
+    def from_obj(cls, obj):
+        """Return a unique identifier for an object in session
+        Consequently, the identifier is composed of simple data types.
+
+        Parameters
+        ----------
+        obj : any object
+        tool_info : optional :py:class:`~chimera.core.toolshed.ToolInfo` instance
+            Explicitly denote which tool object comes from.
         """
-        session = self._session()  # resolve back reference
-        scene = []
-        for tag in session._state_managers:
-            manager = session._state_managers[tag]
-            snapshot = manager.take_snapshot(scene, self.SAVE_PHASE, State.SCENE)
-            if snapshot is None:
+
+        uid = cls._obj_to_uid.get(id(obj), None)
+        if uid is not None:
+            return cls(uid)
+        obj_cls = obj.__class__
+        tool_info = None
+        if hasattr(obj, 'tool_info'):
+            tool_info = obj.tool_info
+        elif hasattr(obj_cls, 'tool_info'):
+            tool_info = obj_cls.tool_info
+        if tool_info is None:
+            # no tool info, must be in core
+            if not obj_cls.__module__.startswith('chimera.core.'):
+                raise RuntimeError('No tool information for %s.%s' % (
+                    obj_cls.__module__, obj_cls.__name__))
+            class_name = obj_cls.__name__
+            # double check that class will be able to be restored
+            from chimera.core import get_class
+            if obj_cls != get_class(class_name):
+                raise RuntimeError('unable to restore objects of %s class' % class_name)
+        else:
+            class_name = (tool_info.name, obj_cls.__name__)
+            # double check that class will be able to be restored
+            if obj_cls != tool_info.get_class(obj_cls.__name__):
+                raise RuntimeError(
+                    'unable to restore objects of %s class in %s tool' %
+                    (class_name, tool_info.name))
+
+        ordinal = cls._cls_ordinals.get(class_name, 0)
+        if ordinal == 0 and tool_info is not None:
+            cls._tool_infos.add(tool_info)
+        ordinal += 1
+        uid = (class_name, ordinal)
+        cls._cls_ordinals[class_name] = ordinal
+        cls._uid_to_obj[uid] = obj
+        cls._obj_to_uid[id(obj)] = uid
+        return cls(uid)
+
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.uid)
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        return self.uid == other.uid
+
+    def __hash__(self):
+        return hash(self.uid)
+
+    def class_name_of(self):
+        """Extract class name associated with unique id for messages"""
+        class_name = self.uid[0]
+        if isinstance(class_name, str):
+            return "Core's %s" % class_name
+        return "Tool %s's %s" % class_name
+
+    def tool_info_and_class_of(self):
+        """Return class associated with unique id
+
+        The restore process makes sure that the right tools are present,
+        so if there is an error, return None.
+        """
+        class_name, ordinal = self.uid
+        if isinstance(class_name, str):
+            from chimera.core import get_class
+            tool_info = None
+            cls = get_class(class_name)
+        else:
+            tool_name, tool_version, class_name = class_name
+            tool_info = self.toolshed.find_tool(tool_name)
+            if tool_info is None:
+                return None, None
+            cls = tool_info.get_class(class_name)
+        return tool_info, cls
+
+#    @classmethod
+#    def restore_unique_id(self, obj, uid):
+#        """Restore unique identifier for an object"""
+#        class_name, ordinal = uid
+#        obj._cache_uid = ordinal
+#        self._uid_to_obj[uid] = obj
+#        current_ordinal = self._cls_ordinals.get(class_name, 0)
+#        if ordinal > current_ordinal:
+#            self._cls_ordinals[class_name] = ordinal
+
+
+class _SaveManager:
+    """Manage session saving"""
+
+    def __init__(self, session, state_flags):
+        self.session = session
+        self.state_flags = state_flags
+        self.graph = {}         # dependency graph
+        self.unprocessed = []   # item: LIFO [obj]
+        self.processed = {}     # item: {_UniqueName(obj)/attr_name: data}
+        self._found_objs = []
+        _UniqueName.reset()
+
+    def discovery(self, containers):
+        for key, value in containers.items():
+            if not isinstance(value, State) and len(value) == 0:
                 continue
-            version, data = snapshot
-            scene.append([tag, version, data])
-        for tag in session._state_managers:
-            manager = session._state_managers[tag]
-            manager.take_snapshot(scene, self.CLEANUP_PHASE, State.SCENE)
-        self._scenes[name] = [metadata, scene]
+            try:
+                if not isinstance(value, State):
+                    self.processed[key] = self.process(value)
+                    self.graph[key] = self._found_objs
+                else:
+                    self.unprocessed.append(value)
+                    uid = _UniqueName.from_obj(value)
+                    self.processed[key] = uid
+                    self.graph[key] = [uid]
+            except ValueError as e:
+                raise ValueError("error processing: %r" % key)
+        while self.unprocessed:
+            obj = self.unprocessed.pop()
+            key = _UniqueName.from_obj(obj)
+            try:
+                self.processed[key] = self.process(obj)
+            except ValueError as e:
+                raise ValueError("error processing key: %s: %s" % (key, e))
+            self.graph[key] = self._found_objs
 
-    def restore(self, name):
-        """Restore session to the state represented in the named scene."""
-        if name not in self._scenes:
-            raise ValueError("Unknown scene")
-        scene = self._scenes[name]
-        session = self._session()  # resolve back reference
-        managers = []
-        for tag, version, data in scene:
-            if tag not in session._state_managers:
+    def _add_obj(self, obj):
+        uid = _UniqueName.from_obj(obj)
+        self._found_objs.append(uid)
+        if uid not in self.processed:
+            self.unprocessed.append(obj)
+        return uid
+
+    def process(self, obj):
+        self._found_objs = []
+        if isinstance(obj, State):
+            data = obj.take_snapshot(self.session, self.state_flags)
+        else:
+            data = obj
+        return copy_state(data, convert=self._add_obj)
+
+    def walk(self):
+        # generator that walks processed items in correct order
+        from .order_dag import order_dag
+        odg = order_dag(self.graph)
+        while 1:
+            try:
+                key = next(odg)
+                value = self.processed[key]
+                yield key, value
+            except StopIteration:
+                return
+
+    def tool_infos(self):
+        tool_infos = {}
+        for ti in _UniqueName._tool_infos:
+            tool_infos[ti.name] = (ti.version, ti.session_write_version)
+        return tool_infos
+
+
+class RestoreError(RuntimeError):
+    """Raised when session file has a problem being restored"""
+    pass
+
+
+class _RestoreManager:
+
+    #: common exception for needing a newer version of the application
+    NeedNewerError = RestoreError(
+        "Need newer version of tool to restore session")
+
+    def __init__(self):
+        _UniqueName.reset()
+        self.tool_infos = {}
+
+    def check_tools(self, tool_infos):
+        missing_tools = []
+        out_of_date_tools = []
+        for tool_name, (tool_version, tool_state_version) in tool_infos.items():
+            t = self.toolshed.find_tool(tool_name)
+            if t is None:
+                missing_tools.append(tool_name)
                 continue
-            manager = session._state_managers[tag]
-            manager.restore_snapshot(self.CREATE_PHASE, session, version, data)
-            managers.append((manager, version))
-        for manager, version in managers:
-            manager.restore_snapshot(self.RESOLVE_PHASE, session, version, None)
+            # check if installed tools can restore data
+            if not (t.session_versions[0] <= tool_state_version <= t.session_versions[1]):
+                out_of_date_tools.append(t)
+        if missing_tools or out_of_date_tools:
+            msg = "Unable to restore session"
+            if missing_tools:
+                msg += "; missing tools: " + commas(missing_tools, ' and')
+            if out_of_date_tools:
+                msg += "; out of date tools: " + commas(out_of_date_tools, ' and')
+            raise RestoreError(msg)
+        self.tool_infos = tool_infos
 
-    def delete(self, name):
-        """Delete named scene"""
-        if name not in self._scenes:
-            raise ValueError("Unknown scene")
-        del self._scenes[name]
+    def resolve_references(self, data):
+        # resolve references in data
+        return dereference_state(data, _UniqueName.lookup, _UniqueName)
 
-    def metadata(self, name):
-        """Return scene's metadata"""
-        return self._scenes[name][0]
-
-    def names(self):
-        """Return list of scene names"""
-        return list(self._scenes.keys())
-
-    def take_snapshot(self, phase, session, flags):
-        # documentation from base class
-        if phase == self.CLEANUP_PHASE:
-            return
-        if phase != self.SAVE_PHASE:
-            return
-        if (flags & State.SESSION) == 0:
-            # don't save scene in scenes
-            return
-        return [self.VERSION, self._scenes]
-
-    def restore_snapshot(self, phase, session, version, data):
-        # documentation from base class
-        if version > self.VERSION:
-            raise State.NeedNewerError
-        if phase == self.CREATE_PHASE:
-            self._scenes = data
-
-    def reset_state(self):
-        # documentation from base class
-        self._scenes.clear()
+    def add_reference(self, name, obj):
+        _UniqueName.add(name.uid, obj)
 
 
 class Session:
@@ -122,23 +298,92 @@ class Session:
 
     Each session attribute, that should be archived,
     must implement the State API, and is then automatically archived.
+
+    Attributes
+    ----------
+    app_bin_dir : string
+        Application executable binaries directory
+    app_data_dir : string
+        Application data directory
+    app_lib_dir : string
+        Application shared code library directory
+    logger : An instance of :py:class:`~chimera.core.logger.Logger`
+        Use to log information, warning, errors.
+    metadata : dict
+        Information kept at beginning of session file, eg., a thumbnail
+    models : Instance of :py:class:`~chimera.core.models.Models`.
+    triggers : An instance of :py:class:`~chimera.core.triggerset.TriggerSet`
+        Starts with session triggers.
     """
 
-    def __init__(self):
-        # manage
-        self._obj_uids = weakref.WeakValueDictionary()
-        self._cls_ordinals = {}
-        from collections import OrderedDict
-        self._state_managers = OrderedDict()   # objects that support State API
-        self.metadata = {}          #: session metadata
+    def __init__(self, app_name, debug=False):
+        self.app_name = app_name
+        self.debug = debug
+        from . import logger
+        self.logger = logger.Logger(self)
+        from . import triggerset
+        self.triggers = triggerset.TriggerSet()
+        self.triggers.add_trigger(BEGIN_SAVE_SESSION)
+        self.triggers.add_trigger(END_SAVE_SESSION)
+        self.triggers.add_trigger(BEGIN_RESTORE_SESSION)
+        self.triggers.add_trigger(END_RESTORE_SESSION)
+        self._state_containers = {}  # stuff to save in sessions
+        self.metadata = {}           #: session metadata
+        import chimera
+        self.app_data_dir = chimera.app_data_dir
+        self.app_bin_dir = chimera.app_bin_dir
+        self.app_lib_dir = chimera.app_lib_dir
+
+        # initialize state managers for various properties
+        from . import models
+        self.add_state_manager('models', models.Models(self))
+        from .graphics.view import View
+        self.main_view = View(self.models.drawing, window_size=(256, 256),
+                              trigger_set=self.triggers)
+        from .graphics.gsession import ViewState
+        self.add_state_manager('view', ViewState(self, 'main_view'))
+
+        from . import colors
+        self.add_state_manager('user_colors', colors.UserColors())
+        self.add_state_manager('user_colormaps', colors.UserColormaps())
+        # tasks and tools are initialized later
+        # TODO: scenes need more work
+        # from .scenes import Scenes
+        # sess.add_state_manager('scenes', Scenes(sess))
+
+    @property
+    def models(self):
+        return self._state_containers['models']
+
+    @property
+    def scenes(self):
+        return self._state_containers['scenes']
+
+    @property
+    def tools(self):
+        return self._state_containers['tools']
+
+    @property
+    def tasks(self):
+        return self._state_containers['tasks']
+
+    @property
+    def user_colors(self):
+        return self._state_containers['user_colors']
+
+    @property
+    def user_colormaps(self):
+        return self._state_containers['user_colormaps']
 
     def reset(self):
         """Reset session to data-less state"""
         self.metadata.clear()
-        self._cls_ordinals.clear()
-        for tag in self._state_managers:
-            manager = self._state_managers[tag]
-            manager.reset_state()
+        for tag in self._state_containers:
+            container = self._state_containers[tag]
+            if isinstance(container, State):
+                container.reset_state(self)
+            else:
+                container.clear()
 
     def __setattr__(self, name, value):
         if hasattr(self, name):
@@ -150,190 +395,80 @@ class Session:
         # preemptive debugging for third party packages
         raise AttributeError("can not remove attributes")
 
-    def add_state_manager(self, tag, manager):
-        if not isinstance(manager, State):
-            raise ValueError('manager needs to implement State API')
-        if tag in self._state_managers:
-            raise ValueError('already have manager for %s' % tag)
-        self._state_managers[tag] = manager
+    def add_state_manager(self, tag, container):
+        # if tag in self._state_containers:
+        #     return
+        if not isinstance(container, State) and not hasattr(container, 'clear'):
+            raise ValueError('container must follow State API')
+        self._state_containers[tag] = container
 
-    def replace_state_manager(self, tag, manager):
-        """Explictly replace state manager with alternate implementation"""
-        if not isinstance(manager, State):
-            raise ValueError('manager needs to implement State API')
-        if tag not in self._state_managers:
-            raise ValueError('missing manager for %s' % tag)
-        self._state_managers[tag] = manager
+    def get_state_manager(self, tag):
+        return self._state_containers[tag]
 
-    def replace_attribute(self, name, value):
+    def replace_attribute(self, attribute_name, value):
         """Explictly replace attribute with alternate implementation"""
-        object.__setattr__(self, name, value)
-
-    def unique_id(self, obj, tool_info=None):
-        """Return a unique identifier for an object in session
-
-        Consequently, the identifier is composed of simple data types.
-
-        Parameters
-        ----------
-        obj : any object
-        tool_info : optional :py:class:`~chimera.core.toolshed.ToolInfo` instance
-            Explicitly denote which tool object comes from.
-        """
-
-        cls = obj.__class__
-        if hasattr(obj, 'tool_info'):
-            tool_info = obj.tool_info
-        elif hasattr(cls, 'tool_info'):
-            tool_info = cls.tool_info
-        if tool_info is not None:
-            class_name = (tool_info.name, tool_info.version, cls.__name__)
-            if 1:  # DEBUG
-                # double check that class will be able to be restored
-                t = self.toolshed.find_tool(tool_info.name,
-                                            version=tool_info.version)
-                if cls != t.get_class(cls.__name__):
-                    raise RuntimeError(
-                        'unable to restore objects of %s class in %s tool' %
-                        (class_name, tool_info.name))
-        else:
-            if not cls.__module__.startswith('chimera.core.'):
-                raise RuntimeError('No tool information for %s.%s' % (
-                    cls.__module__, cls.__name__))
-            class_name = cls.__name__
-            # double check that class will be able to be restored
-            from chimera.core import get_class
-            if cls != get_class(class_name):
-                raise RuntimeError('unable to restore objects of %s class' % class_name)
-        if hasattr(obj, "_cache_uid"):
-            ordinal = obj._cache_uid
-            uid = (class_name, ordinal)
-            if uid in self._obj_uids:
-                return uid
-        ordinal = self._cls_ordinals.get(class_name, 0)
-        ordinal += 1
-        uid = (class_name, ordinal)
-        self._cls_ordinals[class_name] = ordinal
-        self._obj_uids[uid] = obj
-        obj._cache_uid = ordinal
-        return uid
-
-    def unique_obj(self, uid):
-        """Return the object that corresponds to the unique identifier"""
-        ref = self._obj_uids.get(uid, None)
-        return ref
-
-    def restore_unique_id(self, obj, uid):
-        """Restore unique identifier for an object"""
-        class_name, ordinal = uid
-        obj._cache_uid = ordinal
-        self._obj_uids[uid] = obj
-        current_ordinal = self._cls_ordinals.get(class_name, 0)
-        if ordinal > current_ordinal:
-            self._cls_ordinals[class_name] = ordinal
-
-    def class_name_of_unique_id(self, uid):
-        """Extract class name associated with unique id for messages"""
-        class_name = uid[0]
-        if isinstance(class_name, str):
-            return class_name
-        return "Tool %s %s's %s" % class_name
-
-    def class_of_unique_id(self, uid, base_class):
-        """Return class associated with unique id
-        
-        Parameters
-        ----------
-        uid : unique identifer for class
-        base_class : the expected base class of the class
-        tool_name : internal name of tool that provides class
-            If not given, then it must be in the chimera core.
-        tool_version : the tool's version
-            If not given, then it must be in the chimera core.
-
-        Raises
-        ------
-        KeyError
-        """
-        class_name, ordinal = uid
-        if isinstance(class_name, str):
-            from chimera.core import get_class
-            cls = get_class(class_name)
-        else:
-            tool_name, tool_version, class_name = class_name
-            t = self.toolshed.find_tool(tool_name, version=tool_version)
-            if t is None:
-                # TODO: load tool from toolshed
-                session.logger.error("Missing '%s' (internal name) tool" % tool_name)
-                return
-            cls = t.get_class(class_name)
-
-        try:
-            assert(issubclass(cls, base_class))
-        except Exception as e:
-            raise KeyError(str(e))
-        return cls
+        object.__setattr__(self, attribute_name, value)
 
     def save(self, stream):
         """Serialize session to stream."""
-        serialize.serialize(stream, serialize.VERSION)
+        from . import serialize
+        self.triggers.activate_trigger(BEGIN_SAVE_SESSION, self)
+        serialize.serialize(stream, CORE_SESSION_VERSION)
         serialize.serialize(stream, self.metadata)
         # guarantee that tools are serialized first, so on restoration,
         # all of the related code will be loaded before the rest of the
         # session is restored
-        managers = list(self._state_managers)
-        if 'tools' in self._state_managers:
-            managers.remove('tools')
-            managers.insert(0, 'tools')
-        for tag in list(managers):
-            manager = self._state_managers[tag]
-            snapshot = manager.take_snapshot(self, State.SAVE_PHASE, State.SESSION)
-            if snapshot is None:
-                managers.remove(tag)
-                continue
-            version, data = snapshot
-            serialize.serialize(stream, [tag, version, data])
-        for tag in managers:
-            manager = self._state_managers[tag]
-            snapshot = manager.take_snapshot(self, State.CLEANUP_PHASE, State.SESSION)
-        serialize.serialize(stream, [None, 0, None])
+        mgr = _SaveManager(self, State.SESSION)
+        mgr.discovery(self._state_containers)
+        serialize.serialize(stream, mgr.tool_infos())
+        # TODO: collect OrderDAGError exceptions from walk and analyze
+        for name, data in mgr.walk():
+            serialize.serialize(stream, name)
+            serialize.serialize(stream, data)
+        serialize.serialize(stream, None)
+        self.triggers.activate_trigger(END_SAVE_SESSION, self)
 
     def restore(self, stream, version=None):
         """Deserialize session from stream."""
-        self.reset()
+        from . import serialize
         skip_over_metadata = version is not None
         if not skip_over_metadata:
             version = serialize.deserialize(stream)
-        if version > serialize.VERSION:
-            raise State.NeedNewerError
+        if version > CORE_SESSION_VERSION:
+            raise State.NeedNewerError()
         if not skip_over_metadata:
-            self.metadata.update(self.read_metadata(stream, skip_version=True))
-        # TODO: how much typechecking?
-        assert(type(self._cls_ordinals) is dict)
-        managers = []
-        try:
-            tag = ''
-            while True:
-                tag, version, data = serialize.deserialize(stream)
-                if tag is None:
-                    break
-                if tag not in self._state_managers:
+            metadata = self.read_metadata(stream, skip_version=True)
+        else:
+            metadata = None
+        mgr = _RestoreManager()
+        tool_infos = serialize.deserialize(stream)
+        mgr.check_tools(tool_infos)
+
+        self.reset()
+        self.triggers.activate_trigger(BEGIN_RESTORE_SESSION, self)
+        if metadata is not None:
+            self.metadata.update(metadata)
+        while True:
+            name = serialize.deserialize(stream)
+            if name is None:
+                break
+            data = serialize.deserialize(stream)
+            data = mgr.resolve_references(data)
+            if isinstance(name, str):
+                self.add_state_manager(name, data)
+            else:
+                # _UniqueName: find class
+                tool_info, cls = name.tool_info_and_class_of()
+                if cls is None:
                     continue
-                manager = self._state_managers[tag]
-                manager.restore_snapshot(State.CREATE_PHASE, self, version, data)
-                managers.append((tag, manager, version, data))
-        except RestoreError as e:
-            e.args = ("While restoring phase1 %s: %s" % (tag, e.args[0]),)
-            raise
-        for tag, manager, version, data in managers:
-            try:
-                manager.restore_snapshot(State.RESOLVE_PHASE, self, version, data)
-            except RestoreError as e:
-                e.args = ("While restoring phase2 %s: %s" % (tag, e.args[0]),)
-                raise
+                obj = cls.restore_snapshot_new(self, tool_info, version, data)
+                obj.restore_snapshot_init(self, tool_info, version, data)
+                mgr.add_reference(name, obj)
+        self.triggers.activate_trigger(END_RESTORE_SESSION, self)
 
     def read_metadata(self, stream, skip_version=False):
         """Deserialize session metadata from stream."""
+        from . import serialize
         if not skip_version:
             version = serialize.deserialize(stream)
         metadata = serialize.deserialize(stream)
@@ -372,6 +507,7 @@ def save(session, filename, **kw):
             from .errors import UserError
             raise UserError(e)
 
+    # TODO: put thumbnail in session metadata
     try:
         session.save(output)
     except:
@@ -383,34 +519,34 @@ def save(session, filename, **kw):
             output.close()
 
 
-from .commands import CmdDesc, StringArg, register
-@register('sdump', CmdDesc(required=[('filename', StringArg)],
+@register('sdump', CmdDesc(required=[('session_file', StringArg)],
                            optional=[('output', StringArg)],
                            synopsis="create human-readable session"))
-def dump(session, filename, output=None):
+def dump(session, session_file, output=None):
     """dump contents of session for debugging"""
-    if not filename.endswith(SESSION_SUFFIX):
-        filename += SESSION_SUFFIX
+    from . import serialize
+    if not session_file.endswith(SESSION_SUFFIX):
+        session_file += SESSION_SUFFIX
     input = None
     try:
-        input = _builtin_open(filename, 'rb')
+        input = _builtin_open(session_file, 'rb')
     except IOError:
-        filename2 = filename + '.gz'
+        session_file2 = session_file + '.gz'
         try:
             import gzip
-            input = gzip.GzipFile(filename2, 'rb')
+            input = gzip.GzipFile(session_file2, 'rb')
         except ImportError:
             import os
-            if os.exists(filename2):
+            if os.exists(session_file2):
                 session.logger.error("Unable to open compressed files: %s"
-                                     % filename2)
+                                     % session_file2)
                 return
         except IOError:
             pass
         if input is None:
             session.logger.error(
                 "Unable to find compressed nor uncompressed file: %s"
-                % filename)
+                % session_file)
             return
     if output is not None:
         output = _builtin_open(output, 'w')
@@ -422,11 +558,15 @@ def dump(session, filename, output=None):
         print("session metadata:", file=output)
         metadata = serialize.deserialize(input)
         pprint(metadata, stream=output)
+        print("tool info:", file=output)
+        tool_infos = serialize.deserialize(input)
+        pprint(tool_infos, stream=output)
         while True:
-            tag, version, data = serialize.deserialize(input)
-            if tag is None:
+            name = serialize.deserialize(input)
+            if name is None:
                 break
-            print(tag, 'version:', version, file=output)
+            data = serialize.deserialize(input)
+            print('name/uid:', name, file=output)
             pprint(data, stream=output)
 
 
@@ -495,34 +635,15 @@ class Selection:
 
 
 def common_startup(sess):
-    """Initialize session with common data managers"""
-    assert(hasattr(sess, 'app_name'))
-    assert(hasattr(sess, 'debug'))
-    from . import triggerset
-    sess.triggers = triggerset.TriggerSet()
+    """Initialize session with common data containers"""
     from .core_triggers import register_core_triggers
     register_core_triggers(sess.triggers)
-    sess.scenes = Scenes(sess)
-    sess.add_state_manager('scenes', sess.scenes)
-    from . import models
-    sess.models = models.Models(sess)
-    sess.add_state_manager('models', sess.models)
     sess.selection = Selection(sess.models)
-    from . import colors
-    sess.user_colors = colors.UserColors()
-    sess.add_state_manager('user_colors', sess.user_colors)
-    sess.user_colormaps = colors.UserColormaps()
-    sess.add_state_manager('user_colormaps', sess.user_colormaps)
-    from .graphics.view import View
-    sess.main_view = View(sess.models.drawing, window_size = (256, 256),
-                          trigger_set = sess.triggers)
     try:
         from .core_settings import settings
         sess.main_view.background_color = settings.bg_color.rgba
     except ImportError:
         pass
-    from .graphics.gsession import ViewState
-    sess.add_state_manager('view', ViewState(sess.main_view))
     from .updateloop import UpdateLoop
     sess.update_loop = UpdateLoop()
     from .atomic import PseudobondManager, ChangeTracker, LevelOfDetail
@@ -535,6 +656,7 @@ def common_startup(sess):
     commands.register_core_selectors(sess)
 
     _register_core_file_formats()
+
 
 def _register_core_file_formats():
     from . import stl

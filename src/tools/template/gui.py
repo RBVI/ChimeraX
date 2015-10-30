@@ -39,12 +39,9 @@ class ToolUI(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        version = self.VERSION
+    def take_snapshot(self, session, flags):
         data = {}
-        return [version, data]
+        return data
 
     def restore_snapshot(self, phase, session, version, data):
         from chimera.core.session import RestoreError
@@ -57,5 +54,5 @@ class ToolUI(ToolInstance):
             # Resolve references to objects
             pass
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
