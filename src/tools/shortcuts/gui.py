@@ -7,6 +7,7 @@ from chimera.core.tools import ToolInstance
 class ShortcutPanel(ToolInstance):
 
     SESSION_ENDURING = True
+    SESSION_SKIP = True  # TODO: remove this
 
     def __init__(self, session, shortcuts, tool_info):
 

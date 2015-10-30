@@ -22,6 +22,7 @@ _class_class_init = {
     'Job': '.tasks',
     'Tasks': '.tasks',
     'Tools': '.tools',
+    'TriangleInfo': '.stl',
     'UserColors': '.colors',
     'UserColormaps': '.colors',
     'ViewState': '.graphics.gsession',

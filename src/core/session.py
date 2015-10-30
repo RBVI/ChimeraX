@@ -422,7 +422,6 @@ class Session:
         mgr.discovery(self._state_containers)
         serialize.serialize(stream, mgr.tool_infos())
         # TODO: collect OrderDAGError exceptions from walk and analyze
-        print(mgr.graph)
         for name, data in mgr.walk():
             serialize.serialize(stream, name)
             serialize.serialize(stream, data)
