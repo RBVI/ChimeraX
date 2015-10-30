@@ -94,6 +94,9 @@ class ModelPanel(ToolInstance):
                 if (ribbon_colors == ribbon_colors[0]).all():
                     import wx
                     return wx.Colour(*tuple(ribbon_colors[0]))
+                else:
+                    # mixed ribbon colors, don't show carbon color
+                    return None
         atoms = getattr(model, 'atoms', None)
         if atoms:
             shown = atoms.filter(atoms.displays)
