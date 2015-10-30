@@ -30,8 +30,6 @@ class AtomicStructure(AtomicStructureData, Model):
 
         Model.__init__(self, name)
 
-        self._atoms = None              # Cached atoms array
-
         self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
         self.bond_radius = 0.2
         self.pseudobond_radius = 0.05
@@ -67,7 +65,6 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def delete(self):
         '''Delete this structure.'''
-        self._atoms = None
         AtomicStructureData.delete(self)
         Model.delete(self)
 
@@ -89,9 +86,9 @@ class AtomicStructure(AtomicStructureData, Model):
 
             from ..commands import Command
             lighting = "shadows true"
+            atoms = self.atoms
             if self.num_chains == 0:
                 lighting = None
-                atoms = self.atoms
                 from .molobject import Atom, Bond
                 atoms.draw_modes = Atom.STICK_STYLE
                 from ..colors import element_colors
@@ -99,14 +96,13 @@ class AtomicStructure(AtomicStructureData, Model):
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
             elif self.num_chains < 5:
                 lighting = None
-                self.atoms.displays = False
+                atoms.displays = False
                 self.residues.ribbon_displays = True
             elif self.num_chains < 250:
                 lighting = "full"
                 from ..colors import chain_colors
                 residues = self.residues
                 residues.ribbon_colors = chain_colors(residues.chain_ids)
-                atoms = self.atoms
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
             if lighting:
                 if len([m for m in session.models.list()
@@ -131,22 +127,10 @@ class AtomicStructure(AtomicStructureData, Model):
         pass
 
     @property
-    def atoms(self):
-        '''All atoms of the structure in an :py:class:`.Atoms` instance.'''
-        if self._atoms is None:
-            self._atoms = AtomicStructureData.atoms.fget(self)
-        return self._atoms
-
-    @property
     def pseudobond_groups(self):
         '''Dictionary mapping name to :class:`.PseudobondGroup` for pseudobond groups
         belonging to this structure. Read only.'''
         return self.pbg_map
-
-    def shown_atom_count(self):
-        '''Number of atoms displayed.'''
-        na = sum(self.atoms.displays) if self.display else 0
-        return na
 
     def initial_color(self, bg_color):
         from ..colors import BuiltinColors, distinguish_from, Color
@@ -166,8 +150,7 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _make_drawing(self):
         # Create graphics
-        a = self.atoms
-        self._update_atom_graphics(a.coords, self._atom_display_radii(), a.colors, a.displays)
+        self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
         for name, pbg in self.pseudobond_groups.items():
             self._update_pseudobond_graphics(name, pbg)
@@ -179,7 +162,6 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def new_atoms(self):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
-        self._atoms = None
         self._atom_bounds_needs_update = True
 
     def _update_graphics_if_needed(self, *_):
@@ -209,16 +191,16 @@ class AtomicStructure(AtomicStructureData, Model):
                 self._atom_bounds_needs_update = True
 
     def _update_graphics(self):
-        a = self.atoms
-        self._update_atom_graphics(a.coords, self._atom_display_radii(), a.colors, a.visibles)
+        self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
         pbgs = self.pseudobond_groups
         for name, pbg in pbgs.items():
             self._update_pseudobond_graphics(name, pbg)
         self._update_ribbon_graphics()
 
-    def _update_atom_graphics(self, coords, radii, colors, display):
-        ndisp = display.sum()
+    def _update_atom_graphics(self, atoms):
+        avis = atoms.visibles
+        ndisp = avis.sum()
         p = self._atoms_drawing
         if p is None:
             if ndisp == 0:
@@ -229,28 +211,25 @@ class AtomicStructure(AtomicStructureData, Model):
         self._level_of_detail.set_atom_sphere_geometry(ndisp, p)
 
         # Set instanced sphere center position and radius
-        n = len(coords)
+        n = len(atoms)
         from numpy import empty, float32, multiply
         xyzr = empty((n, 4), float32)
-        xyzr[:, :3] = coords
-        xyzr[:, 3] = radii
+        xyzr[:, :3] = atoms.coords
+        xyzr[:, 3] = self._atom_display_radii(atoms)
 
         from ..geometry import Places
         p.positions = Places(shift_and_scale=xyzr)
-        p.display_positions = display
+        p.display_positions = avis
 
         # Set atom colors
-        p.colors = colors
+        p.colors = atoms.colors
 
         # Set selected
-        a = self.atoms
-        p.selected_positions = a.selected if a.num_selected > 0 else None
+        p.selected_positions = atoms.selected if atoms.num_selected > 0 else None
 
-    def _atom_display_radii(self, a=None):
-        if a is None:
-            a = self.atoms
-        r = a.radii.copy()
-        dm = a.draw_modes
+    def _atom_display_radii(self, atoms):
+        r = atoms.radii.copy()
+        dm = atoms.draw_modes
         from .molobject import Atom
         r[dm == Atom.BALL_STYLE] *= self.ball_scale
         r[dm == Atom.STICK_STYLE] = self.bond_radius
@@ -659,8 +638,9 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _update_ribbon_graphics(self):
         # Set selected ribbons in graphics
-        if self.atoms.num_selected > 0:
-            rsel = set([r for r in self.atoms.filter(self.atoms.selected).unique_residues
+        atoms = self.atoms
+        if atoms.num_selected > 0:
+            rsel = set([r for r in atoms.filter(atoms.selected).unique_residues
                         if r in self._ribbon_r2t])
         else:
             rsel = set()
@@ -840,11 +820,12 @@ class AtomicStructure(AtomicStructureData, Model):
         Select or unselect :class:`.Atoms`.
         If selected is false then it unselects the atoms.
         '''
-        asel = self.atoms.selected
-        m = self.atoms.mask(atoms)
+        a = self.atoms
+        asel = a.selected
+        m = a.mask(atoms)
         from numpy import logical_not
         asel[m] = logical_not(asel[m]) if toggle else selected
-        self.atoms.selected = asel
+        a.selected = asel
         self._selection_changed()
 
     def select_residue(self, residue, toggle=False, selected=True):
@@ -885,13 +866,13 @@ class AtomicStructure(AtomicStructureData, Model):
                 s.update_selection()
 
     def promote_selection(self):
-        n = self.atoms.num_selected
-        if n == 0 or n == len(self.atoms):
+        atoms = self.atoms
+        n = atoms.num_selected
+        if n == 0 or n == len(atoms):
             return
-        asel = self.atoms.selected
+        asel = atoms.selected
         self._selection_promotion_history.append(asel)
 
-        atoms = self.atoms
         r = atoms.residues
         rids = r.unique_ids
         from numpy import unique, in1d
@@ -911,15 +892,16 @@ class AtomicStructure(AtomicStructureData, Model):
             else:
                 # Promote to entire molecule
                 psel = True
-        self.atoms.selected = psel
+        atoms.selected = psel
         self._selection_changed(promotion = True)
 
     def demote_selection(self):
         pt = self._selection_promotion_history
         if len(pt) > 0:
             asel = pt.pop()
-            if len(asel) == len(self.atoms):
-                self.atoms.selected = asel
+            atoms = self.atoms
+            if len(asel) == len(atoms):
+                atoms.selected = asel
                 self._selection_changed(promotion = True)
 
     def clear_selection_promotion_history(self):
