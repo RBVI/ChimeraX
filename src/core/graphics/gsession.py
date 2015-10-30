@@ -16,8 +16,9 @@ class ViewState(State):
         return data
 
     def restore_snapshot_init(self, session, tool_info, version, data):
-        v = getattr(session, data[0])
-        (v.center_of_rotation, v.window_size,
+        self.view_attr = data[0]
+        v = getattr(session, self.view_attr)
+        (v.center_of_rotation, _,   # TODO: skip v.window_size
          v.background_color) = data[1:4]
         from .camera import MonoCamera
         v.camera = MonoCamera()

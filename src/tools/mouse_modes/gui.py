@@ -6,6 +6,8 @@ from chimera.core.tools import ToolInstance
 #
 class MouseModePanel(ToolInstance):
 
+    SESSION_ENDURING = True
+
     def __init__(self, session, tool_info):
 
         super().__init__(session, tool_info)

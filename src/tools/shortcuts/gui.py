@@ -6,6 +6,8 @@ from chimera.core.tools import ToolInstance
 #
 class ShortcutPanel(ToolInstance):
 
+    SESSION_ENDURING = True
+
     def __init__(self, session, shortcuts, tool_info):
 
         super().__init__(session, tool_info)

@@ -125,7 +125,6 @@ class Models(State):
             return cls.__new__(cls)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
-        print('restore models data:', data)
         existing = self is session.models
         if not existing:
             self._session = weakref.ref(session)
