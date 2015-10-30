@@ -171,9 +171,9 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
 
             # pseudobonds
-            pdb_pbg_map = p.pseudobond_groups
+            pdb_pbg_map = p.pbg_map
             pdb_pbgs = set(pdb_pbg_map.keys())
-            mmcif_pbg_map = m.pseudobond_groups
+            mmcif_pbg_map = m.pbg_map
             mmcif_pbgs = set(mmcif_pbg_map.keys())
             common_pbgs = pdb_pbgs & mmcif_pbgs
             extra = pdb_pbgs - common_pbgs
