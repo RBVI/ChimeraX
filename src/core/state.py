@@ -1,9 +1,11 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 import abc
 
+CORE_STATE_VERSION = 1  #: version of core session state data
 
-class _FakeObject:
-    # a class that can be changed into any other class
+
+class RestoreError(RuntimeError):
+    """Raised when session file has a problem being restored"""
     pass
 
 
@@ -32,18 +34,16 @@ class State(metaclass=abc.ABCMeta):
 
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped.
-        The default implementation is to return a shallow copy
-        of the instance dictionary.
-        Instances in the returned data will be replaced with their names.
-
-        TODO: return deep copy of lists/dicts/etc., but shallow copy of
-        named objects.
+        The default implementation is for non-core classes and
+        returns a copy of the instance dictionary (a deep copy of
+        lists/dicts/etc., but shallow copy of named objects).
+        Named objects are later converted to unique names. 
         """
         version = self.tool_info.state_version
         data = self.vars().copy()
         if 'tool_info' in data:
             del data['tool_info']
-        return (version, data)
+        return version, data
 
     @classmethod
     def restore_snapshot_new(cls, session, tool_info, version, data):
@@ -55,7 +55,8 @@ class State(metaclass=abc.ABCMeta):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         obj.__dict__ = data
-        obj.tool_info = tool_info
+        if obj.tool_info is None:
+            obj.tool_info = tool_info
 
     @abc.abstractmethod
     def reset_state(self, session):
@@ -136,7 +137,8 @@ def copy_state(data, convert=None):
         if isinstance(data, _final_primitives):
             return data
         if not isinstance(data, _container_primitives):
-            raise ValueError("unable to copy %s objects" % data.__class__.__name__)
+            raise ValueError("unable to copy %s.%s objects" % (
+                data.__class__.__module__, data.__class__.__name__))
         if isinstance(data, Mapping):
             items = [(_copy(k), _copy(v)) for k, v in data.items()]
         elif isinstance(data, ndarray):

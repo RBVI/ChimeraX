@@ -18,7 +18,7 @@ or for comparing two sessions.
 Session data, ie., data that is archived, uses the :py:class:`State` API.
 """
 
-from .state import State, copy_state, dereference_state
+from .state import RestoreError, State, copy_state, dereference_state
 from .commands import CmdDesc, StringArg, register, commas
 
 _builtin_open = open
@@ -141,7 +141,7 @@ class _UniqueName:
             return "Core's %s" % class_name
         return "Tool %s's %s" % class_name
 
-    def tool_info_and_class_of(self):
+    def tool_info_and_class_of(self, session):
         """Return class associated with unique id
 
         The restore process makes sure that the right tools are present,
@@ -153,8 +153,8 @@ class _UniqueName:
             tool_info = None
             cls = get_class(class_name)
         else:
-            tool_name, tool_version, class_name = class_name
-            tool_info = self.toolshed.find_tool(tool_name)
+            tool_name, class_name = class_name
+            tool_info = session.toolshed.find_tool(tool_name)
             if tool_info is None:
                 return None, None
             cls = tool_info.get_class(class_name)
@@ -241,11 +241,6 @@ class _SaveManager:
         return tool_infos
 
 
-class RestoreError(RuntimeError):
-    """Raised when session file has a problem being restored"""
-    pass
-
-
 class _RestoreManager:
 
     #: common exception for needing a newer version of the application
@@ -256,16 +251,16 @@ class _RestoreManager:
         _UniqueName.reset()
         self.tool_infos = {}
 
-    def check_tools(self, tool_infos):
+    def check_tools(self, session, tool_infos):
         missing_tools = []
         out_of_date_tools = []
         for tool_name, (tool_version, tool_state_version) in tool_infos.items():
-            t = self.toolshed.find_tool(tool_name)
+            t = session.toolshed.find_tool(tool_name)
             if t is None:
                 missing_tools.append(tool_name)
                 continue
             # check if installed tools can restore data
-            if not (t.session_versions[0] <= tool_state_version <= t.session_versions[1]):
+            if tool_state_version not in t.session_versions:
                 out_of_date_tools.append(t)
         if missing_tools or out_of_date_tools:
             msg = "Unable to restore session"
@@ -442,7 +437,7 @@ class Session:
             metadata = None
         mgr = _RestoreManager()
         tool_infos = serialize.deserialize(stream)
-        mgr.check_tools(tool_infos)
+        mgr.check_tools(self, tool_infos)
 
         self.reset()
         self.triggers.activate_trigger(BEGIN_RESTORE_SESSION, self)
@@ -458,11 +453,12 @@ class Session:
                 self.add_state_manager(name, data)
             else:
                 # _UniqueName: find class
-                tool_info, cls = name.tool_info_and_class_of()
+                tool_info, cls = name.tool_info_and_class_of(self)
                 if cls is None:
                     continue
-                obj = cls.restore_snapshot_new(self, tool_info, version, data)
-                obj.restore_snapshot_init(self, tool_info, version, data)
+                cls_version, cls_data = data
+                obj = cls.restore_snapshot_new(self, tool_info, cls_version, cls_data)
+                obj.restore_snapshot_init(self, tool_info, cls_version, cls_data)
                 mgr.add_reference(name, obj)
         self.triggers.activate_trigger(END_RESTORE_SESSION, self)
 

@@ -113,7 +113,6 @@ class Log(ToolInstance, HtmlLog):
 
     SESSION_ENDURING = True
     SIZE = (575, 500)
-    STATE_VERSION = 1
     help = "help:user/tools/log.html"
 
     def __init__(self, session, tool_info, **kw):
@@ -302,18 +301,18 @@ class Log(ToolInstance, HtmlLog):
     #
     def take_snapshot(self, session, flags):
         data = {"shown": self.tool_window.shown}
-        return data
+        return self.tool_info.session_write_version, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import RestoreError
-        if version != self.STATE_VERSION:
+    @classmethod
+    def restore_snapshot_new(self, session, tool_info, version, data):
+        from . import cmd
+        return cmd.get_singleton(session)
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        if phase == self.CREATE_PHASE:
-            # All the action is in phase 2 because we do not
-            # want to restore until all objects have been resolved
-            pass
-        else:
-            self.display(data["shown"])
+        self.display(data["shown"])
 
     def reset_state(self, session):
         self.tool_window.shown = True

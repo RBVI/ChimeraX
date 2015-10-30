@@ -659,7 +659,10 @@ class Toolshed:
                     logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
                     logger.warning("Found non-integer version numbers.")
                     continue
-                kw["session_versions"] = (lo, hi)
+                if lo > hi:
+                    logger.warning("Minimum version is greater than maximium.")
+                    hi = lo
+                kw["session_versions"] = range(lo, hi + 1)
             # Does tool have custom initialization code?
             custom_init = parts[8]
             if custom_init:
@@ -1051,8 +1054,9 @@ class ToolInfo:
         List of categories in which this tool belong.
     file_types : list of str
         List of file types (suffixes) that this tool can open.
-    session_versions : tuple of two integers
-        Minimum and maximum session versions that this tool can read.
+    session_versions : range
+        Given as the minimum and maximum session versions
+        that this tool can read.
     session_write_version : integer
         The session version that tool data is written in.
         Defaults to maximum of 'session_versions'.
@@ -1076,7 +1080,7 @@ class ToolInfo:
                  menu_categories=(),
                  command_names=(),
                  file_types=(),
-                 session_versions=(1,1),
+                 session_versions=range(1, 1 + 1),
                  custom_init=False):
         """Initialize instance.
 
@@ -1100,8 +1104,8 @@ class ToolInfo:
             List of names of cli commands to register for this tool.
         file_types : list of str
             List of file types (suffixes) that this tool can open.
-        session_versions : tuple of two integers
-            Minimum and maximum session versions that this tool can read.
+        session_versions : range
+            Range of session versions that this tool can read.
         custom_init : boolean
             Whether tool has custom initialization code
 
@@ -1114,7 +1118,7 @@ class ToolInfo:
         self.command_names = command_names
         self.file_types = file_types
         self.session_versions = session_versions
-        self.session_write_version = session_versions[1]
+        self.session_write_version = session_versions.stop - 1
         self.custom_init = custom_init
 
         # Private attributes

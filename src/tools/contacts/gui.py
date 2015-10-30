@@ -43,10 +43,16 @@ class Plot(ToolInstance):
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, session, flags):
-        pass
+        data = [ToolInstance.take_snapshot(self, session, flags)]
+        return self.tool_info.session_write_version, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        pass
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
+            raise RestoreError("unexpected version")
+        ti_version, ti_data = data[0]
+        ToolInstance.restore_snapshot_init(
+            self, session, tool_info, ti_version, ti_data)
 
     def reset_state(self, session):
         pass
