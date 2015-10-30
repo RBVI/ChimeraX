@@ -42,13 +42,13 @@ class ShellUI(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
+    def take_snapshot(self, session, flags):
         pass
 
     def restore_snapshot(self, phase, session, version, data):
         pass
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
     def delete(self):

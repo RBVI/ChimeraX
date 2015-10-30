@@ -421,7 +421,7 @@ class Toolshed:
         self.triggers.activate_trigger(TOOLSHED_TOOL_UNINSTALLED, ti)
 
     def find_tool(self, name, installed=True, version=None):
-        """Return a tool with the given name.
+        """Return a :py:class:`ToolInfo` instance with the given name.
 
         Parameters
         ----------
@@ -1053,6 +1053,9 @@ class ToolInfo:
         List of file types (suffixes) that this tool can open.
     session_versions : tuple of two integers
         Minimum and maximum session versions that this tool can read.
+    session_write_version : integer
+        The session version that tool data is written in.
+        Defaults to maximum of 'session_versions'.
     custom_init : boolean
         Whether tool has custom initialization code
     name : readonly str
@@ -1111,6 +1114,7 @@ class ToolInfo:
         self.command_names = command_names
         self.file_types = file_types
         self.session_versions = session_versions
+        self.session_write_version = session_versions[1]
         self.custom_init = custom_init
 
         # Private attributes

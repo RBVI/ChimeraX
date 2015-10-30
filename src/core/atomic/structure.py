@@ -116,17 +116,15 @@ class AtomicStructure(AtomicStructureData, Model):
     def removed_from_session(self, session):
         session.triggers.delete_handler(self.handler)
 
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
+    def take_snapshot(self, session, flags):
         data = {}
-        return [self.STRUCTURE_STATE_VERSION, data]
+        return data
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
             raise RestoreError("Unexpected version or data")
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
     @property

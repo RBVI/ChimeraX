@@ -104,7 +104,7 @@ class ShortcutPanel(ToolInstance):
     def restore_snapshot(self, phase, session, version, data):
         pass
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
 def get_singleton(tool_name, session, create=False):
