@@ -50,7 +50,7 @@ def display(session, objects=None, what=None, only=False):
         a1.displays = True	   # Atoms need to be displayed for bond to appear
         a2.displays = True
         if only:
-            pbs = sum([[pbg.pseudobonds for pbg in m.pseudobond_groups.values()]
+            pbs = sum([[pbg.pseudobonds for pbg in m.pbg_map.values()]
                        for m in atoms.unique_structures], [])
             if pbs:
                 from ..atomic import concatenate

@@ -126,12 +126,6 @@ class AtomicStructure(AtomicStructureData, Model):
     def reset_state(self, session):
         pass
 
-    @property
-    def pseudobond_groups(self):
-        '''Dictionary mapping name to :class:`.PseudobondGroup` for pseudobond groups
-        belonging to this structure. Read only.'''
-        return self.pbg_map
-
     def initial_color(self, bg_color):
         from ..colors import BuiltinColors, distinguish_from, Color
         try:
@@ -152,7 +146,7 @@ class AtomicStructure(AtomicStructureData, Model):
         # Create graphics
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
-        for name, pbg in self.pseudobond_groups.items():
+        for name, pbg in self.pbg_map.items():
             self._update_pseudobond_graphics(name, pbg)
         self._create_ribbon_graphics()
 
@@ -175,7 +169,7 @@ class AtomicStructure(AtomicStructureData, Model):
         # Molecule changes
         c, s, se = self._gc_color, self._gc_shape, self._gc_select
         # Check for pseudobond changes
-        for pbg in self.pseudobond_groups.values():
+        for pbg in self.pbg_map.values():
             c |= pbg._gc_color
             s |= pbg._gc_shape
             se |= pbg._gc_select
@@ -193,8 +187,7 @@ class AtomicStructure(AtomicStructureData, Model):
     def _update_graphics(self):
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
-        pbgs = self.pseudobond_groups
-        for name, pbg in pbgs.items():
+        for name, pbg in self.pbg_map.items():
             self._update_pseudobond_graphics(name, pbg)
         self._update_ribbon_graphics()
 
