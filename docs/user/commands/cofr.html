@@ -1,0 +1,78 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: cofr</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: cofr</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>cofr</b> [&nbsp;<b>frontCenter</b>&nbsp;|&nbsp;<b>fixed</b>&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>~cofr</b>
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>cofr</b>
+[&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>coordinateSystem</b> 
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+</h3>
+<p>
+The <b>cofr</b> command sets the center of rotation and/or changes how it
+is calculated. If no arguments are supplied,
+<b>cofr</b> reports the current center of rotation in the <b>Log</b>.
+See also:
+<a href="view.html"><b>view</b></a>
+</p><p>
+The first set of options specify the
+<a name="method"><b><i>center of rotation method</i></b></a>:
+</p>
+<ul>
+<li><b>frontCenter</b> - use the <b>front center</b> method
+(also specified with <b>~cofr</b>): when the view is zoomed out,
+use the center of the bounding box of all displayed items;
+when the view is zoomed in, continually adjust the center of rotation 
+to coincide with the frontmost displayed item
+near the center of the graphics window.
+This center of rotation is only updated 
+when motions other than rotations are performed.
+<br><br>
+<li><b>fixed</b> - use a fixed point relative to the model(s);
+giving this option changes only the method, retaining the current center
+</ul>
+<p>
+The remaining options specify a particular <b>fixed</b> center of rotation.
+If an <a href="atomspec.html"><i>atom-spec</i></a> is given,
+the center of rotation will be set to the center of the bounding box 
+of the specified items (displayed parts only).
+Alternatively, the center can be entered as coordinates <i>x,y,z</i>.
+The <b>coordinateSystem</b> can be <a href="atomspec.html">specified</a>
+by reference model number N preceded by #. Otherwise, a
+<a name="labcoords"><b><i>standard coordinate system</i></b></a>
+defined relative to the viewer will be used:
+</p>
+<ul>
+<li>X-axis horizontal increasing rightward
+<li>Y-axis vertical increasing upward
+<li>Z-axis perpendicular to the screen increasing toward the viewer
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2015</address>
+</body></html>

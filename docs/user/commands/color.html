@@ -61,12 +61,12 @@ For simple coloring, the <a name="colorname"><i>colorname</i></a> can be:
 <ul>
 <li><a href="colornames.html">color specification</a> by name,
 hexadecimal color code, or component values in RGB or other color spaces
-<li><b>byelement</b>
+<li><b>byelement</b> or <b>byatom</b>
 - a <a href="colortables.html">color-by-element scheme</a>; only applies to 
 atomic representations and per-atom patches of molecular surfaces
 <li><b>byhet</b> or <b>byhetero</b>
 - same as <b>byelement</b>, except leaving carbon atoms unchanged
-<li><b>byatom</b>
+<li><b>fromatoms</b>
 - color other <a href="#target">targets</a>
 (molecular surface patches, <i>etc.</i>) to match the corresponding atoms
 </ul>
@@ -119,7 +119,7 @@ not yet implemented for <b>sequential</b> coloring
 </font>
 (if atoms have been colored sequentially, however,
 the surface can be colored to match the atoms with the command: 
-<b>color byatom target s</b>). 
+<b>color fromatoms target s</b>). 
 </p><p>
 By default, bonds are shown in
 <a name="halfbond"><b><i>halfbond mode</i></b></a>,
