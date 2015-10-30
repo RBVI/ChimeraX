@@ -618,6 +618,12 @@ class Residues(Collection):
         '''The unique chain IDs as a numpy array of strings.'''
         return unique(self.chain_ids)
 
+    @property
+    def by_structure(self):
+        '''Return list of pairs of structure and Residues for that structure.'''
+        rmol = self.structures._pointers
+        return [(m, self.filter(rmol==m._c_pointer.value)) for m in self.unique_structures]
+
     def get_polymer_spline(self):
         '''Return a tuple of spline center and guide coordinates for a
 	polymer chain.  Residues in the chain that do not have a center
