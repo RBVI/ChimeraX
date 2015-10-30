@@ -11,7 +11,7 @@ CSS3 colors are supported with the addition of the gray() specification
 from the CSS4 draft and the CSS4 color names.
 """
 from sortedcontainers import SortedDict
-from .state import State
+from .state import State, CORE_STATE_VERSION
 
 BuiltinColormaps = SortedDict()
 
@@ -30,7 +30,7 @@ class UserColors(SortedDict, State):
         # only save differences from builtin colors
         data = {name: color for name, color in self.items()
                 if name not in BuiltinColors or color != BuiltinColors[name]}
-        return data
+        return CORE_STATE_VERSION, data
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         self.__init__()
@@ -162,7 +162,7 @@ class UserColormaps(SortedDict, State):
     """
 
     def take_snapshot(self, session, flags):
-        return dict(self)
+        return CORE_STATE_VERSION, dict(self)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         self.__init__()

@@ -35,7 +35,8 @@ def ts_list(session, tool_type="installed"):
             _display_tools(ti_list, logger)
         else:
             logger.info("No available tools found.")
-ts_list_desc = CmdDesc(optional=[("tool_type", _tool_types)])
+ts_list_desc = CmdDesc(optional=[("tool_type", _tool_types)],
+                       non_keyword=['tool_type'])
 
 
 def ts_refresh(session, tool_type="installed"):
