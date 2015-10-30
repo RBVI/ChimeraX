@@ -31,10 +31,10 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None)
             from ..errors import UserError
             raise UserError('No objects specified.')
         disp = objects.displayed()
-        if disp.empty():
+        b = disp.bounds()
+        if b is None:
             from ..errors import UserError
             raise UserError('No displayed objects specified.')
-        b = disp.bounds()
         v.center_of_rotation = b.center()
     if not pivot is None:
         p = pivot if coordinate_system is None else coordinate_system.scene_position * pivot

@@ -14,7 +14,7 @@ PKG_DIR = $(PYSITEDIR)/chimera/core
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
 
 PYSRCS = $(wildcard *.py)
-CORE_VERSION = 2.0
+CORE_VERSION = 0.1
 WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
 .FORCE: wheel

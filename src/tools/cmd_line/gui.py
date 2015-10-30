@@ -7,7 +7,6 @@ class CommandLine(ToolInstance):
 
     SESSION_ENDURING = True
     SIZE = (500, 25)
-    VERSION = 1
 
     show_history_label = "Command History..."
     compact_label = "Remove duplicate consecutive commands"
@@ -172,12 +171,9 @@ class CommandLine(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        version = self.VERSION
+    def take_snapshot(self, session, flags):
         data = {"shown": self.tool_window.shown}
-        return [version, data]
+        return data
 
     def restore_snapshot(self, phase, session, version, data):
         from chimera.core.session import RestoreError
@@ -190,7 +186,7 @@ class CommandLine(ToolInstance):
         else:
             self.display(data["shown"])
 
-    def reset_state(self):
+    def reset_state(self, session):
         self.tool_window.shown = True
 
 
