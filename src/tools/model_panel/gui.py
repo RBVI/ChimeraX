@@ -8,7 +8,6 @@ class ModelPanel(ToolInstance):
     SESSION_ENDURING = True
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
     SIZE = (200, 250)
-    VERSION = 1
 
     def __init__(self, session, tool_info):
         super().__init__(session, tool_info)
@@ -46,19 +45,16 @@ class ModelPanel(ToolInstance):
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, session, flags):
-        data = {}
-        return data
+        data = [ToolInstance.take_snapshot(self, session, flags)]
+        return self.tool_info.session_write_version, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import RestoreError
-        if version != self.VERSION or len(data) > 0:
-            raise RestoreError("unexpected version or data")
-        if phase == self.CREATE_PHASE:
-            # Restore all basic-type attributes
-            pass
-        else:
-            # Resolve references to objects
-            pass
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
+            raise RestoreError("unexpected version")
+        ti_version, ti_data = data[0]
+        ToolInstance.restore_snapshot_init(
+            self, session, tool_info, ti_version, ti_data)
 
     def reset_state(self, session):
         pass
@@ -86,17 +82,25 @@ class ModelPanel(ToolInstance):
 
     def _model_color(self, model):
         # should be done generically
+        residues = getattr(model, 'residues', None)
+        if residues:
+            ribbon_displays = residues.ribbon_displays
+            if ribbon_displays.any():
+                ribbon_colors = residues.filter(ribbon_displays).ribbon_colors
+                if (ribbon_colors == ribbon_colors[0]).all():
+                    import wx
+                    return wx.Colour(*tuple(ribbon_colors[0]))
+                else:
+                    # mixed ribbon colors, don't show carbon color
+                    return None
         atoms = getattr(model, 'atoms', None)
         if atoms:
             shown = atoms.filter(atoms.displays)
-            if shown:
-                colors = shown.colors
-                # find most common color
-                import numpy
-                axis = 0
-                unique, indices = numpy.unique(colors, return_inverse=True)
-                rgba = unique[numpy.argmax(numpy.apply_along_axis(numpy.bincount, axis,
-                    indices.reshape(colors.shape), None, numpy.max(indices)+1), axis=axis)]
-                import wx
-                return wx.Colour(*rgba)
+            shown_carbons = shown.filter(shown.element_numbers == 6)
+            if shown_carbons:
+                colors = shown_carbons.colors
+                # are they all the same?
+                if (colors == colors[0]).all():
+                    import wx
+                    return wx.Colour(*tuple(colors[0]))
         return None

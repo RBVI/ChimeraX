@@ -7,7 +7,7 @@ models: Displayed data
 
 import weakref
 from .graphics.drawing import Drawing
-from .session import State
+from .state import State, CORE_STATE_VERSION
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
 # TODO: register Model as data event type
@@ -69,7 +69,7 @@ class Model(State, Drawing):
         return dlist
 
     def take_snapshot(self, session, flags):
-        return [self.name, self.id]
+        return CORE_STATE_VERSION, [self.name, self.id]
 
     @classmethod
     def restore_snapshot_new(cls, session, tool_info, version, data):
@@ -115,7 +115,7 @@ class Models(State):
                 continue
             data[id] = model
         data[None] = self.drawing
-        return data
+        return CORE_STATE_VERSION, data
 
     @classmethod
     def restore_snapshot_new(cls, session, tool_info, version, data):

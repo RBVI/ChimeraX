@@ -38,7 +38,7 @@ and ``session.trigger.delete_handler``.
 """
 
 import abc
-from .session import State
+from .state import State, CORE_STATE_VERSION
 
 ADD_TASK = 'add task'
 REMOVE_TASK = 'remove task'
@@ -76,8 +76,6 @@ class Task(State):
     SESSION_SKIP : bool, class-level optional
         If True, then task is not saved in sessions.
     """
-
-    # TODO: take_snapshot, etc.
 
     SESSION_ENDURING = False
     SESSION_SKIP = False
@@ -363,7 +361,7 @@ class Tasks(State):
             if task.state == RUNNING and not task.SESSION_SKIP:
                 data[tid] = task
         # TODO: self._id_counter?
-        return data
+        return CORE_STATE_VERSION, data
 
     @classmethod
     def restore_snapshot_new(cls, session, tool_info, version, data):

@@ -26,7 +26,7 @@ and `session.trigger.delete_handler`.
 
 
 # Tools and ToolInstance are session-specific
-from .session import State, RestoreError
+from .state import State, RestoreError, CORE_STATE_VERSION
 ADD_TOOL_INSTANCE = 'add tool instance'
 REMOVE_TOOL_INSTANCE = 'remove tool instance'
 
@@ -78,12 +78,15 @@ class ToolInstance(State):
         # TODO: track.created(ToolInstance, [self])
 
     def take_snapshot(self, session, flags):
-        return [self.id, self.tool_info.name]
+        return CORE_STATE_VERSION, [self.id, self.tool_info.name]
 
-    def restore_snapshot_init(self, sesison, tool_info, version, data):
+    def restore_snapshot_init(self, session, tool_info, version, data):
         id, tool_name = data
-        tool_info = session.toolshed.find_tool(tool_name, installed=False)
-        self.__init__(session, tool_info, id=id)
+        tool_info = session.toolshed.find_tool(tool_name)
+        if tool_info is None:
+            session.logger.info('unable to find tool "%s"' % tool_name)
+            return
+        ToolInstance.__init__(self, session, tool_info, id=id)
 
     @property
     def session(self):
@@ -175,7 +178,7 @@ class Tools(State):
             if tool_inst.SESSION_SKIP:
                 continue
             data[tid] = tool_inst
-        return [data, next(self._id_counter)]
+        return CORE_STATE_VERSION, [data, next(self._id_counter)]
 
     @classmethod
     def restore_snapshot_new(cls, session, tool_info, version, data):

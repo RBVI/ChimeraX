@@ -1,6 +1,6 @@
 # Session save/restore of graphics state
 
-from ..session import State
+from ..state import State, CORE_STATE_VERSION
 
 
 class ViewState(State):
@@ -13,17 +13,18 @@ class ViewState(State):
         cs = CameraState(v.camera)
         data = [self.view_attr, v.center_of_rotation, v.window_size,
                 v.background_color, cs.take_snapshot(session, flags)]
-        return data
+        return CORE_STATE_VERSION, data
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         self.view_attr = data[0]
         v = getattr(session, self.view_attr)
-        (v.center_of_rotation, _,   # TODO: skip v.window_size
+        (v.center_of_rotation, _,   # TODO: don't skip v.window_size
          v.background_color) = data[1:4]
         from .camera import MonoCamera
         v.camera = MonoCamera()
+        cam_version, cam_data = data[4]
         CameraState(v.camera).restore_snapshot_init(
-            session, tool_info, version, data[4])
+            session, tool_info, cam_version, cam_data)
 
     def reset_state(self, session):
         """Reset state to data-less state"""
@@ -41,7 +42,7 @@ class CameraState(State):
     def take_snapshot(self, session, flags):
         c = self.camera
         data = [c.position, c.field_of_view]
-        return data
+        return CORE_STATE_VERSION, data
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         c = self.camera
@@ -61,7 +62,7 @@ class DrawingState(State):
         d = self.drawing
         # all drawing objects should have the same version
         data = {
-            'children': [c for c in d.child_drawings()],
+            'children': [c.take_snapshot(session, flags) for c in d.child_drawings()],
             'name': d.name,
             'vertices': d.vertices,
             'triangles': d.triangles,
@@ -86,13 +87,13 @@ class DrawingState(State):
             'colors': d.colors,
             'geometry': d.geometry,
         }
-        return data
+        return CORE_STATE_VERSION, data
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         d = self.drawing
-        for child_data in data['children']:
+        for child_version, child_data in data['children']:
             child = d.new_drawing()
-            DrawingState(child).restore_snapshot(session, tool_info, version, child_data)
+            DrawingState(child).restore_snapshot(session, tool_info, child_version, child_data)
         d.name = data['name']
         d.vertices = data['vertices']
         d.triangles = data['triangles']
