@@ -90,21 +90,21 @@ class ModelPanel(ToolInstance):
         if residues:
             ribbon_displays = residues.ribbon_displays
             if ribbon_displays.any():
-                ribbon_colors = residues.filter(ribbon_displays).ribbon_colors
-                if (ribbon_colors == ribbon_colors[0]).all():
-                    import wx
-                    return wx.Colour(*tuple(ribbon_colors[0]))
-                else:
-                    # mixed ribbon colors, don't show carbon color
-                    return None
+                return most_common_color(residues.filter(ribbon_displays).ribbon_colors)
         atoms = getattr(model, 'atoms', None)
         if atoms:
             shown = atoms.filter(atoms.displays)
-            shown_carbons = shown.filter(shown.element_numbers == 6)
-            if shown_carbons:
-                colors = shown_carbons.colors
-                # are they all the same?
-                if (colors == colors[0]).all():
-                    import wx
-                    return wx.Colour(*tuple(colors[0]))
+            if shown:
+                return most_common_color(show.colors)
         return None
+
+def most_common_color(colors):
+    from time import time
+    t1 = time()
+    import numpy
+    as32 = colors.view(numpy.int32).reshape((len(colors),))
+    unique, indices = numpy.unique(as32, return_index=True)
+    print("Time to compute most common of", len(colors), "colors:", time()-t1)
+    if len(indices[0]) < len(colors)/10:
+        return None
+    return colors[indices[0][0]]
