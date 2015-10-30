@@ -300,12 +300,9 @@ class Log(ToolInstance, HtmlLog):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        version = self.STATE_VERSION
+    def take_snapshot(self, session, flags):
         data = {"shown": self.tool_window.shown}
-        return [version, data]
+        return data
 
     def restore_snapshot(self, phase, session, version, data):
         from chimera.core.session import RestoreError
@@ -318,7 +315,7 @@ class Log(ToolInstance, HtmlLog):
         else:
             self.display(data["shown"])
 
-    def reset_state(self):
+    def reset_state(self, session):
         self.tool_window.shown = True
 
     #

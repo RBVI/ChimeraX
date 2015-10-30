@@ -37,15 +37,23 @@ A <a name="seldef"><b><i>selection</i></b></a>:
 </p>
 <ul>
 <li>is shown with green outlines in the main window
-<li>specifies items (models or their parts) for subsequent operations, namely:
+<li>specifies items (models or their parts) for subsequent operations:
   <ul>
   <li>indicates scope of action of <b>Molecule Display</b> icons
-  <li>can be <a href="atomspec.html">specified</a> in subsequent commands
-  with the word <b>sel</b>
+  <li>can be <a href="atomspec.html#builtin">specified</a> as <b>sel</b>
+  or <b>selAtoms</b> in other commands, for example: 
+    <b><a href="style.html">style</a> sel stick</b>
   </ul>
-<li>can be made by clicking on items in the main window or by using
-various commands (including <b>select</b>) and tools
+<li>can be created 
+  <ul>
+  <li>by clicking on items in the main window 
+  <li>by using <b>select</b> or various other commands and tools
+  </ul>
 <li>can be broadened with the up arrow key, narrowed with the down arrow key
+  <ul>
+  <li> selection cascade: 
+   atom &harr; residue &harr; all atoms with same chain ID &harr; atomic model
+  </ul>
 </ul>
 <p>
 If no keyword option is used, <b>select</b> creates a new selection 
@@ -59,5 +67,5 @@ with the current selection, or to <b>clear</b> it by deselecting everything.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2015</address>
+October 2015</address>
 </body></html>

@@ -6,6 +6,8 @@ from chimera.core.tools import ToolInstance
 #
 class MouseModePanel(ToolInstance):
 
+    SESSION_ENDURING = True
+
     def __init__(self, session, tool_info):
 
         super().__init__(session, tool_info)
@@ -121,11 +123,11 @@ class MouseModePanel(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
+    def take_snapshot(self, session, flags):
         pass
 
     def restore_snapshot(self, phase, session, version, data):
         pass
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass

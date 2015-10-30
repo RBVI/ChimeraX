@@ -86,23 +86,48 @@ class AtomicStructure(AtomicStructureData, Model):
         if self._smart_initial_display:
             color = self.initial_color(session.main_view.background_color)
             self.set_color(color.uint8x4())
+
+            from ..commands import Command
+            lighting = "shadows true"
+            if self.num_chains == 0:
+                lighting = None
+                atoms = self.atoms
+                from .molobject import Atom, Bond
+                atoms.draw_modes = Atom.STICK_STYLE
+                from ..colors import element_colors
+                het_atoms = atoms.filter(atoms.element_numbers != 6)
+                het_atoms.colors = element_colors(het_atoms.element_numbers)
+            elif self.num_chains < 5:
+                lighting = None
+                self.atoms.displays = False
+                self.residues.ribbon_displays = True
+            elif self.num_chains < 250:
+                lighting = "full"
+                from ..colors import chain_colors
+                residues = self.residues
+                residues.ribbon_colors = chain_colors(residues.chain_ids)
+                atoms = self.atoms
+                atoms.colors = chain_colors(atoms.residues.chain_ids)
+            if lighting:
+                if len([m for m in session.models.list()
+                        if isinstance(m, self.__class__)]) == 1:
+                    Command(session, "lighting " + lighting, final=True).execute(log=False)
+
         self._start_change_tracking(session.change_tracker)
         self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
 
     def removed_from_session(self, session):
         session.triggers.delete_handler(self.handler)
 
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
+    def take_snapshot(self, session, flags):
         data = {}
-        return [self.STRUCTURE_STATE_VERSION, data]
+        return data
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
             raise RestoreError("Unexpected version or data")
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
     @property

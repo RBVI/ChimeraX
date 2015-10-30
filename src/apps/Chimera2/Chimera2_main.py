@@ -208,13 +208,10 @@ def init(argv, event_loop=True):
         from chimera.core import configinfo
         configinfo.only_use_defaults = True
 
-    from chimera.core import session
-    sess = session.Session()
-    sess.app_name = app_name
-    sess.debug = opts.debug
-
-    from chimera.core import logger
-    sess.logger = logger.Logger(sess)
+    if not opts.gui:
+        # Flag to configure off-screen rendering before PyOpenGL imported
+        from chimera import core
+        core.offscreen_rendering = True
 
     # figure out the user/system directories for application
     executable = os.path.abspath(sys.argv[0])
@@ -233,8 +230,8 @@ def init(argv, event_loop=True):
     partial_version = '%s.%s' % (ver[0], ver[1])
 
     import appdirs
-    ad = sess.app_dirs = appdirs.AppDirs(app_name, appauthor=app_author,
-                                         version=partial_version)
+    ad = appdirs.AppDirs(app_name, appauthor=app_author,
+                         version=partial_version)
     # make sure app_dirs.user_* directories exist
     for var, name in (
             ('user_data_dir', "user's data"),
@@ -244,46 +241,40 @@ def init(argv, event_loop=True):
         try:
             os.makedirs(dir, exist_ok=True)
         except OSError as e:
-            sess.logger.error("Unable to make %s directory: %s: %s" % (
-                name, e.strerror, e.filename))
+            print("Unable to make %s directory: %s: %s" % (
+                name, e.strerror, e.filename), file=sys.stderr)
             raise SystemExit(1)
 
     # app_dirs_unversioned is primarily for caching data files that will
     # open in any version
     # app_dirs_unversioned.user_* directories are parents of those in app_dirs
-    adu = sess.app_dirs_unversioned = appdirs.AppDirs(app_name,
-                                                      appauthor=app_author)
+    adu = appdirs.AppDirs(app_name, appauthor=app_author)
 
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
     rootdir = os.path.dirname(bindir)
     import chimera
-    chimera.app_data_dir = sess.app_data_dir = os.path.join(rootdir, "share")
-    chimera.app_bin_dir = sess.app_bin_dir = os.path.join(rootdir, "bin")
-    chimera.app_lib_dir = sess.app_lib_dir = os.path.join(rootdir, "lib")
+    chimera.app_data_dir = os.path.join(rootdir, "share")
+    chimera.app_bin_dir = os.path.join(rootdir, "bin")
+    chimera.app_lib_dir = os.path.join(rootdir, "lib")
 
     # inform the C++ layer of the appdirs paths
     from chimera.core import _appdirs
     _appdirs.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
                         ad.user_cache_dir, ad.site_data_dir,
-                        ad.site_config_dir, ad.user_log_dir, sess.app_data_dir,
-                        adu.user_cache_dir)
+                        ad.site_config_dir, ad.user_log_dir,
+                        chimera.app_data_dir, adu.user_cache_dir)
+
+    from chimera.core import session
+    sess = session.Session(app_name, opts.debug)
+    sess.app_dirs = ad
+    sess.app_dirs_unversioned = adu
 
     from chimera.core import core_settings
     core_settings.init(sess)
 
-    if not opts.gui:
-        # Flag to configure off-screen rendering before PyOpenGL imported
-        from chimera import core
-        core.offscreen_rendering = True
-
     session.common_startup(sess)
-    # or:
-    #   sess.add_state_manager('scenes', session.Scenes(sess))
-    #   from chimera.core import models
-    #   sess.add_state_manager('models', models.Models(sess))
-    # etc.
 
     if opts.uninstall:
         return uninstall(sess)
@@ -324,11 +315,9 @@ def init(argv, event_loop=True):
     # toolshed.init returns a singleton so it's safe to call multiple times
     sess.toolshed = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
     from chimera.core import tools
-    sess.tools = tools.Tools(sess)
-    sess.add_state_manager('tools', sess.tools)
+    sess.add_state_manager('tools', tools.Tools(sess, first=True))  # access with sess.tools
     from chimera.core import tasks
-    sess.tasks = tasks.Tasks(sess)
-    sess.add_state_manager('tasks', sess.tasks)
+    sess.add_state_manager('tasks', tasks.Tasks(sess, first=True))  # access with sess.tasks
 
     if opts.version:
         print("%s: %s" % (app_name, version))
