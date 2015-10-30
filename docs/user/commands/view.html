@@ -46,18 +46,19 @@ See also: <a href="cofr.html"><b>cofr</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
 <b>camera</b>
 </p><p>
-Only the displayed parts of the specified items are used for calculating
-the new view. If nothing is specified, all displayed items will be included.
-The center of rotation is fixed at the 
-center of the bounding box of the specified items (displayed parts only),
-or if nothing is specified, allowed to vary according to the
-<a href="cofr.html#method">front center method</a>.
-The <b>orient</b> option rotates the scene to a
+The <b>view</b> command translates the scene and zooms in or out
+as needed to include the displayed parts of the specified items.
+If nothing is specified, all displayed items will be included.
+The <b>orient</b> option additionally rotates the scene to a
 standard orientation with X-axis horizontal increasing rightward,
 Y-axis vertical increasing upward,
 and Z-axis perpendicular to the screen increasing toward the viewer;
 in other words, it aligns <a href="#scenecoords">scene coordinates</a> with
 <a href="#screencoords">screen coordinates</a>.
+The center of rotation is set to a fixed point at the 
+center of the bounding box of the specified items (displayed parts only),
+or if nothing is specified, allowed to vary according to the
+<a href="cofr.html#method">front center method</a>.
 </p><p>
 The <b>name</b> option assigns <i>view-name</i> to the current view.
 Subsequently, that view can be <a href="#note">restored</a>
