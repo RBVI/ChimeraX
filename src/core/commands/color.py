@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "fromatoms", "random"]
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bymodel",
+                  "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "helix", "helices", "strands",
                      "SSEs", "chains", "molmodels",
@@ -18,7 +19,7 @@ def color(session, spec, color=None, target=None, transparency=None,
     spec : specifier
       Which objects to color.
     color : Color
-      Color can be a standard color name or "byelement", "byhetero" or "bychain" .
+      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bymodel".
     target : string
       Characters indicating what to color, a = atoms, c = cartoon, s = surfaces, m = models,
       n = non-molecule models, l = labels, r = residue labels, b = bonds, p = pseudobonds, d = distances.
@@ -67,15 +68,12 @@ def color(session, spec, color=None, target=None, transparency=None,
 
     what = []
 
+    bgcolor = session.main_view.background_color
+
     if 'a' in target:
         # atoms/bonds
         if atoms is not None and color is not None:
-            if color in _SpecialColors:
-                c = _computed_atom_colors(atoms, color, opacity)
-                if c is not None:
-                    atoms.colors = c
-            else:
-                _set_atom_colors(atoms, color, opacity)
+            _set_atom_colors(atoms, color, opacity, bgcolor)
             what.append('%d atoms' % len(atoms))
 
     if 'l' in target:
@@ -83,36 +81,12 @@ def color(session, spec, color=None, target=None, transparency=None,
             session.logger.warning('Label colors not supported yet')
 
     if 's' in target and color is not None:
-        from .scolor import scolor
-        if color in _SpecialColors:
-            if color == 'fromatoms':
-                ns = scolor(session, atoms, opacity=opacity, byatom=True)
-            else:
-                # Surface colored different from atoms
-                c = _computed_atom_colors(atoms, color, opacity)
-                ns = scolor(session, atoms, opacity=opacity, byatom=True, per_atom_colors=c)
-        else:
-            ns = scolor(session, atoms, color, opacity=opacity)
+        ns = _set_surface_colors(session, atoms, color, opacity, bgcolor)
         what.append('%d surfaces' % ns)
 
     if 'c' in target and color is not None:
         residues = atoms.unique_residues
-        if color not in _SpecialColors:
-            c = residues.ribbon_colors
-            c[:, :3] = color.uint8x4()[:3]
-            if opacity is not None:
-                c[:, 3] = opacity
-            residues.ribbon_colors = c
-        elif color == 'bychain':
-            from ..colors import chain_colors
-            c = chain_colors(residues.chain_ids)
-            c[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
-            residues.ribbon_colors = c
-        elif color == 'random':
-            from numpy import random, uint8
-            c = random.randint(0, 255, (len(residues), 4)).astype(uint8)
-            c[:, 3] = 255   # No transparency
-            residues.ribbon_colors = c
+        _set_ribbon_colors(residues, color, opacity, bgcolor)
         what.append('%d residues' % len(residues))
 
     if 'r' in target:
@@ -165,17 +139,25 @@ def color(session, spec, color=None, target=None, transparency=None,
     session.logger.status('Colored %s' % cli.commas(what, ' and'))
 
 
-def _computed_atom_colors(atoms, color, opacity):
+def _computed_atom_colors(atoms, color, opacity, bgcolor):
     if color in ("byatom", "byelement", "byhetero"):
         c = _element_colors(atoms, opacity)
     elif color == "bychain":
         from ..colors import chain_colors
         c = chain_colors(atoms.residues.chain_ids)
-        c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
+        c[:,3] = atoms.colors[:,3] if opacity is None else opacity
+    elif color == "bymodel":
+        c = atoms.colors.copy()
+        for m, matoms in atoms.by_structure:
+            color = m.initial_color(bgcolor).uint8x4()
+            mi = atoms.mask(matoms)
+            c[mi,:3] = color[:3]
+            if not opacity is None:
+                c[mi,3] = opacity
     elif color == "random":
         from numpy import random, uint8
         c = random.randint(0, 255, (len(atoms), 4)).astype(uint8)
-        c[:, 3] = 255   # Opaque
+        c[:,3] = 255   # Opaque
     else:
         # Other "colors" do not apply to atoms
         c = None
@@ -188,22 +170,55 @@ def _element_colors(atoms, opacity=None):
     c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
     return c
 
+def _set_atom_colors(atoms, color, opacity, bgcolor=None):
+    if color in _SpecialColors:
+        c = _computed_atom_colors(atoms, color, opacity, bgcolor)
+        if c is not None:
+            atoms.colors = c
+    else:
+        c = atoms.colors
+        c[:, :3] = color.uint8x4()[:3]    # Preserve transparency
+        if opacity is not None:
+            c[:, 3] = opacity
+        atoms.colors = c
 
-def _set_atom_colors(atoms, color, opacity):
-    c = atoms.colors
-    c[:, :3] = color.uint8x4()[:3]    # Preserve transparency
-    if opacity is not None:
-        c[:, 3] = opacity
-    atoms.colors = c
+def _set_ribbon_colors(residues, color, opacity, bgcolor=None):
+    if color not in _SpecialColors:
+        c = residues.ribbon_colors
+        c[:,:3] = color.uint8x4()[:3]    # Preserve transparency
+        if opacity is not None:
+            c[:,3] = opacity
+        residues.ribbon_colors = c
+    elif color == 'bychain':
+        from ..colors import chain_colors
+        c = chain_colors(residues.chain_ids)
+        c[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
+        residues.ribbon_colors = c
+    elif color == 'bymodel':
+        for m, res in residues.by_structure:
+            c = res.ribbon_colors
+            c[:,:3] = m.initial_color(bgcolor).uint8x4()[:3]
+            if not opacity is None:
+                c[:,3] = opacity
+            res.ribbon_colors = c
+    elif color == 'random':
+        from numpy import random, uint8
+        c = random.randint(0, 255, (len(residues), 4)).astype(uint8)
+        c[:, 3] = 255   # No transparency
+        residues.ribbon_colors = c
 
-
-def _set_ribbon_colors(residues, color, opacity):
-    c = residues.ribbon_colors
-    c[:, :3] = color.uint8x4()[:3]    # Preserve transparency
-    if opacity is not None:
-        c[:, 3] = opacity
-    residues.ribbon_colors = c
-
+def _set_surface_colors(session, atoms, color, opacity, bgcolor):
+    from .scolor import scolor
+    if color in _SpecialColors:
+        if color == 'fromatoms':
+            ns = scolor(session, atoms, opacity=opacity, byatom=True)
+        else:
+            # Surface colored different from atoms
+            c = _computed_atom_colors(atoms, color, opacity, bgcolor)
+            ns = scolor(session, atoms, opacity=opacity, byatom=True, per_atom_colors=c)
+    else:
+        ns = scolor(session, atoms, color, opacity=opacity)
+    return ns
 
 # -----------------------------------------------------------------------------
 #
