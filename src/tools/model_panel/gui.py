@@ -33,9 +33,10 @@ class ModelPanel(ToolInstance):
         self.table.CellHighlightPenWidth = 0
         self._fill_table()
         from chimera.core.models import ADD_MODELS, REMOVE_MODELS
-        self.session.triggers.add_handler(ADD_MODELS, self._fill_table)
-        self.session.triggers.add_handler(REMOVE_MODELS, self._fill_table)
+        self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_table)
+        self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_table)
         self.session.triggers.add_handler("atomic changes", self._changes_cb)
+        self._frame_drawn_handler = None
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.table, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
@@ -62,11 +63,18 @@ class ModelPanel(ToolInstance):
     def _changes_cb(self, trigger_name, data):
         reasons = data["Atom"].reasons
         if "color changed" in reasons or 'display changed' in reasons:
-            self._fill_table()
+            self._initiate_fill_table()
+
+    def _initiate_fill_table(self, *args):
+        # in order to allow molecules to be drawn as quickly as possible,
+        # delay the update of the table until the 'frame drawn' trigger fires
+        if self._frame_drawn_handler == None:
+            self._frame_drawn_handler = self.session.triggers.add_handler(
+                "frame drawn", self._fill_table)
 
     def _fill_table(self, *args):
-        import wx.grid
         # prevent repaints untill the end of this method...
+        import wx
         locker = wx.grid.GridUpdateLocker(self.table)
         nr = self.table.NumberRows
         if nr:
@@ -80,27 +88,28 @@ class ModelPanel(ToolInstance):
             self.table.SetCellValue(i, 2, getattr(model, "name", "(unnamed)"))
         self.table.AutoSizeColumns()
 
+        self._frame_drawn_handler = None
+        from chimera.core.triggerset import DEREGISTER
+        return DEREGISTER
+
     def _model_color(self, model):
         # should be done generically
         residues = getattr(model, 'residues', None)
         if residues:
             ribbon_displays = residues.ribbon_displays
             if ribbon_displays.any():
-                ribbon_colors = residues.filter(ribbon_displays).ribbon_colors
-                if (ribbon_colors == ribbon_colors[0]).all():
-                    import wx
-                    return wx.Colour(*tuple(ribbon_colors[0]))
-                else:
-                    # mixed ribbon colors, don't show carbon color
-                    return None
+                return most_common_color(residues.filter(ribbon_displays).ribbon_colors)
         atoms = getattr(model, 'atoms', None)
         if atoms:
             shown = atoms.filter(atoms.displays)
-            shown_carbons = shown.filter(shown.element_numbers == 6)
-            if shown_carbons:
-                colors = shown_carbons.colors
-                # are they all the same?
-                if (colors == colors[0]).all():
-                    import wx
-                    return wx.Colour(*tuple(colors[0]))
+            if shown:
+                return most_common_color(shown.colors)
         return None
+
+def most_common_color(colors):
+    import numpy
+    as32 = colors.view(numpy.int32).reshape((len(colors),))
+    unique, indices, counts = numpy.unique(as32, return_index=True, return_counts=True)
+    if counts[0] < len(colors)/10:
+        return None
+    return colors[indices[0]]
