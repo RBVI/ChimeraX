@@ -95,7 +95,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.applique.display_style = Drawing.Mesh
         self.applique.use_lighting = False
         self.view.add_2d_overlay(self.applique)
-        self.handler = session.triggers.add_handler('rendered frame', self._redraw)
+        self.handler = session.triggers.add_handler('frame drawn', self._redraw)
 
     def on_destroy(self, event):
         self.session.triggers.delete_handler(self.handler)

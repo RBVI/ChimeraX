@@ -33,9 +33,10 @@ class ModelPanel(ToolInstance):
         self.table.CellHighlightPenWidth = 0
         self._fill_table()
         from chimera.core.models import ADD_MODELS, REMOVE_MODELS
-        self.session.triggers.add_handler(ADD_MODELS, self._fill_table)
-        self.session.triggers.add_handler(REMOVE_MODELS, self._fill_table)
+        self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_table)
+        self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_table)
         self.session.triggers.add_handler("atomic changes", self._changes_cb)
+        self._frame_drawn_handler = None
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.table, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
@@ -62,11 +63,18 @@ class ModelPanel(ToolInstance):
     def _changes_cb(self, trigger_name, data):
         reasons = data["Atom"].reasons
         if "color changed" in reasons or 'display changed' in reasons:
-            self._fill_table()
+            self._initiate_fill_table()
+
+    def _initiate_fill_table(self, *args):
+        # in order to allow molecules to be drawn as quickly as possible,
+        # delay the update of the table until the 'frame drawn' trigger fires
+        if self._frame_drawn_handler == None:
+            self._frame_drawn_handler = self.session.triggers.add_handler(
+                "frame drawn", self._fill_table)
 
     def _fill_table(self, *args):
-        import wx.grid
         # prevent repaints untill the end of this method...
+        import wx
         locker = wx.grid.GridUpdateLocker(self.table)
         nr = self.table.NumberRows
         if nr:
@@ -80,6 +88,10 @@ class ModelPanel(ToolInstance):
             self.table.SetCellValue(i, 2, getattr(model, "name", "(unnamed)"))
         self.table.AutoSizeColumns()
 
+        self._frame_drawn_handler = None
+        from chimera.core.triggerset import DEREGISTER
+        return DEREGISTER
+
     def _model_color(self, model):
         # should be done generically
         residues = getattr(model, 'residues', None)
@@ -91,16 +103,13 @@ class ModelPanel(ToolInstance):
         if atoms:
             shown = atoms.filter(atoms.displays)
             if shown:
-                return most_common_color(show.colors)
+                return most_common_color(shown.colors)
         return None
 
 def most_common_color(colors):
-    from time import time
-    t1 = time()
     import numpy
     as32 = colors.view(numpy.int32).reshape((len(colors),))
-    unique, indices = numpy.unique(as32, return_index=True)
-    print("Time to compute most common of", len(colors), "colors:", time()-t1)
-    if len(indices[0]) < len(colors)/10:
+    unique, indices, counts = numpy.unique(as32, return_index=True, return_counts=True)
+    if counts[0] < len(colors)/10:
         return None
-    return colors[indices[0][0]]
+    return colors[indices[0]]

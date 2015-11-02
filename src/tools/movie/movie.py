@@ -61,7 +61,7 @@ class Movie:
 
     def start_recording(self):
         t = self.session.triggers
-        self._image_capture_handler = t.add_handler('rendered frame', self.capture_image)
+        self._image_capture_handler = t.add_handler('frame drawn', self.capture_image)
         self.recording = True
 #        from chimera.tasks import Task
 #        self.task = Task("record movie", self.cancelCB)
