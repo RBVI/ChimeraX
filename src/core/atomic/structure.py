@@ -88,9 +88,8 @@ class AtomicStructure(AtomicStructureData, Model):
             self.set_color(color.uint8x4())
 
             from ..commands import Command
-            lighting = "shadows true"
             if self.num_chains == 0:
-                lighting = None
+                lighting = "default"
                 atoms = self.atoms
                 from .molobject import Atom, Bond
                 atoms.draw_modes = Atom.STICK_STYLE
@@ -98,7 +97,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 het_atoms = atoms.filter(atoms.element_numbers != 6)
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
             elif self.num_chains < 5:
-                lighting = None
+                lighting = "default"
                 self.atoms.displays = False
                 self.residues.ribbon_displays = True
             elif self.num_chains < 250:
@@ -108,10 +107,11 @@ class AtomicStructure(AtomicStructureData, Model):
                 residues.ribbon_colors = chain_colors(residues.chain_ids)
                 atoms = self.atoms
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
-            if lighting:
-                if len([m for m in session.models.list()
-                        if isinstance(m, self.__class__)]) == 1:
-                    Command(session, "lighting " + lighting, final=True).execute(log=False)
+            else:
+                lighting = "shadows true"
+            if len([m for m in session.models.list()
+                    if isinstance(m, self.__class__)]) == 1:
+                Command(session, "lighting " + lighting, final=True).execute(log=False)
 
         self._start_change_tracking(session.change_tracker)
         self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
