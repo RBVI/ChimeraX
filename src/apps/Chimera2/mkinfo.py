@@ -101,12 +101,9 @@ def dump_format(f):
             d2["public.mime-type"] = mime_types[0]
     return d
 
-sess = session.Session()
-sess.app_name = "unknown"
-sess.debug = False
-sess.logger = logger.Logger(sess)
+sess = session.Session("unknown", minimal=True)
 core_settings.init(sess)
-session.common_startup(sess)
+session._register_core_file_formats()
 
 chimera_types = [f for f in io.formats() if f.startswith('Chimera')]
 
