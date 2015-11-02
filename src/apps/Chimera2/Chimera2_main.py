@@ -267,7 +267,7 @@ def init(argv, event_loop=True):
                         chimera.app_data_dir, adu.user_cache_dir)
 
     from chimera.core import session
-    sess = session.Session(app_name, opts.debug)
+    sess = session.Session(app_name, debug=opts.debug)
     sess.app_dirs = ad
     sess.app_dirs_unversioned = adu
 
