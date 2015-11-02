@@ -311,7 +311,7 @@ class Session:
         Starts with session triggers.
     """
 
-    def __init__(self, app_name, debug=False):
+    def __init__(self, app_name, *, debug=False, minimal=False):
         self.app_name = app_name
         self.debug = debug
         from . import logger
@@ -324,6 +324,9 @@ class Session:
         self.triggers.add_trigger(END_RESTORE_SESSION)
         self._state_containers = {}  # stuff to save in sessions
         self.metadata = {}           #: session metadata
+        if minimal:
+            return
+
         import chimera
         self.app_data_dir = chimera.app_data_dir
         self.app_bin_dir = chimera.app_bin_dir
