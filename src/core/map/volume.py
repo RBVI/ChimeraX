@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Manages surface and volume display for a region of a data set.
 # Holds surface and solid thresholds, color, and transparency and brightness
@@ -1810,11 +1810,13 @@ class Volume(Model):
 
 
   # State save/restore in Chimera2
-  def take_snapshot(self, phase, session, flags):
+  def take_snapshot(self, session, flags):
     pass
+
   def restore_snapshot(self, phase, session, version, data):
     pass
-  def reset_state(self):
+
+  def reset_state(self, session):
     pass
     
 # -----------------------------------------------------------------------------

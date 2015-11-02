@@ -48,7 +48,11 @@ class Label:
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
             rgba8 = tuple(self.color.uint8x4())
-        rgba = text_image_rgba(self.text, rgba8, self.size, self.typeface)
+        rgba = text_image_rgba(self.text, rgba8, self.size, self.typeface,
+                               self.session.app_data_dir)
+        if rgba is None:
+            self.session.logger.info("Can't find font for title")
+            return
         x,y = (-1 + 2*self.xpos, -1 + 2*self.ypos)    # Convert 0-1 position to -1 to 1.
         w,h = v.window_size
         uw,uh = 2*rgba.shape[1]/h, 2*rgba.shape[0]/h
@@ -114,9 +118,23 @@ def title_delete(session, name):
     l = session.labels[name]
     l.delete()
 
-def text_image_rgba(text, color, size, typeface):
+def text_image_rgba(text, color, size, typeface, data_dir):
+    import os, sys
     from PIL import Image, ImageDraw, ImageFont
-    f = ImageFont.truetype('/Library/Fonts/%s.ttf' % typeface, size)
+    font_dir = os.path.join(data_dir, 'fonts', 'freefont')
+    f = None
+    for tf in (typeface, 'FreeSans'):
+        path = os.path.join(font_dir, '%s.ttf' % tf)
+        if os.path.exists(path):
+            f = ImageFont.truetype(path, size)
+            break
+        if sys.platform.startswith('darwin'):
+            path = '/Library/Fonts/%s.ttf' % tf
+            if os.path.exists(path):
+                f = ImageFont.truetype(path, size)
+                break
+    if f is None:
+        return
     pixel_size = f.getsize(text)
     i = Image.new('RGBA', pixel_size)
     d = ImageDraw.Draw(i)

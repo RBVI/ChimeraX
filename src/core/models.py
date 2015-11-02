@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 models: Displayed data
 ======================
@@ -7,7 +7,7 @@ models: Displayed data
 
 import weakref
 from .graphics.drawing import Drawing
-from .session import State, RestoreError
+from .state import State, CORE_STATE_VERSION
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
 # TODO: register Model as data event type
@@ -37,7 +37,6 @@ class Model(State, Drawing):
         If True, then model is not saved in sessions.
     """
 
-    MODEL_STATE_VERSION = 1
     SESSION_ENDURING = False
     SESSION_SKIP = False
     tool_info = None    # default, should be set in subclass
@@ -69,19 +68,23 @@ class Model(State, Drawing):
                 dlist.extend(d.all_models())
         return dlist
 
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        return [self.MODEL_STATE_VERSION, self.name]
+    def take_snapshot(self, session, flags):
+        return CORE_STATE_VERSION, [self.name, self.id]
 
-    def restore_snapshot(self, phase, session, version, data):
-        if phase != self.CREATE_PHASE:
-            return
-        if version != self.MODEL_STATE_VERSION:
-            raise RestoreError("Unexpected version")
-        self.name = data
+    @classmethod
+    def restore_snapshot_new(cls, session, tool_info, version, data):
+        if data[1] is ():
+            try:
+                return session.models.drawing
+            except AttributeError:
+                pass
+        return cls.__new__(cls)
 
-    def reset_state(self):
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        self.name, self.id = data
+        Drawing.__init__(self, self.name)
+
+    def reset_state(self, session):
         pass
 
     def selected_items(self, itype):
@@ -95,8 +98,6 @@ class Model(State, Drawing):
 
 class Models(State):
 
-    VERSION = 1     # snapshot version
-
     def __init__(self, session):
         self._session = weakref.ref(session)
         session.triggers.add_trigger(ADD_MODELS)
@@ -106,56 +107,42 @@ class Models(State):
         self.drawing = r = Model("root")
         r.id = ()
 
-    def take_snapshot(self, phase, session, flags):
-        if phase == self.CLEANUP_PHASE:
-            for model in self._models.values():
-                if model.SESSION_SKIP:
-                    continue
-                model.take_snapshot(session, phase, flags)
-            return
-        if phase != self.SAVE_PHASE:
-            return
+    def take_snapshot(self, session, flags):
         data = {}
         for id, model in self._models.items():
             assert(isinstance(model, Model))
             if model.SESSION_SKIP:
                 continue
-            data[id] = [session.unique_id(model),
-                        model.take_snapshot(session, phase, flags)]
-        return [self.VERSION, data]
+            data[id] = model
+        data[None] = self.drawing
+        return CORE_STATE_VERSION, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        if version != self.VERSION:
-            raise RestoreError("Unexpected version")
+    @classmethod
+    def restore_snapshot_new(cls, session, tool_info, version, data):
+        try:
+            return session.models
+        except AttributeError:
+            return cls.__new__(cls)
 
-        for id, [uid, [model_version, model_data]] in data.items():
-            if phase == self.CREATE_PHASE:
-                print('restoring1', uid)
-                try:
-                    cls = session.class_of_unique_id(uid, Model)
-                except KeyError:
-                    session.log.warning(
-                        'Unable to restore model %s (%s)'
-                        % (id, session.class_name_of_unique_id(uid)))
-                    continue
-                model = cls("unknown name until restored")
-                model.id = id
-                self._models[id] = model
-                session.restore_unique_id(model, uid)
-            else:
-                model = session.unique_obj(uid)
-                if len(model.id) == 1:
-                    parent = self.drawing
-                else:
-                    parent = self._models[model.id[:-1]]
-                parent.add_drawing(model)
-            model.restore_snapshot(phase, session, model_version, model_data)
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        existing = self is session.models
+        if not existing:
+            self._session = weakref.ref(session)
+            self._models = {}
+        to_add = []
+        for id, model in data.items():
+            if id is None:
+                self.drawing = model
+                continue
+            to_add.append(model)
+        self.add(to_add)
 
-    def reset_state(self):
+    def reset_state(self, session):
         models = self._models.values()
         self._models.clear()
         for model in models:
             if model.SESSION_ENDURING:
+                self._models[model.id] = model
                 continue
             model.delete()
 

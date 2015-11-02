@@ -1,15 +1,15 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def view(session, atoms=None, show=None, frames=None,
+def view(session, objects=None, show=None, frames=None,
          name=None, list=False, delete=None, orient=False):
     '''
     Move camera so the displayed models fill the graphics window.
 
     Parameters
     ----------
-    atoms : Atoms
-      Move camera so the bounding box of specified atoms fills the window.
+    objects : AtomSpecResults
+      Move camera so the bounding box of specified objects fills the window.
     show : string
       Restore the saved camera view having this name.
     frames : int
@@ -30,16 +30,19 @@ def view(session, atoms=None, show=None, frames=None,
     v = session.main_view
     if orient:
         v.initial_camera_view()
-    if atoms is None:
+    if objects is None:
         if name is None and show is None and not list and delete is None:
             v.view_all()
             v.center_of_rotation_method = 'front center'
-    elif len(atoms) == 0:
-        from ..errors import UserError
-        raise UserError('No atoms specified.')
     else:
-        from .. import geometry
-        b = geometry.sphere_bounds(atoms.scene_coords, atoms.radii)
+        if objects.empty():
+            from ..errors import UserError
+            raise UserError('No objects specified.')
+        disp = objects.displayed()
+        b = disp.bounds()
+        if b is None:
+            from ..errors import UserError
+            raise UserError('No displayed objects specified.')
         v.view_all(b)
         v.center_of_rotation = b.center()
     if name is not None:
@@ -147,9 +150,9 @@ def interpolate_views(v1, v2, f, camera):
     camera.redraw_needed = True
         
 def register_command(session):
-    from . import CmdDesc, register, AtomsArg, NoArg, EmptyArg, StringArg, PositiveIntArg, Or
+    from . import CmdDesc, register, ObjectsArg, NoArg, EmptyArg, StringArg, PositiveIntArg, Or
     desc = CmdDesc(
-        optional=[('atoms', Or(AtomsArg, EmptyArg)),
+        optional=[('objects', Or(ObjectsArg, EmptyArg)),
                   ('show', StringArg),
                   ('frames', PositiveIntArg)],
         keyword=[('name', StringArg),

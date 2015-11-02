@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Find points under the specified window position intersecting surface of
 # a box.  The box is specified as (xyz_min, xyz_max).  The returned points

@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 _PageTemplate = """<html>
 <head>
@@ -46,7 +46,6 @@ class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
     SIZE = (800, 50)
-    VERSION = 1
 
     def __init__(self, session, tool_info, **kw):
         super().__init__(session, tool_info, **kw)
@@ -205,25 +204,23 @@ class ToolshedUI(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        version = self.VERSION
-        data = {"shown": self.tool_window.shown}
-        return [version, data]
+    def take_snapshot(self, session, flags):
+        data = [
+            ToolInstance.take_snapshot(self, session, flags),
+            {"shown": self.tool_window.shown}
+        ]
+        return self.tool_info.session_write_version, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State, RestoreError
-        if version != self.VERSION:
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        if phase == self.CREATE_PHASE:
-            # Restore all basic-type attributes
-            pass
-        else:
-            # Resolve references to objects
-            self.display(data["shown"])
+        ti_version, ti_data = data[0]
+        ToolInstance.restore_snapshot_init(
+            self, session, tool_info, ti_version, ti_data)
+        self.display(data[1]["shown"])
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
     #

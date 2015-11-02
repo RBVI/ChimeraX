@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 """
 webapp_server: Server side for Chimera2 web application

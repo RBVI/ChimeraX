@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 tasks: Task creation and monitoring
 ===================================
@@ -38,7 +38,7 @@ and ``session.trigger.delete_handler``.
 """
 
 import abc
-from .session import State, RestoreError
+from .state import State, CORE_STATE_VERSION
 
 ADD_TASK = 'add task'
 REMOVE_TASK = 'remove task'
@@ -317,9 +317,8 @@ class Tasks(State):
     tasks in the session, as well as managing saving and restoring
     task states for scenes and sessions.
     """
-    VERSION = 1     # snapshot version
 
-    def __init__(self, session):
+    def __init__(self, session, first=False):
         """Initialize per-session state manager for tasks.
 
         Parameters
@@ -330,15 +329,16 @@ class Tasks(State):
         """
         import weakref
         self._session = weakref.ref(session)
-        session.triggers.add_trigger(ADD_TASK)
-        session.triggers.add_trigger(REMOVE_TASK)
-        session.triggers.add_trigger(UPDATE_TASK)
-        session.triggers.add_trigger(END_TASK)
+        if first:
+            session.triggers.add_trigger(ADD_TASK)
+            session.triggers.add_trigger(REMOVE_TASK)
+            session.triggers.add_trigger(UPDATE_TASK)
+            session.triggers.add_trigger(END_TASK)
         self._tasks = {}
         import itertools
         self._id_counter = itertools.count(1)
 
-    def take_snapshot(self, phase, session, flags):
+    def take_snapshot(self, session, flags):
         """Save state of running tasks.
 
         Overrides :py:class:`~chimera.core.session.State` default method
@@ -355,20 +355,22 @@ class Tasks(State):
             more details.
 
         """
-        if phase == self.SAVE_PHASE:
-            data = {}
-            for tid, t in self._tasks.items():
-                assert(isinstance(t, Task))
-                if t.state == RUNNING and not t.SESSION_SKIP:
-                    data[tid] = [session.unique_id(t),
-                                 t.take_snapshot(session, phase, flags)]
-            return [self.VERSION, data]
-        elif phase == self.CLEANUP_PHASE:
-            for tid, t in self._tasks.items():
-                if t.state == RUNNING and not t.SESSION_SKIP:
-                    t.take_snapshot(session, phase, flags)
+        data = {}
+        for tid, task in self._tasks.items():
+            assert(isinstance(task, Task))
+            if task.state == RUNNING and not task.SESSION_SKIP:
+                data[tid] = task
+        # TODO: self._id_counter?
+        return CORE_STATE_VERSION, data
 
-    def restore_snapshot(self, phase, session, version, data):
+    @classmethod
+    def restore_snapshot_new(cls, session, tool_info, version, data):
+        try:
+            return session.tasks
+        except AttributeError:
+            return cls.__new__(cls)
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
         """Restore state of running tasks.
 
         Overrides :py:class:`~chimera.core.session.State` default method to
@@ -376,39 +378,23 @@ class Tasks(State):
 
         Parameters
         ----------
-        phase : str
-            Restoration phase.  See :py:mod:`chimera.core.session` for more
-            details.
         session : instance of :py:class:`~chimera.core.session.Session`
             Session for which state is being saved.
             Should match the ``session`` argument given to ``__init__``.
+        tool_info : instance of :py:class:`~chimera.core.toolshed.ToolInfo`
         version : any
-            Version of state manager that saved the data.
+            Version of tool state that saved the data.
             Used for determining how to parse the ``data`` argument.
         data : any
             Data saved by state manager during :py:meth:`take_snapshot`.
 
         """
-        if version != self.VERSION:
-            raise RestoreError("Unexpected version")
+        self.__init__(session)
+        for tid, task in data.items():
+            self._tasks[tid] = task
+        # TODO: self._id_counter?
 
-        session = self._session()   # resolve back reference
-        for tid, [uid, [task_version, task_data]] in data.items():
-            if phase == self.CREATE_PHASE:
-                try:
-                    cls = session.class_of_unique_id(uid, Task)
-                except KeyError:
-                    class_name = session.class_name_of_unique_id(uid)
-                    session.log.warning("Unable to restore task %s (%s)"
-                                        % (tid, class_name))
-                    continue
-                task = cls(session, id=tid)
-                session.restore_unique_id(task, uid)
-            else:
-                task = session.unique_obj(uid)
-            task.restore_snapshot(phase, session, task_version, task_data)
-
-    def reset_state(self):
+    def reset_state(self, session):
         """Reset state manager to default state.
 
         Overrides :py:class:`~chimera.core.session.State` default method

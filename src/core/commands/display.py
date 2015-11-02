@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def display(session, objects=None, what=None, only=False):
     '''Display specified atoms, bonds or models.

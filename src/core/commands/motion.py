@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 class CallForNFrames:
     # CallForNFrames acts like a function that keeps track of per-frame
     # functions.  But those functions need state, so that state is

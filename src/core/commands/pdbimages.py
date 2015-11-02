@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def pdbimages(session, directory = '.', subdirectories = True,
               width = 400, height = 400, supersample = 2,

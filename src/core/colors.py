@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 """
 color: basic color support
@@ -11,7 +11,7 @@ CSS3 colors are supported with the addition of the gray() specification
 from the CSS4 draft and the CSS4 color names.
 """
 from sortedcontainers import SortedDict
-from .state import State, RestoreError
+from .state import State, CORE_STATE_VERSION
 
 BuiltinColormaps = SortedDict()
 
@@ -22,28 +22,21 @@ class UserColors(SortedDict, State):
     Accessed through the session object as ``session.user_colors``.
     """
 
-    USER_COLORS_VERSION = 1
-
     def __init__(self):
         SortedDict.__init__(self)
         self.update(BuiltinColors)
 
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
+    def take_snapshot(self, session, flags):
         # only save differences from builtin colors
         data = {name: color for name, color in self.items()
                 if name not in BuiltinColors or color != BuiltinColors[name]}
-        return [self.USER_COLORS_VERSION, data]
+        return CORE_STATE_VERSION, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        if version != self.USER_COLORS_VERSION:
-            raise RestoreError("Unexpected UserColors version")
-        if phase == self.CREATE_PHASE:
-            self.reset_state()
-            self.update(data)
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        self.__init__()
+        self.update(data)
 
-    def reset_state(self):
+    def reset_state(self, session):
         """Reset state to data-less state"""
         self.clear()
         self.update(BuiltinColors)
@@ -168,21 +161,14 @@ class UserColormaps(SortedDict, State):
     Accessed through the session object as ``session.user_colormaps``.
     """
 
-    USER_COLORMAPS_VERSION = 1
+    def take_snapshot(self, session, flags):
+        return CORE_STATE_VERSION, dict(self)
 
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        return [self.USER_COLORMAPS_VERSION, dict(self)]
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        self.__init__()
+        self.update(data)
 
-    def restore_snapshot(self, phase, session, version, data):
-        if version != self.USER_COLORMAPS_VERSION:
-            raise RestoreError("Unexpected UserColormaps version")
-        if phase == self.CREATE_PHASE:
-            self.clear()
-            self.update(data)
-
-    def reset_state(self):
+    def reset_state(self, session):
         """Reset state to data-less state"""
         self.clear()
 

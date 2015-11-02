@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 View
 ====
@@ -233,7 +233,8 @@ class View:
         return self._background_rgba
 
     def set_background_color(self, rgba):
-        self._background_rgba = tuple(rgba)
+        import numpy
+        self._background_rgba = numpy.asarray(rgba, dtype=numpy.float32)
         self.redraw_needed = True
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''

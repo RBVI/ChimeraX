@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 class UpdateLoop:
 
     def __init__(self):
@@ -9,7 +9,7 @@ class UpdateLoop:
         Draw the scene if it has changed or camera or rendering options have changed.
         Before checking if the scene has changed fire the "new frame" trigger
         typically used by movie recording to animate such as rotating the view, fading
-        models in and out, ....  If the scene is drawn fire the "rendered frame" trigger
+        models in and out, ....  If the scene is drawn fire the "frame drawn" trigger
         after drawing.  Return true if draw, otherwise false.
         '''
         if self._block_redraw_count > 0:
@@ -31,7 +31,7 @@ class UpdateLoop:
                     import traceback
                     session.logger.error('Error in drawing scene. Redraw is now stopped.\n\n' +
                                         traceback.format_exc())
-                session.triggers.activate_trigger('rendered frame', self)
+                session.triggers.activate_trigger('frame drawn', self)
 
         view.frame_number += 1
 

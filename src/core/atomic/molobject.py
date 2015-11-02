@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 from numpy import uint8, int32, float64, float32, bool as npy_bool
 from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, ctype_type_to_numpy, pointer
 import ctypes

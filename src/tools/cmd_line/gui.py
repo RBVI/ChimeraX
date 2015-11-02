@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 from chimera.core.tools import ToolInstance
 
@@ -7,7 +7,6 @@ class CommandLine(ToolInstance):
 
     SESSION_ENDURING = True
     SIZE = (500, 25)
-    VERSION = 1
 
     show_history_label = "Command History..."
     compact_label = "Remove duplicate consecutive commands"
@@ -172,25 +171,22 @@ class CommandLine(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        version = self.VERSION
+    def take_snapshot(self, session, flags):
         data = {"shown": self.tool_window.shown}
-        return [version, data]
+        return self.tool_info.session_write_version, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import RestoreError
-        if version != self.VERSION:
+    @classmethod
+    def restore_snapshot_new(self, session, tool_info, version, data):
+        from . import cmd
+        return cmd.get_singleton(session)
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        if phase == self.CREATE_PHASE:
-            # All the action is in phase 2 because we do not
-            # want to restore until all objects have been resolved
-            pass
-        else:
-            self.display(data["shown"])
+        self.display(data["shown"])
 
-    def reset_state(self):
+    def reset_state(self, session):
         self.tool_window.shown = True
 
 

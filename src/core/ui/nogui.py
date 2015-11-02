@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 nogui: Text UI
 ==============
@@ -172,10 +172,10 @@ class _Input(Task):
     #
     # Required State methods, do nothing
     #
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
-    def take_snapshot(self, phase, session, flags):
+    def take_snapshot(self, session, flags):
         return
 
     def restore_snapshot(self, phase, session, version, data):

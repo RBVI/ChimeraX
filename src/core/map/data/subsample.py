@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Subsampled_Grid wraps a set of Grid_Data objects.  One of the wrapped grid
 # objects is the primary data and the others are subsamples.

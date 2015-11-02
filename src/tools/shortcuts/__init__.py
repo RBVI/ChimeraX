@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 #
 # 'start_tool' is called to start an instance of the tool
@@ -25,3 +25,13 @@ def start_tool(session, tool_info):
 def register_command(command_name, tool_info):
     from . import shortcuts
     shortcuts.register_shortcut_command()
+
+
+#
+# 'get_class' is called by session code to get class saved in a session
+#
+def get_class(class_name):
+    if class_name == 'ShortCutPanel':
+        from . import gui
+        return gui.ShortCutPanel
+    return None

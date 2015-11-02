@@ -7,6 +7,7 @@
 
 #include <basegeom/Connection.h>
 #include <basegeom/destruct.h>
+#include <basegeom/Rgba.h>
 #include "imex.h"
 #include <pseudobond/Manager.h>
 
@@ -18,6 +19,7 @@ class CoordSet;
 
 using basegeom::ChangeTracker;
 using basegeom::GraphicsContainer;
+using basegeom::Rgba;
 
 class ATOMSTRUCT_IMEX PBond: public basegeom::Connection<Atom, PBond>
 {
@@ -28,7 +30,10 @@ private:
     GraphicsContainer*  _gc;
 
     PBond(Atom* a1, Atom* a2, GraphicsContainer* gc):
-        basegeom::Connection<Atom, PBond>(a1, a2), _gc(gc) { _halfbond = false; };
+        basegeom::Connection<Atom, PBond>(a1, a2), _gc(gc) {
+            _halfbond = false;
+            _radius = 0.05;
+        };
 protected:
     const char*  err_msg_loop() const
         { return "Can't form pseudobond to itself"; }
@@ -84,6 +89,8 @@ public:
         _check_ownership(a1, a2);
         PBond* pb = new PBond(a1, a2, this);
         pb->finish_construction();
+        pb->set_color(get_default_color());
+        pb->set_halfbond(get_default_halfbond());
         _pbonds.insert(pb); return pb;
     }
     const PBonds&  pseudobonds() const { return _pbonds; }
@@ -202,6 +209,16 @@ public:
         else
             static_cast<AS_PBManager*>(_manager)->delete_group(this);
     }
+    const Rgba&  get_default_color() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<Owned_PBGroup*>(_proxied)->get_default_color();
+        return static_cast<CS_PBGroup*>(_proxied)->get_default_color();
+    }
+    bool  get_default_halfbond() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<Owned_PBGroup*>(_proxied)->get_default_halfbond();
+        return static_cast<CS_PBGroup*>(_proxied)->get_default_halfbond();
+    }
     int  group_type() const { return _group_type; }
     BaseManager*  manager() const { return _manager; }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
@@ -232,6 +249,18 @@ public:
             throw std::invalid_argument("Not a per-coordset pseudobond group");
         return static_cast<CS_PBGroup*>(_proxied)->pseudobonds(cs);
     }
+    void  set_default_color(const Rgba& rgba) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<Owned_PBGroup*>(_proxied)->set_default_color(rgba);
+        static_cast<CS_PBGroup*>(_proxied)->set_default_color(rgba);
+    }
+    void  set_default_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
+        Rgba::Channel a = 255) { set_default_color(Rgba(r,g,b,a)); }
+    void  set_default_halfbond(bool hb) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<Owned_PBGroup*>(_proxied)->set_default_halfbond(hb);
+        static_cast<CS_PBGroup*>(_proxied)->set_default_halfbond(hb);
+    }
     decltype(_owner)  structure() const { return owner(); }
 
     virtual void  gc_clear() {
@@ -241,17 +270,17 @@ public:
     }
     virtual bool  get_gc_color() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-	    return static_cast<Owned_PBGroup*>(_proxied)->get_gc_color();
+            return static_cast<Owned_PBGroup*>(_proxied)->get_gc_color();
         return static_cast<CS_PBGroup*>(_proxied)->get_gc_color();
     }
     virtual bool  get_gc_select() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-	    return static_cast<Owned_PBGroup*>(_proxied)->get_gc_select();
+            return static_cast<Owned_PBGroup*>(_proxied)->get_gc_select();
         return static_cast<CS_PBGroup*>(_proxied)->get_gc_select();
     }
     virtual bool  get_gc_shape() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-	    return static_cast<Owned_PBGroup*>(_proxied)->get_gc_shape();
+            return static_cast<Owned_PBGroup*>(_proxied)->get_gc_shape();
         return static_cast<CS_PBGroup*>(_proxied)->get_gc_shape();
     }
     virtual void  set_gc_color(bool gc = true) {

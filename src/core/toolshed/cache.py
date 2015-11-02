@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 """cache - Chimera2 Tool Cache
 
@@ -25,7 +25,7 @@ NAMESPACE_PACKAGE = "chimera2"
 CACHE_FILENAME = "toolcache.json"
 TOOLINFO_FILENAME = "toolinfo.json"
 HELP_DIRNAME = "helpdir"
-VERSION = 1
+CACHE_VERSION = 1
 
 _tool_cache = None
 _help_cache = None
@@ -58,7 +58,7 @@ def init():
             cache = json.load(f)
         if not isinstance(cache, dict):
             raise ValueError("wrong type")
-        if cache["version"] != VERSION:
+        if cache["version"] != CACHE_VERSION:
             # Rebuild cache if not expected version
             raise ValueError("wrong version")
         _tool_cache = cache["tool"]
@@ -82,7 +82,7 @@ def remake():
     if not _tool_cache and not _help_cache:
         return
     cache = {
-        "version": VERSION,
+        "version": CACHE_VERSION,
         "tool": _tool_cache,
         "help": _help_cache,
     }

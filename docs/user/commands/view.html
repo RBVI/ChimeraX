@@ -25,20 +25,87 @@ class="clRight" alt="Chimera2 logo"/></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 [&nbsp;orient&nbsp;]
 </h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>view</b> &nbsp;<b>name</b> &nbsp;<i>view-name</i>
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>view</b> &nbsp;<i>view-name</i> [&nbsp;<i>frames</i>&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>view</b> &nbsp;<b>delete</b> 
+(&nbsp;<i>view-name</i>&nbsp;|&nbsp;<b>all</b>&nbsp;)
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>view</b> &nbsp;<b>list</b>
+</h3>
 <p>
-The <b>view</b> command translates and scales (zooms) the view to include the
-<a href="atomspec.html">specified</a> atoms, or if nothing is 
-specified, all displayed atoms/bonds, cartoon segments, and
-molecular surface patches. 
+The <b>view</b> command adjusts the view to make the
+<a href="atomspec.html">specified</a> items fill the graphics window.
+It also allows naming and later restoring the view.
+See also: <a href="cofr.html"><b>cofr</b></a>,
+<a href="zoom.html"><b>zoom</b></a>,
+<b>camera</b>
 </p><p>
-The <b>orient</b> option rotates the view
-to a standard orientation with scene
-X-axis horizontal increasing rightward,
+The <b>view</b> command translates the scene and zooms in or out
+as needed to include the displayed parts of the specified items.
+If nothing is specified, all displayed items will be included.
+The <b>orient</b> option additionally rotates the scene to a
+standard orientation with X-axis horizontal increasing rightward,
 Y-axis vertical increasing upward,
-and Z-axis perpendicular to the screen increasing outward.
+and Z-axis perpendicular to the screen increasing toward the viewer;
+in other words, it aligns <a href="#scenecoords">scene coordinates</a> with
+<a href="#screencoords">screen coordinates</a>.
+The center of rotation is set to a fixed point at the 
+center of the bounding box of the specified items (displayed parts only),
+or if nothing is specified, allowed to vary according to the
+<a href="cofr.html#method">front center method</a>.
+</p><p>
+The <b>name</b> option assigns <i>view-name</i> to the current view.
+Subsequently, that view can be <a href="#note">restored</a>
+over a specified number of image update <i>frames</i> (default <b>1</b> frame).
+The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
+view or <b>all</b> views. 
+The <b>list</b> option reports the names of all currently saved 
+views in the <b>Log</b>, and clicking a name therein restores 
+the corresponding view.
 </p>
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="note"></a>
+<h3>Transition between Views</h3>
+<p>
+The camera is rotated with a linear change in angle
+from its orientation in the first view to its orientation in the second view.
+At the same time, the camera is translated so that
+the center of rotation from the first view moves in a straight line
+in <a href="#screencoords">screen coordinates</a>
+to the center of rotation in the second view.
+</p>
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Coordinate Systems</h3>
+<p>
+<a name="scenecoords"></a>
+The <b><i>scene coordinate system</i></b> 
+is subject to any global manipulations 
+(rotations and translations of the scene as a whole)
+and is the same as the coordinate system of a model
+that has not been moved relative to other models.
+</p><p>
+<a name="screencoords"></a>
+The <b><i>screen coordinate system</i></b> has:
+</p>
+<ul>
+<li>X-axis horizontal increasing rightward
+<li>Y-axis vertical increasing upward
+<li>Z-axis perpendicular to the screen increasing toward the viewer
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2015</address>
+October 2015</address>
 </body></html>

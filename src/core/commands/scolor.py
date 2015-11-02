@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # -----------------------------------------------------------------------------
 # Code for scolor (spatial coloring) command, providing the campabilities of

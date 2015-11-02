@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 
 #
@@ -21,3 +21,13 @@ def register_command(command_name, tool_info):
     from chimera.core.commands import register
     register(command_name + " hide", cmd.hide_desc, cmd.mousemodes_hide)
     register(command_name + " show", cmd.show_desc, cmd.mousemodes_show)
+
+
+#
+# 'get_class' is called by session code to get class saved in a session
+#
+def get_class(class_name):
+    if class_name == 'MouseModePanel':
+        from . import gui
+        return gui.MouseModePanel
+    return None

@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def lighting(session, preset = None, direction = None, intensity = None, color = None, 
              fill_direction = None, fill_intensity = None, fill_color = None,

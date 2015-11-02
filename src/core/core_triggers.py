@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 core_triggers: access to core triggers
 ======================================
@@ -11,7 +11,7 @@ trigger_info = {
     "atomic changes": False,
     "graphics update": True,
     "new frame": True,
-    "rendered frame": True,
+    "frame drawn": True,
     "shape changed": False,
 }
 
