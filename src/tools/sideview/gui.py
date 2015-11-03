@@ -20,6 +20,7 @@ from chimera.core.graphics import Camera
 class _PixelLocations:
     pass
 
+
 class OrthoCamera(Camera):
     """A limited camera for the Side View without field_of_view"""
 
@@ -95,7 +96,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.applique.display_style = Drawing.Mesh
         self.applique.use_lighting = False
         self.view.add_2d_overlay(self.applique)
-        self.handler = session.triggers.add_handler('rendered frame', self._redraw)
+        self.handler = session.triggers.add_handler('frame drawn', self._redraw)
 
     def on_destroy(self, event):
         self.session.triggers.delete_handler(self.handler)
@@ -274,8 +275,9 @@ class SideViewUI(ToolInstance):
 
     SIZE = (300, 200)
 
-    def __init__(self, session, tool_info, **kw):
-        super().__init__(session, tool_info, **kw)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
         from chimera.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
@@ -283,7 +285,7 @@ class SideViewUI(ToolInstance):
         # UI content code
         from chimera.core.graphics.view import View
         self.opengl_context = oc = session.main_view.opengl_context()
-        self.view = View(session.models.drawing, window_size = wx.DefaultSize, opengl_context = oc)
+        self.view = View(session.models.drawing, window_size=wx.DefaultSize, opengl_context=oc)
         self.view.camera = OrthoCamera()
         if self.display_name.startswith('Top'):
             side = SideViewCanvas.TOP_SIDE
@@ -309,16 +311,21 @@ class SideViewUI(ToolInstance):
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, session, flags):
-        data = [ToolInstance.take_snapshot(self, session, flags)]
+        data = {
+            "ti": ToolInstance.take_snapshot(self, session, flags),
+            "shown": self.tool_window.shown
+        }
         return self.tool_info.session_write_version, data
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
             from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        ti_version, ti_data = data[0]
+        ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
             self, session, tool_info, ti_version, ti_data)
+        self.__init__(session, tool_info, restoring=True)
+        self.display(data["shown"])
 
     def reset_state(self, session):
         pass

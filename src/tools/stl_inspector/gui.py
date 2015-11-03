@@ -18,8 +18,9 @@ class ToolUI(ToolInstance):
     SESSION_ENDURING = False    # default
     SIZE = (500, 25)
 
-    def __init__(self, session, tool_info):
-        super().__init__(session, tool_info)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
         self.display_name = "STL Inspector"
         self.ti_list = []
         if session.ui.is_gui:
@@ -56,7 +57,7 @@ class ToolUI(ToolInstance):
     def _on_navigating(self, event):
         session = self.session
         url = event.GetURL()
-        #session.logger.info("_on_navigating: %s" % url)
+        # session.logger.info("_on_navigating: %s" % url)
         if url.startswith("stl:"):
             event.Veto()
             parts = url.split(':')
@@ -65,7 +66,7 @@ class ToolUI(ToolInstance):
             method(session, *args)
 
     def _refresh(self, session, *args):
-        #session.logger.info("_refresh: %s" % repr(args))
+        # session.logger.info("_refresh: %s" % repr(args))
         self.ti_list = []
         import random
         from chimera.core.stl import STLModel
@@ -89,13 +90,14 @@ class ToolUI(ToolInstance):
         if version not in tool_info.session_versions:
             from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        self.__init__(session, tool_info)  # TODO: instead, set set after ToolInstancToolInstance.__init__
         ti_version, ti_data = data[0]
         ToolInstance.restore_snapshot_init(
             self, session, tool_info, ti_version, ti_data)
+        self.__init__(session, tool_info, restoring=True)
         self.ti_list = data[2]
-        self._make_page()
-        self.display(data[1])
+        if session.ui.is_gui:
+            self._make_page()
+            self.display(data[1])
 
     def reset_state(self, session):
         pass

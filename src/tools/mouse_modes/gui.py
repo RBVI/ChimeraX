@@ -7,11 +7,10 @@ from chimera.core.tools import ToolInstance
 class MouseModePanel(ToolInstance):
 
     SESSION_ENDURING = True
-    SESSION_SKIP = True  # TODO: remove this
 
-    def __init__(self, session, tool_info):
-
-        super().__init__(session, tool_info)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
 
         self.mouse_modes = session.ui.main_window.graphics_window.mouse_modes
         self.button_to_bind = 'right'
@@ -125,16 +124,19 @@ class MouseModePanel(ToolInstance):
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, session, flags):
-        data = [ToolInstance.take_snapshot(self, session, flags)]
+        data = {"shown": self.tool_window.shown}
         return self.tool_info.session_write_version, data
+
+    @classmethod
+    def restore_snapshot_new(cls, session, tool_info, version, data):
+        from . import cmd
+        return cmd.get_singleton(session)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
             from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        ti_version, ti_data = data[0]
-        ToolInstance.restore_snapshot_init(
-            self, session, tool_info, ti_version, ti_data)
+        self.display(data["shown"])
 
     def reset_state(self, session):
         pass

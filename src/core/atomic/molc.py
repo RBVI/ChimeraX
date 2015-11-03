@@ -7,12 +7,13 @@ import ctypes
 # -----------------------------------------------------------------------------
 # Create a property that calls a C library function using ctypes.
 #
-def c_property(func_name, value_type, value_count = 1, read_only = False, astype = None):
+def c_property(func_name, value_type, value_count = 1, read_only = False, astype = None,
+        doc = None):
 
     if isinstance(value_count,str):
-        return c_varlen_property(func_name, value_type, value_count, read_only, astype)
+        return c_varlen_property(func_name, value_type, value_count, read_only, astype, doc)
     elif value_count > 1:
-        return c_array_property(func_name, value_type, value_count, read_only, astype)
+        return c_array_property(func_name, value_type, value_count, read_only, astype, doc)
 
     vtype = numpy_type_to_ctype[value_type]
     v = vtype()
@@ -36,13 +37,14 @@ def c_property(func_name, value_type, value_count = 1, read_only = False, astype
             v.value = value
             cset(self._c_pointer_ref, 1, v_ref)
 
-    return property(get_prop, set_prop)
+    return property(get_prop, set_prop, doc = doc)
  
 # -----------------------------------------------------------------------------
 # Create a property which has a fixed length array value obtained by
 # calling a C library function using ctypes.
 #
-def c_array_property(func_name, value_type, value_count, read_only = False, astype = None):
+def c_array_property(func_name, value_type, value_count, read_only = False, astype = None,
+        doc = None):
 
     v = empty((value_count,), value_type)       # Numpy array return value
     v_ref = pointer(v)
@@ -67,13 +69,14 @@ def c_array_property(func_name, value_type, value_count, read_only = False, asty
             vs[:] = value
             cset(self._c_pointer_ref, 1, vs)
 
-    return property(get_prop, set_prop)
+    return property(get_prop, set_prop, doc = doc)
  
 # -----------------------------------------------------------------------------
 # Create a property which has a variable length array value obtained by
 # calling a C library function using ctypes.
 #
-def c_varlen_property(func_name, value_type, value_count, read_only = False, astype = None):
+def c_varlen_property(func_name, value_type, value_count, read_only = False, astype = None,
+        doc = None):
 
     cget = c_array_function(func_name, value_type)
     def get_prop(self):
@@ -93,13 +96,13 @@ def c_varlen_property(func_name, value_type, value_count, read_only = False, ast
             vs[:] = value
             cset(self._c_pointer_ref, 1, vs)
 
-    return property(get_prop, set_prop)
+    return property(get_prop, set_prop, doc = doc)
 
 # -----------------------------------------------------------------------------
 # Create a property that calls a C library function using ctypes taking an
 # array of pointer to objects.
 #
-def cvec_property(func_name, value_type, value_count = 1, read_only = False, astype = None, per_object = True):
+def cvec_property(func_name, value_type, value_count = 1, read_only = False, astype = None, per_object = True, doc = None):
 
     cget = c_array_function(func_name, value_type)
     def get_prop(self):
@@ -131,7 +134,7 @@ def cvec_property(func_name, value_type, value_count = 1, read_only = False, ast
                 v = pointer(va)
             cset(self._c_pointers, n, v)
 
-    return property(get_prop, set_prop)
+    return property(get_prop, set_prop, doc = doc)
 
 # -----------------------------------------------------------------------------
 # Set the object C pointer used as the first argument of C get/set methods

@@ -7,11 +7,10 @@ from chimera.core.tools import ToolInstance
 class ShortcutPanel(ToolInstance):
 
     SESSION_ENDURING = True
-    SESSION_SKIP = True  # TODO: remove this
 
-    def __init__(self, session, shortcuts, tool_info):
-
-        super().__init__(session, tool_info)
+    def __init__(self, session, tool_info, *, restoring=False, shortcuts=[]):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
 
         from .shortcuts import keyboard_shortcuts
         self.keyboard_shortcuts = keyboard_shortcuts(session)
@@ -102,16 +101,18 @@ class ShortcutPanel(ToolInstance):
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, session, flags):
-        data = [ToolInstance.take_snapshot(self, session, flags)]
+        data = {"shown": self.tool_window.shown}
         return self.tool_info.session_write_version, data
+
+    @classmethod
+    def restore_snapshot_new(cls, session, tool_info, version, data):
+        return get_singleton(tool_info.name, session, create=True)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
             from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        ti_version, ti_data = data[0]
-        ToolInstance.restore_snapshot_init(
-            self, session, tool_info, ti_version, ti_data)
+        self.display(data["shown"])
 
     def reset_state(self, session):
         pass
@@ -127,7 +128,7 @@ def get_singleton(tool_name, session, create=False):
         if create:
             tool_info = session.toolshed.find_tool(tool_name)
             shortcut_list = _shortcuts[tool_name]
-            return ShortcutPanel(session, shortcut_list, tool_info)
+            return ShortcutPanel(session, tool_info, shortcuts=shortcut_list)
         else:
             return None
     else:

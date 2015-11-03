@@ -33,13 +33,13 @@ public:
     virtual void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
 };
 
-template <class Vertex, class Edge, class FinalGraph>
+template <class FinalGraph, class Node, class Edge>
 class Graph: public GraphicsContainer {
 protected:
-    typedef std::vector<Vertex*>  Vertices;
+    typedef std::vector<Node*>  Nodes;
     typedef std::vector<Edge*>  Edges;
 private:
-    Vertices  _vertices;
+    Nodes  _nodes;
     Edges  _edges;
 
     float  _ball_scale;
@@ -48,15 +48,15 @@ private:
 
 protected:
     void  add_edge(Edge *e) { _edges.emplace_back(e); }
-    void  add_vertex(Vertex *v) { _vertices.emplace_back(v); }
+    void  add_node(Node *v) { _nodes.emplace_back(v); }
     void  delete_edge(Edge *e);
-    void  delete_vertex(Vertex *v);
-    void  delete_vertices(const Vertices& vs) {
-        delete_vertices(std::set<Vertex*>(vs.begin(), vs.end()));
+    void  delete_node(Node *v);
+    void  delete_nodes(const Nodes& vs) {
+        delete_nodes(std::set<Node*>(vs.begin(), vs.end()));
     }
-    void  delete_vertices(const std::set<Vertex*>& vs);
+    void  delete_nodes(const std::set<Node*>& vs);
     const Edges &  edges() const { return _edges; }
-    const Vertices &  vertices() const { return _vertices; }
+    const Nodes &  nodes() const { return _nodes; }
 
 public:
     Graph(): _change_tracker(DiscardingChangeTracker::discarding_change_tracker()) {}
@@ -65,8 +65,8 @@ public:
         auto du = DestructionUser(this);
         for (auto e: _edges)
             delete e;
-        for (auto v: _vertices)
-            delete v;
+        for (auto n: _nodes)
+            delete n;
     }
 
     // graphics related

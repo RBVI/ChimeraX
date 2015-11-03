@@ -11,7 +11,7 @@ trigger_info = {
     "atomic changes": False,
     "graphics update": True,
     "new frame": True,
-    "rendered frame": True,
+    "frame drawn": True,
     "shape changed": False,
 }
 

@@ -7,8 +7,8 @@
 
 namespace basegeom {
     
-template <class FinalConnectible, class FinalConnection>
-class BaseSphere: public Connectible<FinalConnectible, FinalConnection> {
+template <class FinalGraph, class FinalConnectible, class FinalConnection>
+class BaseSphere: public Connectible<FinalGraph, FinalConnectible, FinalConnection> {
 public:
     enum class DrawMode : unsigned char { Sphere, EndCap, Ball };
 private:
@@ -16,7 +16,9 @@ private:
 
     DrawMode  _draw_mode = DrawMode::Sphere;
 public:
-    BaseSphere(float radius): _radius(radius) {}
+    BaseSphere(FinalGraph* graph, float radius):
+        Connectible<FinalGraph, FinalConnectible, FinalConnection>(graph),
+        _radius(radius) {}
     virtual  ~BaseSphere() {}
 
     virtual void  set_radius(float r) {
@@ -41,14 +43,14 @@ public:
     }
 };
 
-template <class FinalConnectible, class FinalConnection>
-class Sphere: public BaseSphere<FinalConnectible, FinalConnection> {
+template <class FinalGraph, class FinalConnectible, class FinalConnection>
+class Sphere: public BaseSphere<FinalGraph, FinalConnectible, FinalConnection> {
 private:
     Coord  _coord;
 
 public:
-    virtual const Coord &  coord() const { return _coord; }
-    virtual void  set_coord(const Point & coord) { _coord = coord; }
+    virtual const Coord&  coord() const { return _coord; }
+    virtual void  set_coord(const Point& coord) { _coord = coord; }
     virtual  ~Sphere() {}
 };
 

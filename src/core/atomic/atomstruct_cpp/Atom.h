@@ -31,9 +31,9 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom: public BaseSphere<Atom, Bond> {
+class ATOMSTRUCT_IMEX Atom: public BaseSphere<AtomicStructure, Atom, Bond> {
     friend class AtomicStructure;
-    friend class Graph<Atom, Bond, AtomicStructure>;
+    friend class Graph<AtomicStructure, Atom, Bond>;
     friend class Residue;
 public:
     // HIDE_ constants are masks for hide bits in basegeom::Connectible
@@ -78,7 +78,6 @@ private:
     mutable Rings  _rings;
     int  _serial_number;
     void  _set_structure_category(Atom::StructCat sc) const;
-    AtomicStructure *  _structure;
     mutable StructCat  _structure_category;
 public:
     // so that I/O routines can cheaply "change their minds" about element
@@ -118,8 +117,8 @@ public:
     void  set_alt_loc(char alt_loc, bool create=false, bool from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
     void  set_bfactor(float);
-    virtual void  set_coord(const Point & coord) { set_coord(coord, NULL); }
-    void  set_coord(const Point & coord, CoordSet * cs);
+    void  set_coord(const Point& coord) { set_coord(coord, NULL); }
+    void  set_coord(const Point& coord, CoordSet* cs);
     void  set_computed_idatm_type(const char* it);
     void  set_idatm_type(const char* it);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
@@ -128,7 +127,7 @@ public:
     void  set_radius(float);
     void  set_serial_number(int);
     std::string  str() const;
-    AtomicStructure*  structure() const { return _structure; }
+    AtomicStructure*  structure() const { return graph(); }
     StructCat  structure_category() const;
 
     // change tracking
@@ -136,7 +135,7 @@ public:
 
     // graphics related
     GraphicsContainer*  graphics_container() const {
-        return reinterpret_cast<GraphicsContainer*>(_structure); }
+        return reinterpret_cast<GraphicsContainer*>(structure()); }
 };
 
 }  // namespace atomstruct
@@ -146,12 +145,12 @@ public:
 namespace atomstruct {
 
 inline basegeom::ChangeTracker*
-Atom::change_tracker() const { return _structure->change_tracker(); }
+Atom::change_tracker() const { return structure()->change_tracker(); }
 
 inline const atomstruct::AtomType&
 Atom::idatm_type() const {
     if (idatm_is_explicit()) return _explicit_idatm_type;
-    if (!_structure->_idatm_valid) _structure->_compute_idatm_types();
+    if (!structure()->_idatm_valid) structure()->_compute_idatm_types();
     return _computed_idatm_type;
 }
 

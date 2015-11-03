@@ -36,8 +36,9 @@ ACTION_BUTTONS
 </body>
 </html>"""
 
-    def __init__(self, session, tool_info):
-        super().__init__(session, tool_info)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
 
         self.display_name = "Open Models"
         from chimera.core.gui import MainToolWindow
@@ -48,7 +49,7 @@ ACTION_BUTTONS
         import wx
         self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
         self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING,
-                          self._OnNavigating,
+                          self._on_navigating,
                           id=self.webview.GetId())
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.webview, 1, wx.EXPAND)
@@ -80,7 +81,7 @@ ACTION_BUTTONS
 
         # Construct action buttons
         s = StringIO()
-        for action in [ "BLAST" ]:
+        for action in ["BLAST"]:
             print("<button type=\"button\""
                   "onclick=\"action('%s')\">%s</button>" % (action, action),
                   file=s)
@@ -89,7 +90,7 @@ ACTION_BUTTONS
         # Update display
         self.webview.SetPage(page, "")
 
-    def _OnNavigating(self, event):
+    def _on_navigating(self, event):
         session = self.session
         # Handle event
         url = event.GetURL()
@@ -123,6 +124,7 @@ ACTION_BUTTONS
         ti_version, ti_data = data[0]
         ToolInstance.restore_snapshot_init(
             self, session, tool_info, ti_version, ti_data)
+        self.__init__(session, tool_info, restoring=True)
 
     def reset_state(self, session):
         pass

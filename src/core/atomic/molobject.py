@@ -38,90 +38,172 @@ def _pseudobond_group_map(pbgc_map):
 
 # -----------------------------------------------------------------------------
 #
-class Atom:
+class BaseSphere(type):
+    """'Base class' for Atom, Sphere, etc.
+
+        We avoid the diffculties of interacting through ctypes to the C++ layer
+        by using BaseSphere as a metaclass for it's 'derived' classes, which places
+        properties into them during class layout.
+    """
+    def __new__(meta, name, bases, attrs):
+        related_class_info = {
+            'Atom': (_atoms, 'AtomicStructure', 'structure', _atomic_structure, 'Bond', _bonds)
+        }
+        if name != meta.__name__:
+            doc_marker = "[BS]"
+            doc_add = \
+                "{}: Generic attributes added by {}'s {} metaclass (and therefore usable " \
+                "by in any class whose metaclass is {}, such as Atom, Sphere, etc.) " \
+                "are noted by preceding their documentation with '{}'.".format(
+                doc_marker, name, meta.__name__, meta.__name__, doc_marker)
+            if "__doc__" in attrs:
+                doc = attrs['__doc__']
+                if doc:
+                    if doc[-1] == '\n':
+                        newlines = '\n'
+                    else:
+                        newlines = '\n\n'
+                else:
+                    newlines = ""
+            else:
+                doc = ""
+                newlines = ""
+            attrs["__doc__"] = doc + newlines + doc_add
+
+            #define some vars useful later
+            (collective, container_name, container_nickname, container_collective,
+                conn_name, conn_collective) = related_class_info[name]
+            connection = conn_name.lower()
+            connections = connection + 's'
+            connectible = name.lower()
+            num_connections = 'num_' + connections
+
+            # Property tuples are: (generic attr name, specific attr name,
+            # other args to c_property, keywords to c_property, doc string).
+            # If the specific attr name is None, then it's the same as the
+            # generic attr name.
+            #
+            # Some shared properties (e.g. name) are defined in the C++ layer
+            # for some classes but not others.  Those properties are defined
+            # directly in the final class rather than via the metaclass.
+            properties = [
+                ('coord', None, (float64, 3), {},
+                    "Coordinates as a numpy length 3 array, 64-bit float values."),
+                ('connections', connections, (cptr, num_connections),
+                    { 'astype': conn_collective, 'read_only': True },
+                    "{}s connected to this {} as an array of :py:class:`{}` objects."
+                    " Read only.".format(conn_name, connectible, conn_name)),
+                ("neighbors", None, (cptr, num_connections), { 'astype': collective,
+                    'read_only': True },
+                    ":class:`.{}`\\ s connnected to this {} directly by one {}."
+                    " Read only.".format(name, connectible, connection)),
+                ("color", None, (uint8, 4), {},
+                    "Color RGBA length 4 numpy uint8 array."),
+                ("display", None, (npy_bool,), {},
+                    "Whether to display the {}. Boolean value.".format(connectible)),
+                ("draw_mode", None, (uint8,), {},
+                    "Controls how the {} is depicted.\n\n|  Possible values:\n"
+                    "SPHERE_STYLE\n"
+                    "    Use full {} radius\n"
+                    "BALL_STYLE\n"
+                    "    Use reduced {} radius, but larger than {} radius\n"
+                    "STICK_STYLE\n"
+                    "    Match {} radius"
+                    .format(connectible, connectible, connectible, connection, connection)),
+                ("graph", container_nickname, (cptr,),
+                    { 'astype': container_collective, 'read_only': True },
+                    ":class:`.{}` the {} belongs to".format(container_name, connectible)),
+                ("hide", None, (int32,), {},
+                    "Whether {} is hidden (overrides display).  Integer bitmask."
+                    "\n\n|  Possible values:\n"
+                    "HIDE_RIBBON\n"
+                    "    Hide mask for backbone atoms in ribbon.  "
+                    "[Only applicable to Atom class.]".format(connectible)),
+                ("num_connections", "num_{}".format(connections), (size_t,),
+                    { 'read_only': True },
+                    "Number of {}s connected to this {}. Read only."
+                    .format(connection, connectible)),
+                ("radius", None, (float32,), {}, "Radius of {}.".format(connectible)),
+                ("selected", None, (npy_bool,), {},
+                    "Whether the {} is selected.".format(connectible)),
+                ("visible", None, (npy_bool,), { 'read_only': True },
+                    "Whether {} is displayed and not hidden.".format(connectible)),
+            ]
+            prefix = connectible + '_'
+            for generic_attr_name, specific_attr_name, args, kw, doc in properties:
+                if specific_attr_name is None:
+                    prop_attr_name = generic_attr_name
+                else:
+                    prop_attr_name = specific_attr_name
+                attrs[generic_attr_name] = c_property(prefix + prop_attr_name, *args, **kw,
+                    doc = doc_marker + " " + doc)
+                if specific_attr_name is not None:
+                    attrs[specific_attr_name] = c_property(prefix + prop_attr_name,
+                        *args, **kw, doc = doc)
+
+            # define symbolic constants
+            for enum_val, sym_prefix in enumerate(['SPHERE', 'BALL', 'STICK']):
+                attrs[sym_prefix + '_STYLE'] = enum_val
+            attrs['HIDE_RIBBON'] = 0x1
+
+            #define __init__ method in attrs dict
+            exec("def __init__(self, c_pointer): set_c_pointer(c_pointer)\n", attrs)
+
+            # define connects_to method in attrs dict
+            exec("def connects_to(self, {}):\n"
+                "    '''{} Whether this {} is directly bonded to a specified {}.'''\n"
+                "    f = c_function('{}_connects_to',\n"
+                "                   args = (ctypes.c_void_p, ctypes.c_void_p),\n"
+                "                   ret = ctypes.c_bool)\n"
+                "    c = f(self._c_pointer, {}._c_pointer)\n"
+                "    return c\n".format(connectible, doc_marker, connectible,
+                connectible, connectible, connectible), attrs)
+
+            # define scene_coord property in attrs dict
+            exec("@property\n"
+                "def scene_coord(self):\n"
+                "    '''\n"
+                "    {} {} center coordinates in the global scene coordinate system.\n"
+                "    This accounts for the :class:`Drawing` positions for the hierarchy\n"
+                "    of models this {} belongs to.\n"
+                "    '''\n"
+                "    return self.graph.scene_position * self.coord\n"
+                .format(doc_marker, name, connectible), attrs)
+
+        return super().__new__(meta, name, bases, attrs)
+
+# -----------------------------------------------------------------------------
+#
+class Atom(metaclass=BaseSphere):
     '''
     An atom includes physical and graphical properties such as an element name,
     coordinates in space, and color and radius for rendering.
 
     To create an Atom use the :class:`.AtomicStructure` new_atom() method.
     '''
-    def __init__(self, atom_pointer):
-        set_c_pointer(self, atom_pointer)
-
-    bfactor = c_property('atom_bfactor', float32)
-    '''B-factor, floating point value.'''
-    bonds = c_property('atom_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
-    '''Bonds connected to this atom as an array of :py:class:`Bond` objects. Read only.'''
-    bonded_atoms = c_property('atom_bonded_atoms', cptr, 'num_bonds', astype = _atoms, read_only = True)
-    ''':class:`Atoms` connnected to this atom directly by one bond. Read only.'''
-    chain_id = c_property('atom_chain_id', string, read_only = True)
-    '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
-    color = c_property('atom_color', uint8, 4)
-    '''Color RGBA length 4 numpy uint8 array.'''
-    coord = c_property('atom_coord', float64, 3)
-    '''Coordinates as a numpy length 3 array, 64-bit float values.'''
-    display = c_property('atom_display', npy_bool)
-    '''Whether to display the atom. Boolean value.'''
-    SPHERE_STYLE = 0
-    '''Draw mode that uses full atom radius.'''
-    BALL_STYLE = 1
-    '''Draw mode that displays a reduced atom radius, but larger than bond radius.'''
-    STICK_STYLE = 2
-    '''Draw mode that displays an atom size that matches bond radius.'''
-    draw_mode = c_property('atom_draw_mode', uint8)
-    '''Controls how the atom is depicted.  Can be SPHERE_STYLE, BALL_STYLE or
-    STICK_STYLE.'''
-    element = c_property('atom_element', cptr, astype = _element, read_only = True)
-    ''':class:`Element` corresponding to the chemical element for the atom.'''
-    element_name = c_property('atom_element_name', string, read_only = True)
-    '''Chemical element name. Read only.'''
-    element_number = c_property('atom_element_number', uint8, read_only = True)
-    '''Chemical element number. Read only.'''
-    in_chain = c_property('atom_in_chain', npy_bool, read_only = True)
-    '''Whether this atom belongs to a polymer. Read only.'''
-    is_backbone = c_property('atom_is_backbone', npy_bool)
-    '''Whether this a protein or nucleic acid backbone atom.'''
-    structure = c_property('atom_structure', cptr, astype = _atomic_structure, read_only = True)
-    ''':class:`.AtomicStructure` the atom belongs to.'''
-    name = c_property('atom_name', string, read_only = True)
-    '''Atom name. Maximum length 4 characters. Read only.'''
-    num_bonds = c_property('atom_num_bonds', size_t, read_only = True)
-    '''Number of bonds connected to this atom. Read only.'''
-    radius = c_property('atom_radius', float32)
-    '''Radius of atom.'''
-    residue = c_property('atom_residue', cptr, astype = _residue, read_only = True)
-    ''':class:`Residue` the atom belongs to.'''
-    selected = c_property('atom_selected', npy_bool)
-    '''Whether the atom is selected.'''
-    structure_category = c_property('atom_structure_category', string, read_only=True)
-    '''Whether atom is ligand, ion, etc.'''
-    HIDE_RIBBON = 0x1
-    '''Hide mask for backbone atoms in ribbon.'''
-    hide = c_property('atom_hide', int32)
-    '''Whether atom is hidden (overrides display).  Integer bitmask.'''
-    visible = c_property('atom_visible', uint8, read_only = True)
-    '''Whether atom is display and not hidden.  Read only integer.'''
-    RIBBON_RIBBON = 1
-    '''Draw mode that display cartoons as ribbons'''
-    RIBBON_PIPE = 1
-    '''Draw mode that display cartoons as pipes and planks'''
-
-    def connects_to(self, atom):
-        '''Whether this atom is directly bonded to a specified atom.'''
-        f = c_function('atom_connects_to',
-                       args = (ctypes.c_void_p, ctypes.c_void_p),
-                       ret = ctypes.c_bool)
-        c = f(self._c_pointer, atom._c_pointer)
-        return c
-
-    @property
-    def scene_coord(self):
-        '''
-        Atom center coordinates in the global scene coordinate system.
-        This accounts for the :class:`Drawing` positions for the hierarchy
-        of models this atom belongs to.
-        '''
-        return self.structure.scene_position * self.coord
+    # only Atom-specific attrs/methods here;
+    # others provided by BaseSphere
+    bfactor = c_property('atom_bfactor', float32,
+        doc = "B-factor, floating point value.")
+    chain_id = c_property('atom_chain_id', string, read_only = True,
+        doc = "Protein Data Bank chain identifier. Limited to 4 characters."
+        " Read only string.")
+    element = c_property('atom_element', cptr, astype = _element, read_only = True,
+        doc =  ":class:`Element` corresponding to the chemical element for the atom.")
+    element_name = c_property('atom_element_name', string, read_only = True,
+        doc = "Chemical element name. Read only.")
+    element_number = c_property('atom_element_number', uint8, read_only = True,
+        doc = "Chemical element number. Read only.")
+    in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
+        doc = "Whether this atom belongs to a polymer. Read only.")
+    is_backbone = c_property('atom_is_backbone', npy_bool,
+        doc = "Whether this a protein or nucleic acid backbone atom.")
+    name = c_property('atom_name', string, read_only = True,
+        doc = "Atom name. Maximum length 4 characters. Read only.")
+    residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
+        doc = ":class:`Residue` the atom belongs to.")
+    structure_category = c_property('atom_structure_category', string, read_only=True,
+        doc = "Whether atom is ligand, ion, etc.")
 
 # -----------------------------------------------------------------------------
 #
@@ -173,8 +255,8 @@ class Pseudobond:
     '''
     A Pseudobond is a graphical line between atoms for example depicting a distance
     or a gap in an amino acid chain, often shown as a dotted or dashed line.
-    Pseudobonds can join atoms belonging to different :class:`.AtomicStructure`s
-    which is not possible with a :class:`Bond`.
+    Pseudobonds can join atoms belonging to different :class:`.AtomicStructure`\\ s
+    which is not possible with a :class:`Bond`\\ .
 
     To create a Pseudobond use the :class:`PseudobondGroup` new_pseudobond() method.
     '''
@@ -217,7 +299,7 @@ class PseudobondGroupData:
     for example "distances" or "missing segments".
 
     This base class of :class:`.PseudobondGroup` represents the C++ data while
-    the derived class handles rendering the pseudobonds. 
+    the derived class handles rendering the pseudobonds.
 
     To create a PseudobondGroup use the :class:`PseudobondManager` get_group() method.
     '''
@@ -332,7 +414,17 @@ class Residue:
 
 # -----------------------------------------------------------------------------
 #
-class Chain:
+class Sequence:
+    '''
+    A polymeric sequence.  Offers string-like interface.
+    '''
+
+    def __init__(self, seq_pointer):
+        set_c_pointer(self, seq_pointer)
+
+# -----------------------------------------------------------------------------
+#
+class Chain(Sequence):
     '''
     A single polymer chain such as a protein, DNA or RNA strand.
     A chain has a sequence associated with it.  A chain may have breaks.
@@ -341,7 +433,7 @@ class Chain:
     TODO: C++ sequence object is currently not available in Python.
     '''
     def __init__(self, chain_pointer):
-        set_c_pointer(self, chain_pointer)
+        super().__init__(chain_pointer)
 
     chain_id = c_property('chain_chain_id', string, read_only = True)
     '''Chain identifier. Limited to 4 characters. Read only string.'''

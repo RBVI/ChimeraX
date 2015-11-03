@@ -13,10 +13,10 @@
 namespace atomstruct {
 
 Atom::Atom(AtomicStructure* as, const char* name, const Element& e):
-    BaseSphere<Atom, Bond>(-1.0), // -1 indicates not explicitly set
+    BaseSphere<AtomicStructure, Atom, Bond>(as, -1.0), // -1 indicates not explicitly set
     _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(&e),
     _is_backbone(false), _name(name), _residue(NULL), _serial_number(-1),
-    _structure(as), _structure_category(Atom::StructCat::Unassigned)
+    _structure_category(Atom::StructCat::Unassigned)
 {
     structure()->change_tracker()->add_created(this);
     structure()->_structure_cats_dirty = true;
@@ -805,7 +805,7 @@ Atom::occupancy() const
 float
 Atom::radius() const
 {
-    auto r = BaseSphere<Atom, Bond>::radius();
+    auto r = BaseSphere<AtomicStructure, Atom, Bond>::radius();
     if (r >= 0.0)
         // has been explicitly set
         return r;
@@ -826,7 +826,7 @@ Atom::set_alt_loc(char alt_loc, bool create, bool from_residue)
 {
     if (alt_loc == _alt_loc || alt_loc == ' ')
         return;
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_ALT_LOC);
+    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ALT_LOC);
     if (create) {
         if (_alt_loc_map.find(alt_loc) != _alt_loc_map.end()) {
             set_alt_loc(alt_loc, create=false);
@@ -873,7 +873,7 @@ Atom::set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u
     (*_aniso_u)[3] = u22;
     (*_aniso_u)[4] = u23;
     (*_aniso_u)[5] = u33;
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_ANISO_U);
+    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_ANISO_U);
 }
 
 void
@@ -884,13 +884,13 @@ Atom::set_bfactor(float bfactor)
         (*i).second.bfactor = bfactor;
     } else
         structure()->active_coord_set()->set_bfactor(this, bfactor);
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_BFACTOR);
+    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_BFACTOR);
 }
 
 void
-Atom::set_coord(const basegeom::Coord &coord, CoordSet *cs)
+Atom::set_coord(const basegeom::Coord& coord, CoordSet* cs)
 {
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
+    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
     if (cs == NULL) {
         cs = structure()->active_coord_set();
         if (cs == NULL) {
@@ -914,7 +914,7 @@ Atom::set_coord(const basegeom::Coord &coord, CoordSet *cs)
 void
 Atom::set_occupancy(float occupancy)
 {
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_OCCUPANCY);
+    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_OCCUPANCY);
     if (_alt_loc != ' ') {
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         (*i).second.occupancy = occupancy;
@@ -927,7 +927,7 @@ Atom::set_radius(float r)
 {
     if (r <= 0.0)
         throw std::logic_error("radius must be positive");
-    BaseSphere<Atom, Bond>::set_radius(r);
+    BaseSphere<AtomicStructure, Atom, Bond>::set_radius(r);
 }
 
 void
@@ -938,7 +938,7 @@ Atom::set_serial_number(int sn)
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         (*i).second.serial_number = sn;
     }
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SERIAL_NUMBER);
+    structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_SERIAL_NUMBER);
 }
 
 std::string

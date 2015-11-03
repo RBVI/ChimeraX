@@ -19,7 +19,7 @@ using ::basegeom::Coord;
 using ::basegeom::Point;
 using ::basegeom::UniqueConnection;
 
-template <class FinalConnectible, class FinalConnection>
+template <class FinalGraph, class FinalConnectible, class FinalConnection>
 class Connectible {
 protected:
     friend class UniqueConnection<FinalConnectible, FinalConnection>;
@@ -28,6 +28,7 @@ protected:
 
 private:
     Connections  _connections; // _connections/_neighbors in same order
+    FinalGraph*  _graph;
     Neighbors  _neighbors; // _connections/_neighbors in same order
 
     bool  _display = true;
@@ -35,6 +36,7 @@ private:
     bool  _selected = false;
     Rgba  _rgba;
 public:
+    Connectible(FinalGraph* graph) : _graph(graph) {}
     virtual  ~Connectible() { DestructionUser(this); }
     void  add_connection(FinalConnection *c);
     const Connections&  connections() const { return _connections; }
@@ -43,6 +45,7 @@ public:
             != _neighbors.end();
     }
     virtual const Coord &  coord() const = 0;
+    virtual FinalGraph*  graph() const { return _graph; }
     const Neighbors&  neighbors() const { return _neighbors; }
     void  remove_connection(FinalConnection *c);
     virtual void  set_coord(const Point & coord) = 0;

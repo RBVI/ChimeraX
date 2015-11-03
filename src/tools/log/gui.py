@@ -115,8 +115,9 @@ class Log(ToolInstance, HtmlLog):
     SIZE = (575, 500)
     help = "help:user/tools/log.html"
 
-    def __init__(self, session, tool_info, **kw):
-        super().__init__(session, tool_info, **kw)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
         self.warning_shows_dialog = True
         self.error_shows_dialog = True
         from chimera.core.ui import MainToolWindow
@@ -252,7 +253,7 @@ class Log(ToolInstance, HtmlLog):
                 self.save(filename)
             elif cmd == 'image':
                 from .cmd import log
-                log(self.session, thumbnail = True)
+                log(self.session, thumbnail=True)
             return
         elif url.startswith("ch2cmd:"):
             from urllib.parse import unquote
@@ -304,7 +305,7 @@ class Log(ToolInstance, HtmlLog):
         return self.tool_info.session_write_version, data
 
     @classmethod
-    def restore_snapshot_new(self, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, tool_info, version, data):
         from . import cmd
         return cmd.get_singleton(session)
 
