@@ -78,10 +78,14 @@ class BaseSphere(type):
             connectible = name.lower()
             num_connections = 'num_' + connections
 
-            # property tuples are: (generic attr name, specific attr name,
-            # other args to c_property, keywords to c_property, doc string)
-            # if the specific attr name is None, then it's the same as the
-            # generic attr name
+            # Property tuples are: (generic attr name, specific attr name,
+            # other args to c_property, keywords to c_property, doc string).
+            # If the specific attr name is None, then it's the same as the
+            # generic attr name.
+            #
+            # Some properties (e.g. name) are defined in the C++ layer for
+            # some classes but not others.  Those properties are defined
+            # directly in the final class rather than via the metaclass.
             properties = [
                 ('coord', None, (float64, 3), {},
                     "Coordinates as a numpy length 3 array, 64-bit float values."),
@@ -98,16 +102,31 @@ class BaseSphere(type):
                 ("display", None, (npy_bool,), {},
                     "Whether to display the {}. Boolean value.".format(connectible)),
                 ("draw_mode", None, (uint8,), {},
-                    "Controls how the atom is depicted.\n\n|  Possible values:\n"
+                    "Controls how the {} is depicted.\n\n|  Possible values:\n"
                     "SPHERE_STYLE\n"
-                    "    Use full atom radius\n"
+                    "    Use full {} radius\n"
                     "BALL_STYLE\n"
-                    "    Use reduced atom radius, but larger than bond radius\n"
+                    "    Use reduced {} radius, but larger than {} radius\n"
                     "STICK_STYLE\n"
-                    "    Match bond radius"),
+                    "    Match {} radius"
+                    .format(connectible, connectible, connectible, connection, connection)),
                 ("graph", "structure", (cptr,),
                     { 'astype': container_collective, 'read_only': True },
                     ":class:`.{}` the {} belongs to".format(container_name, connectible)),
+                ("hide", None, (int32,), {},
+                    "Whether {} is hidden (overrides display).  Integer bitmask."
+                    "\n\n|  Possible values:\n"
+                    "HIDE_RIBBON\n"
+                    "    Hide mask for backbone atoms in ribbon.  "
+                    "[Only applicable to Atom class.]".format(connectible)),
+                ("num_connections", "num_bonds", (size_t,), { 'read_only': True },
+                    "Number of {}s connected to this {}. Read only."
+                    .format(connection, connectible)),
+                ("radius", None, (float32,), {}, "Radius of {}.".format(connectible)),
+                ("selected", None, (npy_bool,), {},
+                    "Whether the {} is selected.".format(connectible)),
+                ("visible", None, (npy_bool,), { 'read_only': True },
+                    "Whether {} is displayed and not hidden.".format(connectible)),
             ]
             prefix = connectible + '_'
             for generic_attr_name, specific_attr_name, args, kw, doc in properties:
@@ -122,6 +141,7 @@ class BaseSphere(type):
                         *args, **kw, doc = doc)
             for enum_val, sym_prefix in enumerate(['SPHERE', 'BALL', 'STICK']):
                 attrs[sym_prefix + '_STYLE'] = enum_val
+            attrs['HIDE_RIBBON'] = 0x1
         return super().__new__(meta, name, bases, attrs)
 
 # -----------------------------------------------------------------------------
@@ -138,38 +158,22 @@ class Atom(metaclass=BaseSphere):
     chain_id = c_property('atom_chain_id', string, read_only = True,
         doc = "Protein Data Bank chain identifier. Limited to 4 characters."
         " Read only string.")
-    element = c_property('atom_element', cptr, astype = _element, read_only = True)
-    ''':class:`Element` corresponding to the chemical element for the atom.'''
-    element_name = c_property('atom_element_name', string, read_only = True)
-    '''Chemical element name. Read only.'''
-    element_number = c_property('atom_element_number', uint8, read_only = True)
-    '''Chemical element number. Read only.'''
-    in_chain = c_property('atom_in_chain', npy_bool, read_only = True)
-    '''Whether this atom belongs to a polymer. Read only.'''
-    is_backbone = c_property('atom_is_backbone', npy_bool)
-    '''Whether this a protein or nucleic acid backbone atom.'''
-    name = c_property('atom_name', string, read_only = True)
-    '''Atom name. Maximum length 4 characters. Read only.'''
-    num_bonds = c_property('atom_num_bonds', size_t, read_only = True)
-    '''Number of bonds connected to this atom. Read only.'''
-    radius = c_property('atom_radius', float32)
-    '''Radius of atom.'''
-    residue = c_property('atom_residue', cptr, astype = _residue, read_only = True)
-    ''':class:`Residue` the atom belongs to.'''
-    selected = c_property('atom_selected', npy_bool)
-    '''Whether the atom is selected.'''
-    structure_category = c_property('atom_structure_category', string, read_only=True)
-    '''Whether atom is ligand, ion, etc.'''
-    HIDE_RIBBON = 0x1
-    '''Hide mask for backbone atoms in ribbon.'''
-    hide = c_property('atom_hide', int32)
-    '''Whether atom is hidden (overrides display).  Integer bitmask.'''
-    visible = c_property('atom_visible', uint8, read_only = True)
-    '''Whether atom is display and not hidden.  Read only integer.'''
-    RIBBON_RIBBON = 1
-    '''Draw mode that display cartoons as ribbons'''
-    RIBBON_PIPE = 1
-    '''Draw mode that display cartoons as pipes and planks'''
+    element = c_property('atom_element', cptr, astype = _element, read_only = True,
+        doc =  ":class:`Element` corresponding to the chemical element for the atom.")
+    element_name = c_property('atom_element_name', string, read_only = True,
+        doc = "Chemical element name. Read only.")
+    element_number = c_property('atom_element_number', uint8, read_only = True,
+        doc = "Chemical element number. Read only.")
+    in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
+        doc = "Whether this atom belongs to a polymer. Read only.")
+    is_backbone = c_property('atom_is_backbone', npy_bool,
+        doc = "Whether this a protein or nucleic acid backbone atom.")
+    name = c_property('atom_name', string, read_only = True,
+        doc = "Atom name. Maximum length 4 characters. Read only.")
+    residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
+        doc = ":class:`Residue` the atom belongs to.")
+    structure_category = c_property('atom_structure_category', string, read_only=True,
+        doc = "Whether atom is ligand, ion, etc.")
 
     def __init__(self, bs_pointer):
         set_c_pointer(self, bs_pointer)
