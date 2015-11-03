@@ -614,29 +614,141 @@ class StringArg(Annotation):
 
 
 class AxisArg(Annotation):
-    '''Annotation for axis vector that can be 3 floats or "x", or "y", or "z"'''
+    '''Annotation for axis vector that can be 3 floats or "x", or "y", or "z"
+    or two atoms.'''
     name = 'an axis vector'
+
+    named_axes = { 'x': (1, 0, 0), 'X': (1, 0, 0),
+                   'y': (0, 1, 0), 'Y': (0, 1, 0),
+                   'z': (0, 0, 1), 'Z': (0, 0, 1)}
+    @staticmethod
+    def parse(text, session):
+        axis = None
+
+        # "x" or "y" or "z"
+        if axis is None:
+            token, atext, rest = next_token(text)
+            try:
+                coords = AxisArg.named_axes[token]
+            except KeyError:
+                pass
+            else:
+                axis = Axis(camera_coords = coords)
+
+        # 3 comma-separated numbers
+        if axis is None:
+            try:
+                coords, atext, rest = Float3Arg.parse(text, session)
+            except:
+                pass
+            else:
+                axis = Axis(coords)
+
+        # Two atoms or a bond.
+        if axis is None:
+            try:
+                atoms, atext, rest = AtomsArg.parse(text, session)
+            except:
+                pass
+            else:
+                if len(atoms) == 2:
+                    axis = Axis(atoms = atoms)
+                elif len(atoms) > 0:
+                    raise AnnotationError('Axis argument requires 2 atoms, got %d atoms' % len(atoms))
+
+        if axis is None:
+            raise AnnotationError('Expected 3 floats or "x", or "y", or "z" or two atoms')
+
+        return axis, atext, rest
+
+class Axis:
+    def __init__(self, coords = None, camera_coords = None, atoms = None):
+        if not coords is None:
+            from numpy import array, float32
+            coords = array(coords, float32)
+        if not camera_coords is None:
+            from numpy import array, float32
+            camera_coords = array(camera_coords, float32)
+        self.coords = coords
+        self.camera_coords = camera_coords
+        self.atoms = atoms
+    def scene_coordinates(self, coordinate_system = None, camera = None, normalize = True):
+        atoms = self.atoms
+        if atoms is not None:
+            a = atoms[1].scene_coord - atoms[0].scene_coord
+        elif coordinate_system is not None:
+            # Camera coords are actually coordinate_system coords if
+            # coordinate_system is not None.
+            c = self.coords
+            if c is None:
+                c = self.camera_coords
+            a = coordinate_system.position.apply_without_translation(c)
+        elif self.camera_coords is not None:
+            if camera:
+                a = camera.position.apply_without_translation(self.camera_coords)
+            else:
+                a = self.camera_coords
+        else:
+            a = self.coords
+        if normalize:
+            from .. import geometry
+            a = geometry.normalize_vector(a)
+        return a
+    def base_point(self):
+        a = self.atoms
+        return None if a is None else a[0].scene_coord
+
+class CenterArg(Annotation):
+    '''Annotation for a center point that can be 3 floats or objects.'''
+    name = 'center point'
 
     @staticmethod
     def parse(text, session):
-        try:
-            return Float3Arg.parse(text, session)
-        except:
-            pass
-        token, text, rest = next_token(text)
-        try:
-            axis = {
-                'x': (1, 0, 0),
-                'X': (1, 0, 0),
-                'y': (0, 1, 0),
-                'Y': (0, 1, 0),
-                'z': (0, 0, 1),
-                'Z': (0, 0, 1),
-            }[token]
-        except KeyError:
-            raise AnnotationError('Expected 3 floats or "x", or "y", or "z"')
-        return axis, text, rest
+        c = None
 
+        # 3 comma-separated numbers
+        if c is None:
+            try:
+                coords, atext, rest = Float3Arg.parse(text, session)
+            except:
+                pass
+            else:
+                c = Center(coords)
+
+        # Objects
+        if c is None:
+            try:
+                obj, atext, rest = ObjectsArg.parse(text, session)
+            except:
+                pass
+            else:
+                if obj.empty():
+                    raise AnnotationError('Center argument no objects specified')
+                elif obj.bounds() is None:
+                    raise AnnotationError('Center argument objects are not displayed')
+                c = Center(objects = obj)
+
+        if c is None:
+            raise AnnotationError('Expected 3 floats or object specifier')
+
+        return c, atext, rest
+
+class Center:
+    def __init__(self, coords = None, objects = None):
+        if not coords is None:
+            from numpy import array, float32
+            coords = array(coords, float32)
+        self.coords = coords
+        self.objects = objects
+    def scene_coordinates(self, coordinate_system = None):
+        obj = self.objects
+        if obj is not None:
+            c = obj.bounds().center()
+        elif coordinate_system is not None:
+            c = coordinate_system.position * self.coords
+        else:
+            c = self.coords
+        return c
 
 class AtomsArg(Annotation):
     """Parse command atoms specifier"""
@@ -676,6 +788,70 @@ class PseudobondGroupsArg(Annotation):
         from ..atomic import PseudobondGroup
         pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
         return pbgs, used, rest
+
+# -----------------------------------------------------------------------------
+#
+class ModelArg(Annotation):
+    """Parse command model specifier"""
+    name = "model"
+
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = _remove_child_models(aspec.evaluate(session).models)
+        if len(models) != 1:
+            raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
+        return tuple(models)[0], text, rest
+
+# -----------------------------------------------------------------------------
+#
+def _remove_child_models(models):
+    s = set(models)
+    for m in models:
+        for c in m.child_models():
+            s.discard(c)
+    return tuple(s)
+
+# -----------------------------------------------------------------------------
+#
+class ModelsArg(Annotation):
+    """Parse command models specifier"""
+    name = "models"
+
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        return models, text, rest
+
+# -----------------------------------------------------------------------------
+#
+class TopModelsArg(Annotation):
+    """Parse command models specifier"""
+    name = "top models"
+
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        tmodels = _remove_child_models(models)
+        return tmodels, text, rest
+
+# -----------------------------------------------------------------------------
+#
+class ObjectsArg(Annotation):
+    """Parse command objects specifier"""
+    name = "objects"
+
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        objects = aspec.evaluate(session)
+        return objects, text, rest
 
 
 class Bounded(Annotation):
