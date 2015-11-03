@@ -47,7 +47,7 @@ class BaseSphere(type):
     """
     def __new__(meta, name, bases, attrs):
         related_class_info = {
-            'Atom': (_atoms, 'AtomicStructure', _atomic_structure, 'Bond', _bonds)
+            'Atom': (_atoms, 'AtomicStructure', 'structure', _atomic_structure, 'Bond', _bonds)
         }
         if name != meta.__name__:
             doc_marker = "[BS]"
@@ -71,8 +71,8 @@ class BaseSphere(type):
             attrs["__doc__"] = doc + newlines + doc_add
 
             #define some vars useful later
-            (collective, container_name, container_collective, conn_name,
-                conn_collective) = related_class_info[name]
+            (collective, container_name, container_nickname, container_collective,
+                conn_name, conn_collective) = related_class_info[name]
             connection = conn_name.lower()
             connections = connection + 's'
             connectible = name.lower()
@@ -83,8 +83,8 @@ class BaseSphere(type):
             # If the specific attr name is None, then it's the same as the
             # generic attr name.
             #
-            # Some properties (e.g. name) are defined in the C++ layer for
-            # some classes but not others.  Those properties are defined
+            # Some shared properties (e.g. name) are defined in the C++ layer
+            # for some classes but not others.  Those properties are defined
             # directly in the final class rather than via the metaclass.
             properties = [
                 ('coord', None, (float64, 3), {},
@@ -110,7 +110,7 @@ class BaseSphere(type):
                     "STICK_STYLE\n"
                     "    Match {} radius"
                     .format(connectible, connectible, connectible, connection, connection)),
-                ("graph", "structure", (cptr,),
+                ("graph", container_nickname, (cptr,),
                     { 'astype': container_collective, 'read_only': True },
                     ":class:`.{}` the {} belongs to".format(container_name, connectible)),
                 ("hide", None, (int32,), {},
@@ -119,7 +119,8 @@ class BaseSphere(type):
                     "HIDE_RIBBON\n"
                     "    Hide mask for backbone atoms in ribbon.  "
                     "[Only applicable to Atom class.]".format(connectible)),
-                ("num_connections", "num_bonds", (size_t,), { 'read_only': True },
+                ("num_connections", "num_{}".format(connections), (size_t,),
+                    { 'read_only': True },
                     "Number of {}s connected to this {}. Read only."
                     .format(connection, connectible)),
                 ("radius", None, (float32,), {}, "Radius of {}.".format(connectible)),
@@ -139,9 +140,36 @@ class BaseSphere(type):
                 if specific_attr_name is not None:
                     attrs[specific_attr_name] = c_property(prefix + prop_attr_name,
                         *args, **kw, doc = doc)
+
+            # define symbolic constants
             for enum_val, sym_prefix in enumerate(['SPHERE', 'BALL', 'STICK']):
                 attrs[sym_prefix + '_STYLE'] = enum_val
             attrs['HIDE_RIBBON'] = 0x1
+
+            #define __init__ method in attrs dict
+            exec("def __init__(self, c_pointer): set_c_pointer(c_pointer)\n", attrs)
+
+            # define connects_to method in attrs dict
+            exec("def connects_to(self, {}):\n"
+                "    '''{} Whether this {} is directly bonded to a specified {}.'''\n"
+                "    f = c_function('{}_connects_to',\n"
+                "                   args = (ctypes.c_void_p, ctypes.c_void_p),\n"
+                "                   ret = ctypes.c_bool)\n"
+                "    c = f(self._c_pointer, {}._c_pointer)\n"
+                "    return c\n".format(connectible, doc_marker, connectible,
+                connectible, connectible, connectible), attrs)
+
+            # define scene_coord property in attrs dict
+            exec("@property\n"
+                "def scene_coord(self):\n"
+                "    '''\n"
+                "    {} {} center coordinates in the global scene coordinate system.\n"
+                "    This accounts for the :class:`Drawing` positions for the hierarchy\n"
+                "    of models this {} belongs to.\n"
+                "    '''\n"
+                "    return self.graph.scene_position * self.coord\n"
+                .format(doc_marker, name, connectible), attrs)
+
         return super().__new__(meta, name, bases, attrs)
 
 # -----------------------------------------------------------------------------
@@ -153,6 +181,8 @@ class Atom(metaclass=BaseSphere):
 
     To create an Atom use the :class:`.AtomicStructure` new_atom() method.
     '''
+    # only Atom-specific attrs/methods here;
+    # others provided by BaseSphere
     bfactor = c_property('atom_bfactor', float32,
         doc = "B-factor, floating point value.")
     chain_id = c_property('atom_chain_id', string, read_only = True,
@@ -174,26 +204,6 @@ class Atom(metaclass=BaseSphere):
         doc = ":class:`Residue` the atom belongs to.")
     structure_category = c_property('atom_structure_category', string, read_only=True,
         doc = "Whether atom is ligand, ion, etc.")
-
-    def __init__(self, bs_pointer):
-        set_c_pointer(self, bs_pointer)
-
-    def connects_to(self, atom):
-        '''Whether this atom is directly bonded to a specified atom.'''
-        f = c_function('atom_connects_to',
-                       args = (ctypes.c_void_p, ctypes.c_void_p),
-                       ret = ctypes.c_bool)
-        c = f(self._c_pointer, atom._c_pointer)
-        return c
-
-    @property
-    def scene_coord(self):
-        '''
-        Atom center coordinates in the global scene coordinate system.
-        This accounts for the :class:`Drawing` positions for the hierarchy
-        of models this atom belongs to.
-        '''
-        return self.structure.scene_position * self.coord
 
 # -----------------------------------------------------------------------------
 #
