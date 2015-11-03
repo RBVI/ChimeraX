@@ -633,7 +633,7 @@ class AxisArg(Annotation):
             except KeyError:
                 pass
             else:
-                axis = Axis(camera_coords = coords)
+                axis = Axis(coords)
 
         # 3 comma-separated numbers
         if axis is None:
@@ -662,15 +662,11 @@ class AxisArg(Annotation):
         return axis, atext, rest
 
 class Axis:
-    def __init__(self, coords = None, camera_coords = None, atoms = None):
+    def __init__(self, coords = None, atoms = None):
         if not coords is None:
             from numpy import array, float32
             coords = array(coords, float32)
-        if not camera_coords is None:
-            from numpy import array, float32
-            camera_coords = array(camera_coords, float32)
-        self.coords = coords
-        self.camera_coords = camera_coords
+        self.coords = coords	# Camera coordinates
         self.atoms = atoms
     def scene_coordinates(self, coordinate_system = None, camera = None, normalize = True):
         atoms = self.atoms
@@ -680,14 +676,9 @@ class Axis:
             # Camera coords are actually coordinate_system coords if
             # coordinate_system is not None.
             c = self.coords
-            if c is None:
-                c = self.camera_coords
             a = coordinate_system.position.apply_without_translation(c)
-        elif self.camera_coords is not None:
-            if camera:
-                a = camera.position.apply_without_translation(self.camera_coords)
-            else:
-                a = self.camera_coords
+        elif camera:
+            a = camera.position.apply_without_translation(self.coords)
         else:
             a = self.coords
         if normalize:
