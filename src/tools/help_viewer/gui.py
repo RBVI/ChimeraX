@@ -41,8 +41,9 @@ class HelpUI(ToolInstance):
     SESSION_ENDURING = False    # default
     SIZE = (500, 500)
 
-    def __init__(self, session, tool_info):
-        super().__init__(session, tool_info)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
         # 'display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Help UI"
         # in this case), so only override if different name desired
@@ -149,14 +150,18 @@ class HelpUI(ToolInstance):
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, session, flags):
-        return {}
+        data = {"shown": self.tool_window.shown}
+        return self.tool_info.session_write_version, data
 
     @classmethod
-    def restore_snapshot_new(self, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, tool_info, version, data):
         return get_singleton(session)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
-        pass
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
+            raise RestoreError("unexpected version")
+        self.display(data["shown"])
 
     def reset_state(self, session):
         pass

@@ -9,12 +9,15 @@ class ModelPanel(ToolInstance):
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
     SIZE = (200, 250)
 
-    def __init__(self, session, tool_info):
-        super().__init__(session, tool_info)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
         self.display_name = "Models"
         from chimera.core.ui import MainToolWindow
+
         class ModelPanelWindow(MainToolWindow):
             close_destroys = False
+
         self.tool_window = ModelPanelWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         import wx
@@ -46,16 +49,21 @@ class ModelPanel(ToolInstance):
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, session, flags):
-        data = [ToolInstance.take_snapshot(self, session, flags)]
+        data = {
+            "ti": ToolInstance.take_snapshot(self, session, flags),
+            "shown": self.tool_window.shown
+        }
         return self.tool_info.session_write_version, data
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
             from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        ti_version, ti_data = data[0]
+        ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
             self, session, tool_info, ti_version, ti_data)
+        self.__init__(session, tool_info, restoring=True)
+        self.display(data["shown"])
 
     def reset_state(self, session):
         pass
@@ -68,7 +76,7 @@ class ModelPanel(ToolInstance):
     def _initiate_fill_table(self, *args):
         # in order to allow molecules to be drawn as quickly as possible,
         # delay the update of the table until the 'frame drawn' trigger fires
-        if self._frame_drawn_handler == None:
+        if self._frame_drawn_handler is None:
             self._frame_drawn_handler = self.session.triggers.add_handler(
                 "frame drawn", self._fill_table)
 
@@ -87,6 +95,7 @@ class ModelPanel(ToolInstance):
             self.table.SetCellBackgroundColour(i, 1, self._model_color(model))
             self.table.SetCellValue(i, 2, getattr(model, "name", "(unnamed)"))
         self.table.AutoSizeColumns()
+        del locker
 
         self._frame_drawn_handler = None
         from chimera.core.triggerset import DEREGISTER
@@ -106,10 +115,11 @@ class ModelPanel(ToolInstance):
                 return most_common_color(shown.colors)
         return None
 
+
 def most_common_color(colors):
     import numpy
     as32 = colors.view(numpy.int32).reshape((len(colors),))
     unique, indices, counts = numpy.unique(as32, return_index=True, return_counts=True)
-    if counts[0] < len(colors)/10:
+    if counts[0] < len(colors) / 10:
         return None
     return colors[indices[0]]

@@ -12,9 +12,11 @@ class CommandLine(ToolInstance):
     compact_label = "Remove duplicate consecutive commands"
     help = "help:user/tools/cli.html"
 
-    def __init__(self, session, tool_info, **kw):
-        super().__init__(session, tool_info, **kw)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
         from chimera.core.ui import MainToolWindow
+
         class CmdWindow(MainToolWindow):
             close_destroys = False
         self.tool_window = CmdWindow(self, size=self.SIZE)
@@ -176,7 +178,7 @@ class CommandLine(ToolInstance):
         return self.tool_info.session_write_version, data
 
     @classmethod
-    def restore_snapshot_new(self, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, tool_info, version, data):
         from . import cmd
         return cmd.get_singleton(session)
 
@@ -201,6 +203,7 @@ class _HistoryDialog:
         # make dialog hidden initially
         self.controller = controller
         from chimera.core.ui import ChildToolWindow
+
         class HistoryWindow(ChildToolWindow):
             close_destroys = False
         self.window = controller.tool_window.create_child_window(
@@ -323,7 +326,7 @@ class _HistoryDialog:
         if match_against:
             last = self.listbox.GetCount() - 1
             while sel < last:
-                if self.listbox.GetString(sel+1).startswith(match_against):
+                if self.listbox.GetString(sel + 1).startswith(match_against):
                     break
                 sel += 1
         if sel == self.listbox.GetCount() - 1:
@@ -378,7 +381,7 @@ class _HistoryDialog:
             self._suspend_handler = True
         if match_against:
             while sel > 0:
-                if self.listbox.GetString(sel-1).startswith(match_against):
+                if self.listbox.GetString(sel - 1).startswith(match_against):
                     break
                 sel -= 1
         if sel == 0:

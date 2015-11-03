@@ -1,5 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
+from chimera.core.tools import ToolInstance
+
 _PageTemplate = """<html>
 <head>
 <title>Chimera Toolshed</title>
@@ -39,16 +41,15 @@ _SHOW_LINK = '<a href="toolshed:_show_tool:%s" class="show">show</a>'
 _HIDE_LINK = '<a href="toolshed:_hide_tool:%s" class="hide">hide</a>'
 _KILL_LINK = '<a href="toolshed:_kill_tool:%s" class="kill">kill</a>'
 
-from chimera.core.tools import ToolInstance
-
 
 class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
     SIZE = (800, 50)
 
-    def __init__(self, session, tool_info, **kw):
-        super().__init__(session, tool_info, **kw)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
         from chimera.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
@@ -56,7 +57,7 @@ class ToolshedUI(ToolInstance):
         import wx
         self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
         self.webview.EnableContextMenu(False)
-        #self.webview.EnableHistory(False)
+        # self.webview.EnableHistory(False)
         self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING,
                           self._on_navigating,
                           id=self.webview.GetId())
@@ -205,9 +206,9 @@ class ToolshedUI(ToolInstance):
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, session, flags):
-        data = [
-            ToolInstance.take_snapshot(self, session, flags),
-            {"shown": self.tool_window.shown}
+        data = {
+            "ti": ToolInstance.take_snapshot(self, session, flags),
+            "shown": self.tool_window.shown
         ]
         return self.tool_info.session_write_version, data
 
@@ -215,10 +216,11 @@ class ToolshedUI(ToolInstance):
         if version not in tool_info.session_versions:
             from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        ti_version, ti_data = data[0]
+        ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
             self, session, tool_info, ti_version, ti_data)
-        self.display(data[1]["shown"])
+        self.__init__(session, tool_info, restoring=True)
+        self.display(data["shown"])
 
     def reset_state(self, session):
         pass

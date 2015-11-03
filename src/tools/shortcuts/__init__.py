@@ -31,7 +31,7 @@ def register_command(command_name, tool_info):
 # 'get_class' is called by session code to get class saved in a session
 #
 def get_class(class_name):
-    if class_name == 'ShortCutPanel':
+    if class_name == 'ShortcutPanel':
         from . import gui
-        return gui.ShortCutPanel
+        return gui.ShortcutPanel
     return None

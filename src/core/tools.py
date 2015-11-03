@@ -69,7 +69,7 @@ class ToolInstance(State):
     SESSION_SKIP = False
     help = None
 
-    def __init__(self, session, tool_info, id=None, **kw):
+    def __init__(self, session, tool_info, id=None):
         self.id = id
         import weakref
         self._session = weakref.ref(session)
