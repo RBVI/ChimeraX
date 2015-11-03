@@ -147,7 +147,8 @@ class BaseSphere(type):
             attrs['HIDE_RIBBON'] = 0x1
 
             #define __init__ method in attrs dict
-            exec("def __init__(self, c_pointer): set_c_pointer(c_pointer)\n", attrs)
+            exec("def __init__(self, c_pointer):\n"
+                "    set_c_pointer(self, c_pointer)\n", globals(), attrs)
 
             # define connects_to method in attrs dict
             exec("def connects_to(self, {}):\n"
@@ -157,7 +158,7 @@ class BaseSphere(type):
                 "                   ret = ctypes.c_bool)\n"
                 "    c = f(self._c_pointer, {}._c_pointer)\n"
                 "    return c\n".format(connectible, doc_marker, connectible,
-                connectible, connectible, connectible), attrs)
+                connectible, connectible, connectible), globals(), attrs)
 
             # define scene_coord property in attrs dict
             exec("@property\n"
@@ -168,7 +169,7 @@ class BaseSphere(type):
                 "    of models this {} belongs to.\n"
                 "    '''\n"
                 "    return self.graph.scene_position * self.coord\n"
-                .format(doc_marker, name, connectible), attrs)
+                .format(doc_marker, name, connectible), globals(), attrs)
 
         return super().__new__(meta, name, bases, attrs)
 
