@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 from .place import Place, Places, identity, rotation, vector_rotation, translation, scale
 from .place import product, orthonormal_frame, interpolate_rotation
-from .vector import interpolate_points, inner_product
+from .vector import interpolate_points, inner_product, normalize_vector
 from .bounds import sphere_bounds, union_bounds, Bounds, point_bounds, copies_bounding_box, copy_tree_bounds
 from ._geometry import natural_cubic_spline
 from ._geometry import sphere_axes_bounds, spheres_in_bounds, bounds_overlap
