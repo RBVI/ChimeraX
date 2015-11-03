@@ -87,6 +87,8 @@ class Place:
         a new Place object.'''
         if isinstance(p, Place):
             return Place(m34.multiply_matrices(self.matrix, p.matrix))
+        elif isinstance(p, Places):
+            return Places([self]) * p
 
         from numpy import ndarray
         if isinstance(p, (ndarray, tuple, list)):
