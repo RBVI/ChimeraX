@@ -148,9 +148,10 @@ class Place:
         done by finding the transform mapping to tf, treating it as a
         rotation about the specified center point followed by a shift,
         then perform the specified fraction of the full rotation, and
-        specified fraction of the shift.'''
-        return Place(m34.interpolate_transforms(self.matrix, center, tf.matrix,
-                                                frac))
+        specified fraction of the shift.  When the interpolated places
+        are thought of as coordinate systems positions, the center
+        point is in local coordinates.'''
+        return Place(m34.interpolate_transforms(self.matrix, center, tf.matrix, frac))
 
     def rotation_angle(self):
         '''Return the rotation angle of the transform, or equivalently
