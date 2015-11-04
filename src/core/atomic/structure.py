@@ -96,6 +96,8 @@ class AtomicStructure(AtomicStructureData, Model):
             elif self.num_chains < 5:
                 lighting = "default"
                 atoms.displays = False
+                from .molobject import Atom, Bond
+                atoms.draw_modes = Atom.STICK_STYLE
                 self.residues.ribbon_displays = True
             elif self.num_chains < 250:
                 lighting = "full"
