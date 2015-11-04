@@ -188,6 +188,7 @@ def _interpolated_positions(places1, places2, center, f):
     return pf
 
 # Compute common center of rotation for models that move rigidly as a group
+# and have the same parent model.
 def _model_motion_centers(mpos1, mpos2):
     bounds = {}
     tf_bounds = []
@@ -197,7 +198,7 @@ def _model_motion_centers(mpos1, mpos2):
             b = m.bounds()
             if b:
                 tf = p2[0]*p1[0].inverse()
-                blist = _close_transform(tf, tf_bounds)
+                blist = _close_transform(tf, tf_bounds, m.parent)
                 blist.append(b)
                 bounds[m] = blist
 
@@ -205,15 +206,16 @@ def _model_motion_centers(mpos1, mpos2):
     centers = {m:union_bounds(blist).center() for m, blist in bounds.items()}
     return centers
 
-def _close_transform(tf, tf_bounds, max_rotation_angle = 0.01, max_shift = 1):
+def _close_transform(tf, tf_bounds, parent, max_rotation_angle = 0.01, max_shift = 1):
     tfinv = tf.inverse()
     center = (0,0,0)
-    for tf2, blist in tf_bounds:
-        shift, angle = (tfinv * tf2).shift_and_angle(center)
-        if angle <= max_rotation_angle and shift < max_shift:
-            return blist
+    for bparent, tf2, blist in tf_bounds:
+        if parent is bparent:
+            shift, angle = (tfinv * tf2).shift_and_angle(center)
+            if angle <= max_rotation_angle and shift < max_shift:
+                return blist
     blist = []
-    tf_bounds.append((tf, blist))
+    tf_bounds.append((parent, tf, blist))
     return blist
 
 def register_command(session):
