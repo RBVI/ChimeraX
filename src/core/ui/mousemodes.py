@@ -6,55 +6,49 @@ class MouseModes:
 
         self.graphics_window = graphics_window
         self.session = session
-        self.view = graphics_window.view
 
-        self.mouse_modes = {}           # Maps 'left', 'middle', 'right', 'wheel', 'pause' to MouseMode instance
+        self._mouse_modes = {}    # Maps 'left', 'middle', 'right', 'wheel', 'pause' to MouseMode instance
 
         # Mouse pause parameters
-        self.last_mouse_time = None
-        self.mouse_pause_interval = 0.5         # seconds
-        self.mouse_pause_position = None
+        self._last_mouse_time = None
+        self._mouse_pause_interval = 0.5         # seconds
+        self._mouse_pause_position = None
 
         self.bind_standard_mouse_modes()
 
-        self.set_mouse_event_handlers()
+        self._set_mouse_event_handlers()
 
-    def set_mouse_event_handlers(self):
+    def _set_mouse_event_handlers(self):
         import wx
-        gw = self.graphics_window
-        gw.opengl_canvas.Bind(wx.EVT_LEFT_DOWN,
-              lambda e: self.dispatch_mouse_event(e, "left", "mouse_down"))
-        gw.opengl_canvas.Bind(wx.EVT_MIDDLE_DOWN,
-              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_down"))
-        gw.opengl_canvas.Bind(wx.EVT_RIGHT_DOWN,
-              lambda e: self.dispatch_mouse_event(e, "right", "mouse_down"))
-        gw.opengl_canvas.Bind(wx.EVT_MOTION,
-              lambda e: self.dispatch_mouse_event(e, None, "mouse_drag"))
-        gw.opengl_canvas.Bind(wx.EVT_LEFT_UP,
-              lambda e: self.dispatch_mouse_event(e, "left", "mouse_up"))
-        gw.opengl_canvas.Bind(wx.EVT_MIDDLE_UP,
-              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_up"))
-        gw.opengl_canvas.Bind(wx.EVT_RIGHT_UP,
-              lambda e: self.dispatch_mouse_event(e, "right", "mouse_up"))
-        gw.opengl_canvas.Bind(wx.EVT_LEFT_DCLICK,
-              lambda e: self.dispatch_mouse_event(e, "left", "mouse_double"))
-        gw.opengl_canvas.Bind(wx.EVT_MIDDLE_DCLICK,
-              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_double"))
-        gw.opengl_canvas.Bind(wx.EVT_RIGHT_DCLICK,
-              lambda e: self.dispatch_mouse_event(e, "right", "mouse_double"))
-        gw.opengl_canvas.Bind(wx.EVT_MOUSEWHEEL, self.wheel_event)
+        c = self.graphics_window.opengl_canvas
+        mouse_events = [
+            (wx.EVT_LEFT_DOWN, "left", "mouse_down"),
+            (wx.EVT_MIDDLE_DOWN, "middle", "mouse_down"),
+            (wx.EVT_RIGHT_DOWN, "right", "mouse_down"),
+            (wx.EVT_MOTION, None, "mouse_drag"),
+            (wx.EVT_LEFT_UP, "left", "mouse_up"),
+            (wx.EVT_MIDDLE_UP, "middle", "mouse_up"),
+            (wx.EVT_RIGHT_UP, "right", "mouse_up"),
+            (wx.EVT_LEFT_DCLICK, "left", "mouse_double"),
+            (wx.EVT_MIDDLE_DCLICK, "middle", "mouse_double"),
+            (wx.EVT_RIGHT_DCLICK, "right", "mouse_double"),
+        ]
+        for event, button, action in mouse_events:
+            c.Bind(event, lambda e,b=button,a=action: self._dispatch_mouse_event(e,b,a))
+        c.Bind(wx.EVT_MOUSEWHEEL, self._wheel_event)
 
-    def dispatch_mouse_event(self, event, button, action):
+    def _dispatch_mouse_event(self, event, button, action):
+        canvas = self.graphics_window.opengl_canvas
         if action in ('mouse_down', 'mouse_double'):
             # remember button for later drag events
-            if not self.graphics_window.opengl_canvas.HasCapture():
-                self.graphics_window.opengl_canvas.CaptureMouse()
+            if not canvas.HasCapture():
+                canvas.CaptureMouse()
         elif action == 'mouse_drag':
             if not event.Dragging():
                 return
         elif action == 'mouse_up':
-            if self.graphics_window.opengl_canvas.HasCapture():
-                self.graphics_window.opengl_canvas.ReleaseMouse()
+            if canvas.HasCapture():
+                canvas.ReleaseMouse()
         if button is None:
             if event.LeftIsDown():
                 button = "middle" if event.AltDown() else "left"
@@ -64,19 +58,24 @@ class MouseModes:
                 button = "right"
             else:
                 return
-            if not self.graphics_window.opengl_canvas.HasCapture():
+            if not canvas.HasCapture():
                 # a Windows thing; can lose mouse capture w/o mouse up
                 return
         elif button == 'left' and event.AltDown():
             button = 'middle'
-        m = self.mouse_modes.get(button)
+        m = self._mouse_modes.get(button)
         if m and hasattr(m, action):
             f = getattr(m, action)
             f(MouseEvent(event))
 
-    def cursor_position(self):
-        import wx
-        return self.graphics_window.ScreenToClient(wx.GetMousePosition())
+    def _wheel_event(self, event):
+        f = self._mouse_modes.get('wheel')
+        if f:
+            f.wheel(MouseEvent(event))
+
+    # Button is "left", "middle", "right", "wheel", or "pause"
+    def bind_mouse_mode(self, button, mode):
+        self._mouse_modes[button] = mode
 
     def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
         modes = (
@@ -91,45 +90,41 @@ class MouseModes:
             if button in buttons:
                 self.bind_mouse_mode(button, mode_class(s))
 
-    # Button is "left", "middle", "right", "wheel", or "pause"
-    def bind_mouse_mode(self, button, mode):
-        self.mouse_modes[button] = mode
-
-    def wheel_event(self, event):
-        f = self.mouse_modes.get('wheel')
-        if f:
-            f.wheel(MouseEvent(event))
-
     def mouse_pause_tracking(self):
-        cp = self.cursor_position()
-        w,h = self.view.window_size
+        '''Called periodically to check for mouse pause and invoke pause mode.'''
+        cp = self._cursor_position()
+        w,h = self.graphics_window.view.window_size
         x,y = cp
         if x < 0 or y < 0 or x >= w or y >= h:
             return      # Cursor outside of graphics window
         from time import time
         t = time()
-        mp = self.mouse_pause_position
+        mp = self._mouse_pause_position
         if cp == mp:
-            lt = self.last_mouse_time
-            if lt and t >= lt + self.mouse_pause_interval:
-                self.mouse_pause()
-                self.mouse_pause_position = None
-                self.last_mouse_time = None
+            lt = self._last_mouse_time
+            if lt and t >= lt + self._mouse_pause_interval:
+                self._mouse_pause()
+                self._mouse_pause_position = None
+                self._last_mouse_time = None
             return
-        self.mouse_pause_position = cp
+        self._mouse_pause_position = cp
         if mp:
             # Require mouse move before setting timer to avoid
             # repeated mouse pause callbacks at same point.
-            self.last_mouse_time = t
-            self.mouse_move_after_pause()
+            self._last_mouse_time = t
+            self._mouse_move_after_pause()
 
-    def mouse_pause(self):
-        m = self.mouse_modes.get('pause')
+    def _cursor_position(self):
+        import wx
+        return self.graphics_window.ScreenToClient(wx.GetMousePosition())
+
+    def _mouse_pause(self):
+        m = self._mouse_modes.get('pause')
         if m:
-            m.pause(self.mouse_pause_position)
+            m.pause(self._mouse_pause_position)
 
-    def mouse_move_after_pause(self):
-        m = self.mouse_modes.get('pause')
+    def _mouse_move_after_pause(self):
+        m = self._mouse_modes.get('pause')
         if m:
             m.move_after_pause()
 
