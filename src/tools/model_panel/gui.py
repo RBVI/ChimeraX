@@ -23,12 +23,19 @@ class ModelPanel(ToolInstance):
         import wx
         import wx.grid
         self.table = wx.grid.Grid(parent, size=(200, 150))
-        self.table.CreateGrid(5, 3)
+        self.table.CreateGrid(5, 4)
         self.table.SetColLabelValue(0, "ID")
         self.table.SetColSize(0, 25)
         self.table.SetColLabelValue(1, " ")
         self.table.SetColSize(1, -1)
-        self.table.SetColLabelValue(2, "Name")
+        self.table.SetColLabelValue(2, "Shown")
+        self.table.SetColSize(2, -1)
+        #attr = wx.grid.GridCellAttr()
+        #attr.SetEditor(wx.grid.GridCellBoolEditor())
+        #attr.SetRenderer(wx.grid.GridCellBoolRenderer())
+        #self.table.SetColAttr(2, attr)
+        self.table.SetColFormatBool(2)
+        self.table.SetColLabelValue(3, "Name")
         self.table.HideRowLabels()
         self.table.SetDefaultCellAlignment(wx.ALIGN_CENTRE, wx.ALIGN_BOTTOM)
         self.table.EnableEditing(False)
@@ -93,7 +100,8 @@ class ModelPanel(ToolInstance):
         for i, model in enumerate(models):
             self.table.SetCellValue(i, 0, model.id_string())
             self.table.SetCellBackgroundColour(i, 1, self._model_color(model))
-            self.table.SetCellValue(i, 2, getattr(model, "name", "(unnamed)"))
+            self.table.SetCellValue(i, 2, "1" if model.display else "")
+            self.table.SetCellValue(i, 3, getattr(model, "name", "(unnamed)"))
         self.table.AutoSizeColumns()
         del locker
 
