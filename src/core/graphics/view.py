@@ -641,6 +641,7 @@ class View:
         from ..geometry import identity
         c.position = identity()
         c.view_all(b.center(), b.width())
+        self._center_of_rotation = b.center()
         self._update_center_of_rotation = True
 
     def view_all(self, bounds = None):
@@ -702,9 +703,7 @@ class View:
             cr = b.center()
         else:
             # Use front center point for zoomed in views
-            cr = self._front_center_point()
-            if cr is None:
-                return None
+            cr = self._front_center_point()	# Can be None
         return cr
 
     def _front_center_point(self):

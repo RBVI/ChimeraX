@@ -415,7 +415,8 @@ def normalize_vector(v):
     d = length(v)
     if d == 0:
         d = 1
-    return tuple([e / d for e in v])
+    from numpy import array, float32
+    return array([e / d for e in v], float32)
 
 
 # -----------------------------------------------------------------------------
