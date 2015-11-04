@@ -56,6 +56,7 @@ def marker_molecule(session):
         lod = session.atomic_level_of_detail
         from .atomic import AtomicStructure
         ms['molecule'] = m = AtomicStructure('markers', level_of_detail = lod)
+        m.ball_scale = 1.0
         session.models.add([m])
     return m
 
@@ -66,6 +67,7 @@ def place_marker(session, center):
     ms = marker_settings(session)
     a.radius = ms['radius']
     a.color = ms['color']
+    a.draw_mode = a.BALL_STYLE	# Sphere style hides bonds between markers, so use ball style.
     r = m.new_residue('mark', ms['marker_chain_id'], ms['next_marker_num'])
     r.add_atom(a)
     ms['next_marker_num'] += 1
