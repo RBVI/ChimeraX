@@ -10,7 +10,7 @@ def register_core_commands(session):
         'alias', 'buriedarea',
         'camera', 'close', 'cofr', 'color', 'colordef', 'crossfade', 'crosslinks',
         'delete', 'display', 'echo', 'exit', 'export',
-        'lighting', 'list', 'material', 'move',
+        'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',
         'save', 'sasa', 'scolor', 'select', 'set', 'split',
         'stop', 'style', 'surface', 'sym',

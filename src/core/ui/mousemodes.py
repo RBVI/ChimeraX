@@ -7,6 +7,25 @@ class MouseModes:
         self.graphics_window = graphics_window
         self.session = session
 
+        from .. import map, markers
+        from ..map import series
+        mode_classes = [
+            RotateMouseMode,
+            RotateSelectedMouseMode,
+            TranslateMouseMode,
+            TranslateSelectedMouseMode,
+            ZoomMouseMode,
+            ObjectIdMouseMode,
+            SelectMouseMode,
+            map.ContourLevelMouseMode,
+            map.PlanesMouseMode,
+            markers.MarkerMouseMode,
+            markers.MarkCenterMouseMode,
+            markers.ConnectMouseMode,
+            series.PlaySeriesMouseMode,
+        ]
+        self._available_modes = [mode(session) for mode in mode_classes]
+
         self._mouse_modes = {}    # Maps 'left', 'middle', 'right', 'wheel', 'pause' to MouseMode instance
 
         # Mouse pause parameters
@@ -73,22 +92,31 @@ class MouseModes:
         if f:
             f.wheel(MouseEvent(event))
 
+    @property
+    def modes(self):
+        return self._available_modes
+
+    @property
+    def bindings(self):
+        '''Maps button name to MouseMode object.'''
+        return self._mouse_modes
+
     # Button is "left", "middle", "right", "wheel", or "pause"
     def bind_mouse_mode(self, button, mode):
         self._mouse_modes[button] = mode
 
     def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
         modes = (
-            ('left', RotateMouseMode),
-            ('middle', TranslateMouseMode),
-            ('right', ZoomMouseMode),
-            ('wheel', ZoomMouseMode),
-            ('pause', ObjectIdMouseMode),
+            ('left', 'rotate'),
+            ('middle', 'translate'),
+            ('right', 'zoom'),
+            ('wheel', 'zoom'),
+            ('pause', 'identify object'),
             )
-        s = self.session
-        for button, mode_class in modes:
+        mmap = {m.name:m for m in self.modes}
+        for button, mode_name in modes:
             if button in buttons:
-                self.bind_mouse_mode(button, mode_class(s))
+                self.bind_mouse_mode(button, mmap[mode_name])
 
     def mouse_pause_tracking(self):
         '''Called periodically to check for mouse pause and invoke pause mode.'''
@@ -292,7 +320,7 @@ class TranslateMouseMode(MouseMode):
         return None
 
 class TranslateSelectedMouseMode(TranslateMouseMode):
-    name = 'move selected models'
+    name = 'translate selected models'
     icon_file = 'move_h2o.png'
 
     def models(self):
@@ -327,6 +355,7 @@ class ZoomMouseMode(MouseMode):
 
 class ObjectIdMouseMode(MouseMode):
 
+    name = 'identify object'
     def pause(self, position):
         x,y = position
         p = self.view.first_intercept(x,y)
