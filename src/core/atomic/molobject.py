@@ -456,7 +456,8 @@ class AtomicStructureData:
     def __init__(self, mol_pointer=None):
         if mol_pointer is None:
             # Create a new atomic structure
-            mol_pointer = c_function('structure_new', args = (ctypes.py_object), ret = ctypes.c_void_p)()
+            logger = None	# TODO: pass a logger into the constructor
+            mol_pointer = c_function('structure_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
 
     def delete(self):
