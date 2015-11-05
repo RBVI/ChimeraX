@@ -430,6 +430,17 @@ extern "C" void atom_name(void *atoms, size_t n, pyobject_t *names)
     }
 }
 
+extern "C" void set_atom_name(void *atoms, size_t n, pyobject_t *names)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            a[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void atom_num_bonds(void *atoms, size_t n, size_t *nbonds)
 {
     Atom **a = static_cast<Atom **>(atoms);

@@ -199,8 +199,8 @@ class Atom(metaclass=BaseSphere):
         doc = "Whether this atom belongs to a polymer. Read only.")
     is_backbone = c_property('atom_is_backbone', npy_bool,
         doc = "Whether this a protein or nucleic acid backbone atom.")
-    name = c_property('atom_name', string, read_only = True,
-        doc = "Atom name. Maximum length 4 characters. Read only.")
+    name = c_property('atom_name', string,
+        doc = "Atom name. Maximum length 4 characters.")
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
         doc = ":class:`Residue` the atom belongs to.")
     structure_category = c_property('atom_structure_category', string, read_only=True,
