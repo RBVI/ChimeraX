@@ -61,8 +61,6 @@ ACTION_BUTTONS
                                                        self._make_page),
                           session.triggers.add_handler(REMOVE_MODELS,
                                                        self._make_page)]
-        # Add to running tool list for session (not required)
-        session.tools.add([self])
         self._make_page()
 
     def _make_page(self, *args):

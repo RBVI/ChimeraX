@@ -43,8 +43,6 @@ class MouseModePanel(ToolInstance):
         import wx
         parent.Bind(wx.EVT_SIZE, self.resize_cb)
 
-        session.tools.add([self])
-
     def create_buttons(self, modes, button_to_bind, initial_mode, parent, session):
         import wx
         buttons = []

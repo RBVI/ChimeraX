@@ -30,9 +30,6 @@ class Plot(ToolInstance):
 
         self.axes = axes = f.gca()
 
-        # Add to running tool list for session (not required)
-        session.tools.add([self])
-
     def show(self):
         self.tool_window.shown = True
 

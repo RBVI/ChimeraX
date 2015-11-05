@@ -27,6 +27,9 @@ def register_command(command_name, tool_info):
     # register(command_name + " update", cmd.ts_update_desc, cmd.ts_update)
     register(command_name + " hide", cmd.ts_hide_desc, cmd.ts_hide)
     register(command_name + " show", cmd.ts_show_desc, cmd.ts_show)
+    register(command_name + " start", cmd.ts_start_desc, cmd.ts_start)
+    register(command_name + " display", cmd.ts_display_desc, cmd.ts_display)
+    register(command_name + " undisplay", cmd.ts_undisplay_desc, cmd.ts_undisplay)
 
 
 #

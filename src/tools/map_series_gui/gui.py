@@ -64,8 +64,6 @@ class MapSeries(ToolInstance):
         self.model_close_handler = session.triggers.add_handler(
             REMOVE_MODELS, self.models_closed_cb)
 
-        session.tools.add([self])
-
     def show(self):
         self.tool_window.shown = True
 

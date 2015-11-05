@@ -89,9 +89,6 @@ class HelpUI(ToolInstance):
         sizer.Add(self.help_window, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement=None)
-        # Add to running tool list for session if tool should be saved
-        # in and restored from session and scenes
-        session.tools.add([self])
         self.help_window.Bind(wx.EVT_CLOSE, self.on_close)
         self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATED, self.on_navigated)
         self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,

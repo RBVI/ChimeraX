@@ -139,7 +139,6 @@ class Log(ToolInstance, HtmlLog):
         sizer.Add(self.log_window, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
-        session.tools.add([self])
         session.logger.add_log(self)
         self.log_window.Bind(wx.EVT_CLOSE, self.on_close)
         self.log_window.Bind(html2.EVT_WEBVIEW_LOADED, self.on_load)

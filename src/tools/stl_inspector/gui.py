@@ -40,7 +40,6 @@ class ToolUI(ToolInstance):
             sizer.Add(self.webview, 1, wx.EXPAND)
             parent.SetSizerAndFit(sizer)
             self._refresh(self.session)
-        session.tools.add([self])
 
     def _make_page(self):
         page_template = "<html><body>%s</body></html>"

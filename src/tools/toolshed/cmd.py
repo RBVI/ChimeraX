@@ -196,3 +196,35 @@ def ts_show(session):
     if ts is not None:
         ts.display(True)
 ts_show_desc = CmdDesc()
+
+def ts_start(session, name):
+    '''Start an instance of a tool.'''
+    ts = session.toolshed
+    tinfo = ts.find_tool(name)
+    if tinfo is None:
+        from chimera.core.errors import UserError
+        raise UserError('No installed tool named "%s"' % name)
+    tinfo.start(session)
+from chimera.core.commands import StringArg
+ts_start_desc = CmdDesc(required = [('name', StringArg)])
+
+def ts_display(session, name, _display = True):
+    '''Display instances of a tool, or start one if none is running.'''
+    ts = session.toolshed
+    tinfo = ts.find_tool(name)
+    if tinfo is None:
+        from chimera.core.errors import UserError
+        raise UserError('No installed tool named "%s"' % name)
+    tinst = session.tools.list()
+    for t in tinst:
+        if t.tool_info is tinfo:
+            t.display(_display)
+    if len(tinst) == 0:
+        tinfo.start(session)
+from chimera.core.commands import StringArg
+ts_display_desc = CmdDesc(required = [('name', StringArg)])
+
+def ts_undisplay(session, name):
+    '''Undisplay instances of a tool.'''
+    ts_display(session, name, _display = False)
+ts_undisplay_desc = CmdDesc(required = [('name', StringArg)])

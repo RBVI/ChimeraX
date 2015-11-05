@@ -37,7 +37,6 @@ class CommandLine(ToolInstance):
         self.tool_window.manage(placement="bottom")
         self.history_dialog.populate()
         session.ui.register_for_keystrokes(self)
-        session.tools.add([self])
         # since only TextCtrls have the EmulateKeyPress method,
         # create a completely hidden TextCtrl so that we can
         # process forwarded keystrokes and copy the result back

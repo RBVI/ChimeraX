@@ -40,8 +40,6 @@ class ShortcutPanel(ToolInstance):
         import wx
         parent.Bind(wx.EVT_SIZE, self.resize_cb)
 
-        session.tools.add([self])
-
     def create_buttons(self, shortcuts, parent):
 
         import wx
