@@ -1,0 +1,99 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: roll</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: roll</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>roll</b>
+[&nbsp;<i>axis</i>&nbsp;[&nbsp;<i>angle</i>&nbsp; [&nbsp;<i>frames</i>&nbsp;]]]
+[&nbsp;center&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>coordinateSystem</b> 
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+[&nbsp;models &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;] 
+</h3>
+<p>
+<b>Roll</b> performs a rotation of <i>angle</i>
+(default <b>1</b>&deg;) around a specified <i>axis</i> (default <b>y</b>)
+at each of a specified number of image update <i>frames</i>
+(default <b>infinity</b>).
+The <i>angle</i> can be positive or negative. Model(s) to rotate
+can be <a href="atomspec.html">specified</a> with the <b>models</b> keyword;
+otherwise, the scene will be rotated as a whole.
+<b>Roll</b> is the same as <a href="turn.html"><b>turn</b></a>
+except for the default values of <i>angle</i> and <i>frames</i>.
+See also:
+<b><A href="cofr.html">cofr</A></b>,
+<b><A href="move.html">move</A></b>,
+<a href="zoom.html"><b>zoom</b></a>
+</p><p>
+The <b>coordinateSystem</b> can be <a href="atomspec.html">specified</a>
+by reference model number N preceded by #. 
+If further motions are applied to an ongoing rotation, 
+the center and axis will remain pinned relative to this reference model.
+If no reference model is given,
+the <a href="view.html#screencoords">screen coordinate system</a>
+(X horizontal, Y vertical, Z in/out) will be used for the <i>axis</i>
+and the <a href="view.html#scenecoords">scene coordinate system</a>
+for the <i>center</i> when they are given as coordinates
+(as opposed to an <a href="atomspec.html"><i>atom-spec</i></a>).
+</p><p>
+The <i>axis</i> can be:
+<ul>
+<li><b>x</b> - X-axis 
+<li><b>y</b> - Y-axis
+<li><b>z</b> - Z-axis
+<li><i>x,y,z</i> 
+(three values separated by commas only) - an arbitrary vector
+<li>an <a href="atomspec.html"><i>atom-spec</i></a> of 
+exactly two atoms (not necessarily bonded or in the same model).
+The order of the atoms defines a handedness, and right-handed
+rotations are positive.
+If a center is not specified separately, 
+it will lie on the atom-atom axis.  
+If a separate center is supplied, only the direction of the axis will be used.
+The first model in the axis <a href="atomspec.html"><i>atom-spec</i></a> 
+will be used for reference frame pinning unless 
+a <b>center</b> <a href="atomspec.html"><i>atom-spec</i></a> 
+or a <b>coordinateSystem</b> is also given.  
+</p>
+</ul>
+The <i>center</i> can be:
+<ul>
+<li><i>x,y,z</i> 
+(three values separated by commas only) - an arbitrary point
+<li>an <a href="atomspec.html"><i>atom-spec</i></a> 
+- the center of the bounding box of the specified items.
+The first model in <a href="atomspec.html"><i>atom-spec</i></a> 
+will be used for reference frame pinning unless a <b>coordinateSystem</b> 
+is also given.
+</ul>
+If no center is specified, the current center of rotation will be used.
+</p><p>
+Commands continue to be processed
+while the requested motion is in progress. To pause command processing
+until the motion is finished, use the <b><A href="wait.html">wait</A></b>
+command.  To halt an ongoing <b>roll</b>, use <b>stop</b>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2015</address>
+</body></html> 
