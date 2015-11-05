@@ -263,8 +263,10 @@ class Atoms(Collection):
     '''Whether each atom belong to a polymer. Returns numpy bool array. Read only.'''
     structures = cvec_property('atom_structure', cptr, astype = _atomic_structures, read_only = True)
     '''Returns an :class:`.AtomicStructureDatas` with the structure for each atom. Read only.'''
-    names = cvec_property('atom_name', string, read_only = True)
-    '''Returns a numpy array of atom names. Read only.'''
+    names = cvec_property('atom_name', string)
+    '''Returns a numpy array of atom names.  Canbe
+    set with such an array (or equivalent sequence), or with a single
+    string.  Atom names are limited to 4 characters.'''
     radii = cvec_property('atom_radius', float32)
     '''
     Returns a :mod:`numpy` array of atomic radii.  Can be

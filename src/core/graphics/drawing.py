@@ -42,6 +42,10 @@ class Drawing:
     Rendering of drawings is done with OpenGL.
     '''
 
+    from ..triggerset import TriggerSet
+    triggers = TriggerSet()
+    triggers.add_trigger('display changed')
+
     def __init__(self, name):
 
         self._redraw_needed = None
@@ -253,6 +257,7 @@ class Drawing:
         dp[:] = display
         self._any_displayed_positions = display
         self.redraw_needed(shape_changed=True)
+        self.__class__.triggers.activate_trigger('display changed', self)
 
     display = property(get_display, set_display)
     '''Whether or not the surface is drawn.'''

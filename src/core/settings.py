@@ -168,7 +168,7 @@ class Settings(ConfigFile):
     def save(self):
         for name in self.__class__.EXPLICIT_SAVE.keys():
             ConfigFile.__setattr__(self, name, self._cur_settings[name])
-        ConfigFile.save()
+        ConfigFile.save(self)
 
     def update(self, *args, **kw):
         raise ValueError("update() disabled for Settings class")

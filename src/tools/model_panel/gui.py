@@ -19,22 +19,34 @@ class ModelPanel(ToolInstance):
             close_destroys = False
 
         self.tool_window = ModelPanelWindow(self, size=self.SIZE)
+        self.settings = ModelPanelSettings(session, "ModelPanel")
         parent = self.tool_window.ui_area
         import wx
         import wx.grid
+        last = self.settings.last_use
+        from time import time
+        now = self.settings.last_use = time()
+        short_titles = last != None and now - last < 777700 # about 3 months
         self.table = wx.grid.Grid(parent, size=(200, 150))
-        self.table.CreateGrid(5, 3)
+        self.table.CreateGrid(5, 4)
         self.table.SetColLabelValue(0, "ID")
         self.table.SetColSize(0, 25)
         self.table.SetColLabelValue(1, " ")
         self.table.SetColSize(1, -1)
-        self.table.SetColLabelValue(2, "Name")
+        title = "S" if short_titles else "Shown"
+        self.table.SetColLabelValue(2, title)
+        self.table.SetColSize(2, -1)
+        self.table.SetColFormatBool(2)
+        from chimera.core.graphics import Drawing
+        Drawing.triggers.add_handler('display changed', self._initiate_fill_table)
+        self.table.SetColLabelValue(3, "Name")
         self.table.HideRowLabels()
         self.table.SetDefaultCellAlignment(wx.ALIGN_CENTRE, wx.ALIGN_BOTTOM)
         self.table.EnableEditing(False)
         self.table.SelectionMode = wx.grid.Grid.GridSelectRows
         self.table.CellHighlightPenWidth = 0
         self._fill_table()
+        self.table.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK, self._left_click)
         from chimera.core.models import ADD_MODELS, REMOVE_MODELS
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_table)
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_table)
@@ -89,17 +101,24 @@ class ModelPanel(ToolInstance):
             self.table.DeleteRows(0, nr)
         models = self.session.models.list()
         self.table.AppendRows(len(models))
-        models = sorted(models, key=lambda m: m.id)
-        for i, model in enumerate(models):
+        self.models = sorted(models, key=lambda m: m.id)
+        for i, model in enumerate(self.models):
             self.table.SetCellValue(i, 0, model.id_string())
             self.table.SetCellBackgroundColour(i, 1, self._model_color(model))
-            self.table.SetCellValue(i, 2, getattr(model, "name", "(unnamed)"))
+            self.table.SetCellValue(i, 2, "1" if model.display else "")
+            self.table.SetCellValue(i, 3, getattr(model, "name", "(unnamed)"))
         self.table.AutoSizeColumns()
         del locker
 
         self._frame_drawn_handler = None
         from chimera.core.triggerset import DEREGISTER
         return DEREGISTER
+
+    def _left_click(self, event):
+        if event.Col == 2:
+            model = self.models[event.Row]
+            model.display = not model.display
+        event.Skip()
 
     def _model_color(self, model):
         # should be done generically
@@ -115,6 +134,11 @@ class ModelPanel(ToolInstance):
                 return most_common_color(shown.colors)
         return None
 
+from chimera.core.settings import Settings
+class ModelPanelSettings(Settings):
+    AUTO_SAVE = {
+        'last_use': None
+    }
 
 def most_common_color(colors):
     import numpy

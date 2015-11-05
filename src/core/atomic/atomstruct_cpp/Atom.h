@@ -123,6 +123,7 @@ public:
     void  set_idatm_type(const char* it);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
     void  set_is_backbone(bool ibb);
+    void  set_name(const AtomName& name) { _name = name; }
     void  set_occupancy(float);
     void  set_radius(float);
     void  set_serial_number(int);
