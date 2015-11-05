@@ -31,23 +31,9 @@ class MouseModePanel(ToolInstance):
         self.tool_window = tw = MouseModesWindow(self, size=panel_size)
         parent = tw.ui_area
 
-        from chimera.core import map, ui, markers
-        from chimera.core.map import series
-        self.modes = (
-            ui.SelectMouseMode,
-            ui.RotateMouseMode,
-            ui.TranslateMouseMode,
-            ui.ZoomMouseMode,
-            ui.TranslateSelectedMouseMode,
-            ui.RotateSelectedMouseMode,
-            map.ContourLevelMouseMode,
-            map.PlanesMouseMode,
-            markers.MarkerMouseMode,
-            markers.MarkCenterMouseMode,
-            markers.ConnectMouseMode,
-            series.PlaySeriesMouseMode,
-            )
-        initial_mode = ui.ZoomMouseMode
+        mm = session.ui.main_window.graphics_window.mouse_modes
+        self.modes = [m for m in mm.modes if m.icon_file]
+        initial_mode = [m for m in self.modes if m.name == 'zoom'][0]
 
         self.buttons = self.create_buttons(self.modes, self.button_to_bind,
                                            initial_mode, parent, session)
@@ -66,7 +52,8 @@ class MouseModePanel(ToolInstance):
             tb = wx.BitmapToggleButton(parent, i+1, self.bitmap(mode.icon_file))
             def button_press_cb(event, mode=mode, tb=tb):
                 self.unset_other_buttons(tb)
-                self.mouse_modes.bind_mouse_mode(button_to_bind, mode(session))
+                modifiers = []
+                self.mouse_modes.bind_mouse_mode(button_to_bind, modifiers, mode)
             parent.Bind(wx.EVT_TOGGLEBUTTON, button_press_cb, id=i+1)
             tb.SetToolTip(wx.ToolTip(mode.name))
             buttons.append(tb)

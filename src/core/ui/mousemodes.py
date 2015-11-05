@@ -10,13 +10,14 @@ class MouseModes:
         from .. import map, markers
         from ..map import series
         mode_classes = [
-            RotateMouseMode,
-            RotateSelectedMouseMode,
-            TranslateMouseMode,
-            TranslateSelectedMouseMode,
-            ZoomMouseMode,
-            ObjectIdMouseMode,
             SelectMouseMode,
+            RotateMouseMode,
+            TranslateMouseMode,
+            ZoomMouseMode,
+            RotateAndSelectMouseMode,
+            TranslateSelectedMouseMode,
+            RotateSelectedMouseMode,
+            ObjectIdMouseMode,
             map.ContourLevelMouseMode,
             map.PlanesMouseMode,
             markers.MarkerMouseMode,
@@ -26,7 +27,20 @@ class MouseModes:
         ]
         self._available_modes = [mode(session) for mode in mode_classes]
 
-        self._mouse_modes = {}    # Maps 'left', 'middle', 'right', 'wheel', 'pause' to MouseMode instance
+        self._bindings = []  # List of MouseBinding
+
+        
+        import wx, sys
+        if sys.platform == 'darwin':
+            mod_bits = [(wx.MOD_ALT, 'alt'),
+                        (wx.MOD_CONTROL, 'command'),		# On Mac, this is the Command key
+                        (wx.MOD_RAW_CONTROL, 'control'),	# On Mac, ctrl.
+                        (wx.MOD_SHIFT, 'shift')]
+        else:
+            mod_bits = [(wx.MOD_ALT, 'alt'),
+                        (wx.MOD_CONTROL, 'control'),
+                        (wx.MOD_SHIFT, 'shift')]
+        self._modifier_bits = mod_bits
 
         # Mouse pause parameters
         self._last_mouse_time = None
@@ -68,55 +82,123 @@ class MouseModes:
         elif action == 'mouse_up':
             if canvas.HasCapture():
                 canvas.ReleaseMouse()
+        if button is None and not canvas.HasCapture():
+            # a Windows thing; can lose mouse capture w/o mouse up
+            return
+
+        button, modifiers = self._event_type(event, button)
         if button is None:
+            return
+
+        m = self.mode(button, modifiers)
+        if m and hasattr(m, action):
+            f = getattr(m, action)
+            f(MouseEvent(event))
+
+    def _event_type(self, event, button):
+        import sys
+        mac = (sys.platform == 'darwin')
+        modifiers = self.key_modifiers(event)
+        if button is None:
+            # Drag event
             if event.LeftIsDown():
-                button = "middle" if event.AltDown() else "left"
+                button = "left"
             elif event.MiddleIsDown():
                 button = "middle"
             elif event.RightIsDown():
                 button = "right"
             else:
-                return
-            if not canvas.HasCapture():
-                # a Windows thing; can lose mouse capture w/o mouse up
-                return
-        elif button == 'left' and event.AltDown():
-            button = 'middle'
-        m = self._mouse_modes.get(button)
-        if m and hasattr(m, action):
-            f = getattr(m, action)
-            f(MouseEvent(event))
+                button = None
+
+        if button == 'left':
+            if mac and 'alt' in modifiers and not self._have_mode('left','alt'):
+                # Emulate middle mouse on Mac
+                button = 'middle'
+                modifiers.remove('alt')
+            elif mac and 'command' in modifiers and not self._have_mode('left','command'):
+                # Emulate right mouse on Mac
+                button = 'right'
+                modifiers.remove('command')
+        elif button == 'right':
+            if mac and 'control' in modifiers:
+		# Mac wx ctrl-left is reported as ctrl-right.
+                # No way to distinguish ctrl-left from ctrl-right,
+                # so convert both to ctrl-left.
+                button = 'left'
+
+        return button, modifiers
+
+    def _have_mode(self, button, modifier):
+        for b in self.bindings:
+            if b.exact_match(button, [modifier]):
+                return True
+        return False
 
     def _wheel_event(self, event):
-        f = self._mouse_modes.get('wheel')
+        f = self.mode('wheel', self.key_modifiers(event))
         if f:
             f.wheel(MouseEvent(event))
 
     @property
     def modes(self):
+        '''List of MouseMode instances.'''
         return self._available_modes
 
     @property
     def bindings(self):
-        '''Maps button name to MouseMode object.'''
-        return self._mouse_modes
+        '''List of MouseBinding instances.'''
+        return self._bindings
 
-    # Button is "left", "middle", "right", "wheel", or "pause"
-    def bind_mouse_mode(self, button, mode):
-        self._mouse_modes[button] = mode
+    def mode(self, button = 'left', modifiers = []):
+        mb = [b for b in self.bindings if b.matches(button, modifiers)]
+        if len(mb) == 1:
+            m = mb[0].mode
+        elif len(mb) > 1:
+            m = max(mb, key = lambda b: len(b.modifiers)).mode
+        else:
+            m = None
+        return m
+
+    def bind_mouse_mode(self, button, modifiers, mode):
+        '''
+        Button is "left", "middle", "right", "wheel", or "pause".
+        Modifiers is a list 0 or more of 'alt', 'command', 'control', 'shift'.
+        Mode is a MouseMode instance.
+        '''
+        if button == 'right' and 'control' in modifiers:
+            import sys
+            mac = (sys.platform == 'darwin')
+            if mac:
+                self.session.logger.warning('Mac wx toolkit cannot distinguish ctrl-right mouse click '
+                                            'from ctrl-left mouse click, so both are interpreted as '
+                                            'ctrl-left mouse click.')
+                return
+        self.remove_binding(button, modifiers)
+        if mode is not None:
+            b = MouseBinding(button, modifiers, mode)
+            self._bindings.append(b)
+
+    def remove_binding(self, button, modifiers):
+        self._bindings = [b for b in self.bindings if not b.exact_match(button, modifiers)]
 
     def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
-        modes = (
-            ('left', 'rotate'),
-            ('middle', 'translate'),
-            ('right', 'zoom'),
-            ('wheel', 'zoom'),
-            ('pause', 'identify object'),
+        standard_modes = (
+            ('left', ['control'], 'select'),
+            ('left', [], 'rotate'),
+            ('middle', [], 'translate'),
+            ('right', [], 'zoom'),
+            ('wheel', [], 'zoom'),
+            ('pause', [], 'identify object'),
             )
         mmap = {m.name:m for m in self.modes}
-        for button, mode_name in modes:
+        for button, modifiers, mode_name in standard_modes:
             if button in buttons:
-                self.bind_mouse_mode(button, mmap[mode_name])
+                self.bind_mouse_mode(button, modifiers, mmap[mode_name])
+
+    def key_modifiers(self, event):
+        mod = event.GetModifiers()
+        modifiers = [mod_name for bit, mod_name in self._modifier_bits if bit & mod]
+        return modifiers
 
     def mouse_pause_tracking(self):
         '''Called periodically to check for mouse pause and invoke pause mode.'''
@@ -147,14 +229,25 @@ class MouseModes:
         return self.graphics_window.ScreenToClient(wx.GetMousePosition())
 
     def _mouse_pause(self):
-        m = self._mouse_modes.get('pause')
+        m = self.mode('pause')
         if m:
             m.pause(self._mouse_pause_position)
 
     def _mouse_move_after_pause(self):
-        m = self._mouse_modes.get('pause')
+        m = self.mode('pause')
         if m:
             m.move_after_pause()
+
+class MouseBinding:
+    def __init__(self, button, modifiers, mode):
+        self.button = button		# 'left', 'middle', 'right', 'wheel', 'pause'
+        self.modifiers = modifiers	# List of 'alt', 'command', 'control', 'shift'
+        self.mode = mode		# MouseMode instance
+    def matches(self, button, modifiers):
+        return (button == self.button and
+                len([k for k in self.modifiers if not k in modifiers]) == 0)
+    def exact_match(self, button, modifiers):
+        return button == self.button and set(modifiers) == set(self.modifiers)
 
 class MouseMode:
 
@@ -233,6 +326,7 @@ def mouse_select(event, session, view):
 class RotateMouseMode(MouseMode):
     name = 'rotate'
     icon_file = 'rotate.png'
+    click_to_select = False
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
@@ -247,9 +341,10 @@ class RotateMouseMode(MouseMode):
         self.mouse_perimeter = (abs(cx) > fperim*0.5*w or abs(cy) > fperim*0.5*h)
 
     def mouse_up(self, event):
-        if event.position() == self.mouse_down_position:
-            mouse_select(event, self.session, self.view)
-        MouseMode.mouse_up(self, event)
+        if self.click_to_select:
+            if event.position() == self.mouse_down_position:
+                mouse_select(event, self.session, self.view)
+            MouseMode.mouse_up(self, event)
 
     def mouse_drag(self, event):
         axis, angle = self.mouse_rotation(event)
@@ -280,6 +375,10 @@ class RotateMouseMode(MouseMode):
 
     def models(self):
         return None
+
+class RotateAndSelectMouseMode(RotateMouseMode):
+    name = 'rotate and select'
+    click_to_select = True
 
 class RotateSelectedMouseMode(RotateMouseMode):
     name = 'rotate selected models'
