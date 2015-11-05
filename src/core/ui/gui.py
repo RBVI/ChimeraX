@@ -707,3 +707,4 @@ class _Wx:
         pane_info.Caption(title)
         if shown:
             aui_mgr.RefreshCaptions()
+        aui_mgr.Update()
