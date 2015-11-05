@@ -96,6 +96,8 @@ class HelpUI(ToolInstance):
         self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATED, self.on_navigated)
         self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
                               id=self.help_window.GetId())
+        self.help_window.Bind(html2.EVT_WEBVIEW_TITLE_CHANGED,
+                              self.on_title_change)
         self.help_window.EnableContextMenu()
 
     def show(self, url, set_home=True):
@@ -145,6 +147,10 @@ class HelpUI(ToolInstance):
         parts = urlparse(url)
         if parts.scheme == 'file':
             pass
+
+    def on_title_change(self, event):
+        new_title = self.help_window.CurrentTitle
+        self.tool_window.set_title(new_title)
 
     #
     # Implement session.State methods if deriving from ToolInstance
