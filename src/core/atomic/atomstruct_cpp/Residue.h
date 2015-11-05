@@ -27,6 +27,7 @@ public:
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
     enum Style { RIBBON_RIBBON = 0,
                  RIBBON_PIPE = 1 };
+    enum PolymerType { PT_NONE, PT_AMINO, PT_NUCLEIC };
 private:
     friend class AtomicStructure;
     Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);
@@ -34,6 +35,7 @@ private:
 
     friend class Chain;
     void  set_chain(Chain* chain) { _chain = chain; }
+    void  set_polymer_type(PolymerType pt) { _polymer_type = pt; }
 
     char  _alt_loc;
     Atoms  _atoms;
@@ -44,6 +46,7 @@ private:
     bool  _is_het;
     bool  _is_sheet;
     ResName  _name;
+    PolymerType  _polymer_type;
     int  _position;
     float  _ribbon_adjust;
     bool  _ribbon_display;
@@ -67,6 +70,7 @@ public:
     bool  is_het() const { return _is_het; }
     bool  is_sheet() const { return _is_sheet; }
     const ResName&  name() const { return _name; }
+    PolymerType  polymer_type() const { return _polymer_type; }
     int  position() const { return _position; }
     void  remove_atom(Atom*);
     void  set_alt_loc(char alt_loc);

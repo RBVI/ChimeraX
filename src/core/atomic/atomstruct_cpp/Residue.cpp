@@ -27,7 +27,7 @@ const std::set<ResName> Residue::std_solvent_names = { "HOH", "WAT", "DOD" };
 Residue::Residue(AtomicStructure *as, const ResName& name,
     const ChainID& chain, int pos, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _is_helix(false), _is_het(false), _is_sheet(false), _name(name),
+    _is_helix(false), _is_het(false), _is_sheet(false), _name(name), _polymer_type(PT_NONE),
     _position(pos), _ribbon_adjust(-1.0), _ribbon_display(false),
     _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
     _ribbon_style(RIBBON_RIBBON), _ss_id(-1), _structure(as)
