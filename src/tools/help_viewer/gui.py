@@ -13,20 +13,6 @@
 from chimera.core.tools import ToolInstance
 
 
-def get_singleton(session, create=True):
-    running = session.tools.find_by_class(HelpUI)
-    if len(running) > 1:
-        raise RuntimeError("too many help viewers running")
-    if not running:
-        if create:
-            tool_info = session.toolshed.find_tool('help_viewer')
-            return HelpUI(session, tool_info)
-        else:
-            return None
-    else:
-        return running[0]
-
-
 def _bitmap(filename, size):
     import os
     import wx
@@ -89,9 +75,6 @@ class HelpUI(ToolInstance):
         sizer.Add(self.help_window, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement=None)
-        # Add to running tool list for session if tool should be saved
-        # in and restored from session and scenes
-        session.tools.add([self])
         self.help_window.Bind(wx.EVT_CLOSE, self.on_close)
         self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATED, self.on_navigated)
         self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
@@ -161,7 +144,7 @@ class HelpUI(ToolInstance):
 
     @classmethod
     def restore_snapshot_new(cls, session, tool_info, version, data):
-        return get_singleton(session)
+        return cls.get_singleton(session)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
@@ -171,3 +154,8 @@ class HelpUI(ToolInstance):
 
     def reset_state(self, session):
         pass
+
+    @classmethod
+    def get_singleton(cls, session):
+        from chimera.core import tools
+        return tools.get_singleton(session, HelpUI, 'help_viewer')

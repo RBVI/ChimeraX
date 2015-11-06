@@ -89,8 +89,8 @@ def help(session, topic=None, *, option=None, is_query=False):
         url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
 
     if session.ui.is_gui:
-        from .gui import get_singleton
-        help_viewer = get_singleton(session)
+        from .gui import HelpUI
+        help_viewer = HelpUI.get_singleton(session)
         help_viewer.show(url, set_home=option == 'sethome')
     else:
         import webbrowser

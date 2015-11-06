@@ -592,7 +592,7 @@ class IntArg(Annotation):
 
 class FloatArg(Annotation):
     """Annotation for floating point literals"""
-    name = "a floating point number"
+    name = "a number"
 
     @staticmethod
     def parse(text, session):
@@ -1467,6 +1467,8 @@ def register(name, cmd_desc=(), function=None, logger=None):
     #    return
 
     words = name.split()
+    if cmd_desc is not None and cmd_desc.url is None:
+        cmd_desc.url = "help:user/commands/%s.html#%s" % (words[0], ' '.join(words[1:]))
     name = ' '.join(words)  # canonicalize
     cmd_map = _commands
     for word in words[:-1]:
@@ -1672,20 +1674,13 @@ class Command:
         results = []
         for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
             if log:
-                if ' ' not in cmd_name:
-                    cname = cmd_name
-                    fragment = ""
-                else:
-                    cname, fragment = cmd_name.split(maxsplit=1)
-                path = "user/commands/%s.html" % cname
-                from urllib.request import pathname2url
-                href = "help:%s" % pathname2url(path)
-                if fragment:
-                    href += "#%s" % fragment
-                cargs = cmd_text[len(cmd_name):]
                 from html import escape
-                msg = '<a href="%s">%s</a>%s' % (
-                    href, escape(cmd_name), escape(cargs))
+                if ci.url is None:
+                    msg = escape(cmd_text)
+                else:
+                    cargs = cmd_text[len(cmd_name):]
+                    msg = '<a href="%s">%s</a>%s' % (
+                        ci.url, escape(cmd_name), escape(cargs))
                 session.logger.info(msg, is_html=True)
             try:
                 if not isinstance(ci.function, Alias):

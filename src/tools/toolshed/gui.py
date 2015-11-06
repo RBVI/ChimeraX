@@ -70,7 +70,6 @@ class ToolshedUI(ToolInstance):
                                                        self._make_page),
                           session.triggers.add_handler(REMOVE_TOOL_INSTANCE,
                                                        self._make_page)]
-        session.tools.add([self])
 
     def _on_navigating(self, event):
         session = self.session
@@ -209,7 +208,7 @@ class ToolshedUI(ToolInstance):
         data = {
             "ti": ToolInstance.take_snapshot(self, session, flags),
             "shown": self.tool_window.shown
-        ]
+        }
         return self.tool_info.session_write_version, data
 
     def restore_snapshot_init(self, session, tool_info, version, data):
@@ -224,6 +223,11 @@ class ToolshedUI(ToolInstance):
 
     def reset_state(self, session):
         pass
+
+    @classmethod
+    def get_singleton(self, session):
+        from chimera.core import tools
+        return tools.get_singleton(session, ToolshedUI, 'toolshed')
 
     #
     # Override ToolInstance methods

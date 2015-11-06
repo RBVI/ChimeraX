@@ -299,9 +299,6 @@ class SideViewUI(ToolInstance):
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
 
-        # Add to running tool list for session (not required)
-        session.tools.add([self])
-
     def OnEnter(self, event):  # noqa
         # session = self._session()  # resolve back reference
         # Handle event

@@ -36,9 +36,6 @@ class ShellUI(ToolInstance):
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement=None)
         self.shell.setFocus()
-        # Add to running tool list for session if tool should be saved
-        # in and restored from session and scenes
-        session.tools.add([self])
 
     #
     # Implement session.State methods if deriving from ToolInstance

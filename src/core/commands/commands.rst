@@ -13,7 +13,6 @@ and their code location is described with the function descriptions.
 | `cofr`_ - Set center of rotation method
 | `color`_ - Color atoms, ribbons and surfaces
 | `colordef`_ - Define new colors
-| `command_line`_ * - Hide or show the command line
 | `contacts`_ * - Make a buried area contact graph
 | `crossfade`_ - Fade between scenes for movie making
 | `crosslinks`_ - Move atomic structures to minimize crosslinks
@@ -27,10 +26,10 @@ and their code location is described with the function descriptions.
 | `ks`_ - Enable keyboard shortcuts
 | `lighting`_ - Change lighting parameters
 | `list`_ - List open models
-| `log`_ * - Hide and show the log
+| `log`_ * - Clear or save the log
 | `material`_ - Change surface material light reflection properties
 | `molmap`_ - Calculate a density map from atoms
-| `mousemodes`_ * - Hide or show mouse modes panel
+| `mousemode`_ - Set mouse modes
 | `movie`_ * - Record videos
 | `move`_ - Move camera
 | `oculus`_ - Enable Oculus Rift headset
@@ -95,13 +94,6 @@ colordef
 ========
 .. autofunction:: chimera.core.commands.colordef.colordef
 .. autofunction:: chimera.core.commands.colordef.uncolordef
-
-command_line
-============
-Functions defined in *chimera.cmd_line.cmd*
-
-.. autofunction:: chimera.cmd_line.cmd.command_line_hide
-.. autofunction:: chimera.cmd_line.cmd.command_line_show
 
 contacts
 ========
@@ -172,12 +164,9 @@ molmap
 ======
 .. autofunction:: chimera.core.map.molmap.molmap
 
-mousemodes
-==========
-Functions defined in *chimera.mouse_modes.cmd*
-
-.. autofunction:: chimera.mouse_modes.cmd.mousemodes_hide
-.. autofunction:: chimera.mouse_modes.cmd.mousemodes_show
+mousemode
+=========
+.. autofunction:: chimera.core.commands.mousemode.mousemode
 
 move
 ====

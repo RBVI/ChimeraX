@@ -37,7 +37,6 @@ class CommandLine(ToolInstance):
         self.tool_window.manage(placement="bottom")
         self.history_dialog.populate()
         session.ui.register_for_keystrokes(self)
-        session.tools.add([self])
         # since only TextCtrls have the EmulateKeyPress method,
         # create a completely hidden TextCtrl so that we can
         # process forwarded keystrokes and copy the result back
@@ -179,8 +178,7 @@ class CommandLine(ToolInstance):
 
     @classmethod
     def restore_snapshot_new(cls, session, tool_info, version, data):
-        from . import cmd
-        return cmd.get_singleton(session)
+        return cls.get_singleton(session)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
@@ -191,6 +189,10 @@ class CommandLine(ToolInstance):
     def reset_state(self, session):
         self.tool_window.shown = True
 
+    @classmethod
+    def get_singleton(cls, session):
+        from chimera.core import tools
+        return tools.get_singleton(session, CommandLine, 'cmd_line')
 
 class _HistoryDialog:
 

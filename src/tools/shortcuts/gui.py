@@ -40,8 +40,6 @@ class ShortcutPanel(ToolInstance):
         import wx
         parent.Bind(wx.EVT_SIZE, self.resize_cb)
 
-        session.tools.add([self])
-
     def create_buttons(self, shortcuts, parent):
 
         import wx
@@ -118,22 +116,10 @@ class ShortcutPanel(ToolInstance):
         pass
 
 def get_singleton(tool_name, session, create=False):
-    if not session.ui.is_gui:
-        return None
-    running = [t for t in session.tools.find_by_class(ShortcutPanel)
-               if t.tool_info.name == tool_name]
-    if len(running) > 1:
-        raise RuntimeError("Can only have one shortcut panel")
-    if not running:
-        if create:
-            tool_info = session.toolshed.find_tool(tool_name)
-            shortcut_list = _shortcuts[tool_name]
-            return ShortcutPanel(session, tool_info, shortcuts=shortcut_list)
-        else:
-            return None
-    else:
-        return running[0]
-
+    from chimera.core import tools
+    return tools.get_singleton(session, ShortcutPanel, tool_name, create=create,
+                               **{'shortcuts': _shortcuts[tool_name]})
+    
 _shortcuts = {
     'molecule_display_shortcuts': (
         ('da', 'atomshow.png', 'Show atoms'),
