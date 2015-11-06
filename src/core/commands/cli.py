@@ -1467,6 +1467,8 @@ def register(name, cmd_desc=(), function=None, logger=None):
     #    return
 
     words = name.split()
+    if cmd_desc is not None and cmd_desc.url is None:
+        cmd_desc.url = "help:user/commands/%s.html#%s" % (words[0], ' '.join(words[1:]))
     name = ' '.join(words)  # canonicalize
     cmd_map = _commands
     for word in words[:-1]:
