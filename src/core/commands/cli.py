@@ -592,7 +592,7 @@ class IntArg(Annotation):
 
 class FloatArg(Annotation):
     """Annotation for floating point literals"""
-    name = "a floating point number"
+    name = "a number"
 
     @staticmethod
     def parse(text, session):
