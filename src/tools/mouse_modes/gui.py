@@ -114,8 +114,7 @@ class MouseModePanel(ToolInstance):
 
     @classmethod
     def restore_snapshot_new(cls, session, tool_info, version, data):
-        from . import cmd
-        return cmd.get_singleton(session)
+        return cls.get_singleton(session)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
@@ -125,3 +124,8 @@ class MouseModePanel(ToolInstance):
 
     def reset_state(self, session):
         pass
+
+    @classmethod
+    def get_singleton(cls, session):
+        from chimera.core import tools
+        return tools.get_singleton(session, MouseModePanel, 'mouse_modes')

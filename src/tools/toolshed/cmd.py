@@ -164,26 +164,6 @@ ts_update_desc = CmdDesc(required=[("tool_name", StringArg)],
 # Commands that deal with GUI (singleton)
 #
 
-
-def get_singleton(session, create=False, display=False):
-    if not session.ui.is_gui:
-        return None
-    from .gui import ToolshedUI
-    running = session.tools.find_by_class(ToolshedUI)
-    if len(running) > 1:
-        raise RuntimeError("too many toolshed instances running")
-    if not running:
-        if create:
-            tool_info = session.toolshed.find_tool('toolshed')
-            tinst = ToolshedUI(session, tool_info)
-        else:
-            tinst = None
-    else:
-        tinst = running[0]
-    if display and tinst:
-        tinst.display(True)
-    return tinst
-
 def ts_start(session, tool_name):
     '''
     Start an instance of a tool.

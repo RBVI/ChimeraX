@@ -5,13 +5,8 @@
 # 'start_tool' is called to start an instance of the tool
 #
 def start_tool(session, tool_info):
-    # Starting tools may only work in GUI mode, or in all modes.
-    # Here, we check for GUI-only tool.
-    if not session.ui.is_gui:
-        return None
-    from .gui import get_singleton
-    return get_singleton(session)
-
+    from .gui import HelpUI
+    return HelpUI.get_singleton(session)
 
 #
 # 'register_command' is called by the toolshed on start up

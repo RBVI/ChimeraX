@@ -305,8 +305,8 @@ class Log(ToolInstance, HtmlLog):
 
     @classmethod
     def restore_snapshot_new(cls, session, tool_info, version, data):
-        from . import cmd
-        return cmd.get_singleton(session)
+        from .cmd import get_singleton
+        return get_singleton(session)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:

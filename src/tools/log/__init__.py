@@ -5,12 +5,8 @@
 # 'start_tool' is called to start an instance of the tool
 #
 def start_tool(session, tool_info):
-    # This function is simple because we "know" we only provide
-    # a single tool in the entire package, so we do not need to
-    # look at the name in 'tool_info.name'
     from . import cmd
-    cmd.log(session, show = True)
-    return cmd.get_singleton(session)
+    return cmd.get_singleton(session, create=True)
 
 
 #

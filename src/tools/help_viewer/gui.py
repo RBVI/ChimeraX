@@ -13,20 +13,6 @@
 from chimera.core.tools import ToolInstance
 
 
-def get_singleton(session, create=True):
-    running = session.tools.find_by_class(HelpUI)
-    if len(running) > 1:
-        raise RuntimeError("too many help viewers running")
-    if not running:
-        if create:
-            tool_info = session.toolshed.find_tool('help_viewer')
-            return HelpUI(session, tool_info)
-        else:
-            return None
-    else:
-        return running[0]
-
-
 def _bitmap(filename, size):
     import os
     import wx
@@ -158,7 +144,7 @@ class HelpUI(ToolInstance):
 
     @classmethod
     def restore_snapshot_new(cls, session, tool_info, version, data):
-        return get_singleton(session)
+        return cls.get_singleton(session)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
@@ -168,3 +154,8 @@ class HelpUI(ToolInstance):
 
     def reset_state(self, session):
         pass
+
+    @classmethod
+    def get_singleton(cls, session):
+        from chimera.core import tools
+        return tools.get_singleton(session, HelpUI, 'help_viewer')

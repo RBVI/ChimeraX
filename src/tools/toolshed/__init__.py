@@ -6,8 +6,8 @@
 #
 def start_tool(session, tool_info):
     # Starting tools may only work in GUI mode, or in all modes.
-    from . import cmd
-    return cmd.get_singleton(session, create=True, display=True)
+    from .gui import ToolshedUI
+    return ToolshedUI.get_singleton(session)
 
 
 #

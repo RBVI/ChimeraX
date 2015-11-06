@@ -127,6 +127,25 @@ class ToolInstance(State):
             'help %s' % self.help if self.help is not None else "")
 
 
+def get_singleton(session, tool_class, tool_name, create=True, display=False, **kw):
+    if not session.ui.is_gui:
+        return None
+    running = [t for t in session.tools.find_by_class(tool_class)
+               if t.tool_info.name == tool_name]
+    if len(running) > 1:
+        raise RuntimeError("too many %s instances running" % tool_name)
+    if not running:
+        if create:
+            tool_info = session.toolshed.find_tool(tool_name)
+            tinst = tool_class(session, tool_info, **kw)
+        else:
+            tinst = None
+    else:
+        tinst = running[0]
+    if display and tinst:
+        tinst.display(True)
+    return tinst
+
 class Tools(State):
     """A per-session state manager for running tools.
 

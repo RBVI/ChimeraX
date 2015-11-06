@@ -224,6 +224,11 @@ class ToolshedUI(ToolInstance):
     def reset_state(self, session):
         pass
 
+    @classmethod
+    def get_singleton(self, session):
+        from chimera.core import tools
+        return tools.get_singleton(session, ToolshedUI, 'toolshed')
+
     #
     # Override ToolInstance methods
     #
