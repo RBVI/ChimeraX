@@ -1674,20 +1674,13 @@ class Command:
         results = []
         for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
             if log:
-                if ' ' not in cmd_name:
-                    cname = cmd_name
-                    fragment = ""
-                else:
-                    cname, fragment = cmd_name.split(maxsplit=1)
-                path = "user/commands/%s.html" % cname
-                from urllib.request import pathname2url
-                href = "help:%s" % pathname2url(path)
-                if fragment:
-                    href += "#%s" % fragment
-                cargs = cmd_text[len(cmd_name):]
                 from html import escape
-                msg = '<a href="%s">%s</a>%s' % (
-                    href, escape(cmd_name), escape(cargs))
+                if ci.url is None:
+                    msg = escape(cmd_text)
+                else:
+                    cargs = cmd_text[len(cmd_name):]
+                    msg = '<a href="%s">%s</a>%s' % (
+                        ci.url, escape(cmd_name), escape(cargs))
                 session.logger.info(msg, is_html=True)
             try:
                 if not isinstance(ci.function, Alias):
