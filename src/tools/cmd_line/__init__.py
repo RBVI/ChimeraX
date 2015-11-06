@@ -8,20 +8,7 @@ def start_tool(session, tool_info):
     # This function is simple because we "know" we only provide
     # a single tool in the entire package, so we do not need to
     # look at the name in 'tool_info.name'
-    from . import cmd
-    cmd.command_line_show(session)
-    return cmd.get_singleton(session)
-
-
-#
-# 'register_command' is called by the toolshed on start up
-#
-def register_command(command_name, tool_info):
-    from . import cmd
-    from chimera.core.commands import register
-    register(command_name + " hide", cmd.hide_desc, cmd.command_line_hide)
-    register(command_name + " show", cmd.show_desc, cmd.command_line_show)
-
+    return get_singleton(session, create=True, display=True)
 
 #
 # 'get_class' is called by session code to get class saved in a session
@@ -31,3 +18,22 @@ def get_class(class_name):
         from . import gui
         return gui.CommandLine
     return None
+
+def get_singleton(session, create=False, display=False):
+    if not session.ui.is_gui:
+        return None
+    from .gui import CommandLine
+    running = session.tools.find_by_class(CommandLine)
+    if len(running) > 1:
+        raise RuntimeError("too many command line instances running")
+    if not running:
+        if create:
+            tool_info = session.toolshed.find_tool('cmd_line')
+            tinst = CommandLine(session, tool_info)
+        else:
+            tinst = None
+    else:
+        tinst = running[0]
+    if display and tinst:
+        tinst.display(True)
+    return tinst
