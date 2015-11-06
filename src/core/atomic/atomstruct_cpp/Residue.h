@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "backbone.h"
 #include <basegeom/Rgba.h>
 #include "imex.h"
 #include "string_types.h"
@@ -27,6 +28,7 @@ public:
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
     enum Style { RIBBON_RIBBON = 0,
                  RIBBON_PIPE = 1 };
+    enum PolymerType { PT_NONE, PT_AMINO, PT_NUCLEIC };
 private:
     friend class AtomicStructure;
     Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);
@@ -34,6 +36,9 @@ private:
 
     friend class Chain;
     void  set_chain(Chain* chain) { _chain = chain; }
+    friend class AtomicStructure;
+    friend class Bond;
+    void  set_polymer_type(PolymerType pt) { _polymer_type = pt; }
 
     char  _alt_loc;
     Atoms  _atoms;
@@ -44,6 +49,7 @@ private:
     bool  _is_het;
     bool  _is_sheet;
     ResName  _name;
+    PolymerType  _polymer_type;
     int  _position;
     float  _ribbon_adjust;
     bool  _ribbon_display;
@@ -67,6 +73,7 @@ public:
     bool  is_het() const { return _is_het; }
     bool  is_sheet() const { return _is_sheet; }
     const ResName&  name() const { return _name; }
+    PolymerType  polymer_type() const { return _polymer_type; }
     int  position() const { return _position; }
     void  remove_atom(Atom*);
     void  set_alt_loc(char alt_loc);
@@ -84,9 +91,12 @@ public:
     // handy
     static const std::set<AtomName>  aa_min_backbone_names;
     static const std::set<AtomName>  aa_max_backbone_names;
+    static const std::set<AtomName>  aa_ribbon_backbone_names;
     static const std::set<AtomName>  na_min_backbone_names;
     static const std::set<AtomName>  na_max_backbone_names;
+    static const std::set<AtomName>  na_ribbon_backbone_names;
     static const std::set<ResName>  std_solvent_names;
+    const std::set<AtomName>*  backbone_atom_names(BackboneExtent bbe) const;
 
     // graphics related
     float  ribbon_adjust() const;
@@ -107,6 +117,23 @@ public:
 #include "Chain.h"
 
 namespace atomstruct {
+
+inline const std::set<AtomName>*
+Residue::backbone_atom_names(BackboneExtent bbe) const
+{
+    if (!structure()->_polymers_computed) structure()->polymers();
+    if (polymer_type() == PT_AMINO) {
+        if (bbe == BBE_RIBBON) return &aa_ribbon_backbone_names;
+        if (bbe == BBE_MAX) return &aa_max_backbone_names;
+        return &aa_min_backbone_names;
+    }
+    if (polymer_type() == PT_NUCLEIC) {
+        if (bbe == BBE_RIBBON) return &na_ribbon_backbone_names;
+        if (bbe == BBE_MAX) return &na_max_backbone_names;
+        return &na_min_backbone_names;
+    }
+    return nullptr;
+}
 
 inline const ChainID&
 Residue::chain_id() const

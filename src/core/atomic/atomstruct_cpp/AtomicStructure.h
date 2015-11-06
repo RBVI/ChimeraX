@@ -43,8 +43,9 @@ using basegeom::Rgba;
 using element::Element;
 
 class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<AtomicStructure, Atom, Bond> {
-    friend class Atom; // for IDATM stuff and _polymers_computed and structure categories
+    friend class Atom; // for IDATM stuff and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
+    friend class Residue; // for _polymers_computed
 public:
     typedef Nodes  Atoms;
     typedef Edges  Bonds;

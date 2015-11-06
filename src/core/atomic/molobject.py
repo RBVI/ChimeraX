@@ -197,14 +197,29 @@ class Atom(metaclass=BaseSphere):
         doc = "Chemical element number. Read only.")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
-    is_backbone = c_property('atom_is_backbone', npy_bool,
-        doc = "Whether this a protein or nucleic acid backbone atom.")
     name = c_property('atom_name', string,
         doc = "Atom name. Maximum length 4 characters.")
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
         doc = ":class:`Residue` the atom belongs to.")
     structure_category = c_property('atom_structure_category', string, read_only=True,
         doc = "Whether atom is ligand, ion, etc.")
+
+    BBE_MIN, BBE_RIBBON, BBE_MAX = range(3)
+
+    def is_backbone(self, bb_extent):
+        '''Whether this Atom is considered backbone, given the 'extent' criteria.
+
+        |  Possible 'extent' values are:
+        BBE_MIN
+            Only the atoms needed to connect the residue chain (and their hydrogens)
+        BBE_MAX
+            All non-sidechain atoms
+        BBE_RIBBON
+            The backbone atoms that a ribbon depiction hides
+        '''
+        f = c_function('atom_is_backbone', args = (ctypes.c_void_p, ctypes.c_int),
+                ret = ctype.c_bool)
+        return f(self._c_pointer, bb_type)
 
 # -----------------------------------------------------------------------------
 #

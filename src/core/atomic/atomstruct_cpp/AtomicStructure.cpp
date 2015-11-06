@@ -851,6 +851,8 @@ AtomicStructure::polymers(bool consider_missing_structure,
     std::map<const Residue*, int> res_lookup;
     for (auto r: _residues) {
         res_lookup[r] = i++;
+        // while we're at it, set the initial polymeric residue type to none
+        r->set_polymer_type(Residue::PT_NONE);
     }
 
     // Find all polymeric connections and make a map
