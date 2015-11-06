@@ -1,0 +1,80 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: alias</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: alias</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>alias</b> [&nbsp;<i>name</i>
+[&nbsp;<i>wordlist</i>&nbsp;]]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>~alias</b> [&nbsp;<i>name</i>&nbsp;]
+</font>
+</h3>
+<p>
+The <b>alias</b> command defines a new command <i>name</i> as the specified
+<i>wordlist</i>, which could be a composite of other commands.  That is,
+<i>wordlist</i> may contain multiple commands separated by semicolons.
+Subsequent uses of <i>name</i> 
+as a command (at the beginning of a line, following a semicolon,
+or as a command argument of <a href="perframe.html"><b>perframe</b></a>)
+will be replaced with <i>wordlist</i>.
+<font color="brown">
+For user-defined targets based on
+<a href="atomspec.html">specification</a> strings or 
+the current <a href="select.html">selection</a>, see
+the <b>namespec</b> command (not yet implemented).
+</font>
+See also: <b>perframe</b>
+</p><p>
+<!--
+Aliases are saved in sessions.
+-->
+The <b>alias</b> command without arguments lists the existing aliases
+in the <b>Log</b>, and the definition of a specific alias can be shown with 
+<b>alias</b> <i>name</i>.
+</p><p>
+The command <b>~alias</b> without arguments deletes all user-defined
+aliases, whereas a specific alias can be deleted with 
+<b>~alias</b> <i>name</i>.
+</p><p>
+<a name="args">
+Within <i>wordlist</i>, <b>$1</b>, <b>$2</b>, <b>$3</b> ... 
+may be used to indicate the first, second, third ... arguments of
+<i>name</i>. To have a string with spaces in it handled as a single 
+argument, enclose the string in single or double quotation marks.
+The quotation marks will be omitted when the alias is expanded.
+</a>
+For example,
+<blockquote>
+<b>alias ribcolor <a href="color.html">color</a> $1 $2 targ c</b>
+<br>
+<b>ribcolor "/a & helix" "dodger blue"</b>
+</blockquote>
+is equivalent to
+<blockquote>
+<b><a href="color.html">color</a> /a & helix dodger blue targ c</b>
+</blockquote>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2015</address>
+</body></html>

@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 class MouseModes:
 
@@ -6,124 +6,248 @@ class MouseModes:
 
         self.graphics_window = graphics_window
         self.session = session
-        self.view = graphics_window.view
 
-        self.mouse_modes = {}           # Maps 'left', 'middle', 'right', 'wheel', 'pause' to MouseMode instance
+        from .. import map, markers
+        from ..map import series
+        mode_classes = [
+            SelectMouseMode,
+            RotateMouseMode,
+            TranslateMouseMode,
+            ZoomMouseMode,
+            RotateAndSelectMouseMode,
+            TranslateSelectedMouseMode,
+            RotateSelectedMouseMode,
+            ObjectIdMouseMode,
+            map.ContourLevelMouseMode,
+            map.PlanesMouseMode,
+            markers.MarkerMouseMode,
+            markers.MarkCenterMouseMode,
+            markers.ConnectMouseMode,
+            series.PlaySeriesMouseMode,
+        ]
+        self._available_modes = [mode(session) for mode in mode_classes]
+
+        self._bindings = []  # List of MouseBinding
+
+        
+        import wx, sys
+        if sys.platform == 'darwin':
+            mod_bits = [(wx.MOD_ALT, 'alt'),
+                        (wx.MOD_CONTROL, 'command'),		# On Mac, this is the Command key
+                        (wx.MOD_RAW_CONTROL, 'control'),	# On Mac, ctrl.
+                        (wx.MOD_SHIFT, 'shift')]
+        else:
+            mod_bits = [(wx.MOD_ALT, 'alt'),
+                        (wx.MOD_CONTROL, 'control'),
+                        (wx.MOD_SHIFT, 'shift')]
+        self._modifier_bits = mod_bits
 
         # Mouse pause parameters
-        self.last_mouse_time = None
-        self.mouse_pause_interval = 0.5         # seconds
-        self.mouse_pause_position = None
+        self._last_mouse_time = None
+        self._mouse_pause_interval = 0.5         # seconds
+        self._mouse_pause_position = None
 
         self.bind_standard_mouse_modes()
 
-        self.set_mouse_event_handlers()
+        self._set_mouse_event_handlers()
 
-    def set_mouse_event_handlers(self):
+    def _set_mouse_event_handlers(self):
         import wx
-        gw = self.graphics_window
-        gw.opengl_canvas.Bind(wx.EVT_LEFT_DOWN,
-              lambda e: self.dispatch_mouse_event(e, "left", "mouse_down"))
-        gw.opengl_canvas.Bind(wx.EVT_MIDDLE_DOWN,
-              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_down"))
-        gw.opengl_canvas.Bind(wx.EVT_RIGHT_DOWN,
-              lambda e: self.dispatch_mouse_event(e, "right", "mouse_down"))
-        gw.opengl_canvas.Bind(wx.EVT_MOTION,
-              lambda e: self.dispatch_mouse_event(e, None, "mouse_drag"))
-        gw.opengl_canvas.Bind(wx.EVT_LEFT_UP,
-              lambda e: self.dispatch_mouse_event(e, "left", "mouse_up"))
-        gw.opengl_canvas.Bind(wx.EVT_MIDDLE_UP,
-              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_up"))
-        gw.opengl_canvas.Bind(wx.EVT_RIGHT_UP,
-              lambda e: self.dispatch_mouse_event(e, "right", "mouse_up"))
-        gw.opengl_canvas.Bind(wx.EVT_LEFT_DCLICK,
-              lambda e: self.dispatch_mouse_event(e, "left", "mouse_double"))
-        gw.opengl_canvas.Bind(wx.EVT_MIDDLE_DCLICK,
-              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_double"))
-        gw.opengl_canvas.Bind(wx.EVT_RIGHT_DCLICK,
-              lambda e: self.dispatch_mouse_event(e, "right", "mouse_double"))
-        gw.opengl_canvas.Bind(wx.EVT_MOUSEWHEEL, self.wheel_event)
+        c = self.graphics_window.opengl_canvas
+        mouse_events = [
+            (wx.EVT_LEFT_DOWN, "left", "mouse_down"),
+            (wx.EVT_MIDDLE_DOWN, "middle", "mouse_down"),
+            (wx.EVT_RIGHT_DOWN, "right", "mouse_down"),
+            (wx.EVT_MOTION, None, "mouse_drag"),
+            (wx.EVT_LEFT_UP, "left", "mouse_up"),
+            (wx.EVT_MIDDLE_UP, "middle", "mouse_up"),
+            (wx.EVT_RIGHT_UP, "right", "mouse_up"),
+            (wx.EVT_LEFT_DCLICK, "left", "mouse_double"),
+            (wx.EVT_MIDDLE_DCLICK, "middle", "mouse_double"),
+            (wx.EVT_RIGHT_DCLICK, "right", "mouse_double"),
+        ]
+        for event, button, action in mouse_events:
+            c.Bind(event, lambda e,b=button,a=action: self._dispatch_mouse_event(e,b,a))
+        c.Bind(wx.EVT_MOUSEWHEEL, self._wheel_event)
 
-    def dispatch_mouse_event(self, event, button, action):
+    def _dispatch_mouse_event(self, event, button, action):
+        canvas = self.graphics_window.opengl_canvas
         if action in ('mouse_down', 'mouse_double'):
             # remember button for later drag events
-            self.graphics_window.opengl_canvas.CaptureMouse()
+            if not canvas.HasCapture():
+                canvas.CaptureMouse()
         elif action == 'mouse_drag':
             if not event.Dragging():
                 return
         elif action == 'mouse_up':
-            self.graphics_window.opengl_canvas.ReleaseMouse()
+            if canvas.HasCapture():
+                canvas.ReleaseMouse()
+        if button is None and not canvas.HasCapture():
+            # a Windows thing; can lose mouse capture w/o mouse up
+            return
+
+        button, modifiers = self._event_type(event, button)
         if button is None:
+            return
+
+        m = self.mode(button, modifiers)
+        if m and hasattr(m, action):
+            f = getattr(m, action)
+            f(MouseEvent(event))
+
+    def _event_type(self, event, button):
+        import sys
+        mac = (sys.platform == 'darwin')
+        modifiers = self.key_modifiers(event)
+        if button is None:
+            # Drag event
             if event.LeftIsDown():
-                button = "middle" if event.AltDown() else "left"
+                button = "left"
             elif event.MiddleIsDown():
                 button = "middle"
             elif event.RightIsDown():
                 button = "right"
             else:
-                return
-            if not self.graphics_window.opengl_canvas.HasCapture():
-                # a Windows thing; can lose mouse capture w/o mouse up
-                return
-        elif button == 'left' and event.AltDown():
-            button = 'middle'
-        m = self.mouse_modes.get(button)
-        if m and hasattr(m, action):
-            f = getattr(m, action)
-            f(MouseEvent(event))
+                button = None
 
-    def cursor_position(self):
-        import wx
-        return self.graphics_window.ScreenToClient(wx.GetMousePosition())
+        if button == 'left':
+            if mac and 'alt' in modifiers and not self._have_mode('left','alt'):
+                # Emulate middle mouse on Mac
+                button = 'middle'
+                modifiers.remove('alt')
+            elif mac and 'command' in modifiers and not self._have_mode('left','command'):
+                # Emulate right mouse on Mac
+                button = 'right'
+                modifiers.remove('command')
+        elif button == 'right':
+            if mac and 'control' in modifiers:
+		# Mac wx ctrl-left is reported as ctrl-right.
+                # No way to distinguish ctrl-left from ctrl-right,
+                # so convert both to ctrl-left.
+                button = 'left'
 
-    def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
-        modes = (
-            ('left', RotateMouseMode),
-            ('middle', TranslateMouseMode),
-            ('right', ZoomMouseMode),
-            ('wheel', ZoomMouseMode),
-            ('pause', ObjectIdMouseMode),
-            )
-        s = self.session
-        for button, mode_class in modes:
-            if button in buttons:
-                self.bind_mouse_mode(button, mode_class(s))
+        return button, modifiers
 
-    # Button is "left", "middle", "right", "wheel", or "pause"
-    def bind_mouse_mode(self, button, mode):
-        self.mouse_modes[button] = mode
+    def _have_mode(self, button, modifier):
+        for b in self.bindings:
+            if b.exact_match(button, [modifier]):
+                return True
+        return False
 
-    def wheel_event(self, event):
-        f = self.mouse_modes.get('wheel')
+    def _wheel_event(self, event):
+        f = self.mode('wheel', self.key_modifiers(event))
         if f:
             f.wheel(MouseEvent(event))
 
+    @property
+    def modes(self):
+        '''List of MouseMode instances.'''
+        return self._available_modes
+
+    @property
+    def bindings(self):
+        '''List of MouseBinding instances.'''
+        return self._bindings
+
+    def mode(self, button = 'left', modifiers = []):
+        mb = [b for b in self.bindings if b.matches(button, modifiers)]
+        if len(mb) == 1:
+            m = mb[0].mode
+        elif len(mb) > 1:
+            m = max(mb, key = lambda b: len(b.modifiers)).mode
+        else:
+            m = None
+        return m
+
+    def bind_mouse_mode(self, button, modifiers, mode):
+        '''
+        Button is "left", "middle", "right", "wheel", or "pause".
+        Modifiers is a list 0 or more of 'alt', 'command', 'control', 'shift'.
+        Mode is a MouseMode instance.
+        '''
+        if button == 'right' and 'control' in modifiers:
+            import sys
+            mac = (sys.platform == 'darwin')
+            if mac:
+                self.session.logger.warning('Mac wx toolkit cannot distinguish ctrl-right mouse click '
+                                            'from ctrl-left mouse click, so both are interpreted as '
+                                            'ctrl-left mouse click.')
+                return
+        self.remove_binding(button, modifiers)
+        if mode is not None:
+            b = MouseBinding(button, modifiers, mode)
+            self._bindings.append(b)
+
+    def remove_binding(self, button, modifiers):
+        self._bindings = [b for b in self.bindings if not b.exact_match(button, modifiers)]
+
+    def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
+        standard_modes = (
+            ('left', ['control'], 'select'),
+            ('left', [], 'rotate'),
+            ('middle', [], 'translate'),
+            ('right', [], 'zoom'),
+            ('wheel', [], 'zoom'),
+            ('pause', [], 'identify object'),
+            )
+        mmap = {m.name:m for m in self.modes}
+        for button, modifiers, mode_name in standard_modes:
+            if button in buttons:
+                self.bind_mouse_mode(button, modifiers, mmap[mode_name])
+
+    def key_modifiers(self, event):
+        mod = event.GetModifiers()
+        modifiers = [mod_name for bit, mod_name in self._modifier_bits if bit & mod]
+        return modifiers
+
     def mouse_pause_tracking(self):
-        cp = self.cursor_position()
-        w,h = self.view.window_size
+        '''Called periodically to check for mouse pause and invoke pause mode.'''
+        cp = self._cursor_position()
+        w,h = self.graphics_window.view.window_size
         x,y = cp
         if x < 0 or y < 0 or x >= w or y >= h:
             return      # Cursor outside of graphics window
         from time import time
         t = time()
-        mp = self.mouse_pause_position
+        mp = self._mouse_pause_position
         if cp == mp:
-            lt = self.last_mouse_time
-            if lt and t >= lt + self.mouse_pause_interval:
-                self.mouse_pause()
-                self.mouse_pause_position = None
-                self.last_mouse_time = None
+            lt = self._last_mouse_time
+            if lt and t >= lt + self._mouse_pause_interval:
+                self._mouse_pause()
+                self._mouse_pause_position = None
+                self._last_mouse_time = None
             return
-        self.mouse_pause_position = cp
+        self._mouse_pause_position = cp
         if mp:
             # Require mouse move before setting timer to avoid
             # repeated mouse pause callbacks at same point.
-            self.last_mouse_time = t
+            self._last_mouse_time = t
+            self._mouse_move_after_pause()
 
-    def mouse_pause(self):
-        m = self.mouse_modes.get('pause')
+    def _cursor_position(self):
+        import wx
+        return self.graphics_window.ScreenToClient(wx.GetMousePosition())
+
+    def _mouse_pause(self):
+        m = self.mode('pause')
         if m:
-            m.pause(self.mouse_pause_position)
+            m.pause(self._mouse_pause_position)
+
+    def _mouse_move_after_pause(self):
+        m = self.mode('pause')
+        if m:
+            m.move_after_pause()
+
+class MouseBinding:
+    def __init__(self, button, modifiers, mode):
+        self.button = button		# 'left', 'middle', 'right', 'wheel', 'pause'
+        self.modifiers = modifiers	# List of 'alt', 'command', 'control', 'shift'
+        self.mode = mode		# MouseMode instance
+    def matches(self, button, modifiers):
+        return (button == self.button and
+                len([k for k in self.modifiers if not k in modifiers]) == 0)
+    def exact_match(self, button, modifiers):
+        return button == self.button and set(modifiers) == set(self.modifiers)
 
 class MouseMode:
 
@@ -164,6 +288,9 @@ class MouseMode:
     def pause(self, position):
         pass
 
+    def move_after_pause(self):
+        pass
+
     def pixel_size(self, min_scene_frac = 1e-5):
         v = self.view
         psize = v.pixel_size()
@@ -199,6 +326,7 @@ def mouse_select(event, session, view):
 class RotateMouseMode(MouseMode):
     name = 'rotate'
     icon_file = 'rotate.png'
+    click_to_select = False
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
@@ -213,9 +341,10 @@ class RotateMouseMode(MouseMode):
         self.mouse_perimeter = (abs(cx) > fperim*0.5*w or abs(cy) > fperim*0.5*h)
 
     def mouse_up(self, event):
-        if event.position() == self.mouse_down_position:
-            mouse_select(event, self.session, self.view)
-        MouseMode.mouse_up(self, event)
+        if self.click_to_select:
+            if event.position() == self.mouse_down_position:
+                mouse_select(event, self.session, self.view)
+            MouseMode.mouse_up(self, event)
 
     def mouse_drag(self, event):
         axis, angle = self.mouse_rotation(event)
@@ -246,6 +375,10 @@ class RotateMouseMode(MouseMode):
 
     def models(self):
         return None
+
+class RotateAndSelectMouseMode(RotateMouseMode):
+    name = 'rotate and select'
+    click_to_select = True
 
 class RotateSelectedMouseMode(RotateMouseMode):
     name = 'rotate selected models'
@@ -286,7 +419,7 @@ class TranslateMouseMode(MouseMode):
         return None
 
 class TranslateSelectedMouseMode(TranslateMouseMode):
-    name = 'move selected models'
+    name = 'translate selected models'
     icon_file = 'move_h2o.png'
 
     def models(self):
@@ -301,27 +434,41 @@ class ZoomMouseMode(MouseMode):
 
         dx, dy = self.mouse_motion(event)
         psize = self.pixel_size()
-        v = self.view
-        shift = v.camera.position.apply_without_translation((0, 0, 3*psize*dy))
-        v.translate(shift)
+        self.zoom(3*psize*dy)
 
     def wheel(self, event):
-        import sys
         d = event.wheel_value()
         psize = self.pixel_size()
+        self.zoom(100*d*psize)
+
+    def zoom(self, delta_z):
         v = self.view
-        shift = v.camera.position.apply_without_translation((0, 0, 100*d*psize))
-        v.translate(shift)
+        c = v.camera
+        if c.name() == 'orthographic':
+            c.field_width = max(c.field_width - delta_z, self.pixel_size())
+            # TODO: Make camera field_width a property so it knows to redraw.
+            c.redraw_needed = True
+        else:
+            shift = c.position.apply_without_translation((0, 0, delta_z))
+            v.translate(shift)
 
 class ObjectIdMouseMode(MouseMode):
 
+    name = 'identify object'
     def pause(self, position):
         x,y = position
         p = self.view.first_intercept(x,y)
+
+        # Show atom spec balloon
+        pu = self.session.ui.main_window.graphics_window.popup
         if p:
-            self.session.logger.status('Mouse over %s' % p.description())
-        # TODO: Clear status if it is still showing mouse over message but mouse is over nothing.
-        #      Don't want to clear a different status message, only mouse over message.
+            pu.show_text(p.description(), (x+10,y))
+        else:
+            pu.hide()
+
+    def move_after_pause(self):
+        # Hide atom spec balloon
+        self.session.ui.main_window.graphics_window.popup.hide()
 
 class MouseEvent:
     def __init__(self, event):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 xrange = range
 
@@ -149,7 +149,7 @@ class PyAUIFrame(wx.Frame):
         self.statusbar = self.CreateStatusBar(2, wx.STB_SIZEGRIP)
         self.statusbar.SetStatusWidths([-2, -3])
         self.statusbar.SetStatusText("Status", 0)
-        self.statusbar.SetStatusText("Welcome To Chimera 2", 1)
+        self.statusbar.SetStatusText("Welcome To Chimera2", 1)
 
         # min size for the frame itself isn't completely done.
         # see the end up FrameManager::Update() for the test

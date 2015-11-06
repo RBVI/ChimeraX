@@ -1,4 +1,5 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 
 def export(session, filename, **kw):
     try:
@@ -8,9 +9,9 @@ def export(session, filename, **kw):
         from ..errors import UserError
         raise UserError(e)
 
+
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
-                           synopsis='export data in format'
-                           ' matching filename suffix')
+                       synopsis='export data in format matching filename suffix')
     cli.register('export', desc, export)

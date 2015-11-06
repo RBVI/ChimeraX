@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 vector: Point and vector operations
 ===================================
@@ -32,7 +32,7 @@ from ._geometry import distances_perpendicular_to_axis
 from ._geometry import maximum_norm
 
 '''Inner product of two vectors accumulated as a 64-bit float result.'''
-from .matrix import inner_product_64
+from ._geometry import inner_product_64
 
 
 def inner_product(u, v):
@@ -45,3 +45,7 @@ def distance(p, q):
     d = p - q
     from math import sqrt
     return sqrt((d * d).sum())
+
+def interpolate_points(p1, p2, f):
+    '''Linearly interpolate from point p1 to p2 by fraction f (0 -> p1, 1 -> p2).'''
+    return (1-f)*p1 + f*p2

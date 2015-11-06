@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 InitialPage = """<html>
 <head>
@@ -20,9 +20,9 @@ function do_something() { window.location.href = "chimera2:do_something"; }
 InitialURL = "http://chimera2.rbvi.ucsf.edu/chimera2/index.html"
 
 ErrorPage = """<html>
-<head><title>Chimera 2 Error Page</title></head>
+<head><title>Chimera2 Error Page</title></head>
 <body>
-<h1>Chimera 2 Error Page</h1>
+<h1>Chimera2 Error Page</h1>
 <p>%s</p>
 </body>"""
 ErrorURL = "http://chimera2.rbvi.ucsf.edu/chimera2/error.html"
@@ -171,7 +171,7 @@ class HelpFrame(wx.Frame):
         self.Close()
 
     def _about(self, evt):
-        wx.MessageBox("Help Viewer", "Chimera 2 Help Viewer",
+        wx.MessageBox("Help Viewer", "Chimera2 Help Viewer",
                       wx.OK | wx.ICON_INFORMATION)
 
     def _on_navigating(self, evt):
@@ -221,10 +221,10 @@ class HelpFrame(wx.Frame):
     def _processMissing(self, url):
         # We handle the case where a file: URL refers
         # to a missing file.  If the URL does not
-        # contain the known Chimera 2 prefix, then
+        # contain the known Chimera2 prefix, then
         # we display an error.  Otherwise, we use the
         # subsequent path component as the name of a
-        # Chimera 2 package and check if it is installed.
+        # Chimera2 package and check if it is installed.
         # If so, we replace the URL with one constructed
         # from the help cache and the given URL;
         # if not, we translate it to an http: URL.

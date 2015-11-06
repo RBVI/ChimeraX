@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 settings: Save/access tool interface values
 ===========================================
@@ -108,7 +108,7 @@ class Settings(ConfigFile):
     Parameters
     ----------
     session
-        The Chimera 2 session object
+        The Chimera2 session object
     tool_name : str
         The name of the tool
     version : str, optional
@@ -168,7 +168,7 @@ class Settings(ConfigFile):
     def save(self):
         for name in self.__class__.EXPLICIT_SAVE.keys():
             ConfigFile.__setattr__(self, name, self._cur_settings[name])
-        ConfigFile.save()
+        ConfigFile.save(self)
 
     def update(self, *args, **kw):
         raise ValueError("update() disabled for Settings class")

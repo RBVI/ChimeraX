@@ -7,12 +7,12 @@
 
 #include "PDBio.h"
 #include <pdb/PDB.h>
-#include <atomstruct/AtomicStructure.h>
-#include <atomstruct/Residue.h>
-#include <atomstruct/Bond.h>
 #include <atomstruct/Atom.h>
+#include <atomstruct/AtomicStructure.h>
+#include <atomstruct/Bond.h>
 #include <atomstruct/connect.h>
 #include <atomstruct/CoordSet.h>
+#include <atomstruct/Residue.h>
 #include <atomstruct/Sequence.h>
 #include <basegeom/destruct.h>
 #include <basegeom/Graph.tcc>
@@ -399,27 +399,26 @@ start_t = end_t;
                 a->set_coord(c);
                 break;
             }
-            Element *e;
+            const Element *e;
             if (!is_babel) {
                 if (record.atom.element[0] != '\0')
-                    e = new Element(record.atom.element);
+                    e = &Element::get_element(record.atom.element);
                 else {
                     if (strlen(record.atom.name) == 4
                     && record.atom.name[0] == 'H')
-                        e = new Element(1);
+                        e = &Element::get_element(1);
                     else
-                        e = new Element(record.atom.name);
+                        e = &Element::get_element(record.atom.name);
                     if ((e->number() > 83 || e->number() == 61
                       || e->number() == 43 || e->number() == 0)
                       && record.atom.name[0] != ' ') {
                         // probably one of those funky PDB
                         // non-standard-residue atom names;
                         // try _just_ the second character...
-                        delete e;
                         char atsym[2];
                         atsym[0] = record.atom.name[1];
                         atsym[1] = '\0';
-                        e = new Element(atsym);
+                        e = &Element::get_element(atsym);
                     }
                 }
 
@@ -438,7 +437,6 @@ start_t = end_t;
                   isalpha(record.atom.name[1])))
                   ) {
                       // presumably a Babel "PDB" file
-                    delete e;
                     is_babel = true;
                 }
             }
@@ -455,11 +453,11 @@ start_t = end_t;
                     babel_name[1] = record.atom.name[name_start+1];
                 else
                     babel_name[1] = '\0';
-                e = new Element(babel_name);
+                e = &Element::get_element(babel_name);
                 
             }
             Atom *a;
-            if (record.atom.alt_loc && cur_residue->count_atom(aname) == 1) {
+            if (record.atom.alt_loc != ' ' && cur_residue->count_atom(aname) == 1) {
                 a = cur_residue->find_atom(aname);
                 a->set_alt_loc(record.atom.alt_loc, true);
                 a->set_coord(c);
@@ -488,7 +486,6 @@ start_t = end_t;
             }
             if (e->number() == 0 && aname != "LP" && aname != "lp")
                 redo_elements = true;
-            delete e;
             if (in_model == 0 && asn.find(record.atom.serial) != asn.end())
                 logger::warning(py_logger, "Duplicate atom serial number"
                     " found: ", record.atom.serial);
@@ -644,7 +641,7 @@ start_t = clock();
                 continue;
             test_name[0] = a->name()[0];
             test_name[1] = '\0';
-            Element e1(test_name);
+            const Element& e1 = Element::get_element(test_name);
             if (e1.number() != 0) {
                 a->_switch_initial_element(e1);
                 continue;
@@ -652,7 +649,7 @@ start_t = clock();
             if (a->name().size() < 2)
                 continue;
             test_name[1] = a->name()[1];
-            Element e2(test_name);
+            const Element& e2 = Element::get_element(test_name);
             if (e2.number() != 0)
                 a->_switch_initial_element(e2);
         }
@@ -946,11 +943,22 @@ clock_t start_t, end_t;
             "HTTPResponse class not found in http.client module");
         return NULL;
     }
-    int is_inst = PyObject_IsInstance(pdb_file, http_conn);
+    PyObject *compression_mod = PyImport_ImportModule("_compression");
+    if (compression_mod == NULL)
+        return NULL;
+    PyObject *compression_stream = PyObject_GetAttrString(compression_mod, "BaseStream");
+    if (compression_stream == NULL) {
+        Py_DECREF(compression_mod);
+        PyErr_SetString(PyExc_AttributeError,
+            "BaseStream class not found in _compression module");
+        return NULL;
+    }
+    bool is_inst = PyObject_IsInstance(pdb_file, http_conn) == 1 || 
+        PyObject_IsInstance(pdb_file, compression_stream) == 1;
     int fd;
     if (is_inst)
         // due to buffering issues, cannot handle a socket like it 
-        // was a file
+        // was a file, and compression streams return open _compressed_ file fd!
         fd = -1;
     else
         fd = PyObject_AsFileDescriptor(pdb_file);
@@ -1157,15 +1165,14 @@ docstr_read_pdb_file =
 extern "C" PyObject *
 read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 {
-    PyObject *pdb_file, *mols;
+    PyObject *pdb_file;
     PyObject *py_logger = Py_None;
     bool explode = true;
     static const char *kw_list[] = {"file", "log", "explode", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Op", (char **) kw_list,
-        &pdb_file, &py_logger, &explode))
-            return NULL;
-    mols = read_pdb(pdb_file, py_logger, explode);
-    return mols;
+    if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Op",
+            (char **) kw_list, &pdb_file, &py_logger, &explode))
+        return NULL;
+    return read_pdb(pdb_file, py_logger, explode);
 }
 
 static struct PyMethodDef pdbio_functions[] =

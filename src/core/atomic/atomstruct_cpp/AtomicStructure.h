@@ -9,27 +9,43 @@
 #include <unordered_set>
 #include <vector>
 
-#include <basegeom/Graph.h>
-#include <basegeom/destruct.h>
 #include "Chain.h"
 #include "Pseudobond.h"
 #include "Ring.h"
 #include "string_types.h"
 
+#include <basegeom/ChangeTracker.h>
+#include <basegeom/Graph.h>
+#include <basegeom/Rgba.h>
+#include <basegeom/destruct.h>
+#include <element/Element.h>
+
+// "forward declare" PyObject, which is a typedef of a struct,
+// as per the python mailing list:
+// http://mail.python.org/pipermail/python-dev/2003-August/037601.html
+#ifndef PyObject_HEAD
+struct _object;
+typedef _object PyObject;
+#endif
+    
 namespace atomstruct {
 
 class Atom;
 class Bond;
 class Chain;
 class CoordSet;
-class Element;
 class Residue;
 
-class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
-    friend class Atom; // for IDATM stuff and _polymers_computed
-    friend class Bond; // for checking if make_chains() has been run yet
+using basegeom::ChangeTracker;
+using basegeom::Rgba;
+using element::Element;
+
+class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<AtomicStructure, Atom, Bond> {
+    friend class Atom; // for IDATM stuff and structure categories
+    friend class Bond; // for checking if make_chains() has been run yet, struct categories
+    friend class Residue; // for _polymers_computed
 public:
-    typedef Vertices  Atoms;
+    typedef Nodes  Atoms;
     typedef Edges  Bonds;
     typedef std::vector<Chain*>  Chains;
     typedef std::vector<CoordSet*>  CoordSets;
@@ -41,6 +57,9 @@ public:
     // The MSR-finding step of ring perception depends on the iteration
     // being in ascending order (which std::set guarantees), so use std::set
     typedef std::set<Ring> Rings;
+    enum TetherShape { RIBBON_TETHER_CONE = 0,
+                       RIBBON_TETHER_REVERSE_CONE = 1,
+                       RIBBON_TETHER_CYLINDER = 2 };
 private:
     friend class Chain;
     void  remove_chain(Chain* chain);
@@ -51,6 +70,7 @@ private:
     mutable Chains*  _chains;
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
+    void  _compute_structure_cats() const;
     CoordSets  _coord_sets;
     void  _delete_atom(Atom* a);
     void  _delete_residue(Residue* r, const Residues::iterator& ri);
@@ -79,15 +99,23 @@ private:
     mutable bool  _rings_last_cross_residues;
     mutable std::set<const Residue *>*  _rings_last_ignore;
     bool  _gc_ribbon = false;
+    float  _ribbon_tether_scale = 1.0;
+    TetherShape  _ribbon_tether_shape = RIBBON_TETHER_CONE;
+    int  _ribbon_tether_sides = 4;
+    float  _ribbon_tether_opacity = 0.5;
+    bool  _ribbon_show_spine = false;
+    mutable bool  _structure_cats_dirty;
 public:
     AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure();
 
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
-    const Atoms &    atoms() const { return vertices(); }
+    const Atoms &    atoms() const { return nodes(); }
     // ball_scale() inherited from Graph
     std::map<Residue *, char>  best_alt_locs() const;
+    void  bonded_groups(std::vector<std::vector<Atom*>>* groups,
+        bool consider_missing_structure) const;
     const Bonds &    bonds() const { return edges(); }
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
@@ -112,7 +140,7 @@ public:
     void  make_chains() const;
     std::map<std::string, std::vector<std::string>> metadata;
     const std::string&  name() const { return _name; }
-    Atom *  new_atom(const char* name, Element e);
+    Atom *  new_atom(const char* name, const Element& e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();
     CoordSet *  new_coord_set(int index);
@@ -137,13 +165,72 @@ public:
     int  session_info(PyObject* ints, PyObject* floats, PyObject* strings) const;
     void  set_active_coord_set(CoordSet *cs);
     // set_ball_scale() inherited from Graph
+    void  set_color(const Rgba& rgba);
     // set_display() inherited from Graph
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }
+    void  start_change_tracking(ChangeTracker* ct);
     void  use_best_alt_locs();
+
+    // ribbon stuff
     bool  get_gc_ribbon() const { return _gc_ribbon; }
     void  set_gc_ribbon(bool gc = true) { _gc_ribbon = gc; }
+    float  ribbon_tether_scale() const { return _ribbon_tether_scale; }
+    TetherShape  ribbon_tether_shape() const { return _ribbon_tether_shape; }
+    int  ribbon_tether_sides() const { return _ribbon_tether_sides; }
+    float  ribbon_tether_opacity() const { return _ribbon_tether_opacity; }
+    bool  ribbon_show_spine() const { return _ribbon_show_spine; }
+    void  set_ribbon_tether_scale(float s);
+    void  set_ribbon_tether_shape(TetherShape ts);
+    void  set_ribbon_tether_sides(int s);
+    void  set_ribbon_tether_opacity(float o);
+    void  set_ribbon_show_spine(bool ss);
 };
+
+inline void
+AtomicStructure::set_ribbon_tether_scale(float s) {
+    if (s == _ribbon_tether_scale)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
+    set_gc_ribbon();
+    _ribbon_tether_scale = s;
+}
+
+inline void
+AtomicStructure::set_ribbon_tether_shape(TetherShape ts) {
+    if (ts == _ribbon_tether_shape)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
+    set_gc_ribbon();
+    _ribbon_tether_shape = ts;
+}
+
+inline void
+AtomicStructure::set_ribbon_tether_sides(int s) {
+    if (s == _ribbon_tether_sides)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
+    set_gc_ribbon();
+    _ribbon_tether_sides = s;
+}
+
+inline void
+AtomicStructure::set_ribbon_tether_opacity(float o) {
+    if (o == _ribbon_tether_opacity)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
+    set_gc_ribbon();
+    _ribbon_tether_opacity = o;
+}
+
+inline void
+AtomicStructure::set_ribbon_show_spine(bool ss) {
+    if (ss == _ribbon_show_spine)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_STYLE);
+    set_gc_ribbon();
+    _ribbon_show_spine = ss;
+}
 
 }  // namespace atomstruct
 
@@ -153,13 +240,22 @@ atomstruct::AtomicStructure::_delete_atom(atomstruct::Atom* a)
 {
     if (a->element().number() == 1)
         --_num_hyds;
-    delete_vertex(a);
+    delete_node(a);
 }
 
 inline void
 atomstruct::AtomicStructure::remove_chain(Chain* chain)
 {
     _chains->erase(std::find(_chains->begin(), _chains->end(), chain));
+}
+
+#include "Residue.h"
+inline void
+atomstruct::AtomicStructure::set_color(const Rgba& rgba)
+{
+    basegeom::Graph<AtomicStructure, Atom, Bond>::set_color(rgba);
+    for (auto r: residues())
+        r->set_ribbon_color(rgba);
 }
 
 #endif  // atomstruct_AtomicStructure

@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 preferences: manage preferences
 ===============================
@@ -22,7 +22,8 @@ class _CoreSettings(Settings):
         'silhouette': False,
         # autostart map_series_gui until alternate means of installing
         # trigger is found
-        'autostart': ['cmd_line', 'mouse_modes', 'log', 'sideview', 'map_series_gui', 'shortcuts'],
+        'autostart': ['molecule_display_shortcuts', 'log', 'model panel',
+                'mouse_modes', 'graphics_shortcuts', 'cmd_line', 'map_series_gui'],
     }
 
 def init(session):

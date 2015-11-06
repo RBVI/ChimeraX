@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Manages surface and volume display for a region of a data set.
 # Holds surface and solid thresholds, color, and transparency and brightness
@@ -1809,12 +1809,14 @@ class Volume(Model):
       self.surface_piece_change_handler = None
 
 
-  # State save/restore in Chimera 2
-  def take_snapshot(self, phase, session, flags):
+  # State save/restore in Chimera2
+  def take_snapshot(self, session, flags):
     pass
+
   def restore_snapshot(self, phase, session, version, data):
     pass
-  def reset_state(self):
+
+  def reset_state(self, session):
     pass
     
 # -----------------------------------------------------------------------------
@@ -1826,9 +1828,7 @@ class PickedMap(Pick):
     self.map = v
     self.detail = detail
   def description(self):
-    return '%s %s %s' % (self.id_string(), self.map.name, self.detail)
-  def drawing(self):
-    return self.map
+    return '%s %s %s' % (self.map.id_string(), self.map.name, self.detail)
   def select(self, toggle = False):
     m = self.map
     m.selected = not m.selected if toggle else True
@@ -2353,9 +2353,9 @@ class cycle_through_planes:
     self.depth = pdepth
 
     self.handler = self.next_plane_cb
-    session.view.add_callback('new frame', self.handler)
+    session.triggers.add_handler('new frame', self.handler)
 
-  def next_plane_cb(self):
+  def next_plane_cb(self, *_):
     
     p = self.plane
     if self.step * (self.plast - p) >= 0:
@@ -2363,8 +2363,9 @@ class cycle_through_planes:
       show_planes(self.volume, self.axis, p, self.depth,
                   save_in_region_queue = False)
     else:
-      self.session.view.remove_callback('new frame', self.handler)
       self.handler = None
+      from ..triggerset import DEREGISTER
+      return DEREGISTER
 
 # -----------------------------------------------------------------------------
 #

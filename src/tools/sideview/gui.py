@@ -1,11 +1,11 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
 # Since ToolInstance derives from core.session.State, which
 # is an abstract base class, ToolUI classes must implement
 #   "take_snapshot" - return current state for saving
-#   "restore_snapshot" - restore from given state
+#   "restore_snapshot_init" - restore from given state
 #   "reset_state" - reset to data-less state
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
@@ -14,38 +14,34 @@ import wx
 from wx import glcanvas
 from chimera.core.tools import ToolInstance
 from chimera.core.geometry import Place
+from chimera.core.graphics import Camera
 
 
 class _PixelLocations:
     pass
 
 
-class OrthoCamera:
+class OrthoCamera(Camera):
     """A limited camera for the Side View without field_of_view"""
 
     def __init__(self):
+        Camera.__init__(self)
         from chimera.core.geometry import Place
         self.position = Place()
-
-        from chimera.core.graphics.camera import mono_camera_mode
-        self.mode = mono_camera_mode
 
         self.view_width = 1
 
     def get_position(self, view_num=None):
         return self.position
 
-    def view_direction(self, view_num=None):
-        return -self.position.z_axis()
-
     def number_of_views(self):
-        return self.mode.number_of_views()
+        return 1
 
     def set_render_target(self, view_num, render):
-        self.mode.set_render_target(view_num, render)
+        render.set_mono_buffer()
 
     def combine_rendered_camera_views(self, render):
-        self.mode.combine_rendered_camera_views(render)
+        return
 
     def projection_matrix(self, near_far_clip, view_num, window_size):
         near, far = near_far_clip
@@ -65,24 +61,14 @@ class SideViewCanvas(glcanvas.GLCanvas):
     TOP_SIDE = 1
     RIGHT_SIDE = 2
 
-    def __init__(self, parent, view, main_view, size, side=RIGHT_SIDE):
-        import sys
-        attribs = [
-            glcanvas.WX_GL_RGBA,
-            glcanvas.WX_GL_DOUBLEBUFFER,
-            glcanvas.WX_GL_DEPTH_SIZE, 1,
-            0  # terminates list for OpenGL
-        ]
-        if sys.platform.startswith('darwin'):
-            attribs[-1:-1] = [
-                glcanvas.WX_GL_OPENGL_PROFILE,
-                glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
-            ]
+    def __init__(self, parent, view, session, size, side=RIGHT_SIDE):
+        attribs = session.ui.opengl_attribs
         if not glcanvas.GLCanvas.IsDisplaySupported(attribs):
             raise AssertionError(
                 "Missing required OpenGL capabilities for Side View")
         self.view = view
-        self.main_view = main_view
+        self.session = session
+        self.main_view = session.main_view
         self.side = side
         # self.side = self.TOP_SIDE  # DEBUG
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs,
@@ -110,12 +96,12 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.applique.display_style = Drawing.Mesh
         self.applique.use_lighting = False
         self.view.add_2d_overlay(self.applique)
-        self.main_view.add_callback('rendered frame', self._redraw)
+        self.handler = session.triggers.add_handler('frame drawn', self._redraw)
 
     def on_destroy(self, event):
-        self.main_view.remove_callback('rendered frame', self._redraw)
+        self.session.triggers.delete_handler(self.handler)
 
-    def _redraw(self):
+    def _redraw(self, *_):
         # wx.CallAfter(self.draw)
         self.draw()
 
@@ -182,19 +168,22 @@ class SideViewCanvas(glcanvas.GLCanvas):
             # fov is sideview's vertical field of view,
             # unlike a camera, where it is the horizontal field of view
             if self.side == self.TOP_SIDE:
-                fov = radians(main_camera.field_of_view)
+                # TODO: Handle orthographic main_camera which has no "field_of_view" attribute.
+                fov = radians(main_camera.field_of_view) if hasattr(main_camera, 'field_of_view') else 45
                 camera_axes[0] = -main_axes[2]
                 camera_axes[1] = -main_axes[0]
                 camera_axes[2] = main_axes[1]
             else:
-                fov = 2 * atan(wh / ww *
-                               tan(radians(main_camera.field_of_view / 2)))
+                fov = (2 * atan(wh / ww * tan(radians(main_camera.field_of_view / 2)))
+                       if hasattr(main_camera, 'field_of_view') else 45)
                 camera_axes[0] = -main_axes[2]
                 camera_axes[1] = main_axes[1]
                 camera_axes[2] = main_axes[0]
             center = main_pos.origin() + (.5 * far) * \
                 main_camera.view_direction()
             main_view_width = main_camera.view_width(center)
+            if main_view_width is None:
+                main_view_width = far
             camera_pos.origin()[:] = center + camera_axes[2] * \
                 main_view_width * 5
             camera.position = camera_pos
@@ -285,10 +274,10 @@ class SideViewCanvas(glcanvas.GLCanvas):
 class SideViewUI(ToolInstance):
 
     SIZE = (300, 200)
-    VERSION = 1
 
-    def __init__(self, session, tool_info, **kw):
-        super().__init__(session, tool_info, **kw)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
         from chimera.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
@@ -296,23 +285,19 @@ class SideViewUI(ToolInstance):
         # UI content code
         from chimera.core.graphics.view import View
         self.opengl_context = oc = session.main_view.opengl_context()
-        self.view = View(session.models.drawing, wx.DefaultSize, oc,
-                         session.logger, track=False)
+        self.view = View(session.models.drawing, window_size=wx.DefaultSize, opengl_context=oc)
         self.view.camera = OrthoCamera()
         if self.display_name.startswith('Top'):
             side = SideViewCanvas.TOP_SIDE
         else:
             side = SideViewCanvas.RIGHT_SIDE
         self.opengl_canvas = SideViewCanvas(
-            parent, self.view, session.main_view, self.SIZE, side=side)
+            parent, self.view, session, self.SIZE, side=side)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
-
-        # Add to running tool list for session (not required)
-        session.tools.add([self])
 
     def OnEnter(self, event):  # noqa
         # session = self._session()  # resolve back reference
@@ -322,23 +307,22 @@ class SideViewUI(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        version = self.VERSION
-        data = {}
-        return [version, data]
+    def take_snapshot(self, session, flags):
+        data = {
+            "ti": ToolInstance.take_snapshot(self, session, flags),
+            "shown": self.tool_window.shown
+        }
+        return self.tool_info.session_write_version, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        if version != self.VERSION or len(data) > 0:
-            raise RuntimeError("unexpected version or data")
-        from chimera.core.session import State
-        if phase == self.CREATE_PHASE:
-            # Restore all basic-type attributes
-            pass
-        else:
-            # Resolve references to objects
-            pass
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
+            raise RestoreError("unexpected version")
+        ti_version, ti_data = data["ti"]
+        ToolInstance.restore_snapshot_init(
+            self, session, tool_info, ti_version, ti_data)
+        self.__init__(session, tool_info, restoring=True)
+        self.display(data["shown"])
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass

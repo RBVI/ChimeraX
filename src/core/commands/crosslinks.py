@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 def crosslinks(session, pbgroups = None, color = None, radius = None, minimize = None, iterations = 10, frames = None):
     '''
     Move atomic models to minimize crosslink lengths.
@@ -73,7 +74,7 @@ def minimize_link_lengths(mols, pbonds, iterations, frames, session):
 
     if not frames is None:
         for m in mols:
-            interpolate_position(m, pos0[m], m.position, frames, session.main_view)
+            interpolate_position(m, pos0[m], m.position, frames, session.triggers)
 
 def links_by_molecule(pbonds, mols):
     mol_links = {}
@@ -93,13 +94,13 @@ def links_by_molecule(pbonds, mols):
 
 class interpolate_position:
 
-    def __init__(self, model, pos0, pos1, frames, view):
+    def __init__(self, model, pos0, pos1, frames, triggers):
         self.model = model
         self.pos0 = pos0
         self.pos1 = pos1
         self.frames = frames
         self.frame = 1
-        self.view = view
+        self.ses_triggers = triggers
 
         b = model.bounds()
         if b is None:
@@ -108,14 +109,15 @@ class interpolate_position:
             center = 0.5*(b.xyz_min + b.xyz_max)
             self.c0, self.c1 = pos0*center, pos1*center
             self.axis, self.angle = (pos1*pos0.inverse()).rotation_axis_and_angle()
-            view.add_callback('new frame', self.update_position)
+            triggers.add_handler('new frame', self.update_position)
 
-    def update_position(self):
+    def update_position(self, *_):
         m = self.model
         fr = self.frame
         if fr >= self.frames:
             m.position = self.pos1
-            self.view.remove_callback('new frame', self.update_position)
+            from ..triggerset import DEREGISTER
+            return DEREGISTER
         else:
             f = fr / self.frames
             from ..geometry import translation, rotation
@@ -123,8 +125,7 @@ class interpolate_position:
             self.frame += 1
 
 def register_command(session):
-    from . import cli
-    from .color import ColorArg
+    from . import cli, ColorArg
     desc = cli.CmdDesc(optional = [('pbgroups', cli.PseudobondGroupsArg)],
                        keyword = [('color', ColorArg),
                                   ('radius', cli.FloatArg),

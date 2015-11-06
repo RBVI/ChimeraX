@@ -13,8 +13,11 @@ TOOL_NAME = mouse_modes
 TOOL_PKG_NAME = chimera.mouse_modes
 TOOL_DISPLAY_NAME = Mouse Modes for Right Button
 TOOL_CATEGORY = General
+TOOL_FILE_TYPES =
+TOOL_SESSION_VERSIONS = 1,1
+TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Choose mouse mode
-COMMAND_NAME = mousemodes
+COMMAND_NAME = 
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
@@ -50,6 +53,9 @@ setup.py: setup.py.in Makefile
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \
 		-e 's/TOOL_CATEGORY/$(TOOL_CATEGORY)/' \
+		-e 's/TOOL_FILE_TYPES/$(TOOL_FILE_TYPES)/' \
+		-e 's/TOOL_SESSION_VERSIONS/$(TOOL_SESSION_VERSIONS)/' \
+		-e 's/TOOL_CUSTOM_INIT/$(TOOL_CUSTOM_INIT)/' \
 		-e 's/TOOL_SYNOPSIS/$(TOOL_SYNOPSIS)/' \
 		-e 's/COMMAND_NAME/$(COMMAND_NAME)/' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \

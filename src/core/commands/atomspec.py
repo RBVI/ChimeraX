@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 atomspec: atom specifier cli annotation and evaluation
 ======================================================
@@ -71,6 +71,7 @@ class AtomSpecArg(Annotation):
 
     """
     name = "an atom specifier"
+    url = "help:user/commands/atomspec.html"
 
     @staticmethod
     def parse(text, session):
@@ -103,7 +104,7 @@ class AtomSpecArg(Annotation):
         from ._atomspec import _atomspecParser
         parser = _atomspecParser(parseinfo=True)
         semantics = _AtomSpecSemantics(session)
-        from grako.exceptions import FailedParse
+        from grako.exceptions import FailedParse, FailedSemantics
         try:
             ast = parser.parse(token, "atom_specifier", semantics=semantics)
         except FailedSemantics as e:
@@ -304,7 +305,7 @@ class _ModelHierarchy(list):
             try:
                 mid = model.id[i]
             except IndexError:
-                mid = 1
+                return False
             if not mrl.matches(mid):
                 return False
         return True
@@ -481,10 +482,12 @@ class _Residue(_SubPart):
             start_number = self._number(part.start)
             if part.end is None:
                 end_number = None
+
                 def choose_type(value, v=part.start.lower()):
                     return value.lower() == v
             else:
                 end_number = self._number(part.end)
+
                 def choose_type(value, s=part.start.lower(), e=part.end.lower()):
                     v = value.lower()
                     return v >= s and v <= e
@@ -494,7 +497,7 @@ class _Residue(_SubPart):
                         return value == v
                 else:
                     def choose_number(value, s=start_number, e=end_number):
-                        return value >=s and value <= e
+                        return value >= s and value <= e
             else:
                 choose_number = None
             s = numpy.vectorize(choose_type)(res_names)
@@ -706,10 +709,10 @@ class AtomSpecResults:
     models : readonly list of chimera.core.models.Model
         List of models that matches the atom specifier
     """
-    def __init__(self):
-        self._models = set()
+    def __init__(self, atoms = None, models = None):
+        self._models = set() if models is None else set(models)
         from ..atomic import Atoms
-        self._atoms = Atoms()
+        self._atoms = Atoms() if atoms is None else atoms
 
     def add_model(self, m):
         """Add model to atom spec results."""
@@ -739,7 +742,7 @@ class AtomSpecResults:
                 if len(keep) > 0:
                     atoms = atoms | keep
                     imodels.add(m)
-            elif not m in self._models:
+            elif m not in self._models:
                 imodels.add(m)
         self._atoms = atoms
         self._models = imodels
@@ -766,6 +769,20 @@ class AtomSpecResults:
         atom_spec._atoms = right._atoms & left._atoms
         return atom_spec
 
+    def empty(self):
+        return len(self._atoms) == 0 and len(self._models) == 0
+
+    def displayed(self):
+        '''Return AtomSpecResults containing only displayed atoms and models.'''
+	# Displayed models
+        dmodels = set(m for m in self.models if m.display and m.parents_displayed)
+        return AtomSpecResults(self.atoms.shown_atoms, dmodels)
+
+    def bounds(self):
+        from ..atomic import AtomicStructure
+        bm = [m.bounds() for m in self.models if not isinstance(m, AtomicStructure)]
+        from ..geometry import union_bounds
+        return union_bounds(bm + [self.atoms.scene_bounds])
 #
 # Selector registration and use
 #
@@ -876,14 +893,6 @@ def everything(session):
     """
     return AtomSpecArg.parse('#*', session)[0]
 
-# -----------------------------------------------------------------------------
-#
-class ModelsArg(Annotation):
-    """Parse command models specifier"""
-    name = "models"
-
-    @staticmethod
-    def parse(text, session):
-        aspec, text, rest = AtomSpecArg.parse(text, session)
-        models = aspec.evaluate(session).models
-        return models, text, rest
+def all_objects(session):
+    '''Return AtomSpecResults that matches everything.'''
+    return everything(session).evaluate(session)

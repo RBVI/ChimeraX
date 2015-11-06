@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 # ------------------------------------------------------------------------------
 #
@@ -7,9 +7,9 @@ class Plot(ToolInstance):
 
     SIZE = (300, 300)
 
-    def __init__(self, session, tool_info, title = 'Plot'):
-
-        super().__init__(session, tool_info)
+    def __init__(self, session, tool_info, *, restoring=False, title='Plot'):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
 
         from chimera.core.ui import MainToolWindow
         tw = MainToolWindow(self, size=self.SIZE)
@@ -30,9 +30,6 @@ class Plot(ToolInstance):
 
         self.axes = axes = f.gca()
 
-        # Add to running tool list for session (not required)
-        session.tools.add([self])
-
     def show(self):
         self.tool_window.shown = True
 
@@ -42,11 +39,24 @@ class Plot(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        pass
-    def restore_snapshot(self, phase, session, version, data):
-        pass
-    def reset_state(self):
+    def take_snapshot(self, session, flags):
+        data = {
+            "ti": ToolInstance.take_snapshot(self, session, flags),
+            "shown": self.tool_window.shown
+        }
+        return self.tool_info.session_write_version, data
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
+            raise RestoreError("unexpected version")
+        ti_version, ti_data = data["ti"]
+        ToolInstance.restore_snapshot_init(
+            self, session, tool_info, ti_version, ti_data)
+        self.__init__(session, tool_info, restoring=True)
+        self.display(data["shown"])
+
+    def reset_state(self, session):
         pass
 
 def show_contact_graph(node_weights, edge_weights, short_names, session):

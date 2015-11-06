@@ -2,19 +2,19 @@
 
 #ifdef USE_TEXTURE_MASK
 
-in vec2 tex_coord;
+in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
 uniform vec4 color;
 out vec4 frag_color;
 void main (void)
 {
-  float f = ceil(texture(tex2d, tex_coord).r);
+  float f = ceil(texture(tex2d, tex_coord_2d).r);
   frag_color = color * f;
 }
 
 #elif defined(USE_DEPTH_OUTLINE)
 
-in vec2 tex_coord;
+in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
 uniform vec4 color;
 uniform vec4 depth_shift_and_jump;
@@ -22,8 +22,8 @@ out vec4 frag_color;
 
 void main (void)
 {
-  float d0 = texture(tex2d, tex_coord).r;
-  float ds = texture(tex2d, vec2(tex_coord.s+depth_shift_and_jump.s, tex_coord.t+depth_shift_and_jump.t)).r;
+  float d0 = texture(tex2d, tex_coord_2d).r;
+  float ds = texture(tex2d, vec2(tex_coord_2d.s+depth_shift_and_jump.s, tex_coord_2d.t+depth_shift_and_jump.t)).r;
   float nf = depth_shift_and_jump.q;	// Correct depth compression based on perspective near/far ratio.
   float nf1 = 1-nf;
   if (nf*(ds-d0) < depth_shift_and_jump.p * (1-nf1*ds) * (1-nf1*d0))
@@ -48,8 +48,9 @@ in vec3 N;
 in vec3 v;
 
 #ifdef USE_DEPTH_CUE
-uniform float depth_cue_distance;
-uniform float depth_cue_darkest;
+uniform float depth_cue_start;
+uniform float depth_cue_end;
+uniform vec3 depth_cue_color;
 #endif
 
 #ifdef USE_SHADOWS
@@ -78,8 +79,13 @@ uniform vec4 color;
 #endif
 
 #ifdef USE_TEXTURE_2D
-in vec2 tex_coord;
+in vec2 tex_coord_2d;
 uniform sampler2D tex2d;
+#endif
+
+#ifdef USE_TEXTURE_CUBEMAP
+in vec3 tex_coord_cubemap;
+uniform samplerCube texcube;
 #endif
 
 #ifdef USE_TEXTURE_3D_AMBIENT
@@ -92,9 +98,23 @@ out vec4 frag_color;
 void main (void)
 {
 #ifdef USE_TEXTURE_2D
-  vec4 fcolor = texture(tex2d, tex_coord) * color;
+  vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
+#else
+#ifdef USE_TEXTURE_CUBEMAP
+  vec4 fcolor = texture(texcube, tex_coord_cubemap) * color;
 #else
   vec4 fcolor = color;
+#endif
+#endif
+
+#ifdef USE_TRANSPARENT_ONLY
+  if (fcolor.a >= 0.99)
+    discard;
+#endif
+
+#ifdef USE_OPAQUE_ONLY
+  if (fcolor.a < .99)
+    discard;
 #endif
 
 #ifdef USE_LIGHTING
@@ -145,14 +165,14 @@ void main (void)
   // total color
   vec3 Ifrag = Iamb + Idiff + Ispec;
 
-
-#ifdef USE_DEPTH_CUE
-  float dim = max(depth_cue_darkest, 1.0 / max(1.0, dot(v1,v)/depth_cue_distance));
-  Ifrag *= dim;
-#endif
-
 #ifdef USE_TEXTURE_3D_AMBIENT
   Ifrag *= texture(tex3d, ambient_tex_coord).r;
+#endif
+
+#ifdef USE_DEPTH_CUE
+  float d = -v.z;	// Distance from eye to fragment.
+  float dim = (depth_cue_end - d) / (depth_cue_end - depth_cue_start);
+  Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
 #endif
 
 #else

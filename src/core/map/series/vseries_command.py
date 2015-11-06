@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # ----------------------------------------------------------------------------
 # Volume series command.
 #
@@ -319,6 +319,7 @@ def vseries_measure(session, series, output = None, centroids = True,
 #
 def create_centroid_path(xyz, radius, color):
 
+    # TODO: This is obsolete Hydra code.
     n = len(xyz)
     from numpy import zeros, array, float32, arange, empty
     from ...atomic import atom_dtype, AtomicStructure

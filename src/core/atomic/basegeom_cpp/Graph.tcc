@@ -6,76 +6,87 @@
 #include <set>
 
 #include "Connectible.tcc"
+#include "Connection.h"
 #include "destruct.h"
 #include "Graph.h"
 
 namespace basegeom {
     
-template <class Vertex, class Edge>
+template <class FinalGraph, class Node, class Edge>
 void
-Graph<Vertex, Edge>::delete_edge(Edge *e)
+Graph<FinalGraph, Node, Edge>::delete_edge(Edge *e)
 {
     typename Edges::iterator i = std::find_if(_edges.begin(), _edges.end(),
         [&e](Edge* ue) { return ue == e; });
     if (i == _edges.end())
         throw std::invalid_argument("delete_edge called for Edge not in Graph");
     auto db = DestructionBatcher(this);
-    for (auto v: e->end_points())
-        v->remove_connection(e);
+    for (auto n: e->end_points())
+        n->remove_connection(e);
     _edges.erase(i);
     set_gc_shape();
     delete e;
 }
 
-template <class Vertex, class Edge>
+template <class FinalGraph, class Node, class Edge>
 void
-Graph<Vertex, Edge>::delete_vertex(Vertex *v)
+Graph<FinalGraph, Node, Edge>::delete_node(Node *n)
 {
-    typename Vertices::iterator i = std::find_if(_vertices.begin(), _vertices.end(),
-        [&v](Vertex* uv) { return uv == v; });
-    if (i == _vertices.end())
-        throw std::invalid_argument("delete_vertex called for Vertex not in Graph");
+    typename Nodes::iterator i = std::find_if(_nodes.begin(), _nodes.end(),
+        [&n](Node* un) { return un == n; });
+    if (i == _nodes.end())
+        throw std::invalid_argument("delete_node called for Node not in Graph");
     auto db = DestructionBatcher(this);
-    for (auto e: v->connections())
-        e->other_end(v)->remove_connection(e);
-    _vertices.erase(i);
+    for (auto e: n->connections())
+        e->other_end(n)->remove_connection(e);
+    _nodes.erase(i);
     set_gc_shape();
-    delete v;
+    delete n;
 }
 
-template <class Vertex, class Edge>
+template <class FinalGraph, class Node, class Edge>
 void
-Graph<Vertex, Edge>::delete_vertices(const std::set<Vertex*>& vertices)
+Graph<FinalGraph, Node, Edge>::delete_nodes(const std::set<Node*>& nodes)
 {
     auto db = DestructionBatcher(this);
     // remove_if doesn't swap the removed items into the end of the vector,
     // so can't just go through the tail of the vector and delete things,
     // need to delete them as part of the lambda
-    auto new_v_end = std::remove_if(_vertices.begin(), _vertices.end(),
-        [&vertices](Vertex* v) { 
-            bool rm = vertices.find(v) != vertices.end();
-            if (rm) delete v; return rm;
+    auto new_v_end = std::remove_if(_nodes.begin(), _nodes.end(),
+        [&nodes](Node* n) { 
+            bool rm = nodes.find(n) != nodes.end();
+            if (rm) delete n; return rm;
         });
-    _vertices.erase(new_v_end, _vertices.end());
+    _nodes.erase(new_v_end, _nodes.end());
 
-    for (auto v: _vertices) {
+    for (auto n: _nodes) {
         std::vector<Edge*> removals;
-        for (auto e: v->connections()) {
-            if (vertices.find(e->other_end(v)) != vertices.end())
+        for (auto e: n->connections()) {
+            if (nodes.find(e->other_end(n)) != nodes.end())
                 removals.push_back(e);
         }
         for (auto e: removals)
-            v->remove_connection(e);
+            n->remove_connection(e);
     }
 
     auto new_e_end = std::remove_if(_edges.begin(), _edges.end(),
-        [&vertices](Edge* e) {
-            bool rm = vertices.find(e->end_points()[0]) != vertices.end()
-            || vertices.find(e->end_points()[1]) != vertices.end();
+        [&nodes](Edge* e) {
+            bool rm = nodes.find(e->end_points()[0]) != nodes.end()
+            || nodes.find(e->end_points()[1]) != nodes.end();
             if (rm) delete e; return rm;
         });
     _edges.erase(new_e_end, _edges.end());
     set_gc_shape();
+}
+
+template <class FinalGraph, class Node, class Edge>
+void
+Graph<FinalGraph, Node, Edge>::set_color(const Rgba& rgba)
+{
+    for (auto n: _nodes)
+        n->set_color(rgba);
+    for (auto e: _edges)
+        e->set_color(rgba);
 }
 
 } //  namespace basegeom

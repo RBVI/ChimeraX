@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Create a partially transparent solid model from volume data and a color map.
 #

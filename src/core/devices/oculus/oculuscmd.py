@@ -1,62 +1,5 @@
-def start_oculus(session):
-
-    oc = session.oculus
-    if oc is None:
-        # Create separate graphics window for rendering to Oculus Rift.
-        # Don't show window until after oculus started, otherwise rendering uses wrong viewport.
-        from ...ui.qt import graphicswindow as gw
-        win = gw.Secondary_Graphics_Window('Oculus Rift View', session, show = False)
-        # Activate opengl context before initializing oculus rift device.
-        win.opengl_context.make_current()
-        from .track import Oculus_Rift, Oculus_Rift_Camera_Mode
-        session.oculus = oc = Oculus_Rift(session.view)
-        oc.window = win
-        if oc.connected:
-            # Move window to oculus screen and switch to full screen mode.
-            w,h = oc.display_size()
-            win.full_screen(w,h)
-            # Set camera mode
-            cmode = Oculus_Rift_Camera_Mode(oc, win.opengl_context, win.primary_opengl_context)
-            cmode.set_camera_mode(session.view.camera)
-            # Set redraw timer for 1 msec to minimize dropped frames.
-            # In Qt 5.2 interval of 5 or 10 mseconds caused dropped frames on 2 million triangle surface,
-            # but 1 or 2 msec produced no dropped frames.
-            session.main_window.graphics_window.set_redraw_interval(1)
-            # Start only after window properly sized otherwise Oculus SDK 0.4.4 doesn't draw on Mac
-            oc.start_event_processing()
-        msg = 'started oculus head tracking ' if oc.connected else 'failed to start oculus head tracking'
-        session.status(msg)
-        session.info(msg)
-
-def stop_oculus(session):
-
-    oc = session.oculus
-    if oc:
-        oc.close()
-        session.oculus = None
-        oc.window.close()
-        oc.window = None
-        session.main_window.graphics_window.set_redraw_interval(10)
-
 # -----------------------------------------------------------------------------
-# Command for Hydra
-#
-def oculus_command(enable = None, panSpeed = None, session = None):
-
-    if not enable is None:
-        if enable:
-            start_oculus(session)
-        else:
-            stop_oculus(session)
-
-    if not panSpeed is None:
-        oc = session.oculus
-        if oc:
-            oc.panning_speed = panSpeed
-
-
-# -----------------------------------------------------------------------------
-# Command for Chimera 2.
+# Command for Chimera2.
 #
 def oculus(session, enable, pan_speed = None):
     '''Enable stereo viewing and head motion tracking with an Oculus Rift headset.
@@ -74,15 +17,15 @@ def oculus(session, enable, pan_speed = None):
       Controls how far the camera moves in response to tranlation head motion.  Default 5.
     '''
     if enable:
-        start_oculus2(session)
+        start_oculus(session)
     else:
-        stop_oculus2(session)
+        stop_oculus(session)
 
     if not pan_speed is None:
         for oc in session.oculus:
             oc.panning_speed = pan_speed
 
-def start_oculus2(session):
+def start_oculus(session):
 
     if not hasattr(session, 'oculus'):
         session.oculus = []
@@ -99,17 +42,16 @@ def start_oculus2(session):
 
     # Activate opengl context before initializing oculus rift device.
     win.opengl_context.make_current()
-    from .track import Oculus_Rift, Oculus_Rift_Camera_Mode
-    oc = Oculus_Rift(v)
+    from .track import Oculus_Rift, Oculus_Rift_Camera
+    oc = Oculus_Rift(session)
     session.oculus.append(oc)
     oc.window = win
     if oc.connected:
         # Move window to oculus screen and switch to full screen mode.
         w,h = oc.display_size()
         win.full_screen(w,h)
-        # Set camera mode
-        cmode = Oculus_Rift_Camera_Mode(oc, win.opengl_context, win.primary_opengl_context)
-        cmode.set_camera_mode(v.camera)
+        # Set camera
+        v.camera = Oculus_Rift_Camera(oc, win.opengl_context, win.primary_opengl_context)
         # Set redraw timer for 1 msec to minimize dropped frames.
         # In Qt 5.2 interval of 5 or 10 mseconds caused dropped frames on 2 million triangle surface,
         # but 1 or 2 msec produced no dropped frames.
@@ -121,7 +63,7 @@ def start_oculus2(session):
     log.status(msg)
     log.info(msg)
 
-def stop_oculus2(session):
+def stop_oculus(session):
 
     if hasattr(session, 'oculus') and session.oculus:
         for oc in session.oculus:
@@ -132,7 +74,7 @@ def stop_oculus2(session):
         session.ui.main_window.graphics_window.set_redraw_interval(10)
 
 # -----------------------------------------------------------------------------
-# Register the oculus command for Chimera 2.
+# Register the oculus command for Chimera2.
 #
 def register_oculus_command():
     from ...commands import CmdDesc, BoolArg, FloatArg, register

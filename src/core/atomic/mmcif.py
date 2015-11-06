@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 mmcif: mmCIF format support
 ===========================
@@ -27,16 +27,15 @@ def open_mmcif(session, filename, name, *args, **kw):
         # it's really a fetched stream
         filename = filename.name
 
+    log = session.logger
     from . import _mmcif
     from ..logger import Collator
-    with Collator(session.logger, "Summary of problems reading mmCIF file",
-                  kw.pop('log_errors', True)):
-        _mmcif.set_Python_locate_function(
-            lambda name: _get_template(name, session.app_dirs, session.logger))
-        pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories,
-                                           session.logger)
+    with Collator(log, "Summary of problems reading mmCIF file", kw.pop('log_errors', True)):
+        _mmcif.set_Python_locate_function(lambda name: _get_template(name, session.app_dirs, log))
+        pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, log)
 
-    models = [structure.AtomicStructure(name, p) for p in pointers]
+    lod = session.atomic_level_of_detail
+    models = [structure.AtomicStructure(name, p, level_of_detail = lod) for p in pointers]
     for m in models:
         m.filename = filename
 
@@ -180,9 +179,15 @@ class MMCIFTable:
         t = self.tags
         missing = [n for n in field_names if n not in t]
         if missing:
-            raise ValueError(
-                'Fields %s not in table "%s", have fields %s'
-                % (', '.join(missing), self.table_name, ', '.join(t)))
+            from chimera.core.commands.cli import commas, plural_form
+            missed = commas(missing, ' and')
+            missed_noun = plural_form(missing, 'Field')
+            missed_verb = plural_form(missing, 'is', 'are')
+            have = commas(t, ' and')
+            have_noun = plural_form(t, 'field')
+            raise ValueError('%s %s %s not in table "%s", have %s %s' % (
+                missed_noun, missed, missed_verb, self.table_name, have_noun,
+                have))
         fi = tuple(t.index(f) for f in field_names)
         ftable = tuple(tuple(v[i] for i in fi) for v in self.values)
         return ftable

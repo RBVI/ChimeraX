@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 configfile: Application saved settings support
 ==============================================
@@ -314,7 +314,7 @@ class ConfigFile:
         else:
             try:
                 value = self.PROPERTY_INFO[name].convert_from_string(
-                    self._session, self._section['DEFAULT'][name])
+                    self._session, self._config['DEFAULT'][name])
             except ValueError as e:
                 self._session.logger.warning(
                     "Invalid %s.%s value, using default: %s" %
@@ -489,7 +489,7 @@ if __name__ == '__main__':
             ConfigFile.__init__(self, session, 'test', '1.2.0')
             print('preferences file:', self._filename, flush=True)
 
-    prefs = _ToolPreferences(Chimera2_session)  # noqa
+    prefs = _ToolPreferences(session)  # noqa
 
     assert(not prefs.on_disk())
 

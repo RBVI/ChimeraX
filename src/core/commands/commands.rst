@@ -5,12 +5,14 @@ The *chimera.core.commands* module contains Python functions for the core comman
 available from the Chimera command-line.  Tools define additional commands noted with a (*)
 and their code location is described with the function descriptions.
 
+| `alias`_ - Define aliases for commands
 | `buriedarea`_ - Compute buried area between atomic structures
 | `camera`_ - Change camera settings
+| `cartoon`_ * - Display atomic structure ribbons or pipes/planks
 | `close`_ - Close models
+| `cofr`_ - Set center of rotation method
 | `color`_ - Color atoms, ribbons and surfaces
 | `colordef`_ - Define new colors
-| `command_line`_ * - Hide or show the command line
 | `contacts`_ * - Make a buried area contact graph
 | `crossfade`_ - Fade between scenes for movie making
 | `crosslinks`_ - Move atomic structures to minimize crosslinks
@@ -24,10 +26,10 @@ and their code location is described with the function descriptions.
 | `ks`_ - Enable keyboard shortcuts
 | `lighting`_ - Change lighting parameters
 | `list`_ - List open models
-| `log`_ * - Hide and show the log
+| `log`_ * - Clear or save the log
 | `material`_ - Change surface material light reflection properties
 | `molmap`_ - Calculate a density map from atoms
-| `mousemodes`_ * - Hide or show mouse modes panel
+| `mousemode`_ - Set mouse modes
 | `movie`_ * - Record videos
 | `move`_ - Move camera
 | `oculus`_ - Enable Oculus Rift headset
@@ -35,13 +37,12 @@ and their code location is described with the function descriptions.
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
 | `pwd`_ - Present working directory
-| `rcolor`_ - Color ribbons
 | `roll`_ - Rotate models
-| `ribbon`_ - Display atomic structure ribbons
 | `run`_ - Run a user command string
 | `sasa`_ - Compute solvent accessible surface area
 | `save`_ - Save sessions, images, density maps...
 | `scolor`_ - Color surfaces
+| `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `snav`_ - Enable space navigator input device
 | `split`_ - Split atomic structures into pieces
@@ -51,12 +52,18 @@ and their code location is described with the function descriptions.
 | `sym`_ - Show molecular assemblies involving symmetry
 | `title`_ * - Show text titles with graphics
 | `toolshed`_ * - Control the Tool Shed user interface
+| `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
-| `view`_ - Move camera to view all models
+| `view`_ - Move camera to view specified objects
 | `volume`_ - Change density map display settings
 | `vop`_ - Filter density maps
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
+| `zoom`_ - Zoom in or out
+
+alias
+=====
+.. autofunction:: chimera.core.commands.alias.alias
 
 buriedarea
 ==========
@@ -66,9 +73,18 @@ camera
 ======
 .. autofunction:: chimera.core.commands.camera.camera
 
+cartoon
+=======
+.. autofunction:: chimera.exp_cmd.cartoon.cartoon
+.. autofunction:: chimera.exp_cmd.cartoon.uncartoon
+
 close
 =====
 .. autofunction:: chimera.core.commands.close.close
+
+cofr
+====
+.. autofunction:: chimera.core.commands.cofr.cofr
 
 color
 =====
@@ -76,15 +92,8 @@ color
 
 colordef
 ========
-.. autofunction:: chimera.core.commands.color.colordef
-.. autofunction:: chimera.core.commands.color.uncolordef
-
-command_line
-============
-Functions defined in *chimera.cmd_line.cmd*
-
-.. autofunction:: chimera.cmd_line.cmd.command_line_hide
-.. autofunction:: chimera.cmd_line.cmd.command_line_show
+.. autofunction:: chimera.core.commands.colordef.colordef
+.. autofunction:: chimera.core.commands.colordef.uncolordef
 
 contacts
 ========
@@ -127,7 +136,7 @@ fitmap
 
 help
 ====
-.. autofunction:: chimera.core.commands.help.help
+.. autofunction:: chimera.help_viewer.cmd.help
 
 ks
 ==
@@ -155,12 +164,9 @@ molmap
 ======
 .. autofunction:: chimera.core.map.molmap.molmap
 
-mousemodes
-==========
-Functions defined in *chimera.mouse_modes.cmd*
-
-.. autofunction:: chimera.mouse_modes.cmd.mousemodes_hide
-.. autofunction:: chimera.mouse_modes.cmd.mousemodes_show
+mousemode
+=========
+.. autofunction:: chimera.core.commands.mousemode.mousemode
 
 move
 ====
@@ -195,18 +201,9 @@ pwd
 ===
 .. autofunction:: chimera.core.commands.pwd.pwd
 
-rcolor
-======
-.. autofunction:: chimera.core.commands.color.rcolor
-
 roll
 ====
 .. autofunction:: chimera.core.commands.roll.roll
-
-ribbon
-======
-.. autofunction:: chimera.core.commands.ribbon.ribbon
-.. autofunction:: chimera.core.commands.ribbon.unribbon
 
 run
 ===
@@ -223,6 +220,10 @@ save
 scolor
 ======
 .. autofunction:: chimera.core.commands.scolor.scolor
+
+select
+======
+.. autofunction:: chimera.core.commands.select.select
 
 set
 ===
@@ -268,6 +269,10 @@ Function defined in *chimera.toolshed.cmd*
   :members:
   :member-order: bysource
 
+transparency
+============
+.. autofunction:: chimera.core.commands.transparency.transparency
+
 turn
 ====
 .. autofunction:: chimera.core.commands.turn.turn
@@ -293,4 +298,8 @@ vseries
 wait
 ====
 .. autofunction:: chimera.core.commands.wait.wait
+
+zoom
+====
+.. autofunction:: chimera.core.commands.zoom.zoom
 

@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 from .molobject import PseudobondGroupData
 from ..models import Model
 class PseudobondGroup(PseudobondGroupData, Model):
@@ -22,26 +23,25 @@ class PseudobondGroup(PseudobondGroupData, Model):
         PseudobondGroupData.delete(self)
 
     def added_to_session(self, session):
-        v = session.main_view
-        v.add_callback('graphics update', self._update_graphics_if_needed)
-
         # Detect when atoms moved so pseudobonds must be redrawn.
         # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
-        v.add_callback('shape changed', self.update_graphics)
+        self.handlers = [
+            session.triggers.add_handler('graphics update',self._update_graphics_if_needed),
+            session.triggers.add_handler('shape changed', self.update_graphics)
+        ]
 
     def removed_from_session(self, session):
-        v = session.main_view
-        v.remove_callback('graphics update', self._update_graphics_if_needed)
-        v.remove_callback('shape changed', self.update_graphics)
+        while self.handlers:
+            session.delete_handler(self.handlers.pop())
 
-    def _update_graphics_if_needed(self):
+    def _update_graphics_if_needed(self, *_):
         c, s, se = self._gc_color, self._gc_shape, self._gc_select
         if c or s or se:
             self._gc_color = self._gc_shape = self._gc_select = False
             self._update_graphics()
             self.redraw_needed(shape_changed = s, selection_changed = se)
 
-    def _update_graphics(self):
+    def _update_graphics(self, *_):
 
         pbonds = self.pseudobonds
         d = self._pbond_drawing
@@ -59,45 +59,49 @@ class PseudobondGroup(PseudobondGroupData, Model):
             d.normals = na
             d.triangles = ta
 
-        bond_atoms = pbonds.atoms
-        radii = pbonds.radii
-        bond_colors = pbonds.colors
-        half_bond_coloring = pbonds.halfbonds
+        ba1, ba2 = bond_atoms = pbonds.atoms
         to_pbg = self.scene_position.inverse()
-        axyz0, axyz1 = to_pbg*bond_atoms[0].scene_coords, to_pbg*bond_atoms[1].scene_coords
-        d.positions = structure._bond_cylinder_placements(axyz0, axyz1, radii, half_bond_coloring)
-        d.display_positions = self._shown_bond_cylinders(bond_atoms, half_bond_coloring)
-        d.colors = self._bond_colors(bond_atoms, bond_colors, half_bond_coloring)
+        axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
+        d.positions = structure._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
+        d.display_positions = structure._shown_bond_cylinders(pbonds)
+        d.colors = pbonds.half_colors
+        d.selected_positions = structure._selected_bond_cylinders(bond_atoms)
 
-    def _bond_colors(self, bond_atoms, bond_colors, half_bond_coloring):
-        if half_bond_coloring.any():
-            bc0,bc1 = bond_atoms[0].colors, bond_atoms[1].colors
-            from numpy import concatenate
-            c = concatenate((bc0,bc1))
-        else:
-            c = bond_colors
-        return c
+    def first_intercept(self, mxyz1, mxyz2, exclude=None):
+        if not self.display or (exclude and hasattr(self, exclude)):
+            return None
+        from . import structure
+        b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
+        p = structure.PickedPseudobond(b,f) if b else None
+        return p
 
-    def _shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
-        sb = bond_atoms[0].displays & bond_atoms[1].displays  # Show bond if both atoms shown
-        if half_bond_coloring.any():
-            from numpy import concatenate
-            sb2 = concatenate((sb,sb))
-            return sb2
-        return sb
-
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
+    def take_snapshot(self, session, flags):
         data = {}
-        return [self.STRUCTURE_STATE_VERSION, data]
+        return data
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
             raise RestoreError("Unexpected version or data")
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
 def all_pseudobond_groups(models):
     return [m for m in models.list() if isinstance(m, PseudobondGroup)]
+
+def interatom_pseudobonds(atoms, session):
+    # Inter-model pseudobond groups
+    pbgs = session.models.list(PseudobondGroup)
+    # Intra-model pseudobond groups
+    for m in atoms.unique_structures:
+        pbgs.extend(tuple(m.pbg_map.values()))
+    # Collect bonds
+    from . import Pseudobonds
+    ipbonds = Pseudobonds()
+    for pbg in pbgs:
+        pbonds = pbg.pseudobonds
+        a1, a2 = pbonds.atoms
+        ipb = pbonds.filter(a1.mask(atoms) & a2.mask(atoms))
+        if ipb:
+            ipbonds |= ipb
+    return ipbonds

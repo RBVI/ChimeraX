@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 """This module defines classes for running tools and their state manager.
 
@@ -26,7 +26,7 @@ and `session.trigger.delete_handler`.
 
 
 # Tools and ToolInstance are session-specific
-from .session import State, RestoreError
+from .state import State, RestoreError, CORE_STATE_VERSION
 ADD_TOOL_INSTANCE = 'add tool instance'
 REMOVE_TOOL_INSTANCE = 'remove tool instance'
 
@@ -61,23 +61,38 @@ class ToolInstance(State):
         If True, then tool survives across sessions.
     SESSION_SKIP : bool, class-level optional
         If True, then tool is not saved in sessions.
+    help : str
+        URL for tool's help
     """
 
     SESSION_ENDURING = False
     SESSION_SKIP = False
+    help = None
 
-    def __init__(self, session, tool_info, id=None, **kw):
+    def __init__(self, session, tool_info, id=None):
         self.id = id
         import weakref
         self._session = weakref.ref(session)
         self.tool_info = tool_info
         self.display_name = tool_info.display_name
         # TODO: track.created(ToolInstance, [self])
+        session.tools.add([self])
+
+    def take_snapshot(self, session, flags):
+        return CORE_STATE_VERSION, [self.id, self.tool_info.name]
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        id, tool_name = data
+        tool_info = session.toolshed.find_tool(tool_name)
+        if tool_info is None:
+            session.logger.info('unable to find tool "%s"' % tool_name)
+            return
+        ToolInstance.__init__(self, session, tool_info, id=id)
 
     @property
     def session(self):
         """Read-only property for session that contains this tool instance."""
-        return self._session() 
+        return self._session()
 
     def delete(self):
         """Delete this tool instance.
@@ -102,8 +117,34 @@ class ToolInstance(State):
 
         """
         if self.session.ui.is_gui:
-            self.session.ui.set_tool_shown(self, b)
+            self.session.ui.thread_safe(lambda s=self, show=b:
+                s.session.ui.set_tool_shown(s, show))
 
+    def display_help(self):
+        """Show the help for this tool in the help viewer."""
+        from chimera.core.commands import run
+        run(self.session,
+            'help %s' % self.help if self.help is not None else "")
+
+
+def get_singleton(session, tool_class, tool_name, create=True, display=False, **kw):
+    if not session.ui.is_gui:
+        return None
+    running = [t for t in session.tools.find_by_class(tool_class)
+               if t.tool_info.name == tool_name]
+    if len(running) > 1:
+        raise RuntimeError("too many %s instances running" % tool_name)
+    if not running:
+        if create:
+            tool_info = session.toolshed.find_tool(tool_name)
+            tinst = tool_class(session, tool_info, **kw)
+        else:
+            tinst = None
+    else:
+        tinst = running[0]
+    if display and tinst:
+        tinst.display(True)
+    return tinst
 
 class Tools(State):
     """A per-session state manager for running tools.
@@ -114,9 +155,7 @@ class Tools(State):
     """
     # Most of this code is modeled after models.Models
 
-    VERSION = 1     # snapshot version
-
-    def __init__(self, session):
+    def __init__(self, session, first=False):
         """Initialize per-session state manager for running tools.
 
         Parameters
@@ -127,13 +166,14 @@ class Tools(State):
         """
         import weakref
         self._session = weakref.ref(session)
-        session.triggers.add_trigger(ADD_TOOL_INSTANCE)
-        session.triggers.add_trigger(REMOVE_TOOL_INSTANCE)
+        if first:
+            session.triggers.add_trigger(ADD_TOOL_INSTANCE)
+            session.triggers.add_trigger(REMOVE_TOOL_INSTANCE)
         self._tool_instances = {}
         import itertools
         self._id_counter = itertools.count(1)
 
-    def take_snapshot(self, phase, session, flags):
+    def take_snapshot(self, session, flags):
         """Save state of running tools.
 
         Overrides chimera.core.session.State default method to save
@@ -152,24 +192,22 @@ class Tools(State):
             more details.
 
         """
-        if phase == self.CLEANUP_PHASE:
-            for ti in self._tool_instances.values():
-                if ti.SESSION_SKIP:
-                    continue
-                ti.take_snapshot(session, phase, flags)
-            return
-        if phase == self.SAVE_PHASE:
-            data = {}
-            for tid, ti in self._tool_instances.items():
-                assert(isinstance(ti, ToolInstance))
-                if ti.SESSION_SKIP:
-                    continue
-                data[tid] = [ti.tool_info.name, ti.tool_info.version,
-                             session.unique_id(ti),
-                             ti.take_snapshot(session, phase, flags)]
-            return [self.VERSION, data]
+        data = {}
+        for tid, tool_inst in self._tool_instances.items():
+            assert(isinstance(tool_inst, ToolInstance))
+            if tool_inst.SESSION_SKIP:
+                continue
+            data[tid] = tool_inst
+        return CORE_STATE_VERSION, [data, next(self._id_counter)]
 
-    def restore_snapshot(self, phase, session, version, data):
+    @classmethod
+    def restore_snapshot_new(cls, session, tool_info, version, data):
+        try:
+            return session.tools
+        except AttributeError:
+            return cls.__new__(cls)
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
         """Restore state of running tools.
 
         Overrides chimera.core.session.State default method to restore
@@ -177,11 +215,10 @@ class Tools(State):
 
         Parameters
         ----------
-        phase : str
-            Restoration phase.  See `chimera.core.session` for more details.
         session : instance of chimera.core.session.Session
             Session for which state is being saved.
             Should match the `session` argument given to `__init__`.
+        tool_info : instance of :py:class:`~chimera.core.toolshed.ToolInfo`
         version : any
             Version of state manager that saved the data.
             Used for determining how to parse the `data` argument.
@@ -189,37 +226,13 @@ class Tools(State):
             Data saved by state manager during `take_snapshot`.
 
         """
-        if version != self.VERSION or not data:
-            raise RestoreError("Unexpected version")
+        self.__init__(session)
+        self._tool_instances.update(data[0])
+        import itertools
+        self._id_counter = itertools.count(data[1])
 
-        session = self._session()   # resolve back reference
-        for tid, [tool_name, tool_version, uid, [ti_version, ti_data]] in data.items():
-            if phase == State.CREATE_PHASE:
-                t = session.toolshed.find_tool(tool_name, version=tool_version)
-                if t is None:
-                    # TODO: load tool from toolshed
-                    session.logger.error("Missing '%s' (internal name) tool" % tool_name)
-                    return
-                try:
-                    ti = t.start(session)
-                    if ti is None:
-                        # GUI tool restored in nogui application
-                        continue
-                    session.restore_unique_id(ti, uid)
-                except Exception as e:
-                    class_name = session.class_name_of_unique_id(uid)
-                    session.logger.error(
-                        "Code error restoring tool instance: %s (%s): %s" %
-                        (tid, class_name, str(e)))
-                    raise
-            else:
-                ti = session.unique_obj(uid)
-                if ti is None:
-                    # GUI tool restored in nogui application
-                    continue
-            ti.restore_snapshot(phase, session, ti_version, ti_data)
 
-    def reset_state(self):
+    def reset_state(self, session):
         """Reset state manager to default state.
 
         Overrides chimera.core.session.State default method to reset
@@ -228,10 +241,10 @@ class Tools(State):
 
         """
         items = list(self._tool_instances.items())
-        for id, ti in items:
-            if ti.SESSION_ENDURING:
+        for id, tool_inst in items:
+            if tool_inst.SESSION_ENDURING:
                 continue
-            ti.delete()
+            tool_inst.delete()
             assert(id not in self._tool_instances)
 
     def list(self):
@@ -255,10 +268,10 @@ class Tools(State):
 
         """
         session = self._session()   # resolve back reference
-        for ti in ti_list:
-            if ti.id is None:
-                ti.id = next(self._id_counter)
-            self._tool_instances[ti.id] = ti
+        for tool_inst in ti_list:
+            if tool_inst.id is None:
+                tool_inst.id = next(self._id_counter)
+            self._tool_instances[tool_inst.id] = tool_inst
         session.triggers.activate_trigger(ADD_TOOL_INSTANCE, ti_list)
 
     def remove(self, ti_list):
@@ -271,12 +284,12 @@ class Tools(State):
 
         """
         session = self._session()   # resolve back reference
-        for ti in ti_list:
-            tid = ti.id
+        for tool_inst in ti_list:
+            tid = tool_inst.id
             if tid is None:
                 # Not registered in a session
                 continue
-            ti.id = None
+            tool_inst.id = None
             del self._tool_instances[tid]
         session.triggers.activate_trigger(REMOVE_TOOL_INSTANCE, ti_list)
 
@@ -310,12 +323,19 @@ class Tools(State):
         session = self._session()   # resolve back reference
         from .toolshed import ToolshedError
         from .core_settings import settings
-        for ti in session.toolshed.tool_info():
-            if ti.name not in settings.autostart:
+        auto_ti = [None] * len(settings.autostart)
+        for tool_inst in session.toolshed.tool_info():
+            try:
+                auto_ti[settings.autostart.index(tool_inst.name)] = tool_inst
+            except ValueError:
+                continue
+        # start them in the same order as given in the setting
+        for tool_inst in auto_ti:
+            if tool_inst is None:
                 continue
             try:
-                ti.start(session)
+                tool_inst.start(session)
             except ToolshedError as e:
-                self.session.logger.info("Tool \"%s\" failed to start"
-                                         % ti.name)
+                session.logger.info("Tool \"%s\" failed to start"
+                                    % tool_inst.name)
                 print("{}".format(e))

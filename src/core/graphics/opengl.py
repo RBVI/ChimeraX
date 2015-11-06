@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 OpenGL classes
 ==============
@@ -27,7 +27,7 @@ def configure_offscreen_rendering():
     # OSMesa 10.6.2 gives an OpenGL 3.0 compatibility context on Linux with only GLSL 130 support.
     # Chimera needs OpenGL 3.3 with GLSL 330 shaders and requires only a core context.
     # Overriding Mesa to give OpenGL 3.3, gives a core context that really does support 3.3.
-    # TODO: This would not be necessary if Linux Chimera requested a core context.
+    # OSMesa doesn't allow requesting a core context, see OffscreenRenderingContext below.
     os.environ['MESA_GL_VERSION_OVERRIDE'] = '3.3'
     # Tell PyOpenGL where to find libOSMesa
     lib_suffix = '.dylib' if sys.platform == 'darwin' else '.so'
@@ -63,6 +63,7 @@ class Render:
         self.current_model_matrix = None
         # Maps scene to camera coordinates:
         self.current_view_matrix = None
+        self._near_far_clip = (0,1)             # Scene coord distances from eye
 
         self.lighting = Lighting()
         self.material = Material()              # Currently a global material
@@ -95,6 +96,9 @@ class Render:
         self.single_color = (1, 1, 1, 1)
         self.frame_number = 0
 
+	# Camera origin, y, and xshift for SHADER_STEREO_360 mode
+        self._stereo_360_params = ((0,0,0),(0,1,0),0)
+
     def default_framebuffer(self):
         if self._default_framebuffer is None:
             self._default_framebuffer = Framebuffer(color=False, depth=False)
@@ -111,7 +115,8 @@ class Render:
     def draw_depth_only(self, depth_only=True):
         # Enable only shader geometry, no colors or lighting.
         if depth_only:
-            d = ~(self.SHADER_INSTANCING | self.SHADER_SHIFT_AND_SCALE)
+            d = ~(self.SHADER_INSTANCING | self.SHADER_SHIFT_AND_SCALE |
+                  self.SHADER_TRANSPARENT_ONLY | self.SHADER_OPAQUE_ONLY)
         else:
             d = 0
         self.disable_capabilities = d
@@ -122,10 +127,11 @@ class Render:
         '''
         Return a shader that supports the specified capabilities.
         The capabilities are specified as at bit field of values from
-        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D,
+        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_CUBEMAP,
         SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_MASK,
-        SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS
+        SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
+        SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY, SHADER_STEREO_360
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
@@ -160,12 +166,16 @@ class Render:
         self.set_projection_matrix()
         self.set_model_matrix()
         if (self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_MASK & c
-                or self.SHADER_DEPTH_OUTLINE & c):
+            or self.SHADER_DEPTH_OUTLINE & c):
             shader.set_integer("tex2d", 0)    # Texture unit 0.
+        if self.SHADER_TEXTURE_CUBEMAP & c:
+            shader.set_integer("texcube", 0)
         if not self.SHADER_VERTEX_COLORS & c:
             self.set_single_color()
         if self.SHADER_FRAME_NUMBER & c:
             self.set_frame_number()
+        if self.SHADER_STEREO_360 & c:
+            self.set_stereo_360_params()
 
     def push_framebuffer(self, fb):
         self.framebuffer_stack.append(fb)
@@ -254,6 +264,14 @@ class Render:
             if not self.lighting.move_lights_with_camera:
                 self.set_shader_lighting_parameters()
 
+    def set_near_far_clip(self, near, far):
+        '''Set the near and far clip plane distances from eye.  Used for depth cuing.'''
+        self._near_far_clip = (near, far)
+
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_DEPTH_CUE:
+            self.set_depth_cue_parameters()
+
     def set_frame_number(self, f=None):
         if f is None:
             f = self.frame_number
@@ -310,8 +328,12 @@ class Render:
             return
 
         lp = self.lighting
-        p.set_float("depth_cue_distance", lp.depth_cue_distance)
-        p.set_float("depth_cue_darkest", lp.depth_cue_darkest)
+        n,f = self._near_far_clip
+        s = n + (f-n)*lp.depth_cue_start
+        e = n + (f-n)*lp.depth_cue_end
+        p.set_float('depth_cue_start', s)
+        p.set_float('depth_cue_end', e)
+        p.set_vector('depth_cue_color', lp.depth_cue_color)
 
     def set_single_color(self, color=None):
         '''
@@ -435,7 +457,7 @@ class Render:
         vendor = GL.glGetString(GL.GL_VENDOR)
         import sys
         global stencil8_needed
-        stencil8_needed = (sys.platform.startswith('linux') and
+        stencil8_needed = (sys.platform.startswith('linux') and vendor and
                            vendor.startswith((b'AMD', b'ATI')))
 
     def set_viewport(self, x, y, w, h):
@@ -636,6 +658,7 @@ class Render:
         # Use flat single color rendering.
         self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS
                                          | self.SHADER_TEXTURE_2D
+                                         | self.SHADER_TEXTURE_CUBEMAP
                                          | self.SHADER_LIGHTING)
         # Depth test GL_LEQUAL results in z-fighting:
         self.set_depth_range(0, 0.999999)
@@ -685,8 +708,10 @@ class Render:
         self.set_background_color((0, 0, 0, 0))
         self.draw_background()
 
-        # Render region with texture red > 0.
-        # Texture map a full-screen quad to blend texture with frame buffer.
+        # Render region with texture red > 0, four shifted copies,
+        # then subtract unshifted copy to leave outline.  The depth
+        # buffer is not used.  (Depth buffer was used to handle occlusion
+        # in the mask texture passed to this routine.)
         tc = TextureWindow(self, self.SHADER_TEXTURE_MASK)
         texture.bind_texture()
 
@@ -756,26 +781,21 @@ class Render:
                            color=(0, 0, 0, 1), depth_jump=0.03,
                            perspective_near_far_ratio=1):
 
-        # Render pixels with depth less than neighbor pixel by at least
-        # depth_jump.  Texture map a full-screen quad to blend depth jump
-        # pixels with frame buffer.
+        # Render pixels with depth in depth_texture less than neighbor pixel
+        # by at least depth_jump. The depth buffer is not used.
         tc = TextureWindow(self, self.SHADER_DEPTH_OUTLINE)
         depth_texture.bind_texture()
 
         # Draw 4 shifted copies of mask
         w, h = depth_texture.size
         dx, dy = 1.0 / w, 1.0 / h
-        self.enable_depth_test(False)
         self.enable_blending(True)
-        GL.glDepthMask(False)   # Disable depth write
         self.set_depth_outline_color(color)
         for xs, ys in disk_grid(thickness):
             self.set_depth_outline_shift_and_jump(xs * dx, ys * dy, depth_jump,
                                                   perspective_near_far_ratio)
             tc.draw()
-        GL.glDepthMask(True)
         self.enable_blending(False)
-        self.enable_depth_test(True)
 
     def set_depth_outline_color(self, color):
 
@@ -808,6 +828,21 @@ class Render:
     def finish_rendering(self):
         GL.glFinish()
 
+    def set_stereo_360_params(self, camera_origin = None, camera_y = None, x_shift = None):
+        '''
+        Shifts scene vertices to effectively make left/right eye camera positions face the
+        vertex being rendered.
+        '''
+        if camera_origin is None:
+            camera_origin, camera_y, x_shift = self._stereo_360_params
+        else:
+            self._stereo_360_params = (camera_origin, camera_y, x_shift)
+
+        p = self.current_shader_program
+        if p is None:
+            return
+        p.set_float4("camera_origin_and_shift", tuple(camera_origin) + (x_shift,))
+        p.set_float4("camera_vertical", tuple(camera_y) + (0,))
 
 def disk_grid(radius, exclude_origin=True):
     r = int(radius)
@@ -825,6 +860,7 @@ shader_options = (
     'SHADER_LIGHTING',
     'SHADER_DEPTH_CUE',
     'SHADER_TEXTURE_2D',
+    'SHADER_TEXTURE_CUBEMAP',
     'SHADER_TEXTURE_3D_AMBIENT',
     'SHADER_SHADOWS',
     'SHADER_MULTISHADOW',
@@ -834,6 +870,9 @@ shader_options = (
     'SHADER_DEPTH_OUTLINE',
     'SHADER_VERTEX_COLORS',
     'SHADER_FRAME_NUMBER',
+    'SHADER_TRANSPARENT_ONLY',
+    'SHADER_OPAQUE_ONLY',
+    'SHADER_STEREO_360',
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
@@ -920,9 +959,10 @@ class Framebuffer:
 
         if isinstance(color_buf, Texture):
             level = 0
+            target = GL.GL_TEXTURE_2D if not color_buf.is_cubemap else GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X
             GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
                                       GL.GL_COLOR_ATTACHMENT0,
-                                      GL.GL_TEXTURE_2D, color_buf.id, level)
+                                      target, color_buf.id, level)
         elif color_buf is not None:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
                                          GL.GL_COLOR_ATTACHMENT0,
@@ -947,6 +987,13 @@ class Framebuffer:
 
         return fbo
 
+    def set_cubemap_face(self, face):
+        level = 0
+        GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
+                                  GL.GL_COLOR_ATTACHMENT0,
+                                  GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X+face, 
+                                  self.color_texture.id, level)
+
     def valid(self):
         return self.fbo is not None
 
@@ -954,7 +1001,7 @@ class Framebuffer:
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
 
     def delete(self):
-        if self.fbo is None:
+        if self.fbo is None or self.fbo == 0:
             return
 
         if self.color_rb is not None:
@@ -1019,9 +1066,14 @@ class Lighting:
         self.ambient_light_intensity = 0.4
         '''Ambient light brightness.'''
 
-        # Distance where dimming begins (Angstroms):
-        self.depth_cue_distance = 15.0
-        self.depth_cue_darkest = 0.2    # Smallest dimming factor
+        self.depth_cue_start = 0.5
+        "Fraction of distance from near to far clip plane where dimming starts."
+
+        self.depth_cue_end = 1.0
+        "Fraction of distance from near to far clip plane where dimming ends."
+
+        self.depth_cue_color = (0, 0, 0)
+        '''Color to fade towards.'''
 
         self.move_lights_with_camera = True
         '''Whether lights are attached to camera, or fixed in the scene.'''
@@ -1068,7 +1120,7 @@ class Bindings:
     The bindings are for a specific shader program since they use the
     shader variable ids.
     '''
-    attribute_id = {'position': 0, 'tex_coord_2d': 1, 'normal': 2, 'vcolor': 3,
+    attribute_id = {'position': 0, 'tex_coord': 1, 'normal': 2, 'vcolor': 3,
                     'instance_shift_and_scale': 4, 'instance_placement': 5}
 
     def __init__(self):
@@ -1180,8 +1232,8 @@ INSTANCE_MATRIX_BUFFER = BufferType(
 INSTANCE_COLOR_BUFFER = BufferType(
     'vcolor', instance_buffer=True, value_type=uint8, normalize=True,
     requires_capabilities=Render.SHADER_VERTEX_COLORS)
-TEXTURE_COORDS_2D_BUFFER = BufferType(
-    'tex_coord_2d',
+TEXTURE_COORDS_BUFFER = BufferType(
+    'tex_coord',
     requires_capabilities=Render.SHADER_TEXTURE_2D | Render.SHADER_TEXTURE_MASK
     | Render.SHADER_DEPTH_OUTLINE)
 ELEMENT_BUFFER = BufferType(None, buffer_type=GL.GL_ELEMENT_ARRAY_BUFFER,
@@ -1409,12 +1461,13 @@ class Texture:
     and nearest interpolation is set.  The c = 2 mode uses the second
     component as alpha and the first componet for red, green, blue.
     '''
-    def __init__(self, data=None, dimension=2):
+    def __init__(self, data=None, dimension=2, cube_map=False):
 
         self.id = None
         self.dimension = dimension
-        self.gl_target = (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D,
-                          GL.GL_TEXTURE_3D)[dimension - 1]
+        self.gl_target = (GL.GL_TEXTURE_CUBE_MAP if cube_map else
+                          (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
+        self.is_cubemap = cube_map
 
         if data is not None:
             size = tuple(data.shape[dimension - 1::-1])
@@ -1467,29 +1520,25 @@ class Texture:
             GL.glTexImage1D(gl_target, 0, iformat, size[0], 0, format, tdtype,
                             data)
         elif dim == 2:
-            GL.glTexImage2D(gl_target, 0, iformat, size[0], size[1], 0, format,
-                            tdtype, data)
+            if self.is_cubemap:
+                for face in range(6):
+                    GL.glTexImage2D(GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X+face,
+                                    0, iformat, size[0], size[1], 0, format,
+                                    tdtype, data)
+            else:
+                GL.glTexImage2D(gl_target, 0, iformat, size[0], size[1], 0, format,
+                                tdtype, data)
         elif dim == 3:
             GL.glTexImage3D(gl_target, 0, iformat, size[0], size[1], size[2],
                             0, format, tdtype, data)
 
-        GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR,
-                            (0, 0, 0, 0))
-        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S,
-                           GL.GL_CLAMP_TO_BORDER)
+        GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR, (0, 0, 0, 0))
+        clamp = GL.GL_CLAMP_TO_EDGE if self.is_cubemap else GL.GL_CLAMP_TO_BORDER
+        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S, clamp)
         if dim >= 2:
-            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_T,
-                               GL.GL_CLAMP_TO_BORDER)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_T, clamp)
         if dim >= 3:
-            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_R,
-                               GL.GL_CLAMP_TO_BORDER)
-
-#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S,
-#                           GL.GL_CLAMP_TO_EDGE)
-#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_T,
-#                           GL.GL_CLAMP_TO_EDGE)
-#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_R,
-#                           GL.GL_CLAMP_TO_EDGE)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_R, clamp)
 
 #        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
 #        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
@@ -1590,7 +1639,7 @@ class Texture:
 
 
 class TextureWindow:
-    '''Draw a texture on a full window rectangle.'''
+    '''Draw a texture on a full window rectangle. Don't test or write depth buffer.'''
     def __init__(self, render, shader_options):
 
         # Must have vao bound before compiling shader.
@@ -1606,7 +1655,7 @@ class TextureWindow:
         vb.update_buffer_data(array(((-1, -1, 0), (1, -1, 0), (1, 1, 0),
                                     (-1, 1, 0)), float32))
         vao.bind_shader_variable(vb)
-        self.tex_coord_buf = tcb = Buffer(TEXTURE_COORDS_2D_BUFFER)
+        self.tex_coord_buf = tcb = Buffer(TEXTURE_COORDS_BUFFER)
         tcb.update_buffer_data(array(((0, 0), (1, 0), (1, 1), (0, 1)),
                                      float32))
         vao.bind_shader_variable(tcb)
@@ -1626,8 +1675,10 @@ class TextureWindow:
         tcb.update_buffer_data(array(((xs, ys), (1 + xs, ys), (1 + xs, 1 + ys),
                                      (xs, 1 + ys)), float32))
         GL.glDepthMask(False)   # Don't overwrite depth buffer
+        GL.glDisable(GL.GL_DEPTH_TEST)	# Don't test depth buffer.
         eb = self.element_buf
         eb.draw_elements(eb.triangles)
+        GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glDepthMask(True)
 
 

@@ -1,4 +1,4 @@
-DEFAULT_MESSAGE = "Use HTML page to access Chimera 2 sessions"
+DEFAULT_MESSAGE = "Use HTML page to access Chimera2 sessions"
 
 #
 # WSGI application code
@@ -6,7 +6,7 @@ DEFAULT_MESSAGE = "Use HTML page to access Chimera 2 sessions"
 STATUS_OKAY = "200 OK"
 STATUS_REDIRECT = "301 Redirect to HTML page"
 STATUS_BAD_REQUEST = "400 Bad request"
-STATUS_SERVER_ERROR = "500 Chimera 2 internal server error"
+STATUS_SERVER_ERROR = "500 Chimera2 internal server error"
 
 CONTENT_TYPE_PLAINTEXT = "text/plain"
 CONTENT_TYPE_HTML = "text/html"

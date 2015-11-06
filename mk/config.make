@@ -15,7 +15,7 @@ all:
 
 # version numbers that leak out of prerequisites
 
-PYTHON_VERSION = 3.4
+PYTHON_VERSION = 3.5
 ifndef DEBUG
 PYTHON_ABI = m
 else

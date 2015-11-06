@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 #
 from ...models import Model
@@ -121,11 +121,13 @@ class Map_Series(Model):
     v2.solid_levels = list(zip(levels, [b for lev,b in v1.solid_levels]))
     self.solid_level_ranks = ranks
 
-  # State save/restore in Chimera 2
-  def take_snapshot(self, phase, session, flags):
+  # State save/restore in Chimera2
+  def take_snapshot(self, session, flags):
     pass
+
   def restore_snapshot(self, phase, session, version, data):
     pass
+
   def reset_state(self):
     pass
 

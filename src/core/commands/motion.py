@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 class CallForNFrames:
     # CallForNFrames acts like a function that keeps track of per-frame
     # functions.  But those functions need state, so that state is
@@ -13,14 +14,13 @@ class CallForNFrames:
         self.n = n
         self.session = session
         self.frame = 0
-        v = session.main_view
-        v.add_callback('new frame', self)
+        self.handler = session.triggers.add_handler('new frame', self)
         if not hasattr(session, self.Attribute):
             setattr(session, self.Attribute, set([self]))
         else:
             getattr(session, self.Attribute).add(self)
 
-    def __call__(self):
+    def __call__(self, *_):
         f = self.frame
         if self.n != self.Infinite and f >= self.n:
             self.done()
@@ -30,8 +30,7 @@ class CallForNFrames:
 
     def done(self):
         s = self.session
-        v = s.main_view
-        v.remove_callback('new frame', self)
+        s.triggers.delete_handler(self.handler)
         getattr(s, self.Attribute).remove(self)
 
 

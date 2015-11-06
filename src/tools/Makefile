@@ -1,8 +1,9 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = cmd_line contacts title log map_series_gui mouse_modes movie \
-	  shell shortcuts sideview test toolshed
+SUBDIRS = cmd_line contacts exp_cmd help_viewer \
+	  log map_series_gui model_panel mouse_modes movie \
+	  shell shortcuts sideview title test toolshed
 
 include $(TOP)/mk/subdir.make
 

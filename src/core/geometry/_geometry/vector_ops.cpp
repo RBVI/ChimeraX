@@ -26,10 +26,17 @@ static void inner(const Reference_Counted_Array::Array<T> &m1,
   *sum = s;
 }
 
+const char *inner_product_64_doc =
+  "inner_product_64(u, v) -> float64\n"
+  "\n"
+  "Return the inner-product of two vectors accumulated as a 64-bit floating point value\n"
+  "even if the vector components are 32-bit values.  Input arrays are 1-dimensional with\n"
+  "any value type.\n";
+
 // ----------------------------------------------------------------------------
 // Computes sum in 64-bit, 1-d contiguous arrays only.
 //
-extern "C" PyObject *inner_product_64(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *inner_product_64(PyObject *, PyObject *args, PyObject *keywds)
 {
   Reference_Counted_Array::Numeric_Array m1, m2;
   const char *kwlist[] = {"m1", "m2", NULL};

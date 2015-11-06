@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 from chimera.core.tools import ToolInstance
 
@@ -9,9 +9,9 @@ class MapSeries(ToolInstance):
 
     SIZE = (500, 25)
 
-    def __init__(self, session, tool_info, series=None):
-
-        super().__init__(session, tool_info)
+    def __init__(self, session, tool_info, *, restoring=False, series=None):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
 
         self.series = series
         self.playing = False
@@ -25,8 +25,10 @@ class MapSeries(ToolInstance):
 
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
         from chimera.core.ui import MainToolWindow
+
         class MapSeriesWindow(MainToolWindow):
             close_destroys = False
+
         tw = MapSeriesWindow(self, size=self.SIZE)
         self.tool_window = tw
         parent = tw.ui_area
@@ -61,8 +63,6 @@ class MapSeries(ToolInstance):
         from chimera.core.models import REMOVE_MODELS
         self.model_close_handler = session.triggers.add_handler(
             REMOVE_MODELS, self.models_closed_cb)
-
-        session.tools.add([self])
 
     def show(self):
         self.tool_window.shown = True
@@ -101,8 +101,8 @@ class MapSeries(ToolInstance):
         n = s0.number_of_times()
         if t >= n - 1:
             t = 0
-        from chimera.core.map.series.vseries_command import play_op
-        p = play_op(self.session, self.series, start=t, loop=True, cacheFrames=n)
+        from chimera.core.map.series.vseries_command import vseries_play
+        p = vseries_play(self.session, self.series, start=t, loop=True, cache_frames=n)
 
         def update_slider(t, self=self):
             self.slider.SetValue(t)
@@ -114,8 +114,8 @@ class MapSeries(ToolInstance):
     def stop(self):
         if self.series is None:
             return
-        from chimera.core.map.series.vseries_command import stop_op
-        stop_op(self.session, self.series)
+        from chimera.core.map.series.vseries_command import vseries_stop
+        vseries_stop(self.session, self.series)
         self.playing = False
         self.set_play_button_icon(play=True)
 
@@ -163,13 +163,24 @@ class MapSeries(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        pass
+    def take_snapshot(self, session, flags):
+        data = {
+            "ti": ToolInstance.take_snapshot(self, session, flags),
+            "shown": self.tool_window.shown
+        }
+        return self.tool_info.session_write_version, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        pass
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
+            raise RestoreError("unexpected version")
+        ti_version, ti_data = data["ti"]
+        ToolInstance.restore_snapshot_init(
+            self, session, tool_info, ti_version, ti_data)
+        self.__init__(session, tool_info, restoring=True)
+        self.display(data["shown"])
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
 

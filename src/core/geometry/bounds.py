@@ -1,27 +1,36 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+'''
+bounds: Bounding boxes
+======================
 
+Compute bounding boxes for objects in scene.
+The bounds of no object is represented as None rather than a Bounds object.
+'''
 
 # Bounding box computations
 class Bounds:
-
+    '''Bounding box specified by minimum and maximum x,y,z coordinates.'''
     def __init__(self, xyz_min, xyz_max):
+        # Make sure bounds are numpy arrays
         from numpy import ndarray, array, float32
-        if isinstance(xyz_min, ndarray):
-            self.xyz_min = xyz_min
-        else:
-            self.xyz_min = array(xyz_min, float32)
-        if isinstance(xyz_max, ndarray):
-            self.xyz_max = xyz_max
-        else:
-            self.xyz_max = array(xyz_max, float32)
+        xmin = xyz_min if isinstance(xyz_min, ndarray) else array(xyz_min, float32)
+        xmax = xyz_max if isinstance(xyz_max, ndarray) else array(xyz_max, float32)
+
+        self.xyz_min = xmin
+        "Minimum x,y,z bounds as numpy float32 array."
+        self.xyz_max = xmax
+        "Maximum x,y,z bounds as numpy float32 array."
 
     def center(self):
+        "Center of bounding box."
         return 0.5 * (self.xyz_min + self.xyz_max)
 
     def width(self):
+        "Maximum of size of box x,y,z axes."
         return (self.xyz_max - self.xyz_min).max()
 
     def radius(self):
+        "Radius of sphere containing bounding box."
         size = self.xyz_max - self.xyz_min
         from math import sqrt
         r = 0.5*sqrt((size*size).sum())
@@ -29,7 +38,10 @@ class Bounds:
 
 
 def point_bounds(xyz, placements=[]):
-
+    '''
+    Return :py:class:`.Bounds` for a set of points, optionally
+    multiple positions given by a :py:class:`.Place` list.
+    '''
     if len(xyz) == 0:
         return None
 
@@ -55,6 +67,12 @@ def point_bounds(xyz, placements=[]):
 
 
 def union_bounds(blist):
+    '''
+    Return :py:class:`.Bounds` that is the union of a list
+    of :py:class:`.Bounds`. The list can contain None elements
+    which are ignored.  If the list contains no :py:class:`.Bounds`
+    then None is returned.
+    '''
     xyz_min, xyz_max = None, None
     for b in blist:
         if b is None:
@@ -70,6 +88,10 @@ def union_bounds(blist):
 
 
 def copies_bounding_box(bounds, positions):
+    '''
+    Return :py:class:`.Bounds` that covers a specified bounding
+    box replicated at :py:class:`.Places`.
+    '''
     if bounds is None:
         return None
     sas = positions.shift_and_scale_array()
@@ -88,15 +110,21 @@ def copies_bounding_box(bounds, positions):
         b = union_bounds(point_bounds(p * corners) for p in positions)
     return b
 
-
-def point_axis_bounds(points, axis):
-    from numpy import dot
-    pa = dot(points, axis)
-    a2 = dot(axis, axis)
-    b = Bounds(pa.min() / a2, pa.max() / a2)
-    return b
+def copy_tree_bounds(bounds, positions_list):
+    '''
+    Return :py:class:`.Bounds` that covers a specified bounding
+    box replicated at a hierarchy of :py:class:`.Places`.
+    '''
+    for p in reversed(positions_list):
+        bounds = copies_bounding_box(bounds, p)
+    return bounds
 
 def sphere_bounds(centers, radii):
+    '''
+    Return :py:class:`.Bounds` containing a set of spheres.
+    '''
+    if len(centers) == 0:
+        return None
     from . import _geometry
     b = _geometry.sphere_bounds(centers, radii)
     return Bounds(b[0], b[1])

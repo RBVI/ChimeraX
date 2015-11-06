@@ -1,11 +1,13 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 #
 class Space_Navigator:
 
-    def __init__(self, view, log):
+    def __init__(self, session):
 
-        self.view = view
-        self.log = log
+        self.view = session.main_view
+        self.log = session.log
+        self.ses_triggers = session.triggers
 
         self.speed = 1
         self.dominant = True    # Don't simultaneously rotate and translate
@@ -30,7 +32,8 @@ class Space_Navigator:
                 return False     # Connection failed.
 
         if self.device:
-            self.view.add_callback('new frame', self.check_space_navigator)
+            self.handler = self.ses_triggers.add_handler('new frame',
+                self.check_space_navigator)
             self.processing_events = True
             return True
 
@@ -41,10 +44,10 @@ class Space_Navigator:
     def stop_event_processing(self):
 
         if self.processing_events:
-            self.view.remove_callback('new frame', self.check_space_navigator)
+            self.ses_triggers.delete_handler(self.handler)
             self.processing_events = False
 
-    def check_space_navigator(self):
+    def check_space_navigator(self, *_):
 
         e = self.device.last_event()
         if e is None:
@@ -170,15 +173,7 @@ def find_device():
 #
 def space_navigator(session):
     if not hasattr(session, 'space_navigator') or session.space_navigator is None:
-        if hasattr(session, 'main_view'):
-            # Chimera 2
-            log = session.logger
-            v = session.main_view
-        else:
-            # Hydra
-            log = session
-            v = session.view
-        session.space_navigator = Space_Navigator(v, log)
+        session.space_navigator = Space_Navigator(session)
     return session.space_navigator
 
 # -----------------------------------------------------------------------------
@@ -240,7 +235,7 @@ def snav(session, enable = None, fly = None):
         sn.fly_mode = bool(fly)
 
 # -----------------------------------------------------------------------------
-# Register the snav command for Chimera 2.
+# Register the snav command for Chimera2.
 #
 def register_snav_command():
     from ...commands import CmdDesc, BoolArg, register

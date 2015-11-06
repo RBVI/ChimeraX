@@ -7,37 +7,50 @@
 
 namespace basegeom {
     
-template <class FinalConnectible, class FinalConnection>
-class BaseSphere: public Connectible<FinalConnectible, FinalConnection> {
+template <class FinalGraph, class FinalConnectible, class FinalConnection>
+class BaseSphere: public Connectible<FinalGraph, FinalConnectible, FinalConnection> {
+public:
+    enum class DrawMode : unsigned char { Sphere, EndCap, Ball };
 private:
     float  _radius;
 
-    int  _draw_mode = 0;
+    DrawMode  _draw_mode = DrawMode::Sphere;
 public:
-    BaseSphere(float radius): _radius(radius) {}
+    BaseSphere(FinalGraph* graph, float radius):
+        Connectible<FinalGraph, FinalConnectible, FinalConnection>(graph),
+        _radius(radius) {}
     virtual  ~BaseSphere() {}
-    virtual void  set_radius(float r)
-        {   if (_radius != r) {
-                this->graphics_container()->set_gc_shape();
-                _radius = r;
-            }
-        }
+
+    virtual void  set_radius(float r) {
+        if (r == _radius)
+            return;
+        this->graphics_container()->set_gc_shape();
+        this->change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
+            ChangeTracker::REASON_RADIUS);
+        _radius = r;
+    }
     virtual float  radius() const { return _radius; }
 
     // graphics related
-    int  draw_mode() const { return _draw_mode; }
-    void  set_draw_mode(int dm)
-        { this->graphics_container()->set_gc_shape(); _draw_mode = dm; }
+    DrawMode  draw_mode() const { return _draw_mode; }
+    void  set_draw_mode(DrawMode dm) {
+        if (dm == _draw_mode)
+            return;
+        this->graphics_container()->set_gc_shape();
+        this->change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
+            ChangeTracker::REASON_DRAW_MODE);
+        _draw_mode = dm;
+    }
 };
 
-template <class FinalConnectible, class FinalConnection>
-class Sphere: public BaseSphere<FinalConnectible, FinalConnection> {
+template <class FinalGraph, class FinalConnectible, class FinalConnection>
+class Sphere: public BaseSphere<FinalGraph, FinalConnectible, FinalConnection> {
 private:
     Coord  _coord;
 
 public:
-    virtual const Coord &  coord() const { return _coord; }
-    virtual void  set_coord(const Point & coord) { _coord = coord; }
+    virtual const Coord&  coord() const { return _coord; }
+    virtual void  set_coord(const Point& coord) { _coord = coord; }
     virtual  ~Sphere() {}
 };
 

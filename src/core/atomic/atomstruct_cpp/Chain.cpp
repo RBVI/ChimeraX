@@ -3,12 +3,25 @@
 #include <algorithm>
 
 #include "AtomicStructure.h"
-#include <basegeom/destruct.h>
 #include "Chain.h"
 #include "Sequence.h"
 #include "Residue.h"
 
+#include <basegeom/ChangeTracker.h>
+#include <basegeom/destruct.h>
+
 namespace atomstruct {
+
+Chain::Chain(const ChainID& chain_id, AtomicStructure* as): Sequence(),
+    _chain_id(chain_id), _from_seqres(false), _structure(as)
+{
+    _structure->change_tracker()->add_created(this);
+}
+
+Chain::~Chain()
+{
+    _structure->change_tracker()->add_deleted(this);
+}
 
 void
 Chain::bulk_set(const Chain::Residues& residues,
@@ -40,6 +53,8 @@ Chain::bulk_set(const Chain::Residues& residues,
 
     if (del_chars)
         delete chars;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
+        ChangeTracker::REASON_RESIDUES);
 }
 
 Chain&
@@ -57,6 +72,8 @@ Chain::operator+=(Chain& addition)
     }
     _structure->remove_chain(&addition);
     addition._structure = nullptr;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
+        ChangeTracker::REASON_RESIDUES);
     return *this;
 }
 
@@ -73,6 +90,8 @@ Chain::pop_back()
             _structure->remove_chain(this);
             _structure = nullptr;
         }
+        _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
+            ChangeTracker::REASON_RESIDUES);
     }
 }
 
@@ -91,6 +110,8 @@ Chain::pop_front()
             _structure->remove_chain(this);
             _structure = nullptr;
         }
+        _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
+            ChangeTracker::REASON_RESIDUES);
     }
 }
 
@@ -103,6 +124,8 @@ Chain::push_back(Residue* r)
     _res_map[r] = _residues.size();
     _residues.push_back(r);
     r->set_chain(this);
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
+        ChangeTracker::REASON_RESIDUES);
 }
 
 void
@@ -120,12 +143,16 @@ Chain::push_front(Residue* r)
     }
     _res_map[r] = 0;
     r->set_chain(this);
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
+        ChangeTracker::REASON_RESIDUES);
 }
 
 void
 Chain::remove_residue(Residue* r) {
     auto ri = std::find(_residues.begin(), _residues.end(), r);
     *ri = nullptr;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
+        ChangeTracker::REASON_RESIDUES);
     if (no_structure_left()) {
         if (basegeom::DestructionCoordinator::destruction_parent() != _structure)
             _structure->remove_chain(this);
@@ -172,6 +199,8 @@ Chain::set(unsigned i, Residue *r, char character)
             _structure = nullptr;
         }
     }
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
+        ChangeTracker::REASON_RESIDUES);
 }
 
 void
@@ -202,6 +231,8 @@ Chain::set_from_seqres(bool fs)
         }
     }
     _from_seqres = fs;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
+        ChangeTracker::REASON_RESIDUES);
 }
 
 }  // namespace atomstruct

@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 """
 logger: Application log support
 ===============================
@@ -414,7 +414,7 @@ class Logger:
             if last_resort:
                 msg = self._html_to_plain(msg, image, is_html)
                 if prev_newline:
-                    output = "{}: {}".format(level.upper(), msg)
+                    output = "{}: {}".format(Log.LEVEL_DESCRIPTS[level].upper(), msg)
                 else:
                     output = msg
                 print(output, end="", file=last_resort)
@@ -524,7 +524,7 @@ def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
     from bs4 import BeautifulSoup
     # return BeautifulSoup(html).get_text() -- loses line breaks
-    bs = BeautifulSoup(html)
+    bs = BeautifulSoup(html, 'html.parser')
     x = []
     for result in bs:
         s = result.string

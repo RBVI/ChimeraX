@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 cli: Application command line support
 =====================================
@@ -48,8 +48,8 @@ and are automatically completed to the first registered
 command with the given prefix.  Likewise for keyword arguments.
 
 Keywords are case sensitive, and are expected to be all lowercase.
-Underscores are supported, but are documented as and accepted as dashes.
-For example, a ``bg_color`` keyword would be documented as ``bg-color``.
+Underscores are elided, but are documented as mixed case.
+For example, a ``bg_color`` keyword would be documented as ``bgColor``.
 
 Registering Commands
 --------------------
@@ -200,7 +200,89 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
-def _dq_repr(obj):
+def commas(text_seq, conjunction=' or'):
+    """Return comma separated list of words
+
+    :param text_seq: a sequence of text strings
+    :param conjunction: a word with a leading space
+    """
+    seq_len = len(text_seq)
+    if seq_len == 0:
+        return ""
+    if seq_len == 1:
+        return text_seq[0]
+    if seq_len == 2:
+        return '%s%s %s' % (text_seq[0], conjunction, text_seq[1])
+    text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
+    return text
+
+
+def plural_form(seq, word, plural=None):
+    """Return plural of word based on length of sequence
+
+    :param seq: a sequence of objects
+    :param word: word to form the plural of
+    :param plural: optional explicit plural of word, otherwise best guess
+    """
+    seq_len = len(seq)
+    if seq_len in (0, 1):
+        return word
+    if plural is None:
+        return plural_of(word)
+    return plural
+
+
+def plural_of(word):
+    """Return American English plural of the word
+
+    :param word: the word to form the plural version
+    """
+    if word.endswith('o'):
+        if word.casefold() in ('zero', 'photo', 'quarto'):
+            return word + 's'
+        return word + 'es'
+    if word.endswith(('sh', 'ch', 's', 'x')):
+        return word + 'es'
+    if word.endswith('y'):
+        if word[-2] in 'aeiou':
+            return word + 's'
+        else:
+            return word[:-1] + 'ies'
+    # TODO: special case words, e.g. leaf -> leaves, hoof -> hooves
+    return word + 's'
+
+
+def discard_article(text):
+    """remove leading article from text"""
+    text_seq = text.split(None, 1)
+    if text_seq[0] in ('a', 'an', 'the', 'some'):
+        return text_seq[1]
+    return text
+
+_small_ordinals = {
+    1: "first",
+    2: "second",
+    3: "third",
+    4: "forth",
+    5: "fifth",
+    6: "sixth",
+    7: "seventh",
+    8: "eighth",
+    9: "ninth",
+    10: "tenth",
+}
+
+
+def ordinal(i):
+    """Return ordinal number name of number"""
+    if i <= 10:
+        return _small_ordinals[i]
+    if i % 100 == 11 or i % 10 != 1:
+        return "%dth" % i
+    return "%dst" % i
+
+
+def dq_repr(obj):
     """Like repr, but use double quotes"""
     r = repr(obj)
     if r[0] != "'":
@@ -219,7 +301,7 @@ def _dq_repr(obj):
 def _canonical_kw(kw_name):
     """Return canonical version of a keyword argument name."""
     # Remove punctuation and case from keyword argument name.
-    return ''.join([c for c in kw_name if c not in '-_ ']).casefold()
+    return ''.join([c for c in kw_name if c not in '_ ']).casefold()
 
 
 def _user_kw(kw_name):
@@ -246,8 +328,14 @@ class Annotation(metaclass=abc.ABCMeta):
         Set to textual description of the annotation, including
         the leading article, *e.g.*, `"a truth value"`.
     """
-    name = "** article name, e.g., _a_ _truth value_ **"
+    name = None  #: article name, *e.g.*, "a truth value"
     url = None  #: URL for help information
+
+    def __init__(self, name=None, url=None):
+        if name is not None:
+            self.name = name
+        if url is not None:
+            self.url = url
 
     @staticmethod
     def parse(text, session):
@@ -270,12 +358,14 @@ class Aggregate(Annotation):
     """Common class for collections of values.
 
     Aggregate(annotation, constructor, add_to, min_size=None, max_size=None,
-            name=None) -> annotation
+            name=None, url=None) -> annotation
 
     :param annotation: annotation for values in the collection.
     :param min_size: minimum size of collection, default `None`.
     :param max_size: maximum size of collection, default `None`.
     :param name: optionally override name in error messages.
+    :param url: optionally give documentation URL.
+    :param prefix: optionally required prefix to aggregate.
 
     This class is typically used via :py:class:`ListOf`, :py:class:`SetOf`,
     or :py:class:`TupleOf`.
@@ -292,10 +382,11 @@ class Aggregate(Annotation):
     separator = ','
 
     def __init__(self, annotation, min_size=None,
-                 max_size=None, name=None, prefix=None):
+                 max_size=None, name=None, url=None, prefix=None):
         if (not issubclass(annotation, Annotation) and
                 not isinstance(annotation, Annotation)):
             raise ValueError("need an annotation, not %s" % annotation)
+        Annotation.__init__(self, name, url)
         self.annotation = annotation
         if min_size is not None:
             self.min_size = min_size
@@ -303,12 +394,9 @@ class Aggregate(Annotation):
             self.max_size = max_size
         if name is None:
             if ',' in annotation.name:
-                name = "collection of %s" % annotation.name
+                self.name = "a collection of %s" % annotation.name
             else:
-                # discard article
-                name = annotation.name.split(None, 1)[1]
-                name = "%s(s)" % name
-        self.name = name
+                self.name = "some %s" % plural_of(discard_article(annotation.name))
         self.prefix = prefix
 
     def add_to(self, container, element):
@@ -380,15 +468,17 @@ class Aggregate(Annotation):
                 qual = "exactly"
             else:
                 qual = "at least"
-            raise AnnotationError("Need %s %d %s" % (qual, self.min_size,
-                                                     self.name), len(used))
+            raise AnnotationError("Need %s %d '%s'-separated %s" % (
+                qual, self.min_size, self.separator,
+                discard_article(self.name)), len(used))
         if len(result) > self.max_size:
             if self.min_size == self.max_size:
                 qual = "exactly"
             else:
                 qual = "at most"
-            raise AnnotationError("Need %s %d %s" % (qual, self.max_size,
-                                                     self.name), len(used))
+            raise AnnotationError("Need %s %d '%s'-separated %s" % (
+                qual, self.max_size, self.separator,
+                discard_article(self.name)), len(used))
         return result, used, rest
 
 
@@ -422,8 +512,9 @@ class TupleOf(Aggregate):
     """
     constructor = tuple
 
-    def __init__(self, annotation, size, name=None):
-        return Aggregate.__init__(self, annotation, size, size, name=name)
+    def __init__(self, annotation, size, name=None, url=None):
+        return Aggregate.__init__(self, annotation, size, size, name=name,
+                                  url=url)
 
     def add_to(self, container, value):
         return container + (value,)
@@ -438,14 +529,14 @@ class DottedTupleOf(Aggregate):
     constructor = tuple
 
     def __init__(self, annotation, min_size=None,
-                 max_size=None, name=None, prefix=None):
-        Aggregate.__init__(self, annotation, min_size, max_size, name, prefix)
+                 max_size=None, name=None, url=None, prefix=None):
+        Aggregate.__init__(self, annotation, min_size, max_size, name, url,
+                           prefix)
         if name is None:
             if ',' in annotation.name:
-                name = "dotted list of %s" % annotation.name
+                name = "a dotted list of %s" % annotation.name
             else:
-                # discard article
-                name = annotation.name.split(None, 1)[1]
+                name = discard_article(annotation.name)
                 name = "dotted %s(s)" % name
             self.name = name
 
@@ -469,12 +560,21 @@ class BoolArg(Annotation):
 
 
 class NoArg(Annotation):
-    """Annotation for keyword with no value"""
-    name = ""
+    """Annotation for keyword whose presence indicates True"""
+    name = "nothing"
 
     @staticmethod
     def parse(text, session):
         return True, "", text
+
+
+class EmptyArg(Annotation):
+    """Annotation for optionally missing 'required' argument"""
+    name = "an empty string"
+
+    @staticmethod
+    def parse(text, session):
+        return None, "", text
 
 
 class IntArg(Annotation):
@@ -492,7 +592,7 @@ class IntArg(Annotation):
 
 class FloatArg(Annotation):
     """Annotation for floating point literals"""
-    name = "a floating point number"
+    name = "a number"
 
     @staticmethod
     def parse(text, session):
@@ -514,29 +614,132 @@ class StringArg(Annotation):
 
 
 class AxisArg(Annotation):
-    '''Annotation for axis vector that can be 3 floats or "x", or "y", or "z"'''
+    '''Annotation for axis vector that can be 3 floats or "x", or "y", or "z"
+    or two atoms.'''
     name = 'an axis vector'
+
+    named_axes = { 'x': (1, 0, 0), 'X': (1, 0, 0),
+                   'y': (0, 1, 0), 'Y': (0, 1, 0),
+                   'z': (0, 0, 1), 'Z': (0, 0, 1)}
+    @staticmethod
+    def parse(text, session):
+        axis = None
+
+        # "x" or "y" or "z"
+        if axis is None:
+            token, atext, rest = next_token(text)
+            try:
+                coords = AxisArg.named_axes[token]
+            except KeyError:
+                pass
+            else:
+                axis = Axis(coords)
+
+        # 3 comma-separated numbers
+        if axis is None:
+            try:
+                coords, atext, rest = Float3Arg.parse(text, session)
+            except:
+                pass
+            else:
+                axis = Axis(coords)
+
+        # Two atoms or a bond.
+        if axis is None:
+            try:
+                atoms, atext, rest = AtomsArg.parse(text, session)
+            except:
+                pass
+            else:
+                if len(atoms) == 2:
+                    axis = Axis(atoms = atoms)
+                elif len(atoms) > 0:
+                    raise AnnotationError('Axis argument requires 2 atoms, got %d atoms' % len(atoms))
+
+        if axis is None:
+            raise AnnotationError('Expected 3 floats or "x", or "y", or "z" or two atoms')
+
+        return axis, atext, rest
+
+class Axis:
+    def __init__(self, coords = None, atoms = None):
+        if not coords is None:
+            from numpy import array, float32
+            coords = array(coords, float32)
+        self.coords = coords	# Camera coordinates
+        self.atoms = atoms
+    def scene_coordinates(self, coordinate_system = None, camera = None, normalize = True):
+        atoms = self.atoms
+        if atoms is not None:
+            a = atoms[1].scene_coord - atoms[0].scene_coord
+        elif coordinate_system is not None:
+            # Camera coords are actually coordinate_system coords if
+            # coordinate_system is not None.
+            c = self.coords
+            a = coordinate_system.position.apply_without_translation(c)
+        elif camera:
+            a = camera.position.apply_without_translation(self.coords)
+        else:
+            a = self.coords
+        if normalize:
+            from .. import geometry
+            a = geometry.normalize_vector(a)
+        return a
+    def base_point(self):
+        a = self.atoms
+        return None if a is None else a[0].scene_coord
+
+class CenterArg(Annotation):
+    '''Annotation for a center point that can be 3 floats or objects.'''
+    name = 'center point'
 
     @staticmethod
     def parse(text, session):
-        try:
-            return Float3Arg.parse(text, session)
-        except:
-            pass
-        token, text, rest = next_token(text)
-        try:
-            axis = {
-                'x': (1, 0, 0),
-                'X': (1, 0, 0),
-                'y': (0, 1, 0),
-                'Y': (0, 1, 0),
-                'z': (0, 0, 1),
-                'Z': (0, 0, 1),
-            }[token]
-        except KeyError:
-            raise AnnotationError('Expected 3 floats or "x", or "y", or "z"')
-        return axis, text, rest
+        c = None
 
+        # 3 comma-separated numbers
+        if c is None:
+            try:
+                coords, atext, rest = Float3Arg.parse(text, session)
+            except:
+                pass
+            else:
+                c = Center(coords)
+
+        # Objects
+        if c is None:
+            try:
+                obj, atext, rest = ObjectsArg.parse(text, session)
+            except:
+                pass
+            else:
+                if obj.empty():
+                    raise AnnotationError('Center argument no objects specified')
+                elif obj.bounds() is None:
+                    raise AnnotationError('Center argument objects are not displayed')
+                c = Center(objects = obj)
+
+        if c is None:
+            raise AnnotationError('Expected 3 floats or object specifier')
+
+        return c, atext, rest
+
+class Center:
+    def __init__(self, coords = None, objects = None):
+        if not coords is None:
+            from numpy import array, float32
+            coords = array(coords, float32)
+        self.coords = coords
+        self.objects = objects
+    def scene_coordinates(self, coordinate_system = None):
+        obj = self.objects
+        if obj is not None:
+            c = obj.bounds().center()
+        elif coordinate_system is not None:
+            c = coordinate_system.position * self.coords
+        else:
+            c = self.coords
+        return c
 
 class AtomsArg(Annotation):
     """Parse command atoms specifier"""
@@ -577,32 +780,97 @@ class PseudobondGroupsArg(Annotation):
         pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
         return pbgs, used, rest
 
+# -----------------------------------------------------------------------------
+#
+class ModelArg(Annotation):
+    """Parse command model specifier"""
+    name = "model"
+
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = _remove_child_models(aspec.evaluate(session).models)
+        if len(models) != 1:
+            raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
+        return tuple(models)[0], text, rest
+
+# -----------------------------------------------------------------------------
+#
+def _remove_child_models(models):
+    s = set(models)
+    for m in models:
+        for c in m.child_models():
+            s.discard(c)
+    return tuple(s)
+
+# -----------------------------------------------------------------------------
+#
+class ModelsArg(Annotation):
+    """Parse command models specifier"""
+    name = "models"
+
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        return models, text, rest
+
+# -----------------------------------------------------------------------------
+#
+class TopModelsArg(Annotation):
+    """Parse command models specifier"""
+    name = "top models"
+
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        tmodels = _remove_child_models(models)
+        return tmodels, text, rest
+
+# -----------------------------------------------------------------------------
+#
+class ObjectsArg(Annotation):
+    """Parse command objects specifier"""
+    name = "objects"
+
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        objects = aspec.evaluate(session)
+        return objects, text, rest
+
 
 class Bounded(Annotation):
     """Support bounded numerical values
 
-    Bounded(annotation, min=None, max=None, name=None) -> an Annotation
+    Bounded(annotation, min=None, max=None, name=None, url=None) -> an Annotation
 
     :param annotation: numerical annotation
     :param min: optional lower bound
     :param max: optional upper bound
     :param name: optional explicit name for annotation
+    :param url: optionally give documentation URL.
     """
 
-    def __init__(self, annotation, min=None, max=None, name=None):
+    def __init__(self, annotation, min=None, max=None, name=None, url=None):
+        Annotation.__init__(self, name, url)
         self.anno = annotation
         self.min = min
         self.max = max
         if name is None:
             if min and max:
-                name = "%s <= %s <= %s" % (min, annotation.name, max)
+                self.name = "%s >= %s and <= %s" % (annotation.name, min, max)
             elif min:
-                name = "%s >= %s" % (annotation.name, min)
+                self.name = "%s >= %s" % (annotation.name, min)
             elif max:
-                name = "%s <= %s" % (annotation.name, max)
+                self.name = "%s <= %s" % (annotation.name, max)
             else:
-                name = annotation.name
-        self.name = name
+                self.name = annotation.name
 
     def parse(self, text, session):
         value, new_text, rest = self.anno.parse(text, session)
@@ -618,11 +886,13 @@ class Bounded(Annotation):
 class EnumOf(Annotation):
     """Support enumerated types
 
-    EnumOf(values, ids=None, name=None) -> an Annotation
+    EnumOf(values, ids=None, name=None, url=None) -> an Annotation
 
     :param values: sequence of values
     :param ids: optional sequence of identifiers
+    :param abbreviations: if not None, then override allow_truncated
     :param name: optional explicit name for annotation
+    :param url: optionally give documentation URL.
 
     .. data: allow_truncated
 
@@ -635,11 +905,12 @@ class EnumOf(Annotation):
 
     allow_truncated = True
 
-    def __init__(self, values, ids=None, name=None):
+    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
         if ids is not None:
             if len(values) != len(ids):
                 raise ValueError("Must have an identifier for "
                                  "each and every value")
+        Annotation.__init__(self, name, url)
         self.values = values
         if ids is not None:
             assert(all([isinstance(x, str) for x in ids]))
@@ -649,9 +920,12 @@ class EnumOf(Annotation):
             self.ids = values
         self.values = values
         if name is None:
-            name = "one of '%s', or '%s'" % ("', '".join(self.ids[0:-1]),
-                                             self.ids[-1])
-        self.name = name
+            if len(self.ids) == 1:
+                self.name = "'%s'" % self.ids[0]
+            else:
+                self.name = "one of %s" % commas(["'%s'" % i for i in self.ids])
+        if abbreviations is not None:
+            self.allow_truncated = abbreviations
 
     def parse(self, text, session):
         token, text, rest = next_token(text)
@@ -663,37 +937,36 @@ class EnumOf(Annotation):
             else:
                 if ident.casefold() == folded:
                     return self.values[i], ident, rest
-        raise AnnotationError("Invalid %s" % self.name)
+        raise AnnotationError("Should be %s" % self.name)
 
 
 class Or(Annotation):
     """Support two or more alternative annotations
 
-    Or(annotation, annotation [, annotation]*, name=None) -> an Annotation
+    Or(annotation, annotation [, annotation]*, name=None, url=None) -> an Annotation
 
     :param name: optional explicit name for annotation
+    :param url: optionally give documentation URL.
     """
 
-    def __init__(self, *annotations, name=None):
+    def __init__(self, *annotations, name=None, url=None):
         if len(annotations) < 2:
             raise ValueError("Need at two alternative annotations")
+        Annotation.__init__(self, name, url)
         self.annotations = annotations
         if name is None:
-            name = "%s or %s" % (", ".join([a.name for a in annotations[0:-1]]),
-                                 annotations[-1].name)
-        self.name = name
+            self.name = commas([a.name for a in annotations])
 
     def parse(self, text, session):
         for anno in self.annotations:
             try:
                 return anno.parse(text, session)
+            except AnnotationError as err:
+                if err.offset:
+                    raise
             except ValueError:
                 pass
-        names = [a.name for a in self.annotations]
-        msg = ', '.join(names[:-1])
-        if len(names) > 2:
-            msg += ', '
-        msg += 'or ' + names[-1]
+        msg = commas([a.name for a in self.annotations])
         raise AnnotationError("Expected %s" % msg)
 
 
@@ -785,9 +1058,9 @@ def unescape_with_index_map(text):
             end = text.find('}', index + 3)
             if end > 0:
                 import unicodedata
-                name = text[index + 3:end]
+                char_name = text[index + 3:end]
                 try:
-                    char = unicodedata.lookup(name)
+                    char = unicodedata.lookup(char_name)
                     text = text[:index] + char + text[end + 1:]
                     index_map = index_map[:index] + index_map[end:]
                 except KeyError:
@@ -799,7 +1072,7 @@ def unescape_with_index_map(text):
     return text, index_map
 
 
-def next_token(text):
+def next_token(text, *, no_raise=False):
     """
     Extract next token from given text.
 
@@ -826,6 +1099,8 @@ def next_token(text):
         else:
             end = len(text)
             token = text[start + 1:end]
+            if no_raise:
+                return '', '', text
             raise AnnotationError("incomplete quoted text")
         token = unescape(token)
     elif text[start] == "'":
@@ -838,6 +1113,8 @@ def next_token(text):
         else:
             end = len(text)
             token = text[start + 1:end]
+            if no_raise:
+                return '', '', text
             raise AnnotationError("incomplete quoted text")
         token = unescape(token)
     elif text[start] == ';':
@@ -883,6 +1160,7 @@ def _upto_semicolon(text):
 
 
 class RestOfLine(Annotation):
+    """Return the rest of the line up to a semicolon"""
     name = "the rest of line"
 
     @staticmethod
@@ -895,19 +1173,12 @@ class RestOfLine(Annotation):
 
 
 class WholeRestOfLine(Annotation):
+    """Return the whole rest of the line including semicolons"""
     name = "the rest of line"
 
     @staticmethod
     def parse(text, session):
         return text, text, ''
-
-
-class EmptyArg(Annotation):
-    name = "matches empty string"
-
-    @staticmethod
-    def parse(text, session):
-        return None, "", text
 
 Bool2Arg = TupleOf(BoolArg, 2)
 Bool3Arg = TupleOf(BoolArg, 3)
@@ -947,7 +1218,7 @@ class Limited(Postcondition):
 
     Limited(name, min=None, max=None) -> Postcondition
 
-    :param name: name of argument to check
+    :param arg_name: name of argument to check
     :param min: optional inclusive lower bound
     :param max: optional inclusive upper bound
 
@@ -955,15 +1226,15 @@ class Limited(Postcondition):
     the error is the beginning of the argument, not the end of the line.
     """
 
-    __slots__ = ['name', 'min', 'max']
+    __slots__ = ['arg_name', 'min', 'max']
 
-    def __init__(self, name, min=None, max=None):
-        self.name = name
+    def __init__(self, arg_name, min=None, max=None):
+        self.arg_name = arg_name
         self.min = min
         self.max = max
 
     def check(self, kw_args):
-        arg = kw_args.get(self.name, None)
+        arg = kw_args.get(self.arg_name, None)
         if arg is None:
             # argument not present, must be optional
             return True
@@ -977,7 +1248,7 @@ class Limited(Postcondition):
             return True
 
     def error_message(self):
-        message = "Invalid argument %s: " % _dq_repr(self.name)
+        message = "Invalid argument %s: " % dq_repr(self.arg_name)
         if self.min and self.max:
             return message + ("Must be greater than or equal to %s and less"
                               " than or equal to %s" % (self.min, self.max))
@@ -1017,37 +1288,6 @@ class SameSize(Postcondition):
             self.name1, self.name2)
 
 
-class RequiredArgs(Postcondition):
-    """Postcondition check for required keywords
-
-    RequiredArgs(argument name(s)) -> a RequiredArgs object
-
-    :param *arg_names: list of argument names
-
-    This is useful for 'optional' and keyword arguments that don't have
-    a default value.
-    """
-
-    __slots__ = ['arg_names', 'missing']
-
-    def __init__(self, *arg_names):
-        self.arg_names = arg_names
-        self.missing = ()
-
-    def check(self, kw_args):
-        self.missing = tuple(n for n in self.arg_names if n not in kw_args)
-        return len(self.missing) == 0
-
-    def error_message(self):
-        count = len(self.missing)
-        if count == 1:
-            return "missing '%s' argument" % self.missing
-        if count == 2:
-            return "missing '%s' and '%s' arguments" % self.missing
-        return "missing %s, and '%s' arguments" % (
-            ', '.join(self.missing[:-1]), self.missing[-1])
-
-
 # _commands is a map of command name to command information.  Except when
 # it is a multiword command name, then the preliminary words map to
 # dictionaries that map to the command information.
@@ -1068,9 +1308,11 @@ def _check_autocomplete(word, mapping, name):
 class CmdDesc:
     """Describe command arguments.
 
-    :param required: required positional arguments tuple
-    :param optional: optional positional arguments tuple
-    :param keyword: keyword arguments tuple
+    :param required: required positional arguments sequence
+    :param optional: optional positional arguments sequence
+    :param keyword: keyword arguments sequence
+    :param required_arguments: sequence of argument names that must be given
+    :param non_keyword: sequence of optional arguments that cannot be keywords
     :param url: URL to help page
     :param synopsis: one line description
     :param official: True if officially supported command
@@ -1079,25 +1321,34 @@ class CmdDesc:
 
         function that implements command
 
-    Each tuple contains tuples with the argument name and a type annotation.
-    The command line parser uses the *optional* argument names to as
-    keyword arguments.
+    Each :param required:, :param optional:, :param keyword: sequence
+    contains tuples with the argument name and a type annotation.
+    The command line parser uses the :param optional: argument names as
+    additional keyword arguments.
+    :param required_arguments: are for Python function arguments that
+    don't have default values, but should be given on the command line
+    (typically *keyword* arguments, but could be used for syntactically
+    *optional* arguments).
     """
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
-        '_postconditions', '_function',
+        '_required_arguments', '_postconditions', '_function',
         'url', 'synopsis', 'official'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
-                 postconditions=(), url=None, synopsis=None, official=False):
+                 postconditions=(), required_arguments=(),
+                 non_keyword=(), url=None, synopsis=None, official=False):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = OrderedDict(keyword)
-        self._keyword.update(self._optional)
+        optional_keywords = [i for i in self._optional.items()
+                             if i[0] not in non_keyword]
+        self._keyword.update(optional_keywords)
         # keyword_map is what would user would type
         self._keyword_map = dict([(_canonical_kw(n), n) for n in self._keyword])
         self._postconditions = postconditions
+        self._required_arguments = required_arguments
         self.url = url
         self.synopsis = synopsis
         self.official = official
@@ -1123,9 +1374,10 @@ class CmdDesc:
         signature = inspect.signature(function)
         params = list(signature.parameters.values())
         if len(params) < 1 or params[0].name != "session":
-            raise ValueError("Missing initial 'session' argument")
+            raise ValueError('Missing initial "session" argument')
         for p in params[1:]:
             if (p.default != empty or p.name in self._required or
+                    p.name in self._required_arguments or
                     p.kind in (var_positional, var_keyword)):
                 continue
             raise ValueError("Wrong function or '%s' argument must be "
@@ -1215,6 +1467,8 @@ def register(name, cmd_desc=(), function=None, logger=None):
     #    return
 
     words = name.split()
+    if cmd_desc is not None and cmd_desc.url is None:
+        cmd_desc.url = "help:user/commands/%s.html#%s" % (words[0], ' '.join(words[1:]))
     name = ' '.join(words)  # canonicalize
     cmd_map = _commands
     for word in words[:-1]:
@@ -1239,7 +1493,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
         if not isinstance(function, Alias):
             raise
         if logger is not None:
-            logger.warn("alias %s hides existing command" % _dq_repr(name))
+            logger.warning("alias %s hides existing command" % dq_repr(name))
     if isinstance(function, _Defer):
         cmd_desc = function
     else:
@@ -1249,8 +1503,9 @@ def register(name, cmd_desc=(), function=None, logger=None):
     else:
         # command already registered
         if isinstance(function, Alias):
-            if not isinstance(cmd_map[word].function, Alias):
-                # only save nonaliased version of command
+            if not isinstance(cmd_map[word].function, Alias) or \
+                    not cmd_map[word].function.user_generated:
+                # only save non-aliased version of command
                 _aliased_commands[name] = cmd_map[word]
             cmd_map[word] = cmd_desc
         elif isinstance(what.function, Alias):
@@ -1258,8 +1513,8 @@ def register(name, cmd_desc=(), function=None, logger=None):
             _aliased_commands[name] = cmd_desc
         else:
             if logger is not None:
-                logger.warn("command %s is replacing existing command" %
-                            _dq_repr(name))
+                logger.info("FYI: command %s is replacing existing command" %
+                            dq_repr(name))
             cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
@@ -1385,7 +1640,7 @@ class Command:
         self._error = ""
         self._ci = None
         self.command_name = None
-        self._kwargs = {}
+        self._kw_args = {}
         self._error_checked = False
 
     def error_check(self):
@@ -1398,29 +1653,44 @@ class Command:
         """
         if self._error:
             raise UserError(self._error)
-        for (cmd_name, ci, kwargs) in self._multiple:
+        for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
+            missing = [kw for kw in ci._required_arguments if kw not in kw_args]
+            if missing:
+                arg_names = ['"%s"' % m for m in missing]
+                msg = commas(arg_names, ' and')
+                noun = plural_form(arg_names, 'argument')
+                raise UserError("Missing required %s %s" % (msg, noun))
             for cond in ci._postconditions:
-                if not cond.check(kwargs):
+                if not cond.check(kw_args):
                     raise UserError(cond.error_message())
         self._error_checked = True
 
-    def execute(self, _used_aliases=None):
+    def execute(self, log=True, _used_aliases=None):
         """If command is valid, execute it with given session."""
 
         session = self._session()  # resolve back reference
         if not self._error_checked:
             self.error_check()
         results = []
-        for (cmd_name, ci, kwargs) in self._multiple:
+        for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
+            if log:
+                from html import escape
+                if ci.url is None:
+                    msg = escape(cmd_text)
+                else:
+                    cargs = cmd_text[len(cmd_name):]
+                    msg = '<a href="%s">%s</a>%s' % (
+                        ci.url, escape(cmd_name), escape(cargs))
+                session.logger.info(msg, is_html=True)
             try:
                 if not isinstance(ci.function, Alias):
-                    results.append(ci.function(session, **kwargs))
+                    results.append(ci.function(session, **kw_args))
                     continue
-                arg_names = [k for k in kwargs.keys() if isinstance(k, int)]
+                arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
                 arg_names.sort()
-                args = [kwargs[k] for k in arg_names]
-                if 'optional' in kwargs:
-                    optional = kwargs['optional']
+                args = [kw_args[k] for k in arg_names]
+                if 'optional' in kw_args:
+                    optional = kw_args['optional']
                 else:
                     optional = ''
                 if _used_aliases is None:
@@ -1450,6 +1720,8 @@ class Command:
                 if len(traceback.extract_tb(exc_traceback)) > 2:
                     raise
                 raise UserError(err)
+            from .. import atomic
+            atomic.check_for_changes(session)
         return results
 
     def _replace(self, chars, replacement):
@@ -1485,6 +1757,7 @@ class Command:
         self._error = "Missing command"
         self.word_map = None  # filled in when partial command is matched
         word_map = _commands
+        cmd_name = None
         start = self.amount_parsed
         while 1:
             m = _whitespace.match(self.current_text, self.amount_parsed)
@@ -1492,11 +1765,14 @@ class Command:
             text = self.current_text[self.amount_parsed:]
             if not text:
                 self.word_map = word_map  # if caller interested in partial cmds
+                self.command_name = cmd_name
                 return
+            if _debugging:
+                orig_text = text
             word, chars, text = next_token(text)
             if _debugging:
-                print('cmd next_token(%r) -> %r %r %r' % (text, word, chars,
-                                                          text))
+                print('cmd next_token(%r) -> %r %r %r' % (
+                    orig_text, word, chars, text))
             what = word_map.get(word, None)
             if what is None:
                 self.completion_prefix = word
@@ -1512,9 +1788,11 @@ class Command:
                     text = self.current_text[self.amount_parsed:]
                     continue
                 if word:
-                    self._error = "Unknown command"
+                    self._error = "Unknown command: %s" % self.current_text
                 return
             self.amount_parsed += len(chars)
+            cmd_name = self.current_text[start:self.amount_parsed]
+            cmd_name = ' '.join(cmd_name.split())   # canonicalize
             if isinstance(what, _Defer):
                 what = _lazy_register(word_map, word)
             if isinstance(what, dict):
@@ -1524,8 +1802,6 @@ class Command:
                                % self.current_text[start:self.amount_parsed])
                 continue
             assert(isinstance(what, CmdDesc))
-            cmd_name = self.current_text[start:self.amount_parsed]
-            cmd_name = ' '.join(cmd_name.split())   # canonicalize
             if no_aliases:
                 if isinstance(what.function, Alias):
                     if cmd_name not in _aliased_commands:
@@ -1552,40 +1828,53 @@ class Command:
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
-        #   if successful, updates self._kwargs
+        #   if successful, updates self._kw_args
+        # for better error messages return:
+        #   (last successful annotation, failed optional annotation)
         session = self._session()  # resolve back reference
         text = self.current_text[self.amount_parsed:]
         positional = self._ci._required.copy()
         positional.update(self._ci._optional)
         self.completion_prefix = ''
         self.completions = []
+        last_anno = None
         for kw_name, anno in positional.items():
             if kw_name in self._ci._optional:
                 self._error = ""
-                tmp = text.split(None, 1)
-                if not tmp:
-                    break
-                if tmp[0] in self._ci._keyword_map:
-                    # exactly matches keyword, so done with positional arguments
-                    break
             else:
-                self._error = 'Missing required "%s" argument' % _user_kw(kw_name)
+                if isinstance(kw_name, int):
+                    # alias argument position
+                    required = "%s requried" % ordinal(kw_name)
+                else:
+                    required = 'required "%s"' % _user_kw(kw_name)
+                self._error = 'Missing %s positional argument' % required
             m = _whitespace.match(text)
             start = m.end()
             if start:
                 self.amount_parsed += start
                 text = text[start:]
             if not text:
-                break
+                return None, None
             if text[0] == ';':
-                break
+                return None, None
+            if kw_name in self._ci._optional:
+                # check if next token matches a keyword and if so,
+                # terminate positional arguments
+                _, tmp, _ = next_token(text, no_raise=True)
+                if not tmp:
+                    return None, None
+                if tmp[0].isalpha():
+                    tmp = _canonical_kw(tmp)
+                    if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
+                        return None, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 if is_python_keyword(kw_name):
-                    self._kwargs['%s_' % kw_name] = value
+                    self._kw_args['%s_' % kw_name] = value
                 else:
-                    self._kwargs[kw_name] = value
+                    self._kw_args[kw_name] = value
                 self._error = ""
+                last_anno = anno
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset:
                     # We got an error with an offset, that means that an
@@ -1594,19 +1883,20 @@ class Command:
                     self.amount_parsed += err.offset
                     self._error = 'Invalid "%s" argument: %s' % (
                         _user_kw(kw_name), err)
-                    return
+                    return None, None
                 if kw_name in self._ci._required:
                     self._error = 'Invalid "%s" argument: %s' % (
                         _user_kw(kw_name), err)
-                    return
+                    return None, None
                 # optional and wrong type, try as keyword
-                break
+                return last_anno, anno
+        return last_anno, None
 
-    def _process_keyword_arguments(self, final):
+    def _process_keyword_arguments(self, final, prev_annos):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
-        #   if successful, updates self._kwargs
+        #   if successful, updates self._kw_args
         session = self._session()  # resolve back reference
         m = _whitespace.match(self.current_text, self.amount_parsed)
         self.amount_parsed = m.end()
@@ -1614,9 +1904,12 @@ class Command:
         if not text:
             return
         while 1:
+            if _debugging:
+                orig_text = text
             word, chars, text = next_token(text)
             if _debugging:
-                print('key next_token(%r) -> %r %r' % (text, word, chars))
+                print('key next_token(%r) -> %r %r %r' % (
+                    orig_text, word, chars, text))
             if not word or word == ';':
                 break
 
@@ -1634,10 +1927,16 @@ class Command:
                     text = self.current_text[self.amount_parsed:]
                     self.completions = []
                     continue
+                expected = []
+                if isinstance(prev_annos[0], Aggregate):
+                    expected.append("'%s'" % prev_annos[0].separator)
+                if prev_annos[1] is not None:
+                    expected.append(prev_annos[1].name)
                 if len(self._ci._keyword_map) > 0:
-                    self._error = "Expected keyword, got '%s'" % word
+                    expected.append("a keyword")
                 else:
-                    self._error = "Too many arguments"
+                    expected.append("fewer arguments")
+                self._error = "Expected " + commas(expected)
                 return
             self.amount_parsed += len(chars)
             m = _whitespace.match(text)
@@ -1649,7 +1948,7 @@ class Command:
             kw_name = self._ci._keyword_map[arg_name]
             anno = self._ci._keyword[kw_name]
             if not text and anno != NoArg:
-                self._error = 'Missing "%s" argument' % _user_kw(kw_name)
+                self._error = 'Missing "%s" keyword argument' % _user_kw(kw_name)
                 break
 
             self.completion_prefix = ''
@@ -1657,9 +1956,10 @@ class Command:
             try:
                 value, text = self._parse_arg(anno, text, session, final)
                 if is_python_keyword(kw_name):
-                    self._kwargs['%s_' % kw_name] = value
+                    self._kw_args['%s_' % kw_name] = value
                 else:
-                    self._kwargs[kw_name] = value
+                    self._kw_args[kw_name] = value
+                prev_annos = (anno, None)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
@@ -1696,16 +1996,19 @@ class Command:
             self._find_command_name(final, no_aliases=no_aliases, used_aliases=_used_aliases)
             if not self._ci:
                 return
-            self._process_positional_arguments()
+            start = self.amount_parsed - len(self.command_name)
+            prev_annos = self._process_positional_arguments()
             if self._error:
                 return
-            self._process_keyword_arguments(final)
+            self._process_keyword_arguments(final, prev_annos)
             if self._error:
                 return
-            self._multiple.append((self.command_name, self._ci, self._kwargs))
+            self._multiple.append((
+                self.command_name, self.current_text[start:self.amount_parsed],
+                self._ci, self._kw_args))
             self.command_name = None
             self._ci = None
-            self._kwargs = {}
+            self._kw_args = {}
             m = _whitespace.match(self.current_text, self.amount_parsed)
             self.amount_parsed = m.end()
             if self.amount_parsed == len(self.current_text):
@@ -1758,6 +2061,7 @@ def usage(name, no_aliases=False):
 
     if cmd.word_map is not None:
         # partial command match
+        name = cmd.command_name
         usage = 'Choices are:\n'
         usage += '\n'.join(['  %s %s' % (name, w)
                             for w in cmd.word_map])
@@ -1767,7 +2071,7 @@ def usage(name, no_aliases=False):
     ci = cmd._ci
     for arg_name in ci._required:
         type = ci._required[arg_name].name
-        usage += ' _%s_' % type
+        usage += '%s (%s)' % (arg_name, type)
     num_opt = 0
     for arg_name in ci._optional:
         type = ci._optional[arg_name].name
@@ -1775,9 +2079,12 @@ def usage(name, no_aliases=False):
         num_opt += 1
     usage += ']' * num_opt
     for arg_name in ci._keyword:
-        type = ci._keyword[arg_name].name
+        arg_type = ci._keyword[arg_name]
         arg_name = _user_kw(arg_name)
-        usage += ' [%s _%s_]' % (arg_name, type)
+        if arg_type is NoArg:
+            usage += ' [%s]' % arg_name
+            continue
+        usage += ' [%s _%s_]' % (arg_name, arg_type.name)
     if ci.synopsis:
         usage += ' -- %s' % ci.synopsis
     return usage
@@ -1799,6 +2106,7 @@ def html_usage(name, no_aliases=False):
 
     if cmd.word_map is not None:
         # partial command match
+        name = cmd.command_name
         usage = 'Choices are:<br/><ul>'
         usage += '<br/>'.join(['<li> %s %s' % (escape(name), w)
                                for w in cmd.word_map])
@@ -1812,42 +2120,65 @@ def html_usage(name, no_aliases=False):
             cmd._ci.url, escape(cmd.command_name))
     ci = cmd._ci
     for arg_name in ci._required:
-        arg = ci._required[arg_name]
+        arg_type = ci._required[arg_name]
         arg_name = _user_kw(arg_name)
-        type = arg.name
-        if arg.url is None:
+        type = arg_type.name
+        if arg_type.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
         usage += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
     num_opt = 0
     for arg_name in ci._optional:
         num_opt += 1
-        arg = ci._optional[arg_name]
+        arg_type = ci._optional[arg_name]
         arg_name = _user_kw(arg_name)
-        type = arg.name
-        if arg.url is None:
+        type = arg_type.name
+        if arg_type.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
         usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
     usage += ']' * num_opt
     for arg_name in ci._keyword:
-        arg = ci._keyword[arg_name]
+        arg_type = ci._keyword[arg_name]
         arg_name = _user_kw(arg_name)
-        if arg.url is None:
-            type = escape(arg.name)
+        if arg_type is NoArg:
+            type = ""
         else:
-            type = '<a href="%s">%s</a>' % (arg.url, escape(arg.name))
-        usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
+            type = "<i>%s</i>" % escape(arg_type.name)
+            if arg_type.url is not None:
+                type = '<a href="%s">%s</a>' % (arg_type.url, type)
+            type = ' ' + type
+        usage += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(arg_name), type)
     if ci.synopsis:
-        usage += '<br/>%s' % ci.synopsis
+        usage = "<i>%s</i><br>%s" % (escape(ci.synopsis), usage)
     return usage
 
 
-def registered_commands():
+def registered_commands(multiword=False):
     """Return a list of the currently registered commands"""
-    return list(_commands.keys())
+    if not multiword:
+        return list(_commands.keys())
+
+    def cmds(cmd_map):
+        used_words = set()
+        words = set(cmd_map.keys())
+        while words:
+            word = words.pop()
+            what = cmd_map[word]
+            if isinstance(what, _Defer):
+                what = _lazy_register(cmd_map, word)
+                words = set(cmd_map.keys())
+                words.difference_update(used_words)
+                continue
+            used_words.add(word)
+            if isinstance(what, CmdDesc):
+                yield word
+                continue
+            for word2 in cmds(what):
+                yield "%s %s" % (word, word2)
+    return list(cmds(_commands))
 
 
 class Alias:
@@ -1856,14 +2187,16 @@ class Alias:
     Returns a callable unnamed command alias.
 
     :param text: parameterized command text
+    :param user: true if alias was generated by user
 
     The text is scanned for $n, where n is the n-th argument, $* for the rest
     of the line, and $$ for a single $.
     """
 
-    def __init__(self, text):
+    def __init__(self, text, *, user=False):
         text = text.lstrip()
         self.original_text = text
+        self.user_generated = user
         self.num_args = 0
         self.parts = []  # list of strings and integer argument numbers
         self.cmd = None
@@ -1948,40 +2281,37 @@ class Alias:
 _cmd_aliases = {}
 
 
-@register('alias', CmdDesc(optional=[('name', StringArg),
-                                     ('text', WholeRestOfLine)]))
-def alias(session, name='', text=''):
+def list_aliases(user=True):
+    """List all aliases
+    
+    :param user: if True, then only list user-defined aliases
+    """
+    if not user:
+        return list(_cmd_aliases.keys())
+    return [a for a in _cmd_aliases if _cmd_aliases[a].user_generated]
+
+
+def expand_alias(name):
+    """Return expanded version of named alias"""
+    if name not in _cmd_aliases:
+        return None
+    return _cmd_aliases[name].original_text
+
+
+def create_alias(name, text, *, user=False, logger=None):
     """Create command alias
 
-    :param name: optional name of the alias
-    :param text: optional text of the alias
+    :param name: name of the alias
+    :param text: text of the alias
+    :param user: boolean, true if user created alias
+    :param logger: optional logger
 
     If the alias name is not given, then a text list of all the aliases is
-    returned.  If alias text is not given, the the text of the named alias
+    returned.  If alias text is not given, the text of the named alias
     is returned.  If both arguments are given, then a new alias is made.
     """
-    logger = session.logger if session else None
-    if not name:
-        # list aliases
-        names = ', '.join(_cmd_aliases)
-        if names:
-            if logger is not None:
-                logger.info('Aliases: %s' % names)
-        else:
-            if logger is not None:
-                logger.status('No aliases.')
-        return
-    if not text:
-        if logger is not None:
-            if name not in _cmd_aliases:
-                logger.status('No alias named %s found.' % _dq_repr(name))
-            else:
-                logger.info('Aliased %s to %s' % (
-                    _dq_repr(name),
-                    _dq_repr(_cmd_aliases[name].original_text)))
-        return
     name = ' '.join(name.split())   # canonicalize
-    cmd = Alias(text)
+    cmd = Alias(text, user=user)
     tmp = Command(None)
     tmp.current_text = text
     tmp._find_command_name(True)
@@ -1997,19 +2327,24 @@ def alias(session, name='', text=''):
     _cmd_aliases[name] = cmd
 
 
-@register('~alias', CmdDesc(required=[('name', StringArg)]))
-def unalias(session, name):
+def remove_alias(name=None):
     """Remove command alias
 
     :param name: name of the alias
+
+    If no name is given, then all user generated aliases are removed.
     """
-    # remove command alias
+    if name is None:
+        for name, alias in _cmd_aliases.items():
+            if alias.user_generated:
+                unalias(name)
+        return
     words = name.split()
     name = ' '.join(words)  # canonicalize
     try:
         del _cmd_aliases[name]
     except KeyError:
-        raise UserError('No alias named %s exists' % _dq_repr(name))
+        raise UserError('No alias named %s exists' % dq_repr(name))
 
     cmd_map = _commands
     for word in words[:-1]:
@@ -2026,6 +2361,8 @@ def unalias(session, name):
     if previous_cmd:
         del _aliased_commands[name]
         cmd_map[word] = previous_cmd
+        if isinstance(previous_cmd.function, Alias):
+            _cmd_aliases[name] = previous_cmd.function
         return
     del cmd_map[word]
 
@@ -2178,9 +2515,9 @@ if __name__ == '__main__':
             ("colors", ListOf(ColorArg)),
             ("offsets", ListOf(FloatArg)),
         ),
+        required_arguments=("colors", "offsets"),
         postconditions=(
             SameSize('colors', 'offsets'),
-            RequiredArgs("colors", "offsets")
         )
     )
 

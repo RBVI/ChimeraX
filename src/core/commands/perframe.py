@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def perframe(session, command, frames = None, interval = 1, format = None,
              zero_pad_width = None, range = None, show_commands = False):
@@ -39,14 +39,12 @@ def perframe(session, command, frames = None, interval = 1, format = None,
         'show_commands': show_commands,
         'frame_num': 1,
     }
-    def cb(data = data, session = session):
+    def cb(*_, data = data, session = session):
         _perframe_callback(data, session)
-    data['callback'] = cb
-    v = session.main_view
-    v.add_callback('new frame', cb)
-    if not hasattr(session, 'perframe_callbacks'):
-        session.perframe_callbacks = set()
-    session.perframe_callbacks.add(cb)
+    data['handler'] = session.triggers.add_handler('new frame', cb)
+    if not hasattr(session, 'perframe_handlers'):
+        session.perframe_handlers = set()
+    session.perframe_handlers.add(data['handler'])
 
 def register_command(session):
 
@@ -80,7 +78,7 @@ def _perframe_callback(data, session):
     try:
         alias(session, *args, echo_tag=tag)
     except:
-        stop_perframe_callbacks(session, [d['callback']])
+        stop_perframe_callbacks(session, [d['handler']])
         if alias.cmd is not None:
             cmd_text = alias.cmd.current_text
         else:
@@ -90,7 +88,7 @@ def _perframe_callback(data, session):
                                % (cmd_text, sys.exc_info()[1]))
         return
     if stop or (frames is not None and frame_num >= frames):
-        stop_perframe_callbacks(session, [d['callback']])
+        stop_perframe_callbacks(session, [d['handler']])
     else:
         d['frame_num'] = frame_num + 1
 
@@ -123,18 +121,17 @@ def _perframe_args(frame_num, frames, ranges, format, zero_pad_width):
         args.append(fmt % frame_num)
     return args, stop
 
-def stop_perframe_callbacks(session, callbacks = None):
+def stop_perframe_callbacks(session, handlers = None):
 
-    if not hasattr(session, 'perframe_callbacks'):
+    if not hasattr(session, 'perframe_handlers'):
         from .. import errors
         raise errors.UserError("No per-frame command active")
-    pfcb = session.perframe_callbacks
-    if callbacks is None:
-        callbacks = tuple(pfcb)
-    for cb in callbacks:
-        v = session.main_view
-        v.remove_callback('new frame', cb)
-        pfcb.remove(cb)
+    pfh = session.perframe_handlers
+    if handlers is None:
+        handlers = tuple(pfh)
+    for h in handlers:
+        session.triggers.delete_handler(h)
+        pfh.remove(h)
 
 # -----------------------------------------------------------------------------
 #

@@ -63,12 +63,14 @@ def movie_record(session, directory = None, pattern = None, format = None,
     ----------
     directory : string
       A temporary directory for saving image files before the movie is encoded.
-      By default a temporary system directory is created.
+      If a directory is specified, it must already exist -- it will not be created.
+      If no directory is specified a temporary system directory is created.
     pattern : string
-      File name including a printf style specification like "%04d" for the frame number
-      for saving images.
+      File name including a "*" character that is substituted with the frame number
+      when saving images.
     format : string
-      Image file format (default ppm) for saving frames.
+      Image file format (default ppm) for saving frames. Possible values ppm, png, jpeg.
+      ppm is fastest but takes the most disk space because it is not compressed.
     size : 2 int
       Width and height in pixels of movie.
     supersample : int
@@ -117,8 +119,6 @@ def movie_record(session, directory = None, pattern = None, format = None,
 
 def ignore_movie_commands(session):
     ignore = getattr(session, 'ignore_movie_commands', False)
-    if ignore:
-        session.logger.info('Ignoring command: %s %s' % (cmdname, args))
     return ignore
 
 def movie_encode(session, output=None, format=None, quality=None, qscale=None, bitrate=None,
@@ -133,6 +133,8 @@ def movie_encode(session, output=None, format=None, quality=None, qscale=None, b
       formats can be made.
     format : string
       Format of video file to write.  If not specified, the file suffix determines the format.
+      Use of a .mp4 file suffix and h264 format is by far the best choice.
+      Allowed formats (file suffix) are: h264 (.mp4), mov (.mov), avi (.avi), wmv (.wmv).
     quality : string
       Quality of video, higher quality results in larger file size.  Qualities are "highest",
       "higher", "high", "good", "medium", "fair", "low".  Default "good".  This overrides
@@ -154,6 +156,9 @@ def movie_encode(session, output=None, format=None, quality=None, qscale=None, b
       Whether to wait until movie encoding is finished before the command returns.
       Default false means the command can return before the video encoding is complete.
     '''
+    if ignore_movie_commands(session):
+        return
+
     if not output is None:
         from .movie import RESET_NONE
         for o in output[:-1]:
@@ -180,6 +185,12 @@ def encode_op(session, output=None, format=None, quality=None, qscale=None, bitr
     if format is None:
         if output:
             format = format_from_file_suffix(output)
+            if format is None:
+                suffixes = set(fmt['suffix'] for fmt in formats.formats.values())
+                sufs = ', '.join('*.%s' % s for s in suffixes)
+                from os.path import basename
+                raise CommandError('Unrecognized movie file suffix %s, use %s'
+                                   % (basename(output), sufs))
     if format is None:
         fmt_name = formats.default_video_format
     elif format.lower() in formats.formats:
@@ -216,23 +227,33 @@ def movie_crossfade(session, frames=25):
     '''Linear interpolate between the current graphics image and the next image
     over a specified number of frames.
     '''
+    if ignore_movie_commands(session) or no_movie(session):
+        return
     session.movie.postprocess('crossfade', frames)
 
 def movie_duplicate(session, frames=25):
     '''Repeat the current image frame a specified number of frames
     so that the video does not change during playback.'''
+    if ignore_movie_commands(session) or no_movie(session):
+        return
     session.movie.postprocess('duplicate', frames)
 
 def movie_stop(session):
     '''Stop recording video frames. Using the movie encode command also stops recording.'''
+    if ignore_movie_commands(session) or no_movie(session):
+        return
     session.movie.stop_recording()
 
 def movie_abort(session):
     '''Stop movie recording and delete any recorded frames.'''
+    if ignore_movie_commands(session) or no_movie(session):
+        return
     session.movie.stop_encoding()
 
 def movie_reset(session, reset_mode = RESET_CLEAR):
     '''Clear images saved with movie record.'''
+    if ignore_movie_commands(session) or no_movie(session):
+        return
     clr = (reset_mode == RESET_CLEAR)
     session.movie.resetRecorder(clearFrames=clr)
 
@@ -240,16 +261,28 @@ def movie_ignore(session, ignore = True):
     '''Ignore subsequent movie commands except for the movie ignore command.
     This can be used to run a movie recording script without recording
     the movie.'''
-    session.ignore_movie_commands = ignore
+    session.replace_attribute('ignore_movie_commands', ignore)
+
+def ignore_movie_commands(session):
+    ignore = getattr(session, 'ignore_movie_commands', False)
+    return ignore
+
+def no_movie(session):
+    if not hasattr(session, 'movie') or session.movie is None:
+        session.logger.warning('No movie being recorded.')
+        return True
+    return False
 
 def movie_status(session):
     '''Report recording status such as number of frames saved to the log.'''
+    if ignore_movie_commands(session) or no_movie(session):
+        return
     session.movie.dumpStatusInfo()
 
 def movie_formats(session):
     '''Report the available video formats to the log.'''
     from . import formats
-    flist = '\n'.join('\t%s\t=\t %s (.%s)' % (n, f['label'], f['suffix'])
+    flist = '\n'.join('\t%s\t=\t %s (.%s)' % (name, f['label'], f['suffix'])
                       for name, f in formats.formats.items())
     fnames = ' '.join(f for f in formats.formats.keys())
     session.logger.info('Movie encoding formats:\n%s\n' % flist)

@@ -64,8 +64,15 @@ setup(
         # Example:
         # "Chimera-Tool :: cmd_line :: chimera.cmd_line "
         # ":: Command Line Interface :: command_line :: General"
-        "Chimera-Tool :: TOOL_NAME :: TOOL_PKG_NAME "
-        ":: TOOL_DISPLAY_NAME :: COMMAND_NAME :: TOOL_CATEGORY "
-        ":: TOOL_SYNOPSIS",
+        "Chimera-Tool "             # Chimera2 metadata
+        ":: TOOL_NAME"              # tool name
+        ":: TOOL_PKG_NAME "         # package name
+        ":: TOOL_DISPLAY_NAME"      # display name
+        ":: COMMAND_NAME"           # commands
+        ":: TOOL_CATEGORY "         # menu categories
+        ":: TOOL_FILE_TYPES"        # file types
+        ":: TOOL_SESSION_VERSIONS"  # session min/max versions
+        ":: TOOL_CUSTOM_INIT "      # has custom initialization code
+        ":: TOOL_SYNOPSIS",         # synopsis
     ],
 )

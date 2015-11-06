@@ -1,4 +1,6 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
+
+from chimera.core.tools import ToolInstance
 
 _PageTemplate = """<html>
 <head>
@@ -39,17 +41,15 @@ _SHOW_LINK = '<a href="toolshed:_show_tool:%s" class="show">show</a>'
 _HIDE_LINK = '<a href="toolshed:_hide_tool:%s" class="hide">hide</a>'
 _KILL_LINK = '<a href="toolshed:_kill_tool:%s" class="kill">kill</a>'
 
-from chimera.core.tools import ToolInstance
-
 
 class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
     SIZE = (800, 50)
-    VERSION = 1
 
-    def __init__(self, session, tool_info, **kw):
-        super().__init__(session, tool_info, **kw)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
         from chimera.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
@@ -57,7 +57,7 @@ class ToolshedUI(ToolInstance):
         import wx
         self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
         self.webview.EnableContextMenu(False)
-        #self.webview.EnableHistory(False)
+        # self.webview.EnableHistory(False)
         self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING,
                           self._on_navigating,
                           id=self.webview.GetId())
@@ -70,7 +70,6 @@ class ToolshedUI(ToolInstance):
                                                        self._make_page),
                           session.triggers.add_handler(REMOVE_TOOL_INSTANCE,
                                                        self._make_page)]
-        session.tools.add([self])
 
     def _on_navigating(self, event):
         session = self.session
@@ -205,26 +204,30 @@ class ToolshedUI(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        version = self.VERSION
-        data = {"shown": self.tool_window.shown}
-        return [version, data]
+    def take_snapshot(self, session, flags):
+        data = {
+            "ti": ToolInstance.take_snapshot(self, session, flags),
+            "shown": self.tool_window.shown
+        }
+        return self.tool_info.session_write_version, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State, RestoreError
-        if version != self.VERSION:
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        if phase == self.CREATE_PHASE:
-            # Restore all basic-type attributes
-            pass
-        else:
-            # Resolve references to objects
-            self.display(data["shown"])
+        ti_version, ti_data = data["ti"]
+        ToolInstance.restore_snapshot_init(
+            self, session, tool_info, ti_version, ti_data)
+        self.__init__(session, tool_info, restoring=True)
+        self.display(data["shown"])
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass
+
+    @classmethod
+    def get_singleton(self, session):
+        from chimera.core import tools
+        return tools.get_singleton(session, ToolshedUI, 'toolshed')
 
     #
     # Override ToolInstance methods

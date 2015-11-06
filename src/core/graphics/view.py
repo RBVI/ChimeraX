@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 View
 ====
@@ -10,37 +10,32 @@ class View:
     A View is the graphics windows that shows 3-dimensional drawings.
     It manages the camera and renders the drawing when needed.
     '''
-    VIEW_STATE_VERSION = 1
+    def __init__(self, drawing, *, window_size = (256,256), opengl_context = None,
+                 trigger_set = None):
 
-    def __init__(self, drawing, window_size, opengl_context, log, track=True):
-
+        self.triggers = trigger_set
         self.drawing = drawing
-        self.log = log
         self.window_size = window_size		# pixels
-        self._opengl_context = opengl_context
+        self._opengl_context = None
+        self._render = None
+
+        if opengl_context:
+            self.initialize_context(opengl_context)
+        self._opengl_initialized = False
 
         # Red, green, blue, opacity, 0-1 range.
-        try:
-            from ..core_settings import settings
-            self._background_rgba = settings.bg_color.rgba
-        except ImportError:
-            self._background_rgba = (0, 0, 0, 1)
+        self._background_rgba = (0, 0, 0, 1)
 
         # Create camera
-        from .camera import Camera
-        self.camera = Camera()
-        '''The camera controlling the vantage shown in the graphics window.'''
+        from .camera import MonoCamera
+        self._camera = MonoCamera()
+        self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
 
-        if opengl_context is None:
-            self._render = None
-        else:
-            from .opengl import Render
-            self._render = Render()
-        self._opengl_initialized = False
+        # Shadows
         self._shadows = False
         self._shadow_map_size = 2048
         self._shadow_depth_bias = 0.005
-        self._multishadow = 0                    # Number of shadows
+        self._multishadow = 0                   # Number of shadows
         self._multishadow_map_size = 128
         self._multishadow_depth_bias = 0.05
         self._multishadow_dir = None
@@ -48,65 +43,39 @@ class View:
         self._multishadow_depth = None
         self._multishadow_update_needed = False
 
+        # Silhouette edges
         self.silhouettes = False
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0, 0, 0, 1)    # black
         self.silhouette_depth_jump = 0.03       # fraction of scene depth
 
+        # Graphics overlays, used for example for crossfade
+        self._overlays = []
+        self._2d_overlays = []
+
+        # Center of rotation
+        from numpy import array, float32
+        self._center_of_rotation = array((0, 0, 0), float32)
+        self._update_center_of_rotation = False
+        self._center_of_rotation_method = 'front center'
+
+        # Redrawing
         self.frame_number = 1
         self.redraw_needed = True
         self._time_graphics = False
         self.update_lighting = False
-        self._block_redraw_count = 0
-        self._callbacks = {'new frame':[], 'graphics update': [],
-                           'rendered frame':[], 'shape changed':[]}
-
-        self._overlays = []
-        self._2d_overlays = []
-
-        from numpy import array, float32
-        self._center_of_rotation = array((0, 0, 0), float32)
-        self._update_center_of_rotation = False
 
         self._drawing_manager = dm = _RedrawNeeded()
-        if track:
-            drawing.set_redraw_callback(dm)
-
-    def take_snapshot(self, phase, session, flags):
-        from ..session import State
-        if phase == State.SAVE_PHASE:
-            data = [self.center_of_rotation, self.window_size,
-                    self.background_color,
-                    self.camera.take_snapshot(session, phase, flags)]
-            return [self.VIEW_STATE_VERSION, data]
-        if phase == State.CLEANUP_PHASE:
-            self.camera.take_snapshot(session, phase, flags)
-
-    def restore_snapshot(self, phase, session, version, data):
-        from ..session import State, RestoreError
-        if version != self.VIEW_STATE_VERSION or len(data) == 0:
-            raise RestoreError("Unexpected version or data")
-        if phase == State.CREATE_PHASE:
-            (self.center_of_rotation, self.window_size,
-             self.background_color) = data[:3]
-            from .camera import Camera
-            self.camera = Camera()
-        self.camera.restore_snapshot(phase, session, data[3][0], data[3][1])
-
-    def reset_state(self):
-        """Reset state to data-less state"""
-        from numpy import array, float32
-        self.center_of_rotation = array((0, 0, 0), float32)
-        # self.window_size = ?
-        self.background_color = (0, 0, 0, 1)
+        if trigger_set:
+            self.drawing.set_redraw_callback(dm)
 
     def initialize_context(self, oc):
-        """"""
         if self._opengl_context is not None:
             raise ValueError("OpenGL context is alread set")
         self._opengl_context = oc
         from .opengl import Render
         self._render = Render()
+        self.depth_cue = True
 
     def opengl_context(self):
         return self._opengl_context
@@ -135,40 +104,27 @@ class View:
         w, h = self.window_size
         r.initialize_opengl(w, h)
 
-    def draw_new_frame(self):
-        '''
-        Draw the scene if it has changed or camera or rendering options have changed.
-        Before checking if the scene has changed call the "new frame" callbacks
-        typically used by movie recording to animate such as rotating the view, fading
-        models in and out, ....  If the scene is drawn call the "rendered frame" callbacks
-        after drawing.  Return true if draw, otherwise false.
-        '''
-        if self._block_redraw_count > 0:
-            # Avoid redrawing during callbacks of the current redraw.
-            return False
-        
-        self._block_redraw()
-        try:
-            self._call_callbacks('new frame')
-            changed = self._check_for_drawing_change()
-            if changed:
-                self.draw(check_for_changes = False)
-                self._call_callbacks('rendered frame')
-        finally:
-            self._unblock_redraw()
+    def _get_camera(self):
+        return self._camera
+    def _set_camera(self, camera):
+        c = self._camera
+        c.clear_special_render_modes(self._render)
+        camera.position = c.position
+        self._camera = camera
+        camera.set_special_render_modes(self._render)
+        self.redraw_needed = True
+    camera = property(_get_camera, _set_camera)
+    '''The Camera controlling the vantage shown in the graphics window.'''
 
-        self.frame_number += 1
-
-        return changed
-
-    def draw(self, camera = None, drawings = None, check_for_changes = True, swap_buffers = True):
+    def draw(self, camera = None, drawings = None,
+             check_for_changes = True, swap_buffers = True):
         '''
         Draw the scene.
         '''
         self._use_opengl()
 
         if check_for_changes:
-            self._check_for_drawing_change()
+            self.check_for_drawing_change()
 
         if camera is None:
             camera = self.camera
@@ -242,12 +198,14 @@ class View:
             draw_2d_overlays(self._2d_overlays, r)
 
         if swap_buffers:
-            if self.camera.mode.do_swap_buffers():
+            if self.camera.do_swap_buffers():
                 self._opengl_context.swap_buffers()
             self.redraw_needed = False
 
-    def _check_for_drawing_change(self):
-        self._call_callbacks('graphics update')
+    def check_for_drawing_change(self):
+        trig = self.triggers
+        if trig:
+            trig.activate_trigger('graphics update', self)
 
         c = self.camera
         dm = self._drawing_manager
@@ -256,7 +214,8 @@ class View:
             return False
 
         if dm.shape_changed:
-            self._call_callbacks('shape changed')	# Used for updating pseudobond graphics
+            if trig:
+                trig.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
             self._update_center_of_rotation = True
 
         if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
@@ -270,18 +229,12 @@ class View:
 
         return True
 
-    def _block_redraw(self):
-        # Avoid redrawing when we are already in the middle of drawing.
-        self._block_redraw_count += 1
-
-    def _unblock_redraw(self):
-        self._block_redraw_count -= 1
-
     def get_background_color(self):
         return self._background_rgba
 
     def set_background_color(self, rgba):
-        self._background_rgba = tuple(rgba)
+        import numpy
+        self._background_rgba = numpy.asarray(rgba, dtype=numpy.float32)
         self.redraw_needed = True
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
@@ -294,19 +247,18 @@ class View:
         '''Material reflectivity parameters.'''
         return self._render.material
 
-    def enable_depth_cue(self, enable):
-        '''Turn on or off dimming with depth.'''
+    def get_depth_cue(self):
+        r = self._render
+        return bool(r.enable_capabilities & r.SHADER_DEPTH_CUE)
+    def set_depth_cue(self, enable):
         r = self._render
         if enable:
             r.enable_capabilities |= r.SHADER_DEPTH_CUE
         else:
             r.enable_capabilities &= ~r.SHADER_DEPTH_CUE
         self.redraw_needed = True
-
-    def depth_cue_enabled(self):
-        '''Is depth cue enabled. Boolean value.'''
-        r = self._render
-        return bool(r.enable_capabilities & r.SHADER_DEPTH_CUE)
+    depth_cue = property(get_depth_cue, set_depth_cue)
+    '''Is dimming with depth enabled. Boolean value.'''
 
     def get_shadows(self):
         return self._shadows
@@ -474,10 +426,10 @@ class View:
             s0 = -0.5 + 0.5 * s
             for i in range(n):
                 for j in range(n):
-                    c.pixel_shift = (s0 + i * s, s0 + j * s)
+                    c.set_pixel_shift((s0 + i * s, s0 + j * s))
                     self.draw(c, drawings, swap_buffers = False)
                     srgba += r.frame_buffer_image(w, h)
-            c.pixel_shift = (0, 0)
+            c.set_pixel_shift((0, 0))
             srgba /= n * n
             # third index 0, 1, 2, 3 is r, g, b, a
             rgba = srgba.astype(uint8)
@@ -528,16 +480,17 @@ class View:
             return ((vw * h) // vh, h)
         return (vw, vh)
 
-    def report_framerate(self, time=None, monitor_period=1.0):
+    def report_framerate(self, report_rate, monitor_period=1.0, _minimum_render_time=None):
         '''
         Report a status message giving the current rendering rate in
         frames per second.  This is computed without the vertical sync
         which normally limits the frame rate to typically 60 frames
         per second.  The minimum drawing time used over a one second
-        interval is used. The message is shown in the status line and
-        log after the one second has elapsed.
+        interval is used. The report_rate function is called with
+        the frame rate in frames per second.
         '''
-        if time is None:
+        if _minimum_render_time is None:
+            self._framerate_callback = report_rate
             from time import time
             self._time_graphics = time() + monitor_period
             self.minimum_render_time = None
@@ -545,10 +498,7 @@ class View:
             self.redraw_needed = True
         else:
             self._time_graphics = 0
-            msg = '%.1f frames/sec' % (1.0 / time,)
-            l = self.log
-            l.status(msg)
-            l.info(msg)
+            self._framerate_callback(1.0/_minimum_render_time)
 
     def _start_timing(self):
         if self._time_graphics:
@@ -566,7 +516,7 @@ class View:
             if mint is None or rt < mint:
                 self.minimum_render_time = mint = rt
             if t > self._time_graphics:
-                self.report_framerate(mint)
+                self.report_framerate(None, _minimum_render_time = mint)
             else:
                 self.redraw_needed = True
 
@@ -578,31 +528,6 @@ class View:
         tracking and graphics update.
         '''
         self._render.finish_rendering()
-
-    def add_callback(self, type, cb):
-        '''Add a function to be called before each redraw (type = "new frame"),
-        before each redraw after new frame callbacks (type = "graphics update"),
-        after each redraw (type = "rendered frame"), or before redrawing when the
-        shape has changed (type = "shape changed").  The callback functions
-        take no arguments.'''
-        if cb in self._callbacks[type]:
-            raise RuntimeError('Callback already in callback list when adding %s' % type)
-        self._callbacks[type].append(cb)
-
-    def remove_callback(self, type, cb):
-        '''Remove a callback that was added with add_callback().'''
-        self._callbacks[type].remove(cb)
-
-    def _call_callbacks(self, type):
-        cbs = tuple(self._callbacks[type])
-        for cb in cbs:
-            try:
-                cb()
-            except:
-                import traceback
-                self.log.warning('%s callback raised error\n%s'
-                                 % (type, traceback.format_exc()))
-                self.remove_callback(type, cb)
 
     def _multishadow_directions(self):
 
@@ -694,7 +619,7 @@ class View:
         '''Return bounds of drawing, displayed part only.'''
         dm = self._drawing_manager
         b = dm.cached_drawing_bounds
-        if b is None or self._check_for_drawing_change():
+        if b is None or self.check_for_drawing_change():
             dm.cached_drawing_bounds = b = self.drawing.bounds()
         return b
 
@@ -712,17 +637,23 @@ class View:
         b = self.drawing_bounds()
         if b is None:
             return
-        self.camera.initialize_view(b.center(), b.width())
-        self.center_of_rotation = b.center()
+        c = self.camera
+        from ..geometry import identity
+        c.position = identity()
+        c.view_all(b.center(), b.width())
+        self._center_of_rotation = b.center()
+        self._update_center_of_rotation = True
 
-    def view_all(self):
+    def view_all(self, bounds = None):
         '''Adjust the camera to show all displayed drawings using the
         current view direction.'''
-        b = self.drawing_bounds()
-        if b is None:
-            return
-        shift = self.camera.view_all(b.center(), b.width())
-        self.translate(-shift)
+        if bounds is None:
+            bounds = self.drawing_bounds()
+            if bounds is None:
+                return
+        self.camera.view_all(bounds.center(), bounds.width())
+        if self._center_of_rotation_method == 'front center':
+            self._update_center_of_rotation = True
 
     def _get_cofr(self):
         if self._update_center_of_rotation:
@@ -733,8 +664,16 @@ class View:
         return self._center_of_rotation
     def _set_cofr(self, cofr):
         self._center_of_rotation = cofr
+        self._center_of_rotation_method = 'fixed'
         self._update_center_of_rotation = False
     center_of_rotation = property(_get_cofr, _set_cofr)
+
+    def _get_cofr_method(self):
+        return self._center_of_rotation_method
+    def _set_cofr_method(self, method):
+        self._center_of_rotation_method = method
+        self._update_center_of_rotation = True
+    center_of_rotation_method = property(_get_cofr_method, _set_cofr_method)
 
     def _compute_center_of_rotation(self):
         '''
@@ -742,19 +681,29 @@ class View:
         Use bounding box center if zoomed out, or the front center
         point if zoomed in.
         '''
-        self._update_center = False
+        m = self._center_of_rotation_method
+        if m == 'front center':
+            p = self._front_center_cofr()
+        elif m == 'fixed':
+            p = self._center_of_rotation
+        return p
+
+    def _front_center_cofr(self):
+        '''
+        Compute the center of rotation of displayed drawings.
+        Use bounding box center if zoomed out, or the front center
+        point if zoomed in.
+        '''
         b = self.drawing_bounds()
         if b is None:
             return
         vw = self.camera.view_width(b.center())
-        if vw >= b.width():
+        if vw is None or vw >= b.width():
             # Use center of drawings for zoomed out views
             cr = b.center()
         else:
             # Use front center point for zoomed in views
-            cr = self._front_center_point()
-            if cr is None:
-                return None
+            cr = self._front_center_point()	# Can be None
         return cr
 
     def _front_center_point(self):
@@ -771,6 +720,8 @@ class View:
         to get a description of that object.
         '''
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
+        if xyz1 is None or xyz2 is None:
+            return None
         p = self.drawing.first_intercept(xyz1, xyz2, exclude='is_outline_box')
         if p is None:
             return None
@@ -787,8 +738,11 @@ class View:
 
         c = self.camera if camera is None else camera
         near, far = self._near_far_clip(c, view_num)
+        # TODO: Different camera views need to use same near/far if they are part of
+        # a cube map, otherwise depth cue dimming is not continuous across cube faces.
         pm = c.projection_matrix((near, far), view_num, (ww, wh))
         r.set_projection_matrix(pm)
+        r.set_near_far_clip(near, far)
 
         return near / far
 
@@ -801,8 +755,8 @@ class View:
         if b is None:
             return 0.001, 1  # Nothing shown
         d = sum((b.center() - cp) * vd)         # camera to center of drawings
-        w = b.width()
-        near, far = (d - w, d + w)
+        r = (1 + self._near_far_pad) * b.radius()
+        near, far = (d - r, d + r)
 
         # Clamp near clip > 0.
         near_min = 0.001 * (far - near) if far > near else 1
@@ -812,16 +766,14 @@ class View:
 
         return (near, far)
 
-    def clip_plane_points(self, window_x, window_y, camera=None,
-                          view_num=None):
+    def clip_plane_points(self, window_x, window_y, camera=None, view_num=None):
         '''
         Return two scene points at the near and far clip planes at
         the specified window pixel position.  The points are in scene
         coordinates.  '''
         c = camera if camera else self.camera
         nf = self._near_far_clip(c, view_num)
-        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size,
-                                        nf, self._render)
+        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf)
         return scene_pts
 
     def rotate(self, axis, angle, drawings=None):
@@ -845,7 +797,8 @@ class View:
     def translate(self, shift, drawings=None):
         '''Move camera to simulate a translation of drawings.  Translation
         is in scene coordinates.'''
-        self._update_center_of_rotation = True
+        if self._center_of_rotation_method == 'front center':
+            self._update_center_of_rotation = True
         from ..geometry import place
         t = place.translation(shift)
         self.move(t, drawings)
@@ -862,11 +815,10 @@ class View:
         self.redraw_needed = True
 
     def pixel_size(self, p=None):
-        '''Return the pixel size in scene length units at point p in
-        the scene.'''
+        "Return the pixel size in scene length units at point p in the scene."
         if p is None:
             p = self.center_of_rotation
-        return self.camera.pixel_size(p, self.window_size)
+        return self.camera.view_width(p) / self.window_size[0]
 
 
 class OpenGLContext:

@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 molarray: Collections of molecular objects
 ==========================================
@@ -18,7 +19,7 @@ done using arrays of attributes.  To get a list of atoms use list(x) where
 x is an Atoms collection. Collections behave as Python iterators so constructs
 such as a "for" loop over an Atoms collection is valid: "for a in atoms: ...".
 
-There are collections Atoms, Bonds, Pseudobonds, Residues, Chains, AtomicStructureDatas.
+There are collections Atoms, Bonds, Pseudobonds, Residues, Chains, AtomicStructures.
 
 Some attributes return collections instead of numpy arrays.  For example,
 atoms.residues returns a Residues collection that has one residue for each atom
@@ -43,11 +44,17 @@ def _atoms(a):
     return Atoms(a)
 def _bonds(a):
     return Bonds(a)
+def _pseudobonds(a):
+	return Pseudobonds(a)
+def _elements(a):
+    return Elements(a)
 def _residues(a):
     return Residues(a)
 def _chains(a):
     return Chains(a)
 def _atomic_structures(p):
+    return AtomicStructures(p)
+def _atomic_structure_datas(p):
     return AtomicStructureDatas(p)
 def _residues(p):
     return Residues(p)
@@ -77,13 +84,16 @@ class Collection:
         remove_deleted_pointers(pointers)
 
     def __eq__(self, atoms):
-        return (atoms._pointers == self._pointers).all()
+        import numpy
+        return numpy.array_equal(atoms._pointers, self._pointers)
     def hash(self):
         from hashlib import sha1
         return sha1(self._pointers.view(uint8)).digest()
     def __len__(self):
         '''Number of objects in collection.'''
         return len(self._pointers)
+    def __bool__(self):
+        return len(self) > 0
     def __iter__(self):
         '''Iterator over collection objects.'''
         if not hasattr(self, '_object_list'):
@@ -104,6 +114,16 @@ class Collection:
                        ret = ctypes.c_ssize_t)
         i = f(self._c_pointers, len(self), object._c_pointer)
         return i
+
+    @property
+    def object_class(self):
+        return self._object_class
+    @property
+    def objects_class(self):
+        return self._objects_class
+    @property
+    def pointers(self):
+        return self._pointers
 
     def __or__(self, objects):
         '''The or operator | takes the union of two collections removing duplicates.'''
@@ -167,7 +187,7 @@ class Collection:
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
 
-def concatenate(collections):
+def concatenate(collections, object_class = None):
     '''Concatenate any number of collections returning a new collection.
     All collections must have the same type.
     
@@ -175,9 +195,12 @@ def concatenate(collections):
     ----------
     collections : sequence of :class:`.Collection` objects
     '''
-    cl = collections[0]._objects_class
-    from numpy import concatenate as concat
-    c = cl(concat([a._pointers for a in collections]))
+    cl = collections[0]._objects_class if object_class is None else object_class
+    if len(collections) == 0:
+        c = object_class()
+    else:
+        from numpy import concatenate as concat
+        c = cl(concat([a._pointers for a in collections]))
     return c
 
 # -----------------------------------------------------------------------------
@@ -217,7 +240,7 @@ class Atoms(Collection):
     Returns whether the Atoms should be visible (displayed and not hidden).
     Returns a :mod:`numpy` array of boolean values.  Read only.
     '''
-    draw_modes = cvec_property('atom_draw_mode', int32)
+    draw_modes = cvec_property('atom_draw_mode', uint8)
     '''
     Controls how the Atoms should be depicted, *e.g.* sphere,
     ball, *etc.*  The values are integers, SPHERE_STYLE, BALL_STYLE
@@ -225,6 +248,12 @@ class Atoms(Collection):
     Returns a :mod:`numpy` array of integers.  Can be
     set with such an array (or equivalent sequence), or with a
     single integer value.
+    '''
+    elements = cvec_property('atom_element', cptr, astype = _elements, read_only = True)
+    '''
+    Returns a :class:`Elements` whose data items
+    correspond in a 1-to-1 fashion with the items in the Atoms.
+    Read only. 
     '''
     element_names = cvec_property('atom_element_name', string, read_only = True)
     '''Returns a numpy array of chemical element names. Read only.'''
@@ -234,8 +263,10 @@ class Atoms(Collection):
     '''Whether each atom belong to a polymer. Returns numpy bool array. Read only.'''
     structures = cvec_property('atom_structure', cptr, astype = _atomic_structures, read_only = True)
     '''Returns an :class:`.AtomicStructureDatas` with the structure for each atom. Read only.'''
-    names = cvec_property('atom_name', string, read_only = True)
-    '''Returns a numpy array of atom names. Read only.'''
+    names = cvec_property('atom_name', string)
+    '''Returns a numpy array of atom names.  Canbe
+    set with such an array (or equivalent sequence), or with a single
+    string.  Atom names are limited to 4 characters.'''
     radii = cvec_property('atom_radius', float32)
     '''
     Returns a :mod:`numpy` array of atomic radii.  Can be
@@ -250,6 +281,8 @@ class Atoms(Collection):
     '''
     selected = cvec_property('atom_selected', npy_bool)
     '''numpy bool array whether each atom is selected.'''
+    structure_categories = cvec_property('atom_structure_category', string, read_only=True)
+    '''Numpy array of whether atom is ligand, ion, etc.'''
 
     @property
     def num_selected(self):
@@ -266,6 +299,12 @@ class Atoms(Collection):
     def unique_residues(self):
         '''The unique :class:`Residues` for these atoms.'''
         return Residues(unique(self.residues._pointers))
+
+    @property
+    def inter_bonds(self):
+        ''':class:`Bonds object` where both atoms are in this collection'''
+        f = c_function('atom_inter_bonds', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
+        return Bonds(f(self._c_pointers, len(self)))
 
     @property
     def by_structure(self):
@@ -305,10 +344,39 @@ class Atoms(Collection):
         f(self._c_pointers, n, mols._c_pointers, len(mols), pointer(mtable), pointer(xyz))
         return xyz
 
+    @property
+    def scene_bounds(self):
+        '''Return scene bounds of atoms including instances of all parent models.'''
+        blist = []
+        from ..geometry import sphere_bounds, copy_tree_bounds, union_bounds
+        for m, a in self.by_structure:
+            ba = sphere_bounds(a.coords, a.radii)
+            ib = copy_tree_bounds(ba, [d.positions for d in m.drawing_lineage])
+            blist.append(ib)
+        return union_bounds(blist)
+
+    @property
+    def shown_atoms(self):
+        '''
+        Subset of Atoms including atoms that are displayed with
+        displayed structure and displayed parents.
+        '''
+        da = self.filter(self.displays | self.residues.ribbon_displays)
+        datoms = concatenate([a for m, a in da.by_structure
+                              if m.display and m.parents_displayed], Atoms)
+        return datoms
+
     def delete(self):
         '''Delete the C++ Atom objects'''
         mols = self.unique_structures
         c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
+    def update_ribbon_visibility(self):
+        '''Update the 'hide' status for ribbon control point atoms, which
+	are hidden unless any of its neighbors are visible.'''
+        f = c_function('atom_update_ribbon_visibility',
+                       args = [ctypes.c_void_p, ctypes.c_size_t])
+        f(self._c_pointers, len(self))
 
 # -----------------------------------------------------------------------------
 #
@@ -318,7 +386,7 @@ class Bonds(Collection):
 
     Collection of C++ bonds.
     '''
-    def __init__(self, bond_pointers):
+    def __init__(self, bond_pointers = None):
         Collection.__init__(self, bond_pointers, molobject.Bond, Bonds)
 
     atoms = cvec_property('bond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
@@ -333,14 +401,13 @@ class Bonds(Collection):
     set with such an array (or equivalent sequence), or with a single
     RGBA value.
     '''
-    displays = cvec_property('bond_display', int32)
+    displays = cvec_property('bond_display', npy_bool)
     '''
     Controls whether the Bonds should be displayed.
-    The values are integers defined in the :class:`.Bond` class.
-    TODO: No values are defined and value not used for rendering.
-    Returns a :mod:`numpy` array of integers.  Can be
+    Returns a :mod:`numpy` array of bool.  Can be
     set with such an array (or equivalent sequence), or with a
-    single integer value.
+    single value.  Bonds are shown only if display is
+    true, hide is false, and both atoms are shown.
     '''
     visibles = cvec_property('bond_visible', int32, read_only = True)
     '''
@@ -362,6 +429,61 @@ class Bonds(Collection):
     Can be set with such an array (or equivalent sequence), or with a
     single floating-point number.
     '''
+    showns = cvec_property('bond_shown', npy_bool, read_only = True)
+    '''
+    Whether each bond is displayed, visible and has both atoms shown,
+    and at least one atom is not Sphere style.
+    '''
+    structures = cvec_property('bond_structure', cptr, astype = _atomic_structures, read_only = True)
+    '''Returns an :class:`.AtomicStructureDatas` with the structure for each bond. Read only.'''
+
+    @property
+    def num_shown(self):
+        '''Number of bonds shown.'''
+        f = c_function('bonds_num_shown', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.c_size_t)
+        return f(self._c_pointers, len(self))
+
+    @property
+    def half_colors(self):
+        '''2N x 4 RGBA uint8 numpy array of half bond colors.'''
+        f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
+        return f(self._c_pointers, len(self))
+
+# -----------------------------------------------------------------------------
+#
+class Elements(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Holds a collection of C++ Elements (chemical elements) and provides access to some of
+    their attributes.  Used for the same reasons as the :class:`Atoms` class.
+    '''
+    def __init__(self, element_pointers):
+        Collection.__init__(self, element_pointers, molobject.Element, Elements)
+
+    names = cvec_property('element_name', string, read_only = True)
+    '''Returns a numpy array of chemical element names. Read only.'''
+    numbers = cvec_property('element_number', uint8, read_only = True)
+    '''Returns a :mod:`numpy` array of atomic numbers (integers). Read only.'''
+    masses = cvec_property('element_mass', float32, read_only = True)
+    '''Returns a :mod:`numpy` array of atomic masses,
+    taken from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.
+    Read only.'''
+    is_alkali_metal = cvec_property('element_is_alkali_metal', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom an alkali metal. Read only.'''
+    is_halogen = cvec_property('element_is_halogen', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom a halogen. Read only.'''
+    is_metal = cvec_property('element_is_metal', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom a metal. Read only.'''
+    is_noble_gas = cvec_property('element_is_noble_gas', npy_bool, read_only = True)
+    '''Returns a :mod:`numpy` array of booleans, where True indicates the
+    element is atom a noble gas. Read only.'''
+    valences = cvec_property('element_valence', uint8, read_only = True)
+    '''Returns a :mod:`numpy` array of atomic valence numbers (integers). Read only.'''
+
 
 # -----------------------------------------------------------------------------
 #
@@ -373,7 +495,7 @@ class Pseudobonds(Collection):
     their attributes. It has the same attributes as the
     :class:`Bonds` class and works in an analogous fashion.
     '''
-    def __init__(self, pbond_pointers):
+    def __init__(self, pbond_pointers = None):
         Collection.__init__(self, pbond_pointers, molobject.Pseudobond, Pseudobonds)
 
     atoms = cvec_property('pseudobond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
@@ -388,13 +510,13 @@ class Pseudobonds(Collection):
     set with such an array (or equivalent sequence), or with a single
     RGBA value.
     '''
-    displays = cvec_property('pseudobond_display', int32)
+    displays = cvec_property('pseudobond_display', npy_bool)
     '''
     Controls whether the pseudobonds should be displayed.
-    TODO: No values are defined and value not used for rendering.
-    Returns a :mod:`numpy` array of integers.  Can be
+    Returns a :mod:`numpy` array of bool.  Can be
     set with such an array (or equivalent sequence), or with a
-    single integer value.
+    single value.  Pseudobonds are shown only if display is
+    true, hide is false, and both atoms are shown.
     '''
     halfbonds = cvec_property('pseudobond_halfbond', npy_bool)
     '''
@@ -410,6 +532,16 @@ class Pseudobonds(Collection):
     Can be set with such an array (or equivalent sequence), or with a
     single floating-point number.
     '''
+    showns = cvec_property('pseudobond_shown', npy_bool, read_only = True)
+    '''
+    Whether each pseudobond is displayed, visible and has both atoms shown.
+    '''
+
+    @property
+    def half_colors(self):
+        '''2N x 4 RGBA uint8 numpy array of half bond colors.'''
+        f = c_function('pseudobond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
+        return f(self._c_pointers, len(self))
 
 # -----------------------------------------------------------------------------
 #
@@ -419,7 +551,7 @@ class Residues(Collection):
 
     Collection of C++ residue objects.
     '''
-    def __init__(self, residue_pointers):
+    def __init__(self, residue_pointers = None):
         Collection.__init__(self, residue_pointers, molobject.Residue, Residues)
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False)
@@ -466,6 +598,17 @@ class Residues(Collection):
     set with such an array (or equivalent sequence), or with a single
     RGBA value.
     '''
+    ribbon_styles = cvec_property('residue_ribbon_style', int32)
+    '''A numpy int array of cartoon styles.  See constants in :class:Ribbon.'''
+    ribbon_adjusts = cvec_property('residue_ribbon_adjust', float32)
+    '''A numpy float array of adjustment factors for the position of ribbon
+    control points.  Factors range from zero to one, with zero being using the
+    actual atomic coordinates as control point, and one being using the idealized
+    secondary structure position as control point.  A negative value means to
+    use the default of zero for turns and helices and 0.7 for strands.'''
+    ribbon_hide_backbones = cvec_property('residue_ribbon_hide_backbone', npy_bool)
+    '''A :mod:`numpy` array of booleans. Whether a ribbon automatically hides
+    the residue backbone atoms.'''
 
     @property
     def unique_structures(self):
@@ -477,6 +620,12 @@ class Residues(Collection):
         '''The unique chain IDs as a numpy array of strings.'''
         return unique(self.chain_ids)
 
+    @property
+    def by_structure(self):
+        '''Return list of pairs of structure and Residues for that structure.'''
+        rmol = self.structures._pointers
+        return [(m, self.filter(rmol==m._c_pointer.value)) for m in self.unique_structures]
+
     def get_polymer_spline(self):
         '''Return a tuple of spline center and guide coordinates for a
 	polymer chain.  Residues in the chain that do not have a center
@@ -487,7 +636,9 @@ class Residues(Collection):
         f = c_function('residue_polymer_spline',
                        args = [ctypes.c_void_p, ctypes.c_size_t],
                        ret = ctypes.py_object)
-        return f(self._c_pointers, len(self))
+        atom_pointers, centers, guides = f(self._c_pointers, len(self))
+        atoms = Atoms(atom_pointers)
+        return atoms, centers, guides
 
 # -----------------------------------------------------------------------------
 #
@@ -550,8 +701,62 @@ class AtomicStructureDatas(Collection):
     group categories (strings) and whose values are
     :class:`.Pseudobonds`. Read only.
     '''
+    ribbon_tether_scales = cvec_property('structure_ribbon_tether_scale', float32)
+    '''Returns an array of scale factors for ribbon tethers.'''
+    ribbon_tether_sides = cvec_property('structure_ribbon_tether_sides', int32)
+    '''Returns an array of numbers of sides for ribbon tethers.'''
+    ribbon_tether_shapes = cvec_property('structure_ribbon_tether_shape', int32)
+    '''Returns an array of shapes for ribbon tethers.'''
     metadata = cvec_property('metadata', pyobject, read_only = True)
     '''Return a list of dictionaries with metadata. Read only.'''
+    ribbon_tether_opacities = cvec_property('structure_ribbon_tether_opacity', float32)
+    '''Returns an array of opacity scale factor for ribbon tethers.'''
+    ribbon_show_spines = cvec_property('structure_ribbon_show_spine', npy_bool)
+    '''Returns an array of booleans of whether to show ribbon spines.'''
+
+# -----------------------------------------------------------------------------
+#
+class AtomicStructures(AtomicStructureDatas):
+    '''
+    Bases: :class:`.AtomicStructureDatas`
+
+    Collection of Python atomic structure objects.
+    '''
+    def __init__(self, mol_pointers):
+        from . import structure
+        Collection.__init__(self, mol_pointers, structure.AtomicStructure, AtomicStructures)
+
+# -----------------------------------------------------------------------------
+#
+class PseudobondGroupDatas(Collection):
+    '''
+    Bases: :class:`.Collection`
+
+    Collection of C++ pseudobond group objects.
+    '''
+    def __init__(self, pbg_pointers):
+        Collection.__init__(self, pbg_pointers, molobject.PseudobondGroupData,
+			PseudobondGroupDatas)
+
+    pseudobonds = cvec_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
+		astype = _pseudobonds, read_only = True, per_object = False)
+    '''A single :class:`.Pseudobonds` object containing pseudobonds for all groups. Read only.'''
+    names = cvec_property('pseudobond_group_category', string, read_only = True)
+    '''A numpy string array of categories of each group.'''
+    num_bonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
+    '''Number of pseudobonds in each group. Read only.'''
+
+# -----------------------------------------------------------------------------
+#
+class PseudobondGroups(PseudobondGroupDatas):
+    '''
+    Bases: :class:`.PseudobondGroupDatas`
+
+    Collection of Python pseudobond group objects.
+    '''
+    def __init__(self, pbg_pointers):
+        from . import pbgroup
+        Collection.__init__(self, pbg_pointers, pbgroup.PseudobondGroup, PseudobondGroups)
 
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.

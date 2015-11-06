@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 OpalJob - Run Opal job and monitor status
 =========================================
@@ -166,14 +166,11 @@ class OpalJob(Job):
     #
     # Define chimera.core.session.State ABC methods
     #
-    def take_snapshot(self, phase, session, flags):
+    def take_snapshot(self, session, flags):
         """Return snapshot of current state, [version, data], of instance.
 
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped."""
-        if phase != self.SAVE_PHASE:
-            return
-        version = 1
         data = [
             self.service_url,
             self.job_id,
@@ -184,7 +181,7 @@ class OpalJob(Job):
             self._status_url,
             self._outputs,
         ]
-        return [version, data]
+        return data
 
     def restore_snapshot(self, phase, session, version, data):
         """Restore data snapshot into instance.

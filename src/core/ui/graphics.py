@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 import wx
 
@@ -11,8 +11,12 @@ class GraphicsWindow(wx.Panel):
         wx.Panel.__init__(self, parent,
             style=wx.TAB_TRAVERSAL | wx.NO_BORDER | wx.WANTS_CHARS)
         self.timer = None
+        self.session = ui.session
         self.view = ui.session.main_view
         self.opengl_canvas = OpenGLCanvas(self, self.view, ui)
+        if ui.have_stereo:
+            from ..graphics import StereoCamera
+            self.view.camera = StereoCamera()
         from wx.glcanvas import GLContext
         oc = self.opengl_context = GLContext(self.opengl_canvas)
         oc.make_current = self.make_context_current
@@ -21,6 +25,8 @@ class GraphicsWindow(wx.Panel):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         self.SetSizerAndFit(sizer)
+
+        self.popup = Popup(parent)        # For display of atom spec balloons
 
         self.redraw_interval = 16  # milliseconds
         # perhaps redraw interval should be 10 to reduce
@@ -53,7 +59,53 @@ class GraphicsWindow(wx.Panel):
 
         # 'x or y' is the "lambda way" of saying 'if not x: y'
         wx.CallAfter(lambda s=self:
-            s.view.draw_new_frame() or s.mouse_modes.mouse_pause_tracking())
+                     s.session.update_loop.draw_new_frame(s.session)
+                     or s.mouse_modes.mouse_pause_tracking())
+
+
+class Popup(wx.PopupWindow):
+
+    def __init__(self, parent, style = wx.BORDER_SIMPLE):
+        wx.PopupWindow.__init__(self, parent, style)
+        self._panel = wx.Panel(self)
+#        self._panel.SetBackgroundColour((220,220,220))  # RGB 0-255
+        self._pad = p = 2
+        self._text = wx.StaticText(self._panel, -1, '', pos=(p,p))
+
+    def show_text(self, text, position):
+
+        import sys
+        mac = (sys.platform == 'darwin')
+        if mac:
+            # On Mac balloons rise above other apps that cover the Chimear app
+            # when mousing over those apps even when Chimera does not have focus.
+            fw = wx.Window.FindFocus()
+            if fw is None:
+                return
+
+        t = self._text
+        t.SetLabel(text)
+        sz = t.GetBestSize()
+        p = 2*self._pad
+        self.SetSize( (sz.width+p, sz.height+p) )
+        self._panel.SetSize( (sz.width+p, sz.height+p) )
+        offset = (0,0)
+        xy = self.GetParent().ClientToScreen(position)
+        self.Position(xy, offset)
+
+        self.Show(True)
+
+        if mac and fw:
+            # Popup takes focus on Mac, restore it after showing popup.
+            # fw.SetFocus() does not work on Mac.
+            # Apparently wx cannot change the focus between top level windows.
+            # But we can raise a different top level, and luckily this does
+            # not raise it above the popup.
+            fw.GetTopLevelParent().Raise()
+
+    def hide(self):
+        self.Show(False)
+
 
 from wx import glcanvas
 
@@ -70,8 +122,9 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             attribs += [glcanvas.WX_GL_SAMPLE_BUFFERS, 1,
                         glcanvas.WX_GL_SAMPLES, 4]
         attribs += [
-            glcanvas.WX_GL_OPENGL_PROFILE,
-            glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
+            glcanvas.WX_GL_CORE_PROFILE,
+            glcanvas.WX_GL_MAJOR_VERSION, 3,
+            glcanvas.WX_GL_MINOR_VERSION, 3,
         ]
         gl_supported = glcanvas.GLCanvas.IsDisplaySupported
         if not gl_supported(attribs + [0]):
@@ -85,11 +138,16 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         else:
             raise AssertionError("Required OpenGL depth buffer capability"
                 " not supported")
-        test_attribs = attribs + [glcanvas.WX_GL_STEREO]
-        if gl_supported(test_attribs + [0]):
-            # TODO: keep track of fact that 3D stereo is available, but
-            # don't use it
-            pass
+        if ui:
+            ui.have_stereo = False
+            if hasattr(ui, 'stereo') and ui.stereo:
+                test_attribs = attribs + [glcanvas.WX_GL_STEREO]
+                if gl_supported(test_attribs + [0]):
+                    attribs = test_attribs
+                    ui.have_stereo = True
+        if ui:
+            ui.opengl_attribs = attribs + [0]
+
         ckw = {} if size is None else {'size': size}
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs + [0],
                                    style=wx.WANTS_CHARS, **ckw)

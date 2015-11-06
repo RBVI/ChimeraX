@@ -1,4 +1,4 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 
 from chimera.core.commands import EnumOf, CmdDesc, StringArg, BoolArg
 
@@ -35,7 +35,8 @@ def ts_list(session, tool_type="installed"):
             _display_tools(ti_list, logger)
         else:
             logger.info("No available tools found.")
-ts_list_desc = CmdDesc(optional=[("tool_type", _tool_types)])
+ts_list_desc = CmdDesc(optional=[("tool_type", _tool_types)],
+                       non_keyword=['tool_type'])
 
 
 def ts_refresh(session, tool_type="installed"):
@@ -163,35 +164,51 @@ ts_update_desc = CmdDesc(required=[("tool_name", StringArg)],
 # Commands that deal with GUI (singleton)
 #
 
+def ts_start(session, tool_name):
+    '''
+    Start an instance of a tool.
 
-def get_singleton(session, create=False):
-    if not session.ui.is_gui:
-        return None
-    from .gui import ToolshedUI
-    running = session.tools.find_by_class(ToolshedUI)
-    if len(running) > 1:
-        raise RuntimeError("too many toolshed instances running")
-    if not running:
-        if create:
-            tool_info = session.toolshed.find_tool('toolshed')
-            return ToolshedUI(session, tool_info)
-        else:
-            return None
-    else:
-        return running[0]
+    Parameters
+    ----------
+    tool_name : string
+    '''
+    ts = session.toolshed
+    tinfo = ts.find_tool(tool_name)
+    if tinfo is None:
+        from chimera.core.errors import UserError
+        raise UserError('No installed tool named "%s"' % tool_name)
+    tinfo.start(session)
+from chimera.core.commands import StringArg
+ts_start_desc = CmdDesc(required = [('tool_name', StringArg)])
 
+def ts_show(session, tool_name, _show = True):
+    '''
+    Show a tool panel, or start one if none is running.
 
-def ts_hide(session):
-    '''Hide the Tool Shed user interface.'''
-    ts = get_singleton(session)
-    if ts is not None:
-        ts.display(False)
-ts_hide_desc = CmdDesc()
+    Parameters
+    ----------
+    tool_name : string
+    '''
+    ts = session.toolshed
+    tinfo = ts.find_tool(tool_name)
+    if tinfo is None:
+        from chimera.core.errors import UserError
+        raise UserError('No installed tool named "%s"' % tool_name)
+    tinst = [t for t in session.tools.list() if t.tool_info is tinfo]
+    for t in tinst:
+        t.display(_show)
+    if len(tinst) == 0:
+        tinfo.start(session)
+from chimera.core.commands import StringArg
+ts_show_desc = CmdDesc(required = [('tool_name', StringArg)])
 
+def ts_hide(session, tool_name):
+    '''
+    Hide tool panels.
 
-def ts_show(session):
-    '''Show the Tool Shed user interface.'''
-    ts = get_singleton(session, create=True)
-    if ts is not None:
-        ts.display(True)
-ts_show_desc = CmdDesc()
+    Parameters
+    ----------
+    tool_name : string
+    '''
+    ts_show(session, tool_name, _show = False)
+ts_hide_desc = CmdDesc(required = [('tool_name', StringArg)])

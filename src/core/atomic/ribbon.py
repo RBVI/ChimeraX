@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 EPSILON = 1e-6
 
@@ -10,9 +10,21 @@ class Ribbon:
     def __init__(self, coords, guides):
         if guides is None or len(coords) != len(guides):
             raise ValueError("different number of coordinates and guides")
+        # Extend the coordinates at start and end to make sure the
+        # ribbon is straight on either end.  Compute the spline
+        # coefficients for each axis.  Then throw away the
+        # coefficients for the fake ends.
+        from numpy import zeros
+        c = zeros((len(coords) + 2, 3), float)
+        c[0] = coords[0] + (coords[0] - coords[1])
+        c[1:-1] = coords
+        c[-1] = coords[-1] + (coords[-1] - coords[-2])
         self.coefficients = []
         for i in range(3):
-            self._compute_coefficients(coords, i)
+            self._compute_coefficients(c, i)
+            self.coefficients[i].pop(-1)
+            self.coefficients[i].pop(0)
+        # Compute spline normals from guide atom positions.
         self.normals = []
         for i in range(len(coords) - 1):
             n = guides[i] - coords[i]
@@ -33,8 +45,8 @@ class Ribbon:
         size = len(coords)
         a = numpy.ones((size,), float)
         b = numpy.ones((size,), float) * 4
-        #b[0] = b[-1] = 2
-        b[0] = b[-1] = 1
+        b[0] = b[-1] = 2
+        #b[0] = b[-1] = 1
         c = numpy.ones((size,), float)
         d = numpy.zeros((size,), float)
         d[0] = coords[1][n] - coords[0][n]
@@ -112,7 +124,7 @@ class Ribbon:
         coords = zeros((divisions + 1, 3), float)
         tangents = zeros((divisions + 1, 3), float)
         coords[0] = [xc[0], yc[0], zc[0]]
-        tangents[0] = normalize(array([xc[1], yc[1], zc[1]]))
+        tangents[0] = [xc[1], yc[1], zc[1]]
         d = float(divisions)
         for i in range(divisions):
             t = (i + 1) / d

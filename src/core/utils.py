@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 utils: Generically useful stuff that doesn't fit elsewhere
 ==========================================================
@@ -166,5 +166,6 @@ def retrieve_cached_url(request, filename, logger=None):
             os.utime(filename, (last_modified, last_modified))
         return filename
     except:
-        os.remove(filename)
+        if os.path.exists(filename):
+            os.remove(filename)
         raise

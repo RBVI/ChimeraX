@@ -1,0 +1,158 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: open</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: open</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>open</b> &nbsp;<i>filename</i>
+</h3>
+<p>
+The command <b>open</b> reads <a href="#local">local files</a> and
+fetches <a href="#fetch">data from the Web</a>.
+Input files may contain 3D data to be displayed, 
+or commands or code to be executed.
+Any resulting model in Chimera2 is automatically assigned a model ID number,
+starting with #1 (no model #0).
+See also: <b>list</b>, <a href="close.html"><b>close</b></a>
+</p><p>
+Examples:
+<blockquote>
+<b>open ~/Desktop/maps/myfile.mrc</b>
+<br>
+<b>open 2gbp</b>
+<br>
+<b>open emdb:3087</b>
+</blockquote>
+</p>
+
+<a name="local"></a>
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>Local Files</h3>
+<p>
+The <i>filename</i> can be the pathname (including directory location) of
+a local file, with format indicated by filename suffix. 
+Known formats include:
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center"><b>format</b></td>
+<td align="center"><b><a name="suffix">filename suffix</a></b></td>
+<td align="center"><b>data type</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" 
+target="_blank">Protein Data Bank</a></td>
+<td align="center">.pdb</td>
+<td align="center">atomic coordinates and associated annotations</td>
+</tr><tr>
+<td align="center">mmCIF</td>
+<td align="center">.cif</td>
+<td align="center">atomic coordinates and associated annotations</td>
+</tr><tr>
+<td align="center">Python</td>
+<td align="center">.py</td>
+<td align="center">Python code</td>
+</tr><tr>
+<td align="center"><a href="../index.html#commands">Chimera2 commands</a></td>
+<td align="center">.c2cmd</td>
+<td align="center">Chimera2 commands</td>
+<!--
+</tr><tr>
+<td align="center">Chimera2 session</td>
+<td align="center">.c2ses</td>
+<td align="center">Chimera2 session</td>
+-->
+</tr><tr>
+<td align="center">BRIX or DSN6 (used by O)</td>
+<td align="center">.omap</td>
+<td align="center">density map</td>
+</tr><tr>
+<td align="center">Chimera/Chimera2 map
+<br>(based on the hierarchical data format
+<a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
+<td align="center">.cmap</td>
+<td align="center">density map</td>
+</tr><tr>
+<td align="center">
+<a href="http://www.ccp4.ac.uk/html/maplib.html" target="_blank">CCP4</a></td>
+<td align="center">.map</td>
+<td align="center">density map</td>
+</tr><tr>
+<td align="center">
+<a href="http://www2.mrc-lmb.cam.ac.uk/image2000.html" 
+target="_blank">MRC</a></td>
+<td align="center">.mrc</td>
+<td align="center">density map</td>
+</tr><tr>
+<td align="center">
+Image stack
+<br>(grayscale image series in multiple files or a single multipage file,
+<br>in formats supported by
+<a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>)</td>
+<td align="center">.tif<br>.tiff<br>.png<br>(<i>etc.</i>)</td>
+<td align="center">density map</td>
+</tr><tr>
+<td align="center"><a href="https://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
+target="_blank">STL (binary)</a></td>
+<td align="center">.stl</td>
+<td align="center">triangulated surfaces</td>
+</tr></table>
+
+<a name="fetch"></a>
+<h3><a href="#top" class="nounder"><b>&larr;</b></a>Web Fetch</h3>
+<p>
+Alternatively, the <i>filename</i> can be the database identifier (ID) of an  
+entry to fetch, with the database indicated by a prefix before the ID.
+The default for a 4-character ID without prefix is to fetch mmCIF from the
+<td align="center"><a href="http://www.rcsb.org/"
+target="_blank">Protein Data Bank</a>.
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center"><b>database</b></td>
+<td align="center"><b><a name="prefix">prefix</a></b></td>
+<td align="center"><b>data type</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.rcsb.org/"
+target="_blank">Protein Data Bank</a> (mmCIF format)</td>
+<td align="center">mmcif:</td>
+<td align="center">atomic coordinates and associated annotations</td>
+</tr><tr>
+<td align="center"><a href="http://www.rcsb.org/"
+target="_blank">Protein Data Bank</a> (PDB format)</td>
+<td align="center">pdb:</td>
+<td align="center">atomic coordinates and associated annotations</td>
+</tr><tr>
+<td align="center"><a href="http://eds.bmc.uu.se/eds/index.html"
+target="_blank">Electron Density Server</a> (2fo-fc)</td>
+<td align="center">eds:</td>
+<td align="center">crystallographic density map for a PDB entry;
+<br>not available for all PDB entries</td>
+</tr><tr>
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/emdb/"
+target="_blank">Electron Microscopy Data Bank</a></td>
+<td align="center">emdb:</td>
+<td align="center">density map</td>
+</tr></table>
+<p>
+Web-fetched data are automatically cached locally in subdirectories of
+<b>~/Downloads/Chimera</b>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+September 2015</address>
+</body></html>

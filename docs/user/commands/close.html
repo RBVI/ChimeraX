@@ -1,0 +1,55 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: close</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: close</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>close</b> <a href="atomspec.html"><i>model-spec</i></a>
+</h3>
+<p>
+The command <b>close</b> removes the specified model(s) from Chimera2,
+including any submodels at lower levels of the hierarchy. For example,
+<b>close #3</b> will close any models #3.<i>N</i>, #3.<i>N.N</i>, <i>etc.</i>
+Submodels may arise when <a href="surface.html">molecular surfaces</a>
+are generated or an ensemble (such as from NMR) is opened.
+The current model numbers can be shown in the <b>Log</b>
+using the <b>list</b> command.
+As per the usual convention, a blank specification indicates &ldquo;all.&rdquo;
+See also: <a href="open.html"><b>open</b></a>,
+<a href="quit.html"><b>quit</b></a>
+</p><p>
+Examples:
+<blockquote>
+<b>close</b>
+<br>
+<b>close #1</b>
+<br>
+<b>close #2,4-6</b>
+<br>
+<b>close #3.2</b>
+<br>
+<b>close #3.2-10</b>
+</blockquote>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2015</address>
+</body></html>

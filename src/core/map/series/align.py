@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # Script to align each volume with the previous one saving to a new map file.
 # Also shift mean value to zero.
 # Also scale so that specified enclosed volume is at a specified threshold level.

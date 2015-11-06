@@ -1,4 +1,5 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 
 def echo(session, text=''):
     '''Echo text to the log.
@@ -19,8 +20,10 @@ def echo(session, text=''):
     text = ' '.join(tokens)
     session.logger.info(text)
 
+
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)],
+                       non_keyword=['text'],
                        synopsis='show text in log')
     cli.register('echo', desc, echo)

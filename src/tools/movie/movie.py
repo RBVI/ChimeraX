@@ -53,27 +53,21 @@ class Movie:
         self.encoder = None
         self.encoding_thread = None
         self.resetMode = None
+        self._image_capture_handler = None
 
 #        from chimera import triggers, COMMAND_ERROR, SCRIPT_ABORT
 #        triggers.addHandler(COMMAND_ERROR, self.haltRecording, None)
 #        triggers.addHandler(SCRIPT_ABORT, self.haltRecording, None)
 
     def start_recording(self):
-        v = self.session.main_view
-        v.add_callback('rendered frame', self.capture_image)
+        t = self.session.triggers
+        self._image_capture_handler = t.add_handler('frame drawn', self.capture_image)
         self.recording = True
 #        from chimera.tasks import Task
 #        self.task = Task("record movie", self.cancelCB)
         
     def is_recording(self):
         return self.recording
-
-    def postprocess(self, action, frames):
-        if self.frame_count < 0:
-            # Need an initial image to do a crossfade.
-            self.capture_image()
-        self.postprocess_action = action
-        self.postprocess_frames = frames
 
     def cancelCB(self):
         # If user cancels inside of capture_image, this callback
@@ -85,8 +79,10 @@ class Movie:
     def stop_recording(self):
         if not self.is_recording():
             raise MovieError("Not currently recording")
-        v = self.session.main_view
-        v.remove_callback('rendered frame', self.capture_image)
+        if self.postprocess_frames:
+            self.capture_image()        # Finish crossfade if one is in progress.
+        t = self.session.triggers
+        t.delete_handler(self._image_capture_handler)
         self.recording = False
 #        self.task.finished()
         self.task = None
@@ -136,7 +132,7 @@ class Movie:
         return status_str
                 
 
-    def capture_image(self):
+    def capture_image(self, *_):
 
         f = self.frame_count + 1 + self.postprocess_frames
         if not self.limit is None and f >= self.limit:
@@ -262,7 +258,10 @@ class Movie:
 
     def postprocess(self, action, frames):
         if self.is_recording():
-            self.postprocess(action, frames)
+            self.postprocess_action = action
+            self.postprocess_frames = frames
+            if action == 'duplicate':
+                self.capture_image()	# Capture all frames right now.
         else:
             self._notifyStatus('movie %s when not recording' % action)
 

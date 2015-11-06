@@ -1,10 +1,12 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 #
 class Oculus_Rift:
 
-    def __init__(self, view):
+    def __init__(self, session):
 
-        self.view = view
+        self.view = session.main_view
+        self.ses_triggers = session.triggers
 
         self.last_translation = None
         self.last_rotation = None
@@ -39,22 +41,20 @@ class Oculus_Rift:
             _oculus.initialize()
             self.parameters = _oculus.parameters()      # Interpupillary distance not set until initialize called.
             self.frame_cb = self.use_oculus_orientation
-            self.view.add_callback('new frame', self.frame_cb)
+            self.handler = self.ses_triggers.add_handler('new frame', self.frame_cb)
         return True
 
     def close(self):
 
         self.stop_event_processing()
 
-        c = self.view.camera
-        from ...graphics import mono_camera_mode
-        c.mode = mono_camera_mode
-        c.field_of_view = 30.0
+        from ...graphics import MonoCamera
+        self.view.camera = MonoCamera()
 
     def stop_event_processing(self):
 
         if self.frame_cb:
-            self.view.remove_callback('new frame', self.frame_cb)
+            self.ses_triggers.delete_handler(self.handler)
             self.frame_cb = None
             if self.connected:
                 from . import _oculus
@@ -100,7 +100,7 @@ class Oculus_Rift:
         sx, sy = w * (lt/(rt+lt) - 0.5), h * (dt/(ut+dt) - 0.5)
         return sx, sy
 
-    def use_oculus_orientation(self):
+    def use_oculus_orientation(self, *_):
 
         v = self.view
         c = v.camera
@@ -152,20 +152,30 @@ class Oculus_Rift:
             rel = m.inverse()*lm
         return rel
 
-from ...graphics import CameraMode
-class Oculus_Rift_Camera_Mode(CameraMode):
+from ...graphics import Camera
+class Oculus_Rift_Camera(Camera):
 
-    def __init__(self, oculus_rift = None, oculus_opengl_context = None, render_opengl_context = None):
+    def __init__(self, oculus_rift, oculus_opengl_context, render_opengl_context):
+
+        Camera.__init__(self)
 
         self.oculus_rift = oculus_rift
 
         self.oculus_opengl_context = oculus_opengl_context
         self.render_opengl_context = render_opengl_context
 
-        self.eye_separation_scene = 1.0
+        oc = oculus_rift
+        fov = oc.field_of_view_degrees()
+        sx,sy = oc.camera_centering_shift_pixels()
+        w,h = oc.display_size()
+        wsize = oc.eye_render_size()
+
+        self.field_of_view = fov
+
+        self.eye_separation_scene = 0.2    # TODO: This is good value for inside a molecule, not for far from molecule.
         "Stereo eye separation in scene units."
 
-        self.oculus_centering_shift = 0,0
+        self.oculus_centering_shift = (sx,sy)
         '''
         For the oculus rift the camera is not centered in the window.
         This parameter gives the x and y pixel shifts from the geometric center for the left eye.
@@ -173,7 +183,7 @@ class Oculus_Rift_Camera_Mode(CameraMode):
         '''
 
         self._warp_framebuffers = [None, None]   # Off-screen rendering each eye for Oculus Rift
-        self.warp_window_size = None
+        self.warp_window_size = wsize
         '''
         Texture render size for each eye when using Oculus Rift.
         This should be removed from Camera and handled by a generic method the sets the render target.
@@ -185,26 +195,8 @@ class Oculus_Rift_Camera_Mode(CameraMode):
         self.draw_main_window = (oculus_rift is None)
 
     def name(self):
-        '''Name of camera mode.'''
+        '''Name of camera.'''
         return 'oculus'
-
-    def set_camera_mode(self, camera):
-        oc = self.oculus_rift
-
-        fov = oc.field_of_view_degrees()
-        sx,sy = oc.camera_centering_shift_pixels()
-        w,h = oc.display_size()
-        wsize = oc.eye_render_size()
-
-        c = camera
-        from math import pi
-        c.field_of_view = fov
-        print ('set camera field of view', fov)
-        c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
-        self.oculus_centering_shift = (sx,sy)
-        print ('oculus camera shift pixels', sx, sy)
-        self.warp_window_size = wsize
-        c.mode = self
 
     def view(self, camera_position, view_num):
         '''
@@ -223,8 +215,12 @@ class Oculus_Rift_Camera_Mode(CameraMode):
         return v
 
     def number_of_views(self):
-        '''Number of views rendered by camera mode.'''
+        '''Number of views rendered by camera.'''
         return 2
+
+    def view_width(self, point):
+        from ...graphics.camera import perspective_view_width
+        return perspective_view_width(point, self.position.origin(), self.field_of_view)
 
     def pixel_shift(self, view_num):
         '''Shift of center away from center of render target.'''
@@ -233,6 +229,10 @@ class Oculus_Rift_Camera_Mode(CameraMode):
         s = 1 if view_num == 0 else -1
         sx,sy = self.oculus_centering_shift # For left eye
         return (s*sx, s*sy)
+
+    def view_all(self, center, size):
+        from ...graphics import camera
+        self.position = camera.perspective_view_all(center, size, self.position, self.field_of_view)
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''

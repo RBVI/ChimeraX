@@ -1,8 +1,10 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def lighting(session, preset = None, direction = None, intensity = None, color = None, 
              fill_direction = None, fill_intensity = None, fill_color = None,
-             ambient_intensity = None, ambient_color = None, fixed = None,
+             ambient_intensity = None, ambient_color = None,
+             depth_cue = None, depth_cue_start = None, depth_cue_end = None, depth_cue_color = None,
+             move_with_camera = None,
              shadows = None, quality_of_shadows = None, depth_bias = None,
              multi_shadow = None, ms_map_size = None, ms_depth_bias = None):
     '''
@@ -40,9 +42,17 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
        Ambient light intensity. Initial value 0.4.
     ambient_color : Color
       Ambient color, initial value RGB = (1,1,1).
-    fixed : bool
-      Whether light directions are fixed in scene coordinates or move with the camera.
-      Initial value fixed = false.
+    depth_cue : bool
+      Whether to dim scene with depth.
+    depth_cue_start : float
+      Fraction of distance from near to far clip plane where dimming starts. Initial value 0.5
+    depth_cue_end : float
+      Fraction of distance from near to far clip plane where dimming ends. Initial value 1.
+    depth_cue_color : Color
+      Color to fade towards, initial value RGB = (0,0,0).
+    move_with_camera : bool
+      Whether light directions move with the camera or are fixed in scene coordinates.
+      Initial value true.
     shadows : bool
       Whether to show shadows.  Initial value false.
     quality_of_shadows : string or int
@@ -68,7 +78,8 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     lp = v.lighting()
 
     if len([opt for opt in (preset, direction, intensity, color, fill_direction, fill_intensity, fill_color,
-                            ambient_intensity, ambient_color, fixed, shadows, depth_bias, quality_of_shadows,
+                            ambient_intensity, ambient_color, depth_cue, depth_cue_start, depth_cue_end,
+                            depth_cue_color, move_with_camera, shadows, depth_bias, quality_of_shadows,
                             multi_shadow, ms_map_size, ms_depth_bias)
             if not opt is None]) == 0:
         # Report current settings.
@@ -81,6 +92,8 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
             'Fill color: (%.5g,%.5g,%.5g)' % tuple(lp.fill_light_color),
             'Ambient intensity: %.5g' % lp.ambient_light_intensity,
             'Ambient color: (%.5g,%.5g,%.5g)' % tuple(lp.ambient_light_color),
+            'Depth cue: %d, start %.5g, end %.5g, color (%.5g,%.5g,%.5g)'
+              % ((v.depth_cue, lp.depth_cue_start, lp.depth_cue_end) + tuple(lp.depth_cue_color)),
             'Shadow: %s (depth map size %d, depth bias %.5g)'
               % (v.shadows, v.shadow_map_size, v.shadow_depth_bias),
             'Multishadows: %d (max %d, depth map size %d, depth bias %.5g)'
@@ -133,8 +146,16 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.ambient_light_intensity = ambient_intensity
     if not ambient_color is None:
         lp.ambient_light_color = ambient_color.rgba[:3]
-    if not fixed is None:
-        lp.move_lights_with_camera = not fixed
+    if not depth_cue is None:
+        v.depth_cue = depth_cue
+    if not depth_cue_start is None:
+        lp.depth_cue_start = depth_cue_start
+    if not depth_cue_end is None:
+        lp.depth_cue_end = depth_cue_end
+    if not depth_cue_color is None:
+        lp.depth_cue_color = depth_cue_color.rgba[:3]
+    if not move_with_camera is None:
+        lp.move_lights_with_camera = move_with_camera
     if not shadows is None:
         v.shadows = shadows
     if not quality_of_shadows is None:
@@ -162,8 +183,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     v.redraw_needed = True
 
 def register_command(session):
-    from .cli import CmdDesc, BoolArg, IntArg, FloatArg, Float3Arg, StringArg, EnumOf, register
-    from .color import ColorArg
+    from . import CmdDesc, register, BoolArg, IntArg, FloatArg, Float3Arg, StringArg, EnumOf, ColorArg
     _lighting_desc = CmdDesc(
         optional = [('preset', EnumOf(('default', 'full', 'soft', 'simple', 'flat')))],
         keyword = [
@@ -175,7 +195,11 @@ def register_command(session):
             ('fill_color', ColorArg),
             ('ambient_intensity', FloatArg),
             ('ambient_color', ColorArg),
-            ('fixed', BoolArg),
+            ('depth_cue', BoolArg),
+            ('depth_cue_start', FloatArg),
+            ('depth_cue_end', FloatArg),
+            ('depth_cue_color', ColorArg),
+            ('move_with_camera', BoolArg),
             ('shadows', BoolArg),
             ('quality_of_shadows', StringArg),
             ('depth_bias', FloatArg),

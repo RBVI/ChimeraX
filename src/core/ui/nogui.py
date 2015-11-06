@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 nogui: Text UI
 ==============
@@ -151,20 +151,20 @@ class _Input(Task):
         text = text.strip()
         if not text:
             return
+        logger = self.session.logger
         try:
             self._cmd.parse_text(text, final=True)
+            logger.info(self._cmd.current_text)
             self._cmd.execute()
         except errors.UserError as err:
-            logger = self.session.logger
-            logger.info(self._cmd.current_text)
             rest = self._cmd.current_text[self._cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = self._cmd.amount_parsed + spaces
-            if error_at < len(self._cmd.current_text):
+            syntax_error = error_at < len(self._cmd.current_text)
+            if syntax_error:
                 logger.error("%s^" % ('.' * error_at))
             logger.error(str(err))
         except Exception:
-            logger = self.session.logger
             logger.error("\nUnexpected exception, save your work and exit:\n")
             import traceback
             logger.error(traceback.format_exc())
@@ -172,10 +172,10 @@ class _Input(Task):
     #
     # Required State methods, do nothing
     #
-    def reset_state(self):
+    def reset_state(self, session):
         pass
 
-    def take_snapshot(self, phase, session, flags):
+    def take_snapshot(self, session, flags):
         return
 
     def restore_snapshot(self, phase, session, version, data):

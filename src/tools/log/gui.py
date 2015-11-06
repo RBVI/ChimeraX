@@ -1,33 +1,35 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 from chimera.core.tools import ToolInstance
 from chimera.core.logger import HtmlLog
 
 context_menu_css = """
 .context-menu {
-	display: none;
-	position: absolute;
-	z-index: 100;
-	border: solid 1px #000000;
-	box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
-	cursor: pointer;
+    display: none;
+    position: absolute;
+    z-index: 100;
+    border: solid 1px #000000;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
 }
 .context-menu-items {
-	list-style-type: none;
-	padding: 0;
-	margin: 0;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
 }
 .context-menu-item a:link, a:visited {
-	display: block;
-	color: #000;
-	text-decoration: none;
-	padding: 4px 8px;
+    display: block;
+    color: #000;
+    background-color: #fff;
+    opacity: 1;
+    text-decoration: none;
+    padding: 4px 8px;
 }
 .context-menu-item a:hover, a:active {
-	background-color: #cccccc;
+    background-color: #cccccc;
 }
 .context-menu-active {
-	display: block;
+    display: block;
 }
 """
 
@@ -39,6 +41,9 @@ context_menu_html = """
             <a href="log:copy" class="context-menu-link"> Copy </a>
         </li>
         -->
+        <li class="context-menu-item">
+            <a href="log:image" class="context-menu-link"> Insert image </a>
+        </li>
         <li class="context-menu-item">
             <a href="log:save" class="context-menu-link"> Save </a>
         </li>
@@ -55,53 +60,51 @@ context_menu_html = """
 
 context_menu_script = """
 (function() {
-	"use strict";
+    "use strict";
 
-	var context_menu = document.querySelector(".context-menu");
-	var context_menu_shown = false;
-	var active_css = "context-menu-active";
+    var context_menu = document.querySelector(".context-menu");
+    var context_menu_shown = false;
+    var active_css = "context-menu-active";
 
-	function show_context_menu() {
-		if (!context_menu_shown) {
-			context_menu_shown = true;
-			context_menu.classList.add(active_css);
-		}
-	}
+    function show_context_menu() {
+        if (!context_menu_shown) {
+            context_menu_shown = true;
+            context_menu.classList.add(active_css);
+        }
+    }
 
-	function hide_context_menu() {
-		if (context_menu_shown) {
-			context_menu_shown = false;
-			context_menu.classList.remove(active_css);
-		}
-	}
+    function hide_context_menu() {
+        if (context_menu_shown) {
+            context_menu_shown = false;
+            context_menu.classList.remove(active_css);
+        }
+    }
 
-	function position_menu(menu, e) {
-		var x = e.pageX;
-		var y = e.pageY;
+    function position_menu(menu, e) {
+        var x = e.pageX;
+        var y = e.pageY;
 
-		menu.style.left = x + "px";
-		menu.style.top = y + "px";
-	}
+        menu.style.left = x + "px";
+        menu.style.top = y + "px";
+    }
 
-	function init()
-	{
-		document.addEventListener("contextmenu", function (e) {
-			e.preventDefault();
-			show_context_menu();
-			position_menu(context_menu, e);
-		});
+    function init() {
+        document.addEventListener("contextmenu", function (e) {
+                e.preventDefault();
+                show_context_menu();
+                position_menu(context_menu, e);
+        });
 
-		document.addEventListener("click", function (e) {
-			var button = e.which;
-			if (button === 1)	// left button used
-				hide_context_menu();
-		});
+        document.addEventListener("click", function (e) {
+                var button = e.which;
+                if (button === 1)	// left button used
+                        hide_context_menu();
+        });
 
-		context_menu.addEventListener("mouseleave", hide_context_menu);
-	}
+        context_menu.addEventListener("mouseleave", hide_context_menu);
+    }
 
-	init();
-
+    init();
 })();
 """
 
@@ -109,14 +112,16 @@ context_menu_script = """
 class Log(ToolInstance, HtmlLog):
 
     SESSION_ENDURING = True
-    SIZE = (300, 500)
-    STATE_VERSION = 1
+    SIZE = (575, 500)
+    help = "help:user/tools/log.html"
 
-    def __init__(self, session, tool_info, **kw):
-        super().__init__(session, tool_info, **kw)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
         self.warning_shows_dialog = True
         self.error_shows_dialog = True
         from chimera.core.ui import MainToolWindow
+
         class LogWindow(MainToolWindow):
             close_destroys = False
         self.tool_window = LogWindow(self, size=self.SIZE)
@@ -127,20 +132,19 @@ class Log(ToolInstance, HtmlLog):
         self._image_count = count()
         from wx import html2
         self.log_window = html2.WebView.New(parent, size=self.SIZE)
-        self.log_window.EnableContextMenu(False)
+        self.log_window.EnableContextMenu(True)
         self.log_window.EnableHistory(False)
         self.page_source = ""
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.log_window, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
-        session.tools.add([self])
         session.logger.add_log(self)
         self.log_window.Bind(wx.EVT_CLOSE, self.on_close)
         self.log_window.Bind(html2.EVT_WEBVIEW_LOADED, self.on_load)
         self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
-            id=self.log_window.GetId())
-        #self.log_window.SetPage(self.page_source, "")
+                             id=self.log_window.GetId())
+        # self.log_window.SetPage(self.page_source, "")
         self.show_page_source()
 
     #
@@ -168,12 +172,12 @@ class Log(ToolInstance, HtmlLog):
                 self.page_source += "<br>\n"
         else:
             if ((level == self.LEVEL_ERROR and self.error_shows_dialog) or
-                (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
+                    (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if level == self.LEVEL_ERROR:
-                    caption = "Chimera 2 Error"
+                    caption = "Chimera2 Error"
                     icon = wx.ICON_ERROR
                 else:
-                    caption = "Chimera 2 Warning"
+                    caption = "Chimera2 Warning"
                     icon = wx.ICON_EXCLAMATION
                 style = wx.OK | wx.OK_DEFAULT | icon | wx.CENTRE
                 graphics = self.session.ui.main_window.graphics_window
@@ -226,62 +230,91 @@ class Log(ToolInstance, HtmlLog):
         session = self.session
         # Handle event
         url = event.GetURL()
-        import sys
         if url.startswith("log:"):
             event.Veto()
             cmd = url.split(':', 1)[1]
             if cmd == 'help':
-                pass # TODO: self.help_func()?
+                self.display_help()
             elif cmd == 'clear':
-                self.page_source = ""
-                self.show_page_source()
+                self.clear()
             elif cmd == 'copy':
                 pass  # TODO
-            if cmd == 'save':
+            elif cmd == 'save':
                 from chimera.core.ui.open_save import SaveDialog
-                save_dialog = SaveDialog(self.log_window, "Save Log",
-                        defaultFile="log",
-                        wildcard="HTML files (*.html)|*.html",
-                        add_extension=".html")
+                save_dialog = SaveDialog(
+                    self.log_window, "Save Log", defaultFile="log",
+                    wildcard="HTML files (*.html)|*.html",
+                    add_extension=".html")
                 import wx
                 if save_dialog.ShowModal() == wx.ID_CANCEL:
                     return
                 filename = save_dialog.GetPath()
-                f = open(filename, 'w')
-                f.write("<!DOCTYPE html>\n"
-                        "<html>\n"
-                        "<head>\n"
-                        "<title> Chimera2 Log </title>\n"
-                        "</head>\n"
-                        "<body>\n"
-                        "<h1> Chimera2 Log </h1>\n")
-                f.write(self.page_source)
-                f.write("</body>\n"
-                        "</html>\n")
-                f.close()
+                self.save(filename)
+            elif cmd == 'image':
+                from .cmd import log
+                log(self.session, thumbnail=True)
+            return
+        elif url.startswith("ch2cmd:"):
+            from urllib.parse import unquote
+            from chimera.core.commands import run
+            event.Veto()
+            cmd = url.split(':', 1)[1]
+            run(session, unquote(cmd))
+            return
+        from urllib.parse import urlparse
+        parts = urlparse(url)
+        if parts.scheme in ('', 'help', 'file', 'http'):
+            if parts.path == '/':
+                # Ingore file:/// URL event that Mac generates
+                # for each call to SetPage()
+                return
+            event.Veto()
+            from chimera.core.commands import run
+            run(session, "help %s" % url, log=False)
+            return
+        # unknown scheme
+        event.Veto()
+        session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
+
+    def clear(self):
+        self.page_source = ""
+        self.show_page_source()
+
+    def save(self, path):
+        from os.path import expanduser
+        path = expanduser(path)
+        f = open(path, 'w')
+        f.write("<!DOCTYPE html>\n"
+                "<html>\n"
+                "<head>\n"
+                "<title> Chimera2 Log </title>\n"
+                "</head>\n"
+                "<body>\n"
+                "<h1> Chimera2 Log </h1>\n")
+        f.write(self.page_source)
+        f.write("</body>\n"
+                "</html>\n")
+        f.close()
 
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        version = self.STATE_VERSION
+    def take_snapshot(self, session, flags):
         data = {"shown": self.tool_window.shown}
-        return [version, data]
+        return self.tool_info.session_write_version, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import RestoreError
-        if version != self.STATE_VERSION:
+    @classmethod
+    def restore_snapshot_new(cls, session, tool_info, version, data):
+        from .cmd import get_singleton
+        return get_singleton(session)
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
             raise RestoreError("unexpected version")
-        if phase == self.CREATE_PHASE:
-            # All the action is in phase 2 because we do not
-            # want to restore until all objects have been resolved
-            pass
-        else:
-            self.display(data["shown"])
+        self.display(data["shown"])
 
-    def reset_state(self):
+    def reset_state(self, session):
         self.tool_window.shown = True
 
     #

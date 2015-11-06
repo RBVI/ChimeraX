@@ -9,16 +9,18 @@
 #include "atomstruct/Chain.h"
 #include "atomstruct/Pseudobond.h"
 #include "atomstruct/Residue.h"
+#include "basegeom/ChangeTracker.h"
 #include "basegeom/destruct.h"     // Use DestructionObserver
 #include "pythonarray.h"           // Use python_voidp_array()
 
+#include <functional>
 #include <iostream>
 #include <map>
-#include <vector>
 #include <set>
-#include <string>
-#include <functional>
+#include <stdexcept>
 #include <stdint.h>
+#include <string>
+#include <vector>
 
 // Argument delcaration types:
 //
@@ -155,6 +157,7 @@ error_wrap_array_set(T** instances, size_t n, void (T::*pm)(Elem), Elem2* args)
 
 
 using namespace atomstruct;
+using basegeom::ChangeTracker;
 using basegeom::Coord;
 using basegeom::Real;
 using basegeom::DestructionObserver;
@@ -185,14 +188,13 @@ extern "C" void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
     }
 }
 
-extern "C" void atom_bonded_atoms(void *atoms, size_t n, pyobject_t *batoms)
+extern "C" void atom_neighbors(void *atoms, size_t n, pyobject_t *batoms)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const Atom::Bonds &b = a[i]->bonds();
-            for (size_t j = 0; j != b.size(); ++j)
-                *batoms++ = b[j]->other_atom(a[i]);
+            for (auto nb: a[i]->neighbors())
+                *batoms++ = nb;
         }
     } catch (...) {
         molc_error();
@@ -333,16 +335,37 @@ extern "C" void atom_visible(void *atoms, size_t n, npy_bool *visible)
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::visible, visible);
 }
 
-extern "C" void atom_draw_mode(void *atoms, size_t n, int32_t *modes)
+extern "C" void atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_get<Atom, int>(a, n, &Atom::draw_mode, modes);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            modes[i] = static_cast<uint8_t>(a[i]->draw_mode());
+    } catch (...) {
+        molc_error();
+    }
 }
 
-extern "C" void set_atom_draw_mode(void *atoms, size_t n, int32_t *modes)
+extern "C" void set_atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_set<Atom, int, int>(a, n, &Atom::set_draw_mode, modes);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            a[i]->set_draw_mode(static_cast<Atom::DrawMode>(modes[i]));
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void atom_element(void *atoms, size_t n, pyobject_t *resp)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            resp[i] = (pyobject_t*)(&(a[i]->element()));
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" void atom_element_name(void *atoms, size_t n, pyobject_t *names)
@@ -378,16 +401,11 @@ extern "C" void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
     }
 }
 
-extern "C" void atom_is_backbone(void *atoms, size_t n, npy_bool *sel)
+extern "C" bool atom_is_backbone(pyobject_t atom, uint8_t extent)
 {
-    Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::is_backbone, sel);
-}
-
-extern "C" void set_atom_is_backbone(void *atoms, size_t n, npy_bool *sel)
-{
-    Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_set<Atom, bool, npy_bool>(a, n, &Atom::set_is_backbone, sel);
+    Atom *a = static_cast<Atom *>(atom);
+    BackboneExtent bbe = static_cast<BackboneExtent>(extent);
+    return error_wrap([&] () { return a->is_backbone(bbe); });
 }
 
 extern "C" void atom_structure(void *atoms, size_t n, pyobject_t *molp)
@@ -402,6 +420,17 @@ extern "C" void atom_name(void *atoms, size_t n, pyobject_t *names)
     try {
         for (size_t i = 0; i != n; ++i)
             names[i] = unicode_from_string(a[i]->name());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_atom_name(void *atoms, size_t n, pyobject_t *names)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            a[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
     } catch (...) {
         molc_error();
     }
@@ -467,6 +496,30 @@ extern "C" void atom_selected(void *atoms, size_t n, npy_bool *sel)
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::selected, sel);
 }
 
+extern "C" void atom_structure_category(void *atoms, size_t n, pyobject_t *names)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        const char *cat_name;
+        for (size_t i = 0; i != n; ++i) {
+            auto cat = a[i]->structure_category();
+            if (cat == Atom::StructCat::Main)
+                cat_name = "main";
+            else if (cat == Atom::StructCat::Solvent)
+                cat_name = "solvent";
+            else if (cat == Atom::StructCat::Ligand)
+                cat_name = "ligand";
+            else if (cat == Atom::StructCat::Ions)
+                cat_name = "ions";
+            else
+                throw std::range_error("Unknown structure category");
+            names[i] = unicode_from_string(cat_name);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void set_atom_selected(void *atoms, size_t n, npy_bool *sel)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -482,6 +535,69 @@ extern "C" size_t atom_num_selected(void *atoms, size_t n)
             if (a[i]->selected())
                 s += 1;
         return s;
+    } catch (...) {
+        molc_error();
+        return 0;
+    }
+}
+
+extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        // Hide control point atoms as appropriate
+        for (size_t i = 0; i != n; ++i) {
+            Atom *atom = a[i];
+            if (!atom->is_backbone(BBE_RIBBON))
+                continue;
+            bool hide;
+            if (!atom->residue()->ribbon_display() || !atom->residue()->ribbon_hide_backbone())
+                hide = false;
+            else {
+                hide = true;
+                for (auto neighbor : atom->neighbors())
+                    if (neighbor->visible() && !neighbor->is_backbone(BBE_RIBBON)) {
+                        hide = false;
+                        break;
+                    }
+            }
+            if (hide) {
+                atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+            }
+            else {
+                atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+            }
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" PyObject *atom_inter_bonds(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    std::set<Atom *> aset;
+    std::set<Bond *> bset;
+    try {
+        for (size_t i = 0; i < n; ++i)
+	  aset.insert(a[i]);
+        for (size_t i = 0; i < n; ++i) {
+	  const Atom::Bonds &abonds = a[i]->bonds();
+	    for (auto b = abonds.begin() ; b != abonds.end() ; ++b) {
+	      Bond *bond = *b;
+	      const Bond::Atoms &batoms = bond->atoms();
+	      if (aset.find(batoms[0]) != aset.end() &&
+		  aset.find(batoms[1]) != aset.end() &&
+		  bset.find(bond) == bset.end())
+		bset.insert(bond);
+	    }
+	}
+	void **bptr;
+	PyObject *ba = python_voidp_array(bset.size(), &bptr);
+	int i = 0;
+	for (auto b = bset.begin() ; b != bset.end() ; ++b)
+	  bptr[i++] = *b;
+        return ba;
     } catch (...) {
         molc_error();
         return 0;
@@ -535,26 +651,41 @@ extern "C" void set_bond_color(void *bonds, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" void bond_display(void *bonds, size_t n, uint8_t *disp)
+extern "C" PyObject *bond_half_colors(void *bonds, size_t n)
 {
     Bond **b = static_cast<Bond **>(bonds);
+    uint8_t *rgba1;
+    PyObject *colors = python_uint8_array(2*n, 4, &rgba1);
+    uint8_t *rgba2 = rgba1 + 4*n;
     try {
-        for (size_t i = 0; i != n; ++i)
-            disp[i] = static_cast<uint8_t>(b[i]->display());
+        const Rgba *c1, *c2;
+        for (size_t i = 0; i < n; ++i) {
+	  Bond *bond = b[i];
+	  if (bond->halfbond()) {
+	      c1 = &bond->atoms()[0]->color();
+	      c2 = &bond->atoms()[1]->color();
+	  } else {
+	      c1 = c2 = &bond->color();
+	  }
+	  *rgba1++ = c1->r; *rgba1++ = c1->g; *rgba1++ = c1->b; *rgba1++ = c1->a;
+	  *rgba2++ = c2->r; *rgba2++ = c2->g; *rgba2++ = c2->b; *rgba2++ = c2->a;
+	}
     } catch (...) {
         molc_error();
     }
+    return colors;
 }
 
-extern "C" void set_bond_display(void *bonds, size_t n, uint8_t *disp)
+extern "C" void bond_display(void *bonds, size_t n, npy_bool *disp)
 {
     Bond **b = static_cast<Bond **>(bonds);
-    try {
-        for (size_t i = 0; i != n; ++i)
-            b[i]->set_display(static_cast<Bond::BondDisplay>(disp[i]));
-    } catch (...) {
-        molc_error();
-    }
+    error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::display, disp);
+}
+
+extern "C" void set_bond_display(void *bonds, size_t n, npy_bool *disp)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_set<Bond, bool, npy_bool>(b, n, &Bond::set_display, disp);
 }
 
 extern "C" void bond_hide(void *bonds, size_t n, int32_t *hide)
@@ -598,10 +729,36 @@ extern "C" void bond_radius(void *bonds, size_t n, float32_t *radii)
     error_wrap_array_get<Bond, float>(b, n, &Bond::radius, radii);
 }
 
+extern "C" void bond_shown(void *bonds, size_t n, npy_bool *shown)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::shown, shown);
+}
+
+extern "C" int bonds_num_shown(void *bonds, size_t n)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    int count = 0;
+    try {
+        for (size_t i = 0; i < n; ++i)
+	  if (b[i]->shown())
+	    count += 1;
+    } catch (...) {
+        molc_error();
+    }
+    return count;
+}
+
 extern "C" void set_bond_radius(void *bonds, size_t n, float32_t *radii)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_set<Bond, float>(b, n, &Bond::set_radius, radii);
+}
+
+extern "C" void bond_structure(void *bonds, size_t n, pyobject_t *molp)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_get(b, n, &Bond::structure, molp);
 }
 
 extern "C" void pseudobond_atoms(void *pbonds, size_t n, pyobject_t *atoms)
@@ -651,26 +808,41 @@ extern "C" void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" void pseudobond_display(void *pbonds, size_t n, uint8_t *disp)
+extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
 {
     PBond **b = static_cast<PBond **>(pbonds);
+    uint8_t *rgba1;
+    PyObject *colors = python_uint8_array(2*n, 4, &rgba1);
+    uint8_t *rgba2 = rgba1 + 4*n;
     try {
-        for (size_t i = 0; i != n; ++i)
-            disp[i] = static_cast<uint8_t>(b[i]->display());
+        const Rgba *c1, *c2;
+        for (size_t i = 0; i < n; ++i) {
+	  PBond *bond = b[i];
+	  if (bond->halfbond()) {
+	      c1 = &bond->atoms()[0]->color();
+	      c2 = &bond->atoms()[1]->color();
+	  } else {
+	      c1 = c2 = &bond->color();
+	  }
+	  *rgba1++ = c1->r; *rgba1++ = c1->g; *rgba1++ = c1->b; *rgba1++ = c1->a;
+	  *rgba2++ = c2->r; *rgba2++ = c2->g; *rgba2++ = c2->b; *rgba2++ = c2->a;
+	}
     } catch (...) {
         molc_error();
     }
+    return colors;
 }
 
-extern "C" void set_pseudobond_display(void *pbonds, size_t n, uint8_t *disp)
+extern "C" void pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
 {
     PBond **b = static_cast<PBond **>(pbonds);
-    try {
-        for (size_t i = 0; i != n; ++i)
-            b[i]->set_display(static_cast<Bond::BondDisplay>(disp[i]));
-    } catch (...) {
-        molc_error();
-    }
+    error_wrap_array_get<PBond, bool, npy_bool>(b, n, &PBond::display, disp);
+}
+
+extern "C" void set_pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
+{
+    PBond **b = static_cast<PBond **>(pbonds);
+    error_wrap_array_set<PBond, bool, npy_bool>(b, n, &PBond::set_display, disp);
 }
 
 extern "C" void pseudobond_halfbond(void *pbonds, size_t n, npy_bool *halfb)
@@ -689,6 +861,12 @@ extern "C" void pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
 {
     PBond **b = static_cast<PBond **>(pbonds);
     error_wrap_array_get<PBond, float>(b, n, &PBond::radius, radii);
+}
+
+extern "C" void pseudobond_shown(void *pbonds, size_t n, npy_bool *shown)
+{
+    PBond **b = static_cast<PBond **>(pbonds);
+    error_wrap_array_get<PBond, bool, npy_bool>(b, n, &PBond::shown, shown);
 }
 
 extern "C" void set_pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
@@ -779,10 +957,10 @@ extern "C" void pseudobond_group_pseudobonds(void *pbgroups, size_t n, pyobject_
     }
 }
 
-extern "C" void *pseudobond_create_global_manager()
+extern "C" void *pseudobond_create_global_manager(void* change_tracker)
 {
     try {
-        auto pb_manager = new PBManager();
+        auto pb_manager = new PBManager(static_cast<ChangeTracker*>(change_tracker));
         return pb_manager;
     } catch (...) {
         molc_error();
@@ -872,6 +1050,47 @@ extern "C" void set_residue_ribbon_display(void *residues, size_t n, npy_bool *r
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_ribbon_display, ribbon_display);
+}
+
+extern "C" void residue_ribbon_hide_backbone(void *residues, size_t n, npy_bool *ribbon_hide_backbone)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::ribbon_hide_backbone, ribbon_hide_backbone);
+}
+
+extern "C" void set_residue_ribbon_hide_backbone(void *residues, size_t n, npy_bool *ribbon_hide_backbone)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_ribbon_hide_backbone, ribbon_hide_backbone);
+}
+
+extern "C" void residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::ribbon_style, ribbon_style);
+}
+
+extern "C" void set_residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            r[i]->set_ribbon_style(static_cast<Residue::Style>(ribbon_style[i]));
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::ribbon_adjust, ribbon_adjust);
+}
+
+extern "C" void set_residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_ribbon_adjust, ribbon_adjust);
 }
 
 extern "C" void residue_structure(void *residues, size_t n, pyobject_t *molp)
@@ -1011,16 +1230,17 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 else
                     has_guides = false;
             }
-            if (r[i]->ribbon_display()) {
+            if (r[i]->ribbon_display() && r[i]->ribbon_hide_backbone()) {
                 // Ribbon is shown, so hide backbone atoms and bonds
                 for (auto atom: a)
                     if ((atom->hide() & Atom::HIDE_RIBBON) == 0
-                            && atom->is_backbone() && atom != center)
+                            && atom->is_backbone(BBE_RIBBON) && atom != center)
                         atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
                 for (auto bond: r[i]->bonds_between(r[i])) {
                     auto atoms = bond->atoms();
                     if ((bond->hide() & Bond::HIDE_RIBBON) == 0
-                            && atoms[0]->is_backbone() && atoms[1]->is_backbone())
+                            && atoms[0]->is_backbone(BBE_RIBBON)
+                            && atoms[1]->is_backbone(BBE_RIBBON))
                         bond->set_hide(bond->hide() | Bond::HIDE_RIBBON);
                 }
             }
@@ -1028,17 +1248,25 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 // Ribbon is not shown, so unhide backbone atoms and bonds
                 for (auto atom: a)
                     if ((atom->hide() & Atom::HIDE_RIBBON) != 0
-                            && atom->is_backbone() && atom != center)
+                            && atom->is_backbone(BBE_RIBBON) && atom != center)
                         atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
                 for (auto bond: r[i]->bonds_between(r[i])) {
                     auto atoms = bond->atoms();
                     if ((bond->hide() & Bond::HIDE_RIBBON) != 0
-                            && atoms[0]->is_backbone() && atoms[1]->is_backbone())
+                            && atoms[0]->is_backbone(BBE_RIBBON)
+                            && atoms[1]->is_backbone(BBE_RIBBON))
                         bond->set_hide(bond->hide() & ~Bond::HIDE_RIBBON);
                 }
             }
         }
-        PyObject *o = PyTuple_New(2);
+
+        // Create Python return value: tuple of (atoms, control points, guide points)
+        PyObject *o = PyTuple_New(3);
+        void **adata;
+        PyObject *alist = python_voidp_array(centers.size(), &adata);
+        for (auto atom : centers)
+            *adata++ = atom;
+        PyTuple_SetItem(o, 0, alist);
         float *data;
         PyObject *ca = python_float_array(centers.size(), 3, &data);
         for (auto atom : centers) {
@@ -1047,7 +1275,7 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
             *data++ = c[1];
             *data++ = c[2];
         }
-        PyTuple_SetItem(o, 0, ca);
+        PyTuple_SetItem(o, 1, ca);
         if (has_guides) {
             PyObject *ga = python_float_array(guides.size(), 3, &data);
             for (auto atom : guides) {
@@ -1056,11 +1284,11 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 *data++ = c[1];
                 *data++ = c[2];
             }
-            PyTuple_SetItem(o, 1, ga);
+            PyTuple_SetItem(o, 2, ga);
         }
         else {
             Py_INCREF(Py_None);
-            PyTuple_SetItem(o, 1, Py_None);
+            PyTuple_SetItem(o, 2, Py_None);
         }
         return o;
     } catch (...) {
@@ -1107,6 +1335,127 @@ extern "C" void chain_residues(void *chains, size_t n, pyobject_t *res)
             for (size_t j = 0; j != r.size(); ++j)
                 *res++ = r[i];
         }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void *change_tracker_create()
+{
+    try {
+        auto change_tracker = new ChangeTracker();
+        return change_tracker;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" npy_bool change_tracker_changed(void *vct)
+{
+    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
+    try {
+        return ct->changed();
+    } catch (...) {
+        molc_error();
+        return false;
+    }
+}
+
+extern "C" PyObject* change_tracker_changes(void *vct)
+{
+    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
+    PyObject* changes_data = NULL;
+    try {
+        changes_data = PyDict_New();
+        auto all_changes = ct->get_changes();
+        for (size_t i = 0; i < all_changes.size(); ++i) {
+            auto class_changes = all_changes[i];
+            auto class_name = ct->python_class_names[i];
+            PyObject* key = unicode_from_string(class_name);
+            PyObject* value = PyTuple_New(4);
+
+            // first tuple item:  created objects
+            void **ptrs;
+            PyObject *ptr_array = python_voidp_array(class_changes.created.size(), &ptrs);
+            size_t j = 0;
+            for (auto ptr: class_changes.created)
+                ptrs[j++] = ptr;
+            PyTuple_SetItem(value, 0, ptr_array);
+
+            // second tuple item:  modified objects
+            ptr_array = python_voidp_array(class_changes.modified.size(), &ptrs);
+            j = 0;
+            for (auto ptr: class_changes.modified)
+                ptrs[j++] = ptr;
+            PyTuple_SetItem(value, 1, ptr_array);
+
+            // third tuple item:  list of reasons
+            PyObject* reasons = PyList_New(class_changes.reasons.size());
+            j = 0;
+            for (auto reason: class_changes.reasons)
+                PyList_SetItem(reasons, j++, unicode_from_string(reason));
+            PyTuple_SetItem(value, 2, reasons);
+
+            // fourth tuple item:  total number of deleted objects
+            PyTuple_SetItem(value, 3, PyLong_FromLong(class_changes.num_deleted));
+
+            PyDict_SetItem(changes_data, key, value);
+        }
+    } catch (...) {
+        Py_XDECREF(changes_data);
+        molc_error();
+    }
+    return changes_data;
+}
+
+extern "C" void change_tracker_clear(void *vct)
+{
+    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
+    try {
+        return ct->clear();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void change_tracker_add_modified(void *vct, int class_num, void *modded,
+    const char *reason)
+{
+    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
+    try {
+        if (class_num == 0) {
+            ct->add_modified(static_cast<Atom*>(modded), reason);
+        } else if (class_num == 1) {
+            ct->add_modified(static_cast<Bond*>(modded), reason);
+        } else if (class_num == 2) {
+            ct->add_modified(static_cast<PBond*>(modded), reason);
+        } else if (class_num == 3) {
+            ct->add_modified(static_cast<Residue*>(modded), reason);
+        } else if (class_num == 4) {
+            ct->add_modified(static_cast<Chain*>(modded), reason);
+        } else if (class_num == 5) {
+            ct->add_modified(static_cast<AtomicStructure*>(modded), reason);
+        } else if (class_num == 6) {
+            ct->add_modified(static_cast<Proxy_PBGroup*>(modded), reason);
+        } else {
+            throw std::invalid_argument("Bad class value to ChangeTracker.add_modified()");
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_structure_color(void *mol, uint8_t *rgba)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        Rgba c;
+        c.r = *rgba++;
+        c.g = *rgba++;
+        c.b = *rgba++;
+        c.a = *rgba++;
+        m->set_color(c);
     } catch (...) {
         molc_error();
     }
@@ -1284,6 +1633,71 @@ extern "C" void structure_chains(void *mols, size_t n, pyobject_t *chains)
     }
 }
 
+extern "C" void structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_get(m, n, &AtomicStructure::ribbon_tether_scale, ribbon_tether_scale);
+}
+
+extern "C" void set_structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_set(m, n, &AtomicStructure::set_ribbon_tether_scale, ribbon_tether_scale);
+}
+
+extern "C" void structure_ribbon_tether_shape(void *mols, size_t n, int32_t *ribbon_tether_shape)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_get(m, n, &AtomicStructure::ribbon_tether_shape, ribbon_tether_shape);
+}
+
+extern "C" void set_structure_ribbon_tether_shape(void *mols, size_t n, int32_t *ribbon_tether_shape)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            m[i]->set_ribbon_tether_shape(static_cast<AtomicStructure::TetherShape>(ribbon_tether_shape[i]));
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void structure_ribbon_tether_sides(void *mols, size_t n, int32_t *ribbon_tether_sides)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_get(m, n, &AtomicStructure::ribbon_tether_sides, ribbon_tether_sides);
+}
+
+extern "C" void set_structure_ribbon_tether_sides(void *mols, size_t n, int32_t *ribbon_tether_sides)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_set(m, n, &AtomicStructure::set_ribbon_tether_sides, ribbon_tether_sides);
+}
+
+extern "C" void structure_ribbon_tether_opacity(void *mols, size_t n, float32_t *ribbon_tether_opacity)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_get(m, n, &AtomicStructure::ribbon_tether_opacity, ribbon_tether_opacity);
+}
+
+extern "C" void set_structure_ribbon_tether_opacity(void *mols, size_t n, float32_t *ribbon_tether_opacity)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_set(m, n, &AtomicStructure::set_ribbon_tether_opacity, ribbon_tether_opacity);
+}
+
+extern "C" void structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_get(m, n, &AtomicStructure::ribbon_show_spine, ribbon_show_spine);
+}
+
+extern "C" void set_structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_set(m, n, &AtomicStructure::set_ribbon_show_spine, ribbon_show_spine);
+}
+
 extern "C" void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
 {
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
@@ -1328,6 +1742,17 @@ extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *float
     }
 }
 
+extern "C" void structure_start_change_tracking(void *mol, void *vct)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
+    try {
+            m->start_change_tracking(ct);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
@@ -1352,10 +1777,10 @@ extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structur
     }
 }
 
-extern "C" void *structure_new()
+extern "C" void *structure_new(PyObject* logger)
 {
     try {
-        AtomicStructure *m = new AtomicStructure();
+        AtomicStructure *m = new AtomicStructure(logger);
         return m;
     } catch (...) {
         molc_error();
@@ -1377,7 +1802,7 @@ extern "C" void *structure_new_atom(void *mol, const char *atom_name, const char
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
     try {
-        Atom *a = m->new_atom(atom_name, Element(element_name));
+        Atom *a = m->new_atom(atom_name, Element::get_element(element_name));
         return a;
     } catch (...) {
         molc_error();
@@ -1409,28 +1834,6 @@ extern "C" void *structure_new_residue(void *mol, const char *residue_name, cons
     }
 }
 
-extern "C" void *element_new_name(const char *name)
-{
-    try {
-        Element *e = new Element(name);
-        return e;
-    } catch (...) {
-        molc_error();
-        return nullptr;
-    }
-}
-
-extern "C" void *element_new_number(size_t number)
-{
-    try {
-        Element *e = new Element(number);
-        return e;
-    } catch (...) {
-        molc_error();
-        return nullptr;
-    }
-}
-
 extern "C" void element_name(void *elements, size_t n, pyobject_t *names)
 {
     Element **e = static_cast<Element **>(elements);
@@ -1454,10 +1857,54 @@ extern "C" void element_mass(void *elements, size_t n, float *mass)
     error_wrap_array_get(e, n, &Element::mass, mass);
 }
 
+extern "C" void *element_number_get_element(int en)
+{
+    try {
+        return (void*)(&Element::get_element(en));
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void *element_name_get_element(const char *en)
+{
+    try {
+        return (void*)(&Element::get_element(en));
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void element_is_alkali_metal(void *elements, size_t n, npy_bool *a_metal)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::is_alkali_metal, a_metal);
+}
+
+extern "C" void element_is_halogen(void *elements, size_t n, npy_bool *halogen)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::is_halogen, halogen);
+}
+
 extern "C" void element_is_metal(void *elements, size_t n, npy_bool *metal)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::is_metal, metal);
+}
+
+extern "C" void element_is_noble_gas(void *elements, size_t n, npy_bool *ngas)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::is_noble_gas, ngas);
+}
+
+extern "C" void element_valence(void *elements, size_t n, uint8_t *valence)
+{
+    Element **e = static_cast<Element **>(elements);
+    error_wrap_array_get(e, n, &Element::valence, valence);
 }
 
 static void *init_numpy()

@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 place: Coordinate systems
 =========================
@@ -87,6 +87,8 @@ class Place:
         a new Place object.'''
         if isinstance(p, Place):
             return Place(m34.multiply_matrices(self.matrix, p.matrix))
+        elif isinstance(p, Places):
+            return Places([self]) * p
 
         from numpy import ndarray
         if isinstance(p, (ndarray, tuple, list)):
@@ -146,9 +148,10 @@ class Place:
         done by finding the transform mapping to tf, treating it as a
         rotation about the specified center point followed by a shift,
         then perform the specified fraction of the full rotation, and
-        specified fraction of the shift.'''
-        return Place(m34.interpolate_transforms(self.matrix, center, tf.matrix,
-                                                frac))
+        specified fraction of the shift.  When the interpolated places
+        are thought of as coordinate systems positions, the center
+        point is in local coordinates.'''
+        return Place(m34.interpolate_transforms(self.matrix, center, tf.matrix, frac))
 
     def rotation_angle(self):
         '''Return the rotation angle of the transform, or equivalently
@@ -302,6 +305,17 @@ def product(plist):
     for p2 in plist[1:]:
         p = p*p2
     return p
+
+def interpolate_rotation(place1, place2, fraction):
+    '''
+    Interpolate the rotation parts of place1 and place2.
+    The rotation axis taking one coordinate frame to the other
+    is linearly interpolated. The translations are ignored
+    and the returned Place has translation set to zero.
+    '''
+    r1, r2 = place1.zero_translation(), place2.zero_translation()
+    center = (0,0,0)
+    return r1.interpolate(r2, center, fraction)
 
 class Places:
     ''' The Places class represents a list of 0 or more Place objects.

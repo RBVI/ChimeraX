@@ -1,15 +1,23 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module
-    modules = ['buriedarea', 'camera', 'close', 'color', 'crossfade', 'crosslinks',
-               'delete', 'display', 'echo', 'exit', 'export', 'help', 'lighting', 'list', 'material', 
-               'move', 'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'ribbon', 'run',
-               'sasa', 'save', 'scolor', 'set', 'split', 'stop', 'style', 'surface', 'sym',
-               'turn', 'view', 'wait']
+    # Remember that the order is important, when a command name is
+    # abbreviated, the one registered that matches wins, not the first
+    # in alphabetical order.
+    modules = [
+        'alias', 'buriedarea',
+        'camera', 'close', 'cofr', 'color', 'colordef', 'crossfade', 'crosslinks',
+        'delete', 'display', 'echo', 'exit', 'export',
+        'lighting', 'list', 'material', 'mousemode', 'move',
+        'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',
+        'save', 'sasa', 'scolor', 'select', 'set', 'split',
+        'stop', 'style', 'surface', 'sym',
+        'transparency', 'turn', 'usage', 'view', 'wait', 'zoom'
+    ]
     for mod in modules:
-        m = import_module('chimera.core.commands.%s' % mod)
+        m = import_module(".%s" % mod, __package__)
         m.register_command(session)
 
     from .. import map
@@ -26,28 +34,3 @@ def register_core_commands(session):
     oculus.register_oculus_command()
     from ..devices import spacenavigator
     spacenavigator.register_snav_command()
-
-    # Selectors
-    from . import atomspec
-    atomspec.register_selector(None, "sel", _sel_selector)
-    atomspec.register_selector(None, "strands", _strands_selector)
-
-
-def _sel_selector(session, models, results):
-    from ..atomic import AtomicStructure
-    for m in models:
-        if m.any_part_selected():
-            results.add_model(m)
-            if isinstance(m, AtomicStructure):
-                for atoms in m.selected_items('atoms'):
-                    results.add_atoms(atoms)
-
-
-def _strands_selector(session, models, results):
-    from ..atomic import AtomicStructure
-    for m in models:
-        if isinstance(m, AtomicStructure):
-            strands = m.residues.filter(m.residues.is_sheet)
-            if strands:
-                results.add_model(m)
-                results.add_atoms(strands.atoms)

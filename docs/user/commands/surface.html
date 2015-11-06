@@ -51,10 +51,11 @@ lower-resolution Gaussian surfaces specified with the
 A <b><i>solvent-excluded</i></b> surface (SES) is
 composed of the contact, toroidal, and reentrant surfaces
 of a probe sphere rolled over the spacefilling atoms. By contrast,
-a <b><i>solvent-accessible</i></b> surface (SAS, not shown by Chimera)
+a <b><i>solvent-accessible</i></b> surface (SAS, not shown by Chimera2)
 is the surface traced out by the center of the probe sphere.
 See below for <a href="#options">surface creation options</a> and
-<a href="#examples">examples</a>.
+<a href="#examples">examples</a>.  See also:
+<a href="display.html"><b>display</b></a>
 </p><p>
 With <a href="atomspec.html"><i>atom-spec1</i></a>,
 display can be controlled for entire molecular surfaces on down to
@@ -87,58 +88,6 @@ However, if a single surface model is based on atoms from more than one model
 a number at the same level as the atomic models (for example, #3).
 </p>
 
-<a name="surfcats"></a>
-<font color="brown"><p>
-** The following categorization is not yet implemented;
-currently, the default surfaces simply include the biopolymer chains. **
-</p></font>
-<table border width="95%" cellpadding="4" cellspacing="0">
-<tr><th>Automatic Categories</th> 
-<th>Membership Rules (in order of application)</th></tr>
-<tr><td align=center><b>solvent</b></td>
-<td>
-Of the following two, the set with the greater number of residues:
-<ul>
-<li> &ldquo;small solvent&rdquo; candidate set:
-residues of up to 3 atoms named WAT, HOH, and DOD, plus singleton atoms
-(<i>i.e.</i>, not covalently bonded to other atoms)
-of atomic number 6-8 in single-atom residues
-<li> &ldquo;other solvent&rdquo; candidate set:  
-excluding residues in the &ldquo;small solvent&rdquo; set, 
-the most prevalent type of residue that is not covalently bonded 
-to other residues, has &le; 10 atoms per residue, and is present in
-at least 10 copies in the structure
-</ul>
-</td>
-<tr><td align=center><b>ions</b></td>
-<td>
-Non-solvent singleton atoms other than noble gases, 
-plus covalently bonded groups of &le; 4 atoms 
-(not counting hydrogens) in the same residues as those singletons
-</td>
-<tr><td align=center><b>ligand</b></td>
-<td>
-Singleton atoms that are noble gases;
-single residues or bonded sequences of residues
-with &lt; 10 residues per bonded sequence, 
-&lt; 250 atoms, and &lt; 1/4 the number of atoms
-in the largest bonded sequence of residues in the model;
-residues bonded to a chain but not included in its main sequence
-(<i>e.g.</i>, retinal in rhodopsin, glycosylations)
-</td>
-<tr><td align=center><b>main</b></td>
-<td>
-All remaining atoms;
-by default, molecular surfaces enclose these, grouped by chain ID
-</td>
-</table>
-<!--
-<p>
-Each category name can be used in
-<a href="atomspec.html"><i>atom-spec</i></a> strings. 
-</p>
--->
-
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
@@ -167,20 +116,12 @@ biopolymer chains with different chain IDs into a single molecular envelope.
 </p><p>
 The <b>include</b> option can be used to force including atoms that
 would otherwise be ignored 
-<!--
-(any subset of the atoms 
-<a href="#surfcats">categorized</a>
-as <b>ligand</b>, <b>solvent</b>, or <b>ions</b>) 
--->
 (residues not within a biopolymer chain, such as ligands, solvent, and ions)
 into the same envelope as the biopolymer atoms with the same chain ID.
 For convenience, however, if
 <a href="atomspec.html"><i>atom-spec1</i></a>
 contains only such atoms, they will be surfaced separately
-<!--
-(grouped by <a href="#surfcats">category</a> and chain ID)
--->
-and the <b>include</b> option is not needed.
+(grouped by chain ID) and the <b>include</b> option is not needed.
 </p><p>
 The <b>replace</b> option (default <b>true</b>)
 indicates removing all previously created surface models 
@@ -279,18 +220,18 @@ Example <a href="#top"><b>surface</b></a> commands:
 <b>surface #1.2 close</b>
 </blockquote>
 - close (delete) the surface with model number 1.2
-<!-- category "ligand" not yet implemented
+<!-- zones not yet implemented
 <blockquote>
-<b>surface ligand za<5 visible 1</b>
+<b>surface ligand @<=5 visible 1</b>
 </blockquote>
 - display the largest surface patch per biopolymer chain for
-atoms within 5&Aring; of <a href="#surfcats"><b>ligand</b></a>
+atoms within 5&Aring; of <a href="atomspec.html#surfcats"><b>ligand</b></a>
+-->
 <blockquote>
 <b>surface ligand</b>
 </blockquote>
-- display surface(s) for <a href="#surfcats"><b>ligand</b></a>
+- display surface(s) for <a href="atomspec.html#surfcats"><b>ligand</b></a>
 (divided up by chain ID)
--->
 <blockquote>
 <b>surface #1-3</b>
 </blockquote>
@@ -339,5 +280,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2015</address>
+October 2015</address>
 </body></html>

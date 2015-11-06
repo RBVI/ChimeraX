@@ -34,7 +34,7 @@ find_gaps(Chain& chain)
         int gap = 0;
         if (prev_res != nullptr) {
             auto connects = prev_res->bonds_between(res, true);
-            // since unlike Chimera 1, Chimera 2 does not make
+            // since unlike Chimera 1, Chimera2 does not make
             // long "covalent" bonds across gaps, some of the
             // fancy logic used in Chimera 1 is not necessary here
             if (connects.empty()) {

@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # -----------------------------------------------------------------------------
 # Command to split molecules so that each chain is in a separate molecule.
@@ -179,7 +179,7 @@ def split_atoms(atoms, asubsets):
 def molecule_from_atoms(m, atoms, name = None):
 
     from ..atomic import AtomicStructure
-    cm = AtomicStructure(name or m.name)
+    cm = AtomicStructure(name or m.name, level_of_detail = m._level_of_detail)
 #    cm.color = m.color
     cm.display = m.display
 #    cm.lineWidth = m.lineWidth

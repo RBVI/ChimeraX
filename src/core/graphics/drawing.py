@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 Drawing
 =======
@@ -42,6 +42,10 @@ class Drawing:
     Rendering of drawings is done with OpenGL.
     '''
 
+    from ..triggerset import TriggerSet
+    triggers = TriggerSet()
+    triggers.add_trigger('display changed')
+
     def __init__(self, name):
 
         self._redraw_needed = None
@@ -56,6 +60,7 @@ class Drawing:
         from numpy import array, uint8
         # Colors for each position, N by 4 uint8 numpy array:
         self._colors = array(((178, 178, 178, 255),), uint8)
+        self._opaque_color_count = 1
         # bool numpy array, show only some positions:
         self._displayed_positions = None
         self._any_displayed_positions = True
@@ -85,12 +90,8 @@ class Drawing:
         """Normal vectors of the rendered geometry, a numpy N by 3 array
         of float32 values."""
 
-        self.vertex_colors = None
-        '''
-        R, G, B, A color and transparency for each vertex, a numpy N by
-        4 array of uint8 values, can be None in which case a single color
-        (attribute color) is used for the object.
-        '''
+        self._vertex_colors = None
+        self._opaque_vertex_color_count = 0
 
         self._triangle_mask = None
         '''
@@ -165,7 +166,7 @@ class Drawing:
             self.redraw_needed()
         if key in self._effects_buffers:
             self._attribute_changes.add(key)
-            gc = key in ('vertices', 'triangles')
+            gc = key in ('vertices', 'triangles', '_triangle_mask')
             if gc:
                 self._cached_bounds = None
             sc = (gc or (key in ('_displayed_positions', '_positions')))
@@ -256,6 +257,7 @@ class Drawing:
         dp[:] = display
         self._any_displayed_positions = display
         self.redraw_needed(shape_changed=True)
+        self.__class__.triggers.activate_trigger('display changed', self)
 
     display = property(get_display, set_display)
     '''Whether or not the surface is drawn.'''
@@ -276,6 +278,13 @@ class Drawing:
 
     display_positions = property(get_display_positions, set_display_positions)
     '''Mask specifying which copies are displayed.'''
+
+    @property
+    def parents_displayed(self):
+        for d in self.drawing_lineage[:-1]:
+            if not d.display:
+                return False
+        return True
 
     def get_selected(self):
         sp = self._selected_positions
@@ -428,6 +437,9 @@ class Drawing:
         return self._positions
 
     def set_positions(self, positions):
+        from ..geometry import Places
+        if positions and not isinstance(positions, Places):
+            raise ValueError('Got %s instead of Places' % str(type(positions)))
         self._positions = positions
         self._displayed_positions = None
         self._selected_positions = None
@@ -453,9 +465,11 @@ class Drawing:
 
     def set_color(self, rgba):
         from numpy import empty, uint8
-        c = empty((len(self._positions), 4), uint8)
+        np = len(self._positions)
+        c = empty((np, 4), uint8)
         c[:, :] = rgba
         self._colors = c
+        self._opaque_color_count = (np if rgba[3] == 255 else 0)
         self.redraw_needed()
 
     color = property(get_color, set_color)
@@ -469,27 +483,49 @@ class Drawing:
         from numpy import ndarray, array, uint8
         c = rgba if isinstance(rgba, ndarray) else array(rgba, uint8)
         self._colors = c
+        self._opaque_color_count = opaque_count(c)
         self.redraw_needed()
 
     colors = property(get_colors, set_colors)
     '''Color for each position used when per-vertex coloring is not
     specified.'''
 
-    def _opaque(self):
-        # TODO: Should render transparency for each copy separately
-        # TODO: Should check all vertex colors for transparency. Would need to render
-        #     opaque and transparent parts separately for 1-layer transparency to work
-        #     as expected when some vertices are opaque and some transparent.
-        vc = self.vertex_colors
-        alpha = self.color[3] if vc is None or len(vc) == 0 else vc[0,3]
-        return alpha == 255 and (self.texture is None or self.opaque_texture)
+    def get_vertex_colors(self):
+        return self._vertex_colors
+    def set_vertex_colors(self, vcolors):
+        self._vertex_colors = vcolors
+        self._opaque_vertex_color_count = opaque_count(vcolors)
+    vertex_colors = property(get_vertex_colors, set_vertex_colors)
+    '''
+    R, G, B, A color and transparency for each vertex, a numpy N by
+    4 array of uint8 values, can be None in which case a single color
+    (attribute color) is used for the object.
+    '''
+
+    def _transparency(self):
+        if self.texture is not None:
+            any_opaque = self.opaque_texture
+            any_transparent = not self.opaque_texture
+        else:
+            vc = self.vertex_colors
+            if vc is None:
+                oc = self._opaque_color_count
+                any_opaque = (oc > 0)
+                any_transparent = (oc < len(self._colors))
+            else:
+                oc = self._opaque_vertex_color_count
+                any_opaque = (oc > 0)
+                any_transparent = (oc < len(vc))
+        return any_opaque, any_transparent
 
     def showing_transparent(self):
         '''Are any transparent objects being displayed. Includes all
         children.'''
         if self.display:
-            if not self.empty_drawing() and not self._opaque():
-                return True
+            if not self.empty_drawing():
+                any_opaque, any_transp = self._transparency()
+                if any_transp:
+                    return True
             for d in self.child_drawings():
                 if d.showing_transparent():
                     return True
@@ -578,12 +614,14 @@ class Drawing:
         renderer.set_model_matrix(pp)
 
         if draw_pass == self.OPAQUE_DRAW_PASS:
-            if self._opaque():
-                self._draw_geometry(renderer, selected_only)
+            any_opaque, any_transp = self._transparency()
+            if any_opaque:
+                self._draw_geometry(renderer, selected_only, opaque_only = any_transp)
         elif draw_pass in (self.TRANSPARENT_DRAW_PASS,
                            self.TRANSPARENT_DEPTH_DRAW_PASS):
-            if not self._opaque():
-                self._draw_geometry(renderer, selected_only)
+            any_opaque, any_transp = self._transparency()
+            if any_transp:
+                self._draw_geometry(renderer, selected_only, transparent_only = any_opaque)
         elif draw_pass == self.SELECTION_DRAW_PASS:
             self._draw_geometry(renderer, selected_only)
 
@@ -594,7 +632,8 @@ class Drawing:
         for d in dlist:
             d.draw(renderer, place, draw_pass, selected_only)
 
-    def _draw_geometry(self, renderer, selected_only=False):
+    def _draw_geometry(self, renderer, selected_only=False,
+                       transparent_only=False, opaque_only=False):
         ''' Draw the geometry.'''
 
         if self.vertices is None:
@@ -609,7 +648,7 @@ class Drawing:
         ds = self._draw_selection if selected_only else self._draw_shape
         ds.activate_bindings()
 
-        sopt = self._shader_options()
+        sopt = self._shader_options(transparent_only, opaque_only)
         shader = renderer.shader(sopt)
         renderer.use_shader(shader)
 
@@ -624,16 +663,15 @@ class Drawing:
         at = self.ambient_texture
         if at is not None:
             at.bind_texture()
-            renderer.set_ambient_texture_transform(
-                self.ambient_texture_transform)
+            renderer.set_ambient_texture_transform(self.ambient_texture_transform)
 
         # Draw triangles
         ds.draw(self.display_style)
 
-        if self.texture is not None:
-            self.texture.unbind_texture()
+        if t is not None:
+            t.unbind_texture()
 
-    def _shader_options(self):
+    def _shader_options(self, transparent_only = False, opaque_only = False):
         sopt = self._shader_opt
         if sopt is None:
             sopt = 0
@@ -643,7 +681,10 @@ class Drawing:
             if (self.vertex_colors is not None) or len(self._colors) > 1:
                 sopt |= Render.SHADER_VERTEX_COLORS
             if self.texture is not None:
-                sopt |= Render.SHADER_TEXTURE_2D
+                if self.texture.is_cubemap:
+                    sopt |= Render.SHADER_TEXTURE_CUBEMAP
+                else:
+                    sopt |= Render.SHADER_TEXTURE_2D
             if self.ambient_texture is not None:
                 sopt |= Render.SHADER_TEXTURE_3D_AMBIENT
             if self.positions.shift_and_scale_array() is not None:
@@ -651,6 +692,12 @@ class Drawing:
             elif len(self.positions) > 1:
                 sopt |= Render.SHADER_INSTANCING
             self._shader_opt = sopt
+        if transparent_only:
+            from .opengl import Render
+            sopt |= Render.SHADER_TRANSPARENT_ONLY
+        if opaque_only:
+            from .opengl import Render
+            sopt |= Render.SHADER_OPAQUE_ONLY
         return sopt
 
     _effects_shader = set(
@@ -735,7 +782,14 @@ class Drawing:
             return cb
 
         va = self.vertices
-        if va is None or len(va) == 0:
+        if va is None:
+            return None
+        tmask = self._triangle_mask
+        if not tmask is None:
+            import numpy
+            vshown = numpy.unique(self.triangles[tmask,:])
+            va = va[vshown,:]
+        if len(va) == 0:
             return None
         xyz_min = va.min(axis=0)
         xyz_max = va.max(axis=0)
@@ -747,7 +801,9 @@ class Drawing:
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         '''
         Find the first intercept of a line segment with the displayed part
-        of this drawing and its children.  Return a Pick object for the intercepted item.
+        of this drawing and its children.  The end points are in the parent
+        drawing coordinates and do not take account of this Drawings positions.
+        Return a Pick object for the intercepted item.
         The Pick object has a distance attribute giving the fraction (0-1)
         along the segment where the intersection occurs.
         For no intersection None is returned.  This routine is used for
@@ -761,15 +817,25 @@ class Drawing:
                 p = self._first_intercept_excluding_children(mxyz1, mxyz2)
                 if p and (pclosest is None or p.distance < pclosest.distance):
                     pclosest = p
-            cd = self.child_drawings()
-            if cd:
-                pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
-                for d in cd:
-                    if d.display and (exclude is None or not hasattr(d, exclude)):
-                        for cp, (cxyz1, cxyz2) in enumerate(pos):
-                            p = d.first_intercept(cxyz1, cxyz2, exclude)
-                            if p and (pclosest is None or p.distance < pclosest.distance):
-                                pclosest = p
+            p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude)
+            if p and (pclosest is None or p.distance < pclosest.distance):
+                pclosest = p
+        return pclosest
+
+    def first_intercept_children(self, child_drawings, mxyz1, mxyz2, exclude=None):
+        '''
+        Like first_intercept() but check for intercepts with just the specified children.
+        '''
+        if len(child_drawings) == 0:
+            return None
+        pclosest = None
+        pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
+        for d in child_drawings:
+            if d.display and (exclude is None or not hasattr(d, exclude)):
+                for cxyz1, cxyz2 in pos:
+                    p = d.first_intercept(cxyz1, cxyz2, exclude)
+                    if p and (pclosest is None or p.distance < pclosest.distance):
+                        pclosest = p
         return pclosest
 
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
@@ -782,9 +848,9 @@ class Drawing:
             return None
         # TODO: Check intercept of bounding box as optimization
         p = None
-        from ._graphics import closest_geometry_intercept
+        from ..geometry import closest_triangle_intercept
         if self.positions.is_identity():
-            fmin, tmin = closest_geometry_intercept(va, ta, mxyz1, mxyz2)
+            fmin, tmin = closest_triangle_intercept(va, ta, mxyz1, mxyz2)
             if fmin is not None:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
@@ -793,7 +859,7 @@ class Drawing:
             for c, tf in enumerate(self.positions):
                 if dp is None or dp[c]:
                     cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-                    fmin, tmin = closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+                    fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
                     if fmin is not None and (p is None or fmin < p.distance):
                         p = TrianglePick(fmin, tmin, c, self)
         return p
@@ -830,7 +896,7 @@ class Drawing:
             ('vertices', opengl.VERTEX_BUFFER),
             ('normals', opengl.NORMAL_BUFFER),
             ('vertex_colors', opengl.VERTEX_COLOR_BUFFER),
-            ('texture_coordinates', opengl.TEXTURE_COORDS_2D_BUFFER),
+            ('texture_coordinates', opengl.TEXTURE_COORDS_BUFFER),
         )
 
         self._vertex_buffers = vb = []
@@ -893,89 +959,17 @@ class Drawing:
     to control display of the 3 triangle edges in mesh mode.
     '''
 
-    DRAWING_STATE_VERSION = 1
-
     @property
     def masked_triangles(self):
         ta = self.triangles
         tm = self._triangle_mask
         return ta if tm is None else ta[tm,:]
 
-    def take_snapshot(self, phase, session, flags):
-        from ..session import State
-        if phase == State.CLEANUP_PHASE:
-            for c in self.child_drawings():
-                c.take_snapshot(session, phase, flags)
-            return
-        if phase != State.SAVE_PHASE:
-            return
-        # all drawing objects should have the same version
-        data = {
-            'children': [c.take_snapshot(session, phase, flags)[1]
-                         for c in self.child_drawings()],
-            'name': self.name,
-            'vertices': self.vertices,
-            'triangles': self.triangles,
-            'normals': self.normals,
-            'vertex_colors': self.vertex_colors,
-            'triangle_mask': self._triangle_mask,
-            'edge_mask': self._edge_mask,
-            'display_style': self.display_style,
-            'texture': self.texture,
-            'ambient_texture ': self.ambient_texture,
-            'ambient_texture_transform': self.ambient_texture_transform,
-            'use_lighting': self.use_lighting,
-
-            'display': self.display,
-            'display_positions': self.display_positions,
-            'selected': self.selected,
-            'selected_positions': self.selected_positions,
-            'position': self.position,
-            'positions': self.positions,
-            'selected_triangles_mask': self.selected_triangles_mask,
-            'color': self.color,
-            'colors': self.colors,
-            'geometry': self.geometry,
-        }
-        return self.DRAWING_STATE_VERSION, data
-
-    def restore_snapshot(self, phase, session, version, data):
-        from ..session import State, RestoreError
-        if version != self.DRAWING_STATE_VERSION:
-            raise RestoreError("Unexpected version or data")
-        if phase != State.CREATE_PHASE:
-            return
-        for child_data in data['children']:
-            child = self.new_drawing()
-            child.restore_snapshot(phase, session, version, child_data)
-        self.name = data['name']
-        self.vertices = data['vertices']
-        self.triangles = data['triangles']
-        self.normals = data['normals']
-        self.vertex_colors = data['vertex_colors']
-        self._triangle_mask = data['triangle_mask']
-        self._edge_mask = data['edge_mask']
-        self.display_style = data['display_style']
-        self.texture = data['texture']
-        self.ambient_texture = data['ambient_texture ']
-        self.ambient_texture_transform = data['ambient_texture_transform']
-        self.use_lighting = data['use_lighting']
-
-        self.display = data['display']
-        self.selected = data['selected']
-        self.position = data['position']
-        self.positions = data['positions']
-        self.selected_triangles_mask = data['selected_triangles_mask']
-        self.color = data['color']
-        self.colors = data['colors']
-        self.geometry = data['geometry']
-        self.display_positions = data['display_positions']
-        self.selected_positions = data['selected_positions']
-
-    def reset_state(self):
-        # delay implementing until needed
-        raise NotImplemented()
-
+def opaque_count(rgba):
+    if rgba is None:
+        return 0
+    from . import _graphics
+    return _graphics.count_value(rgba[:,3], 255)
 
 def draw_drawings(renderer, cvinv, drawings, opaque_only = False):
     '''
@@ -1011,7 +1005,7 @@ def _any_transparent_drawings(drawings):
 def draw_depth(renderer, cvinv, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
-    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_VERTEX_COLORS |
+    r.disable_shader_capabilities(r.SHADER_LIGHTING |
                                   r.SHADER_TEXTURE_2D)
     draw_drawings(r, cvinv, drawings, opaque_only)
     r.disable_shader_capabilities(0)
@@ -1269,31 +1263,9 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
-    def drawing(self):
-        '''The drawing immediately containing the picked object.'''
-        return None
-
     def select(self, toggle=False):
         '''Cause this picked object to be marked as selected.'''
         pass
-
-    def id_string(self):
-        '''
-        A text identifier that can be used in commands to specified the
-        picked Model. The id number is not a standard attribute
-        of Drawing, only of Model which is a subclass of Drawing,
-        and is a tuple of integers.
-        '''
-        d = self.drawing()
-        while True:
-            if hasattr(d, 'id') and d.id is not None:
-                s = '#' + '.'.join(('%d' % id) for id in d.id)
-                return s
-            if hasattr(d, 'parent') and not d.parent is None:
-                d = d.parent
-            else:
-                break
-        return '?'
 
 class TrianglePick(Pick):
     '''
@@ -1318,6 +1290,24 @@ class TrianglePick(Pick):
         fields.append('triangle %d of %d' % (self.triangle_number, len(d.triangles)))
         desc = ' '.join(fields)
         return desc
+
+    def id_string(self):
+        '''
+        A text identifier that can be used in commands to specified the
+        picked Model. The id number is not a standard attribute
+        of Drawing, only of Model which is a subclass of Drawing,
+        and is a tuple of integers.
+        '''
+        d = self.drawing()
+        while True:
+            if hasattr(d, 'id') and d.id is not None:
+                s = '#' + '.'.join(('%d' % id) for id in d.id)
+                return s
+            if hasattr(d, 'parent') and not d.parent is None:
+                d = d.parent
+            else:
+                break
+        return '?'
 
     def drawing(self):
         return self._drawing

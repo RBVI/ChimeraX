@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 triggerset: Support for managing triggers and handlers
 ======================================================
@@ -109,17 +109,19 @@ class _TriggerHandler:
         self._name = name
         self._func = func
 
-    def invoke(self, data):
+    def invoke(self, data, remove_if_error):
         try:
             return self._func(self._name, data)
         except Exception:
             _report('%s "%s"' % (TRIGGER_ERROR, self._name))
+            if remove_if_error:
+                return DEREGISTER
 
 
 class _Trigger:
     """Keep track of handlers to invoke when activated"""
 
-    def __init__(self, name, usage_cb, default_one_time):
+    def __init__(self, name, usage_cb, default_one_time, remove_bad_handlers):
         self._name = name
         self._handlers = set()
         self._pending_add = set()
@@ -130,6 +132,7 @@ class _Trigger:
         self._need_activate_data = []
         self._usage_cb = usage_cb
         self._default_one_time = default_one_time
+        self._remove_bad_handlers = remove_bad_handlers
 
     def add(self, handler):
         if self._locked:
@@ -167,7 +170,7 @@ class _Trigger:
             if self._default_one_time:
                 self._pending_del.append(handler)
             try:
-                ret = handler.invoke(data)
+                ret = handler.invoke(data, self._remove_bad_handlers)
             except:
                 self._locked = locked
                 raise
@@ -218,8 +221,8 @@ class TriggerSet:
         self._block_data = {}
         self._blocked = 0
 
-    def add_trigger(self, name, usage_cb=None, after=None,
-                    default_one_time=False):
+    def add_trigger(self, name, *, usage_cb=None, after=None,
+                    default_one_time=False, remove_bad_handlers=False):
         """Add a trigger with the given name.
 
         triggerset.add_trigger(name) => None
@@ -243,10 +246,15 @@ class TriggerSet:
         The optional argument 'after' (default None) may be a list
         of trigger names, and is passed to a call to 'add_dependency'
         after the new trigger has been created.
+
+        if 'remove_bad_handlers' is True, then handlers that throw
+        errors will be removed from the list of handlers if they
+        throw an error.
         """
         if name in self._triggers:
             raise KeyError("Trigger '%s' already exists" % name)
-        self._triggers[name] = _Trigger(name, usage_cb, default_one_time)
+        self._triggers[name] = _Trigger(name, usage_cb, default_one_time,
+            remove_bad_handlers)
         self._roots.add(name)
         if after:
             self.add_dependency(name, after)

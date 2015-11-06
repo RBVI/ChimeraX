@@ -8,6 +8,7 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "Residue.h"
+#include <basegeom/destruct.h>
 #include "tmpl/TemplateCache.h"
 
 namespace atomstruct {
@@ -16,19 +17,35 @@ const std::set<AtomName> Residue::aa_min_backbone_names = {
     "C", "CA", "N"};
 const std::set<AtomName> Residue::aa_max_backbone_names = {
     "C", "CA", "N", "O", "OXT", "OT1", "OT2"};
+const std::set<AtomName> Residue::aa_ribbon_backbone_names = {
+    "C", "CA", "N", "O", "OXT", "OT1", "OT2"};
 const std::set<AtomName> Residue::na_min_backbone_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "P"};
 const std::set<AtomName> Residue::na_max_backbone_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "O2'",
-    "C2'", "O4'", "C1'"};
+    "C2'", "O4'", "C1'", "OP3", "O3P"};
+const std::set<AtomName> Residue::na_ribbon_backbone_names = {
+    "O3'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"};
+const std::set<ResName> Residue::std_solvent_names = { "HOH", "WAT", "DOD" };
 
 Residue::Residue(AtomicStructure *as, const ResName& name,
     const ChainID& chain, int pos, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _is_helix(false), _is_het(false), _is_sheet(false), _name(name),
-    _position(pos), _ss_id(-1), _ribbon_display(false),
-    _ribbon_rgba({160,160,0,255}), _structure(as)
+    _is_helix(false), _is_het(false), _is_sheet(false), _name(name), _polymer_type(PT_NONE),
+    _position(pos), _ribbon_adjust(-1.0), _ribbon_display(false),
+    _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
+    _ribbon_style(RIBBON_RIBBON), _ss_id(-1), _structure(as)
 {
+    _structure->change_tracker()->add_created(this);
+}
+
+Residue::~Residue() {
+    auto du = basegeom::DestructionUser(this);
+    if (_chain != nullptr) {
+        _chain->remove_residue(this);
+        _structure->set_gc_ribbon();
+    }
+    _structure->change_tracker()->add_deleted(this);
 }
 
 void

@@ -1,4 +1,5 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 
 def save(session, filename, width=None, height=None, supersample=None, format=None):
     '''Save data, sessions, images.
@@ -33,6 +34,7 @@ def save(session, filename, width=None, height=None, supersample=None, format=No
         raise UserError('Unrecognized file suffix "%s", require one of %s'
                         % (e, ','.join(suffixes)))
 
+
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(
@@ -43,9 +45,9 @@ def register_command(session):
             ('supersample', cli.IntArg),
             ('quality', cli.IntArg),
             ('format', cli.StringArg),
-            ],
+        ],
         synopsis='save session or image'
-        )
+    )
     cli.register('save', desc, save)
 
 # Table mapping file suffix to Pillow image format.
@@ -81,4 +83,3 @@ def save_image(session, path, format=None, width=None, height=None,
     view = session.main_view
     i = view.image(width, height, supersample=supersample)
     i.save(path, format, quality=quality)
-

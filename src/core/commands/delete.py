@@ -1,4 +1,5 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 
 def delete(session, atoms):
     '''Delete atoms.
@@ -10,8 +11,9 @@ def delete(session, atoms):
     '''
     atoms.delete()
 
+
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(required=[('atoms', cli.AtomsArg)],
-                           synopsis='delete atoms')
+                       synopsis='delete atoms')
     cli.register('delete', desc, delete)

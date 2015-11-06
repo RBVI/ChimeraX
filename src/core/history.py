@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 history: Application history support
 ====================================
@@ -256,8 +256,6 @@ if __name__ == '__main__':
             print('    data:', data)
             print('contents:', contents)
         assert(data == contents)
-
-    session = Chimera2_session  # noqa
 
     print('test LRU history file', flush=True)
     history = LRUSetHistory(128, session, 'test_history')

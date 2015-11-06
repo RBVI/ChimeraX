@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 serialize: Support serialization of "simple" types
 ==================================================
@@ -33,9 +33,6 @@ Version 1 of the protocol supports instances of the following types:
 """
 import pickle
 import types
-
-#: VERSION number changes if supported data types change
-VERSION = 1
 
 _PICKLE_PROTOCOL = 4
 
@@ -82,6 +79,8 @@ class _RestrictedUnpickler(pickle.Unpickler):
     }
     from .geometry import Place, Places
     supported[Place.__module__] = {Place.__name__, Places.__name__}
+    from .session import _UniqueName
+    supported[_UniqueName.__module__] = {_UniqueName.__name__}
 
     def find_class(self, module, name):
         if module in self.supported and name in self.supported[module]:

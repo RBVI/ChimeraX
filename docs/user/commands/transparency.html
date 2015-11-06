@@ -1,0 +1,77 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: transparency</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: transparency</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>transparency</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a> &nbsp;<i>percent</i>&nbsp;
+[&nbsp;<a href="#target">target</a> &nbsp;<i>string</i>&nbsp;]
+</h3>
+<p>
+The <b>transparency</b> command sets the transparency of 
+atomic and molecular representations
+to the specified <i>percent</i>, where 0% is completely opaque 
+and 100% is completely transparent, without otherwise changing colors.  
+<!--
+The <b>frames</b> option indicates making the change
+gradually over <i>N</i> frames.
+-->
+See also: <a href="color.html"><b>color</b></a>,
+<a href="colordef.html"><b>colordef</b></a>, 
+<a href="surface.html"><b>surface</b></a>, 
+<b>volume</b>
+</p><p>
+The absence of an atom or model specifier implies &ldquo;all.&rdquo;
+Keywords can be truncated to unique strings, and their case does not matter.
+</p><p>
+The <a name="target"><b>target</b></a> option allows acting on only 
+a subset of the possible displays of a given atom, residue, <i>etc.</i>
+The <i>string</i> can be any combination of the following letters,
+without commas or spaces:
+  <ul>
+  <li><b>a</b> - atoms/bonds
+  (shown for bonds in <a href="color.html#halfbond">halfbond mode</a>)
+  <li><b>b</b> - bonds-only
+  (shown for bonds not in <a href="color.html#halfbond">halfbond mode</a>)
+<!--
+  <li><b>l</b> - atom labels
+-->
+  <li><b>c</b> - cartoons (divisible to per-residue segments)
+  <li><b>s</b> - surfaces
+  (molecular surfaces divisible to per-atom patches)
+  <li><b>p</b> - pseudobonds-only
+  (shown for <a href="../pseudobonds.html">pseudobonds</a>
+   not in <a href="color.html#halfbond">halfbond mode</a>)
+  <li><b>A</b> - all of the above (equivalent to <b>abcsp</b>)
+<!--
+  <li><b>r</b> - residue labels
+  <li><b>n</b> - nonmolecular models (model-level color)
+  <li><b>m</b> - molecular models (model-level color)
+  <li><b>d</b> - distances and other pseudobond labels
+-->
+  </ul>
+The default target is <b>s</b>, molecular surfaces only.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2015</address>
+</body></html>

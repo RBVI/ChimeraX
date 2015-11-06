@@ -1,0 +1,53 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<title>Hierarchy</title>
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Display hierarchy</h3>
+<p>
+There is a <i><b>display hierarchy</b></i>, 
+in that display must be enabled at a higher level to reveal
+display settings at lower levels. 
+Toggling the top level, model display, is convenient for hiding and
+showing an entire model without disrupting its detailed appearance.
+Whether there are lower levels depends on the type of model: 
+</p>
+<ul>
+<li>atomic <b>model</b> display must be enabled
+to reveal the display settings of its individual
+<b>atoms</b>, <b>bonds</b>, and per-residue <b>cartoon</b> segments
+<li>a <b>bond</b> or <b>pseudobond</b> can only be displayed when both
+flanking atoms are displayed, but it can be hidden (undisplayed) independently
+<li>molecular-surface <b>model</b> display must be enabled to reveal the 
+display settings of its individual per-atom <b>surface patches</b>
+</ul>
+<p>
+Although turning on display at a higher level reveals display status 
+at a lower level, it does not change it. For example, turning on model-level 
+display will not show atoms with individual display turned off.
+</p><p>
+See commands: <a href="commands/display.html"><b>display</b></a>,
+<b>cartoon</b>,
+<a href="commands/surface.html"><b>surface</b></a>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+October 2015</address>
+</body></html>

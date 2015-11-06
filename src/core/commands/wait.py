@@ -1,4 +1,5 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 
 def wait(session, frames=None):
     '''Wait before proceeding to the next command. Used in movie recording scripts.
@@ -10,15 +11,17 @@ def wait(session, frames=None):
        command in a command script.
     '''
     v = session.main_view
+    ul = session.update_loop
     if frames is None:
         from . import motion
         while motion.motion_in_progress(session):
             v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
-            v.draw_new_frame()
+            ul.draw_new_frame(session)
     else:
         for f in range(frames):
             v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
-            v.draw_new_frame()
+            ul.draw_new_frame(session)
+
 
 def register_command(session):
     from . import cli

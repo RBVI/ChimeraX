@@ -1,4 +1,5 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 
 def crossfade(session, frames=30):
     '''Fade from the current view to the next drawn view. Used in movie recording.
@@ -9,7 +10,8 @@ def crossfade(session, frames=30):
         Linear interpolate between the current and next image over this number of frames.
     '''
     from ..graphics import CrossFade
-    CrossFade(session.main_view, frames)
+    CrossFade(session, frames)
+
 
 def register_command(session):
     from . import cli

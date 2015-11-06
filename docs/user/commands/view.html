@@ -1,0 +1,117 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: view</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: view</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>view</b> 
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+[&nbsp;orient&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>view</b> &nbsp;<b>name</b> &nbsp;<i>view-name</i>
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>view</b> &nbsp;<i>view-name</i> [&nbsp;<i>frames</i>&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>view</b> &nbsp;<b>delete</b> 
+(&nbsp;<i>view-name</i>&nbsp;|&nbsp;<b>all</b>&nbsp;)
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>view</b> &nbsp;<b>list</b>
+</h3>
+<p>
+The <b>view</b> command adjusts the view to make the
+<a href="atomspec.html">specified</a> items fill the graphics window.
+It also allows naming and later restoring the view, including the
+positions of any models that have been moved separately.
+See also: <a href="cofr.html"><b>cofr</b></a>,
+<a href="zoom.html"><b>zoom</b></a>,
+<b>camera</b>
+</p><p>
+The <b>view</b> command translates the scene and zooms in or out
+as needed to include the displayed parts of the specified items.
+If nothing is specified, all displayed items will be included.
+The <b>orient</b> option additionally rotates the scene to a
+standard orientation with X-axis horizontal increasing rightward,
+Y-axis vertical increasing upward,
+and Z-axis perpendicular to the screen increasing toward the viewer;
+in other words, it aligns <a href="#scenecoords">scene coordinates</a> with
+<a href="#screencoords">screen coordinates</a>.
+The center of rotation is set to a fixed point at the 
+center of the bounding box of the specified items (displayed parts only),
+or if nothing is specified, allowed to vary according to the
+<a href="cofr.html#method">front center method</a>.
+</p><p>
+The <b>name</b> option assigns <i>view-name</i> to the current view,
+including the positions of any models that have been moved separately.
+Subsequently, that view can be <a href="#note">restored</a>
+over a specified number of image update <i>frames</i> (default <b>1</b> frame).
+The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
+view or <b>all</b> views. 
+The <b>list</b> option reports the names of all currently saved 
+views in the <b>Log</b>, and clicking a name therein restores 
+the corresponding view.
+</p>
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="note"></a>
+<h3>Transition between Views</h3>
+<p>
+Rotations and translations of the scene as a whole 
+can be described as motions of the viewer or &ldquo;camera.&rdquo;
+The camera is rotated with a linear change in angle
+from its orientation in the first view to its orientation in the second view,
+and simultaneously translated so that
+the center of rotation in the first view moves in a straight line
+in <a href="#screencoords">screen coordinates</a>
+to the center of rotation in the second view.
+At the same time, the positions of any models that have been moved
+relative to the scene are interpolated between the two views.
+</p>
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<h3>Coordinate Systems</h3>
+<p>
+<a name="scenecoords"></a>
+The <b><i>scene coordinate system</i></b> 
+is subject to any global manipulations 
+(rotations and translations of the scene as a whole)
+and is the same as the coordinate system of a model
+that has not been moved relative to other models.
+</p><p>
+<a name="screencoords"></a>
+The <b><i>screen coordinate system</i></b> has:
+</p>
+<ul>
+<li>X-axis horizontal increasing rightward
+<li>Y-axis vertical increasing upward
+<li>Z-axis perpendicular to the screen increasing toward the viewer
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2015</address>
+</body></html>

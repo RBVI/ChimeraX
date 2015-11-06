@@ -1,6 +1,6 @@
-# vi: set expandtab ts=4 sw=4:
+# vim: set expandtab ts=4 sw=4:
 """
-gui: Main Chimera 2 user interface
+gui: Main Chimera2 user interface
 ==================================
 
 The principal class that tool writers will use from this module is
@@ -59,7 +59,7 @@ class UI(wx.App):
         w, h = bitmap.GetSize()
         self.splash.SetTextPosition((0, int(0.9 * h)))
         self.splash.SetTextColour(wx.RED)
-        self.splash.SetText("Initializing Chimera 2")
+        self.splash.SetText("Initializing Chimera2")
         self.splash._painted = False
         num_yields = 0
         while not self.splash._painted:
@@ -157,11 +157,22 @@ from ..logger import PlainTextLog
 class MainWindow(wx.Frame, PlainTextLog):
 
     def __init__(self, ui, session):
-        wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
+        # make main window 2/3 of full screen of primary display
+        primary_display = None
+        for display in [wx.Display(i) for i in range(wx.Display.GetCount())]:
+            if display.IsPrimary():
+                x, y = display.GetGeometry().GetSize()
+                break
+        else:
+            # no primary display?!?
+            x, y = wx.DisplaySize()
+        req_size = ((2*x)/3, (2*y)/3)
+        wx.Frame.__init__(self, None, title="Chimera2", size=req_size)
 
         from wx.lib.agw.aui import AuiManager, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
         self.aui_mgr.SetManagedWindow(self)
+        self.aui_mgr.SetDockSizeConstraint(0.5, 0.4)
 
         self.tool_pane_to_window = {}
         self.tool_instance_to_windows = {}
@@ -294,7 +305,7 @@ class MainWindow(wx.Frame, PlainTextLog):
         self.status_bar = self.CreateStatusBar(3,
             wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
             | wx.FULL_REPAINT_ON_RESIZE)
-        greeting = "Welcome to Chimera 2"
+        greeting = "Welcome to Chimera2"
         greeting_size = wx.Window.GetTextExtent(self, greeting)
         self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
         self.status_bar.SetStatusText("", 0)
@@ -347,18 +358,14 @@ class MainWindow(wx.Frame, PlainTextLog):
 
         help_menu = wx.Menu()
         menu_bar.Append(help_menu, "&Help")
-        for entry, dir in (('User Guide', 'user'),
+        for entry, topic in (('User Guide', 'user'),
                            ('Quick Start Guide', 'quickstart'),
                            ('Programming Guide', 'devel'),
                            ('PDB images command', 'pdbimages')):
             item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
-            def cb(evt, ses=session, d=dir):
-                from os import path
-                path = path.join(ses.app_data_dir, 'docs', d, 'index.html')
-                import pathlib
-                url = pathlib.Path(path).as_uri()
-                from webbrowser import open
-                open(url)
+            def cb(evt, ses=session, t=topic):
+                from chimera.core.commands import run
+                run(ses, 'help sethome help:%s' % t)
             self.Bind(wx.EVT_MENU, cb, item)
 
     def _tool_window_destroy(self, tool_window):
@@ -379,7 +386,16 @@ class MainWindow(wx.Frame, PlainTextLog):
         tool_window._mw_set_shown(shown)
         if is_main_window:
             for window in all_windows[1:]:
-                window._mw_set_shown(getattr(window, '_prev_shown', shown))
+                if shown:
+                    # if child window has a '_prev_shown' attr, then it was
+                    # around when main window was closed/hidden, possibly
+                    # show it and forget the _prev_shown attrs
+                    if hasattr(window, '_prev_shown'):
+                        if window._prev_shown:
+                            window._mw_set_shown(True)
+                        delattr(window, '_prev_shown')
+                else:
+                    window._mw_set_shown(False)
 
 class ToolWindow:
     """An area that a tool can populate with widgets.
@@ -449,8 +465,6 @@ class ToolWindow:
         return self.__toolkit.shown
 
     def _set_shown(self, shown):
-        if shown == self.__toolkit.shown:
-            return
         self.tool_instance.session.ui.main_window._tool_window_request_shown(
             self, shown)
 
@@ -462,6 +476,11 @@ class ToolWindow:
         Override to perform any actions you want done when the window
         is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
         pass
+
+    def set_title(self, title):
+        if self.__toolkit is None:
+            return
+        self.__toolkit.set_title(title)
 
     def _destroy(self):
         self.cleanup()
@@ -581,17 +600,51 @@ class _Wx:
             if pane_info.dock_direction == aui_side:
                 layer = max(layer, pane_info.dock_layer)
         """
-        mw.aui_mgr.AddPane(self.ui_area, side, self.title)
+        notebook = None
+        if side == wx.TOP:
+            aui_side = self.aui_side_map[side]
+            side_pis = []
+            for pi in mw.aui_mgr.GetAllPanes():
+                if pi.dock_direction == aui_side:
+                    side_pis.append(pi)
+            for side_pi in side_pis:
+                if side_pi.IsNotebookControl():
+                    notebook = side_pi
+                    break
+            if not notebook and side_pis:
+                notebook = side_pis[0]
+            if notebook:
+                from wx.lib.agw.aui import AuiPaneInfo
+                pane_info = AuiPaneInfo().Top().Caption(self.title)
+        if notebook:
+            mw.aui_mgr.AddPane4(self.ui_area, pane_info, notebook)
+        else:
+            mw.aui_mgr.AddPane(self.ui_area, side, self.title)
+        pane_info = mw.aui_mgr.GetPane(self.ui_area)
         if fixed_size:
-            mw.aui_mgr.GetPane(self.ui_area).Fixed()
+            pane_info.Fixed()
         """
         mw.aui_mgr.GetPane(self.ui_area).Layer(layer+1)
         """
         if placement is None:
-           mw.aui_mgr.GetPane(self.ui_area).Float()
+            pane_info.Float()
+
+        if side == wx.BOTTOM:
+            pane_info.CaptionVisible(False)
+
+        if side in (wx.TOP, wx.BOTTOM):
+            pane_info.Layer(0)
+        else:
+            pane_info.Layer(1)
+
+        # hack
+        if self.tool_window.tool_instance.display_name == "Log":
+            pane_info.dock_proportion = 50
+        else:
+            pane_info.dock_proportion = 15
 
         if self.tool_window.close_destroys:
-            mw.aui_mgr.GetPane(self.ui_area).DestroyOnClose()
+            pane_info.DestroyOnClose()
         mw.aui_mgr.Update()
 
     def on_context_menu(self, event):
@@ -602,10 +655,12 @@ class _Wx:
         help_id = wx.NewId()
         # TODO: once help system more fleshed out, look for help attribute
         # or method in tool window instance and do something appropriate...
-        if False:
-            self.ui_area.Bind(wx.EVT_MENU, lambda evt: self.help_func(),
-                id=help_id)
+        ti = self.tool_window.tool_instance
+        if ti.help is not None:
             menu.Append(help_id, "Help")
+            def help_func(event, tool_instance=ti):
+                tool_instance.display_help()
+            self.ui_area.Bind(wx.EVT_MENU, help_func, id=help_id)
         else:
             menu.Append(help_id, "No help available")
             menu.Enable(help_id, False)
@@ -616,9 +671,12 @@ class _Wx:
         return self.ui_area.Shown
 
     def _set_shown(self, shown):
-        if shown == self.ui_area.Shown:
-            return
         aui_mgr = self.main_window.aui_mgr
+        if shown == self.ui_area.Shown:
+            if shown:
+                #ensure it's on top
+                aui_mgr.ShowPane(self.ui_area, True)
+            return
         if shown:
             if self._pane_info:
                 # has been hidden at least once
@@ -630,5 +688,23 @@ class _Wx:
         aui_mgr.Update()
 
         self.ui_area.Shown = shown
+        if shown:
+            #ensure it's on top
+            aui_mgr.ShowPane(self.ui_area, True)
 
     shown = property(_get_shown, _set_shown)
+
+    def set_title(self, title):
+        aui_mgr = self.main_window.aui_mgr
+        shown = self.shown
+        if shown:
+            pane_info = aui_mgr.GetPane(self.ui_area)
+        else:
+            pane_info = self._pane_info
+        self.title = title
+        if pane_info is None:
+            return
+        pane_info.Caption(title)
+        if shown:
+            aui_mgr.RefreshCaptions()
+        aui_mgr.Update()

@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4):
     '''

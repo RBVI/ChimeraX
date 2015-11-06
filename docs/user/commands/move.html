@@ -1,0 +1,68 @@
+<!--
+=== UCSF Chimera2 Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF Chimera2 Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: move</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
+class="clRight" alt="Chimera2 logo"/></a>
+
+<h3>Command: move</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>move</b> &nbsp;<i>axis</i> [&nbsp;<i>distance</i>&nbsp;[&nbsp;<i>frames</i>&nbsp;]]
+[&nbsp;<b>coordinateSystem</b>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+[&nbsp;models &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+</h3>
+<p>
+<b>Move</b> translates the <a href="atomspec.html">specified</a> 
+<b>models</b> by <i>distance</i> along <i>axis</i> 
+at each of a specified number of image update <i>frames</i>
+(default <b>1</b> frame). 
+The <i>distance</i> is in the units of length intrinsic to the data,
+usually &Aring;, and can be positive or negative.  
+If a <i>distance</i> is not given, the length of the <i>axis</i> vector
+will be used. 
+If no models are specified, the scene will be translated as a whole.
+See also: <a href="roll.html"><b>roll</b></a>,
+<a href="turn.html"><b>turn</b></a>,
+<a href="zoom.html"><b>zoom</b></a>
+</p><p>
+The <b>coordinateSystem</b> can be <a href="atomspec.html">specified</a>
+by reference model number N preceded by #.
+Otherwise, the <a href="view.html#screencoords">screen coordinate system</a>
+(X horizontal, Y vertical, Z in/out of screen) will be used to interpret
+the <i>axis</i>.
+</p><p>
+The <i>axis</i> can be:
+</p>
+<ul>
+<li><b>x</b> - unit vector along the X-axis (1,0,0)
+<li><b>y</b> - unit vector along the Y-axis (0,1,0)
+<li><b>z</b> - unit vector along the Z-axis (0,0,1)
+<li><i>x,y,z</i> (three values separated by commas only) - an arbitrary vector 
+</ul>
+<p>
+Commands continue to be processed while the requested motion is in progress.
+To prevent processing of further commands until the motion is finished, 
+use the <b><A href="wait.html">wait</A></b> command.
+To halt an ongoing <b>move</b>, use <b>stop</b>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+November 2015</address>
+</body></html>

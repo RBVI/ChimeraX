@@ -9,7 +9,7 @@ OBJS= $(SRCS:.cpp=.o)
 LIBNAME = pdbio
 PYMOD= $(LIBNAME).so
 INCS += -I$(includedir) $(PYTHON_INCLUDE_DIRS)
-LIBS += -L$(libdir) -latomstruct -ltmpl -llogger -lpdb -lbasegeom -larrays $(PYTHON_LIB)
+LIBS += -L$(libdir) -latomstruct -lelement -ltmpl -llogger -lpdb -lbasegeom -larrays $(PYTHON_LIB)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

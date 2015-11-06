@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 scripting: support reading and executing scripts
 ================================================
@@ -12,7 +12,7 @@ For example, to use the timeit module in a Python script::
     import timeit
     from chimera.core.comands import sym
 
-    m = Chimera2_session.models.list()[0]
+    m = session.models.list()[0]
     t = timeit.timeit(
         "sym.pdb_assemblies(m)",
         "from %s import sym, m" % __name__,
@@ -32,8 +32,7 @@ def open_py(session, filename, name, *args, **kw):
     :py:func:`~chimera.core.io.open_data` API for files whose names end
     with **.py**, **.pyc**, or **.pyo**.  Each script is opened in an uniquely
     named importable sandbox (see timeit example above).  And the current
-    Chimera2 session is available as a global variable named
-    **Chimera2_session**.
+    Chimera2 session is available as a global variable named **session**.
     
     Parameters
     ----------
@@ -57,7 +56,7 @@ def open_py(session, filename, name, *args, **kw):
         sandbox = types.ModuleType(
             '%s_sandbox_%d' % (session.app_dirs.appname, _sandbox_count),
             '%s script sandbox' % session.app_dirs.appname)
-        setattr(sandbox, '%s_session' % session.app_dirs.appname, session)
+        setattr(sandbox, 'session', session)
         try:
             sys.modules[sandbox.__name__] = sandbox
             exec(code, sandbox.__dict__)

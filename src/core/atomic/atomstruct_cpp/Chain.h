@@ -40,14 +40,15 @@ private:
     }
 
 public:
-    Chain(const ChainID& chain_id, AtomicStructure* as): Sequence(),
-        _chain_id(chain_id), _from_seqres(false), _structure(as) {}
+    Chain(const ChainID& chain_id, AtomicStructure* as);
+    virtual ~Chain();
 
     const ChainID&  chain_id() const { return _chain_id; }
     // is character sequence derived from SEQRES records (or equivalent)?
     bool  from_seqres() const { return _from_seqres; }
     const Residues&  residues() const { return _residues; }
     Residue*  get(unsigned i) const { return _residues[i]; }
+    bool  is_sequence() const { return _structure == nullptr; }
     Chain&  operator+=(Chain&);
     void  pop_back();
     void  pop_front();

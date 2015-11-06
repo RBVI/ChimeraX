@@ -7,7 +7,7 @@ PKG_DESCRIPTION = Display chain contact maps
 # Example:
 # PKG_NAME = chimera.cmd_line
 # PKG_VERSION = 1.0
-# PKG_DESCRIPTION = Chimera 2 command line interface
+# PKG_DESCRIPTION = Chimera2 command line interface
 
 # For many cases, only a single tool and a single command
 # is provided by a package.  Variables below are designed
@@ -17,6 +17,9 @@ TOOL_NAME = contacts
 TOOL_PKG_NAME = chimera.contacts
 TOOL_DISPLAY_NAME = Chain Contacts
 TOOL_CATEGORY = Hidden
+TOOL_FILE_TYPES =
+TOOL_SESSION_VERSIONS = 1,1
+TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Display chain contact graph
 COMMAND_NAME = contacts
 
@@ -53,6 +56,9 @@ setup.py: setup.py.in Makefile
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \
 		-e 's/TOOL_CATEGORY/$(TOOL_CATEGORY)/' \
+		-e 's/TOOL_FILE_TYPES/$(TOOL_FILE_TYPES)/' \
+		-e 's/TOOL_SESSION_VERSIONS/$(TOOL_SESSION_VERSIONS)/' \
+		-e 's/TOOL_CUSTOM_INIT/$(TOOL_CUSTOM_INIT)/' \
 		-e 's/TOOL_SYNOPSIS/$(TOOL_SYNOPSIS)/' \
 		-e 's/COMMAND_NAME/$(COMMAND_NAME)/' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \

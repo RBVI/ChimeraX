@@ -17,7 +17,7 @@ INCS	+= -I$(includedir)
 install:
 	#$(RSYNC) $(SHLIB) $(shlibdir)
 	-mkdir $(includedir)/$(DIRNAME)
-	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
+	$(RSYNC) Manager.tcc $(wildcard *.h) $(includedir)/$(DIRNAME)
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 clean:

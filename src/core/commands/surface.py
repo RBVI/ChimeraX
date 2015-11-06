@@ -1,4 +1,4 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # -------------------------------------------------------------------------------------
 #
@@ -162,7 +162,7 @@ def surface(session, atoms = None, enclose = None, include = None,
     return surfs
 
 def register_command(session):
-    from . import CmdDesc, register, AtomsArg, FloatArg, IntArg, ColorArg, BoolArg, NoArg
+    from . import CmdDesc, register, AtomsArg, FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
     _surface_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('enclose', AtomsArg),
@@ -182,6 +182,7 @@ def register_command(session):
                    ('close', NoArg)],
         synopsis = 'create molecular surface')
     register('surface', _surface_desc, surface)
+    create_alias('~surface', 'surface hide $*')
 
 def check_atoms(atoms, session):
     if atoms is None:

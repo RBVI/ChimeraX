@@ -1,11 +1,11 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
 # Since ToolInstance derives from core.session.State, which
 # is an abstract base class, ToolUI classes must implement
 #   "take_snapshot" - return current state for saving
-#   "restore_snapshot" - restore from given state
+#   "restore_snapshot_init" - restore from given state
 #   "reset_state" - reset to data-less state
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
@@ -16,7 +16,6 @@ from chimera.core.tools import ToolInstance
 class bogusUI(ToolInstance):
 
     SIZE = (500, 25)
-    VERSION = 1
 
     _PageTemplate = """<html>
 <head>
@@ -37,8 +36,9 @@ ACTION_BUTTONS
 </body>
 </html>"""
 
-    def __init__(self, session, tool_info):
-        super().__init__(session, tool_info)
+    def __init__(self, session, tool_info, *, restoring=False):
+        if not restoring:
+            ToolInstance.__init__(self, session, tool_info)
 
         self.display_name = "Open Models"
         from chimera.core.gui import MainToolWindow
@@ -49,7 +49,7 @@ ACTION_BUTTONS
         import wx
         self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
         self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING,
-                          self._OnNavigating,
+                          self._on_navigating,
                           id=self.webview.GetId())
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.webview, 1, wx.EXPAND)
@@ -61,8 +61,6 @@ ACTION_BUTTONS
                                                        self._make_page),
                           session.triggers.add_handler(REMOVE_MODELS,
                                                        self._make_page)]
-        # Add to running tool list for session (not required)
-        session.tools.add([self])
         self._make_page()
 
     def _make_page(self, *args):
@@ -81,7 +79,7 @@ ACTION_BUTTONS
 
         # Construct action buttons
         s = StringIO()
-        for action in [ "BLAST" ]:
+        for action in ["BLAST"]:
             print("<button type=\"button\""
                   "onclick=\"action('%s')\">%s</button>" % (action, action),
                   file=s)
@@ -90,7 +88,7 @@ ACTION_BUTTONS
         # Update display
         self.webview.SetPage(page, "")
 
-    def _OnNavigating(self, event):
+    def _on_navigating(self, event):
         session = self.session
         # Handle event
         url = event.GetURL()
@@ -113,23 +111,18 @@ ACTION_BUTTONS
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, phase, session, flags):
-        if phase != self.SAVE_PHASE:
-            return
-        version = self.VERSION
-        data = {}
-        return [version, data]
+    def take_snapshot(self, session, flags):
+        data = [ToolInstance.take_snapshot(self, session, flags)]
+        return self.tool_info.session_write_version, data
 
-    def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import RestoreError
-        if version != self.VERSION or len(data) > 0:
-            raise RestoreError("unexpected version or data")
-        if phase == self.CREATE_PHASE:
-            # Restore all basic-type attributes
-            pass
-        else:
-            # Resolve references to objects
-            pass
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        if version not in tool_info.session_versions:
+            from chimera.core.state import RestoreError
+            raise RestoreError("unexpected version")
+        ti_version, ti_data = data[0]
+        ToolInstance.restore_snapshot_init(
+            self, session, tool_info, ti_version, ti_data)
+        self.__init__(session, tool_info, restoring=True)
 
-    def reset_state(self):
+    def reset_state(self, session):
         pass

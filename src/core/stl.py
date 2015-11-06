@@ -1,10 +1,11 @@
-# vi: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 stl: STL format support
 =======================
 
 Read little-endian STL binary format.
 """
+from .state import State, CORE_STATE_VERSION
 
 # code taken from chimera 1.7
 
@@ -13,7 +14,47 @@ from . import generic3d
 
 
 class STLModel(generic3d.Generic3DModel):
-    pass
+    @property
+    def num_triangles(self):
+        """Return number of triangles in model."""
+        return len(self.triangles)
+
+    def triangle_info(self, n):
+        """Return information about triangle ``n``."""
+        return TriangleInfo(self, n)
+
+
+class TriangleInfo(State):
+    """Information about an STL triangle."""
+
+    def __init__(self, stl, index):
+        self._stl = stl
+        self._index = index
+
+    def model(self):
+        """Return STL model containing triangle."""
+        return self._stl
+
+    def index(self):
+        """Return index of triangle in STL model."""
+        return self._index
+
+    def color(self):
+        """Return color of triangle."""
+        return self._stl.color
+
+    def coords(self):
+        """Return coordinates of each vertex of triangles."""
+        return self._stl.vertices[self._stl.triangles[self._index]]
+
+    def take_snapshot(self, session, flags):
+        return CORE_STATE_VERSION, [self._stl, self._index]
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        self._stl, self._index = data
+
+    def reset_state(self, session):
+        pass
 
 
 def open(session, filename, name, *args, **kw):
