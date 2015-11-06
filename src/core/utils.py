@@ -166,5 +166,6 @@ def retrieve_cached_url(request, filename, logger=None):
             os.utime(filename, (last_modified, last_modified))
         return filename
     except:
-        os.remove(filename)
+        if os.path.exists(filename):
+            os.remove(filename)
         raise
