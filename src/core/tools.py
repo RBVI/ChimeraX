@@ -76,6 +76,7 @@ class ToolInstance(State):
         self.tool_info = tool_info
         self.display_name = tool_info.display_name
         # TODO: track.created(ToolInstance, [self])
+        session.tools.add([self])
 
     def take_snapshot(self, session, flags):
         return CORE_STATE_VERSION, [self.id, self.tool_info.name]
