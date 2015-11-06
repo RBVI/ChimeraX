@@ -41,7 +41,8 @@ class="clRight" alt="Chimera2 logo"/></a>
 <p>
 The <b>view</b> command adjusts the view to make the
 <a href="atomspec.html">specified</a> items fill the graphics window.
-It also allows naming and later restoring the view.
+It also allows naming and later restoring the view, including the
+positions of any models that have been moved separately.
 See also: <a href="cofr.html"><b>cofr</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
 <b>camera</b>
@@ -60,7 +61,8 @@ center of the bounding box of the specified items (displayed parts only),
 or if nothing is specified, allowed to vary according to the
 <a href="cofr.html#method">front center method</a>.
 </p><p>
-The <b>name</b> option assigns <i>view-name</i> to the current view.
+The <b>name</b> option assigns <i>view-name</i> to the current view,
+including the positions of any models that have been moved separately.
 Subsequently, that view can be <a href="#note">restored</a>
 over a specified number of image update <i>frames</i> (default <b>1</b> frame).
 The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
@@ -76,12 +78,16 @@ the corresponding view.
 <a name="note"></a>
 <h3>Transition between Views</h3>
 <p>
+Rotations and translations of the scene as a whole 
+can be described as motions of the viewer or &ldquo;camera.&rdquo;
 The camera is rotated with a linear change in angle
-from its orientation in the first view to its orientation in the second view.
-At the same time, the camera is translated so that
-the center of rotation from the first view moves in a straight line
+from its orientation in the first view to its orientation in the second view,
+and simultaneously translated so that
+the center of rotation in the first view moves in a straight line
 in <a href="#screencoords">screen coordinates</a>
 to the center of rotation in the second view.
+At the same time, the positions of any models that have been moved
+relative to the scene are interpolated between the two views.
 </p>
 
 <p class="nav">
@@ -107,5 +113,5 @@ The <b><i>screen coordinate system</i></b> has:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2015</address>
+November 2015</address>
 </body></html>

@@ -62,6 +62,7 @@ public:
     static const std::string  REASON_IS_HELIX;
     static const std::string  REASON_IS_HET;
     static const std::string  REASON_IS_SHEET;
+    static const std::string  REASON_NAME;
     static const std::string  REASON_OCCUPANCY;
     static const std::string  REASON_RADIUS;
     static const std::string  REASON_RESIDUES;
