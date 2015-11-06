@@ -165,7 +165,7 @@ ts_update_desc = CmdDesc(required=[("tool_name", StringArg)],
 #
 
 
-def get_singleton(session, create=False):
+def get_singleton(session, create=False, display=False):
     if not session.ui.is_gui:
         return None
     from .gui import ToolshedUI
@@ -175,27 +175,14 @@ def get_singleton(session, create=False):
     if not running:
         if create:
             tool_info = session.toolshed.find_tool('toolshed')
-            return ToolshedUI(session, tool_info)
+            tinst = ToolshedUI(session, tool_info)
         else:
-            return None
+            tinst = None
     else:
-        return running[0]
-
-
-def ts_hide(session):
-    '''Hide the Tool Shed user interface.'''
-    ts = get_singleton(session)
-    if ts is not None:
-        ts.display(False)
-ts_hide_desc = CmdDesc()
-
-
-def ts_show(session):
-    '''Show the Tool Shed user interface.'''
-    ts = get_singleton(session, create=True)
-    if ts is not None:
-        ts.display(True)
-ts_show_desc = CmdDesc()
+        tinst = running[0]
+    if display and tinst:
+        tinst.display(True)
+    return tinst
 
 def ts_start(session, tool_name):
     '''
@@ -214,9 +201,9 @@ def ts_start(session, tool_name):
 from chimera.core.commands import StringArg
 ts_start_desc = CmdDesc(required = [('tool_name', StringArg)])
 
-def ts_display(session, tool_name, _display = True):
+def ts_show(session, tool_name, _show = True):
     '''
-    Display instances of a tool, or start one if none is running.
+    Show a tool panel, or start one if none is running.
 
     Parameters
     ----------
@@ -229,19 +216,19 @@ def ts_display(session, tool_name, _display = True):
         raise UserError('No installed tool named "%s"' % tool_name)
     tinst = [t for t in session.tools.list() if t.tool_info is tinfo]
     for t in tinst:
-        t.display(_display)
+        t.display(_show)
     if len(tinst) == 0:
         tinfo.start(session)
 from chimera.core.commands import StringArg
-ts_display_desc = CmdDesc(required = [('tool_name', StringArg)])
+ts_show_desc = CmdDesc(required = [('tool_name', StringArg)])
 
-def ts_undisplay(session, tool_name):
+def ts_hide(session, tool_name):
     '''
-    Undisplay instances of a tool.
+    Hide tool panels.
 
     Parameters
     ----------
     tool_name : string
     '''
-    ts_display(session, tool_name, _display = False)
-ts_undisplay_desc = CmdDesc(required = [('tool_name', StringArg)])
+    ts_show(session, tool_name, _show = False)
+ts_hide_desc = CmdDesc(required = [('tool_name', StringArg)])
