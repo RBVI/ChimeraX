@@ -197,34 +197,51 @@ def ts_show(session):
         ts.display(True)
 ts_show_desc = CmdDesc()
 
-def ts_start(session, name):
-    '''Start an instance of a tool.'''
+def ts_start(session, tool_name):
+    '''
+    Start an instance of a tool.
+
+    Parameters
+    ----------
+    tool_name : string
+    '''
     ts = session.toolshed
-    tinfo = ts.find_tool(name)
+    tinfo = ts.find_tool(tool_name)
     if tinfo is None:
         from chimera.core.errors import UserError
-        raise UserError('No installed tool named "%s"' % name)
+        raise UserError('No installed tool named "%s"' % tool_name)
     tinfo.start(session)
 from chimera.core.commands import StringArg
-ts_start_desc = CmdDesc(required = [('name', StringArg)])
+ts_start_desc = CmdDesc(required = [('tool_name', StringArg)])
 
-def ts_display(session, name, _display = True):
-    '''Display instances of a tool, or start one if none is running.'''
+def ts_display(session, tool_name, _display = True):
+    '''
+    Display instances of a tool, or start one if none is running.
+
+    Parameters
+    ----------
+    tool_name : string
+    '''
     ts = session.toolshed
-    tinfo = ts.find_tool(name)
+    tinfo = ts.find_tool(tool_name)
     if tinfo is None:
         from chimera.core.errors import UserError
-        raise UserError('No installed tool named "%s"' % name)
-    tinst = session.tools.list()
+        raise UserError('No installed tool named "%s"' % tool_name)
+    tinst = [t for t in session.tools.list() if t.tool_info is tinfo]
     for t in tinst:
-        if t.tool_info is tinfo:
-            t.display(_display)
+        t.display(_display)
     if len(tinst) == 0:
         tinfo.start(session)
 from chimera.core.commands import StringArg
-ts_display_desc = CmdDesc(required = [('name', StringArg)])
+ts_display_desc = CmdDesc(required = [('tool_name', StringArg)])
 
-def ts_undisplay(session, name):
-    '''Undisplay instances of a tool.'''
-    ts_display(session, name, _display = False)
-ts_undisplay_desc = CmdDesc(required = [('name', StringArg)])
+def ts_undisplay(session, tool_name):
+    '''
+    Undisplay instances of a tool.
+
+    Parameters
+    ----------
+    tool_name : string
+    '''
+    ts_display(session, tool_name, _display = False)
+ts_undisplay_desc = CmdDesc(required = [('tool_name', StringArg)])
