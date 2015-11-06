@@ -401,16 +401,11 @@ extern "C" void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
     }
 }
 
-extern "C" void atom_is_backbone(void *atoms, size_t n, npy_bool *sel)
+extern "C" bool atom_is_backbone(pyobject_t atom, uint8_t extent)
 {
-    Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::is_backbone, sel);
-}
-
-extern "C" void set_atom_is_backbone(void *atoms, size_t n, npy_bool *sel)
-{
-    Atom **a = static_cast<Atom **>(atoms);
-    error_wrap_array_set<Atom, bool, npy_bool>(a, n, &Atom::set_is_backbone, sel);
+    Atom *a = static_cast<Atom *>(atom);
+    BackboneExtent bbe = static_cast<BackboneExtent>(extent);
+    return error_wrap([&] () { return a->is_backbone(bbe); });
 }
 
 extern "C" void atom_structure(void *atoms, size_t n, pyobject_t *molp)
@@ -553,7 +548,7 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
         // Hide control point atoms as appropriate
         for (size_t i = 0; i != n; ++i) {
             Atom *atom = a[i];
-            if (!atom->is_backbone())
+            if (!atom->is_backbone(BBE_RIBBON))
                 continue;
             bool hide;
             if (!atom->residue()->ribbon_display() || !atom->residue()->ribbon_hide_backbone())
@@ -561,7 +556,7 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
             else {
                 hide = true;
                 for (auto neighbor : atom->neighbors())
-                    if (neighbor->visible() && !neighbor->is_backbone()) {
+                    if (neighbor->visible() && !neighbor->is_backbone(BBE_RIBBON)) {
                         hide = false;
                         break;
                     }
@@ -1239,12 +1234,13 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 // Ribbon is shown, so hide backbone atoms and bonds
                 for (auto atom: a)
                     if ((atom->hide() & Atom::HIDE_RIBBON) == 0
-                            && atom->is_backbone() && atom != center)
+                            && atom->is_backbone(BBE_RIBBON) && atom != center)
                         atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
                 for (auto bond: r[i]->bonds_between(r[i])) {
                     auto atoms = bond->atoms();
                     if ((bond->hide() & Bond::HIDE_RIBBON) == 0
-                            && atoms[0]->is_backbone() && atoms[1]->is_backbone())
+                            && atoms[0]->is_backbone(BBE_RIBBON)
+                            && atoms[1]->is_backbone(BBE_RIBBON))
                         bond->set_hide(bond->hide() | Bond::HIDE_RIBBON);
                 }
             }
@@ -1252,12 +1248,13 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 // Ribbon is not shown, so unhide backbone atoms and bonds
                 for (auto atom: a)
                     if ((atom->hide() & Atom::HIDE_RIBBON) != 0
-                            && atom->is_backbone() && atom != center)
+                            && atom->is_backbone(BBE_RIBBON) && atom != center)
                         atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
                 for (auto bond: r[i]->bonds_between(r[i])) {
                     auto atoms = bond->atoms();
                     if ((bond->hide() & Bond::HIDE_RIBBON) != 0
-                            && atoms[0]->is_backbone() && atoms[1]->is_backbone())
+                            && atoms[0]->is_backbone(BBE_RIBBON)
+                            && atoms[1]->is_backbone(BBE_RIBBON))
                         bond->set_hide(bond->hide() & ~Bond::HIDE_RIBBON);
                 }
             }
