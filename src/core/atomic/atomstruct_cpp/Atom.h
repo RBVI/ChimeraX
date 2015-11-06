@@ -123,7 +123,7 @@ public:
     void  set_idatm_type(const char* it);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
     void  set_is_backbone(bool ibb);
-    void  set_name(const AtomName& name) { _name = name; }
+    void  set_name(const AtomName& name);
     void  set_occupancy(float);
     void  set_radius(float);
     void  set_serial_number(int);
@@ -197,6 +197,14 @@ Atom::set_is_backbone(bool ibb) {
         return;
     change_tracker()->add_modified(this, ChangeTracker::REASON_IS_BACKBONE);
     _is_backbone = ibb;
+}
+
+inline void
+Atom::set_name(const AtomName& name) {
+    if (name == _name)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_NAME);
+    _name = name;
 }
 
 inline Atom::StructCat

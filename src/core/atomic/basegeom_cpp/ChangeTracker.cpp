@@ -19,6 +19,7 @@ const std::string ChangeTracker::REASON_IS_BACKBONE("is_backbone changed");
 const std::string ChangeTracker::REASON_IS_HELIX("is_helix changed");
 const std::string ChangeTracker::REASON_IS_HET("is_het changed");
 const std::string ChangeTracker::REASON_IS_SHEET("is_sheet changed");
+const std::string ChangeTracker::REASON_NAME("name changed");
 const std::string ChangeTracker::REASON_OCCUPANCY("occupancy changed");
 const std::string ChangeTracker::REASON_RADIUS("radius changed");
 const std::string ChangeTracker::REASON_RESIDUES("residues changed");
