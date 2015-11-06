@@ -15,7 +15,7 @@ namespace atomstruct {
 Atom::Atom(AtomicStructure* as, const char* name, const Element& e):
     BaseSphere<AtomicStructure, Atom, Bond>(as, -1.0), // -1 indicates not explicitly set
     _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(&e),
-    _is_backbone(false), _name(name), _residue(NULL), _serial_number(-1),
+    _name(name), _residue(NULL), _serial_number(-1),
     _structure_category(Atom::StructCat::Unassigned)
 {
     structure()->change_tracker()->add_created(this);
@@ -790,6 +790,20 @@ const Atom::IdatmInfoMap&
 Atom::get_idatm_info_map()
 {
     return _idatm_map;
+}
+
+bool
+Atom::is_backbone(BackboneExtent bbe) const {
+    // hydrogens depend on the heavy atom they're attached to
+    if (element().number() == 1) {
+        if (bonds().size() == 1)
+            return (*neighbors().begin())->is_backbone(bbe);
+        return false;
+    }
+    const std::set<AtomName>* bb_names = residue()->backbone_atom_names(bbe);
+    if (bb_names == nullptr)
+        return false;
+    return bb_names->find(name()) != bb_names->end();
 }
 
 float

@@ -13,6 +13,7 @@
 #include <basegeom/Point.h>
 #include <basegeom/Sphere.h>
 #include <element/Element.h>
+#include "backbone.h"
 #include "imex.h"
 #include "string_types.h"
 
@@ -71,7 +72,6 @@ private:
     void  _coordset_set_coord(const Point &, CoordSet *cs);
     const Element*  _element;
     AtomType  _explicit_idatm_type;
-    bool  _is_backbone;
     AtomName  _name;
     unsigned int  _new_coord(const Point &);
     Residue *  _residue;
@@ -101,7 +101,7 @@ public:
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
     bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
     const AtomType&  idatm_type() const;
-    bool  is_backbone() const;
+    bool  is_backbone(BackboneExtent bbe) const;
     const AtomName&  name() const { return _name; }
     // neighbors() just simply inherited from Connectible (via BaseSphere)
     float  occupancy() const;
@@ -122,7 +122,6 @@ public:
     void  set_computed_idatm_type(const char* it);
     void  set_idatm_type(const char* it);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
-    void  set_is_backbone(bool ibb);
     void  set_name(const AtomName& name);
     void  set_occupancy(float);
     void  set_radius(float);
@@ -155,12 +154,6 @@ Atom::idatm_type() const {
     return _computed_idatm_type;
 }
 
-inline bool
-Atom::is_backbone() const {
-    if (!structure()->_polymers_computed) structure()->polymers();
-    return _is_backbone;
-}
-
 inline void
 Atom::_set_structure_category(Atom::StructCat sc) const
 {
@@ -189,14 +182,6 @@ Atom::set_idatm_type(const char* it) {
         change_tracker()->add_modified(this, ChangeTracker::REASON_IDATM_TYPE);
     }
     _explicit_idatm_type = it;
-}
-
-inline void
-Atom::set_is_backbone(bool ibb) {
-    if (ibb == _is_backbone)
-        return;
-    change_tracker()->add_modified(this, ChangeTracker::REASON_IS_BACKBONE);
-    _is_backbone = ibb;
 }
 
 inline void
