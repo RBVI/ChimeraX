@@ -382,7 +382,10 @@ class AtomicStructure(AtomicStructureData, Model):
                 normal_list.append(s.normals)
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
-                prev_band = s.back_band
+                if displays[1] and xss[0] == xss[1]:
+                     prev_band = s.back_band
+                else:
+                     prev_band = None
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[0])
                 t2r.append(triangle_range)
                 self._ribbon_r2t[residues[0]] = triangle_range
