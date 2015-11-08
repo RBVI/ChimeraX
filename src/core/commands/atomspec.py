@@ -411,23 +411,22 @@ class _Model(_SubPart):
         return self.my_parts.matches(session, model)
 
     def find_sub_parts(self, session, model, results):
-        results.add_model(model)
-        try:
-            atoms = model.atoms
-        except AttributeError:
+        if not model.atomspec_has_atoms():
             # No atoms, just go home
+            results.add_model(model)
             return
-        if not self.sub_parts:
-            # No chain specifier, select all atoms
-            results.add_atoms(atoms)
-        else:
+        atoms = model.atoms
+        if self.sub_parts:
+            # No sub-model selector, select all atoms
             import numpy
             num_atoms = len(atoms)
             selected = numpy.zeros(num_atoms)
             for chain_spec in self.sub_parts:
                 s = chain_spec.find_selected_parts(model, atoms, num_atoms)
                 selected = numpy.logical_or(selected, s)
-            results.add_atoms(atoms.filter(selected))
+            atoms = atoms.filter(selected)
+        if len(atoms) > 0:
+            results.add_model(model)
 
 
 class _Chain(_SubPart):

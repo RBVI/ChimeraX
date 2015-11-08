@@ -278,6 +278,7 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_t2r = {}
         self._ribbon_r2t = {}
         self._ribbon_tether = []
+        import sys
         for rlist in polymers:
             rp = p.new_drawing(rlist.strs[0])
             t2r = []
@@ -383,9 +384,9 @@ class AtomicStructure(AtomicStructureData, Model):
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
                 if displays[1] and xss[0] == xss[1]:
-                     prev_band = s.back_band
+                    prev_band = s.back_band
                 else:
-                     prev_band = None
+                    prev_band = None
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[0])
                 t2r.append(triangle_range)
                 self._ribbon_r2t[residues[0]] = triangle_range
@@ -910,6 +911,10 @@ class AtomicStructure(AtomicStructureData, Model):
         from .molsurf import MolecularSurface
         surfs = [s for s in self.child_models() if isinstance(s, MolecularSurface)]
         return surfs
+
+    # Atom specifier API
+    def atomspec_has_atoms(self):
+        return True
 
 # -----------------------------------------------------------------------------
 #

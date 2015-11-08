@@ -96,6 +96,11 @@ class Model(State, Drawing):
     def removed_from_session(self, session):
         pass
 
+    # Atom specifier API
+    def atomspec_has_atoms(self):
+        # Return True if there are atoms in this model
+        return False
+
 class Models(State):
 
     def __init__(self, session):
