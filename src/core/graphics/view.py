@@ -737,7 +737,7 @@ class View:
             return
 
         c = self.camera if camera is None else camera
-        near, far = self._clip.near_far_clip(c, view_num)
+        near, far = self._clip.near_far_distances(c, view_num)
         # TODO: Different camera views need to use same near/far if they are part of
         # a cube map, otherwise depth cue dimming is not continuous across cube faces.
         pm = c.projection_matrix((near, far), view_num, (ww, wh))
@@ -752,7 +752,7 @@ class View:
         the specified window pixel position.  The points are in scene
         coordinates.  '''
         c = camera if camera else self.camera
-        nf = self._clip.near_far_clip(c, view_num)
+        nf = self._clip.near_far_distances(c, view_num)
         scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf)
         return scene_pts
 
@@ -804,33 +804,69 @@ class View:
 class Clipping:
 
     def __init__(self, bounds_func):
-        self._near_far = None			# Fixed clip plane distances, or None
+        self._near_point = None		# Point on near clip plane
+        self._far_point = None		# Point on far clip plane
         self._bounds = bounds_func
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
+        self._last_view_direction = None	# For adjusting near, far when view changes
+        self._last_near_far = None
 
-    def set_near_far(self, near, far):
-        self._near_far = (near, far)
+    def get_near_point(self):
+        return self._near_point
+    def set_near_point(self, p):
+        self._near_point = p
+    near_point = property(get_near_point, set_near_point)
+
+    def get_far_point(self):
+        return self._far_point
+    def set_far_point(self, p):
+        self._far_point = p
+    far_point = property(get_far_point, set_far_point)
 
     def no_clipping(self):
-        self._near_far = None
+        self._near_point = self._far_point = None
+        self._last_view_direction = None
+        self._last_near_far = None
 
-    def near_far_clip(self, camera, view_num):
+    def near_far_distances(self, camera, view_num):
         '''Near and far clip plane distances from camera.'''
-        nf = self._near_far
-        if nf:
-            near, far = nf
-        else:
-            cp = camera.get_position(view_num).origin()
-            vd = camera.view_direction(view_num)
+        cp = camera.get_position(view_num).origin()
+        vd = camera.view_direction(view_num)
+        np, fp = self._near_point, self._far_point
+
+        lvd = self._last_view_direction
+        from numpy import array_equal
+        if lvd is not None and not array_equal(vd, lvd):
+            # Adjust near and far points when view direction changes.
+            # Place them at the last near, far distance
+            n,f = self._last_near_far
+            if np is not None:
+                self._near_point = np = cp + vd*n
+            if fp is not None:
+                self._far_point = fp = cp + vd*f
+
+        from ..geometry import inner_product
+        if np is not None:
+            near = inner_product(np - cp, vd)
+        if fp is not None:
+            far = inner_product(fp - cp, vd)
+        if np is None or fp is None:
             b = self._bounds()
             if b is None:
                 return self._min_near_fraction, 1  # Nothing shown
-            d = sum((b.center() - cp) * vd)         # camera to center of drawings
+            d = inner_product(b.center() - cp, vd)         # camera to center of drawings
             r = (1 + self._near_far_pad) * b.radius()
-            near, far = (d - r, d + r)
+            if np is None:
+                near = d-r
+            if fp is None:
+                far = d+r
 
         cnear, cfar = self._clamp_near_far(near, far)
+
+        self._last_view_direction = vd
+        self._last_near_far = (cnear, cfar)
+
         return cnear, cfar
 
     def _clamp_near_far(self, near, far):

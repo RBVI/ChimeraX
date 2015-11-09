@@ -17,9 +17,9 @@ def clip(session, enable=None, near=None, far=None):
 
     v = session.main_view
     clip = v._clip
-    nf = clip._near_far		# TODO: Make public
     if enable is None:
-        msg = 'Clipping is ' + ('off' if nf is None else 'on')
+        coff = clip.near_point is None and clip.far_point is None
+        msg = 'Clipping is ' + ('off' if coff else 'on')
         log = session.logger
         log.info(msg)
         log.status(msg)
@@ -33,27 +33,28 @@ def clip(session, enable=None, near=None, far=None):
             raise UserError("Can't position clip planes with nothing displayed.")
         view_num = 0
         vd = c.view_direction(view_num)
-        co = c.position.origin()
-        from ..geometry import inner_product
-        dc = inner_product(cofr - co, vd)
         if near is not None:
-            n = dc + near
-        elif nf is not None:
-            n = nf[0]
+            np = cofr + near*vd
+        elif clip.near_point is None:
+            np = cofr
         else:
-            n = dc
+            np = clip.near_point
+
         if far is not None:
-            f = dc + far
-        elif nf is not None:
-            f = nf[1]
-        else:
+            fp = cofr + far*vd
+        elif clip.far_point is None:
             b = v.drawing_bounds()
             if b is None:
                 raise UserError("Can't position clip planes with nothing displayed.")
-            f = inner_product(b.center() - co, vd) + b.radius()
-        if n > f:
-            raise UserError("Near clip distance is farther than far clip distance.")
-        clip.set_near_far(n,f)
+            fp = b.center() + b.radius()*vd
+        else:
+            fp = clip.far_point
+
+        from ..geometry import inner_product
+        if inner_product(np-fp,vd) > 0:
+            raise UserError("Near clip plane is beyond far clip plane.")
+        clip.near_point = np
+        clip.far_point = fp
     else:
         clip.no_clipping()
     v.redraw_needed = True
