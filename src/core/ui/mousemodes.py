@@ -17,6 +17,7 @@ class MouseModes:
             RotateAndSelectMouseMode,
             TranslateSelectedMouseMode,
             RotateSelectedMouseMode,
+            ClipMouseMode,
             ObjectIdMouseMode,
             map.ContourLevelMouseMode,
             map.PlanesMouseMode,
@@ -111,14 +112,14 @@ class MouseModes:
                 button = None
 
         if button == 'left':
-            if mac and 'alt' in modifiers and not self._have_mode('left','alt'):
-                # Emulate middle mouse on Mac
-                button = 'middle'
-                modifiers.remove('alt')
-            elif mac and 'command' in modifiers and not self._have_mode('left','command'):
+            if mac and 'command' in modifiers and not self._have_mode('left','command'):
                 # Emulate right mouse on Mac
                 button = 'right'
                 modifiers.remove('command')
+            elif mac and 'alt' in modifiers and not self._have_mode('left','alt'):
+                # Emulate middle mouse on Mac
+                button = 'middle'
+                modifiers.remove('alt')
         elif button == 'right':
             if mac and 'control' in modifiers:
 		# Mac wx ctrl-left is reported as ctrl-right.
@@ -378,6 +379,7 @@ class RotateMouseMode(MouseMode):
 
 class RotateAndSelectMouseMode(RotateMouseMode):
     name = 'rotate and select'
+    icon_file = 'rotatesel.png'
     click_to_select = True
 
 class RotateSelectedMouseMode(RotateMouseMode):
@@ -470,12 +472,52 @@ class ObjectIdMouseMode(MouseMode):
         # Hide atom spec balloon
         self.session.ui.main_window.graphics_window.popup.hide()
 
+class ClipMouseMode(MouseMode):
+    name = 'clip'
+    icon_file = 'clip.png'
+
+    def mouse_drag(self, event):
+
+        dx, dy = self.mouse_motion(event)
+        ns,fs = {(False,False):(1,0),
+                 (True,False):(1,1),
+                 (False,True):(0,1),
+                 (True,True):(1,-1)}[(event.shift_down(),event.alt_down())]
+        self.clip_move(-dy*ns,-dy*fs)
+
+    def clip_move(self, near_shift, far_shift):
+
+        v = self.view
+        clip = v._clip
+        vd = v.camera.view_direction()
+        np, fp = clip.near_point, clip.far_point
+        if np is None or fp is None:
+            b = v.drawing_bounds()
+            if b is None:
+                return
+            if np is None:
+                np = b.center()
+            if fp is None:
+                fp = np + b.radius()*vd
+            
+        psize = self.pixel_size()
+        snp = np + (near_shift*psize)*vd
+        sfp = fp + (far_shift*psize)*vd
+        from ..geometry import inner_product
+        if inner_product(sfp-snp,vd) > 0:
+            clip.near_point = snp
+            clip.far_point = sfp
+            v.redraw_needed = True
+
 class MouseEvent:
     def __init__(self, event):
         self.event = event
 
     def shift_down(self):
         return self.event.ShiftDown()
+
+    def alt_down(self):
+        return self.event.AltDown()
 
     def position(self):
         return self.event.GetPosition()
