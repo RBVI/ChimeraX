@@ -916,6 +916,114 @@ class AtomicStructure(AtomicStructureData, Model):
     def atomspec_has_atoms(self):
         return True
 
+    def atomspec_atoms(self):
+        return self.atoms
+
+    def atomspec_filter(self, level, atoms, num_atoms, parts, attrs):
+        if parts is None:
+            parts = []
+        if attrs is None:
+            attrs = []
+        if level == '/':
+            return self._atomspec_filter_chain(atoms, num_atoms, parts, attrs)
+        elif level == ':':
+            return self._atomspec_filter_residue(atoms, num_atoms, parts, attrs)
+        elif level == '@':
+            return self._atomspec_filter_atom(atoms, num_atoms, parts, attrs)
+
+    def _atomspec_filter_chain(self, atoms, num_atoms, parts, attrs):
+        chain_ids = atoms.residues.chain_ids
+        try:
+            case_insensitive = self._atomspec_chain_ci
+        except AttributeError:
+            any_upper = any([c.isupper() for c in chain_ids])
+            any_lower = any([c.islower() for c in chain_ids])
+            case_insensitive = not any_upper or not any_lower
+            self._atomspec_chain_ci = case_insensitive
+        import numpy
+        selected = numpy.zeros(num_atoms)
+        # TODO: account for attrs in addition to parts
+        for part in parts:
+            if part.end is None:
+                if case_insensitive:
+                    def choose(chain_id, v=part.start.lower()):
+                        return chain_id.lower() == v
+                else:
+                    def choose(chain_id, v=part.start):
+                        return chain_id == v
+            else:
+                if case_insensitive:
+                    def choose(chain_id, s=part.start.lower(), e=part.end.lower()):
+                        cid = chain_id.lower()
+                        return cid >= s and cid <= e
+                else:
+                    def choose(chain_id, s=part.start, e=part.end):
+                        return chain_id >= s and chain_id <= e
+            s = numpy.vectorize(choose)(chain_ids)
+            selected = numpy.logical_or(selected, s)
+        # print("AtomicStructure._atomspec_filter_chain", selected)
+        return selected
+
+    def _atomspec_filter_residue(self, atoms, num_atoms, parts, attrs):
+        import numpy
+        res_names = numpy.array(atoms.residues.names)
+        res_numbers = atoms.residues.numbers
+        selected = numpy.zeros(num_atoms)
+        # TODO: account for attrs in addition to parts
+        for part in parts:
+            start_number = self._number(part.start)
+            if part.end is None:
+                end_number = None
+
+                def choose_type(value, v=part.start.lower()):
+                    return value.lower() == v
+            else:
+                end_number = self._number(part.end)
+
+                def choose_type(value, s=part.start.lower(), e=part.end.lower()):
+                    v = value.lower()
+                    return v >= s and v <= e
+            if start_number:
+                if end_number is None:
+                    def choose_number(value, v=start_number):
+                        return value == v
+                else:
+                    def choose_number(value, s=start_number, e=end_number):
+                        return value >= s and value <= e
+            else:
+                choose_number = None
+            s = numpy.vectorize(choose_type)(res_names)
+            selected = numpy.logical_or(selected, s)
+            if choose_number:
+                s = numpy.vectorize(choose_number)(res_numbers)
+                selected = numpy.logical_or(selected, s)
+        # print("AtomicStructure._atomspec_filter_residue", selected)
+        return selected
+
+    def _number(self, n):
+        try:
+            return int(n)
+        except ValueError:
+            return None
+
+    def _atomspec_filter_atom(self, atoms, num_atoms, parts, attrs):
+        import numpy
+        names = numpy.array(atoms.names)
+        selected = numpy.zeros(num_atoms)
+        # TODO: account for attrs in addition to parts
+        for part in parts:
+            if part.end is None:
+                def choose(name, v=part.start.lower()):
+                    return name.lower() == v
+            else:
+                def choose(name, s=part.start.lower(), e=part.end.lower()):
+                    n = name.lower()
+                    return n >= s and n <= e
+            s = numpy.vectorize(choose)(names)
+            selected = numpy.logical_or(selected, s)
+        # print("AtomicStructure._atomspec_filter_atom", selected)
+        return selected
+
 # -----------------------------------------------------------------------------
 #
 class LevelOfDetail:
