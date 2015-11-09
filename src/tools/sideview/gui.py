@@ -157,8 +157,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
             main_view = self.main_view
             main_camera = main_view.camera
             view_num = None  # TODO: 0, 1 for stereo
-            # TODO: make near_far_clip public?
-            near, far = main_view._clip.near_far_distances(main_camera, view_num)
+            near, far = main_view.clip.near_far_distances(main_camera, view_num)
 
             main_pos = main_camera.get_position(view_num)
             main_axes = main_pos.axes()

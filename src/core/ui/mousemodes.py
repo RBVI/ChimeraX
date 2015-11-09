@@ -488,7 +488,7 @@ class ClipMouseMode(MouseMode):
     def clip_move(self, near_shift, far_shift):
 
         v = self.view
-        clip = v._clip
+        clip = v.clip
         vd = v.camera.view_direction()
         np, fp = clip.near_point, clip.far_point
         if np is None or fp is None:

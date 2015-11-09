@@ -16,7 +16,7 @@ def clip(session, enable=None, near=None, far=None):
         enable = True
 
     v = session.main_view
-    clip = v._clip
+    clip = v.clip
     if enable is None:
         coff = clip.near_point is None and clip.far_point is None
         msg = 'Clipping is ' + ('off' if coff else 'on')

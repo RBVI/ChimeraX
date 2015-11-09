@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def view(session, objects=None, show=None, frames=None,
+def view(session, objects=None, clip=True, cofr=True, show=None, frames=None,
          name=None, list=False, delete=None, orient=False):
     '''
     Move camera so the displayed models fill the graphics window.
@@ -11,6 +11,10 @@ def view(session, objects=None, show=None, frames=None,
     ----------
     objects : AtomSpecResults
       Move camera so the bounding box of specified objects fills the window.
+    clip : bool
+      Turn on clip planes in front and behind objects.
+    cofr : bool
+      Set center of rotation to center of objects.
     show : string
       Restore the saved camera view and model positions having this name.
     frames : int
@@ -36,17 +40,9 @@ def view(session, objects=None, show=None, frames=None,
         if name is None and show is None and not list and delete is None:
             v.view_all()
             v.center_of_rotation_method = 'front center'
+            v.clip.no_clipping()
     else:
-        if objects.empty():
-            from ..errors import UserError
-            raise UserError('No objects specified.')
-        disp = objects.displayed()
-        b = disp.bounds()
-        if b is None:
-            from ..errors import UserError
-            raise UserError('No displayed objects specified.')
-        v.view_all(b)
-        v.center_of_rotation = b.center()
+        view_objects(objects, v, clip, cofr)
     if name is not None:
         save_view(name, session)
     if show is not None:
@@ -55,6 +51,24 @@ def view(session, objects=None, show=None, frames=None,
         list_views(session)
     if delete is not None:
         delete_view(delete, session)
+
+def view_objects(objects, v, clip, cofr):
+    if objects.empty():
+        from ..errors import UserError
+        raise UserError('No objects specified.')
+    disp = objects.displayed()
+    b = disp.bounds()
+    if b is None:
+        from ..errors import UserError
+        raise UserError('No displayed objects specified.')
+    v.view_all(b)
+    c, r = b.center(), b.radius()
+    if cofr:
+        v.center_of_rotation = c
+    if clip:
+        clip = v.clip
+        vd = v.camera.view_direction()
+        clip.near_point, clip.far_point = c - r*vd, c + r*vd
 
 def save_view(name, session):
     nv = _named_views(session)
@@ -219,12 +233,15 @@ def _close_transform(tf, tf_bounds, parent, max_rotation_angle = 0.01, max_shift
     return blist
 
 def register_command(session):
-    from . import CmdDesc, register, ObjectsArg, NoArg, EmptyArg, StringArg, PositiveIntArg, Or
+    from . import CmdDesc, register, ObjectsArg, NoArg, EmptyArg
+    from . import StringArg, PositiveIntArg, Or, BoolArg  
     desc = CmdDesc(
         optional=[('objects', Or(ObjectsArg, EmptyArg)),
                   ('show', StringArg),
                   ('frames', PositiveIntArg)],
-        keyword=[('name', StringArg),
+        keyword=[('clip', BoolArg),
+                 ('cofr', BoolArg),
+                 ('name', StringArg),
                  ('list', NoArg),
                  ('delete', StringArg),
                  ('orient', NoArg)],

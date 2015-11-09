@@ -29,7 +29,7 @@ class View:
         # Create camera
         from .camera import MonoCamera
         self._camera = MonoCamera()
-        self._clip = Clipping(self.drawing_bounds)
+        self.clip = Clipping(self.drawing_bounds)
 
         # Shadows
         self._shadows = False
@@ -737,7 +737,7 @@ class View:
             return
 
         c = self.camera if camera is None else camera
-        near, far = self._clip.near_far_distances(c, view_num)
+        near, far = self.clip.near_far_distances(c, view_num)
         # TODO: Different camera views need to use same near/far if they are part of
         # a cube map, otherwise depth cue dimming is not continuous across cube faces.
         pm = c.projection_matrix((near, far), view_num, (ww, wh))
@@ -752,7 +752,7 @@ class View:
         the specified window pixel position.  The points are in scene
         coordinates.  '''
         c = camera if camera else self.camera
-        nf = self._clip.near_far_distances(c, view_num)
+        nf = self.clip.near_far_distances(c, view_num)
         scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf)
         return scene_pts
 
