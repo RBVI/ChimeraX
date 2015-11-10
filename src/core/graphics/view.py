@@ -132,6 +132,8 @@ class View:
         mdraw = [self.drawing] if drawings is None else drawings
 
         r = self._render
+        self.clip.enable_tilted_clip(r)
+
         if self.shadows:
             # Light direction in camera coords
             kl = r.lighting.key_light_direction
@@ -804,13 +806,14 @@ class View:
 class Clipping:
 
     def __init__(self, bounds_func):
-        self._near_point = None		# Point on near clip plane
-        self._far_point = None		# Point on far clip plane
-        self._bounds = bounds_func
+        self._tilt = False			# Planes need not be parallel screen
+        self._near_point = None			# Point on near clip plane
+        self._far_point = None			# Point on far clip plane
+        self._normal = None			# Vector perpendicular to plane
+        self._bounds = bounds_func		# Used when clipping is off.
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
-        self._last_view_direction = None	# For adjusting near, far when view changes
-        self._last_near_far = None
+        self._last_near_far = None		# For handling rotation in non-tilt mode
 
     def get_near_point(self):
         return self._near_point
@@ -824,50 +827,56 @@ class Clipping:
         self._far_point = p
     far_point = property(get_far_point, set_far_point)
 
+    def get_normal(self):
+        return self._normal
+    def set_normal(self, n):
+        self._normal = n
+    normal = property(get_normal, set_normal)
+
     def no_clipping(self):
         self._near_point = self._far_point = None
-        self._last_view_direction = None
+        self._normal = None
         self._last_near_far = None
 
     def near_far_distances(self, camera, view_num):
         '''Near and far clip plane distances from camera.'''
         cp = camera.get_position(view_num).origin()
         vd = camera.view_direction(view_num)
-        np, fp = self._near_point, self._far_point
+        if self._tilt:
+            # Don't clip with near/far planes.
+            near, far = self._near_far_bounds(cp, vd)
+        else:
+            np, fp = self._near_point, self._far_point
+            lvd = self._normal
+            from numpy import array_equal
+            if lvd is not None and not array_equal(vd, lvd):
+                # Adjust near and far points when view direction changes.
+                # Place them at the last near, far distance
+                n,f = self._last_near_far
+                if np is not None:
+                    self._near_point = np = cp + vd*n
+                if fp is not None:
+                    self._far_point = fp = cp + vd*f
 
-        lvd = self._last_view_direction
-        from numpy import array_equal
-        if lvd is not None and not array_equal(vd, lvd):
-            # Adjust near and far points when view direction changes.
-            # Place them at the last near, far distance
-            n,f = self._last_near_far
-            if np is not None:
-                self._near_point = np = cp + vd*n
-            if fp is not None:
-                self._far_point = fp = cp + vd*f
-
-        from ..geometry import inner_product
-        if np is not None:
-            near = inner_product(np - cp, vd)
-        if fp is not None:
-            far = inner_product(fp - cp, vd)
-        if np is None or fp is None:
-            b = self._bounds()
-            if b is None:
-                return self._min_near_fraction, 1  # Nothing shown
-            d = inner_product(b.center() - cp, vd)         # camera to center of drawings
-            r = (1 + self._near_far_pad) * b.radius()
-            if np is None:
-                near = d-r
-            if fp is None:
-                far = d+r
+            if np is None or fp is None:
+                bnear, bfar = self._near_far_bounds(cp, vd)
+            from ..geometry import inner_product
+            near = bnear if np is None else inner_product(np - cp, vd)
+            far = bfar if fp is None else inner_product(fp - cp, vd)
+            self._normal = vd
+            self._last_near_far = (near, far)
 
         cnear, cfar = self._clamp_near_far(near, far)
-
-        self._last_view_direction = vd
-        self._last_near_far = (cnear, cfar)
-
         return cnear, cfar
+
+    def _near_far_bounds(self, camera_pos, view_dir):
+        b = self._bounds()
+        if b is None:
+            return self._min_near_fraction, 1  # Nothing shown
+        from ..geometry import inner_product
+        d = inner_product(b.center() - camera_pos, view_dir)         # camera to center of drawings
+        r = (1 + self._near_far_pad) * b.radius()
+        return (d-r, d+r)
 
     def _clamp_near_far(self, near, far):
         # Clamp near clip > 0.
@@ -876,6 +885,30 @@ class Clipping:
         if far <= near:
             far = 2 * near
         return (near, far)
+
+    @property
+    def tilt(self):
+        return self._tilt
+
+    def set_tilt(self, normal):
+        self._tilt = True
+        self._normal = normal
+
+    def set_face_on(self):
+        self._tilt = False
+
+    def enable_tilted_clip(self, render):
+        if self._tilt:
+            render.enable_capabilities |= render.SHADER_CLIP_PLANES
+            from ..geometry import inner_product
+            nx,ny,nz = n = self._normal
+            c0 = inner_product(n, self._near_point)
+            c1 = inner_product(n, self._far_point)
+            cp0 = (nx, ny, nz, -c0)
+            cp1 = (-nx, -ny, -nz, c1)
+            render.set_clip_parameters(cp0, cp1)
+        else:
+            render.enable_capabilities &= ~render.SHADER_CLIP_PLANES
     
 
 class OpenGLContext:

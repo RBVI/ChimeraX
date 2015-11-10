@@ -483,13 +483,14 @@ class ClipMouseMode(MouseMode):
                  (True,False):(1,1),
                  (False,True):(0,1),
                  (True,True):(1,-1)}[(event.shift_down(),event.alt_down())]
-        self.clip_move(-dy*ns,-dy*fs)
+        self.clip_move((dx,-dy), ns, fs)
 
-    def clip_move(self, near_shift, far_shift):
+    def clip_move(self, delta_xy, near_shift, far_shift):
 
         v = self.view
+        cam = v.camera
         clip = v.clip
-        vd = v.camera.view_direction()
+        normal = clip.normal if clip.tilt else cam.view_direction()
         np, fp = clip.near_point, clip.far_point
         if np is None or fp is None:
             b = v.drawing_bounds()
@@ -498,16 +499,37 @@ class ClipMouseMode(MouseMode):
             if np is None:
                 np = b.center()
             if fp is None:
-                fp = np + b.radius()*vd
-            
-        psize = self.pixel_size()
-        snp = np + (near_shift*psize)*vd
-        sfp = fp + (far_shift*psize)*vd
+                fp = np + b.radius()*normal
+
+        d = self.shift_distance(delta_xy, clip.tilt, cam, normal)
+        snp = np + (near_shift*d)*normal
+        sfp = fp + (far_shift*d)*normal
+
         from ..geometry import inner_product
-        if inner_product(sfp-snp,vd) > 0:
+        if inner_product(sfp-snp,normal) > 0:
             clip.near_point = snp
             clip.far_point = sfp
+            clip.normal = normal
             v.redraw_needed = True
+
+    def shift_distance(self, delta_xy, tilt, camera, normal):
+        if tilt:
+            # Measure drag direction along plane normal direction.
+            nx,ny,nz = camera.position.inverse().apply_without_translation(normal)
+            d = (nx*nx + ny*ny)
+            if d > 0:
+                nx /= d
+                ny /= d
+            else:
+                nx = 0
+                ny = 1
+        else:
+            # Vertical drag for face-on clipping
+            nx = 0
+            ny = 1
+        dx,dy = delta_xy
+        shift = (dx*nx + dy*ny) * self.pixel_size()
+        return shift
 
 class MouseEvent:
     def __init__(self, event):
