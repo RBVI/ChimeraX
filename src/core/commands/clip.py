@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def clip(session, enable=None, near=None, far=None, tilt=None, face_on=None):
+def clip(session, enable=None, near=None, far=None, tilt=False):
     '''
     Enable or disable clip planes.
 
@@ -11,15 +11,18 @@ def clip(session, enable=None, near=None, far=None, tilt=None, face_on=None):
     near, far : float
        Distance from center of rotation for near and far clip planes.
        Positive distances are further away, negative are closer than center.
+    tilt : bool
+       Effect clip planes fixed in the scene instead of perpendicular to view.
     '''
-    if near is not None or far is not None or tilt is not None or face_on is not None:
+    if near is not None or far is not None:
+        enable = True
+    if tilt is not None and enable is None:
         enable = True
 
     v = session.main_view
-    clip = v.clip
+    clip = v.clip_scene if tilt else v.clip
     if enable is None:
-        coff = clip.near_point is None and clip.far_point is None
-        msg = 'Clipping ' + ('off' if coff else ('tilt mode' if clip.tilt else 'face-on'))
+        msg = 'Clipping is ' + ('on' if clip.enabled else 'off')
         log = session.logger
         log.info(msg)
         log.status(msg)
@@ -32,17 +35,22 @@ def clip(session, enable=None, near=None, far=None, tilt=None, face_on=None):
         if cofr is None:
             raise UserError("Can't position clip planes with nothing displayed.")
         view_num = 0
-        normal = clip.normal if clip.tilt else c.view_direction(view_num)
+
+        if tilt and clip.enabled:
+            normal = clip.normal
+        else:
+            normal = c.view_direction(view_num)
+
         if near is not None:
             np = cofr + near*normal
-        elif clip.near_point is None:
+        elif not clip.enabled:
             np = cofr
         else:
             np = clip.near_point
 
         if far is not None:
             fp = cofr + far*normal
-        elif clip.far_point is None:
+        elif not clip.enabled:
             b = v.drawing_bounds()
             if b is None:
                 raise UserError("Can't position clip planes with nothing displayed.")
@@ -53,14 +61,15 @@ def clip(session, enable=None, near=None, far=None, tilt=None, face_on=None):
         from ..geometry import inner_product
         if inner_product(np-fp,normal) > 0:
             raise UserError("Near clip plane is beyond far clip plane.")
-        clip.near_point = np
-        clip.far_point = fp
-        if tilt:
-            clip.set_tilt(normal)
-        elif face_on:
-            clip.set_face_on()
     else:
-        clip.no_clipping()
+        np = fp = normal = None
+        if not clip.enabled and v.clip_scene.enabled:
+            clip = v.clip_scene
+
+    clip.near_point = np
+    clip.far_point = fp
+    clip.normal = normal
+    clip.enabled = enable
     v.redraw_needed = True
 
 def register_command(session):
@@ -69,8 +78,7 @@ def register_command(session):
         optional=[('enable', BoolArg)],
         keyword=[('near', FloatArg),
                  ('far', FloatArg),
-                 ('tilt', NoArg),
-                 ('face_on', NoArg)],
+                 ('tilt', NoArg)],
         synopsis='set clip planes'
     )
     register('clip', desc, clip)

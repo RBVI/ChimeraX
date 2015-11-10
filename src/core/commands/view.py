@@ -40,7 +40,7 @@ def view(session, objects=None, clip=True, cofr=True, show=None, frames=None,
         if name is None and show is None and not list and delete is None:
             v.view_all()
             v.center_of_rotation_method = 'front center'
-            v.clip.no_clipping()
+            v.clip.enabled = False
     else:
         view_objects(objects, v, clip, cofr)
     if name is not None:
@@ -67,8 +67,9 @@ def view_objects(objects, v, clip, cofr):
         v.center_of_rotation = c
     if clip:
         clip = v.clip
-        vd = v.camera.view_direction()
+        clip.normal = vd = v.camera.view_direction()
         clip.near_point, clip.far_point = c - r*vd, c + r*vd
+        clip.enabled = True
 
 def save_view(name, session):
     nv = _named_views(session)

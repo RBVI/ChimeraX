@@ -489,42 +489,47 @@ class ClipMouseMode(MouseMode):
 
         v = self.view
         cam = v.camera
+
+        # Move near far clip planes if they are enabled
         clip = v.clip
-        normal = clip.normal if clip.tilt else cam.view_direction()
-        np, fp = clip.near_point, clip.far_point
-        if np is None or fp is None:
+        normal = cam.view_direction()
+        d = delta_xy[1]*self.pixel_size()
+
+        if not clip.enabled and v.clip_scene.enabled:
+            # Move scene clip planes
+            clip = v.clip_scene
+            normal = clip.normal
+            d = self._tilt_shift(delta_xy, cam, normal)
+
+        if clip.enabled:
+            np = clip.near_point + (near_shift*d)*normal
+            fp = clip.far_point + (far_shift*d)*normal
+            from ..geometry import inner_product
+            if inner_product(fp-np,normal) > 0:
+                clip.near_point = np
+                clip.far_point = fp
+                clip.normal = normal
+                v.redraw_needed = True
+        else:
             b = v.drawing_bounds()
             if b is None:
                 return
-            if np is None:
-                np = b.center()
-            if fp is None:
-                fp = np + b.radius()*normal
-
-        d = self.shift_distance(delta_xy, clip.tilt, cam, normal)
-        snp = np + (near_shift*d)*normal
-        sfp = fp + (far_shift*d)*normal
-
-        from ..geometry import inner_product
-        if inner_product(sfp-snp,normal) > 0:
-            clip.near_point = snp
-            clip.far_point = sfp
+            clip.near_point = b.center() 
+            clip.far_point = b.center() + b.radius()*normal
             clip.normal = normal
+            clip.enabled = True
             v.redraw_needed = True
+            return
 
-    def shift_distance(self, delta_xy, tilt, camera, normal):
-        if tilt:
-            # Measure drag direction along plane normal direction.
-            nx,ny,nz = camera.position.inverse().apply_without_translation(normal)
-            d = (nx*nx + ny*ny)
-            if d > 0:
-                nx /= d
-                ny /= d
-            else:
-                nx = 0
-                ny = 1
+    def _tilt_shift(self, delta_xy, camera, normal):
+        # Measure drag direction along plane normal direction.
+        nx,ny,nz = camera.position.inverse().apply_without_translation(normal)
+        from math import sqrt
+        d = sqrt(nx*nx + ny*ny)
+        if d > 0:
+            nx /= d
+            ny /= d
         else:
-            # Vertical drag for face-on clipping
             nx = 0
             ny = 1
         dx,dy = delta_xy
