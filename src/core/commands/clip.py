@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def clip(session, enable=None, near=None, far=None, tilt=False,
+def clip(session, enable=None, near=None, far=None, center=None, tilt=False,
          axis=None, coordinate_system=None):
     '''
     Enable or disable clip planes.
@@ -12,6 +12,9 @@ def clip(session, enable=None, near=None, far=None, tilt=False,
     near, far : float
        Distance from center of rotation for near and far clip planes.
        Positive distances are further away, negative are closer than center.
+    center : Center
+       Near far offsets are relative to this point.  If not give then center
+       of rotation is used.
     tilt : bool
        Effect clip planes fixed in the scene instead of perpendicular to view.
     axis : Axis
@@ -35,9 +38,9 @@ def clip(session, enable=None, near=None, far=None, tilt=False,
 
     if enable:
         c = v.camera
-        cofr = v.center_of_rotation
+        c0 = center.scene_coordinates(coordinate_system) if center else v.center_of_rotation
         from ..errors import UserError
-        if cofr is None:
+        if c0 is None:
             raise UserError("Can't position clip planes with nothing displayed.")
         view_num = 0
 
@@ -49,14 +52,14 @@ def clip(session, enable=None, near=None, far=None, tilt=False,
             normal = c.view_direction(view_num)
 
         if near is not None:
-            np = cofr + near*normal
+            np = c0 + near*normal
         elif not clip.enabled:
-            np = cofr
+            np = c0
         else:
             np = clip.near_point
 
         if far is not None:
-            fp = cofr + far*normal
+            fp = c0 + far*normal
         elif not clip.enabled:
             b = v.drawing_bounds()
             if b is None:
@@ -80,11 +83,12 @@ def clip(session, enable=None, near=None, far=None, tilt=False,
     v.redraw_needed = True
 
 def register_command(session):
-    from .cli import CmdDesc, register, BoolArg, FloatArg, NoArg, AxisArg, ModelArg
+    from .cli import CmdDesc, register, BoolArg, FloatArg, NoArg, AxisArg, ModelArg, CenterArg
     desc = CmdDesc(
         optional=[('enable', BoolArg)],
         keyword=[('near', FloatArg),
                  ('far', FloatArg),
+                 ('center', CenterArg),
                  ('tilt', NoArg),
                  ('axis', AxisArg),
                  ('coordinate_system', ModelArg)],
