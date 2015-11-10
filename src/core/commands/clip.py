@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def clip(session, enable=None, near=None, far=None, tilt=False):
+def clip(session, enable=None, near=None, far=None, tilt=False,
+         axis=None, coordinate_system=None):
     '''
     Enable or disable clip planes.
 
@@ -13,6 +14,10 @@ def clip(session, enable=None, near=None, far=None, tilt=False):
        Positive distances are further away, negative are closer than center.
     tilt : bool
        Effect clip planes fixed in the scene instead of perpendicular to view.
+    axis : Axis
+       Normal to clip plane in tilt mode, in screen coordinates.
+    coordinate_system : Model
+       Coordinate system for axis, if none then screen coordinates are used.
     '''
     if near is not None or far is not None:
         enable = True
@@ -36,7 +41,9 @@ def clip(session, enable=None, near=None, far=None, tilt=False):
             raise UserError("Can't position clip planes with nothing displayed.")
         view_num = 0
 
-        if tilt and clip.enabled:
+        if tilt and axis:
+            normal = axis.scene_coordinates(coordinate_system, c)
+        elif tilt and clip.enabled:
             normal = clip.normal
         else:
             normal = c.view_direction(view_num)
@@ -73,12 +80,14 @@ def clip(session, enable=None, near=None, far=None, tilt=False):
     v.redraw_needed = True
 
 def register_command(session):
-    from .cli import CmdDesc, register, BoolArg, FloatArg, NoArg
+    from .cli import CmdDesc, register, BoolArg, FloatArg, NoArg, AxisArg, ModelArg
     desc = CmdDesc(
         optional=[('enable', BoolArg)],
         keyword=[('near', FloatArg),
                  ('far', FloatArg),
-                 ('tilt', NoArg)],
+                 ('tilt', NoArg),
+                 ('axis', AxisArg),
+                 ('coordinate_system', ModelArg)],
         synopsis='set clip planes'
     )
     register('clip', desc, clip)
