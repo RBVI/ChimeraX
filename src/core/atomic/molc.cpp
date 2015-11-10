@@ -2080,6 +2080,23 @@ extern "C" void pointer_mask(void *pointer_array, size_t n, void *pointer_array2
     }
 }
 
+extern "C" void pointer_indices(void *pointer_array, size_t n, void *pointer_array2, size_t n2, int *indices)
+{
+    void **pa = static_cast<void **>(pointer_array);
+    void **pa2 = static_cast<void **>(pointer_array2);
+    try {
+        std::map<void *,int> s;
+        for (size_t i = 0; i != n2; ++i)
+	    s[pa2[i]] = i;
+        for (size_t i = 0; i != n; ++i) {
+	    std::map<void *,int>::iterator si = s.find(pa[i]);
+	    indices[i] = (si == s.end() ? -1 : si->second);
+	}
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" bool pointer_intersects(void *pointer_array, size_t n, void *pointer_array2, size_t n2)
 {
     void **pa = static_cast<void **>(pointer_array);
