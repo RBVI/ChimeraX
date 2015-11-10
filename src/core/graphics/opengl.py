@@ -64,6 +64,8 @@ class Render:
         # Maps scene to camera coordinates:
         self.current_view_matrix = None
         self._near_far_clip = (0,1)             # Scene coord distances from eye
+        self._clip_plane0 = None		# 4-tuple
+        self._clip_plane1 = None		# 4-tuple
 
         self.lighting = Lighting()
         self.material = Material()              # Currently a global material
@@ -132,6 +134,7 @@ class Render:
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_MASK,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
         SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY, SHADER_STEREO_360
+        SHADER_CLIP_PLANES
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
@@ -176,6 +179,7 @@ class Render:
             self.set_frame_number()
         if self.SHADER_STEREO_360 & c:
             self.set_stereo_360_params()
+        self.set_clip_parameters()
 
     def push_framebuffer(self, fb):
         self.framebuffer_stack.append(fb)
@@ -271,6 +275,29 @@ class Render:
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_DEPTH_CUE:
             self.set_depth_cue_parameters()
+
+    def set_clip_parameters(self, clip_plane0 = None, clip_plane1 = None):
+        if clip_plane0 is not None:
+            self._clip_plane0 = clip_plane0
+        if clip_plane1 is not None:
+            self._clip_plane1 = clip_plane1
+
+        p = self.current_shader_program
+        if p is None:
+            return
+
+        m = self.current_model_matrix
+        cp0, cp1 = self._clip_plane0, self._clip_plane1
+        if (self.SHADER_CLIP_PLANES & p.capabilities and
+            m is not None and cp0 is not None and cp1 is not None):
+            p.set_matrix('model_matrix', m.opengl_matrix())
+            GL.glEnable(GL.GL_CLIP_DISTANCE0)
+            p.set_float4('clip_plane0', cp0)
+            GL.glEnable(GL.GL_CLIP_DISTANCE1)
+            p.set_float4('clip_plane1', cp1)
+        else:
+            GL.glDisable(GL.GL_CLIP_DISTANCE0)
+            GL.glDisable(GL.GL_CLIP_DISTANCE1)
 
     def set_frame_number(self, f=None):
         if f is None:
@@ -873,6 +900,7 @@ shader_options = (
     'SHADER_TRANSPARENT_ONLY',
     'SHADER_OPAQUE_ONLY',
     'SHADER_STEREO_360',
+    'SHADER_CLIP_PLANES',
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)

@@ -301,7 +301,7 @@ def dq_repr(obj):
 def _canonical_kw(kw_name):
     """Return canonical version of a keyword argument name."""
     # Remove punctuation and case from keyword argument name.
-    return ''.join([c for c in kw_name if c not in '_ ']).casefold()
+    return ''.join([c for c in kw_name if c not in '_ '])
 
 
 def _user_kw(kw_name):
@@ -618,9 +618,12 @@ class AxisArg(Annotation):
     or two atoms.'''
     name = 'an axis vector'
 
-    named_axes = { 'x': (1, 0, 0), 'X': (1, 0, 0),
-                   'y': (0, 1, 0), 'Y': (0, 1, 0),
-                   'z': (0, 0, 1), 'Z': (0, 0, 1)}
+    named_axes = {
+        'x': (1, 0, 0), 'X': (1, 0, 0),
+        'y': (0, 1, 0), 'Y': (0, 1, 0),
+        'z': (0, 0, 1), 'Z': (0, 0, 1)
+    }
+
     @staticmethod
     def parse(text, session):
         axis = None
@@ -652,7 +655,7 @@ class AxisArg(Annotation):
                 pass
             else:
                 if len(atoms) == 2:
-                    axis = Axis(atoms = atoms)
+                    axis = Axis(atoms=atoms)
                 elif len(atoms) > 0:
                     raise AnnotationError('Axis argument requires 2 atoms, got %d atoms' % len(atoms))
 
@@ -661,14 +664,17 @@ class AxisArg(Annotation):
 
         return axis, atext, rest
 
+
 class Axis:
-    def __init__(self, coords = None, atoms = None):
-        if not coords is None:
+
+    def __init__(self, coords=None, atoms=None):
+        if coords is not None:
             from numpy import array, float32
             coords = array(coords, float32)
-        self.coords = coords	# Camera coordinates
+        self.coords = coords   # Camera coordinates
         self.atoms = atoms
-    def scene_coordinates(self, coordinate_system = None, camera = None, normalize = True):
+
+    def scene_coordinates(self, coordinate_system=None, camera=None, normalize=True):
         atoms = self.atoms
         if atoms is not None:
             a = atoms[1].scene_coord - atoms[0].scene_coord
@@ -685,9 +691,11 @@ class Axis:
             from .. import geometry
             a = geometry.normalize_vector(a)
         return a
+
     def base_point(self):
         a = self.atoms
         return None if a is None else a[0].scene_coord
+
 
 class CenterArg(Annotation):
     '''Annotation for a center point that can be 3 floats or objects.'''
@@ -717,21 +725,24 @@ class CenterArg(Annotation):
                     raise AnnotationError('Center argument no objects specified')
                 elif obj.bounds() is None:
                     raise AnnotationError('Center argument objects are not displayed')
-                c = Center(objects = obj)
+                c = Center(objects=obj)
 
         if c is None:
             raise AnnotationError('Expected 3 floats or object specifier')
 
         return c, atext, rest
 
+
 class Center:
-    def __init__(self, coords = None, objects = None):
-        if not coords is None:
+
+    def __init__(self, coords=None, objects=None):
+        if coords is not None:
             from numpy import array, float32
             coords = array(coords, float32)
         self.coords = coords
         self.objects = objects
-    def scene_coordinates(self, coordinate_system = None):
+
+    def scene_coordinates(self, coordinate_system=None):
         obj = self.objects
         if obj is not None:
             c = obj.bounds().center()
@@ -740,6 +751,7 @@ class Center:
         else:
             c = self.coords
         return c
+
 
 class AtomsArg(Annotation):
     """Parse command atoms specifier"""
@@ -780,8 +792,7 @@ class PseudobondGroupsArg(Annotation):
         pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
         return pbgs, used, rest
 
-# -----------------------------------------------------------------------------
-#
+
 class ModelArg(Annotation):
     """Parse command model specifier"""
     name = "model"
@@ -795,8 +806,7 @@ class ModelArg(Annotation):
             raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
         return tuple(models)[0], text, rest
 
-# -----------------------------------------------------------------------------
-#
+
 def _remove_child_models(models):
     s = set(models)
     for m in models:
@@ -804,8 +814,7 @@ def _remove_child_models(models):
             s.discard(c)
     return tuple(s)
 
-# -----------------------------------------------------------------------------
-#
+
 class ModelsArg(Annotation):
     """Parse command models specifier"""
     name = "models"
@@ -817,8 +826,7 @@ class ModelsArg(Annotation):
         models = aspec.evaluate(session).models
         return models, text, rest
 
-# -----------------------------------------------------------------------------
-#
+
 class TopModelsArg(Annotation):
     """Parse command models specifier"""
     name = "top models"
@@ -831,8 +839,7 @@ class TopModelsArg(Annotation):
         tmodels = _remove_child_models(models)
         return tmodels, text, rest
 
-# -----------------------------------------------------------------------------
-#
+
 class ObjectsArg(Annotation):
     """Parse command objects specifier"""
     name = "objects"
@@ -1865,7 +1872,8 @@ class Command:
                     return None, None
                 if tmp[0].isalpha():
                     tmp = _canonical_kw(tmp)
-                    if any(kw.startswith(tmp) for kw in self._ci._keyword_map):
+                    if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
+                            any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
                         return None, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
@@ -2283,7 +2291,7 @@ _cmd_aliases = {}
 
 def list_aliases(user=True):
     """List all aliases
-    
+
     :param user: if True, then only list user-defined aliases
     """
     if not user:
@@ -2337,7 +2345,7 @@ def remove_alias(name=None):
     if name is None:
         for name, alias in _cmd_aliases.items():
             if alias.user_generated:
-                unalias(name)
+                remove_alias(name)
         return
     words = name.split()
     name = ' '.join(words)  # canonicalize

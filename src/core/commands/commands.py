@@ -8,7 +8,7 @@ def register_core_commands(session):
     # in alphabetical order.
     modules = [
         'alias', 'buriedarea',
-        'camera', 'close', 'cofr', 'color', 'colordef', 'crossfade', 'crosslinks',
+        'camera', 'clip', 'close', 'cofr', 'color', 'colordef', 'crossfade', 'crosslinks',
         'delete', 'display', 'echo', 'exit', 'export',
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',

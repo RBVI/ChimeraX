@@ -65,9 +65,9 @@ part_range_list  = start:/-?[a-zA-Z0-9]+/ [ '-' end:/[-a-zA-Z0-9]+/ ]
 attribute_list   = attr_test { ',' attr_test }*
                  ;
 
-attr_test        = attr_name attr_operator attr_value
-                 | attr_name
-                 | '~' attr_name
+attr_test        = name:attr_name op:attr_operator value:attr_value
+                 | name:attr_name
+                 | no:'~' name:attr_name
                  ;
 
 attr_name        = /[a-zA-Z_][a-zA-Z0-9_]*/

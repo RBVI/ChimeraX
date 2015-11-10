@@ -264,6 +264,12 @@ class _AtomSpecSemantics:
     def part_range_list(self, ast):
         return _Part(ast.start, ast.end)
 
+    def attr_list(self, ast):
+        return _AttrList(ast)
+
+    def attr_test(self, ast):
+        return _AttrTest(ast.no, ast.name, ast.op, ast.value)
+
     def zone_selector(self, ast):
         operator, distance = ast
         return _ZoneSelector(operator, distance)
@@ -400,154 +406,67 @@ class _SubPart:
             sub_selected = numpy.logical_or(sub_selected, s)
         return numpy.logical_and(my_selected, sub_selected)
 
+    def _filter_parts(self, model, atoms, num_atoms):
+        return model.atomspec_filter(self.Symbol, atoms, num_atoms,
+                                     self.my_parts, self.my_attrs)
+
 
 class _Model(_SubPart):
     """Stores model part list and atom spec."""
     Symbol = '#'
 
     def matches(self, session, model):
+        # TODO: account for my_attrs in addition to my_parts
         if self.my_parts is None:
             return True
         return self.my_parts.matches(session, model)
 
     def find_sub_parts(self, session, model, results):
-        results.add_model(model)
-        try:
-            atoms = model.atoms
-        except AttributeError:
-            # No atoms, just go home
+        if not model.atomspec_has_atoms():
+            if not self.sub_parts:
+                results.add_model(model)
             return
-        if not self.sub_parts:
-            # No chain specifier, select all atoms
-            results.add_atoms(atoms)
-        else:
+        atoms = model.atomspec_atoms()
+        if self.sub_parts:
+            # Has sub-model selector, filter atoms
             import numpy
             num_atoms = len(atoms)
             selected = numpy.zeros(num_atoms)
             for chain_spec in self.sub_parts:
                 s = chain_spec.find_selected_parts(model, atoms, num_atoms)
                 selected = numpy.logical_or(selected, s)
-            results.add_atoms(atoms.filter(selected))
+            atoms = atoms.filter(selected)
+        if len(atoms) > 0:
+            results.add_model(model)
+            results.add_atoms(atoms)
 
 
 class _Chain(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = '/'
 
-    def _filter_parts(self, model, atoms, num_atoms):
-        chain_ids = atoms.residues.chain_ids
-        try:
-            case_insensitive = model._atomspec_chain_ci
-        except AttributeError:
-            any_upper = any([c.isupper() for c in chain_ids])
-            any_lower = any([c.islower() for c in chain_ids])
-            case_insensitive = not any_upper or not any_lower
-            model._atomspec_chain_ci = case_insensitive
-        import numpy
-        selected = numpy.zeros(num_atoms)
-        # TODO: account for my_attrs in addition to my_parts
-        for part in self.my_parts.parts:
-            if part.end is None:
-                if case_insensitive:
-                    def choose(chain_id, v=part.start.lower()):
-                        return chain_id.lower() == v
-                else:
-                    def choose(chain_id, v=part.start):
-                        return chain_id == v
-            else:
-                if case_insensitive:
-                    def choose(chain_id, s=part.start.lower(), e=part.end.lower()):
-                        cid = chain_id.lower()
-                        return cid >= s and cid <= e
-                else:
-                    def choose(chain_id, s=part.start, e=part.end):
-                        return chain_id >= s and chain_id <= e
-            s = numpy.vectorize(choose)(chain_ids)
-            selected = numpy.logical_or(selected, s)
-        # print("_Chain._filter_parts", selected)
-        return selected
-
 
 class _Residue(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = ':'
-
-    def _filter_parts(self, model, atoms, num_atoms):
-        import numpy
-        res_names = numpy.array(atoms.residues.names)
-        res_numbers = atoms.residues.numbers
-        selected = numpy.zeros(num_atoms)
-        # TODO: account for my_attrs in addition to my_parts
-        for part in self.my_parts.parts:
-            start_number = self._number(part.start)
-            if part.end is None:
-                end_number = None
-
-                def choose_type(value, v=part.start.lower()):
-                    return value.lower() == v
-            else:
-                end_number = self._number(part.end)
-
-                def choose_type(value, s=part.start.lower(), e=part.end.lower()):
-                    v = value.lower()
-                    return v >= s and v <= e
-            if start_number:
-                if end_number is None:
-                    def choose_number(value, v=start_number):
-                        return value == v
-                else:
-                    def choose_number(value, s=start_number, e=end_number):
-                        return value >= s and value <= e
-            else:
-                choose_number = None
-            s = numpy.vectorize(choose_type)(res_names)
-            selected = numpy.logical_or(selected, s)
-            if choose_number:
-                s = numpy.vectorize(choose_number)(res_numbers)
-                selected = numpy.logical_or(selected, s)
-        # print("_Residue._filter_parts", selected)
-        return selected
-
-    def _number(self, n):
-        try:
-            return int(n)
-        except ValueError:
-            return None
 
 
 class _Atom(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = '@'
 
-    def _filter_parts(self, model, atoms, num_atoms):
-        import numpy
-        names = numpy.array(atoms.names)
-        selected = numpy.zeros(num_atoms)
-        # TODO: account for my_attrs in addition to my_parts
-        for part in self.my_parts.parts:
-            if part.end is None:
-                def choose(name, v=part.start.lower()):
-                    return name.lower() == v
-            else:
-                def choose(name, s=part.start.lower(), e=part.end.lower()):
-                    n = name.lower()
-                    return n >= s and n <= e
-            s = numpy.vectorize(choose)(names)
-            selected = numpy.logical_or(selected, s)
-        # print("_Atom._filter_parts", selected)
-        return selected
 
-
-class _PartList:
+class _PartList(list):
     """Stores a part list (sub-parts of models)."""
     def __init__(self, part_range):
-        self.parts = [part_range]
+        super().__init__()
+        self.append(part_range)
 
     def __str__(self):
-        return ','.join([str(p) for p in self.parts])
+        return ','.join([str(p) for p in self])
 
     def add_parts(self, part_range):
-        self.parts.insert(0, part_range)
+        self.insert(0, part_range)
         return self
 
 
@@ -562,6 +481,29 @@ class _Part:
             return self.start
         else:
             return "%s-%s" % (self.start, self.end)
+
+
+class _AttrList(list):
+    """Stores a part list (sub-parts of models)."""
+    def __str__(self):
+        return ','.join([str(p) for p in self])
+
+
+class _AttrTest:
+    """Stores one part of a part range."""
+    def __init__(self, no, name, op, value):
+        self.no = no
+        self.name = name
+        self.op = op
+        self.value = value
+
+    def __str__(self):
+        if self.no:
+            return '~' + self.name
+        elif self.op:
+            return "%s%s%s" % (self.name, self.op, self.value)
+        else:
+            return self.name
 
 
 class _SelectorName:

@@ -73,6 +73,12 @@ uniform vec4 camera_origin_and_shift;
 uniform vec4 camera_vertical;
 #endif
 
+#ifdef USE_CLIP_PLANES
+uniform mat4 model_matrix;
+uniform vec4 clip_plane0, clip_plane1;
+out float gl_ClipDistance[2];
+#endif
+
 void main(void)
 {
 #ifdef USE_SHIFT_AND_SCALE
@@ -90,10 +96,16 @@ void main(void)
   vi = vec4(vi.xyz - camera_origin_and_shift.w * eye_axis, 1);
 #endif
 
-  vec4 vEye = model_view_matrix * vi;
+#ifdef USE_CLIP_PLANES
+  vec4 vscene = model_matrix * vi;
+  gl_ClipDistance[0] = dot(vscene, clip_plane0);
+  gl_ClipDistance[1] = dot(vscene, clip_plane1);
+#endif
+
+  vec4 veye = model_view_matrix * vi;
 
 #ifdef USE_LIGHTING
-  v = vEye.xyz;
+  v = veye.xyz;
   #ifdef USE_INSTANCING
     vec3 ni = vec3(instance_placement * vec4(normal,0));
   #else
@@ -101,7 +113,7 @@ void main(void)
   #endif
   N = normalize((model_view_matrix * vec4(ni,0)).xyz);
   #ifdef USE_SHADOWS
-    shadow_tex_coord = (shadow_transform * vEye).stp;
+    shadow_tex_coord = (shadow_transform * veye).stp;
   #endif
   #ifdef USE_MULTISHADOW
 //    vscene = (model_matrix * vi).xyz;
@@ -124,7 +136,7 @@ void main(void)
   tex_coord_cubemap = tex_coord;
 #endif
 
-  gl_Position = projection_matrix * vEye;
+  gl_Position = projection_matrix * veye;
 }
 
 #endif
