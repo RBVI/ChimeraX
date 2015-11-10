@@ -300,6 +300,7 @@ class Drawing:
                 self._selected_positions = ones(len(self.positions), bool)
             else:
                 sp[:] = True
+                self._selected_positions = sp # Need to set to track changes
         else:
             self._selected_positions = None
             self._selected_triangles_mask = None
