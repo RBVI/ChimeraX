@@ -24,7 +24,7 @@ def clip(session, enable=None, near=None, far=None, center=None, tilt=False,
     '''
     if near is not None or far is not None:
         enable = True
-    if tilt is not None and enable is None:
+    if tilt and enable is None:
         enable = True
 
     v = session.main_view
