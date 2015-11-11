@@ -19,8 +19,6 @@ class AtomicStructure(AtomicStructureData, Model):
     ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
         "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
 
-    STRUCTURE_STATE_VERSION = 0
-
     def __init__(self, name, atomic_structure_pointer = None,
                  level_of_detail = None, smart_initial_display = True):
 
@@ -118,12 +116,16 @@ class AtomicStructure(AtomicStructureData, Model):
         session.triggers.delete_handler(self.handler)
 
     def take_snapshot(self, session, flags):
-        data = {}
-        return data
-
-    def restore_snapshot(self, phase, session, version, data):
-        if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
-            raise RestoreError("Unexpected version or data")
+        from ..state import CORE_STATE_VERSION
+        # TODO: also need to save this class's own state
+        ints = []
+        floats = []
+        misc = []
+        as_version = self.session_info(ints, floats, misc)
+        return CORE_STATE_VERSION, [
+            Model.take_snapshot(self, session, flags),
+            (as_version, ints, floats, misc)
+        ]
 
     def reset_state(self, session):
         pass
