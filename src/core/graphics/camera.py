@@ -103,12 +103,12 @@ class Camera:
         return perspective_projection_matrix(self.field_of_view, window_size,
                                              near_far_clip, pixel_shift)
 
-    def clip_plane_points(self, window_x, window_y, window_size, z_distances):
+    def ray(self, window_x, window_y, window_size):
         '''
-        Return two scene points at the near and far clip planes at the
-        specified window pixel position.
+        Return origin and direction in scene coordinates of sight line
+        for the specified window pixel position.
         '''
-        return [None]*len(z_distances)
+        return (None, None)
 
     def set_special_render_modes(self, render):
         '''
@@ -159,15 +159,15 @@ class MonoCamera(Camera):
         scene coordinates.'''
         return perspective_view_width(center, self.position.origin(), self.field_of_view)
 
-    def clip_plane_points(self, window_x, window_y, window_size, z_distances):
+    def ray(self, window_x, window_y, window_size):
         '''
-        Return scene points at the near and far clip planes at the
-        specified window pixel position.
+        Return origin and direction in scene coordinates of sight line
+        for the specified window pixel position.
         '''
-        cpts = perspective_clip_plane_points(window_x, window_y, window_size,
-                                             self.field_of_view, z_distances)
-        spts = self.position * cpts  # Convert camera to scene coordinates
-        return spts
+        d = perspective_direction(window_x, window_y, window_size, self.field_of_view)
+        p = self.position
+        ds = p.apply_without_translation(d)  # Convert camera to scene coordinates
+        return (p.origin(), ds)
 
 def perspective_view_all(center, size, position, field_of_view):
     '''
@@ -212,23 +212,19 @@ def perspective_projection_matrix(field_of_view, window_size, near_far_clip, pix
     pm = frustum(left, right, bot, top, near, far, xshift, yshift)
     return pm
 
-def perspective_clip_plane_points(window_x, window_y, window_size,
-                                  field_of_view, z_distances):
+def perspective_direction(window_x, window_y, window_size, field_of_view):
     '''
     Return points in camera coordinates at a given window pixel position
-    at specified z depths.
+    at specified z depths.  Field of view is in degrees.
     '''
     from math import radians, tan
     fov = radians(field_of_view)
-    t = tan(0.5 * fov)
-    wp, hp = window_size     # Screen size in pixels
-    wx, wy = (window_x - 0.5 * wp) / wp, (0.5 * hp - window_y) / wp
-    cpts = []
-    for z in z_distances:
-        w = 2 * z * t   # Render width in scene units
-        c = (w * wx, w * wy, -z)
-        cpts.append(c)
-    return cpts
+    t = tan(0.5 * fov)		# Field of view is in width
+    wp, hp = window_size        # Screen size in pixels
+    wx, wy = 2*(window_x - 0.5 * wp) / wp, 2*(0.5 * hp - window_y) / wp
+    from ..geometry import normalize_vector
+    d = normalize_vector((t*wx, t*wy, -1))
+    return d
 
 class OrthographicCamera(Camera):
     '''Orthographic projection camera.'''
@@ -272,17 +268,18 @@ class OrthographicCamera(Camera):
         pm = ortho(left, right, bot, top, near, far, xshift, yshift)
         return pm
 
-    def clip_plane_points(self, window_x, window_y, window_size, z_distances):
+    def ray(self, window_x, window_y, window_size):
         '''
-        Return scene points at the near and far clip planes at the
-        specified window pixel position.
+        Return origin and direction in scene coordinates of sight line
+        for the specified window pixel position.
         '''
         wp, hp = window_size     # Screen size in pixels
         s = self.field_width
         x, y = s*(window_x - 0.5 * wp) / wp, s*(0.5 * hp - window_y) / wp
-        cpts = [(x,y,-z) for z in z_distances]
-        spts = self.position * cpts  # Convert camera to scene coordinates
-        return spts
+        p = self.position
+        origin = p * (x,y,0)
+        d = -p.z_axis()
+        return (origin, d)
 
 class StereoCamera(Camera):
     '''
