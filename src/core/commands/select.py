@@ -23,8 +23,8 @@ def select(session, objects=None, add=None, subtract=None, intersect=None, clear
             return
 
     if objects is None and add is None and subtract is None and intersect is None:
-        from . import atomspec
-        objects = atomspec.everything(session).evaluate(session)
+        from . import all_objects
+        objects = all_objects(session)
 
     if objects is not None:
         session.selection.clear()
