@@ -161,6 +161,14 @@ def surface(session, atoms = None, enclose = None, include = None,
 
     return surfs
 
+# -------------------------------------------------------------------------------------
+#
+def unsurface(session, atoms = None):
+    '''
+    Hide surface for specified atoms.  Same as command "surface <spec> hide".
+    '''
+    surface(session, atoms, hide = True)
+
 def register_command(session):
     from . import CmdDesc, register, AtomsArg, FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
     _surface_desc = CmdDesc(
@@ -182,7 +190,11 @@ def register_command(session):
                    ('close', NoArg)],
         synopsis = 'create molecular surface')
     register('surface', _surface_desc, surface)
-    create_alias('~surface', 'surface hide $*')
+
+    _unsurface_desc = CmdDesc(
+        optional = [('atoms', AtomsArg)],
+        synopsis = 'hide molecular surface')
+    register('~surface', _unsurface_desc, unsurface)
 
 def check_atoms(atoms, session):
     if atoms is None:
