@@ -70,12 +70,12 @@ class BaseSphere(type):
                 newlines = ""
             attrs["__doc__"] = doc + newlines + doc_add
 
-            #define some vars useful later
+            # define some vars useful later
             (collective, container_name, container_nickname, container_collective,
                 conn_name, conn_collective) = related_class_info[name]
             connection = conn_name.lower()
             connections = connection + 's'
-            connectible = name.lower()
+            sphere = name.lower()
             num_connections = 'num_' + connections
 
             # Property tuples are: (generic attr name, specific attr name,
@@ -87,20 +87,16 @@ class BaseSphere(type):
             # for some classes but not others.  Those properties are defined
             # directly in the final class rather than via the metaclass.
             properties = [
-                ('coord', None, (float64, 3), {},
-                    "Coordinates as a numpy length 3 array, 64-bit float values."),
+                ("color", None, (uint8, 4), {},
+                    "Color RGBA length 4 numpy uint8 array."),
                 ('connections', connections, (cptr, num_connections),
                     { 'astype': conn_collective, 'read_only': True },
                     "{}s connected to this {} as an array of :py:class:`{}` objects."
-                    " Read only.".format(conn_name, connectible, conn_name)),
-                ("neighbors", None, (cptr, num_connections), { 'astype': collective,
-                    'read_only': True },
-                    ":class:`.{}`\\ s connnected to this {} directly by one {}."
-                    " Read only.".format(name, connectible, connection)),
-                ("color", None, (uint8, 4), {},
-                    "Color RGBA length 4 numpy uint8 array."),
+                    " Read only.".format(conn_name, sphere, conn_name)),
+                ('coord', None, (float64, 3), {},
+                    "Coordinates as a numpy length 3 array, 64-bit float values."),
                 ("display", None, (npy_bool,), {},
-                    "Whether to display the {}. Boolean value.".format(connectible)),
+                    "Whether to display the {}. Boolean value.".format(sphere)),
                 ("draw_mode", None, (uint8,), {},
                     "Controls how the {} is depicted.\n\n|  Possible values:\n"
                     "SPHERE_STYLE\n"
@@ -109,27 +105,31 @@ class BaseSphere(type):
                     "    Use reduced {} radius, but larger than {} radius\n"
                     "STICK_STYLE\n"
                     "    Match {} radius"
-                    .format(connectible, connectible, connectible, connection, connection)),
+                    .format(sphere, sphere, sphere, connection, connection)),
                 ("graph", container_nickname, (cptr,),
                     { 'astype': container_collective, 'read_only': True },
-                    ":class:`.{}` the {} belongs to".format(container_name, connectible)),
+                    ":class:`.{}` the {} belongs to".format(container_name, sphere)),
                 ("hide", None, (int32,), {},
                     "Whether {} is hidden (overrides display).  Integer bitmask."
                     "\n\n|  Possible values:\n"
                     "HIDE_RIBBON\n"
                     "    Hide mask for backbone atoms in ribbon.  "
-                    "[Only applicable to Atom class.]".format(connectible)),
+                    "[Only applicable to Atom class.]".format(sphere)),
+                ("neighbors", None, (cptr, num_connections), { 'astype': collective,
+                    'read_only': True },
+                    ":class:`.{}`\\ s connnected to this {} directly by one {}."
+                    " Read only.".format(name, sphere, connection)),
                 ("num_connections", "num_{}".format(connections), (size_t,),
                     { 'read_only': True },
                     "Number of {}s connected to this {}. Read only."
-                    .format(connection, connectible)),
-                ("radius", None, (float32,), {}, "Radius of {}.".format(connectible)),
+                    .format(connection, sphere)),
+                ("radius", None, (float32,), {}, "Radius of {}.".format(sphere)),
                 ("selected", None, (npy_bool,), {},
-                    "Whether the {} is selected.".format(connectible)),
+                    "Whether the {} is selected.".format(sphere)),
                 ("visible", None, (npy_bool,), { 'read_only': True },
-                    "Whether {} is displayed and not hidden.".format(connectible)),
+                    "Whether {} is displayed and not hidden.".format(sphere)),
             ]
-            prefix = connectible + '_'
+            prefix = sphere + '_'
             for generic_attr_name, specific_attr_name, args, kw, doc in properties:
                 if specific_attr_name is None:
                     prop_attr_name = generic_attr_name
@@ -146,7 +146,7 @@ class BaseSphere(type):
                 attrs[sym_prefix + '_STYLE'] = enum_val
             attrs['HIDE_RIBBON'] = 0x1
 
-            #define __init__ method in attrs dict
+            # define __init__ method in attrs dict
             exec("def __init__(self, c_pointer):\n"
                 "    set_c_pointer(self, c_pointer)\n", globals(), attrs)
 
@@ -157,8 +157,8 @@ class BaseSphere(type):
                 "                   args = (ctypes.c_void_p, ctypes.c_void_p),\n"
                 "                   ret = ctypes.c_bool)\n"
                 "    c = f(self._c_pointer, {}._c_pointer)\n"
-                "    return c\n".format(connectible, doc_marker, connectible,
-                connectible, connectible, connectible), globals(), attrs)
+                "    return c\n".format(sphere, doc_marker, sphere, sphere, sphere, sphere),
+                globals(), attrs)
 
             # define scene_coord property in attrs dict
             exec("@property\n"
@@ -169,7 +169,7 @@ class BaseSphere(type):
                 "    of models this {} belongs to.\n"
                 "    '''\n"
                 "    return self.graph.scene_position * self.coord\n"
-                .format(doc_marker, name, connectible), globals(), attrs)
+                .format(doc_marker, name, sphere), globals(), attrs)
 
         return super().__new__(meta, name, bases, attrs)
 

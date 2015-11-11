@@ -203,9 +203,219 @@ def concatenate(collections, object_class = None):
         c = cl(concat([a._pointers for a in collections]))
     return c
 
+def depluralize(word):
+    if word.endswith('ii'):
+        return word[:-2] + 'ius'
+    if word.endswith('ses'):
+        return word[:-2]
+    if word.endswith('s'):
+        return word[:-1]
+    return word
+
 # -----------------------------------------------------------------------------
 #
-class Atoms(Collection):
+class BaseSpheres(type):
+    """'Base class' for Atoms, Spheres, etc.
+
+       We avoid the difficulties of interacting through ctypes to the C++ layer
+       by using BaseSpheres as a metaclass for it's 'derived' classes, which places
+       properties into them during class layout.
+    """
+    def __new__(meta, name, bases, attrs):
+        related_class_info = {
+            'Atoms': ('AtomicStructure', 'structures', _atomic_structures, 'Bond')
+        }
+        if name != meta.__name__:
+            doc_marker = "[BS]"
+            doc_add = \
+                "{}: Generic attributes added by {}'s {} metaclass (and therefore usable " \
+                "by in any class whose metaclass is {}, such as Atoms, Spheres, etc.) " \
+                "are noted by preceding their documentation with '{}'.".format(
+                doc_marker, name, meta.__name__, meta.__name__, doc_marker)
+            if "__doc__" in attrs:
+                doc = attrs['__doc__']
+                if doc:
+                    if doc[-1] == '\n':
+                        newlines = '\n'
+                    else:
+                        newlines = '\n\n'
+                else:
+                    newlines = ""
+            else:
+                doc = ""
+                newlines = ""
+            attrs["__doc__"] = doc + newlines + doc_add
+
+            # define some vars useful later
+            sphere_class = name[:-1]
+            sphere = sphere_class.lower()
+            spheres = sphere + 's'
+            (container_class, containers_nickname,
+                containers_collective, conn_name) = related_class_info[name]
+            container_prep = "an" if container_class[0] in "AEIOU" else "a"
+            container_collection = container_class + "s"
+            container_nickname = containers_nickname[:-1]
+            connection = conn_name.lower()
+            connections = connection + "s"
+            conns_name = conn_name + "s"
+
+            # Property tuples are: (generic attr name, specific attr name,
+            # other args to cvec_property, keywords to cvec_property, doc string).
+            # If the specific attr name is None, then it's the same as the
+            # generic attr name.
+            #
+            # Some shared properties (e.g. names) are defined in the C++ layer
+            # for some classes but not others.  Those properties are defined
+            # directly in the final class rather than via the metaclass.
+            properties = [
+                ('colors', None, (uint8, 4), {},
+                    "Returns a :mod:`numpy` Nx4 array of uint8 RGBA values. Can be "
+                    "set with such an array (or equivalent sequence), or with a single "
+                    "RGBA value."),
+                ('coords', None, (float64, 3), {},
+                    "Returns a :mod:`numpy` Nx3 array of XYZ values. Can be set."),
+                ('displays', None, (npy_bool,), {},
+                    "Controls whether the {} should be displayed. "
+                    "Returns a :mod:`numpy` array of boolean values.  Can be "
+                    "set with such an array (or equivalent sequence), or with a "
+                    "single boolean value.".format(name)),
+                ('draw_modes', None, (uint8,), {},
+                    "Controls how the {} should be depicted. "
+                    "The values are integers, SPHERE_STYLE, BALL_STYLE "
+                    "or STICK_STYLE as documented in the :class:`.{}` class. "
+                    "Returns a :mod:`numpy` array of integers.  Can be "
+                    "set with such an array (or equivalent sequence), or with a "
+                    "single integer value. ".format(name, sphere_class)),
+                ('graphs', containers_nickname, (cptr,),
+                    { 'astype': containers_collective, 'read_only': True },
+                    "Returns {} :class:`.{}` for each {}. Read only."
+                    .format(container_prep, container_class, sphere)),
+                ('radii', None, (float32,), {},
+                    "Returns a :mod:`numpy` array of radii.  Can be "
+                    "set with such an array (or equivalent sequence), or with a single "
+                    "floating-point number."),
+                ('selected', None, (npy_bool,), {},
+                    "numpy bool array whether each {} is selected.".format(sphere)),
+                ('visibles', None, (npy_bool,), { 'read_only': True },
+                    "Returns whether the {} should be visible "
+                    "(displayed and not hidden). Returns a :mod:`numpy` array "
+                    "of boolean values.  Read only.".format(name)),
+            ]
+            prefix = sphere + "_"
+            for generic_attr_name, specific_attr_name, args, kw, doc in properties:
+                if specific_attr_name is None:
+                    prop_attr_name = depluralize(generic_attr_name)
+                else:
+                    prop_attr_name = depluralize(specific_attr_name)
+                attrs[generic_attr_name] = cvec_property(prefix + prop_attr_name,
+                    *args, **kw, doc = doc_marker + " " + doc)
+                if specific_attr_name is not None:
+                    attrs[specific_attr_name] = cvec_property(prefix + prop_attr_name,
+                        *args, **kw, doc = doc)
+
+            # define __init__ method in attrs dict
+            exec("def __init__(self, c_pointers = None):\n"
+                "    Collection.__init__(self, c_pointers, molobject.{}, {})\n"
+                .format(sphere_class, name),
+                globals(), attrs)
+
+            # define by_graph property (and class-specific version) in attrs dict
+            base_doc = "Return list of 2-tuples of ({}, {} for that {}).".format(
+                container_nickname, name, container_nickname)
+            for prop_name, doc_add in [
+                    ('graph', doc_marker + " "), (container_nickname, "")]:
+                exec("@property\n"
+                    "def by_{}(self):\n"
+                    "    '''{}'''\n"
+                    "    agraph = self.graphs._pointers\n"
+                    "    return [(g, self.filter(agraph==g._c_pointer.value))\n"
+                    "        for g in self.unique_graphs]\n".format(prop_name,
+                    doc_add + base_doc), globals(), attrs)
+
+            # define delete method in attrs dict
+            exec("def delete(self):\n"
+                "    '''Delete the C++ {} objects'''\n"
+                "    mols = self.unique_graphs\n"
+                "    c_function('{}_delete', args = [ctypes.c_void_p,\n"
+                "                ctypes.c_size_t])(self._c_pointers, len(self))\n".format(
+                sphere_class, sphere), globals(), attrs)
+
+            # define inter_connections property (and class-specific version) in attrs dict
+            base_doc = ":class:`{} object` where both {} are in this collection".format(
+                conns_name, spheres)
+            for prop_name, doc_add in [
+                    ('connections', doc_marker + " "), (connections, "")]:
+                exec("@property\n"
+                    "def inter_{}(self):\n"
+                    "    '''{}'''\n"
+                    "    f = c_function('{}_inter_{}',\n"
+                    "        args = [ctypes.c_void_p, ctypes.c_size_t],\n"
+                    "        ret = ctypes.py_object)\n"
+                    "    return {}(f(self._c_pointers, len(self)))\n".format(prop_name,
+                    doc_add + base_doc, sphere, connections, conns_name), globals(), attrs)
+
+            # define num_selected property in attrs dict
+            exec("@property\n"
+                "def num_selected(self):\n"
+                "    '''{} Number of selected {}.'''\n"
+                "    f = c_function('{}_num_selected',\n"
+                "                   args = [ctypes.c_void_p, ctypes.c_size_t],\n"
+                "                   ret = ctypes.c_size_t)\n"
+                "    return f(self._c_pointers, len(self))\n".format(doc_marker,
+                spheres, sphere), globals(), attrs)
+
+            # define scene_bounds property in attrs dict
+            exec("@property\n"
+                "def scene_bounds(self):\n"
+                "    '''Return scene bounds of {} including instances of all parent models.'''\n"
+                "    blist = []\n"
+                "    from ..geometry import sphere_bounds, copy_tree_bounds, union_bounds\n"
+                "    for m, a in self.by_graph:\n"
+                "        ba = sphere_bounds(a.coords, a.radii)\n"
+                "        ib = copy_tree_bounds(ba,\n"
+                "            [d.positions for d in m.drawing_lineage])\n"
+                "        blist.append(ib)\n"
+                "    return union_bounds(blist)\n".format(spheres), globals(), attrs)
+
+            # define scene_coords property in attrs dict
+            exec("@property\n"
+                "def scene_coords(self):\n"
+                "    '''\n"
+                "    {} coordinates in the global scene coordinate system.\n"
+                "    This accounts for the :class:`Drawing` positions for the hierarchy\n"
+                "    of models each {} belongs to.\n"
+                "    '''\n"
+                "    n = len(self)\n"
+                "    from numpy import array, empty, float64\n"
+                "    xyz = empty((n,3), float64)\n"
+                "    if n == 0:\n"
+                "        return xyz\n"
+                "    graphs = self.unique_graphs\n"
+                "    gtable = array(tuple(g.scene_position.matrix for g in graphs), float64)\n"
+                "    from .molc import pointer\n"
+                "    f = c_function('atom_scene_coords',\n"
+                "        args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,\n"
+                "                ctypes.c_size_t, ctypes.c_void_p, ctypes.c_void_p])\n"
+                "    f(self._c_pointers, n, graphs._c_pointers, len(graphs),\n"
+                "        pointer(gtable), pointer(xyz))\n"
+                "    return xyz\n".format(name, sphere), globals(), attrs)
+
+            # define unique_graphs property (and class-specific version) in attrs dict
+            base_doc = "The unique {} as an :class:`.{}` collection".format(
+                containers_nickname, container_collection)
+            for prop_namer, doc_add in [
+                    ('graphs', doc_marker + " "), (containers_nickname, "")]:
+                exec("@property\n"
+                    "def unique_{}(self):\n"
+                    "    '''{}'''\n"
+                    "    return {}(unique(self.graphs._pointers))\n".format(
+                    prop_namer, doc_add + base_doc, container_collection), globals(), attrs)
+
+        return super().__new__(meta, name, bases, attrs)
+
+# -----------------------------------------------------------------------------
+#
+class Atoms(Collection, metaclass=BaseSpheres):
     '''
     Bases: :class:`.Collection`
 
@@ -215,40 +425,9 @@ class Atoms(Collection):
     without creating Python :py:class:`Atom` objects which require much more memory
     and are slower to use in computation.
     '''
-    def __init__(self, atom_pointers = None):
-        Collection.__init__(self, atom_pointers, molobject.Atom, Atoms)
 
     bfactors = cvec_property('atom_bfactor', float32)
     chain_ids = cvec_property('atom_chain_id', string, read_only = True)
-    colors = cvec_property('atom_color', uint8, 4)
-    '''
-    Returns a :mod:`numpy` Nx4 array of uint8 RGBA values. Can be
-    set with such an array (or equivalent sequence), or with a single
-    RGBA value.
-    '''
-    coords = cvec_property('atom_coord', float64, 3)
-    '''Returns a :mod:`numpy` Nx3 array of XYZ values. Can be set.'''
-    displays = cvec_property('atom_display', npy_bool)
-    '''
-    Controls whether the Atoms should be displayed.
-    Returns a :mod:`numpy` array of boolean values.  Can be
-    set with such an array (or equivalent sequence), or with a
-    single boolean value.
-    '''
-    visibles = cvec_property('atom_visible', npy_bool, read_only = True)
-    '''
-    Returns whether the Atoms should be visible (displayed and not hidden).
-    Returns a :mod:`numpy` array of boolean values.  Read only.
-    '''
-    draw_modes = cvec_property('atom_draw_mode', uint8)
-    '''
-    Controls how the Atoms should be depicted, *e.g.* sphere,
-    ball, *etc.*  The values are integers, SPHERE_STYLE, BALL_STYLE
-    or STICK_STYLE as documented in the :class:`.Atom` class.
-    Returns a :mod:`numpy` array of integers.  Can be
-    set with such an array (or equivalent sequence), or with a
-    single integer value.
-    '''
     elements = cvec_property('atom_element', cptr, astype = _elements, read_only = True)
     '''
     Returns a :class:`Elements` whose data items
@@ -261,56 +440,23 @@ class Atoms(Collection):
     '''Returns a :mod:`numpy` array of atomic numbers (integers). Read only.'''
     in_chains = cvec_property('atom_in_chain', npy_bool, read_only = True)
     '''Whether each atom belong to a polymer. Returns numpy bool array. Read only.'''
-    structures = cvec_property('atom_structure', cptr, astype = _atomic_structures, read_only = True)
-    '''Returns an :class:`.AtomicStructureDatas` with the structure for each atom. Read only.'''
     names = cvec_property('atom_name', string)
     '''Returns a numpy array of atom names.  Canbe
     set with such an array (or equivalent sequence), or with a single
     string.  Atom names are limited to 4 characters.'''
-    radii = cvec_property('atom_radius', float32)
-    '''
-    Returns a :mod:`numpy` array of atomic radii.  Can be
-    set with such an array (or equivalent sequence), or with a single
-    floating-point number.
-    '''
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True)
     '''
     Returns a :class:`Residues` whose data items
     correspond in a 1-to-1 fashion with the items in the Atoms.
     Read only. 
     '''
-    selected = cvec_property('atom_selected', npy_bool)
-    '''numpy bool array whether each atom is selected.'''
     structure_categories = cvec_property('atom_structure_category', string, read_only=True)
     '''Numpy array of whether atom is ligand, ion, etc.'''
-
-    @property
-    def num_selected(self):
-        '''Number of selected atoms.'''
-        f = c_function('atom_num_selected', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.c_size_t)
-        return f(self._c_pointers, len(self))
-
-    @property
-    def unique_structures(self):
-        '''The unique structures as an :class:`.AtomicStructureDatas` collection'''
-        return AtomicStructureDatas(unique(self.structures._pointers))
 
     @property
     def unique_residues(self):
         '''The unique :class:`Residues` for these atoms.'''
         return Residues(unique(self.residues._pointers))
-
-    @property
-    def inter_bonds(self):
-        ''':class:`Bonds object` where both atoms are in this collection'''
-        f = c_function('atom_inter_bonds', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
-        return Bonds(f(self._c_pointers, len(self)))
-
-    @property
-    def by_structure(self):
-        '''Return list of pairs of structure and Atoms for that structure.'''
-        amol = self.structures._pointers
-        return [(m, self.filter(amol==m._c_pointer.value)) for m in self.unique_structures]
 
     @property
     def by_chain(self):
@@ -324,38 +470,6 @@ class Atoms(Collection):
         return chains
 
     @property
-    def scene_coords(self):
-        '''
-        Atom coordinates in the global scene coordinate system.
-        This accounts for the :class:`Drawing` positions for the hierarchy
-        of models each atom belongs to.
-        '''
-        n = len(self)
-        from numpy import array, empty, float64
-        xyz = empty((n,3), float64)
-        if n == 0:
-            return xyz
-        mols = self.unique_structures
-        mtable = array(tuple(m.scene_position.matrix for m in mols), float64)
-        from .molc import pointer
-        f = c_function('atom_scene_coords', args = [ctypes.c_void_p, ctypes.c_size_t,
-                                                    ctypes.c_void_p, ctypes.c_size_t,
-                                                    ctypes.c_void_p, ctypes.c_void_p])
-        f(self._c_pointers, n, mols._c_pointers, len(mols), pointer(mtable), pointer(xyz))
-        return xyz
-
-    @property
-    def scene_bounds(self):
-        '''Return scene bounds of atoms including instances of all parent models.'''
-        blist = []
-        from ..geometry import sphere_bounds, copy_tree_bounds, union_bounds
-        for m, a in self.by_structure:
-            ba = sphere_bounds(a.coords, a.radii)
-            ib = copy_tree_bounds(ba, [d.positions for d in m.drawing_lineage])
-            blist.append(ib)
-        return union_bounds(blist)
-
-    @property
     def shown_atoms(self):
         '''
         Subset of Atoms including atoms that are displayed with
@@ -365,11 +479,7 @@ class Atoms(Collection):
         datoms = concatenate([a for m, a in da.by_structure
                               if m.display and m.parents_displayed], Atoms)
         return datoms
-
-    def delete(self):
-        '''Delete the C++ Atom objects'''
-        mols = self.unique_structures
-        c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+    shown_spheres = shown_atoms
 
     def update_ribbon_visibility(self):
         '''Update the 'hide' status for ribbon control point atoms, which
