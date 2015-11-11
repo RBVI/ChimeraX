@@ -80,7 +80,12 @@ def color(session, objects, color=None, target=None, transparency=None,
             session.logger.warning('Label colors not supported yet')
 
     if 's' in target and color is not None:
-        ns = _set_surface_colors(session, atoms, color, opacity, bgcolor)
+        from ..atomic import MolecularSurface, concatenate
+        msatoms = [m.atoms for m in objects.models if isinstance(m, MolecularSurface)]
+        satoms = concatenate(msatoms + [atoms]) if msatoms else atoms
+        if color == "byhetero":
+            satoms = satoms.filter(satoms.element_numbers != 6)
+        ns = _set_surface_colors(session, satoms, color, opacity, bgcolor)
         what.append('%d surfaces' % ns)
 
     if 'c' in target and color is not None:
