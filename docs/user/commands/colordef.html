@@ -22,22 +22,50 @@ class="clRight" alt="Chimera2 logo"/></a>
 <h3>Command: colordef</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>colordef</b> &nbsp;<i>name</i>
-&nbsp;<a href="colornames.html"><i>color-spec</i></a>
+[&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </h3>
+<!--
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>colordef</b> &nbsp;<b>list</b>
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>colordef</b> &nbsp;<b>delete</b>
+(&nbsp;<i>name</i>&nbsp;|&nbsp;<b>all</b>&nbsp;)
+</h3>
+-->
 <p>
 The <b>colordef</b> command defines a new color name 
 or redefines an existing one. 
+See also: <a href="color.html"><b>color</b></a>,
+<a href="transparency.html"><b>transparency</b></a>
+</p><p>
 The <i>name</i> is assigned as the name of the
 <a href="colornames.html">specified</a> color.  
 Color names must begin with an alphabetical letter and may contain 
 only lowercase letters, numbers, hyphens, underscores, and spaces. 
 If <i>name</i> has embedded spaces, it must be enclosed in quotation marks.
+</p>
+Examples:
+<blockquote>
+<b>colordef tpurple rgba(.6,.0,.8,.5)</b>
+<br>
+<b>colordef tgreen rgba(0%, 80%, 40%, 0.5)</b>
+</blockquote>
+<p>
+<!--
+The command <b>colordef list</b> lists the user-defined colors 
+in the <b>Log</b>.
+-->
+The definition of a specific color can be shown in the <b>Log</b>
+with <b>colordef</b> <i>name</i>.
+<!--
 </p><p>
-See also: <a href="color.html"><b>color</b></a>,
-<a href="transparency.html"><b>transparency</b></a>
+The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
+user-defined color or <b>all</b> user-defined colors.
+-->
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2015</address>
+November 2015</address>
 </body></html>

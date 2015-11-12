@@ -11,7 +11,7 @@ software or any revisions or derivations thereof.
 
 <html><head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Element Colors</title>
+<title>Default Coloring by Element, Chain, Model</title>
 </head><body>
 
 <a name="top"></a>
@@ -19,14 +19,16 @@ software or any revisions or derivations thereof.
 <img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
 class="clRight" alt="Chimera2 logo"/></a>
 
-<h2>Element Colors</h2>
+<h3>Element Colors</h3>
 <p>
 The default element colors are the same as the
 <a href="http://jmol.sourceforge.net/jscolors/#Atoms%20('CPK'%20colors,%20default%20element%20colors)" 
 target="_blank">Jmol element colors</a>. 
 Pausing the cursor over a cell in the table below shows the corresponding 
 hexadecimal <a href="colornames.html">color code</a>.
-Element colors are used in coloring by element or by heteroatom.
+Element colors are used in 
+<a href="color.html#byelement">coloring by element</a> or 
+<a href="color.html#byhet">by heteroatom</a>.
 </p>
 
 <table align="center" border="0" cellspacing="1" cellpadding="4">
@@ -172,7 +174,132 @@ Element colors are used in coloring by element or by heteroatom.
 </tr>
 </table>
 
+<a name="autocolors"></a>
+<h3>Coloring by Model or Chain</h3>
+<p>
+Default initial colors for atomic models are
+<b>tan</b>, <b>sky blue</b>, <b>plum</b>, <b>light green</b>, 
+<b>salmon</b>, <b>light gray</b>, <b>deep pink</b>, <b>gold</b>,
+<b>dodger blue</b> and <b>purple</b> 
+(see <a href="colornames.html">color names</a>):
+</p>
+<table border="1" cellspacing="0" cellpadding="3"
+style="margin:5px 15px 5px 15px">
+<tr>
+<td bgcolor=#d2b48c title="tan" align="center">&nbsp;#1&nbsp;</td>
+<td bgcolor=#00bfff title="sky blue" align="center">&nbsp;#2&nbsp;</td>
+<td bgcolor=#dda0dd title="plum" align="center">&nbsp;#3&nbsp;</td>
+<td bgcolor=#90ee90 title="light green" align="center">&nbsp;#4&nbsp;</td>
+<td bgcolor=#fa8072 title="salmon" align="center">&nbsp;#5&nbsp;</td>
+<td bgcolor=#d3d3d3 title="light gray" align="center">&nbsp;#6&nbsp;</td>
+<td bgcolor=#ff1493 title="deep pink" align="center">&nbsp;#7&nbsp;</td>
+<td bgcolor=#ffd700 title="gold" align="center">&nbsp;#8&nbsp;</td>
+<td bgcolor=#1e90ff title="dodger blue" align="center">&nbsp;#9&nbsp;</td>
+<td bgcolor=#a020f0 title="purple" align="center">
+<font color=white>&nbsp;#10&nbsp;</font></td>
+</tr>
+</table>
+<p>
+If any of the above would exactly match the background, 
+a different model color is used instead. 
+For higher model numbers, an algorithm is used to produce colors
+distinguishable from the background and from other models.
+These colors are also used for 
+<a href="color.html#bymodel">coloring by model</a>.
+</p><p>
+Per-chain <a href="surface.html">molecular surface</a> models are
+initially colored by chain ID, for example:
+</p>
+<!-- see src/core/colors.py -->
+<table border="1" cellspacing="0" cellpadding="3" 
+style="margin:5px 15px 5px 15px">
+<tr>
+<td style="background:mediumslateblue;color:white" title="medium slate blue"
+align="center">&nbsp;A,a&nbsp;</td>
+<td style="background:lightcoral" title="light coral"
+align="center">&nbsp;B,b&nbsp;</td>
+<td style="background:darkseagreen" title="dark sea green"
+align="center">&nbsp;C,c&nbsp;</td>
+<td style="background:burlywood" title="burlywood"
+align="center">&nbsp;D,d&nbsp;</td>
+<td style="background:coral" title="coral"
+align="center">&nbsp;E,e&nbsp;</td>
+<td style="background:gray" title="gray"
+align="center">&nbsp;F,f&nbsp;</td>
+<td style="background:olivedrab" title="olivedrab"
+align="center">&nbsp;G,g&nbsp;</td>
+<td style="background:rgb(100,100,100);color:white" title="rgb(100,100,100)"
+align="center">&nbsp;H,h&nbsp;</td>
+<td style="background:yellow" title="yellow"
+align="center">&nbsp;I,i&nbsp;</td>
+<td style="background:rgb(55,19,112);color:white" title="rgb(55,19,112)"
+align="center">&nbsp;J,j&nbsp;</td>
+<td style="background:rgb(255,255,150)" title="rgb(255,255,150)"
+align="center">&nbsp;K,k&nbsp;</td>
+<td style="background:rgb(202,62,94)" title="rgb(202,62,94)"
+align="center">&nbsp;L,l&nbsp;</td>
+<td style="background:rgb(205,145,63)" title="rgb(205,145,63)"
+align="center">&nbsp;M,m&nbsp;</td>
+<td style="background:rgb(12,75,100);color:white" title="rgb(12,75,100)"
+align="center">&nbsp;N,n&nbsp;</td>
+<td style="background:red" title="red"
+align="center">&nbsp;O,o&nbsp;</td>
+<td style="background:rgb(175,155,50)" title="rgb(175,155,50)"
+align="center">&nbsp;P,p&nbsp;</td>
+<td style="background:rgb(105,205,48)" title="rgb(105,205,48)"
+align="center">&nbsp;Q,q&nbsp;</td>
+<td style="background:rgb(37,70,25);color:white" title="rgb(37,70,25)"
+align="center">&nbsp;R,r&nbsp;</td>
+</tr><tr>
+<td style="background:rgb(121,33,135);color:white" title="rgb(121,33,135)"
+align="center">&nbsp;S,s&nbsp;</td>
+<td style="background:rgb(83,140,208)" title="rgb(83,140,208)"
+align="center">&nbsp;T,t&nbsp;</td>
+<td style="background:rgb(0,154,37);color:white" title="rgb(0,154,37)"
+align="center">&nbsp;U,u&nbsp;</td>
+<td style="background:rgb(178,220,205)" title="rgb(178,220,205)"
+align="center">&nbsp;V,v&nbsp;</td>
+<td style="background:rgb(255,152,213)" title="rgb(255,152,213)"
+align="center">&nbsp;W,w&nbsp;</td>
+<td style="background:rgb(200,90,174)" title="rgb(200,90,174)"
+align="center">&nbsp;X,x&nbsp;</td>
+<td style="background:rgb(175,200,74)" title="rgb(175,200,74)"
+align="center">&nbsp;Y,y&nbsp;</td>
+<td style="background:rgb(63,25,12);color:white" title="rgb(63,25,12)"
+align="center">&nbsp;Z,z&nbsp;</td>
+<td style="background:rgb(87,87,87);color:white" title="rgb(87,87,87)"
+align="center">&nbsp;1&nbsp;</td>
+<td style="background:rgb(173,35,35);color:white" title="rgb(173,35,35)"
+align="center">&nbsp;2&nbsp;</td>
+<td style="background:rgb(42,75,215);color:white" title="rgb(42,75,215)"
+align="center">&nbsp;3&nbsp;</td>
+<td style="background:rgb(29,105,20);color:white" title="rgb(29,105,20)"
+align="center">&nbsp;4&nbsp;</td>
+<td style="background:rgb(129,74,25);color:white" title="rgb(129,74,25)"
+align="center">&nbsp;5&nbsp;</td>
+<td style="background:rgb(129,38,192)" title="rgb(129,38,192)"
+align="center">&nbsp;6&nbsp;</td>
+<td style="background:rgb(160,160,160)" title="rgb(160,160,160)"
+align="center">&nbsp;7&nbsp;</td>
+<td style="background:rgb(129,197,122)" title="rgb(129,197,122)"
+align="center">&nbsp;8&nbsp;</td>
+<td style="background:rgb(157,175,255)" title="rgb(157,175,255)"
+align="center">&nbsp;9&nbsp;</td>
+<td style="background:rgb(41,208,208)" title="rgb(41,208,208)"
+align="center">&nbsp;0&nbsp;</td>
+</tr>
+</table>
+<p>
+Unique colors are generated automatically for other chain IDs
+(for example, those with two characters). 
+These colors are also used for 
+<a href="color.html#bychain">coloring by chain</a>.
+</p><p>
+Similarly, there are default initial colors for volume data sets:
+<img src="mapcolors.png">
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2015</address>
+November 2015</address>
 </body></html>
