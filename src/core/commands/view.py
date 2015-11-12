@@ -75,7 +75,7 @@ def save_view(name, session):
     nv = _named_views(session)
     v = session.main_view
     models = session.models.list()
-    nv[name] = _View(v.camera, v.center_of_rotation, models)
+    nv[name] = _View(v, v.center_of_rotation, models)
 
 def delete_view(name, session):
     nv = _named_views(session)
@@ -90,9 +90,9 @@ def show_view(name, frames, session):
         v = session.main_view
         models = session.models.list()
         if frames is None:
-            nv[name].set_view(v.camera, models)
+            nv[name].set_view(v, models)
         else:
-            v1 = _View(v.camera, v.center_of_rotation, models)
+            v1 = _View(v, v.center_of_rotation, models)
             v2 = nv[name]
             _InterpolateViews(v1, v2, frames, session)
     else:
@@ -113,10 +113,14 @@ def _named_views(session):
 class _View:
     camera_attributes = ('position', 'field_of_view', 'field_width',
                          'eye_separation_scene', 'eye_separation_pixels')
-    def __init__(self, camera, look_at, models):
-        for attr in self.camera_attributes:
-            if hasattr(camera, attr):
-                setattr(self, attr, getattr(camera, attr))
+    clip_attributes = ('enabled', 'near_point', 'far_point', 'normal')
+    def __init__(self, view, look_at, models):
+        camera = view.camera
+        self.camera = {attr:getattr(camera, attr)
+                       for attr in self.camera_attributes if hasattr(camera, attr)}
+        cattr = self.clip_attributes
+        self.clip = {attr:getattr(view.clip, attr) for attr in cattr}
+        self.clip_scene = {attr:getattr(view.clip_scene, attr) for attr in cattr}
 
         # Scene point which is focus of attention used when
         # interpolating between two views so that the focus
@@ -128,12 +132,16 @@ class _View:
         for m in models:
             pos[m] = m.positions
 
-    def set_view(self, camera, models):
+    def set_view(self, view, models):
         # Set camera
-        for attr in self.camera_attributes:
-            if hasattr(self, attr):
-                setattr(camera, attr, getattr(self, attr))
-        camera.redraw_needed = True
+        for attr, value in self.camera.items():
+            setattr(view.camera, attr, value)
+
+        # Set clip planes.
+        for attr, value in self.clip.items():
+            setattr(view.clip, attr, value)
+        for attr, value in self.clip_scene.items():
+            setattr(view.clip_scene, attr, value)
 
         # Set model positions
         pos = self.positions
@@ -142,6 +150,8 @@ class _View:
                 p = pos[m]
                 if m.positions is not p:
                     m.positions = p
+
+        view.redraw_needed = True
 
 class _InterpolateViews:
     def __init__(self, v1, v2, frames, session):
@@ -154,25 +164,31 @@ class _InterpolateViews:
 
     def frame_cb(self, session, frame):
         v1, v2 = self.view1, self.view2
-        c = session.main_view.camera
+        v = session.main_view
         if frame == self.frames-1:
             models = session.models.list()
-            v2.set_view(c, models)
+            v2.set_view(v, models)
         else:
             f = frame / self.frames
-            _interpolate_views(v1, v2, f, c, self.centers)
+            _interpolate_views(v1, v2, f, v, self.centers)
 
-def _interpolate_views(v1, v2, f, camera, centers):
-    _interpolate_camera(v1, v2, f, camera)
+def _interpolate_views(v1, v2, f, view, centers):
+    _interpolate_camera(v1, v2, f, view.camera)
+    _interpolate_clip_planes(v1, v2, f, view, 'clip')
+    _interpolate_clip_planes(v1, v2, f, view, 'clip_scene')
     _interpolate_model_positions(v1, v2, centers, f)
 
 def _interpolate_camera(v1, v2, f, camera):
+    c1, c2 = v1.camera, v2.camera
+
+    # Interpolate camera position
     from ..geometry import interpolate_rotation, interpolate_points
-    r = interpolate_rotation(v1.position, v2.position, f)
+    p1, p2 = c1['position'], c2['position']
+    r = interpolate_rotation(p1, p2, f)
     la = interpolate_points(v1.look_at, v2.look_at, f)
     # Look-at points in camera coordinates
-    cl1 = v1.position.inverse() * v1.look_at
-    cl2 = v2.position.inverse() * v2.look_at
+    cl1 = p1.inverse() * v1.look_at
+    cl2 = p2.inverse() * v2.look_at
     cla = interpolate_points(cl1, cl2, f)
     # Make camera translation so that camera coordinate look-at point
     # maps to scene coordinate look-at point r*cla + t = la.
@@ -181,13 +197,26 @@ def _interpolate_camera(v1, v2, f, camera):
     camera.position = t * r
 
     # Interpolate field of view
-    if hasattr(v1, 'field_of_view') and hasattr(v2, 'field_of_view'):
-        camera.field_of_view = (1-f)*v1.field_of_view + f*v1.field_of_view
-    elif hasattr(v1, 'field_width') and hasattr(v2, 'field_width_view'):
-        camera.field_width_view = (1-f)*v1.field_width + f*v1.field_width
+    if 'field_of_view' in c1 and 'field_of_view' in c2:
+        camera.field_of_view = (1-f)*c1['field_of_view'] + f*c2['field_of_view']
+    elif 'field_width' in c1 and 'field_width' in c2:
+        camera.field_width = (1-f)*c1['field_width'] + f*c2['field_width']
 
     camera.redraw_needed = True
 
+def _interpolate_clip_planes(v1, v2, f, view, clip_attr):
+    # Currently interpolate only if both states have clipping enabled and
+    # clip plane normal is identical.
+    c1, c2 = getattr(v1, clip_attr), getattr(v2, clip_attr)
+    if c1['enabled'] and c2['enabled']:
+        from numpy import array_equal
+        if array_equal(c1['normal'], c2['normal']):
+            c = getattr(view, clip_attr)
+            c.enabled = True
+            c.normal = c1['normal']
+            c.near_point = (1-f)*c1['near_point'] + f*c2['near_point']
+            c.far_point = (1-f)*c1['far_point'] + f*c2['far_point']
+    
 def _interpolate_model_positions(v1, v2, centers, f):
     # Only interplates models with positions in both views that have not changed number of instances.
     p1, p2 = v1.positions, v2.positions
