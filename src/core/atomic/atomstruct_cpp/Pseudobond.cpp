@@ -141,6 +141,30 @@ PBManager::get_group(const std::string& name, int create)
     return grp;
 }
 
+void
+AS_PBManager::_grp_session_info(const std::set<PBond*>& pbonds, PyObject* ints,
+    PyObject* floats, PyObject* misc) const
+{
+
+    size_t n = pbonds.size();
+    int* int_array;
+    PyObject* npy_array = python_int_array(n, 0, &int_array);
+    if (PyList_Append(ints, npy_array) < 0)
+        throw std::runtime_error(
+            "Can't append numpy int array to pseudobond group list");
+
+    float* float_array;
+    npy_array = python_float_array(n, 0, &float_array);
+    if (PyList_Append(floats, npy_array) < 0)
+        throw std::runtime_error(
+            "Can't append numpy float array to pseudobond group list");
+
+    for (auto pb: pbonds) {
+        basegeom::Connection<Atom, PBond>::session_info(true, ints, floats, misc);
+        //TODO: add derived-class info
+    }
+}
+
 PBond*
 CS_PBGroup::new_pseudobond(Atom* a1, Atom* a2)
 {

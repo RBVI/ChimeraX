@@ -11,6 +11,14 @@
 #include "imex.h"
 #include <pseudobond/Manager.h>
 
+// "forward declare" PyObject, which is a typedef of a struct,
+// as per the python mailing list:
+// http://mail.python.org/pipermail/python-dev/2003-August/037601.html
+#ifndef PyObject_HEAD
+struct _object;
+typedef _object PyObject;
+#endif
+    
 namespace atomstruct {
 
 class Atom;

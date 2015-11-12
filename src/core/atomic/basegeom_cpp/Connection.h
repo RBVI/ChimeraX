@@ -10,6 +10,14 @@
 #include "Rgba.h"
 #include "destruct.h"
 
+// "forward declare" PyObject, which is a typedef of a struct,
+// as per the python mailing list:
+// http://mail.python.org/pipermail/python-dev/2003-August/037601.html
+#ifndef PyObject_HEAD
+struct _object;
+typedef _object PyObject;
+#endif
+    
 namespace basegeom {
     
 using ::basegeom::ChangeTracker;
@@ -44,6 +52,8 @@ public:
         return _end_points[0]->coord().distance(_end_points[1]->coord());
     }
     End *  other_end(End* e) const;
+    void  session_info(bool intra_mol,
+        PyObject* ints, PyObject* floats, PyObject* misc) const;
     Real  sqlength() const {
         return _end_points[0]->coord().sqdistance(_end_points[1]->coord());
     }
