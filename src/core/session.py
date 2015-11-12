@@ -27,15 +27,6 @@ SESSION_SUFFIX = ".c2ses"
 
 # triggers:
 
-#: trigger when starting to save a session
-BEGIN_SAVE_SESSION = "start saving session"
-#: trigger when done saving a session
-END_SAVE_SESSION = "finished saving session"
-#: trigger when starting to save a session
-BEGIN_RESTORE_SESSION = "start restoring session"
-#: trigger when done saving a session
-END_RESTORE_SESSION = "finished restoring session"
-
 #: version of session file that is written
 CORE_SESSION_VERSION = 1
 
@@ -318,10 +309,6 @@ class Session:
         self.logger = logger.Logger(self)
         from . import triggerset
         self.triggers = triggerset.TriggerSet()
-        self.triggers.add_trigger(BEGIN_SAVE_SESSION)
-        self.triggers.add_trigger(END_SAVE_SESSION)
-        self.triggers.add_trigger(BEGIN_RESTORE_SESSION)
-        self.triggers.add_trigger(END_RESTORE_SESSION)
         self._state_containers = {}  # stuff to save in sessions
         self.metadata = {}           #: session metadata
         if minimal:
@@ -410,7 +397,7 @@ class Session:
     def save(self, stream):
         """Serialize session to stream."""
         from . import serialize
-        self.triggers.activate_trigger(BEGIN_SAVE_SESSION, self)
+        self.triggers.activate_trigger("begin save session", self)
         serialize.serialize(stream, CORE_SESSION_VERSION)
         serialize.serialize(stream, self.metadata)
         # guarantee that tools are serialized first, so on restoration,
@@ -424,7 +411,7 @@ class Session:
             serialize.serialize(stream, name)
             serialize.serialize(stream, data)
         serialize.serialize(stream, None)
-        self.triggers.activate_trigger(END_SAVE_SESSION, self)
+        self.triggers.activate_trigger("end save session", self)
 
     def restore(self, stream, version=None):
         """Deserialize session from stream."""
@@ -443,7 +430,7 @@ class Session:
         mgr.check_tools(self, tool_infos)
 
         self.reset()
-        self.triggers.activate_trigger(BEGIN_RESTORE_SESSION, self)
+        self.triggers.activate_trigger("begin restore session", self)
         if metadata is not None:
             self.metadata.update(metadata)
         while True:
@@ -463,7 +450,7 @@ class Session:
                 obj = cls.restore_snapshot_new(self, tool_info, cls_version, cls_data)
                 obj.restore_snapshot_init(self, tool_info, cls_version, cls_data)
                 mgr.add_reference(name, obj)
-        self.triggers.activate_trigger(END_RESTORE_SESSION, self)
+        self.triggers.activate_trigger("end restore session", self)
 
     def read_metadata(self, stream, skip_version=False):
         """Deserialize session metadata from stream."""
