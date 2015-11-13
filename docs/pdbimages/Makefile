@@ -10,3 +10,5 @@ SRCS = index.html tiled.jpg
 install:
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(SRCS) $(DOCDIR)
+
+clean:

@@ -10,3 +10,5 @@ HTML_SRCS = chimerax.html
 install:
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(HTML_SRCS) $(DOCDIR)
+
+clean:

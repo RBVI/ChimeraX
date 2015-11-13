@@ -10,3 +10,5 @@ HTML_SRCS = index.html
 install:
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(HTML_SRCS) images $(DOCDIR)
+
+clean:
