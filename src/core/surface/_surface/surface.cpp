@@ -2,13 +2,16 @@
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
+#include "capper.h"			// use compute_cap
 #include "connected.h"			// use connected_triangles, ...
 #include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "normals.h"			// use calculate_vertex_normals, invert_vertex_normals
 #include "parse_stl.h"			// use parse_stl
 #include "patches.h"			// use sharp_edge_patches
+#include "refinemesh.h"			// use refine_mesh
 #include "sasa.h"			// use surface_area_of_spheres
 #include "subdivide.h"			// use subdivide_triangles
+#include "triangulate.h"		// use triangulate_polygon
 #include "tube.h"			// use tube_geometry
 
 namespace Surface_Cpp
@@ -18,6 +21,15 @@ namespace Surface_Cpp
 //
 static struct PyMethodDef surface_cpp_methods[] =
 {
+  /* capper.h */
+  {const_cast<char*>("compute_cap"), (PyCFunction)compute_cap,
+   METH_VARARGS|METH_KEYWORDS,
+   "compute_cap(plane_normal, plane_offset, varray, tarray) -> cap_varray, cap_tarray\n"
+   "\n"
+   "Compute the portion of a plane inside a given surface.\n."
+   "Implemented in C++.\n"
+  },
+
   /* connected.h */
   {const_cast<char*>("connected_triangles"), (PyCFunction)connected_triangles,
    METH_VARARGS|METH_KEYWORDS,
@@ -135,6 +147,16 @@ static struct PyMethodDef surface_cpp_methods[] =
    "Returns numpy int32 array, length n, mapping vertex index to unique vertex index.\n"
   },
 
+  /* refinemesh.h */
+  {const_cast<char*>("refine_mesh"), (PyCFunction)refine_mesh,
+   METH_VARARGS|METH_KEYWORDS,
+   "refine_mesh(vertices, triangles, subdivision_factor) -> ref_vertices, ref_triangles\n"
+   "\n"
+   "Modify a planar surface triangulation to create uniform size triangles\n"
+   "suited for vertex coloring.\n"
+   "Implemented in C++.\n"
+  },
+
   /* sasa.h */
   {const_cast<char*>("surface_area_of_spheres"), (PyCFunction)surface_area_of_spheres,
    METH_VARARGS|METH_KEYWORDS,
@@ -169,6 +191,15 @@ static struct PyMethodDef surface_cpp_methods[] =
    "\n"
    "Divide triangle into smaller triangles so that edges are shorter\n"
    "than the specified the maximum edge length.\n"
+   "Implemented in C++.\n"
+  },
+
+  /* triangulate.h */
+  {const_cast<char*>("triangulate_polygon"), (PyCFunction)triangulate_polygon,
+   METH_VARARGS|METH_KEYWORDS,
+   "triangulate_polygon(loops, normal, vertices) -> tarray\n"
+   "\n"
+   "Triangulate a set of loops in a plane.\n."
    "Implemented in C++.\n"
   },
 
