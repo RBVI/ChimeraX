@@ -343,11 +343,18 @@ class MainWindow(wx.Frame, PlainTextLog):
         for ti in session.toolshed.tool_info():
             for cat in ti.menu_categories:
                 categories.setdefault(cat, {})[ti.display_name] = ti
-        for cat in sorted(categories.keys()):
-            if cat == "Hidden":
-                continue
-            cat_menu = wx.Menu()
-            tools_menu.Append(wx.ID_ANY, cat, cat_menu)
+        cat_keys = sorted(categories.keys())
+        try:
+            cat_keys.remove('Hidden')
+        except ValueError:
+            pass
+        one_menu = len(cat_keys) == 1
+        for cat in cat_keys:
+            if one_menu:
+                cat_menu = tools_menu
+            else:
+                cat_menu = wx.Menu()
+                tools_menu.Append(wx.ID_ANY, cat, cat_menu)
             cat_info = categories[cat]
             for tool_name in sorted(cat_info.keys()):
                 ti = cat_info[tool_name]

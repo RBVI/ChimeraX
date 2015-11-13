@@ -49,3 +49,18 @@ def distance(p, q):
 def interpolate_points(p1, p2, f):
     '''Linearly interpolate from point p1 to p2 by fraction f (0 -> p1, 1 -> p2).'''
     return (1-f)*p1 + f*p2
+
+def ray_segment(origin, direction, clip_planes):
+    f0 = 0
+    f1 = None
+    for p, n in clip_planes:
+        pon = inner_product(origin-p, n)
+        dn = inner_product(direction, n)
+        if dn != 0:
+            f = -pon/dn
+            if dn > 0:
+                f0 = max(f0, f)
+            else:
+                f1 = f if f1 is None else min(f1, f)
+    return f0, f1
+

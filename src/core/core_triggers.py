@@ -9,9 +9,13 @@ Some core triggers are registered elsewhere, such as in the View constructor.
 
 trigger_info = {
     "atomic changes": False,
+    "begin restore session": False,
+    "begin save session": False,
+    "end restore session": False,
+    "end save session": False,
+    "frame drawn": True,
     "graphics update": True,
     "new frame": True,
-    "frame drawn": True,
     "shape changed": False,
 }
 

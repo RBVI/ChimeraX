@@ -755,10 +755,19 @@ class View:
         the specified window pixel position.  The points are in scene
         coordinates.  '''
         c = camera if camera else self.camera
-        nf = self.clip.near_far_distances(c, view_num)
-        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf)
+        cplanes = self.clip.planes(c, view_num)
+        cs = self.clip_scene
+        if cs.enabled:
+            cplanes.extend(cs.planes())
+        origin, direction = c.ray(window_x, window_y, self.window_size)	# Scene coords
+        if origin is None:
+            return (None, None)
+        from .. import geometry
+        f0, f1 = geometry.ray_segment(origin, direction, cplanes)
+        if f1 is None or f0 > f1:
+            return (None, None)
+        scene_pts = (origin + f0*direction, origin + f1*direction)
         return scene_pts
-
 
     def rotate(self, axis, angle, drawings=None):
         '''
@@ -857,6 +866,13 @@ class NearFarClipping:
             far = 2 * near
         return (near, far)
 
+    def planes(self, camera, view_num):
+        "Clip planes specified as (origin, normal) in scene coordinates."
+        n, f = self.near_far_distances(camera, view_num)
+        cp = camera.get_position(view_num).origin()
+        vd = camera.view_direction(view_num)
+        return [(cp + n*vd, vd), (cp + f*vd, -vd)]
+
 class SceneClipping:
 
     def __init__(self):
@@ -877,6 +893,10 @@ class SceneClipping:
             render.set_clip_parameters(cp0, cp1)
         else:
             render.enable_capabilities &= ~render.SHADER_CLIP_PLANES
+
+    def planes(self):
+        "Clip planes specified as (origin, normal) in scene coordinates."
+        return [(self.near_point, self.normal), (self.far_point, -self.normal)]
 
 class OpenGLContext:
     '''

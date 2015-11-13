@@ -176,6 +176,14 @@ class Collection:
         mask = empty((len(self),), npy_bool)
         f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(mask))
         return mask
+    def indices(self, objects):
+        '''Return int32 array indicating for each object in current set the index of
+        that object in the argument objects, or -1 if it does not occur in objects.'''
+        f = c_function('pointer_indices', args = [ctypes.c_void_p, ctypes.c_size_t,
+                                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        ind = empty((len(self),), int32)
+        f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(ind))
+        return ind
     def merge(self, objects):
         '''Return a new collection combining this one with the *objects* :class:`.Collection`.
         All duplicates are removed.'''

@@ -267,6 +267,7 @@ class MolecularSurface(Generic3DModel):
     def update_selection(self):
         asel = self.atoms.selected
         tmask = self._atom_triangle_mask(asel)
+        self.selected = (tmask.sum() > 0)
         self.selected_triangles_mask = tmask
 
 def remove_solvent_ligands_ions(atoms, keep = None):

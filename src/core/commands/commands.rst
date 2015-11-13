@@ -9,6 +9,7 @@ and their code location is described with the function descriptions.
 | `buriedarea`_ - Compute buried area between atomic structures
 | `camera`_ - Change camera settings
 | `cartoon`_ * - Display atomic structure ribbons or pipes/planks
+| `clip`_ - Clip models
 | `close`_ - Close models
 | `cofr`_ - Set center of rotation method
 | `color`_ - Color atoms, ribbons and surfaces
@@ -77,6 +78,10 @@ cartoon
 =======
 .. autofunction:: chimera.exp_cmd.cartoon.cartoon
 .. autofunction:: chimera.exp_cmd.cartoon.uncartoon
+
+clip
+=====
+.. autofunction:: chimera.core.commands.clip.clip
 
 close
 =====

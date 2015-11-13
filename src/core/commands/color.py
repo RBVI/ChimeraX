@@ -10,13 +10,13 @@ _SequentialLevels = ["residues", "helix", "helices", "strands",
 _CmapRanges = ["full"]
 
 
-def color(session, spec, color=None, target=None, transparency=None,
+def color(session, objects, color=None, target=None, transparency=None,
           sequential=None, cmap=None, cmap_range=None, halfbond=None):
     """Color atoms, ribbons, surfaces, ....
 
     Parameters
     ----------
-    spec : specifier
+    objects : Objects
       Which objects to color.
     color : Color
       Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bymodel".
@@ -36,11 +36,10 @@ def color(session, spec, color=None, target=None, transparency=None,
       Whether to color each half of a bond to match the connected atoms.
       If halfbond is false the bond is given the single color assigned to the bond.
     """
-    if spec is None:
-        from . import atomspec
-        spec = atomspec.everything(session)
-    results = spec.evaluate(session)
-    atoms = results.atoms
+    if objects is None:
+        from . import all_objects
+        objects = all_objects(session)
+    atoms = objects.atoms
     if color == "byhetero":
         atoms = atoms.filter(atoms.element_numbers != 6)
 
@@ -63,7 +62,7 @@ def color(session, spec, color=None, target=None, transparency=None,
             raise UserError("sequential \"%s\" not implemented yet"
                             % sequential)
         else:
-            f(results, cmap, opacity, target)
+            f(objects, cmap, opacity, target)
             return
 
     what = []
@@ -81,7 +80,12 @@ def color(session, spec, color=None, target=None, transparency=None,
             session.logger.warning('Label colors not supported yet')
 
     if 's' in target and color is not None:
-        ns = _set_surface_colors(session, atoms, color, opacity, bgcolor)
+        from ..atomic import MolecularSurface, concatenate
+        msatoms = [m.atoms for m in objects.models if isinstance(m, MolecularSurface)]
+        satoms = concatenate(msatoms + [atoms]) if msatoms else atoms
+        if color == "byhetero":
+            satoms = satoms.filter(satoms.element_numbers != 6)
+        ns = _set_surface_colors(session, satoms, color, opacity, bgcolor)
         what.append('%d surfaces' % ns)
 
     if 'c' in target and color is not None:
@@ -259,9 +263,9 @@ _SequentialColor = {
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import register, CmdDesc, ColorArg, ColormapArg, AtomSpecArg
+    from . import register, CmdDesc, ColorArg, ColormapArg, ObjectsArg
     from . import EmptyArg, Or, EnumOf, StringArg, TupleOf, FloatArg, BoolArg
-    desc = CmdDesc(required=[('spec', Or(AtomSpecArg, EmptyArg))],
+    desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
                    optional=[('color', Or(ColorArg, EnumOf(_SpecialColors)))],
                    keyword=[('target', StringArg),
                             ('transparency', FloatArg),
