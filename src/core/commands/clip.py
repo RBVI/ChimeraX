@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def clip(session, enable=None, near=None, far=None, center=None, tilt=False,
-         axis=None, coordinate_system=None):
+         axis=None, coordinate_system=None, cap=None):
     '''
     Enable or disable clip planes.
 
@@ -21,6 +21,8 @@ def clip(session, enable=None, near=None, far=None, center=None, tilt=False,
        Normal to clip plane in tilt mode, in screen coordinates.
     coordinate_system : Model
        Coordinate system for axis, if none then screen coordinates are used.
+    cap : bool
+      Option for testing display of surface caps.  Will remove this later.
     '''
     if near is not None or far is not None:
         enable = True
@@ -82,6 +84,9 @@ def clip(session, enable=None, near=None, far=None, center=None, tilt=False,
     clip.enabled = enable
     v.redraw_needed = True
 
+    if cap:
+        show_surface_caps(v)
+
 def register_command(session):
     from .cli import CmdDesc, register, BoolArg, FloatArg, NoArg, AxisArg, ModelArg, CenterArg
     desc = CmdDesc(
@@ -91,7 +96,37 @@ def register_command(session):
                  ('center', CenterArg),
                  ('tilt', NoArg),
                  ('axis', AxisArg),
-                 ('coordinate_system', ModelArg)],
+                 ('coordinate_system', ModelArg),
+                 ('cap', BoolArg)],
         synopsis='set clip planes'
     )
     register('clip', desc, clip)
+
+def show_surface_caps(view):
+    drawings = view.drawing.all_drawings()
+    show_surface_clip_caps(view.clip, drawings, 'cap')
+    show_surface_clip_caps(view.clip_scene, drawings, 'cap scene')
+
+def show_surface_clip_caps(clip, drawings, cap_name, offset = 0.01):
+    if clip.enabled:
+        normal = clip.normal
+        from ..geometry import inner_product
+        poffset = inner_product(normal, clip.near_point) + offset
+        for d in drawings:
+            if d.triangles is not None and not d.name.startswith('cap'):
+                from ..surface import compute_cap
+                cvarray, ctarray = compute_cap(normal, poffset, d.vertices, d.triangles)
+                mcap = [cm for cm in d.child_drawings() if cm.name == cap_name]
+#                print ('showing cap for', d.name, 'triangles', len(ctarray), 'have', len(mcap),
+#                       'normal', normal, 'offset', poffset)
+                cm = mcap[0] if mcap else d.new_drawing(cap_name)
+                cm.vertices = cvarray
+                cm.triangles = ctarray
+                n = cvarray.copy()
+                n[:] = normal
+                cm.normals = n
+                cm.display = True
+    else:
+        for d in drawings:
+            if d.name == cap_name:
+                d.display = False
