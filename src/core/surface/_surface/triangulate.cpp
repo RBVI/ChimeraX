@@ -18,6 +18,10 @@
 #include "pythonarray.h"		// use parse_float_n3_array(), ...
 #include "rcarray.h"			// use Array<float>
 
+// On Mac OS 10.9 and newer gluTess*() calls are deprecated.
+// Suppress warnings about this so it is easy to see more important warnings.
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 namespace Cap_Calculation
 {
 
@@ -129,9 +133,10 @@ static void vertex_data_callback(void *vertex_data, void *polygon_data)
 // Add a new vertex needed for tesselation.
 //
 static void combine_data_callback(GLdouble coords[3],
-				    void *vertex_data[4],
-				    GLfloat weight[4], void **outData,
-				    void *polygon_data)
+				  void *[4] /* vertex_data[4] */,
+				  GLfloat [4] /* weight[4] */,
+				  void **outData,
+				  void *polygon_data)
 {
   Polygon_Data *p = static_cast<Polygon_Data *>(polygon_data);
   float x = static_cast<float>(coords[0]);
