@@ -298,16 +298,10 @@ def dq_repr(obj):
     return ''.join(result)
 
 
-def _canonical_kw(kw_name):
-    """Return canonical version of a keyword argument name."""
-    # Remove punctuation and case from keyword argument name.
-    return ''.join([c for c in kw_name if c not in '_ '])
-
-
 def _user_kw(kw_name):
     """Return user version of a keyword argument name."""
     words = kw_name.split('_')
-    return words[0].lower() + ''.join([x.capitalize() for x in words[1:]])
+    return words[0] + ''.join([x.capitalize() for x in words[1:]])
 
 
 class AnnotationError(UserError, ValueError):
@@ -1353,7 +1347,7 @@ class CmdDesc:
                              if i[0] not in non_keyword]
         self._keyword.update(optional_keywords)
         # keyword_map is what would user would type
-        self._keyword_map = dict([(_canonical_kw(n), n) for n in self._keyword])
+        self._keyword_map = dict([(_user_kw(n), n) for n in self._keyword])
         self._postconditions = postconditions
         self._required_arguments = required_arguments
         self.url = url
@@ -1601,7 +1595,7 @@ def add_keyword_arguments(name, kw_info):
         raise ValueError("'%s' is not a command name" % name)
     # TODO: fail if there are conflicts with existing keywords?
     cmd._ci._keyword.update(kw_info)
-    cmd._ci._keyword_map.update([(_canonical_kw(n), n) for n in kw_info])
+    cmd._ci._keyword_map.update([(_user_kw(n), n) for n in kw_info])
 
 
 class Command:
@@ -1871,7 +1865,7 @@ class Command:
                 if not tmp:
                     return None, None
                 if tmp[0].isalpha():
-                    tmp = _canonical_kw(tmp)
+                    tmp = _user_kw(tmp)
                     if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
                             any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
                         return None, None
@@ -1921,11 +1915,12 @@ class Command:
             if not word or word == ';':
                 break
 
-            arg_name = _canonical_kw(word)
+            arg_name = _user_kw(word)
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
                 self.completions = [x for x in self._ci._keyword_map
-                                    if x.startswith(arg_name)]
+                                    if x.startswith(arg_name)
+                                    or x.casefold().startswith(arg_name)]
                 if (final or len(text) > len(chars)) and self.completions:
                     # If final version of text, or if there
                     # is following text, make best guess,

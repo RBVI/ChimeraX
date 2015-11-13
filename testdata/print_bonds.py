@@ -6,7 +6,7 @@ def osl_ident(chain_id, residue_number, atom_name):
     return ':%s.%s@%s' % (residue_number, chain_id, atom_name)
 
 
-for m in Chimera2_session.models.list():
+for m in session.models.list():
     if not isinstance(m, StructureModel):
         continue
     bonds = {}
@@ -32,5 +32,5 @@ for m in Chimera2_session.models.list():
         print("%s: %s" % (osl_ident(*a),
                           ', '.join([osl_ident(*x) for x in other_atoms])))
 
-Chimera2_session.logger.clear()
+session.logger.clear()
 raise SystemExit(0)

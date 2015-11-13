@@ -11,3 +11,5 @@ IMAGES = ambient.png contacts2.png surf4hhb.png Chimera2-icon.svg
 install:
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
+
+clean:
