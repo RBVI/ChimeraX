@@ -2,35 +2,35 @@
 
 InitialPage = """<html>
 <head>
-<title>Chimera2 Help Test</title>
+<title>ChimeraX Help Test</title>
 <script>
-function do_something() { window.location.href = "chimera2:do_something"; }
+function do_something() { window.location.href = "chimerax:do_something"; }
 </script>
 </head>
 <body>
-<h1><a href="chimera2:test">Button Test</a></h1>
+<h1><a href="chimerax:test">Button Test</a></h1>
 <button onclick="do_something();">Do Something</button>
 <h1>Help Links Test</h1>
 <ul>
-<li><a href="/chimera2/help/shedtest.tool0">Tool0</a></li>
-<li><a href="chimera2/help/shedtest.core0">Core0</a></li>
+<li><a href="/chimerax/help/shedtest.tool0">Tool0</a></li>
+<li><a href="chimerax/help/shedtest.core0">Core0</a></li>
 </ul>
 </body>
 </html>"""
-InitialURL = "http://chimera2.rbvi.ucsf.edu/chimera2/index.html"
+InitialURL = "http://chimerax.rbvi.ucsf.edu/chimerax/index.html"
 
 ErrorPage = """<html>
-<head><title>Chimera2 Error Page</title></head>
+<head><title>ChimeraX Error Page</title></head>
 <body>
-<h1>Chimera2 Error Page</h1>
+<h1>ChimeraX Error Page</h1>
 <p>%s</p>
 </body>"""
-ErrorURL = "http://chimera2.rbvi.ucsf.edu/chimera2/error.html"
+ErrorURL = "http://chimerax.rbvi.ucsf.edu/chimerax/error.html"
 
 # HostPrefix must not include the trailing /
 # HelpPrefix must include the trailing /
 HostPrefix = "http://www.rbvi.ucsf.edu"
-HelpPrefix = "/chimera2/help/"
+HelpPrefix = "/chimerax/help/"
 
 
 def noprint(*args, **kw):
@@ -171,7 +171,7 @@ class HelpFrame(wx.Frame):
         self.Close()
 
     def _about(self, evt):
-        wx.MessageBox("Help Viewer", "Chimera2 Help Viewer",
+        wx.MessageBox("Help Viewer", "ChimeraX Help Viewer",
                       wx.OK | wx.ICON_INFORMATION)
 
     def _on_navigating(self, evt):
@@ -179,7 +179,7 @@ class HelpFrame(wx.Frame):
                 repr(evt.GetURL()), file=sys.stderr)
         from urllib.parse import urlparse
         url = urlparse(evt.GetURL())
-        if url.scheme == "chimera2":
+        if url.scheme == "chimerax":
             evt.Veto()
             # TODO: do something with the URL
         elif url.scheme == "error":
@@ -221,10 +221,10 @@ class HelpFrame(wx.Frame):
     def _processMissing(self, url):
         # We handle the case where a file: URL refers
         # to a missing file.  If the URL does not
-        # contain the known Chimera2 prefix, then
+        # contain the known ChimeraX prefix, then
         # we display an error.  Otherwise, we use the
         # subsequent path component as the name of a
-        # Chimera2 package and check if it is installed.
+        # ChimeraX package and check if it is installed.
         # If so, we replace the URL with one constructed
         # from the help cache and the given URL;
         # if not, we translate it to an http: URL.

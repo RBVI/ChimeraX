@@ -6,7 +6,7 @@ Code Conventions
 Code Repository
 ---------------
 
-Chimera2 uses `git <http://git-scm.com/>`_ for source code management.
+ChimeraX uses `git <http://git-scm.com/>`_ for source code management.
 
 Here are a minimal set of commands to get started using git:
 
@@ -21,7 +21,7 @@ Here are a minimal set of commands to get started using git:
 
     #. Make local copy of repository::
 
-        git clone ssh://plato.cgl.ucsf.edu/usr/local/projects/chimera2/git/chimera2.git
+        git clone ssh://plato.cgl.ucsf.edu/usr/local/projects/chimerax/git/chimerax.git
 
     #. Work on development branch::
 

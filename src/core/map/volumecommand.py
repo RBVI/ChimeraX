@@ -336,7 +336,7 @@ def volume(session,
 #
 def apply_global_settings(gsettings):
 
-# TODO: Unused settings part of gui in Chimera 1.
+# TODO: Unused settings part of gui in Chimera.
 #    from .volume import default_settings
 #    default_settings.update(gsettings)
     if 'data_cache_size' in gsettings:

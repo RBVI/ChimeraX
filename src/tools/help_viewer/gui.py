@@ -117,7 +117,7 @@ class HelpUI(ToolInstance):
         session = self.session
         # Handle event
         url = event.GetURL()
-        if url.startswith("ch2cmd:"):
+        if url.startswith("cxcmd:"):
             from urllib.parse import unquote
             from chimera.core.commands import run
             event.Veto()

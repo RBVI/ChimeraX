@@ -8,7 +8,7 @@ August 31, 2015
 </p>
 
 <p>
-The Chimera2 <i>pdbimages</i> command does batch rendering of molecular assemblies defined in
+The ChimeraX <i>pdbimages</i> command does batch rendering of molecular assemblies defined in
 mmCIF files.  It makes an image for each assembly in each mmCIF file (*.cif suffix) in a specified directory.
 </p>
 
@@ -19,7 +19,7 @@ Example
 <img src="tiled.jpg" align=right>
 
 <p>
-Start Chimera2 and enter the pdbimages command specifying a directory containing mmCIF files:
+Start ChimeraX and enter the pdbimages command specifying a directory containing mmCIF files:
 </p>
 
 <pre>
@@ -88,12 +88,12 @@ in the Mac app in
 </p>
 
 <pre>
-  Chimera2.app/Contents/lib/python3.4/site-packages/chimera/core/commands/pdbimages.py
+  ChimeraX.app/Contents/lib/python3.4/site-packages/chimera/core/commands/pdbimages.py
 </pre>
 
 <p>
 Some of the available commands that could be used to provide different renderings are illustrated
-in the Chimera2 <a href="../quickstart/index.html">Quick Start Guide</a> and more details is
+in the ChimeraX <a href="../quickstart/index.html">Quick Start Guide</a> and more details is
 in the <a href="../devel/core/commands/commands.html">Programming Guide</a>.
 </p>
 
@@ -119,10 +119,10 @@ Server Rendering
 
 <p>
 The pdbimages command can be used on a Linux server without graphics and with no display by
-starting Linux Chimera2 with the <i>--nogui</i> flag and then typing the pdbimages command
-to the resulting Chimera2 prompt.  This uses CPU rendering which tests showed to be approximately
+starting Linux ChimeraX with the <i>--nogui</i> flag and then typing the pdbimages command
+to the resulting ChimeraX prompt.  This uses CPU rendering which tests showed to be approximately
 60 times slower than rendering with a graphics card and display.  It is currently not possible
-to use a graphics card without a display in Chimera2.
+to use a graphics card without a display in ChimeraX.
 </p>
 
 <h2>
@@ -132,7 +132,7 @@ Performance
 <p>
 On a 2012 iMac with 32 Gbytes of memory and Geforce GTX 680MX graphics (2 Gb graphics memory)
 all assemblies in the PDB can be rendered in about 1 day.  Various problems are encountered.
-The Mac graphics driver typically crashes after about 10,000 mmCIF files.  Also Chimera2 uses
+The Mac graphics driver typically crashes after about 10,000 mmCIF files.  Also ChimeraX uses
 gradually more memory, even though the mmCIF files are closed after each is rendered.  This
 consumes about 1.5 Mbytes of memory per file, so 10,000 files takes 15 Gbytes of memory.
 For both these reasons, it is necessary to run in batches of a few thousand files.

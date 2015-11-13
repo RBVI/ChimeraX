@@ -101,7 +101,7 @@ def show_view(name, frames, session):
 
 def list_views(session):
     nv = _named_views(session)
-    names = ['<a href="ch2cmd:view %s">%s</a>' % (name,name) for name in sorted(nv.keys())]
+    names = ['<a href="cxcmd:view %s">%s</a>' % (name,name) for name in sorted(nv.keys())]
     msg = 'Named views: ' + ', '.join(names)
     session.logger.info(msg, is_html = True)
 

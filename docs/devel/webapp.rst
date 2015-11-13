@@ -1,20 +1,20 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
 ========================
-Chimera2 Web Application
+ChimeraX Web Application
 ========================
 
 Requirements
 ============
 
-The typical usage scenario for the Chimera2 web application is that an
+The typical usage scenario for the ChimeraX web application is that an
 end user initiates a *session* by visiting a web page from which he can
 launch *applets* that present him with user interfaces for viewing and
 analyzing a variety of data.  The session information should be *persistent*
 so that the user may temporarily disconnect (perhaps visiting another
 web page) and return to continue from the previous state.
 
-The libraries defined and used by the Chimera2 web applications are
+The libraries defined and used by the ChimeraX web applications are
 described in:
 
 .. toctree::
@@ -47,7 +47,7 @@ applets.  Design goals include:
       of the same protein; when an amino acid is selected in the alignment
       viewer, the same amino acid might also be highlighted in the 3D applet.
     - The user should only need to know the URL for the web application.
-      He should not need to install any software for Chimera2, although a
+      He should not need to install any software for ChimeraX, although a
       modern browser may be a prerequisite.
 
 Specifications

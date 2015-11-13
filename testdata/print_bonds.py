@@ -2,7 +2,7 @@ from chimera.core.structure import StructureModel
 
 
 def osl_ident(chain_id, residue_number, atom_name):
-    # Chimera 1 style oslIdent without the model number
+    # Chimera style oslIdent without the model number
     return ':%s.%s@%s' % (residue_number, chain_id, atom_name)
 
 

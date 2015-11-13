@@ -10,37 +10,37 @@ import os
 
 __version__ = "0.1.0a0"     # version of this file -- PEP 440 compatible
 
-app_name = "Chimera2"
+app_name = "ChimeraX"
 app_author = "UCSF"
 # remember locale codes are frequently different than country codes
 localized_app_name = {
-    'af': u'Chimera2',          # Afrikaans
-    'cs': u'Přízrak2',          # Czech
-    'da': u'Chiemra2',          # Danish
-    'de': u'Chimäre2',          # German
-    'el': u'Χίμαιρα2',          # Greek
-    'en': u'Chimera2',          # English
-    'es': u'Quimera2',          # Spanish
-    'fi': u'Kauhukuva2',        # Finish
-    'fr': u'Chimère2',          # French
-    'hr': u'Himera2',           # Croatian
-    'in': u'Angan-angan2',      # Indonesian
-    'it': u'Chimera2',          # Italian
-    'ja': u'キメラ2',           # Japanese
-    'ko': u'키메라2',           # Korean
-    'nl': u'Chimera2',          # Dutch
-    'no': u'Chimera2',          # Norwegian
-    'pl': u'Chimera2',          # Polish
-    'pt': u'Quimera2',          # Portuguese
-    'ro': u'Himeră2',           # Romainian
-    'ru': u'Химера2',           # Russian
-    'sr': u'Химера2',           # Serbian
-    'sk': u'Prízrak2',          # Slovak
-    'sv': u'Chimera2',          # Swedish
-    'th': u'ความเพ้อฝัน2',        # Thai
-    'tr': u'Kuruntu2',          # Turkish
-    'uk': u'Химера2',           # Ukrainian
-    'zh': u'嵌合體2',           # Chinese
+    'af': u'ChimeraX',          # Afrikaans
+    'cs': u'PřízrakX',          # Czech
+    'da': u'ChiemraX',          # Danish
+    'de': u'ChimäreX',          # German
+    'el': u'ΧίμαιραX',          # Greek
+    'en': u'ChimeraX',          # English
+    'es': u'QuimeraX',          # Spanish
+    'fi': u'KauhukuvaX',        # Finish
+    'fr': u'ChimèreX',          # French
+    'hr': u'HimeraX',           # Croatian
+    'in': u'Angan-anganX',      # Indonesian
+    'it': u'ChimeraX',          # Italian
+    'ja': u'キメラX',           # Japanese
+    'ko': u'키메라X',           # Korean
+    'nl': u'ChimeraX',          # Dutch
+    'no': u'ChimeraX',          # Norwegian
+    'pl': u'ChimeraX',          # Polish
+    'pt': u'QuimeraX',          # Portuguese
+    'ro': u'HimerăX',           # Romainian
+    'ru': u'ХимераX',           # Russian
+    'sr': u'ХимераX',           # Serbian
+    'sk': u'PrízrakX',          # Slovak
+    'sv': u'ChimeraX',          # Swedish
+    'th': u'ความเพ้อฝันX',        # Thai
+    'tr': u'KuruntuX',          # Turkish
+    'uk': u'ХимераX',           # Ukrainian
+    'zh': u'嵌合體X',           # Chinese
 }
 
 
@@ -437,19 +437,19 @@ def rm_rf_path(path, sess):
 def uninstall(sess):
     # for uninstall option
     import tempfile
-    # change directory so we're guaranteed not to be in the Chimera2 app
+    # change directory so we're guaranteed not to be in the ChimeraX app
     os.chdir(tempfile.gettempdir())
 
-    # find location of Chimera2
+    # find location of ChimeraX
     if sys.executable is None:
-        sess.logger.error('unable to locate Chimera2 executable')
+        sess.logger.error('unable to locate ChimeraX executable')
         return os.EX_SOFTWARE
     exe = os.path.realpath(sys.executable)
     exe_dir = os.path.dirname(exe)
 
     if sys.platform.startswith('linux'):
         if os.path.basename(exe_dir) != 'bin':
-            sys.logger.error('non-standard Chimera2 installation')
+            sys.logger.error('non-standard ChimeraX installation')
             return os.EX_SOFTWARE
         from chimera.core import _xdg
         _xdg.uninstall(sess)
@@ -459,15 +459,15 @@ def uninstall(sess):
 
     if sys.platform.startswith('darwin'):
         if os.path.basename(exe_dir) != 'MacOS':
-            sess.logger.error('non-standard Chimera2 installation')
+            sess.logger.error('non-standard ChimeraX installation')
             return os.EX_SOFTWARE
         parent = os.path.dirname(exe_dir)
         if os.path.basename(parent) != 'Contents':
-            sess.logger.error('non-standard Chimera2 installation')
+            sess.logger.error('non-standard ChimeraX installation')
             return os.EX_SOFTWARE
         parent = os.path.dirname(parent)
         if not os.path.basename(parent).endswith('.app'):
-            sess.logger.error('non-standard Chimera2 installation')
+            sess.logger.error('non-standard ChimeraX installation')
             return os.EX_SOFTWARE
         rm_rf_path(parent, sess)
         return os.EX_OK

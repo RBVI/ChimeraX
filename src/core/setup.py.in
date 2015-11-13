@@ -14,8 +14,8 @@ setup(
     version="CORE_VERSION",
     description="Chimera Core Package",
     author="UCSF RBVI",
-    author_email="chimera2@cgl.ucsf.edu",
-    url="https://www.rbvi.ucsf.edu/chimera2/",
+    author_email="chimerax@cgl.ucsf.edu",
+    url="https://www.rbvi.ucsf.edu/chimerax/",
     package_dir={
         "chimera.core": pkg_dir,
     },

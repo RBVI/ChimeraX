@@ -1,10 +1,10 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
 ====================
-Chimera2 Application
+ChimeraX Application
 ====================
 
-The Chimera2 application should work on Microsoft Windows, Apple Mac OS X,
+The ChimeraX application should work on Microsoft Windows, Apple Mac OS X,
 and Linux.
 
 For the developer,
@@ -14,7 +14,7 @@ by the user.
 Command Line Arguments
 ======================
 
-When running Chimera2 from a terminal, *a.k.a.*, a shell, it can be given
+When running ChimeraX from a terminal, *a.k.a.*, a shell, it can be given
 various options followed by data files.
 The data files are specified with same syntax as the filename argument
 of Models' :py:func:`~chimerac.core.models.Models.open`.
@@ -25,10 +25,10 @@ Command Line Options
 In particular, the follow command line arguments are useful:
 
 ``--debug``
-    Turn on debugging code.  Accessing within Chimera2 with ``session.debug``.
+    Turn on debugging code.  Accessing within ChimeraX with ``session.debug``.
     
 ``--nogui``
-    Turn off the gui.  Access with Chimera2 with ``session.ui.is_gui``.
+    Turn off the gui.  Access with ChimeraX with ``session.ui.is_gui``.
 
 ``--lineprofile``
     Turn on line profiling.  See `Line Profiling`_ for details.
@@ -57,7 +57,7 @@ In particular, the follow command line arguments are useful:
 ``--version``
     Print out current version.
     If given two times,
-    then all of installed Chimera2 tools verions are listed.
+    then all of installed ChimeraX tools verions are listed.
     If given three times,
     then all of installed Python package versions are listed.
 
@@ -66,7 +66,7 @@ In particular, the follow command line arguments are useful:
     Act like the Python interpreter and run the module as the main module
     and the rest of the arguments are in :py:obj:`sys.argv`.
     Implies ``--nogui`` and ``--silent``.
-    This is done after Chimera2 has started up, so a Chimera2 session
+    This is done after ChimeraX has started up, so a ChimeraX session
     is available in the global variable ``session``.
     The module name is ``__main__`` instead of a sandbox name that
     is used for normal :py:mod:`~chimera.core.scripting`.
@@ -122,15 +122,15 @@ Line Profiling
 
     1. Decorate functions that you wish to profile with the
        ``@line_profile`` decorator and install them.
-       This decorator is a no-op if Chimera2 is not profiled.
+       This decorator is a no-op if ChimeraX is not profiled.
        (Instead of the conventional ``@profile``.)
 
-    2. Run ``Chimera2 --lineprofile`` from the command line.
+    2. Run ``ChimeraX --lineprofile`` from the command line.
        (Instead of using ``kernprof``.)
-       This generates a ``Chimera2.lprof`` file in the current directory.
+       This generates a ``ChimeraX.lprof`` file in the current directory.
 
     3. Get your profiling results by running
-       ``Chimera2 -m line_profiler Chimera2.lprof``.
+       ``ChimeraX -m line_profiler ChimeraX.lprof``.
 
     4. Analyze your results, possibly edit your code, and return to step 1.
 

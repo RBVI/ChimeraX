@@ -1,6 +1,6 @@
 # vim: set expandtab ts=4 sw=4:
 """
-gui: Main Chimera2 user interface
+gui: Main ChimeraX user interface
 ==================================
 
 The principal class that tool writers will use from this module is
@@ -18,7 +18,7 @@ import wx
 
 
 class UI(wx.App):
-    """Main Chimera2 user interface
+    """Main ChimeraX user interface
 
        The only methods that tools might directly use are:
 
@@ -59,7 +59,7 @@ class UI(wx.App):
         w, h = bitmap.GetSize()
         self.splash.SetTextPosition((0, int(0.9 * h)))
         self.splash.SetTextColour(wx.RED)
-        self.splash.SetText("Initializing Chimera2")
+        self.splash.SetText("Initializing ChimeraX")
         self.splash._painted = False
         num_yields = 0
         while not self.splash._painted:
@@ -167,7 +167,7 @@ class MainWindow(wx.Frame, PlainTextLog):
             # no primary display?!?
             x, y = wx.DisplaySize()
         req_size = ((2*x)/3, (2*y)/3)
-        wx.Frame.__init__(self, None, title="Chimera2", size=req_size)
+        wx.Frame.__init__(self, None, title="ChimeraX", size=req_size)
 
         from wx.lib.agw.aui import AuiManager, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
@@ -305,7 +305,7 @@ class MainWindow(wx.Frame, PlainTextLog):
         self.status_bar = self.CreateStatusBar(3,
             wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
             | wx.FULL_REPAINT_ON_RESIZE)
-        greeting = "Welcome to Chimera2"
+        greeting = "Welcome to ChimeraX"
         greeting_size = wx.Window.GetTextExtent(self, greeting)
         self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
         self.status_bar.SetStatusText("", 0)

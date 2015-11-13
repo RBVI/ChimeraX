@@ -16,8 +16,8 @@
 #
 #   A .desktop file for the desktop icon and a .mime.types file for the
 #   MIME types are needed.  The .mime.types file can be distributed with
-#   Chimera2, but the .desktop has to be generated during/after
-#   installation because it refers to acutal location Chimera2 is
+#   ChimeraX, but the .desktop has to be generated during/after
+#   installation because it refers to acutal location ChimeraX is
 #   installed.
 #
 # Protocol:

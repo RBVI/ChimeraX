@@ -15,6 +15,6 @@ TODO: evaluate if this is needed.
 .. toctree::
     :maxdepth: 2
 
-    apps/Chimera2/Chimera2.rst
+    apps/ChimeraX/ChimeraX.rst
 
     webapp.rst

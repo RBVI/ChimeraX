@@ -9,7 +9,7 @@ Mac OS X with moduleapp's :download:`Makefile` and :download:`mod_app.sh.in`
 shell script.  Just set **MOD_APP** to the name of your Python module,
 and include the **moduleapp/Makefile**.  Then **make install** will
 install the module in the chimera namespace and put a shell script that
-invokes that script in Chimera2 bin directory (Chimera2.app/Contents/bin
-on Apple Mac OS X, Chimera2/bin on Linux).
+invokes that script in ChimeraX bin directory (ChimeraX.app/Contents/bin
+on Apple Mac OS X, ChimeraX/bin on Linux).
 
-The script uses the Chimera2 application's ``-m`` option.
+The script uses the ChimeraX application's ``-m`` option.

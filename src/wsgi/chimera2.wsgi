@@ -1,4 +1,4 @@
-DEFAULT_MESSAGE = "Use HTML page to access Chimera2 sessions"
+DEFAULT_MESSAGE = "Use HTML page to access ChimeraX sessions"
 
 #
 # WSGI application code
@@ -6,7 +6,7 @@ DEFAULT_MESSAGE = "Use HTML page to access Chimera2 sessions"
 STATUS_OKAY = "200 OK"
 STATUS_REDIRECT = "301 Redirect to HTML page"
 STATUS_BAD_REQUEST = "400 Bad request"
-STATUS_SERVER_ERROR = "500 Chimera2 internal server error"
+STATUS_SERVER_ERROR = "500 ChimeraX internal server error"
 
 CONTENT_TYPE_PLAINTEXT = "text/plain"
 CONTENT_TYPE_HTML = "text/html"
@@ -14,7 +14,7 @@ CONTENT_TYPE_JSON = "application/json"
 
 def _debug_print(s, show_traceback=False):
 	from time import ctime
-	with file("/tmp/chimera2.log", "a") as f:
+	with file("/tmp/chimerax.log", "a") as f:
 		print >> f, "wsgi", ctime(), s
 		if show_traceback:
 			import traceback
@@ -546,13 +546,13 @@ def backend(session_dir, session_name, to_child, from_child, err_child):
 	# We can only find where the WSGI script lives.
 	# Since there may be different WSGI scripts for different
 	# developers, we assume that the installer script will
-	# set up in the same directory a "chimera2" symlink
+	# set up in the same directory a "chimerax" symlink
 	# to the corresponding developer install tree.
 	webapp_dir = os.path.dirname(__file__)
-	chimera2_dir = os.path.join(webapp_dir, "chimera2")
-	lib_dir = os.path.join(chimera2_dir, "lib")
-	bin_dir = os.path.join(chimera2_dir, "bin")
-	env["CHIMERA2"] = chimera2_dir
+	chimerax_dir = os.path.join(webapp_dir, "chimerax")
+	lib_dir = os.path.join(chimerax_dir, "lib")
+	bin_dir = os.path.join(chimerax_dir, "bin")
+	env["CHIMERA2"] = chimerax_dir
 	env["LANG"] = "en_US.UTF-8"
 	import pwd
 	try:

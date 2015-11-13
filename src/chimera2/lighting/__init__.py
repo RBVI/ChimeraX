@@ -70,7 +70,7 @@ def maximum_ratio(contrast):
 		return 1
 	return 1 / (1 - contrast)
 
-# Chimera 1 default material:
+# Chimera default material:
 class Material:
 
 	def __init__(self):

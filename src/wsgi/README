@@ -36,11 +36,11 @@ of saved state and restore if possible.
 
 Deployment
 ==========
-There is a single source file, chimera2.wsgi, that may be invoked either via
+There is a single source file, chimerax.wsgi, that may be invoked either via
 the command line (usually for debugging) and the web.  To execute in command
 line mode, run the shell command:
 
-	python chimera2.wsgi
+	python chimerax.wsgi
 
 Supported command include "list", "create", "delete" and "call".  An empty line
 terminates input.
@@ -51,16 +51,16 @@ WSGI functionality needs to be configured.
 
 To install files, run the "install-wsgi" script, which figures out
 the install location from the path of the git repository, which must
-begin with /usr/local/projects/chimera2/git.  For example, the
-repository path "/usr/local/projects/chimera2/git/conrad" has a
-matching install location of "/usr/local/projects/chimera2/wsgi/conrad".
+begin with /usr/local/projects/chimerax/git.  For example, the
+repository path "/usr/local/projects/chimerax/git/conrad" has a
+matching install location of "/usr/local/projects/chimerax/wsgi/conrad".
 
 For WSGI configuration, an "https" interface is preferred
 because session passwords are being passed.  See
 
 	/usr/local/www/plato-test-conf.d/SecureVirtualHosts/rbvi-preview.conf
 
-and look for chimera2.wsgi to see how it is currently configured.
+and look for chimerax.wsgi to see how it is currently configured.
 
 Once Apache has been configured and the HTML file placed, visiting the URL
 will provide an interface for testing the code.

@@ -1,23 +1,23 @@
 <html>
-<title>Chimera2 Quick Start Guide</title>
+<title>ChimeraX Quick Start Guide</title>
 <body>
 
-<img src="images/chimera2.png" width=500 align=right>
+<img src="images/chimeraX.png" width=500 align=right>
 
-<h1>Chimera2 Quick Start Guide</h1>
+<h1>ChimeraX Quick Start Guide</h1>
 
 <p>August 28, 2015</p>
 
 <p>
-Chimera2 is the next generation visualization program from the Computer Graphics Lab at UC San Francisco,
-following Midas, MidasPlus, and Chimera 1.
+ChimeraX is the next generation visualization program from the Computer Graphics Lab at UC San Francisco,
+following Midas, MidasPlus, and Chimera.
 
 <h3>
 Features
 </h3>
 
 <p>
-Chimera2 has better graphics (e.g. interactive ambient shadows), handles
+ChimeraX has better graphics (e.g. interactive ambient shadows), handles
 large structures (millions of atoms) much faster, and has a modern single window user interface,
 and will have a web site of available extensions written by others using documented
 programming interfaces.
@@ -28,7 +28,7 @@ Compatibility
 </h3>
 
 <p>
-Chimera2 is <i>not</i> backward compatible with Chimera 1, although many aspects will be familiar from Chimera 1.
+ChimeraX is <i>not</i> backward compatible with Chimera, although many aspects will be familiar from Chimera.
 </p>
 
 <h3>
@@ -46,15 +46,15 @@ Example Atomic Structure Commands
 
 <p>
 <font color=red>
-Warning: Chimera2 is not yet released and the command syntax below is subject to change.
+Warning: ChimeraX is not yet released and the command syntax below is subject to change.
 </font>
 </p>
 
 <p>
-Chimera2 is currently mostly controlled by typed commands.
+ChimeraX is currently mostly controlled by typed commands.
 We do not yet have much
 <a href="../user/index.html">user documentation</a>
-for the commands although many are the same or similar to Chimera 1.
+for the commands although many are the same or similar to Chimera.
 There is Python
 <a href="../devel/core/commands/commands.html">programming documentation</a> for the commands
 which reveals all available options.
@@ -62,9 +62,9 @@ which reveals all available options.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="ch2cmd:close; open 2bbv">open 2bbv</a>
-<td width=256 align=center><a href="ch2cmd:color #1 bychain">color #1 bychain</a>
-<td width=256 align=center><a href="ch2cmd:style /b stick">style /b stick</a>
+<td width=256 align=center><a href="cxcmd:close; open 2bbv">open 2bbv</a>
+<td width=256 align=center><a href="cxcmd:color #1 bychain">color #1 bychain</a>
+<td width=256 align=center><a href="cxcmd:style /b stick">style /b stick</a>
 <td width=256>Mouse drag to move.
 <tr>
 <td><img src="images/open.png">
@@ -82,8 +82,8 @@ which reveals all available options.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="ch2cmd:~display /c">~display /c</a>
-<td width=256 align=center><a href="ch2cmd:ribbon /c">ribbon /c</a>
+<td width=256 align=center><a href="cxcmd:~display /c">~display /c</a>
+<td width=256 align=center><a href="cxcmd:ribbon /c">ribbon /c</a>
 <td width=256>Mouse click to select an atom.
 <td width=256>Press up-arrow key.
 <tr>
@@ -102,9 +102,9 @@ which reveals all available options.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="ch2cmd:color sel gold">color sel gold</a>
-<td width=256 align=center><a href="ch2cmd:surface #1">surface #1</a>
-<td width=256 align=center><a href="ch2cmd:~display; display :HOH; style sphere">~display<br>display :HOH<br>style sphere</a>
+<td width=256 align=center><a href="cxcmd:color sel gold">color sel gold</a>
+<td width=256 align=center><a href="cxcmd:surface #1">surface #1</a>
+<td width=256 align=center><a href="cxcmd:~display; display :HOH; style sphere">~display<br>display :HOH<br>style sphere</a>
 <tr>
 <td><img src="images/color.png">
 <td><img src="images/surface.png">
@@ -119,9 +119,9 @@ which reveals all available options.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="ch2cmd:sym #1">sym #1</a>
-<td width=256 align=center><a href="ch2cmd:sym #1 assembly 1">sym #1 assembly 1</a>
-<td width=256 align=center><a href="ch2cmd:view">view</a>
+<td width=256 align=center><a href="cxcmd:sym #1">sym #1</a>
+<td width=256 align=center><a href="cxcmd:sym #1 assembly 1">sym #1 assembly 1</a>
+<td width=256 align=center><a href="cxcmd:view">view</a>
 <tr>
 <td>
 <pre>
@@ -145,10 +145,10 @@ XAU = crystal asymmetric unit, crystal frame (5 copies)
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="ch2cmd:light full">light full</a>
-<td width=256 align=center><a href="ch2cmd:sym #1 assem 3; set bg white ; set silhouettes true; view">sym #1 assem 3<br>set bg white<br>set silhouettes true<br>view</a>
-<td width=256 align=center><a href="ch2cmd:sym #1 clear; surf close; ribbon; save ~/Desktop/2bbv.png">sym #1 clear<br>surf close<br>ribbon<br>save ~/Desktop/2bbv.png</a>
-<td width=256 align=center><a href="ch2cmd:display; ~ribbon; light flat">display<br>~ribbon<br>light flat</a>
+<td width=256 align=center><a href="cxcmd:light full">light full</a>
+<td width=256 align=center><a href="cxcmd:sym #1 assem 3; set bg white ; set silhouettes true; view">sym #1 assem 3<br>set bg white<br>set silhouettes true<br>view</a>
+<td width=256 align=center><a href="cxcmd:sym #1 clear; surf close; ribbon; save ~/Desktop/2bbv.png">sym #1 clear<br>surf close<br>ribbon<br>save ~/Desktop/2bbv.png</a>
+<td width=256 align=center><a href="cxcmd:display; ~ribbon; light flat">display<br>~ribbon<br>light flat</a>
 <tr>
 <td><img src="images/lightfull.png">
 <td><img src="images/pentamer.png">
@@ -165,10 +165,10 @@ XAU = crystal asymmetric unit, crystal frame (5 copies)
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="ch2cmd:buriedarea /a with /b; sasa #1 & ~:HOH">buriedarea /a with /b<br>sasa #1 &amp; ~:HOH</a>
+<td width=256 align=center><a href="cxcmd:buriedarea /a with /b; sasa #1 & ~:HOH">buriedarea /a with /b<br>sasa #1 &amp; ~:HOH</a>
 
-<td width=256 align=center><a href="ch2cmd:contacts #1">contacts #1</a>
-<td width=256 align=center><a href="ch2cmd:light full; movie record super 3 ; turn y 3 120 ; wait ; movie encode ~/Desktop/spin.mp4 quality high">light full<br>movie record super 3 ; turn y 3 120 ; wait ; movie encode ~/Desktop/spin.mp4 quality high</a>
+<td width=256 align=center><a href="cxcmd:contacts #1">contacts #1</a>
+<td width=256 align=center><a href="cxcmd:light full; movie record super 3 ; turn y 3 120 ; wait ; movie encode ~/Desktop/spin.mp4 quality high">light full<br>movie record super 3 ; turn y 3 120 ; wait ; movie encode ~/Desktop/spin.mp4 quality high</a>
 <tr>
 <td>
 <pre>
@@ -201,13 +201,13 @@ Example Density Map Commands
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="ch2cmd:close; open emdb:1080">open emdb:1080</a>
-<td width=256 align=center><a href="ch2cmd:volume #1 level 0.9">volume #1 level 0.9</a>
+<td width=256 align=center><a href="cxcmd:close; open emdb:1080">open emdb:1080</a>
+<td width=256 align=center><a href="cxcmd:volume #1 level 0.9">volume #1 level 0.9</a>
 <td width=256>
 <img src="images/contour.png" height=40 align=right>
 Click contour level mouse mode
 then drag with right mouse button.
-<td width=256 align=center><a href="ch2cmd:vol #1 enclose 1e6 step 1 color tan">vol #1 enclose 1e6 step 1 color tan</a>
+<td width=256 align=center><a href="cxcmd:vol #1 enclose 1e6 step 1 color tan">vol #1 enclose 1e6 step 1 color tan</a>
 
 <tr>
 <td><img src="images/emdb1080.png">
@@ -226,13 +226,13 @@ then drag with right mouse button.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="ch2cmd:light full; set bg gray ; set silhouettes true">light full<br>set bg gray<br>set silhouettes true</a>
-<td width=256 align=center><a href="ch2cmd:open 1grl">open 1grl</a>
+<td width=256 align=center><a href="cxcmd:light full; set bg gray ; set silhouettes true">light full<br>set bg gray<br>set silhouettes true</a>
+<td width=256 align=center><a href="cxcmd:open 1grl">open 1grl</a>
 <td width=256 align=center>
 <img src="images/move_h2o.png" height=40 align=right>
 Click move selection mouse. Click atom to select.
 Then right-mouse drag to move molecule into map.
-<td width=256 align=center><a href="ch2cmd:fit #2 in #1; volume #1 transparency 0.5; color bychain">fit #2 in #1<br>volume #1 transparency 0.5<br>color bychain</a>
+<td width=256 align=center><a href="cxcmd:fit #2 in #1; volume #1 transparency 0.5; color bychain">fit #2 in #1<br>volume #1 transparency 0.5<br>color bychain</a>
 <tr>
 <td><img src="images/litmap.png">
 <td><img src="images/1grl.png">
@@ -252,10 +252,10 @@ Then right-mouse drag to move molecule into map.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="ch2cmd:molmap #2 10; vol #3 style mesh">molmap #2 10<br>vol #3 style mesh</a>
-<td width=256 align=center><a href="ch2cmd:vop subtract #1,3 minRMS true; vol #4 color pink transparency 0; ~display ; ribbon">vop subtract #1,3 minRMS true<br>vol #4 color pink transparency 0<br>~display ; ribbon</a>
-<td width=256 align=center><a href="ch2cmd:close; open emdb:1273">close<br>open emdb:1273</a>
-<td width=256 align=center><a href="ch2cmd:volume #1 region all showOutline true">volume #1 region all showOutline true</a>
+<td width=256 align=center><a href="cxcmd:molmap #2 10; vol #3 style mesh">molmap #2 10<br>vol #3 style mesh</a>
+<td width=256 align=center><a href="cxcmd:vop subtract #1,3 minRMS true; vol #4 color pink transparency 0; ~display ; ribbon">vop subtract #1,3 minRMS true<br>vol #4 color pink transparency 0<br>~display ; ribbon</a>
+<td width=256 align=center><a href="cxcmd:close; open emdb:1273">close<br>open emdb:1273</a>
+<td width=256 align=center><a href="cxcmd:volume #1 region all showOutline true">volume #1 region all showOutline true</a>
 <tr>
 <td><img src="images/molmap.png">
 <td><img src="images/vopsub2.png">
@@ -272,9 +272,9 @@ Then right-mouse drag to move molecule into map.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="ch2cmd:close; open eds:1a0m">open eds:1a0m</a>
-<td width=256 align=center><a href="ch2cmd:open 1a0m; style stick; vol #1 level 1.0 style mesh">open 1a0m<br>style stick<br>vol #1 level 1.0 style mesh</a>
-<td width=256 align=center><a href="ch2cmd:vop zone #1 atoms #2 radius 2; vol #3 level .5 style mesh transp 0.6">vop zone #1 atoms #2 radius 2<br>
+<td width=256 align=center><a href="cxcmd:close; open eds:1a0m">open eds:1a0m</a>
+<td width=256 align=center><a href="cxcmd:open 1a0m; style stick; vol #1 level 1.0 style mesh">open 1a0m<br>style stick<br>vol #1 level 1.0 style mesh</a>
+<td width=256 align=center><a href="cxcmd:vop zone #1 atoms #2 radius 2; vol #3 level .5 style mesh transp 0.6">vop zone #1 atoms #2 radius 2<br>
   vol #3 level .5 style mesh transp 0.6</a>
 <tr>
 <td><img src="images/eds_1a0m.png">
