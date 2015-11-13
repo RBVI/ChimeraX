@@ -190,9 +190,9 @@ class MolecularSurface(Generic3DModel):
     def _maximum_atom_to_surface_distance(self):
         res = self.resolution
         if res is None:
-            d = 1.1 * (self.probe_radius + self._max_radius)
+            d = 1.1 * (self.probe_radius + self._max_radius + self.grid_spacing)
         else:
-            d = 2*res
+            d = 2*(res + self.grid_spacing)
         return d
 
     def _patch_display_mask(self, patch_atoms):
