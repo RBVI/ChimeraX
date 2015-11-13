@@ -11,7 +11,7 @@ software or any revisions or derivations thereof.
 
 <html><head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Command: display</title>
+<title>Command: show, hide</title>
 </head><body>
 
 <a name="top"></a>
@@ -19,9 +19,9 @@ software or any revisions or derivations thereof.
 <img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
 class="clRight" alt="ChimeraX logo"/></a>
 
-<h3>Command: display</h3>
+<h3>Command: show, hide</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>display</b> 
+<BR><b>show</b> 
 &nbsp;<a href="atomspec.html"><i>spec</i></a>
 [&nbsp;<a href="#level"><i>level</i></a>&nbsp;]
 <!--
@@ -29,12 +29,12 @@ class="clRight" alt="ChimeraX logo"/></a>
 -->
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>~display</b> 
+<BR><b>hide</b> 
 &nbsp;<a href="atomspec.html"><i>spec</i></a>
 [&nbsp;<a href="#level"><i>level</i></a>&nbsp;]
 </h3>
 <p>
-<b>Display</b> and <b>~display</b> show and hide the
+The commands <b>show</b> and <b>hide</b> display and undisplay the
 <a href="atomspec.html">specified</a>
 atoms, bonds, cartoons, and entire models.
 Following the usual convention, a blank specification means &ldquo;all.&rdquo;
@@ -49,13 +49,13 @@ The <i>level</i> can be:
 <ul>
 <li><b>atoms</b> - specified atoms
 <li><b>bonds</b> - bonds with both end atoms specified; includes end atoms
-for <b>display</b> (since they are required to display the bond,
-see <a href="../hierarchy.html">hierarchy</a>) but not for <b>~display</b>
+for <b>show</b> (since they are required to display the bond,
+see <a href="../hierarchy.html">hierarchy</a>) but not for <b>hide</b>
 <li><b>pseudobonds</b> or <b>pbonds</b>
 - <a href="../pseudobonds.html">pseudobonds</a>
 with both end atoms specified; includes end atoms
-for <b>display</b> (since they are required to display the pseudobond,
-see <a href="../hierarchy.html">hierarchy</a>) but not for <b>~display</b>
+for <b>show</b> (since they are required to display the pseudobond,
+see <a href="../hierarchy.html">hierarchy</a>) but not for <b>hide</b>
 <li><b>cartoons</b> or <b>ribbons</b> 
 - cartoon (ribbon) segments of the specified residues
 <li><b>models</b>
@@ -82,5 +82,5 @@ the <b>only</b> keyword must be given last.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2015</address>
+November 2015</address>
 </body></html>
