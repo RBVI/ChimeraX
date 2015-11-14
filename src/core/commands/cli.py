@@ -1469,7 +1469,20 @@ def register(name, cmd_desc=(), function=None, logger=None):
 
     words = name.split()
     if cmd_desc is not None and cmd_desc.url is None:
-        cmd_desc.url = "help:user/commands/%s.html#%s" % (words[0], ' '.join(words[1:]))
+        import chimera
+        import os
+        cname = words[0]
+        if cname.startswith('~'):
+            cname = cname[1:]
+            frag = ' '.join(words)
+        else:
+            frag = ' '.join(words[1:])
+        cpath = os.path.join(chimera.app_data_dir, 'docs', 'user', 'commands',
+                '%s.html' % cname)
+        if frag:
+            frag = '#' + frag
+        if os.path.exists(cpath):
+            cmd_desc.url = "help:user/commands/%s.html%s" % (cname, frag)
     name = ' '.join(words)  # canonicalize
     cmd_map = _commands
     for word in words[:-1]:

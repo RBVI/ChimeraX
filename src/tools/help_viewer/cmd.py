@@ -68,7 +68,10 @@ def help(session, topic=None, *, option=None, is_query=False):
                 return
             # handle multi word command names
             #  -- use first word for filename and rest for #fragment
-            if ' ' not in cmd.command_name:
+            if cmd.command_name.startswith('~'):
+                cmd_name = cmd.command_name.split(maxsplit=1)[0][1:]
+                fragment = cmd.command_name
+            elif ' ' not in cmd.command_name:
                 cmd_name = cmd.command_name
                 fragment = ""
             else:
