@@ -2267,7 +2267,7 @@ class Alias:
         if not self.optional_rest_of_line:
             return CmdDesc(required=required, **kw)
         return CmdDesc(required=required, optional=[('optional', RestOfLine)],
-                       **kw)
+                       non_keyword=['optional'], **kw)
 
     def __call__(self, session, *args, optional='', echo_tag=None,
                  _used_aliases=None):
