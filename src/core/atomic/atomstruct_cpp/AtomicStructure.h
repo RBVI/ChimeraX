@@ -124,7 +124,8 @@ public:
     AtomicStructure*  copy() const;
     void  delete_atom(Atom* a);
     void  delete_atoms(std::vector<Atom*> atoms);
-    void  delete_bond(Bond* b) { delete_edge(b); }
+    void  delete_bond(Bond* b) { delete_edge(b); _structure_cats_dirty = true; }
+
     void  delete_residue(Residue* r);
     // display() inherited from Graph
     void  extend_input_seq_info(ChainID& chain_id, ResName& res_name) {

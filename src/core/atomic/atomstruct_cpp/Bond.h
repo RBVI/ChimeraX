@@ -33,7 +33,7 @@ private:
     mutable Rings  _rings;
 
 public:
-    virtual ~Bond();
+    virtual ~Bond() {}
     virtual bool shown() const;
     const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
@@ -64,8 +64,6 @@ public:
 #include "AtomicStructure.h"
 
 namespace atomstruct {
-
-inline Bond::~Bond() { atoms()[0]->structure()->_structure_cats_dirty = true; }
 
 inline bool Bond::shown() const {
     return Connection::shown() &&
