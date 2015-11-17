@@ -144,6 +144,7 @@ def most_common_color(colors):
     import numpy
     as32 = colors.view(numpy.int32).reshape((len(colors),))
     unique, indices, counts = numpy.unique(as32, return_index=True, return_counts=True)
-    if counts[0] < len(colors) / 10:
+    max_index = numpy.argmax(counts)
+    if counts[max_index] < len(colors) / 10:
         return None
-    return colors[indices[0]]
+    return colors[indices[max_index]]
