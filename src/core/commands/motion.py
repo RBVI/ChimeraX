@@ -38,9 +38,7 @@ def motion_in_progress(session):
     # Return True if there are non-infinite motions
     if not hasattr(session, CallForNFrames.Attribute):
         return False
-    has_finite_motion = False
     for m in getattr(session, CallForNFrames.Attribute):
-        if m.n == CallForNFrames.Infinite:
-            return False
-        has_finite_motion = True
-    return has_finite_motion
+        if m.n != CallForNFrames.Infinite:
+            return True
+    return False
