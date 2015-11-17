@@ -110,14 +110,14 @@ def report_clip_info(viewer, log):
 
 def show_surface_caps(view):
     drawings = view.drawing.all_drawings()
-    show_surface_clip_caps(view.clip, drawings, 'cap')
-    show_surface_clip_caps(view.clip_scene, drawings, 'cap scene')
+    show_surface_clip_caps(view.clip_planes, drawings)
 
-def show_surface_clip_caps(clip, drawings, cap_name, offset = 0.01):
-    if clip.enabled:
-        normal = clip.normal
+def show_surface_clip_caps(clip_planes, drawings, offset = 0.01):
+    for p in clip_planes:
+        normal = p.normal
         from ..geometry import inner_product
-        poffset = inner_product(normal, clip.near_point) + offset
+        poffset = inner_product(normal, p.plane_point) + offset
+        cap_name = 'cap ' + p.name
         for d in drawings:
             if d.triangles is not None and not d.name.startswith('cap'):
                 from ..surface import compute_cap
@@ -132,10 +132,11 @@ def show_surface_clip_caps(clip, drawings, cap_name, offset = 0.01):
                 n[:] = normal
                 cm.normals = n
                 cm.display = True
-    else:
-        for d in drawings:
-            if d.name == cap_name:
-                d.display = False
+
+    cap_names = set('cap ' + p.name for p in clip_planes)
+    for d in drawings:
+        if d.name.startswith('cap') and d.name not in cap_names:
+            d.display = False
 
 def register_command(session):
     from .cli import CmdDesc, register, FloatArg, NoArg, AxisArg, ModelArg, CenterArg
