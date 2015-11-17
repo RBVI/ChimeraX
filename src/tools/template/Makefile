@@ -7,7 +7,7 @@ PKG_DESCRIPTION = Replace with short description of tool
 # Example:
 # PKG_NAME = chimera.cmd_line
 # PKG_VERSION = 1.0
-# PKG_DESCRIPTION = Chimera2 command line interface
+# PKG_DESCRIPTION = ChimeraX command line interface
 
 # For many cases, only a single tool and a single command
 # is provided by a package.  Variables below are designed

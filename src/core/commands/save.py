@@ -8,7 +8,7 @@ def save(session, filename, width=None, height=None, supersample=None, format=No
     ----------
     filename : string
         File to save.  File suffix determines what type of file is saved unless the format option is given.
-        For sessions the suffix is .c2ses.  Image files can be saved with .png, .jpg, .tif, .ppm, .gif suffixes.
+        For sessions the suffix is .cxses.  Image files can be saved with .png, .jpg, .tif, .ppm, .gif suffixes.
     width : integer
         Width of image in pixels for saving image files.  If width is not specified the current
         graphics window width is used.

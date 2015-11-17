@@ -8,9 +8,9 @@ else
 fi
 
 # $target is where the webapp (wsgi + html) is installed
-# $chimera2 is the path to the chimera2 tree relative to $target
+# $chimerax is the path to the ChimeraX tree relative to $target
 target=../../build/webapp
-chimera2=..
+chimerax=..
 
 # Execute actions in order
 for action in $actions; do
@@ -23,11 +23,11 @@ for action in $actions; do
 		fi
 
 		# Create symlink to repo build tree
-		rm -f $target/chimera2
-		ln -s $chimera2 $target/chimera2
+		rm -f $target/chimerax
+		ln -s $chimerax $target/chimerax
 
 		# Copy local files
-		local_files="chimera2.wsgi webapp_backend.py"
+		local_files="chimerax.wsgi webapp_backend.py"
 		rsync -Cav --exclude=\*.swp $local_files $target
 		other_files="../llgr/webgl webapp_client/"
 		rsync -Cav --exclude=\*.swp $other_files $target/www

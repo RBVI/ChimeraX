@@ -7,7 +7,7 @@
 # attached to all copies, including partial copies, of the
 # software or any revisions or derivations thereof.
 #
-# Make chimera2's Info.plist
+# Make ChimeraX's Info.plist
 #
 # Follow the Apple "Runtime Configuration Guidelines" document,
 # <http://developer.apple.com/documentation/MacOSX/Conceptual/BPRuntimeConfig/BPRuntimeConfig.html>,
@@ -139,8 +139,8 @@ pl = {
     "CFBundleIconFile": "chimera-icon.icns",
     "CFBundleIdentifier": "edu.ucsf.cgl.%s" % app_name,
     "CFBundleInfoDictionaryVersion": "6.0",
-    "CFBundleName": "UCSF Chimera2",
-    "CFBundleDisplayName": "UCSF Chimera2",
+    "CFBundleName": "UCSF ChimeraX",
+    "CFBundleDisplayName": "UCSF ChimeraX",
     "LSHasLocalizedDisplayName": False,
     "CFBundlePackageType": "APPL",
     "CFBundleShortVersionString": '%s.%s.%s' % tuple(release[0:3]),

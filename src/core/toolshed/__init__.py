@@ -39,7 +39,7 @@ the following fields separated by double colons (``::``).
     Minimum and maximum session version that the tool can read.
 9. ``custom_init`` : str
     Whether tool has initialization code that must be called when
-    Chimera2 starts.  Either 'true' or 'false'.  If 'true', tool
+    ChimeraX starts.  Either 'true' or 'false'.  If 'true', tool
     must define 'initialize' and 'finish' functions.
 10. ``synopsis`` : str
     A short description of the tool.
@@ -73,7 +73,7 @@ Depending on the values of metadata fields, modules may need to define:
     Must be defined if the ``custom_init`` metadata field is set to 'true'.
     ``initialize`` is called when the tool is first loaded and
     ``finish`` is called when the tool is unloaded.
-    To make Chimera2 start quickly, custom initialization is discouraged.
+    To make ChimeraX start quickly, custom initialization is discouraged.
 
 Attributes
 ----------

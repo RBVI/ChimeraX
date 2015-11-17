@@ -23,7 +23,7 @@ from .commands import CmdDesc, StringArg, register, commas
 
 _builtin_open = open
 #: session file suffix
-SESSION_SUFFIX = ".c2ses"
+SESSION_SUFFIX = ".cxses"
 
 # triggers:
 
@@ -573,7 +573,7 @@ def _initialize():
     io.register_format(
         "Chimera session", io.SESSION, SESSION_SUFFIX,
         prefixes="ses",
-        mime="application/x-chimera2-session",
+        mime="application/x-chimerax-session",
         reference="http://www.rbvi.ucsf.edu/chimera/",
         open_func=open, export_func=save)
 _initialize()

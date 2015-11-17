@@ -1,13 +1,13 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
-========================================================
-webapp_client: Client side for Chimera 2 web application
-========================================================
+=======================================================
+webapp_client: Client side for ChimeraX web application
+=======================================================
 
 Overview
 ========
 
-The Chimera2 Web Application uses several JavaScript libraries,
+The ChimeraX Web Application uses several JavaScript libraries,
 including public ones such as `jQuery <http://jquery.com>`_ and
 `jQuery UI <http://jqueryui.com>`_ as well as custom libraries for
 :ref:`session-management` and
@@ -36,7 +36,7 @@ The HTML layer API is accessible via :js:data:`$c2_session`.
 
 .. js:function:: $c2_session.ui_init(url)
 
-    :param string url: URL to the location of Chimera 2 server.
+    :param string url: URL to the location of ChimeraX server.
     :returns: nothing.
 
     Initialize HTML and AJAX layers.  The AJAX layer is initialized with a
@@ -71,7 +71,7 @@ The AJAX layer API is accessible via :js:attr:`$c2_session.server`.
 
 .. js:function:: $c2_session.server.init(url)
 
-    :param string url: URL to the location of Chimera 2 server.
+    :param string url: URL to the location of ChimeraX server.
     :returns: nothing.
 
     Initialize AJAX layer.  Must be called prior to using other functions.

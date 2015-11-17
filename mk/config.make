@@ -32,7 +32,7 @@ PYVER_NODOT = $(subst .,,$(PYTHON_VERSION))
 
 include $(TOP)/mk/os.make
 
-APP_NAME = Chimera2
+APP_NAME = ChimeraX
 
 ifeq ($(OS),Darwin)
 frameworkdir = $(build_prefix)/Library/Frameworks

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Chimera 2 documentation build configuration file, created by
+# ChimeraX documentation build configuration file, created by
 # sphinx-quickstart on Wed Feb 29 14:19:39 2012.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -55,7 +55,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Chimera 2'
+project = u'ChimeraX'
 copyright = u'2015, UCSF RBVI'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -128,7 +128,7 @@ html_theme_options = {
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '../../src/apps/Chimera2/Chimera2-icon.svg'
+html_logo = '../../src/apps/ChimeraX/ChimeraX-icon.svg'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -182,7 +182,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Chimera2doc'
+htmlhelp_basename = 'ChimeraXdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -196,7 +196,7 @@ htmlhelp_basename = 'Chimera2doc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ('index', 'Chimera2.tex', u'Chimera 2 Documentation',
+    ('index', 'ChimeraX.tex', u'ChimeraX Documentation',
      u'UCSF RBVI', 'manual'),
 ]
 
@@ -229,7 +229,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'chimera2', u'Chimera 2 Documentation',
+    ('index', 'chimerax', u'ChimeraX Documentation',
      [u'UCSF RBVI'], 1)
 ]
 
@@ -237,7 +237,7 @@ man_pages = [
 # -- Options for Epub output ---------------------------------------------------
 
 # Bibliographic Dublin Core info.
-epub_title = u'Chimera 2'
+epub_title = u'ChimeraX'
 epub_author = u'UCSF RBVI'
 epub_publisher = u'UCSF RBVI'
 epub_copyright = u'2015, UCSF RBVI'

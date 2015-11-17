@@ -108,7 +108,7 @@ class Settings(ConfigFile):
     Parameters
     ----------
     session
-        The Chimera2 session object
+        The ChimeraX session object
     tool_name : str
         The name of the tool
     version : str, optional

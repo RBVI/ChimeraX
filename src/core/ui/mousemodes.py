@@ -519,7 +519,9 @@ class ClipMouseMode(MouseMode):
             clip.normal = normal
             clip.enabled = True
             v.redraw_needed = True
-            return
+
+#        from ..commands.clip import show_surface_caps
+#        show_surface_caps(v)
 
     def _tilt_shift(self, delta_xy, camera, normal):
         # Measure drag direction along plane normal direction.

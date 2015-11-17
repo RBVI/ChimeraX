@@ -9,10 +9,10 @@ def register_core_commands(session):
     modules = [
         'alias', 'buriedarea',
         'camera', 'clip', 'close', 'cofr', 'color', 'colordef', 'crossfade', 'crosslinks',
-        'delete', 'display', 'echo', 'exit', 'export',
+        'delete', 'echo', 'exit', 'export', 'hide',
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',
-        'save', 'sasa', 'scolor', 'select', 'set', 'split',
+        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
         'transparency', 'turn', 'usage', 'view', 'wait', 'zoom'
     ]

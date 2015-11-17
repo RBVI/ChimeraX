@@ -3,10 +3,10 @@
 scripting: support reading and executing scripts
 ================================================
 
-Both Python and Chimera2 command scripts are supported.
+Both Python and ChimeraX command scripts are supported.
 
 Python scripts are executed inside a sandbox module that has
-the Chimera2 session available in it.
+the ChimeraX session available in it.
 For example, to use the timeit module in a Python script::
 
     import timeit
@@ -26,17 +26,17 @@ _sandbox_count = 0
 
 
 def open_py(session, filename, name, *args, **kw):
-    """Execute Python script in a Chimera2 context
+    """Execute Python script in a ChimeraX context
 
-    This function is invoked via Chimera2's :py:mod:`~chimera.core.io`
+    This function is invoked via ChimeraX's :py:mod:`~chimera.core.io`
     :py:func:`~chimera.core.io.open_data` API for files whose names end
     with **.py**, **.pyc**, or **.pyo**.  Each script is opened in an uniquely
     named importable sandbox (see timeit example above).  And the current
-    Chimera2 session is available as a global variable named **session**.
+    ChimeraX session is available as a global variable named **session**.
     
     Parameters
     ----------
-    session : a Chimera2 :py:class:`~chimera.core.session.Session`
+    session : a ChimeraX :py:class:`~chimera.core.session.Session`
     filename : path to file to open
     name : how to identify the file
     """
@@ -69,15 +69,15 @@ def open_py(session, filename, name, *args, **kw):
 
 
 def open_ch(session, filename, name, *args, **kw):
-    """Execute utf-8 file as Chimera2 commands
+    """Execute utf-8 file as ChimeraX commands
 
-    This function is invoked via Chimera2's :py:mod:`~chimera.core.io`
+    This function is invoked via ChimeraX's :py:mod:`~chimera.core.io`
     :py:func:`~chimera.core.io.open_data` API for files whose names end
-    with **.c2cmd**.
+    with **.cxcmd**.
     
     Parameters
     ----------
-    session : a Chimera2 :py:class:`~chimera.core.session.Session`
+    session : a ChimeraX :py:class:`~chimera.core.session.Session`
     filename : path to file to open
     name : how to identify the file
     
@@ -107,7 +107,7 @@ def register():
         reference="http://www.python.org/",
         open_func=open_py)
     io.register_format(
-        "Chimera", io.SCRIPT, (".c2cmd",), ("cmd",),
-        mime=('text/x-chimera2', 'application/x-chimera2-code'),
+        "Chimera", io.SCRIPT, (".cxcmd",), ("cmd",),
+        mime=('text/x-chimerax', 'application/x-chimerax-code'),
         reference="http://www.cgl.ucsf.edu/chimera/",
         open_func=open_ch)

@@ -8,7 +8,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
 
     # Compute bounding box for atoms
     xyz_min, xyz_max = xyz.min(axis = 0), xyz.max(axis = 0)
-    pad = 2*probe_radius + radii.max()
+    pad = 2*probe_radius + radii.max() + grid_spacing
     origin = [x-pad for x in xyz_min]
 
     # Create 3d grid for computing distance map
@@ -74,6 +74,8 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
             kti.append(ti)
     from .split import reduce_geometry
     from numpy import concatenate
-    va,na,ta = reduce_geometry(ses_va, ses_na, ses_ta,
-                               concatenate(kvi), concatenate(kti))
+    keepv = concatenate(kvi) if kvi else []
+    keept = concatenate(kti) if kti else []
+    va,na,ta = reduce_geometry(ses_va, ses_na, ses_ta, keepv, keept)
+                               
     return va, na, ta

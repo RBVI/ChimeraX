@@ -18,12 +18,12 @@ and their code location is described with the function descriptions.
 | `crossfade`_ - Fade between scenes for movie making
 | `crosslinks`_ - Move atomic structures to minimize crosslinks
 | `delete`_ - Delete models
-| `display`_ - Display atoms
 | `echo`_ - Write message to log
 | `exit`_ - Quit
 | `export`_ - Export files
 | `fitmap`_ - fit atomic structures in density maps
 | `help`_ - Show documentation
+| `hide`_ - Hide atoms, ribbons, models
 | `ks`_ - Enable keyboard shortcuts
 | `lighting`_ - Change lighting parameters
 | `list`_ - List open models
@@ -45,6 +45,7 @@ and their code location is described with the function descriptions.
 | `scolor`_ - Color surfaces
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
+| `show`_ - Show atoms, ribbons, models
 | `snav`_ - Enable space navigator input device
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
@@ -118,11 +119,6 @@ delete
 ======
 .. autofunction:: chimera.core.commands.delete.delete
 
-display
-=======
-.. autofunction:: chimera.core.commands.display.display
-.. autofunction:: chimera.core.commands.display.undisplay
-
 echo
 ====
 .. autofunction:: chimera.core.commands.echo.echo
@@ -142,6 +138,10 @@ fitmap
 help
 ====
 .. autofunction:: chimera.help_viewer.cmd.help
+
+hide
+====
+.. autofunction:: chimera.core.commands.hide.hide
 
 ks
 ==
@@ -233,6 +233,10 @@ select
 set
 ===
 .. autofunction:: chimera.core.commands.set.set
+
+show
+====
+.. autofunction:: chimera.core.commands.show.show
 
 snav
 ====

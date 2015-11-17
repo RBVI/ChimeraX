@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_NAME = chimera.cmd_line
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = Chimera2 command line interface
+PKG_DESCRIPTION = ChimeraX command line interface
 
 TOOL_NAME = cmd_line
 TOOL_PKG_NAME = chimera.cmd_line

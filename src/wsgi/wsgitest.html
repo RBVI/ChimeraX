@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Chimera2 Session Management Test</title>
+<title>ChimeraX Session Management Test</title>
 <script type="text/javascript">
 
 function log(msg) {	// Log to console if available, alert otherwise
@@ -35,7 +35,7 @@ function ajax_form(results, errors) {
 	var cb = getData;
 	if (document.inputs.action.value == "jlist")
 		cb = jsonList;
-	sendRequest("POST", "/chimera2/wsgi",
+	sendRequest("POST", "/chimerax/wsgi",
 				// FormData is not supported in
 				// Internet Explorer until version 10
 				new FormData(document.inputs),
@@ -109,7 +109,7 @@ function jsonList(results, errors)
 </script>
 </head>
 <body>
-<h1>Chimera2 Session Management Test</h1>
+<h1>ChimeraX Session Management Test</h1>
 <form name="inputs" method="post"
 	onsubmit="return ajax_form('results', 'errors');">
 <table>
