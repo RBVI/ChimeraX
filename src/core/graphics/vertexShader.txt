@@ -75,8 +75,9 @@ uniform vec4 camera_vertical;
 
 #ifdef USE_CLIP_PLANES
 uniform mat4 model_matrix;
-uniform vec4 clip_plane0, clip_plane1;
-out float gl_ClipDistance[2];
+uniform int num_clip_planes;
+uniform vec4 clip_planes[8];
+out float gl_ClipDistance[8];
 #endif
 
 void main(void)
@@ -98,8 +99,8 @@ void main(void)
 
 #ifdef USE_CLIP_PLANES
   vec4 vscene = model_matrix * vi;
-  gl_ClipDistance[0] = dot(vscene, clip_plane0);
-  gl_ClipDistance[1] = dot(vscene, clip_plane1);
+  for (int i = 0 ; i < num_clip_planes ; ++i)
+    gl_ClipDistance[i] = dot(vscene, clip_planes[i]);
 #endif
 
   vec4 veye = model_view_matrix * vi;

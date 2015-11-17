@@ -51,10 +51,10 @@ protected:
     void  add_node(Node *v) { _nodes.emplace_back(v); }
     void  delete_edge(Edge *e);
     void  delete_node(Node *v);
-    void  delete_nodes(const Nodes& vs) {
-        delete_nodes(std::set<Node*>(vs.begin(), vs.end()));
+    void  delete_nodes(const Nodes& ns) {
+        delete_nodes(std::set<Node*>(ns.begin(), ns.end()));
     }
-    void  delete_nodes(const std::set<Node*>& vs);
+    void  delete_nodes(const std::set<Node*>& ns);
     const Edges &  edges() const { return _edges; }
     const Nodes &  nodes() const { return _nodes; }
 

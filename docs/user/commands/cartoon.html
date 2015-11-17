@@ -1,0 +1,114 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: cartoon, ribbon</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: cartoon, ribbon</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;adjust &nbsp;<i>factor</i>&nbsp;]
+[&nbsp;hideBackbone&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;showSpine&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<!--
+<h3><a href="usageconventions.html">Usage</a>:
+<BR>(&nbsp;<b>~cartoon</b>&nbsp;|&nbsp;<b>~ribbon</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+-->
+<!--
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp; tether
+[&nbsp;shape&nbsp;&nbsp;<i>shape</i>&nbsp;]
+[&nbsp;sides&nbsp;&nbsp<i>N</i>&nbsp;]
+[&nbsp;scale&nbsp;&nbsp<i>scale</i>&nbsp;]
+[&nbsp;opacity&nbsp;&nbsp<i>opacity</i>&nbsp;]
+</h3>
+-->
+<p>
+The <b>cartoon</b> or <b>ribbon</b> command shows a simplified backbone 
+representation of the <a href="atomspec.html">specified</a> biopolymer 
+residues, with additional settings for how closely the cartoon path
+should follow the backbone atoms and whether these atoms can be 
+shown at the same time as the cartoon.
+The values of these settings can be different for different residues.
+<!--
+The <b>~cartoon</b> or <b>~ribbon</b> command hides the cartoon
+representation of the <a href="atomspec.html">specified</a> residues.
+-->
+</p><p>
+Commands <a href="show.html"><b>hide</b> and <b>show</b></a> 
+should be used to undisplay and redisplay cartoons
+without modifying their associated parameters,
+whereas using <b>cartoon</b> again will reset any parameters 
+not given explicitly in the command.
+</p><p>
+By default, showing the cartoon for a residue suppresses the display of
+its backbone atoms. Simultaneous display can be enabled with 
+<b>hideBackbone false</b>; otherwise, the backbone atoms hidden by cartoons
+are N, C, and O in amino acids and the phosphoribose moieties of nucleic acids.
+</p><p>
+The <b>adjust</b> <i>factor</i> sets the balance between smoothing
+the cartoon path to ideality for residues in a peptide helix or strand (1.0)
+versus following the exact positions of the CA atoms (0.0).
+Each residue can have a different value.
+The default <i>factor</i> is <b>0.0</b> for amino acids in helices and
+<b>0.7</b> for those in strands. 
+Smoothing is not applied to nucleic acids or amino acids in coil segments.
+The path-guiding atom is CA in amino acids and C5' in nucleic acids.
+</p><p>
+The <b>showSpine</b> option (default <b>false</b>)
+clarifies cartoon orientation by showing a series of bars across its width,
+somewhat resembling the treads of a tank (perhaps mainly for novelty purposes).
+<!--
+</p><p>
+Where the cartoon path is adjusted (<i>factor</i> &gt; 0.0) and
+offset from the corresponding CA atoms, &ldquo;tethers&rdquo; are drawn 
+between the cartoon and the CA atoms.
+The <b>cartoon tether</b> command controls tether appearance, with options:
+</p>
+<ul>
+<li><b>shape</b> &nbsp;<i>shape</i> 
+- tether shape, one of the following:
+  <ul>
+  <li><b>cone</b> (default) pointed at the cartoon end
+  <li><b>steeple</b> - pointed at the atom end
+  <li><b>cylinder</b>
+  </ul>
+<li><b>sides</b> &nbsp;<i>N</i> 
+- number of planar facets used to draw the tether
+(range 3-10, default <b>4</b>)
+<li><b>scale</b> &nbsp;<i>scale</i>
+- tether size relative to atom display radius 
+(range 0.0-1.0, default <b>1.0</b>)
+<li><b>opacity</b> &nbsp;<i>opacity</i>
+- tether opacity (1 &ndash; transparency) (range 0.0-1.0, default <b>0.5</b>)
+</ul>
+<p>
+Tether parameters apply to an entire atomic model and cannot be different for
+different residues.
+</p>
+-->
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2015</address>
+</body></html>

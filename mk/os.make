@@ -38,7 +38,7 @@ endif
 	PYMOD_LINK = $(LOADER) $(LDFLAGS) -shared -o $(PYMOD) $(OBJS) $(LIBS)
 	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 
-	OPENGL_LIBS = -L$(libdir) -lGLEW -lGL
+	OPENGL_LIBS = -L$(libdir) -lGLU -lGL
 endif
 
 #### Darwin, a.k.a., Apple Mac OS X
@@ -106,7 +106,7 @@ endif
 	#PYMOD_LINK = $(LOADER) $(LDFLAGS) -bundle -bundle_loader `which python3` -o $(PYMOD) $(OBJS) $(LIBS) $(PYTHON_LIB)
 	PYMOD_LINK = $(LOADER) $(LDFLAGS) -bundle -bundle_loader $(bindir)/python3 -o $(PYMOD) $(OBJS) $(LIBS) $(PYTHON_LIB)
 
-	OPENGL_LIBS = -L$(libdir) -lGLEW -framework OpenGL
+	OPENGL_LIBS = -framework OpenGL
 endif
 
 # Microsoft Windows
@@ -137,7 +137,7 @@ endif
 	PYTHON_LIB = python$(PYVER_NODOT).$(LIB_EXT)
 	PYMOD_LINK = $(CXX) $(LDFLAGS) /LD /Fe$(PYMOD) $(OBJS) $(LIBS); if [ -e $(PYMOD).manifest ]; then mt -nologo -manifest $(PYMOD).manifest -outputresource:$(PYMOD)\;2 ; fi
 
-	OPENGL_LIBS = glew32.lib opengl32.lib
+	OPENGL_LIBS = glu32.lib opengl32.lib
 
 .SUFFIXES: .obj
 

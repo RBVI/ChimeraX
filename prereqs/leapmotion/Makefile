@@ -6,7 +6,7 @@ include $(TOP)/mk/config.make
 VERSION = 1.2.0
 DISTRIBUTION = leap-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/leap-$(VERSION)
-LEAP_PYTHON = /Users/goddard/ucsf/chimera2/build/Library/Frameworks/Python.framework/Versions/3.4/Python
+LEAP_PYTHON = $(framework_dir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
 INSTALL_DIR = $(PYSITEDIR)/LeapMotion
 
 PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python

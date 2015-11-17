@@ -9,10 +9,12 @@ class PseudobondGroup(PseudobondGroupData, Model):
     via the :class:`.PseudobondGroupData` base class.
     """
 
-    def __init__(self, pbg_pointer):
+    def __init__(self, pbg_pointer, *, session=None):
 
         PseudobondGroupData.__init__(self, pbg_pointer)
-        Model.__init__(self, self.category)
+        if session is None:
+            session = self.owner.session
+        Model.__init__(self, self.category, session)
         self._pbond_drawing = None
 
         self._update_graphics()

@@ -16,7 +16,7 @@ TOOL_CATEGORY = General
 TOOL_FILE_TYPES =
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
-TOOL_SYNOPSIS = Display Chimera2 Help
+TOOL_SYNOPSIS = Display ChimeraX Help
 COMMAND_NAME = help
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')

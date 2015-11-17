@@ -199,4 +199,4 @@ def models_added_cb(models, session):
     ms = [m for m in models if isinstance(m, Map_Series)]
     if ms:
         tool_info = session.toolshed.find_tool('map_series_gui')
-        MapSeries(session, tool_info, ms).show()
+        MapSeries(session, tool_info, series = ms).show()

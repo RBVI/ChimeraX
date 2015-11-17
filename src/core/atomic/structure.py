@@ -19,14 +19,20 @@ class AtomicStructure(AtomicStructureData, Model):
     ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
         "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
 
-    def __init__(self, name, atomic_structure_pointer = None,
+    STRUCTURE_STATE_VERSION = 0
+
+    def __init__(self, name, session, *, c_pointer = None,
                  level_of_detail = None, smart_initial_display = True):
 
-        AtomicStructureData.__init__(self, atomic_structure_pointer)
+        AtomicStructureData.__init__(self, c_pointer)
         from . import molobject
         molobject.add_to_object_map(self)
 
-        Model.__init__(self, name)
+        Model.__init__(self, name, session)
+        self._ses_handlers = [
+            self.session.triggers.add_handler("begin save session", self._begin_ses_save),
+            self.session.triggers.add_handler("end save session", self._end_ses_save)
+        ]
 
         self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
         self.bond_radius = 0.2
@@ -64,6 +70,8 @@ class AtomicStructure(AtomicStructureData, Model):
     def delete(self):
         '''Delete this structure.'''
         AtomicStructureData.delete(self)
+        for handler in self._ses_handlers:
+            self.session.triggers.delete_handler(handler)
         Model.delete(self)
 
     def copy(self, name):
@@ -907,6 +915,12 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def clear_selection_promotion_history(self):
         self._selection_promotion_history = []
+
+    def _begin_ses_save(self, *args):
+        pass
+
+    def _end_ses_save(self, args):
+        pass
 
     def surfaces(self):
         '''List of :class:`.MolecularSurface` objects for this structure.'''

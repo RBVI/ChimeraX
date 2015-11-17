@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def display(session, objects=None, what=None, only=False):
-    '''Display specified atoms, bonds or models.
+def show(session, objects=None, what=None, only=False):
+    '''Show specified atoms, bonds or models.
 
     Parameters
     ----------
@@ -75,7 +75,7 @@ def display(session, objects=None, what=None, only=False):
                 if m not in mset:
                     m.display = False
 
-def undisplay(session, objects=None, what=None):
+def hide(session, objects=None, what=None):
     '''Hide specified atoms, bonds or models.
 
     Parameters
@@ -109,15 +109,12 @@ def undisplay(session, objects=None, what=None):
             m.display = False
 
 def register_command(session):
-    from . import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, NoArg
+    from . import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, NoArg, create_alias
     what_arg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds',
                        'cartoons', 'ribbons', 'models'))
     desc = CmdDesc(optional=[('objects', Or(ObjectsArg, EmptyArg)),
                              ('what', what_arg),
                              ('only', NoArg)],
-                   synopsis='display specified objects')
-    register('display', desc, display)
-    desc = CmdDesc(optional=[('objects', Or(ObjectsArg, EmptyArg)),
-                             ('what', what_arg)],
-                   synopsis='undisplay specified objects')
-    register('~display', desc, undisplay)
+                   synopsis='show specified objects')
+    register('show', desc, show)
+    create_alias('display', 'show $*')

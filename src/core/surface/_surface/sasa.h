@@ -1,4 +1,5 @@
 // vi: set expandtab shiftwidth=4 softtabstop=4:
+
 // ----------------------------------------------------------------------------
 // Compute solvent accessible surface areas.
 //

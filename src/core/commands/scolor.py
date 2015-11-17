@@ -47,11 +47,15 @@ def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
         else:
             ai = s.atoms.mask(atoms)
             v2a = s.vertex_to_atom_map()
-            v = ai[v2a]
+            v = ai[v2a]		# Vertices for the given atoms
         if byatom:
             v2a = s.vertex_to_atom_map()
-            c = s.atoms.colors if per_atom_colors is None else per_atom_colors[atoms.mask(s.atoms)]
-            vcolors[v] = c[v2a[v],:]
+            if per_atom_colors is None:
+                c = s.atoms.colors[v2a[v],:]
+            else:
+                sa2a = s.atoms.indices(atoms)
+                c = per_atom_colors[sa2a[v2a[v]],:]
+            vcolors[v] = c
         elif not esp is None:
             cs = volume_color_source(s, esp, cmap_range = (-10,10), offset = 1.4)
             vcolors[v] = cs.vertex_colors(s)[v]

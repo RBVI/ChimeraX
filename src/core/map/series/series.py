@@ -121,7 +121,7 @@ class Map_Series(Model):
     v2.solid_levels = list(zip(levels, [b for lev,b in v1.solid_levels]))
     self.solid_level_ranks = ranks
 
-  # State save/restore in Chimera2
+  # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     pass
 

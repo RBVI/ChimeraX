@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 commands = [
     'log warn false error false',
     'open 1a0m',

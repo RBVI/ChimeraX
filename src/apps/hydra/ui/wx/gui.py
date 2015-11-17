@@ -31,7 +31,7 @@ class _FileDrop(wx.FileDropTarget):
 class MainWindow(wx.Frame):
 
     def __init__(self, session):
-        wx.Frame.__init__(self, None, title="Chimera2", size=(1000,700))
+        wx.Frame.__init__(self, None, title="ChimeraX", size=(1000,700))
 
         from wx.lib.agw.aui import AuiManager, AuiPaneInfo
         self.aui_mgr = AuiManager(self)
@@ -62,7 +62,7 @@ class MainWindow(wx.Frame):
             wx.STB_SHOW_TIPS|wx.STB_ELLIPSIZE_MIDDLE|wx.FULL_REPAINT_ON_RESIZE)
         self.status_bar.SetStatusWidths([-24, -30, -2])
         self.status_bar.SetStatusText("Status", 0)
-        self.status_bar.SetStatusText("Welcome to Chimera2", 1)
+        self.status_bar.SetStatusText("Welcome to ChimeraX", 1)
         self.status_bar.SetStatusText("", 2)
 
         self._shortcuts_enabled = False

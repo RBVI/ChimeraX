@@ -52,12 +52,12 @@ Graph<FinalGraph, Node, Edge>::delete_nodes(const std::set<Node*>& nodes)
     // remove_if doesn't swap the removed items into the end of the vector,
     // so can't just go through the tail of the vector and delete things,
     // need to delete them as part of the lambda
-    auto new_v_end = std::remove_if(_nodes.begin(), _nodes.end(),
+    auto new_n_end = std::remove_if(_nodes.begin(), _nodes.end(),
         [&nodes](Node* n) { 
             bool rm = nodes.find(n) != nodes.end();
             if (rm) delete n; return rm;
         });
-    _nodes.erase(new_v_end, _nodes.end());
+    _nodes.erase(new_n_end, _nodes.end());
 
     for (auto n: _nodes) {
         std::vector<Edge*> removals;

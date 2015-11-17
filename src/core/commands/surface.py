@@ -99,7 +99,7 @@ def surface(session, atoms = None, enclose = None, include = None,
             if s is None:
                 name = '%s_%s SES surface' % (m.name, chain_id)
                 rgba = surface_rgba(color, transparency, chain_id)
-                s = MolecularSurface(enclose_atoms, show_atoms,
+                s = MolecularSurface(session, enclose_atoms, show_atoms,
                                      probe_radius, grid_spacing, resolution, level,
                                      name, rgba, visible_patches, sharp_boundaries)
                 new_surfs.append((s,m))
@@ -117,7 +117,7 @@ def surface(session, atoms = None, enclose = None, include = None,
             parent = mols[0] if len(mols) == 1 else None
             name = 'Surface %s' % enclose.spec
             rgba = surface_rgba(color, transparency)
-            s = MolecularSurface(enclose_atoms, show_atoms,
+            s = MolecularSurface(session, enclose_atoms, show_atoms,
                                  probe_radius, grid_spacing, resolution, level,
                                  name, rgba, visible_patches, sharp_boundaries)
             new_surfs.append((s,parent))
@@ -161,6 +161,14 @@ def surface(session, atoms = None, enclose = None, include = None,
 
     return surfs
 
+# -------------------------------------------------------------------------------------
+#
+def unsurface(session, atoms = None):
+    '''
+    Hide surface for specified atoms.  Same as command "surface <spec> hide".
+    '''
+    surface(session, atoms, hide = True)
+
 def register_command(session):
     from . import CmdDesc, register, AtomsArg, FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
     _surface_desc = CmdDesc(
@@ -182,7 +190,11 @@ def register_command(session):
                    ('close', NoArg)],
         synopsis = 'create molecular surface')
     register('surface', _surface_desc, surface)
-    create_alias('~surface', 'surface hide $*')
+
+    _unsurface_desc = CmdDesc(
+        optional = [('atoms', AtomsArg)],
+        synopsis = 'hide molecular surface')
+    register('~surface', _unsurface_desc, unsurface)
 
 def check_atoms(atoms, session):
     if atoms is None:

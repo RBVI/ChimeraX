@@ -934,6 +934,17 @@ extern "C" void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, voi
     }
 }
 
+extern "C" void pseudobond_group_owner(void *pbgroups, size_t n, pyobject_t *resp)
+{
+    Proxy_PBGroup **pbgs = static_cast<Proxy_PBGroup **>(pbgroups);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            resp[i] = pbgs[i]->owner();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void pseudobond_group_num_pseudobonds(void *pbgroups, size_t n, size_t *num_pseudobonds)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
@@ -2075,6 +2086,23 @@ extern "C" void pointer_mask(void *pointer_array, size_t n, void *pointer_array2
             s.insert(pa2[i]);
         for (size_t i = 0; i != n; ++i)
             mask[i] = (s.find(pa[i]) == s.end() ? 0 : 1);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void pointer_indices(void *pointer_array, size_t n, void *pointer_array2, size_t n2, int *indices)
+{
+    void **pa = static_cast<void **>(pointer_array);
+    void **pa2 = static_cast<void **>(pointer_array2);
+    try {
+        std::map<void *,int> s;
+        for (size_t i = 0; i != n2; ++i)
+	    s[pa2[i]] = i;
+        for (size_t i = 0; i != n; ++i) {
+	    std::map<void *,int>::iterator si = s.find(pa[i]);
+	    indices[i] = (si == s.end() ? -1 : si->second);
+	}
     } catch (...) {
         molc_error();
     }

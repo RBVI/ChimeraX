@@ -88,7 +88,7 @@ def pdb_subdirs(pdb_dir = '/usr/local/pdb'):
     return subdirs
 
 def test_all_pdb_models(pdb_dirs, pdb_suffix = '.pdb',
-                        results = '/Users/goddard/ucsf/chimera2/src/hydra/sasa_results.txt',
+                        results = '/Users/goddard/ucsf/chimerax/src/hydra/sasa_results.txt',
                         npoints = 1000):
 
     from os import listdir

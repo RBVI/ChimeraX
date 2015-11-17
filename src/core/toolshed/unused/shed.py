@@ -1,7 +1,7 @@
 ORIGINAL IMPLEMENTATION
 FUNCTIONALITY MOVED INTO __init__.py
 
-"""shed - Chimera2 Tool Shed
+"""shed - ChimeraX Tool Shed
 
 The Tool Shed provides an interface for querying available and
 out-of-date packages, and for updating, installing and uninstalling
@@ -282,10 +282,10 @@ def _depends_on(graph, da, db):
 	return False
 
 #
-# Command loop using Chimera2 cli interface
+# Command loop using ChimeraX cli interface
 #
 _looping = False
-from chimera2 import cli
+from chimera.core.commands import cli
 
 def command_loop(prompt=">"):
 	"""Run an command loop using stdin and stdout."""

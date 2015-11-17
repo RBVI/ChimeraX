@@ -1,37 +1,37 @@
 <!--
-=== UCSF Chimera2 Copyright ===
+=== UCSF ChimeraX Copyright ===
 Copyright (c) 2015 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
 attached to all copies, including partial copies, of the
 software or any revisions or derivations thereof.
-=== UCSF Chimera2 Copyright ===
+=== UCSF ChimeraX Copyright ===
 -->
 
 <html>
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Target Specification in Chimera2 versus Chimera1</title>
+<title>Target Specification in ChimeraX versus Chimera</title>
 </head>
 <body>
 
 <a href="../index.html">
-<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
-class="clRight" alt="Chimera2 logo"/></a>
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
 
-<h3>Target Specification in Chimera2 versus Chimera1</h3>
+<h3>Target Specification in ChimeraX versus Chimera</h3>
 <p>
-In this page, &ldquo;Chimera1&rdquo; is used to denote UCSF Chimera.
+In this page, &ldquo;Chimera&rdquo; is used to denote UCSF Chimera.
 <font color="brown">
 Like the main <a href="atomspec.html">target specification page</a>,
 this page describes a planned scheme, some of which is not yet implemented;
 thus, some of the examples don't work.
 </font>
 <ul>
-<li> Chimera2 basic hierarchy: 
+<li> ChimeraX basic hierarchy: 
 molecule model &harr; chain &harr; residue &harr; atom
-<br>(Chimera1 hierarchy: model.submodel &harr; residue.chain &harr; atom.altloc)
+<br>(Chimera hierarchy: model.submodel &harr; residue.chain &harr; atom.altloc)
 <li> the model level can have any number of sublevels
 (model numbers N.N.N, N.N.N.N, <i>etc.</i> are possible)
 <li> residues and atoms do not have sublevels
@@ -39,7 +39,7 @@ molecule model &harr; chain &harr; residue &harr; atom
 <font color="brown">(not yet implemented)</font>
 are signaled by <b>@@</b>, <b>::</b>, and <b>##</b>, respectively,
 and are treated separately from hierarchical specifiers
-<br>(Chimera1 uses <b>@/</b>, <b>:/</b>, and <b>#/</b> and treats them
+<br>(Chimera uses <b>@/</b>, <b>:/</b>, and <b>#/</b> and treats them
 as a further restriction in the hierarchy)
 <li> there is no separate set of Boolean operators for combining attributes;
 instead the main set of operators (<b>&  | ~</b>) can be used to achieve the
@@ -54,80 +54,80 @@ use <b>@</b> instead of <b>za</b> and
 and comparators <b>&lt;=</b>, <b>&gt;=</b> have been added
 </ul>
 
-<h3>Example Translations from Chimera1 to Chimera2</h3>
+<h3>Example Translations from Chimera to ChimeraX</h3>
 
 <p>
 The following specify atoms N, CA, C, O in chain A residues 14-39 and in
-chain B residues 55-65.  Chimera2 requires an intersection (<b>&amp;</b>)
+chain B residues 55-65.  ChimeraX requires an intersection (<b>&amp;</b>)
 because chain is in the hierarchy above residue (repeated
 use of the chain symbol <b>/</b> &ldquo;resets&rdquo; 
 the successive narrowing of the specification):
 </p>
 <blockquote><b>
-<i>Chimera1</i>&nbsp;&nbsp; :14-39.a,55-65.b@n,ca,c,o 
+<i>Chimera</i>&nbsp;&nbsp; :14-39.a,55-65.b@n,ca,c,o 
 <br><br>
-<i>Chimera2</i>&nbsp;&nbsp; /a:14-39/b:55-65 & @n,ca,c,o
+<i>ChimeraX</i>&nbsp;&nbsp; /a:14-39/b:55-65 & @n,ca,c,o
 </b></blockquote>
 <p>
 The following specify atoms N, CA, C, O in chain B residues 55-65,
 plus all atoms in chain A residues 14-39.
 </p>
 <blockquote><b>
-<i>Chimera1</i>&nbsp;&nbsp; :14-39.a:55-65.b@n,ca,c,o
+<i>Chimera</i>&nbsp;&nbsp; :14-39.a:55-65.b@n,ca,c,o
 <br><br>
-<i>Chimera2</i>&nbsp;&nbsp; /a:14-39/b:55-65@n,ca,c,o 
+<i>ChimeraX</i>&nbsp;&nbsp; /a:14-39/b:55-65@n,ca,c,o 
 </b></blockquote>
 <p>
-In Chimera1, <b>&</b> (intersection) has priority over <b>|</b> (union), but
-Chimera2 allows using parentheses to make it clearer.
+In Chimera, <b>&</b> (intersection) has priority over <b>|</b> (union), but
+ChimeraX allows using parentheses to make it clearer.
 Note also the use of <b>::</b> for residue attribute:
 </p>
 <blockquote><b>
-<i>Chimera1</i>&nbsp; Ng+ | N3+ | N2+ | O2- | O3- | :/amberName=HIP & @nd1,ne2
+<i>Chimera</i>&nbsp; Ng+ | N3+ | N2+ | O2- | O3- | :/amberName=HIP & @nd1,ne2
 <br><br>
-<i>Chimera2</i>&nbsp; Ng+ | N3+ | N2+ | O2- | O3- | (::amberName=HIP & @nd1,ne2)
+<i>ChimeraX</i>&nbsp; Ng+ | N3+ | N2+ | O2- | O3- | (::amberName=HIP & @nd1,ne2)
 </b></blockquote>
 <p>
-In Chimera2, attributes are treated as separate selectors rather than part
+In ChimeraX, attributes are treated as separate selectors rather than part
 of the hierarchy, so combination symbols are required:
 </p>
 <blockquote><b>
-<i>Chimera1</i>&nbsp; @ca/bfactor>40
+<i>Chimera</i>&nbsp; @ca/bfactor>40
 <br><br>
-<i>Chimera2</i>&nbsp; @ca & @@bfactor>40
+<i>ChimeraX</i>&nbsp; @ca & @@bfactor>40
 </b></blockquote>
 <p>
-Some Chimera2 specifications have no exact Chimera1 equivalent because
+Some ChimeraX specifications have no exact Chimera equivalent because
 the desired order of operations could not be enforced without parentheses.
-For example, Chimera2 allows either of the following:
+For example, ChimeraX allows either of the following:
 </p>
 <blockquote><b>
-<i>Chimera2 command:</i>&nbsp;&nbsp; rlabel strand & (aromatic :< 4.5)
+<i>ChimeraX command:</i>&nbsp;&nbsp; rlabel strand & (aromatic :< 4.5)
 <br><br>
-<i>Chimera2 command:</i>&nbsp;&nbsp; rlabel (strand & aromatic) :< 4.5
+<i>ChimeraX command:</i>&nbsp;&nbsp; rlabel (strand & aromatic) :< 4.5
 </b></blockquote>
 <p>
 The first would label residues in &beta;-strand with any atom less
 than 4.5 &Aring; from an aromatic residue.  The second would label
 residues with any atom less than 4.5 &Aring; from residues that are both
 aromatic and in &beta;-strand. Only the first could be achieved
-directly in Chimera1:
+directly in Chimera:
 </p>
 <blockquote><b>
-<i>Chimera1 command:</i>&nbsp;&nbsp; rlabel strand & aromatic zr<4.5
+<i>Chimera command:</i>&nbsp;&nbsp; rlabel strand & aromatic zr<4.5
 </b></blockquote>
 <p>
-The second of the Chimera2 examples above could be achieved with
-a multistep process in Chimera1:
+The second of the ChimeraX examples above could be achieved with
+a multistep process in Chimera:
 </p>
 <blockquote><b>
-<i>Chimera1 command:</i>&nbsp;&nbsp; select strand & aromatic
+<i>Chimera command:</i>&nbsp;&nbsp; select strand & aromatic
 <br><br>
-<i>Chimera1 command:</i>&nbsp;&nbsp; namesel sel1
+<i>Chimera command:</i>&nbsp;&nbsp; namesel sel1
 <br><br>
-<i>Chimera1 command:</i>&nbsp;&nbsp; ~select
+<i>Chimera command:</i>&nbsp;&nbsp; ~select
 <br><br>
-<i>Chimera1 command:</i>&nbsp;&nbsp; rlabel sel1 zr<4.5
+<i>Chimera command:</i>&nbsp;&nbsp; rlabel sel1 zr<4.5
 </b></blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 

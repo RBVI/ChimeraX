@@ -52,10 +52,10 @@ def marker_settings(session):
 def marker_molecule(session):
     ms = marker_settings(session)
     m = ms['molecule']
-    if m is None:
+    if m is None or m.was_deleted:
         lod = session.atomic_level_of_detail
         from .atomic import AtomicStructure
-        ms['molecule'] = m = AtomicStructure('markers', level_of_detail = lod)
+        ms['molecule'] = m = AtomicStructure('markers', session, level_of_detail = lod)
         m.ball_scale = 1.0
         session.models.add([m])
     return m

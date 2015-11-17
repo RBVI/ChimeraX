@@ -1,11 +1,11 @@
 # vim: set expandtab ts=4 sw=4:
 
-"""cache - Chimera2 Tool Cache
+"""cache - ChimeraX Tool Cache
 
-The Tool Cache finds tools in the '''chimera2''' namespace package
+The Tool Cache finds tools in the '''chimerax''' namespace package
 and keeps track of some metadata and help file information.
 
-A '''chimera2''' tool is defined as a package with a file named
+A '''chimerax''' tool is defined as a package with a file named
 '''toolinfo.json''', whose content is key-value pairs.
 This module does not interpret the file contents but only
 makes them available to callers, which can access the contents
@@ -20,7 +20,7 @@ This modules uses the '''shed''' module for finding the per-user
 directory for storing cached data.
 """
 
-NAMESPACE_PACKAGE = "chimera2"
+NAMESPACE_PACKAGE = "chimerax"
 # NAMESPACE_PACKAGE = "shedtest"    # For testing purposes
 CACHE_FILENAME = "toolcache.json"
 TOOLINFO_FILENAME = "toolinfo.json"

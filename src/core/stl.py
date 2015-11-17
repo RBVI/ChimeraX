@@ -71,7 +71,7 @@ def open(session, filename, name, *args, **kw):
     else:
         input = _builtin_open(filename, 'rb')
 
-    model = STLModel(name)
+    model = STLModel(name, session)
 
     # parse input:
 
