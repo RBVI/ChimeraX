@@ -894,9 +894,9 @@ class ClipPlane:
         "Clip plane specified as (origin, normal) in scene coordinates."
         return (self.plane_point, self.normal)
 
-    def offset(self, point):
+    def offset(self, origin):
         from ..geometry import inner_product
-        return inner_product(point - self.plane_point, self.normal)
+        return inner_product(self.plane_point - origin, self.normal)
 
     def opengl_vec4(self):
         from ..geometry import inner_product
