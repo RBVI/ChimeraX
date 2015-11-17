@@ -488,37 +488,25 @@ class ClipMouseMode(MouseMode):
     def clip_move(self, delta_xy, near_shift, far_shift):
 
         v = self.view
-        cam = v.camera
+        planes = v.clip_planes
+        if len(planes) == 0:
+            return
 
-        # Move near far clip planes if they are enabled
-        clip = v.clip
-        normal = cam.view_direction()
-        d = delta_xy[1]*self.pixel_size()
+        # TODO: Need a way to choose clip plane when more than one shown.
+        p = planes[0]
 
-        if not clip.enabled and v.clip_scene.enabled:
-            # Move scene clip planes
-            clip = v.clip_scene
-            normal = clip.normal
-            d = self._tilt_shift(delta_xy, cam, normal)
-
-        if clip.enabled:
-            np = clip.near_point + (near_shift*d)*normal
-            fp = clip.far_point + (far_shift*d)*normal
-            from ..geometry import inner_product
-            if inner_product(fp-np,normal) > 0:
-                clip.near_point = np
-                clip.far_point = fp
-                clip.normal = normal
-                v.redraw_needed = True
+        from ..graphics import CameraClipPlane
+        if isinstance(p, CameraClipPlane):
+            # near/far clip
+            d = delta_xy[1]*self.pixel_size()
         else:
-            b = v.drawing_bounds()
-            if b is None:
-                return
-            clip.near_point = b.center() 
-            clip.far_point = b.center() + b.radius()*normal
-            clip.normal = normal
-            clip.enabled = True
-            v.redraw_needed = True
+            # Move scene clip plane
+            d = self._tilt_shift(delta_xy, v.camera, p.normal)
+
+        # TODO: If slab shown, prevent making clip plane pass through each other.
+
+        p.plane_point += d*p.normal
+        v.redraw_needed = True
 
 #        from ..commands.clip import show_surface_caps
 #        show_surface_caps(v)
