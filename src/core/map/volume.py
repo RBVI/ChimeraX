@@ -16,7 +16,7 @@ class Volume(Model):
   def __init__(self, data, session, region = None, rendering_options = None,
                model_id = None, open_model = True, message_cb = None):
 
-    Model.__init__(self, data.name)
+    Model.__init__(self, data.name, session)
 
     self.session = session
     if not model_id is None:
