@@ -1,106 +1,112 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def clip(session, enable=None, near=None, far=None, center=None, tilt=False,
-         axis=None, coordinate_system=None, cap=None):
+def clip(session, near=None, far=None, p1=None, p2=None, off=None,
+         center=None, axis=None, coordinate_system=None, cap=None):
     '''
     Enable or disable clip planes.
 
     Parameters
     ----------
-    enable : bool
-       Enable or disable clip planes
-    near, far : float
-       Distance from center of rotation for near and far clip planes.
-       Positive distances are further away, negative are closer than center.
+    near, far, p1, p2 : float
+       Distance from center of rotation for near and far clip planes that
+       remain perpendicular to view and planes p1 and p2 that rotate with models.
+       For near/far, positive distances are further away, negative are closer
+       than center.
+    off : no value
+       Turn off clipping (all planes).
     center : Center
        Near far offsets are relative to this point.  If not give then center
        of rotation is used.
-    tilt : bool
-       Effect clip planes fixed in the scene instead of perpendicular to view.
     axis : Axis
-       Normal to clip plane in tilt mode, in screen coordinates.
+       Normal to clip plane for planes p1 and p2.  Not used for near, far planes.
     coordinate_system : Model
        Coordinate system for axis, if none then screen coordinates are used.
     cap : bool
       Option for testing display of surface caps.  Will remove this later.
     '''
-    if near is not None or far is not None:
-        enable = True
-    if tilt and enable is None:
-        enable = True
 
     v = session.main_view
-    clip = v.clip_scene if tilt else v.clip
-    if enable is None:
-        msg = 'Clipping is ' + ('on' if clip.enabled else 'off')
-        log = session.logger
-        log.info(msg)
-        log.status(msg)
-        return
-
-    if enable:
-        c = v.camera
-        c0 = center.scene_coordinates(coordinate_system) if center else v.center_of_rotation
-        from ..errors import UserError
-        if c0 is None:
-            raise UserError("Can't position clip planes with nothing displayed.")
-        view_num = 0
-
-        if tilt and axis:
-            normal = axis.scene_coordinates(coordinate_system, c)
-        elif tilt and clip.enabled:
-            normal = clip.normal
+    have_offset = not (near is None and far is None and p1 is None and p2 is None)
+    if not have_offset and off is None:
+        if v.clip_planes:
+            report_clip_info(v, session.logger)
+            return
         else:
-            normal = c.view_direction(view_num)
+            p1 = 0
+            have_offset = True
 
-        if near is not None:
-            np = c0 + near*normal
-        elif not clip.enabled:
-            np = c0
-        else:
-            np = clip.near_point
+    if off:
+        v.clip_planes = []
 
-        if far is not None:
-            fp = c0 + far*normal
-        elif not clip.enabled:
-            b = v.drawing_bounds()
-            if b is None:
-                raise UserError("Can't position clip planes with nothing displayed.")
-            fp = b.center() + b.radius()*normal
-        else:
-            fp = clip.far_point
+    if have_offset:
+        origin = plane_origin(v, center, coordinate_system)
+        cam = v.camera
+        adjust_near_far_planes(near, far, origin, v.clip_planes, cam)
+        normal = None if axis is None else axis.scene_coordinates(coordinate_system, cam)
+        adjust_scene_planes(p1, p2, origin, normal, v.clip_planes, cam)
 
-        from ..geometry import inner_product
-        if inner_product(np-fp,normal) > 0:
-            raise UserError("Near clip plane is beyond far clip plane.")
-    else:
-        np = fp = normal = None
-        if not clip.enabled and v.clip_scene.enabled:
-            clip = v.clip_scene
-
-    clip.near_point = np
-    clip.far_point = fp
-    clip.normal = normal
-    clip.enabled = enable
     v.redraw_needed = True
 
     if cap:
         show_surface_caps(v)
 
-def register_command(session):
-    from .cli import CmdDesc, register, BoolArg, FloatArg, NoArg, AxisArg, ModelArg, CenterArg
-    desc = CmdDesc(
-        optional=[('enable', BoolArg)],
-        keyword=[('near', FloatArg),
-                 ('far', FloatArg),
-                 ('center', CenterArg),
-                 ('tilt', NoArg),
-                 ('axis', AxisArg),
-                 ('coordinate_system', ModelArg),
-                 ('cap', BoolArg)],
-        synopsis='set clip planes'
-    )
-    register('clip', desc, clip)
+def plane_origin(view, center, origin):
+    if center is None:
+        b = view.drawing_bounds()
+        if b is None:
+            raise UserError("Can't position clip planes relative to center "
+                            " of displayed models since nothing is displayed.")
+        c0 = b.center()
+    else:
+        c0 = center.scene_coordinates(coordinate_system)
+    return c0
+
+def adjust_near_far_planes(near, far, origin, planes, camera):
+    for name, offset, axis in (('near', near, (0,0,-1)), ('far', far, (0,0,1))):
+        if offset is None:
+            continue
+        plane_point = origin + offset * camera.view_direction()
+        p = find_plane(planes, name)
+        if p is None:
+            from ..graphics import CameraClipPlane
+            p = CameraClipPlane((0,0,-1), plane_point, camera.position)
+            p.name = name
+            planes.append(p)
+        else:
+            p.plane_point = plane_point
+
+def adjust_scene_planes(p1, p2, origin, normal, planes, camera):
+    for name, offset in (('p1', p1), ('p2', p2)):
+        if offset is None:
+            continue
+        p = find_plane(planes, name)
+        if p is None:
+            n = camera.view_direction() if normal is None else normal
+            plane_point = origin + offset * n
+            from ..graphics import ClipPlane
+            p = ClipPlane(n, plane_point)
+            p.name = name
+            planes.append(p)
+        else:
+            n = p.normal if normal is None else normal
+            p.plane_point = origin + offset * n
+
+def find_plane(planes, name):
+    np = [p for p in planes if hasattr(p, 'name') and p.name == name]
+    return np[0] if len(np) >= 1 else None
+        
+def report_clip_info(viewer, log):
+    # Report current clip planes.
+    planes = viewer.clip_planes
+    if planes:
+        b = viewer.drawing_bounds()
+        c0 = b.center() if b else (0,0,0)
+        pinfo = ['%s %.5g' % (getattr(p, 'name', 'unknown'),  p.offset(c0)) for p in planes]
+        msg = 'Using %d clip planes: %s' % (len(planes), ', '.join(pinfo))
+    else:
+        msg = 'Clipping is off'
+    log.info(msg)
+    log.status(msg)
 
 def show_surface_caps(view):
     drawings = view.drawing.all_drawings()
@@ -130,3 +136,20 @@ def show_surface_clip_caps(clip, drawings, cap_name, offset = 0.01):
         for d in drawings:
             if d.name == cap_name:
                 d.display = False
+
+def register_command(session):
+    from .cli import CmdDesc, register, FloatArg, NoArg, AxisArg, ModelArg, CenterArg
+    desc = CmdDesc(
+        optional=[],
+        keyword=[('near', FloatArg),
+                 ('far', FloatArg),
+                 ('p1', FloatArg),
+                 ('p2', FloatArg),
+                 ('off', NoArg),
+                 ('center', CenterArg),
+                 ('axis', AxisArg),
+                 ('coordinate_system', ModelArg),
+                 ('cap', NoArg)],
+        synopsis='set clip planes'
+    )
+    register('clip', desc, clip)
