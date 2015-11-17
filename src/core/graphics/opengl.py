@@ -319,6 +319,8 @@ class Render:
         p = self.current_shader_program
         if p is None:
             return
+        if not p.capabilities & self.SHADER_LIGHTING:
+            return
 
         lp = self.lighting
         mp = self.material
