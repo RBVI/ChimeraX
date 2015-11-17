@@ -634,7 +634,7 @@ def common_startup(sess):
     sess.update_loop = UpdateLoop()
     from .atomic import PseudobondManager, ChangeTracker, LevelOfDetail
     sess.change_tracker = ChangeTracker()
-    sess.pb_manager = PseudobondManager(sess.change_tracker)
+    sess.pb_manager = PseudobondManager(sess)
     sess.atomic_level_of_detail = LevelOfDetail()
 
     from . import commands

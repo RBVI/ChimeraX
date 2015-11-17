@@ -35,7 +35,7 @@ def split(session, molecules = None, chains = None, ligands = False, connected =
     for m in molecules:
         clist = split_molecule(m, chains, ligands, connected, atoms)
         if clist:
-            parent = Model(m.name)
+            parent = Model(m.name, session)
             parent.id = m.id
             for i, c in enumerate(clist):
                 c.id = parent.id + (i+1,)

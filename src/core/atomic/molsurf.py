@@ -20,6 +20,8 @@ class MolecularSurface(Generic3DModel):
 
     Parameters
     ----------
+    session : :class:`~chimera.core.session.Session`
+      The session the surface model will belong to
     enclose_atoms : :class:`.Atoms`
       Surface bounds these atoms.
     show_atoms : :class:`.Atoms`
@@ -52,10 +54,10 @@ class MolecularSurface(Generic3DModel):
       triangle edges lie exactly between atoms. This creates less jagged
       edges when showing or coloring patches of surfaces for a subset of atoms.
     '''
-    def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing,
+    def __init__(self, session, enclose_atoms, show_atoms, probe_radius, grid_spacing,
                  resolution, level, name, color, visible_patches, sharp_boundaries):
         
-        Generic3DModel.__init__(self, name)
+        Generic3DModel.__init__(self, name, session)
 
         self.atoms = enclose_atoms
         self.show_atoms = show_atoms	# Atoms for surface patch to show
