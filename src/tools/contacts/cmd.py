@@ -27,8 +27,11 @@ def contacts(session, atoms = None, probe_radius = 1.4):
     log.info(msg)
     log.status(msg)
 
-    from . import gui
-    gui.show_contact_graph(areas, ba, sn, session)
+    if session.ui.is_gui:
+        from . import gui
+        gui.show_contact_graph(areas, ba, sn, session)
+    else:
+        log.warning("unable to show graph without GUI")
 
 def atom_spheres(atoms, session):
     if atoms is None:
