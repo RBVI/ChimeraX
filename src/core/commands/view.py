@@ -40,7 +40,8 @@ def view(session, objects=None, clip=True, cofr=True, show=None, frames=None,
         if name is None and show is None and not list and delete is None:
             v.view_all()
             v.center_of_rotation_method = 'front center'
-            v.clip.enabled = False
+            v.set_clip_position('near', None)
+            v.set_clip_position('far', None)
     else:
         view_objects(objects, v, clip, cofr)
     if name is not None:
@@ -66,10 +67,9 @@ def view_objects(objects, v, clip, cofr):
     if cofr:
         v.center_of_rotation = c
     if clip:
-        clip = v.clip
-        clip.normal = vd = v.camera.view_direction()
-        clip.near_point, clip.far_point = c - r*vd, c + r*vd
-        clip.enabled = True
+        vd = v.camera.view_direction()
+        v.set_clip_position('near', c - r*vd)
+        v.set_clip_position('far', c + r*vd)
 
 def save_view(name, session):
     nv = _named_views(session)
@@ -113,14 +113,11 @@ def _named_views(session):
 class _View:
     camera_attributes = ('position', 'field_of_view', 'field_width',
                          'eye_separation_scene', 'eye_separation_pixels')
-    clip_attributes = ('enabled', 'near_point', 'far_point', 'normal')
     def __init__(self, view, look_at, models):
         camera = view.camera
         self.camera = {attr:getattr(camera, attr)
                        for attr in self.camera_attributes if hasattr(camera, attr)}
-        cattr = self.clip_attributes
-        self.clip = {attr:getattr(view.clip, attr) for attr in cattr}
-        self.clip_scene = {attr:getattr(view.clip_scene, attr) for attr in cattr}
+        self.clip_planes = [p.copy() for p in view.clip_planes]
 
         # Scene point which is focus of attention used when
         # interpolating between two views so that the focus
@@ -138,10 +135,7 @@ class _View:
             setattr(view.camera, attr, value)
 
         # Set clip planes.
-        for attr, value in self.clip.items():
-            setattr(view.clip, attr, value)
-        for attr, value in self.clip_scene.items():
-            setattr(view.clip_scene, attr, value)
+        view.clip_planes = [p.copy() for p in self.clip_planes]
 
         # Set model positions
         pos = self.positions
@@ -174,8 +168,7 @@ class _InterpolateViews:
 
 def _interpolate_views(v1, v2, f, view, centers):
     _interpolate_camera(v1, v2, f, view.camera)
-    _interpolate_clip_planes(v1, v2, f, view, 'clip')
-    _interpolate_clip_planes(v1, v2, f, view, 'clip_scene')
+    _interpolate_clip_planes(v1, v2, f, view)
     _interpolate_model_positions(v1, v2, centers, f)
 
 def _interpolate_camera(v1, v2, f, camera):
@@ -204,18 +197,20 @@ def _interpolate_camera(v1, v2, f, camera):
 
     camera.redraw_needed = True
 
-def _interpolate_clip_planes(v1, v2, f, view, clip_attr):
+def _interpolate_clip_planes(v1, v2, f, view):
     # Currently interpolate only if both states have clipping enabled and
-    # clip plane normal is identical.
-    c1, c2 = getattr(v1, clip_attr), getattr(v2, clip_attr)
-    if c1['enabled'] and c2['enabled']:
-        from numpy import array_equal
-        if array_equal(c1['normal'], c2['normal']):
-            c = getattr(view, clip_attr)
-            c.enabled = True
-            c.normal = c1['normal']
-            c.near_point = (1-f)*c1['near_point'] + f*c2['near_point']
-            c.far_point = (1-f)*c1['far_point'] + f*c2['far_point']
+    # clip plane scene normal is identical.
+    p1 = {p.name:p for p in v1.clip_planes}
+    p2 = {p.name:p for p in v2.clip_planes}
+    pv = {p.name:p for p in view.clip_planes}
+    from numpy import array_equal
+    for name in p1:
+        if name in p2 and name in pv:
+            p1n, p2n, pvn = p1[name], p2[name], pv[name]
+            if array_equal(p1n.normal, p2n.normal):
+                pvn.normal = p1n.normal
+                pvn.plane_point = (1-f)*p1n.plane_point + f*p2n.plane_point
+                # TODO: Update pv._last_distance
     
 def _interpolate_model_positions(v1, v2, centers, f):
     # Only interplates models with positions in both views that have not changed number of instances.

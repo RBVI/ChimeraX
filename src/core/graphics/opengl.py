@@ -295,6 +295,8 @@ class Render:
             p.set_float4('clip_planes', cp, len(cp))
             for i in range(len(cp)):
                 GL.glEnable(GL.GL_CLIP_DISTANCE0 + i)
+            for i in range(len(cp), self._num_enabled_clip_planes):
+                GL.glDisable(GL.GL_CLIP_DISTANCE0 + i)
             self._num_enabled_clip_planes = len(cp)
         else:
             for i in range(self._num_enabled_clip_planes):

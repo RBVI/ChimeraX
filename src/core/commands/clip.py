@@ -65,12 +65,12 @@ def adjust_near_far_planes(near, far, origin, planes, camera):
     for name, offset, axis in (('near', near, (0,0,-1)), ('far', far, (0,0,1))):
         if offset is None:
             continue
-        plane_point = origin + offset * camera.view_direction()
+        normal = camera.position.apply_without_translation(axis)
+        plane_point = origin - offset * normal
         p = find_plane(planes, name)
         if p is None:
-            from ..graphics import CameraClipPlane
-            p = CameraClipPlane((0,0,-1), plane_point, camera.position)
-            p.name = name
+            from ..graphics import ClipPlane
+            p = ClipPlane(name, normal, plane_point, axis)
             planes.append(p)
         else:
             p.plane_point = plane_point
@@ -82,9 +82,9 @@ def adjust_scene_planes(p1, p2, origin, normal, planes, camera):
         p = find_plane(planes, name)
         if p is None:
             n = camera.view_direction() if normal is None else normal
-            plane_point = origin + offset * n
+            plane_point = origin - offset * n
             from ..graphics import ClipPlane
-            p = ClipPlane(n, plane_point)
+            p = ClipPlane(name, n, plane_point)
             p.name = name
             planes.append(p)
         else:
@@ -92,7 +92,7 @@ def adjust_scene_planes(p1, p2, origin, normal, planes, camera):
             p.plane_point = origin + offset * n
 
 def find_plane(planes, name):
-    np = [p for p in planes if hasattr(p, 'name') and p.name == name]
+    np = [p for p in planes if p.name == name]
     return np[0] if len(np) >= 1 else None
         
 def report_clip_info(viewer, log):
@@ -101,7 +101,7 @@ def report_clip_info(viewer, log):
     if planes:
         b = viewer.drawing_bounds()
         c0 = b.center() if b else (0,0,0)
-        pinfo = ['%s %.5g' % (getattr(p, 'name', 'unknown'),  p.offset(c0)) for p in planes]
+        pinfo = ['%s %.5g' % (p.name,  p.offset(c0)) for p in planes]
         msg = 'Using %d clip planes: %s' % (len(planes), ', '.join(pinfo))
     else:
         msg = 'Clipping is off'

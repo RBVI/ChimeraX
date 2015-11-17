@@ -776,6 +776,24 @@ class View:
             far = 2 * near
         return (near, far)
 
+    def set_clip_position(self, name, point):
+        planes = set(p for p in self.clip_planes if p.name == name)
+        if point is None:
+            self.clip_planes = [p for p in self.clip_planes if p not in planes]
+        elif planes:
+            for p in planes:
+                p.plane_point = point
+        elif name in ('near', 'far'):
+            camera_normal = (0,0,(-1 if name == 'near' else 1))
+            normal = self.camera.position.apply_without_translation(camera_normal)
+            p = ClipPlane(name, normal, point, camera_normal)
+            self.clip_planes.append(p)
+        else:
+            normal = self.camera.view_direction()
+            p = ClipPlane(name, normal, point)
+            self.clip_planes.append(p)
+        self.redraw_needed = True
+
     def clip_plane_points(self, window_x, window_y, camera=None, view_num=None):
         '''
         Return two scene points at the near and far clip planes at
@@ -846,8 +864,7 @@ class View:
         if cp:
             render.enable_capabilities |= render.SHADER_CLIP_PLANES
             for p in cp:
-                if isinstance(p, CameraClipPlane):
-                    p.update_direction(self.camera.position)
+                p.update_direction(self.camera.position)
             planes = tuple(p.opengl_vec4() for p in cp)
             render.set_clip_parameters(planes)
         else:
@@ -855,10 +872,23 @@ class View:
 
 
 class ClipPlane:
+    '''
+    Clip plane that is either fixed in scene coordinates or camera coordinates (near/far planes).
+    Normal vector and  plane point are given in scene coordinates. If clip plane is fixed in
+    camera coordinates, then camera_normal is given in camera coordinates.
+    '''
 
-    def __init__(self, normal, plane_point):
-        self.plane_point = plane_point	# Point on clip plane
+    def __init__(self, name, normal, plane_point, camera_normal = None):
+        self.name = name
         self.normal = normal		# Vector perpendicular to plane, points toward shown half-space
+        self.plane_point = plane_point	# Point on clip plane
+        self.camera_normal = camera_normal # Used for near/far clip planes, normal in camera coords.
+        self._last_distance = None	# For handling rotation with camera_normal.
+
+    def copy(self):
+        p = ClipPlane(self.name, self.normal.copy(), self.plane_point.copy(), self.camera_normal)
+        p._last_distance = self._last_distance
+        return p
 
     def plane(self):
         "Clip plane specified as (origin, normal) in scene coordinates."
@@ -866,7 +896,7 @@ class ClipPlane:
 
     def offset(self, point):
         from ..geometry import inner_product
-        return inner_product(self.plane_point - point, self.normal)
+        return inner_product(point - self.plane_point, self.normal)
 
     def opengl_vec4(self):
         from ..geometry import inner_product
@@ -874,19 +904,11 @@ class ClipPlane:
         c0 = inner_product(n, self.plane_point)
         return (nx, ny, nz, -c0)
 
-class CameraClipPlane(ClipPlane):
-    '''
-    Clip plane that remains perpendicular to camera view direction.
-    Normal vector is given in camera coordinates, plane point is in scene coordinates.
-    '''
-    def __init__(self, normal, plane_point, cam_pos):
-        scene_normal = cam_pos.apply_without_translation(normal)
-        ClipPlane.__init__(self, scene_normal, plane_point)
-        self.axis = normal			# In camera coordinates
-        self._last_distance = None		# For handling rotation
-
     def update_direction(self, camera_position):
-        vd = camera_position.apply_without_translation(self.axis)
+        cn = self.camera_normal
+        if cn is None:
+            return
+        vd = camera_position.apply_without_translation(cn)
         cp = camera_position.origin()
         p, lvd = self.plane_point, self.normal
         from numpy import array_equal

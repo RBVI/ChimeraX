@@ -495,17 +495,16 @@ class ClipMouseMode(MouseMode):
         # TODO: Need a way to choose clip plane when more than one shown.
         p = planes[0]
 
-        from ..graphics import CameraClipPlane
-        if isinstance(p, CameraClipPlane):
-            # near/far clip
-            d = delta_xy[1]*self.pixel_size()
-        else:
+        if p.camera_normal is None:
             # Move scene clip plane
             d = self._tilt_shift(delta_xy, v.camera, p.normal)
+        else:
+            # near/far clip
+            d = delta_xy[1]*self.pixel_size()
 
         # TODO: If slab shown, prevent making clip plane pass through each other.
 
-        p.plane_point += d*p.normal
+        p.plane_point = p.plane_point + d*p.normal
         v.redraw_needed = True
 
 #        from ..commands.clip import show_surface_caps
