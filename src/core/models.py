@@ -41,13 +41,15 @@ class Model(State, Drawing):
     SESSION_SKIP = False
     tool_info = None    # default, should be set in subclass
 
-    def __init__(self, name):
+    def __init__(self, name, session):
         Drawing.__init__(self, name)
+        self.session = session
         self.id = None
         # TODO: track.created(Model, [self])
 
     def delete(self):
         Drawing.delete(self)
+        delattr(self, "session")
 
     def id_string(self):
         return '.'.join(str(i) for i in self.id)
@@ -109,7 +111,7 @@ class Models(State):
         session.triggers.add_trigger(REMOVE_MODELS)
         self._models = {}
         from .graphics.drawing import Drawing
-        self.drawing = r = Model("root")
+        self.drawing = r = Model("root", session)
         r.id = ()
 
     def take_snapshot(self, session, flags):
@@ -210,7 +212,7 @@ class Models(State):
         return id
 
     def add_group(self, models, name='group'):
-        parent = Model(name)
+        parent = Model(name, self._session())
         parent.add(models)
         m_all = self.add([parent])
         return [parent] + m_all

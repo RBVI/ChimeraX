@@ -934,6 +934,17 @@ extern "C" void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, voi
     }
 }
 
+extern "C" void pseudobond_group_owner(void *pbgroups, size_t n, pyobject_t *resp)
+{
+    Proxy_PBGroup **pbgs = static_cast<Proxy_PBGroup **>(pbgroups);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            resp[i] = pbgs[i]->owner();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void pseudobond_group_num_pseudobonds(void *pbgroups, size_t n, size_t *num_pseudobonds)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
