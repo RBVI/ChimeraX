@@ -632,12 +632,10 @@ class Volume(Model):
     elif show_mesh: lit = ro.mesh_lighting
     else:           lit = True
     p.use_lighting = lit
-
     p.twoSidedLighting = ro.two_sided_lighting
-
     p.lineThickness = ro.line_thickness
-
     p.smoothLines = ro.smooth_lines
+    p.clip_cap = True
 
 #     if ro.dim_transparency:
 #       bmode = p.SRC_ALPHA_DST_1_MINUS_ALPHA

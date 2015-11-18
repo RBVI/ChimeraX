@@ -30,7 +30,7 @@ class View:
         from .camera import MonoCamera
         self._camera = MonoCamera()
 
-        self.clip_planes = []			# ClipPlane objects
+        self.clip_planes = ClipPlanes()
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
 
@@ -135,7 +135,7 @@ class View:
         mdraw = [self.drawing] if drawings is None else drawings
 
         r = self._render
-        self.enable_clip_planes(r)
+        self.clip_planes.enable_clip_planes(r, camera.position)
 
         if self.shadows:
             # Light direction in camera coords
@@ -213,26 +213,34 @@ class View:
             trig.activate_trigger('graphics update', self)
 
         c = self.camera
+        cp = self.clip_planes
         dm = self._drawing_manager
-        draw = self.redraw_needed or c.redraw_needed or dm.redraw_needed
+        draw = self.redraw_needed or c.redraw_needed or cp.changed or dm.redraw_needed
         if not draw:
             return False
 
         if dm.shape_changed:
             if trig:
                 trig.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
+
+        if dm.shape_changed or cp.changed:
             self._update_center_of_rotation = True
 
-        if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
+        if self.multishadow > 0 and ((dm.redraw_needed and dm.shape_changed) or cp.changed):
             self._multishadow_update_needed = True
 
         c.redraw_needed = False
+        cp.changed = False
         dm.redraw_needed = False
         dm.shape_changed = False
 
         self.redraw_needed = True
 
         return True
+
+    @property
+    def shape_changed(self):
+        return self._drawing_manager.shape_changed
 
     def get_background_color(self):
         return self._background_rgba
@@ -776,24 +784,6 @@ class View:
             far = 2 * near
         return (near, far)
 
-    def set_clip_position(self, name, point):
-        planes = set(p for p in self.clip_planes if p.name == name)
-        if point is None:
-            self.clip_planes = [p for p in self.clip_planes if p not in planes]
-        elif planes:
-            for p in planes:
-                p.plane_point = point
-        elif name in ('near', 'far'):
-            camera_normal = (0,0,(-1 if name == 'near' else 1))
-            normal = self.camera.position.apply_without_translation(camera_normal)
-            p = ClipPlane(name, normal, point, camera_normal)
-            self.clip_planes.append(p)
-        else:
-            normal = self.camera.view_direction()
-            p = ClipPlane(name, normal, point)
-            self.clip_planes.append(p)
-        self.redraw_needed = True
-
     def clip_plane_points(self, window_x, window_y, camera=None, view_num=None):
         '''
         Return two scene points at the near and far clip planes at
@@ -807,7 +797,7 @@ class View:
         near, far = self._near_far_distances(c, view_num)
         cplanes = [(origin + near*direction, direction), 
                    (origin + far*direction, -direction)]
-        cplanes.extend([p.plane() for p in self.clip_planes])
+        cplanes.extend((p.plane_point, p.normal) for p in self.clip_planes.planes())
         from .. import geometry
         f0, f1 = geometry.ray_segment(origin, direction, cplanes)
         if f1 is None or f0 > f1:
@@ -859,17 +849,76 @@ class View:
             p = self.center_of_rotation
         return self.camera.view_width(p) / self.window_size[0]
 
-    def enable_clip_planes(self, render):
-        cp = self.clip_planes
+
+class ClipPlanes:
+    '''
+    Manage multiple clip planes and track when any change so that redrawing is done.
+    '''
+    def __init__(self):
+        self._clip_planes = []		# List of ClipPlane
+        self._changed = False
+
+    def planes(self):
+        return self._clip_planes
+
+    def add_plane(self, p):
+        self._clip_planes.append(p)
+        self._changed = True
+
+    def find_plane(self, name):
+        np = [p for p in self._clip_planes if p.name == name]
+        return np[0] if len(np) == 1 else None
+
+    def replace_planes(self, planes):
+        self._clip_planes = planes
+        self._changed = True
+
+    def remove_plane(self, name):
+        self._clip_planes = [p for p in self._clip_planes if p.name != name]
+        self._changed = True
+
+    def _get_changed(self):
+        return self._changed or len([p for p in self._clip_planes if p._changed]) > 0
+    def _set_changed(self, changed):
+        self._changed  = changed
+        for p in self._clip_planes:
+            p._changed = changed
+    changed = property(_get_changed, _set_changed)
+
+    def have_camera_plane(self):
+        for p in self._clip_planes:
+            if p.camera_normal is not None:
+                return True
+        return False
+
+    def clear(self):
+        self._clip_planes = []
+        self._changed = True
+
+    def set_clip_position(self, name, point, camera):
+        p = self.find_plane(name)
+        if p:
+            p.plane_point = point
+        elif name in ('near', 'far'):
+            camera_normal = (0,0,(-1 if name == 'near' else 1))
+            normal = camera.position.apply_without_translation(camera_normal)
+            p = ClipPlane(name, normal, point, camera_normal)
+            self.add_plane(p)
+        else:
+            normal = camera.view_direction()
+            p = ClipPlane(name, normal, point)
+            self.add_plane(p)
+
+    def enable_clip_planes(self, render, camera_position):
+        cp = self._clip_planes
         if cp:
             render.enable_capabilities |= render.SHADER_CLIP_PLANES
             for p in cp:
-                p.update_direction(self.camera.position)
+                p.update_direction(camera_position)
             planes = tuple(p.opengl_vec4() for p in cp)
             render.set_clip_parameters(planes)
         else:
             render.enable_capabilities &= ~render.SHADER_CLIP_PLANES
-
 
 class ClipPlane:
     '''
@@ -884,15 +933,17 @@ class ClipPlane:
         self.plane_point = plane_point	# Point on clip plane
         self.camera_normal = camera_normal # Used for near/far clip planes, normal in camera coords.
         self._last_distance = None	# For handling rotation with camera_normal.
+        self._changed = False
+
+    def __setattr__(self, key, value):
+        if key in ('normal', 'plane_point', 'camera_normal'):
+            self._changed = True
+        super(ClipPlane, self).__setattr__(key, value)
 
     def copy(self):
         p = ClipPlane(self.name, self.normal.copy(), self.plane_point.copy(), self.camera_normal)
         p._last_distance = self._last_distance
         return p
-
-    def plane(self):
-        "Clip plane specified as (origin, normal) in scene coordinates."
-        return (self.plane_point, self.normal)
 
     def offset(self, origin):
         from ..geometry import inner_product
@@ -912,11 +963,12 @@ class ClipPlane:
         cp = camera_position.origin()
         p, lvd = self.plane_point, self.normal
         from numpy import array_equal
-        if not array_equal(vd, lvd) and self._last_distance is not None:
-            # Adjust plane point when view direction changes.
-            # Place at the last distance.
-            self.plane_point = p = cp + vd*self._last_distance
-        self.normal = vd
+        if not array_equal(vd, lvd):
+            if self._last_distance is not None:
+                # Adjust plane point when view direction changes.
+                # Place at the last distance.
+                self.plane_point = p = cp + vd*self._last_distance
+            self.normal = vd
         from ..geometry import inner_product
         self._last_distance = inner_product(p - cp, vd)
 

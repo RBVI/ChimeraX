@@ -28,24 +28,24 @@ def clip(session, near=None, far=None, p1=None, p2=None, slab=None, list=None, o
     '''
 
     v = session.main_view
+    planes = v.clip_planes
     if list:
         report_clip_info(v, session.logger)
 
     have_offset = not (near is None and far is None and p1 is None and p2 is None)
     if not have_offset and off is None:
-        if find_plane(v.clip_planes, 'p1'):
+        if planes.find_plane('p1'):
             return
         else:
             p1 = 0
             have_offset = True
 
     if off:
-        v.clip_planes = []
+        planes.clear()
 
     if have_offset:
         origin = plane_origin(v, position, coordinate_system)
         cam = v.camera
-        planes = v.clip_planes
         from numpy import array, float32
         z = array((0,0,1), float32)
         if near is not None and far is not None:
@@ -63,8 +63,6 @@ def clip(session, near=None, far=None, p1=None, p2=None, slab=None, list=None, o
         elif p2 is not None:
             adjust_plane('p2', p2, origin, normal, planes, cam)
 
-    v.redraw_needed = True
-
     if cap:
         show_surface_caps(v)
 
@@ -81,19 +79,19 @@ def plane_origin(view, position, coordinate_system):
 
 def adjust_plane(name, offset, origin, normal, planes, camera, camera_normal = None):
     if offset == 'off':
-        remove_plane(planes, name)
+        planes.remove_plane(name)
         return
 
     if camera_normal is not None:
         normal = camera.position.apply_without_translation(camera_normal)
 
-    p = find_plane(planes, name)
+    p = planes.find_plane(name)
     if p is None:
         n = camera.view_direction() if normal is None else normal
         plane_point = origin + offset * n
         from ..graphics import ClipPlane
         p = ClipPlane(name, n, plane_point, camera_normal)
-        planes.append(p)
+        planes.add_plane(p)
     else:
         n = p.normal if normal is None else normal
         p.plane_point = origin + offset * n
@@ -109,7 +107,7 @@ def adjust_slab(name1, offset1, name2, offset2, origin, normal, planes, camera,
 
     if normal is None and camera_normal is None:
         # Use an existing plane normal if one exists.
-        p1, p2 = find_plane(planes, name1), find_plane(planes, name2)
+        p1, p2 = planes.find_plane(name1), planes.find_plane(name2)
         if p1 is not None:
             normal = p1.normal
         elif p2 is not None:
@@ -121,19 +119,10 @@ def adjust_slab(name1, offset1, name2, offset2, origin, normal, planes, camera,
     n2 = None if normal is None else -normal
     cn2 = None if camera_normal is None else -camera_normal
     adjust_plane(name2, -offset2, origin, n2, planes, camera, cn2)
-
-def find_plane(planes, name):
-    np = [p for p in planes if p.name == name]
-    return np[0] if len(np) >= 1 else None
-
-def remove_plane(planes, name):
-    rp = [p for p in planes if p.name == name]
-    for p in rp:
-        planes.remove(p)
         
 def report_clip_info(viewer, log):
     # Report current clip planes.
-    planes = viewer.clip_planes
+    planes = viewer.clip_planes.planes()
     if planes:
         b = viewer.drawing_bounds()
         c0 = b.center() if b else (0,0,0)
@@ -143,36 +132,6 @@ def report_clip_info(viewer, log):
         msg = 'Clipping is off'
     log.info(msg)
     log.status(msg)
-
-def show_surface_caps(view):
-    drawings = view.drawing.all_drawings()
-    show_surface_clip_caps(view.clip_planes, drawings)
-
-def show_surface_clip_caps(clip_planes, drawings, offset = 0.01):
-    for p in clip_planes:
-        normal = p.normal
-        from ..geometry import inner_product
-        poffset = inner_product(normal, p.plane_point) + offset
-        cap_name = 'cap ' + p.name
-        for d in drawings:
-            if d.triangles is not None and not d.name.startswith('cap'):
-                from ..surface import compute_cap
-                cvarray, ctarray = compute_cap(normal, poffset, d.vertices, d.triangles)
-                mcap = [cm for cm in d.child_drawings() if cm.name == cap_name]
-#                print ('showing cap for', d.name, 'triangles', len(ctarray), 'have', len(mcap),
-#                       'normal', normal, 'offset', poffset)
-                cm = mcap[0] if mcap else d.new_drawing(cap_name)
-                cm.vertices = cvarray
-                cm.triangles = ctarray
-                n = cvarray.copy()
-                n[:] = normal
-                cm.normals = n
-                cm.display = True
-
-    cap_names = set('cap ' + p.name for p in clip_planes)
-    for d in drawings:
-        if d.name.startswith('cap') and d.name not in cap_names:
-            d.display = False
 
 def register_command(session):
     from .cli import CmdDesc, register, FloatArg, NoArg, AxisArg, ModelArg, CenterArg, Or, EnumOf

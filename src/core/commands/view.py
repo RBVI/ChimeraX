@@ -40,8 +40,9 @@ def view(session, objects=None, clip=True, cofr=True, show=None, frames=None,
         if name is None and show is None and not list and delete is None:
             v.view_all()
             v.center_of_rotation_method = 'front center'
-            v.set_clip_position('near', None)
-            v.set_clip_position('far', None)
+            cp = v.clip_planes
+            cp.remove_plane('near')
+            cp.remove_plane('far')
     else:
         view_objects(objects, v, clip, cofr)
     if name is not None:
@@ -67,9 +68,11 @@ def view_objects(objects, v, clip, cofr):
     if cofr:
         v.center_of_rotation = c
     if clip:
-        vd = v.camera.view_direction()
-        v.set_clip_position('near', c - r*vd)
-        v.set_clip_position('far', c + r*vd)
+        cam = v.camera
+        vd = cam.view_direction()
+        cp = v.clip_planes
+        cp.set_clip_position('near', c - r*vd, cam)
+        cp.set_clip_position('far', c + r*vd, cam)
 
 def save_view(name, session):
     nv = _named_views(session)
@@ -117,7 +120,7 @@ class _View:
         camera = view.camera
         self.camera = {attr:getattr(camera, attr)
                        for attr in self.camera_attributes if hasattr(camera, attr)}
-        self.clip_planes = [p.copy() for p in view.clip_planes]
+        self.clip_planes = [p.copy() for p in view.clip_planes.planes()]
 
         # Scene point which is focus of attention used when
         # interpolating between two views so that the focus
@@ -135,7 +138,7 @@ class _View:
             setattr(view.camera, attr, value)
 
         # Set clip planes.
-        view.clip_planes = [p.copy() for p in self.clip_planes]
+        view.clip_planes.replace_planes([p.copy() for p in self.clip_planes])
 
         # Set model positions
         pos = self.positions
@@ -144,8 +147,6 @@ class _View:
                 p = pos[m]
                 if m.positions is not p:
                     m.positions = p
-
-        view.redraw_needed = True
 
 class _InterpolateViews:
     def __init__(self, v1, v2, frames, session):
@@ -202,7 +203,7 @@ def _interpolate_clip_planes(v1, v2, f, view):
     # clip plane scene normal is identical.
     p1 = {p.name:p for p in v1.clip_planes}
     p2 = {p.name:p for p in v2.clip_planes}
-    pv = {p.name:p for p in view.clip_planes}
+    pv = {p.name:p for p in view.clip_planes.planes()}
     from numpy import array_equal
     for name in p1:
         if name in p2 and name in pv:

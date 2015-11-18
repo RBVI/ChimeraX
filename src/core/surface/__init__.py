@@ -11,3 +11,4 @@ from ._surface import connected_triangles, sharp_edge_patches, unique_vertex_map
 from ._surface import compute_cap
 from .dust import largest_blobs_triangle_mask
 from .gaussian import gaussian_surface
+from .cap import update_clip_caps
