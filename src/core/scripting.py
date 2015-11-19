@@ -73,7 +73,7 @@ def open_ch(session, filename, name, *args, **kw):
 
     This function is invoked via ChimeraX's :py:mod:`~chimera.core.io`
     :py:func:`~chimera.core.io.open_data` API for files whose names end
-    with **.cxcmd**.
+    with **.cxc**.
     
     Parameters
     ----------
@@ -107,7 +107,7 @@ def register():
         reference="http://www.python.org/",
         open_func=open_py)
     io.register_format(
-        "Chimera", io.SCRIPT, (".cxcmd",), ("cmd",),
+        "Chimera", io.SCRIPT, (".cxc",), ("cmd",),
         mime=('text/x-chimerax', 'application/x-chimerax-code'),
         reference="http://www.cgl.ucsf.edu/chimera/",
         open_func=open_ch)
