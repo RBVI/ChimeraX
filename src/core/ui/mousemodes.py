@@ -7,26 +7,7 @@ class MouseModes:
         self.graphics_window = graphics_window
         self.session = session
 
-        from .. import map, markers
-        from ..map import series
-        mode_classes = [
-            SelectMouseMode,
-            RotateMouseMode,
-            TranslateMouseMode,
-            ZoomMouseMode,
-            RotateAndSelectMouseMode,
-            TranslateSelectedMouseMode,
-            RotateSelectedMouseMode,
-            ClipMouseMode,
-            ObjectIdMouseMode,
-            map.ContourLevelMouseMode,
-            map.PlanesMouseMode,
-            markers.MarkerMouseMode,
-            markers.MarkCenterMouseMode,
-            markers.ConnectMouseMode,
-            series.PlaySeriesMouseMode,
-        ]
-        self._available_modes = [mode(session) for mode in mode_classes]
+        self._available_modes = [mode(session) for mode in standard_mouse_mode_classes()]
 
         self._bindings = []  # List of MouseBinding
 
@@ -536,3 +517,25 @@ class MouseEvent:
 
     def wheel_value(self):
         return self.event.GetWheelRotation()/120.0   # Usually one wheel click is delta of 120
+
+def standard_mouse_mode_classes():
+    from .. import map, markers
+    from ..map import series
+    mode_classes = [
+        SelectMouseMode,
+        RotateMouseMode,
+        TranslateMouseMode,
+        ZoomMouseMode,
+        RotateAndSelectMouseMode,
+        TranslateSelectedMouseMode,
+        RotateSelectedMouseMode,
+        ClipMouseMode,
+        ObjectIdMouseMode,
+        map.ContourLevelMouseMode,
+        map.PlanesMouseMode,
+        markers.MarkerMouseMode,
+        markers.MarkCenterMouseMode,
+        markers.ConnectMouseMode,
+        series.PlaySeriesMouseMode,
+    ]
+    return mode_classes
