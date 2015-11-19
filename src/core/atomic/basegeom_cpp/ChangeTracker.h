@@ -12,7 +12,7 @@ namespace atomstruct {
 
 class Atom;
 class Bond;
-class PBond;
+class Pseudobond;
 class Residue;
 class Chain;
 class AtomicStructure;
@@ -155,7 +155,7 @@ ChangeTracker::_ptr_to_type(atomstruct::Bond*) { return 1; }
 
 template <>
 inline int
-ChangeTracker::_ptr_to_type(atomstruct::PBond*) { return 2; }
+ChangeTracker::_ptr_to_type(atomstruct::Pseudobond*) { return 2; }
 
 template <>
 inline int

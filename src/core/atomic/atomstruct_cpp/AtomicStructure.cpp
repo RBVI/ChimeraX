@@ -1,15 +1,17 @@
 // vi: set expandtab ts=4 sw=4:
 #include "Atom.h"
 #include "AtomicStructure.h"
-#include <basegeom/destruct.h>
-#include <basegeom/Graph.tcc>
 #include "Bond.h"
 #include "CoordSet.h"
-#include <logger/logger.h>
+#include "PBGroup.h"
 #include "Pseudobond.h"
-#include <pythonarray.h>
 #include "Residue.h"
 #include "seq_assoc.h"
+
+#include <basegeom/destruct.h>
+#include <basegeom/Graph.tcc>
+#include <logger/logger.h>
+#include <pythonarray.h>
 
 #include <algorithm>  // for std::find, std::sort, std::remove_if, std::min
 #include <map>
@@ -57,7 +59,7 @@ AtomicStructure::bonded_groups(std::vector<std::vector<Atom*>>* groups,
     // find connected atomic structures, considering missing-structure pseudobonds
     std::map<Atom*, std::vector<Atom*>> pb_connections;
     if (consider_missing_structure) {
-        auto pbg = (Owned_PBGroup*) const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
+        auto pbg = const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
             PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
         if (pbg != nullptr) {
             for (auto& pb: pbg->pseudobonds()) {
@@ -877,7 +879,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
 
     if (consider_missing_structure) {
         // go through missing-structure pseudobonds
-        auto pbg = (Owned_PBGroup*) const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
+        auto pbg = const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
             PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
         if (pbg != nullptr) {
             for (auto& pb: pbg->pseudobonds()) {

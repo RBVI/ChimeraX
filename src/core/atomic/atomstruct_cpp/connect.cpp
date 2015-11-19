@@ -5,18 +5,20 @@
 #include <stdlib.h>
 
 #include "Atom.h"
-#include "Bond.h"
 #include "AtomicStructure.h"
-#include <basegeom/Connectible.tcc>
-#include <basegeom/Graph.tcc>
-#include <basegeom/destruct.h>
+#include "Bond.h"
 #include "connect.h"
 #include "MolResId.h"
+#include "PBGroup.h"
 #include "Residue.h"
+#include "string_types.h"
 #include "tmpl/Residue.h"
 #include "tmpl/Atom.h"
 #include "tmpl/residues.h"
-#include "string_types.h"
+
+#include <basegeom/Connectible.tcc>
+#include <basegeom/destruct.h>
+#include <basegeom/Graph.tcc>
 
 namespace atomstruct {
 

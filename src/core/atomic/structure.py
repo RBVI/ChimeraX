@@ -917,10 +917,10 @@ class AtomicStructure(AtomicStructureData, Model):
         self._selection_promotion_history = []
 
     def _begin_ses_save(self, *args):
-        pass
+        self.session_save_setup()
 
     def _end_ses_save(self, args):
-        pass
+        self.session_save_teardown()
 
     def surfaces(self):
         '''List of :class:`.MolecularSurface` objects for this structure.'''

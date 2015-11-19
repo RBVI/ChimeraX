@@ -2,7 +2,7 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	+= atomstruct_cpp basegeom_cpp element_cpp mmcif_cpp \
-	pdb_cpp pdbio pseudobond_cpp readcif_cpp
+	pdb_cpp pdbio readcif_cpp
 
 include $(TOP)/mk/subdir.make
 

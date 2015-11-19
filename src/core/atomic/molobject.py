@@ -328,7 +328,7 @@ class PseudobondGroupData:
     '''Name of the pseudobond group.  Read only string.'''
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
     '''Number of pseudobonds in group. Read only.'''
-    owner = c_property('pseudobond_group_owner', cptr, astype = _atomic_structure,
+    structure = c_property('pseudobond_group_structure', cptr, astype = _atomic_structure,
         read_only = True)
     '''Structure pseudobond group is owned by.  *Bad* things will happen if called
     on a group that isn't owned (i.e. managed by the global pseudobond manager
@@ -587,6 +587,16 @@ class AtomicStructureData:
                         ctypes.py_object),
                     ret = ctypes.c_int)
         return f(self._c_pointer, ints, floats, misc)
+
+    def session_save_setup(self):
+        '''Allow C++ layer to setup data structures it needs during session save'''
+        f = c_function('structure_session_save_setup', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
+
+    def session_save_teardown(self):
+        '''Allow C++ layer to teardown data structures it made during session save setup'''
+        f = c_function('structure_session_save_teardown', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def set_color(self, rgba):
         '''Set color of atoms, bonds, and residues'''
