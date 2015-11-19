@@ -21,6 +21,8 @@ class UpdateLoop:
             session.triggers.activate_trigger('new frame', self)
             from . import atomic
             atomic.check_for_changes(session)
+            from . import surface
+            surface.update_clip_caps(view)
             changed = view.check_for_drawing_change()
             if changed:
                 try:

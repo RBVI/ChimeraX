@@ -505,9 +505,6 @@ def save(session, filename, **kw):
             output.close()
 
 
-@register('sdump', CmdDesc(required=[('session_file', StringArg)],
-                           optional=[('output', StringArg)],
-                           synopsis="create human-readable session"))
 def dump(session, session_file, output=None):
     """dump contents of session for debugging"""
     from . import serialize
@@ -640,6 +637,14 @@ def common_startup(sess):
     from . import commands
     commands.register_core_commands(sess)
     commands.register_core_selectors(sess)
+
+    register(
+        'sdump',
+        CmdDesc(required=[('session_file', StringArg)],
+                optional=[('output', StringArg)],
+                synopsis="create human-readable session"),
+        dump
+    )
 
     _register_core_file_formats()
 

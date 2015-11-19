@@ -179,7 +179,7 @@ def split_atoms(atoms, asubsets):
 def molecule_from_atoms(m, atoms, name = None):
 
     from ..atomic import AtomicStructure
-    cm = AtomicStructure(name or m.name, level_of_detail = m._level_of_detail)
+    cm = AtomicStructure(name or m.name, m.session, level_of_detail = m._level_of_detail)
 #    cm.color = m.color
     cm.display = m.display
 #    cm.lineWidth = m.lineWidth

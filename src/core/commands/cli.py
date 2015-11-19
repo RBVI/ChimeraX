@@ -2270,7 +2270,7 @@ class Alias:
                        non_keyword=['optional'], **kw)
 
     def __call__(self, session, *args, optional='', echo_tag=None,
-                 _used_aliases=None):
+                 _used_aliases=None, log=True):
         # when echo_tag is not None, echo the substitued alias with
         # the given tag
         self.cmd = None
@@ -2291,7 +2291,7 @@ class Alias:
             session.logger.info('%s%s' % (echo_tag, text))
         self.cmd = Command(session, text, final=True,
                            _used_aliases=_used_aliases)
-        return self.cmd.execute(_used_aliases=_used_aliases)
+        return self.cmd.execute(_used_aliases=_used_aliases, log=log)
 
 
 _cmd_aliases = {}

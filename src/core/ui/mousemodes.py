@@ -488,7 +488,7 @@ class ClipMouseMode(MouseMode):
     def clip_move(self, delta_xy, near_shift, far_shift):
 
         v = self.view
-        planes = v.clip_planes
+        planes = v.clip_planes.planes()
         if len(planes) == 0:
             return
 
@@ -505,10 +505,6 @@ class ClipMouseMode(MouseMode):
         # TODO: If slab shown, prevent making clip plane pass through each other.
 
         p.plane_point = p.plane_point + d*p.normal
-        v.redraw_needed = True
-
-#        from ..commands.clip import show_surface_caps
-#        show_surface_caps(v)
 
     def _tilt_shift(self, delta_xy, camera, normal):
         # Measure drag direction along plane normal direction.

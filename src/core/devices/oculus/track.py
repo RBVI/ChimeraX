@@ -16,8 +16,8 @@ class Oculus_Rift:
         self.connected = self.connect()
 
     def connect(self):
-        from . import _oculus
         try:
+            from . import _oculus
             _oculus.connect()
             c = True
         except:

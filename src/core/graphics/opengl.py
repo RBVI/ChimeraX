@@ -118,7 +118,8 @@ class Render:
         # Enable only shader geometry, no colors or lighting.
         if depth_only:
             d = ~(self.SHADER_INSTANCING | self.SHADER_SHIFT_AND_SCALE |
-                  self.SHADER_TRANSPARENT_ONLY | self.SHADER_OPAQUE_ONLY)
+                  self.SHADER_TRANSPARENT_ONLY | self.SHADER_OPAQUE_ONLY |
+                  self.SHADER_CLIP_PLANES)
         else:
             d = 0
         self.disable_capabilities = d
@@ -318,6 +319,8 @@ class Render:
 
         p = self.current_shader_program
         if p is None:
+            return
+        if not p.capabilities & self.SHADER_LIGHTING:
             return
 
         lp = self.lighting
