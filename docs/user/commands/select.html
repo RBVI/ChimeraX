@@ -36,7 +36,7 @@ an existing selection.
 A <a name="seldef"><b><i>selection</i></b></a>:
 </p>
 <ul>
-<li>is shown with green outlines in the main window
+<li>is shown with green outlines in the graphics window
 <li>specifies items (models or their parts) for subsequent operations:
   <ul>
   <li>indicates scope of action of <b>Molecule Display</b> icons
@@ -46,8 +46,8 @@ A <a name="seldef"><b><i>selection</i></b></a>:
   </ul>
 <li>can be created 
   <ul>
-  <li>by Ctrl-clicking on items in the main window 
-  (default; see <b>mousemode</b> command)
+  <li>by Ctrl-clicking on items in the graphics window 
+  (default; see <a href="mousemode.html"><b>mousemode</b></a>)
   <li>by using <b>select</b> or various other commands and tools
   </ul>
 <li>can be broadened with the up arrow key, narrowed with the down arrow key
@@ -64,6 +64,12 @@ replacing any previous selection.
 Otherwise, <b>select</b> can be used to <b>add</b>, <b>subtract</b>, 
 or <b>intersect</b> the <a href="atomspec.html">specified</a> items
 with the current selection, or to <b>clear</b> it by deselecting everything.
+</p><p>
+Selecting a <a href="surface.html">molecular surface</a> model 
+automatically also selects the atoms used to define the surface,
+typically all atoms in a biopolymer chain unless otherwise specified
+with the <a href="surface.html#grouping"><b>enclose</b></a>
+option of <a href="surface.html"><b>surface</b></a>.
 </p>
 
 <hr>
