@@ -233,9 +233,13 @@ def plural_form(seq, word, plural=None):
 
 
 def plural_of(word):
-    """Return American English plural of the word
+    """Return best guess of the American English plural of the word
 
     :param word: the word to form the plural version
+
+    The guess is rudimentary, e.g., it does not handle changing "leaf" to
+    "leaves".  So in general, use the :py:func:`plural_form` function
+    and explicitly give the plural.
     """
     if word.endswith('o'):
         if word.casefold() in ('zero', 'photo', 'quarto'):
@@ -244,10 +248,9 @@ def plural_of(word):
     if word.endswith(('sh', 'ch', 's', 'x')):
         return word + 'es'
     if word.endswith('y'):
-        if word[-2] in 'aeiou':
-            return word + 's'
-        else:
+        if word[-2] not in 'aeiou' or word.endswith('quy'):
             return word[:-1] + 'ies'
+        return word + 's'
     # TODO: special case words, e.g. leaf -> leaves, hoof -> hooves
     return word + 's'
 
@@ -1289,14 +1292,6 @@ class SameSize(Postcondition):
             self.name1, self.name2)
 
 
-# _commands is a map of command name to command information.  Except when
-# it is a multiword command name, then the preliminary words map to
-# dictionaries that map to the command information.
-# An OrderedDict is used so for autocompletion, the prefix of the first
-# registered command with that prefix is used.
-_commands = OrderedDict()
-
-
 def _check_autocomplete(word, mapping, name):
     # This is a primary debugging aid for developers,
     # but it prevents existing abbreviated commands from changing
@@ -1366,24 +1361,24 @@ class CmdDesc:
         Double check that all function arguments, that do not
         have default values, are 'required'.
         """
-        if self._function:
-            raise ValueError("Can not reuse CmdDesc instances")
-        import inspect
-        empty = inspect.Parameter.empty
-        var_positional = inspect.Parameter.VAR_POSITIONAL
-        var_keyword = inspect.Parameter.VAR_KEYWORD
-        signature = inspect.signature(function)
-        params = list(signature.parameters.values())
-        if len(params) < 1 or params[0].name != "session":
-            raise ValueError('Missing initial "session" argument')
-        for p in params[1:]:
-            if (p.default != empty or p.name in self._required or
-                    p.name in self._required_arguments or
-                    p.kind in (var_positional, var_keyword)):
-                continue
-            raise ValueError("Wrong function or '%s' argument must be "
-                             "required or have a default value" % p.name)
-
+        if function is not None:
+            if self._function:
+                raise ValueError("Can not reuse CmdDesc instances")
+            import inspect
+            empty = inspect.Parameter.empty
+            var_positional = inspect.Parameter.VAR_POSITIONAL
+            var_keyword = inspect.Parameter.VAR_KEYWORD
+            signature = inspect.signature(function)
+            params = list(signature.parameters.values())
+            if len(params) < 1 or params[0].name != "session":
+                raise ValueError('Missing initial "session" argument')
+            for p in params[1:]:
+                if (p.default != empty or p.name in self._required or
+                        p.name in self._required_arguments or
+                        p.kind in (var_positional, var_keyword)):
+                    continue
+                raise ValueError("Wrong function or '%s' argument must be "
+                                 "required or have a default value" % p.name)
         self._function = function
 
     def copy(self):
@@ -1428,8 +1423,101 @@ def delay_registration(name, proxy_function, logger=None):
     register(name, None, _Defer(proxy_function), logger=logger)
 
 
+# _commands is a map of command words to command information.  Except when
+# it is a multiword command name, then the preliminary words map to
+# dictionaries that map to the command information.
+# An OrderedDict is used so for autocompletion, the prefix of the first
+# registered command with that prefix is used.
+
+
+class _WordInfo:
+    # Internal information about a word in a command
+
+    def __init__(self, cmd_desc=None):
+        self.cmd_desc = cmd_desc
+        self.subcommands = OrderedDict()
+        self.parent = None
+
+    def has_command(self):
+        return self.cmd_desc is not None
+
+    def has_subcommands(self):
+        return len(self.subcommands) > 0
+
+    def is_alias(self):
+        return (isinstance(self.cmd_desc, CmdDesc) and
+                isinstance(self.cmd_desc.function, Alias))
+
+    def is_user_alias(self):
+        return (isinstance(self.cmd_desc, CmdDesc) and
+                isinstance(self.cmd_desc.function, Alias) and
+                self.cmd_desc.function.user_generated)
+
+    def alias(self):
+        if not self.is_alias():
+            raise RuntimeError('not an alias')
+        return self.cmd_desc.function
+
+    def is_deferred(self):
+        return isinstance(self.cmd_desc, _Defer)
+
+    def lazy_register(self):
+        deferred = self.cmd_desc
+        assert(isinstance(deferred, _Defer))
+        self.cmd_desc = None  # prevent recursion
+        try:
+            deferred.call()
+        except:
+            raise RuntimeError("delayed registration failed")
+        if self.cmd_desc is None and not self.has_subcommands():
+            raise RuntimeError("delayed registration didn't register the command")
+
+    def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
+        try:
+            _check_autocomplete(word, self.subcommands, name)
+        except ValueError:
+            if cmd_desc is None or not isinstance(cmd_desc.function, Alias):
+                raise
+            if logger is not None:
+                logger.warning("alias %s hides existing command" % dq_repr(name))
+        if word not in self.subcommands:
+            w = self.subcommands[word] = _WordInfo(cmd_desc)
+            w.parent = self
+            return
+        # command word previously registered
+        if cmd_desc is None:
+            return
+        word_info = self.subcommands[word]
+
+        if isinstance(cmd_desc, CmdDesc) and isinstance(cmd_desc.function, Alias) and cmd_desc.function.user_generated:
+            # adding a user-generated alias
+            if word_info.is_user_alias():
+                # replacing user alias with another user alias
+                word_info.cmd_desc = cmd_desc
+            else:
+                # only save/restore "system" version of command
+                _aliased_commands[name] = word_info
+                self.subcommands[word] = _WordInfo(cmd_desc)
+                if logger is not None:
+                    logger.info("FYI: alias is hiding existing command" %
+                                dq_repr(name))
+        elif word_info.is_user_alias():
+            # command is aliased, but new one isn't, so replaced saved version
+            if name in _aliased_commands:
+                _aliased_commands[name].cmd_desc = cmd_desc
+            else:
+                _aliased_commands[name] = _WordInfo(cmd_desc)
+        else:
+            if logger is not None:
+                logger.info("FYI: command is replacing existing command" %
+                            dq_repr(name))
+            word_info.cmd_desc = cmd_desc
+
+
+# keep track of commands
+_commands = _WordInfo()
 # keep track of commands that have been overridden by an alias
-_aliased_commands = {}
+_aliased_commands = {}  # { name: _WordInfo instance }
 
 
 def register(name, cmd_desc=(), function=None, logger=None):
@@ -1468,6 +1556,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
     #    return
 
     words = name.split()
+    name = ' '.join(words)  # canonicalize
     if cmd_desc is not None and cmd_desc.url is None:
         import chimera
         import os
@@ -1478,119 +1567,68 @@ def register(name, cmd_desc=(), function=None, logger=None):
         else:
             frag = ' '.join(words[1:])
         cpath = os.path.join(chimera.app_data_dir, 'docs', 'user', 'commands',
-                '%s.html' % cname)
+                             '%s.html' % cname)
         if frag:
             frag = '#' + frag
         if os.path.exists(cpath):
             cmd_desc.url = "help:user/commands/%s.html%s" % (cname, frag)
-    name = ' '.join(words)  # canonicalize
-    cmd_map = _commands
+    parent_info = _commands
     for word in words[:-1]:
-        what = cmd_map.get(word, None)
-        if isinstance(what, _Defer):
-            what = _lazy_register(cmd_map, word)
-        if isinstance(what, dict):
-            cmd_map = what
-            continue
-        if what is not None:
-            raise ValueError("Can't mix subcommands with no subcommands")
-        _check_autocomplete(word, cmd_map, name)
-        d = cmd_map[word] = OrderedDict()
-        cmd_map = d
-    word = words[-1]
-    what = cmd_map.get(word, None)
-    if isinstance(what, dict):
-        raise ValueError("Command is part of multiword command")
-    try:
-        _check_autocomplete(word, cmd_map, name)
-    except ValueError:
-        if not isinstance(function, Alias):
-            raise
-        if logger is not None:
-            logger.warning("alias %s hides existing command" % dq_repr(name))
+        if not parent_info.has_subcommands():
+            word_info = parent_info.add_subcommand(word)
+        else:
+            parent_info.add_subcommand(word, name)
+            word_info = parent_info.subcommands[word]
+            if word_info.is_deferred():
+                word_info.lazy_register()
+        parent_info = word_info
+
     if isinstance(function, _Defer):
         cmd_desc = function
     else:
         cmd_desc.function = function
-    if what is None:
-        cmd_map[word] = cmd_desc
-    else:
-        # command already registered
-        if isinstance(function, Alias):
-            if not isinstance(cmd_map[word].function, Alias) or \
-                    not cmd_map[word].function.user_generated:
-                # only save non-aliased version of command
-                _aliased_commands[name] = cmd_map[word]
-            cmd_map[word] = cmd_desc
-        elif isinstance(what.function, Alias):
-            # command is aliased, but new one isn't, so replaced saved version
-            _aliased_commands[name] = cmd_desc
-        else:
-            if logger is not None:
-                logger.info("FYI: command %s is replacing existing command" %
-                            dq_repr(name))
-            cmd_map[word] = cmd_desc
+    parent_info.add_subcommand(words[-1], name, cmd_desc)
     return function     # needed when used as a decorator
 
 
-def deregister(name):
-    """Remove existing command
+def deregister(name, *, is_user_alias=False):
+    """Remove existing command and subcommands
+
+    :param name: the name of the command
 
     If the command was an alias, the previous version is restored"""
     # none of the exceptions below should happen
     words = name.split()
     name = ' '.join(words)  # canonicalize
-    cmd_map = _commands
-    for word in words[:-1]:
-        what = cmd_map.get(word, None)
-        if isinstance(what, dict):
-            cmd_map = what
-            continue
-        raise RuntimeError("unregistering unknown multiword command")
-    word = words[-1]
-    what = cmd_map.get(word, None)
-    if what is None:
-        raise RuntimeError("unregistering unknown command")
-    hidden_cmd = _aliased_commands.get(name, None)
-    if hidden_cmd:
-        what = _aliased_commands[name]
+    parent_info = _commands
+    for word in words:
+        word_info = parent_info.subcommands.get(word, None)
+        if word_info is None:
+            if is_user_alias:
+                raise UserError('No alias named %s exists' % dq_repr(name))
+            raise RuntimeError("unregistering unknown command")
+        parent_info = word_info
+    if is_user_alias and not word_info.is_user_alias():
+        raise UserError('%s is not a user alias' % dq_repr(name))
+
+    if word_info.has_subcommands():
+        for subword in list(word_info.subcommands.keys()):
+            deregister("%s %s" % (name, subword))
+
+    hidden_word = _aliased_commands.get(name, None)
+    if hidden_word:
+        parent_info = word_info.parent
+        parent_info.subcommands[word] = hidden_word
         del _aliased_commands[name]
     else:
-        del cmd_map[word]
-
-    # remove any subcommand aliases
-    size = len(name)
-    aliases = [a for a in _cmd_aliases
-               if a.startswith(name) and len(name) > size and a[size] == ' ']
-    for a in aliases:
-        del _cmd_aliases[a]
-        if a in _aliased_commands:
-            del _aliased_commands[a]
-
-    # allow commands to be reregistered with same description
-    def clear_cmd_desc(d):
-        if isinstance(d, CmdDesc):
-            d._function = None
-            return
-        if not isinstance(d, dict):
-            return
-        for v in d.values():
-            clear_cmd_desc(v)
-    clear_cmd_desc(what)
-
-
-def _lazy_register(cmd_map, word):
-    deferred = cmd_map[word]
-    del cmd_map[word]   # prevent recursion
-    try:
-        deferred.call()
-    except:
-        raise RuntimeError("delayed registration failed")
-    # deferred function might have registered subcommands
-    cmd_desc = cmd_map[word]
-    if isinstance(cmd_desc, (dict, CmdDesc)):
-        return cmd_desc
-    raise RuntimeError("delayed registration didn't register the command")
+        # allow command to be reregistered with same cmd_desc
+        if word_info.cmd_desc and not word_info.is_deferred():
+            word_info.cmd_desc.function = None
+        # remove association between cmd_desc and word
+        word_info.cmd_desc = None
+        parent_info = word_info.parent
+        assert(len(word_info.subcommands) == 0)
+        del parent_info.subcommands[word]
 
 
 def add_keyword_arguments(name, kw_info):
@@ -1683,6 +1721,8 @@ class Command:
         """If command is valid, execute it with given session."""
 
         session = self._session()  # resolve back reference
+        if session is None:
+            log = False
         if not self._error_checked:
             self.error_check()
         results = []
@@ -1769,8 +1809,8 @@ class Command:
         #   updates possible completions
         #   if successful, sets self._ci
         self._error = "Missing command"
-        self.word_map = None  # filled in when partial command is matched
-        word_map = _commands
+        self.word_info = None  # filled in when partial command is matched
+        parent_info = _commands
         cmd_name = None
         start = self.amount_parsed
         while 1:
@@ -1778,7 +1818,7 @@ class Command:
             self.amount_parsed = m.end()
             text = self.current_text[self.amount_parsed:]
             if not text:
-                self.word_map = word_map  # if caller interested in partial cmds
+                self.word_info = parent_info
                 self.command_name = cmd_name
                 return
             if _debugging:
@@ -1787,11 +1827,11 @@ class Command:
             if _debugging:
                 print('cmd next_token(%r) -> %r %r %r' % (
                     orig_text, word, chars, text))
-            what = word_map.get(word, None)
+            what = parent_info.subcommands.get(word, None)
             if what is None:
                 self.completion_prefix = word
                 self.completions = [
-                    x for x in word_map if x.startswith(word)]
+                    x for x in parent_info.subcommands if x.startswith(word)]
                 if word and (final or len(text) > len(chars)) \
                         and self.completions:
                     # If final version of text, or if there
@@ -1801,42 +1841,48 @@ class Command:
                     self._replace(chars, c)
                     text = self.current_text[self.amount_parsed:]
                     continue
-                if word:
+                if word and self._ci is None:
                     self._error = "Unknown command: %s" % self.current_text
                 return
+            self._ci = None
+            self.word_info = what
+            self.command_name = None
             self.amount_parsed += len(chars)
             cmd_name = self.current_text[start:self.amount_parsed]
             cmd_name = ' '.join(cmd_name.split())   # canonicalize
-            if isinstance(what, _Defer):
-                what = _lazy_register(word_map, word)
-            if isinstance(what, dict):
-                # word is part of multiword command name
-                word_map = what
+            if what.is_deferred():
+                what.lazy_register()
+            if what.cmd_desc is not None:
+                # TODO: revise for new framework
+                if no_aliases:
+                    if what.is_alias():
+                        if cmd_name not in _aliased_commands:
+                            self._error = 'alias did not hide a command'
+                            return
+                        what = _aliased_commands[cmd_name]
+                        if what.cmd_desc is None:
+                            parent_info = what
+                            continue
+                elif (used_aliases is not None and
+                        what.is_alias() and
+                        cmd_name in used_aliases):
+                    if cmd_name not in _aliased_commands:
+                        self._error = "Aliasing loop detected"
+                        return
+                    word_info = _aliased_commands[cmd_name]
+                    if word_info.cmd_desc is None:
+                        continue
+                self._ci = what.cmd_desc
+                self.command_name = cmd_name
+                self._error = ''
+            parent_info = what
+
+            if not parent_info.has_subcommands():
+                return
+            # word might be part of multiword command name
+            if parent_info.cmd_desc is None:
                 self._error = ("Incomplete command: %s"
                                % self.current_text[start:self.amount_parsed])
-                continue
-            assert(isinstance(what, CmdDesc))
-            if no_aliases:
-                if isinstance(what.function, Alias):
-                    if cmd_name not in _aliased_commands:
-                        self._error = 'alias to unknown command'
-                        return
-                    what = _aliased_commands[cmd_name]
-                    if not isinstance(what, CmdDesc):
-                        continue
-            elif (used_aliases is not None and
-                    isinstance(what.function, Alias) and
-                    cmd_name in used_aliases):
-                if cmd_name not in _aliased_commands:
-                    self._error = "Aliasing loop detected"
-                    return
-                what = _aliased_commands[cmd_name]
-                if not isinstance(what, CmdDesc):
-                    continue
-            self._ci = what
-            self.command_name = cmd_name
-            self._error = ''
-            return
 
     def _process_positional_arguments(self):
         # side effects:
@@ -1932,8 +1978,8 @@ class Command:
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
                 self.completions = [x for x in self._ci._keyword_map
-                                    if x.startswith(arg_name)
-                                    or x.casefold().startswith(arg_name)]
+                                    if x.startswith(arg_name) or
+                                    x.casefold().startswith(arg_name)]
                 if (final or len(text) > len(chars)) and self.completions:
                     # If final version of text, or if there
                     # is following text, make best guess,
@@ -2075,35 +2121,38 @@ def usage(name, no_aliases=False):
     if cmd.amount_parsed != len(cmd.current_text):
         raise ValueError('"%s" is not a command name' % name)
 
-    if cmd.word_map is not None:
-        # partial command match
-        name = cmd.command_name
-        usage = 'Choices are:\n'
-        usage += '\n'.join(['  %s %s' % (name, w)
-                            for w in cmd.word_map])
-        return usage
-
-    usage = cmd.command_name
     ci = cmd._ci
-    for arg_name in ci._required:
-        type = ci._required[arg_name].name
-        usage += '%s (%s)' % (arg_name, type)
-    num_opt = 0
-    for arg_name in ci._optional:
-        type = ci._optional[arg_name].name
-        usage += ' [_%s_' % type
-        num_opt += 1
-    usage += ']' * num_opt
-    for arg_name in ci._keyword:
-        arg_type = ci._keyword[arg_name]
-        arg_name = _user_kw(arg_name)
-        if arg_type is NoArg:
-            usage += ' [%s]' % arg_name
-            continue
-        usage += ' [%s _%s_]' % (arg_name, arg_type.name)
-    if ci.synopsis:
-        usage += ' -- %s' % ci.synopsis
-    return usage
+    if not ci:
+        syntax = ''
+    else:
+        syntax = cmd.command_name
+        for arg_name in ci._required:
+            type = ci._required[arg_name].name
+            syntax += ' %s (%s)' % (arg_name, type)
+        num_opt = 0
+        for arg_name in ci._optional:
+            type = ci._optional[arg_name].name
+            syntax += ' [_%s_' % type
+            num_opt += 1
+        syntax += ']' * num_opt
+        for arg_name in ci._keyword:
+            arg_type = ci._keyword[arg_name]
+            arg_name = _user_kw(arg_name)
+            if arg_type is NoArg:
+                syntax += ' [%s]' % arg_name
+                continue
+            syntax += ' [%s _%s_]' % (arg_name, arg_type.name)
+        if ci.synopsis:
+            syntax += ' -- %s' % ci.synopsis
+
+    if cmd.word_info is not None:
+        name = cmd.command_name
+        for word in cmd.word_info.subcommands:
+            subcmd_syntax = usage('%s %s' % (name, word), no_aliases=no_aliases)
+            if subcmd_syntax:
+                syntax += '\n' + subcmd_syntax
+
+    return syntax
 
 
 def html_usage(name, no_aliases=False):
@@ -2120,80 +2169,82 @@ def html_usage(name, no_aliases=False):
         raise ValueError('"%s" is not a command name' % name)
     from html import escape
 
-    if cmd.word_map is not None:
-        # partial command match
-        name = cmd.command_name
-        usage = 'Choices are:<br/><ul>'
-        usage += '<br/>'.join(['<li> %s %s' % (escape(name), w)
-                               for w in cmd.word_map])
-        usage += '</ul>'
-        return usage
-
-    if cmd._ci.url is None:
-        usage = '<b>%s</b>' % escape(cmd.command_name)
-    else:
-        usage = '<b><a href="%s">%s</a></b>' % (
-            cmd._ci.url, escape(cmd.command_name))
     ci = cmd._ci
-    for arg_name in ci._required:
-        arg_type = ci._required[arg_name]
-        arg_name = _user_kw(arg_name)
-        type = arg_type.name
-        if arg_type.url is None:
-            name = escape(arg_name)
+    if not ci:
+        syntax = ''
+    else:
+        if cmd._ci.url is None:
+            syntax = '<b>%s</b>' % escape(cmd.command_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
-        usage += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
-    num_opt = 0
-    for arg_name in ci._optional:
-        num_opt += 1
-        arg_type = ci._optional[arg_name]
-        arg_name = _user_kw(arg_name)
-        type = arg_type.name
-        if arg_type.url is None:
-            name = escape(arg_name)
-        else:
-            name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
-        usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
-    usage += ']' * num_opt
-    for arg_name in ci._keyword:
-        arg_type = ci._keyword[arg_name]
-        arg_name = _user_kw(arg_name)
-        if arg_type is NoArg:
-            type = ""
-        else:
-            type = "<i>%s</i>" % escape(arg_type.name)
-            if arg_type.url is not None:
-                type = '<a href="%s">%s</a>' % (arg_type.url, type)
-            type = ' ' + type
-        usage += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(arg_name), type)
-    if ci.synopsis:
-        usage = "<i>%s</i><br>%s" % (escape(ci.synopsis), usage)
-    return usage
+            syntax = '<b><a href="%s">%s</a></b>' % (
+                ci.url, escape(cmd.command_name))
+        for arg_name in ci._required:
+            arg_type = ci._required[arg_name]
+            arg_name = _user_kw(arg_name)
+            type = arg_type.name
+            if arg_type.url is None:
+                name = escape(arg_name)
+            else:
+                name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
+            syntax += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
+        num_opt = 0
+        for arg_name in ci._optional:
+            num_opt += 1
+            arg_type = ci._optional[arg_name]
+            arg_name = _user_kw(arg_name)
+            type = arg_type.name
+            if arg_type.url is None:
+                name = escape(arg_name)
+            else:
+                name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
+            syntax += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
+        syntax += ']' * num_opt
+        for arg_name in ci._keyword:
+            arg_type = ci._keyword[arg_name]
+            arg_name = _user_kw(arg_name)
+            if arg_type is NoArg:
+                type = ""
+            else:
+                type = "<i>%s</i>" % escape(arg_type.name)
+                if arg_type.url is not None:
+                    type = '<a href="%s">%s</a>' % (arg_type.url, type)
+                type = ' ' + type
+            syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(arg_name), type)
+        if ci.synopsis:
+            syntax = "<i>%s</i><br>%s" % (escape(ci.synopsis), syntax)
+
+    if cmd.word_info is not None:
+        name = cmd.command_name
+        for word in cmd.word_info.subcommands:
+            subcmd_syntax = html_usage('%s %s' % (name, word), no_aliases=no_aliases)
+            if subcmd_syntax:
+                syntax += '<br>\n' + subcmd_syntax
+
+    return syntax
 
 
 def registered_commands(multiword=False):
     """Return a list of the currently registered commands"""
     if not multiword:
-        return list(_commands.keys())
+        return list(_commands.subcommands.keys())
 
-    def cmds(cmd_map):
+    def cmds(parent_info):
         used_words = set()
-        words = set(cmd_map.keys())
+        words = set(parent_info.subcommands.keys())
         while words:
             word = words.pop()
-            what = cmd_map[word]
-            if isinstance(what, _Defer):
-                what = _lazy_register(cmd_map, word)
-                words = set(cmd_map.keys())
+            word_info = parent_info.subcommands[word]
+            if word_info.is_deferred():
+                word_info.lazy_register()
+                words = set(parent_info.subcommands.keys())
                 words.difference_update(used_words)
                 continue
             used_words.add(word)
-            if isinstance(what, CmdDesc):
+            if word_info.cmd_desc:
                 yield word
-                continue
-            for word2 in cmds(what):
-                yield "%s %s" % (word, word2)
+            if word_info.has_subcommands():
+                for word2 in cmds(word_info):
+                    yield "%s %s" % (word, word2)
     return list(cmds(_commands))
 
 
@@ -2294,24 +2345,40 @@ class Alias:
         return self.cmd.execute(_used_aliases=_used_aliases, log=log)
 
 
-_cmd_aliases = {}
-
-
-def list_aliases(user=True):
+def list_aliases(all=False):
     """List all aliases
 
-    :param user: if True, then only list user-defined aliases
+    :param all: if True, then only list all aliases, not just user ones
+
+    Return in depth-first order.
     """
-    if not user:
-        return list(_cmd_aliases.keys())
-    return [a for a in _cmd_aliases if _cmd_aliases[a].user_generated]
+    def find_aliases(partial_name, word_info):
+        for word, word_info in word_info.subcommands.items():
+            if partial_name:
+                yield from find_aliases('%s %s' % (partial_name, word), word_info)
+            else:
+                yield from find_aliases('%s' % word, word_info)
+        if all:
+            if word_info.is_alias():
+                yield partial_name
+        elif word_info.is_user_alias():
+            yield partial_name
+    return list(find_aliases('', _commands))
 
 
 def expand_alias(name):
-    """Return expanded version of named alias"""
-    if name not in _cmd_aliases:
+    """Return text of named alias
+
+    :param name: name of the alias
+    """
+    cmd = Command(None)
+    cmd.current_text = name
+    cmd._find_command_name(True, no_aliases=False)
+    if cmd.amount_parsed != len(cmd.current_text):
         return None
-    return _cmd_aliases[name].original_text
+    if not cmd.word_info.is_alias():
+        return None
+    return cmd.word_info.alias().original_text
 
 
 def create_alias(name, text, *, user=False, logger=None):
@@ -2321,69 +2388,46 @@ def create_alias(name, text, *, user=False, logger=None):
     :param text: text of the alias
     :param user: boolean, true if user created alias
     :param logger: optional logger
-
-    If the alias name is not given, then a text list of all the aliases is
-    returned.  If alias text is not given, the text of the named alias
-    is returned.  If both arguments are given, then a new alias is made.
     """
     name = ' '.join(name.split())   # canonicalize
-    cmd = Alias(text, user=user)
-    tmp = Command(None)
-    tmp.current_text = text
-    tmp._find_command_name(True)
-    if tmp.word_map is None:
-        aliasing = tmp.command_name
+    alias = Alias(text, user=user)
+    cmd = Command(None)
+    cmd.current_text = text
+    cmd._find_command_name(True)
+    if cmd.word_info is None or cmd._ci:
+        aliasing = cmd.command_name
     else:
         aliasing = text[0:text.find('$')].strip()
     try:
-        register(name, cmd.cmd_desc(synopsis='alias of "%s"' % aliasing), cmd,
-                 logger=logger)
+        register(name, alias.cmd_desc(synopsis='alias of "%s"' % aliasing),
+                 alias, logger=logger)
     except:
         raise
-    _cmd_aliases[name] = cmd
 
 
-def remove_alias(name=None):
+def remove_alias(name=None, user=False):
     """Remove command alias
 
     :param name: name of the alias
+    :param user: boolean, true if user created alias
 
     If no name is given, then all user generated aliases are removed.
     """
     if name is None:
-        for name, alias in _cmd_aliases.items():
-            if alias.user_generated:
-                remove_alias(name)
+        for name in list_aliases():
+            deregister(name, is_user_alias=True)
         return
-    words = name.split()
-    name = ' '.join(words)  # canonicalize
-    try:
-        del _cmd_aliases[name]
-    except KeyError:
-        raise UserError('No alias named %s exists' % dq_repr(name))
 
-    cmd_map = _commands
-    for word in words[:-1]:
-        what = cmd_map.get(word, None)
-        if isinstance(what, dict):
-            cmd_map = what
-            continue
-        raise RuntimeError("internal error")
-    word = words[-1]
-    what = cmd_map.get(word, None)
-    if what is None:
-        raise RuntimeError("internal error")
-    previous_cmd = _aliased_commands.get(name, None)
-    if previous_cmd:
-        del _aliased_commands[name]
-        cmd_map[word] = previous_cmd
-        if isinstance(previous_cmd.function, Alias):
-            _cmd_aliases[name] = previous_cmd.function
-        return
-    del cmd_map[word]
+    deregister(name, is_user_alias=user)
 
 if __name__ == '__main__':
     from ..utils import flattened
+
+    alias_desc = CmdDesc(required=[('name', StringArg), ('text', WholeRestOfLine)])
+
+    @register('alias', alias_desc)
+    def alias(session, name, text):
+        create_alias(name, text)
 
     class ColorArg(Annotation):
         name = 'a color'
