@@ -1672,6 +1672,8 @@ class Command:
 
         Partial word used for command completions.
     """
+    # nested = 0  # DEBUG nested aliases
+
     def __init__(self, session, text='', final=False, _used_aliases=None):
         import weakref
         if session is None:
@@ -1717,9 +1719,12 @@ class Command:
                     raise UserError(cond.error_message())
         self._error_checked = True
 
-    def execute(self, log=True, _used_aliases=None):
+    def execute(self, log=True, *, _used_aliases=None):
         """If command is valid, execute it with given session."""
 
+        # Command.nested += 1                # DEBUG
+        # if Command.nested > 4:             # DEBUG
+        #    raise RuntimeError('too deep')  # DEBUG
         session = self._session()  # resolve back reference
         if session is None:
             log = False
@@ -1749,6 +1754,8 @@ class Command:
                     optional = ''
                 if _used_aliases is None:
                     _used_aliases = {cmd_name}
+                else:
+                    _used_aliases.add(cmd_name)
                 results.append(ci.function(session, *args, optional=optional,
                                _used_aliases=_used_aliases))
                 continue
@@ -1776,6 +1783,7 @@ class Command:
                 raise UserError(err)
             from .. import atomic
             atomic.check_for_changes(session)
+        # Command.nested -= 1  # DEBUG
         return results
 
     def _replace(self, chars, replacement):
@@ -1803,7 +1811,7 @@ class Command:
         self.amount_parsed += self._replace(text, replacement)
         return value, rest
 
-    def _find_command_name(self, final, no_aliases=False, used_aliases=None):
+    def _find_command_name(self, final, *, no_aliases=False, used_aliases=None):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
@@ -1853,7 +1861,6 @@ class Command:
             if what.is_deferred():
                 what.lazy_register()
             if what.cmd_desc is not None:
-                # TODO: revise for new framework
                 if no_aliases:
                     if what.is_alias():
                         if cmd_name not in _aliased_commands:
@@ -1869,8 +1876,9 @@ class Command:
                     if cmd_name not in _aliased_commands:
                         self._error = "Aliasing loop detected"
                         return
-                    word_info = _aliased_commands[cmd_name]
-                    if word_info.cmd_desc is None:
+                    what = _aliased_commands[cmd_name]
+                    if what.cmd_desc is None:
+                        parent_info = what
                         continue
                 self._ci = what.cmd_desc
                 self.command_name = cmd_name
