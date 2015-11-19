@@ -90,6 +90,7 @@ commands = [
     'vop gaussian #2 sdev 2',
     'vop subtract #2,3',
     'view',
+    'echo finished test',
 ]
 def run_commands(session, commands = commands):
     log = session.logger
