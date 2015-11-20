@@ -21,10 +21,10 @@ def alias(session, name, text=''):
         return
     cli.create_alias(name, text, user=True, logger=session.logger)
 
-def list_aliases(session, all=False):
+def list_aliases(session, internal=False):
     # list aliases
     logger = session.logger
-    aliases = cli.list_aliases(all=all)
+    aliases = cli.list_aliases(all=internal)
     aliases.sort(key=lambda x: x[x[0] == '~':])
     names = cli.commas(aliases, ' and')
     noun = cli.plural_form(aliases, 'alias')
@@ -51,7 +51,7 @@ def register_command(session):
                        synopsis='define or show a command alias')
     cli.register('alias', desc, alias)
 
-    desc = cli.CmdDesc(keyword=[('all', cli.NoArg)],
+    desc = cli.CmdDesc(keyword=[('internal', cli.NoArg)],
                        synopsis='list aliases')
     cli.register('alias list', desc, list_aliases)
 
