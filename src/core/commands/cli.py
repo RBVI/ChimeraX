@@ -2153,12 +2153,12 @@ def usage(name, no_aliases=False):
         if ci.synopsis:
             syntax += ' -- %s' % ci.synopsis
 
-    if cmd.word_info is not None:
+    if cmd.word_info is not None and cmd.word_info.has_subcommands():
         name = cmd.command_name
-        for word in cmd.word_info.subcommands:
-            subcmd_syntax = usage('%s %s' % (name, word), no_aliases=no_aliases)
-            if subcmd_syntax:
-                syntax += '\n' + subcmd_syntax
+        if syntax:
+            syntax += '\n'
+        syntax += 'Subcommands are:\n' + '\n'.join(
+            '  %s %s' % (name, w) for w in cmd.word_info.subcommands)
 
     return syntax
 
@@ -2221,12 +2221,28 @@ def html_usage(name, no_aliases=False):
         if ci.synopsis:
             syntax = "<i>%s</i><br>%s" % (escape(ci.synopsis), syntax)
 
-    if cmd.word_info is not None:
+    if cmd.word_info is not None and cmd.word_info.has_subcommands():
         name = cmd.command_name
+        if syntax:
+            syntax += '<br>\n'
+        syntax += 'Subcommands are:\n<ul>'
         for word in cmd.word_info.subcommands:
-            subcmd_syntax = html_usage('%s %s' % (name, word), no_aliases=no_aliases)
-            if subcmd_syntax:
-                syntax += '<br>\n' + subcmd_syntax
+            subcmd = '%s %s' % (name, word)
+            cmd = Command(None)
+            cmd.current_text = subcmd
+            cmd._find_command_name(True, no_aliases=no_aliases)
+            if cmd.amount_parsed != len(cmd.current_text):
+                url = None
+            elif cmd._ci.url is None:
+                url = None
+            else:
+                url = cmd._ci.url
+            if url is not None:
+                syntax += '<li> <b><a href="%s">%s</a></b>\n' % (
+                    url, escape(subcmd))
+            else:
+                syntax += '<li> <b>%s</b>\n' % escape(subcmd)
+        syntax += '</ul>\n'
 
     return syntax
 
