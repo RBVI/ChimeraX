@@ -13,7 +13,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
         PseudobondGroupData.__init__(self, pbg_pointer)
         if session is None:
-            session = self.owner.session
+            session = self.structure.session
         Model.__init__(self, self.category, session)
         self._pbond_drawing = None
 

@@ -23,7 +23,7 @@ from .commands import CmdDesc, StringArg, register, commas
 
 _builtin_open = open
 #: session file suffix
-SESSION_SUFFIX = ".cxses"
+SESSION_SUFFIX = ".cxs"
 
 # triggers:
 

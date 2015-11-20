@@ -5,6 +5,8 @@
 #include <atomstruct/Bond.h>
 #include <atomstruct/Atom.h>
 #include <atomstruct/CoordSet.h>
+#include <atomstruct/Pseudobond.h>
+#include <atomstruct/PBGroup.h>
 #include <atomstruct/connect.h>
 #include <atomstruct/tmpl/Atom.h>
 #include <atomstruct/tmpl/Residue.h>

@@ -3,6 +3,8 @@
 #include "AtomicStructure.h"
 #include "Bond.h"
 #include "CoordSet.h"
+#include "PBGroup.h"
+#include "Pseudobond.h"
 #include "Residue.h"
 #include "basegeom/ChangeTracker.h"
 

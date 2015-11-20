@@ -124,12 +124,16 @@ class AtomicStructure(AtomicStructureData, Model):
         session.triggers.delete_handler(self.handler)
 
     def take_snapshot(self, session, flags):
-        data = {}
-        return data
-
-    def restore_snapshot(self, phase, session, version, data):
-        if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
-            raise RestoreError("Unexpected version or data")
+        from ..state import CORE_STATE_VERSION
+        # TODO: also need to save this class's own state
+        ints = []
+        floats = []
+        misc = []
+        as_version = self.session_info(ints, floats, misc)
+        return CORE_STATE_VERSION, [
+            Model.take_snapshot(self, session, flags),
+            (as_version, ints, floats, misc)
+        ]
 
     def reset_state(self, session):
         pass
@@ -913,10 +917,10 @@ class AtomicStructure(AtomicStructureData, Model):
         self._selection_promotion_history = []
 
     def _begin_ses_save(self, *args):
-        pass
+        self.session_save_setup()
 
     def _end_ses_save(self, args):
-        pass
+        self.session_save_teardown()
 
     def surfaces(self):
         '''List of :class:`.MolecularSurface` objects for this structure.'''

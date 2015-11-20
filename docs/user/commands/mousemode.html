@@ -1,0 +1,151 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: mousemode</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: mousemode</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>mousemode</b> 
+[&nbsp;<b>control</b>&nbsp;] [&nbsp;<b>alt</b>&nbsp;]
+[&nbsp;<b>command</b>&nbsp;] [&nbsp<b>shift</b>&nbsp;]
+[&nbsp;<b>leftMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
+[&nbsp;<b>middleMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
+[&nbsp;<b>rightMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
+[&nbsp;<b>wheelMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
+[&nbsp;<b>pauseMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
+</h3>
+<p>
+The <b>mousemode</b> command assigns ChimeraX functions to the <b>left</b>,
+<b>middle</b>, and <b>right</b> mouse buttons,
+alone and in combination with the modifier keys <b>control</b>, <b>alt</b>,
+<b>command</b>, and <b>shift</b>.  In addition, <b>wheel</b> refers to
+scrolling with the mouse wheel or touchpad, and <b>pause</b> refers to pausing
+the cursor over something in the graphics window without clicking any buttons.
+</p><p>
+Possible values of <i>function</i> are listed in the table 
+<a href="#functions">below</a>. If <i>function</i> contains spaces, 
+it should be enclosed in quotation marks.
+</p><p>
+Multiple modifiers and multiple &ldquo;buttons&rdquo; (including <b>wheel</b>
+and <b>pause</b>) can be given in a single command, but all specified
+modifiers apply to all specified buttons. For example, 
+two commands rather than one would be needed to assign functions to 
+<b>control right</b> and <b>alt wheel</b>:
+</p>
+<blockquote>
+<b>mousemode control right 'rotate and select'</b>
+<br>
+<b>mousemode alt wheel 'contour level'</b>
+</blockquote>
+<p>
+In the case of a touchpad or single-clicker mouse, middle- and right-button
+emulation are normally provided by the <b>alt</b> and <b>command</b> keys,
+respectively.  It may be best to leave <b>alt left</b> and <b>command left</b>
+unassigned if they will be needed for this purpose.
+</p><p>
+The <b>mousemode</b> command without arguments reports the current
+assignments in the <b>Log</b>.
+</p>
+<a name="functions"></a>
+<table border cellpadding="3" cellspacing="0">
+<tr>
+<td align="center"><b><i>function</i></b><br>(default assignment, if any)</td>
+<td align="center">description</td>
+<td align="center"><b>Mouse Modes</b> icon</td>
+</tr><tr>
+<td align="center"><b>select</b><br>(control left)</td>
+<td align="center"><a href="select.html">selection</a>
+of items for subsequent operations;
+see also <a href="select.html"><b>select</b></a>
+<td align="center"><img src="../tools/mouse-icons/select.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>rotate</b><br>(left)</td>
+<td align="center">XY rotation, Z rotation if cursor in periphery
+<br>(<a href="view.html#screencoords">screen coordinates</a>);
+see also <a href="turn.html"><b>turn</b></a>,
+<a href="roll.html"><b>roll</b></a></td>
+<td align="center"><img src="../tools/mouse-icons/rotate.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>translate</b><br>(middle)</td>
+<td align="center">XY translation
+(<a href="view.html#screencoords">screen coordinates</a>);
+see also <a href="move.html"><b>move</b></a></td>
+<td align="center"><img src="../tools/mouse-icons/translate.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>zoom</b><br>(right, wheel)</td>
+<td align="center">zooming the view;
+see also <a href="zoom.html"><b>zoom</b></a></a>
+<td align="center"><img src="../tools/mouse-icons/zoom.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>rotate and select</b></td>
+<td align="center">both rotation and selection</td>
+<td align="center"><img src="../tools/mouse-icons/rotatesel.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>translate selected models</b></td>
+<td align="center">translation of models with any part <a href="select.html">selected</a></td>
+<td align="center"><img src="../tools/mouse-icons/move_h2o.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>rotate selected models</b></td>
+<td align="center">rotation of models with any part <a href="select.html">selected</a></td>
+<td align="center"><img src="../tools/mouse-icons/rotate_h2o.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>clip</b> </td>
+<td align="center">adjust clipping planes; see also <b>clip</b></td>
+<td align="center"><img src="../tools/mouse-icons/clip.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>identify object</b><br>(pause)</td>
+<td align="center">show identifying information in balloon</td>
+<td>&nbsp;</td>
+</tr><tr>
+<td align="center"><b>contour level</b> </td>
+<td align="center">adjust map isosurface level</td>
+<td align="center"><img src="../tools/mouse-icons/contour.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>move planes</b></td>
+<td align="center">show different planes of a map</td>
+<td align="center"><img src="../tools/mouse-icons/cubearrow.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>place marker</b></td>
+<td align="center">place marker on map density</td>
+<td align="center"><img src="../tools/mouse-icons/marker.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>mark centroid</b></td>
+<td align="center">place marker at centroid of surface blob</td>
+<td align="center"><img src="../tools/mouse-icons/marker2.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>connect markers</b></td>
+<td align="center">link successively clicked markers, 
+bond successively clicked atoms</td>
+<td align="center"><img src="../tools/mouse-icons/bond.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>play map series</b></td>
+<td align="center">see also <b>vseries</b></td>
+<td align="center"><img src="../tools/mouse-icons/vseries.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>none</b></td>
+<td align="center">no assignment</td>
+<td>&nbsp;</td>
+</tr>
+</table>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+November 2015</address>
+</body></html>
