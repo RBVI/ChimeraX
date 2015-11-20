@@ -92,8 +92,8 @@ def connected_center(triangle_pick):
     varea = surface.vertex_areas(va, tc)
     a = varea.sum()
     c = varea.dot(va)/a
-    # TODO: Apply drawing transform to map to global coordinates
-    return c
+    cscene = d.scene_position * c
+    return cscene
 
 class ConnectMouseMode(MouseMode):
     name = 'connect markers'

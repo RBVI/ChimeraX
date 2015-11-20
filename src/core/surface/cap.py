@@ -19,11 +19,17 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01):
         for d in drawings:
             if not hasattr(d, 'clip_cap') or not d.clip_cap or d.triangles is None or hasattr(d, 'is_clip_cap'):
                 continue
+            if d.clip_cap == 'duplicate vertices':
+                from . import unique_vertex_map
+                vmap = unique_vertex_map(d.vertices)
+                t = vmap[d.triangles]
+#                from . import check_surface_topology
+#                check_surface_topology(t, d.name)
+            else:
+                t = d.triangles
             from . import compute_cap
-            cvarray, ctarray = compute_cap(normal, poffset, d.vertices, d.triangles)
+            cvarray, ctarray = compute_cap(normal, poffset, d.vertices, t)
             mcap = [cm for cm in d.child_drawings() if cm.name == cap_name]
-#                print ('showing cap for', d.name, 'triangles', len(ctarray), 'have', len(mcap),
-#                       'normal', normal, 'offset', poffset)
             if mcap:
                 cm = mcap[0]
             else:
@@ -31,6 +37,8 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01):
                 cm.is_clip_cap = True
             cm.vertices = cvarray
             cm.triangles = ctarray
+#            print ('capping ', d.name, len(ctarray), len(d.vertices), len(d.triangles), normal, poffset,
+#                   d.bounds().xyz_min, d.bounds().xyz_max)
             n = cvarray.copy()
             n[:] = normal
             cm.normals = n

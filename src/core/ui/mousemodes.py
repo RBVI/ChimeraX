@@ -7,26 +7,7 @@ class MouseModes:
         self.graphics_window = graphics_window
         self.session = session
 
-        from .. import map, markers
-        from ..map import series
-        mode_classes = [
-            SelectMouseMode,
-            RotateMouseMode,
-            TranslateMouseMode,
-            ZoomMouseMode,
-            RotateAndSelectMouseMode,
-            TranslateSelectedMouseMode,
-            RotateSelectedMouseMode,
-            ClipMouseMode,
-            ObjectIdMouseMode,
-            map.ContourLevelMouseMode,
-            map.PlanesMouseMode,
-            markers.MarkerMouseMode,
-            markers.MarkCenterMouseMode,
-            markers.ConnectMouseMode,
-            series.PlaySeriesMouseMode,
-        ]
-        self._available_modes = [mode(session) for mode in mode_classes]
+        self._available_modes = [mode(session) for mode in standard_mouse_mode_classes()]
 
         self._bindings = []  # List of MouseBinding
 
@@ -283,7 +264,7 @@ class MouseMode:
         self.last_mouse_position = pos
         return dx, dy
 
-    def wheel(self):
+    def wheel(self, event):
         pass
 
     def pause(self, position):
@@ -351,6 +332,11 @@ class RotateMouseMode(MouseMode):
         axis, angle = self.mouse_rotation(event)
         self.rotate(axis, angle)
 
+    def wheel(self, event):
+        d = event.wheel_value()
+        psize = self.pixel_size()
+        self.rotate((0,1,0), 10*d)
+
     def rotate(self, axis, angle):
         v = self.view
         # Convert axis from camera to scene coordinates
@@ -408,6 +394,10 @@ class TranslateMouseMode(MouseMode):
 
         dx, dy = self.mouse_motion(event)
         self.translate((dx, -dy, 0))
+
+    def wheel(self, event):
+        d = event.wheel_value()
+        self.translate((0,0,100*d))
 
     def translate(self, shift):
 
@@ -485,7 +475,12 @@ class ClipMouseMode(MouseMode):
                  (True,True):(1,-1)}[(event.shift_down(),event.alt_down())]
         self.clip_move((dx,-dy), ns, fs)
 
-    def clip_move(self, delta_xy, near_shift, far_shift):
+    def wheel(self, event):
+        d = event.wheel_value()
+        psize = self.pixel_size()
+        self.clip_move(None, True, False, delta = 10*psize*d)
+
+    def clip_move(self, delta_xy, near_shift, far_shift, delta = None):
 
         v = self.view
         planes = v.clip_planes.planes()
@@ -495,7 +490,9 @@ class ClipMouseMode(MouseMode):
         # TODO: Need a way to choose clip plane when more than one shown.
         p = planes[0]
 
-        if p.camera_normal is None:
+        if delta is not None:
+            d = delta
+        elif p.camera_normal is None:
             # Move scene clip plane
             d = self._tilt_shift(delta_xy, v.camera, p.normal)
         else:
@@ -536,3 +533,25 @@ class MouseEvent:
 
     def wheel_value(self):
         return self.event.GetWheelRotation()/120.0   # Usually one wheel click is delta of 120
+
+def standard_mouse_mode_classes():
+    from .. import map, markers
+    from ..map import series
+    mode_classes = [
+        SelectMouseMode,
+        RotateMouseMode,
+        TranslateMouseMode,
+        ZoomMouseMode,
+        RotateAndSelectMouseMode,
+        TranslateSelectedMouseMode,
+        RotateSelectedMouseMode,
+        ClipMouseMode,
+        ObjectIdMouseMode,
+        map.ContourLevelMouseMode,
+        map.PlanesMouseMode,
+        markers.MarkerMouseMode,
+        markers.MarkCenterMouseMode,
+        markers.ConnectMouseMode,
+        series.PlaySeriesMouseMode,
+    ]
+    return mode_classes

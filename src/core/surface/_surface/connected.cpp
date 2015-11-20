@@ -3,7 +3,6 @@
 //
 //#include <iostream>		// use std::cerr for debugging
 #include <algorithm>		// use std::sort
-#include <map>			// use std::map
 #include <set>			// use std::set
 #include <utility>		// use std::pair
 #include <vector>		// use std::vector

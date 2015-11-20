@@ -74,6 +74,7 @@ class MolecularSurface(Generic3DModel):
         self._max_radius = None
         self._atom_colors = None
         self._sharp_edge_iterations = 1
+        self.clip_cap = 'duplicate vertices'
 
     def new_parameters(self, show_atoms, probe_radius, grid_spacing,
                        resolution, level, visible_patches, sharp_boundaries,
