@@ -7,19 +7,26 @@ def save(session, filename, width=None, height=None, supersample=None, format=No
     Parameters
     ----------
     filename : string
-        File to save.  File suffix determines what type of file is saved unless the format option is given.
-        For sessions the suffix is .cxses.  Image files can be saved with .png, .jpg, .tif, .ppm, .gif suffixes.
+        File to save.
+        File suffix determines what type of file is saved unless
+        the format option is given.
+        For sessions the suffix is .cxses.
+        Image files can be saved with .png, .jpg, .tif, .ppm, .gif suffixes.
     width : integer
-        Width of image in pixels for saving image files.  If width is not specified the current
-        graphics window width is used.
+        Width of image in pixels for saving image files.
+        If width is not specified the current graphics window width is used.
     height : integer
         Height of image in pixels for saving image files.
     supersample : integer
-        Supersampling for saving images. Makes an image N times larger in each dimension
-        then averages to requested image size to produce smoother object edges.  Values of 2 or 3
-        are most useful, with little improvement for larger values.
+        Supersampling for saving images.
+        Makes an image N times larger in each dimension
+        then averages to requested image size to produce smoother object edges.
+        Values of 2 or 3 are most useful,
+        with little improvement for larger values.
     format : string
-        File format for saving images.  If not specified then the filename suffix is used to identify the format.
+        File format for saving images.
+        If not specified,
+        then the filename suffix is used to identify the format.
     '''
     from os.path import splitext
     e = splitext(filename)[1].lower()
@@ -37,18 +44,39 @@ def save(session, filename, width=None, height=None, supersample=None, format=No
 
 def register_command(session):
     from . import cli
+    img_fmts = cli.EnumOf(image_formats.values())
     desc = cli.CmdDesc(
         required=[('filename', cli.StringArg), ],
         keyword=[
-            ('width', cli.IntArg),
-            ('height', cli.IntArg),
-            ('supersample', cli.IntArg),
-            ('quality', cli.IntArg),
-            ('format', cli.StringArg),
+            ('width', cli.PositiveIntArg),
+            ('height', cli.PositiveIntArg),
+            ('supersample', cli.PositiveIntArg),
+            ('quality', cli.PositiveIntArg),
+            ('format', img_fmts),
         ],
         synopsis='save session or image'
     )
     cli.register('save', desc, save)
+
+    desc = cli.CmdDesc(
+        required=[('filename', cli.StringArg), ],
+        # synopsis='save session'
+    )
+    from .. import session as ses
+    cli.register('save session', desc, ses.save)
+
+    desc = cli.CmdDesc(
+        required=[('filename', cli.StringArg), ],
+        keyword=[
+            ('width', cli.PositiveIntArg),
+            ('height', cli.PositiveIntArg),
+            ('supersample', cli.PositiveIntArg),
+            ('quality', cli.PositiveIntArg),
+            ('format', img_fmts),
+        ],
+        # synopsis='save image'
+    )
+    cli.register('save image', desc, save_image)
 
 # Table mapping file suffix to Pillow image format.
 image_formats = {
@@ -62,13 +90,13 @@ image_formats = {
 image_file_suffixes = tuple(image_formats.keys())
 
 
-def save_image(session, path, format=None, width=None, height=None,
+def save_image(session, filename, format=None, width=None, height=None,
                supersample=None, quality=95):
     '''
     Save an image of the current graphics window contents.
     '''
     from os.path import expanduser, dirname, exists, splitext
-    path = expanduser(path)         # Tilde expansion
+    path = expanduser(filename)         # Tilde expansion
     dir = dirname(path)
     if dir and not exists(dir):
         from ..errors import UserError
