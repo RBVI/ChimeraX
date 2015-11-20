@@ -213,7 +213,7 @@ static struct PyMethodDef surface_cpp_methods[] =
    "Arguments path and tangents are n by 3 float arrays,\n"
    "and the cross section arguments are m by 3 arrays.\n"
    "Implemented in C++.\n"
-},
+  },
   {const_cast<char*>("tube_geometry_colors"), (PyCFunction)tube_geometry_colors,
    METH_VARARGS|METH_KEYWORDS,
    "tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions, start_divisions, end_divisions)"
