@@ -4,9 +4,10 @@ def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module
     # Remember that the order is important, when a command name is
-    # abbreviated, the one registered that matches wins, not the first
-    # in alphabetical order.
+    # abbreviated, the first one registered that matches wins, not
+    # the first in alphabetical order.
     modules = [
+        'comment',
         'alias', 'buriedarea',
         'camera', 'clip', 'close', 'cofr', 'color', 'colordef', 'crossfade', 'crosslinks',
         'delete', 'echo', 'exit', 'export', 'hide',
