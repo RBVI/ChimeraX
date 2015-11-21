@@ -14,7 +14,7 @@ def comment(session, comment=''):
 
 def register_command(session):
     from . import cli
-    desc = cli.CmdDesc(optional=[('comment', cli.RestOfLine)],
+    desc = cli.CmdDesc(optional=[('comment', cli.WholeRestOfLine)],
                        non_keyword=['comment'],
                        synopsis='placeholder for a comment')
     cli.register('#', desc, comment)
