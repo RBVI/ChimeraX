@@ -178,7 +178,7 @@ Command Aliases
 
     Normally, command aliases are made with the alias command, but
     they can also be explicitly register with :py:func:`alias` and
-    removed with :py:func:`unalias`.
+    removed with :py:func:`remove_alias`.
 
     An alias definition uses **$n** to refer to passed in arguments.
     $1 may appear more than once.  $$ is $.
@@ -749,6 +749,7 @@ class Center:
             c = self.coords
         return c
 
+
 class PlaceArg(Annotation):
     """
     Annotation for positioning matrix as 12 floats
@@ -773,8 +774,9 @@ class PlaceArg(Annotation):
         except ValueError:
             raise AnnotationError("Require numeric values")
         from ..geometry import Place
-        p = Place(matrix = (values[0:4], values[4:8], values[8:12]))
+        p = Place(matrix=(values[0:4], values[4:8], values[8:12]))
         return p
+
 
 class AtomsArg(Annotation):
     """Parse command atoms specifier"""
@@ -2403,16 +2405,16 @@ def list_aliases(all=False):
 
     Return in depth-first order.
     """
-    def find_aliases(partial_name, word_info):
-        for word, word_info in word_info.subcommands.items():
+    def find_aliases(partial_name, parent_info):
+        for word, word_info in parent_info.subcommands.items():
             if partial_name:
                 yield from find_aliases('%s %s' % (partial_name, word), word_info)
             else:
                 yield from find_aliases('%s' % word, word_info)
         if all:
-            if word_info.is_alias():
+            if parent_info.is_alias():
                 yield partial_name
-        elif word_info.is_user_alias():
+        elif parent_info.is_user_alias():
             yield partial_name
     return list(find_aliases('', _commands))
 
