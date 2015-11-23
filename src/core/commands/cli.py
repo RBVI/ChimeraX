@@ -1342,7 +1342,7 @@ class CmdDesc:
                              if i[0] not in non_keyword]
         self._keyword.update(optional_keywords)
         # keyword_map is what would user would type
-        self._keyword_map = dict([(_user_kw(n), n) for n in self._keyword])
+        self._keyword_map = OrderedDict([(_user_kw(n), n) for n in self._keyword])
         self._postconditions = postconditions
         self._required_arguments = required_arguments
         self.url = url
@@ -1636,6 +1636,7 @@ def add_keyword_arguments(name, kw_info):
 
     :param name: the name of the command (must not be an alias)
     :param kw_info: { keyword: annotation }
+        Use an OrderedDict to control which keyword is used for abbreviations
     """
     if not isinstance(kw_info, dict):
         raise ValueError("kw_info must be a dictionary")
