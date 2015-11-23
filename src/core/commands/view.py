@@ -3,7 +3,7 @@
 
 def view(session, objects=None, clip=True, cofr=True, show=None, frames=None,
          name=None, list=False, delete=None, orient=False, info=False, position=None,
-         all=False, model_positions=None, initial_model_positions=None):
+         all=False, set_model_positions=None, initial_model_positions=None):
     '''
     Move camera so the displayed models fill the graphics window.
     Also camera and model positions can be saved and restored.
@@ -42,7 +42,7 @@ def view(session, objects=None, clip=True, cofr=True, show=None, frames=None,
       Adjust camera to view all models if objects is None
       even if name, show, list, delete, info, position, or model_positions
       arguments are given.
-    model_positions : list of (Model, Place)
+    set_model_positions : list of (Model, Place)
       Set model positions.
     initial_model_position : Models
       Set model positions to no rotation, no shift.
@@ -52,8 +52,8 @@ def view(session, objects=None, clip=True, cofr=True, show=None, frames=None,
         v.initial_camera_view()
     if position is not None:
         v.camera.position = position
-    if model_positions is not None:
-        for m,p in model_positions:
+    if set_model_positions is not None:
+        for m,p in set_model_positions:
             m.position = p
     if initial_model_positions is not None:
         from ..geometry import Place
@@ -337,7 +337,7 @@ def register_command(session):
                  ('info', NoArg),
                  ('position', PlaceArg),
                  ('all', NoArg),
-                 ('model_positions', ModelPlacesArg),
+                 ('set_model_positions', ModelPlacesArg),
                  ('initial_model_positions', ModelsArg)],
         synopsis='reset view so everything is visible in window')
     register('view', desc, view)
