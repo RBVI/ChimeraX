@@ -749,6 +749,32 @@ class Center:
             c = self.coords
         return c
 
+class PlaceArg(Annotation):
+    """
+    Annotation for positioning matrix as 12 floats
+    defining a 3 row, 4 column matrix where the first
+    3 columns are x,y,z coordinate axes, and the last column
+    is the origin.
+    """
+    name = "position"
+
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = next_token(text)
+        p = PlaceArg.parse_place(token.split(','))
+        return p, text, rest
+
+    @staticmethod
+    def parse_place(fields):
+        if len(fields) != 12:
+            raise AnnotationError("Expected 12 comma-separated values")
+        try:
+            values = [float(x) for x in fields]
+        except ValueError:
+            raise AnnotationError("Require numeric values")
+        from ..geometry import Place
+        p = Place(matrix = (values[0:4], values[4:8], values[8:12]))
+        return p
 
 class AtomsArg(Annotation):
     """Parse command atoms specifier"""
