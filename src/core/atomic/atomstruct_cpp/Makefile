@@ -38,8 +38,7 @@ AtomicStructure.o: $(includedir)/basegeom/Graph.h \
 Bond.o: $(includedir)/basegeom/Connection.h
 Chain.o: $(includedir)/basegeom/destruct.h
 CoordSet.o: $(includedir)/basegeom/Coord.h $(includedir)/basegeom/destruct.h
-Pseudobond.o: $(includedir)/basegeom/Connection.h \
-	$(includedir)/basegeom/destruct.h $(includedir)/pseudobond/Manager.h
+Pseudobond.o: $(includedir)/basegeom/Connection.h $(includedir)/basegeom/destruct.h
 Residue.o: $(includedir)/basegeom/Rgba.h $(includedir)/basegeom/destruct.h
 Ring.o: $(includedir)/basegeom/Coord.h $(includedir)/basegeom/Real.h
 connect.o: $(includedir)/basegeom/Connectible.tcc \

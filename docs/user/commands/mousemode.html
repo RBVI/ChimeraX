@@ -32,19 +32,23 @@ class="clRight" alt="ChimeraX logo"/></a>
 [&nbsp;<b>pauseMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
 </h3>
 <p>
-The <b>mousemode</b> command assigns ChimeraX functions to the <b>left</b>,
-<b>middle</b>, and <b>right</b> mouse buttons,
+The <b>mousemode</b> command assigns ChimeraX functions to the left,
+middle, and right mouse buttons,
 alone and in combination with the modifier keys <b>control</b>, <b>alt</b>,
-<b>command</b>, and <b>shift</b>.  In addition, <b>wheel</b> refers to
-scrolling with the mouse wheel or touchpad, and <b>pause</b> refers to pausing
-the cursor over something in the graphics window without clicking any buttons.
+<b>command</b>, and <b>shift</b>.  In addition, <b>wheelMode</b> refers to
+scrolling with the mouse wheel or touchpad, and <b>pauseMode</b> refers to 
+pausing the cursor over something in the graphics window without 
+clicking any buttons.
 </p><p>
 Possible values of <i>function</i> are listed in the table 
-<a href="#functions">below</a>. If <i>function</i> contains spaces, 
-it should be enclosed in quotation marks.
+<a href="#functions">below</a>. They can be truncated to unique strings.
+If <i>function</i> contains spaces, it should be enclosed in quotation marks.
+Not all functions make sense for a given input mode; for example,
+only <b>identify object</b> and <b>none</b> are reasonable functions for
+<b>pauseMode</b>.
 </p><p>
-Multiple modifiers and multiple &ldquo;buttons&rdquo; (including <b>wheel</b>
-and <b>pause</b>) can be given in a single command, but all specified
+Multiple modifier keys and multiple &ldquo;buttons&rdquo;
+can be given in a single command, but all specified
 modifiers apply to all specified buttons. For example, 
 two commands rather than one would be needed to assign functions to 
 <b>control right</b> and <b>alt wheel</b>:
@@ -52,13 +56,13 @@ two commands rather than one would be needed to assign functions to
 <blockquote>
 <b>mousemode control right 'rotate and select'</b>
 <br>
-<b>mousemode alt wheel 'contour level'</b>
+<b>mousemode alt wheel contour</b>
 </blockquote>
 <p>
 In the case of a touchpad or single-clicker mouse, middle- and right-button
 emulation are normally provided by the <b>alt</b> and <b>command</b> keys,
-respectively.  It may be best to leave <b>alt left</b> and <b>command left</b>
-unassigned if they will be needed for this purpose.
+respectively. In other words, leaving <b>alt left</b> and <b>command left</b>
+unassigned allows them to serve the middle- and right-button functions.
 </p><p>
 The <b>mousemode</b> command without arguments reports the current
 assignments in the <b>Log</b>.
@@ -77,15 +81,18 @@ see also <a href="select.html"><b>select</b></a>
 <td align="center"><img src="../tools/mouse-icons/select.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>rotate</b><br>(left)</td>
-<td align="center">XY rotation, Z rotation if cursor in periphery
-<br>(<a href="view.html#screencoords">screen coordinates</a>);
+<td align="center">XY rotation with cursor in central part of window,
+<br>Z rotation with cursor in periphery
+(<a href="view.html#screencoords">screen coordinates</a>),
+<br>except if wheel, Y rotation only;
 see also <a href="turn.html"><b>turn</b></a>,
 <a href="roll.html"><b>roll</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/rotate.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>translate</b><br>(middle)</td>
 <td align="center">XY translation
-(<a href="view.html#screencoords">screen coordinates</a>);
+(<a href="view.html#screencoords">screen coordinates</a>),
+<br>except if wheel, Z translation;
 see also <a href="move.html"><b>move</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/translate.png" width="35px"></td>
 </tr><tr>
@@ -131,8 +138,8 @@ see also <a href="zoom.html"><b>zoom</b></a></a>
 <td align="center"><img src="../tools/mouse-icons/marker2.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>connect markers</b></td>
-<td align="center">link successively clicked markers, 
-bond successively clicked atoms</td>
+<td align="center">select and link (bond) 
+successively clicked markers (atoms)</td>
 <td align="center"><img src="../tools/mouse-icons/bond.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>play map series</b></td>

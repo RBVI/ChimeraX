@@ -15,7 +15,7 @@ class ColorArg(cli.Annotation):
 
         red
         #f00
-        #0xff0000
+        #ff0000
         rgb(255, 0, 0)
         rgb(100%, 0, 0)
         rgba(100%, 0, 0, 1)

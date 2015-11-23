@@ -34,7 +34,9 @@ model_range      = start:model_spec '-' end:model_spec
                  | start:model_spec
                  ;
 
-model_spec       = number:/[0-9]+/
+(* limit model numbers to 5 digits to avoid conflict with # colors *)
+
+model_spec       = number:/[0-9]{1,5}(?![0-9A-Fa-f])/
                  | star:'*'
                  ;
 
