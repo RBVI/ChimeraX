@@ -1855,6 +1855,9 @@ class Command:
             cur_end = m.end()
             text = self.current_text[cur_end:]
             if not text:
+                if self.amount_parsed == start:
+                    self._error = ''
+                    self.amount_parsed = cur_end
                 self.word_info = parent_info
                 self.command_name = cmd_name
                 return
