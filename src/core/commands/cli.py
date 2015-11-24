@@ -576,7 +576,7 @@ class EmptyArg(Annotation):
 
 class IntArg(Annotation):
     """Annotation for integer literals"""
-    name = "a whole number"
+    name = "an integer"
 
     @staticmethod
     def parse(text, session):
@@ -895,11 +895,11 @@ class Bounded(Annotation):
         self.min = min
         self.max = max
         if name is None:
-            if min and max:
+            if min is not None and max is not None:
                 self.name = "%s >= %s and <= %s" % (annotation.name, min, max)
-            elif min:
+            elif min is not None:
                 self.name = "%s >= %s" % (annotation.name, min)
-            elif max:
+            elif max is not None:
                 self.name = "%s <= %s" % (annotation.name, max)
             else:
                 self.name = annotation.name
