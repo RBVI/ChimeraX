@@ -42,13 +42,17 @@ def save(session, filename, width=None, height=None, supersample=None,
     else:
         suffixes = image_file_suffixes + (ses.SESSION_SUFFIX[1:],)
         from ..errors import UserError
-        raise UserError('Unrecognized file suffix "%s", require one of %s'
-                        % (e, ','.join(suffixes)))
+        from . import commas
+        tokens = commas(["'%s'" % i for i in suffixes])
+        if not e:
+            raise UserError('Missing file suffix, require one of %s' % tokens)
+        raise UserError('Unrecognized file suffix "%s", require one of %s' %
+                        (e, tokens))
 
 
 def register_command(session):
     from . import CmdDesc, register, EnumOf, StringArg, PositiveIntArg, BoolArg
-    img_fmts = EnumOf(image_formats.values())
+    img_fmts = EnumOf(image_formats.keys())
     desc = CmdDesc(
         required=[('filename', StringArg), ],
         keyword=[
