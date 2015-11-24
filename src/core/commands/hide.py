@@ -1,5 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def hide(session, objects=None, what=None):
     '''Hide specified atoms, bonds or models.
 
@@ -33,12 +34,15 @@ def hide(session, objects=None, what=None):
         for m in objects.models:
             m.display = False
 
+
 def register_command(session):
-    from . import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, NoArg, create_alias
+    from . import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, create_alias
     what_arg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds',
                        'cartoons', 'ribbons', 'models'))
-    desc = CmdDesc(optional=[('objects', Or(ObjectsArg, EmptyArg)),
-                             ('what', what_arg)],
-                   synopsis='hide specified objects')
+    desc = CmdDesc(
+        optional=[('objects', Or(ObjectsArg, EmptyArg)),
+                  ('what', what_arg)],
+        url='help:user/commands/show.html',
+        synopsis='hide specified objects')
     register('hide', desc, hide)
     create_alias('~display', 'hide $*')
