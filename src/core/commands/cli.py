@@ -1852,8 +1852,8 @@ class Command:
         start = self.amount_parsed
         while 1:
             m = _whitespace.match(self.current_text, self.amount_parsed)
-            self.amount_parsed = m.end()
-            text = self.current_text[self.amount_parsed:]
+            cur_end = m.end()
+            text = self.current_text[cur_end:]
             if not text:
                 self.word_info = parent_info
                 self.command_name = cmd_name
@@ -1881,6 +1881,7 @@ class Command:
                 if word and self._ci is None:
                     self._error = "Unknown command: %s" % self.current_text
                 return
+            self.amount_parsed = cur_end
             self._ci = None
             self.word_info = what
             self.command_name = None
