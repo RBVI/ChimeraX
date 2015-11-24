@@ -26,6 +26,15 @@ public:
     bool  operator==(const Rgba& other) const {
         return other.r == r && other.g == g && other.b == b && other.a == a;
     }
+
+    static const int  SESSION_NUM_INTS = 4;
+    static const int  SESSION_NUM_FLOATS = 0;
+    static int  session_num_ints() { return SESSION_NUM_INTS; }
+    static int  session_num_floats() { return SESSION_NUM_FLOATS; }
+    void  session_save(int** ints, float** ) {
+        *ints[0] = r; *ints[1] = g; *ints[2] = b; *ints[3] = a;
+        *ints += SESSION_NUM_INTS;
+    }
 };
 
 } //  namespace basegeom

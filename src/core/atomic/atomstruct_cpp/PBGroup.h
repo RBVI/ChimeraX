@@ -26,6 +26,9 @@ using basegeom::Rgba;
 class Group: public basegeom::DestructionObserver, public basegeom::GraphicsContainer {
 public:
     typedef std::set<Pseudobond*>  Pseudobonds;
+
+    static const int  SESSION_NUM_INTS = 1;
+    static const int  SESSION_NUM_FLOATS = 0;
 protected:
     std::string  _category;
     Rgba  _default_color = {255,255,0,255}; // yellow
@@ -52,6 +55,13 @@ public:
     virtual bool  get_default_halfbond() const { return _default_halfbond; }
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
     virtual const std::set<Pseudobond*>&  pseudobonds() const = 0;
+    static int  session_num_ints(bool /*global*/ = false) {
+        return SESSION_NUM_INTS + Rgba::session_num_ints();
+    }
+    static int  session_num_floats(bool /*global*/ = false) {
+        return SESSION_NUM_FLOATS + Rgba::session_num_floats();
+    }
+    virtual void  session_save(int**, float**, PyObject*, bool /*global*/ = false) const;
     virtual void  set_default_color(const Rgba& rgba) { _default_color = rgba; }
     virtual void  set_default_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a = 255) { this->set_default_color(Rgba(r,g,b,a)); }
@@ -61,6 +71,9 @@ public:
 // in per-AtomicStructure groups there are per-CoordSet groups
 // and overall groups...
 class StructurePBGroupBase: public Group {
+public:
+    static const int  SESSION_NUM_INTS = 0;
+    static const int  SESSION_NUM_FLOATS = 0;
 protected:
     friend class AS_PBManager;
     void  _check_structure(Atom* a1, Atom* a2);
@@ -69,10 +82,21 @@ protected:
     virtual  ~StructurePBGroupBase() {}
 public:
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
+    static int  session_num_ints(bool /*global*/ = false) {
+        return SESSION_NUM_INTS + Group::session_num_ints();
+    }
+    static int  session_num_floats(bool /*global*/ = false) {
+        return SESSION_NUM_FLOATS + Group::session_num_floats();
+    }
+    virtual void  session_save(int** ints, float** floats, PyObject* misc,
+        bool global = false) const { Group::session_save(ints, floats, misc, global); }
     AtomicStructure*  structure() const { return _structure; }
 };
 
 class StructurePBGroup: public StructurePBGroupBase {
+public:
+    static const int  SESSION_NUM_INTS = 0;
+    static const int  SESSION_NUM_FLOATS = 0;
 private:
     friend class Proxy_PBGroup;
     Pseudobonds  _pbonds;
@@ -84,6 +108,9 @@ public:
     void  clear();
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2);
     const Pseudobonds&  pseudobonds() const { return _pbonds; }
+    int  session_num_ints(bool global = false) const;
+    int  session_num_floats(bool global = false) const;
+    virtual void  session_save(int** , float** , PyObject* , bool global = false) const;
 };
 
 class CS_PBGroup: public StructurePBGroupBase
@@ -103,6 +130,9 @@ public:
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs);
     const Pseudobonds&  pseudobonds() const;
     const Pseudobonds&  pseudobonds(const CoordSet* cs) const { return _pbonds[cs]; }
+    int  session_num_ints(bool global = false) const;
+    int  session_num_floats(bool global = false) const;
+    virtual void  session_save(int** , float** , PyObject* , bool global = false) const;
 };
 
 // Need a proxy class that can be contained/returned by the pseudobond
@@ -205,6 +235,21 @@ public:
         if (_group_type == AS_PBManager::GRP_NORMAL)
             throw std::invalid_argument("Not a per-coordset pseudobond group");
         return static_cast<CS_PBGroup*>(_proxied)->pseudobonds(cs);
+    }
+    int  session_num_ints(bool global = false) const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->session_num_ints(global);
+        return static_cast<CS_PBGroup*>(_proxied)->session_num_ints(global);
+    }
+    int  session_num_floats(bool global = false) const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->session_num_floats(global);
+        return static_cast<CS_PBGroup*>(_proxied)->session_num_floats(global);
+    }
+    virtual void  session_save(int** ints, float** floats, PyObject* misc, bool global = false) const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->session_save(ints, floats, misc, global);
+        return static_cast<CS_PBGroup*>(_proxied)->session_save(ints, floats, misc, global);
     }
     void  set_default_color(const Rgba& rgba) {
         if (_group_type == AS_PBManager::GRP_NORMAL)

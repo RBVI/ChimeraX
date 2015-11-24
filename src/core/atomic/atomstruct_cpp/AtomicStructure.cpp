@@ -1015,12 +1015,14 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     *int_array++ = is_traj;
     *int_array++ = lower_case_chains;
     *int_array++ = pdb_version;
+    // if you add ints, change the allocation above
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
 
     float* float_array;
     npy_array = python_float_array(1, &float_array);
     *float_array++ = ball_scale();
+    // if you add floats, change the allocation above
     if (PyList_Append(floats, npy_array) < 0)
         throw std::runtime_error("Couldn't append to floats list");
 
@@ -1092,6 +1094,30 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     }
 
     return 1;  // version number
+}
+
+void
+AtomicStructure::session_save_setup() const
+{
+    size_t index = 0;
+
+    session_save_atoms = new std::map<Atom*, size_t>;
+    for (auto a: atoms()) {
+        (*session_save_atoms)[a] = index++;
+    }
+
+    index = 0;
+    session_save_crdsets = new std::map<CoordSet*, size_t>;
+    for (auto cs: coord_sets()) {
+        (*session_save_crdsets)[cs] = index++;
+    }
+}
+
+void
+AtomicStructure::session_save_teardown() const
+{
+    delete session_save_atoms;
+    delete session_save_crdsets;
 }
 
 void

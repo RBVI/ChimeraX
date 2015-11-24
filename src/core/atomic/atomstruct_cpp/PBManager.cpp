@@ -131,67 +131,55 @@ AS_PBManager::session_info(PyObject* ints, PyObject* floats, PyObject* misc) con
 {
     PyObject* int_list = PyList_New(0);
     if (int_list == nullptr) {
-        throw std::runtime_error("Can't allocate list for pseudobond group ints");
+        throw std::runtime_error("Can't allocate list for pseudobond ints");
     }
     if (PyList_Append(ints, int_list) < 0)
         throw std::runtime_error("Can't append pseudobond ints to global list");
     PyObject* float_list = PyList_New(0);
     if (float_list == nullptr) {
-        throw std::runtime_error("Can't allocate list for pseudobond group floats");
+        throw std::runtime_error("Can't allocate list for pseudobond floats");
     }
     if (PyList_Append(floats, float_list) < 0)
         throw std::runtime_error("Can't append pseudobond floats to global list");
     PyObject* misc_list = PyList_New(0);
     if (misc_list == nullptr) {
-        throw std::runtime_error("Can't allocate list for pseudobond group misc info");
+        throw std::runtime_error("Can't allocate list for pseudobond misc info");
     }
     if (PyList_Append(misc, misc_list) < 0)
         throw std::runtime_error("Can't append pseudobond misc info to global list");
 
-//TODO: fix code below to keep ints/floats as simple lists, not lists of lists
-#if 0
-    for (auto cat_proxy: _groups) {
-        auto category = cat_proxy.first;
-        auto proxy = cat_proxy.second;
-
-        PyObject* attr_list = PyList_New(2);
-        if (attr_list == nullptr)
-            throw std::runtime_error("Cannot create Python list for pb group misc info");
-        if (PyList_Append(misc_list, attr_list) < 0)
-            throw std::runtime_error("Can't append attr list to pb group list");
-        // category
-        PyObject* py_cat = PyUnicode_FromString(category.c_str());
+    int num_ints = 0;
+    int num_floats = 0;
+    std::vector<std::string> categories;
+    std::vector<Proxy_PBGroup*> groups;
+    PyObject* cat_list = PyList_New(group_map().size());
+    if (cat_list == nullptr) {
+        throw std::runtime_error("Can't allocate list for pseudobond category names");
+    }
+    if (PyList_Append(misc_list, cat_list) < 0)
+        throw std::runtime_error("Can't append pseudobond category name list to misc list");
+    int cat_index = 0;
+    for (auto cat_grp: group_map()) {
+        auto cat = cat_grp.first;
+        auto grp = cat_grp.second;
+        categories.push_back(cat);
+        groups.push_back(grp);
+        num_ints += grp->session_num_ints();
+        num_floats += grp->session_num_floats();
+        PyObject* py_cat = PyUnicode_FromString(cat.c_str());
         if (py_cat == nullptr)
             throw std::runtime_error("Cannot create Python string for pb group category");
-        PyList_SET_ITEM(attr_list, 0, py_cat);
-        PyObject* grp_attrs = PyList_New(0);
-        if (grp_attrs == nullptr)
-            throw std::runtime_error("Cannot create list for pb group attrs");
-        PyList_SET_ITEM(attr_list, 1, grp_attrs);
-
-        if (proxy->group_type() == GRP_NORMAL) {
-            _grp_session_info(proxy->pseudobonds(), int_list, float_list, grp_attrs);
-        } else {
-            // per-coord-set group
-            PyObject* cs_int_list = PyList_New(0);
-            PyObject* cs_float_list = PyList_New(0);
-            PyObject* cs_misc_list = PyList_New(0);
-            if (cs_int_list == nullptr || cs_float_list == nullptr
-            || cs_misc_list == nullptr)
-                throw std::runtime_error("Can't create per-coord-set list");
-            if (PyList_Append(int_list, cs_int_list) < 0)
-                throw std::runtime_error("Cannot append to per-cs int list");
-            if (PyList_Append(float_list, cs_float_list) < 0)
-                throw std::runtime_error("Cannot append to per-cs float list");
-            if (PyList_Append(misc_list, cs_misc_list) < 0)
-                throw std::runtime_error("Cannot append to per-cs misc list");
-            for (auto cs: structure()->coord_sets()) {
-                _grp_session_info(proxy->pseudobonds(cs), cs_int_list, cs_float_list,
-                    cs_misc_list);
-            }
-        }
+        PyList_SET_ITEM(cat_list, cat_index++, py_cat);
     }
-#endif
+    int* int_array;
+    if (PyList_Append(ints, python_int_array(num_ints, &int_array)) < 0)
+        throw std::runtime_error("Couldn't append pb ints to int list");
+    float* float_array;
+    if (PyList_Append(floats, python_float_array(num_floats, &float_array)) < 0)
+        throw std::runtime_error("Couldn't append pb floats to int list");
+    for (auto grp: groups) {
+        grp->session_save(&int_array, &float_array, misc_list);
+    }
     return 1;
 }
 

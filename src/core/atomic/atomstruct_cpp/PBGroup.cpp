@@ -135,4 +135,67 @@ CS_PBGroup::pseudobonds() const
     return pseudobonds(_structure->active_coord_set());
 }
 
+int
+CS_PBGroup::session_num_floats(bool global) const {
+    int num_floats SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats()
+        + pseudobonds().size(); // that last is for references to coord sets
+    for (auto crdset_pbs: pseudobonds()) {
+        num_floats += crdset_pbs.second.size() * Pseudobond::session_num_floats(global);
+    }
+    return num_floats;
+}
+
+int
+StructurePBGroup::session_num_floats(bool global) const {
+    return SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats()
+        + pseudobonds().size() * Pseudobond::session_num_floats(global);
+}
+
+int
+CS_PBGroup::session_num_ints(bool global) const {
+    int num_ints = SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
+        + pseudobonds().size(); // that last is for references to coord sets
+    for (auto crdset_pbs: pseudobonds()) {
+        num_ints += crdset_pbs.second.size() * Pseudobond::session_num_ints(global);
+    }
+    return num_ints;
+}
+
+int
+StructurePBGroup::session_num_ints(bool global) const {
+    return SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
+        + pseudobonds().size() * Pseudobond::session_num_ints(global);
+}
+
+void
+Group::session_save(int** ints, float** floats, PyObject* , bool /*global*/) const
+{
+    _default_color.session_save(ints, floats);
+    *ints[0] = _default_halfbond;
+    *ints += SESSION_NUM_INTS;
+}
+
+void
+CS_PBGroup::session_save(int** ints, float** floats, PyObject* misc, bool global) const
+{
+    StructurePBGroupBase::session_save(ints, floats, misc, global);
+    for (auto cs_pbs: pseudobonds()) {
+        auto cs = cs_pbs.first;
+        auto pbs = crdset_pbs.second;
+        *ints[0] = (*structure()->session_save_crdsets)[cs];
+        *ints++;
+        for (auto pb: pbs)
+            pb->session_save(ints, floats, misc, global);
+    }
+}
+
+void
+StructurePBGroup::session_save(int** ints, float** floats, PyObject* misc, bool global) const
+{
+    StructurePBGroupBase::session_save(ints, floats, misc, global);
+    for (auto pb: pseudobonds()) {
+        pb->session_save(ints, floats, misc, global);
+    }
+}
+
 }  // namespace atomstruct
