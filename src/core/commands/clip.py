@@ -134,7 +134,7 @@ def report_clip_info(viewer, log):
     log.status(msg)
 
 def register_command(session):
-    from .cli import CmdDesc, register, FloatArg, NoArg, AxisArg, ModelArg, CenterArg, Or, EnumOf
+    from .cli import CmdDesc, register, FloatArg, NoArg, AxisArg, ModelArg, CenterArg, Or, EnumOf, create_alias
     offset_arg = Or(EnumOf(['off']), FloatArg)
     desc = CmdDesc(
         optional=[],
@@ -151,3 +151,4 @@ def register_command(session):
         synopsis='set clip planes'
     )
     register('clip', desc, clip)
+    create_alias('~clip', 'clip off')
