@@ -48,15 +48,19 @@ def save(session, filename, width=None, height=None, supersample=None,
         from ..errors import UserError
         from . import commas
         tokens = commas(["'%s'" % i for i in suffixes])
-        if not e:
+        if not suffix:
             raise UserError('Missing file suffix, require one of %s' % tokens)
         raise UserError('Unrecognized file suffix "%s", require one of %s' %
-                        (e, tokens))
+                        (suffix, tokens))
 
 
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, StringArg, PositiveIntArg, BoolArg
+    from . import CmdDesc, register, EnumOf, StringArg, IntArg, BoolArg, PositiveIntArg, Bounded
+    from .. import session as ses
+    ses_suffix = ses.SESSION_SUFFIX[1:]
     img_fmts = EnumOf(image_formats.keys())
+    all_fmts = EnumOf(tuple(image_formats.keys()) + (ses_suffix,))
+    quality_arg = Bounded(IntArg, min=0, max=100)
     desc = CmdDesc(
         required=[('filename', StringArg), ],
         keyword=[
@@ -64,8 +68,8 @@ def register_command(session):
             ('height', PositiveIntArg),
             ('supersample', PositiveIntArg),
             ('transparent_background', BoolArg),
-            ('quality', PositiveIntArg),
-            ('format', img_fmts),
+            ('quality', quality_arg),
+            ('format', all_fmts),
         ],
         synopsis='save session or image'
     )
@@ -85,7 +89,7 @@ def register_command(session):
             ('height', PositiveIntArg),
             ('supersample', PositiveIntArg),
             ('transparent_background', BoolArg),
-            ('quality', PositiveIntArg),
+            ('quality', quality_arg),
             ('format', img_fmts),
         ],
         # synopsis='save image'
