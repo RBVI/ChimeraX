@@ -24,7 +24,7 @@ class View:
         self._opengl_initialized = False
 
         # Red, green, blue, opacity, 0-1 range.
-        self._background_rgba = (0, 0, 0, 1)
+        self._background_rgba = (0, 0, 0, 0)
 
         # Create camera
         from .camera import MonoCamera
@@ -247,7 +247,9 @@ class View:
 
     def set_background_color(self, rgba):
         import numpy
-        self._background_rgba = numpy.asarray(rgba, dtype=numpy.float32)
+        color = numpy.asarray(rgba, dtype=numpy.float32)
+        color[3] = 0	# For transparent background images.
+        self._background_rgba = color
         self.redraw_needed = True
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
@@ -401,8 +403,8 @@ class View:
         self._2d_overlays = [o for o in self._overlays if o not in oset]
         self.redraw_needed = True
 
-    def image(self, width=None, height=None, supersample=None, camera=None,
-              drawings=None):
+    def image(self, width=None, height=None, supersample=None,
+              transparent_background=False, camera=None, drawings=None):
         '''Capture an image of the current scene. A PIL image is returned.'''
 
         self._use_opengl()
@@ -410,7 +412,7 @@ class View:
         w, h = self._window_size_matching_aspect(width, height)
 
         from .opengl import Framebuffer
-        fb = Framebuffer(w, h)
+        fb = Framebuffer(w, h, alpha = transparent_background)
         if not fb.valid():
             return None         # Image size exceeds framebuffer limits
 
@@ -449,10 +451,11 @@ class View:
         r.pop_framebuffer()
         fb.delete()
 
+        ncomp = 4 if transparent_background else 3
+        from PIL import Image
         # Flip y-axis since PIL image has row 0 at top,
         # opengl has row 0 at bottom.
-        from PIL import Image
-        pi = Image.fromarray(rgba[::-1, :, :3])
+        pi = Image.fromarray(rgba[::-1, :, :ncomp])
         return pi
 
     def frame_buffer_rgba(self):
