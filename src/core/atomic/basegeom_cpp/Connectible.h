@@ -22,7 +22,7 @@ using ::basegeom::UniqueConnection;
 template <class FinalGraph, class FinalConnectible, class FinalConnection>
 class Connectible {
 protected:
-    friend class UniqueConnection<FinalConnectible, FinalConnection>;
+    friend class UniqueConnection<FinalConnectible>;
     typedef std::vector<FinalConnection*> Connections;
     typedef std::vector<FinalConnectible*> Neighbors;
 

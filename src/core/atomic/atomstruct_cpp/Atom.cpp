@@ -6,11 +6,18 @@
 #include "PBGroup.h"
 #include "Pseudobond.h"
 #include "Residue.h"
-#include "basegeom/ChangeTracker.h"
+
+#include <basegeom/ChangeTracker.h>
 
 #include <utility>  // for std::pair
 #include <stdexcept>
 #include <sstream>
+
+#include <basegeom/Connectible.tcc>
+
+// force instantiation
+template void basegeom::Connectible<atomstruct::AtomicStructure, atomstruct::Atom, atomstruct::Bond>::add_connection(atomstruct::Bond*);
+template void basegeom::Connectible<atomstruct::AtomicStructure, atomstruct::Atom, atomstruct::Bond>::remove_connection(atomstruct::Bond*);
 
 namespace atomstruct {
 
@@ -28,6 +35,9 @@ Atom::~Atom()
 {
     structure()->change_tracker()->add_deleted(this);
 }
+
+void
+Atom::add_bond(Bond *b) { add_connection(b); }
 
 std::set<char>
 Atom::alt_locs() const

@@ -12,7 +12,7 @@ class Atom;
 using basegeom::ChangeTracker;
 using basegeom::GraphicsContainer;
 
-class ATOMSTRUCT_IMEX Pseudobond: public basegeom::Connection<Atom, Pseudobond>
+class ATOMSTRUCT_IMEX Pseudobond: public basegeom::Connection<Atom>
 {
     friend class PBGroup;
     friend class StructurePBGroup;
@@ -21,7 +21,7 @@ private:
     GraphicsContainer*  _gc;
 
     Pseudobond(Atom* a1, Atom* a2, GraphicsContainer* gc):
-        basegeom::Connection<Atom, Pseudobond>(a1, a2), _gc(gc) {
+        basegeom::Connection<Atom>(a1, a2), _gc(gc) {
             _halfbond = false;
             _radius = 0.05;
         };
@@ -37,6 +37,9 @@ public:
     ChangeTracker*  change_tracker() const;
     GraphicsContainer*  graphics_container() const { return _gc; }
     GraphicsContainer*  group() const { return graphics_container(); }
+    void track_change(const std::string& reason) const {
+        change_tracker()->add_modified(this, reason);
+    }
 };
 
 }  // namespace atomstruct
