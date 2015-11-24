@@ -41,6 +41,22 @@ class UserColors(SortedDict, State):
         self.clear()
         self.update(BuiltinColors)
 
+    def list(self, user=True):
+        if not user:
+            return list(self.keys())
+        return [name for name, color in self.items()
+            if name not in BuiltinColors or color != BuiltinColors[name]]
+
+    def add(self, key, value):
+        if key in BuiltinColors:
+            raise ValueError('Can not override builtin color')
+        self[key] = value
+
+    def remove(self, key):
+        if key in BuiltinColors:
+            raise ValueError('Can not remove builtin color')
+        del self[key]
+
 
 class Color:
     """Basic color support.

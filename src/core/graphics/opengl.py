@@ -788,7 +788,8 @@ class Render:
         GL.glDepthRange(min, max)
 
     def start_silhouette_drawing(self):
-        fb = self.silhouette_framebuffer(self.render_size())
+        alpha = self.current_framebuffer().alpha
+        fb = self.silhouette_framebuffer(self.render_size(), alpha)
         self.push_framebuffer(fb)
 
     def finish_silhouette_drawing(self, thickness, color, depth_jump,
@@ -798,23 +799,20 @@ class Render:
         self.draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
                                 perspective_near_far_ratio)
 
-    def silhouette_framebuffer(self, size=None):
+    def silhouette_framebuffer(self, size, alpha):
         sfb = self._silhouette_framebuffer
-        if size is None:
-            return sfb
-        if sfb and (size[0] != sfb.width or size[1] != sfb.height):
+        if sfb and (size[0] != sfb.width or size[1] != sfb.height or alpha != sfb.alpha):
             sfb.delete()
             sfb = None
         if sfb is None:
             dt = Texture()
             dt.initialize_depth(size, depth_compare_mode=False)
-            self._silhouette_framebuffer = sfb = Framebuffer(depth_texture=dt)
+            self._silhouette_framebuffer = sfb = Framebuffer(depth_texture=dt, alpha=alpha)
         return sfb
 
     def draw_depth_outline(self, depth_texture, thickness=1,
                            color=(0, 0, 0, 1), depth_jump=0.03,
                            perspective_near_far_ratio=1):
-
         # Render pixels with depth in depth_texture less than neighbor pixel
         # by at least depth_jump. The depth buffer is not used.
         tc = TextureWindow(self, self.SHADER_DEPTH_OUTLINE)
@@ -924,7 +922,8 @@ class Framebuffer:
     '''
     def __init__(self, width=None, height=None,
                  color=True, color_texture=None,
-                 depth=True, depth_texture=None):
+                 depth=True, depth_texture=None,
+                 alpha=False):
 
         if width is not None and height is not None:
             w, h = width, height
@@ -937,13 +936,14 @@ class Framebuffer:
 
         self.width = w
         self.height = h
+        self.alpha = alpha
         self.viewport = None if w is None else (0, 0, w, h)
 
         self.color_texture = color_texture
         if not color or color_texture or w is None:
             self.color_rb = None
         else:
-            self.color_rb = self.color_renderbuffer(w, h)
+            self.color_rb = self.color_renderbuffer(w, h, alpha)
         self.depth_texture = depth_texture
         if not depth or depth_texture or w is None:
             self.depth_rb = None
@@ -970,11 +970,12 @@ class Framebuffer:
         max_size = min(max_rb_size, max_tex_size)
         return width <= max_size and height <= max_size
 
-    def color_renderbuffer(self, width, height):
+    def color_renderbuffer(self, width, height, alpha = False):
 
         color_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, color_rb)
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_RGB8, width, height)
+        fmt = GL.GL_RGBA8 if alpha else GL.GL_RGB8
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, fmt, width, height)
         return color_rb
 
     def depth_renderbuffer(self, width, height):

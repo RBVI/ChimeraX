@@ -9,7 +9,7 @@ from .cli import ListOf, SetOf, TupleOf, Or
 from .cli import Annotation, next_token, AnnotationError
 from .cli import NoArg, BoolArg, StringArg, EmptyArg, EnumOf
 from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
-from .cli import FloatArg, Float3Arg, FloatsArg, AxisArg, Bounded
+from .cli import FloatArg, Float3Arg, FloatsArg, AxisArg, Bounded, PlaceArg
 from .cli import ModelIdArg, AtomsArg, RestOfLine
 from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg
 

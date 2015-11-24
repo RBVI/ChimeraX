@@ -1392,14 +1392,14 @@ extern "C" PyObject* change_tracker_changes(void *vct)
             PyObject *ptr_array = python_voidp_array(class_changes.created.size(), &ptrs);
             size_t j = 0;
             for (auto ptr: class_changes.created)
-                ptrs[j++] = ptr;
+                ptrs[j++] = const_cast<void*>(ptr);
             PyTuple_SetItem(value, 0, ptr_array);
 
             // second tuple item:  modified objects
             ptr_array = python_voidp_array(class_changes.modified.size(), &ptrs);
             j = 0;
             for (auto ptr: class_changes.modified)
-                ptrs[j++] = ptr;
+                ptrs[j++] = const_cast<void*>(ptr);
             PyTuple_SetItem(value, 1, ptr_array);
 
             // third tuple item:  list of reasons

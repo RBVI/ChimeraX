@@ -462,6 +462,10 @@ class ObjectIdMouseMode(MouseMode):
         # Hide atom spec balloon
         self.session.ui.main_window.graphics_window.popup.hide()
 
+class NullMouseMode(MouseMode):
+    '''Used to assign no mode to a mouse button.'''
+    name = 'none'
+
 class ClipMouseMode(MouseMode):
     name = 'clip'
     icon_file = 'clip.png'
@@ -553,5 +557,6 @@ def standard_mouse_mode_classes():
         markers.MarkCenterMouseMode,
         markers.ConnectMouseMode,
         series.PlaySeriesMouseMode,
+        NullMouseMode,
     ]
     return mode_classes

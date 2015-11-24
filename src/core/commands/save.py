@@ -1,7 +1,8 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def save(session, filename, width=None, height=None, supersample=None, format=None):
+def save(session, filename, width=None, height=None, supersample=None,
+         transparent_background=False, format=None):
     '''Save data, sessions, images.
 
     Parameters
@@ -23,6 +24,8 @@ def save(session, filename, width=None, height=None, supersample=None, format=No
         then averages to requested image size to produce smoother object edges.
         Values of 2 or 3 are most useful,
         with little improvement for larger values.
+    transparent_background : bool
+        Save image with transparent background.
     format : string
         File format for saving images.
         If not specified,
@@ -32,7 +35,8 @@ def save(session, filename, width=None, height=None, supersample=None, format=No
     e = splitext(filename)[1].lower()
     from .. import session as ses
     if e[1:] in image_file_suffixes:
-        save_image(session, filename, format, width, height, supersample)
+        save_image(session, filename, format, width, height,
+                   supersample, transparent_background)
     elif e == ses.SESSION_SUFFIX:
         ses.save(session, filename)
     else:
@@ -43,40 +47,42 @@ def save(session, filename, width=None, height=None, supersample=None, format=No
 
 
 def register_command(session):
-    from . import cli
-    img_fmts = cli.EnumOf(image_formats.values())
-    desc = cli.CmdDesc(
-        required=[('filename', cli.StringArg), ],
+    from . import CmdDesc, register, EnumOf, StringArg, PositiveIntArg, BoolArg
+    img_fmts = EnumOf(image_formats.values())
+    desc = CmdDesc(
+        required=[('filename', StringArg), ],
         keyword=[
-            ('width', cli.PositiveIntArg),
-            ('height', cli.PositiveIntArg),
-            ('supersample', cli.PositiveIntArg),
-            ('quality', cli.PositiveIntArg),
+            ('width', PositiveIntArg),
+            ('height', PositiveIntArg),
+            ('supersample', PositiveIntArg),
+            ('transparent_background', BoolArg),
+            ('quality', PositiveIntArg),
             ('format', img_fmts),
         ],
         synopsis='save session or image'
     )
-    cli.register('save', desc, save)
+    register('save', desc, save)
 
-    desc = cli.CmdDesc(
-        required=[('filename', cli.StringArg), ],
+    desc = CmdDesc(
+        required=[('filename', StringArg), ],
         # synopsis='save session'
     )
     from .. import session as ses
-    cli.register('save session', desc, ses.save)
+    register('save session', desc, ses.save)
 
-    desc = cli.CmdDesc(
-        required=[('filename', cli.StringArg), ],
+    desc = CmdDesc(
+        required=[('filename', StringArg), ],
         keyword=[
-            ('width', cli.PositiveIntArg),
-            ('height', cli.PositiveIntArg),
-            ('supersample', cli.PositiveIntArg),
-            ('quality', cli.PositiveIntArg),
+            ('width', PositiveIntArg),
+            ('height', PositiveIntArg),
+            ('supersample', PositiveIntArg),
+            ('transparent_background', BoolArg),
+            ('quality', PositiveIntArg),
             ('format', img_fmts),
         ],
         # synopsis='save image'
     )
-    cli.register('save image', desc, save_image)
+    register('save image', desc, save_image)
 
 # Table mapping file suffix to Pillow image format.
 image_formats = {
@@ -91,7 +97,7 @@ image_file_suffixes = tuple(image_formats.keys())
 
 
 def save_image(session, filename, format=None, width=None, height=None,
-               supersample=None, quality=95):
+               supersample=None, transparent_background=False, quality=95):
     '''
     Save an image of the current graphics window contents.
     '''
@@ -109,5 +115,6 @@ def save_image(session, filename, format=None, width=None, height=None,
         format = image_formats[suffix]
 
     view = session.main_view
-    i = view.image(width, height, supersample=supersample)
+    i = view.image(width, height, supersample=supersample,
+                   transparent_background=transparent_background)
     i.save(path, format, quality=quality)

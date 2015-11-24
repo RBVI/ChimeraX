@@ -85,7 +85,7 @@ public:
     void  _switch_initial_element(const Element& e) { _element = &e; }
 
 public:
-    void  add_bond(Bond *b) { add_connection(b); }
+    void  add_bond(Bond *b);
     char  alt_loc() const { return _alt_loc; }
     std::set<char>  alt_locs() const;
     float  bfactor() const;
