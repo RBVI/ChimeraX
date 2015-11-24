@@ -95,6 +95,9 @@ static void calculate_plane_edges(const IArray &tarray,
     {
       int k3 = 3 * k;
       int i0 = t[k3], i1 = t[k3+1], i2 = t[k3+2];
+      if (i0 == i1 || i0 == i2 || i1 == i2)
+	// Ignore degenerate triangles to avoid more than 2 triangles sharing an edge.
+	continue;
       float s0 = side[i0], s1 = side[i1], s2 = side[i2];
       int c0, c1, c2;
       if (s0 >= 0 && s1 < 0 && s2 < 0)
