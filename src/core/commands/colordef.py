@@ -62,79 +62,114 @@ def _find_named_color(color_dict, name):
     return None, None, name
 
 
-def colordef(session, name, color=None):
+def define_color(session, name, color=None):
     """Create a user defined color."""
     if ColorNames.match(name) is None:
         from ..errors import UserError
         raise UserError('Illegal color name: "%s"' % name)
-    if color is None:
-        # TODO: need to merge the two color dictionaries to properly
-        # resolve abbreviations
-        if session is not None:
-            real_name, color, rest = _find_named_color(session.user_colors, name)
-            if rest:
-                color = None
-        else:
-            from ..colors import BuiltinColors
-            real_name, color, rest = _find_named_color(BuiltinColors, name)
-            if rest:
-                color = None
-        if color is None:
-            from ..errors import UserError
-            raise UserError('Unknown color %r' % name)
 
-        def percent(x):
-            if x == 1:
-                return 100
-            return ((x * 10000) % 10000) / 100
-        red, green, blue, alpha = color.rgba
-        if alpha >= 1:
-            transmit = 'opaque'
-        elif alpha <= 0:
-            transmit = 'transparent'
-        else:
-            transmit = '%g%% transparent' % percent(1 - alpha)
-
-        msg = 'Color %r is %s, %.4g%% red, %.4g%% green, and %.4g%% blue' % (
-            real_name, transmit, percent(red), percent(green),
-            percent(blue))
-        if session is None:
-            print(msg)
-            return
-        if not session.ui.is_gui:
-            session.logger.info(msg)
-        else:
-            session.logger.status(msg)
-            session.logger.info(
-                msg +
-                '<div style="width:1em; height:.5em;'
-                ' display:inline-block;'
-                ' border:1px solid #000; background-color:%s"></div>'
-                % color.hex(), is_html=True)
+    if color is not None:
+        name = ' '.join(name.split())   # canonicalize
+        session.user_colors.add(name, color)
         return
-    name = ' '.join(name.split())   # canonicalize
-    session.user_colors[name] = color
+
+    if session is not None:
+        real_name, color, rest = _find_named_color(session.user_colors, name)
+        if rest:
+            color = None
+    else:
+        from ..colors import BuiltinColors
+        real_name, color, rest = _find_named_color(BuiltinColors, name)
+        if rest:
+            color = None
+    if color is None:
+        from ..errors import UserError
+        raise UserError('Unknown color %r' % name)
+
+    def percent(x):
+        if x == 1:
+            return 100
+        return ((x * 10000) % 10000) / 100
+    red, green, blue, alpha = color.rgba
+    if alpha >= 1:
+        transmit = 'opaque'
+    elif alpha <= 0:
+        transmit = 'transparent'
+    else:
+        transmit = '%g%% transparent' % percent(1 - alpha)
+
+    msg = 'Color %r is %s, %.4g%% red, %.4g%% green, and %.4g%% blue' % (
+        real_name, transmit, percent(red), percent(green),
+        percent(blue))
+    if session is None:
+        print(msg)
+        return
+    if not session.ui.is_gui:
+        session.logger.info(msg)
+    else:
+        session.logger.status(msg)
+        session.logger.info(
+            msg +
+            '<div style="width:1em; height:.5em;'
+            ' display:inline-block;'
+            ' border:1px solid #000; background-color:%s"></div>'
+            % color.hex(), is_html=True)
+    return
 
 
-def uncolordef(session, name):
+def delete_color(session, name):
     """Remove a user defined color."""
-    del session.user_colors[name]
+    if name == 'all':
+        color_names = session.user_colors.list()
+        for name in color_names:
+            session.user_colors.remove(name)
+    if name not in session.user_colors:
+        from ..errors import UserError
+        raise UserError('Unknown color %r' % name)
+    try:
+        session.user_colors.remove(name)
+    except ValueError as v:
+        from ..errors import UserError
+        raise UserError(v)
+
+
+def list_colors(session, internal=False):
+    from . import cli
+    logger = session.logger
+    colors = session.user_colors.list(user=not internal)
+    names = cli.commas(colors, ' and')
+    noun = cli.plural_form(colors, 'color')
+    if names:
+        logger.info('%d %s: %s' % (len(colors), noun, names))
+    else:
+        logger.status('No %scolors.' % ('user ' if not internal else ''))
+    return
 
 
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import register, CmdDesc, StringArg, ColorArg
+    from . import register, CmdDesc, StringArg, ColorArg, NoArg, EnumOf, Or, create_alias
     register(
-        'colordef',
+        'color list',
+        CmdDesc(
+            keyword=[('internal', NoArg)],
+            synopsis='list colors'),
+        list_colors
+    )
+
+    register(
+        'color define',
         CmdDesc(required=[('name', StringArg)],
                 optional=[('color', ColorArg)],
                 synopsis="define a custom color"),
-        colordef
+        define_color
     )
     register(
-        '~colordef',
-        CmdDesc(required=[('name', StringArg)],
+        'color delete',
+        CmdDesc(required=[('name', Or(EnumOf(['all']), StringArg))],
                 synopsis="remove color definition"),
-        uncolordef
+        delete_color
     )
+    create_alias('colordef', 'color define $*')
+    create_alias('~colordef', 'color delete $*')
