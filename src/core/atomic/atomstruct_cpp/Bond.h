@@ -51,6 +51,9 @@ public:
         std::set<const Residue*>* ignore = nullptr) const;
     // sqlength() inherited from UniqueConnection
 
+    // session related
+    void session_note_atoms(int** ints) const;
+
     // change tracking
     ChangeTracker*  change_tracker() const;
     void track_change(const std::string& reason) const {
