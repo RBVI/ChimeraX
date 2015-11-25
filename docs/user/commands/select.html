@@ -46,7 +46,7 @@ A <a name="seldef"><b><i>selection</i></b></a>:
   </ul>
 <li>can be created 
   <ul>
-  <li>by Ctrl-clicking on items in the graphics window 
+  <li>by <b>Ctrl</b>-clicking on items in the graphics window 
   (default; see <a href="mousemode.html"><b>mousemode</b></a>)
   <li>by using <b>select</b> or various other commands and tools
   </ul>
@@ -65,11 +65,14 @@ Otherwise, <b>select</b> can be used to <b>add</b>, <b>subtract</b>,
 or <b>intersect</b> the <a href="atomspec.html">specified</a> items
 with the current selection, or to <b>clear</b> it by deselecting everything.
 </p><p>
-Selecting a <a href="surface.html">molecular surface</a> model 
-automatically also selects the atoms used to define the surface,
-typically all atoms in a biopolymer chain unless otherwise specified
-with the <a href="surface.html#grouping"><b>enclose</b></a>
-option of <a href="surface.html"><b>surface</b></a>.
+Selecting a <a href="surface.html">molecular surface</a>
+automatically also selects the atoms used to define it.
+If the whole surface model is selected, all of the atoms used to define
+that surface are selected, even atoms that are completely buried.
+Typically all of the atoms in a biopolymer chain are used to define a surface,
+but other sets of atoms can be <a href="surface.html#grouping">specified</a>.
+If a surface patch is selected <a href="mousemode.html">with the mouse</a>,
+only the atom(s) directly contributing to that patch are selected.
 </p>
 
 <hr>
