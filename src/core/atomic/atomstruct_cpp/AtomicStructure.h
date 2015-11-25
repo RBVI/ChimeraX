@@ -163,8 +163,8 @@ public:
         unsigned int all_size_threshold = 0,
         std::set<const Residue *>* ignore = nullptr) const;
     int  session_info(PyObject* ints, PyObject* floats, PyObject* strings) const;
-    mutable std::map<Atom*, size_t>  *session_save_atoms;
-    mutable std::map<CoordSet*, size_t>  *session_save_crdsets;
+    mutable std::map<const Atom*, size_t>  *session_save_atoms;
+    mutable std::map<const CoordSet*, size_t>  *session_save_crdsets;
     void  session_save_setup() const;
     void  session_save_teardown() const;
     void  set_active_coord_set(CoordSet *cs);

@@ -11,7 +11,7 @@
 #include "destruct.h"
 
 namespace basegeom {
-    
+
 using ::basegeom::ChangeTracker;
 
 template <class End>
@@ -19,6 +19,8 @@ class Connection {
 public:
     typedef End*  End_points[2];
 
+    static const int  SESSION_NUM_INTS = 5;
+    static const int  SESSION_NUM_FLOATS = 1;
 protected:
     virtual const char*  err_msg_loop() const
         { return "Can't connect endpoint to itself"; }
@@ -46,6 +48,30 @@ public:
     End *  other_end(End* e) const;
     Real  sqlength() const {
         return _end_points[0]->coord().sqdistance(_end_points[1]->coord());
+    }
+
+    // session related
+    virtual void  session_note_atoms(int** ints) const = 0;
+    virtual void  session_note_structures(int** ) const {}
+    static int  session_num_floats(bool /*global*/ = false) {
+        return SESSION_NUM_FLOATS + Rgba::session_num_floats();
+    }
+    static int  session_num_ints(bool global = false) {
+        return SESSION_NUM_INTS + Rgba::session_num_ints() + (global ? 2 : 0);
+    }
+    void  session_save(int** ints, float** floats, bool global = false) const {
+        if (global) session_note_structures(ints);
+        session_note_atoms(ints);
+        _rgba.session_save(ints, floats);
+        auto int_ptr = *ints;
+        int_ptr[0] = _display;
+        int_ptr[1] = _hide;
+        int_ptr[2] = _halfbond;
+        int_ptr += SESSION_NUM_INTS;
+
+        auto float_ptr = *floats;
+        float_ptr[0] = _radius;
+        float_ptr += SESSION_NUM_FLOATS;
     }
 
     // change tracking

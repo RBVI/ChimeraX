@@ -1101,13 +1101,13 @@ AtomicStructure::session_save_setup() const
 {
     size_t index = 0;
 
-    session_save_atoms = new std::map<Atom*, size_t>;
+    session_save_atoms = new std::map<const Atom*, size_t>;
     for (auto a: atoms()) {
         (*session_save_atoms)[a] = index++;
     }
 
     index = 0;
-    session_save_crdsets = new std::map<CoordSet*, size_t>;
+    session_save_crdsets = new std::map<const CoordSet*, size_t>;
     for (auto cs: coord_sets()) {
         (*session_save_crdsets)[cs] = index++;
     }

@@ -5,23 +5,36 @@
 #include <basegeom/Connection.h>
 #include "imex.h"
 
+// "forward declare" PyObject, which is a typedef of a struct,
+// as per the python mailing list:
+// http://mail.python.org/pipermail/python-dev/2003-August/037601.html
+#ifndef PyObject_HEAD
+struct _object;
+typedef _object PyObject;
+#endif
+    
 namespace atomstruct {
 
 class Atom;
+class Group;
 
 using basegeom::ChangeTracker;
 using basegeom::GraphicsContainer;
 
 class ATOMSTRUCT_IMEX Pseudobond: public basegeom::Connection<Atom>
 {
+public:
     friend class PBGroup;
     friend class StructurePBGroup;
     friend class CS_PBGroup;
-private:
-    GraphicsContainer*  _gc;
 
-    Pseudobond(Atom* a1, Atom* a2, GraphicsContainer* gc):
-        basegeom::Connection<Atom>(a1, a2), _gc(gc) {
+    static const int  SESSION_NUM_INTS = 0;
+    static const int  SESSION_NUM_FLOATS = 0;
+private:
+    Group*  _group;
+
+    Pseudobond(Atom* a1, Atom* a2, Group* grp):
+        basegeom::Connection<Atom>(a1, a2), _group(grp) {
             _halfbond = false;
             _radius = 0.05;
         };
@@ -35,9 +48,20 @@ public:
     typedef End_points  Atoms;
     const Atoms&  atoms() const { return end_points(); }
     ChangeTracker*  change_tracker() const;
-    GraphicsContainer*  graphics_container() const { return _gc; }
-    GraphicsContainer*  group() const { return graphics_container(); }
-    void track_change(const std::string& reason) const {
+    GraphicsContainer*  graphics_container() const;
+    Group*  group() const { return _group; }
+    void  session_note_atoms(int** ints) const;
+    void  session_note_structures(int** ints) const;
+    static int  session_num_floats(bool global) {
+        return SESSION_NUM_FLOATS + Connection<Atom>::session_num_floats(global);
+    }
+    static int  session_num_ints(bool global) {
+        return SESSION_NUM_INTS + Connection<Atom>::session_num_ints(global);
+    }
+    void  session_save(int** ints, float** floats, PyObject* /*misc*/, bool global) const {
+        basegeom::Connection<Atom>::session_save(ints, floats, global);
+    }
+    void  track_change(const std::string& reason) const {
         change_tracker()->add_modified(this, reason);
     }
 };

@@ -20,6 +20,7 @@ namespace atomstruct {
 
 using basegeom::ChangeTracker;
 
+class AtomicStructure;
 class CoordSet;
 class Proxy_PBGroup;
 
@@ -29,9 +30,11 @@ public:
     static const int GRP_NONE = 0;
     static const int GRP_NORMAL = GRP_NONE + 1;
     typedef std::map<std::string, Proxy_PBGroup*>  GroupMap;
+    typedef std::map<AtomicStructure*, int>  SessionStructureMap;
 protected:
     ChangeTracker*  _change_tracker;
     GroupMap  _groups;
+    SessionStructureMap*  _ses_struct_map;
 public:
     BaseManager(ChangeTracker* ct): _change_tracker(ct) {}
     virtual  ~BaseManager();
@@ -40,7 +43,7 @@ public:
     virtual Proxy_PBGroup*  get_group(
             const std::string& name, int create = GRP_NONE) = 0;
     const GroupMap&  group_map() const { return _groups; }
-    virtual bool  session_graph_info_relevant() const { return false; }
+    SessionStructureMap*  ses_struct_map() const { return _ses_struct_map; }
 };
 
 class StructureManager: public BaseManager {

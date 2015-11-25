@@ -14,6 +14,14 @@
 #include "imex.h"
 #include "PBManager.h"
 
+// "forward declare" PyObject, which is a typedef of a struct,
+// as per the python mailing list:
+// http://mail.python.org/pipermail/python-dev/2003-August/037601.html
+#ifndef PyObject_HEAD
+struct _object;
+typedef _object PyObject;
+#endif
+    
 namespace atomstruct {
 
 class Atom;
@@ -34,9 +42,11 @@ protected:
     Rgba  _default_color = {255,255,0,255}; // yellow
     bool  _default_halfbond = false;
     bool  _destruction_relevant;
+    BaseManager*  _manager;
 
     // the manager will need to be declared as a friend...
-    Group(const std::string& cat): _category(cat), _destruction_relevant(true) { }
+    Group(const std::string& cat, BaseManager* manager):
+        _category(cat), _destruction_relevant(true), _manager(manager) { }
     virtual  ~Group() {}
 
     // can't call pure virtuals from base class destructors, so
@@ -53,13 +63,14 @@ public:
     }
     virtual const Rgba&  get_default_color() const { return _default_color; }
     virtual bool  get_default_halfbond() const { return _default_halfbond; }
+    BaseManager*  manager() const { return _manager; }
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
     virtual const std::set<Pseudobond*>&  pseudobonds() const = 0;
-    static int  session_num_ints(bool /*global*/ = false) {
-        return SESSION_NUM_INTS + Rgba::session_num_ints();
-    }
     static int  session_num_floats(bool /*global*/ = false) {
         return SESSION_NUM_FLOATS + Rgba::session_num_floats();
+    }
+    static int  session_num_ints(bool /*global*/ = false) {
+        return SESSION_NUM_INTS + Rgba::session_num_ints();
     }
     virtual void  session_save(int**, float**, PyObject*, bool /*global*/ = false) const;
     virtual void  set_default_color(const Rgba& rgba) { _default_color = rgba; }
@@ -78,15 +89,16 @@ protected:
     friend class AS_PBManager;
     void  _check_structure(Atom* a1, Atom* a2);
     AtomicStructure*  _structure;
-    StructurePBGroupBase(const std::string& cat, AtomicStructure* as): Group(cat), _structure(as) {}
+    StructurePBGroupBase(const std::string& cat, AtomicStructure* as, BaseManager* manager):
+        Group(cat, manager), _structure(as) {}
     virtual  ~StructurePBGroupBase() {}
 public:
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
-    static int  session_num_ints(bool /*global*/ = false) {
-        return SESSION_NUM_INTS + Group::session_num_ints();
-    }
     static int  session_num_floats(bool /*global*/ = false) {
         return SESSION_NUM_FLOATS + Group::session_num_floats();
+    }
+    static int  session_num_ints(bool /*global*/ = false) {
+        return SESSION_NUM_INTS + Group::session_num_ints();
     }
     virtual void  session_save(int** ints, float** floats, PyObject* misc,
         bool global = false) const { Group::session_save(ints, floats, misc, global); }
@@ -101,7 +113,8 @@ private:
     friend class Proxy_PBGroup;
     Pseudobonds  _pbonds;
 protected:
-    StructurePBGroup(const std::string& cat, AtomicStructure* as): StructurePBGroupBase(cat, as) {}
+    StructurePBGroup(const std::string& cat, AtomicStructure* as, BaseManager* manager):
+        StructurePBGroupBase(cat, as, manager) {}
     ~StructurePBGroup() { dtor_code(); }
 public:
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
@@ -120,8 +133,8 @@ private:
     mutable std::unordered_map<const CoordSet*, Pseudobonds>  _pbonds;
     void  remove_cs(const CoordSet* cs) { _pbonds.erase(cs); }
 protected:
-    CS_PBGroup(const std::string& cat, AtomicStructure* as):
-        StructurePBGroupBase(cat, as) {}
+    CS_PBGroup(const std::string& cat, AtomicStructure* as, BaseManager* manager):
+        StructurePBGroupBase(cat, as, manager) {}
     ~CS_PBGroup();
 public:
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
@@ -145,15 +158,14 @@ private:
     friend class BaseManager;
     friend class PBManager;
     int  _group_type;
-    BaseManager*  _manager;
     void*  _proxied;
 
     Proxy_PBGroup(BaseManager* manager, const std::string& cat):
-        StructurePBGroupBase(cat, nullptr), _manager(manager) { init(AS_PBManager::GRP_NORMAL); }
+        StructurePBGroupBase(cat, nullptr, manager) { init(AS_PBManager::GRP_NORMAL); }
     Proxy_PBGroup(BaseManager* manager, const std::string& cat, AtomicStructure* as):
-        StructurePBGroupBase(cat, as), _manager(manager) { init(AS_PBManager::GRP_NORMAL); }
+        StructurePBGroupBase(cat, as, manager) { init(AS_PBManager::GRP_NORMAL); }
     Proxy_PBGroup(BaseManager* manager, const std::string& cat, AtomicStructure* as, int grp_type):
-        StructurePBGroupBase(cat, as), _manager(manager) { init(grp_type); }
+        StructurePBGroupBase(cat, as, manager) { init(grp_type); }
     ~Proxy_PBGroup() {
         auto du = basegeom::DestructionUser(this);
         if (_group_type == AS_PBManager::GRP_NORMAL)
@@ -165,9 +177,9 @@ private:
     void  init(int grp_type) {
         _group_type = grp_type;
         if (grp_type == AS_PBManager::GRP_NORMAL)
-            _proxied = new StructurePBGroup(_category, _structure);
+            _proxied = new StructurePBGroup(_category, _structure, _manager);
         else
-            _proxied = new CS_PBGroup(_category, _structure);
+            _proxied = new CS_PBGroup(_category, _structure, _manager);
     }
     void  remove_cs(const CoordSet* cs) {
         if (_group_type == AS_PBManager::GRP_PER_CS)
@@ -207,7 +219,6 @@ public:
         return static_cast<CS_PBGroup*>(_proxied)->get_default_halfbond();
     }
     int  group_type() const { return _group_type; }
-    BaseManager*  manager() const { return _manager; }
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<StructurePBGroup*>(_proxied)->new_pseudobond(a1, a2);
