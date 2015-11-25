@@ -2,7 +2,7 @@
 
 
 def save(session, filename, width=None, height=None, supersample=None,
-         transparent_background=False, format=None):
+         transparent_background=False, quality=95, format=None):
     '''Save data, sessions, images.
 
     Parameters
@@ -31,24 +31,36 @@ def save(session, filename, width=None, height=None, supersample=None,
         If not specified,
         then the filename suffix is used to identify the format.
     '''
-    from os.path import splitext
-    e = splitext(filename)[1].lower()
     from .. import session as ses
-    if e[1:] in image_file_suffixes:
+    ses_suffix = ses.SESSION_SUFFIX[1:]
+    from os.path import splitext
+    suffix = splitext(filename)[1][1:].casefold()
+    if not suffix and format:
+        suffix = format
+        filename += '.%s' % suffix
+    if suffix in image_file_suffixes:
         save_image(session, filename, format, width, height,
-                   supersample, transparent_background)
-    elif e == ses.SESSION_SUFFIX:
+                   supersample, transparent_background, quality)
+    elif suffix == ses_suffix:
         ses.save(session, filename)
     else:
-        suffixes = image_file_suffixes + (ses.SESSION_SUFFIX[1:],)
+        suffixes = image_file_suffixes + (ses_suffix,)
         from ..errors import UserError
-        raise UserError('Unrecognized file suffix "%s", require one of %s'
-                        % (e, ','.join(suffixes)))
+        from . import commas
+        tokens = commas(["'%s'" % i for i in suffixes])
+        if not suffix:
+            raise UserError('Missing file suffix, require one of %s' % tokens)
+        raise UserError('Unrecognized file suffix "%s", require one of %s' %
+                        (suffix, tokens))
 
 
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, StringArg, PositiveIntArg, BoolArg
-    img_fmts = EnumOf(image_formats.values())
+    from . import CmdDesc, register, EnumOf, StringArg, IntArg, BoolArg, PositiveIntArg, Bounded
+    from .. import session as ses
+    ses_suffix = ses.SESSION_SUFFIX[1:]
+    img_fmts = EnumOf(image_formats.keys())
+    all_fmts = EnumOf(tuple(image_formats.keys()) + (ses_suffix,))
+    quality_arg = Bounded(IntArg, min=0, max=100)
     desc = CmdDesc(
         required=[('filename', StringArg), ],
         keyword=[
@@ -56,8 +68,8 @@ def register_command(session):
             ('height', PositiveIntArg),
             ('supersample', PositiveIntArg),
             ('transparent_background', BoolArg),
-            ('quality', PositiveIntArg),
-            ('format', img_fmts),
+            ('quality', quality_arg),
+            ('format', all_fmts),
         ],
         synopsis='save session or image'
     )
@@ -77,7 +89,7 @@ def register_command(session):
             ('height', PositiveIntArg),
             ('supersample', PositiveIntArg),
             ('transparent_background', BoolArg),
-            ('quality', PositiveIntArg),
+            ('quality', quality_arg),
             ('format', img_fmts),
         ],
         # synopsis='save image'
@@ -109,7 +121,7 @@ def save_image(session, filename, format=None, width=None, height=None,
         raise UserError('Directory "%s" does not exist' % dir)
 
     if format is None:
-        suffix = splitext(path)[1][1:].lower()
+        suffix = splitext(path)[1][1:].casefold()
         if suffix not in image_file_suffixes:
             raise UserError('Unrecognized image file suffix "%s"' % format)
         format = image_formats[suffix]
@@ -117,4 +129,4 @@ def save_image(session, filename, format=None, width=None, height=None,
     view = session.main_view
     i = view.image(width, height, supersample=supersample,
                    transparent_background=transparent_background)
-    i.save(path, format, quality=quality)
+    i.save(path, image_formats[format], quality=quality)
