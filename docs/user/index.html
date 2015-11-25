@@ -22,8 +22,8 @@ UCSF ChimeraX User Guide</h2>
 <b>UCSF ChimeraX</b> is the successor program to <b>UCSF Chimera</b>,
 here termed &ldquo;Chimera.&rdquo;
 </p>
-<ul>
-<li>General</i>:</li>
+<ul class="none">
+<li>General:</li>
  <ul>
  <li><a href="advantages.html">advantages <i>vs.</i> Chimera</a></li>
  <li><a href="../quickstart/index.html">Quick Start Guide</a></li>
@@ -35,6 +35,8 @@ here termed &ldquo;Chimera.&rdquo;
  </ul>
 <li><a name="commands">Commands</a>:</li>
  <ul>
+ <li><a href="commands/alias.html"><b>alias</b></a>
+ - define a command alias (shortcut or composite action)</li>
  <li><a href="commands/cartoon.html"><b>cartoon</b> or <b>ribbon</b></a>
  - create cartoons, set cartoon parameters</li>
  <li><a href="commands/cofr.html"><b>cofr</b></a>
@@ -59,6 +61,8 @@ here termed &ldquo;Chimera.&rdquo;
   - exit from ChimeraX</li>
  <li><a href="commands/roll.html"><b>roll</b></a>
  - rotate models continuously</li>
+ <li><a href="commands/save.html"><b>save</b></a>
+ - save image files</li>
  <li><a href="commands/show.html"><b>show</b></a>
  - show/hide atoms, bonds, cartoons, models</li>
  <li><a href="commands/select.html"><b>select</b></a>
@@ -73,20 +77,19 @@ here termed &ldquo;Chimera.&rdquo;
  - rotate models</li>
  <li><a href="commands/view.html"><b>view</b></a>
   - adjust the view to specified items; save/restore views</li>
-  <li><a href="commands/wait.html"><b>wait</b></a>
-  - update the display and enforce ordered execution of commands in scripts</li>
-  <li><a href="commands/zoom.html"><b>zoom</b></a>
-  - change the apparent size of the view</li>
-</li>
-</ul>
+ <li><a href="commands/wait.html"><b>wait</b></a>
+ - update the display and enforce ordered execution of commands in scripts</li>
+ <li><a href="commands/zoom.html"><b>zoom</b></a>
+ - change the apparent size of the view</li>
+ </ul>
 <li>Command-Related</i>:</li>
  <ul>
  <li>command-line 
   <a href="commands/atomspec.html">target specification</a></li>
-   <ul>
-   <li><a href="commands/atomspec-diffsum.html">differences <i>vs.</i> 
-    Chimera</a></li>
-   </ul>
+  <ul>
+  <li><a href="commands/atomspec-diffsum.html">differences <i>vs.</i> 
+   Chimera</a></li>
+  </ul>
  <li>command-line 
   <a href="commands/colornames.html">color specification</a></li>
  <li>command manpage 
@@ -108,8 +111,6 @@ except for <a href="commands/atomspec-diffsum.html">target-specification
 differences</a>.
 </p>
 <ul>
-<li><b>list</b>
-- list current models</li>
 <li><b>lighting</b> 
 (with options including <b>soft</b> for ambient occlusion, <b>flat</b> 
 for ambient-only, <b>full</b> with shadows, <b>default</b>)</li>
@@ -155,9 +156,8 @@ target="_blank"><b>2dlabels</b></a>, with some of the same options</li>
 - similar to Chimera
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/perframe.html"
 target="_blank"><b>perframe</b></a></li>
-<li><b>alias</b>
-- define a command alias (composite action)
-<li><b>save</b></li>
+<li><b>list</b>
+- list current models</li>
 <li><b>material</b></li>
 <li><b>pdbimages</b>
 - batch-render images of molecular assemblies defined in mmCIF files
