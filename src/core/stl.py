@@ -14,6 +14,8 @@ from . import generic3d
 
 
 class STLModel(generic3d.Generic3DModel):
+    clip_cap = True
+
     @property
     def num_triangles(self):
         """Return number of triangles in model."""
