@@ -576,7 +576,7 @@ class EmptyArg(Annotation):
 
 class IntArg(Annotation):
     """Annotation for integer literals"""
-    name = "a whole number"
+    name = "an integer"
 
     @staticmethod
     def parse(text, session):
@@ -895,11 +895,11 @@ class Bounded(Annotation):
         self.min = min
         self.max = max
         if name is None:
-            if min and max:
+            if min is not None and max is not None:
                 self.name = "%s >= %s and <= %s" % (annotation.name, min, max)
-            elif min:
+            elif min is not None:
                 self.name = "%s >= %s" % (annotation.name, min)
-            elif max:
+            elif max is not None:
                 self.name = "%s <= %s" % (annotation.name, max)
             else:
                 self.name = annotation.name
@@ -920,8 +920,8 @@ class EnumOf(Annotation):
 
     EnumOf(values, ids=None, name=None, url=None) -> an Annotation
 
-    :param values: sequence of values
-    :param ids: optional sequence of identifiers
+    :param values: iterable of values
+    :param ids: optional iterable of identifiers
     :param abbreviations: if not None, then override allow_truncated
     :param name: optional explicit name for annotation
     :param url: optionally give documentation URL.
@@ -938,7 +938,12 @@ class EnumOf(Annotation):
     allow_truncated = True
 
     def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
+        from collections import Iterable
+        if isinstance(values, Iterable):
+            values = list(values)
         if ids is not None:
+            if isinstance(ids, Iterable):
+                ids = list(ids)
             if len(values) != len(ids):
                 raise ValueError("Must have an identifier for "
                                  "each and every value")

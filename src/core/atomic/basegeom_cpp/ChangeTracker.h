@@ -24,8 +24,8 @@ namespace basegeom {
 
 class Changes {
 public:
-    std::set<void*>  created; // use set so that deletions can be easily found
-    std::set<void*>  modified;
+    std::set<const void*>  created; // use set so that deletions can be easily found
+    std::set<const void*>  modified;
     std::set<std::string>   reasons;
     long  num_deleted = 0;
 
@@ -91,7 +91,7 @@ public:
         if (_discarding)
             return;
         auto& changes = _type_changes[_ptr_to_type(ptr)];
-        if (changes.created.find(ptr) == changes.created.end()) {
+        if (changes.created.find(static_cast<const void*>(ptr)) == changes.created.end()) {
             // newly created objects don't also go in modified set
             changes.modified.insert(ptr);
             changes.reasons.insert(reason);
@@ -103,7 +103,7 @@ public:
         auto& changes = _type_changes[_ptr_to_type(ptr)];
         if (_discarding)
             return;
-        if (changes.created.find(ptr) == changes.created.end()) {
+        if (changes.created.find(static_cast<const void*>(ptr)) == changes.created.end()) {
             // newly created objects don't also go in modified set
             changes.modified.insert(ptr);
             changes.reasons.insert(reason);
@@ -151,7 +151,15 @@ ChangeTracker::_ptr_to_type(atomstruct::Atom*) { return 0; }
 
 template <>
 inline int
+ChangeTracker::_ptr_to_type(const atomstruct::Atom*) { return 0; }
+
+template <>
+inline int
 ChangeTracker::_ptr_to_type(atomstruct::Bond*) { return 1; }
+
+template <>
+inline int
+ChangeTracker::_ptr_to_type(const atomstruct::Bond*) { return 1; }
 
 template <>
 inline int
@@ -159,7 +167,15 @@ ChangeTracker::_ptr_to_type(atomstruct::Pseudobond*) { return 2; }
 
 template <>
 inline int
+ChangeTracker::_ptr_to_type(const atomstruct::Pseudobond*) { return 2; }
+
+template <>
+inline int
 ChangeTracker::_ptr_to_type(atomstruct::Residue*) { return 3; }
+
+template <>
+inline int
+ChangeTracker::_ptr_to_type(const atomstruct::Residue*) { return 3; }
 
 template <>
 inline int
@@ -167,11 +183,23 @@ ChangeTracker::_ptr_to_type(atomstruct::Chain*) { return 4; }
 
 template <>
 inline int
+ChangeTracker::_ptr_to_type(const atomstruct::Chain*) { return 4; }
+
+template <>
+inline int
 ChangeTracker::_ptr_to_type(atomstruct::AtomicStructure*) { return 5; }
 
 template <>
 inline int
+ChangeTracker::_ptr_to_type(const atomstruct::AtomicStructure*) { return 5; }
+
+template <>
+inline int
 ChangeTracker::_ptr_to_type(atomstruct::Proxy_PBGroup*) { return 6; }
+
+template <>
+inline int
+ChangeTracker::_ptr_to_type(const atomstruct::Proxy_PBGroup*) { return 6; }
 
 }  // namespace basegeom
 

@@ -919,7 +919,7 @@ class AtomicStructure(AtomicStructureData, Model):
     def _begin_ses_save(self, *args):
         self.session_save_setup()
 
-    def _end_ses_save(self, args):
+    def _end_ses_save(self, *args):
         self.session_save_teardown()
 
     def surfaces(self):

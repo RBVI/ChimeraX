@@ -16,7 +16,7 @@ class Residue;
 class Ring;
 using basegeom::ChangeTracker;
 
-class ATOMSTRUCT_IMEX Bond: public basegeom::UniqueConnection<Atom, Bond> {
+class ATOMSTRUCT_IMEX Bond: public basegeom::UniqueConnection<Atom> {
     friend class AtomicStructure;
 public:
     // HIDE_ constants are masks for hide bits in basegeom::Connectible
@@ -26,6 +26,7 @@ public:
 
 private:
     Bond(AtomicStructure *, Atom *, Atom *);
+    void  add_to_endpoints() { atoms()[0]->add_bond(this); atoms()[1]->add_bond(this); }
     const char*  err_msg_exists() const
         { return "Bond already exists between these atoms"; }
     const char*  err_msg_loop() const
@@ -52,6 +53,9 @@ public:
 
     // change tracking
     ChangeTracker*  change_tracker() const;
+    void track_change(const std::string& reason) const {
+        change_tracker()->add_modified(this, reason);
+    }
 
     // graphics related
     GraphicsContainer*  graphics_container() const {
