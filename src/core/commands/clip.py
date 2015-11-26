@@ -70,6 +70,7 @@ def plane_origin(view, position, coordinate_system):
     if position is None:
         b = view.drawing_bounds()
         if b is None:
+            from ..errors import UserError
             raise UserError("Can't position clip planes relative to center "
                             " of displayed models since nothing is displayed.")
         c0 = b.center()
@@ -77,7 +78,7 @@ def plane_origin(view, position, coordinate_system):
         c0 = position.scene_coordinates(coordinate_system)
     return c0
 
-def adjust_plane(name, offset, origin, normal, planes, camera, camera_normal = None):
+def adjust_plane(name, offset, origin, normal, planes, camera = None, camera_normal = None):
     if offset == 'off':
         planes.remove_plane(name)
         return
@@ -97,6 +98,7 @@ def adjust_plane(name, offset, origin, normal, planes, camera, camera_normal = N
         p.plane_point = origin + offset * n
         if normal is not None:
             p.normal = normal
+    return p
 
 def adjust_slab(name1, offset1, name2, offset2, origin, normal, planes, camera,
                 camera_normal = None):
