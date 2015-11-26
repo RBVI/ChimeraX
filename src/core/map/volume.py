@@ -635,7 +635,6 @@ class Volume(Model):
     p.twoSidedLighting = ro.two_sided_lighting
     p.lineThickness = ro.line_thickness
     p.smoothLines = ro.smooth_lines
-    p.clip_cap = True
 
 #     if ro.dim_transparency:
 #       bmode = p.SRC_ALPHA_DST_1_MINUS_ALPHA
@@ -715,6 +714,9 @@ class Volume(Model):
     p.normals = narray
     p.vertex_colors = None
     p.edge_mask = hidden_edges if ro.square_mesh else None
+    p.clip_cap = True
+    # TODO: Clip cap offset for different contour levels is not related to voxel size.
+    p.clip_offset = .002* len([l for l in self.surface_levels if level < l])
 
     self.message('')
 
