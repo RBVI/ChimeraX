@@ -976,13 +976,13 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     // The passed-in args need to be empty lists.  This routine will add one object to each
     // list for each of these classes:
     //    AtomicStructure
-    //    PseudobondManager
-    //    CoordSet
-    //    Chain
-    //    Residue
-    //    Ring
     //    Atom
-    //    Bond
+    //    Bond (needs Atoms)
+    //    CoordSet (needs Atoms)
+    //    PseudobondManager (needs Atoms and CoordSets)
+    //    Residue
+    //    Chain
+    //    Ring
     // For the numeric types, the objects will be numpy arrays: one-dimensional for
     // AtomicStructure attributes and two-dimensional for the others.  Except for
     // PseudobondManager; that will be a list of numpy arrays, one per group.  For the misc,
@@ -1085,6 +1085,60 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         Py_DECREF(headers);
     }
     PyList_SET_ITEM(attr_list, 3, map);
+
+    // atoms
+    // We need to remember names and elments ourself for constructing the atoms.
+    // Make a list of num_atom+1 items, the first of which will be the list of
+    //   names and the remainder of which will be empty lists which will be handed
+    //   off individually to the atoms.
+    int num_atoms = atoms().size();
+    int num_ints = num_atoms; // list of elements
+    int num_floats = 0;
+    PyObject* atoms_misc = PyList_New(num_atoms+1);
+    if (atoms_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for atom misc info");
+    if (PyList_Append(misc, atoms_misc) < 0)
+        throw std::runtime_error("Couldn't append atom misc list to misc list");
+    PyObject* atom_names = PyList_New(num_atoms);
+    if (atom_names == nullptr)
+        throw std::runtime_error("Cannot create Python list for atom names");
+    PyList_SET_ITEM(atoms_misc, 0, atom_names);
+    int i = 0;
+    for (auto a: atoms()) {
+        num_ints += a->session_num_ints();
+        num_floats += a->session_num_floats();
+
+        // remember name
+        PyObject* name = PyUnicode_FromString(a->name());
+        if (name == nullptr)
+            throw::std::runtime_error("Cannot create Python string for atom name");
+        PyList_SET_ITEM(atom_names, i++, name);
+    }
+    int* atom_ints;
+    PyObject* atom_npy_ints = python_int_array(num_ints, &atom_ints);
+    for (auto a: atoms()) {
+        *atom_ints++ = a->element().number();
+    }
+    float* atom_floats;
+    atom_npy_ints = python_float_array(1, &atom_floats);
+    i = 1;
+    for (auto a: atoms()) {
+        PyObject* empty_list = PyList_New(0);
+        if (empty_list == nullptr)
+            throw std::runtime_error("Cannot create Python list for individual atom misc info");
+        PyList_SET_ITEM(atoms_misc, i++, empty_list);
+        a->session_save(&atom_ints, &atom_floats, empty_list);
+    }
+
+#if 0
+    // coord sets
+    int num_ints = 1; // to note the totol # of coord sets
+    int num_floats = 0;
+    for (auto cs: _coord_sets) {
+        num_ints += cs->session_num_ints();
+        num_floats += cs->session_num_floats();
+    }
+#endif
 
     // PseudobondManager groups;
     // main version number needs to go up when manager's
