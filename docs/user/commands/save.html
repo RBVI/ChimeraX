@@ -29,47 +29,50 @@ class="clRight" alt="ChimeraX logo"/></a>
 [&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
 [&nbsp;<b>transparentBackground</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
+<!--
+sessions not ready for primetime yet, format session, suffix .cxs 
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<i>format</i>&nbsp;]
+</h3>
+-->
 <p>
 The command <b>save</b> saves an image to
 <i>filename</i>, which can be a pathname (including directory location).
-The <b>image</b> keyword is optional; eventually this command will
-also allow saving other kinds of files.
+Eventually this command will also allow saving other kinds of files.
 See also:
 <a href="log.html"><b>log</b></a>,
 <a href="movie.html"><b>movie</b></a>
-<!--
-sessions not yet implemented, suffix .cxs 
--->
 </p><p>
-File format can be indicated with the <i>filename</i> suffix
-or specified separately with the <b>format</b> option:
+The <b>image</b> keyword is optional if an image format is specified
+with either the <i>filename</i> suffix or the <b>format</b> option:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center"><b><i>format</i></b></td>
 <td align="center"><a name="suffix"><b><i>filename</i> suffix</b></a></td>
 <td align="center"><b>description</b></td>
 </tr><tr>
-<td align="center">PNG</td>
+<td align="center">png<br>(default)</td>
 <td align="center">.png</td>
 <td align="center">Portable Network Graphics</td>
 </tr><tr>
-<td align="center">TIFF</td>
+<td align="center">tiff</td>
 <td align="center">.tif</td>
 <td align="center">Tagged Image File Format</td>
 </tr><tr>
-<td align="center">JPEG</td>
+<td align="center">jpeg</td>
 <td align="center">.jpg</td>
 <td align="center">Joint Photographic Experts Group format</td>
 </tr><tr>
-<td align="center">GIF</td>
+<td align="center">gif</td>
 <td align="center">.gif</td>
 <td align="center">Graphics Interchange Format</td>
 </tr><tr>
-<td align="center">BMP</td>
+<td align="center">bmp</td>
 <td align="center">.bmp</td>
 <td align="center">bitmap</td>
 </tr><tr>
-<td align="center">PPM</td>
+<td align="center">ppm</td>
 <td align="center">.ppm</td>
 <td align="center">Portable PixMap</td>
 </tr></table>
