@@ -27,8 +27,9 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01):
 #                check_surface_topology(t, d.name)
             else:
                 t = d.triangles
+            coffset = getattr(d, 'clip_offset', 0)
             from . import compute_cap
-            cvarray, ctarray = compute_cap(normal, poffset, d.vertices, t)
+            cvarray, ctarray = compute_cap(normal, poffset+coffset, d.vertices, t)
             mcap = [cm for cm in d.child_drawings() if cm.name == cap_name]
             if mcap:
                 cm = mcap[0]
@@ -42,6 +43,7 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01):
             n = cvarray.copy()
             n[:] = normal
             cm.normals = n
+            cm.color = d.color
             cm.display = True
 
     cap_names = set('cap ' + p.name for p in planes)
