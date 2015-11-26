@@ -566,6 +566,63 @@ class ClipMouseMode(MouseMode):
         shift = (dx*nx + dy*ny) * self.pixel_size()
         return shift
 
+class ClipRotateMouseMode(MouseMode):
+    '''
+    Rotate clip planes.
+    '''
+    name = 'clip rotate'
+    icon_file = 'cliprot.png'
+
+    def mouse_drag(self, event):
+
+        dx, dy = self.mouse_motion(event)
+        axis, angle = self._drag_axis_angle(dx, dy)
+        self.clip_rotate(axis, angle)
+
+    def _drag_axis_angle(self, dx, dy):
+        '''Axis in camera coords, angle in degrees.'''
+        from math import sqrt
+        d = sqrt(dx*dx + dy*dy)
+        axis = (dy/d, dx/d, 0) if d > 0 else (0,1,0)
+        angle = d
+        return axis, angle
+
+    def wheel(self, event):
+        d = event.wheel_value()
+        self.clip_rotate(axis = (0,1,0), angle = 10*d)
+
+    def clip_rotate(self, axis, angle):
+        v = self.view
+        scene_axis = v.camera.position.apply_without_translation(axis)
+        from ..geometry import rotation
+        r = rotation(scene_axis, angle, v.center_of_rotation)
+        for p in self._planes():
+            p.normal = r.apply_without_translation(p.normal)
+            p.plane_point = r * p.plane_point
+
+    def _planes(self):
+        v = self.view
+        cp = v.clip_planes
+        rplanes = [p for p in cp.planes() if p.camera_normal is None]
+        if len(rplanes) == 0:
+            from ..commands.clip import adjust_plane
+            pn, pf = cp.find_plane('near'), cp.find_plane('far')
+            if pn is None and pf is None:
+                # Create clip plane since none are enabled.
+                b = v.drawing_bounds()
+                p = adjust_plane('p1', 0, b.center(), v.camera.view_direction(), cp)
+                rplanes = [p]
+            else:
+                # Convert near/far clip planes to scene planes.
+                if pn:
+                    rplanes.append(adjust_plane('p1', 0, pn.plane_point, pn.normal, cp))
+                    cp.remove_plane('near')
+                if pf:
+                    rplanes.append(adjust_plane('p2', 0, pf.plane_point, pf.normal, cp))
+                    cp.remove_plane('far')
+        return rplanes
+
+
 class MouseEvent:
     def __init__(self, event):
         self.event = event
@@ -594,6 +651,7 @@ def standard_mouse_mode_classes():
         TranslateSelectedMouseMode,
         RotateSelectedMouseMode,
         ClipMouseMode,
+        ClipRotateMouseMode,
         ObjectIdMouseMode,
         map.ContourLevelMouseMode,
         map.PlanesMouseMode,
