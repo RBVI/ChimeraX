@@ -1119,8 +1119,12 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     for (auto a: atoms()) {
         *atom_ints++ = a->element().number();
     }
+    if (PyList_Append(ints, atom_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append atom ints to int list");
     float* atom_floats;
-    atom_npy_ints = python_float_array(1, &atom_floats);
+    PyObject* atom_npy_floats = python_float_array(num_floats, &atom_floats);
+    if (PyList_Append(floats, atom_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append atom floats to float list");
     i = 1;
     for (auto a: atoms()) {
         PyObject* empty_list = PyList_New(0);
@@ -1138,7 +1142,6 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         num_ints += cs->session_num_ints();
         num_floats += cs->session_num_floats();
     }
-#endif
 
     // PseudobondManager groups;
     // main version number needs to go up when manager's
@@ -1146,6 +1149,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     if (_pb_mgr.session_info(ints, floats, misc) != 1) {
         throw std::runtime_error("Unexpected version number from pseudobond manager");
     }
+#endif
 
     return 1;  // version number
 }
