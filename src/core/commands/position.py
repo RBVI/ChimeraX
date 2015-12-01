@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def position(session, camera=None, models=None, initial=None):
+def position(session, camera=None, models=None):
     '''
     Set model and camera positions. With no options positions are reported
     for the camera and all models. Positions are specified as 12-numbers,
@@ -13,8 +13,6 @@ def position(session, camera=None, models=None, initial=None):
       Set the camera position.
     models : list of (Model, Place)
       Set model positions.
-    initial : Models
-      Set model positions to no rotation, no shift.
     '''
     v = session.main_view
     if camera is not None:
@@ -22,13 +20,25 @@ def position(session, camera=None, models=None, initial=None):
     if models is not None:
         for m,p in models:
             m.position = p
-    if initial is not None:
-        from ..geometry import Place
-        for m in initial:
-            m.position = Place()
 
-    if camera is None and models is None and initial is None:
+    if camera is None and models is None:
         report_positions(session)
+
+def position_initial(session, models=None):
+    '''
+    Set models to initial positions.
+
+    Parameters
+    ----------
+    models : Models
+      Set model positions to no rotation, no shift.
+    '''
+
+    if models is None:
+        models = session.models.list()
+    from ..geometry import Place
+    for m in models:
+        m.position = Place()
 
 def report_positions(session):
     c = session.main_view.camera
@@ -66,10 +76,13 @@ class ModelPlacesArg(Annotation):
         return mp, text, rest
 
 def register_command(session):
-    from . import CmdDesc, register, PlaceArg, ModelsArg
+    from . import CmdDesc, register, PlaceArg, ModelsArg, Or, NoArg
     desc = CmdDesc(
         keyword=[('camera', PlaceArg),
-                 ('models', ModelPlacesArg),
-                 ('initial', ModelsArg)],
+                 ('models', ModelPlacesArg)],
         synopsis='set camera and model positions')
     register('position', desc, position)
+    desc = CmdDesc(
+        optional=[('models', ModelsArg)],
+        synopsis='set models to initial positions')
+    register('position initial', desc, position_initial)

@@ -206,6 +206,7 @@ perframe
 position
 ========
 .. autofunction:: chimera.core.commands.position.position
+.. autofunction:: chimera.core.commands.position.position_initial
 
 pwd
 ===
