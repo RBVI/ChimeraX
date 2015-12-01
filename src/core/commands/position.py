@@ -4,7 +4,7 @@ def position(session, camera=None, models=None, initial=None):
     '''
     Set model and camera positions. With no options positions are reported
     for the camera and all models. Positions are specified as 12-numbers,
-    the rows af a 3-row, 4-column matrix where the first 3 columns are a
+    the rows of a 3-row, 4-column matrix where the first 3 columns are a
     rotation matrix and the last column is a translation applied after the rotation.
 
     Parameters
