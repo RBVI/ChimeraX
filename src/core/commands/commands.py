@@ -12,7 +12,7 @@ def register_core_commands(session):
         'camera', 'clip', 'close', 'cofr', 'color', 'colordef', 'crossfade', 'crosslinks',
         'delete', 'echo', 'exit', 'export', 'hide',
         'lighting', 'list', 'material', 'mousemode', 'move',
-        'open', 'pdbimages', 'perframe', 'pwd', 'roll', 'run',
+        'open', 'pdbimages', 'perframe', 'position', 'pwd', 'roll', 'run',
         'save', 'sasa', 'scolor', 'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
         'transparency', 'turn', 'usage', 'view', 'wait', 'zoom'
