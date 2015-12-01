@@ -31,8 +31,9 @@ def help(session, topic=None, *, option=None, is_query=False):
             from urllib.parse import urlparse
             from urllib.request import url2pathname
             (_, _, url_path, _, _, fragment) = urlparse(topic)
-            path = os.path.join(base_dir, url2pathname(url_path))
+            path = url2pathname(url_path)
             path = os.path.expanduser(path)
+            path = os.path.join(base_dir, path)
             if not os.path.exists(path):
                 if is_query:
                     return False
@@ -68,7 +69,10 @@ def help(session, topic=None, *, option=None, is_query=False):
                 return
             # handle multi word command names
             #  -- use first word for filename and rest for #fragment
-            if ' ' not in cmd.command_name:
+            if cmd.command_name.startswith('~'):
+                cmd_name = cmd.command_name.split(maxsplit=1)[0][1:]
+                fragment = cmd.command_name
+            elif ' ' not in cmd.command_name:
                 cmd_name = cmd.command_name
                 fragment = ""
             else:

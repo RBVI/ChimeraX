@@ -1,14 +1,10 @@
 TEST = t2
 
 OPT = -g
-WRAPPY = ../wrappy2
+WRAPPY = ../wrappy3
 
-#CXX	= cxx -std strict_ansi -model ansi -msg_disable nostdlonglong -w0
-#CXXFLAGS= $(OPT) -I/usr/local/include/python2.4 -I. -I$(OTF)/include
-#CXX	= CC -LANG:std
-#CXXFLAGS= $(OPT) -I/usr/local/src/staff/gregc/chimera2-IRIX/build/include/python2.4 -I.
 CXX	= gcc -pipe -pthread -fPIC -Wall -Wno-invalid-offsetof
-CXXFLAGS= $(OPT) -I$(OTF)/include/python2.5 -I$(OTF)/include
+CXXFLAGS= $(OPT) -I$(OTF)/include/python3.5m -I$(OTF)/include
 
 module.so: module.o xyzzy_Object.o $(TEST).o
 	$(CXX) $(OPT) -shared -o module.so module.o xyzzy_Object.o $(TEST).o -L../lib -lwrappy2 -lpython2.4

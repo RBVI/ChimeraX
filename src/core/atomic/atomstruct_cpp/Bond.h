@@ -16,7 +16,7 @@ class Residue;
 class Ring;
 using basegeom::ChangeTracker;
 
-class ATOMSTRUCT_IMEX Bond: public basegeom::UniqueConnection<Atom, Bond> {
+class ATOMSTRUCT_IMEX Bond: public basegeom::UniqueConnection<Atom> {
     friend class AtomicStructure;
 public:
     // HIDE_ constants are masks for hide bits in basegeom::Connectible
@@ -26,6 +26,7 @@ public:
 
 private:
     Bond(AtomicStructure *, Atom *, Atom *);
+    void  add_to_endpoints() { atoms()[0]->add_bond(this); atoms()[1]->add_bond(this); }
     const char*  err_msg_exists() const
         { return "Bond already exists between these atoms"; }
     const char*  err_msg_loop() const
@@ -33,7 +34,7 @@ private:
     mutable Rings  _rings;
 
 public:
-    virtual ~Bond();
+    virtual ~Bond() {}
     virtual bool shown() const;
     const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
@@ -50,8 +51,14 @@ public:
         std::set<const Residue*>* ignore = nullptr) const;
     // sqlength() inherited from UniqueConnection
 
+    // session related
+    void session_note_atoms(int** ints) const;
+
     // change tracking
     ChangeTracker*  change_tracker() const;
+    void track_change(const std::string& reason) const {
+        change_tracker()->add_modified(this, reason);
+    }
 
     // graphics related
     GraphicsContainer*  graphics_container() const {
@@ -64,8 +71,6 @@ public:
 #include "AtomicStructure.h"
 
 namespace atomstruct {
-
-inline Bond::~Bond() { atoms()[0]->structure()->_structure_cats_dirty = true; }
 
 inline bool Bond::shown() const {
     return Connection::shown() &&

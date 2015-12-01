@@ -155,7 +155,10 @@ extern "C" PyObject *affine_transform_vertices(PyObject *, PyObject *args)
   else if (PyArg_ParseTuple(args, const_cast<char *>("O&O&"),
 			    parse_writable_double_n3_array, &v64array,
 			    parse_double_3x4_array, tf64))
-    affine_transform_vertices(v64array, tf64);
+    {
+      PyErr_Clear();
+      affine_transform_vertices(v64array, tf64);
+    }
   else
     return NULL;
 

@@ -1,12 +1,12 @@
 <!--
-=== UCSF Chimera2 Copyright ===
+=== UCSF ChimeraX Copyright ===
 Copyright (c) 2015 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
 attached to all copies, including partial copies, of the
 software or any revisions or derivations thereof.
-=== UCSF Chimera2 Copyright ===
+=== UCSF ChimeraX Copyright ===
 -->
 
 <html><head>
@@ -16,8 +16,8 @@ software or any revisions or derivations thereof.
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
-class="clRight" alt="Chimera2 logo"/></a>
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
 
 <h3>Command: select</h3>
 <h3><a href="usageconventions.html">Usage</a>:
@@ -36,7 +36,7 @@ an existing selection.
 A <a name="seldef"><b><i>selection</i></b></a>:
 </p>
 <ul>
-<li>is shown with green outlines in the main window
+<li>is shown with green outlines in the graphics window
 <li>specifies items (models or their parts) for subsequent operations:
   <ul>
   <li>indicates scope of action of <b>Molecule Display</b> icons
@@ -46,8 +46,8 @@ A <a name="seldef"><b><i>selection</i></b></a>:
   </ul>
 <li>can be created 
   <ul>
-  <li>by Ctrl-clicking on items in the main window 
-  (default; see <b>mousemode</b> command)
+  <li>by <b>Ctrl</b>-clicking on items in the graphics window 
+  (default; see <a href="mousemode.html"><b>mousemode</b></a>)
   <li>by using <b>select</b> or various other commands and tools
   </ul>
 <li>can be broadened with the up arrow key, narrowed with the down arrow key
@@ -64,6 +64,15 @@ replacing any previous selection.
 Otherwise, <b>select</b> can be used to <b>add</b>, <b>subtract</b>, 
 or <b>intersect</b> the <a href="atomspec.html">specified</a> items
 with the current selection, or to <b>clear</b> it by deselecting everything.
+</p><p>
+Selecting a <a href="surface.html">molecular surface</a>
+automatically also selects the atoms used to define it.
+If the whole surface model is selected, all of the atoms used to define
+that surface are selected, even atoms that are completely buried.
+Typically all of the atoms in a biopolymer chain are used to define a surface,
+but other sets of atoms can be <a href="surface.html#grouping">specified</a>.
+If a surface patch is selected <a href="mousemode.html">with the mouse</a>,
+only the atom(s) directly contributing to that patch are selected.
 </p>
 
 <hr>

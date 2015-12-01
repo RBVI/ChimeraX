@@ -16,7 +16,7 @@ class ShellUI(ToolInstance):
         # 'display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Tool UI"
         # in this case), so only override if different name desired
-        self.display_name = "Chimera2 Python Shell"
+        self.display_name = "ChimeraX Python Shell"
         from chimera.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area

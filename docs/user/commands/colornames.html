@@ -1,12 +1,12 @@
 <!--
-=== UCSF Chimera2 Copyright ===
+=== UCSF ChimeraX Copyright ===
 Copyright (c) 2015 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
 attached to all copies, including partial copies, of the
 software or any revisions or derivations thereof.
-=== UCSF Chimera2 Copyright ===
+=== UCSF ChimeraX Copyright ===
 -->
 
 <html><head>
@@ -16,8 +16,8 @@ software or any revisions or derivations thereof.
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
-class="clRight" alt="Chimera2 logo"/></a>
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
 
 <h3>Command-Line Color Specification</h3>
 <p>
@@ -38,6 +38,11 @@ optionally with spaces between words
 <a href="colordef.html"><b>colordef</b></a> command
 <li>hexadecimal format starting with # and encoding
 <b>rgb</b> (3 or 6 digits) or <b>rgba</b> (4 or 8 digits)
+<!-- 
+Greg's fix for #143 is to interpret as color instead of model number if it has
+any non-numbers and/or at least 6 digits; thus model numbers top out at #99999
+and all-number hex colors with fewer than 6 digits don't work
+-->
 <li><a href="http://www.w3schools.com/cssref/css_colors_legal.asp"
 target="_blank">CSS-like specifications</a> in the following formats:
   <ul>

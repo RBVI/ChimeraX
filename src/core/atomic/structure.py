@@ -21,14 +21,18 @@ class AtomicStructure(AtomicStructureData, Model):
 
     STRUCTURE_STATE_VERSION = 0
 
-    def __init__(self, name, atomic_structure_pointer = None,
+    def __init__(self, name, session, *, c_pointer = None,
                  level_of_detail = None, smart_initial_display = True):
 
-        AtomicStructureData.__init__(self, atomic_structure_pointer)
+        AtomicStructureData.__init__(self, c_pointer)
         from . import molobject
         molobject.add_to_object_map(self)
 
-        Model.__init__(self, name)
+        Model.__init__(self, name, session)
+        self._ses_handlers = [
+            self.session.triggers.add_handler("begin save session", self._begin_ses_save),
+            self.session.triggers.add_handler("end save session", self._end_ses_save)
+        ]
 
         self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
         self.bond_radius = 0.2
@@ -66,6 +70,8 @@ class AtomicStructure(AtomicStructureData, Model):
     def delete(self):
         '''Delete this structure.'''
         AtomicStructureData.delete(self)
+        for handler in self._ses_handlers:
+            self.session.triggers.delete_handler(handler)
         Model.delete(self)
 
     def copy(self, name):
@@ -118,12 +124,16 @@ class AtomicStructure(AtomicStructureData, Model):
         session.triggers.delete_handler(self.handler)
 
     def take_snapshot(self, session, flags):
-        data = {}
-        return data
-
-    def restore_snapshot(self, phase, session, version, data):
-        if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
-            raise RestoreError("Unexpected version or data")
+        from ..state import CORE_STATE_VERSION
+        # TODO: also need to save this class's own state
+        ints = []
+        floats = []
+        misc = []
+        as_version = self.session_info(ints, floats, misc)
+        return CORE_STATE_VERSION, [
+            Model.take_snapshot(self, session, flags),
+            (as_version, ints, floats, misc)
+        ]
 
     def reset_state(self, session):
         pass
@@ -905,6 +915,12 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def clear_selection_promotion_history(self):
         self._selection_promotion_history = []
+
+    def _begin_ses_save(self, *args):
+        self.session_save_setup()
+
+    def _end_ses_save(self, *args):
+        self.session_save_teardown()
 
     def surfaces(self):
         '''List of :class:`.MolecularSurface` objects for this structure.'''

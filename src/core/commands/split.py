@@ -35,7 +35,7 @@ def split(session, molecules = None, chains = None, ligands = False, connected =
     for m in molecules:
         clist = split_molecule(m, chains, ligands, connected, atoms)
         if clist:
-            parent = Model(m.name)
+            parent = Model(m.name, session)
             parent.id = m.id
             for i, c in enumerate(clist):
                 c.id = parent.id + (i+1,)
@@ -179,7 +179,7 @@ def split_atoms(atoms, asubsets):
 def molecule_from_atoms(m, atoms, name = None):
 
     from ..atomic import AtomicStructure
-    cm = AtomicStructure(name or m.name, level_of_detail = m._level_of_detail)
+    cm = AtomicStructure(name or m.name, m.session, level_of_detail = m._level_of_detail)
 #    cm.color = m.color
     cm.display = m.display
 #    cm.lineWidth = m.lineWidth

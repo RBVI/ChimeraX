@@ -1,7 +1,7 @@
-Building Chimera2
+Building ChimeraX
 =================
 
-To get a working Chimera2 skeleton:
+To get a working ChimeraX skeleton:
 
   1. In the top level directory, 'make install'.
   That will install the prerequisites and then build everything else.
@@ -15,8 +15,8 @@ The QT sample application is in src/qt.  To run it, type 'make run' in that
 directory.  Later it will be in bin directory.
 
 
-Changes from Chimera 1 Development Environment
-----------------------------------------------
+Changes from Chimera Development Environment
+--------------------------------------------
 
 '$(build_root)' is now '$(build_prefix)'.
 

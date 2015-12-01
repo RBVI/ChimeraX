@@ -8,8 +8,7 @@
 
 namespace atomstruct {
 
-Bond::Bond(AtomicStructure *as, Atom *a1, Atom *a2):
-    UniqueConnection<Atom, Bond>(a1, a2)
+Bond::Bond(AtomicStructure *as, Atom *a1, Atom *a2): UniqueConnection<Atom>(a1, a2)
 {
     if (a1->structure() != as || a2->structure() != as)
         throw std::invalid_argument("Cannot bond atoms in different molecules");
@@ -134,6 +133,15 @@ Bond::polymeric_start_atom() const
         }
     }
     return nullptr;
+}
+
+void
+Bond::session_note_atoms(int** ints) const
+{
+    auto int_ptr = *ints;
+    int_ptr[0] = (*(atoms()[0]->structure()->session_save_atoms))[atoms()[0]];
+    int_ptr[1] = (*(atoms()[0]->structure()->session_save_atoms))[atoms()[1]];
+    int_ptr += 2;
 }
 
 }  // namespace atomstruct

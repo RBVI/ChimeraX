@@ -16,7 +16,7 @@ class Volume(Model):
   def __init__(self, data, session, region = None, rendering_options = None,
                model_id = None, open_model = True, message_cb = None):
 
-    Model.__init__(self, data.name)
+    Model.__init__(self, data.name, session)
 
     self.session = session
     if not model_id is None:
@@ -632,11 +632,8 @@ class Volume(Model):
     elif show_mesh: lit = ro.mesh_lighting
     else:           lit = True
     p.use_lighting = lit
-
     p.twoSidedLighting = ro.two_sided_lighting
-
     p.lineThickness = ro.line_thickness
-
     p.smoothLines = ro.smooth_lines
 
 #     if ro.dim_transparency:
@@ -717,6 +714,9 @@ class Volume(Model):
     p.normals = narray
     p.vertex_colors = None
     p.edge_mask = hidden_edges if ro.square_mesh else None
+    p.clip_cap = True
+    # TODO: Clip cap offset for different contour levels is not related to voxel size.
+    p.clip_offset = .002* len([l for l in self.surface_levels if level < l])
 
     self.message('')
 
@@ -1809,7 +1809,7 @@ class Volume(Model):
       self.surface_piece_change_handler = None
 
 
-  # State save/restore in Chimera2
+  # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     pass
 

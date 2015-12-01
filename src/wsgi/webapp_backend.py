@@ -1,19 +1,19 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 def _debug_print(s):
 	from time import ctime
-	with open("/tmp/chimera2_debug.log", "a") as f:
+	with open("/tmp/chimerax_debug.log", "a") as f:
 		print("backend", ctime(), s, file=f)
 _debug_print("backend script started")
 
 #
-# Main chimera2 code
+# Main chimerax code
 #
 
 main_view = None
 client_data = []
 
-def init_chimera2():
-	# initialize chimera2 internals
+def init_chimerax():
+	# initialize chimerax internals
 	#   -- setup graphics to generate JSON
 	#   -- register all commands
 	#

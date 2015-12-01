@@ -1,15 +1,17 @@
 // vi: set expandtab ts=4 sw=4:
-#include <pythonarray.h>
 #include "Atom.h"
 #include "AtomicStructure.h"
-#include <basegeom/destruct.h>
-#include <basegeom/Graph.tcc>
 #include "Bond.h"
 #include "CoordSet.h"
-#include <logger/logger.h>
+#include "PBGroup.h"
 #include "Pseudobond.h"
 #include "Residue.h"
 #include "seq_assoc.h"
+
+#include <basegeom/destruct.h>
+#include <basegeom/Graph.tcc>
+#include <logger/logger.h>
+#include <pythonarray.h>
 
 #include <algorithm>  // for std::find, std::sort, std::remove_if, std::min
 #include <map>
@@ -57,7 +59,7 @@ AtomicStructure::bonded_groups(std::vector<std::vector<Atom*>>* groups,
     // find connected atomic structures, considering missing-structure pseudobonds
     std::map<Atom*, std::vector<Atom*>> pb_connections;
     if (consider_missing_structure) {
-        auto pbg = (Owned_PBGroup*) const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
+        auto pbg = const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
             PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
         if (pbg != nullptr) {
             for (auto& pb: pbg->pseudobonds()) {
@@ -877,7 +879,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
 
     if (consider_missing_structure) {
         // go through missing-structure pseudobonds
-        auto pbg = (Owned_PBGroup*) const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
+        auto pbg = const_cast<AtomicStructure*>(this)->_pb_mgr.get_group(
             PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
         if (pbg != nullptr) {
             for (auto& pb: pbg->pseudobonds()) {
@@ -974,13 +976,13 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     // The passed-in args need to be empty lists.  This routine will add one object to each
     // list for each of these classes:
     //    AtomicStructure
-    //    PseudobondManager
-    //    CoordSet
-    //    Chain
-    //    Residue
-    //    Ring
     //    Atom
-    //    Bond
+    //    Bond (needs Atoms)
+    //    CoordSet (needs Atoms)
+    //    PseudobondManager (needs Atoms and CoordSets)
+    //    Residue
+    //    Chain
+    //    Ring
     // For the numeric types, the objects will be numpy arrays: one-dimensional for
     // AtomicStructure attributes and two-dimensional for the others.  Except for
     // PseudobondManager; that will be a list of numpy arrays, one per group.  For the misc,
@@ -1013,16 +1015,20 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     *int_array++ = is_traj;
     *int_array++ = lower_case_chains;
     *int_array++ = pdb_version;
+    // if you add ints, change the allocation above
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
 
     float* float_array;
     npy_array = python_float_array(1, &float_array);
     *float_array++ = ball_scale();
+    // if you add floats, change the allocation above
     if (PyList_Append(floats, npy_array) < 0)
         throw std::runtime_error("Couldn't append to floats list");
 
     PyObject* attr_list = PyList_New(4);
+    if (attr_list == nullptr)
+        throw std::runtime_error("Cannot create Python list for misc info");
     if (PyList_Append(misc, attr_list) < 0)
         throw std::runtime_error("Couldn't append to misc list");
     // input_seq_info
@@ -1080,7 +1086,92 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     }
     PyList_SET_ITEM(attr_list, 3, map);
 
+    // atoms
+    // We need to remember names and elments ourself for constructing the atoms.
+    // Make a list of num_atom+1 items, the first of which will be the list of
+    //   names and the remainder of which will be empty lists which will be handed
+    //   off individually to the atoms.
+    int num_atoms = atoms().size();
+    int num_ints = num_atoms; // list of elements
+    int num_floats = 0;
+    PyObject* atoms_misc = PyList_New(num_atoms+1);
+    if (atoms_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for atom misc info");
+    if (PyList_Append(misc, atoms_misc) < 0)
+        throw std::runtime_error("Couldn't append atom misc list to misc list");
+    PyObject* atom_names = PyList_New(num_atoms);
+    if (atom_names == nullptr)
+        throw std::runtime_error("Cannot create Python list for atom names");
+    PyList_SET_ITEM(atoms_misc, 0, atom_names);
+    int i = 0;
+    for (auto a: atoms()) {
+        num_ints += a->session_num_ints();
+        num_floats += a->session_num_floats();
+
+        // remember name
+        PyObject* name = PyUnicode_FromString(a->name());
+        if (name == nullptr)
+            throw::std::runtime_error("Cannot create Python string for atom name");
+        PyList_SET_ITEM(atom_names, i++, name);
+    }
+    int* atom_ints;
+    PyObject* atom_npy_ints = python_int_array(num_ints, &atom_ints);
+    for (auto a: atoms()) {
+        *atom_ints++ = a->element().number();
+    }
+    float* atom_floats;
+    atom_npy_ints = python_float_array(1, &atom_floats);
+    i = 1;
+    for (auto a: atoms()) {
+        PyObject* empty_list = PyList_New(0);
+        if (empty_list == nullptr)
+            throw std::runtime_error("Cannot create Python list for individual atom misc info");
+        PyList_SET_ITEM(atoms_misc, i++, empty_list);
+        a->session_save(&atom_ints, &atom_floats, empty_list);
+    }
+
+#if 0
+    // coord sets
+    int num_ints = 1; // to note the totol # of coord sets
+    int num_floats = 0;
+    for (auto cs: _coord_sets) {
+        num_ints += cs->session_num_ints();
+        num_floats += cs->session_num_floats();
+    }
+#endif
+
+    // PseudobondManager groups;
+    // main version number needs to go up when manager's
+    // version number goes up, so check it
+    if (_pb_mgr.session_info(ints, floats, misc) != 1) {
+        throw std::runtime_error("Unexpected version number from pseudobond manager");
+    }
+
     return 1;  // version number
+}
+
+void
+AtomicStructure::session_save_setup() const
+{
+    size_t index = 0;
+
+    session_save_atoms = new std::map<const Atom*, size_t>;
+    for (auto a: atoms()) {
+        (*session_save_atoms)[a] = index++;
+    }
+
+    index = 0;
+    session_save_crdsets = new std::map<const CoordSet*, size_t>;
+    for (auto cs: coord_sets()) {
+        (*session_save_crdsets)[cs] = index++;
+    }
+}
+
+void
+AtomicStructure::session_save_teardown() const
+{
+    delete session_save_atoms;
+    delete session_save_crdsets;
 }
 
 void

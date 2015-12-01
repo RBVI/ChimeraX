@@ -1,7 +1,7 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
 ***************************
-Chimera2 Programming Manual
+ChimeraX Programming Manual
 ***************************
 
 This manual covers programming APIs for the :ref:`core`, tools and libraries.

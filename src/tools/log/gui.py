@@ -174,10 +174,10 @@ class Log(ToolInstance, HtmlLog):
             if ((level == self.LEVEL_ERROR and self.error_shows_dialog) or
                     (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
                 if level == self.LEVEL_ERROR:
-                    caption = "Chimera2 Error"
+                    caption = "ChimeraX Error"
                     icon = wx.ICON_ERROR
                 else:
-                    caption = "Chimera2 Warning"
+                    caption = "ChimeraX Warning"
                     icon = wx.ICON_EXCLAMATION
                 style = wx.OK | wx.OK_DEFAULT | icon | wx.CENTRE
                 graphics = self.session.ui.main_window.graphics_window
@@ -254,7 +254,7 @@ class Log(ToolInstance, HtmlLog):
                 from .cmd import log
                 log(self.session, thumbnail=True)
             return
-        elif url.startswith("ch2cmd:"):
+        elif url.startswith("cxcmd:"):
             from urllib.parse import unquote
             from chimera.core.commands import run
             event.Veto()
@@ -287,10 +287,10 @@ class Log(ToolInstance, HtmlLog):
         f.write("<!DOCTYPE html>\n"
                 "<html>\n"
                 "<head>\n"
-                "<title> Chimera2 Log </title>\n"
+                "<title> ChimeraX Log </title>\n"
                 "</head>\n"
                 "<body>\n"
-                "<h1> Chimera2 Log </h1>\n")
+                "<h1> ChimeraX Log </h1>\n")
         f.write(self.page_source)
         f.write("</body>\n"
                 "</html>\n")

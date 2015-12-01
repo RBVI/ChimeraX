@@ -30,6 +30,7 @@ def _chains(c):
     from .molarray import Chains
     return Chains(c)
 def _atomic_structure(p):
+    if p == 0: return None
     return object_map(p, AtomicStructureData)
 def _pseudobond_group_map(pbgc_map):
     from .pbgroup import PseudobondGroup
@@ -327,6 +328,11 @@ class PseudobondGroupData:
     '''Name of the pseudobond group.  Read only string.'''
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
     '''Number of pseudobonds in group. Read only.'''
+    structure = c_property('pseudobond_group_structure', cptr, astype = _atomic_structure,
+        read_only = True)
+    '''Structure pseudobond group is owned by.  *Bad* things will happen if called
+    on a group that isn't owned (i.e. managed by the global pseudobond manager
+    rather than by a structure's pseudobond manager'''
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
                              astype = _pseudobonds, read_only = True)
     '''Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.'''
@@ -351,10 +357,11 @@ class PseudobondManager:
     '''Per-session singleton pseudobond manager keeps track of all
     :class:`.PseudobondGroupData` objects.'''
 
-    def __init__(self, change_tracker):
+    def __init__(self, session):
+        self.session = session
         f = c_function('pseudobond_create_global_manager', args = (ctypes.c_void_p,),
             ret = ctypes.c_void_p)
-        set_c_pointer(self, f(change_tracker._c_pointer))
+        set_c_pointer(self, f(session.change_tracker._c_pointer))
 
     def get_group(self, category, create = True):
         '''Get an existing :class:`.PseudobondGroup` or create a new one given a category name.'''
@@ -365,7 +372,8 @@ class PseudobondManager:
         if not pbg:
             return None
         from .pbgroup import PseudobondGroup
-        return object_map(pbg, PseudobondGroup)
+        return object_map(pbg,
+            lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
 
 
 # -----------------------------------------------------------------------------
@@ -579,6 +587,16 @@ class AtomicStructureData:
                         ctypes.py_object),
                     ret = ctypes.c_int)
         return f(self._c_pointer, ints, floats, misc)
+
+    def session_save_setup(self):
+        '''Allow C++ layer to setup data structures it needs during session save'''
+        f = c_function('structure_session_save_setup', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
+
+    def session_save_teardown(self):
+        '''Allow C++ layer to teardown data structures it made during session save setup'''
+        f = c_function('structure_session_save_teardown', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def set_color(self, rgba):
         '''Set color of atoms, bonds, and residues'''

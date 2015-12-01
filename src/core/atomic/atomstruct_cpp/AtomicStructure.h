@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "Chain.h"
-#include "Pseudobond.h"
+#include "PBManager.h"
 #include "Ring.h"
 #include "string_types.h"
 
@@ -28,8 +28,6 @@ struct _object;
 typedef _object PyObject;
 #endif
     
-namespace basegeom { class ChangeTracker; }
-
 namespace atomstruct {
 
 class Atom;
@@ -124,7 +122,7 @@ public:
     AtomicStructure*  copy() const;
     void  delete_atom(Atom* a);
     void  delete_atoms(std::vector<Atom*> atoms);
-    void  delete_bond(Bond* b) { delete_edge(b); }
+    void  delete_bond(Bond* b) { delete_edge(b); _structure_cats_dirty = true; }
     void  delete_residue(Residue* r);
     // display() inherited from Graph
     void  extend_input_seq_info(ChainID& chain_id, ResName& res_name) {
@@ -165,6 +163,10 @@ public:
         unsigned int all_size_threshold = 0,
         std::set<const Residue *>* ignore = nullptr) const;
     int  session_info(PyObject* ints, PyObject* floats, PyObject* strings) const;
+    mutable std::map<const Atom*, size_t>  *session_save_atoms;
+    mutable std::map<const CoordSet*, size_t>  *session_save_crdsets;
+    void  session_save_setup() const;
+    void  session_save_teardown() const;
     void  set_active_coord_set(CoordSet *cs);
     // set_ball_scale() inherited from Graph
     void  set_color(const Rgba& rgba);

@@ -91,17 +91,17 @@ qthelp: conf.py
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/Chimera2.qhcp"
+	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/ChimeraX.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/Chimera2.qhc"
+	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/ChimeraX.qhc"
 
 devhelp: conf.py
 	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
 	@echo
 	@echo "Build finished."
 	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/Chimera2"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/Chimera2"
+	@echo "# mkdir -p $$HOME/.local/share/devhelp/ChimeraX"
+	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/ChimeraX"
 	@echo "# devhelp"
 
 epub: conf.py

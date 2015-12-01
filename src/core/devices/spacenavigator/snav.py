@@ -6,7 +6,7 @@ class Space_Navigator:
     def __init__(self, session):
 
         self.view = session.main_view
-        self.log = session.log
+        self.log = session.logger
         self.ses_triggers = session.triggers
 
         self.speed = 1
@@ -184,7 +184,7 @@ def toggle_space_navigator(session):
         sn.stop_event_processing()
     else:
         success = sn.start_event_processing()
-        log = session.logger if hasattr(session, 'logger') else session # Chimera2 / Hydra compatibility
+        log = session.logger if hasattr(session, 'logger') else session # ChimeraX / Hydra compatibility
         log.info('started space navigator: %s' % str(bool(success)))
 
 # -----------------------------------------------------------------------------
@@ -235,7 +235,7 @@ def snav(session, enable = None, fly = None):
         sn.fly_mode = bool(fly)
 
 # -----------------------------------------------------------------------------
-# Register the snav command for Chimera2.
+# Register the snav command for ChimeraX.
 #
 def register_snav_command():
     from ...commands import CmdDesc, BoolArg, register

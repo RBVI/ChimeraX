@@ -6,30 +6,31 @@
 # -----------------------------------------------------------------------------
 # File description, file reader module name, file prefixes, and file suffixes.
 #
+# TODO: Add commented-out file readers.
 file_types = (
-  ('Amira mesh', 'amira', ['amira'], ['am'], False),
+#  ('Amira mesh', 'amira', ['amira'], ['am'], False),
   ('APBS potential', 'apbs', ['apbs'], ['dx'], False),
   ('BRIX or DSN6 density map', 'dsn6', ['dsn6'], ['brix','omap'], False),
   ('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map'], False),
   ('Chimera map', 'cmap', ['cmap'], ['cmp','cmap'], False),
-  ('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor'], False),
-  ('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi'], False),
-  ('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg'], False),
-  ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
-  ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
-  ('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt'], False),
+#  ('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor'], False),
+#  ('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi'], False),
+#  ('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg'], False),
+#  ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
+#  ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
+#  ('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt'], False),
   ('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png'], True),
-  ('IMOD map', 'imod', ['imodmap'], ['rec'], False),
-  ('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp'], False),
+#  ('IMOD map', 'imod', ['imodmap'], ['rec'], False),
+#  ('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp'], False),
   ('MRC density map', 'mrc', ['mrc'], ['mrc'], False),
-  ('NetCDF generic array', 'netcdf', ['netcdf'], ['nc'], False),
-  ('Priism microscope image', 'priism', ['priism'], ['xyzw'], False),
-  ('PROFEC free energy grid', 'profec', ['profec'], ['profec'], False),
-  ('Purdue image format', 'pif', ['pif'], ['pif'], False),
-  ('SITUS map file', 'situs', ['situs'], ['sit','situs'], False),
-  ('SPIDER volume data', 'spider', ['spider'], ['spi','vol'], False),
-  ('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em'], False),
-  ('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd'], False),
+#  ('NetCDF generic array', 'netcdf', ['netcdf'], ['nc'], False),
+#  ('Priism microscope image', 'priism', ['priism'], ['xyzw'], False),
+#  ('PROFEC free energy grid', 'profec', ['profec'], ['profec'], False),
+#  ('Purdue image format', 'pif', ['pif'], ['pif'], False),
+#  ('SITUS map file', 'situs', ['situs'], ['sit','situs'], False),
+#  ('SPIDER volume data', 'spider', ['spider'], ['spi','vol'], False),
+#  ('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em'], False),
+#  ('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd'], False),
   )
 
 # -----------------------------------------------------------------------------

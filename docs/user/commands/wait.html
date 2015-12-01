@@ -1,12 +1,12 @@
 <!--
-=== UCSF Chimera2 Copyright ===
+=== UCSF ChimeraX Copyright ===
 Copyright (c) 2015 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
 attached to all copies, including partial copies, of the
 software or any revisions or derivations thereof.
-=== UCSF Chimera2 Copyright ===
+=== UCSF ChimeraX Copyright ===
 -->
 
 <html><head>
@@ -16,8 +16,8 @@ software or any revisions or derivations thereof.
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
-class="clRight" alt="Chimera2 logo"/></a>
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
 
 <h3>Command: wait</h3>
 <h3><a href="usageconventions.html">Usage</a>:
@@ -34,7 +34,7 @@ It can also be used to generate duplicate image frames in movies
 Following certain multi-frame commands,
 <b>wait</b> without a number will automatically wait the needed number 
 of frames for the command to finish (see the
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/wait.html#whichcmds">Chimera1 list</a>
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/wait.html#whichcmds">Chimera list</a>
 of such commands; other commands require the number to be given explicitly).
 In the following example, <b>wait</b> prevents <b>move</b>
 from starting until <b>roll</b> has finished:
@@ -48,13 +48,13 @@ from starting until <b>roll</b> has finished:
 It is also acceptable to give the frame argument where it could have been
 omitted (in the example, <b>wait 120</b> instead of just <b>wait</b>).
 </p><p>
-Unlike Chimera1, when executing a command file,
-Chimera2 does not add an implicit <b>wait 1</b> at the end of each line
+Unlike Chimera, when executing a command file,
+ChimeraX does not add an implicit <b>wait 1</b> at the end of each line
 that could change the display.
 Thus, after a series of commands is saved
 from the <a href="../tools/cli.html#history"><b>Command History</b></a> 
 or otherwise written to a text file to create a 
-<a href="open.html#local">Chimera2 command script</a>,
+<a href="open.html#local">ChimeraX command script</a>,
 it may be necessary to add <b>wait</b> or
 <b>wait <i>N</i></b> commands between them 
 (or appended to lines with a semicolon separator)

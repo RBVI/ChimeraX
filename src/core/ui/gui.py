@@ -1,6 +1,6 @@
 # vim: set expandtab ts=4 sw=4:
 """
-gui: Main Chimera2 user interface
+gui: Main ChimeraX user interface
 ==================================
 
 The principal class that tool writers will use from this module is
@@ -18,7 +18,7 @@ import wx
 
 
 class UI(wx.App):
-    """Main Chimera2 user interface
+    """Main ChimeraX user interface
 
        The only methods that tools might directly use are:
 
@@ -59,7 +59,7 @@ class UI(wx.App):
         w, h = bitmap.GetSize()
         self.splash.SetTextPosition((0, int(0.9 * h)))
         self.splash.SetTextColour(wx.RED)
-        self.splash.SetText("Initializing Chimera2")
+        self.splash.SetText("Initializing ChimeraX")
         self.splash._painted = False
         num_yields = 0
         while not self.splash._painted:
@@ -167,7 +167,7 @@ class MainWindow(wx.Frame, PlainTextLog):
             # no primary display?!?
             x, y = wx.DisplaySize()
         req_size = ((2*x)/3, (2*y)/3)
-        wx.Frame.__init__(self, None, title="Chimera2", size=req_size)
+        wx.Frame.__init__(self, None, title="ChimeraX", size=req_size)
 
         from wx.lib.agw.aui import AuiManager, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
@@ -305,7 +305,7 @@ class MainWindow(wx.Frame, PlainTextLog):
         self.status_bar = self.CreateStatusBar(3,
             wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
             | wx.FULL_REPAINT_ON_RESIZE)
-        greeting = "Welcome to Chimera2"
+        greeting = "Welcome to ChimeraX"
         greeting_size = wx.Window.GetTextExtent(self, greeting)
         self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
         self.status_bar.SetStatusText("", 0)
@@ -343,11 +343,18 @@ class MainWindow(wx.Frame, PlainTextLog):
         for ti in session.toolshed.tool_info():
             for cat in ti.menu_categories:
                 categories.setdefault(cat, {})[ti.display_name] = ti
-        for cat in sorted(categories.keys()):
-            if cat == "Hidden":
-                continue
-            cat_menu = wx.Menu()
-            tools_menu.Append(wx.ID_ANY, cat, cat_menu)
+        cat_keys = sorted(categories.keys())
+        try:
+            cat_keys.remove('Hidden')
+        except ValueError:
+            pass
+        one_menu = len(cat_keys) == 1
+        for cat in cat_keys:
+            if one_menu:
+                cat_menu = tools_menu
+            else:
+                cat_menu = wx.Menu()
+                tools_menu.Append(wx.ID_ANY, cat, cat_menu)
             cat_info = categories[cat]
             for tool_name in sorted(cat_info.keys()):
                 ti = cat_info[tool_name]

@@ -1,10 +1,10 @@
 from . import cli
 
 
-def alias(session, name='', text=''):
+def alias(session, name, text=''):
     """Create command alias
 
-    :param name: optional name of the alias
+    :param name: name of the alias
     :param text: optional text of the alias
 
     If the alias name is not given, then a text list of all the aliases is
@@ -12,16 +12,6 @@ def alias(session, name='', text=''):
     is shown.  If both arguments are given, then a new alias is made.
     """
     logger = session.logger
-    if not name:
-        # list aliases
-        aliases = cli.list_aliases()
-        names = cli.commas(aliases, ' and')
-        noun = cli.plural_form(aliases, 'alias')
-        if names:
-            logger.info('%d %s: %s' % (len(aliases), noun, names))
-        else:
-            logger.status('No aliases.')
-        return
     if not text:
         text = cli.expand_alias(name)
         if text is None:
@@ -32,22 +22,49 @@ def alias(session, name='', text=''):
     cli.create_alias(name, text, user=True, logger=session.logger)
 
 
-def unalias(session, name=None):
+def list_aliases(session, internal=False):
+    # list aliases
+    logger = session.logger
+    aliases = cli.list_aliases(all=internal)
+    aliases.sort(key=lambda x: x[x[0] == '~':])
+    names = cli.commas(aliases, ' and')
+    noun = cli.plural_form(aliases, 'alias')
+    if names:
+        logger.info('%d %s: %s' % (len(aliases), noun, names))
+    else:
+        logger.status('No %saliases.' % ('user ' if not internal else ''))
+    return
+
+
+def unalias(session, name):
     """Remove command alias
 
     :param name: optional name of the alias
         If not given, then remove all aliases.
     """
-    cli.remove_alias(name)
+    if name == 'all':
+        cli.remove_alias(user=True)
+    else:
+        cli.remove_alias(name, user=True)
 
 
 def register_command(session):
-    desc = cli.CmdDesc(optional=[('name', cli.StringArg),
-                                 ('text', cli.WholeRestOfLine)],
-                       non_keyword=['name', 'text'],
-                       synopsis='list or define a command alias')
+    desc = cli.CmdDesc(
+        required=[('name', cli.StringArg)],
+        optional=[('text', cli.WholeRestOfLine)],
+        non_keyword=['text'],
+        synopsis='define or show a command alias')
     cli.register('alias', desc, alias)
-    desc = cli.CmdDesc(optional=[('name', cli.StringArg)],
-                       non_keyword=['name'],
-                       synopsis='remove a command alias')
-    cli.register('~alias', desc, unalias)
+
+    desc = cli.CmdDesc(
+        keyword=[('internal', cli.NoArg)],
+        synopsis='list aliases')
+    cli.register('alias list', desc, list_aliases)
+
+    desc = cli.CmdDesc(
+        required=[('name', cli.Or(cli.EnumOf(['all']), cli.StringArg))],
+        non_keyword=['name'],
+        synopsis='remove a command alias')
+    cli.register('alias delete', desc, unalias)
+
+    cli.create_alias('~alias', 'alias delete $*')

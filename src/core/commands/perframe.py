@@ -76,7 +76,7 @@ def _perframe_callback(data, session):
         tag = 'perframe %d: ' % frame_num
     alias = d['command']
     try:
-        alias(session, *args, echo_tag=tag)
+        alias(session, *args, echo_tag=tag, log=False)
     except:
         stop_perframe_callbacks(session, [d['handler']])
         if alias.cmd is not None:

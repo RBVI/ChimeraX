@@ -1,12 +1,12 @@
 <!--
-=== UCSF Chimera2 Copyright ===
+=== UCSF ChimeraX Copyright ===
 Copyright (c) 2015 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
 attached to all copies, including partial copies, of the
 software or any revisions or derivations thereof.
-=== UCSF Chimera2 Copyright ===
+=== UCSF ChimeraX Copyright ===
 -->
 
 <html><head>
@@ -15,12 +15,13 @@ software or any revisions or derivations thereof.
 </head><body>
 
 <a href="../index.html">
-<img width="60px" src="../Chimera2-icon.svg" title="to User Guide Index..."
-class="clRight" alt="Chimera2 logo"/></a>
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
 
-<h3>Usage Conventions in Command Documentation</h3> 
+<h3>Command Usage Conventions</h3> 
 <p>
-In the <b>Usage</b> sections of command manual pages:
+In the <b>Usage</b> sections of 
+<a href="../index.html#commands">command manual pages</a>:
 <ul>
 <li> <b>keywords</b> to be taken literally are not italicized
 <li> <b><i>parameters</i></b> that should be replaced with 
@@ -37,11 +38,14 @@ parentheses: <b>(&nbsp;)</b>
 The brackets, vertical bars, and parentheses mentioned above are 
 merely symbolic and should not be included in the typed command.
 </p><p>
-Command names and keywords can be truncated to unique strings,
-unless a command's manual page states otherwise.
+Command names and keywords can be truncated to unique strings.
+Command names should be entered as lowercase letters, whereas keywords can be
+completely lowercase or capitalized as shown in the documentation,
+typically camelCase for compound words.
 </p><p>
-Keyword options can be given in any order, except where 
-dependencies are indicated with nested brackets.
+Boolean (truth) values can also be truncated, with
+synonyms for <b>true</b>: <b>True</b>, <b>1</b>, and
+synonyms for <b>false</b>: <b>False</b>, <b>0</b>.
 </p><p>
 The display is updated as needed when a user presses return after entering
 a command, or when a <a href="wait.html"><b>wait</b></a>
@@ -51,10 +55,30 @@ During interactive command entry, this may be useful for making multi-frame
 actions start simultaneously or for suppressing the display
 of intermediate states.
 Semicolon separators are also needed for defining composite (multi-command)
-actions with <b>alias</b> or <b>perframe</b>, whether interactively or in
-a script.
+actions with <a href="alias.html"><b>alias</b></a>
+or <b>perframe</b>, whether interactively or in a script.
+</p><p>
+See also:
+<ul>
+<li><a href="atomspec.html">target specification</a></li>
+<li><a href="colornames.html">color specification</a></li>
+</ul>
 </p>
+
+<a name="cxc-files"></a>
+<h3>ChimeraX Command Files</h3>
+<p>
+ChimeraX command files are plain text files 
+containing the same commands that could be entered into the 
+<a href="../tools/cli.html"><b>Command Line Interface</b></a>.
+In addition, they may contain blank lines and/or comment lines starting with
+&ldquo;# &rdquo; (a pound sign followed by a blank space or nothing).
+</p><p>
+The filename suffix <b>.cxc</b> is recommended for ChimeraX command files.
+See also: <a href="open.html"><b>open</b></a>
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2015</address>
+November 2015</address>
 </body></html>

@@ -20,6 +20,8 @@ class MolecularSurface(Generic3DModel):
 
     Parameters
     ----------
+    session : :class:`~chimera.core.session.Session`
+      The session the surface model will belong to
     enclose_atoms : :class:`.Atoms`
       Surface bounds these atoms.
     show_atoms : :class:`.Atoms`
@@ -52,10 +54,10 @@ class MolecularSurface(Generic3DModel):
       triangle edges lie exactly between atoms. This creates less jagged
       edges when showing or coloring patches of surfaces for a subset of atoms.
     '''
-    def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing,
+    def __init__(self, session, enclose_atoms, show_atoms, probe_radius, grid_spacing,
                  resolution, level, name, color, visible_patches, sharp_boundaries):
         
-        Generic3DModel.__init__(self, name)
+        Generic3DModel.__init__(self, name, session)
 
         self.atoms = enclose_atoms
         self.show_atoms = show_atoms	# Atoms for surface patch to show
@@ -67,11 +69,12 @@ class MolecularSurface(Generic3DModel):
         self.color = color
         self.visible_patches = visible_patches
         self.sharp_boundaries = sharp_boundaries
+        self._refinement_steps = 1	# Used for fixing sharp edge problems near 3 atom junctions.
 
         self._vertex_to_atom = None
         self._max_radius = None
         self._atom_colors = None
-        self._sharp_edge_iterations = 1
+        self.clip_cap = 'duplicate vertices'
 
     def new_parameters(self, show_atoms, probe_radius, grid_spacing,
                        resolution, level, visible_patches, sharp_boundaries,
@@ -134,10 +137,11 @@ class MolecularSurface(Generic3DModel):
 
         if self.sharp_boundaries:
             v2a = self.vertex_to_atom_map(va)
-            rkw = {'atom_radii':atoms.radii} if self.resolution is None else {}
+            kw = {'refinement_steps': self._refinement_steps}
+            if self.resolution is None:
+                kw['atom_radii'] = atoms.radii
             from ..surface import sharp_edge_patches
-            for i in range(self._sharp_edge_iterations):
-                va, na, ta, v2a = sharp_edge_patches(va, na, ta, v2a, xyz, **rkw)
+            va, na, ta, v2a = sharp_edge_patches(va, na, ta, v2a, xyz, **kw)
             self._vertex_to_atom = v2a
 
         self.vertices = va
@@ -190,9 +194,9 @@ class MolecularSurface(Generic3DModel):
     def _maximum_atom_to_surface_distance(self):
         res = self.resolution
         if res is None:
-            d = 1.1 * (self.probe_radius + self._max_radius)
+            d = 1.1 * (self.probe_radius + self._max_radius + self.grid_spacing)
         else:
-            d = 2*res
+            d = 2*(res + self.grid_spacing)
         return d
 
     def _patch_display_mask(self, patch_atoms):

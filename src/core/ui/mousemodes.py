@@ -7,26 +7,7 @@ class MouseModes:
         self.graphics_window = graphics_window
         self.session = session
 
-        from .. import map, markers
-        from ..map import series
-        mode_classes = [
-            SelectMouseMode,
-            RotateMouseMode,
-            TranslateMouseMode,
-            ZoomMouseMode,
-            RotateAndSelectMouseMode,
-            TranslateSelectedMouseMode,
-            RotateSelectedMouseMode,
-            ClipMouseMode,
-            ObjectIdMouseMode,
-            map.ContourLevelMouseMode,
-            map.PlanesMouseMode,
-            markers.MarkerMouseMode,
-            markers.MarkCenterMouseMode,
-            markers.ConnectMouseMode,
-            series.PlaySeriesMouseMode,
-        ]
-        self._available_modes = [mode(session) for mode in mode_classes]
+        self._available_modes = [mode(session) for mode in standard_mouse_mode_classes()]
 
         self._bindings = []  # List of MouseBinding
 
@@ -283,7 +264,7 @@ class MouseMode:
         self.last_mouse_position = pos
         return dx, dy
 
-    def wheel(self):
+    def wheel(self, event):
         pass
 
     def pause(self, position):
@@ -351,6 +332,11 @@ class RotateMouseMode(MouseMode):
         axis, angle = self.mouse_rotation(event)
         self.rotate(axis, angle)
 
+    def wheel(self, event):
+        d = event.wheel_value()
+        psize = self.pixel_size()
+        self.rotate((0,1,0), 10*d)
+
     def rotate(self, axis, angle):
         v = self.view
         # Convert axis from camera to scene coordinates
@@ -408,6 +394,10 @@ class TranslateMouseMode(MouseMode):
 
         dx, dy = self.mouse_motion(event)
         self.translate((dx, -dy, 0))
+
+    def wheel(self, event):
+        d = event.wheel_value()
+        self.translate((0,0,100*d))
 
     def translate(self, shift):
 
@@ -472,54 +462,94 @@ class ObjectIdMouseMode(MouseMode):
         # Hide atom spec balloon
         self.session.ui.main_window.graphics_window.popup.hide()
 
+class NullMouseMode(MouseMode):
+    '''Used to assign no mode to a mouse button.'''
+    name = 'none'
+
 class ClipMouseMode(MouseMode):
+    '''
+    Move clip planes.
+    Move front plane with no modifiers, back plane with alt,
+    both planes with shift, and slab thickness with alt and shift.
+    Move scene planes unless only near/far planes are enabled.
+    '''
     name = 'clip'
     icon_file = 'clip.png'
 
     def mouse_drag(self, event):
 
         dx, dy = self.mouse_motion(event)
-        ns,fs = {(False,False):(1,0),
-                 (True,False):(1,1),
-                 (False,True):(0,1),
-                 (True,True):(1,-1)}[(event.shift_down(),event.alt_down())]
-        self.clip_move((dx,-dy), ns, fs)
+        shift, alt = event.shift_down(), event.alt_down()
+        front_shift = 1 if shift or not alt else 0
+        back_shift = 0 if not (alt or shift) else (1 if alt and shift else -1)
+        self.clip_move((dx,-dy), front_shift, back_shift)
 
-    def clip_move(self, delta_xy, near_shift, far_shift):
+    def wheel(self, event):
+        d = event.wheel_value()
+        psize = self.pixel_size()
+        self.clip_move(None, 1, 0, delta = 10*psize*d)
 
-        v = self.view
-        cam = v.camera
-
-        # Move near far clip planes if they are enabled
-        clip = v.clip
-        normal = cam.view_direction()
-        d = delta_xy[1]*self.pixel_size()
-
-        if not clip.enabled and v.clip_scene.enabled:
-            # Move scene clip planes
-            clip = v.clip_scene
-            normal = clip.normal
-            d = self._tilt_shift(delta_xy, cam, normal)
-
-        if clip.enabled:
-            np = clip.near_point + (near_shift*d)*normal
-            fp = clip.far_point + (far_shift*d)*normal
-            from ..geometry import inner_product
-            if inner_product(fp-np,normal) > 0:
-                clip.near_point = np
-                clip.far_point = fp
-                clip.normal = normal
-                v.redraw_needed = True
-        else:
-            b = v.drawing_bounds()
-            if b is None:
-                return
-            clip.near_point = b.center() 
-            clip.far_point = b.center() + b.radius()*normal
-            clip.normal = normal
-            clip.enabled = True
-            v.redraw_needed = True
+    def clip_move(self, delta_xy, front_shift, back_shift, delta = None):
+        pf, pb = self._planes(front_shift, back_shift)
+        if pf is None and pb is None:
             return
+
+        p = pf or pb
+        if delta is not None:
+            d = delta
+        elif p and p.camera_normal is None:
+            # Move scene clip plane
+            d = self._tilt_shift(delta_xy, self.view.camera, p.normal)
+        else:
+
+            # near/far clip
+            d = delta_xy[1]*self.pixel_size()
+
+        # Check if slab thickness becomes less than zero.
+        dt = -d*(front_shift+back_shift)
+        if pf and pb and dt < 0:
+            from ..geometry import inner_product
+            sep = inner_product(pb.plane_point - pf.plane_point, pf.normal)
+            if sep + dt <= 0:
+                # Would make slab thickness less than zero.
+                return
+
+        if pf:
+            pf.plane_point = pf.plane_point + front_shift*d*pf.normal
+        if pb:
+            pb.plane_point = pb.plane_point + back_shift*d*pb.normal
+
+    def _planes(self, front_shift, back_shift):
+        v = self.view
+        p = v.clip_planes
+        pfname, pbname = (('front','back') if p.find_plane('front') or p.find_plane('back') or not p.planes() 
+                          else ('near','far'))
+        
+        pf, pb = p.find_plane(pfname), p.find_plane(pbname)
+        from ..commands.clip import adjust_plane
+        c = v.camera
+        cfn, cbn = ((0,0,-1), (0,0,1)) if pfname == 'near' else (None, None)
+
+        if front_shift and pf is None:
+            b = v.drawing_bounds()
+            if pb:
+                offset = -1 if b is None else -0.2*b.radius()
+                pf = adjust_plane(pfname, offset, pb.plane_point, -pb.normal, p, v, cfn)
+            elif b:
+                normal = v.camera.view_direction()
+                offset = 0
+                pf = adjust_plane(pfname, offset, b.center(), normal, p, v, cfn)
+
+        if back_shift and pb is None:
+            b = v.drawing_bounds()
+            offset = -1 if b is None else -0.2*b.radius()
+            if pf:
+                pb = adjust_plane(pbname, offset, pf.plane_point, -pf.normal, p, v, cbn)
+            elif b:
+                normal = -v.camera.view_direction()
+                pb = adjust_plane(pbname, offset, b.center(), normal, p, v, cbn)
+
+        return pf, pb
 
     def _tilt_shift(self, delta_xy, camera, normal):
         # Measure drag direction along plane normal direction.
@@ -536,6 +566,63 @@ class ClipMouseMode(MouseMode):
         shift = (dx*nx + dy*ny) * self.pixel_size()
         return shift
 
+class ClipRotateMouseMode(MouseMode):
+    '''
+    Rotate clip planes.
+    '''
+    name = 'clip rotate'
+    icon_file = 'cliprot.png'
+
+    def mouse_drag(self, event):
+
+        dx, dy = self.mouse_motion(event)
+        axis, angle = self._drag_axis_angle(dx, dy)
+        self.clip_rotate(axis, angle)
+
+    def _drag_axis_angle(self, dx, dy):
+        '''Axis in camera coords, angle in degrees.'''
+        from math import sqrt
+        d = sqrt(dx*dx + dy*dy)
+        axis = (dy/d, dx/d, 0) if d > 0 else (0,1,0)
+        angle = d
+        return axis, angle
+
+    def wheel(self, event):
+        d = event.wheel_value()
+        self.clip_rotate(axis = (0,1,0), angle = 10*d)
+
+    def clip_rotate(self, axis, angle):
+        v = self.view
+        scene_axis = v.camera.position.apply_without_translation(axis)
+        from ..geometry import rotation
+        r = rotation(scene_axis, angle, v.center_of_rotation)
+        for p in self._planes():
+            p.normal = r.apply_without_translation(p.normal)
+            p.plane_point = r * p.plane_point
+
+    def _planes(self):
+        v = self.view
+        cp = v.clip_planes
+        rplanes = [p for p in cp.planes() if p.camera_normal is None]
+        if len(rplanes) == 0:
+            from ..commands.clip import adjust_plane
+            pn, pf = cp.find_plane('near'), cp.find_plane('far')
+            if pn is None and pf is None:
+                # Create clip plane since none are enabled.
+                b = v.drawing_bounds()
+                p = adjust_plane('front', 0, b.center(), v.camera.view_direction(), cp)
+                rplanes = [p]
+            else:
+                # Convert near/far clip planes to scene planes.
+                if pn:
+                    rplanes.append(adjust_plane('front', 0, pn.plane_point, pn.normal, cp))
+                    cp.remove_plane('near')
+                if pf:
+                    rplanes.append(adjust_plane('back', 0, pf.plane_point, pf.normal, cp))
+                    cp.remove_plane('far')
+        return rplanes
+
+
 class MouseEvent:
     def __init__(self, event):
         self.event = event
@@ -551,3 +638,27 @@ class MouseEvent:
 
     def wheel_value(self):
         return self.event.GetWheelRotation()/120.0   # Usually one wheel click is delta of 120
+
+def standard_mouse_mode_classes():
+    from .. import map, markers
+    from ..map import series
+    mode_classes = [
+        SelectMouseMode,
+        RotateMouseMode,
+        TranslateMouseMode,
+        ZoomMouseMode,
+        RotateAndSelectMouseMode,
+        TranslateSelectedMouseMode,
+        RotateSelectedMouseMode,
+        ClipMouseMode,
+        ClipRotateMouseMode,
+        ObjectIdMouseMode,
+        map.ContourLevelMouseMode,
+        map.PlanesMouseMode,
+        markers.MarkerMouseMode,
+        markers.MarkCenterMouseMode,
+        markers.ConnectMouseMode,
+        series.PlaySeriesMouseMode,
+        NullMouseMode,
+    ]
+    return mode_classes

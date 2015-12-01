@@ -5,72 +5,195 @@
 #include "pythonarray.h"		// use python_float_array
 #include "rcarray.h"			// use FArray, IArray
 
+typedef std::vector<float> Vertices;
+typedef std::vector<float> Normals;
+typedef std::vector<int> Triangles;
+typedef std::vector<int> Atoms;
 typedef std::pair<int,int> Edge;
 typedef std::map<Edge,int> Edge_Map;
 
 #define min(a,b) (a<b ? a : b)
 #define max(a,b) (a>b ? a : b)
 
-static void count_edge_splits(const IArray &t, const IArray &v2a,
-			      Edge_Map &edge_splits, int *ts2, int *ts3)
+inline void add_vertex(Vertices &v, float x, float y, float z)
 {
-  int nt = t.size(0);
-  int *ta = t.values(), *v2aa = v2a.values();
-  long ts0 = t.stride(0), ts1 = t.stride(1), v2as0 = v2a.stride(0);
-  int vc = v2a.size(0);
-  int t2 = 0, t3 = 0;
+  v.push_back(x);
+  v.push_back(y);
+  v.push_back(z);
+}
+
+inline void add_normal(Normals &n, float nx, float ny, float nz)
+{
+  n.push_back(nx);
+  n.push_back(ny);
+  n.push_back(nz);
+}
+
+inline void add_triangle(Triangles &t, int v0, int v1, int v2)
+{
+  if (v0 == v1 || v1 == v2 || v2 == v0)
+    {
+    std::cerr << "degenerate triangle " << t.size()/3 << " " << v0 << " " << v1 << " " << v2 << std::endl;
+    abort();
+    }
+  t.push_back(v0);
+  t.push_back(v1);
+  t.push_back(v2);
+}
+
+inline int edge_vertex(const Edge_Map &edge_splits, int v1, int v2)
+{
+  Edge e(v1,v2);
+  Edge_Map::const_iterator ei = edge_splits.find(e);
+  if (ei == edge_splits.end())
+    {
+      std::cerr << "attempted to find edge split vertex when non computed " << v1 << " " << v2 << std::endl;
+      abort();
+    }
+  return ei->second;
+}
+
+// Find the point on segment p0,p1 equidistant to a0 and a1.
+// Returns fraction from p0 to p1.
+inline double split_fraction(double x0, double y0, double z0, double x1, double y1, double z1,
+			     double ax0, double ay0, double az0, double ax1, double ay1, double az1)
+{
+  double dx = x1-x0, dy = y1-y0, dz = z1-z0;
+  double dax = ax1-ax0, day = ay1-ay0, daz = az1-az0;
+  double cx = 0.5*(ax0+ax1)-x0, cy = 0.5*(ay0+ay1)-y0, cz = 0.5*(az0+az1)-z0;
+  double dvda = dx*dax + dy*day + dz*daz;
+  double dcda = cx*dax + cy*day + cz*daz;
+  double f1 = (dvda != 0 ? dcda / dvda : 0.5);
+  return f1;
+}
+
+// Find the point on segment p0,p1 where the distance to a0 divided by r0 equals
+// the distance to a1 divided by r1.  Returns fraction from p0 to p1.
+// Requires solving quadratic equation.
+inline double scaled_split_fraction(double x0, double y0, double z0, double x1, double y1, double z1,
+				    double ax0, double ay0, double az0, double ax1, double ay1, double az1,
+				    double r0, double r1)
+{
+  double dx = x1-x0, dy = y1-y0, dz = z1-z0;
+  double d2 = dx*dx + dy*dy + dz*dz;
+  double r12 = r1*r1, r02 = r0*r0;
+  double a = d2*(r12-r02);
+  if (a == 0)
+    return split_fraction(x0, y0, z0, x1, y1, z1, ax0, ay0, az0, ax1, ay1, az1);
+  double e0x = x0-ax0, e0y = y0-ay0, e0z = z0-az0;
+  double e02 = e0x*e0x + e0y*e0y + e0z*e0z;
+  double de0 = dx*e0x + dy*e0y + dz*e0z;
+  double e1x = x0-ax1, e1y = y0-ay1, e1z = z0-az1;
+  double e12 = e1x*e1x + e1y*e1y + e1z*e1z;
+  double de1 = dx*e1x + dy*e1y + dz*e1z;
+
+  double b = r12*de0 - r02*de1;
+  double c = r12*e02-r02*e12;
+  double b2ac = b*b-a*c;
+  if (b2ac < 0)
+    {
+      //      std::cerr << "scaled_split_fraction(): negative discriminant.\n";
+      return 0.5;
+    }
+  double f1 = (-b + sqrt(b2ac))/a;
+  return f1;
+}
+
+inline void split_point(int v0, int v1, int a0, int a1,
+			float *aa, int as0, int as1, float *ra, int rs0, const Vertices &v,
+			bool clamp, float *x, float *y, float *z, float *f1)
+{
+  // Find position to split along edge.
+  if (v0 > v1)
+    {
+      split_point(v1, v0, a1, a0, aa, as0, as1, ra, rs0, v, clamp, x, y, z, f1);
+      *f1 = 1 - *f1;
+      return;
+    }
+  // Equidistant from atoms: f = (0.5*(a1xyz+a2xyz)-v0xyz, a1xyz-a0xyz) / (v1xyz-v0xyz, a1xyz-a0xyz)
+  float x0 = v[3*v0], y0 = v[3*v0+1], z0 = v[3*v0+2];
+  float x1 = v[3*v1], y1 = v[3*v1+1], z1 = v[3*v1+2];
+  float ax0 = aa[as0*a0], ay0 = aa[as0*a0+as1], az0 = aa[as0*a0+2*as1];
+  float ax1 = aa[as0*a1], ay1 = aa[as0*a1+as1], az1 = aa[as0*a1+2*as1];
+  double f = (ra == NULL ?
+	     split_fraction(x0,y0,z0, x1,y1,z1, ax0,ay0,az0, ax1,ay1,az1) :
+	     scaled_split_fraction(x0,y0,z0, x1,y1,z1, ax0,ay0,az0, ax1,ay1,az1, ra[rs0*a0], ra[rs0*a1]));
+
+  /*
+  if (f <= 0 || f >= 1)
+    std::cerr << "split_edge(): out of 0-1 range " << f << " edge " << v0 << " " << v1 << " atoms " << a0 << " " << a1 << std::endl;
+  */
+  if (clamp)
+    { if (f < 0) f = 0; else if (f > 1) f = 1; }	// Clamp to 0-1 range.
+  double f0 = 1-f;
+  *x = f0*x0 + f*x1;
+  *y = f0*y0 + f*y1;
+  *z = f0*z0 + f*z1;
+  *f1 = f;
+}
+
+inline int split_edge(int v0, int v1, int a0, int a1,
+		      float *aa, int as0, int as1, float *ra, int rs0,
+		      Vertices &v, Normals &n, Atoms &va)
+{
+  float x, y, z, f1;
+  split_point(v0, v1, a0, a1, aa, as0, as1, ra, rs0, v, true, &x, &y, &z, &f1);
+
+  // Make vertex at split position
+  add_vertex(v, x, y, z);
+
+  // Make normal at split position
+  float f0 = 1-f1;
+  float nx = f0*n[3*v0] + f1*n[3*v1];
+  float ny = f0*n[3*v0+1] + f1*n[3*v1+1];
+  float nz = f0*n[3*v0+2] + f1*n[3*v1+2];
+  float n2 = sqrt(nx*nx + ny*ny + nz*nz);
+  if (n2 > 0)
+	{ nx /= n2; ny /= n2 ; nz /= n2; }
+  add_normal(n, nx, ny, nz);
+
+  // Assign atom index for new vertex.
+  va.push_back(a0);
+
+  return va.size() - 1;
+}
+
+inline void add_split_point(int v0, int v1, int a0, int a1,
+			    float *aa, int as0, int as1, float *ra, int rs0,
+			    Vertices &v, Normals &n, Atoms &va, Edge_Map &edge_splits)
+{
+  int vmin = min(v0,v1), vmax = max(v0,v1);
+  int amin = (v0 < v1 ? a0 : a1), amax = (v0 < v1 ? a1 : a0);
+  Edge e(vmin,vmax);
+  if (edge_splits.find(e) == edge_splits.end())
+    edge_splits[e] = split_edge(vmin, vmax, amin, amax, aa, as0, as1, ra, rs0, v, n, va);
+}
+
+static void compute_edge_split_points(Vertices &v, Normals &n, Atoms &va, const Triangles &t,
+				      const FArray &a, const FArray &r, Edge_Map &edge_splits)
+{
+  int nt = t.size()/3;
+  // Get pointers and strides for geometry
+  float *aa = a.values();
+  long as0 = a.stride(0), as1 = a.stride(1);
+  float *ra = (r.dimension() == 1 ? r.values() : NULL);
+  long rs0 = (r.dimension() == 1 ? r.stride(0) : 0);
   for (int ti = 0 ; ti < nt ; ++ti)
     {
-      int v0 = ta[ts0*ti], v1 = ta[ts0*ti+ts1], v2 = ta[ts0*ti+2*ts1];
-      int a0 = v2aa[v2as0*v0], a1 = v2aa[v2as0*v1], a2 = v2aa[v2as0*v2];
-      int s = 0;
+      int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
+      int a0 = va[v0], a1 = va[v1], a2 = va[v2];
       if (a0 != a1)
-	{
-	  Edge e(min(v0,v1),max(v0,v1));
-	  if (edge_splits.find(e) == edge_splits.end())
-	    { edge_splits[e] = vc; vc += 2; }
-	  s += 1;
-	}
+	add_split_point(v0, v1, a0, a1, aa, as0, as1, ra, rs0, v, n, va, edge_splits);
       if (a1 != a2)
-	{
-	  Edge e(min(v1,v2),max(v1,v2));
-	  if (edge_splits.find(e) == edge_splits.end())
-	    { edge_splits[e] = vc; vc += 2; }
-	  s += 1;
-	}
+	add_split_point(v1, v2, a1, a2, aa, as0, as1, ra, rs0, v, n, va, edge_splits);
       if (a2 != a0)
-	{
-	  Edge e(min(v2,v0),max(v2,v0));
-	  if (edge_splits.find(e) == edge_splits.end())
-	    { edge_splits[e] = vc; vc += 2; }
-	  s += 1;
-	}
-      if (s == 2)
-	t2 += 1;
-      else if (s == 3)
-	t3 += 1;
+	add_split_point(v2, v0, a2, a0, aa, as0, as1, ra, rs0, v, n, va, edge_splits);
     }
-  *ts2 = t2;
-  *ts3 = t3;
-}
-
-inline void add_vertex(std::vector<float> *v, float x, float y, float z)
-{
-  v->push_back(x);
-  v->push_back(y);
-  v->push_back(z);
-}
-
-inline void add_triangle(std::vector<int> *t, int v0, int v1, int v2)
-{
-  t->push_back(v0);
-  t->push_back(v1);
-  t->push_back(v2);
 }
 
 // Split a triangle along a single cut line, dividing it into 3 new triangles.
 inline void cut_triangle_1_line(int v0, int v1, int v2, int a0, int a1, int a2,
-				std::vector<int> *ts, Edge_Map &edge_splits)
+				Triangles &t, const Edge_Map &edge_splits)
 {
   // Cut line crosses 2 edges.
   // First put in standard orientation with edges 02 and 12 cut.
@@ -81,208 +204,24 @@ inline void cut_triangle_1_line(int v0, int v1, int v2, int a0, int a1, int a2,
 
   // Add 3 triangles to subdivide this one
   int v12, v21, v20, v02;
-  if (v1 < v2) { v12 = edge_splits[Edge(v1,v2)]; v21 = v12+1; }
-  else { v21 = edge_splits[Edge(v2,v1)]; v12 = v21+1; }
-  if (v2 < v0) { v20 = edge_splits[Edge(v2,v0)]; v02 = v20+1; }
-  else { v02 = edge_splits[Edge(v0,v2)]; v20 = v02+1; }
+  v12 = edge_vertex(edge_splits,v1,v2);
+  v21 = edge_vertex(edge_splits,v2,v1);
+  v20 = edge_vertex(edge_splits,v2,v0);
+  v02 = edge_vertex(edge_splits,v0,v2);
 
-  add_triangle(ts, v0,v1,v12);
-  add_triangle(ts, v0,v12,v02);
-  add_triangle(ts, v2,v20,v21);
+  add_triangle(t, v0,v1,v12);
+  add_triangle(t, v0,v12,v02);
+  add_triangle(t, v2,v20,v21);
 }
 
-// Find the point on segment p0,p1 equidistant to a0 and a1.
-// Returns fraction 0-1 from p0 to p1.
-inline float split_fraction(float x0, float y0, float z0, float x1, float y1, float z1,
-			    float ax0, float ay0, float az0, float ax1, float ay1, float az1)
+inline void compute_triple_point(int v0, int v1, int v2, int a0, int a1, int a2, int v01, int v02,
+				 Vertices &v, Normals &n, float *aa, long as0, long as1,
+				 float *f1, float *f2, float *x, float *y, float *z,
+				 float *nx, float *ny, float *nz)
 {
-  float dx = x1-x0, dy = y1-y0, dz = z1-z0;
-  float dax = ax1-ax0, day = ay1-ay0, daz = az1-az0;
-  float cx = 0.5*(ax0+ax1)-x0, cy = 0.5*(ay0+ay1)-y0, cz = 0.5*(az0+az1)-z0;
-  float dvda = dx*dax + dy*day + dz*daz;
-  float dcda = cx*dax + cy*day + cz*daz;
-  float f1 = (dvda != 0 ? dcda / dvda : 0.5);
-  //  if (f1 < 0 || f1 > 1)
-  //    std::cerr << "split_fraction(): out of 0-1 range " << f1 << std::endl;
-  if (f1 < 0) f1 = 0; else if (f1 > 1) f1 = 1;	// Clamp to 0-1 range.
-  return f1;
-}
-
-// Find the point on segment p0,p1 where the distance to a0 divided by r0 equals
-// the distance to a1 divided by r1.  Returns fraction 0-1 from p0 to p1.
-// Requires solving quadratic equation.
-inline float scaled_split_fraction(float x0, float y0, float z0, float x1, float y1, float z1,
-				   float ax0, float ay0, float az0, float ax1, float ay1, float az1,
-				   float r0, float r1)
-{
-  float dx = x1-x0, dy = y1-y0, dz = z1-z0;
-  float d2 = dx*dx + dy*dy + dz*dz;
-  float r12 = r1*r1, r02 = r0*r0;
-  float a = d2*(r12-r02);
-  if (a == 0)
-    return split_fraction(x0, y0, z0, x1, y1, z1, ax0, ay0, az0, ax1, ay1, az1);
-  float e0x = x0-ax0, e0y = y0-ay0, e0z = z0-az0;
-  float e02 = e0x*e0x + e0y*e0y + e0z*e0z;
-  float de0 = dx*e0x + dy*e0y + dz*e0z;
-  float e1x = x0-ax1, e1y = y0-ay1, e1z = z0-az1;
-  float e12 = e1x*e1x + e1y*e1y + e1z*e1z;
-  float de1 = dx*e1x + dy*e1y + dz*e1z;
-
-  float b = r12*de0 - r02*de1;
-  float c = r12*e02-r02*e12;
-  float b2ac = b*b-a*c;
-  if (b2ac < 0)
-    {
-      //      std::cerr << "scaled_split_fraction(): negative discriminant.\n";
-      return 0.5;
-    }
-  float f1 = (-b + sqrtf(b2ac))/a;
-  //  if (f1 < 0 || f1 > 1)
-  //    std::cerr << "scaled_split_fraction(): out of 0-1 range " << f1 << " " << r0 << " " << r1 << " " << std::endl;
-  if (f1 < 0) f1 = 0; else if (f1 > 1) f1 = 1;	// Clamp to 0-1 range.
-  return f1;
-}
-
-inline int split_edge(int v0, int v1, int a0, int a1, float *va, int vs0, int vs1,
-		      float *na, int ns0, int ns1, float *aa, int as0, int as1, float *ra, int rs0,
-		      std::vector<float> *vs, std::vector<float> *ns, std::vector<int> *v2as)
-{
-  // Find position to split along edge.
-  // Equidistant from atoms: f = (0.5*(a1xyz+a2xyz)-v0xyz, a1xyz-a0xyz) / (v1xyz-v0xyz, a1xyz-a0xyz)
-  float x0 = va[vs0*v0], y0 = va[vs0*v0+vs1], z0 = va[vs0*v0+2*vs1];
-  float x1 = va[vs0*v1], y1 = va[vs0*v1+vs1], z1 = va[vs0*v1+2*vs1];
-  float ax0 = aa[as0*a0], ay0 = aa[as0*a0+as1], az0 = aa[as0*a0+2*as1];
-  float ax1 = aa[as0*a1], ay1 = aa[as0*a1+as1], az1 = aa[as0*a1+2*as1];
-  float f1 = (ra == NULL ?
-	      split_fraction(x0,y0,z0, x1,y1,z1, ax0,ay0,az0, ax1,ay1,az1) :
-	      scaled_split_fraction(x0,y0,z0, x1,y1,z1, ax0,ay0,az0, ax1,ay1,az1, ra[rs0*a0], ra[rs0*a1]));
-  float f0 = 1-f1;
-
-  // Make 2 copies of vertex at split position
-  float x = f0*x0 + f1*x1, y = f0*y0 + f1*y1, z = f0*z0 + f1*z1;
-  add_vertex(vs, x, y, z);
-  add_vertex(vs, x, y, z);
-
-  // Make 2 copies of normal at split position
-  float nx = f0*na[ns0*v0] + f1*na[ns0*v1];
-  float ny = f0*na[ns0*v0+ns1] + f1*na[ns0*v1+ns1];
-  float nz = f0*na[ns0*v0+2*ns1] + f1*na[ns0*v1+2*ns1];
-  float n2 = sqrt(nx*nx + ny*ny + nz*nz);
-  if (n2 > 0)
-	{ nx /= n2; ny /= n2 ; nz /= n2; }
-  add_vertex(ns, nx, ny, nz);
-  add_vertex(ns, nx, ny, nz);
-
-  // Assign atom index for two new vertices.
-  v2as->push_back(a0);
-  v2as->push_back(a1);
-
-  return v2as->size() - 2;
-}
-
-inline void split_edges(std::vector<float> *vs, std::vector<float> *ns, std::vector<int> *v2as,
-			float *va, int vs0, int vs1, float *na, int ns0, int ns1,
-			int *v2aa, int v2as0, float *aa, int as0, int as1, float *ra, int rs0,
-			Edge_Map &edge_splits)
-{
-  for (Edge_Map::iterator ei = edge_splits.begin() ; ei != edge_splits.end() ; ++ei)
-    {
-      const Edge &e = ei->first;
-      int v0 = e.first, v1 = e.second;
-      int a0 = v2aa[v2as0*v0], a1 = v2aa[v2as0*v1];
-      ei->second = split_edge(v0, v1, a0, a1, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, v2as);
-    }
-}
-
-
-// Each triangle vertex is closest to a different atom.  Normally this would partition
-// the triangle into 3 regions using 3 lines that intersect at a point inside the triangle.
-// But if the intersection point lies outside the triangle then it is only cut by 2 lines.
-// To test for this case see if the cut point along edge 12 is closer to the atom of vertex 0
-// than the atoms of vertex 1 and 2.
-//
-// Returns true if triangle is double cut, otherwise false.
-//
-inline bool cut_triangle_2_lines(int v0, int v1, int v2, int a0, int a1, int a2,
-				 int v01, int v10, int v12, int v21, int v20, int v02,
-				 float *va, int vs0, int vs1, float *na, int ns0, int ns1, 
-				 float *aa, int as0, int as1, float *ra, int rs0,
-				 std::vector<float> *vs, std::vector<float> *ns,
-				 std::vector<int> *ts, std::vector<int> *v2as)
-{
-  float ex0 = (*vs)[vs0*v12], ey0 = (*vs)[vs0*v12+vs1], ez0 = (*vs)[vs0*v12+2*vs1];
-
-  float ax0 = aa[as0*a0], ay0 = aa[as0*a0+as1], az0 = aa[as0*a0+2*as1];
-  float ax1 = aa[as0*a1], ay1 = aa[as0*a1+as1], az1 = aa[as0*a1+2*as1];
-  //  float ax2 = aa[as0*a2], ay2 = aa[as0*a2+as1], az2 = aa[as0*a2+2*as1];
-
-  float dx0 = ex0-ax0, dy0 = ey0-ay0, dz0 = ez0-az0;
-  float dx1 = ex0-ax1, dy1 = ey0-ay1, dz1 = ez0-az1;
-  float d0 = dx0*dx0 + dy0*dy0 + dz0*dz0;
-  float d1 = dx1*dx1 + dy1*dy1 + dz1*dz1;
-  if (ra)
-    {
-      float r0 = ra[a0*rs0], r1 = ra[a1*rs0];
-      if (d0*r1*r1 >= d1*r0*r0)
-	return false;
-    }
-  else if (d0 >= d1)
-    return false;
-
-  // Double cut edge 12.
-  int v12a = split_edge(v1, v2, a1, a0, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, v2as);
-  int v21a = v12a + 1;
-  int v12b = split_edge(v1, v2, a0, a2, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, v2as);
-  int v21b = v12b + 1;
-  add_triangle(ts, v1, v12a, v10);
-  add_triangle(ts, v2, v20, v21b);
-  add_triangle(ts, v0, v01, v21a);
-  add_triangle(ts, v0, v21a, v12b);
-  add_triangle(ts, v0, v12b, v02);
-
-  /*
-    For iterative subdivision.  This requires used of fix_closest_atoms().
-  (*v2as)[v21] = a0;
-  (*v2as)[v12] = a0;
-  */
-
-  //  std::cerr << "double cut " << v1 << " " << v2 << " " << a1 << " " << a2 << " " << a0 << std::endl;
-
-  return true;
-}
-
-// Each triangle vertex is closest to a different atom, so the triangle is to be cut into
-// 3 regions using 3 cut lines.  It can happen that the intersection of the 3 lines lies
-// outside the triangle in which case the triangle is only cut by two lines, a case handled
-// by double_cut_triangle().
-inline void cut_triangle_3_lines(int v0, int v1, int v2, int a0, int a1, int a2,
-				 float *va, int vs0, int vs1, float *na, int ns0, int ns1, 
-				 float *aa, int as0, int as1, float *ra, int rs0,
-				 std::vector<float> *vs, std::vector<float> *ns,
-				 std::vector<int> *ts, std::vector<int> *v2as,
-				 Edge_Map &edge_splits)
-{
-  // All 3 edges split
-  int v01, v10, v12, v21, v20, v02;
-  if (v0 < v1) { v01 = edge_splits[Edge(v0,v1)]; v10 = v01+1; }
-  else { v10 = edge_splits[Edge(v1,v0)]; v01 = v10+1; }
-  if (v1 < v2) { v12 = edge_splits[Edge(v1,v2)]; v21 = v12+1; }
-  else { v21 = edge_splits[Edge(v2,v1)]; v12 = v21+1; }
-  if (v2 < v0) { v20 = edge_splits[Edge(v2,v0)]; v02 = v20+1; }
-  else { v02 = edge_splits[Edge(v0,v2)]; v20 = v02+1; }
-
-  if (cut_triangle_2_lines(v0, v1, v2, a0, a1, a2, v01, v10, v12, v21, v20, v02,
-			   va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, ts, v2as) ||
-      cut_triangle_2_lines(v1, v2, v0, a1, a2, a0, v12, v21, v20, v02, v01, v10,
-			   va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, ts, v2as) ||
-      cut_triangle_2_lines(v2, v0, v1, a2, a0, a1, v20, v02, v01, v10, v12, v21,
-			   va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0, vs, ns, ts, v2as))
-    return;
-
-  // Add mid-triangle vertex (3 copies).
-  float x0 = va[vs0*v0], y0 = va[vs0*v0+vs1], z0 = va[vs0*v0+2*vs1];
-  float x1 = va[vs0*v1], y1 = va[vs0*v1+vs1], z1 = va[vs0*v1+2*vs1];
-  float x2 = va[vs0*v2], y2 = va[vs0*v2+vs1], z2 = va[vs0*v2+2*vs1];
+  float x0 = v[3*v0], y0 = v[3*v0+1], z0 = v[3*v0+2];
+  float x1 = v[3*v1], y1 = v[3*v1+1], z1 = v[3*v1+2];
+  float x2 = v[3*v2], y2 = v[3*v2+1], z2 = v[3*v2+2];
   float x01 = x1-x0, y01 = y1-y0, z01 = z1-z0;
   float x02 = x2-x0, y02 = y2-y0, z02 = z2-z0;
 
@@ -292,14 +231,10 @@ inline void cut_triangle_3_lines(int v0, int v1, int v2, int a0, int a1, int a2,
   float cx01 = ax1-ax0, cy01 = ay1-ay0, cz01 = az1-az0;
   float cx02 = ax2-ax0, cy02 = ay2-ay0, cz02 = az2-az0;
 
-  //	  float cx12 = ax2-ax1, cy12 = ay2-ay1, cz12 = az2-az1;
-  float sx01 = (*vs)[v01*vs0], sy01 = (*vs)[v01*vs0+vs1], sz01 = (*vs)[v01*vs0+2*vs1];
+  float sx01 = v[3*v01], sy01 = v[3*v01+1], sz01 = v[3*v01+2];
   float mx01 = sx01-x0, my01 = sy01-y0, mz01 = sz01-z0;
-  //  float mx01 = 0.5*(ax0+ax1)-x0, my01 = 0.5*(ay0+ay1)-y0, mz01 = 0.5*(az0+az1)-z0;
-  float sx02 = (*vs)[v02*vs0], sy02 = (*vs)[v02*vs0+vs1], sz02 = (*vs)[v02*vs0+2*vs1];
+  float sx02 = v[3*v02], sy02 = v[3*v02+1], sz02 = v[3*v02+2];
   float mx02 = sx02-x0, my02 = sy02-y0, mz02 = sz02-z0;
-  //  float mx02 = 0.5*(ax0+ax2)-x0, my02 = 0.5*(ay0+ay2)-y0, mz02 = 0.5*(az0+az2)-z0;
-  //	  float mx12 = 0.5*(ax1+ax2)-x0, my12 = 0.5*(ay1+ay2)-y0, mz12 = 0.5*(az1+az2)-z0;
 
   float v01c01 = x01*cx01 + y01*cy01 + z01*cz01;
   float v01c02 = x01*cx02 + y01*cy02 + z01*cz02;
@@ -309,154 +244,458 @@ inline void cut_triangle_3_lines(int v0, int v1, int v2, int a0, int a1, int a2,
   float m02c02 = mx02*cx02 + my02*cy02 + mz02*cz02;
 
   float d = v01c01*v02c02 - v02c01*v01c02;
-  float f1 = (d != 0 ? (v02c02*m01c01 - v02c01*m02c02) / d : 0);
-  float f2 = (d != 0 ? (v01c01*m02c02 - v01c02*m01c01) / d : 0);
-  //  if (f1 < 0 || f1 > 1 || f2 < 0 || f2 > 1) tpo += 1; else tpi += 1;
-  if (f1 < 0) f1 = 0; else if (f1 > 1) f1 = 1;
-  if (f2 < 0) f2 = 0; else if (f2 > 1) f2 = 1;
-  float f12 = f1 + f2;
-  if (f12 > 1) { f1 /= f12; f2 /= f12; }
-  //	  std::cerr << "tri center " << f1 << " " << f2 << std::endl;
-  float x = x0 + f1*x01 + f2*x02, y = y0 + f1*y01 + f2*y02, z = z0 + f1*z01 + f2*z02;
-
-  /*
-  std::cerr << "plane1 " << (x-(mx01+x0))*cx01 + (y-(my01+y0))*cy01 + (z-(mz01+z0))*cz01 << std::endl;
-  std::cerr << "plane2 " << (x-(mx02+x0))*cx02 + (y-(my02+y0))*cy02 + (z-(mz02+z0))*cz02 << std::endl;
-  std::cerr << "plane3 " << (x-(mx12+x0))*cx12 + (y-(my12+y0))*cy12 + (z-(mz12+z0))*cz12 << std::endl;
-  */
-
-  //	  float x = (x0+x1+x2)/3, y = (y0+y1+y2)/3, z = (z0+z1+z2)/3;
-  //	  std::cerr << "tri center " << ti << " " << x << " " << y << " " << z << std::endl;
-
-  // Add mid-triangle normal (3 copies).
-  float nx0 = na[ns0*v0], ny0 = na[ns0*v0+ns1], nz0 = na[ns0*v0+2*ns1];
-  float nx1 = na[ns0*v1], ny1 = na[ns0*v1+ns1], nz1 = na[ns0*v1+2*ns1];
-  float nx2 = na[ns0*v2], ny2 = na[ns0*v2+ns1], nz2 = na[ns0*v2+2*ns1];
+  float g1 = (d != 0 ? (v02c02*m01c01 - v02c01*m02c02) / d : 0);
+  float g2 = (d != 0 ? (v01c01*m02c02 - v01c02*m01c01) / d : 0);
+  float nx0 = n[3*v0], ny0 = n[3*v0+1], nz0 = n[3*v0+2];
+  float nx1 = n[3*v1], ny1 = n[3*v1+1], nz1 = n[3*v1+2];
+  float nx2 = n[3*v2], ny2 = n[3*v2+1], nz2 = n[3*v2+2];
   float nx01 = nx1-nx0, ny01 = ny1-ny0, nz01 = nz1-nz0;
   float nx02 = nx2-nx0, ny02 = ny2-ny0, nz02 = nz2-nz0;
-  float nx = nx0 + f1*nx01 + f2*nx02, ny = ny0 + f1*ny01 + f2*ny02, nz = nz0 + f1*nz01 + f2*nz02;
-  //	  float nx = (nx0+nx1+nx2)/3, ny = (ny0+ny1+ny2)/3, nz = (nz0+nz1+nz2)/3;
-  float n2 = sqrt(nx*nx + ny*ny + nz*nz);
+  float nxc = nx0 + g1*nx01 + g2*nx02, nyc = ny0 + g1*ny01 + g2*ny02, nzc = nz0 + g1*nz01 + g2*nz02;
+  float n2 = sqrt(nxc*nxc + nyc*nyc + nzc*nzc);
   if (n2 > 0)
-    { nx /= n2; ny /= n2 ; nz /= n2; }
+    { nxc /= n2; nyc /= n2 ; nzc /= n2; }
 
-  int vn = vs->size()/3;
+  *f1 = g1;
+  *f2 = g2;
+  *x = x0 + g1*x01 + g2*x02;
+  *y = y0 + g1*y01 + g2*y02;
+  *z = z0 + g1*z01 + g2*z02;
+  *nx = nxc;
+  *ny = nyc;
+  *nz = nzc;
+}
+
+inline void cut_to_vertex(int v0, int v1, int v2, int a1, int a2,
+			  int v10, int v12, int v21, int v20,
+			  Vertices &v, Normals &n, Atoms &va, Triangles &t)
+{
+  // Copy edge point.
+  int v012 = v.size()/3, v021 = v012 + 1;
+  float x0 = v[3*v0], y0 = v[3*v0+1], z0 = v[3*v0+2];
+  add_vertex(v, x0, y0, z0);
+  add_vertex(v, x0, y0, z0);
+  float nx0 = n[3*v0], ny0 = n[3*v0+1], nz0 = n[3*v0+2];
+  add_normal(n, nx0, ny0, nz0);
+  add_normal(n, nx0, ny0, nz0);
+  va.push_back(a1);
+  va.push_back(a2);
+
+  add_triangle(t, v012, v10, v12);
+  add_triangle(t, v10, v1, v12);
+  add_triangle(t, v021, v21, v20);
+  add_triangle(t, v2, v20, v21);
+}
+
+inline void cut_to_edge(int v0, int v1, int v2, int a2,
+			int v01, int v10, int v12, int v21, int v20, int v02,
+			Vertices &v, Normals &n, Atoms &va, Triangles &t)
+{
+  // Copy edge point.
+  int v012 = v.size()/3;
+  add_vertex(v, v[3*v01], v[3*v01+1], v[3*v01+2]);
+  add_normal(n, n[3*v01],  n[3*v01+1], n[3*v01+2]);
+  va.push_back(a2);
+
+  add_triangle(t, v0, v01, v02);
+  add_triangle(t, v1, v12, v10);
+  add_triangle(t, v2, v20, v012);
+  add_triangle(t, v2, v012, v21);
+}
+
+inline void cut_to_middle(float x, float y, float z, float nx, float ny, float nz,
+			  int v0, int v1, int v2, int a0, int a1, int a2,
+			  int v01, int v10, int v12, int v21, int v20, int v02,
+			  Vertices &v, Normals &n, Atoms &va, Triangles &t)
+{
+  // Add 3 copies of point and normal to middle of triangle.
+  int vn = v.size()/3;
   int vc0 = vn, vc1 = vn+1, vc2 = vn+2;
-  v2as->push_back(a0);
-  v2as->push_back(a1);
-  v2as->push_back(a2);
   for (int c = 0 ; c < 3 ; ++c, ++vn)
     {
-      add_vertex(vs, x, y, z);
-      add_vertex(ns, nx, ny, nz);
+      add_vertex(v, x, y, z);
+      add_normal(n, nx, ny, nz);
     }
+  va.push_back(a0);
+  va.push_back(a1);
+  va.push_back(a2);
 
   // Add 6 triangles to subdivide this one.
-  add_triangle(ts, v0,v01,vc0);
-  add_triangle(ts, v0,vc0,v02);
-  add_triangle(ts, v1,vc1,v10);
-  add_triangle(ts, v1,v12,vc1);
-  add_triangle(ts, v2,vc2,v21);
-  add_triangle(ts, v2,v20,vc2);
+  add_triangle(t, v0,v01,vc0);
+  add_triangle(t, v0,vc0,v02);
+  add_triangle(t, v1,vc1,v10);
+  add_triangle(t, v1,v12,vc1);
+  add_triangle(t, v2,vc2,v21);
+  add_triangle(t, v2,v20,vc2);
 }
 
-inline float vertex_atom_distance(int v, int a, std::vector<float> &vs, float *aa, int as0, int as1)
+// Each triangle vertex is closest to a different atom, so the triangle is to be cut into
+// 3 regions using 3 cut lines.  It can happen that the intersection of the 3 lines lies
+// outside the triangle in which case the triangle is only cut by two lines, a case handled
+// by double_cut_triangle().
+inline void cut_triangle_3_lines(int v0, int v1, int v2, int a0, int a1, int a2,
+				 float *aa, int as0, int as1,
+				 Vertices &v, Normals &n, Atoms &va, Triangles &t,
+				 const Edge_Map &edge_splits)
 {
-  float dx = vs[3*v]-aa[as0*a], dy = vs[3*v+1]-aa[as0*a+as1], dz = vs[3*v+2]-aa[as0*a+2*as1];
-  return dx*dx + dy*dy + dz*dz;
-}
+  // All 3 edges split
+  int v01, v10, v12, v21, v20, v02;
+  v01 = edge_vertex(edge_splits,v0,v1);
+  v10 = edge_vertex(edge_splits,v1,v0);
+  v12 = edge_vertex(edge_splits,v1,v2);
+  v21 = edge_vertex(edge_splits,v2,v1);
+  v20 = edge_vertex(edge_splits,v2,v0);
+  v02 = edge_vertex(edge_splits,v0,v2);
 
-/*
- * This is only used for iterative subdivision.
+  float f1, f2, x, y, z, nx, ny, nz;
+  compute_triple_point(v0, v1, v2, a0, a1, a2, v01, v02, v, n, aa, as0, as1,
+		       &f1, &f2, &x, &y, &z, &nx, &ny, &nz);
 
-static void fix_closest_atoms(std::vector<float> &vs, std::vector<int> &ts, 
-			      std::vector<int> &v2as, float *aa, int as0, int as1)
-{
-  int c = 0;
-  int nt = ts.size()/3;
-  while (true)
+  // Check if triple point is inside triangle.
+  float f12 = f1+f2;
+  if (f1 > 0 && f2 > 0 && f12 < 1)
     {
-      for (int t = 0 ; t < nt ; ++t)
+      // Point inside triangle.  Divide into 6 new triangles.
+      cut_to_middle(x, y, z, nx, ny, nz, v0, v1, v2, a0, a1, a2,
+		    v01, v10, v12, v21, v20, v02, v, n, va, t);
+    }
+  else
+    {
+      // Triple point lies outside triangle.
+      int nout = (f1 > 0 ? 0 : 1) + (f2 > 0 ? 0 : 1) + (f12 < 1 ? 0 : 1);
+      if (nout == 1)
 	{
-	  int v0 = ts[3*t], v1 = ts[3*t+1], v2 = ts[3*t+2];
-	  int a0 = v2as[v0], a1 = v2as[v1], a2 = v2as[v2];
-	  float d0 = vertex_atom_distance(v0,a0,vs,aa,as0,as1);
-	  if (a1 != a0 && vertex_atom_distance(v0,a1,vs,aa,as0,as1) < d0)
-	    { v2as[v0] = a1; c += 1; }
-	  else if (a2 != a0 && vertex_atom_distance(v0,a2,vs,aa,as0,as1) < d0)
-	    { v2as[v0] = a2; c += 1; }
-	  float d1 = vertex_atom_distance(v1,a1,vs,aa,as0,as1);
-	  if (a0 != a1 && vertex_atom_distance(v1,a0,vs,aa,as0,as1) < d1)
-	    { v2as[v1] = a0; c += 1; }
-	  else if (a2 != a1 && vertex_atom_distance(v1,a2,vs,aa,as0,as1) < d1)
-	    { v2as[v1] = a2; c += 1; }
-	  float d2 = vertex_atom_distance(v2,a2,vs,aa,as0,as1);
-	  if (a0 != a2 && vertex_atom_distance(v2,a0,vs,aa,as0,as1) < d2)
-	    { v2as[v2] = a0; c += 1; }
-	  else if (a1 != a2 && vertex_atom_distance(v2,a1,vs,aa,as0,as1) < d2)
-	    { v2as[v2] = a1; c += 1; }
+	  // Project point to triangle edge.
+	  if (f1 <= 0)
+	    cut_to_edge(v2, v0, v1, a1, v20, v02, v01, v10, v12, v21, v, n, va, t);
+	  else if (f2 <= 0)
+	    cut_to_edge(v0, v1, v2, a2, v01, v10, v12, v21, v20, v02, v, n, va, t);
+	  else
+	    cut_to_edge(v1, v2, v0, a0, v12, v21, v20, v02, v01, v10, v, n, va, t);
 	}
-      if (c == 0)
-	break;
-      std::cerr << "Adjusted " << c << " closest atoms" << std::endl;
-      c = 0;
+      else if (nout == 2)
+	{
+	  // Project point to triangle vertex.
+	  if (f1 > 0)
+	    cut_to_vertex(v1, v2, v0, a2, a0, v21, v20, v02, v01, v, n, va, t);
+	  else if (f2 > 0)
+	    cut_to_vertex(v2, v0, v1, a0, a1, v02, v01, v10, v12, v, n, va, t);
+	  else
+	    cut_to_vertex(v0, v1, v2, a1, a2, v10, v12, v21, v20, v, n, va, t);
+	}
     }
 }
-*/
 
-static void sharp_patches(const FArray &v, const FArray &n, const IArray &t,
-			  const IArray &v2a, const FArray &a, const FArray &r,
-			  std::vector<float> *vs, std::vector<float> *ns,
-			  std::vector<int> *ts, std::vector<int> *v2as)
+inline bool three_patch_edge(const Vertices &v, int v1, int v2, int a1, int a0,
+			     float *aa, long as0, long as1, float *ra, long rs0,
+			     const Edge_Map &edge_splits, Atoms &va, Edge_Map &edge_3p)
 {
-  Edge_Map edge_splits;
-  int t2, t3;
-  count_edge_splits(t, v2a, edge_splits, &t2, &t3);
-  //  std::cerr << "2 edge splits " << t2 << ", 3 edge splits " << t3 << std::endl;
+  float a0x = aa[as0*a0], a0y = aa[as0*a0+as1], a0z = aa[as0*a0+2*as1];
+  float a1x = aa[as0*a1], a1y = aa[as0*a1+as1], a1z = aa[as0*a1+2*as1];
+  Edge e(min(v1,v2),max(v1,v2));
+  int v12 = edge_vertex(edge_splits,e.first,e.second);
+  float v12x = v[3*v12], v12y = v[3*v12+1], v12z = v[3*v12+2];
+  float dx = v12x - a0x, dy = v12y - a0y, dz = v12z - a0z;
+  float d0 = dx*dx + dy*dy + dz*dz;
+  dx = v12x - a1x; dy = v12y - a1y; dz = v12z - a1z;
+  float d1 = dx*dx + dy*dy + dz*dz;
+  bool div = (d0 < d1);
+  if (ra)
+    {
+      float r0 = ra[rs0*a0], r1 = ra[rs0*a1];
+      div = (d0*r1*r1 < d1*r0*r0);
+    }
+  if (div)
+    {
+      edge_3p[e] = v12;
+      va[v12] = a0;
+    }
+  return div;
+}
 
-  // Compute geometry sizes with new vertices and triangles.
-  int nv = v.size(0);
-  int nt = t.size(0);
+inline void split_triangle_1_edge(int v0, int v1, int v2, int v01, Triangles &t)
+{
+  add_triangle(t, v0, v01, v2);
+  add_triangle(t, v1, v2, v01);
+}
 
-  // Get pointers and strides for original geometry
-  float *va = v.values(), *na = n.values(), *aa = a.values();
-  int *ta = t.values(), *v2aa = v2a.values();
-  long vs0 = v.stride(0), vs1 = v.stride(1);
-  long ns0 = n.stride(0), ns1 = n.stride(1);
-  long ts0 = t.stride(0), ts1 = t.stride(1);
-  long v2as0 = v2a.stride(0), as0 = a.stride(0), as1 = a.stride(1);
+inline void split_triangle_2_edges(int v0, int v1, int v2, int v01, int v12, Triangles &t)
+{
+  add_triangle(t, v0, v01, v2);
+  add_triangle(t, v1, v12, v01);
+  add_triangle(t, v2, v01, v12);
+}
+
+inline void split_triangle_3_edges(int v0, int v1, int v2, int v01, int v12, int v20, Triangles &t)
+{
+  add_triangle(t, v0, v01, v20);
+  add_triangle(t, v1, v12, v01);
+  add_triangle(t, v2, v20, v12);
+  add_triangle(t, v01, v12, v20);
+}
+
+inline void split_triangle(int v0, int v1, int v2, int v01, int v12, int v20, Triangles &t)
+{
+  if (v01 >= 0 && v12 < 0 && v20 < 0)
+    split_triangle_1_edge(v0, v1, v2, v01, t);
+  else if (v01 < 0 && v12 >= 0 && v20 < 0)
+    split_triangle_1_edge(v1, v2, v0, v12, t);
+  else if (v01 < 0 && v12 < 0 && v20 >= 0)
+    split_triangle_1_edge(v2, v0, v1, v20, t);
+  else if (v01 >= 0 && v12 >= 0 && v20 < 0)
+    split_triangle_2_edges(v0, v1, v2, v01, v12, t);
+  else if (v01 < 0 && v12 >= 0 && v20 >= 0)
+    split_triangle_2_edges(v1, v2, v0, v12, v20, t);
+  else if (v01 >= 0 && v12 < 0 && v20 >= 0)
+    split_triangle_2_edges(v2, v0, v1, v20, v01, t);
+  else if (v01 >= 0 && v12 >= 0 && v20 >= 0)
+    split_triangle_3_edges(v0, v1, v2, v01, v12, v20, t);
+}
+
+inline int minimize_atom_distance(int v0, int v1, const Vertices &v, int a0, int a1,
+				  float *aa, long as0, long as1, float *ra, long rs0,
+				  Atoms &va)
+{
+  if (a0 == a1)
+    return 0;
+
+  float a0x = aa[as0*a0], a0y = aa[as0*a0+as1], a0z = aa[as0*a0+2*as1];
+  float a1x = aa[as0*a1], a1y = aa[as0*a1+as1], a1z = aa[as0*a1+2*as1];
+  float v0x = v[3*v0], v0y = v[3*v0+1], v0z = v[3*v0+2];
+  float v1x = v[3*v1], v1y = v[3*v1+1], v1z = v[3*v1+2];
+
+  double dx, dy, dz;
+  dx = v1x - a0x; dy = v1y - a0y; dz = v1z - a0z;
+  double d10 = dx*dx + dy*dy + dz*dz;
+  dx = v1x - a1x; dy = v1y - a1y; dz = v1z - a1z;
+  double d11 = dx*dx + dy*dy + dz*dz;
+  dx = v0x - a0x; dy = v0y - a0y; dz = v0z - a0z;
+  double d00 = dx*dx + dy*dy + dz*dz;
+  dx = v0x - a1x; dy = v0y - a1y; dz = v0z - a1z;
+  double d01 = dx*dx + dy*dy + dz*dz;
+ 
+  int change = 0;
+  if (ra)
+    {
+      double r0 = ra[rs0*a0], r1 = ra[rs0*a1];
+      if (d10*r1*r1 < d11*r0*r0)
+	{ va[v1] = a0; change += 1; }
+      if (d01*r0*r0 < d00*r1*r1)
+	{ va[v0] = a1; change += 1; }
+    }
+   else
+    {
+      if (d10 < d11)
+	{ va[v1] = a0; change += 1; }
+      if (d01 < d00)
+	{ va[v0] = a1; change += 1; }
+    }
+
+  float x, y, z, f;
+  split_point(v0, v1, va[v0], va[v1], aa, as0, as1, ra, rs0, v, false, &x, &y, &z, &f);
+  //  if (f <= -0.01 || f >= 1.01)
+  /*
+  if (f <= 0 || f >= 1)
+    {
+    std::cerr << "minimize_atom_distance(): inconsitent with split " << f << " edge " << v0 << " " << v1 << " atoms " << a0 << " " << a1 << std::endl;
+    std::cerr << "edge vector " << v[3*v0]-v[3*v1] << " " << v[3*v0+1]-v[3*v1+1] << " " << v[3*v0+2]-v[3*v1+2] << std::endl;
+    }
+  */
+  return change;
+}
+
+static int minimize_atom_distances(const Vertices &v, Atoms &va, const Triangles &t,
+				   const FArray &a, const FArray &r)
+{
+  int nt = t.size()/3;
+  float *aa = a.values();
+  long as0 = a.stride(0), as1 = a.stride(1);
   float *ra = (r.dimension() == 1 ? r.values() : NULL);
   long rs0 = (r.dimension() == 1 ? r.stride(0) : 0);
-
-  // Copy original vertices and normals.
-  for (int i = 0 ; i < nv ; ++i)
-    {
-      add_vertex(vs, va[i*vs0], va[i*vs0+vs1], va[i*vs0+2*vs1]);
-      add_vertex(ns, na[i*ns0], na[i*ns0+ns1], na[i*ns0+2*ns1]);
-      v2as->push_back(v2aa[i*v2as0]);
-    }
-
-  // Make vertices for edge splits.
-  split_edges(vs, ns, v2as, va, vs0, vs1, na, ns0, ns1, v2aa, v2as0, aa, as0, as1, ra, rs0, edge_splits);
-
-  // Make subdivided triangles.
+  int change = 0;
   for (long ti = 0 ; ti < nt ; ++ti)
     {
-      int v0 = ta[ts0*ti], v1 = ta[ts0*ti+ts1], v2 = ta[ts0*ti+2*ts1];
-      int a0 = v2aa[v2as0*v0], a1 = v2aa[v2as0*v1], a2 = v2aa[v2as0*v2];
-      if (a0 == a1 && a1 == a2)
-	add_triangle(ts, v0, v1, v2);  // copy triangle, no subdivision
-      else if (a0 != a1 && a1 != a2 && a2 != a0)
-	cut_triangle_3_lines(v0, v1, v2, a0, a1, a2, va, vs0, vs1, na, ns0, ns1, aa, as0, as1, ra, rs0,
-			     vs, ns, ts, v2as, edge_splits);
+      int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
+      int a0 = va[v0], a1 = va[v1], a2 = va[v2];
+      change += minimize_atom_distance(v0, v1, v, a0, a1, aa, as0, as1, ra, rs0, va);
+      change += minimize_atom_distance(v1, v2, v, a1, a2, aa, as0, as1, ra, rs0, va);
+      change += minimize_atom_distance(v2, v0, v, a2, a0, aa, as0, as1, ra, rs0, va);
+    }
+  return change;
+}
+
+static void find_3_patch_edges(const Vertices &v, const Triangles &t, Atoms &va,
+			       const FArray &a, const FArray &r,
+			       const Edge_Map &edge_splits, Edge_Map &edge_3p)
+{
+  int nt = t.size()/3;
+  float *aa = a.values();
+  long as0 = a.stride(0), as1 = a.stride(1);
+  float *ra = (r.dimension() == 1 ? r.values() : NULL);
+  long rs0 = (r.dimension() == 1 ? r.stride(0) : 0);
+  for (long ti = 0 ; ti < nt ; ++ti)
+     {
+      int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
+      int a0 = va[v0], a1 = va[v1], a2 = va[v2];
+      if (a0 != a1 && a1 != a2 && a2 != a0)
+	{
+	  three_patch_edge(v, v0, v1, a0, a2, aa, as0, as1, ra, rs0, edge_splits, va, edge_3p);
+	  three_patch_edge(v, v1, v2, a1, a0, aa, as0, as1, ra, rs0, edge_splits, va, edge_3p);
+	  three_patch_edge(v, v2, v0, a2, a1, aa, as0, as1, ra, rs0, edge_splits, va, edge_3p);
+	}
+     }
+}
+
+static void split_3_patch_triangles(const Triangles &t, const Atoms &va, const Edge_Map &edge_3p,
+				    Triangles &tsplit, Triangles &tunsplit)
+{
+  Edge_Map::const_iterator ei;
+  long nt = t.size()/3;
+  for (long ti = 0 ; ti < nt ; ++ti)
+    {
+      int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
+      int a0 = va[v0], a1 = va[v1], a2 = va[v2];
+      int v01 = -1, v12 = -1, v20 = -1;
+      if (a0 != a1 && (ei = edge_3p.find(Edge(min(v0,v1),max(v0,v1))), ei != edge_3p.end()))
+	v01 = ei->second;
+      if (a1 != a2 && (ei = edge_3p.find(Edge(min(v1,v2),max(v1,v2))), ei != edge_3p.end()))
+	v12 = ei->second;
+      if (a2 != a0 && (ei = edge_3p.find(Edge(min(v2,v0),max(v2,v0))), ei != edge_3p.end()))
+	v20 = ei->second;
+      if (v01 >= 0 || v12 >= 0 || v20 >= 0)
+	split_triangle(v0, v1, v2, v01, v12, v20, tsplit);
       else
-	// Cut triangle along one line.
-	cut_triangle_1_line(v0, v1, v2, a0, a1, a2, ts, edge_splits);
+	add_triangle(tunsplit, v0, v1, v2);
+    }
+}
+
+static int refine_3_patch_triangles(Vertices &v, Normals &n, Triangles &t,
+				    Atoms &va, const FArray &a, const FArray &r,
+				    Edge_Map &edge_splits)
+{
+  Edge_Map edge_3p;
+  find_3_patch_edges(v, t, va, a, r, edge_splits, edge_3p);
+  //  std::cerr << "Three patch edges: " << edge_3p.size() << std::endl;
+
+  Triangles tsplit, tunsplit;
+  split_3_patch_triangles(t, va, edge_3p, tsplit, tunsplit);
+  //  std::cerr << "Triangle splits produced " << tsplit.size()/3 << " triangles\n";
+
+  // Remove edge split points that are now vertices of triangles.
+  for (Edge_Map::iterator ei = edge_3p.begin() ; ei != edge_3p.end() ; ++ei)
+    edge_splits.erase(ei->first);
+  edge_3p.clear();
+
+  // Fix closest atom assignments.
+  for (int i = 0 ; i < 10 ; ++i)
+    {
+      int change = minimize_atom_distances(v, va, tsplit, a, r);
+      change += minimize_atom_distances(v, va, tunsplit, a, r);
+      if (change == 0)
+	break;
+      //      std::cerr << "Fixed " << change << " atom assignments\n";
     }
 
-  //  fix_closest_atoms(*vs, *ts, *v2as, aa, as0, as1);
+  compute_edge_split_points(v, n, va, tsplit, a, r, edge_splits);
+  // The unsplit can also have edges that need split because vertex was assigned a new atom.
+  compute_edge_split_points(v, n, va, tunsplit, a, r, edge_splits);
 
-  //  std::cerr << "vertices " << nv << " - " << vs->size()/3 << " tri " << nt << " - " << ts->size()/3 << std::endl;
+  t.clear();
+  t.insert(t.end(), tunsplit.begin(), tunsplit.end());
+  t.insert(t.end(), tsplit.begin(), tsplit.end());
+
+  return tsplit.size()/3;
+}
+
+static void duplicate_edge_vertices(Vertices &v, Normals &n, Atoms &va, Edge_Map &edge_splits)
+{
+  // Duplicate split points.
+  Edge_Map edup;
+  int vn = v.size()/3;
+  for (Edge_Map::iterator ei = edge_splits.begin() ; ei != edge_splits.end() ; ++ei)
+    {
+      Edge e = ei->first;
+      int ev = ei->second;
+      edup[Edge(e.second,e.first)] = vn;
+      add_vertex(v, v[3*ev], v[3*ev+1], v[3*ev+2]);
+      add_normal(n, n[3*ev], n[3*ev+1], n[3*ev+2]);
+      va.push_back(va[e.second]);
+      va[ev] = va[e.first];		// Update atom assignment changed in case vertex 1 assignment changed.
+      vn += 1;
+    }
+  edge_splits.insert(edup.begin(), edup.end());
+}
+
+static void divide_triangles(Vertices &v, Normals &n, Triangles &t,
+			     Atoms &va, const FArray &a,
+			     Edge_Map &edge_splits)
+{
+  duplicate_edge_vertices(v, n, va, edge_splits);
+
+  int nt = t.size()/3;
+  float *aa = a.values();
+  long as0 = a.stride(0), as1 = a.stride(1);
+  Triangles td;
+  for (long ti = 0 ; ti < nt ; ++ti)
+    {
+      int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
+      int a0 = va[v0], a1 = va[v1], a2 = va[v2];
+      if (a0 == a1 && a1 == a2)
+	add_triangle(td, v0, v1, v2);  // copy triangle, no subdivision
+      else if (a0 != a1 && a1 != a2 && a2 != a0)
+	cut_triangle_3_lines(v0, v1, v2, a0, a1, a2, aa, as0, as1,
+			     v, n, va, td, edge_splits);
+      else
+	// Cut triangle along one line.
+	cut_triangle_1_line(v0, v1, v2, a0, a1, a2, td, edge_splits);
+    }
+  t.clear();
+  t.insert(t.end(), td.begin(), td.end());
+}
+
+static void convert_arrays_to_vectors(const FArray &vs, const FArray &ns,
+				      const IArray &vas, const IArray &ts,
+				      Vertices &v, Normals &n, Atoms &va, Triangles &t)
+{
+  // Get pointers and strides for arrays.
+  float *vsa = vs.values(), *nsa = ns.values();
+  int *vasa = vas.values();
+  long vs0 = vs.stride(0), vs1 = vs.stride(1);
+  long ns0 = ns.stride(0), ns1 = ns.stride(1);
+  long vas0 = vas.stride(0);
+
+  // Copy vertices and normals to vectors.
+  int nv = vs.size(0);
+  for (int i = 0 ; i < nv ; ++i)
+    {
+      add_vertex(v, vsa[i*vs0], vsa[i*vs0+vs1], vsa[i*vs0+2*vs1]);
+      add_normal(n, nsa[i*ns0], nsa[i*ns0+ns1], nsa[i*ns0+2*ns1]);
+      va.push_back(vasa[i*vas0]);
+    }
+
+  // Copy triangles array to vector.
+  int nt = ts.size(0);
+  int *tsa = ts.values();
+  long ts0 = ts.stride(0), ts1 = ts.stride(1);
+  for (int i = 0 ; i < nt ; ++i)
+    add_triangle(t, tsa[ts0*i], tsa[ts0*i+ts1], tsa[ts0*i+2*ts1]);
+}
+
+static void sharp_patches(Vertices &v, Normals &n, Triangles &t, Atoms &va,
+			  const FArray &a, const FArray &r, int refinement_steps)
+{
+  // Make vertices for split edges.
+  Edge_Map edge_splits;
+  compute_edge_split_points(v, n, va, t, a, r, edge_splits);
+
+  // Split edges that span three atom zones for better boundaries
+  // for narrow strip atom zones.
+  for (int i = 0 ; i < refinement_steps ; ++i)
+    if (refine_3_patch_triangles(v, n, t, va, a, r, edge_splits) == 0)
+      break;
+
+  // Make subdivided triangles along atom zone boundaries.
+  divide_triangles(v, n, t, va, a, edge_splits);
 }
 			  
 // ----------------------------------------------------------------------------
@@ -464,15 +703,18 @@ static void sharp_patches(const FArray &v, const FArray &n, const IArray &t,
 extern "C" PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray vertices, normals, axyz, radii;
-  IArray triangles, v2a;
-  const char *kwlist[] = {"vertices", "normals", "triangles", "v2a", "atom_xyz", "atom_radii", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&O&|O&"), (char **)kwlist,
+  IArray triangles, vertex_atoms;
+  int refinement_steps = 0;
+  const char *kwlist[] = {"vertices", "normals", "triangles", "vertex_atoms", "atom_xyz", "atom_radii",
+			  "refinement_steps", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&O&|O&i"), (char **)kwlist,
 				   parse_float_n3_array, &vertices,
 				   parse_float_n3_array, &normals,
 				   parse_int_n3_array, &triangles,
-				   parse_int_n_array, &v2a,
+				   parse_int_n_array, &vertex_atoms,
 				   parse_float_n3_array, &axyz,
-				   parse_float_n_array, &radii))
+				   parse_float_n_array, &radii,
+				   &refinement_steps))
     return NULL;
 
   if (normals.size(0) != vertices.size(0))
@@ -480,7 +722,7 @@ extern "C" PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *ke
       PyErr_SetString(PyExc_ValueError, "normals and vertices have different lengths");
       return NULL;
     }
-  if (v2a.size(0) != vertices.size(0))
+  if (vertex_atoms.size(0) != vertices.size(0))
     {
       PyErr_SetString(PyExc_ValueError, "vertex map and vertices have different sizes");
       return NULL;
@@ -491,18 +733,31 @@ extern "C" PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *ke
       return NULL;
     }
 
-  std::vector<float> vs, ns;
-  std::vector<int> ts, v2as;
+  Vertices v;
+  Normals n;
+  Triangles t;
+  Atoms va;
   Py_BEGIN_ALLOW_THREADS
-  sharp_patches(vertices, normals, triangles, v2a, axyz, radii, &vs, &ns, &ts, &v2as);
+    convert_arrays_to_vectors(vertices, normals, vertex_atoms, triangles, v, n, va, t);
+    sharp_patches(v, n, t, va, axyz, radii, refinement_steps);
   Py_END_ALLOW_THREADS
 
-  int nv = vs.size()/3, nt = ts.size()/3;
-  PyObject *vsa = c_array_to_python(vs, nv, 3);
-  PyObject *nsa = c_array_to_python(ns, nv, 3);
-  PyObject *tsa = c_array_to_python(ts, nt, 3);
-  PyObject *v2asa = c_array_to_python(v2as);
-  PyObject *r = python_tuple(vsa, nsa, tsa, v2asa);
+  int nv = v.size()/3, nt = t.size()/3;
+  PyObject *vp = c_array_to_python(v, nv, 3);
+  PyObject *np = c_array_to_python(n, nv, 3);
+  PyObject *tp = c_array_to_python(t, nt, 3);
+  PyObject *vap = c_array_to_python(va);
+  PyObject *r = python_tuple(vp, np, tp, vap);
+
+  for (long ti = 0 ; ti < nt ; ++ti)
+    {
+      int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
+      int a0 = va[v0], a1 = va[v1], a2 = va[v2];
+      if (a0 != a1 || a1 != a2 || a2 != a0)
+	std::cerr << "multi color tri " << v0 << " "  << v1 << " "  << v2 << " "  << a0 << " "  << a1 << " "  << a2 << std::endl;
+    }
+
+
   return r;
 }
 

@@ -31,9 +31,9 @@ class CrossFade(Drawing):
         rgba_drawing(self.rgba, (-1, -1), (2, 2), self)
 
         v.add_overlay(self)
-        session.triggers.add_handler('new frame', self.next_frame)
+        session.triggers.add_handler('new frame', lambda *_, v=v: self.next_frame(v))
 
-    def next_frame(self, trigger, view):
+    def next_frame(self, view):
 
         f, n = self.frame + 1, self.frames
         if f >= n:

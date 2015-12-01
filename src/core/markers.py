@@ -52,10 +52,10 @@ def marker_settings(session):
 def marker_molecule(session):
     ms = marker_settings(session)
     m = ms['molecule']
-    if m is None:
+    if m is None or m.was_deleted:
         lod = session.atomic_level_of_detail
         from .atomic import AtomicStructure
-        ms['molecule'] = m = AtomicStructure('markers', level_of_detail = lod)
+        ms['molecule'] = m = AtomicStructure('markers', session, level_of_detail = lod)
         m.ball_scale = 1.0
         session.models.add([m])
     return m
@@ -92,8 +92,8 @@ def connected_center(triangle_pick):
     varea = surface.vertex_areas(va, tc)
     a = varea.sum()
     c = varea.dot(va)/a
-    # TODO: Apply drawing transform to map to global coordinates
-    return c
+    cscene = d.scene_position * c
+    return cscene
 
 class ConnectMouseMode(MouseMode):
     name = 'connect markers'

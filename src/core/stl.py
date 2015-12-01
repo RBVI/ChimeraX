@@ -14,6 +14,8 @@ from . import generic3d
 
 
 class STLModel(generic3d.Generic3DModel):
+    clip_cap = True
+
     @property
     def num_triangles(self):
         """Return number of triangles in model."""
@@ -71,7 +73,7 @@ def open(session, filename, name, *args, **kw):
     else:
         input = _builtin_open(filename, 'rb')
 
-    model = STLModel(name)
+    model = STLModel(name, session)
 
     # parse input:
 

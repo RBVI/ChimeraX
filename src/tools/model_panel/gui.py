@@ -54,6 +54,13 @@ class ModelPanel(ToolInstance):
         self._frame_drawn_handler = None
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.table, 1, wx.EXPAND)
+        button_sizer = wx.BoxSizer(wx.VERTICAL)
+        for model_func in [close, hide, show, view]:
+            button = wx.Button(parent, label=model_func.__name__.capitalize())
+            button.Bind(wx.EVT_BUTTON, lambda e, self=self, mf=model_func, ses=session:
+                mf([self.models[i] for i in self.table.SelectedRows] or self.models, ses))
+            button_sizer.Add(button, 0, wx.EXPAND)
+        sizer.Add(button_sizer, 0, wx.ALIGN_CENTER_VERTICAL)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
 
@@ -97,6 +104,7 @@ class ModelPanel(ToolInstance):
         import wx
         locker = wx.grid.GridUpdateLocker(self.table)
         nr = self.table.NumberRows
+        sel = self.table.SelectedRows
         if nr:
             self.table.DeleteRows(0, nr)
         models = self.session.models.list()
@@ -108,6 +116,9 @@ class ModelPanel(ToolInstance):
             self.table.SetCellValue(i, 2, "1" if model.display else "")
             self.table.SetCellValue(i, 3, getattr(model, "name", "(unnamed)"))
         self.table.AutoSizeColumns()
+        if nr == self.table.NumberRows:
+            for i, row in enumerate(sel):
+                self.table.SelectRow(row, addToSelected=bool(i))
         del locker
 
         self._frame_drawn_handler = None
@@ -144,6 +155,28 @@ def most_common_color(colors):
     import numpy
     as32 = colors.view(numpy.int32).reshape((len(colors),))
     unique, indices, counts = numpy.unique(as32, return_index=True, return_counts=True)
-    if counts[0] < len(colors) / 10:
+    max_index = numpy.argmax(counts)
+    if counts[max_index] < len(colors) / 10:
         return None
-    return colors[indices[0]]
+    return colors[indices[max_index]]
+
+def close(models, session):
+    session.models.close(models)
+
+def hide(models, session):
+    for m in models:
+        m.display = False
+
+def show(models, session):
+    for m in models:
+        m.display = True
+
+def view(models, session):
+    from chimera.core.commands import AtomSpecResults
+    view_objects = AtomSpecResults(models=models)
+    for model in models:
+        if getattr(model, 'atoms', None):
+            view_objects.add_atoms(model.atoms)
+    from chimera.core.commands.view import view
+    view(session, view_objects)
+

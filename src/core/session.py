@@ -23,7 +23,7 @@ from .commands import CmdDesc, StringArg, register, commas
 
 _builtin_open = open
 #: session file suffix
-SESSION_SUFFIX = ".c2ses"
+SESSION_SUFFIX = ".cxs"
 
 # triggers:
 
@@ -505,9 +505,6 @@ def save(session, filename, **kw):
             output.close()
 
 
-@register('sdump', CmdDesc(required=[('session_file', StringArg)],
-                           optional=[('output', StringArg)],
-                           synopsis="create human-readable session"))
 def dump(session, session_file, output=None):
     """dump contents of session for debugging"""
     from . import serialize
@@ -573,7 +570,7 @@ def _initialize():
     io.register_format(
         "Chimera session", io.SESSION, SESSION_SUFFIX,
         prefixes="ses",
-        mime="application/x-chimera2-session",
+        mime="application/x-chimerax-session",
         reference="http://www.rbvi.ucsf.edu/chimera/",
         open_func=open, export_func=save)
 _initialize()
@@ -634,12 +631,20 @@ def common_startup(sess):
     sess.update_loop = UpdateLoop()
     from .atomic import PseudobondManager, ChangeTracker, LevelOfDetail
     sess.change_tracker = ChangeTracker()
-    sess.pb_manager = PseudobondManager(sess.change_tracker)
+    sess.pb_manager = PseudobondManager(sess)
     sess.atomic_level_of_detail = LevelOfDetail()
 
     from . import commands
     commands.register_core_commands(sess)
     commands.register_core_selectors(sess)
+
+    register(
+        'sdump',
+        CmdDesc(required=[('session_file', StringArg)],
+                optional=[('output', StringArg)],
+                synopsis="create human-readable session"),
+        dump
+    )
 
     _register_core_file_formats()
 

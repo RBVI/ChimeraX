@@ -17,6 +17,14 @@
 #include "imex.h"
 #include "string_types.h"
 
+// "forward declare" PyObject, which is a typedef of a struct,
+// as per the python mailing list:
+// http://mail.python.org/pipermail/python-dev/2003-August/037601.html
+#ifndef PyObject_HEAD
+struct _object;
+typedef _object PyObject;
+#endif
+    
 namespace atomstruct {
 
 using basegeom::BaseSphere;
@@ -50,6 +58,10 @@ public:
     typedef std::vector<const Ring*>  Rings;
     enum class StructCat { Unassigned, Main, Ligand, Ions, Solvent };
 
+    const int  SESSION_NUM_INTS = 6;
+    const int  SESSION_NUM_FLOATS = 0;
+    const int  SESSION_ALTLOC_INTS = 3;
+    const int  SESSION_ALTLOC_FLOATS = 5;
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
     Atom(AtomicStructure *as, const char* name, const Element& e);
@@ -85,7 +97,7 @@ public:
     void  _switch_initial_element(const Element& e) { _element = &e; }
 
 public:
-    void  add_bond(Bond *b) { add_connection(b); }
+    void  add_bond(Bond *b);
     char  alt_loc() const { return _alt_loc; }
     std::set<char>  alt_locs() const;
     float  bfactor() const;
@@ -114,6 +126,11 @@ public:
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
+    int  session_num_ints() const {
+        return SESSION_NUM_INTS + _alt_loc_map.size() * SESSION_ALTLOC_INTS;
+    }
+    int  session_num_floats() const;
+    void  session_save(int** ints, float** floats, PyObject* misc) const;
     void  set_alt_loc(char alt_loc, bool create=false, bool from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
     void  set_bfactor(float);

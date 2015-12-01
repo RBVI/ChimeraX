@@ -1,14 +1,23 @@
 // vi: set expandtab ts=4 sw=4:
+#include "Python.h"
+#include <sstream>
+#include <stdexcept>
+#include <utility>  // for std::pair
+
 #include "Atom.h"
 #include "AtomicStructure.h"
 #include "Bond.h"
 #include "CoordSet.h"
+#include "PBGroup.h"
+#include "Pseudobond.h"
 #include "Residue.h"
-#include "basegeom/ChangeTracker.h"
 
-#include <utility>  // for std::pair
-#include <stdexcept>
-#include <sstream>
+#include <basegeom/ChangeTracker.h>
+#include <basegeom/Connectible.tcc>
+
+// force instantiation
+template void basegeom::Connectible<atomstruct::AtomicStructure, atomstruct::Atom, atomstruct::Bond>::add_connection(atomstruct::Bond*);
+template void basegeom::Connectible<atomstruct::AtomicStructure, atomstruct::Atom, atomstruct::Bond>::remove_connection(atomstruct::Bond*);
 
 namespace atomstruct {
 
@@ -26,6 +35,9 @@ Atom::~Atom()
 {
     structure()->change_tracker()->add_deleted(this);
 }
+
+void
+Atom::add_bond(Bond *b) { add_connection(b); }
 
 std::set<char>
 Atom::alt_locs() const
@@ -833,6 +845,76 @@ Atom::rings(bool cross_residues, int all_size_threshold,
 {
     structure()->rings(cross_residues, all_size_threshold, ignore);
     return _rings;
+}
+
+int
+Atom::session_num_floats() const
+{
+    int num_floats = SESSION_NUM_FLOATS + _alt_loc_map.size() * SESSION_ALTLOC_FLOATS +
+        (_aniso_u == nullptr ? 0 : _aniso_u->size());
+    for (auto altloc_info : _alt_loc_map) {
+        auto& info = altloc_info.second;
+        if (info.aniso_u != nullptr)
+            num_floats += info.aniso_u->size();
+    }
+    return num_floats;
+}
+
+void
+Atom::session_save(int** ints, float** floats, PyObject* misc) const
+{
+    auto int_ptr = *ints;
+    int_ptr[0] = _alt_loc;
+    int_ptr[1] = _alt_loc_map.size();
+    int_ptr[2] = (_aniso_u == nullptr ? 0 : _aniso_u->size());
+    int_ptr[3] = _coord_index;
+    int_ptr[4] = _serial_number;
+    int_ptr[5] = (int)_structure_category;
+    int_ptr += SESSION_NUM_INTS;
+
+    auto float_ptr = *floats;
+    float_ptr += SESSION_NUM_FLOATS;
+
+    PyObject* c_idatm_type = PyUnicode_FromString(_computed_idatm_type);
+    if (c_idatm_type == nullptr)
+        throw std::runtime_error("Cannot create Python string for computed atom type");
+    if (PyList_Append(misc, c_idatm_type) < 0)
+        throw std::runtime_error("Cannot append computed atom type to misc list");
+    PyObject* e_idatm_type = PyUnicode_FromString(_explicit_idatm_type);
+    if (e_idatm_type == nullptr)
+        throw std::runtime_error("Cannot create Python string for explicit atom type");
+    if (PyList_Append(misc, e_idatm_type) < 0)
+        throw std::runtime_error("Cannot append explicit atom type to misc list");
+
+    if (_aniso_u != nullptr) {
+        for (auto v: *_aniso_u) {
+            *float_ptr = v;
+            float_ptr++;
+        }
+    }
+
+    for (auto altloc_info : _alt_loc_map) {
+        auto alt_loc = altloc_info.first;
+        auto& info = altloc_info.second;
+        int_ptr[0] = alt_loc;
+        int_ptr[1] = (info.aniso_u == nullptr ? 0 : info.aniso_u->size());
+        int_ptr[2] = info.serial_number;
+        int_ptr += SESSION_ALTLOC_INTS;
+
+        float_ptr[0] = info.bfactor;
+        float_ptr[1] = info.coord[0];
+        float_ptr[2] = info.coord[1];
+        float_ptr[3] = info.coord[2];
+        float_ptr[4] = info.occupancy;
+        float_ptr += SESSION_ALTLOC_FLOATS;
+
+        if (info.aniso_u != nullptr) {
+            for (auto v: *info.aniso_u) {
+                *float_ptr = v;
+                float_ptr++;
+            }
+        }
+    }
 }
 
 void

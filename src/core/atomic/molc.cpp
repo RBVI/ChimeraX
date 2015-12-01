@@ -7,6 +7,7 @@
 #include "atomstruct/Atom.h"
 #include "atomstruct/Bond.h"
 #include "atomstruct/Chain.h"
+#include "atomstruct/PBGroup.h"
 #include "atomstruct/Pseudobond.h"
 #include "atomstruct/Residue.h"
 #include "basegeom/ChangeTracker.h"
@@ -763,10 +764,10 @@ extern "C" void bond_structure(void *bonds, size_t n, pyobject_t *molp)
 
 extern "C" void pseudobond_atoms(void *pbonds, size_t n, pyobject_t *atoms)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const PBond::Atoms &a = b[i]->atoms();
+            const Pseudobond::Atoms &a = b[i]->atoms();
             *atoms++ = a[0];
             *atoms++ = a[1];
         }
@@ -777,7 +778,7 @@ extern "C" void pseudobond_atoms(void *pbonds, size_t n, pyobject_t *atoms)
 
 extern "C" void pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     try {
         for (size_t i = 0; i != n; ++i) {
             const Rgba &c = b[i]->color();
@@ -793,7 +794,7 @@ extern "C" void pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
 
 extern "C" void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     Rgba c;
     try {
         for (size_t i = 0; i != n; ++i) {
@@ -810,14 +811,14 @@ extern "C" void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
 
 extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     uint8_t *rgba1;
     PyObject *colors = python_uint8_array(2*n, 4, &rgba1);
     uint8_t *rgba2 = rgba1 + 4*n;
     try {
         const Rgba *c1, *c2;
         for (size_t i = 0; i < n; ++i) {
-	  PBond *bond = b[i];
+	  Pseudobond *bond = b[i];
 	  if (bond->halfbond()) {
 	      c1 = &bond->atoms()[0]->color();
 	      c2 = &bond->atoms()[1]->color();
@@ -835,44 +836,44 @@ extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
 
 extern "C" void pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
-    error_wrap_array_get<PBond, bool, npy_bool>(b, n, &PBond::display, disp);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::display, disp);
 }
 
 extern "C" void set_pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
-    error_wrap_array_set<PBond, bool, npy_bool>(b, n, &PBond::set_display, disp);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_set<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::set_display, disp);
 }
 
 extern "C" void pseudobond_halfbond(void *pbonds, size_t n, npy_bool *halfb)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
-    error_wrap_array_get<PBond, bool, npy_bool>(b, n, &PBond::halfbond, halfb);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::halfbond, halfb);
 }
 
 extern "C" void set_pseudobond_halfbond(void *pbonds, size_t n, npy_bool *halfb)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
-    error_wrap_array_set<PBond, bool, npy_bool>(b, n, &PBond::set_halfbond, halfb);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_set<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::set_halfbond, halfb);
 }
 
 extern "C" void pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
-    error_wrap_array_get<PBond, float>(b, n, &PBond::radius, radii);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_get<Pseudobond, float>(b, n, &Pseudobond::radius, radii);
 }
 
 extern "C" void pseudobond_shown(void *pbonds, size_t n, npy_bool *shown)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
-    error_wrap_array_get<PBond, bool, npy_bool>(b, n, &PBond::shown, shown);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::shown, shown);
 }
 
 extern "C" void set_pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
 {
-    PBond **b = static_cast<PBond **>(pbonds);
-    error_wrap_array_set<PBond, float>(b, n, &PBond::set_radius, radii);
+    Pseudobond **b = static_cast<Pseudobond **>(pbonds);
+    error_wrap_array_set<Pseudobond, float>(b, n, &Pseudobond::set_radius, radii);
 }
 
 extern "C" void pseudobond_group_category(void *pbgroups, int n, void **categories)
@@ -926,11 +927,22 @@ extern "C" void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, voi
 {
     Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
     try {
-        PBond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
+        Pseudobond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
         return b;
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" void pseudobond_group_structure(void *pbgroups, size_t n, pyobject_t *resp)
+{
+    Proxy_PBGroup **pbgs = static_cast<Proxy_PBGroup **>(pbgroups);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            resp[i] = pbgs[i]->structure();
+    } catch (...) {
+        molc_error();
     }
 }
 
@@ -1380,14 +1392,14 @@ extern "C" PyObject* change_tracker_changes(void *vct)
             PyObject *ptr_array = python_voidp_array(class_changes.created.size(), &ptrs);
             size_t j = 0;
             for (auto ptr: class_changes.created)
-                ptrs[j++] = ptr;
+                ptrs[j++] = const_cast<void*>(ptr);
             PyTuple_SetItem(value, 0, ptr_array);
 
             // second tuple item:  modified objects
             ptr_array = python_voidp_array(class_changes.modified.size(), &ptrs);
             j = 0;
             for (auto ptr: class_changes.modified)
-                ptrs[j++] = ptr;
+                ptrs[j++] = const_cast<void*>(ptr);
             PyTuple_SetItem(value, 1, ptr_array);
 
             // third tuple item:  list of reasons
@@ -1429,7 +1441,7 @@ extern "C" void change_tracker_add_modified(void *vct, int class_num, void *modd
         } else if (class_num == 1) {
             ct->add_modified(static_cast<Bond*>(modded), reason);
         } else if (class_num == 2) {
-            ct->add_modified(static_cast<PBond*>(modded), reason);
+            ct->add_modified(static_cast<Pseudobond*>(modded), reason);
         } else if (class_num == 3) {
             ct->add_modified(static_cast<Residue*>(modded), reason);
         } else if (class_num == 4) {
@@ -1739,6 +1751,26 @@ extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *float
     } catch (...) {
         molc_error();
         return -1;
+    }
+}
+
+extern "C" void structure_session_save_setup(void *mol)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+            m->session_save_setup();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void structure_session_save_teardown(void *mol)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+            m->session_save_teardown();
+    } catch (...) {
+        molc_error();
     }
 }
 

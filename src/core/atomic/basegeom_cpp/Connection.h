@@ -19,14 +19,16 @@ typedef _object PyObject;
 #endif
     
 namespace basegeom {
-    
+
 using ::basegeom::ChangeTracker;
 
-template <class End, class FinalConnection>
+template <class End>
 class Connection {
 public:
     typedef End*  End_points[2];
 
+    static const int  SESSION_NUM_INTS = 5;
+    static const int  SESSION_NUM_FLOATS = 1;
 protected:
     virtual const char*  err_msg_loop() const
         { return "Can't connect endpoint to itself"; }
@@ -58,8 +60,32 @@ public:
         return _end_points[0]->coord().sqdistance(_end_points[1]->coord());
     }
 
+    // session related
+    virtual void  session_note_atoms(int** ints) const = 0;
+    virtual void  session_note_structures(int** ) const {}
+    static int  session_num_floats(bool /*global*/ = false) {
+        return SESSION_NUM_FLOATS + Rgba::session_num_floats();
+    }
+    static int  session_num_ints(bool global = false) {
+        return SESSION_NUM_INTS + Rgba::session_num_ints() + (global ? 2 : 0);
+    }
+    void  session_save(int** ints, float** floats, bool global = false) const {
+        if (global) session_note_structures(ints);
+        session_note_atoms(ints);
+        _rgba.session_save(ints, floats);
+        auto int_ptr = *ints;
+        int_ptr[0] = _display;
+        int_ptr[1] = _hide;
+        int_ptr[2] = _halfbond;
+        int_ptr += SESSION_NUM_INTS;
+
+        auto float_ptr = *floats;
+        float_ptr[0] = _radius;
+        float_ptr += SESSION_NUM_FLOATS;
+    }
+
     // change tracking
-    virtual ChangeTracker*  change_tracker() const = 0;
+    virtual void  track_change(const std::string& reason) const = 0;
 
     // graphics related
     const Rgba&  color() const { return _rgba; }
@@ -72,32 +98,28 @@ public:
         if (rgba == _rgba)
             return;
         graphics_container()->set_gc_color();
-        change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
-            ChangeTracker::REASON_COLOR);
+        track_change(ChangeTracker::REASON_COLOR);
         _rgba = rgba;
     }
     void  set_display(bool d) {
         if (d == _display)
             return;
         graphics_container()->set_gc_shape();
-        change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
-            ChangeTracker::REASON_DISPLAY);
+        track_change(ChangeTracker::REASON_DISPLAY);
         _display = d;
     }
     void  set_halfbond(bool hb) {
         if (hb == _halfbond)
             return;
         graphics_container()->set_gc_color();
-        change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
-            ChangeTracker::REASON_HALFBOND);
+        track_change(ChangeTracker::REASON_HALFBOND);
         _halfbond = hb;
     }
     void  set_radius(float r) {
         if (r == _radius)
             return;
         graphics_container()->set_gc_shape();
-        change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
-            ChangeTracker::REASON_RADIUS);
+        track_change(ChangeTracker::REASON_RADIUS);
         _radius = r;
     }
     float  radius() const { return _radius; }
@@ -106,8 +128,7 @@ public:
         if (h == _hide)
             return;
         graphics_container()->set_gc_shape();
-        change_tracker()->add_modified(dynamic_cast<FinalConnection*>(this),
-            ChangeTracker::REASON_HIDE);
+        track_change(ChangeTracker::REASON_HIDE);
         _hide = h;
     }
     virtual bool shown() const
@@ -116,55 +137,55 @@ public:
         { return _hide ? false : _display; }
 };
 
-template <class End, class FinalConnection>
-class UniqueConnection: public Connection<End, FinalConnection> {
+template <class End>
+class UniqueConnection: public Connection<End> {
 protected:
     virtual const char*  err_msg_exists() const
         { return "Connection already exists between endpoints"; }
 public:
     UniqueConnection(End *e1, End *e2);
+    virtual void  add_to_endpoints() = 0;
     void  finish_construction(); // virtual calls now working...
     virtual  ~UniqueConnection() {}
 };
 
-template <class End, class FinalConnection>
-Connection<End, FinalConnection>::Connection(End *e1, End *e2)
+template <class End>
+Connection<End>::Connection(End *e1, End *e2)
 {
     _end_points[0] = e1;
     _end_points[1] = e2;
 }
 
-template <class End, class FinalConnection>
+template <class End>
 void
-Connection<End, FinalConnection>::finish_construction()
+Connection<End>::finish_construction()
 {
     if (_end_points[0] == _end_points[1])
         throw std::invalid_argument(err_msg_loop());
     graphics_container()->set_gc_shape();
 }
 
-template <class End, class FinalConnection>
-UniqueConnection<End, FinalConnection>::UniqueConnection(End *e1, End *e2) :
-    Connection<End, FinalConnection>(e1, e2)
+template <class End>
+UniqueConnection<End>::UniqueConnection(End *e1, End *e2) :
+    Connection<End>(e1, e2)
 {
 }
 
-template <class End, class FinalConnection>
+template <class End>
 void
-UniqueConnection<End, FinalConnection>::finish_construction()
+UniqueConnection<End>::finish_construction()
 {
-    static_cast<Connection<End, FinalConnection> *>(this)->finish_construction();
+    static_cast<Connection<End> *>(this)->finish_construction();
     End* e1 = this->_end_points[0]; // "this->" necessary because compiler
     End* e2 = this->_end_points[1]; // doesn't automatically look in parents
     if (e1->connects_to(e2))
         throw std::invalid_argument(err_msg_exists());
-    e1->add_connection(dynamic_cast<FinalConnection *>(this));
-    e2->add_connection(static_cast<FinalConnection *>(this));
+    add_to_endpoints();
 }
 
-template <class End, class FinalConnection>
+template <class End>
 End *
-Connection<End, FinalConnection>::other_end(End *e) const
+Connection<End>::other_end(End *e) const
 {
     if (e == _end_points[0])
         return _end_points[1];

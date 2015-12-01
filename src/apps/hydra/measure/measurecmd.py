@@ -41,7 +41,7 @@ def measure_command(cmd_name, args, session):
     }
     perform_operation(cmd_name, args, ops, session)
 
-# Old measure command code from Chimera 1
+# Old measure command code from Chimera
 def old_measure_command(cmdname, args):
     from Commands import CommandError
 

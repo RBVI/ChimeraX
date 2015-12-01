@@ -64,8 +64,8 @@ class Render:
         # Maps scene to camera coordinates:
         self.current_view_matrix = None
         self._near_far_clip = (0,1)             # Scene coord distances from eye
-        self._clip_plane0 = None		# 4-tuple
-        self._clip_plane1 = None		# 4-tuple
+        self._clip_planes = []			# Up to 8 4-tuples
+        self._num_enabled_clip_planes = 0
 
         self.lighting = Lighting()
         self.material = Material()              # Currently a global material
@@ -118,7 +118,8 @@ class Render:
         # Enable only shader geometry, no colors or lighting.
         if depth_only:
             d = ~(self.SHADER_INSTANCING | self.SHADER_SHIFT_AND_SCALE |
-                  self.SHADER_TRANSPARENT_ONLY | self.SHADER_OPAQUE_ONLY)
+                  self.SHADER_TRANSPARENT_ONLY | self.SHADER_OPAQUE_ONLY |
+                  self.SHADER_CLIP_PLANES)
         else:
             d = 0
         self.disable_capabilities = d
@@ -148,9 +149,7 @@ class Render:
         if shader == self.current_shader_program:
             return
 
-        # print('changed shader', ', '.join(o for i, o in
-        #                                   enumerate(shader_options)
-        #                                   if shader.capabilities & (1 << i)))
+        # print('changed shader', ', '.join(shader_capability_names(shader.capabilities)))
         self.current_shader_program = shader
         c = shader.capabilities
         GL.glUseProgram(shader.program_id)
@@ -166,8 +165,9 @@ class Render:
                     shader.set_matrix("shadow_transform", self._shadow_transform)
             if self.SHADER_DEPTH_CUE & c:
                 self.set_depth_cue_parameters()
-        self.set_projection_matrix()
-        self.set_model_matrix()
+        if not (self.SHADER_TEXTURE_MASK & c or self.SHADER_DEPTH_OUTLINE & c):
+            self.set_projection_matrix()
+            self.set_model_matrix()
         if (self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_MASK & c
             or self.SHADER_DEPTH_OUTLINE & c):
             shader.set_integer("tex2d", 0)    # Texture unit 0.
@@ -226,7 +226,9 @@ class Render:
         else:
             self.current_projection_matrix = pm
         p = self.current_shader_program
-        if p is not None:
+        if (p is not None and 
+            not p.capabilities & self.SHADER_TEXTURE_MASK and
+            not p.capabilities & self.SHADER_DEPTH_OUTLINE):
             p.set_matrix('projection_matrix', pm)
 
     def set_view_matrix(self, vm):
@@ -260,7 +262,9 @@ class Render:
             self.current_model_view_matrix = mv4
 
         p = self.current_shader_program
-        if p is not None:
+        if (p is not None and
+            not p.capabilities & self.SHADER_TEXTURE_MASK and
+            not p.capabilities & self.SHADER_DEPTH_OUTLINE):
             p.set_matrix('model_view_matrix', mv4)
 #            if p.capabilities & self.SHADER_MULTISHADOW:
 #                m4 = self.current_model_matrix.opengl_matrix()
@@ -276,28 +280,29 @@ class Render:
         if p is not None and p.capabilities & self.SHADER_DEPTH_CUE:
             self.set_depth_cue_parameters()
 
-    def set_clip_parameters(self, clip_plane0 = None, clip_plane1 = None):
-        if clip_plane0 is not None:
-            self._clip_plane0 = clip_plane0
-        if clip_plane1 is not None:
-            self._clip_plane1 = clip_plane1
+    def set_clip_parameters(self, clip_planes = None):
+        if clip_planes is not None:
+            self._clip_planes = clip_planes
 
         p = self.current_shader_program
         if p is None:
             return
 
         m = self.current_model_matrix
-        cp0, cp1 = self._clip_plane0, self._clip_plane1
-        if (self.SHADER_CLIP_PLANES & p.capabilities and
-            m is not None and cp0 is not None and cp1 is not None):
+        cp = self._clip_planes
+        if self.SHADER_CLIP_PLANES & p.capabilities and m is not None and cp:
             p.set_matrix('model_matrix', m.opengl_matrix())
-            GL.glEnable(GL.GL_CLIP_DISTANCE0)
-            p.set_float4('clip_plane0', cp0)
-            GL.glEnable(GL.GL_CLIP_DISTANCE1)
-            p.set_float4('clip_plane1', cp1)
+            p.set_integer('num_clip_planes', len(cp))
+            p.set_float4('clip_planes', cp, len(cp))
+            for i in range(len(cp)):
+                GL.glEnable(GL.GL_CLIP_DISTANCE0 + i)
+            for i in range(len(cp), self._num_enabled_clip_planes):
+                GL.glDisable(GL.GL_CLIP_DISTANCE0 + i)
+            self._num_enabled_clip_planes = len(cp)
         else:
-            GL.glDisable(GL.GL_CLIP_DISTANCE0)
-            GL.glDisable(GL.GL_CLIP_DISTANCE1)
+            for i in range(self._num_enabled_clip_planes):
+                GL.glDisable(GL.GL_CLIP_DISTANCE0 + i)
+            self._num_enabled_clip_planes = 0
 
     def set_frame_number(self, f=None):
         if f is None:
@@ -314,6 +319,8 @@ class Render:
 
         p = self.current_shader_program
         if p is None:
+            return
+        if not p.capabilities & self.SHADER_LIGHTING:
             return
 
         lp = self.lighting
@@ -781,7 +788,8 @@ class Render:
         GL.glDepthRange(min, max)
 
     def start_silhouette_drawing(self):
-        fb = self.silhouette_framebuffer(self.render_size())
+        alpha = self.current_framebuffer().alpha
+        fb = self.silhouette_framebuffer(self.render_size(), alpha)
         self.push_framebuffer(fb)
 
     def finish_silhouette_drawing(self, thickness, color, depth_jump,
@@ -791,23 +799,20 @@ class Render:
         self.draw_depth_outline(fb.depth_texture, thickness, color, depth_jump,
                                 perspective_near_far_ratio)
 
-    def silhouette_framebuffer(self, size=None):
+    def silhouette_framebuffer(self, size, alpha):
         sfb = self._silhouette_framebuffer
-        if size is None:
-            return sfb
-        if sfb and (size[0] != sfb.width or size[1] != sfb.height):
+        if sfb and (size[0] != sfb.width or size[1] != sfb.height or alpha != sfb.alpha):
             sfb.delete()
             sfb = None
         if sfb is None:
             dt = Texture()
             dt.initialize_depth(size, depth_compare_mode=False)
-            self._silhouette_framebuffer = sfb = Framebuffer(depth_texture=dt)
+            self._silhouette_framebuffer = sfb = Framebuffer(depth_texture=dt, alpha=alpha)
         return sfb
 
     def draw_depth_outline(self, depth_texture, thickness=1,
                            color=(0, 0, 0, 1), depth_jump=0.03,
                            perspective_near_far_ratio=1):
-
         # Render pixels with depth in depth_texture less than neighbor pixel
         # by at least depth_jump. The depth buffer is not used.
         tc = TextureWindow(self, self.SHADER_DEPTH_OUTLINE)
@@ -905,6 +910,10 @@ shader_options = (
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
 
+def shader_capability_names(capabilities_bit_mask):
+    return [name for i, name in enumerate(shader_options)
+            if capabilities_bit_mask & (1 << i)]
+
 
 class Framebuffer:
     '''
@@ -913,7 +922,8 @@ class Framebuffer:
     '''
     def __init__(self, width=None, height=None,
                  color=True, color_texture=None,
-                 depth=True, depth_texture=None):
+                 depth=True, depth_texture=None,
+                 alpha=False):
 
         if width is not None and height is not None:
             w, h = width, height
@@ -926,13 +936,14 @@ class Framebuffer:
 
         self.width = w
         self.height = h
+        self.alpha = alpha
         self.viewport = None if w is None else (0, 0, w, h)
 
         self.color_texture = color_texture
         if not color or color_texture or w is None:
             self.color_rb = None
         else:
-            self.color_rb = self.color_renderbuffer(w, h)
+            self.color_rb = self.color_renderbuffer(w, h, alpha)
         self.depth_texture = depth_texture
         if not depth or depth_texture or w is None:
             self.depth_rb = None
@@ -959,11 +970,12 @@ class Framebuffer:
         max_size = min(max_rb_size, max_tex_size)
         return width <= max_size and height <= max_size
 
-    def color_renderbuffer(self, width, height):
+    def color_renderbuffer(self, width, height, alpha = False):
 
         color_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, color_rb)
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_RGB8, width, height)
+        fmt = GL.GL_RGBA8 if alpha else GL.GL_RGB8
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, fmt, width, height)
         return color_rb
 
     def depth_renderbuffer(self, width, height):
@@ -1408,8 +1420,8 @@ class Shader:
     def set_rgba(self, name, color):
         GL.glUniform4fv(self.uniform_id(name), 1, color)
 
-    def set_float4(self, name, v4):
-        GL.glUniform4fv(self.uniform_id(name), 1, v4)
+    def set_float4(self, name, v4, count = 1):
+        GL.glUniform4fv(self.uniform_id(name), count, v4)
 
     def set_matrix(self, name, matrix):
         GL.glUniformMatrix4fv(self.uniform_id(name), 1, False, matrix)
@@ -1420,7 +1432,11 @@ class Shader:
             uid = uids[name]
         else:
             p = self.program_id
-            uids[name] = uid = GL.glGetUniformLocation(p, name.encode('utf-8'))
+            uid = GL.glGetUniformLocation(p, name.encode('utf-8'))
+            if uid == -1:
+                raise RuntimeError('Shader does not have uniform variable "%s"\n shader capabilities %s'
+                                   % (name, ', '.join(shader_capability_names(self.capabilities))))
+            uids[name] = uid
         return uid
 
     def compile_shader(self, capabilities, max_shadows):
@@ -1465,8 +1481,7 @@ class Shader:
         '''Private. Puts "#define" statements in shader program templates
         to specify shader capabilities.'''
         deflines = ['#define %s 1' % sopt.replace('SHADER_', 'USE_')
-                    for i, sopt in enumerate(shader_options)
-                    if capabilities & (1 << i)]
+                    for sopt in shader_capability_names(capabilities)]
         deflines.append('#define MAX_SHADOWS %d' % max_shadows)
         defs = '\n'.join(deflines)
         v = shader.find('#version')
@@ -1674,7 +1689,7 @@ class TextureWindow:
         self.vao = vao = Bindings()
         vao.activate()
 
-        p = render.shader(shader_options)
+        p = render.opengl_shader(shader_options)
         render.use_shader(p)
         vao.shader = p
 

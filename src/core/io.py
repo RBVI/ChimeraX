@@ -1,9 +1,9 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 """
-io: Manage file formats that can be opened and exported
-=======================================================
+io: Manage file formats that can be opened and saved
+=====================================================
 
-The io module keeps track of the functions that can open, fetch, and export
+The io module keeps track of the functions that can open, fetch, and save
 data in various formats.
 
 I/O sources and destinations are specified as filenames, and the appropriate
@@ -461,7 +461,7 @@ def print_file_types():
     categories = list(combine)
     categories.sort(key=str.casefold)
     print('Supported file types:')
-    print('  o = open, e = export')
+    print('  o = open, s = save')
     for k in categories:
         print("\n%s:" % k)
         names = combine[k]
@@ -469,7 +469,7 @@ def print_file_types():
         for format_name in names:
             info = _file_formats[format_name]
             o = 'o' if info.open_func else ' '
-            e = 'e' if info.export_func else ' '
+            e = 's' if info.export_func else ' '
             if info.extensions:
                 exts = ': ' + ', '.join(info.extensions)
             else:

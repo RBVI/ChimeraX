@@ -1,0 +1,119 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: save</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: save</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>save</b> [&nbsp;<b>image</b>&nbsp;] &nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<i>format</i>&nbsp;]
+[&nbsp;supersample&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
+[&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
+[&nbsp;<b>transparentBackground</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<!--
+sessions not ready for primetime yet, format session, suffix .cxs 
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<i>format</i>&nbsp;]
+</h3>
+-->
+<p>
+The command <b>save</b> saves an image to
+<i>filename</i>, which can be a pathname (including directory location).
+Eventually this command will also allow saving other kinds of files.
+See also:
+<a href="log.html"><b>log</b></a>,
+<a href="movie.html"><b>movie</b></a>
+</p><p>
+The <b>image</b> keyword is optional if an image format is specified
+with either the <i>filename</i> suffix or the <b>format</b> option:
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center"><b><i>format</i></b></td>
+<td align="center"><a name="suffix"><b><i>filename</i> suffix</b></a></td>
+<td align="center"><b>description</b></td>
+</tr><tr>
+<td align="center">png<br>(default)</td>
+<td align="center">.png</td>
+<td align="center">Portable Network Graphics</td>
+</tr><tr>
+<td align="center">tiff</td>
+<td align="center">.tif</td>
+<td align="center">Tagged Image File Format</td>
+</tr><tr>
+<td align="center">jpeg</td>
+<td align="center">.jpg</td>
+<td align="center">Joint Photographic Experts Group format</td>
+</tr><tr>
+<td align="center">gif</td>
+<td align="center">.gif</td>
+<td align="center">Graphics Interchange Format</td>
+</tr><tr>
+<td align="center">bmp</td>
+<td align="center">.bmp</td>
+<td align="center">bitmap</td>
+</tr><tr>
+<td align="center">ppm</td>
+<td align="center">.ppm</td>
+<td align="center">Portable PixMap</td>
+</tr></table>
+<p>
+If the format is specified separately, the
+appropriate suffix will be added to <i>filename</i>.
+</p><p>
+The image will be rendered offscreen.
+Images can be <a name="#supersampling"><b><i>supersampled</i></b></a>, 
+that is, initially generated at a higher resolution 
+and then sampled down to the final size. 
+The degree of supersampling <i>N</i> can be specified with the 
+<b>supersample</b> keyword; the default is <b>3</b>,
+meaning that the initial image will be 3 times larger in each dimension,
+with 9 times as many pixels, as the final result.
+A value of 1 corresponds to no supersampling.
+</p><p>
+The <b>quality</b> setting applies to JPEG format only, with values
+of <i>M</i> in the range 0&ndash;100 (default <b>95</b>).
+</p><p>
+The <b>width</b> and <b>height</b> values can be given in pixels.
+If neither is specified,
+the image will have the same pixel dimensions as the graphics window.
+If only one dimension is specified, the other will be set according to the
+graphics window aspect ratio; if both are specified but the image aspect
+ratio is not the same as the graphics window aspect ratio, the image
+contents will differ from what is shown in the window.
+</p><p>
+The <b>transparentBackground</b> option (default <b>false</b>)
+indicates whether to include opacity values (alpha) 
+in an output PNG or TIFF file. 
+With background transparency, the background
+will be completely invisible in the saved images.
+This facilitates combining the image 
+with different backgrounds in image-editing applications.
+(<b>Note:</b> TIFF images with background transparency may not be
+interpreted correctly by Adobe Photoshop.)
+Synonyms for true: True, 1. Synonyms for false: False, 0.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2015</address>
+</body></html>
