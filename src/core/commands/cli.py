@@ -2167,18 +2167,20 @@ def usage(name, no_aliases=False):
     if cmd.amount_parsed != len(cmd.current_text):
         raise ValueError('"%s" is not a command name' % name)
 
+    syntax = ''
+    arg_syntax = []
     ci = cmd._ci
-    if not ci:
-        syntax = ''
-    else:
+    if ci:
         syntax = cmd.command_name
         for arg_name in ci._required:
             type = ci._required[arg_name].name
-            syntax += ' %s (%s)' % (arg_name, type)
+            syntax += ' %s' % arg_name
+            arg_syntax.append('  %s: %s' % (arg_name, type))
         num_opt = 0
         for arg_name in ci._optional:
             type = ci._optional[arg_name].name
-            syntax += ' [_%s_' % type
+            syntax += ' [%s' % arg_name
+            arg_syntax.append('  %s: %s' % (arg_name, type))
             num_opt += 1
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
@@ -2190,6 +2192,9 @@ def usage(name, no_aliases=False):
             syntax += ' [%s _%s_]' % (arg_name, arg_type.name)
         if ci.synopsis:
             syntax += ' -- %s' % ci.synopsis
+
+    if arg_syntax:
+        syntax += '\n%s' % '\n'.join(arg_syntax)
 
     if cmd.word_info is not None and cmd.word_info.has_subcommands():
         name = cmd.command_name
@@ -2215,10 +2220,10 @@ def html_usage(name, no_aliases=False):
         raise ValueError('"%s" is not a command name' % name)
     from html import escape
 
+    syntax = ''
+    arg_syntax = []
     ci = cmd._ci
-    if not ci:
-        syntax = ''
-    else:
+    if ci:
         if cmd._ci.url is None:
             syntax = '<b>%s</b>' % escape(cmd.command_name)
         else:
@@ -2232,7 +2237,8 @@ def html_usage(name, no_aliases=False):
                 name = escape(arg_name)
             else:
                 name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
-            syntax += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
+            syntax += ' <i>%s</i>' % name
+            arg_syntax.append('<i>%s</i>: %s' % (name, escape(type)))
         num_opt = 0
         for arg_name in ci._optional:
             num_opt += 1
@@ -2243,7 +2249,8 @@ def html_usage(name, no_aliases=False):
                 name = escape(arg_name)
             else:
                 name = '<a href="%s">%s</a>' % (arg_type.url, escape(arg_name))
-            syntax += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
+            syntax += ' [<i>%s</i>' % name
+            arg_syntax.append('<i>%s</i>: %s' % (name, escape(type)))
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
             arg_type = ci._keyword[arg_name]
@@ -2256,8 +2263,9 @@ def html_usage(name, no_aliases=False):
                     type = '<a href="%s">%s</a>' % (arg_type.url, type)
                 type = ' ' + type
             syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(arg_name), type)
-        if ci.synopsis:
-            syntax = "<i>%s</i><br>%s" % (escape(ci.synopsis), syntax)
+
+    if arg_syntax:
+        syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
 
     if cmd.word_info is not None and cmd.word_info.has_subcommands():
         name = cmd.command_name

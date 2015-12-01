@@ -37,6 +37,7 @@ and their code location is described with the function descriptions.
 | `open`_ - Open data files
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
+| `position`_ - Set camera and model positions
 | `pwd`_ - Present working directory
 | `roll`_ - Rotate models
 | `run`_ - Run a user command string
@@ -201,6 +202,10 @@ pdbimages
 perframe
 ========
 .. autofunction:: chimera.core.commands.perframe.perframe
+
+position
+========
+.. autofunction:: chimera.core.commands.position.position
 
 pwd
 ===

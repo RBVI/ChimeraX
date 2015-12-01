@@ -40,6 +40,10 @@ def apply_to_list(func, args, nthread = None):
         in_queue.put(a)
     out_queue = Queue()
 
+    # Make print statements in threads not attempt display in GUI thread
+    # in log since this will cause crash.
+    redirect_stdout_stderr(True)
+
     # Create threads.
     for i in range(nthread):
         t = WorkThread(func, in_queue, out_queue)
@@ -49,6 +53,8 @@ def apply_to_list(func, args, nthread = None):
     # Wait until input queue is empty.
     in_queue.join()
 
+    redirect_stdout_stderr(False)
+
     results = []
     while not out_queue.empty():
         r = out_queue.get()
@@ -57,3 +63,33 @@ def apply_to_list(func, args, nthread = None):
         results.append(r)
 
     return results
+
+# Print statements in threads cannot display immediately in the GUI thread
+# without causing a crash. Keep the output and display after threads complete.
+def redirect_stdout_stderr(redirect):
+    import sys
+    if redirect:
+        class Output:
+            def __init__(self):
+                from queue import Queue
+                self._queue = Queue()
+            def write(self, s):
+                self._queue.put(s)
+            def flush(self):
+                return
+            def __str__(self):
+                q = self._queue
+                lines = ''.join(tuple(q.queue))
+                return lines
+
+        sys._keep_stdout = sys.stdout
+        sys.stdout = out = Output()
+        sys._keep_stderr = sys.stderr
+        sys.stderr = out
+    else:
+        out = sys.stdout
+        sys.stdout = sys._keep_stdout
+        sys.stderr = sys._keep_stderr
+        print(out)
+            
+        

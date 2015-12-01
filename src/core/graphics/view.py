@@ -631,12 +631,20 @@ class View:
 #        r.set_multishadow_transforms(mstf, None, msd)
         return mstf, msd      # Scene to shadow map texture coordinates
 
-    def drawing_bounds(self):
+    def drawing_bounds(self, clip=False):
         '''Return bounds of drawing, displayed part only.'''
         dm = self._drawing_manager
         b = dm.cached_drawing_bounds
         if b is None or self.check_for_drawing_change():
             dm.cached_drawing_bounds = b = self.drawing.bounds()
+        if clip:
+            planes = self.clip_planes.planes()
+            if planes:
+                # Clipping the bounding box does a poor giving tight bounds
+                # or even bounds centered on the visible objects.  But handling
+                # clip planes in bounds computations within models is more complex.
+                from ..geometry import clip_bounds
+                b = clip_bounds(b, [(p.plane_point, p.normal) for p in planes])
         return b
 
     def any_drawing_selected(self):

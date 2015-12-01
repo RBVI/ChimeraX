@@ -36,6 +36,14 @@ class Bounds:
         r = 0.5*sqrt((size*size).sum())
         return r
 
+    def box_corners(self):
+        (x0, y0, z0), (x1, y1, z1) = self.xyz_min, self.xyz_max
+        corners = ((x0, y0, z0), (x1, y0, z0), (x0, y1, z0), (x1, y1, z0),
+                   (x0, y0, z1), (x1, y0, z1), (x0, y1, z1), (x1, y1, z1))
+        from numpy import array, float32
+        c = array(corners, float32)
+        return c
+
 
 def point_bounds(xyz, placements=[]):
     '''
@@ -60,7 +68,7 @@ def point_bounds(xyz, placements=[]):
             xyz0[i, :], xyz1[i, :] = txyz.min(axis=0), txyz.max(axis=0)
         xyz_min, xyz_max = xyz0.min(axis=0), xyz1.max(axis=0)
     else:
-        xyz_min, xyz_max = xyz.min(axis=0), xyz.max(axis=0)
+        xyz_min, xyz_max = axyz.min(axis=0), axyz.max(axis=0)
 
     b = Bounds(xyz_min, xyz_max)
     return b
@@ -104,10 +112,7 @@ def copies_bounding_box(bounds, positions):
                    (xyz + outer(s, bounds.xyz_max)).max(axis=0))
     else:
         # TODO: Optimize instance matrix copies such as bond cylinders using C++.
-        (x0, y0, z0), (x1, y1, z1) = bounds.xyz_min, bounds.xyz_max
-        corners = ((x0, y0, z0), (x1, y0, z0), (x0, y1, z0), (x1, y1, z0),
-                   (x0, y0, z1), (x1, y0, z1), (x0, y1, z1), (x1, y1, z1))
-        b = union_bounds(point_bounds(p * corners) for p in positions)
+        b = union_bounds(point_bounds(p * bounds.box_corners()) for p in positions)
     return b
 
 def copy_tree_bounds(bounds, positions_list):
@@ -128,3 +133,25 @@ def sphere_bounds(centers, radii):
     from . import _geometry
     b = _geometry.sphere_bounds(centers, radii)
     return Bounds(b[0], b[1])
+
+def clip_bounds(b, planes):
+    '''Clip a bounding box using planes each given as a plane point and normal.'''
+    if len(planes) == 0:
+        return b
+    from . import inner_product
+    for p,n in planes:
+        points = []
+        corners = b.box_corners()
+        for c in corners:
+            if inner_product(c-p,n) >= 0:
+                points.append(c)
+        for i1,i2 in ((0,1),(1,3),(3,2),(2,0),
+                      (4,5),(5,7),(7,6),(6,4),
+                      (0,4),(1,5),(2,6),(3,7)):
+            c1, c2 = corners[i1], corners[i2]
+            f1, f2 = inner_product(c1-p,n), inner_product(c2-p,n)
+            if (f1 > 0 and f2 < 0) or (f1 < 0 and f2 > 0):
+                t = f1/(f1-f2)
+                points.append((1-t)*c1 + t*c2)
+        b = point_bounds(points)
+    return b

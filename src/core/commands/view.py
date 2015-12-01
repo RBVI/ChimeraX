@@ -2,8 +2,7 @@
 
 
 def view(session, objects=None, clip=True, cofr=True, show=None, frames=None,
-         name=None, list=False, delete=None, orient=False, info=False, position=None,
-         all=False, set_model_positions=None, initial_model_positions=None):
+         name=None, list=False, delete=None, orient=False, all=False):
     '''
     Move camera so the displayed models fill the graphics window.
     Also camera and model positions can be saved and restored.
@@ -33,37 +32,16 @@ def view(session, objects=None, clip=True, cofr=True, show=None, frames=None,
       Specifying the orient keyword moves the camera view point to
       look down the scene z axis with the x-axis horizontal and y-axis
       vertical.
-    info : bool
-      Report camera position and positions of moved models in formats
-      that can be used with the position and model_positions options.
-    position : Place
-      Set the camera position.
     all : bool
       Adjust camera to view all models if objects is None
-      even if name, show, list, delete, info, position, or model_positions
-      arguments are given.
-    set_model_positions : list of (Model, Place)
-      Set model positions.
-    initial_model_position : Models
-      Set model positions to no rotation, no shift.
+      even if name, show, list, or delete arguments are given.
     '''
     v = session.main_view
     if orient:
         v.initial_camera_view()
-    if position is not None:
-        v.camera.position = position
-    if set_model_positions is not None:
-        for m,p in set_model_positions:
-            m.position = p
-    if initial_model_positions is not None:
-        from ..geometry import Place
-        for m in initial_model_positions:
-            m.position = Place()
         
     if objects is None:
-        if all or (name is None and show is None and not list and
-                   delete is None and position is None and info is None and
-                   model_positions is None):
+        if all or (name is None and show is None and not list and delete is None):
             v.view_all()
             v.center_of_rotation_method = 'front center'
             cp = v.clip_planes
@@ -79,8 +57,6 @@ def view(session, objects=None, clip=True, cofr=True, show=None, frames=None,
         list_views(session)
     if delete is not None:
         delete_view(delete, session)
-    if info:
-        report_positions(session)
 
 def view_objects(objects, v, clip, cofr):
     if objects.empty():
@@ -286,41 +262,6 @@ def _close_transform(tf, tf_bounds, parent, max_rotation_angle = 0.01, max_shift
     tf_bounds.append((parent, tf, blist))
     return blist
 
-def report_positions(session):
-    c = session.main_view.camera
-    lines = ['camera position: %s' % _position_string(c.position)]
-    mmoved = [m for m in session.models.list() if not m.position.is_identity()]
-    if mmoved:
-        mpos = ','.join('#%s,%s' % (m.id_string(), _position_string(m.position)) for m in mmoved)
-        lines.append('model positions: %s\n' % mpos)
-    session.logger.info('\n'.join(lines))
-
-def _position_string(p):
-    return ','.join('%.5g' % x for x in tuple(p.matrix.flat))
-
-from . import Annotation
-class ModelPlacesArg(Annotation):
-    """Annotation for model id and positioning matrix as 12 floats."""
-    name = "model positions"
-
-    @staticmethod
-    def parse(text, session):
-        from . import cli
-        token, text, rest = cli.next_token(text)
-        fields = token.split(',')
-        if len(fields) % 13:
-            raise AnnotationError("Expected model id and 12 comma-separated numbers")
-        mp = []
-        while fields:
-            tm, mtext, mrest = cli.TopModelsArg.parse(fields[0], session)
-            if len(tm) == 0:
-                raise AnnotationError('No models specified by "%s"' % fields[0])
-            p = cli.PlaceArg.parse_place(fields[1:13])
-            for m in tm:
-                mp.append((m,p))
-            fields = fields[13:]
-        return mp, text, rest
-
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, NoArg, EmptyArg
     from . import StringArg, PositiveIntArg, Or, BoolArg, PlaceArg, ModelsArg
@@ -334,10 +275,6 @@ def register_command(session):
                  ('list', NoArg),
                  ('delete', StringArg),
                  ('orient', NoArg),
-                 ('info', NoArg),
-                 ('position', PlaceArg),
-                 ('all', NoArg),
-                 ('set_model_positions', ModelPlacesArg),
-                 ('initial_model_positions', ModelsArg)],
-        synopsis='reset view so everything is visible in window')
+                 ('all', NoArg)],
+        synopsis='adjust camera so everything is visible')
     register('view', desc, view)

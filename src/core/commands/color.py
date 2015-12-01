@@ -81,7 +81,8 @@ def color(session, objects, color=None, target=None, transparency=None,
 
     if 's' in target and color is not None:
         from ..atomic import MolecularSurface, concatenate
-        msatoms = [m.atoms for m in objects.models if isinstance(m, MolecularSurface)]
+        msatoms = [m.atoms for m in objects.models
+                   if isinstance(m, MolecularSurface) and not m.atoms.intersects(atoms)]
         satoms = concatenate(msatoms + [atoms]) if msatoms else atoms
         if color == "byhetero":
             satoms = satoms.filter(satoms.element_numbers != 6)
