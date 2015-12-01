@@ -522,7 +522,7 @@ class ClipMouseMode(MouseMode):
     def _planes(self, front_shift, back_shift):
         v = self.view
         p = v.clip_planes
-        pfname, pbname = (('p1','p2') if p.find_plane('p1') or p.find_plane('p2') or not p.planes() 
+        pfname, pbname = (('front','back') if p.find_plane('front') or p.find_plane('back') or not p.planes() 
                           else ('near','far'))
         
         pf, pb = p.find_plane(pfname), p.find_plane(pbname)
@@ -534,20 +534,20 @@ class ClipMouseMode(MouseMode):
             b = v.drawing_bounds()
             if pb:
                 offset = -1 if b is None else -0.2*b.radius()
-                pf = adjust_plane(pfname, offset, pb.plane_point, -pb.normal, p, c, cfn)
+                pf = adjust_plane(pfname, offset, pb.plane_point, -pb.normal, p, v, cfn)
             elif b:
                 normal = v.camera.view_direction()
                 offset = 0
-                pf = adjust_plane(pfname, offset, b.center(), normal, p, c, cfn)
+                pf = adjust_plane(pfname, offset, b.center(), normal, p, v, cfn)
 
         if back_shift and pb is None:
             b = v.drawing_bounds()
             offset = -1 if b is None else -0.2*b.radius()
             if pf:
-                pb = adjust_plane(pbname, offset, pf.plane_point, -pf.normal, p, c, cbn)
+                pb = adjust_plane(pbname, offset, pf.plane_point, -pf.normal, p, v, cbn)
             elif b:
                 normal = -v.camera.view_direction()
-                pb = adjust_plane(pbname, offset, b.center(), normal, p, c, cbn)
+                pb = adjust_plane(pbname, offset, b.center(), normal, p, v, cbn)
 
         return pf, pb
 
@@ -610,15 +610,15 @@ class ClipRotateMouseMode(MouseMode):
             if pn is None and pf is None:
                 # Create clip plane since none are enabled.
                 b = v.drawing_bounds()
-                p = adjust_plane('p1', 0, b.center(), v.camera.view_direction(), cp)
+                p = adjust_plane('front', 0, b.center(), v.camera.view_direction(), cp)
                 rplanes = [p]
             else:
                 # Convert near/far clip planes to scene planes.
                 if pn:
-                    rplanes.append(adjust_plane('p1', 0, pn.plane_point, pn.normal, cp))
+                    rplanes.append(adjust_plane('front', 0, pn.plane_point, pn.normal, cp))
                     cp.remove_plane('near')
                 if pf:
-                    rplanes.append(adjust_plane('p2', 0, pf.plane_point, pf.normal, cp))
+                    rplanes.append(adjust_plane('back', 0, pf.plane_point, pf.normal, cp))
                     cp.remove_plane('far')
         return rplanes
 
