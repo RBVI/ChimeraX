@@ -203,6 +203,10 @@ perframe
 ========
 .. autofunction:: chimera.core.commands.perframe.perframe
 
+position
+========
+.. autofunction:: chimera.core.commands.position.position
+
 pwd
 ===
 .. autofunction:: chimera.core.commands.pwd.pwd
