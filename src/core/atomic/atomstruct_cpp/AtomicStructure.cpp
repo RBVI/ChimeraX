@@ -1163,15 +1163,36 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         b->session_save(&bond_ints, &bond_floats);
     }
 
-#if 0
     // coord sets
-    int num_ints = 1; // to note the totol # of coord sets
-    int num_floats = 0;
+    int num_cs = coord_sets().size();
+    num_ints = 1 + num_cs; // to note the total # of coord sets, and coord set IDs
+    num_floats = 0;
     for (auto cs: _coord_sets) {
         num_ints += cs->session_num_ints();
         num_floats += cs->session_num_floats();
     }
+    PyObject* cs_misc = PyList_New(0);
+    if (cs_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for coord set misc info");
+    if (PyList_Append(misc, cs_misc) < 0)
+        throw std::runtime_error("Couldn't append coord set misc list to misc list");
+    int* cs_ints;
+    PyObject* cs_npy_ints = python_int_array(num_ints, &cs_ints);
+    *cs_ints++ = num_cs;
+    for (auto cs: coord_sets()) {
+        *cs_ints++ = cs->id();
+    }
+    if (PyList_Append(ints, cs_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append coord set ints to int list");
+    float* cs_floats;
+    PyObject* cs_npy_floats = python_float_array(num_floats, &cs_floats);
+    if (PyList_Append(floats, cs_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append coord set floats to float list");
+    for (auto cs: coord_sets()) {
+        cs->session_save(&cs_ints, &cs_floats);
+    }
 
+#if 0
     // PseudobondManager groups;
     // main version number needs to go up when manager's
     // version number goes up, so check it
