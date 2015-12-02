@@ -135,10 +135,33 @@ CS_PBGroup::pseudobonds() const
     return pseudobonds(_structure->active_coord_set());
 }
 
+void
+StructurePBGroupBase::session_note_pb_ctor_info(Pseudobond* pb, int** ints) const
+{
+    auto int_ptr = *ints;
+    for (auto a: pb->atoms()) {
+        auto s = a->structure();
+        if (s == nullptr) {
+            // note structure info
+            auto ss_map = manager()->ses_struct_map();
+            int s_id;
+            if (ss_map->find(s) == ss_map->end()) {
+                s_id = ss_map->size();
+                (*ss_map)[s] = s_id;
+            } else {
+                s_id = (*ss_map)[s];
+            }
+            int_ptr[0] = s_id;
+            int_ptr++;
+        }
+        int_ptr[0] = (*(s->session_save_atoms))[a];
+        int_ptr++;
+    }
+}
+
 int
 CS_PBGroup::session_num_floats() const {
-    int num_floats = SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats()
-        + pseudobonds().size(); // that last is for references to coord sets
+    int num_floats = SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats();
     for (auto crdset_pbs: _pbonds) {
         num_floats += crdset_pbs.second.size() * Pseudobond::session_num_floats();
     }
@@ -156,19 +179,23 @@ CS_PBGroup::session_num_ints() const {
     int num_ints = SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
         + pseudobonds().size(); // that last is for references to coord sets
     for (auto crdset_pbs: _pbonds) {
-        num_ints += crdset_pbs.second.size() * Pseudobond::session_num_ints();
+        // the +2 in the next line is for the atom IDs
+        num_ints += crdset_pbs.second.size() * (Pseudobond::session_num_ints() + 2);
     }
     return num_ints;
 }
 
 int
 StructurePBGroup::session_num_ints() const {
-    return SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
-        + pseudobonds().size() * Pseudobond::session_num_ints();
+    int num_ints = SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
+        + pseudobonds().size() * (Pseudobond::session_num_ints() + 2); // +2 for the atom IDs
+    if (structure() == nullptr) // will need to remember the structure IDs too
+        num_ints += pseudobonds().size() * 2;
+    return num_ints;
 }
 
 void
-Group::session_save(int** ints, float** floats, PyObject*) const
+Group::session_save(int** ints, float** floats) const
 {
     _default_color.session_save(ints, floats);
     auto int_ptr = *ints;
@@ -177,26 +204,29 @@ Group::session_save(int** ints, float** floats, PyObject*) const
 }
 
 void
-CS_PBGroup::session_save(int** ints, float** floats, PyObject* misc) const
+CS_PBGroup::session_save(int** ints, float** floats) const
 {
-    StructurePBGroupBase::session_save(ints, floats, misc);
+    StructurePBGroupBase::session_save(ints, floats);
     for (auto cs_pbs: _pbonds) {
         auto cs = cs_pbs.first;
         auto pbs = cs_pbs.second;
         auto int_ptr = *ints;
         int_ptr[0] = (*structure()->session_save_crdsets)[cs];
         int_ptr += 1;
-        for (auto pb: pbs)
-            pb->session_save(ints, floats, misc);
+        for (auto pb: pbs) {
+            session_note_pb_ctor_info(pb, ints);
+            pb->session_save(ints, floats);
+        }
     }
 }
 
 void
-StructurePBGroup::session_save(int** ints, float** floats, PyObject* misc) const
+StructurePBGroup::session_save(int** ints, float** floats) const
 {
-    StructurePBGroupBase::session_save(ints, floats, misc);
+    StructurePBGroupBase::session_save(ints, floats);
     for (auto pb: pseudobonds()) {
-        pb->session_save(ints, floats, misc);
+        session_note_pb_ctor_info(pb, ints);
+        pb->session_save(ints, floats);
     }
 }
 
