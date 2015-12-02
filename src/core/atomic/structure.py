@@ -132,7 +132,7 @@ class AtomicStructure(AtomicStructureData, Model):
         as_version = self.session_info(ints, floats, misc)
         print("{} ints, {} floats, {} misc".format(len(ints), len(floats), len(misc)))
         if len(ints) == len(floats) == len(misc):
-            classes = ["AtomicStricture", "Atom", "Bond", "CoordSet", "PBManager", "Residue", "Chain", "Ring"]
+            classes = ["AtomicStructure", "Atom", "Bond", "CoordSet", "PBManager", "Residue", "Chain", "Ring"]
             for i in range(len(ints)):
                 print("# ints for {}: {}".format(classes[i], len(ints[i])))
                 print("# floats for {}: {}".format(classes[i], len(floats[i])))

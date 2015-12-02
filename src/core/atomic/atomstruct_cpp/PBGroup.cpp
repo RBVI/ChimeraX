@@ -136,39 +136,39 @@ CS_PBGroup::pseudobonds() const
 }
 
 int
-CS_PBGroup::session_num_floats(bool global) const {
+CS_PBGroup::session_num_floats() const {
     int num_floats = SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats()
         + pseudobonds().size(); // that last is for references to coord sets
     for (auto crdset_pbs: _pbonds) {
-        num_floats += crdset_pbs.second.size() * Pseudobond::session_num_floats(global);
+        num_floats += crdset_pbs.second.size() * Pseudobond::session_num_floats();
     }
     return num_floats;
 }
 
 int
-StructurePBGroup::session_num_floats(bool global) const {
+StructurePBGroup::session_num_floats() const {
     return SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats()
-        + pseudobonds().size() * Pseudobond::session_num_floats(global);
+        + pseudobonds().size() * Pseudobond::session_num_floats();
 }
 
 int
-CS_PBGroup::session_num_ints(bool global) const {
+CS_PBGroup::session_num_ints() const {
     int num_ints = SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
         + pseudobonds().size(); // that last is for references to coord sets
     for (auto crdset_pbs: _pbonds) {
-        num_ints += crdset_pbs.second.size() * Pseudobond::session_num_ints(global);
+        num_ints += crdset_pbs.second.size() * Pseudobond::session_num_ints();
     }
     return num_ints;
 }
 
 int
-StructurePBGroup::session_num_ints(bool global) const {
+StructurePBGroup::session_num_ints() const {
     return SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
-        + pseudobonds().size() * Pseudobond::session_num_ints(global);
+        + pseudobonds().size() * Pseudobond::session_num_ints();
 }
 
 void
-Group::session_save(int** ints, float** floats, PyObject* , bool /*global*/) const
+Group::session_save(int** ints, float** floats, PyObject*) const
 {
     _default_color.session_save(ints, floats);
     auto int_ptr = *ints;
@@ -177,9 +177,9 @@ Group::session_save(int** ints, float** floats, PyObject* , bool /*global*/) con
 }
 
 void
-CS_PBGroup::session_save(int** ints, float** floats, PyObject* misc, bool global) const
+CS_PBGroup::session_save(int** ints, float** floats, PyObject* misc) const
 {
-    StructurePBGroupBase::session_save(ints, floats, misc, global);
+    StructurePBGroupBase::session_save(ints, floats, misc);
     for (auto cs_pbs: _pbonds) {
         auto cs = cs_pbs.first;
         auto pbs = cs_pbs.second;
@@ -187,16 +187,16 @@ CS_PBGroup::session_save(int** ints, float** floats, PyObject* misc, bool global
         int_ptr[0] = (*structure()->session_save_crdsets)[cs];
         int_ptr += 1;
         for (auto pb: pbs)
-            pb->session_save(ints, floats, misc, global);
+            pb->session_save(ints, floats, misc);
     }
 }
 
 void
-StructurePBGroup::session_save(int** ints, float** floats, PyObject* misc, bool global) const
+StructurePBGroup::session_save(int** ints, float** floats, PyObject* misc) const
 {
-    StructurePBGroupBase::session_save(ints, floats, misc, global);
+    StructurePBGroupBase::session_save(ints, floats, misc);
     for (auto pb: pseudobonds()) {
-        pb->session_save(ints, floats, misc, global);
+        pb->session_save(ints, floats, misc);
     }
 }
 

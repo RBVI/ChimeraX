@@ -1087,7 +1087,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     PyList_SET_ITEM(attr_list, 3, map);
 
     // atoms
-    // We need to remember names and elments ourself for constructing the atoms.
+    // We need to remember names and elements ourself for constructing the atoms.
     // Make a list of num_atom+1 items, the first of which will be the list of
     //   names and the remainder of which will be empty lists which will be handed
     //   off individually to the atoms.
@@ -1132,6 +1132,35 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
             throw std::runtime_error("Cannot create Python list for individual atom misc info");
         PyList_SET_ITEM(atoms_misc, i++, empty_list);
         a->session_save(&atom_ints, &atom_floats, empty_list);
+    }
+
+    // bonds
+    // We need to remember atom indices ourself for constructing the bonds.
+    int num_bonds = bonds().size();
+    num_ints = 1 + 2 * num_bonds; // to hold the # of bonds, and atom indices
+    num_floats = 0;
+    num_ints += num_bonds * Bond::session_num_ints();
+    num_floats += num_bonds * Bond::session_num_floats();
+    PyObject* bonds_misc = PyList_New(0);
+    if (bonds_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for bond misc info");
+    if (PyList_Append(misc, bonds_misc) < 0)
+        throw std::runtime_error("Couldn't append bond misc list to misc list");
+    int* bond_ints;
+    PyObject* bond_npy_ints = python_int_array(num_ints, &bond_ints);
+    *bond_ints++ = num_bonds;
+    for (auto b: bonds()) {
+        *bond_ints++ = (*session_save_atoms)[b->atoms()[0]];
+        *bond_ints++ = (*session_save_atoms)[b->atoms()[1]];
+    }
+    if (PyList_Append(ints, bond_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append bond ints to int list");
+    float* bond_floats;
+    PyObject* bond_npy_floats = python_float_array(num_floats, &bond_floats);
+    if (PyList_Append(floats, bond_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append bond floats to float list");
+    for (auto b: bonds()) {
+        b->session_save(&bond_ints, &bond_floats);
     }
 
 #if 0

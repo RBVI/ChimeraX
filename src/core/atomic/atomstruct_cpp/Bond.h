@@ -24,6 +24,8 @@ public:
     typedef End_points  Atoms;
     typedef std::vector<const Ring*>  Rings;
 
+    static const int  SESSION_NUM_INTS = 0;
+    static const int  SESSION_NUM_FLOATS = 0;
 private:
     Bond(AtomicStructure *, Atom *, Atom *);
     void  add_to_endpoints() { atoms()[0]->add_bond(this); atoms()[1]->add_bond(this); }
@@ -52,7 +54,13 @@ public:
     // sqlength() inherited from UniqueConnection
 
     // session related
-    void session_note_atoms(int** ints) const;
+    static int  session_num_floats() {
+        return SESSION_NUM_FLOATS + UniqueConnection<Atom>::session_num_floats();
+    }
+    static int  session_num_ints() {
+        return SESSION_NUM_INTS + UniqueConnection<Atom>::session_num_ints();
+    }
+    // session_save simply inherited from UniqueConnection
 
     // change tracking
     ChangeTracker*  change_tracker() const;

@@ -51,17 +51,13 @@ public:
     }
 
     // session related
-    virtual void  session_note_atoms(int** ints) const = 0;
-    virtual void  session_note_structures(int** ) const {}
-    static int  session_num_floats(bool /*global*/ = false) {
+    static int  session_num_floats() {
         return SESSION_NUM_FLOATS + Rgba::session_num_floats();
     }
-    static int  session_num_ints(bool global = false) {
-        return SESSION_NUM_INTS + Rgba::session_num_ints() + (global ? 2 : 0);
+    static int  session_num_ints() {
+        return SESSION_NUM_INTS + Rgba::session_num_ints();
     }
-    void  session_save(int** ints, float** floats, bool global = false) const {
-        if (global) session_note_structures(ints);
-        session_note_atoms(ints);
+    void  session_save(int** ints, float** floats) const {
         _rgba.session_save(ints, floats);
         auto int_ptr = *ints;
         int_ptr[0] = _display;
