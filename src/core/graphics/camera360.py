@@ -212,9 +212,11 @@ def _cube_map_framebuffer(size):
 def _project_cubemap(cubemap_texture, projection_drawing, render):
     dc = render.disable_capabilities
     render.disable_capabilities |= render.SHADER_STEREO_360
-    projection_drawing.texture = cubemap_texture
+    d = projection_drawing
+    d.texture = cubemap_texture
+    d.opaque_texture = True
     from .drawing import draw_overlays
-    draw_overlays([projection_drawing], render)
+    draw_overlays([d], render)
     render.disable_capabilities = dc
 
 def _adjust_light_directions(render, rotation = None):
