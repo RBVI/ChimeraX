@@ -1087,7 +1087,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     PyList_SET_ITEM(attr_list, 3, map);
 
     // atoms
-    // We need to remember names and elments ourself for constructing the atoms.
+    // We need to remember names and elements ourself for constructing the atoms.
     // Make a list of num_atom+1 items, the first of which will be the list of
     //   names and the remainder of which will be empty lists which will be handed
     //   off individually to the atoms.
@@ -1119,8 +1119,12 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     for (auto a: atoms()) {
         *atom_ints++ = a->element().number();
     }
+    if (PyList_Append(ints, atom_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append atom ints to int list");
     float* atom_floats;
-    atom_npy_ints = python_float_array(1, &atom_floats);
+    PyObject* atom_npy_floats = python_float_array(num_floats, &atom_floats);
+    if (PyList_Append(floats, atom_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append atom floats to float list");
     i = 1;
     for (auto a: atoms()) {
         PyObject* empty_list = PyList_New(0);
@@ -1130,22 +1134,72 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         a->session_save(&atom_ints, &atom_floats, empty_list);
     }
 
-#if 0
+    // bonds
+    // We need to remember atom indices ourself for constructing the bonds.
+    int num_bonds = bonds().size();
+    num_ints = 1 + 2 * num_bonds; // to hold the # of bonds, and atom indices
+    num_floats = 0;
+    num_ints += num_bonds * Bond::session_num_ints();
+    num_floats += num_bonds * Bond::session_num_floats();
+    PyObject* bonds_misc = PyList_New(0);
+    if (bonds_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for bond misc info");
+    if (PyList_Append(misc, bonds_misc) < 0)
+        throw std::runtime_error("Couldn't append bond misc list to misc list");
+    int* bond_ints;
+    PyObject* bond_npy_ints = python_int_array(num_ints, &bond_ints);
+    *bond_ints++ = num_bonds;
+    for (auto b: bonds()) {
+        *bond_ints++ = (*session_save_atoms)[b->atoms()[0]];
+        *bond_ints++ = (*session_save_atoms)[b->atoms()[1]];
+    }
+    if (PyList_Append(ints, bond_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append bond ints to int list");
+    float* bond_floats;
+    PyObject* bond_npy_floats = python_float_array(num_floats, &bond_floats);
+    if (PyList_Append(floats, bond_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append bond floats to float list");
+    for (auto b: bonds()) {
+        b->session_save(&bond_ints, &bond_floats);
+    }
+
     // coord sets
-    int num_ints = 1; // to note the totol # of coord sets
-    int num_floats = 0;
+    int num_cs = coord_sets().size();
+    num_ints = 1 + num_cs; // to note the total # of coord sets, and coord set IDs
+    num_floats = 0;
     for (auto cs: _coord_sets) {
         num_ints += cs->session_num_ints();
         num_floats += cs->session_num_floats();
     }
-#endif
+    PyObject* cs_misc = PyList_New(0);
+    if (cs_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for coord set misc info");
+    if (PyList_Append(misc, cs_misc) < 0)
+        throw std::runtime_error("Couldn't append coord set misc list to misc list");
+    int* cs_ints;
+    PyObject* cs_npy_ints = python_int_array(num_ints, &cs_ints);
+    *cs_ints++ = num_cs;
+    for (auto cs: coord_sets()) {
+        *cs_ints++ = cs->id();
+    }
+    if (PyList_Append(ints, cs_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append coord set ints to int list");
+    float* cs_floats;
+    PyObject* cs_npy_floats = python_float_array(num_floats, &cs_floats);
+    if (PyList_Append(floats, cs_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append coord set floats to float list");
+    for (auto cs: coord_sets()) {
+        cs->session_save(&cs_ints, &cs_floats);
+    }
 
+#if 0
     // PseudobondManager groups;
     // main version number needs to go up when manager's
     // version number goes up, so check it
     if (_pb_mgr.session_info(ints, floats, misc) != 1) {
         throw std::runtime_error("Unexpected version number from pseudobond manager");
     }
+#endif
 
     return 1;  // version number
 }

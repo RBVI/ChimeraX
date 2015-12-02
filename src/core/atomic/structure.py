@@ -130,6 +130,13 @@ class AtomicStructure(AtomicStructureData, Model):
         floats = []
         misc = []
         as_version = self.session_info(ints, floats, misc)
+        print("{} ints, {} floats, {} misc".format(len(ints), len(floats), len(misc)))
+        if len(ints) == len(floats) == len(misc):
+            classes = ["AtomicStructure", "Atom", "Bond", "CoordSet", "PBManager", "Residue", "Chain", "Ring"]
+            for i in range(len(ints)):
+                print("# ints for {}: {}".format(classes[i], len(ints[i])))
+                print("# floats for {}: {}".format(classes[i], len(floats[i])))
+                print("# misc for {}: {}".format(classes[i], len(misc[i])))
         return CORE_STATE_VERSION, [
             Model.take_snapshot(self, session, flags),
             (as_version, ints, floats, misc)

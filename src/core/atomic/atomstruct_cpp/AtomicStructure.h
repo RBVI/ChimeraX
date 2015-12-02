@@ -109,16 +109,16 @@ public:
     AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure();
 
-    CoordSet *  active_coord_set() const { return _active_coord_set; };
+    CoordSet*  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
-    const Atoms &    atoms() const { return nodes(); }
+    const Atoms&    atoms() const { return nodes(); }
     // ball_scale() inherited from Graph
     std::map<Residue *, char>  best_alt_locs() const;
     void  bonded_groups(std::vector<std::vector<Atom*>>* groups,
         bool consider_missing_structure) const;
-    const Bonds &    bonds() const { return edges(); }
-    const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
-    const CoordSets &  coord_sets() const { return _coord_sets; }
+    const Bonds&    bonds() const { return edges(); }
+    const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
+    const CoordSets&  coord_sets() const { return _coord_sets; }
     AtomicStructure*  copy() const;
     void  delete_atom(Atom* a);
     void  delete_atoms(std::vector<Atom*> atoms);
@@ -128,9 +128,9 @@ public:
     void  extend_input_seq_info(ChainID& chain_id, ResName& res_name) {
         _input_seq_info[chain_id].push_back(res_name);
     }
-    CoordSet *  find_coord_set(int) const;
-    Residue *  find_residue(const ChainID& chain_id, int pos, char insert) const;
-    Residue *  find_residue(const ChainID& chain_id, int pos, char insert,
+    CoordSet*  find_coord_set(int) const;
+    Residue*  find_residue(const ChainID& chain_id, int pos, char insert) const;
+    Residue*  find_residue(const ChainID& chain_id, int pos, char insert,
         ResName& name) const;
     const InputSeqInfo&  input_seq_info() const { return _input_seq_info; }
     std::string  input_seq_source;
@@ -140,12 +140,12 @@ public:
     void  make_chains() const;
     std::map<std::string, std::vector<std::string>> metadata;
     const std::string&  name() const { return _name; }
-    Atom *  new_atom(const char* name, const Element& e);
-    Bond *  new_bond(Atom *, Atom *);
-    CoordSet *  new_coord_set();
-    CoordSet *  new_coord_set(int index);
-    CoordSet *  new_coord_set(int index, int size);
-    Residue *  new_residue(const ResName& name, const ChainID& chain,
+    Atom*  new_atom(const char* name, const Element& e);
+    Bond*  new_bond(Atom *, Atom *);
+    CoordSet*  new_coord_set();
+    CoordSet*  new_coord_set(int index);
+    CoordSet*  new_coord_set(int index, int size);
+    Residue*  new_residue(const ResName& name, const ChainID& chain,
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
     size_t  num_atoms() const { return atoms().size(); }
     size_t  num_bonds() const { return bonds().size(); }
@@ -158,7 +158,7 @@ public:
     std::vector<Chain::Residues>  polymers(
         bool consider_missing_structure = true,
         bool consider_chain_ids = true) const;
-    const Residues &  residues() const { return _residues; }
+    const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
         std::set<const Residue *>* ignore = nullptr) const;

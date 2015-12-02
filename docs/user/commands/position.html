@@ -1,0 +1,72 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: position</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: position</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>position</b> 
+[&nbsp;<b>camera</b>&nbsp;&nbsp;<i>matrix<sub><font size="-1">C</font></sub></i></a>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<i>#N,matrix<sub><font size="-1">N</font></sub>,#M,matrix<sub><font size="-1">M</font></sub>,</i>&nbsp;...&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>position</b> 
+&nbsp;<b>initial</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+</h3>
+<p>
+The <b>position</b> command sets the location and orientation of the camera 
+(thus the global scene), and of individual models relative to the scene,
+according to input rotation-translation matrices.
+Without arguments, <b>position</b> reports the current positions in the 
+<b>Log</b> in the same matrix format used as input.
+See also: 
+<a href="view.html"><b>view</b></a>,
+<b>camera</b>
+</p><p>
+Without arguments, <b>position</b> reports
+the current rotation/translation of the camera and of each model
+relative to the global scene. Each position is reported as
+12 comma-separated numbers, corresponding to a 3x3 rotation matrix and
+a translation vector in the fourth column. Ordering is row-by-row,
+such that the translation vector is given as the fourth, eighth, and twelfth
+numbers.
+The same format of each <i>matrix</i> as 12 comma-separated numbers is required 
+to set the position of the <b>camera</b> and/or individually specified 
+<b>models</b> <i>#N</i>, <i>#M</i>, <i>etc.</i>
+The numbers should be separated by commas only (no spaces).
+</p><p>
+The <b>initial</b> option can be used to remove any rotation and translation 
+of the specified models relative to the global scene.
+The unrotated orientation of the scene can be restored by using
+<a href="view.html"><b>view</b></a> with its <b>orient</b> option.
+</p><p>
+The following examples are equivalent:
+</p>
+<blockquote>
+<b>position mod #1,1,0,0,0,0,1,0,0,0,0,1,0</b>
+<br>
+<b>pos init #1</b>
+</blockquote>
+<p>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+December 2015</address>
+</body></html>

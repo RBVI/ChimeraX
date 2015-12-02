@@ -45,6 +45,39 @@ CoordSet::get_occupancy(const Atom *a) const
 }
 
 void
+CoordSet::session_save(int** ints, float** floats) const
+{
+    auto int_ptr = *ints;
+    auto float_ptr = *floats;
+    auto atom_map = *structure()->session_save_atoms;
+
+    int_ptr[0] = _bfactor_map.size();
+    int_ptr++;
+    for (auto atom_bf : _bfactor_map) {
+        int_ptr[0] = atom_map[atom_bf.first];
+        float_ptr[0]  = atom_bf.second;
+        int_ptr++; float_ptr++;
+    }
+
+    int_ptr[0] = _occupancy_map.size();
+    int_ptr++;
+    for (auto atom_occ : _occupancy_map) {
+        int_ptr[0] = atom_map[atom_occ.first];
+        float_ptr[0]  = atom_occ.second;
+        int_ptr++; float_ptr++;
+    }
+
+    int_ptr[0] = _coords.size();
+    int_ptr++;
+    for (auto crd: _coords) {
+        float_ptr[0] = crd[0];
+        float_ptr[1] = crd[1];
+        float_ptr[2] = crd[2];
+        float_ptr += 3;
+    }
+}
+
+void
 CoordSet::set_bfactor(const Atom *a, float val)
 {
     _bfactor_map.insert(std::pair<const Atom *, float>(a, val));

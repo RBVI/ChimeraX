@@ -32,6 +32,7 @@ using basegeom::ChangeTracker;
 using basegeom::Graph;
 using basegeom::GraphicsContainer;
 using basegeom::Point;
+using basegeom::Rgba;
 using element::Element;
 
 class AtomicStructure;
@@ -58,8 +59,8 @@ public:
     typedef std::vector<const Ring*>  Rings;
     enum class StructCat { Unassigned, Main, Ligand, Ions, Solvent };
 
-    const int  SESSION_NUM_INTS = 6;
-    const int  SESSION_NUM_FLOATS = 0;
+    const int  SESSION_NUM_INTS = 10;
+    const int  SESSION_NUM_FLOATS = 1;
     const int  SESSION_ALTLOC_INTS = 3;
     const int  SESSION_ALTLOC_FLOATS = 5;
 private:
@@ -127,7 +128,8 @@ public:
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
     int  session_num_ints() const {
-        return SESSION_NUM_INTS + _alt_loc_map.size() * SESSION_ALTLOC_INTS;
+        return SESSION_NUM_INTS + Rgba::session_num_ints()
+            + _alt_loc_map.size() * SESSION_ALTLOC_INTS;
     }
     int  session_num_floats() const;
     void  session_save(int** ints, float** floats, PyObject* misc) const;

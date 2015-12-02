@@ -850,7 +850,8 @@ Atom::rings(bool cross_residues, int all_size_threshold,
 int
 Atom::session_num_floats() const
 {
-    int num_floats = SESSION_NUM_FLOATS + _alt_loc_map.size() * SESSION_ALTLOC_FLOATS +
+    int num_floats = SESSION_NUM_FLOATS + Rgba::session_num_floats()
+        + _alt_loc_map.size() * SESSION_ALTLOC_FLOATS +
         (_aniso_u == nullptr ? 0 : _aniso_u->size());
     for (auto altloc_info : _alt_loc_map) {
         auto& info = altloc_info.second;
@@ -863,6 +864,7 @@ Atom::session_num_floats() const
 void
 Atom::session_save(int** ints, float** floats, PyObject* misc) const
 {
+    color().session_save(ints, floats);
     auto int_ptr = *ints;
     int_ptr[0] = _alt_loc;
     int_ptr[1] = _alt_loc_map.size();
@@ -870,9 +872,14 @@ Atom::session_save(int** ints, float** floats, PyObject* misc) const
     int_ptr[3] = _coord_index;
     int_ptr[4] = _serial_number;
     int_ptr[5] = (int)_structure_category;
+    int_ptr[6] = (int)draw_mode();
+    int_ptr[7] = (int)display();
+    int_ptr[8] = (int)hide();
+    int_ptr[9] = (int)selected();
     int_ptr += SESSION_NUM_INTS;
 
     auto float_ptr = *floats;
+    float_ptr[0] = BaseSphere<AtomicStructure, Atom, Bond>::radius();
     float_ptr += SESSION_NUM_FLOATS;
 
     PyObject* c_idatm_type = PyUnicode_FromString(_computed_idatm_type);
