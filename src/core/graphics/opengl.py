@@ -871,10 +871,9 @@ class Render:
             self._stereo_360_params = (camera_origin, camera_y, x_shift)
 
         p = self.current_shader_program
-        if p is None:
-            return
-        p.set_float4("camera_origin_and_shift", tuple(camera_origin) + (x_shift,))
-        p.set_float4("camera_vertical", tuple(camera_y) + (0,))
+        if p is not None and p.capabilities & self.SHADER_STEREO_360:
+            p.set_float4("camera_origin_and_shift", tuple(camera_origin) + (x_shift,))
+            p.set_float4("camera_vertical", tuple(camera_y) + (0,))
 
 def disk_grid(radius, exclude_origin=True):
     r = int(radius)
