@@ -307,7 +307,7 @@ class Drawing:
         self.redraw_needed(selection_changed=True)
 
     selected = property(get_selected, set_selected)
-    '''Whether or not the drawing is selected.'''
+    '''Whether or not the drawing is selected. Does not include children.'''
 
     def get_selected_positions(self):
         return self._selected_positions

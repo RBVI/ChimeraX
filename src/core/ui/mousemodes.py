@@ -1,7 +1,12 @@
 # vim: set expandtab ts=4 sw=4:
 
 class MouseModes:
-
+    '''
+    Keep the list of available mouse modes and also which mode is bound
+    to each mouse button (left, middle, right), or mouse button and modifier
+    key (alt, command, control shift).
+    The mouse modes object for a session is session.ui.main_window.graphics_window.mouse_modes
+    '''
     def __init__(self, graphics_window, session):
 
         self.graphics_window = graphics_window
@@ -80,7 +85,7 @@ class MouseModes:
     def _event_type(self, event, button):
         import sys
         mac = (sys.platform == 'darwin')
-        modifiers = self.key_modifiers(event)
+        modifiers = self._key_modifiers(event)
         if button is None:
             # Drag event
             if event.LeftIsDown():
@@ -117,7 +122,7 @@ class MouseModes:
         return False
 
     def _wheel_event(self, event):
-        f = self.mode('wheel', self.key_modifiers(event))
+        f = self.mode('wheel', self._key_modifiers(event))
         if f:
             f.wheel(MouseEvent(event))
 
@@ -126,12 +131,23 @@ class MouseModes:
         '''List of MouseMode instances.'''
         return self._available_modes
 
+    def add_mode(self, mode):
+        '''Add a MouseMode instance to the list of available modes.'''
+        self._available_modes.append(mode)
+
+    def remove_mode(self, mode):
+        '''Remove a MouseMode instance from the list of available modes.'''
+        self._available_modes.append(mode)
+        self._bindings = [b for b in self.bindings if b.mode is not mode]
+
     @property
     def bindings(self):
         '''List of MouseBinding instances.'''
         return self._bindings
 
     def mode(self, button = 'left', modifiers = []):
+        '''Return the MouseMode associated with a specified button and modifiers,
+        or None if no mode is bound.'''
         mb = [b for b in self.bindings if b.matches(button, modifiers)]
         if len(mb) == 1:
             m = mb[0].mode
@@ -161,9 +177,17 @@ class MouseModes:
             self._bindings.append(b)
 
     def remove_binding(self, button, modifiers):
+        '''
+        Unbind the mouse button and modifier key combination.
+        No mode will be associated with this button and modifier.
+        '''
         self._bindings = [b for b in self.bindings if not b.exact_match(button, modifiers)]
 
     def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
+        '''
+        Bind the standard mouse modes: left = rotate, ctrl-left = select, middle = translate,
+        right = zoom, wheel = zoom, pause = identify object.
+        '''
         standard_modes = (
             ('left', ['control'], 'select'),
             ('left', [], 'rotate'),
@@ -177,13 +201,17 @@ class MouseModes:
             if button in buttons:
                 self.bind_mouse_mode(button, modifiers, mmap[mode_name])
 
-    def key_modifiers(self, event):
+    def _key_modifiers(self, event):
         mod = event.GetModifiers()
         modifiers = [mod_name for bit, mod_name in self._modifier_bits if bit & mod]
         return modifiers
 
     def mouse_pause_tracking(self):
-        '''Called periodically to check for mouse pause and invoke pause mode.'''
+        '''
+        Called periodically to check for mouse pause and invoke pause mode.
+        Typically this will be called by the redraw loop and is used to determine
+        when a mouse pause occurs.
+        '''
         cp = self._cursor_position()
         w,h = self.graphics_window.view.window_size
         x,y = cp
@@ -221,38 +249,85 @@ class MouseModes:
             m.move_after_pause()
 
 class MouseBinding:
+    '''
+    Associates a mouse button ('left', 'middle', 'right', 'wheel', 'pause') and
+    set of modifier keys ('alt', 'command', 'control', 'shift') with a MouseMode.
+    '''
     def __init__(self, button, modifiers, mode):
         self.button = button		# 'left', 'middle', 'right', 'wheel', 'pause'
         self.modifiers = modifiers	# List of 'alt', 'command', 'control', 'shift'
         self.mode = mode		# MouseMode instance
     def matches(self, button, modifiers):
+        '''
+        Does this binding match the specified button and modifiers?
+        A match requires all of the binding modifiers keys are among
+        the specified modifiers (and possibly more).
+        '''
         return (button == self.button and
                 len([k for k in self.modifiers if not k in modifiers]) == 0)
     def exact_match(self, button, modifiers):
+        '''
+        Does this binding exactly match the specified button and modifiers?
+        An exact match requires the binding modifiers keys are exactly the
+        same set as the specified modifier keys.
+        '''
         return button == self.button and set(modifiers) == set(self.modifiers)
 
 class MouseMode:
+    '''
+    Classes derived from MouseMode implement specific mouse modes providing
+    methods mouse_down(), mouse_up(), mouse_motion(), wheel(), pause() that
+    are called when mouse events occur.  Which mouse button and modifier
+    keys are detected by a mode is controlled by a different MauseModes class.
+    '''
 
     name = 'mode name'
+    '''
+    Name of the mouse mode used with the mousemode command.
+    Should be unique among all mouse modes.
+    '''
+
     icon_file = None
+    '''
+    Image file name for an icon for this mouse mode to show in the mouse mode GUI panel.
+    The icon file of this name needs to be in the mouse_modes tool icons subdirectory,
+    should be PNG, square, and at least 64 pixels square.  It will be rescaled as needed.
+    A none value means no icon will be shown in the gui interface.
+    '''
 
     def __init__(self, session):
         self.session = session
         self.view = session.main_view
 
         self.mouse_down_position = None
+        '''Pixel position (x,y) of mouse down, sometimes useful to detect on mouse up
+        whether any mouse motion occured. Set to None after mouse up.'''
         self.last_mouse_position = None
+        '''Last mouse position during a mouse drag.'''
 
     def mouse_down(self, event):
+        '''
+        Override this method to handle mouse down events.
+        Derived methods can call this base class method to
+        set mouse_down_position and last_mouse_position.
+        '''
         pos = event.position()
         self.mouse_down_position = pos
         self.last_mouse_position = pos
 
     def mouse_up(self, event):
+        '''
+        Override this method to handle mouse down events.
+        Derived methods can call this base class method to
+        set mouse_down_position and last_mouse_position to None.
+        '''
         self.mouse_down_position = None
         self.last_mouse_position = None
 
     def mouse_motion(self, event):
+        '''
+        Return the mouse motion in pixels (dx,dy) since the last mouse event.
+        '''
         lmp = self.last_mouse_position
         x, y = pos = event.position()
         if lmp is None:
@@ -265,15 +340,29 @@ class MouseMode:
         return dx, dy
 
     def wheel(self, event):
+        '''Override this method to handle mouse wheel events.'''
         pass
 
     def pause(self, position):
+        '''
+        Override this method to take action when the mouse hovers for a time
+        given by the MouseModes pause interval (default 0.5 seconds).
+        '''
         pass
 
     def move_after_pause(self):
+        '''
+        Override this method to take action when the mouse moves after a hover.
+        This allows for instance undisplaying a popup help balloon window.
+        '''
         pass
 
     def pixel_size(self, min_scene_frac = 1e-5):
+        '''
+        Report the pixel size in scene units at the center of rotation.
+        Clamp the value to be at least min_scene_fraction times the width
+        of the displayed models.
+        '''
         v = self.view
         psize = v.pixel_size()
         b = v.drawing_bounds()
@@ -283,6 +372,7 @@ class MouseMode:
         return psize
 
 class SelectMouseMode(MouseMode):
+    '''Mouse mode to select objects by clicking on them.'''
     name = 'select'
     icon_file = 'select.png'
 
@@ -306,6 +396,12 @@ def mouse_select(event, session, view):
     sel.clear_hierarchy()
 
 class RotateMouseMode(MouseMode):
+    '''
+    Mouse mode to rotate objects (actually the camera is moved) by dragging.
+    Mouse drags initiated near the periphery of the window cause a screen z rotation,
+    while other mouse drags use rotation axes lying in the plane of the screen and
+    perpendicular to the direction of the drag.
+    '''
     name = 'rotate'
     icon_file = 'rotate.png'
     click_to_select = False
@@ -364,11 +460,23 @@ class RotateMouseMode(MouseMode):
         return None
 
 class RotateAndSelectMouseMode(RotateMouseMode):
+    '''
+    Mouse mode to rotate objects like RotateMouseMode.
+    Also clicking without dragging selects objects.
+    This mode allows click with no modifier keys to perform selection,
+    while click and drag produces rotation.
+    '''
     name = 'rotate and select'
     icon_file = 'rotatesel.png'
     click_to_select = True
 
 class RotateSelectedMouseMode(RotateMouseMode):
+    '''
+    Mouse mode to rotate objects like RotateMouseMode but only selected
+    models are rotated. Selected models are actually moved in scene
+    coordinates instead of moving the camera. If nothing is selected,
+    then the camera is moved as if all models are rotated.
+    '''
     name = 'rotate selected models'
     icon_file = 'rotate_h2o.png'
 
@@ -387,6 +495,9 @@ def any_parent_selected(m):
     return m.parent.selected or any_parent_selected(m.parent)
 
 class TranslateMouseMode(MouseMode):
+    '''
+    Mouse mode to move objects in x and y (actually the camera is moved) by dragging.
+    '''
     name = 'translate'
     icon_file = 'translate.png'
 
@@ -411,6 +522,12 @@ class TranslateMouseMode(MouseMode):
         return None
 
 class TranslateSelectedMouseMode(TranslateMouseMode):
+    '''
+    Mouse mode to move objects in x and y like TranslateMouseMode but only selected
+    models are moved. Selected models are actually moved in scene
+    coordinates instead of moving the camera. If nothing is selected,
+    then the camera is moved as if all models are shifted.
+    '''
     name = 'translate selected models'
     icon_file = 'move_h2o.png'
 
@@ -418,7 +535,10 @@ class TranslateSelectedMouseMode(TranslateMouseMode):
         return top_selected(self.session)
 
 class ZoomMouseMode(MouseMode):
-
+    '''
+    Mouse mode to move objects in z, actually the camera is moved
+    and the objects remain at their same scene coordinates.
+    '''
     name = 'zoom'
     icon_file = 'zoom.png'
 
@@ -445,7 +565,10 @@ class ZoomMouseMode(MouseMode):
             v.translate(shift)
 
 class ObjectIdMouseMode(MouseMode):
-
+    '''
+    Mouse mode to that shows the name of an object in a popup window
+    when the mouse is hovered over the object for 0.5 seconds.
+    '''
     name = 'identify object'
     def pause(self, position):
         x,y = position
@@ -624,22 +747,34 @@ class ClipRotateMouseMode(MouseMode):
 
 
 class MouseEvent:
+    '''
+    Provides an interface to mouse event coordinates and modifier keys
+    so that mouse modes do not directly depend on details of the window toolkit.
+    '''
     def __init__(self, event):
-        self.event = event
+        self._event = event	# Window toolkit event object
 
     def shift_down(self):
-        return self.event.ShiftDown()
+        '''Does the mouse event have the shift key down.'''
+        return self._event.ShiftDown()
 
     def alt_down(self):
-        return self.event.AltDown()
+        '''Does the mouse event have the alt key down.'''
+        return self._event.AltDown()
 
     def position(self):
-        return self.event.GetPosition()
+        '''Pair of integer x,y pixel coordinates relative to upper-left corner of graphics window.'''
+        return self._event.GetPosition()
 
     def wheel_value(self):
-        return self.event.GetWheelRotation()/120.0   # Usually one wheel click is delta of 120
+        '''
+        Number of clicks the mouse wheel was turned, signed float.
+        One click is typically 15 degrees of wheel rotation.
+        '''
+        return self._event.GetWheelRotation()/120.0   # Usually one wheel click is delta of 120
 
 def standard_mouse_mode_classes():
+    '''List of core MouseMode classes.'''
     from .. import map, markers
     from ..map import series
     mode_classes = [
