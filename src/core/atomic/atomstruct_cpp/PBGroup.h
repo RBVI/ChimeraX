@@ -72,7 +72,7 @@ public:
     static int  session_num_ints() {
         return SESSION_NUM_INTS + Rgba::session_num_ints();
     }
-    virtual void  session_save(int**, float**, PyObject*) const;
+    virtual void  session_save(int**, float**) const;
     virtual void  set_default_color(const Rgba& rgba) { _default_color = rgba; }
     virtual void  set_default_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a = 255) { this->set_default_color(Rgba(r,g,b,a)); }
@@ -94,14 +94,15 @@ protected:
     virtual  ~StructurePBGroupBase() {}
 public:
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
+    void  session_note_pb_ctor_info(Pseudobond* pb, int** ints) const;
     static int  session_num_floats() {
         return SESSION_NUM_FLOATS + Group::session_num_floats();
     }
     static int  session_num_ints() {
         return SESSION_NUM_INTS + Group::session_num_ints();
     }
-    virtual void  session_save(int** ints, float** floats, PyObject* misc) const {
-        Group::session_save(ints, floats, misc);
+    virtual void  session_save(int** ints, float** floats) const {
+        Group::session_save(ints, floats);
     }
     AtomicStructure*  structure() const { return _structure; }
 };
@@ -124,7 +125,7 @@ public:
     const Pseudobonds&  pseudobonds() const { return _pbonds; }
     int  session_num_ints() const;
     int  session_num_floats() const;
-    virtual void  session_save(int** , float** , PyObject*) const;
+    virtual void  session_save(int** , float**) const;
 };
 
 class CS_PBGroup: public StructurePBGroupBase
@@ -146,7 +147,7 @@ public:
     const Pseudobonds&  pseudobonds(const CoordSet* cs) const { return _pbonds[cs]; }
     int  session_num_ints() const;
     int  session_num_floats() const;
-    virtual void  session_save(int** , float** , PyObject*) const;
+    virtual void  session_save(int** , float**) const;
 };
 
 // Need a proxy class that can be contained/returned by the pseudobond
@@ -258,10 +259,10 @@ public:
             return static_cast<StructurePBGroup*>(_proxied)->session_num_floats();
         return static_cast<CS_PBGroup*>(_proxied)->session_num_floats();
     }
-    virtual void  session_save(int** ints, float** floats, PyObject* misc) const {
+    virtual void  session_save(int** ints, float** floats) const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<StructurePBGroup*>(_proxied)->session_save(ints, floats, misc);
-        return static_cast<CS_PBGroup*>(_proxied)->session_save(ints, floats, misc);
+            return static_cast<StructurePBGroup*>(_proxied)->session_save(ints, floats);
+        return static_cast<CS_PBGroup*>(_proxied)->session_save(ints, floats);
     }
     void  set_default_color(const Rgba& rgba) {
         if (_group_type == AS_PBManager::GRP_NORMAL)

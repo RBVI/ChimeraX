@@ -50,15 +50,13 @@ public:
     ChangeTracker*  change_tracker() const;
     GraphicsContainer*  graphics_container() const;
     Group*  group() const { return _group; }
-    void  session_note_atoms(int** ints) const;
-    void  session_note_structures(int** ints) const;
     static int  session_num_floats() {
         return SESSION_NUM_FLOATS + Connection<Atom>::session_num_floats();
     }
     static int  session_num_ints() {
         return SESSION_NUM_INTS + Connection<Atom>::session_num_ints();
     }
-    void  session_save(int** ints, float** floats, PyObject* /*misc*/) const {
+    void  session_save(int** ints, float** floats) const {
         basegeom::Connection<Atom>::session_save(ints, floats);
     }
     void  track_change(const std::string& reason) const {

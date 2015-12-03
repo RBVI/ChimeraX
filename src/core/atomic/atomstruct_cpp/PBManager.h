@@ -44,6 +44,7 @@ public:
             const std::string& name, int create = GRP_NONE) = 0;
     const GroupMap&  group_map() const { return _groups; }
     SessionStructureMap*  ses_struct_map() const { return _ses_struct_map; }
+    int  session_info(PyObject* ints, PyObject* floats, PyObject* misc) const;
 };
 
 class StructureManager: public BaseManager {
@@ -57,9 +58,8 @@ public:
 };
 
 // global pseudobond manager
-// Though for C++ purposes it could be templated off of PBGroup instead
-// of Proxy_PBGroup, this allows groups to be treated uniformly on the
-// Python side
+// Though for C++ purposes it could use PBGroup instead of Proxy_PBGroup,
+// using proxy groups allows them to be treated uniformly on the Python side
 class PBManager: public BaseManager {
 public:
     PBManager(ChangeTracker* ct): BaseManager(ct) {}
@@ -82,7 +82,6 @@ public:
     ChangeTracker*  change_tracker() const;
     void  delete_group(Proxy_PBGroup*);
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
-    int  session_info(PyObject* ints, PyObject* floats, PyObject* misc) const;
 };
 
 }  // namespace atomstruct

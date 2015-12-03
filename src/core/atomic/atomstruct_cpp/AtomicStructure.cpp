@@ -1192,14 +1192,12 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         cs->session_save(&cs_ints, &cs_floats);
     }
 
-#if 0
     // PseudobondManager groups;
     // main version number needs to go up when manager's
     // version number goes up, so check it
     if (_pb_mgr.session_info(ints, floats, misc) != 1) {
         throw std::runtime_error("Unexpected version number from pseudobond manager");
     }
-#endif
 
     return 1;  // version number
 }
