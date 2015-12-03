@@ -145,10 +145,12 @@ class ColormapArg(cli.Annotation):
                 if r:
                     raise ValueError("Bad color in colormap")
                 colors.append(color)
-            if len(values) != len(colors):
+            if len(values) != len(colors) and len(values) > 0:
                 raise ValueError("Number of values and color must match in colormap")
-            from .. import colors
-            return colors.Colormap(values, colors), text, rest
+            if len(values) == 0:
+                values = None
+            from ..colors import Colormap
+            return Colormap(values, [c.rgba for c in colors]), text, rest
         else:
             if session is not None:
                 i = session.user_colormaps.bisect_left(token)
