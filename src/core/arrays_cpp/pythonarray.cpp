@@ -165,7 +165,7 @@ bool python_array_to_c(PyObject *a, double *values, int size)
 {
   if (!PySequence_Check(a))
     {
-      PyErr_SetString(PyExc_TypeError, "Array argument is not a sequence");
+      PyErr_SetString(PyExc_TypeError, "Array argument (1d float64) is not a sequence");
       return false;
     }
 
@@ -204,7 +204,7 @@ bool python_array_to_c(PyObject *a, float *values, int size)
 {
   if (!PySequence_Check(a))
     {
-      PyErr_SetString(PyExc_TypeError, "Array argument is not a sequence");
+      PyErr_SetString(PyExc_TypeError, "Array argument (1d float32) is not a sequence");
       return false;
     }
 
@@ -247,7 +247,7 @@ bool python_array_to_c(PyObject *a, float *values, int size0, int size1)
   PyObject *na = PyArray_ContiguousFromObject(a, NPY_DOUBLE, 2, 2);
   if (na == NULL)
     {
-      PyErr_SetString(PyExc_TypeError, "Array argument is not a sequence");
+      PyErr_SetString(PyExc_TypeError, "Array argument (2d float32) is not a sequence");
       return false;
     }
 
@@ -277,7 +277,7 @@ bool python_array_to_c(PyObject *a, double *values, int size0, int size1)
   PyObject *na = PyArray_ContiguousFromObject(a, NPY_DOUBLE, 2, 2);
   if (na == NULL)
     {
-      PyErr_SetString(PyExc_TypeError, "Array argument is not a sequence");
+      PyErr_SetString(PyExc_TypeError, "Array argument (2d float64) is not a sequence");
       return false;
     }
 
@@ -307,7 +307,7 @@ bool python_array_to_c(PyObject *a, int *values, int size)
   PyObject *na = PyArray_ContiguousFromObject(a, NPY_INT, 1, 1);
   if (na == NULL)
     {
-      PyErr_SetString(PyExc_TypeError, "Array argument is not a sequence");
+      PyErr_SetString(PyExc_TypeError, "Array argument (1d int32) is not a sequence");
       return false;
     }
 
