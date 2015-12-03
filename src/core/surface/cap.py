@@ -13,12 +13,23 @@ def update_clip_caps(view):
 def show_surface_clip_caps(planes, drawings, offset = 0.01):
     for p in planes:
         normal = p.normal
-        from ..geometry import inner_product
-        poffset = inner_product(normal, p.plane_point) + offset
         cap_name = 'cap ' + p.name
         for d in drawings:
-            if not hasattr(d, 'clip_cap') or not d.clip_cap or d.triangles is None or hasattr(d, 'is_clip_cap'):
+            if (not hasattr(d, 'clip_cap') or
+                not d.clip_cap or
+                d.triangles is None or
+                hasattr(d, 'is_clip_cap')):
                 continue
+
+            # TODO: Have surface point to its cap instead of looking for cap by name.
+            mcap = [cm for cm in d.child_drawings() if cm.name == cap_name]
+            if (not d.display or
+                (d.triangle_mask is not None and
+                 d.triangle_mask.sum() < len(d.triangle_mask))):
+                if mcap:
+                   mcap[0].display = False
+                continue
+
             if d.clip_cap == 'duplicate vertices':
                 from . import unique_vertex_map
                 vmap = unique_vertex_map(d.vertices)
@@ -27,10 +38,12 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01):
 #                check_surface_topology(t, d.name)
             else:
                 t = d.triangles
-            coffset = getattr(d, 'clip_offset', 0)
+            dp = d.scene_position.inverse()
+            pnormal = dp.apply_without_translation(normal)
+            from ..geometry import inner_product
+            poffset = inner_product(pnormal, dp*p.plane_point) + offset + getattr(d, 'clip_offset', 0)
             from . import compute_cap
-            cvarray, ctarray = compute_cap(normal, poffset+coffset, d.vertices, t)
-            mcap = [cm for cm in d.child_drawings() if cm.name == cap_name]
+            cvarray, ctarray = compute_cap(pnormal, poffset, d.vertices, t)
             if mcap:
                 cm = mcap[0]
             else:
