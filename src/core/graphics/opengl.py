@@ -361,13 +361,14 @@ class Render:
         if p is None:
             return
 
-        lp = self.lighting
-        n,f = self._near_far_clip
-        s = n + (f-n)*lp.depth_cue_start
-        e = n + (f-n)*lp.depth_cue_end
-        p.set_float('depth_cue_start', s)
-        p.set_float('depth_cue_end', e)
-        p.set_vector('depth_cue_color', lp.depth_cue_color)
+        if self.SHADER_DEPTH_CUE & p.capabilities and self.SHADER_LIGHTING & p.capabilities:
+            lp = self.lighting
+            n,f = self._near_far_clip
+            s = n + (f-n)*lp.depth_cue_start
+            e = n + (f-n)*lp.depth_cue_end
+            p.set_float('depth_cue_start', s)
+            p.set_float('depth_cue_end', e)
+            p.set_vector('depth_cue_color', lp.depth_cue_color)
 
     def set_single_color(self, color=None):
         '''
