@@ -486,13 +486,23 @@ class RotateSelectedMouseMode(RotateMouseMode):
 def top_selected(session):
     # Don't include parents of selected models.
     mlist = [m for m in session.selection.models()
-             if (len(m.child_models()) == 0 or m.selected) and not any_parent_selected(m)]
+             if ((len(m.child_models()) == 0 or m.selected or child_drawing_selected(m))
+                 and not any_parent_selected(m))]
     return None if len(mlist) == 0 else mlist
 
 def any_parent_selected(m):
     if not hasattr(m, 'parent') or m.parent is None:
         return False
-    return m.parent.selected or any_parent_selected(m.parent)
+    p = m.parent
+    return p.selected or child_drawing_selected(p) or any_parent_selected(p)
+
+def child_drawing_selected(m):
+    # Check if a child is a Drawing and not a Model and is selected.
+    from ..models import Model
+    for d in m.child_drawings():
+        if not isinstance(d, Model) and d.any_part_selected():
+            return True
+    return False
 
 class TranslateMouseMode(MouseMode):
     '''
