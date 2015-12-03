@@ -664,3 +664,5 @@ def _register_core_file_formats():
     map.register_emdb_fetch()
     from .atomic import readpbonds
     readpbonds.register()
+    from .surface import collada
+    collada.register()
