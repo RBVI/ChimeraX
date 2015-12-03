@@ -56,5 +56,7 @@ Python Modules
 
     core/triggerset.rst
 
+    core/ui/mousemodes.rst
+
     core/utils.rst
 
