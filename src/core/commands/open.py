@@ -16,11 +16,12 @@ def open(session, filename, id=None, as_=None):
         Not implemented.  User-supplied name (as opposed to the filename).
     '''
     try:
-        return session.models.open(filename, id=id, as_=as_)
+        models = session.models.open(filename, id=id, as_=as_)
     except OSError as e:
         from ..errors import UserError
         raise UserError(e)
 
+    return models
 
 def register_command(session):
     from . import cli
