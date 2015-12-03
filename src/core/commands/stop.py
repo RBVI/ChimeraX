@@ -10,7 +10,7 @@ def stop(session):
             has_motion = True
             mip.done()
     if not has_motion:
-        session.logger.status('No motion in progress.  Use "exit" to stop program.')
+        session.logger.status('No motion in progress.  Use "exit" or "quit" to stop program.')
 
 
 def register_command(session):
