@@ -19,7 +19,7 @@ class Connection {
 public:
     typedef End*  End_points[2];
 
-    static const int  SESSION_NUM_INTS = 5;
+    static const int  SESSION_NUM_INTS = 3;
     static const int  SESSION_NUM_FLOATS = 1;
 protected:
     virtual const char*  err_msg_loop() const
@@ -59,13 +59,13 @@ public:
     }
     void  session_save(int** ints, float** floats) const {
         _rgba.session_save(ints, floats);
-        auto int_ptr = *ints;
+        auto& int_ptr = *ints;
         int_ptr[0] = _display;
         int_ptr[1] = _hide;
         int_ptr[2] = _halfbond;
         int_ptr += SESSION_NUM_INTS;
 
-        auto float_ptr = *floats;
+        auto& float_ptr = *floats;
         float_ptr[0] = _radius;
         float_ptr += SESSION_NUM_FLOATS;
     }

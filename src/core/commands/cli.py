@@ -1867,6 +1867,12 @@ class Command:
                 self.word_info = parent_info
                 self.command_name = cmd_name
                 return
+            if text.startswith('#') and self.amount_parsed == start:
+                self._error = ''
+                self.amount_parsed = len(self.current_text)
+                self.word_info = None
+                self.command_name = text
+                return
             if _debugging:
                 orig_text = text
             word, chars, text = next_token(text)

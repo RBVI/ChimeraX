@@ -42,7 +42,7 @@ private:
     Nodes  _nodes;
     Edges  _edges;
 
-    float  _ball_scale;
+    float  _ball_scale = 0.25;
     ChangeTracker*  _change_tracker;
     bool  _display = true;
 

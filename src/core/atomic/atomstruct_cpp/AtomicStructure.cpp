@@ -1199,6 +1199,96 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         throw std::runtime_error("Unexpected version number from pseudobond manager");
     }
 
+    // residues
+    int num_residues = residues().size();
+    num_ints = 2 * num_residues; // to note position and insertion code for constructor
+    num_floats = 0;
+    for (auto res: _residues) {
+        num_ints += res->session_num_ints();
+        num_floats += res->session_num_floats();
+    }
+    PyObject* res_misc = PyList_New(num_residues);
+    if (res_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for residue misc info");
+    if (PyList_Append(misc, res_misc) < 0)
+        throw std::runtime_error("Couldn't append residue misc list to misc list");
+    int* res_ints;
+    PyObject* res_npy_ints = python_int_array(num_ints, &res_ints);
+    *res_ints++ = num_residues;
+    if (PyList_Append(ints, res_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append residue ints to int list");
+    float* res_floats;
+    PyObject* res_npy_floats = python_float_array(num_floats, &res_floats);
+    if (PyList_Append(floats, res_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append residue floats to float list");
+    i = 0;
+    for (auto res: residues()) {
+        // remember res name and chain ID
+        PyObject* name_id = PyTuple_New(2);
+        if (name_id == nullptr)
+            throw std::runtime_error("Cannot create Python tuple for residue name/chainID");
+
+        PyObject* name = PyUnicode_FromString(res->name());
+        if (name == nullptr)
+            throw::std::runtime_error("Cannot create Python string for residue name");
+        PyObject* chain_id = PyUnicode_FromString(res->chain_id());
+        if (chain_id == nullptr)
+            throw::std::runtime_error("Cannot create Python string for residue chain ID");
+        PyTuple_SET_ITEM(name_id, 0, name);
+        PyTuple_SET_ITEM(name_id, 1, chain_id);
+        PyList_SET_ITEM(res_misc, i++, name_id);
+        *res_ints++ = res->position();
+        *res_ints++ = res->insertion_code();
+        res->session_save(&res_ints, &res_floats);
+    }
+
+    // chains
+    int num_chains = _chains == nullptr ? 0 : _chains->size();
+    num_ints = 0;
+    num_floats = 0;
+    if (_chains != nullptr) {
+        for (auto ch: *_chains) {
+            num_ints += ch->session_num_ints();
+            num_floats += ch->session_num_floats();
+        }
+    }
+    // allocate for list of chain IDs
+    PyObject* chain_misc = PyList_New(1);
+    if (chain_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for chain misc info");
+    if (PyList_Append(misc, chain_misc) < 0)
+        throw std::runtime_error("Couldn't append chain misc list to misc list");
+    PyObject* chain_ids = PyList_New(num_chains);
+    if (chain_ids == nullptr)
+        throw std::runtime_error("Cannot create Python list for chain IDs");
+    PyList_SET_ITEM(chain_misc, 0, chain_ids);
+    i = 0;
+    if (_chains != nullptr) {
+        for (auto ch: *_chains) {
+            num_ints += ch->session_num_ints();
+            num_floats += ch->session_num_floats();
+
+            // remember chain ID
+            PyObject* chain_id = PyUnicode_FromString(ch->chain_id());
+            if (chain_id == nullptr)
+                throw::std::runtime_error("Cannot create Python string for chain ID");
+            PyList_SET_ITEM(chain_ids, i++, chain_id);
+        }
+    }
+    int* chain_ints;
+    PyObject* chain_npy_ints = python_int_array(num_ints, &chain_ints);
+    if (PyList_Append(ints, chain_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append chain ints to int list");
+    float* chain_floats;
+    PyObject* chain_npy_floats = python_float_array(num_floats, &chain_floats);
+    if (PyList_Append(floats, chain_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append chain floats to float list");
+    if (_chains != nullptr) {
+        for (auto ch: *_chains) {
+            ch->session_save(&chain_ints, &chain_floats);
+        }
+    }
+
     return 1;  // version number
 }
 
@@ -1207,15 +1297,21 @@ AtomicStructure::session_save_setup() const
 {
     size_t index = 0;
 
-    session_save_atoms = new std::map<const Atom*, size_t>;
+    session_save_atoms = new std::unordered_map<const Atom*, size_t>;
     for (auto a: atoms()) {
         (*session_save_atoms)[a] = index++;
     }
 
     index = 0;
-    session_save_crdsets = new std::map<const CoordSet*, size_t>;
+    session_save_crdsets = new std::unordered_map<const CoordSet*, size_t>;
     for (auto cs: coord_sets()) {
         (*session_save_crdsets)[cs] = index++;
+    }
+
+    index = 0;
+    session_save_residues = new std::unordered_map<const Residue*, size_t>;
+    for (auto r: residues()) {
+        (*session_save_residues)[r] = index++;
     }
 }
 
@@ -1224,6 +1320,7 @@ AtomicStructure::session_save_teardown() const
 {
     delete session_save_atoms;
     delete session_save_crdsets;
+    delete session_save_residues;
 }
 
 void

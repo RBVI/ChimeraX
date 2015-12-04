@@ -138,7 +138,7 @@ CS_PBGroup::pseudobonds() const
 void
 StructurePBGroupBase::session_note_pb_ctor_info(Pseudobond* pb, int** ints) const
 {
-    auto int_ptr = *ints;
+    auto& int_ptr = *ints;
     for (auto a: pb->atoms()) {
         auto s = a->structure();
         if (s == nullptr) {
@@ -198,7 +198,7 @@ void
 Group::session_save(int** ints, float** floats) const
 {
     _default_color.session_save(ints, floats);
-    auto int_ptr = *ints;
+    auto& int_ptr = *ints;
     int_ptr[0] = _default_halfbond;
     int_ptr += SESSION_NUM_INTS;
 }
@@ -209,8 +209,8 @@ CS_PBGroup::session_save(int** ints, float** floats) const
     StructurePBGroupBase::session_save(ints, floats);
     for (auto cs_pbs: _pbonds) {
         auto cs = cs_pbs.first;
-        auto pbs = cs_pbs.second;
-        auto int_ptr = *ints;
+        auto& pbs = cs_pbs.second;
+        auto& int_ptr = *ints;
         int_ptr[0] = (*structure()->session_save_crdsets)[cs];
         int_ptr += 1;
         for (auto pb: pbs) {

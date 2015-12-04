@@ -29,6 +29,9 @@ public:
     enum Style { RIBBON_RIBBON = 0,
                  RIBBON_PIPE = 1 };
     enum PolymerType { PT_NONE, PT_AMINO, PT_NUCLEIC };
+
+    const int  SESSION_NUM_INTS = 10;
+    const int  SESSION_NUM_FLOATS = 1;
 private:
     friend class AtomicStructure;
     Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);
@@ -76,6 +79,11 @@ public:
     PolymerType  polymer_type() const { return _polymer_type; }
     int  position() const { return _position; }
     void  remove_atom(Atom*);
+    int  session_num_floats() const { return SESSION_NUM_FLOATS + Rgba::session_num_floats(); }
+    int  session_num_ints() const {
+        return SESSION_NUM_INTS + Rgba::session_num_ints() + atoms().size();
+    }
+    void  session_save(int**, float**) const;
     void  set_alt_loc(char alt_loc);
     void  set_is_helix(bool ih);
     void  set_is_het(bool ih);
