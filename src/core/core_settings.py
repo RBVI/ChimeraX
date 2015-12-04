@@ -23,7 +23,7 @@ class _CoreSettings(Settings):
         # autostart map_series_gui until alternate means of installing
         # trigger is found
         'autostart': ['molecule_display_shortcuts', 'log', 'model panel',
-                'mouse_modes', 'graphics_shortcuts', 'cmd_line', 'map_series_gui'],
+                      'mouse_modes', 'graphics_shortcuts', 'cmd_line', 'map_series_gui', 'cellpack'],
     }
 
 def init(session):
