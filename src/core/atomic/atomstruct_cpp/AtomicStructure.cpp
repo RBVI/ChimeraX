@@ -1242,6 +1242,53 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         res->session_save(&res_ints, &res_floats);
     }
 
+    // chains
+    int num_chains = _chains == nullptr ? 0 : _chains->size();
+    num_ints = 0;
+    num_floats = 0;
+    if (_chains != nullptr) {
+        for (auto ch: *_chains) {
+            num_ints += ch->session_num_ints();
+            num_floats += ch->session_num_floats();
+        }
+    }
+    // allocate for list of chain IDs
+    PyObject* chain_misc = PyList_New(1);
+    if (chain_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for chain misc info");
+    if (PyList_Append(misc, chain_misc) < 0)
+        throw std::runtime_error("Couldn't append chain misc list to misc list");
+    PyObject* chain_ids = PyList_New(num_chains);
+    if (chain_ids == nullptr)
+        throw std::runtime_error("Cannot create Python list for chain IDs");
+    PyList_SET_ITEM(chain_misc, 0, chain_ids);
+    i = 0;
+    if (_chains != nullptr) {
+        for (auto ch: *_chains) {
+            num_ints += ch->session_num_ints();
+            num_floats += ch->session_num_floats();
+
+            // remember chain ID
+            PyObject* chain_id = PyUnicode_FromString(ch->chain_id());
+            if (chain_id == nullptr)
+                throw::std::runtime_error("Cannot create Python string for chain ID");
+            PyList_SET_ITEM(chain_ids, i++, chain_id);
+        }
+    }
+    int* chain_ints;
+    PyObject* chain_npy_ints = python_int_array(num_ints, &chain_ints);
+    if (PyList_Append(ints, chain_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append chain ints to int list");
+    float* chain_floats;
+    PyObject* chain_npy_floats = python_float_array(num_floats, &chain_floats);
+    if (PyList_Append(floats, chain_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append chain floats to float list");
+    if (_chains != nullptr) {
+        for (auto ch: *_chains) {
+            ch->session_save(&chain_ints, &chain_floats);
+        }
+    }
+
     return 1;  // version number
 }
 
@@ -1260,6 +1307,12 @@ AtomicStructure::session_save_setup() const
     for (auto cs: coord_sets()) {
         (*session_save_crdsets)[cs] = index++;
     }
+
+    index = 0;
+    session_save_residues = new std::unordered_map<const Residue*, size_t>;
+    for (auto r: residues()) {
+        (*session_save_residues)[r] = index++;
+    }
 }
 
 void
@@ -1267,6 +1320,7 @@ AtomicStructure::session_save_teardown() const
 {
     delete session_save_atoms;
     delete session_save_crdsets;
+    delete session_save_residues;
 }
 
 void

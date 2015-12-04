@@ -28,6 +28,9 @@ protected:
         { _cache_ungapped.clear();  _cache_g2ug.clear(); _cache_ug2g.clear(); }
     // can't inherit from vector, since we need to clear caches on changes
     Contents  _contents;
+
+    const int  SESSION_NUM_INTS = 1;
+    const int  SESSION_NUM_FLOATS = 0;
 public:
     static void  assign_rname3to1(const ResName& rname, char let,
         bool protein);
@@ -66,6 +69,9 @@ public:
     Contents::const_reverse_iterator  rbegin() const
         { return _contents.rbegin(); }
     Contents::const_reverse_iterator  rend() const { return _contents.rend(); }
+    int  session_num_floats() const { return SESSION_NUM_FLOATS; }
+    int  session_num_ints() const { return SESSION_NUM_INTS + _contents.size(); }
+    void  session_save(int**, float**) const;
     Contents::size_type  size() const { return _contents.size(); }
     void  swap(Contents& x) { _clear_cache(); _contents.swap(x); }
     const Contents&  ungapped() const;

@@ -169,6 +169,28 @@ Chain::remove_residue(Residue* r) {
     r->set_chain(nullptr);
 }
 
+void
+Chain::session_save(int** ints, float** floats) const
+{
+    Sequence::session_save(ints, floats);
+
+    auto& int_ptr = *ints;
+    int_ptr[0] = _from_seqres;
+    int_ptr += SESSION_NUM_INTS;
+
+    auto& ses_res = *_structure->session_save_residues;
+    for (auto r_pos: _res_map) {
+        *int_ptr++ = ses_res[r_pos.first];
+        *int_ptr++ = r_pos.second;
+    }
+    for (auto r: _residues) {
+        if (r == nullptr)
+            *int_ptr++ = 0;
+        else
+            *int_ptr++ = ses_res[r];
+    }
+}
+
 void 
 Chain::set(unsigned i, Residue *r, char character)
 {
