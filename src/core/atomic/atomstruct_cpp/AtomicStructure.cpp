@@ -982,12 +982,14 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     //    PseudobondManager (needs Atoms and CoordSets)
     //    Residue
     //    Chain
-    //    Ring
     // For the numeric types, the objects will be numpy arrays: one-dimensional for
     // AtomicStructure attributes and two-dimensional for the others.  Except for
     // PseudobondManager; that will be a list of numpy arrays, one per group.  For the misc,
     // The objects will be Python lists, or lists of lists (same scheme as for the arrays),
     // though there may be exceptions (e.g. altloc info).
+    //
+    // Just let rings get recomputed instead of saving them.  Don't have to set up and
+    // tear down a bond map that way (rings are the only thing that needs bond references).
 
     if (!PyList_Check(ints) || PyList_Size(ints) != 0)
         throw std::invalid_argument("AtomicStructure::session_info: first arg is not an"
