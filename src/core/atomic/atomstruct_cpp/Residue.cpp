@@ -118,8 +118,8 @@ Residue::session_save(int** ints, float** floats) const
 {
     _ribbon_rgba.session_save(ints, floats);
 
-    auto int_ptr = *ints;
-    auto float_ptr = *floats;
+    auto& int_ptr = *ints;
+    auto& float_ptr = *floats;
 
     int_ptr[0] = (int)_alt_loc;
     int_ptr[1] = (int)_is_helix;

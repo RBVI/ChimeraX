@@ -32,7 +32,7 @@ public:
     static int  session_num_floats() { return SESSION_NUM_FLOATS; }
     static int  session_num_ints() { return SESSION_NUM_INTS; }
     void  session_save(int** ints, float** ) const {
-        auto int_ptr = *ints;
+        auto& int_ptr = *ints;
         int_ptr[0] = r; int_ptr[1] = g; int_ptr[2] = b; int_ptr[3] = a;
         int_ptr += SESSION_NUM_INTS;
     }

@@ -47,8 +47,8 @@ CoordSet::get_occupancy(const Atom *a) const
 void
 CoordSet::session_save(int** ints, float** floats) const
 {
-    auto int_ptr = *ints;
-    auto float_ptr = *floats;
+    auto& int_ptr = *ints;
+    auto& float_ptr = *floats;
     auto& atom_map = *structure()->session_save_atoms;
 
     int_ptr[0] = _bfactor_map.size();

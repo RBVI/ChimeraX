@@ -865,7 +865,7 @@ void
 Atom::session_save(int** ints, float** floats, PyObject* misc) const
 {
     color().session_save(ints, floats);
-    auto int_ptr = *ints;
+    auto& int_ptr = *ints;
     int_ptr[0] = _alt_loc;
     int_ptr[1] = _alt_loc_map.size();
     int_ptr[2] = (_aniso_u == nullptr ? 0 : _aniso_u->size());
@@ -878,7 +878,7 @@ Atom::session_save(int** ints, float** floats, PyObject* misc) const
     int_ptr[9] = (int)selected();
     int_ptr += SESSION_NUM_INTS;
 
-    auto float_ptr = *floats;
+    auto& float_ptr = *floats;
     float_ptr[0] = BaseSphere<AtomicStructure, Atom, Bond>::radius();
     float_ptr += SESSION_NUM_FLOATS;
 
