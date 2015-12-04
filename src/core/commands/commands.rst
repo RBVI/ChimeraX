@@ -13,7 +13,6 @@ and their code location is described with the function descriptions.
 | `close`_ - Close models
 | `cofr`_ - Set center of rotation method
 | `color`_ - Color atoms, ribbons and surfaces
-| `colordef`_ - Define new colors
 | `contacts`_ * - Make a buried area contact graph
 | `crossfade`_ - Fade between scenes for movie making
 | `crosslinks`_ - Move atomic structures to minimize crosslinks
@@ -96,11 +95,6 @@ cofr
 color
 =====
 .. autofunction:: chimera.core.commands.color.color
-
-colordef
-========
-.. autofunction:: chimera.core.commands.colordef.colordef
-.. autofunction:: chimera.core.commands.colordef.uncolordef
 
 contacts
 ========

@@ -32,7 +32,7 @@ evaluated and is expected to fill in an AtomSpecResults instance.
 Example
 -------
 
-Here is an example of a function that may be registered with cli:
+Here is an example of a function that may be registered with cli::
 
     from chimera.core.commands import cli, atomspec
 

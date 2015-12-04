@@ -123,6 +123,24 @@ class ColorArg(cli.Annotation):
 
 class ColormapArg(cli.Annotation):
     """Support color map names and value-color pairs specifications.
+
+    Accepts name of a standard color map::
+
+        rainbow
+        grayscale, gray
+        red-white-blue, redblue,
+        blue-white-red, bluered
+        cyan-white-maroon, cyanmaroon
+
+    Or a custom color map can be specified as colon-separated colors, or as colon-separated
+    (value, color) pairs with values ranging from 0 to 1.
+
+    Example colormap specifications::
+
+        grayscale
+        orange:tan:green:yellow
+        0,purple:.49,khaki:.5,beige:1,blue
+
     """
     name = 'a colormap'
 

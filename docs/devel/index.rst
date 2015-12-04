@@ -18,6 +18,11 @@ User documentation for the Chimera application is in the :doc:`User's Manual <ma
    core/commands/commands.rst
 
 .. toctree::
+   :maxdepth: 1
+
+   core/commands/args.rst
+
+.. toctree::
    :maxdepth: 2
 
    modules.rst

@@ -806,6 +806,7 @@ class AtomicStructuresArg(Annotation):
 
 
 class PseudobondGroupsArg(Annotation):
+    """Parse command atom specifier for pseudobond groups"""
     name = 'pseudobond groups'
 
     @staticmethod
