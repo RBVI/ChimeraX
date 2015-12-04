@@ -2231,10 +2231,12 @@ def html_usage(name, no_aliases=False):
     arg_syntax = []
     ci = cmd._ci
     if ci:
+        if ci.synopsis:
+            syntax += "<i>%s</i><br>\n" % escape(ci.synopsis)
         if cmd._ci.url is None:
-            syntax = '<b>%s</b>' % escape(cmd.command_name)
+            syntax += '<b>%s</b>' % escape(cmd.command_name)
         else:
-            syntax = '<b><a href="%s">%s</a></b>' % (
+            syntax += '<b><a href="%s">%s</a></b>' % (
                 ci.url, escape(cmd.command_name))
         for arg_name in ci._required:
             arg_type = ci._required[arg_name]
