@@ -113,7 +113,7 @@ def _convert_to_timestamp(date):
         return None
 
 
-def retrieve_cached_url(request, filename, logger=None):
+def retrieve_cached_url(request, filename, logger=None, check_certificates=True):
     """Return requested URL in (cached) filename
 
     :param request: a :py:class:`urlib.request.Request`
@@ -150,7 +150,14 @@ def retrieve_cached_url(request, filename, logger=None):
         if logger:
             logger.status('fetching %s' % filename)
         request.headers['Accept-encoding'] = 'gzip, identity'
-        with urlopen(request) as response:
+        if check_certificates:
+            ssl_context = None
+        else:
+            import ssl
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+        with urlopen(request, context = ssl_context) as response:
             compressed = response.headers['Content-Encoding'] == 'gzip'
             d = response.headers['Last-modified']
             last_modified = _convert_to_timestamp(d)
