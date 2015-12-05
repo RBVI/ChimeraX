@@ -531,12 +531,12 @@ def wx_open_file_filter(all=False):
 
 
 
-def open_data(session, filespec, as_a=None, label=None, **kw):
+def open_data(session, filespec, format=None, name=None, **kw):
     """open a (compressed) file
 
     :param filespec: '''prefix:id''' or a (compressed) filename
-    :param as_a: file as if it has the given format
-    :param label: optional name used to identify data source
+    :param format: file as if it has the given format
+    :param name: optional name used to identify data source
 
     If a file format requires a filename, then compressed files are
     uncompressed into a temporary file before calling the open function.
@@ -544,7 +544,7 @@ def open_data(session, filespec, as_a=None, label=None, **kw):
 
     from chimera.core.errors import UserError
     format_name, prefix, filename, compression = deduce_format(
-        filespec, has_format=as_a)
+        filespec, has_format=format)
     open_func = open_function(format_name)
     if open_func is None:
         raise UserError("unable to open %s files" % format_name)
@@ -552,14 +552,14 @@ def open_data(session, filespec, as_a=None, label=None, **kw):
         fetch_func = fetch_function(format_name)
         if fetch_func is None:
             raise UserError("unable to fetch %s files" % format_name)
-        stream, name = fetch_func(session, filename)
+        stream, dname = fetch_func(session, filename)
         if hasattr(filename, 'read'):
             filename = None
         else:
             filename = stream
             stream = open(filename, 'rb')
     else:
-        filename, name, stream = _compressed_open(filename, compression, 'rb')
+        filename, dname, stream = _compressed_open(filename, compression, 'rb')
     if requires_filename(format_name) and not filename:
         # copy compressed file to real file
         import tempfile
@@ -575,17 +575,20 @@ def open_data(session, filespec, as_a=None, label=None, **kw):
         stream = tf
         # TODO: Windows might need tf to be closed before reading with
         # a different file descriptor
-    models, status = open_func(session, stream, name, **kw)
+    models, status = open_func(session, stream, dname, **kw)
     if not stream.closed:
         stream.close()
 
-    if label is not None:
+    if name is None:
+        name = dname
+    if name is not None:
         for m in models:
-            m.name = label
+            m.name = name
+
     return models, status
 
 
-def open_multiple_data(session, filespecs, **kw):
+def open_multiple_data(session, filespecs, format=None, name=None, **kw):
     '''Open one or more files, including handling formats where multiple files
     contribute to a single model, such as image stacks.'''
     if isinstance(filespecs, str):
@@ -594,7 +597,7 @@ def open_multiple_data(session, filespecs, **kw):
     batch = {}
     unbatched = []
     for filespec in filespecs:
-        format_name, prefix, filename, compression = deduce_format(filespec)
+        format_name, prefix, filename, compression = deduce_format(filespec, has_format=format)
         if format_name is not None and batched_format(format_name):
             if format_name in batch:
                 batch[format_name].append(filespec)
@@ -607,12 +610,12 @@ def open_multiple_data(session, filespecs, **kw):
     status = None
     import os.path
     for format_name, paths in batch.items():
-        name = os.path.basename(paths[0])
+        name = os.path.basename(paths[0]) if name is None else name
         open_func = open_function(format_name)
         models, status = open_func(session, paths, name)
         mlist.extend(models)
     for fspec in unbatched:
-        models, status = open_data(session, fspec, **kw)
+        models, status = open_data(session, fspec, format=format, name=name, **kw)
         mlist.extend(models)
 
     return mlist, status
