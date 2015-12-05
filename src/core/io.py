@@ -717,30 +717,3 @@ def gunzip(gzpath, path, remove_gz=True):
     if remove_gz:
         import os
         os.remove(gzpath)
-
-# -----------------------------------------------------------------------------
-#
-def fetch_file(session, url, name, save_name, save_dir = 'cellPACK', ignore_cache = False,
-               cache_dir = '~/Downloads/Chimera', check_certificates=True):
-    filename = "%s/%s/%s" % (cache_dir, save_dir, save_name)
-    from os.path import expanduser, exists, dirname
-    filename = expanduser(filename)
-    if exists(filename):
-        return filename
-
-    dirname = dirname(filename)
-    import os
-    os.makedirs(dirname, exist_ok=True)
-
-    from urllib.request import URLError, Request
-    from . import utils
-    headers = {"User-Agent": utils.html_user_agent(session.app_dirs)}
-    request = Request(url, unverifiable=True, headers=headers)
-    try:
-        utils.retrieve_cached_url(request, filename, session.logger,
-                                  check_certificates=check_certificates)
-    except URLError as e:
-        from .errors import UserError
-        raise UserError('Fetching url %s failed:\n%s' % (url,str(e)))
-    return filename
-

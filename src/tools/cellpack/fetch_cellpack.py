@@ -37,8 +37,8 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
     recipe_url = recipe_loc.replace('autoPACKserver', database)
     from os.path import basename
     recipe_filename = basename(recipe_loc)
-    from chimera.core.io import fetch_file
-    recipe_path = fetch_file(session, recipe_url, 'recipe for ' + results_name, recipe_filename,
+    from chimera.core.fetch import fetch_file
+    recipe_path = fetch_file(session, recipe_url, 'recipe for ' + results_name, recipe_filename, 'cellPACK',
                              ignore_cache=ignore_cache, check_certificates=check_certificates)
 
     # Combine ingredients used in multiple compartments
@@ -56,12 +56,12 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
     for ingr_filename, placements in ingr_placements.items():
         from urllib.parse import urljoin
         ingr_url = urljoin(recipe_url, ingr_filename)
-        ingr_path = fetch_file(session, ingr_url, 'ingredient ' + ingr_filename, ingr_filename,
+        ingr_path = fetch_file(session, ingr_url, 'ingredient ' + ingr_filename, ingr_filename, 'cellPACK',
                                ignore_cache=ignore_cache, check_certificates=check_certificates)
         mesh_loc = read_apr.read_ingredient(ingr_path)
         mesh_url = mesh_loc.replace('autoPACKserver', database)
         mesh_filename = basename(mesh_loc)
-        mesh_path = fetch_file(session, mesh_url, 'mesh ' + mesh_filename, mesh_filename,
+        mesh_path = fetch_file(session, mesh_url, 'mesh ' + mesh_filename, mesh_filename, 'cellPACK',
                                ignore_cache=ignore_cache, check_certificates=check_certificates)
         surf_placements.append((mesh_path, placements))
 
@@ -70,7 +70,7 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
     for comp_loc in comp_surfaces:
         comp_url = comp_loc.replace('autoPACKserver', database)
         comp_filename = basename(comp_loc)
-        comp_path = fetch_file(session, comp_url, 'component surface ' + comp_filename, comp_filename,
+        comp_path = fetch_file(session, comp_url, 'component surface ' + comp_filename, comp_filename, 'cellPACK',
                                ignore_cache=ignore_cache, check_certificates=check_certificates)
         comp_paths.append(comp_path)
 
@@ -90,8 +90,8 @@ def fetch_autopack_results(session, results_name, database = default_autopack_da
     results_url = database + '/results/%s.apr.json' % results_name
     session.logger.status('Fetching %s from web %s...' % (results_name,results_url))
     results_filename = results_name + '.apr.json'
-    from chimera.core.io import fetch_file
-    results_path = fetch_file(session, results_url, 'results ' + results_name, results_filename,
+    from chimera.core.fetch import fetch_file
+    results_path = fetch_file(session, results_url, 'results ' + results_name, results_filename, 'cellPACK',
                               ignore_cache=ignore_cache, check_certificates=check_certificates)
     return results_path
 
