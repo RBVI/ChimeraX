@@ -151,13 +151,14 @@ def retrieve_cached_url(request, filename, logger=None, check_certificates=True)
             logger.status('fetching %s' % filename)
         request.headers['Accept-encoding'] = 'gzip, identity'
         if check_certificates:
+            initialize_ssl_cert_dir()
             ssl_context = None
         else:
             import ssl
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
-        with urlopen(request, context = ssl_context) as response:
+        with urlopen(request, context=ssl_context) as response:
             compressed = response.headers['Content-Encoding'] == 'gzip'
             d = response.headers['Last-modified']
             last_modified = _convert_to_timestamp(d)
@@ -176,3 +177,34 @@ def retrieve_cached_url(request, filename, logger=None, check_certificates=True)
         if os.path.exists(filename):
             os.remove(filename)
         raise
+
+
+def initialize_ssl_cert_dir():
+    """Initialize OpenSSL's CA certificates file.
+
+    Makes it so certificates can be verified.
+    """
+    global _ssl_init_done
+    if _ssl_init_done:
+        return
+    _ssl_init_done = True
+
+    import sys
+    if not sys.platform.startswith('linux'):
+        return
+    import os
+    import ssl
+    dvp = ssl.get_default_verify_paths()
+    # from https://golang.org/src/crypto/x509/root_linux.go
+    cert_files = [
+        "/etc/ssl/certs/ca-certificates.crt",  # Debian/Ubuntu/Gentoo etc.
+        "/etc/pki/tls/certs/ca-bundle.crt",    # Fedora/RHEL
+        "/etc/ssl/ca-bundle.pem",              # OpenSUSE
+        "/etc/pki/tls/cacert.pem",             # OpenELEC
+    ]
+    for fn in cert_files:
+        if os.path.exists(fn):
+            os.environ[dvp.openssl_cafile_env] = fn
+            # os.environ[dvp.openssl_capath_env] = os.path.dirname(fn)
+            return
+_ssl_init_done = False
