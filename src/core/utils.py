@@ -34,3 +34,33 @@ def flattened(input, return_types=(list, tuple, set)):
     if return_type == list:
         return output
     return return_type(output)
+
+def initialize_ssl_cert_dir():
+    """Initialize OpenSSL's CA certificates file.
+
+    Makes it so certificates can be verified.
+    """
+    global _ssl_init_done
+    if _ssl_init_done:
+        return
+    _ssl_init_done = True
+
+    import sys
+    if not sys.platform.startswith('linux'):
+        return
+    import os
+    import ssl
+    dvp = ssl.get_default_verify_paths()
+    # from https://golang.org/src/crypto/x509/root_linux.go
+    cert_files = [
+        "/etc/ssl/certs/ca-certificates.crt",  # Debian/Ubuntu/Gentoo etc.
+        "/etc/pki/tls/certs/ca-bundle.crt",    # Fedora/RHEL
+        "/etc/ssl/ca-bundle.pem",              # OpenSUSE
+        "/etc/pki/tls/cacert.pem",             # OpenELEC
+    ]
+    for fn in cert_files:
+        if os.path.exists(fn):
+            os.environ[dvp.openssl_cafile_env] = fn
+            # os.environ[dvp.openssl_capath_env] = os.path.dirname(fn)
+            return
+_ssl_init_done = False
