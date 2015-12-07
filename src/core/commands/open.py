@@ -15,6 +15,8 @@ def open(session, filename, format=None, name=None):
     name : string
         Not implemented.  User-supplied name (as opposed to the filename).
     '''
+    if format is not None:
+        format = format_from_prefix(format)
     try:
         models = session.models.open(filename, format=format, name=name)
     except OSError as e:
@@ -23,11 +25,17 @@ def open(session, filename, format=None, name=None):
 
     return models
 
+def format_from_prefix(prefix):
+    from .. import io
+    formats = [f for f in io.formats() if prefix in io.prefixes(f)]
+    return formats[0]
+
 def register_command(session):
     from . import CmdDesc, register, DynamicEnum, StringArg, ModelIdArg
     def formats():
         from .. import io
-        return io.formats()
+        prefixes = sum((tuple(io.prefixes(f)) for f in io.formats()), ())
+        return prefixes
     desc = CmdDesc(required=[('filename', StringArg)],
                    keyword=[('format', DynamicEnum(formats)),
                             ('name', StringArg),
