@@ -48,26 +48,11 @@ def fetch_pdb(session, pdb_id):
     if os.path.exists(sys_filename):
         return sys_filename, pdb_id
 
-    filename = "~/Downloads/Chimera/PDB/%s.pdb" % pdb_id.upper()
-    filename = os.path.expanduser(filename)
-
-    if os.path.exists(filename):
-        return filename, pdb_id  # TODO: check if cache needs updating
-
-    dirname = os.path.dirname(filename)
-    os.makedirs(dirname, exist_ok=True)
-
-    from urllib.request import URLError, Request
-    from .. import utils
-    url = "http://www.pdb.org/pdb/files/%s.pdb" % pdb_id.upper()
-    request = Request(url, unverifiable=True, headers={
-        "User-Agent": utils.html_user_agent(session.app_dirs),
-    })
-    try:
-        return utils.retrieve_cached_url(request, filename, session.logger), pdb_id
-    except URLError as e:
-        raise UserError(str(e))
-
+    pdb_name = "%s.pdb" % pdb_id.upper()
+    url = "http://www.pdb.org/pdb/files/%s" % pdb_name
+    from ..fetch import fetch_file
+    filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB')
+    return filename, pdb_id
 
 def register():
     from .. import io

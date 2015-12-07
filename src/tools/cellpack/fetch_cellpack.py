@@ -29,15 +29,17 @@ def fetch_results(session, path, results_name, database = default_autopack_datab
 
 # -----------------------------------------------------------------------------
 #
-def fetch_autopack(session, path, results_name, database = default_autopack_database, ignore_cache = False):
+def fetch_autopack(session, path, results_name, database = default_autopack_database,
+                   ignore_cache = False, check_certificates = False):
 
     from . import read_apr
     recipe_loc, pieces = read_apr.read_autopack_results(path)
     recipe_url = recipe_loc.replace('autoPACKserver', database)
     from os.path import basename
     recipe_filename = basename(recipe_loc)
-    recipe_path = fetch_file(session, recipe_url, 'recipe for ' + results_name,
-                             recipe_filename, ignore_cache=ignore_cache)
+    from chimera.core.fetch import fetch_file
+    recipe_path = fetch_file(session, recipe_url, 'recipe for ' + results_name, recipe_filename, 'cellPACK',
+                             ignore_cache=ignore_cache, check_certificates=check_certificates)
 
     # Combine ingredients used in multiple compartments
     ingr_filenames, comp_surfaces = read_apr.read_autopack_recipe(recipe_path)
@@ -54,13 +56,13 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
     for ingr_filename, placements in ingr_placements.items():
         from urllib.parse import urljoin
         ingr_url = urljoin(recipe_url, ingr_filename)
-        ingr_path = fetch_file(session, ingr_url, 'ingredient ' + ingr_filename,
-                               ingr_filename, ignore_cache=ignore_cache)
+        ingr_path = fetch_file(session, ingr_url, 'ingredient ' + ingr_filename, ingr_filename, 'cellPACK',
+                               ignore_cache=ignore_cache, check_certificates=check_certificates)
         mesh_loc = read_apr.read_ingredient(ingr_path)
         mesh_url = mesh_loc.replace('autoPACKserver', database)
         mesh_filename = basename(mesh_loc)
-        mesh_path = fetch_file(session, mesh_url, 'mesh ' + mesh_filename,
-                               mesh_filename, ignore_cache=ignore_cache)
+        mesh_path = fetch_file(session, mesh_url, 'mesh ' + mesh_filename, mesh_filename, 'cellPACK',
+                               ignore_cache=ignore_cache, check_certificates=check_certificates)
         surf_placements.append((mesh_path, placements))
 
     # Fetch compartment surface files.
@@ -68,8 +70,8 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
     for comp_loc in comp_surfaces:
         comp_url = comp_loc.replace('autoPACKserver', database)
         comp_filename = basename(comp_loc)
-        comp_path = fetch_file(session, comp_url, 'component surface ' + comp_filename,
-                               comp_filename, ignore_cache=ignore_cache)
+        comp_path = fetch_file(session, comp_url, 'component surface ' + comp_filename, comp_filename, 'cellPACK',
+                               ignore_cache=ignore_cache, check_certificates=check_certificates)
         comp_paths.append(comp_path)
 
     # Open surface models
@@ -81,40 +83,17 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
 # -----------------------------------------------------------------------------
 # Fetch AutoPack results files
 #
-def fetch_autopack_results(session, results_name, database = default_autopack_database, ignore_cache = False):
+def fetch_autopack_results(session, results_name, database = default_autopack_database,
+                           ignore_cache = False, check_certificates = False):
 
     # Fetch results file.
     results_url = database + '/results/%s.apr.json' % results_name
     session.logger.status('Fetching %s from web %s...' % (results_name,results_url))
     results_filename = results_name + '.apr.json'
-    results_path = fetch_file(session, results_url, 'results ' + results_name,
-                              results_filename, ignore_cache=ignore_cache)
+    from chimera.core.fetch import fetch_file
+    results_path = fetch_file(session, results_url, 'results ' + results_name, results_filename, 'cellPACK',
+                              ignore_cache=ignore_cache, check_certificates=check_certificates)
     return results_path
-
-# -----------------------------------------------------------------------------
-#
-def fetch_file(session, url, name, save_name, save_dir = 'cellPACK', ignore_cache = False):
-    filename = "~/Downloads/Chimera/%s/%s" % (save_dir, save_name)
-    from os.path import expanduser, exists, dirname
-    filename = expanduser(filename)
-    if exists(filename):
-        return filename
-
-    dirname = dirname(filename)
-    import os
-    os.makedirs(dirname, exist_ok=True)
-
-    from urllib.request import URLError, Request
-    from .. import utils
-    headers = {"User-Agent": utils.html_user_agent(session.app_dirs)}
-    request = Request(url, unverifiable=True, headers=headers)
-    try:
-        utils.retrieve_cached_url(request, filename, session.logger)
-    except URLError as e:
-        from chimera.core.errors import UserError
-        raise UserError(str(e))
-    return filename
-
 
 # -----------------------------------------------------------------------------
 # Register to fetch cellPACK models.

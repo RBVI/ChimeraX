@@ -245,10 +245,10 @@ class Models(State):
         for m in models:
             m.delete()
 
-    def open(self, filenames, id=None, **kw):
+    def open(self, filenames, id=None, format=None, name=None, **kw):
         from . import io
         session = self._session()  # resolve back reference
-        models, status = io.open_multiple_data(session, filenames, **kw)
+        models, status = io.open_multiple_data(session, filenames, format=format, name=name, **kw)
         if status:
             session.logger.status(status)
         if models:

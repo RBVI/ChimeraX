@@ -23,25 +23,8 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False):
     map_name = id + '.omap'
   map_url = url_pattern % (site, id[1:3], id, map_name)
 
-  filename = "~/Downloads/Chimera/EDS/%s" % map_name
-  import os
-  filename = os.path.expanduser(filename)
-
-  if os.path.exists(filename):
-    return filename, id
-
-  dirname = os.path.dirname(filename)
-  os.makedirs(dirname, exist_ok=True)
-
-  from urllib.request import URLError, Request
-  from .. import utils
-  request = Request(map_url, unverifiable=True, headers={
-      "User-Agent": utils.html_user_agent(session.app_dirs),
-  })
-  try:
-    utils.retrieve_cached_url(request, filename, log)
-  except URLError as e:
-    raise UserError(str(e))
+  from ..fetch import fetch_file
+  filename = fetch_file(session, map_url, 'map %s' % id, map_name, 'EDS')
 
   return filename, id
 

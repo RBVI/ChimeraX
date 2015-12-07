@@ -977,6 +977,15 @@ class EnumOf(Annotation):
                     return self.values[i], ident, rest
         raise AnnotationError("Should be %s" % self.name)
 
+class DynamicEnum(Annotation):
+    '''Enumerated type where enumeration values computed from a function.'''
+    def __init__(self, values_func):
+        self.values_func = values_func
+    def parse(self, text, session):
+        return EnumOf(self.values_func()).parse(text, session)
+    @property
+    def name(self):
+        return 'one of ' + ', '.join("'%s'" % str(v) for v in self.values_func())
 
 class Or(Annotation):
     """Support two or more alternative annotations

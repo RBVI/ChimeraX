@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def open(session, filename, id=None, as_=None):
+def open(session, filename, format=None, name=None):
     '''Open a file.
 
     Parameters
@@ -10,13 +10,13 @@ def open(session, filename, id=None, as_=None):
         A path to a file (relative to the current directory), or a database id code to
         fetch prefixed by the database name, for example, pdb:1a0m, mmcif:1jj2, emdb:1080.
         A 4-letter id that is not a local file is interpreted as an mmCIF fetch.
-    id : tuple of integer
-        Not implemented. The model id number to use for this data set.
-    as_ : string
+    format : string
+        Read the file using this format, instead of using the file suffix to infer the format.
+    name : string
         Not implemented.  User-supplied name (as opposed to the filename).
     '''
     try:
-        models = session.models.open(filename, id=id, as_=as_)
+        models = session.models.open(filename, format=format, name=name)
     except OSError as e:
         from ..errors import UserError
         raise UserError(e)
@@ -24,10 +24,14 @@ def open(session, filename, id=None, as_=None):
     return models
 
 def register_command(session):
-    from . import cli
-    desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
-                       keyword=[('id', cli.ModelIdArg),
-                                ('as_a', cli.StringArg),
-                                ('label', cli.StringArg)],
-                       synopsis='read and display data')
-    cli.register('open', desc, open)
+    from . import CmdDesc, register, DynamicEnum, StringArg, ModelIdArg
+    def formats():
+        from .. import io
+        return io.formats()
+    desc = CmdDesc(required=[('filename', StringArg)],
+                   keyword=[('format', DynamicEnum(formats)),
+                            ('name', StringArg),
+                            #('id', ModelIdArg),
+                        ],
+                   synopsis='read and display data')
+    register('open', desc, open)
