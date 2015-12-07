@@ -48,6 +48,7 @@ ifdef NEED_OPENSSL
 SUBDIRS += openssl
 else
 openssl.install:
+openssl.app-install:
 endif
 
 ifdef HYDRA
