@@ -26,6 +26,11 @@ def _residue(p):
 def _residues(r):
     from .molarray import Residues
     return Residues(r)
+def _non_null_residues(r):
+    from .molarray import Residues
+    return Residues(r[r!=0])
+def _residues_or_nones(r):
+    return [Residue(rptr) if rptr else None for rptr in r]
 def _chains(c):
     from .molarray import Chains
     return Chains(c)
@@ -463,10 +468,15 @@ class Chain(Sequence):
     '''Chain identifier. Limited to 4 characters. Read only string.'''
     structure = c_property('chain_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this chain belongs too. Read only.'''
-    residues = c_property('chain_residues', cptr, 'num_residues', astype = _residues, read_only = True)
-    ''':class:`.Residues` collection containing the residues of this chain in order. Read only.'''
+    structure_residues = c_property('chain_residues', cptr, 'num_residues', astype = _non_null_residues, read_only = True)
+    ''':class:`.Residues` collection containing the residues of this chain with existing structure, in order. Read only.'''
+    num_structure_residues = c_property('chain_num_structure_residues', size_t, read_only = True)
+    '''Number of residues in this chain with existing structure. Read only.'''
+
+    residues = c_property('chain_residues', cptr, 'num_residues', astype = _residues_or_nones, read_only = True)
+    '''List containing the residues of this chain in order. Residues with no structure will be None. Read only.'''
     num_residues = c_property('chain_num_residues', size_t, read_only = True)
-    '''Number of residues belonging to this chain. Read only.'''
+    '''Number of residues belonging to this chain, including those without structure. Read only.'''
 
 # -----------------------------------------------------------------------------
 #
