@@ -33,6 +33,10 @@ class ColorArg(cli.Annotation):
             c = Color(token)
             c.explicit_transparency = (len(token) in (5, 9, 17))
             return c, text, rest
+        if text[0].isdigit():
+            token, text, rest = cli.next_token(text)
+            c = _parse_rgba_values(token)
+            return c, text, rest
         m = _color_func.match(text)
         if m is None:
             from .colordef import _find_named_color
@@ -119,6 +123,21 @@ class ColorArg(cli.Annotation):
         raise ValueError(
             "Wrong number of components for %s specifier" % color_space,
             offset=m.end())
+
+def _parse_rgba_values(text):
+    values = text.split(',')
+    if len(values) not in (3,4):
+        raise ValueError('Color must be 3 or 4 comman-separate numbers 0-100')
+    try:
+        rgba = tuple(float(v)/100.0 for v in values)
+    except:
+        raise ValueError('Color must be 3 or 4 comman-separate numbers 0-100')
+    transparent = (len(rgba) == 4)
+    if len(rgba) == 3:
+        rgba += (1.0,)
+    c = Color(rgba)
+    c.explicit_transparency = transparent
+    return c
 
 
 class ColormapArg(cli.Annotation):
