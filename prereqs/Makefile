@@ -32,6 +32,7 @@ SUBDIRS += win32
 endif
 
 ifeq ($(OS),Darwin)
+NEED_OPENSSL=1
 SUBDIRS += leapmotion oculus
 endif
 
