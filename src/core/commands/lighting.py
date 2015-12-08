@@ -139,7 +139,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     if not fill_direction is None:
         lp.fill_light_direction = array(normalize(fill_direction), float32)
     if not fill_intensity is None:
-        lp.fill_light_intensity = fill_intnsity
+        lp.fill_light_intensity = fill_intensity
     if not fill_color is None:
         lp.fill_light_color = fill_color.rgba[:3]
     if not ambient_intensity is None:
