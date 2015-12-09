@@ -1,14 +1,18 @@
 def read_collada_surfaces(session, path, name, color = (200,200,200,255), **kw):
     '''Open a collada file.'''
 
-    from ..models import Model
-    s = Model(name, session)
-
     from collada import Collada
     c = Collada(path)
     from ..geometry import Place
-    splist = surface_pieces_from_nodes(c.scene.nodes, s, color, Place(), {})
-    set_positions_and_colors(splist)
+    splist = surfaces_from_nodes(c.scene.nodes, color, Place(), {}, session)
+    if len(splist) > 1:
+        from ..models import Model
+        s = Model(name, session)
+        s.add(splist)
+    elif len(splist) == 1:
+        s = splist[0]
+        s.name = name
+    set_instance_positions_and_colors(s.all_drawings())
 
     ai = c.assetInfo
     if ai:
@@ -17,29 +21,37 @@ def read_collada_surfaces(session, path, name, color = (200,200,200,255), **kw):
 
     return [s], ('Opened collada file %s' % name)
 
-def surface_pieces_from_nodes(nodes, surf, color, place, ginst):
+def surfaces_from_nodes(nodes, color, place, instances, session):
 
-    # TODO: Copy collada hierarchy instead of flattening it.
-    #       Code was originally written when only 2-level hierarchy was supported.
-    splist = []
     from collada.scene import GeometryNode, Node
     from ..geometry import Place
+    from ..models import Model
+    splist = []
     for n in nodes:
         if isinstance(n, GeometryNode):
             materials = dict((m.symbol,m.target) for m in n.materials)
             g = n.geometry
             colors = g.sourceById
-            if g.id in ginst:
-                add_geometry_instance(g.primitives, ginst[g.id], place, color, materials)
+            if g.id in instances:
+                add_geometry_instance(g.primitives, instances[g.id], place, color, materials)
             else:
-                ginst[g.id] = spieces = geometry_surface_pieces(g.primitives, place, color, materials, colors, surf)
+                instances[g.id] = spieces = geometry_node_surfaces(g.primitives, place, color, materials, colors, session)
                 splist.extend(spieces)
         elif isinstance(n, Node):
             pl = place * Place(n.matrix[:3,:])
-            splist.extend(surface_pieces_from_nodes(n.children, surf, color, pl, ginst))
+            spieces = surfaces_from_nodes(n.children, color, pl, instances, session)
+            name = n.xmlnode.get('name')
+            if len(spieces) > 1:
+                m = Model(name, session)
+                m.add(spieces)
+                splist.append(m)
+            elif len(spieces) == 1:
+                s = spieces[0]
+                s.name = name
+                splist.append(s)
     return splist
 
-def geometry_surface_pieces(primitives, place, color, materials, colors, surf):
+def geometry_node_surfaces(primitives, place, color, materials, colors, session):
 
     from collada import polylist, triangleset
 
@@ -65,7 +77,9 @@ def geometry_surface_pieces(primitives, place, color, materials, colors, surf):
         vcolors = vertex_colors(p, t, len(v), colors)
         c = material_color(materials.get(p.material), color)
 
-        sp = surf.new_drawing()
+        name = '%d' % (len(splist) + 1)
+        from ..models import Model
+        sp = Model(name, session)
         sp.geometry = v, t
         sp.normals = vn
         sp.color_list = [c]
@@ -113,13 +127,14 @@ def vertex_colors(triangle_set, tarray, nv, colors):
     return vc
 
 # For drawings with multiple instances make colors a numpy uint8 array.
-def set_positions_and_colors(drawings):
+def set_instance_positions_and_colors(drawings):
     from ..geometry import Places
     for d in drawings:
-        clist = d.color_list
-        from numpy import array, uint8
-        d.colors = array(clist, uint8).reshape((len(clist),4))
-        d.positions = Places(d.position_list)
+        if hasattr(d, 'position_list') and hasattr(d, 'color_list'):
+            clist = d.color_list
+            from numpy import array, uint8
+            d.colors = array(clist, uint8).reshape((len(clist),4))
+            d.positions = Places(d.position_list)
 
 def register_collada_format():
     from .. import io, generic3d
