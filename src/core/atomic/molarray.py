@@ -42,16 +42,19 @@ size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 
 def _atoms(a):
     return Atoms(a)
-def _bonds(a):
-    return Bonds(a)
-def _pseudobonds(a):
-	return Pseudobonds(a)
-def _elements(a):
-    return Elements(a)
-def _residues(a):
-    return Residues(a)
-def _chains(a):
-    return Chains(a)
+def _bonds(b):
+    return Bonds(b)
+def _pseudobonds(p):
+	return Pseudobonds(p)
+def _elements(e):
+    return Elements(e)
+def _residues(r):
+    return Residues(r)
+def _non_null_residues(r):
+    from .molarray import Residues
+    return Residues(r[r!=0])
+def _chains(c):
+    return Chains(c)
 def _atomic_structures(p):
     return AtomicStructures(p)
 def _atomic_structure_datas(p):
@@ -104,7 +107,8 @@ class Collection:
     def __getitem__(self, i):
         '''Indexing of collection objects using square brackets, *e.g.* c[i].'''
         if not isinstance(i,(int,integer)):
-            raise IndexError('Only integer indices allowed for Atoms, got %s' % str(type(i)))
+            raise IndexError('Only integer indices allowed for %s, got %s'
+                % (self.__class__.__name__, str(type(i))))
         from .molobject import object_map
         return object_map(self._pointers[i], self._object_class)
     def index(self, object):
@@ -774,9 +778,11 @@ class Chains(Collection):
     '''A numpy array of string chain ids for each chain. Read only.'''
     structures = cvec_property('chain_structure', cptr, astype = _atomic_structures, read_only = True)
     '''A :class:`.AtomicStructureDatas` collection containing structures for each chain.'''
-    residues = cvec_property('chain_residues', cptr, 'num_residues', astype = _residues,
-                             read_only = True, per_object = False)
-    '''A :class:`Residues` containing the residues of all chains. Read only.'''
+    existing_residues = cvec_property('chain_residues', cptr, 'num_residues',
+        astype = _non_null_residues, read_only = True, per_object = False)
+    '''A :class:`Residues` containing the existing residues of all chains. Read only.'''
+    num_existing_residues = cvec_property('chain_num_existing_residues', size_t, read_only = True)
+    '''A numpy integer array containing the number of existing residues in each chain.'''
     num_residues = cvec_property('chain_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
 
