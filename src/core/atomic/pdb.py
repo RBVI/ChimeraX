@@ -52,12 +52,20 @@ def fetch_pdb(session, pdb_id):
     url = "http://www.pdb.org/pdb/files/%s" % pdb_name
     from ..fetch import fetch_file
     filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB')
-    return filename, pdb_id
 
-def register():
+    from .. import io
+    models, status = io.open_data(session, filename, format = 'pdb', name = pdb_id)
+    return models, status
+
+def register_pdb_format():
     from .. import io
     io.register_format(
         "PDB", structure.CATEGORY, (".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
-        open_func=open_pdb, fetch_func=fetch_pdb)
+        open_func=open_pdb)
+
+def register_pdb_fetch(session):
+    from .. import fetch
+    fetch.register_fetch(session, 'pdb', fetch_pdb, 'pdb',
+                         prefixes = ['pdb'])

@@ -121,7 +121,7 @@ def set_positions_and_colors(drawings):
         d.colors = array(clist, uint8).reshape((len(clist),4))
         d.positions = Places(d.position_list)
 
-def register():
+def register_collada_format():
     from .. import io, generic3d
     io.register_format(
         "Collada", generic3d.CATEGORY, (".dae",),

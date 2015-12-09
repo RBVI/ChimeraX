@@ -60,7 +60,10 @@ def fetch_mmcif(session, pdb_id):
     url = "http://www.pdb.org/pdb/files/%s" % pdb_name
     from ..fetch import fetch_file
     filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB')
-    return filename, pdb_id
+
+    from .. import io
+    models, status = io.open_data(session, filename, format = 'mmcif', name = pdb_id)
+    return models, status
 
 
 def _get_template(name, app_dirs, logger):
@@ -92,7 +95,7 @@ def _get_template(name, app_dirs, logger):
                 % name)
 
 
-def register():
+def register_mmcif_format():
     global _initialized
     if _initialized:
         return
@@ -108,8 +111,12 @@ def register():
         "mmCIF", structure.CATEGORY, (".cif",), ("mmcif", "cif"),
         mime=("chemical/x-mmcif", "chemical/x-cif"),
         reference="http://mmcif.wwpdb.org/",
-        requires_filename=True, open_func=open_mmcif, fetch_func=fetch_mmcif)
+        requires_filename=True, open_func=open_mmcif)
 
+def register_mmcif_fetch(session):
+    from .. import fetch
+    fetch.register_fetch(session, 'pdb', fetch_mmcif, 'mmcif',
+                         prefixes = ['mmcif'], default_format = True)
 
 def get_mmcif_tables(model, table_names):
     raw_tables = model.metadata

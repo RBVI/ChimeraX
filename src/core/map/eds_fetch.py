@@ -26,16 +26,16 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False):
   from ..fetch import fetch_file
   filename = fetch_file(session, map_url, 'map %s' % id, map_name, 'EDS')
 
-  return filename, id
+  from .. import io
+  models, status = io.open_data(session, filename, format = 'dsn6', name = id)
+  return models, status
 
 # -----------------------------------------------------------------------------
 # Register to fetch EMDB maps with open command.
 #
-def register_eds_fetch():
-    # TODO: The io module doesn't support the concept database name, instead requiring a format name.
-    from .. import io
-    from .volume import open_map
-    io.register_format('eds', io.VOLUME, [".omap"], ["eds"], open_func = open_map)
-    io.register_fetch('eds', fetch_eds_map)
+def register_eds_fetch(session):
+    from .. import fetch
+    fetch.register_fetch(session, 'eds', fetch_eds_map, 'dsn6',
+                         prefixes = ['eds'])
 #    reg('EDS', fetch_eds_map, '1A0M', 'eds.bmc.uu.se/eds',
 #        'http://eds.bmc.uu.se/cgi-bin/eds/uusfs?pdbCode=%s', session)

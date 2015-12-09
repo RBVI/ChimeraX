@@ -170,3 +170,67 @@ def _convert_to_timestamp(date):
         return parsedate_to_datetime(date).timestamp()
     except TypeError:
         return None
+
+# -----------------------------------------------------------------------------
+#
+def register_fetch(session, database_name, fetch_function, file_format,
+                   prefixes=(), default_format=None):
+    d = fetch_databases(session)
+    df = d.get(database_name, None)
+    if df is None:
+        d[database_name] = df = DatabaseFetch(database_name, file_format)
+    df.add_format(file_format, fetch_function)
+    if default_format:
+        df.default_format = file_format
+    for p in prefixes:
+        df.prefix_format[p] = file_format
+
+# -----------------------------------------------------------------------------
+#
+def fetch_databases(session):
+    d = getattr(session, '_database_fetches', None)
+    if d is None:
+        session._database_fetches = d = {}
+    return d
+
+# -----------------------------------------------------------------------------
+#
+def fetch_from_database(session, from_database, id, format=None, name=None):
+    d = fetch_databases(session)
+    df = d[from_database]
+    models, status = df.fetch(session, id, format=format)
+    if name is not None:
+        for m in models:
+            m.name = name
+    return models
+
+# -----------------------------------------------------------------------------
+#
+def fetch_from_prefix(session, prefix):
+    d = fetch_databases(session)
+    for db in d.values():
+        if prefix in db.prefix_format:
+            return db.database_name, db.prefix_format[prefix]
+    return None, None
+
+# -----------------------------------------------------------------------------
+#
+def prefixes(session):
+    d = fetch_databases(session)
+    return sum((tuple(db.prefix_format.keys()) for db in d.values()), ())
+
+# -----------------------------------------------------------------------------
+#
+class DatabaseFetch:
+    def __init__(self, database_name, default_format):
+        self.database_name = database_name
+        self.default_format = default_format
+        self.fetch_function = {}		# Map format to fetch function
+        self.prefix_format = {}
+    def add_format(self, format_name, fetch_function):
+	# fetch_function() takes session and database id arguments, returns model list.
+        self.fetch_function[format_name] = fetch_function
+    def fetch(self, session, database_id, format=None):
+        f = self.default_format if format is None else format
+        fetch = self.fetch_function[f]
+        return fetch(session, database_id)

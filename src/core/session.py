@@ -642,22 +642,30 @@ def common_startup(sess):
     )
 
     _register_core_file_formats()
-
+    _register_core_database_fetch(sess)
 
 def _register_core_file_formats():
     from . import stl
     stl.register()
     from .atomic import pdb
-    pdb.register()
+    pdb.register_pdb_format()
     from .atomic import mmcif
-    mmcif.register()
+    mmcif.register_mmcif_format()
     from . import scripting
     scripting.register()
     from . import map
     map.register_map_file_readers()
-    map.register_eds_fetch()
-    map.register_emdb_fetch()
     from .atomic import readpbonds
-    readpbonds.register()
+    readpbonds.register_pbonds_format()
     from .surface import collada
-    collada.register()
+    collada.register_collada_format()
+
+def _register_core_database_fetch(session):
+    s = session
+    from .atomic import pdb
+    pdb.register_pdb_fetch(s)
+    from .atomic import mmcif
+    mmcif.register_mmcif_fetch(s)
+    from . import map
+    map.register_eds_fetch(s)
+    map.register_emdb_fetch(s)

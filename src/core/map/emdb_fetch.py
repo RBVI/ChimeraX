@@ -22,13 +22,13 @@ def fetch_emdb(session, emdb_id):
     filename = fetch_file(session, map_url, 'map %s' % emdb_id, map_name, 'EMDB',
                           uncompress = True)
 
-    return filename, emdb_id
+    from .. import io
+    models, status = io.open_data(session, filename, format = 'ccp4', name = emdb_id)
+    return models, status
 
 # -----------------------------------------------------------------------------
 #
-def register_emdb_fetch():
-    # TODO: The io module doesn't support the concept database name, instead requiring a format name.
-    from .. import io
-    from .volume import open_map
-    io.register_format('emdb', io.VOLUME, [".map"], ["emdb"], open_func = open_map)
-    io.register_fetch('emdb', fetch_emdb)
+def register_emdb_fetch(session):
+    from .. import fetch
+    fetch.register_fetch(session, 'emdb', fetch_emdb, 'ccp4',
+                         prefixes = ['emdb'])
