@@ -92,7 +92,7 @@ def fetch_autopack_results(session, results_name, database = default_autopack_da
 # Register to fetch cellPACK models.
 #
 def register_cellpack_fetch(session):
-    from chimera.core import fetch
+    from chimerax.core import fetch
     fetch.register_fetch(session, 'cellpack', fetch_cellpack, 'cellpack',
                          prefixes = ['cellpack'])
 
