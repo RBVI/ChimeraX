@@ -5,17 +5,10 @@ default_autopack_database = 'https://github.com/mesoscope/cellPACK_data/raw/mast
 
 # -----------------------------------------------------------------------------
 #
-def open_cellpack(session, stream, cellpack_id, *args, **kw):
-    path = stream.name
-    stream.close()
-    surfs = fetch_results(session, path, cellpack_id)
-    return surfs, 'Opened %s' % cellpack_id
-
-# -----------------------------------------------------------------------------
-#
 def fetch_cellpack(session, cellpack_id):
     path = fetch_autopack_results(session, cellpack_id)
-    return path, cellpack_id
+    surfs = fetch_results(session, path, cellpack_id)
+    return surfs, 'Opened %s' % cellpack_id
 
 # -----------------------------------------------------------------------------
 #
@@ -98,12 +91,10 @@ def fetch_autopack_results(session, results_name, database = default_autopack_da
 # -----------------------------------------------------------------------------
 # Register to fetch cellPACK models.
 #
-def register():
-    from chimerax.core import io, generic3d
-    io.register_format(
-        "cellPACK", generic3d.CATEGORY, (".apr.json",), ("cellpack",),
-        reference="http://www.cellpack.org",
-        requires_filename=True, open_func=open_cellpack, fetch_func=fetch_cellpack)
+def register_cellpack_fetch(session):
+    from chimera.core import fetch
+    fetch.register_fetch(session, 'cellpack', fetch_cellpack, 'cellpack',
+                         prefixes = ['cellpack'])
 
 #  info_url = '%s/results/%%s.apr.json' % (default_autopack_database,)
 # Example id 'HIV-1_0.1.6'
