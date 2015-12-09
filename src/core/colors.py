@@ -220,20 +220,23 @@ class Colormap:
                  color_above_value_range=None,
                  color_below_value_range=None,
                  color_no_value=None):
-        from numpy import array, float32, ndarray
+        from numpy import array, float32, ndarray, argsort
         if not data_values:
             import numpy
-            self.data_values = numpy.linspace(0.0, 1.0, len(colors))
+            v = numpy.linspace(0.0, 1.0, len(colors))
         elif isinstance(data_values, ndarray):
-            self.data_values = data_values
+            v = data_values
         else:
-            self.data_values = array(data_values, dtype=float32)
+            v = array(data_values, dtype=float32)
+        order = argsort(v)
+        self.data_values = v[order]
         if isinstance(colors[0], Color):
-            self.colors = array([c.rgba for c in colors])
+            c = array([c.rgba for c in colors])
         elif isinstance(colors, ndarray):
-            self.colors = colors
+            c = colors
         else:
-            self.colors = array(colors, dtype=float32)
+            c = array(colors, dtype=float32)
+        self.colors = c[order]
 
         if color_above_value_range is None:
             color_above_value_range = colors[-1]
