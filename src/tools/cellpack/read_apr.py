@@ -67,7 +67,19 @@ def create_surfaces(session, surface_placements):
             p = Places(placements)
             for d in surf.child_drawings():
                 d.positions = p * d.positions
+                d.colors = copy_colors(d.colors, len(p))
             surf.name += ' %d copies' % len(placements)
 #        print (surf.name, 'children', len(surf.child_drawings()), 'all children', len(surf.all_drawings()))
         surfs.append(surf)
     return surfs
+
+def copy_colors(colors, n):
+    if n == 1:
+        return colors
+    nc = len(colors)
+    from numpy import empty
+    c = empty((nc*n,4), colors.dtype)
+    c[:] = colors
+#    for in in range(n):
+#        c[[i*nc:(i+1)*nc,:] = colors
+    return c
