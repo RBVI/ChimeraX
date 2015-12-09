@@ -178,7 +178,17 @@ class ColormapArg(cli.Annotation):
                     values.append(float(vc[0]))
                     color, t, r = ColorArg.parse(vc[1], session)
                 else:
-                    raise ValueError("Too many fields in colormap")
+                    # More than one comma
+                    # Handle RGB color spec with commas
+                    try:
+                        color, t, r = ColorArg.parse(p, session)
+                    except:
+                        val, col = p.split(',', maxsplit=1)
+                        try:
+                            values.append(float(val))
+                            color, t, r = ColorArg.parse(col, session)
+                        except:
+                            raise ValueError("Could not parse colormap color %s" % p)
                 if r:
                     raise ValueError("Bad color in colormap")
                 colors.append(color)
@@ -198,10 +208,10 @@ class ColormapArg(cli.Annotation):
             from ..colors import BuiltinColormaps
             i = BuiltinColormaps.bisect_left(token)
             if i >= len(BuiltinColormaps):
-                raise ValueError("Invalid colormap name")
+                raise ValueError("Invalid colormap name '%s'" % token)
             name = BuiltinColormaps.iloc[i]
             if not name.startswith(token):
-                raise ValueError("Invalid colormap name")
+                raise ValueError("Invalid colormap name '%s'" % token)
             return BuiltinColormaps[name], name, rest
 
 _color_func = re.compile(r"^(rgb|rgba|hsl|hsla|gray)\s*\(([^)]*)\)")
