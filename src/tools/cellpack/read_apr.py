@@ -14,7 +14,7 @@ def read_autopack_results(path):
                     tf = ((r00,r01,r02,t0),
                           (r10,r11,r12,t1),
                           (r20,r21,r22,t2))
-                    from chimera.core.geometry import Place
+                    from chimerax.core.geometry import Place
                     p = Place(tf)
                     ingr_id = (comp_name, interior_or_surface, ingr_name)
                     if ingr_id in pieces:
@@ -55,9 +55,9 @@ def read_json(path):
 
 def create_surfaces(session, surface_placements):
 
-    from chimera.core.surface.collada import read_collada_surfaces
+    from chimerax.core.surface.collada import read_collada_surfaces
     from os.path import basename
-    from chimera.core.geometry import Places
+    from chimerax.core.geometry import Places
     surfs = []
     for path, placements in surface_placements:
         slist, msg = read_collada_surfaces(session, path, basename(path))

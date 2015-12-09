@@ -1,7 +1,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/map/data/cmap
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/data/cmap
 
 PYSRCS = __init__.py cmap_format.py cmap_grid.py write_cmap.py
 

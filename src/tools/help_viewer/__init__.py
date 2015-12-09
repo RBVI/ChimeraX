@@ -13,7 +13,7 @@ def start_tool(session, tool_info):
 #
 def register_command(command_name, tool_info):
     from . import cmd
-    from chimera.core.commands import register
+    from chimerax.core.commands import register
     register(command_name, cmd.help_desc, cmd.help)
 
 

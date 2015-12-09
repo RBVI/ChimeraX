@@ -23,7 +23,7 @@ def fetch_results(session, path, results_name, database = default_autopack_datab
     try:
         surfs = fetch_autopack(session, path, results_name, database, ignore_cache)
     except IOError as e:
-        from chimera.core.errors import UserError
+        from chimerax.core.errors import UserError
         raise UserError('Unknown cellPACK id "%s"\n\n%s' % (results_name, str(e)))
     return surfs
 
@@ -37,7 +37,7 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
     recipe_url = recipe_loc.replace('autoPACKserver', database)
     from os.path import basename
     recipe_filename = basename(recipe_loc)
-    from chimera.core.fetch import fetch_file
+    from chimerax.core.fetch import fetch_file
     recipe_path = fetch_file(session, recipe_url, 'recipe for ' + results_name, recipe_filename, 'cellPACK',
                              ignore_cache=ignore_cache, check_certificates=check_certificates)
 
@@ -90,7 +90,7 @@ def fetch_autopack_results(session, results_name, database = default_autopack_da
     results_url = database + '/results/%s.apr.json' % results_name
     session.logger.status('Fetching %s from web %s...' % (results_name,results_url))
     results_filename = results_name + '.apr.json'
-    from chimera.core.fetch import fetch_file
+    from chimerax.core.fetch import fetch_file
     results_path = fetch_file(session, results_url, 'results ' + results_name, results_filename, 'cellPACK',
                               ignore_cache=ignore_cache, check_certificates=check_certificates)
     return results_path
@@ -99,7 +99,7 @@ def fetch_autopack_results(session, results_name, database = default_autopack_da
 # Register to fetch cellPACK models.
 #
 def register():
-    from chimera.core import io, generic3d
+    from chimerax.core import io, generic3d
     io.register_format(
         "cellPACK", generic3d.CATEGORY, (".apr.json",), ("cellpack",),
         reference="http://www.cellpack.org",

@@ -28,4 +28,4 @@ class _CoreSettings(Settings):
 
 def init(session):
     global settings
-    settings = _CoreSettings(session, "chimera.core")
+    settings = _CoreSettings(session, "chimerax.core")

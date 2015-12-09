@@ -1,6 +1,6 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 # ------------------------------------------------------------------------------
 #
@@ -24,7 +24,7 @@ class MouseModePanel(ToolInstance):
         panel_height = self.icon_size
         panel_size = (min_panel_width, panel_height)
 
-        from chimera.core.ui import MainToolWindow
+        from chimerax.core.ui import MainToolWindow
         class MouseModesWindow(MainToolWindow):
             close_destroys = False
 
@@ -118,7 +118,7 @@ class MouseModePanel(ToolInstance):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         self.display(data["shown"])
 
@@ -127,5 +127,5 @@ class MouseModePanel(ToolInstance):
 
     @classmethod
     def get_singleton(cls, session):
-        from chimera.core import tools
+        from chimerax.core import tools
         return tools.get_singleton(session, MouseModePanel, 'mouse_modes')

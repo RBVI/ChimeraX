@@ -4,6 +4,6 @@
 tools: Manage running tool instances
 ====================================
 
-.. automodule:: chimera.core.tools
+.. automodule:: chimerax.core.tools
     :members:
     :show-inheritance:

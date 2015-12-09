@@ -1,6 +1,6 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimera.core.commands import CmdDesc, AtomsArg, FloatArg
+from chimerax.core.commands import CmdDesc, AtomsArg, FloatArg
 contacts_desc = CmdDesc(
     optional = [('atoms', AtomsArg),],
     keyword = [('probeRadius', FloatArg),])
@@ -35,10 +35,10 @@ def contacts(session, atoms = None, probe_radius = 1.4):
 
 def atom_spheres(atoms, session):
     if atoms is None:
-        from chimera.core.atomic import all_atoms
+        from chimerax.core.atomic import all_atoms
         atoms = all_atoms(session)
     if len(atoms) == 0:
-        from chimera.core import UserError
+        from chimerax.core import UserError
         raise UserError('No atoms specified')
     s = [('#%s/%s'%(m.id_string(),cid), catoms.scene_coords, catoms.radii)
          for m, cid, catoms in atoms.by_chain]
@@ -54,24 +54,24 @@ def buried_areas(s, probe_radius, min_area = 1):
     s.sort(key = lambda v: len(v[1]), reverse = True)   # Biggest first for threading.
     
     # Compute area of each atom set.
-    from chimera.core.surface import spheres_surface_area
-    from chimera.core.threadq import apply_to_list
+    from chimerax.core.surface import spheres_surface_area
+    from chimerax.core.threadq import apply_to_list
     def area(name, xyz, r):
         return (name, spheres_surface_area(xyz,r).sum())
     areas = apply_to_list(area, s)
 
     # Optimize buried area calculations using bounds of each atom set.
     naxes = 64
-    from chimera.core.geometry.sphere import sphere_points
+    from chimerax.core.geometry.sphere import sphere_points
     axes = sphere_points(naxes)
-    from chimera.core.geometry import sphere_axes_bounds
+    from chimerax.core.geometry import sphere_axes_bounds
     bounds = [sphere_axes_bounds(xyz, r, axes) for name, xyz, r in s]
 
     # Compute buried areas between all pairs.
     buried = []
     n = len(s)
     pairs = []
-    from chimera.core.geometry import bounds_overlap
+    from chimerax.core.geometry import bounds_overlap
     for i in range(n):
         for j in range(i+1,n):
             if bounds_overlap(bounds[i], bounds[j], 0):
@@ -91,18 +91,18 @@ def buried_areas(s, probe_radius, min_area = 1):
 # Consider only spheres in each set overlapping bounds of other set.
 def optimized_buried_area(xyz1, r1, b1, xyz2, r2, b2, axes, probe_radius):
 
-#    from chimera.core.geometry import bounds_overlap, spheres_in_bounds
+#    from chimerax.core.geometry import bounds_overlap, spheres_in_bounds
 #    if not bounds_overlap(b1, b2, 0):
 #        return 0
 
-    from chimera.core.geometry import spheres_in_bounds
+    from chimerax.core.geometry import spheres_in_bounds
     i1 = spheres_in_bounds(xyz1, r1, axes, b2, 0)
     i2 = spheres_in_bounds(xyz2, r2, axes, b1, 0)
     if len(i1) == 0 or len(i2) == 0:
         return 0
 
     xyz1, r1 = xyz1[i1], r1[i1]
-    from chimera.core.surface import spheres_surface_area
+    from chimerax.core.surface import spheres_surface_area
     a1 = spheres_surface_area(xyz1, r1).sum()
     xyz2, r2 = xyz2[i2], r2[i2]
     a2 = spheres_surface_area(xyz2, r2).sum()
@@ -117,7 +117,7 @@ def buried_area(xyz1, r1, a1, xyz2, r2, a2):
 
     from numpy import concatenate
     xyz12, r12 = concatenate((xyz1,xyz2)), concatenate((r1,r2))
-    from chimera.core.surface import spheres_surface_area
+    from chimerax.core.surface import spheres_surface_area
     a12 = spheres_surface_area(xyz12, r12).sum()
     ba = 0.5 * (a1 + a2 - a12)
     return ba

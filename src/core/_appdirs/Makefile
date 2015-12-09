@@ -1,8 +1,8 @@
 TOP= ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
+PKG_DIR = $(PYSITEDIR)/chimerax/core
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core
 
 PYMOD_NAME = _appdirs
 SRCS= $(wildcard *.cpp)

@@ -1,5 +1,5 @@
 def check_for_changes(session):
-    """Check for, and propagate Chimera atomic data changes.
+    """Check for, and propagate ChimeraX atomic data changes.
 
     This is called once per frame, and whenever otherwise needed.
     """

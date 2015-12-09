@@ -14,14 +14,14 @@
 # chapter on "Guidelines for Configuring Applications".
 #
 # Started this script, just wanting to generate
-# Apple Uniform Type Information (UTI) for chimera file types.
+# Apple Uniform Type Information (UTI) for ChimeraX file types.
 # TODO: need domains/homepage each type, may alter registration.
 #
 
 import os
 import sys
 import plistlib
-from chimera.core import io, session, logger, configfile, core_settings, __copyright__ as copyright
+from chimerax.core import io, session, logger, configfile, core_settings, __copyright__ as copyright
 
 configfile.only_use_defaults = True
 
@@ -45,7 +45,7 @@ more_info = {
 
 
 def utid(f):
-    """convert chimera type to its Apple Universal Type Identifier"""
+    """convert ChimeraX type to its Apple Universal Type Identifier"""
     # look for a domain the fetch data
     for fetchInfo in io.fetch._fetchInfo:
         dbname = fetchInfo[0]
@@ -81,7 +81,7 @@ def format_name(f):
 
 
 def dump_format(f):
-    """output Apple Universal Type information for chimera file format"""
+    """output Apple Universal Type information for ChimeraX file format"""
     id = utid(f)
     if id is None:
         print("skipping", f, file=sys.stderr)
@@ -102,8 +102,7 @@ def dump_format(f):
     return d
 
 sess = session.Session("unknown", minimal=True)
-core_settings.init(sess)
-session._register_core_file_formats()
+core_settings.init(sess) session._register_core_file_formats()
 
 chimera_types = [f for f in io.formats() if f.startswith('Chimera')]
 
@@ -112,13 +111,13 @@ chimera_types = [f for f in io.formats() if f.startswith('Chimera')]
 # use today's year as the copyright year
 year = copyright.split()[2]
 
-# extract chimera.core version
+# extract chimerax.core version
 f = open('../../core/Makefile')
 for line in f.readlines():
     if line.startswith('CORE_VERSION'):
         break
 else:
-    print('error: unable to find chimera.core version')
+    print('error: unable to find chimerax.core version')
     raise SystemExit(1)
 
 version = line.split()[2]
@@ -136,7 +135,7 @@ pl = {
     "NSHumanReadableCopyright": "Copyright \u00A9 %s" % year +
                                 " Regents of the University of California."
                                 "  All Rights Reserved.",
-    "CFBundleIconFile": "chimera-icon.icns",
+    "CFBundleIconFile": "chimerax-icon.icns",
     "CFBundleIdentifier": "edu.ucsf.cgl.%s" % app_name,
     "CFBundleInfoDictionaryVersion": "6.0",
     "CFBundleName": "UCSF ChimeraX",
@@ -156,7 +155,7 @@ if "MACOSX_DEPLOYMENT_TARGET" in os.environ:
     target = os.getenv("MACOSX_DEPLOYMENT_TARGET")
     pl["LSMinimumSystemVersion"] = "%s.0" % target
 useLSItemContent_types = float(target) >= 10.5
-# TODO: debug why useLSItemContent_types causes chimera application
+# TODO: debug why useLSItemContent_types causes ChimeraX application
 # to not work for double-clicking PDB files
 useLSItemContent_types = False
 

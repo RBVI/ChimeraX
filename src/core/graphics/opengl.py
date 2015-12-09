@@ -13,11 +13,11 @@ between Buffers and shader program variables.  The Texture class manages
 2D texture storage.  '''
 
 def configure_offscreen_rendering():
-    from chimera import core
+    from chimerax import core
     if not hasattr(core, 'offscreen_rendering'):
         return
-    import chimera
-    if not hasattr(chimera, 'app_lib_dir'):
+    import chimerax
+    if not hasattr(chimerax, 'app_lib_dir'):
         return
     import sys
     if sys.platform == 'darwin':
@@ -25,13 +25,13 @@ def configure_offscreen_rendering():
     import os
     os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
     # OSMesa 10.6.2 gives an OpenGL 3.0 compatibility context on Linux with only GLSL 130 support.
-    # Chimera needs OpenGL 3.3 with GLSL 330 shaders and requires only a core context.
+    # ChimeraX needs OpenGL 3.3 with GLSL 330 shaders and requires only a core context.
     # Overriding Mesa to give OpenGL 3.3, gives a core context that really does support 3.3.
     # OSMesa doesn't allow requesting a core context, see OffscreenRenderingContext below.
     os.environ['MESA_GL_VERSION_OVERRIDE'] = '3.3'
     # Tell PyOpenGL where to find libOSMesa
     lib_suffix = '.dylib' if sys.platform == 'darwin' else '.so'
-    from chimera import app_lib_dir
+    from chimerax import app_lib_dir
     lib_mesa = os.path.join(app_lib_dir, 'libOSMesa' + lib_suffix)
     if os.path.exists(lib_mesa):
         os.environ['PYOPENGL_OSMESA_LIB_PATH'] = lib_mesa

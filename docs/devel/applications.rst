@@ -5,7 +5,7 @@ Applications
 ============
 
 This documentation is for application APIs
-that are not in the :ref:`Chimera Core <core>`
+that are not in the :ref:`ChimeraX Core <core>`
 nor in the :doc:`tools` layered on the core.
 The user interface documentation is found
 in :doc:`User's Manual </users/index>`.

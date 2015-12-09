@@ -1,6 +1,6 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimera.core.commands import EnumOf, CmdDesc, StringArg, BoolArg
+from chimerax.core.commands import EnumOf, CmdDesc, StringArg, BoolArg
 
 _tool_types = EnumOf(["all", "installed", "available"])
 
@@ -175,10 +175,10 @@ def ts_start(session, tool_name):
     ts = session.toolshed
     tinfo = ts.find_tool(tool_name)
     if tinfo is None:
-        from chimera.core.errors import UserError
+        from chimerax.core.errors import UserError
         raise UserError('No installed tool named "%s"' % tool_name)
     tinfo.start(session)
-from chimera.core.commands import StringArg
+from chimerax.core.commands import StringArg
 ts_start_desc = CmdDesc(required = [('tool_name', StringArg)])
 
 def ts_show(session, tool_name, _show = True):
@@ -192,14 +192,14 @@ def ts_show(session, tool_name, _show = True):
     ts = session.toolshed
     tinfo = ts.find_tool(tool_name)
     if tinfo is None:
-        from chimera.core.errors import UserError
+        from chimerax.core.errors import UserError
         raise UserError('No installed tool named "%s"' % tool_name)
     tinst = [t for t in session.tools.list() if t.tool_info is tinfo]
     for t in tinst:
         t.display(_show)
     if len(tinst) == 0:
         tinfo.start(session)
-from chimera.core.commands import StringArg
+from chimerax.core.commands import StringArg
 ts_show_desc = CmdDesc(required = [('tool_name', StringArg)])
 
 def ts_hide(session, tool_name):

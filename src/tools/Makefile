@@ -7,7 +7,7 @@ SUBDIRS = cellpack cmd_line contacts exp_cmd help_viewer \
 
 include $(TOP)/mk/subdir.make
 
-PKG_DIR = $(PYSITEDIR)/chimera
+PKG_DIR = $(PYSITEDIR)/chimerax
 
 PYSRCS = $(wildcard *.py)
 

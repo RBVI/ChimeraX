@@ -1,6 +1,6 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 class CommandLine(ToolInstance):
@@ -15,7 +15,7 @@ class CommandLine(ToolInstance):
     def __init__(self, session, tool_info, *, restoring=False):
         if not restoring:
             ToolInstance.__init__(self, session, tool_info)
-        from chimera.core.ui import MainToolWindow
+        from chimerax.core.ui import MainToolWindow
 
         class CmdWindow(MainToolWindow):
             close_destroys = False
@@ -109,8 +109,8 @@ class CommandLine(ToolInstance):
         logger = session.logger
         text = self.text.Value
         logger.status("")
-        from chimera.core import errors
-        from chimera.core.commands import Command
+        from chimerax.core import errors
+        from chimerax.core.commands import Command
         from html import escape
         for cmd_text in text.split("\n"):
             if not cmd_text:
@@ -182,7 +182,7 @@ class CommandLine(ToolInstance):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         self.display(data["shown"])
 
@@ -191,7 +191,7 @@ class CommandLine(ToolInstance):
 
     @classmethod
     def get_singleton(cls, session):
-        from chimera.core import tools
+        from chimerax.core import tools
         return tools.get_singleton(session, CommandLine, 'cmd_line')
 
 class _HistoryDialog:
@@ -204,7 +204,7 @@ class _HistoryDialog:
     def __init__(self, controller):
         # make dialog hidden initially
         self.controller = controller
-        from chimera.core.ui import ChildToolWindow
+        from chimerax.core.ui import ChildToolWindow
 
         class HistoryWindow(ChildToolWindow):
             close_destroys = False
@@ -230,7 +230,7 @@ class _HistoryDialog:
         parent.Bind(wx.EVT_BUTTON, self.button_cb)
         self.window.manage(placement=None)
         self.window.shown = False
-        from chimera.core.history import FIFOHistory
+        from chimerax.core.history import FIFOHistory
         self.history = FIFOHistory(self.NUM_REMEMBERED, controller.session, "command line")
         self._record_dialog = None
         self._search_cache = None
@@ -250,15 +250,15 @@ class _HistoryDialog:
         label = event.GetEventObject().GetLabelText()
         import wx
         if label == self.record_label:
-            from chimera.core.io import extensions
-            ext = extensions("Chimera")[0]
-            wc = "Chimera commands (*{})|*{}".format(ext, ext)
-            from chimera.core.ui.open_save import SaveDialog
-            from chimera.core.io import open_filename, extensions
+            from chimerax.core.io import extensions
+            ext = extensions("ChimeraX")[0]
+            wc = "ChimeraX commands (*{})|*{}".format(ext, ext)
+            from chimerax.core.ui.open_save import SaveDialog
+            from chimerax.core.io import open_filename, extensions
             if self._record_dialog is None:
                 self._record_dialg = dlg = SaveDialog(
                     self.window.ui_area, "Record Commands",
-                    wildcard=wc, add_extension=extensions("Chimera")[0])
+                    wildcard=wc, add_extension=extensions("ChimeraX")[0])
                 dlg.SetExtraControlCreator(self._record_customize_cb)
             else:
                 dlg = self._record_dialog
@@ -266,7 +266,7 @@ class _HistoryDialog:
                 return
             path = dlg.GetPath()
             if not path:
-                from chimera.core.errors import UserError
+                from chimerax.core.errors import UserError
                 raise UserError("No file specified for saving command history")
             if self.save_amount_Choice.GetStringSelection() == "all":
                 cmds = [cmd for cmd in self.history]

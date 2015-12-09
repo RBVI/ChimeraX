@@ -10,7 +10,7 @@
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 def _bitmap(filename, size):
@@ -35,7 +35,7 @@ class HelpUI(ToolInstance):
         # in this case), so only override if different name desired
         self.display_name = "%s Help Viewer" % session.app_dirs.appname
         self.home_page = None
-        from chimera.core.ui import MainToolWindow
+        from chimerax.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
@@ -119,12 +119,12 @@ class HelpUI(ToolInstance):
         url = event.GetURL()
         if url.startswith("cxcmd:"):
             from urllib.parse import unquote
-            from chimera.core.commands import run
+            from chimerax.core.commands import run
             event.Veto()
             cmd = url.split(':', 1)[1]
             run(session, unquote(cmd))
             return
-        # TODO: check if http url is within chimera docs
+        # TODO: check if http url is within ChimeraX docs
         # TODO: handle missing doc -- redirect to web server
         from urllib.parse import urlparse
         parts = urlparse(url)
@@ -148,7 +148,7 @@ class HelpUI(ToolInstance):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         self.display(data["shown"])
 
@@ -157,5 +157,5 @@ class HelpUI(ToolInstance):
 
     @classmethod
     def get_singleton(cls, session):
-        from chimera.core import tools
+        from chimerax.core import tools
         return tools.get_singleton(session, HelpUI, 'help_viewer')

@@ -94,7 +94,7 @@ commands = [
 ]
 def run_commands(session, commands = commands):
     log = session.logger
-    from chimera.core.commands import run
+    from chimerax.core.commands import run
     for c in commands:
         log.info('> ' + c)
         run(session, c)

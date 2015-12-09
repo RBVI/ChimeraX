@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.shortcuts
+PKG_NAME = chimerax.shortcuts
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = Keboard shortcuts
 
@@ -10,7 +10,7 @@ PKG_DESCRIPTION = Keboard shortcuts
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
 TOOL_NAME = shortcuts
-TOOL_PKG_NAME = chimera.shortcuts
+TOOL_PKG_NAME = chimerax.shortcuts
 TOOL_DISPLAY_NAME = Molecule Display
 TOOL_CATEGORY = General
 TOOL_FILE_TYPES =

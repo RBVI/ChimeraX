@@ -1,8 +1,8 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/surface
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/surface
+PKG_DIR = $(PYSITEDIR)/chimerax/core/surface
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/surface
 
 SUBDIRS	= _surface
 

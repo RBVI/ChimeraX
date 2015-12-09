@@ -29,7 +29,7 @@ class Model(State, Drawing):
     id : None or tuple of int
         Model/submodel identification: *e.g.*, 1.3.2 is (1, 3, 2).
         Set and unset by :py:class:`Models` instance.
-    tool_info : a :py:class:`~chimera.core.toolshed.ToolInfo` instance
+    tool_info : a :py:class:`~chimerax.core.toolshed.ToolInfo` instance
         The tool that provides the subclass.
     SESSION_ENDURING : bool, class-level optional
         If True, then model survives across sessions.

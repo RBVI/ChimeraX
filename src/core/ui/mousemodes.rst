@@ -5,5 +5,5 @@ ui.mousemodes: Mouse modes
 
 Classes to create mouse modes and assign mouse buttons and modifier keys to specific modes.
 
-.. automodule:: chimera.core.ui.mousemodes
+.. automodule:: chimerax.core.ui.mousemodes
     :members:

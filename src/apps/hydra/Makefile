@@ -57,7 +57,7 @@ install: all $(PKG_DIR) install_app_prereqs
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 # Install core packages in Hydra app.
 	for cpy in $(COREPY) ; do \
-		$(RSYNC) $(PYSITEDIR)/chimera/core/$$cpy $(PKG_DIR) ; \
+		$(RSYNC) $(PYSITEDIR)/chimerax/core/$$cpy $(PKG_DIR) ; \
 	done
 	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(APP_LIB_DIR)
 ifeq ($(OS),Darwin)
@@ -130,7 +130,7 @@ $(APP) update_prereqs:
 
 # Install pdbio
 	$(RSYNC) $(libdir)/libatomstruct.dylib $(libdir)/libtmpl.dylib $(libdir)/libblob.dylib $(APP_LIB_DIR)
-	$(RSYNC) $(PYSITEDIR)/chimera/core/pdbio.so $(PYSITEDIR)/chimera/core/structaccess.so $(APP_HYDRA)
+	$(RSYNC) $(PYSITEDIR)/chimerax/core/pdbio.so $(PYSITEDIR)/chimerax/core/structaccess.so $(APP_HYDRA)
 
 	# Work around pdbio.parse_mmCIF_file() importing structaccess globally.
 	echo "from hydra.structaccess import *" >  $(APP_PY_SITE)/structaccess.py

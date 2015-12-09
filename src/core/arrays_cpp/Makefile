@@ -1,7 +1,7 @@
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core
+PKG_DIR = $(PYSITEDIR)/chimerax/core
 
 LIBNAME = arrays
 

@@ -41,9 +41,9 @@ class ToolInstance(State):
 
     Parameters
     ----------
-    session : instance of chimera.core.session.Session
+    session : instance of chimerax.core.session.Session
         Session in which this tool instance was created.
-    tool_info : a :py:class:`~chimera.core.toolshed.ToolInfo` instance
+    tool_info : a :py:class:`~chimerax.core.toolshed.ToolInfo` instance
         The tool information used to create this tool.
     id : int, optional
         See attribute.
@@ -122,7 +122,7 @@ class ToolInstance(State):
 
     def display_help(self):
         """Show the help for this tool in the help viewer."""
-        from chimera.core.commands import run
+        from chimerax.core.commands import run
         run(self.session,
             'help %s' % self.help if self.help is not None else "")
 
@@ -160,7 +160,7 @@ class Tools(State):
 
         Parameters
         ----------
-        session : instance of chimera.core.session.Session
+        session : instance of chimerax.core.session.Session
             Session for which this state manager was created.
 
         """
@@ -176,19 +176,19 @@ class Tools(State):
     def take_snapshot(self, session, flags):
         """Save state of running tools.
 
-        Overrides chimera.core.session.State default method to save
+        Overrides chimerax.core.session.State default method to save
         state of all registered running tool instances.
 
         Parameters
         ----------
-        session : instance of chimera.core.session.Session
+        session : instance of chimerax.core.session.Session
             Session for which state is being saved.
             Should match the `session` argument given to `__init__`.
         phase : str
-            Take phase.  See `chimera.core.session` for more details.
+            Take phase.  See `chimerax.core.session` for more details.
         flags : int
             Flags indicating whether snapshot is being taken to
-            save scene or session.  See `chimera.core.session` for
+            save scene or session.  See `chimerax.core.session` for
             more details.
 
         """
@@ -210,15 +210,15 @@ class Tools(State):
     def restore_snapshot_init(self, session, tool_info, version, data):
         """Restore state of running tools.
 
-        Overrides chimera.core.session.State default method to restore
+        Overrides chimerax.core.session.State default method to restore
         state of all registered running tools.
 
         Parameters
         ----------
-        session : instance of chimera.core.session.Session
+        session : instance of chimerax.core.session.Session
             Session for which state is being saved.
             Should match the `session` argument given to `__init__`.
-        tool_info : instance of :py:class:`~chimera.core.toolshed.ToolInfo`
+        tool_info : instance of :py:class:`~chimerax.core.toolshed.ToolInfo`
         version : any
             Version of state manager that saved the data.
             Used for determining how to parse the `data` argument.
@@ -235,7 +235,7 @@ class Tools(State):
     def reset_state(self, session):
         """Reset state manager to default state.
 
-        Overrides chimera.core.session.State default method to reset
+        Overrides chimerax.core.session.State default method to reset
         to default state.  Since the default state has no running
         tools, all registered tool instances are deleted.
 

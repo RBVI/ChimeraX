@@ -99,7 +99,7 @@ def mmcif_assemblies(model):
     return alist
 
 #
-# Assemblies described using mmCIF chain ids but Chimera uses author chain ids.
+# Assemblies described using mmCIF chain ids but ChimeraX uses author chain ids.
 # Map author chain id and residue number to mmCIF chain id.
 # Only include entries if chain id is changed.
 #
@@ -133,7 +133,7 @@ class Assembly:
         self.chain_ops = cops	# Triples of chain id list, operator expression, operator matrices
 
         self.operator_table = operator_table
-        # Chain map maps Chimera chain id, res name to mmcif chain id used in chain_ids
+        # Chain map maps ChimeraX chain id, res name to mmcif chain id used in chain_ids
         self.chain_map = chain_map
 
     def show(self, mol, session):

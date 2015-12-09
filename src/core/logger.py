@@ -156,7 +156,7 @@ class Logger:
     _sim_collapse_after = 5
 
     def __init__(self, session):
-        from chimera.core.orderedset import OrderedSet
+        from .orderedset import OrderedSet
         self.logs = OrderedSet()
         self.session = session
         self._prev_newline = True

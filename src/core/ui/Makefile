@@ -2,8 +2,8 @@ TOP= ../../..
 include $(TOP)/mk/config.make
 
 PYSRCS= $(wildcard *.py)
-PKG_DIR= $(PYSITEDIR)/chimera/core/ui
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/ui
+PKG_DIR= $(PYSITEDIR)/chimerax/core/ui
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/ui
 DATA = splash.jpg
 
 all: $(PYOBJS)

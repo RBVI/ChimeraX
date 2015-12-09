@@ -371,7 +371,7 @@ class MainWindow(wx.Frame, PlainTextLog):
                            ('PDB images command', 'pdbimages')):
             item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
             def cb(evt, ses=session, t=topic):
-                from chimera.core.commands import run
+                from chimerax.core.commands import run
                 run(ses, 'help sethome help:%s' % t)
             self.Bind(wx.EVT_MENU, cb, item)
 
@@ -507,7 +507,7 @@ class MainToolWindow(ToolWindow):
 
     Parameters
     ----------
-    tool_instance : a :py:class:`~chimera.core.tools.ToolInstance` instance
+    tool_instance : a :py:class:`~chimerax.core.tools.ToolInstance` instance
         The tool creating this window.
     size : 2-tuple of ints, optional
         Requested size for the tool window, width by height, in pixels.

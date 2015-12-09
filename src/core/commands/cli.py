@@ -158,7 +158,7 @@ Example
 
 Here is a simple example::
 
-    import from chimera.core.commands import cli, errors
+    import from chimerax.core.commands import cli, errors
     @register("echo", cli.CmdDesc(optional=[('text', cli.RestOfLine)]))
     def echo(session, text=''):
         print(text)
@@ -1454,7 +1454,7 @@ def delay_registration(name, proxy_function, logger=None):
 
     Example::
 
-        from chimera.core.commands import cli
+        from chimerax.core.commands import cli
 
         def lazy_reg():
             import module
@@ -1601,7 +1601,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
     words = name.split()
     name = ' '.join(words)  # canonicalize
     if cmd_desc is not None and cmd_desc.url is None:
-        import chimera
+        import chimerax
         import os
         cname = words[0]
         if cname.startswith('~'):
@@ -1609,7 +1609,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
             frag = ' '.join(words)
         else:
             frag = ' '.join(words[1:])
-        cpath = os.path.join(chimera.app_data_dir, 'docs', 'user', 'commands',
+        cpath = os.path.join(chimerax.app_data_dir, 'docs', 'user', 'commands',
                              '%s.html' % cname)
         if frag:
             frag = '#' + frag

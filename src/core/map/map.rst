@@ -3,8 +3,8 @@
 map: Density maps
 =================
 
-.. automodule:: chimera.core.map.volume
+.. automodule:: chimerax.core.map.volume
     :members:
 
-.. automodule:: chimera.core.map.data.griddata
+.. automodule:: chimerax.core.map.data.griddata
     :members:

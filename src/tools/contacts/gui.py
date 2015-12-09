@@ -2,7 +2,7 @@
 
 # ------------------------------------------------------------------------------
 #
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 class Plot(ToolInstance):
 
     SIZE = (300, 300)
@@ -11,7 +11,7 @@ class Plot(ToolInstance):
         if not restoring:
             ToolInstance.__init__(self, session, tool_info)
 
-        from chimera.core.ui import MainToolWindow
+        from chimerax.core.ui import MainToolWindow
         tw = MainToolWindow(self, size=self.SIZE)
         self.tool_window = tw
         parent = tw.ui_area
@@ -48,7 +48,7 @@ class Plot(ToolInstance):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
@@ -80,7 +80,7 @@ def show_contact_graph(node_weights, edge_weights, short_names, session):
     from math import sqrt
     w = dict(node_weights)
     node_sizes = tuple(10*sqrt(w[n]) for n in G)
-    from chimera.core.colors import chain_rgba
+    from chimerax.core.colors import chain_rgba
     node_colors = tuple(chain_rgba(short_names[n]) for n in G)
     nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=a)
 
