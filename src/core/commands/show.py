@@ -113,8 +113,8 @@ def register_command(session):
     what_arg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds',
                        'cartoons', 'ribbons', 'models'))
     desc = CmdDesc(optional=[('objects', Or(ObjectsArg, EmptyArg)),
-                             ('what', what_arg),
-                             ('only', NoArg)],
+                             ('what', what_arg)],
+                   keyword=[('only', NoArg)],
                    synopsis='show specified objects')
     register('show', desc, show)
     create_alias('display', 'show $*')
