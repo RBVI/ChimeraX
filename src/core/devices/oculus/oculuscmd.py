@@ -9,9 +9,9 @@ def oculus(session, enable, pan_speed = None):
     enable : bool
       Enable or disable use of an Oculus Rift headset.  The device must be connected
       and powered on to enable it.  A new full screen window will be created on the
-      Oculus device.  Graphics will not be updated in the main Chimera window because
+      Oculus device.  Graphics will not be updated in the main ChimeraX window because
       the different rendering rates of the Oculus and a conventional display will cause
-      stuttering of the Oculus graphics.  Also the Side View panel in the main Chimera
+      stuttering of the Oculus graphics.  Also the Side View panel in the main ChimeraX
       window should be closed to avoid stuttering.
     pan_speed : float
       Controls how far the camera moves in response to tranlation head motion.  Default 5.

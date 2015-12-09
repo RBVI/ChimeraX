@@ -1,12 +1,12 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.cmd_line
+PKG_NAME = chimerax.cmd_line
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = ChimeraX command line interface
 
 TOOL_NAME = cmd_line
-TOOL_PKG_NAME = chimera.cmd_line
+TOOL_PKG_NAME = chimerax.cmd_line
 TOOL_DISPLAY_NAME = Command Line Interface
 TOOL_CATEGORY = General
 TOOL_FILE_TYPES =

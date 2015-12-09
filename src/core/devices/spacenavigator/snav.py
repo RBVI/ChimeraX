@@ -38,7 +38,7 @@ class Space_Navigator:
             return True
 
         from sys import platform
-        self.error = 'Chimera does not support Space Navigator on %s' % platform
+        self.error = 'ChimeraX does not support Space Navigator on %s' % platform
         return False
 
     def stop_event_processing(self):

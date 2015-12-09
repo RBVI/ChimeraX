@@ -10,7 +10,7 @@
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 class bogusUI(ToolInstance):
@@ -41,7 +41,7 @@ ACTION_BUTTONS
             ToolInstance.__init__(self, session, tool_info)
 
         self.display_name = "Open Models"
-        from chimera.core.gui import MainToolWindow
+        from chimerax.core.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
@@ -56,7 +56,7 @@ ACTION_BUTTONS
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
         # Add triggers for model addition/removal
-        from chimera.core.models import ADD_MODELS, REMOVE_MODELS
+        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self._handlers = [session.triggers.add_handler(ADD_MODELS,
                                                        self._make_page),
                           session.triggers.add_handler(REMOVE_MODELS,
@@ -117,7 +117,7 @@ ACTION_BUTTONS
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data[0]
         ToolInstance.restore_snapshot_init(

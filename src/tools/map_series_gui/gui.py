@@ -1,6 +1,6 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 # ------------------------------------------------------------------------------
@@ -24,7 +24,7 @@ class MapSeries(ToolInstance):
             #          (' length %d' % n))
 
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
-        from chimera.core.ui import MainToolWindow
+        from chimerax.core.ui import MainToolWindow
 
         class MapSeriesWindow(MainToolWindow):
             close_destroys = False
@@ -60,7 +60,7 @@ class MapSeries(ToolInstance):
 
         tw.manage(placement="top")
 
-        from chimera.core.models import REMOVE_MODELS
+        from chimerax.core.models import REMOVE_MODELS
         self.model_close_handler = session.triggers.add_handler(
             REMOVE_MODELS, self.models_closed_cb)
 
@@ -101,7 +101,7 @@ class MapSeries(ToolInstance):
         n = s0.number_of_times()
         if t >= n - 1:
             t = 0
-        from chimera.core.map.series.vseries_command import vseries_play
+        from chimerax.core.map.series.vseries_command import vseries_play
         p = vseries_play(self.session, self.series, start=t, loop=True, cache_frames=n)
 
         def update_slider(t, self=self):
@@ -114,7 +114,7 @@ class MapSeries(ToolInstance):
     def stop(self):
         if self.series is None:
             return
-        from chimera.core.map.series.vseries_command import vseries_stop
+        from chimerax.core.map.series.vseries_command import vseries_stop
         vseries_stop(self.session, self.series)
         self.playing = False
         self.set_play_button_icon(play=True)
@@ -172,7 +172,7 @@ class MapSeries(ToolInstance):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
@@ -188,14 +188,14 @@ def show_slider_on_open(session):
     # Register callback to show slider when a map series is opened
     if not hasattr(session, '_registered_map_series_slider'):
         session._registered_map_series_slider = True
-        from chimera.core.models import ADD_MODELS
+        from chimerax.core.models import ADD_MODELS
         session.triggers.add_handler(
             ADD_MODELS, lambda name, m, s=session: models_added_cb(m, s))
 
 
 def models_added_cb(models, session):
     # Show slider when a map series is opened.
-    from chimera.core.map.series.series import Map_Series
+    from chimerax.core.map.series.series import Map_Series
     ms = [m for m in models if isinstance(m, Map_Series)]
     if ms:
         tool_info = session.toolshed.find_tool('map_series_gui')

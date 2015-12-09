@@ -2802,4 +2802,4 @@ def register_map_file_readers():
     from .data.fileformats import file_types
     for d,t,prefixes,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
-      io.register_format(d, io.VOLUME, suf, open_func=open_map, batch=batch)
+      io.register_format(d, io.VOLUME, suf, prefixes=prefixes, open_func=open_map, batch=batch)

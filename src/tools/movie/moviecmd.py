@@ -1,7 +1,7 @@
-from chimera.core.errors import UserError as CommandError
+from chimerax.core.errors import UserError as CommandError
 def register_movie_command():
 
-    from chimera.core.commands import CmdDesc, register, BoolArg, EnumOf, ListOf, IntArg, Int2Arg, StringArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf, ListOf, IntArg, Int2Arg, StringArg, FloatArg
 
     from .formats import image_formats, formats, qualities
     ifmts = image_formats
@@ -124,7 +124,7 @@ def ignore_movie_commands(session):
 def movie_encode(session, output=None, format=None, quality=None, qscale=None, bitrate=None,
                  framerate=25, round_trip=False, reset_mode=RESET_CLEAR, wait=False):
     '''Enode images captured with movie record command creating a movie file.
-    This uses the standalone video encoding program ffmpeg which is included with Chimera.
+    This uses the standalone video encoding program ffmpeg which is included with ChimeraX.
     
     Parameters
     ----------

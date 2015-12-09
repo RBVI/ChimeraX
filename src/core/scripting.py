@@ -10,7 +10,7 @@ the ChimeraX session available in it.
 For example, to use the timeit module in a Python script::
 
     import timeit
-    from chimera.core.comands import sym
+    from chimerax.core.comands import sym
 
     m = session.models.list()[0]
     t = timeit.timeit(
@@ -28,15 +28,15 @@ _sandbox_count = 0
 def open_py(session, filename, name, *args, **kw):
     """Execute Python script in a ChimeraX context
 
-    This function is invoked via ChimeraX's :py:mod:`~chimera.core.io`
-    :py:func:`~chimera.core.io.open_data` API for files whose names end
+    This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
+    :py:func:`~chimerax.core.io.open_data` API for files whose names end
     with **.py**, **.pyc**, or **.pyo**.  Each script is opened in an uniquely
     named importable sandbox (see timeit example above).  And the current
     ChimeraX session is available as a global variable named **session**.
     
     Parameters
     ----------
-    session : a ChimeraX :py:class:`~chimera.core.session.Session`
+    session : a ChimeraX :py:class:`~chimerax.core.session.Session`
     filename : path to file to open
     name : how to identify the file
     """
@@ -71,13 +71,13 @@ def open_py(session, filename, name, *args, **kw):
 def open_ch(session, filename, name, *args, **kw):
     """Execute utf-8 file as ChimeraX commands
 
-    This function is invoked via ChimeraX's :py:mod:`~chimera.core.io`
-    :py:func:`~chimera.core.io.open_data` API for files whose names end
+    This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
+    :py:func:`~chimerax.core.io.open_data` API for files whose names end
     with **.cxc**.
     
     Parameters
     ----------
-    session : a ChimeraX :py:class:`~chimera.core.session.Session`
+    session : a ChimeraX :py:class:`~chimerax.core.session.Session`
     filename : path to file to open
     name : how to identify the file
     
@@ -107,7 +107,7 @@ def register():
         reference="http://www.python.org/",
         open_func=open_py)
     io.register_format(
-        "Chimera", io.SCRIPT, (".cxc",), ("cmd",),
+        "ChimeraX", io.SCRIPT, (".cxc",), ("cmd",),
         mime=('text/x-chimerax', 'application/x-chimerax-code'),
-        reference="http://www.cgl.ucsf.edu/chimera/",
+        reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open_ch)

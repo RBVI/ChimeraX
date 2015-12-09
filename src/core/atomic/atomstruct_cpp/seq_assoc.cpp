@@ -165,13 +165,12 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
             if (seq[i] == aseq[offset+i])
                 continue;
             if (++errors > max_errors) {
-                err_list.push_back(max_errors+1);
                 break;
             }
 
         }
-        if (err_list.empty() || err_list.back() != max_errors+1) {
-            err_list.push_back(errors);
+        err_list.push_back(errors);
+        if (errors < max_errors+1) {
             unsigned int gap_errs = 0;
             if (target_left_gap >= 0) {
                 gap_errs += std::abs((int)((offset+1) - target_left_gap));

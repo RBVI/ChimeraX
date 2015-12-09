@@ -45,7 +45,7 @@ class UserColors(SortedDict, State):
         if not user:
             return list(self.keys())
         return [name for name, color in self.items()
-            if name not in BuiltinColors or color != BuiltinColors[name]]
+                if name not in BuiltinColors or color != BuiltinColors[name]]
 
     def add(self, key, value):
         if key in BuiltinColors:
@@ -484,7 +484,7 @@ def chain_colors(cids):
 
     from numpy import array, uint8, empty
     if len(cids) == 0:
-        c = empty((0,4), uint8)
+        c = empty((0, 4), uint8)
     else:
         c = array(tuple(rgba_256[cid.lower()] for cid in cids), uint8)
     return c
@@ -503,6 +503,8 @@ def chain_rgba8(cid):
 
 
 _df_state = {}
+
+
 def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
     """Best effort to return an RGB that perceptually differs from the given RGBs"""
     if rgbs and len(rgbs[0]) > 3:
@@ -524,8 +526,8 @@ def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
             return candidate
         min_diff = None
         for rgb in rgbs:
-            diff = abs(rgb[0]-candidate[0]) + abs(rgb[1]-candidate[1]) \
-                + 0.5 * abs(rgb[2]-candidate[2])
+            diff = abs(rgb[0] - candidate[0]) + abs(rgb[1] - candidate[1]) \
+                + 0.5 * abs(rgb[2] - candidate[2])
             if min_diff is None or diff < min_diff:
                 min_diff = diff
         if max_diff is None or min_diff > max_diff:
@@ -611,6 +613,7 @@ BuiltinColors = SortedDict({
     'deep pink': (255, 20, 147, 255),
     'deepskyblue': (0, 191, 255, 255),
     'deep skyblue': (0, 191, 255, 255),
+    'deep sky blue': (0, 191, 255, 255),
     'dimgray': (105, 105, 105, 255),
     'dim gray': (105, 105, 105, 255),
     'dimgrey': (105, 105, 105, 255),
@@ -672,6 +675,7 @@ BuiltinColors = SortedDict({
     'light sea green': (32, 178, 170, 255),
     'lightskyblue': (135, 206, 250, 255),
     'light skyblue': (135, 206, 250, 255),
+    'light sky blue': (135, 206, 250, 255),
     'lightslategray': (119, 136, 153, 255),
     'light slate gray': (119, 136, 153, 255),
     'lightslategrey': (119, 136, 153, 255),

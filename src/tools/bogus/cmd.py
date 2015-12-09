@@ -1,7 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimera.core.commands import cli, atomspec
-from chimera.core.webservices.opal_job import OpalJob
+from chimerax.core.commands import cli, atomspec
+from chimerax.core.webservices.opal_job import OpalJob
 from .psize import Psize
 
 
@@ -46,7 +46,7 @@ def apbs(session, modelspec=None):
     else:
         models = modelspec.evaluate(session).models
     if len(models) != 1:
-        from chimera.core.errors import UserError
+        from chimerax.core.errors import UserError
         raise UserError("apbs works on one model at a time")
     for m in models:
         _apbs_pdb2pqr(session, m)
@@ -57,7 +57,7 @@ def move(session, by, modelspec=None):
     spec = modelspec.evaluate(session)
     import numpy
     by_vector = numpy.array(by)
-    from chimera.core.geometry import place
+    from chimerax.core.geometry import place
     translation = place.translation(by_vector)
     for m in spec.models:
         m.position = translation * m.position

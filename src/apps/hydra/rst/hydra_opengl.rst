@@ -1,5 +1,5 @@
 graphics: OpenGL
 ================
-.. automodule:: chimera.core.graphics.opengl
+.. automodule:: chimerax.core.graphics.opengl
     :members:
     :exclude-members: Material, Lighting, Texture, float32

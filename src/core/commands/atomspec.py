@@ -32,9 +32,9 @@ evaluated and is expected to fill in an AtomSpecResults instance.
 Example
 -------
 
-Here is an example of a function that may be registered with cli:
+Here is an example of a function that may be registered with cli::
 
-    from chimera.core.commands import cli, atomspec
+    from chimerax.core.commands import cli, atomspec
 
     def move(session, by, modelspec=None):
         if modelspec is None:
@@ -42,7 +42,7 @@ Here is an example of a function that may be registered with cli:
         spec = modelspec.evaluate(session)
         import numpy
         by_vector = numpy.array(by)
-        from chimera.core.geometry import place
+        from chimerax.core.geometry import place
         translation = place.translation(by_vector)
         for m in spec.models:
             m.position = translation * m.position
@@ -607,9 +607,9 @@ class AtomSpec:
 
         Parameters
         ----------
-        session : chimera.core.session.Session instance
+        session : chimerax.core.session.Session instance
             The session in which to evaluate atom specifier.
-        models : list of chimera.core.models.Model instances
+        models : list of chimerax.core.models.Model instances
             Defaults to None, which uses all models in 'session'.
         **kw : keyword arguments
             If 'models' is None, 'kw' is passed through to call to
@@ -648,7 +648,7 @@ class AtomSpecResults:
 
     Parameters
     ----------
-    models : readonly list of chimera.core.models.Model
+    models : readonly list of chimerax.core.models.Model
         List of models that matches the atom specifier
     """
     def __init__(self, atoms = None, models = None):
@@ -752,13 +752,13 @@ def register_selector(session, name, func):
 
     Parameters
     ----------
-    session : instance of chimera.core.session.Session
+    session : instance of chimerax.core.session.Session
         Session in which the name may be used.  If None, name is global.
     name : str
         Selector name, preferably without whitespace.
     func : callable object
         Selector evaluation function, called as 'func(session, models, results)'
-        where 'models' are chimera.core.models.Model instances and
+        where 'models' are chimerax.core.models.Model instances and
         'results' is an AtomSpecResults instance.
 
     """
@@ -770,7 +770,7 @@ def deregister_selector(session, name):
 
     Parameters
     ----------
-    session : instance of chimera.core.session.Session
+    session : instance of chimerax.core.session.Session
         Session in which the name may be used.  If None, name is global.
     name : str
         Previously registered selector name.
@@ -789,7 +789,7 @@ def list_selectors(session):
 
     Parameters
     ----------
-    session : instance of chimera.core.session.Session
+    session : instance of chimerax.core.session.Session
         Session in which the name may be used.  If None, name is global.
 
     Returns
@@ -806,7 +806,7 @@ def get_selector(session, name):
 
     Parameters
     ----------
-    session : instance of chimera.core.session.Session
+    session : instance of chimerax.core.session.Session
         Session in which the name may be used.  If None, name is global.
     name : str
         Previously registered selector name.
@@ -825,7 +825,7 @@ def everything(session):
 
     Parameters
     ----------
-    session : instance of chimera.core.session.Session
+    session : instance of chimerax.core.session.Session
         Session in which the name may be used.  If None, name is global.
 
     Returns

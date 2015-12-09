@@ -1338,6 +1338,21 @@ extern "C" void chain_num_residues(void *chains, size_t n, size_t *nres)
     }
 }
 
+extern "C" void chain_num_existing_residues(void *chains, size_t n, size_t *nres)
+{
+    Chain **c = static_cast<Chain **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            size_t num_sr = 0;
+            for (auto r: c[i]->residues())
+                if (r != nullptr) ++num_sr;
+            nres[i] = num_sr;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void chain_residues(void *chains, size_t n, pyobject_t *res)
 {
     Chain **c = static_cast<Chain **>(chains);
@@ -1345,7 +1360,7 @@ extern "C" void chain_residues(void *chains, size_t n, pyobject_t *res)
         for (size_t i = 0; i != n; ++i) {
             const Chain::Residues &r = c[i]->residues();
             for (size_t j = 0; j != r.size(); ++j)
-                *res++ = r[i];
+                *res++ = r[j];
         }
     } catch (...) {
         molc_error();
@@ -1380,9 +1395,9 @@ extern "C" PyObject* change_tracker_changes(void *vct)
     PyObject* changes_data = NULL;
     try {
         changes_data = PyDict_New();
-        auto all_changes = ct->get_changes();
+        auto& all_changes = ct->get_changes();
         for (size_t i = 0; i < all_changes.size(); ++i) {
-            auto class_changes = all_changes[i];
+            auto& class_changes = all_changes[i];
             auto class_name = ct->python_class_names[i];
             PyObject* key = unicode_from_string(class_name);
             PyObject* value = PyTuple_New(4);

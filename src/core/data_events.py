@@ -16,7 +16,7 @@ Data types that should be tracked are registered with
 ::
 
     def computation():
-        from chimera.core.data_events import tracker
+        from chimerax.core.data_events import tracker
         with tracker:
             # manipulate data
         # changes propagated

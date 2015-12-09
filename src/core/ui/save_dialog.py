@@ -32,7 +32,7 @@ class _SaveFormat:
 
 class MainSaveDialog:
 
-    DEFAULT_FORMAT = "Chimera Session"
+    DEFAULT_FORMAT = "ChimeraX Session"
 
     def __init__(self, ui):
         self.file_dialog = None
@@ -154,7 +154,7 @@ def _session_save(session, filename):
     import os.path
     ext = os.path.splitext(filename)[1]
     from .. import io
-    exts = io.extensions("Chimera session")
+    exts = io.extensions("ChimeraX session")
     if exts and ext not in exts:
         filename += exts[0]
     # TODO: generate text command instead of calling function directly

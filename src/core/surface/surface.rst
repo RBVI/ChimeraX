@@ -11,23 +11,23 @@ and a numpy array of triangles which are triples of indices into the vertex list
 (N by 3 array, unit vectors, float32).  The vertex, triangle and normal arrays are
 sometimes called varray, tarray, narray, and sometimes vertices, triangles, normals.
 
-.. automodule:: chimera.core.surface.sasa
+.. automodule:: chimerax.core.surface.sasa
     :members:
 
-.. automodule:: chimera.core.surface.shapes
+.. automodule:: chimerax.core.surface.shapes
     :members:
 
-.. automodule:: chimera.core.surface.area
+.. automodule:: chimerax.core.surface.area
     :members:
 
-.. automodule:: chimera.core.surface.gridsurf
+.. automodule:: chimerax.core.surface.gridsurf
     :members:
 
-.. automodule:: chimera.core.surface._surface
+.. automodule:: chimerax.core.surface._surface
     :members: connected_triangles, triangle_vertices, connected_pieces, enclosed_volume, surface_area, vertex_areas, boundary_edges, boundary_loops, calculate_vertex_normals, invert_vertex_normals, parse_stl, sharp_edge_patches, unique_vertex_map, surface_area_of_spheres, estimate_surface_area_of_spheres, subdivide_triangles, subdivide_mesh, tube_geometry, tube_geometry_colors, tube_triangle_mask
 
-.. automodule:: chimera.core.surface.dust
+.. automodule:: chimerax.core.surface.dust
     :members:
 
-.. automodule:: chimera.core.surface.gaussian
+.. automodule:: chimerax.core.surface.gaussian
     :members:

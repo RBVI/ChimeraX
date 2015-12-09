@@ -4,6 +4,6 @@
 toolshed: Manage installed and available tools
 ==============================================
 
-.. automodule:: chimera.core.toolshed
+.. automodule:: chimerax.core.toolshed
     :members:
     :show-inheritance:

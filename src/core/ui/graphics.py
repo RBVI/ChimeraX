@@ -78,7 +78,7 @@ class Popup(wx.PopupWindow):
         mac = (sys.platform == 'darwin')
         if mac:
             # On Mac balloons rise above other apps that cover the Chimear app
-            # when mousing over those apps even when Chimera does not have focus.
+            # when mousing over those apps even when ChimeraX does not have focus.
             fw = wx.Window.FindFocus()
             if fw is None:
                 return

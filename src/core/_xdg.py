@@ -205,14 +205,14 @@ def make_desktop(info, localized_app_name={}):
         desktop_string(f, "GenericName", "Molecular Visualization")
         desktop_string(f, "Comment",
                        "A extensible molecular modeling system, "
-                       "http://www.cgl.ucsf.edu/chimera/")
+                       "http://www.rbvi.ucsf.edu/chimerax/")
         desktop_string(f, "Icon", info.name)
         desktop_stringlist(f, "Categories", [
                            "Education", "Science", "Biology", "Chemistry",
                            "Graphics", "2DGraphics", "DataVisualization"])
         desktop_stringlist(f, "MimeType", mime_types)
         if '=' in sys.executable:
-            print("warning: '=' found in path to chimera", file=sys.stderr)
+            raise RuntimeError("warning: '=' found in path to ChimeraX")
         else:
             desktop_string(f, "Exec",
                            "%s -- %%F" % arg_quote(sys.executable))
@@ -428,7 +428,7 @@ def get_info(session, command=None):
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     for d in dists:
-        if d.key == 'chimera.core':
+        if d.key == 'chimerax.core':
             version = d.version
             break
     if version is None:

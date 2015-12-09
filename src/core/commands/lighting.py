@@ -85,15 +85,15 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         # Report current settings.
         lines = (
             'Intensity: %.5g' % lp.key_light_intensity,
-            'Direction: (%.5g,%.5g,%.5g)' % tuple(lp.key_light_direction),
-            'Color: (%.5g,%.5g,%.5g)' % tuple(lp.key_light_color),
+            'Direction: %.5g,%.5g,%.5g' % tuple(lp.key_light_direction),
+            'Color: %d,%d,%d' % tuple(100*r for r in lp.key_light_color),
             'Fill intensity: %.5g' % lp.fill_light_intensity,
-            'Fill direction: (%.5g,%.5g,%.5g)' % tuple(lp.fill_light_direction),
-            'Fill color: (%.5g,%.5g,%.5g)' % tuple(lp.fill_light_color),
+            'Fill direction: %.5g,%.5g,%.5g' % tuple(lp.fill_light_direction),
+            'Fill color: %d,%d,%d' % tuple(100*r for r in lp.fill_light_color),
             'Ambient intensity: %.5g' % lp.ambient_light_intensity,
-            'Ambient color: (%.5g,%.5g,%.5g)' % tuple(lp.ambient_light_color),
-            'Depth cue: %d, start %.5g, end %.5g, color (%.5g,%.5g,%.5g)'
-              % ((v.depth_cue, lp.depth_cue_start, lp.depth_cue_end) + tuple(lp.depth_cue_color)),
+            'Ambient color: %d,%d,%d' % tuple(100*r for r in lp.ambient_light_color),
+            'Depth cue: %d, start %.5g, end %.5g, color %d,%d,%d'
+              % ((v.depth_cue, lp.depth_cue_start, lp.depth_cue_end) + tuple(100*r for r in lp.depth_cue_color)),
             'Shadow: %s (depth map size %d, depth bias %.5g)'
               % (v.shadows, v.shadow_map_size, v.shadow_depth_bias),
             'Multishadows: %d (max %d, depth map size %d, depth bias %.5g)'
@@ -139,7 +139,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     if not fill_direction is None:
         lp.fill_light_direction = array(normalize(fill_direction), float32)
     if not fill_intensity is None:
-        lp.fill_light_intensity = fill_intnsity
+        lp.fill_light_intensity = fill_intensity
     if not fill_color is None:
         lp.fill_light_color = fill_color.rgba[:3]
     if not ambient_intensity is None:

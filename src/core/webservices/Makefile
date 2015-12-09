@@ -2,8 +2,8 @@ TOP= ../../..
 include $(TOP)/mk/config.make
 
 PYSRCS= $(wildcard *.py)
-PKG_DIR= $(PYSITEDIR)/chimera/core/webservices
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/webservices
+PKG_DIR= $(PYSITEDIR)/chimerax/core/webservices
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/webservices
 
 all: $(PYOBJS)
 

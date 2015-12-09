@@ -158,7 +158,7 @@ Example
 
 Here is a simple example::
 
-    import from chimera.core.commands import cli, errors
+    import from chimerax.core.commands import cli, errors
     @register("echo", cli.CmdDesc(optional=[('text', cli.RestOfLine)]))
     def echo(session, text=''):
         print(text)
@@ -806,6 +806,7 @@ class AtomicStructuresArg(Annotation):
 
 
 class PseudobondGroupsArg(Annotation):
+    """Parse command atom specifier for pseudobond groups"""
     name = 'pseudobond groups'
 
     @staticmethod
@@ -975,6 +976,20 @@ class EnumOf(Annotation):
                 if ident.casefold() == folded:
                     return self.values[i], ident, rest
         raise AnnotationError("Should be %s" % self.name)
+
+
+class DynamicEnum(Annotation):
+    '''Enumerated type where enumeration values computed from a function.'''
+
+    def __init__(self, values_func):
+        self.values_func = values_func
+
+    def parse(self, text, session):
+        return EnumOf(self.values_func()).parse(text, session)
+
+    @property
+    def name(self):
+        return 'one of ' + ', '.join("'%s'" % str(v) for v in self.values_func())
 
 
 class Or(Annotation):
@@ -1444,7 +1459,7 @@ def delay_registration(name, proxy_function, logger=None):
 
     Example::
 
-        from chimera.core.commands import cli
+        from chimerax.core.commands import cli
 
         def lazy_reg():
             import module
@@ -1591,7 +1606,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
     words = name.split()
     name = ' '.join(words)  # canonicalize
     if cmd_desc is not None and cmd_desc.url is None:
-        import chimera
+        import chimerax
         import os
         cname = words[0]
         if cname.startswith('~'):
@@ -1599,7 +1614,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
             frag = ' '.join(words)
         else:
             frag = ' '.join(words[1:])
-        cpath = os.path.join(chimera.app_data_dir, 'docs', 'user', 'commands',
+        cpath = os.path.join(chimerax.app_data_dir, 'docs', 'user', 'commands',
                              '%s.html' % cname)
         if frag:
             frag = '#' + frag
@@ -1767,14 +1782,17 @@ class Command:
         results = []
         for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
             if log:
-                from html import escape
-                if ci.url is None:
-                    msg = escape(cmd_text)
+                if not session.ui.is_gui:
+                    session.logger.info("Cmd> %s" % cmd_text)
                 else:
-                    cargs = cmd_text[len(cmd_name):]
-                    msg = '<a href="%s">%s</a>%s' % (
-                        ci.url, escape(cmd_name), escape(cargs))
-                session.logger.info(msg, is_html=True)
+                    from html import escape
+                    if ci.url is None:
+                        msg = '<div class="cxcmd">%s</div>' % escape(cmd_text)
+                    else:
+                        cargs = cmd_text[len(cmd_name):]
+                        msg = '<div class="cxcmd"><a href="%s">%s</a>%s</div>' % (
+                            ci.url, escape(cmd_name), escape(cargs))
+                    session.logger.info(msg, is_html=True, add_newline=False)
             try:
                 if not isinstance(ci.function, Alias):
                     results.append(ci.function(session, **kw_args))
@@ -2230,10 +2248,12 @@ def html_usage(name, no_aliases=False):
     arg_syntax = []
     ci = cmd._ci
     if ci:
+        if ci.synopsis:
+            syntax += "<i>%s</i><br>\n" % escape(ci.synopsis)
         if cmd._ci.url is None:
-            syntax = '<b>%s</b>' % escape(cmd.command_name)
+            syntax += '<b>%s</b>' % escape(cmd.command_name)
         else:
-            syntax = '<b><a href="%s">%s</a></b>' % (
+            syntax += '<b><a href="%s">%s</a></b>' % (
                 ci.url, escape(cmd.command_name))
         for arg_name in ci._required:
             arg_type = ci._required[arg_name]

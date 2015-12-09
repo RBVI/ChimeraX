@@ -1,7 +1,7 @@
-from chimera.core.errors import UserError as CommandError
+from chimerax.core.errors import UserError as CommandError
 def register_title_command():
 
-    from chimera.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
 
     rargs = [('name', StringArg)]
     # Create and change have same arguments
@@ -57,7 +57,7 @@ class Label:
         w,h = v.window_size
         uw,uh = 2*rgba.shape[1]/h, 2*rgba.shape[0]/h
         new = (self.drawing is None)
-        from chimera.core.graphics.drawing import rgba_drawing
+        from chimerax.core.graphics.drawing import rgba_drawing
         self.drawing = d = rgba_drawing(rgba, (x, y), (uw, uh), self.drawing)
         d.display = self.visibility
         if new:

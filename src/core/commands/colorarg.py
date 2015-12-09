@@ -33,6 +33,10 @@ class ColorArg(cli.Annotation):
             c = Color(token)
             c.explicit_transparency = (len(token) in (5, 9, 17))
             return c, text, rest
+        if text[0].isdigit():
+            token, text, rest = cli.next_token(text)
+            c = _parse_rgba_values(token)
+            return c, text, rest
         m = _color_func.match(text)
         if m is None:
             from .colordef import _find_named_color
@@ -120,9 +124,42 @@ class ColorArg(cli.Annotation):
             "Wrong number of components for %s specifier" % color_space,
             offset=m.end())
 
+def _parse_rgba_values(text):
+    values = text.split(',')
+    if len(values) not in (3,4):
+        raise ValueError('Color must be 3 or 4 comman-separate numbers 0-100')
+    try:
+        rgba = tuple(float(v)/100.0 for v in values)
+    except:
+        raise ValueError('Color must be 3 or 4 comman-separate numbers 0-100')
+    transparent = (len(rgba) == 4)
+    if len(rgba) == 3:
+        rgba += (1.0,)
+    c = Color(rgba)
+    c.explicit_transparency = transparent
+    return c
+
 
 class ColormapArg(cli.Annotation):
     """Support color map names and value-color pairs specifications.
+
+    Accepts name of a standard color map::
+
+        rainbow
+        grayscale, gray
+        red-white-blue, redblue,
+        blue-white-red, bluered
+        cyan-white-maroon, cyanmaroon
+
+    Or a custom color map can be specified as colon-separated colors, or as colon-separated
+    (value, color) pairs with values ranging from 0 to 1.
+
+    Example colormap specifications::
+
+        grayscale
+        orange:tan:green:yellow
+        0,purple:.49,khaki:.5,beige:1,blue
+
     """
     name = 'a colormap'
 
@@ -145,10 +182,12 @@ class ColormapArg(cli.Annotation):
                 if r:
                     raise ValueError("Bad color in colormap")
                 colors.append(color)
-            if len(values) != len(colors):
+            if len(values) != len(colors) and len(values) > 0:
                 raise ValueError("Number of values and color must match in colormap")
-            from .. import colors
-            return colors.Colormap(values, colors), text, rest
+            if len(values) == 0:
+                values = None
+            from ..colors import Colormap
+            return Colormap(values, [c.rgba for c in colors]), text, rest
         else:
             if session is not None:
                 i = session.user_colormaps.bisect_left(token)

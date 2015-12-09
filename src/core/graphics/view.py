@@ -633,9 +633,10 @@ class View:
 
     def drawing_bounds(self, clip=False):
         '''Return bounds of drawing, displayed part only.'''
+        self.check_for_drawing_change()
         dm = self._drawing_manager
         b = dm.cached_drawing_bounds
-        if b is None or self.check_for_drawing_change():
+        if b is None:
             dm.cached_drawing_bounds = b = self.drawing.bounds()
         if clip:
             planes = self.clip_planes.planes()

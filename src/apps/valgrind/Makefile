@@ -1,5 +1,3 @@
-# Use this make file to make a frozen verson of chimera for debugging
-
 TOP	= ../../..
 include $(TOP)/mk/config.make
 

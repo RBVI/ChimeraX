@@ -91,7 +91,6 @@ class AtomicStructure(AtomicStructureData, Model):
             self.set_color(color.uint8x4())
 
             atoms = self.atoms
-            from ..commands import Command
             if self.num_chains == 0:
                 lighting = "default"
                 from .molobject import Atom, Bond
@@ -113,6 +112,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
             else:
                 lighting = "shadows true"
+            from ..commands import Command
             if len([m for m in session.models.list()
                     if isinstance(m, self.__class__)]) == 1:
                 Command(session, "lighting " + lighting, final=True).execute(log=False)

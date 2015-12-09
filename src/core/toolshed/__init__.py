@@ -13,13 +13,13 @@ are tracked for both available and installed tools;
 the :py:class:`distlib.locators.Locator` class is used for finding
 an installed :py:class:`distlib.database.Distribution`.
 
-Each Python distribution (Chimera uses :py:class:`distlib.wheel.Wheel`)
+Each Python distribution (ChimeraX uses :py:class:`distlib.wheel.Wheel`)
 may contain multiple tools.
 Metadata blocks in each distribution contain descriptions for tools.
-Each tool is described by a 'Chimera-Tool' entry that consists of
+Each tool is described by a 'ChimeraX-Tool' entry that consists of
 the following fields separated by double colons (``::``).
 
-1. ``Chimera-Tools`` : str constant
+1. ``ChimeraX-Tools`` : str constant
     Field identifying entry as tool metadata.
 2. ``name`` : str
     Internal name of tool.  This must be unique across all tools.
@@ -48,7 +48,7 @@ Modules referenced in distribution metadata must define:
 
   ``start_tool(session, ti)``
     Called to create a tool instance.
-    ``session`` is a :py:class:`~chimera.core.session.Session` instance for the current session.
+    ``session`` is a :py:class:`~chimerax.core.session.Session` instance for the current session.
     ``ti`` is a :py:class:`ToolInfo` instance for the tool to be started.  If no tool instance
     is created when called, ``start_tool`` should return ``None``.  Errors should be reported
     via exceptions.
@@ -135,8 +135,8 @@ def _debug(*args, **kw):
 _RemoteURL = "http://localhost:8080"
 # Default name for toolshed cache and data directories
 _Toolshed = "toolshed"
-# Defaults names for installed chimera tools
-_ChimeraBasePackage = "chimera"
+# Defaults names for installed ChimeraX tools
+_ChimeraBasePackage = "chimerax"
 _ChimeraCore = _ChimeraBasePackage + ".core"
 _ChimeraToolboxPrefix = _ChimeraBasePackage + ".toolbox"
 
@@ -182,7 +182,7 @@ class Toolshed:
     
     Attributes
     ----------
-    triggers : :py:class:`~chimera.core.triggerset.TriggerSet` instance
+    triggers : :py:class:`~chimerax.core.triggerset.TriggerSet` instance
         Where to register handlers for toolshed triggers
     
     """
@@ -193,10 +193,10 @@ class Toolshed:
 
         Parameters
         ----------
-        logger : :py:class:`~chimera.core.logger.Logger` instance
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
             A logging object where warning and error messages are sent.
-        appdirs : :py:class:`~chimera.core.appdirs.AppDirs` instance
-            Location information about Chimera data and code directories.
+        appdirs : :py:class:`~chimerax.core.appdirs.AppDirs` instance
+            Location information about ChimeraX data and code directories.
         rebuild_cache : boolean
             True to ignore local cache of installed tool information and
             rebuild it by scanning Python directories; False otherwise.
@@ -255,7 +255,7 @@ class Toolshed:
 
         Parameters
         ----------
-        logger : :py:class:`~chimera.core.logger.Logger` instance
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
             
         Returns
@@ -281,7 +281,7 @@ class Toolshed:
 
         Parameters
         ----------
-        logger : :py:class:`~chimera.core.logger.Logger` instance
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
             A logging object where warning and error messages are sent.
         rebuild_cache : boolean
             True to ignore local cache of installed tool information and
@@ -374,7 +374,7 @@ class Toolshed:
         system : boolean
             False to install tool only for the current user (default);
             True to install for everyone.
-        logger : :py:class:`~chimera.core.logger.Logger` instance
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
 
         Raises
@@ -402,7 +402,7 @@ class Toolshed:
         ----------
         ti : :py:class:`ToolInfo` instance
             Should be from the installed tool list.
-        logger : :py:class:`~chimera.core.logger.Logger` instance
+        logger : :py:class:`~chimerax.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
 
         Raises
@@ -483,7 +483,7 @@ class Toolshed:
 
     @_hack_distlib
     def _scan_installed(self, logger):
-        # Scan installed packages for Chimera tools
+        # Scan installed packages for ChimeraX tools
 
         # Initialize distlib paths and locators
         _debug("_scan_installed")
@@ -610,10 +610,10 @@ class Toolshed:
         tools = []
         for classifier in md.dictionary["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
-            if parts[0] != "Chimera-Tool":
+            if parts[0] != "ChimeraX-Tool":
                 continue
             if len(parts) != 10:
-                logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
+                logger.warning("Malformed ChimeraX-Tool line in %s skipped." % name)
                 logger.warning("Expected 10 fields and got %d." % len(parts))
                 continue
             kw = {"distribution_name": name, "distribution_version": version}
@@ -639,7 +639,7 @@ class Toolshed:
                 for t in file_types.split(','):
                     spec = [v.strip() for v in t.split(':')]
                     if len(spec) < 3:
-                        logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
+                        logger.warning("Malformed ChimeraX-Tool line in %s skipped." % name)
                         logger.warning("File type has fewer than three fields.")
                         continue
                     types.append(spec)
@@ -649,14 +649,14 @@ class Toolshed:
             if session_versions:
                 vs = [v.strip() for v in session_versions.split(',')]
                 if len(vs) != 2:
-                    logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
+                    logger.warning("Malformed ChimeraX-Tool line in %s skipped." % name)
                     logger.warning("Expected 2 version numbers and got %d." % len(vs))
                     continue
                 try:
                     lo = int(vs[0])
                     hi = int(vs[1])
                 except ValueError:
-                    logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
+                    logger.warning("Malformed ChimeraX-Tool line in %s skipped." % name)
                     logger.warning("Found non-integer version numbers.")
                     continue
                 if lo > hi:
@@ -711,7 +711,7 @@ class Toolshed:
             ti.register_file_types()
 
     def _install_dist_core(self, want, logger):
-        # Add Chimera core distribution to update list
+        # Add ChimeraX core distribution to update list
         _debug("_install_dist_core")
         d = self._install_distribution(_ChimeraCore, None, logger)
         if d:
@@ -1185,7 +1185,7 @@ class ToolInfo:
 
     def register_commands(self):
         """Register commands with cli."""
-        from chimera.core.commands import cli
+        from chimerax.core.commands import cli
         for command_name in self.command_names:
             def cb(s=self, n=command_name):
                 s._register_cmd(n)
@@ -1198,14 +1198,14 @@ class ToolInfo:
 
     def deregister_commands(self):
         """Deregister commands with cli."""
-        from chimera.core.commands import cli
+        from chimerax.core.commands import cli
         for command_name in self.command_names:
             _debug("deregister_command", command_name)
             cli.deregister(command_name)
 
     def register_file_types(self):
         """Register file types."""
-        from chimera.core import io
+        from chimerax.core import io
         for args in self.file_types:
             def cb(s=self, *args):
                 s._open_file(*args)
@@ -1259,7 +1259,7 @@ class ToolInfo:
 
         Parameters
         ----------
-        session : :py:class:`~chimera.core.session.Session` instance
+        session : :py:class:`~chimerax.core.session.Session` instance
             The session in which the tool will run.
         args : any
             Positional arguments to pass to tool instance initializer.
@@ -1268,7 +1268,7 @@ class ToolInfo:
 
         Returns
         -------
-        :py:class:`~chimera.core.tools.ToolInstance` instance
+        :py:class:`~chimerax.core.tools.ToolInstance` instance
             The registered running tool instance.
 
         Raises

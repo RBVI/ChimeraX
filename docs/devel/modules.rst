@@ -8,6 +8,8 @@ Python Modules
 
     core/atomic/atomic.rst
 
+    core/commands/atomspec.rst
+
     core/commands/cli.rst
 
     core/commands/commands.rst

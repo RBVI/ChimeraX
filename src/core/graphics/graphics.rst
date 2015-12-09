@@ -1,45 +1,45 @@
 graphics: Rendering using OpenGL
 ================================
 
-.. automodule:: chimera.core.graphics.view
+.. automodule:: chimerax.core.graphics.view
     :members:
     :member-order: bysource
 
-.. automodule:: chimera.core.graphics.camera
+.. automodule:: chimerax.core.graphics.camera
     :members:
     :member-order: bysource
 
-.. automodule:: chimera.core.graphics.drawing
+.. automodule:: chimerax.core.graphics.drawing
     :members:
     :member-order: bysource
     :exclude-members: Pick
 
 Pick
 ----
-.. autoclass:: chimera.core.graphics.drawing.Pick
+.. autoclass:: chimerax.core.graphics.drawing.Pick
     :members:
 
 Lighting
 --------
-.. autoclass:: chimera.core.graphics.opengl.Lighting
+.. autoclass:: chimerax.core.graphics.opengl.Lighting
     :members:
 
 Material
 --------
-.. autoclass:: chimera.core.graphics.opengl.Material
+.. autoclass:: chimerax.core.graphics.opengl.Material
     :members:
 
 Texture
 --------
-.. autoclass:: chimera.core.graphics.opengl.Texture
+.. autoclass:: chimerax.core.graphics.opengl.Texture
     :members:
 
 CrossFade
 -----------
-.. autoclass:: chimera.core.graphics.crossfade.CrossFade
+.. autoclass:: chimerax.core.graphics.crossfade.CrossFade
     :members:
 
 MotionBlur
 -----------
-.. autoclass:: chimera.core.graphics.crossfade.MotionBlur
+.. autoclass:: chimerax.core.graphics.crossfade.MotionBlur
     :members:

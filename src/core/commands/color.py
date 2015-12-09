@@ -28,8 +28,8 @@ def color(session, objects, color=None, target=None, transparency=None,
       Percent transparency to use.  If not specified current transparency is preserved.
     sequential : string
       Value can only be "chains", assigns each chain a color from a color map.
-    cmap : Colormap
-      Color map to use with sequential coloring
+    cmap : :class:`.Colormap`
+      Color map to use with sequential coloring.
     cmap_range : 2 comma-separated floats or "full"
       Specifies the range of value used for sampling from a color map.
     halfbond : bool

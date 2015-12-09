@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.stl_inspector
+PKG_NAME = chimerax.stl_inspector
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = STL triangle inspector
 
@@ -10,7 +10,7 @@ PKG_DESCRIPTION = STL triangle inspector
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
 TOOL_NAME = stl_inspector
-TOOL_PKG_NAME = chimera.stl_inspector
+TOOL_PKG_NAME = chimerax.stl_inspector
 TOOL_DISPLAY_NAME = STL Triangle Inspector
 TOOL_CATEGORY = General
 TOOL_FILE_TYPES =
