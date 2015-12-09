@@ -83,7 +83,8 @@ ifeq ($(OS),Darwin)
 install: Info.plist
 endif
 
-Info.plist: mkinfo.py chimerax-icon.icns
+#Info.plist: mkinfo.py chimerax-icon.icns
+Info.plist:
 #	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || rm Info.plist
 	$(PYTHON_EXE) mkinfo.py $(APP_NAME) || rm Info.plist
 
