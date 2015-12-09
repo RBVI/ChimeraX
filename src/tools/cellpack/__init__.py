@@ -2,4 +2,4 @@
 
 def start_tool(session, ti):
     from . import fetch_cellpack
-    fetch_cellpack.register()	# Register file reader
+    fetch_cellpack.register_cellpack_fetch(session)
