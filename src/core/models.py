@@ -170,6 +170,8 @@ class Models(State):
         return models
 
     def add(self, models, parent=None, _notify=True):
+        start_count = len(self._models)
+
         d = self.drawing if parent is None else parent
         for m in models:
             d.add_drawing(m)
@@ -189,6 +191,8 @@ class Models(State):
             for m in m_all:
                 m.added_to_session(session)
             session.triggers.activate_trigger(ADD_MODELS, m_all)
+            if start_count == 0 and len(self._models) > 0:
+                session.main_view.initial_camera_view()
 
         return m_all
 
@@ -252,13 +256,10 @@ class Models(State):
         if status:
             session.logger.status(status)
         if models:
-            start_count = len(self._models)
             if len(models) > 1:
                 self.add_group(models)
             else:
                 self.add(models)
-            if start_count == 0 and len(self._models) > 0:
-                session.main_view.initial_camera_view()
         return models
 
 
