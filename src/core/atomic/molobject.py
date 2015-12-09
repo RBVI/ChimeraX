@@ -468,9 +468,9 @@ class Chain(Sequence):
     '''Chain identifier. Limited to 4 characters. Read only string.'''
     structure = c_property('chain_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this chain belongs too. Read only.'''
-    structure_residues = c_property('chain_residues', cptr, 'num_residues', astype = _non_null_residues, read_only = True)
+    existing_residues = c_property('chain_residues', cptr, 'num_residues', astype = _non_null_residues, read_only = True)
     ''':class:`.Residues` collection containing the residues of this chain with existing structure, in order. Read only.'''
-    num_structure_residues = c_property('chain_num_structure_residues', size_t, read_only = True)
+    num_existing_residues = c_property('chain_num_existing_residues', size_t, read_only = True)
     '''Number of residues in this chain with existing structure. Read only.'''
 
     residues = c_property('chain_residues', cptr, 'num_residues', astype = _residues_or_nones, read_only = True)

@@ -1338,7 +1338,7 @@ extern "C" void chain_num_residues(void *chains, size_t n, size_t *nres)
     }
 }
 
-extern "C" void chain_num_structure_residues(void *chains, size_t n, size_t *nres)
+extern "C" void chain_num_existing_residues(void *chains, size_t n, size_t *nres)
 {
     Chain **c = static_cast<Chain **>(chains);
     try {
