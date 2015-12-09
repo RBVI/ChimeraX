@@ -511,20 +511,15 @@ def dump(session, session_file, output=None):
     if not session_file.endswith(SESSION_SUFFIX):
         session_file += SESSION_SUFFIX
     input = None
+    from .io import open_filename
+    from .errors import UserError
     try:
-        input = _builtin_open(session_file, 'rb')
-    except IOError:
+        input = open_filename(session_file, 'rb')
+    except UserError:
         session_file2 = session_file + '.gz'
         try:
-            import gzip
-            input = gzip.GzipFile(session_file2, 'rb')
-        except ImportError:
-            import os
-            if os.exists(session_file2):
-                session.logger.error("Unable to open compressed files: %s"
-                                     % session_file2)
-                return
-        except IOError:
+            input = open_filename(session_file2, 'rb')
+        except UserError:
             pass
         if input is None:
             session.logger.error(
@@ -532,7 +527,7 @@ def dump(session, session_file, output=None):
                 % session_file)
             return
     if output is not None:
-        output = _builtin_open(output, 'w')
+        output = open_filename(output, 'w')
     from pprint import pprint
     with input:
         print("session version:", file=output)
