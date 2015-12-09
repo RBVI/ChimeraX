@@ -4,7 +4,7 @@ Infrastructure
 ==============
 
 These are modules that provide low-level support for the other
-parts of the :ref:`Chimera Core <core>`.
+parts of the :ref:`ChimeraX Core <core>`.
 
 Modules
 -------

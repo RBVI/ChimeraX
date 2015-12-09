@@ -165,7 +165,7 @@ public:
     };
 };
 
-// Before structures are opened in Chimera, they don't generate change-tracking
+// Before structures are opened in ChimeraX, they don't generate change-tracking
 // events.  This class enables that by being the "change tracker" until the
 // point that actual change tracking is turned on.
 class BASEGEOM_IMEX DiscardingChangeTracker : public ChangeTracker {

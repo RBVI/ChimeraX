@@ -2,7 +2,7 @@ Functions for User Commands
 ***************************
 
 The *chimerax.core.commands* module contains Python functions for the core commands
-available from the Chimera command-line.  Tools define additional commands noted with a (*)
+available from the ChimeraX command-line.  Tools define additional commands noted with a (*)
 and their code location is described with the function descriptions.
 
 | `alias`_ - Define aliases for commands
