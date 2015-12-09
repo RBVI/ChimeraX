@@ -139,7 +139,7 @@ class MonoCamera(Camera):
     '''Perspective projection camera has an angular field of view measured in degrees.'''
     def __init__(self):
         Camera.__init__(self)
-        self.field_of_view = 45
+        self.field_of_view = 30
         "Horizontal field of view in degrees."
 
     def name(self):
@@ -292,7 +292,7 @@ class StereoCamera(Camera):
     def __init__(self, eye_separation_pixels=200):
         Camera.__init__(self)
 
-        self.field_of_view = 45
+        self.field_of_view = 30
         "Horizontal field of view in degrees."
 
         self.eye_separation_scene = 5.0
