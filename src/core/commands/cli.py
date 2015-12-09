@@ -977,15 +977,20 @@ class EnumOf(Annotation):
                     return self.values[i], ident, rest
         raise AnnotationError("Should be %s" % self.name)
 
+
 class DynamicEnum(Annotation):
     '''Enumerated type where enumeration values computed from a function.'''
+
     def __init__(self, values_func):
         self.values_func = values_func
+
     def parse(self, text, session):
         return EnumOf(self.values_func()).parse(text, session)
+
     @property
     def name(self):
         return 'one of ' + ', '.join("'%s'" % str(v) for v in self.values_func())
+
 
 class Or(Annotation):
     """Support two or more alternative annotations
@@ -1777,14 +1782,17 @@ class Command:
         results = []
         for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
             if log:
-                from html import escape
-                if ci.url is None:
-                    msg = escape(cmd_text)
+                if not session.ui.is_gui:
+                    session.logger.info("Cmd> %s" % cmd_text)
                 else:
-                    cargs = cmd_text[len(cmd_name):]
-                    msg = '<a href="%s">%s</a>%s' % (
-                        ci.url, escape(cmd_name), escape(cargs))
-                session.logger.info(msg, is_html=True)
+                    from html import escape
+                    if ci.url is None:
+                        msg = '<div class="cxcmd">%s</div>' % escape(cmd_text)
+                    else:
+                        cargs = cmd_text[len(cmd_name):]
+                        msg = '<div class="cxcmd"><a href="%s">%s</a>%s</div>' % (
+                            ci.url, escape(cmd_name), escape(cargs))
+                    session.logger.info(msg, is_html=True, add_newline=False)
             try:
                 if not isinstance(ci.function, Alias):
                     results.append(ci.function(session, **kw_args))

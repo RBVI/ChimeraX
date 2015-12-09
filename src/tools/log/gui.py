@@ -33,6 +33,15 @@ context_menu_css = """
 }
 """
 
+cxcmd_css = """
+.cxcmd {
+    display: block;
+    font-weight: bold;
+    margin-top: .5em;
+    background-color: #ddd;
+}
+"""
+
 context_menu_html = """
 <nav id="context-menu" class="context-menu">
     <ul class="context-menu-items">
@@ -211,8 +220,9 @@ class Log(ToolInstance, HtmlLog):
         return True
 
     def show_page_source(self):
+        css = context_menu_css + cxcmd_css
         self.log_window.SetPage("<style>%s</style>%s\n%s" % (
-            context_menu_css, context_menu_html, self.page_source), "")
+            css, context_menu_html, self.page_source), "")
 
     # wx event handling
 
@@ -290,7 +300,10 @@ class Log(ToolInstance, HtmlLog):
                 "<title> ChimeraX Log </title>\n"
                 "</head>\n"
                 "<body>\n"
-                "<h1> ChimeraX Log </h1>\n")
+                "<h1> ChimeraX Log </h1>\n"
+                "<style>\n"
+                "%s"
+                "</style>\n" % cxcmd_css)
         f.write(self.page_source)
         f.write("</body>\n"
                 "</html>\n")
