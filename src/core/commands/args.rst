@@ -1,7 +1,7 @@
 Command Argument Types
 **********************
 
-The *chimera.core.commands* module defines argument types such as FloatArg, StringArg, AtomsArg,
+The *chimerax.core.commands* module defines argument types such as FloatArg, StringArg, AtomsArg,
 ModelArg, ColorArg, PlaceArg, ... which are Python classes used for parsing typed command arguments.
 
 | :class:`.AtomicStructuresArg` - Atomic structures
@@ -26,9 +26,9 @@ ModelArg, ColorArg, PlaceArg, ... which are Python classes used for parsing type
 
 Color arguments
 ===============
-.. autoclass:: chimera.core.commands.colorarg.ColorArg
-.. autoclass:: chimera.core.commands.colorarg.ColormapArg
+.. autoclass:: chimerax.core.commands.colorarg.ColorArg
+.. autoclass:: chimerax.core.commands.colorarg.ColormapArg
 
 Model positions
 ===============
-.. autoclass:: chimera.core.commands.position.ModelPlacesArg
+.. autoclass:: chimerax.core.commands.position.ModelPlacesArg

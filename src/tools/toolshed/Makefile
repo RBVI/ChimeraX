@@ -1,12 +1,12 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.toolshed
+PKG_NAME = chimerax.toolshed
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = ChimeraX Tool UI and Commands
 
 TOOL_NAME = toolshed
-TOOL_PKG_NAME = chimera.toolshed
+TOOL_PKG_NAME = chimerax.toolshed
 TOOL_DISPLAY_NAME = Toolshed
 TOOL_CATEGORY = General
 TOOL_FILE_TYPES =

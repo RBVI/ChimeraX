@@ -1,16 +1,16 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.test
+PKG_NAME = chimerax.test
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = Test Chimera commands
+PKG_DESCRIPTION = Test ChimeraX commands
 
 # For many cases, only a single tool and a single command
 # is provided by a package.  Variables below are designed
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
 TOOL_NAME = test
-TOOL_PKG_NAME = chimera.test
+TOOL_PKG_NAME = chimerax.test
 TOOL_DISPLAY_NAME = Test
 TOOL_CATEGORY = Hidden
 TOOL_FILE_TYPES =

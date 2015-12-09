@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.cellpack
+PKG_NAME = chimerax.cellpack
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = cellPACK file reader
 

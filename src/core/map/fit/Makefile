@@ -1,7 +1,7 @@
 TOP = ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/map/fit
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/fit
 
 PYSRCS = __init__.py fitcmd.py fitlist.py fitmap.py move.py \
 	search.py sequence.py session.py

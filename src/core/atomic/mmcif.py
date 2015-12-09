@@ -165,7 +165,7 @@ class MMCIFTable:
         t = self.tags
         missing = [n for n in field_names if n not in t]
         if missing:
-            from chimera.core.commands.cli import commas, plural_form
+            from chimerax.core.commands.cli import commas, plural_form
             missed = commas(missing, ' and')
             missed_noun = plural_form(missing, 'Field')
             missed_verb = plural_form(missing, 'is', 'are')

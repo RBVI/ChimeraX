@@ -58,7 +58,7 @@ class Task(State):
 
     Classes for tasks should inherit from :py:class:`Task` and override methods
     to implement task-specific functionality.  In particularly, methods
-    from session :py:class:`~chimera.core.session.State` should be defined
+    from session :py:class:`~chimerax.core.session.State` should be defined
     so that saving and restoring of scenes and sessions work properly,
     and the :py:meth:`run` method should be overriden
     to provide actual functionality.
@@ -85,7 +85,7 @@ class Task(State):
 
         Parameters
         ----------
-        session : instance of :py:class:`~chimera.core.session.Session`
+        session : instance of :py:class:`~chimerax.core.session.Session`
             Session in which this task was created.
 
         """
@@ -200,7 +200,7 @@ class Job(Task):
     """
     'Job' is a long-running task.
 
-    A 'Job' instance is a Chimera task that invokes
+    A 'Job' instance is a ChimeraX task that invokes
     and monitors a long-running process.  Job execution
     is modeled as process launch followed by multiple checks
     for process termination.
@@ -213,7 +213,7 @@ class Job(Task):
     Classes deriving from 'Job' indirectly inherits from
     :py:class:`Task` and should override methods to implement
     task-specific functionality.  In particularly, methods
-    from session :py:class:`~chimera.core.session.State`
+    from session :py:class:`~chimerax.core.session.State`
     should be defined so that saving
     and restoring of scenes and sessions work properly.
 
@@ -323,7 +323,7 @@ class Tasks(State):
 
         Parameters
         ----------
-        session : instance of :py:class:`~chimera.core.session.Session`
+        session : instance of :py:class:`~chimerax.core.session.Session`
             Session for which this state manager was created.
 
         """
@@ -341,17 +341,17 @@ class Tasks(State):
     def take_snapshot(self, session, flags):
         """Save state of running tasks.
 
-        Overrides :py:class:`~chimera.core.session.State` default method
+        Overrides :py:class:`~chimerax.core.session.State` default method
         to save state of all registered running tasks.
 
         Parameters
         ----------
-        session : instance of :py:class:`~chimera.core.session.Session`
+        session : instance of :py:class:`~chimerax.core.session.Session`
             Session for which state is being saved.
             Should match the ``session`` argument given to ``__init__``.
         flags : int
             Flags indicating whether snapshot is being taken to
-            save scene or session.  See :py:mod:`chimera.core.session` for
+            save scene or session.  See :py:mod:`chimerax.core.session` for
             more details.
 
         """
@@ -373,15 +373,15 @@ class Tasks(State):
     def restore_snapshot_init(self, session, tool_info, version, data):
         """Restore state of running tasks.
 
-        Overrides :py:class:`~chimera.core.session.State` default method to
+        Overrides :py:class:`~chimerax.core.session.State` default method to
         restore state of all registered running tasks.
 
         Parameters
         ----------
-        session : instance of :py:class:`~chimera.core.session.Session`
+        session : instance of :py:class:`~chimerax.core.session.Session`
             Session for which state is being saved.
             Should match the ``session`` argument given to ``__init__``.
-        tool_info : instance of :py:class:`~chimera.core.toolshed.ToolInfo`
+        tool_info : instance of :py:class:`~chimerax.core.toolshed.ToolInfo`
         version : any
             Version of tool state that saved the data.
             Used for determining how to parse the ``data`` argument.
@@ -397,7 +397,7 @@ class Tasks(State):
     def reset_state(self, session):
         """Reset state manager to default state.
 
-        Overrides :py:class:`~chimera.core.session.State` default method
+        Overrides :py:class:`~chimerax.core.session.State` default method
         to reset to default state.  Since the default state has no running
         tasks, all registered tasks are terminated.
 

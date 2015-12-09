@@ -1,11 +1,11 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.contacts
+PKG_NAME = chimerax.contacts
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = Display chain contact maps
 # Example:
-# PKG_NAME = chimera.cmd_line
+# PKG_NAME = chimerax.cmd_line
 # PKG_VERSION = 1.0
 # PKG_DESCRIPTION = ChimeraX command line interface
 
@@ -14,7 +14,7 @@ PKG_DESCRIPTION = Display chain contact maps
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
 TOOL_NAME = contacts
-TOOL_PKG_NAME = chimera.contacts
+TOOL_PKG_NAME = chimerax.contacts
 TOOL_DISPLAY_NAME = Chain Contacts
 TOOL_CATEGORY = Hidden
 TOOL_FILE_TYPES =

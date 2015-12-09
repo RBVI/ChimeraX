@@ -1,7 +1,7 @@
 Functions for User Commands
 ***************************
 
-The *chimera.core.commands* module contains Python functions for the core commands
+The *chimerax.core.commands* module contains Python functions for the core commands
 available from the Chimera command-line.  Tools define additional commands noted with a (*)
 and their code location is described with the function descriptions.
 
@@ -65,250 +65,250 @@ and their code location is described with the function descriptions.
 
 alias
 =====
-.. autofunction:: chimera.core.commands.alias.alias
+.. autofunction:: chimerax.core.commands.alias.alias
 
 buriedarea
 ==========
-.. autofunction:: chimera.core.commands.buriedarea.buriedarea
+.. autofunction:: chimerax.core.commands.buriedarea.buriedarea
 
 camera
 ======
-.. autofunction:: chimera.core.commands.camera.camera
+.. autofunction:: chimerax.core.commands.camera.camera
 
 cartoon
 =======
-.. autofunction:: chimera.exp_cmd.cartoon.cartoon
-.. autofunction:: chimera.exp_cmd.cartoon.uncartoon
+.. autofunction:: chimerax.exp_cmd.cartoon.cartoon
+.. autofunction:: chimerax.exp_cmd.cartoon.uncartoon
 
 clip
 =====
-.. autofunction:: chimera.core.commands.clip.clip
+.. autofunction:: chimerax.core.commands.clip.clip
 
 close
 =====
-.. autofunction:: chimera.core.commands.close.close
+.. autofunction:: chimerax.core.commands.close.close
 
 cofr
 ====
-.. autofunction:: chimera.core.commands.cofr.cofr
+.. autofunction:: chimerax.core.commands.cofr.cofr
 
 color
 =====
-.. autofunction:: chimera.core.commands.color.color
+.. autofunction:: chimerax.core.commands.color.color
 
 contacts
 ========
-Function found in *chimera.contacts.cmd*
+Function found in *chimerax.contacts.cmd*
 
-.. autofunction:: chimera.contacts.cmd.contacts
+.. autofunction:: chimerax.contacts.cmd.contacts
 
 crossfade
 =========
-.. autofunction:: chimera.core.commands.crossfade.crossfade
+.. autofunction:: chimerax.core.commands.crossfade.crossfade
 
 crosslinks
 ==========
-.. autofunction:: chimera.core.commands.crosslinks.crosslinks
+.. autofunction:: chimerax.core.commands.crosslinks.crosslinks
 
 delete
 ======
-.. autofunction:: chimera.core.commands.delete.delete
+.. autofunction:: chimerax.core.commands.delete.delete
 
 echo
 ====
-.. autofunction:: chimera.core.commands.echo.echo
+.. autofunction:: chimerax.core.commands.echo.echo
 
 exit
 ====
-.. autofunction:: chimera.core.commands.exit.exit
+.. autofunction:: chimerax.core.commands.exit.exit
 
 export
 ======
-.. autofunction:: chimera.core.commands.export.export
+.. autofunction:: chimerax.core.commands.export.export
 
 fitmap
 ======
-.. autofunction:: chimera.core.map.fit.fitcmd.fitmap
+.. autofunction:: chimerax.core.map.fit.fitcmd.fitmap
 
 help
 ====
-.. autofunction:: chimera.help_viewer.cmd.help
+.. autofunction:: chimerax.help_viewer.cmd.help
 
 hide
 ====
-.. autofunction:: chimera.core.commands.hide.hide
+.. autofunction:: chimerax.core.commands.hide.hide
 
 ks
 ==
-.. autofunction:: chimera.shortcuts.shortcuts.ks
+.. autofunction:: chimerax.shortcuts.shortcuts.ks
 
 lighting
 ========
-.. autofunction:: chimera.core.commands.lighting.lighting
+.. autofunction:: chimerax.core.commands.lighting.lighting
 
 list
 ====
-.. autofunction:: chimera.core.commands.list.list
+.. autofunction:: chimerax.core.commands.list.list
 
 log
 ===
-Function found in *chimera.log.cmd*
+Function found in *chimerax.log.cmd*
 
-.. autofunction:: chimera.log.cmd.log
+.. autofunction:: chimerax.log.cmd.log
 
 material
 ========
-.. autofunction:: chimera.core.commands.material.material
+.. autofunction:: chimerax.core.commands.material.material
 
 molmap
 ======
-.. autofunction:: chimera.core.map.molmap.molmap
+.. autofunction:: chimerax.core.map.molmap.molmap
 
 mousemode
 =========
-.. autofunction:: chimera.core.commands.mousemode.mousemode
+.. autofunction:: chimerax.core.commands.mousemode.mousemode
 
 move
 ====
-.. autofunction:: chimera.core.commands.move.move
+.. autofunction:: chimerax.core.commands.move.move
 
 
 movie
 =====
-Functions defined in *chimera.movie.moviecmd*
+Functions defined in *chimerax.movie.moviecmd*
 
-.. automodule:: chimera.movie.moviecmd
+.. automodule:: chimerax.movie.moviecmd
   :members:
   :member-order: bysource
 
 oculus
 ======
-.. autofunction:: chimera.core.devices.oculus.oculuscmd.oculus
+.. autofunction:: chimerax.core.devices.oculus.oculuscmd.oculus
 
 open
 ====
-.. autofunction:: chimera.core.commands.open.open
+.. autofunction:: chimerax.core.commands.open.open
 
 pdbimages
 =========
-.. autofunction:: chimera.core.commands.pdbimages.pdbimages
+.. autofunction:: chimerax.core.commands.pdbimages.pdbimages
 
 perframe
 ========
-.. autofunction:: chimera.core.commands.perframe.perframe
+.. autofunction:: chimerax.core.commands.perframe.perframe
 
 position
 ========
-.. autofunction:: chimera.core.commands.position.position
-.. autofunction:: chimera.core.commands.position.position_initial
+.. autofunction:: chimerax.core.commands.position.position
+.. autofunction:: chimerax.core.commands.position.position_initial
 
 pwd
 ===
-.. autofunction:: chimera.core.commands.pwd.pwd
+.. autofunction:: chimerax.core.commands.pwd.pwd
 
 roll
 ====
-.. autofunction:: chimera.core.commands.roll.roll
+.. autofunction:: chimerax.core.commands.roll.roll
 
 run
 ===
-.. autofunction:: chimera.core.commands.run.run
+.. autofunction:: chimerax.core.commands.run.run
 
 sasa
 ====
-.. autofunction:: chimera.core.commands.sasa.sasa
+.. autofunction:: chimerax.core.commands.sasa.sasa
 
 save
 ====
-.. autofunction:: chimera.core.commands.save.save
+.. autofunction:: chimerax.core.commands.save.save
 
 scolor
 ======
-.. autofunction:: chimera.core.commands.scolor.scolor
+.. autofunction:: chimerax.core.commands.scolor.scolor
 
 select
 ======
-.. autofunction:: chimera.core.commands.select.select
+.. autofunction:: chimerax.core.commands.select.select
 
 set
 ===
-.. autofunction:: chimera.core.commands.set.set
+.. autofunction:: chimerax.core.commands.set.set
 
 show
 ====
-.. autofunction:: chimera.core.commands.show.show
+.. autofunction:: chimerax.core.commands.show.show
 
 snav
 ====
-.. autofunction:: chimera.core.devices.spacenavigator.snav.snav
+.. autofunction:: chimerax.core.devices.spacenavigator.snav.snav
 
 split
 =====
-.. autofunction:: chimera.core.commands.split.split
+.. autofunction:: chimerax.core.commands.split.split
 
 stop
 ====
-.. autofunction:: chimera.core.commands.stop.stop
+.. autofunction:: chimerax.core.commands.stop.stop
 
 style
 =====
-.. autofunction:: chimera.core.commands.style.style
+.. autofunction:: chimerax.core.commands.style.style
 
 surface
 =======
-.. autofunction:: chimera.core.commands.surface.surface
+.. autofunction:: chimerax.core.commands.surface.surface
 
 sym
 ===
-.. autofunction:: chimera.core.commands.sym.sym
+.. autofunction:: chimerax.core.commands.sym.sym
 
 title
 =====
-Function found in *chimera.title.label*
+Function found in *chimerax.title.label*
 
-.. autofunction:: chimera.title.label.title_create
-.. autofunction:: chimera.title.label.title_change
-.. autofunction:: chimera.title.label.title_delete
+.. autofunction:: chimerax.title.label.title_create
+.. autofunction:: chimerax.title.label.title_change
+.. autofunction:: chimerax.title.label.title_delete
 
 toolshed
 ========
-Function defined in *chimera.toolshed.cmd*
+Function defined in *chimerax.toolshed.cmd*
 
-.. automodule:: chimera.toolshed.cmd
+.. automodule:: chimerax.toolshed.cmd
   :members:
   :member-order: bysource
 
 transparency
 ============
-.. autofunction:: chimera.core.commands.transparency.transparency
+.. autofunction:: chimerax.core.commands.transparency.transparency
 
 turn
 ====
-.. autofunction:: chimera.core.commands.turn.turn
+.. autofunction:: chimerax.core.commands.turn.turn
 
 view
 ====
-.. autofunction:: chimera.core.commands.view.view
+.. autofunction:: chimerax.core.commands.view.view
 
 volume
 ======
-.. autofunction:: chimera.core.map.volumecommand.volume
+.. autofunction:: chimerax.core.map.volumecommand.volume
 
 vop
 ===
-.. automodule:: chimera.core.map.filter.vopcommand
+.. automodule:: chimerax.core.map.filter.vopcommand
   :members:		
 
 vseries
 =======
-.. automodule:: chimera.core.map.series.vseries_command
+.. automodule:: chimerax.core.map.series.vseries_command
   :members:
 
 wait
 ====
-.. autofunction:: chimera.core.commands.wait.wait
+.. autofunction:: chimerax.core.commands.wait.wait
 
 zoom
 ====
-.. autofunction:: chimera.core.commands.zoom.zoom
+.. autofunction:: chimerax.core.commands.zoom.zoom
 

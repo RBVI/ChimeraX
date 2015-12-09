@@ -15,7 +15,7 @@ def start_tool(session, tool_info):
 
 def register_command(command_name, tool_info):
     from . import cmd
-    from chimera.core.commands import register
+    from chimerax.core.commands import register
     desc_suffix = "_desc"
     for attr_name in dir(cmd):
         if not attr_name.endswith(desc_suffix):
@@ -29,7 +29,7 @@ def register_command(command_name, tool_info):
         desc = getattr(cmd, attr_name)
         register(command_name + ' ' + subcommand_name, desc, func)
 
-    from chimera.core.commands import atomspec
+    from chimerax.core.commands import atomspec
     atomspec.register_selector(None, "odd", _odd_models)
 
 

@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.shell
+PKG_NAME = chimerax.shell
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = Interactive Python shell
 

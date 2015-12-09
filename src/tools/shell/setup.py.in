@@ -28,7 +28,7 @@ setup(
         ("", ["timestamp"]),
     ],
     install_requires=[
-        "chimera.core",
+        "chimerax.core",
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
@@ -46,7 +46,7 @@ setup(
         "Topic :: Scientific/Engineering :: Vio-Informatics",
         # Each tool should have a single line with up to seven fields:
         #
-        # 'Chimera-Tool' :: tool_name :: module_name
+        # 'ChimeraX-Tool' :: tool_name :: module_name
         # :: display_name :: commands :: categories
         # :: synopsis
         #
@@ -62,9 +62,9 @@ setup(
         # name for deciding whether they want the tool or not.
         #
         # Example:
-        # "Chimera-Tool :: cmd_line :: chimera.cmd_line "
+        # "ChimeraX-Tool :: cmd_line :: chimerax.cmd_line "
         # ":: Command Line Interface :: command_line :: General"
-        "Chimera-Tool :: TOOL_NAME :: TOOL_PKG_NAME "
+        "ChimeraX-Tool :: TOOL_NAME :: TOOL_PKG_NAME "
         ":: TOOL_DISPLAY_NAME :: COMMAND_NAME :: TOOL_CATEGORY "
         ":: TOOL_FILE_TYPES :: TOOL_SESSION_VERSIONS :: TOOL_CUSTOM_INIT "
         ":: TOOL_SYNOPSIS",

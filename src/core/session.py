@@ -73,7 +73,7 @@ class _UniqueName:
         Parameters
         ----------
         obj : any object
-        tool_info : optional :py:class:`~chimera.core.toolshed.ToolInfo` instance
+        tool_info : optional :py:class:`~chimerax.core.toolshed.ToolInfo` instance
             Explicitly denote which tool object comes from.
         """
 
@@ -88,12 +88,12 @@ class _UniqueName:
             tool_info = obj_cls.tool_info
         if tool_info is None:
             # no tool info, must be in core
-            if not obj_cls.__module__.startswith('chimera.core.'):
+            if not obj_cls.__module__.startswith('chimerax.core.'):
                 raise RuntimeError('No tool information for %s.%s' % (
                     obj_cls.__module__, obj_cls.__name__))
             class_name = obj_cls.__name__
             # double check that class will be able to be restored
-            from chimera.core import get_class
+            from chimerax.core import get_class
             if obj_cls != get_class(class_name):
                 raise RuntimeError('unable to restore objects of %s class' % class_name)
         else:
@@ -140,7 +140,7 @@ class _UniqueName:
         """
         class_name, ordinal = self.uid
         if isinstance(class_name, str):
-            from chimera.core import get_class
+            from chimerax.core import get_class
             tool_info = None
             cls = get_class(class_name)
         else:
@@ -293,12 +293,12 @@ class Session:
         Application data directory
     app_lib_dir : string
         Application shared code library directory
-    logger : An instance of :py:class:`~chimera.core.logger.Logger`
+    logger : An instance of :py:class:`~chimerax.core.logger.Logger`
         Use to log information, warning, errors.
     metadata : dict
         Information kept at beginning of session file, eg., a thumbnail
-    models : Instance of :py:class:`~chimera.core.models.Models`.
-    triggers : An instance of :py:class:`~chimera.core.triggerset.TriggerSet`
+    models : Instance of :py:class:`~chimerax.core.models.Models`.
+    triggers : An instance of :py:class:`~chimerax.core.triggerset.TriggerSet`
         Starts with session triggers.
     """
 
@@ -314,10 +314,10 @@ class Session:
         if minimal:
             return
 
-        import chimera
-        self.app_data_dir = chimera.app_data_dir
-        self.app_bin_dir = chimera.app_bin_dir
-        self.app_lib_dir = chimera.app_lib_dir
+        import chimerax
+        self.app_data_dir = chimerax.app_data_dir
+        self.app_bin_dir = chimerax.app_bin_dir
+        self.app_lib_dir = chimerax.app_lib_dir
 
         # initialize state managers for various properties
         from . import models
@@ -562,16 +562,16 @@ def open(session, stream, *args, **kw):
     # TODO: active trigger to allow user to stop overwritting
     # current session
     session.restore(input)
-    return [], "opened chimera session"
+    return [], "opened ChimeraX session"
 
 
 def _initialize():
     from . import io
     io.register_format(
-        "Chimera session", io.SESSION, SESSION_SUFFIX,
+        "ChimeraX session", io.SESSION, SESSION_SUFFIX,
         prefixes="ses",
         mime="application/x-chimerax-session",
-        reference="http://www.rbvi.ucsf.edu/chimera/",
+        reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)
 _initialize()
 

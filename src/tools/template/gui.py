@@ -10,7 +10,7 @@
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 class ToolUI(ToolInstance):
@@ -27,7 +27,7 @@ class ToolUI(ToolInstance):
         # in this case), so only override if different name desired
         self.display_name = "custom name for running tool"
         if session.ui.is_gui:
-            from chimera.core.ui import MainToolWindow
+            from chimerax.core.ui import MainToolWindow
             self.tool_window = MainToolWindow(self, size=self.SIZE)
             self.tool_window.manage(placement="bottom")
             parent = self.tool_window.ui_area
@@ -45,7 +45,7 @@ class ToolUI(ToolInstance):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(

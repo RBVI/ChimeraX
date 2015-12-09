@@ -108,14 +108,14 @@ def html_user_agent(app_dirs):
 
         url = "http://www.example.com/example_file"
         from urllib.request import URLError, Request
-        from chimera.core import utils
+        from chimerax.core import utils
         request = Request(url, unverifiable=True, headers={
             "User-Agent": utils.html_user_agent(session.app_dirs),
         })
         try:
             utils.retrieve_cached_url(request, filename, session.logger)
         except URLError as e:
-            from chimera.core.errors import UsereError
+            from chimerax.core.errors import UsereError
             raise UserError(str(e))
     """
     # The name, author, and version must be "tokens"

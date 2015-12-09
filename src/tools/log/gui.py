@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-from chimera.core.tools import ToolInstance
-from chimera.core.logger import HtmlLog
+from chimerax.core.tools import ToolInstance
+from chimerax.core.logger import HtmlLog
 
 context_menu_css = """
 .context-menu {
@@ -120,7 +120,7 @@ class Log(ToolInstance, HtmlLog):
             ToolInstance.__init__(self, session, tool_info)
         self.warning_shows_dialog = True
         self.error_shows_dialog = True
-        from chimera.core.ui import MainToolWindow
+        from chimerax.core.ui import MainToolWindow
 
         class LogWindow(MainToolWindow):
             close_destroys = False
@@ -182,7 +182,7 @@ class Log(ToolInstance, HtmlLog):
                 style = wx.OK | wx.OK_DEFAULT | icon | wx.CENTRE
                 graphics = self.session.ui.main_window.graphics_window
                 if is_html:
-                    from chimera.core.logger import html_to_plain
+                    from chimerax.core.logger import html_to_plain
                     dlg_msg = html_to_plain(msg)
                 else:
                     dlg_msg = msg
@@ -240,7 +240,7 @@ class Log(ToolInstance, HtmlLog):
             elif cmd == 'copy':
                 pass  # TODO
             elif cmd == 'save':
-                from chimera.core.ui.open_save import SaveDialog
+                from chimerax.core.ui.open_save import SaveDialog
                 save_dialog = SaveDialog(
                     self.log_window, "Save Log", defaultFile="log",
                     wildcard="HTML files (*.html)|*.html",
@@ -256,7 +256,7 @@ class Log(ToolInstance, HtmlLog):
             return
         elif url.startswith("cxcmd:"):
             from urllib.parse import unquote
-            from chimera.core.commands import run
+            from chimerax.core.commands import run
             event.Veto()
             cmd = url.split(':', 1)[1]
             run(session, unquote(cmd))
@@ -269,7 +269,7 @@ class Log(ToolInstance, HtmlLog):
                 # for each call to SetPage()
                 return
             event.Veto()
-            from chimera.core.commands import run
+            from chimerax.core.commands import run
             run(session, "help %s" % url, log=False)
             return
         # unknown scheme
@@ -310,7 +310,7 @@ class Log(ToolInstance, HtmlLog):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         self.display(data["shown"])
 

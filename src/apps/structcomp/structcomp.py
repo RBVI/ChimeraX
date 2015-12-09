@@ -50,7 +50,7 @@ def bonds(atoms):
 def compare(session, pdb_id, pdb_path, mmcif_path):
     # return True if they differ
     print('Comparing %s' % pdb_id)
-    from chimera.core import io
+    from chimerax.core import io
     try:
         pdb_models = io.open(session, pdb_path)[0]
     except Exception as e:

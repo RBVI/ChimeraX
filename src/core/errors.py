@@ -1,7 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 """
-errors: define Chimera-specific errors
-======================================
+errors: define ChimeraX-specific errors
+=======================================
 
 """
 
@@ -18,7 +18,7 @@ class LimitationError(NotABug):
     pass
 
 class NonChimeraError(NotABug):
-    """Error whose cause is outside Chimera, for example a temporary network error"""
+    """Error whose cause is outside ChimeraX, for example a temporary network error"""
     pass
 
 class UserError(NotABug):

@@ -1,8 +1,8 @@
 TOP= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/atomic
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/atomic
+PKG_DIR = $(PYSITEDIR)/chimerax/core/atomic
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/atomic
 
 PATCHES = $(wildcard *.patch)
 WRAPPY = $(bindir)/wrappy3

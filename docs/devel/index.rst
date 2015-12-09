@@ -10,7 +10,7 @@ with routines that need to run fast implemented in C++.
 This code is free for non-commercial use, see the
 :doc:`license <license>` for details.
 
-User documentation for the Chimera application is in the :doc:`User's Manual <manual>`.
+User documentation for the ChimeraX application is in the :doc:`User's Manual <manual>`.
 
 .. toctree::
    :maxdepth: 1

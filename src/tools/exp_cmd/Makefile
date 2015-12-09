@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.exp_cmd
+PKG_NAME = chimerax.exp_cmd
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = Experimental commands
 
@@ -10,7 +10,7 @@ PKG_DESCRIPTION = Experimental commands
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
 TOOL_NAME = exp_cmd
-TOOL_PKG_NAME = chimera.exp_cmd
+TOOL_PKG_NAME = chimerax.exp_cmd
 TOOL_DISPLAY_NAME = Experimental Commands
 TOOL_CATEGORY = General
 TOOL_FILE_TYPES =

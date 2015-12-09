@@ -1,10 +1,10 @@
 geometry: Points and coordinate systems
 =======================================
 
-.. automodule:: chimera.core.geometry.place
+.. automodule:: chimerax.core.geometry.place
     :members:
 
-.. automodule:: chimera.core.geometry.vector
+.. automodule:: chimerax.core.geometry.vector
     :members:  distance, norm, normalize_vector, normalize_vectors, vector_sum, cross_product, inner_product
 
 .. function:: inner_product_64(u, v)

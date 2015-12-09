@@ -10,7 +10,7 @@
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 class ToolUI(ToolInstance):
@@ -24,7 +24,7 @@ class ToolUI(ToolInstance):
         self.display_name = "STL Inspector"
         self.ti_list = []
         if session.ui.is_gui:
-            from chimera.core.ui import MainToolWindow
+            from chimerax.core.ui import MainToolWindow
             self.tool_window = MainToolWindow(self, size=self.SIZE)
             self.tool_window.manage(placement="right")
             parent = self.tool_window.ui_area
@@ -68,7 +68,7 @@ class ToolUI(ToolInstance):
         # session.logger.info("_refresh: %s" % repr(args))
         self.ti_list = []
         import random
-        from chimera.core.stl import STLModel
+        from chimerax.core.stl import STLModel
         for m in session.models.list(type=STLModel):
             for i in random.sample(range(m.num_triangles), random.randint(1, 10)):
                 self.ti_list.append(m.triangle_info(i))
@@ -87,7 +87,7 @@ class ToolUI(ToolInstance):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data[0]
         ToolInstance.restore_snapshot_init(

@@ -1,10 +1,10 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 _PageTemplate = """<html>
 <head>
-<title>Chimera Toolshed</title>
+<title>ChimeraX Toolshed</title>
 <script>
 function button_test() { window.location.href = "toolshed:button_test:arg"; }
 </script>
@@ -20,7 +20,7 @@ function button_test() { window.location.href = "toolshed:button_test:arg"; }
 </style>
 </head>
 <body>
-<h2>Chimera Toolshed
+<h2>ChimeraX Toolshed
     <a href="toolshed:_make_page" class="refresh">refresh</a></h2>
 <!-- button onclick="button_test();">Button Test</button> -->
 <h2>Running Tools</h2>
@@ -50,7 +50,7 @@ class ToolshedUI(ToolInstance):
     def __init__(self, session, tool_info, *, restoring=False):
         if not restoring:
             ToolInstance.__init__(self, session, tool_info)
-        from chimera.core.ui import MainToolWindow
+        from chimerax.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
         from wx import html2
@@ -65,7 +65,7 @@ class ToolshedUI(ToolInstance):
         sizer.Add(self.webview, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
-        from chimera.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
+        from chimerax.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
         self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE,
                                                        self._make_page),
                           session.triggers.add_handler(REMOVE_TOOL_INSTANCE,
@@ -213,7 +213,7 @@ class ToolshedUI(ToolInstance):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
@@ -226,7 +226,7 @@ class ToolshedUI(ToolInstance):
 
     @classmethod
     def get_singleton(self, session):
-        from chimera.core import tools
+        from chimerax.core import tools
         return tools.get_singleton(session, ToolshedUI, 'toolshed')
 
     #

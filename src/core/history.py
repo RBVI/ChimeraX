@@ -19,7 +19,7 @@ def filename(session, tag, unversioned=True):
 
     Parameters
     ----------
-    session : :py:class:`~chimera.core.session.Session` instance
+    session : :py:class:`~chimerax.core.session.Session` instance
     tag : str, a unique tag to identify the history
     unversioned : bool, optional
 
@@ -39,7 +39,7 @@ class ObjectCache:
 
     Parameters
     ----------
-    session : :py:class:`~chimera.core.session.Session` instance
+    session : :py:class:`~chimerax.core.session.Session` instance
     tag : str, a unique tag to identify the cache
     unversioned : bool, optional, defaults to False
 
@@ -80,7 +80,7 @@ class FIFOHistory:
     Parameters
     ----------
     capacity : int, a limit on the number of items in the history
-    session : :py:class:`~chimera.core.session.Session` instance
+    session : :py:class:`~chimerax.core.session.Session` instance
     tag : str, a unique tag to identify the history
     unversioned : bool, optional, defaults to True
     auto_save : bool, optional, defaults to True
@@ -197,7 +197,7 @@ class LRUSetHistory(OrderedSet):
     Parameters
     ----------
     capacity : int, a limit on the number of items in the history
-    session : :py:class:`~chimera.core.session.Session` instance
+    session : :py:class:`~chimerax.core.session.Session` instance
     tag : str, a unique tag to identify the history
     unversioned : bool, optional, defaults to True
     auto_save : bool, optional, defaults to True

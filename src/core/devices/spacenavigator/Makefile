@@ -1,7 +1,7 @@
 TOP	= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/devices/spacenavigator
+PKG_DIR = $(PYSITEDIR)/chimerax/core/devices/spacenavigator
 
 PYMOD_NAME = _spacenavigator
 SRCS	= spacenav.cpp

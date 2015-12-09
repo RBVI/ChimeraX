@@ -542,7 +542,7 @@ def open_data(session, filespec, format=None, name=None, **kw):
     uncompressed into a temporary file before calling the open function.
     """
 
-    from chimera.core.errors import UserError
+    from .errors import UserError
     format_name, prefix, filename, compression = deduce_format(
         filespec, has_format=format)
     open_func = open_function(format_name)
@@ -653,7 +653,7 @@ def determine_compression(filename):
 
 def _compressed_open(filename, compression, *args, **kw):
     import os.path
-    from chimera.core.errors import UserError
+    from .errors import UserError
     filename = os.path.expanduser(os.path.expandvars(filename))
     if not compression:
         try:

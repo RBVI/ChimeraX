@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 import wx
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 class ShellUI(ToolInstance):
@@ -17,7 +17,7 @@ class ShellUI(ToolInstance):
         # between lower-then-upper-case characters (therefore "Tool UI"
         # in this case), so only override if different name desired
         self.display_name = "ChimeraX Python Shell"
-        from chimera.core.ui import MainToolWindow
+        from chimerax.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
@@ -49,7 +49,7 @@ class ShellUI(ToolInstance):
 
     def restore_snapshot_init(self, session, tool_info, version, data):
         if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(

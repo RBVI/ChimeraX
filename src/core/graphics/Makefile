@@ -1,8 +1,8 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/graphics
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/graphics
+PKG_DIR = $(PYSITEDIR)/chimerax/core/graphics
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/graphics
 
 SUBDIRS	= _graphics
 
