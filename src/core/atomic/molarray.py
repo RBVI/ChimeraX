@@ -107,7 +107,8 @@ class Collection:
     def __getitem__(self, i):
         '''Indexing of collection objects using square brackets, *e.g.* c[i].'''
         if not isinstance(i,(int,integer)):
-            raise IndexError('Only integer indices allowed for Atoms, got %s' % str(type(i)))
+            raise IndexError('Only integer indices allowed for %s, got %s'
+                % (self.__class__.__name__, str(type(i))))
         from .molobject import object_map
         return object_map(self._pointers[i], self._object_class)
     def index(self, object):
@@ -779,8 +780,10 @@ class Chains(Collection):
     '''A :class:`.AtomicStructureDatas` collection containing structures for each chain.'''
     existing_residues = cvec_property('chain_residues', cptr, 'num_residues',
         astype = _non_null_residues, read_only = True, per_object = False)
-    '''A :class:`Residues` containing the residues of all chains. Read only.'''
-    num_residues = cvec_property('chain_num_existing_residues', size_t, read_only = True)
+    '''A :class:`Residues` containing the existing residues of all chains. Read only.'''
+    num_existing_residues = cvec_property('chain_num_existing_residues', size_t, read_only = True)
+    '''A numpy integer array containing the number of existing residues in each chain.'''
+    num_residues = cvec_property('chain_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
 
 # -----------------------------------------------------------------------------
