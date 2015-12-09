@@ -81,10 +81,10 @@ ChimeraX-icon512.png: ChimeraX-icon.svg
 
 ifeq ($(OS),Darwin)
 install: Info.plist
+Info.plist: chimerax-icon.icns
 endif
 
-#Info.plist: mkinfo.py chimerax-icon.icns
-Info.plist:
+Info.plist: mkinfo.py
 #	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || rm Info.plist
 	$(PYTHON_EXE) mkinfo.py $(APP_NAME) || rm Info.plist
 
