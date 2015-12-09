@@ -396,10 +396,10 @@ def init(argv, event_loop=True):
         return os.EX_OK
 
     # the rest of the arguments are data files
-    from chimerax.core import errors
+    from chimerax.core import errors, commands
     for arg in args:
         try:
-            sess.models.open(arg)
+            commands.run(sess, 'open %s' % arg)
         except (IOError, errors.UserError) as e:
             sess.logger.error(str(e))
         except Exception as e:
