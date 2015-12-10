@@ -32,7 +32,7 @@ class UserColors(SortedDict, State):
                 if name not in BuiltinColors or color != BuiltinColors[name]}
         return CORE_STATE_VERSION, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         self.__init__()
         self.update(data)
 
@@ -180,7 +180,7 @@ class UserColormaps(SortedDict, State):
     def take_snapshot(self, session, flags):
         return CORE_STATE_VERSION, dict(self)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         self.__init__()
         self.update(data)
 

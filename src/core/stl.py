@@ -52,7 +52,7 @@ class TriangleInfo(State):
     def take_snapshot(self, session, flags):
         return CORE_STATE_VERSION, [self._stl, self._index]
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         self._stl, self._index = data
 
     def reset_state(self, session):

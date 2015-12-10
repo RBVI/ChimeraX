@@ -4,7 +4,7 @@
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, tool_info):
+def start_tool(session, bundle_info):
     from .gui import CommandLine
     return CommandLine.get_singleton(session)
 

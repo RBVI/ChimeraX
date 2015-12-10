@@ -7,9 +7,9 @@ class Plot(ToolInstance):
 
     SIZE = (300, 300)
 
-    def __init__(self, session, tool_info, *, restoring=False, title='Plot'):
+    def __init__(self, session, bundle_info, *, restoring=False, title='Plot'):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
+            ToolInstance.__init__(self, session, bundle_info)
 
         from chimerax.core.ui import MainToolWindow
         tw = MainToolWindow(self, size=self.SIZE)
@@ -44,16 +44,16 @@ class Plot(ToolInstance):
             "ti": ToolInstance.take_snapshot(self, session, flags),
             "shown": self.tool_window.shown
         }
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
             from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
-            self, session, tool_info, ti_version, ti_data)
-        self.__init__(session, tool_info, restoring=True)
+            self, session, bundle_info, ti_version, ti_data)
+        self.__init__(session, bundle_info, restoring=True)
         self.display(data["shown"])
 
     def reset_state(self, session):
@@ -72,8 +72,8 @@ def show_contact_graph(node_weights, edge_weights, short_names, session):
     pos = nx.spring_layout(G) # positions for all nodes
 
     # Create matplotlib panel
-    tool_info = session.toolshed.find_tool('contacts')
-    p = Plot(session, tool_info)
+    bundle_info = session.toolshed.find_bundle('contacts')
+    p = Plot(session, bundle_info)
     a = p.axes
 
     # Draw nodes

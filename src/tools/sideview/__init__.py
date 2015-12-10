@@ -4,17 +4,17 @@
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, tool_info):
+def start_tool(session, bundle_info):
     # If providing more than one tool in package,
-    # look at the name in 'tool_info.name' to see which is being started.
+    # look at the name in 'bundle_info.name' to see which is being started.
 
     # Starting tools may only work in GUI mode, or in all modes.
     # Here, we check for GUI-only tool.
     if not session.ui.is_gui:
         return None
     from .gui import SideViewUI
-    #return SideViewUI(session, tool_info)
-    s = SideViewUI(session, tool_info)
+    #return SideViewUI(session, bundle_info)
+    s = SideViewUI(session, bundle_info)
     return s
 
 

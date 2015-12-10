@@ -46,7 +46,7 @@ setup(
         "Topic :: Scientific/Engineering :: Vio-Informatics",
         # Each tool should have a single line with up to seven fields:
         #
-        # 'ChimeraX-Tool' :: tool_name :: module_name
+        # 'ChimeraX-Bundle' :: tool_name :: module_name
         # :: display_name :: commands :: categories
         # :: synopsis
         #
@@ -62,9 +62,9 @@ setup(
         # name for deciding whether they want the tool or not.
         #
         # Example:
-        # "ChimeraX-Tool :: cmd_line :: chimerax.cmd_line "
+        # "ChimeraX-Bundle :: cmd_line :: chimerax.cmd_line "
         # ":: Command Line Interface :: command_line :: General"
-        "ChimeraX-Tool "             # ChimeraX metadata
+        "ChimeraX-Bundle "             # ChimeraX metadata
         ":: TOOL_NAME"              # tool name
         ":: TOOL_PKG_NAME "         # package name
         ":: TOOL_DISPLAY_NAME"      # display name

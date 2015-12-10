@@ -1,7 +1,7 @@
 #
 # 'register_command' is called by the toolshed on start up
 #
-def register_command(command_name, tool_info):
+def register_command(command_name, bundle_info):
     from . import test
     from chimerax.core.commands import register, CmdDesc
     desc = CmdDesc(synopsis = 'Run through test sequence of commands to check for errors')

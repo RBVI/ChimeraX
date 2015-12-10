@@ -4,13 +4,13 @@
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, ti):
+def start_tool(session, bi):
     # If providing more than one tool in package,
-    # look at the name in 'ti.name' to see which is being started.
+    # look at the name in 'bi.name' to see which is being started.
     if not session.ui.is_gui:
         return
     from .gui import ModelPanel
-    return ModelPanel(session, ti)     # UI should register itself with tool state manager
+    return ModelPanel(session, bi)     # UI should register itself with tool state manager
 
 
 #

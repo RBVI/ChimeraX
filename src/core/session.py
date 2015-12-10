@@ -39,7 +39,7 @@ class _UniqueName:
     _cls_ordinals = {}  # {class: ordinal}
     _uid_to_obj = {}    # {uid: obj}
     _obj_to_uid = {}    # {id(obj): uid}
-    _tool_infos = set()
+    _bundle_infos = set()
 
     __slots__ = ['uid']
 
@@ -73,7 +73,7 @@ class _UniqueName:
         Parameters
         ----------
         obj : any object
-        tool_info : optional :py:class:`~chimerax.core.toolshed.ToolInfo` instance
+        bundle_info : optional :py:class:`~chimerax.core.toolshed.BundleInfo` instance
             Explicitly denote which tool object comes from.
         """
 
@@ -81,12 +81,12 @@ class _UniqueName:
         if uid is not None:
             return cls(uid)
         obj_cls = obj.__class__
-        tool_info = None
-        if hasattr(obj, 'tool_info'):
-            tool_info = obj.tool_info
-        elif hasattr(obj_cls, 'tool_info'):
-            tool_info = obj_cls.tool_info
-        if tool_info is None:
+        bundle_info = None
+        if hasattr(obj, 'bundle_info'):
+            bundle_info = obj.bundle_info
+        elif hasattr(obj_cls, 'bundle_info'):
+            bundle_info = obj_cls.bundle_info
+        if bundle_info is None:
             # no tool info, must be in core
             if not obj_cls.__module__.startswith('chimerax.core.'):
                 raise RuntimeError('No tool information for %s.%s' % (
@@ -97,16 +97,16 @@ class _UniqueName:
             if obj_cls != get_class(class_name):
                 raise RuntimeError('unable to restore objects of %s class' % class_name)
         else:
-            class_name = (tool_info.name, obj_cls.__name__)
+            class_name = (bundle_info.name, obj_cls.__name__)
             # double check that class will be able to be restored
-            if obj_cls != tool_info.get_class(obj_cls.__name__):
+            if obj_cls != bundle_info.get_class(obj_cls.__name__):
                 raise RuntimeError(
                     'unable to restore objects of %s class in %s tool' %
-                    (class_name, tool_info.name))
+                    (class_name, bundle_info.name))
 
         ordinal = cls._cls_ordinals.get(class_name, 0)
-        if ordinal == 0 and tool_info is not None:
-            cls._tool_infos.add(tool_info)
+        if ordinal == 0 and bundle_info is not None:
+            cls._bundle_infos.add(bundle_info)
         ordinal += 1
         uid = (class_name, ordinal)
         cls._cls_ordinals[class_name] = ordinal
@@ -132,7 +132,7 @@ class _UniqueName:
             return "Core's %s" % class_name
         return "Tool %s's %s" % class_name
 
-    def tool_info_and_class_of(self, session):
+    def bundle_info_and_class_of(self, session):
         """Return class associated with unique id
 
         The restore process makes sure that the right tools are present,
@@ -141,15 +141,15 @@ class _UniqueName:
         class_name, ordinal = self.uid
         if isinstance(class_name, str):
             from chimerax.core import get_class
-            tool_info = None
+            bundle_info = None
             cls = get_class(class_name)
         else:
             tool_name, class_name = class_name
-            tool_info = session.toolshed.find_tool(tool_name)
-            if tool_info is None:
+            bundle_info = session.toolshed.find_bundle(tool_name)
+            if bundle_info is None:
                 return None, None
-            cls = tool_info.get_class(class_name)
-        return tool_info, cls
+            cls = bundle_info.get_class(class_name)
+        return bundle_info, cls
 
 #    @classmethod
 #    def restore_unique_id(self, obj, uid):
@@ -225,11 +225,11 @@ class _SaveManager:
             except StopIteration:
                 return
 
-    def tool_infos(self):
-        tool_infos = {}
-        for ti in _UniqueName._tool_infos:
-            tool_infos[ti.name] = (ti.version, ti.session_write_version)
-        return tool_infos
+    def bundle_infos(self):
+        bundle_infos = {}
+        for bi in _UniqueName._bundle_infos:
+            bundle_infos[bi.name] = (bi.version, bi.session_write_version)
+        return bundle_infos
 
 
 class _RestoreManager:
@@ -240,13 +240,13 @@ class _RestoreManager:
 
     def __init__(self):
         _UniqueName.reset()
-        self.tool_infos = {}
+        self.bundle_infos = {}
 
-    def check_tools(self, session, tool_infos):
+    def check_tools(self, session, bundle_infos):
         missing_tools = []
         out_of_date_tools = []
-        for tool_name, (tool_version, tool_state_version) in tool_infos.items():
-            t = session.toolshed.find_tool(tool_name)
+        for tool_name, (tool_version, tool_state_version) in bundle_infos.items():
+            t = session.toolshed.find_bundle(tool_name)
             if t is None:
                 missing_tools.append(tool_name)
                 continue
@@ -260,7 +260,7 @@ class _RestoreManager:
             if out_of_date_tools:
                 msg += "; out of date tools: " + commas(out_of_date_tools, ' and')
             raise RestoreError(msg)
-        self.tool_infos = tool_infos
+        self.bundle_infos = bundle_infos
 
     def resolve_references(self, data):
         # resolve references in data
@@ -405,7 +405,7 @@ class Session:
         # session is restored
         mgr = _SaveManager(self, State.SESSION)
         mgr.discovery(self._state_containers)
-        serialize.serialize(stream, mgr.tool_infos())
+        serialize.serialize(stream, mgr.bundle_infos())
         # TODO: collect OrderDAGError exceptions from walk and analyze
         for name, data in mgr.walk():
             serialize.serialize(stream, name)
@@ -426,8 +426,8 @@ class Session:
         else:
             metadata = None
         mgr = _RestoreManager()
-        tool_infos = serialize.deserialize(stream)
-        mgr.check_tools(self, tool_infos)
+        bundle_infos = serialize.deserialize(stream)
+        mgr.check_tools(self, bundle_infos)
 
         self.reset()
         self.triggers.activate_trigger("begin restore session", self)
@@ -443,12 +443,12 @@ class Session:
                 self.add_state_manager(name, data)
             else:
                 # _UniqueName: find class
-                tool_info, cls = name.tool_info_and_class_of(self)
+                bundle_info, cls = name.bundle_info_and_class_of(self)
                 if cls is None:
                     continue
                 cls_version, cls_data = data
-                obj = cls.restore_snapshot_new(self, tool_info, cls_version, cls_data)
-                obj.restore_snapshot_init(self, tool_info, cls_version, cls_data)
+                obj = cls.restore_snapshot_new(self, bundle_info, cls_version, cls_data)
+                obj.restore_snapshot_init(self, bundle_info, cls_version, cls_data)
                 mgr.add_reference(name, obj)
         self.triggers.activate_trigger("end restore session", self)
 
@@ -537,8 +537,8 @@ def dump(session, session_file, output=None):
         metadata = serialize.deserialize(input)
         pprint(metadata, stream=output)
         print("tool info:", file=output)
-        tool_infos = serialize.deserialize(input)
-        pprint(tool_infos, stream=output)
+        bundle_infos = serialize.deserialize(input)
+        pprint(bundle_infos, stream=output)
         while True:
             name = serialize.deserialize(input)
             if name is None:

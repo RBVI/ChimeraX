@@ -15,7 +15,7 @@ class ViewState(State):
                 v.background_color, cs.take_snapshot(session, flags)]
         return CORE_STATE_VERSION, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         self.view_attr = data[0]
         v = getattr(session, self.view_attr)
         (v.center_of_rotation, _,   # TODO: don't skip v.window_size
@@ -24,7 +24,7 @@ class ViewState(State):
         v.camera = MonoCamera()
         cam_version, cam_data = data[4]
         CameraState(v.camera).restore_snapshot_init(
-            session, tool_info, cam_version, cam_data)
+            session, bundle_info, cam_version, cam_data)
 
     def reset_state(self, session):
         """Reset state to data-less state"""
@@ -44,7 +44,7 @@ class CameraState(State):
         data = [c.position, c.field_of_view]
         return CORE_STATE_VERSION, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         c = self.camera
         (c.position, c.field_of_view) = data
 
@@ -89,11 +89,11 @@ class DrawingState(State):
         }
         return CORE_STATE_VERSION, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         d = self.drawing
         for child_version, child_data in data['children']:
             child = d.new_drawing()
-            DrawingState(child).restore_snapshot(session, tool_info, child_version, child_data)
+            DrawingState(child).restore_snapshot(session, bundle_info, child_version, child_data)
         d.name = data['name']
         d.vertices = data['vertices']
         d.triangles = data['triangles']

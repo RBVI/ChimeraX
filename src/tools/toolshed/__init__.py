@@ -4,7 +4,7 @@
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, tool_info):
+def start_tool(session, bundle_info):
     # Starting tools may only work in GUI mode, or in all modes.
     from .gui import ToolshedUI
     return ToolshedUI.get_singleton(session)
@@ -13,7 +13,7 @@ def start_tool(session, tool_info):
 #
 # 'register_command' is called by the toolshed on start up
 #
-def register_command(command_name, tool_info):
+def register_command(command_name, bundle_info):
     from . import cmd
     from chimerax.core.commands import create_alias, register
     if command_name == "ts":

@@ -44,7 +44,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Vio-Informatics",
-        "ChimeraX-Tool "
+        "ChimeraX-Bundle "
             # ChimeraX metadata
         ":: TOOL_NAME "
             # Tool name

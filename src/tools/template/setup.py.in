@@ -46,7 +46,7 @@ setup(
         "Topic :: Scientific/Engineering :: Vio-Informatics",
         # Each tool should have a single line with the following fields:
         #
-        # 'ChimeraX-Tool' :: tool_name :: module_name
+        # 'ChimeraX-Bundle' :: tool_name :: module_name
         # :: display_name :: commands :: categories
         # :: file_types :: session_versions :: custom_init
         # :: synopsis
@@ -70,7 +70,7 @@ setup(
         # because it needs to be part of the metadata available for
         # uninstalled tools, so that users can get more than just a
         # name for deciding whether they want the tool or not.
-        "ChimeraX-Tool "
+        "ChimeraX-Bundle "
             # ChimeraX metadata
         ":: TOOL_NAME "
             # Tool name
