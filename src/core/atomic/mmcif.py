@@ -80,14 +80,14 @@ def _get_template(name, app_dirs, logger):
     os.makedirs(dirname, exist_ok=True)
 
     from urllib.request import URLError, Request
-    from .. import utils
+    from .. import fetch
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
     request = Request(url, unverifiable=True, headers={
-        "User-Agent": utils.html_user_agent(app_dirs),
+        "User-Agent": fetch.html_user_agent(app_dirs),
     })
     try:
-        return utils.retrieve_cached_url(request, filename, logger)
+        return fetch.retrieve_cached_url(request, filename, logger)
     except URLError:
         if logger:
             logger.warning(
