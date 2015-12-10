@@ -34,8 +34,8 @@ optionally with spaces between words
   <li><a href="http://www.w3schools.com/cssref/css_colornames.asp"
   target="_blank">listed alphabetically</a>
   </ul>
-<li>color names defined previously with the 
-<a href="colordef.html"><b>colordef</b></a> command
+<li>color names defined previously with
+<a href="color.html#define"><b>color define</b></a>
 <li>hexadecimal format starting with # and encoding
 <b>rgb</b> (3 or 6 digits) or <b>rgba</b> (4 or 8 digits)
 <!-- 
@@ -43,6 +43,12 @@ Greg's fix for #143 is to interpret as color instead of model number if it has
 any non-numbers and/or at least 6 digits; thus model numbers top out at #99999
 and all-number hex colors with fewer than 6 digits don't work
 -->
+<li><b>rgb</b> or <b>rgba</b> given as three or four values in the range 0-100
+separated by commas only (no % signs):
+  <ul>
+  <li><b><i>red,green,blue</i></b>
+  <li><b><i>red,green,blue,alpha</i></b>
+  </ul>
 <li><a href="http://www.w3schools.com/cssref/css_colors_legal.asp"
 target="_blank">CSS-like specifications</a> in the following formats:
   <ul>
@@ -66,19 +72,11 @@ The <i>red</i>, <i>green</i>, <i>blue</i>, and <i>grayscale</i>
 components can also be expressed as whole numbers in the range 0-255. 
 Values for <i>hue</i> are in the range 0-360,
 corresponding to angular positions on the color wheel.
-<!--
-<li>as a shorthand, 
-the following without embedded spaces and in percentages only (no % required):
-  <ul>
-  <li><b><i>red,green,blue</i></b>
-  <li><b><i>red,green,blue,alpha</i></b>
-  </ul>
--->
 </ul>
 <p>
-Color names from CSS or <a href="colordef.html"><b>colordef</b></a>
-can be truncated, with ambiguous truncations 
-going to the shortest of the matching full color names.
+Color names from CSS or <a href="color.html#define"><b>color define</b></a>
+can be truncated, with ambiguous truncations going to the shortest 
+of the matching full color names.
 </p>
 
 <h3>Examples</h3>
@@ -89,15 +87,13 @@ The following all specify the same color:
 red<br>
 #f00<br>
 #FF0000FF<br>
+100,0,0</br>
+100,0,0,100</br>
 rgb(255, 0, 0)<br>
 rgb(1., 0., 0.)<br>
 rgb(100%, 0%, 0%)<br>
 rgba(100%, 0%, 0%, 1)<br>
 rgba(100%, 0%, 0%, 100%)<br>
-<!--
-100,0,0</br>
-100,0,0,100</br>
--->
 hsl(0, 1.0, 0.5)<br>
 hsl(0, 100%, 50%)
 </blockquote>
@@ -109,5 +105,5 @@ gray(50%)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2015</address>
+December 2015</address>
 </body></html>

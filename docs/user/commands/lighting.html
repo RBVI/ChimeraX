@@ -1,0 +1,210 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2015 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: lighting</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: lighting</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>lighting</b>
+[&nbsp;<a href="#preset"><i>preset</i></a>&nbsp;]
+&nbsp;<a href="#options"><i>options</i></a>
+</h3>
+<p>
+The <b>lighting</b> command controls lighting parameters, both
+individually through specific <a href="#options">options</a> and
+in combinations through convenient <a href="#preset">presets</a>.
+Parameters that are not specified retain their current values. 
+Without arguments, <b>lighting</b> reports the current settings in the
+<b>Log</b>.
+See also: 
+<b>material</b>,
+<b>set</b>
+</p><p>
+There are two directional lights, key and fill, plus ambient lighting.
+The <b><i>key light</i></b> is often the dominant source and can cast 
+shadows; the first set of intensity, direction, and color values 
+reported in the <b>Log</b> refer to this light.
+The <b><i>fill light</i></b> serves as a secondary 
+directional source to improve the visibility of regions that would 
+otherwise be dark. The <b><i>ambient</i></b> lighting 
+is an approximation to omnidirectional illumination.
+Shadows cast from multiple uniformly distributed directions can produce 
+ambient shadowing, or &ldquo;ambient occlusion.&rdquo; 
+</p><p>
+The <a name="preset"><i>preset</i></a> can be:
+</p>
+<ul>
+<li><b>default</b> or <b>simple</b>
+- all three kinds of light, but no shadows
+<li><b>full</b>
+- all three kinds of light, shadows from key light,
+ambient shadowing from 64 directions
+<li><b>soft</b> - ambient lighting only,
+ambient shadowing from 64 directions
+<li><b>flat</b> - ambient lighting only, no shadows,
+silhouettes on (use <b>set silhouettes false</b> to turn them back off)
+</ul>
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="options"></a>
+<h3>Options</h3>
+<p>
+Option keywords for <a href="#top"><b>lighting</b></a>
+can be truncated to unique strings.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
+default settings are indicated with <b>bold</b>.
+Synonyms for true: True, 1.  Synonyms for false: False, 0.
+</p>
+
+<blockquote>
+<b>direction</b> &nbsp;<i>x<sub>k</sub>,y<sub>k</sub>,z<sub>k</sub></i>
+<br>
+Set key-light direction (default approx. <b>0.577,-0.577,-0.577</b>).
+Any length vector can be specified; only the direction is used.
+Viewing is along &ndash;Z 
+(<a href="view.html#screencoords">screen coordinate system</a>,
+see <a href="#moveWithCamera"><b>moveWithCamera</b></a>),
+so the default direction is from the upper left front to the lower right back.
+</blockquote>
+<blockquote>
+<b>intensity</b> &nbsp;<i>I<sub>k</sub></i>
+<br>
+Set key-light intensity (default <b>1.0</b>).
+</blockquote>
+<blockquote>
+<b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+<br>
+Set key-light color (default <b>white</b>).
+</blockquote>
+
+<blockquote>
+<b>fillDirection</b> &nbsp;<i>x<sub>f</sub>,y<sub>f</sub>,z<sub>f</sub></i>
+<br>
+Set fill-light direction (default approx. <b>-0.2,-0.2,-0.959</b>).
+</blockquote>
+<blockquote>
+<b>fillIntensity</b> &nbsp;<i>I<sub>f</sub></i>
+<br>
+Set fill-light intensity (default <b>0.5</b>).
+</blockquote>
+<blockquote>
+<b>fillColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+<br>
+Set fill-light color (default <b>white</b>).
+</blockquote>
+
+<blockquote>
+<b>ambientIntensity</b> &nbsp;<i>I<sub>a</sub></i>
+<br>
+Set ambient-light intensity (default <b>0.4</b>).
+</blockquote>
+<blockquote>
+  <b>ambientColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <br>
+Set ambient-light color (default <b>white</b>).
+</blockquote>
+
+<blockquote>
+<a name="depthcue"><b>depthCue</b></a> <b>true</b> | false
+<br>
+Whether to use depth-cueing, front-to-back shading of the scene.
+</blockquote>
+<blockquote>
+<b>depthCueColor</b></a> 
+&nbsp;<a href="colornames.html"><i>color-spec</i></a>
+<br>
+Set depth-cueing color (default <b>black</b>).
+Any transparency in the color will be ignored.
+</blockquote>
+<blockquote>
+<b>depthCueStart</b></a> &nbsp;<i>start</i>
+<br>
+<b>depthCueEnd</b> &nbsp;<i>end</i>
+<br>
+Set the position of the depth-cueing ramp.
+Depth-cueing shading increases linearly from <i>start</i> to <i>end</i>,
+each expressed as a position relative to the front (0.0) and 
+back (1.0) global clipping planes (default <b>0.5</b> to <b>1.0</b>).
+See also: <b>clip</b>
+</blockquote>
+
+<blockquote>
+<b>shadows</b> true | <b>false</b>
+<br>
+Whether the key light should cast shadows.
+</blockquote>
+<blockquote>
+<b>qualityOfShadows</b> &nbsp;coarse&nbsp;|&nbsp;<b>normal</b>&nbsp;|&nbsp;fine&nbsp;|&nbsp;finer&nbsp;|&nbsp;<i>M<sub>k</sub></i>
+<br>
+Set the quality of directional (key-light) shadows.
+These shadows are rendered with a two-dimensional texture
+or &ldquo;depth map.&rdquo; A small map gives pixelated shadow edges.
+The integer map size <i>M<sub>k</sub></i> can be specified directly 
+or <i>via</i> one of the quality settings:
+<ul>
+<li><b>coarse</b> - map size 1024
+<li><b>normal</b> (default) - map size 2048
+<li><b>fine</b> - map size 4096
+<li><b>finer</b> - map size 8192
+</ul>
+</blockquote>
+<blockquote>
+<b>depthBias</b> &nbsp;<i>b<sub>k</sub></i>
+<br>
+Set the bias distance for directional shadows,
+used to avoid a surface shadowing itself due to rounding errors
+(default <b>0.005</b> of the scene diameter).
+</blockquote>
+
+<blockquote>
+<b>multiShadow</b> &nbsp;<i>N</i>
+<br>
+How many directions should be used to generate ambient shadows
+(default <b>0</b>, no ambient shadows; maximum 1024).
+</blockquote>
+<blockquote>
+<b>msMapSize</b> &nbsp;<i>M<sub>a</sub></i>
+<br>
+Set the size of the depth map
+for rendering ambient shadows (integer-valued, default <b>128</b>).
+</blockquote>
+<blockquote>
+<b>msDepthBias</b> &nbsp;<i>b<sub>a</sub></i>
+<br>
+Set the bias distance for ambient shadows,
+used to avoid a surface shadowing itself due to rounding errors
+(default <b>0.05</b> of the scene diameter).
+A larger bias is needed for ambient shadows than for directional shadows 
+because a smaller depth map is typically used.
+</blockquote>
+
+<blockquote>
+<a name="moveWithCamera"><b>moveWithCamera</b></a> <b>true</b> | false
+<br>
+Whether directional lighting should be pinned to the camera viewpoint
+(<a href="view.html#screencoords">screen coordinate system</a>, default) 
+or to the <a href="view.html#scenecoords">scene coordinate system</a>.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+December 2015</address>
+</body></html>
