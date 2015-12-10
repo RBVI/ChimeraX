@@ -5,20 +5,15 @@ default_autopack_database = 'https://github.com/mesoscope/cellPACK_data/raw/mast
 
 # -----------------------------------------------------------------------------
 #
-def fetch_cellpack(session, cellpack_id):
-    path = fetch_autopack_results(session, cellpack_id)
-    surfs = fetch_results(session, path, cellpack_id)
-    return surfs, 'Opened %s' % cellpack_id
+def fetch_cellpack(session, cellpack_id, database = default_autopack_database, ignore_cache = False):
 
-# -----------------------------------------------------------------------------
-#
-def fetch_results(session, path, results_name, database = default_autopack_database, ignore_cache = False):
     try:
-        surfs = fetch_autopack(session, path, results_name, database, ignore_cache)
+        path = fetch_autopack_results(session, cellpack_id)
+        surf = fetch_autopack(session, path, cellpack_id, database, ignore_cache)
     except IOError as e:
         from chimerax.core.errors import UserError
         raise UserError('Unknown cellPACK id "%s"\n\n%s' % (results_name, str(e)))
-    return surfs
+    return [surf], 'Opened %s' % cellpack_id
 
 # -----------------------------------------------------------------------------
 #
@@ -34,44 +29,62 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
     recipe_path = fetch_file(session, recipe_url, 'recipe for ' + results_name, recipe_filename, 'cellPACK',
                              ignore_cache=ignore_cache, check_certificates=check_certificates)
 
-    # Combine ingredients used in multiple compartments
     ingr_filenames, comp_surfaces = read_apr.read_autopack_recipe(recipe_path)
-    ingr_placements = {}
-    for ingr_id, placements in pieces.items():
-        ingr_filename = ingr_filenames[ingr_id]
-        if ingr_filename in ingr_placements:
-            ingr_placements[ingr_filename].extend(placements)
-        else:
-            ingr_placements[ingr_filename] = list(placements)
 
-    # Fetch ingredient surface files.
-    surf_placements = []
-    for ingr_filename, placements in ingr_placements.items():
-        from urllib.parse import urljoin
-        ingr_url = urljoin(recipe_url, ingr_filename)
-        ingr_path = fetch_file(session, ingr_url, 'ingredient ' + ingr_filename, ingr_filename, 'cellPACK',
-                               ignore_cache=ignore_cache, check_certificates=check_certificates)
-        mesh_loc = read_apr.read_ingredient(ingr_path)
-        mesh_url = mesh_loc.replace('autoPACKserver', database)
-        mesh_filename = basename(mesh_loc)
-        mesh_path = fetch_file(session, mesh_url, 'mesh ' + mesh_filename, mesh_filename, 'cellPACK',
-                               ignore_cache=ignore_cache, check_certificates=check_certificates)
-        surf_placements.append((mesh_path, placements))
+    from chimerax.core.models import Model
+    cpm = Model(results_name, session)
 
     # Fetch compartment surface files.
-    comp_paths = []
-    for comp_loc in comp_surfaces:
-        comp_url = comp_loc.replace('autoPACKserver', database)
-        comp_filename = basename(comp_loc)
-        comp_path = fetch_file(session, comp_url, 'component surface ' + comp_filename, comp_filename, 'cellPACK',
-                               ignore_cache=ignore_cache, check_certificates=check_certificates)
-        comp_paths.append(comp_path)
+    csurfs = []
+    from chimerax.core.surface.collada import read_collada_surfaces
+    for comp_name, comp_loc in comp_surfaces:
+        if comp_loc is not None:
+            comp_url = comp_loc.replace('autoPACKserver', database)
+            comp_filename = basename(comp_loc)
+            comp_path = fetch_file(session, comp_url, 'component surface ' + comp_filename, comp_filename, 'cellPACK',
+                                   ignore_cache=ignore_cache, check_certificates=check_certificates)
+            slist, msg = read_collada_surfaces(session, comp_path, comp_name)
+            if len(slist) == 1:
+                csurf = slist[0]
+            else:
+                csurf = Model(comp_name, session)
+                csurf.add(slist)
+        else:
+            csurf = Model(comp_name, session)
+        csurfs.append(csurf)
+    cpm.add(csurfs)
 
-    # Open surface models
-    surf_placements.extend((cmesh_path, []) for cmesh_path in comp_paths)
-    surfs = read_apr.create_surfaces(session, surf_placements)
+    # Added ingredient surfaces to compartments
+    ingr_mesh_path = {}
+    comp = {csurf.name:csurf for csurf in csurfs}
+    ingr_ids = list(pieces.keys())
+    ingr_ids.sort()	# Get reproducible ordering of ingredients
+    for ingr_id in ingr_ids:
+        ingr_filename = ingr_filenames[ingr_id]
+        mesh_path = ingr_mesh_path.get(ingr_filename, None)
+        if mesh_path is None:
+            from urllib.parse import urljoin
+            ingr_url = urljoin(recipe_url, ingr_filename)
+            ingr_path = fetch_file(session, ingr_url, 'ingredient ' + ingr_filename, ingr_filename, 'cellPACK',
+                                   ignore_cache=ignore_cache, check_certificates=check_certificates)
+            mesh_loc = read_apr.read_ingredient(ingr_path)
+            mesh_url = mesh_loc.replace('autoPACKserver', database)
+            mesh_filename = basename(mesh_loc)
+            mesh_path = fetch_file(session, mesh_url, 'mesh ' + mesh_filename, mesh_filename, 'cellPACK',
+                                   ignore_cache=ignore_cache, check_certificates=check_certificates)
+            ingr_mesh_path[ingr_filename] = mesh_path
 
-    return surfs
+        comp_name, interior_or_surf, ingr_name = ingr_id
+        cs = comp.get((comp_name, interior_or_surf), None)
+        if cs is None:
+            cs = Model(interior_or_surf, session)
+            comp[comp_name].add([cs])
+            comp[(comp_name, interior_or_surf)] = cs
+        placements = pieces[ingr_id]
+        isurf = read_apr.create_surface(session, mesh_path, ingr_name, placements)
+        cs.add([isurf])
+
+    return cpm
 
 # -----------------------------------------------------------------------------
 # Fetch AutoPack results files
