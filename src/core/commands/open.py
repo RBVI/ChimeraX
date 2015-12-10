@@ -38,7 +38,10 @@ def open(session, filename, format=None, name=None, from_database=None):
         from .. import fetch
         models = fetch.fetch_from_database(session, from_database, filename,
                                            format=format, name=name)
-        session.models.add(models)
+        if len(models) > 1:
+            session.models.add_group(models)
+        else:
+            session.models.add(models)
         return models
 
     if format is not None:
