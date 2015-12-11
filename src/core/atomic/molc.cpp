@@ -1769,6 +1769,17 @@ extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *float
     }
 }
 
+extern "C" void structure_session_restore(void *mol, int version,
+    PyObject *ints, PyObject *floats, PyObject *misc)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        m->session_restore(version, ints, floats, misc);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void structure_session_save_setup(void *mol)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);

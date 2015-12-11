@@ -1003,17 +1003,13 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
 
     // AtomicStructure attrs
     int* int_array;
-    PyObject* npy_array = python_int_array(10, &int_array);
+    PyObject* npy_array = python_int_array(7, &int_array);
     *int_array++ = _idatm_valid;
-    bool recompute_rings = _recompute_rings || _rings_last_ignore != nullptr;
-    *int_array++ = recompute_rings;
-    *int_array++ = _rings_last_all_size_threshold;
-    *int_array++ = _rings_last_cross_residues;
     int x = std::find(_coord_sets.begin(), _coord_sets.end(), _active_coord_set)
         - _coord_sets.begin();
     *int_array++ = x; // can be size+1 if active coord set is null
     *int_array++ = asterisks_translated;
-    *int_array++ = display();
+    *int_array++ = _display;
     *int_array++ = is_traj;
     *int_array++ = lower_case_chains;
     *int_array++ = pdb_version;
@@ -1291,7 +1287,46 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         }
     }
 
-    return 1;  // version number
+    return CURRENT_SESSION_VERSION;  // version number
+}
+
+void
+AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, PyObject* misc)
+{
+    // restore the stuff saved by session_info()
+
+    if (version > CURRENT_SESSION_VERSION)
+        throw std::invalid_argument("Don't know how to restore new session data; update your"
+            " version of ChimeraX");
+
+    if (!PyList_Check(ints) || PyList_Size(ints) != 7)
+        throw std::invalid_argument("AtomicStructure::session_info: first arg is not a"
+            " 7-element list");
+    if (!PyList_Check(floats) || PyList_Size(floats) != 7)
+        throw std::invalid_argument("AtomicStructure::session_info: second arg is not a"
+            " 7-element list");
+    if (!PyList_Check(misc) || PyList_Size(misc) != 7)
+        throw std::invalid_argument("AtomicStructure::session_info: third arg is not a"
+            " 7-element list");
+
+    // AtomicStructure ints
+    PyObject* item = PyList_GET_ITEM(ints, 0);
+    auto iarray = Numeric_Array();
+    if (!array_from_python(item, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("AtomicStructure int data is not a one-dimensional"
+            " numpy int array");
+    if (iarray.size() != 7)
+        throw std::invalid_argument("AtomicStructure int array wrong size");
+    int* int_array = static_cast<int*>(iarray.values());
+    _idatm_valid = *int_array++;
+    int active_cs = *int_array++; // have to wait until CoordSets restored to set
+    asterisks_translated = *int_array++;
+    _display = *int_array++;
+    is_traj = *int_array++;
+    lower_case_chains = *int_array++;
+    pdb_version = *int_array++;
+    // if more added, change the array dimension check above
+
 }
 
 void

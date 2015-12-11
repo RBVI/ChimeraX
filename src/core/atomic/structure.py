@@ -142,6 +142,23 @@ class AtomicStructure(AtomicStructureData, Model):
             (as_version, ints, floats, misc)
         ]
 
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        model_data, c_data = data
+        # Model will attempt to restore self.name, which is a property of the C++
+        # layer for an AtomicStructure, so initialize AtomicStructureData first...
+        AtomicStructureData.__init__(self, logger=session.logger)
+        Model.restore_snapshot_init(self, session, tool_info, *model_data)
+        as_version, ints, floats, misc = c_data
+        print("{} ints, {} floats, {} misc".format(len(ints), len(floats), len(misc)))
+        if len(ints) == len(floats) == len(misc):
+            classes = ["AtomicStructure", "Atom", "Bond", "CoordSet", "PBManager", "Residue", "Chain", "Ring"]
+            for i in range(len(ints)):
+                print("# ints for {}: {}".format(classes[i], len(ints[i])))
+                print("# floats for {}: {}".format(classes[i], len(floats[i])))
+                print("# misc for {}: {}".format(classes[i], len(misc[i])))
+        self.session_restore(*c_data)
+        raise ValueError("AtomicStructure restore not fully implemented")
+
     def reset_state(self, session):
         pass
 

@@ -486,10 +486,9 @@ class AtomicStructureData:
     This base class manages the atomic data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
-    def __init__(self, mol_pointer=None):
+    def __init__(self, mol_pointer=None, logger=None):
         if mol_pointer is None:
             # Create a new atomic structure
-            logger = None	# TODO: pass a logger into the constructor
             mol_pointer = c_function('structure_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
 
@@ -597,6 +596,13 @@ class AtomicStructureData:
                         ctypes.py_object),
                     ret = ctypes.c_int)
         return f(self._c_pointer, ints, floats, misc)
+
+    def session_restore(self, version, ints, floats, misc):
+        '''Restore from session info'''
+        f = c_function('structure_session_restore',
+                args = (ctypes.c_void_p, ctypes.c_int,
+                        ctypes.py_object, ctypes.py_object, ctypes.py_object))
+        return f(self._c_pointer, version, ints, floats, misc)
 
     def session_save_setup(self):
         '''Allow C++ layer to setup data structures it needs during session save'''

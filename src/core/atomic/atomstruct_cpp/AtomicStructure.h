@@ -65,6 +65,8 @@ private:
     friend class Chain;
     void  remove_chain(Chain* chain);
 
+    const int  CURRENT_SESSION_VERSION = 1;
+
     CoordSet *  _active_coord_set;
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
@@ -163,7 +165,8 @@ public:
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
         std::set<const Residue *>* ignore = nullptr) const;
-    int  session_info(PyObject* ints, PyObject* floats, PyObject* strings) const;
+    int  session_info(PyObject* ints, PyObject* floats, PyObject* misc) const;
+    void  session_restore(int version, PyObject* ints, PyObject* floats, PyObject* misc);
     mutable std::unordered_map<const Atom*, size_t>  *session_save_atoms;
     mutable std::unordered_map<const CoordSet*, size_t>  *session_save_crdsets;
     mutable std::unordered_map<const Residue*, size_t>  *session_save_residues;
