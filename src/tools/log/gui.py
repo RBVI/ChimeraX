@@ -240,6 +240,8 @@ class Log(ToolInstance, HtmlLog):
         session = self.session
         # Handle event
         url = event.GetURL()
+        from urllib.parse import unquote
+        url = unquote(url)
         if url.startswith("log:"):
             event.Veto()
             cmd = url.split(':', 1)[1]
@@ -265,11 +267,10 @@ class Log(ToolInstance, HtmlLog):
                 log(self.session, thumbnail=True)
             return
         elif url.startswith("cxcmd:"):
-            from urllib.parse import unquote
             from chimerax.core.commands import run
             event.Veto()
             cmd = url.split(':', 1)[1]
-            run(session, unquote(cmd))
+            run(session, cmd)
             return
         from urllib.parse import urlparse
         parts = urlparse(url)
