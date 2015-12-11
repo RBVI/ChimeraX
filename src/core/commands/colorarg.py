@@ -199,6 +199,12 @@ class ColormapArg(cli.Annotation):
             from ..colors import Colormap
             return Colormap(values, [c.rgba for c in colors]), text, rest
         else:
+            try:
+                palette_id = int(token)
+            except:
+                palette_id = None
+            if palette_id is not None:
+                return _fetch_colormap(session, palette_id), token, rest
             if session is not None:
                 i = session.user_colormaps.bisect_left(token)
                 if i < len(session.user_colormaps):
@@ -218,6 +224,24 @@ _color_func = re.compile(r"^(rgb|rgba|hsl|hsla|gray)\s*\(([^)]*)\)")
 _number = re.compile(r"\s*[-+]?([0-9]+(\.[0-9]*)?|\.[0-9]+)")
 _units = re.compile(r"\s*(%|deg|grad|rad|turn|)\s*")
 
+def _fetch_colormap(session, palette_id):
+    '''Fetch color map from colourlovers.com'''
+    url = 'http://www.colourlovers.com/api/palette/%d?format=json' % palette_id
+    from ..fetch import fetch_file
+    filename = fetch_file(session, url, 'palette %d' % palette_id, '%d.json' % palette_id, 'COLOURlovers')
+    f = open(filename, 'r')
+    import json
+    j = json.load(f)
+    f.close()
+    if len(j) == 0:
+        from ..errors import UserError
+        raise UserError('No palette %d at COLOURlovers.com' % palette_id)
+    hex_colors = j[0]['colors']
+    rgba = [tuple(int(r, base=16)/255 for r in (c[0:2], c[2:4], c[4:6])) + (1.0,)
+            for c in hex_colors]
+    from ..colors import Colormap
+    cmap = Colormap(None, rgba)
+    return cmap
 
 def _parse_numbers(text):
     # parse comma separated list of number [units]
