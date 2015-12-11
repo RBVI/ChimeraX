@@ -116,7 +116,7 @@ def register_mmcif_format():
 def register_mmcif_fetch(session):
     from .. import fetch
     fetch.register_fetch(session, 'pdb', fetch_mmcif, 'mmcif',
-                         prefixes = ['mmcif'], default_format = True)
+                         prefixes = ['pdb'], default_format = True)
 
 def get_mmcif_tables(model, table_names):
     raw_tables = model.metadata
