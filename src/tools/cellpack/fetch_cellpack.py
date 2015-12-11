@@ -37,20 +37,24 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
     # Fetch compartment surface files.
     csurfs = []
     from chimerax.core.surface.collada import read_collada_surfaces
-    for comp_name, comp_loc in comp_surfaces:
+    for comp_name, comp_loc, geom_loc in comp_surfaces:
+        csurf = Model(comp_name, session)
         if comp_loc is not None:
             comp_url = comp_loc.replace('autoPACKserver', database)
             comp_filename = basename(comp_loc)
-            comp_path = fetch_file(session, comp_url, 'component surface ' + comp_filename, comp_filename, 'cellPACK',
+            comp_path = fetch_file(session, comp_url, 'compartment surface ' + comp_filename, comp_filename, 'cellPACK',
                                    ignore_cache=ignore_cache, check_certificates=check_certificates)
-            slist, msg = read_collada_surfaces(session, comp_path, comp_name)
-            if len(slist) == 1:
-                csurf = slist[0]
-            else:
-                csurf = Model(comp_name, session)
-                csurf.add(slist)
-        else:
-            csurf = Model(comp_name, session)
+            slist, msg = read_collada_surfaces(session, comp_path, 'representation')
+            csurf.add(slist)
+        if geom_loc is not None:
+            geom_url = geom_loc.replace('autoPACKserver', database)
+            geom_filename = basename(geom_loc)
+            geom_path = fetch_file(session, geom_url, 'compartment bounds ' + geom_filename, geom_filename, 'cellPACK',
+                                   ignore_cache=ignore_cache, check_certificates=check_certificates)
+            slist, msg = read_collada_surfaces(session, geom_path, 'geometry')
+            for s in slist:
+                s.display = False
+            csurf.add(slist)
         csurfs.append(csurf)
     cpm.add(csurfs)
 

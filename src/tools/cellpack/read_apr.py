@@ -30,7 +30,7 @@ def read_autopack_recipe(path):
     ingr_filenames = {}
     comp_surfaces = []
     for comp_name, comp_details in j['compartments'].items():
-        comp_surfaces.append((comp_name, comp_details.get('rep_file', None)))
+        comp_surfaces.append((comp_name, comp_details.get('rep_file', None), comp_details.get('geom', None)))
         for interior_or_surface in ('interior', 'surface'):
             if interior_or_surface in comp_details:
                 for ingr_name, ingr_info in comp_details[interior_or_surface]['ingredients'].items():
