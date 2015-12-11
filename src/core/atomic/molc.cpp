@@ -1016,6 +1016,17 @@ extern "C" void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
     }
 }
 
+extern "C" void residue_principal_atom(void *residues, size_t n, pyobject_t *pas)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            pas[i] = r[i]->principal_atom();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void residue_is_helix(void *residues, size_t n, npy_bool *is_helix)
 {
     Residue **r = static_cast<Residue **>(residues);
