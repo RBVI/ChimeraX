@@ -59,7 +59,7 @@ class Plot(ToolInstance):
     def reset_state(self, session):
         pass
 
-def show_contact_graph(node_weights, edge_weights, short_names, session):
+def show_contact_graph(node_weights, edge_weights, short_names, colors, spring_constant, session):
 
     # Create graph
     max_w = float(max(w for nm1,nm2,w in edge_weights))
@@ -69,7 +69,8 @@ def show_contact_graph(node_weights, edge_weights, short_names, session):
         G.add_edge(name1, name2, weight = w/max_w)
 
     # Layout nodes
-    pos = nx.spring_layout(G) # positions for all nodes
+    kw = {} if spring_constant is None else {'k':spring_constant}
+    pos = nx.spring_layout(G, **kw) # positions for all nodes
 
     # Create matplotlib panel
     bundle_info = session.toolshed.find_bundle('contacts')
@@ -80,8 +81,7 @@ def show_contact_graph(node_weights, edge_weights, short_names, session):
     from math import sqrt
     w = dict(node_weights)
     node_sizes = tuple(10*sqrt(w[n]) for n in G)
-    from chimerax.core.colors import chain_rgba
-    node_colors = tuple(chain_rgba(short_names[n]) for n in G)
+    node_colors = tuple(colors[short_names[n]] for n in G)
     nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=a)
 
     # Draw edges
