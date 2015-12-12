@@ -12,7 +12,7 @@ def register_core_selectors(session):
     reg(None, "helix", _helices_selector)
     reg(None, "coil", _coil_selector)
     reg(None, "protein", lambda s, m, r: _polymer_selector(m, r, True))
-    reg(None, "nucleic", lambda s, m, r: _polymer_selector(m, r, False))
+    reg(None, "nucleic acid", lambda s, m, r: _polymer_selector(m, r, False))
     reg(None, "pbonds", _pbonds_selector)
     from ..atomic import Element
     for i in range(1, 115):
@@ -75,6 +75,9 @@ def _coil_selector(session, models, results):
             cr = m.chains.existing_residues
             is_coil = logical_not(logical_or(cr.is_sheet, cr.is_helix))
             coil = cr.filter(is_coil)
+            # also exclude nucleic acids
+            coil = coil.existing_principal_atoms.residues
+            coil = coil.filter(coil.existing_principal_atoms.names == "CA")
             if coil:
                 results.add_model(m)
                 results.add_atoms(coil.atoms)
