@@ -78,6 +78,7 @@ public:
     const ResName&  name() const { return _name; }
     PolymerType  polymer_type() const { return _polymer_type; }
     int  position() const { return _position; }
+    Atom*  principal_atom() const;
     void  remove_atom(Atom*);
     int  session_num_floats() const { return SESSION_NUM_FLOATS + Rgba::session_num_floats(); }
     int  session_num_ints() const {

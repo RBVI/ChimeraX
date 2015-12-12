@@ -106,6 +106,38 @@ Residue::find_atom(const AtomName& name) const
     return nullptr;
 }
 
+Atom*
+Residue::principal_atom() const
+{
+    // Return the 'chain trace' atom of the residue, if any
+    //
+    // Normally returns th C4' from a nucleic acid since that is always
+    // present, but in the case of a P-only trace it returns the P
+    auto am = atoms_map();
+    auto caf = am.find("CA");
+    if (caf != am.end()) {
+        auto ca = caf->second;
+        if (ca->element() != Element::C)
+            return nullptr;
+        if (am.find("N") != am.end() && am.find("C") != am.end())
+            return ca;
+        return am.size() == 1 ? ca : nullptr;
+    }
+    auto c4f = am.find("C4'");
+    if (c4f == am.end())
+        return nullptr;
+    auto c4 = c4f->second;
+    if (am.find("C3'") != am.end() && am.find("C5'") != am.end() && am.find("O5'") != am.end())
+        return c4;
+    if (am.size() > 1)
+        return nullptr;
+    auto pf = am.find("P");
+    if (pf == am.end())
+        return nullptr;
+    auto p = pf->second;
+    return p->element() == Element::P ? p : nullptr;
+}
+
 void
 Residue::remove_atom(Atom* a)
 {
