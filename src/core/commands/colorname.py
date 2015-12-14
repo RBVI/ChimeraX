@@ -69,7 +69,7 @@ def html_color_swatch(color):
         % color.hex())
 
 
-def define_color(session, name, color=None):
+def name_color(session, name, color=None):
     """Create a custom color."""
     if ColorNames.match(name) is None:
         from ..errors import UserError
@@ -174,11 +174,11 @@ def register_command(session):
     )
 
     register(
-        'color define',
+        'color name',
         CmdDesc(required=[('name', StringArg)],
                 optional=[('color', ColorArg)],
-                synopsis="define a custom color"),
-        define_color
+                synopsis="name a custom color"),
+        name_color
     )
     register(
         'color delete',
@@ -186,5 +186,5 @@ def register_command(session):
                 synopsis="remove color definition"),
         delete_color
     )
-    create_alias('colordef', 'color define $*')
+    create_alias('colordef', 'color name $*')
     create_alias('~colordef', 'color delete $*')
