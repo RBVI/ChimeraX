@@ -35,20 +35,25 @@ optionally with spaces between words
   target="_blank">listed alphabetically</a>
   </ul>
 <li>color names defined previously with
-<a href="color.html#define"><b>color define</b></a>
-<li>hexadecimal format starting with # and encoding
-<b>rgb</b> (3 or 6 digits) or <b>rgba</b> (4 or 8 digits)
+<a href="color.html#name"><b>color name</b></a>
+<li>hexadecimal format starting with <b>#</b> and encoding
+<b>rgb</b> (3, 6, or 12 digits) or <b>rgba</b> (4, 8, or 16 digits)
+<table style="margin:2px 14px"><tr>
+<td>example: <b>#00ced1</b></td><td>&nbsp;&nbsp;</td>
+<td bgcolor=#00ced1>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+</tr></table>
 <!-- 
-Greg's fix for #143 is to interpret as color instead of model number if it has
+fix for #143 is to interpret as color instead of model number if it has
 any non-numbers and/or at least 6 digits; thus model numbers top out at #99999
 and all-number hex colors with fewer than 6 digits don't work
 -->
-<li><b>rgb</b> or <b>rgba</b> given as three or four values in the range 0-100
-separated by commas only (no % signs):
-  <ul>
-  <li><b><i>red,green,blue</i></b>
-  <li><b><i>red,green,blue,alpha</i></b>
-  </ul>
+<li><b>rgb</b> or <b>rgba</b> given as three or four comma-separated values 
+<!-- integer, float both OK -->
+in the range 0-100 (no spaces, no % signs)
+<table style="margin:2px 14px"><tr>
+<td>example: <b>75,10,55</b></td><td>&nbsp;&nbsp;</td>
+<td bgcolor="#bfff199a8ccc">&nbsp;&nbsp;&nbsp;&nbsp;</td>
+</tr></table>
 <li><a href="http://www.w3schools.com/cssref/css_colors_legal.asp"
 target="_blank">CSS-like specifications</a> in the following formats:
   <ul>
@@ -64,7 +69,7 @@ Values for <i>red</i>, <i>green</i>, <i>blue</i>, <i>alpha</i>
 (increasing transparent &rarr; opaque), <i>saturation</i>, <i>lightness</i>,
 and <i>grayscale</i> (increasing black &rarr; white) can be given as:
   <ul>
-  <li> percentages indicated with %
+  <li> percentages indicated with <b>%</b>
   <li> fractional values in the range 0-1, indicated with a decimal point
   (for example, 1. rather than 1)
   </ul>
@@ -74,7 +79,7 @@ Values for <i>hue</i> are in the range 0-360,
 corresponding to angular positions on the color wheel.
 </ul>
 <p>
-Color names from CSS or <a href="color.html#define"><b>color define</b></a>
+Color names from CSS or <a href="color.html#name"><b>color name</b></a>
 can be truncated, with ambiguous truncations going to the shortest 
 of the matching full color names.
 </p>
