@@ -86,6 +86,7 @@ def geometry_node_surfaces(primitives, place, color, materials, colors, session)
         sp.position_list = [place]
         if not vcolors is None:
             sp.vertex_colors = vcolors
+        sp.clip_cap = True
 
         splist.append(sp)
 
