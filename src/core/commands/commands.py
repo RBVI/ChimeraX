@@ -9,7 +9,7 @@ def register_core_commands(session):
     modules = [
         'alias', 'buriedarea',
         'camera', 'clip', 'close', 'cofr', 'color', 'colordef', 'crossfade', 'crosslinks',
-        'delete', 'echo', 'exit', 'export', 'hide',
+        'delete', 'echo', 'exit', 'export', 'hide', 'info',
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd', 'roll', 'run',
         'save', 'sasa', 'scolor', 'select', 'set', 'show', 'split',
