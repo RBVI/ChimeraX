@@ -1913,6 +1913,7 @@ class Command:
                     # If final version of text, or if there
                     # is following text, make best guess,
                     # and retry
+                    self.amount_parsed = cur_end
                     c = self.completions[0]
                     self._replace(chars, c)
                     text = self.current_text[self.amount_parsed:]
