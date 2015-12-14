@@ -45,18 +45,72 @@ def compute_cap(drawing, plane, offset):
 
     # Compute cap geometry.
     # TODO: Cap instances
-    dp = d.scene_position.inverse()
-    pnormal = dp.apply_without_translation(plane.normal)
-    from ..geometry import inner_product
-    poffset = inner_product(pnormal, dp*plane.plane_point) + offset + getattr(d, 'clip_offset', 0)
-    from . import compute_cap
-    cvarray, ctarray = compute_cap(pnormal, poffset, d.vertices, t)
-    if len(ctarray) == 0:
-        return None, None, None
-    cnarray = cvarray.copy()
-    cnarray[:] = plane.normal
+    if len(d.positions) > 1:
+        varray, tarray = compute_instances_cap(d, t, plane, offset)
+    else:
+        dp = d.scene_position.inverse()
+        pnormal = dp.apply_without_translation(plane.normal)
+        from ..geometry import inner_product
+        poffset = inner_product(pnormal, dp*plane.plane_point) + offset + getattr(d, 'clip_offset', 0)
+        from . import compute_cap
+        varray, tarray = compute_cap(pnormal, poffset, d.vertices, t)
 
-    return cvarray, cnarray, ctarray
+    if tarray is None or len(tarray) == 0:
+        return None, None, None
+    narray = varray.copy()
+    narray[:] = plane.normal
+
+    return varray, narray, tarray
+
+def compute_instances_cap(drawing, triangles, plane, offset):
+    d = drawing
+    doffset = offset + getattr(d, 'clip_offset', 0)
+    geom = []
+    # TODO: Handle two hierarchy levels of instancing.
+    pp = drawing.parent.scene_position.inverse()
+    parent_ppoint = pp*plane.plane_point
+    parent_pnormal = pp.apply_without_translation(plane.normal)
+
+    # TODO: Optimize by testing if plane intercepts bounding sphere.
+    b = d.bounds(positions = False)
+    if b is None:
+        return None, None
+    dpos = positions_intersecting_box(d.positions, b, parent_ppoint, parent_pnormal)
+    if len(dpos) == 0:
+        return None, None
+    for pos in dpos:
+        pinv = pos.inverse()
+        pnormal = pinv.apply_without_translation(parent_pnormal)
+        from ..geometry import inner_product
+        poffset = inner_product(pnormal, pinv*parent_ppoint) + doffset
+        from . import compute_cap
+        ivarray, itarray = compute_cap(pnormal, poffset, d.vertices, triangles)
+        pos.move(ivarray)
+        geom.append((ivarray, itarray))
+    varray, tarray = concatenate_geometry(geom)
+    return varray, tarray
+
+def positions_intersecting_box(positions, b, origin, normal):
+    c, r = b.center(), b.radius()
+    pc = positions * c
+    pc -= origin
+    from numpy import dot, abs
+    dist = abs(dot(pc,normal))
+    bint = (dist <= r)
+    ipos = positions.masked(bint)
+    return ipos
+
+def concatenate_geometry(geom):
+    from numpy import concatenate
+    varray = concatenate(tuple(v for v,t in geom))
+    tarray = concatenate(tuple(t for v,t in geom))
+    voffset = ts = 0
+    for v,t in geom:
+        nt = len(t)
+        tarray[ts:ts+nt,:] += voffset
+        ts += nt
+        voffset += len(v)
+    return varray, tarray
 
 def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
     d = drawing
@@ -71,13 +125,13 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
         cm = mcap
     else:
         cap_name = 'cap ' + plane_name
-        cm = d.new_drawing(cap_name)
+        if len(d.positions) == 1:
+            cm = d.new_drawing(cap_name)
+        else:
+            cm = d.parent.new_drawing(cap_name)
         cm.is_clip_cap = d
     cm.vertices = varray
     cm.triangles = tarray
     cm.normals = narray
     cm.color = d.color
     cm.display = True
-
-    #print ('capping ', d.name, len(ctarray), len(d.vertices), len(d.triangles), normal, poffset,
-    #       d.bounds().xyz_min, d.bounds().xyz_max)
