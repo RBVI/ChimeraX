@@ -63,9 +63,14 @@ def create_surface(session, mesh_path, name, placements):
     if placements:
         # Surface geometry is in child drawings.
         p = Places(placements)
-        for d in surf.child_drawings():
-            d.positions = p * d.positions
-            d.colors = copy_colors(d.colors, len(p))
+        submodels = surf.child_drawings()
+        if submodels:
+            for d in submodels:
+                d.positions = p * d.positions
+                d.colors = copy_colors(d.colors, len(p))
+        else:
+            surf.positions = p
+            surf.colors = copy_colors(surf.colors, len(p))
         surf.name += ' %d copies' % len(placements)
     return surf
 
