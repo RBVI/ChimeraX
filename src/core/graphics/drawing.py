@@ -424,13 +424,13 @@ class Drawing:
             self._displayed_positions = None
         self.redraw_needed(shape_changed=True)
 
+    position = property(get_position, set_position)
+    '''Position and orientation of the surface in space.'''
+
     @property
     def scene_position(self):
         from ..geometry import product
         return product([d.position for d in self.drawing_lineage])
-
-    position = property(get_position, set_position)
-    '''Position and orientation of the surface in space.'''
 
     def get_positions(self, displayed_only=False):
         if displayed_only:
