@@ -124,9 +124,9 @@ class Log(ToolInstance, HtmlLog):
     SIZE = (575, 500)
     help = "help:user/tools/log.html"
 
-    def __init__(self, session, tool_info, *, restoring=False):
+    def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
+            ToolInstance.__init__(self, session, bundle_info)
         self.warning_shows_dialog = True
         self.error_shows_dialog = True
         from chimerax.core.ui import MainToolWindow
@@ -240,6 +240,8 @@ class Log(ToolInstance, HtmlLog):
         session = self.session
         # Handle event
         url = event.GetURL()
+        from urllib.parse import unquote
+        url = unquote(url)
         if url.startswith("log:"):
             event.Veto()
             cmd = url.split(':', 1)[1]
@@ -265,11 +267,10 @@ class Log(ToolInstance, HtmlLog):
                 log(self.session, thumbnail=True)
             return
         elif url.startswith("cxcmd:"):
-            from urllib.parse import unquote
             from chimerax.core.commands import run
             event.Veto()
             cmd = url.split(':', 1)[1]
-            run(session, unquote(cmd))
+            run(session, cmd)
             return
         from urllib.parse import urlparse
         parts = urlparse(url)
@@ -314,15 +315,15 @@ class Log(ToolInstance, HtmlLog):
     #
     def take_snapshot(self, session, flags):
         data = {"shown": self.tool_window.shown}
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
         from .cmd import get_singleton
         return get_singleton(session)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
             from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         self.display(data["shown"])

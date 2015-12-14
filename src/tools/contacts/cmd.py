@@ -3,9 +3,10 @@
 from chimerax.core.commands import CmdDesc, AtomsArg, FloatArg
 contacts_desc = CmdDesc(
     optional = [('atoms', AtomsArg),],
-    keyword = [('probeRadius', FloatArg),])
+    keyword = [('probe_radius', FloatArg),
+               ('spring_constant', FloatArg)])
 
-def contacts(session, atoms = None, probe_radius = 1.4):
+def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
@@ -18,8 +19,9 @@ def contacts(session, atoms = None, probe_radius = 1.4):
     s = atom_spheres(atoms, session)
     areas, ba = buried_areas(s, probe_radius)
 
-    names = [name for name,xyz,r in s]
+    names = [name for name,xyz,r,color in s]
     sn = dict(zip(names,short_chain_names(names)))
+    colors = {sn[name]:color for name,xyz,r,color in s}
 
     # Report result
     msg = '%d buried areas: ' % len(ba) + ', '.join('%s %s %.0f' % (sn[n1],sn[n2],a) for n1,n2,a in ba)
@@ -29,7 +31,7 @@ def contacts(session, atoms = None, probe_radius = 1.4):
 
     if session.ui.is_gui:
         from . import gui
-        gui.show_contact_graph(areas, ba, sn, session)
+        gui.show_contact_graph(areas, ba, sn, colors, spring_constant, session)
     else:
         log.warning("unable to show graph without GUI")
 
@@ -38,9 +40,10 @@ def atom_spheres(atoms, session):
         from chimerax.core.atomic import all_atoms
         atoms = all_atoms(session)
     if len(atoms) == 0:
-        from chimerax.core import UserError
+        from chimerax.core.errors import UserError
         raise UserError('No atoms specified')
-    s = [('#%s/%s'%(m.id_string(),cid), catoms.scene_coords, catoms.radii)
+    from numpy import mean
+    s = [('#%s/%s'%(m.id_string(),cid), catoms.scene_coords, catoms.radii, mean(catoms.colors,axis=0)/255)
          for m, cid, catoms in atoms.by_chain]
     return s
 
@@ -50,7 +53,7 @@ def short_chain_names(names):
     return sn
 
 def buried_areas(s, probe_radius, min_area = 1):
-    s = [(name, xyz, r + probe_radius) for name, xyz, r in s]
+    s = [(name, xyz, r + probe_radius) for name, xyz, r, color in s]
     s.sort(key = lambda v: len(v[1]), reverse = True)   # Biggest first for threading.
     
     # Compute area of each atom set.

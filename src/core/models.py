@@ -29,7 +29,7 @@ class Model(State, Drawing):
     id : None or tuple of int
         Model/submodel identification: *e.g.*, 1.3.2 is (1, 3, 2).
         Set and unset by :py:class:`Models` instance.
-    tool_info : a :py:class:`~chimerax.core.toolshed.ToolInfo` instance
+    bundle_info : a :py:class:`~chimerax.core.toolshed.BundleInfo` instance
         The tool that provides the subclass.
     SESSION_ENDURING : bool, class-level optional
         If True, then model survives across sessions.
@@ -39,7 +39,7 @@ class Model(State, Drawing):
 
     SESSION_ENDURING = False
     SESSION_SKIP = False
-    tool_info = None    # default, should be set in subclass
+    bundle_info = None    # default, should be set in subclass
 
     def __init__(self, name, session):
         Drawing.__init__(self, name)
@@ -74,7 +74,7 @@ class Model(State, Drawing):
         return CORE_STATE_VERSION, [self.name, self.id]
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
         if data[1] is ():
             try:
                 return session.models.drawing
@@ -82,7 +82,7 @@ class Model(State, Drawing):
                 pass
         return cls.__new__(cls)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         self.name, self.id = data
         Drawing.__init__(self, self.name)
 
@@ -125,13 +125,13 @@ class Models(State):
         return CORE_STATE_VERSION, data
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
         try:
             return session.models
         except AttributeError:
             return cls.__new__(cls)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         existing = self is session.models
         if not existing:
             self._session = weakref.ref(session)

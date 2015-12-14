@@ -548,7 +548,7 @@ class AtomicStructure(AtomicStructureData, Model):
         from .ribbon import normalize, normalize_vector_array
         ribbon_adjusts = rlist.ribbon_adjusts
         # Smooth helices
-        ss_ids = rlist.ss_id
+        ss_ids = rlist.ss_ids
         helices = rlist.is_helix
         for start, end in self._ss_ranges(helices, ss_ids, 8):
             # We only "optimize" longer helices because short

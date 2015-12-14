@@ -8,32 +8,34 @@ size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 # These routines convert C++ pointers to Python objects and are used for defining
 # the object properties.
 #
-def _atoms(a):
+def _atoms(p):
     from .molarray import Atoms
-    return Atoms(a)
+    return Atoms(p)
 def _atom_pair(p):
     return (object_map(p[0],Atom), object_map(p[1],Atom))
-def _bonds(b):
+def _atom_or_none(p):
+    return object_map(p, Atom) if p else None
+def _bonds(p):
     from .molarray import Bonds
-    return Bonds(b)
-def _element(e):
-    return object_map(e, Element)
-def _pseudobonds(b):
+    return Bonds(p)
+def _element(p):
+    return object_map(p, Element)
+def _pseudobonds(p):
     from .molarray import Pseudobonds
-    return Pseudobonds(b)
+    return Pseudobonds(p)
 def _residue(p):
     return object_map(p, Residue)
-def _residues(r):
+def _residues(p):
     from .molarray import Residues
-    return Residues(r)
-def _non_null_residues(r):
+    return Residues(p)
+def _non_null_residues(p):
     from .molarray import Residues
-    return Residues(r[r!=0])
-def _residues_or_nones(r):
-    return [Residue(rptr) if rptr else None for rptr in r]
-def _chains(c):
+    return Residues(p[p!=0])
+def _residues_or_nones(p):
+    return [Residue(rptr) if rptr else None for rptr in p]
+def _chains(p):
     from .molarray import Chains
-    return Chains(c)
+    return Chains(p)
 def _atomic_structure(p):
     if p == 0: return None
     return object_map(p, AtomicStructureData)
@@ -424,6 +426,11 @@ class Residue:
     '''Number of atoms belonging to the residue. Read only.'''
     number = c_property('residue_number', int32, read_only = True)
     '''Integer sequence position number as defined in the input data file. Read only.'''
+    principal_atom = c_property('residue_principal_atom', cptr, astype = _atom_or_none, read_only=True)
+    '''The 'chain trace' :class:`.Atom`\\ , if any.
+
+    Normally returns the C4' from a nucleic acid since that is always present,
+    but in the case of a P-only trace it returns the P.'''
     str = c_property('residue_str', string, read_only = True)
     '''
     String including residue's name, sequence position, and chain ID in a readable

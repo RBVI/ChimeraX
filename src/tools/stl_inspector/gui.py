@@ -18,9 +18,9 @@ class ToolUI(ToolInstance):
     SESSION_ENDURING = False    # default
     SIZE = (500, 25)
 
-    def __init__(self, session, tool_info, *, restoring=False):
+    def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
+            ToolInstance.__init__(self, session, bundle_info)
         self.display_name = "STL Inspector"
         self.ti_list = []
         if session.ui.is_gui:
@@ -83,16 +83,16 @@ class ToolUI(ToolInstance):
             self.tool_window.shown,
             self.ti_list
         ]
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
             from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data[0]
         ToolInstance.restore_snapshot_init(
-            self, session, tool_info, ti_version, ti_data)
-        self.__init__(session, tool_info, restoring=True)
+            self, session, bundle_info, ti_version, ti_data)
+        self.__init__(session, bundle_info, restoring=True)
         self.ti_list = data[2]
         if session.ui.is_gui:
             self._make_page()

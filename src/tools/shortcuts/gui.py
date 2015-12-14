@@ -8,9 +8,9 @@ class ShortcutPanel(ToolInstance):
 
     SESSION_ENDURING = True
 
-    def __init__(self, session, tool_info, *, restoring=False, shortcuts=[]):
+    def __init__(self, session, bundle_info, *, restoring=False, shortcuts=[]):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
+            ToolInstance.__init__(self, session, bundle_info)
 
         from .shortcuts import keyboard_shortcuts
         self.keyboard_shortcuts = keyboard_shortcuts(session)
@@ -100,14 +100,14 @@ class ShortcutPanel(ToolInstance):
     #
     def take_snapshot(self, session, flags):
         data = {"shown": self.tool_window.shown}
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
-        return get_singleton(tool_info.name, session, create=True)
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
+        return get_singleton(bundle_info.name, session, create=True)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
             from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         self.display(data["shown"])

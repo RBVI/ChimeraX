@@ -32,7 +32,7 @@ _help_cache = None
 _empty = {}
 
 
-def get_tool_info(tool_name):
+def get_bundle_info(tool_name):
     if _tool_cache is None:
         init()
     return _tool_cache.get(tool_name, _empty)
@@ -94,14 +94,14 @@ def remake():
 def _fill_caches(pkg_name):
     import importlib
     pkg = importlib.import_module(pkg_name)
-    tool_info = {}
+    bundle_info = {}
     help_info = {}
     for p in pkg.__path__:
-        _scan(p, tool_info, help_info)
-    return tool_info, help_info
+        _scan(p, bundle_info, help_info)
+    return bundle_info, help_info
 
 
-def _scan(top, tool_info, help_info):
+def _scan(top, bundle_info, help_info):
     import os
     import os.path
     import json
@@ -118,7 +118,7 @@ def _scan(top, tool_info, help_info):
                     # Skip bad tool information file
                     pass
                 else:
-                    tool_info[tool_name] = ti_data
+                    bundle_info[tool_name] = ti_data
         if HELP_DIRNAME in dirnames:
             help_dir = os.path.join(dirpath, HELP_DIRNAME)
             help_file = os.path.join(help_dir, "index.html")

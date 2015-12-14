@@ -1,5 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+
 def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module
@@ -8,7 +9,7 @@ def register_core_commands(session):
     # the first in alphabetical order.
     modules = [
         'alias', 'buriedarea',
-        'camera', 'clip', 'close', 'cofr', 'color', 'colordef', 'crossfade', 'crosslinks',
+        'camera', 'clip', 'close', 'cofr', 'color', 'colorname', 'crossfade', 'crosslinks',
         'delete', 'echo', 'exit', 'export', 'hide',
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd', 'roll', 'run',

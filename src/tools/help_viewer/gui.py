@@ -27,9 +27,9 @@ class HelpUI(ToolInstance):
     SESSION_ENDURING = False    # default
     SIZE = (500, 500)
 
-    def __init__(self, session, tool_info, *, restoring=False):
+    def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
+            ToolInstance.__init__(self, session, bundle_info)
         # 'display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Help UI"
         # in this case), so only override if different name desired
@@ -140,14 +140,14 @@ class HelpUI(ToolInstance):
     #
     def take_snapshot(self, session, flags):
         data = {"shown": self.tool_window.shown}
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
         return cls.get_singleton(session)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
             from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         self.display(data["shown"])

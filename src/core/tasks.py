@@ -364,13 +364,13 @@ class Tasks(State):
         return CORE_STATE_VERSION, data
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
         try:
             return session.tasks
         except AttributeError:
             return cls.__new__(cls)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         """Restore state of running tasks.
 
         Overrides :py:class:`~chimerax.core.session.State` default method to
@@ -381,7 +381,7 @@ class Tasks(State):
         session : instance of :py:class:`~chimerax.core.session.Session`
             Session for which state is being saved.
             Should match the ``session`` argument given to ``__init__``.
-        tool_info : instance of :py:class:`~chimerax.core.toolshed.ToolInfo`
+        bundle_info : instance of :py:class:`~chimerax.core.toolshed.BundleInfo`
         version : any
             Version of tool state that saved the data.
             Used for determining how to parse the ``data`` argument.

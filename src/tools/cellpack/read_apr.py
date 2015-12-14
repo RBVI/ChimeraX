@@ -30,14 +30,15 @@ def read_autopack_recipe(path):
     ingr_filenames = {}
     comp_surfaces = []
     for comp_name, comp_details in j['compartments'].items():
-        if 'rep_file' in comp_details:
-            comp_surfaces.append(comp_details['rep_file'])
+        comp_surfaces.append((comp_name, comp_details.get('rep_file', None), comp_details.get('geom', None)))
         for interior_or_surface in ('interior', 'surface'):
             if interior_or_surface in comp_details:
                 for ingr_name, ingr_info in comp_details[interior_or_surface]['ingredients'].items():
                     ingr_filename = ingr_info['include']
                     ingr_id = (comp_name, interior_or_surface, ingr_name)
                     ingr_filenames[ingr_id] = ingr_filename
+    # TODO: Order compartment from outermost to innermost.  Order is not preserved in JSON file.
+    comp_surfaces.sort()
     return ingr_filenames, comp_surfaces
 
 def read_ingredient(path):
@@ -53,21 +54,28 @@ def read_json(path):
     f.close()
     return j
 
-def create_surfaces(session, surface_placements):
+def create_surface(session, mesh_path, name, placements):
 
     from chimerax.core.surface.collada import read_collada_surfaces
-    from os.path import basename
     from chimerax.core.geometry import Places
-    surfs = []
-    for path, placements in surface_placements:
-        slist, msg = read_collada_surfaces(session, path, basename(path))
-        surf = slist[0]
-        if placements:
-            # Surface geometry is in child drawings.
-            p = Places(placements)
-            for d in surf.child_drawings():
-                d.positions = p * d.positions
-            surf.name += ' %d copies' % len(placements)
-#        print (surf.name, 'children', len(surf.child_drawings()), 'all children', len(surf.all_drawings()))
-        surfs.append(surf)
-    return surfs
+    slist, msg = read_collada_surfaces(session, mesh_path, name)
+    surf = slist[0]
+    if placements:
+        # Surface geometry is in child drawings.
+        p = Places(placements)
+        for d in surf.child_drawings():
+            d.positions = p * d.positions
+            d.colors = copy_colors(d.colors, len(p))
+        surf.name += ' %d copies' % len(placements)
+    return surf
+
+def copy_colors(colors, n):
+    if n == 1:
+        return colors
+    nc = len(colors)
+    from numpy import empty
+    c = empty((nc*n,4), colors.dtype)
+    c[:] = colors
+#    for in in range(n):
+#        c[[i*nc:(i+1)*nc,:] = colors
+    return c

@@ -67,5 +67,4 @@ def register_pdb_format():
 
 def register_pdb_fetch(session):
     from .. import fetch
-    fetch.register_fetch(session, 'pdb', fetch_pdb, 'pdb',
-                         prefixes = ['pdb'])
+    fetch.register_fetch(session, 'pdb', fetch_pdb, 'pdb', prefixes = [])

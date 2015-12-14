@@ -2,56 +2,60 @@
 
 """
 The Toolshed provides an interface for finding installed
-tool distributions as well as distributions available for
+bundles as well as bundles available for
 installation from a remote server.
 The Toolshed can handle updating, installing and uninstalling
-distributions while taking care of inter-distribution dependencies.
+bundles while taking care of inter-bundle dependencies.
 
 The Toolshed interface uses :py:mod:`distlib` heavily.
 For example, `Distribution` instances from :py:mod:`distlib`
-are tracked for both available and installed tools;
+are tracked for both available and installed bundles;
 the :py:class:`distlib.locators.Locator` class is used for finding
 an installed :py:class:`distlib.database.Distribution`.
 
-Each Python distribution (ChimeraX uses :py:class:`distlib.wheel.Wheel`)
-may contain multiple tools.
-Metadata blocks in each distribution contain descriptions for tools.
-Each tool is described by a 'ChimeraX-Tool' entry that consists of
+Each Python distribution, a ChimeraX Bundle,
+(ChimeraX uses :py:class:`distlib.wheel.Wheel`)
+may contain multiple tools, commands, and file types,
+with metadata blocks for each thing.
+
+Each bundle is described by a 'ChimeraX-Bundle' entry that consists of
 the following fields separated by double colons (``::``).
 
-1. ``ChimeraX-Tools`` : str constant
-    Field identifying entry as tool metadata.
+1. ``ChimeraX-Bundle`` : str constant
+    Field identifying entry as bundle metadata.
 2. ``name`` : str
-    Internal name of tool.  This must be unique across all tools.
+    Internal name of bundle.  This must be unique across all bundles.
 3. ``module_name`` : str
-    Name of module or package that implements the tool.
+    Name of module or package that implements the bundle.
 4. ``display_name`` : str
-    Name of tool to display to users.
+    Name of bundle to display to users.
 5. ``command_names`` : str
-    Comma-separated list of cli commands that the tool provides.
-    If non-empty, the tool must define a 'register_command' function.
+    Comma-separated list of cli commands that the bundle provides.
+    If non-empty, the bundle must define a 'register_command' function.
 6. ``menu_categories`` : str
-    Comma-separated list of menu categories in which the tool belong.
+    Comma-separated list of menu categories in which the bundle's tools belong.
 7. ``file_types`` : str
-    Comma-separated list of file types (suffixes) that the tool opens.
-    If non-empty, the tool must define an 'open_file' function.
+    Comma-separated list of file types (suffixes) that the bundle opens.
+    If non-empty, the bundle must define an 'open_file' function.
 8. ``session_versions`` : two comma-separated integers
-    Minimum and maximum session version that the tool can read.
+    Minimum and maximum session version that the bundle can read.
 9. ``custom_init`` : str
-    Whether tool has initialization code that must be called when
-    ChimeraX starts.  Either 'true' or 'false'.  If 'true', tool
+    Whether bundle has initialization code that must be called when
+    ChimeraX starts.  Either 'true' or 'false'.  If 'true', bundle
     must define 'initialize' and 'finish' functions.
 10. ``synopsis`` : str
-    A short description of the tool.
+    A short description of the bundle.
 
 Modules referenced in distribution metadata must define:
 
-  ``start_tool(session, ti)``
+  ``start_tool(session, bi)``
     Called to create a tool instance.
-    ``session`` is a :py:class:`~chimerax.core.session.Session` instance for the current session.
-    ``ti`` is a :py:class:`ToolInfo` instance for the tool to be started.  If no tool instance
-    is created when called, ``start_tool`` should return ``None``.  Errors should be reported
-    via exceptions.
+    ``session`` is a :py:class:`~chimerax.core.session.Session` instance for
+    the current session.
+    ``bi`` is a :py:class:`BundleInfo` instance for the tool to be started.
+    If no tool instance is created when called,
+    ``start_tool`` should return ``None``.
+    Errors should be reported via exceptions.
 
 Depending on the values of metadata fields, modules may need to define:
 
@@ -66,40 +70,40 @@ Depending on the values of metadata fields, modules may need to define:
     Called to open a file.
     Arguments and return values are as described for open functions in in core.io.
 
-  ``initialize(ti)``
-  ``finish(ti)``
-    Called to initialize and deinitialize a tool.
-    ``ti`` is a :py:class:`ToolInfo` instance.
+  ``initialize(bi)``
+  ``finish(bi)``
+    Called to initialize and deinitialize a bundle.
+    ``bi`` is a :py:class:`BundleInfo` instance.
     Must be defined if the ``custom_init`` metadata field is set to 'true'.
-    ``initialize`` is called when the tool is first loaded and
-    ``finish`` is called when the tool is unloaded.
+    ``initialize`` is called when the bundle is first loaded and
+    ``finish`` is called when the bundle is unloaded.
     To make ChimeraX start quickly, custom initialization is discouraged.
 
 Attributes
 ----------
-TOOLSHED_TOOL_INFO_ADDED : str
-    Name of trigger fired when new tool metadata is registered.
-    The trigger data is a :py:class:`ToolInfo` instance.
-TOOLSHED_TOOL_INSTALLED : str
-    Name of trigger fired when a new tool is installed.
-    The trigger data is a :py:class:`ToolInfo` instance.
-TOOLSHED_TOOL_UNINSTALLED : str
-    Name of trigger fired when an installed tool is removed.
-    The trigger data is a :py:class:`ToolInfo` instance.
+TOOLSHED_BUNDLE_INFO_ADDED : str
+    Name of trigger fired when new bundle metadata is registered.
+    The trigger data is a :py:class:`BundleInfo` instance.
+TOOLSHED_BUNDLE_INSTALLED : str
+    Name of trigger fired when a new bundle is installed.
+    The trigger data is a :py:class:`BundleInfo` instance.
+TOOLSHED_BUNDLE_UNINSTALLED : str
+    Name of trigger fired when an installed bundle is removed.
+    The trigger data is a :py:class:`BundleInfo` instance.
 
 Notes
 -----
-The term 'installed' refers to tools whose corresponding Python
+The term 'installed' refers to bundles whose corresponding Python
 module or package is installed on the local machine.  The term
-'available' refers to tools that are listed on a remote server
+'available' refers to bundles that are listed on a remote server
 but have not yet been installed on the local machine.
 
 """
 
 # Toolshed trigger names
-TOOLSHED_TOOL_INFO_ADDED = "tool info added"
-TOOLSHED_TOOL_INSTALLED = "tool installed"
-TOOLSHED_TOOL_UNINSTALLED = "tool uninstalled"
+TOOLSHED_BUNDLE_INFO_ADDED = "bundle info added"
+TOOLSHED_BUNDLE_INSTALLED = "bundle installed"
+TOOLSHED_BUNDLE_UNINSTALLED = "bundle uninstalled"
 
 
 def _hack_distlib(f):
@@ -131,14 +135,13 @@ def _debug(*args, **kw):
 # Package constants
 
 
-# Default URL of remote tool shed
+# Default URL of remote toolshed
 _RemoteURL = "http://localhost:8080"
 # Default name for toolshed cache and data directories
 _Toolshed = "toolshed"
-# Defaults names for installed ChimeraX tools
+# Defaults names for installed ChimeraX bundles
 _ChimeraBasePackage = "chimerax"
 _ChimeraCore = _ChimeraBasePackage + ".core"
-_ChimeraToolboxPrefix = _ChimeraBasePackage + ".toolbox"
 
 
 # Exceptions raised by Toolshed class
@@ -149,42 +152,41 @@ class ToolshedError(Exception):
 
 
 class ToolshedUninstalledError(ToolshedError):
-    """Uninstalled-tool error.
-    
+    """Uninstalled-bundle error.
+
     This exception derives from :py:class:`ToolshedError` and is usually
-    raised when trying to uninstall a tool that has not been installed."""
+    raised when trying to uninstall a bundle that has not been installed."""
 
 
 class ToolshedInstalledError(ToolshedError):
-    """Tool-already-installed error.
-    
+    """Bundle-already-installed error.
+
     This exception derives from :py:class:`ToolshedError` and is usually
-    raised when trying to install a tool that is already installed."""
+    raised when trying to install a bundle that is already installed."""
 
 
 class ToolshedUnavailableError(ToolshedError):
-    """Tool-not-found error.
-    
+    """Bundle-not-found error.
+
     This exception derives from ToolshedError and is usually
-    raised when no Python distribution can be found for a tool."""
+    raised when no Python distribution can be found for a bundle."""
 
 
-# Toolshed and ToolInfo are session-independent
+# Toolshed and BundleInfo are session-independent
 
 
 class Toolshed:
-    """Toolshed keeps track of the list of tool metadata, aka :py:class:`ToolInfo`.
+    """Toolshed keeps track of the list of bundle metadata, aka :py:class:`BundleInfo`.
 
-    Tool metadata may be for "installed" tools, where their code
+    Tool metadata may be for "installed" bundles, where their code
     is already downloaded from the remote server and installed
-    locally, or "available" tools, where their code is not locally
+    locally, or "available" bundles, where their code is not locally
     installed.
-    
+
     Attributes
     ----------
     triggers : :py:class:`~chimerax.core.triggerset.TriggerSet` instance
         Where to register handlers for toolshed triggers
-    
     """
 
     def __init__(self, logger, appdirs,
@@ -198,7 +200,7 @@ class Toolshed:
         appdirs : :py:class:`~chimerax.core.appdirs.AppDirs` instance
             Location information about ChimeraX data and code directories.
         rebuild_cache : boolean
-            True to ignore local cache of installed tool information and
+            True to ignore local cache of installed bundle information and
             rebuild it by scanning Python directories; False otherwise.
         check_remote : boolean
             True to check remote server for updated information;
@@ -207,7 +209,6 @@ class Toolshed:
         remote_url : str
             URL of the remote toolshed server.
             If set to None, a default URL is used.
-          
         """
         # Initialize with defaults
         _debug("__init__", appdirs, rebuild_cache, check_remote, remote_url)
@@ -217,8 +218,8 @@ class Toolshed:
             self.remote_url = remote_url
         self._repo_locator = None
         self._inst_locator = None
-        self._installed_tool_info = []
-        self._available_tool_info = []
+        self._installed_bundle_info = []
+        self._available_bundle_info = []
         self._all_installed_distributions = None
 
         # Compute base directories
@@ -240,29 +241,28 @@ class Toolshed:
         # Create triggers
         from .. import triggerset
         self.triggers = triggerset.TriggerSet()
-        self.triggers.add_trigger(TOOLSHED_TOOL_INFO_ADDED)
-        self.triggers.add_trigger(TOOLSHED_TOOL_INSTALLED)
-        self.triggers.add_trigger(TOOLSHED_TOOL_UNINSTALLED)
+        self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_ADDED)
+        self.triggers.add_trigger(TOOLSHED_BUNDLE_INSTALLED)
+        self.triggers.add_trigger(TOOLSHED_BUNDLE_UNINSTALLED)
 
-        # Reload the tool info list
-        _debug("loading tools")
+        # Reload the bundle info list
+        _debug("loading bundles")
         self.reload(logger, check_remote=check_remote,
                     rebuild_cache=rebuild_cache)
-        _debug("finished loading tools")
+        _debug("finished loading bundles")
 
     def check_remote(self, logger):
-        """Check remote shed for updated tool info.
+        """Check remote shed for updated bundle info.
 
         Parameters
         ----------
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
-            
+
         Returns
         -------
-        list of :py:class:`ToolInfo` instances
-            List of tool metadata from remote server.
-        
+        list of :py:class:`BundleInfo` instances
+            List of bundle metadata from remote server.
         """
 
         _debug("check_remote")
@@ -272,107 +272,105 @@ class Toolshed:
         distributions = self._repo_locator.get_distributions()
         ti_list = []
         for d in distributions:
-            ti_list.extend(self._make_tool_info(d, False, logger))
+            ti_list.extend(self._make_bundle_info(d, False, logger))
             _debug("added remote distribution:", d)
         return ti_list
 
     def reload(self, logger, rebuild_cache=False, check_remote=False):
-        """Discard and reread tool info.
+        """Discard and reread bundle info.
 
         Parameters
         ----------
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             A logging object where warning and error messages are sent.
         rebuild_cache : boolean
-            True to ignore local cache of installed tool information and
+            True to ignore local cache of installed bundle information and
             rebuild it by scanning Python directories; False otherwise.
         check_remote : boolean
             True to check remote server for updated information;
             False to ignore remote server;
             None to use setting from user preferences.
-
         """
 
         _debug("reload", rebuild_cache, check_remote)
-        for ti in self._installed_tool_info:
-            ti.deregister_commands()
-            ti.deregister_file_types()
-            ti.finish()
-        self._installed_tool_info = []
-        inst_ti_list = self._load_tool_info(logger, rebuild_cache=rebuild_cache)
-        for ti in inst_ti_list:
-            self.add_tool_info(ti)
-            ti.initialize()
-            ti.register_commands()
-            ti.register_file_types()
+        for bi in self._installed_bundle_info:
+            bi.deregister_commands()
+            bi.deregister_file_types()
+            bi.finish()
+        self._installed_bundle_info = []
+        inst_bi_list = self._load_bundle_info(logger, rebuild_cache=rebuild_cache)
+        for bi in inst_bi_list:
+            self.add_bundle_info(bi)
+            bi.initialize()
+            bi.register_commands()
+            bi.register_file_types()
         if check_remote:
-            self._available_tool_info = []
+            self._available_bundle_info = []
             self._repo_locator = None
-            remote_ti_list = self.check_remote(logger)
-            for ti in remote_ti_list:
-                self.add_tool_info(ti)
+            remote_bi_list = self.check_remote(logger)
+            for bi in remote_bi_list:
+                self.add_bundle_info(bi)
                 # XXX: do we want to register commands so that we can
-                # ask user whether to install tool when invoked?
+                # ask user whether to install bundle when invoked?
 
-    def tool_info(self, installed=True, available=False):
-        """Return list of tool info.
+    def bundle_info(self, installed=True, available=False):
+        """Return list of bundle info.
 
         Parameters
         ----------
         installed : boolean
-            True to include installed tool metadata in return value;
+            True to include installed bundle metadata in return value;
             False otherwise
         available : boolean
-            True to include available tool metadata in return value;
+            True to include available bundle metadata in return value;
             False otherwise
 
         Returns
         -------
-        list of :py:class:`ToolInfo` instances
-            Combined list of all selected types of tool metadata.
+        list of :py:class:`BundleInfo` instances
+            Combined list of all selected types of bundle metadata.
         """
 
-        _debug("tool_info", installed, available)
+        _debug("bundle_info", installed, available)
         if installed and available:
-            return self._installed_tool_info + self._available_tool_info
+            return self._installed_bundle_info + self._available_bundle_info
         elif installed:
-            return self._installed_tool_info
+            return self._installed_bundle_info
         elif available:
-            return self._available_tool_info
+            return self._available_bundle_info
         else:
             return []
 
-    def add_tool_info(self, ti):
-        """Add metadata for a tool.
+    def add_bundle_info(self, bi):
+        """Add metadata for a bundle.
 
         Parameters
         ----------
-        ti : :py:class:`ToolInfo` instance
+        bi : :py:class:`BundleInfo` instance
             Must be a constructed instance, *i.e.*, not an existing instance
-            returned by :py:func:`tool_info`.
+            returned by :py:func:`bundle_info`.
 
         Notes
         -----
-        A :py:const:`TOOLSHED_TOOL_INFO_ADDED` trigger is fired after the addition.
-        
+        A :py:const:`TOOLSHED_BUNDLE_INFO_ADDED` trigger is fired after the addition.
         """
-        _debug("add_tool_info", ti)
-        if ti.installed:
-            container = self._installed_tool_info
+        _debug("add_bundle_info", bi)
+        if bi.installed:
+            container = self._installed_bundle_info
         else:
-            container = self._available_tool_info
-        container.append(ti)
-        self.triggers.activate_trigger(TOOLSHED_TOOL_INFO_ADDED, ti)
+            container = self._available_bundle_info
+        container.append(bi)
+        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_ADDED, bi)
 
-    def install_tool(self, ti, logger, system=False):
-        """Install the tool by retrieving it from the remote shed.
+    def install_bundle(self, bi, logger, system=False):
+        """Install the bundle by retrieving it from the remote shed.
 
         Parameters
         ----------
-        ti : :py:class:`ToolInfo` instance
-            Should be from the available tool list.
+        bi : :py:class:`BundleInfo` instance
+            Should be from the available bundle list.
         system : boolean
-            False to install tool only for the current user (default);
+            False to install bundle only for the current user (default);
             True to install for everyone.
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
@@ -380,110 +378,107 @@ class Toolshed:
         Raises
         ------
         ToolshedInstalledError
-            Raised if the tool is already installed.
+            Raised if the bundle is already installed.
 
         Notes
         -----
-        A :py:const:`TOOLSHED_TOOL_INSTALLED` trigger is fired after installation.
-        
+        A :py:const:`TOOLSHED_BUNDLE_INSTALLED` trigger is fired after installation.
         """
-        _debug("install_tool", ti)
-        if ti.installed:
-            raise ToolshedInstalledError("tool \"%s\" already installed"
-                                         % ti.name)
-        self._install_tool(ti, system, logger)
-        self._write_cache(self._installed_tool_info, logger)
-        self.triggers.activate_trigger(TOOLSHED_TOOL_INSTALLED, ti)
+        _debug("install_bundle", bi)
+        if bi.installed:
+            raise ToolshedInstalledError("bundle \"%s\" already installed"
+                                         % bi.name)
+        self._install_bundle(bi, system, logger)
+        self._write_cache(self._installed_bundle_info, logger)
+        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bi)
 
-    def uninstall_tool(self, ti, logger):
-        """Uninstall tool by removing the corresponding Python distribution.
+    def uninstall_bundle(self, bi, logger):
+        """Uninstall bundle by removing the corresponding Python distribution.
 
         Parameters
         ----------
-        ti : :py:class:`ToolInfo` instance
-            Should be from the installed tool list.
+        bi : :py:class:`BundleInfo` instance
+            Should be from the installed bundle list.
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
 
         Raises
         ------
         ToolshedInstalledError
-            Raised if the tool is not installed.
+            Raised if the bundle is not installed.
 
         Notes
         -----
-        A :py:const:`TOOLSHED_TOOL_UNINSTALLED` trigger is fired after package removal.
-        
+        A :py:const:`TOOLSHED_BUNDLE_UNINSTALLED` trigger is fired after package removal.
         """
-        _debug("uninstall_tool", ti)
-        self._uninstall_tool(ti, logger)
-        self._write_cache(self._installed_tool_info, logger)
-        self.triggers.activate_trigger(TOOLSHED_TOOL_UNINSTALLED, ti)
+        _debug("uninstall_bundle", bi)
+        self._uninstall_bundle(bi, logger)
+        self._write_cache(self._installed_bundle_info, logger)
+        self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bi)
 
-    def find_tool(self, name, installed=True, version=None):
-        """Return a :py:class:`ToolInfo` instance with the given name.
+    def find_bundle(self, name, installed=True, version=None):
+        """Return a :py:class:`BundleInfo` instance with the given name.
 
         Parameters
         ----------
         name : str
-            Name (internal or display name) of the tool of interest.
+            Name (internal or display name) of the bundle of interest.
         installed : boolean
-            True to check only for installed tools; False otherwise.
+            True to check only for installed bundles; False otherwise.
         version : str
             None to find any version; specific string to check for
             one particular version.
-            
+
         """
-        _debug("find_tool", name, installed, version)
+        _debug("find_bundle", name, installed, version)
         if installed:
-            container = self._installed_tool_info
+            container = self._installed_bundle_info
         else:
-            container = self._available_tool_info
+            container = self._available_bundle_info
         from distlib.version import NormalizedVersion as Version
-        best_ti = None
+        best_bi = None
         best_version = None
-        for ti in container:
-            if ti.name != name and ti.display_name != name:
+        for bi in container:
+            if bi.name != name and bi.display_name != name:
                 continue
-            if version == ti.version:
-                return ti
+            if version == bi.version:
+                return bi
             if version is None:
-                if best_ti is None:
-                    best_ti = ti
-                    best_version = Version(ti.version)
+                if best_bi is None:
+                    best_bi = bi
+                    best_version = Version(bi.version)
                 else:
-                    v = Version(ti.version)
+                    v = Version(bi.version)
                     if v > best_version:
-                        best_ti = ti
+                        best_bi = bi
                         best_version = v
-        return best_ti
+        return best_bi
 
     #
     # End public API
     # All methods below are private
     #
 
-    def _load_tool_info(self, logger, rebuild_cache=False):
-        # Load tool info.  If not rebuild_cache, try reading
+    def _load_bundle_info(self, logger, rebuild_cache=False):
+        # Load bundle info.  If not rebuild_cache, try reading
         # it from a cache file.  If we cannot use the cache,
         # read the information from the data directory and
         # try to create the cache file.
-        _debug("_load_tool_info", rebuild_cache)
+        _debug("_load_bundle_info", rebuild_cache)
         if not rebuild_cache:
-            tool_info = self._read_cache()
-            if tool_info is not None:
-                return tool_info
+            bundle_info = self._read_cache()
+            if bundle_info is not None:
+                return bundle_info
         self._scan_installed(logger)
-        tool_info = []
+        bundle_info = []
         for d in self._inst_tool_dists:
-            tool_info.extend(self._make_tool_info(d, True, logger))
-        # NOTE: need to do something with toolboxes
-        self._write_cache(tool_info, logger)
-        return tool_info
+            bundle_info.extend(self._make_bundle_info(d, True, logger))
+        self._write_cache(bundle_info, logger)
+        return bundle_info
 
     @_hack_distlib
     def _scan_installed(self, logger):
-        # Scan installed packages for ChimeraX tools
+        # Scan installed packages for ChimeraX bundles
 
         # Initialize distlib paths and locators
         _debug("_scan_installed")
@@ -515,7 +510,7 @@ class Toolshed:
             logger.warning("\"%s\" distribution not found" % _ChimeraCore)
             return
 
-        # Partition packages into core, tools and toolboxes
+        # Partition packages into core and bundles
         from distlib.database import make_graph
         dg = make_graph(all_distributions)
         known_dists = set([core])
@@ -538,21 +533,21 @@ class Toolshed:
                 self._inst_tool_dists.add(d)
                 self._all_installed_distributions[d.name] = d
 
-    def _tool_cache(self, must_exist):
-        """Return path to tool cache file."""
-        _debug("_tool_cache", must_exist)
+    def _bundle_cache(self, must_exist):
+        """Return path to bundle cache file."""
+        _debug("_bundle_cache", must_exist)
         if must_exist:
             import os
             os.makedirs(self._cache_dir, exist_ok=True)
         import os.path
-        return os.path.join(self._cache_dir, "tool_info.cache")
+        return os.path.join(self._cache_dir, "bundle_info.cache")
 
     def _read_cache(self):
-        """Read installed tool information from cache file.
+        """Read installed bundle information from cache file.
 
         Returns boolean on whether cache file was read."""
         _debug("_read_cache")
-        cache_file = self._tool_cache(False)
+        cache_file = self._bundle_cache(False)
         if not self._is_cache_current(cache_file):
             return None
         import shelve
@@ -562,12 +557,12 @@ class Toolshed:
         except dbm.error:
             return None
         try:
-            tool_info = [ToolInfo(*args, **kw) for args, kw in s["tool_info"]]
+            bundle_info = [BundleInfo(*args, **kw) for args, kw in s["bundle_info"]]
         except:
             return None
         finally:
             s.close()
-        return tool_info
+        return bundle_info
 
     def _is_cache_current(self, cache_file):
         """Check if cache is up to date."""
@@ -582,10 +577,10 @@ class Toolshed:
         # TODO: check against user timestamp as well
         return cache_timestamp > sys_timestamp
 
-    def _write_cache(self, tool_info, logger):
-        """Write current tool information to cache file."""
-        _debug("_write_cache", tool_info)
-        cache_file = self._tool_cache(True)
+    def _write_cache(self, bundle_info, logger):
+        """Write current bundle information to cache file."""
+        _debug("_write_cache", bundle_info)
+        cache_file = self._bundle_cache(True)
         import shelve
         try:
             s = shelve.open(cache_file)
@@ -593,7 +588,7 @@ class Toolshed:
             logger.error("\"%s\": %s" % (cache_file, str(e)))
         else:
             try:
-                s["tool_info"] = [ti.cache_data() for ti in tool_info]
+                s["bundle_info"] = [bi.cache_data() for bi in bundle_info]
             finally:
                 s.close()
         timestamp_file = cache_file + ".timestamp"
@@ -601,45 +596,44 @@ class Toolshed:
             import time
             print(time.ctime(), file=f)
 
-    def _make_tool_info(self, d, installed, logger):
-        """Convert distribution into a list of :py:class:`ToolInfo` instances."""
+    def _make_bundle_info(self, d, installed, logger):
+        """Convert distribution into a list of :py:class:`BundleInfo` instances."""
         name = d.name
         version = d.version
         md = d.metadata
 
-        tools = []
+        bundles = []
         for classifier in md.dictionary["classifiers"]:
             parts = [v.strip() for v in classifier.split("::")]
-            if parts[0] != "ChimeraX-Tool":
+            if parts[0] != "ChimeraX-Bundle":
                 continue
             if len(parts) != 10:
-                logger.warning("Malformed ChimeraX-Tool line in %s skipped." % name)
+                logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
                 logger.warning("Expected 10 fields and got %d." % len(parts))
                 continue
             kw = {"distribution_name": name, "distribution_version": version}
-            # Name of tool
-            tool_name = parts[1]
-            # Name of module implementing tool
+            # Name of bundle
+            bundle_name = parts[1]
+            # Name of module implementing bundle
             kw["module_name"] = parts[2]
-            # Display name of tool
+            # Display name of bundle
             kw["display_name"] = parts[3]
             # CLI command names (just the first word)
             commands = parts[4]
             if commands:
-                kw["command_names"] = [v.strip()
-                                       for v in commands.split(',')]
-            # Menu categories in which tool should appear
+                kw["command_names"] = [v.strip() for v in commands.split(',')]
+            # Menu categories in which bundle should appear
             categories = parts[5]
             if categories:
                 kw["menu_categories"] = [v.strip() for v in categories.split(',')]
-            # File types that tool can open
+            # File types that bundle can open
             file_types = parts[6]
             if file_types:
                 types = []
                 for t in file_types.split(','):
                     spec = [v.strip() for v in t.split(':')]
                     if len(spec) < 3:
-                        logger.warning("Malformed ChimeraX-Tool line in %s skipped." % name)
+                        logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
                         logger.warning("File type has fewer than three fields.")
                         continue
                     types.append(spec)
@@ -649,66 +643,66 @@ class Toolshed:
             if session_versions:
                 vs = [v.strip() for v in session_versions.split(',')]
                 if len(vs) != 2:
-                    logger.warning("Malformed ChimeraX-Tool line in %s skipped." % name)
+                    logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
                     logger.warning("Expected 2 version numbers and got %d." % len(vs))
                     continue
                 try:
                     lo = int(vs[0])
                     hi = int(vs[1])
                 except ValueError:
-                    logger.warning("Malformed ChimeraX-Tool line in %s skipped." % name)
+                    logger.warning("Malformed ChimeraX-Bundle line in %s skipped." % name)
                     logger.warning("Found non-integer version numbers.")
                     continue
                 if lo > hi:
                     logger.warning("Minimum version is greater than maximium.")
                     hi = lo
                 kw["session_versions"] = range(lo, hi + 1)
-            # Does tool have custom initialization code?
+            # Does bundle have custom initialization code?
             custom_init = parts[8]
             if custom_init:
                 kw["custom_init"] = (custom_init == "true")
-            # Synopsis of tool
+            # Synopsis of bundle
             kw["synopsis"] = parts[9]
-            tools.append(ToolInfo(tool_name, installed, **kw))
-        return tools
+            bundles.append(BundleInfo(bundle_name, installed, **kw))
+        return bundles
 
     # Following methods are used for installing and removing
     # distributions
 
-    def _install_tool(self, tool_info, system, logger):
-        # Install a tool.  This entails:
+    def _install_bundle(self, bundle_info, system, logger):
+        # Install a bundle.  This entails:
         #  - finding all distributions that this one depends on
         #  - making sure things will be compatible if installed
         #  - installing all the distributions
-        #  - updating any tool installation status
-        _debug("_install_tool")
+        #  - updating any bundle installation status
+        _debug("_install_bundle")
         want_update = []
         need_update = []
-        self._install_dist_tool(tool_info, want_update, logger)
+        self._install_dist_tool(bundle_info, want_update, logger)
         self._install_cascade(want_update, need_update, logger)
         incompatible = self._install_check_incompatible(need_update, logger)
         if incompatible:
             return
         self._install_wheels(need_update, system, logger)
-        # update tool installation status
+        # update bundle installation status
         updated = set([d.name for d in need_update])
-        keep = [ti for ti in self._installed_tool_info
-                if ti._distribution_name not in updated]
-        self._installed_tool_info = keep
+        keep = [bi for bi in self._installed_bundle_info
+                if bi._distribution_name not in updated]
+        self._installed_bundle_info = keep
         updated = set([(d.name, d.version) for d in need_update])
         if self._all_installed_distributions is not None:
             self._inst_path = None
             self._inst_locator = None
             self._all_installed_distributions = None
         import copy
-        newly_installed = [copy.copy(ti) for ti in self._available_tool_info
-                           if ti.distribution() in updated]
-        for ti in newly_installed:
-            ti.installed = True
-            self.add_tool_info(ti)
-            ti.initialize()
-            ti.register_commands()
-            ti.register_file_types()
+        newly_installed = [copy.copy(bi) for bi in self._available_bundle_info
+                           if bi.distribution() in updated]
+        for bi in newly_installed:
+            bi.installed = True
+            self.add_bundle_info(bi)
+            bi.initialize()
+            bi.register_commands()
+            bi.register_file_types()
 
     def _install_dist_core(self, want, logger):
         # Add ChimeraX core distribution to update list
@@ -717,16 +711,16 @@ class Toolshed:
         if d:
             want.append(d)
 
-    def _install_dist_tool(self, tool_info, want, logger):
+    def _install_dist_tool(self, bundle_info, want, logger):
         # Add the distribution that provides the
-        # given tool to update list
-        _debug("_install_dist_tool", tool_info)
-        if tool_info._distribution_name is None:
+        # given bundle to update list
+        _debug("_install_dist_tool", bundle_info)
+        if bundle_info._distribution_name is None:
             raise ToolshedUnavailableError("no distribution information "
-                                           "available for tool \"%s\""
-                                           % tool_info.name)
-        d = self._install_distribution(tool_info._distribution_name,
-                                       tool_info._distribution_version, logger)
+                                           "available for bundle \"%s\""
+                                           % bundle_info.name)
+        d = self._install_distribution(bundle_info._distribution_name,
+                                       bundle_info._distribution_version, logger)
         if d:
             want.append(d)
 
@@ -913,7 +907,8 @@ class Toolshed:
                 need_fetch = True
             else:
                 t = d.metadata.dictionary["modified"]
-                import time, calendar
+                import calendar
+                import time
                 d_mtime = calendar.timegm(time.strptime(t, "%Y-%m-%d %H:%M:%S"))
                 c_mtime = os.path.getmtime(dloc)
                 print("distribution", time.ctime(d_mtime))
@@ -1013,61 +1008,61 @@ class Toolshed:
                 pass
         return basedir
 
-    def _uninstall_tool(self, tool_info, logger):
-        _debug("_uninstall", tool_info)
-        dv = tool_info.distribution()
+    def _uninstall_bundle(self, bundle_info, logger):
+        _debug("_uninstall", bundle_info)
+        dv = bundle_info.distribution()
         name, version = dv
         all = self._get_all_installed_distributions(logger)
         d = all[name]
         if d.version != version:
-            raise KeyError("distribution \"%s %s\" does not match tool version "
+            raise KeyError("distribution \"%s %s\" does not match bundle version "
                            "\"%s\"" % (name, version, d.version))
         keep = []
-        for ti in self._installed_tool_info:
-            if ti.distribution() != dv:
-                keep.append(ti)
+        for bi in self._installed_bundle_info:
+            if bi.distribution() != dv:
+                keep.append(bi)
             else:
-                ti.deregister_commands()
-                ti.deregister_file_types()
-                ti.finish()
-        self._installed_tool_info = keep
+                bi.deregister_commands()
+                bi.deregister_file_types()
+                bi.finish()
+        self._installed_bundle_info = keep
         self._remove_distribution(d, logger)
 
     # End methods for installing and removing distributions
 
 
-class ToolInfo:
-    """Metadata about a tool, whether installed or available.
+class BundleInfo:
+    """Metadata about a bundle, whether installed or available.
 
-    A :py:class:`ToolInfo` instance stores the properties about a tool and
+    A :py:class:`BundleInfo` instance stores the properties about a bundle and
     can create a tool instance.
 
     Attributes
     ----------
     command_names : list of str
-        List of cli command name registered for this tool.
+        List of cli command name registered for this bundle.
     display_name : str
-        The tool name to display in user interfaces.
+        The bundle name to display in user interfaces.
     installed : boolean
-        True if this tool is installed locally; False otherwise.
+        True if this bundle is installed locally; False otherwise.
     menu_categories : list of str
-        List of categories in which this tool belong.
+        List of categories in which this bundle belong.
     file_types : list of str
-        List of file types (suffixes) that this tool can open.
+        List of file types (suffixes) that this bundle can open.
     session_versions : range
         Given as the minimum and maximum session versions
-        that this tool can read.
+        that this bundle can read.
     session_write_version : integer
-        The session version that tool data is written in.
+        The session version that bundle data is written in.
         Defaults to maximum of 'session_versions'.
     custom_init : boolean
-        Whether tool has custom initialization code
+        Whether bundle has custom initialization code
     name : readonly str
-        The internal name of the tool.
+        The internal name of the bundle.
     synopsis : readonly str
-        Short description of this tool.
+        Short description of this bundle.
     version : readonly str
-        Tool version (which is actually the same as the distribution version,
+        Bundle version (which is actually the same as the distribution version,
         so all tools from the same distribution share the same version).
     """
 
@@ -1087,28 +1082,27 @@ class ToolInfo:
         Parameters
         ----------
         name : str
-            Internal name for tool.
+            Internal name for bundle.
         installed : boolean
-            Whether this tool is locally installed.
+            Whether this bundle is locally installed.
         display_name : str
             Tool nname to display in user interface.
         distribution_name : str
-            Name of Python distribution that provided this tool.
+            Name of Python distribution that provided this bundle.
         distribution_version : str
-            Version of Python distribution that provided this tool.
+            Version of Python distribution that provided this bundle.
         module_name : str
-            Name of module implementing this tool.  Must be a dotted Python name.
+            Name of module implementing this bundle.  Must be a dotted Python name.
         menu_categories : list of str
-            List of menu categories in which this tool belong.
+            List of menu categories in which this bundle belong.
         command_names : list of str
-            List of names of cli commands to register for this tool.
+            List of names of cli commands to register for this bundle.
         file_types : list of str
-            List of file types (suffixes) that this tool can open.
+            List of file types (suffixes) that this bundle can open.
         session_versions : range
-            Range of session versions that this tool can read.
+            Range of session versions that this bundle can read.
         custom_init : boolean
-            Whether tool has custom initialization code
-
+            Whether bundle has custom initialization code
         """
         # Public attributes
         self.name = name
@@ -1157,8 +1151,7 @@ class ToolInfo:
         Returns
         -------
         2-tuple of (list, dict)
-            List and dictionary suitable for passing to :py:class:`ToolInfo`.
-        
+            List and dictionary suitable for passing to :py:class:`BundleInfo`.
         """
         args = (self.name, self.installed)
         kw = {
@@ -1174,12 +1167,11 @@ class ToolInfo:
 
     def distribution(self):
         """Return distribution information.
-        
+
         Returns
         -------
         2-tuple of (str, str).
             Distribution name and version.
-
         """
         return self._distribution_name, self._distribution_version
 
@@ -1222,33 +1214,33 @@ class ToolInfo:
         pass
 
     def initialize(self):
-        """Initialize tool by calling custom initialization code if needed."""
+        """Initialize bundle by calling custom initialization code if needed."""
         if self.custom_init:
             try:
                 f = self._get_module().initialize
             except (ImportError, AttributeError, TypeError, SyntaxError):
-                raise ToolshedError("no initialize function found for tool \"%s\""
+                raise ToolshedError("no initialize function found for bundle \"%s\""
                                     % self.name)
             f(self)
 
     def finish(self):
-        """Deinitialize tool by calling custom finish code if needed."""
+        """Deinitialize bundle by calling custom finish code if needed."""
         if self.custom_init:
             try:
                 f = self._get_module().finish
             except (ImportError, AttributeError, TypeError, SyntaxError):
-                raise ToolshedError("no finish function found for tool \"%s\""
+                raise ToolshedError("no finish function found for bundle \"%s\""
                                     % self.name)
             f(self)
 
     def get_class(self, class_name):
-        """Return tool's class with given name."""
+        """Return bundle's class with given name."""
         return self._get_module().get_class(class_name)
 
     def _get_module(self):
-        """Return module for this tool."""
+        """Return module for this bundle."""
         if not self._module_name:
-            raise ToolshedError("no module specified for tool \"%s\"" % self.name)
+            raise ToolshedError("no module specified for bundle \"%s\"" % self.name)
         import importlib
         m = importlib.import_module(self._module_name)
         _debug("_get_module", self._module_name, m)
@@ -1274,10 +1266,9 @@ class ToolInfo:
         Raises
         ------
         ToolshedUninstalledError
-            If the tool is not installed.
+            If the bundle is not installed.
         ToolshedError
             If the tool cannot be started.
-
         """
         if not self.installed:
             raise ToolshedUninstalledError("tool \"%s\" is not installed"
@@ -1289,25 +1280,24 @@ class ToolInfo:
                                 % self.name)
         ti = f(session, self, *args, **kw)
         if ti is not None:
-            ti.display(True) # in case the instance is a singleton not currently shown
+            ti.display(True)  # in case the instance is a singleton not currently shown
         return ti
 
-    def newer_than(self, ti):
-        """Return whether this :py:class:`ToolInfo` instance is newer than given one
+    def newer_than(self, bi):
+        """Return whether this :py:class:`BundleInfo` instance is newer than given one
 
         Parameters
         ----------
-        ti : :py:class:`ToolInfo` instance
+        bi : :py:class:`BundleInfo` instance
             The instance to compare against
 
         Returns
         -------
         Boolean
-            True if this instance is newer; False if 'ti' is newer.
-
+            True if this instance is newer; False if 'bi' is newer.
         """
         from distlib.version import NormalizedVersion as Version
-        return Version(self.version) > Version(ti.version)
+        return Version(self.version) > Version(bi.version)
 
 
 # Toolshed is a singleton.  Multiple calls to init returns the same instance.
@@ -1316,7 +1306,7 @@ _toolshed = None
 
 def init(*args, debug=False, **kw):
     """Initialize toolshed.
-    
+
     The toolshed instance is a singleton across all sessions.
     The first call creates the instance and all subsequent
     calls return the same instance.  The toolshed debugging
@@ -1334,7 +1324,6 @@ def init(*args, debug=False, **kw):
     -------
     :py:class:`Toolshed` instance
         The toolshed singleton.
-        
     """
     global _debug
     if debug:

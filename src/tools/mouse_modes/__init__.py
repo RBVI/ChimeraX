@@ -4,7 +4,7 @@
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, tool_info):
+def start_tool(session, bundle_info):
     from .gui import MouseModePanel
     return MouseModePanel.get_singleton(session)
 

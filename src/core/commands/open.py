@@ -18,27 +18,34 @@ def open(session, filename, format=None, name=None, from_database=None):
         Database to fetch from. The filename is treated as a database identifier.
     '''
 
-    if from_database is None and format is None:
+    if ':' in filename:
+        prefix, fname = filename.split(':',maxsplit=1)
+        from .. import fetch
+        from_database, default_format = fetch.fetch_from_prefix(session, prefix)
+        if from_database is None:
+            from ..errors import UserError
+            raise UserError('Unknown database prefix "%s" must be one of %s'
+                            % (prefix, fetch.prefixes(session)))
+        if format is None:
+            format = default_format
+        filename = fname
+    elif from_database is None:
+        # Accept 4 character filename without prefix as pdb id.
         from os.path import splitext
         base, ext = splitext(filename)
         if not ext and len(filename) == 4:
             from_database = 'pdb'
-            format = 'mmcif'
-
-    if ':' in filename:
-        prefix, fname = filename.split(':',maxsplit=1)
-        from .. import fetch
-        from_database, format = fetch.fetch_from_prefix(session, prefix)
-        if from_database is None:
-            raise UserError('Unknown database prefix "%s" must be one of %s'
-                            % (prefix, fetch.prefixes(session)))
-        filename = fname
+            if format is None:
+                format = 'mmcif'
 
     if from_database is not None:
         from .. import fetch
         models = fetch.fetch_from_database(session, from_database, filename,
                                            format=format, name=name)
-        session.models.add(models)
+        if len(models) > 1:
+            session.models.add_group(models)
+        else:
+            session.models.add(models)
         return models
 
     if format is not None:

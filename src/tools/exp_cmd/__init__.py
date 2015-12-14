@@ -4,14 +4,14 @@
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, tool_info):
+def start_tool(session, bundle_info):
     return None
 
 
 #
 # 'register_command' is the delayed command registration callback
 #
-def register_command(command_name, tool_info):
+def register_command(command_name, bundle_info):
     from importlib import import_module
     if command_name.startswith('~'):
         module_name = "." + command_name[1:]

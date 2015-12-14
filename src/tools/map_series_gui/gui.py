@@ -9,9 +9,9 @@ class MapSeries(ToolInstance):
 
     SIZE = (500, 25)
 
-    def __init__(self, session, tool_info, *, restoring=False, series=None):
+    def __init__(self, session, bundle_info, *, restoring=False, series=None):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
+            ToolInstance.__init__(self, session, bundle_info)
 
         self.series = series
         self.playing = False
@@ -168,16 +168,16 @@ class MapSeries(ToolInstance):
             "ti": ToolInstance.take_snapshot(self, session, flags),
             "shown": self.tool_window.shown
         }
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
             from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
-            self, session, tool_info, ti_version, ti_data)
-        self.__init__(session, tool_info, restoring=True)
+            self, session, bundle_info, ti_version, ti_data)
+        self.__init__(session, bundle_info, restoring=True)
         self.display(data["shown"])
 
     def reset_state(self, session):
@@ -198,5 +198,5 @@ def models_added_cb(models, session):
     from chimerax.core.map.series.series import Map_Series
     ms = [m for m in models if isinstance(m, Map_Series)]
     if ms:
-        tool_info = session.toolshed.find_tool('map_series_gui')
-        MapSeries(session, tool_info, series = ms).show()
+        bundle_info = session.toolshed.find_bundle('map_series_gui')
+        MapSeries(session, bundle_info, series = ms).show()

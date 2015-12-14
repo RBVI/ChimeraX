@@ -40,21 +40,26 @@ from . import molobject
 import ctypes
 size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 
-def _atoms(a):
-    return Atoms(a)
-def _bonds(b):
-    return Bonds(b)
+def _atoms(p):
+    return Atoms(p)
+def _atoms_or_nones(p):
+    from molobject import object_map, Atom
+    return [object_map(ptr, Atom) if ptr else None for ptr in p]
+def _non_null_atoms(p):
+    return Atoms(p[p!=0])
+def _bonds(p):
+    return Bonds(p)
 def _pseudobonds(p):
 	return Pseudobonds(p)
-def _elements(e):
-    return Elements(e)
-def _residues(r):
-    return Residues(r)
-def _non_null_residues(r):
+def _elements(p):
+    return Elements(p)
+def _residues(p):
+    return Residues(p)
+def _non_null_residues(p):
     from .molarray import Residues
-    return Residues(r[r!=0])
-def _chains(c):
-    return Chains(c)
+    return Residues(p[p!=0])
+def _chains(p):
+    return Chains(p)
 def _atomic_structures(p):
     return AtomicStructures(p)
 def _atomic_structure_datas(p):
@@ -696,9 +701,16 @@ class Residues(Collection):
     whatever data source the structure came from, so not necessarily consecutive,
     or starting from 1, *etc.* Read only.
     '''
-    ss_id = cvec_property('residue_ss_id', int32)
+    principal_atoms = cvec_property('residue_principal_atom', cptr, astype = _atoms_or_nones, read_only = True)
+    '''List of the 'chain trace' :class:`.Atom`\\ s or None (for residues without such an atom).
+
+    Normally returns the C4' from a nucleic acid since that is always present,
+    but in the case of a P-only trace it returns the P.'''
+    existing_principal_atoms = cvec_property('residue_principal_atom', cptr, astype = _non_null_atoms, read_only = True)
+    '''Like the principal_atoms property, but returns a :class:`.Residues` collection omitting Nones'''
+    ss_ids = cvec_property('residue_ss_id', int32)
     '''
-    numpy array of integer secondary structure ids.
+    A :mod:`numpy` array of integer secondary structure IDs.
     '''
     strs = cvec_property('residue_str', string, read_only = True)
     '''
