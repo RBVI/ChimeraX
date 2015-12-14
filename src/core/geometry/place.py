@@ -385,7 +385,7 @@ class Places:
             if oa is None:
                 p = Places(place_array=self.array()[mask])
             else:
-                p = Places(opengl_array = oa)
+                p = Places(opengl_array = oa[mask])
         return p
 
     def shift_and_scale_array(self):
@@ -426,12 +426,18 @@ class Places:
     def __iter__(self):
         return self.place_list().__iter__()
 
-    def __mul__(self, places):
-        pp = []
-        for p in self:
-            for p2 in places:
-                pp.append(Place(m34.multiply_matrices(p.matrix, p2.matrix)))
-        return Places(pp)
+    def __mul__(self, places_or_vector):
+        if isinstance(places_or_vector, Places):
+            places = places_or_vector
+            pp = []
+            for p in self:
+                for p2 in places:
+                    pp.append(Place(m34.multiply_matrices(p.matrix, p2.matrix)))
+            return Places(pp)
+        else:
+            v = places_or_vector
+            from numpy import stack
+            return stack(tuple(p*v for p in self))
 
     def is_identity(self):
         return len(self) == 1 and self[0].is_identity()
