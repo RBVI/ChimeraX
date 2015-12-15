@@ -855,7 +855,7 @@ class Drawing:
             if fmin is not None:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
-            # TODO: This will be very slow for large numbers of copies.
+            # TODO: Optimize to only check objects with bounding box close to line. 
             dp = self._displayed_positions
             for c, tf in enumerate(self.positions):
                 if dp is None or dp[c]:
@@ -912,7 +912,7 @@ class Drawing:
     _effects_buffers = set(
         ('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
          'triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
-         '_edge_mask', '_triangle_mask', '_selected_triangles_mask'))
+         '_edge_mask', '_triangle_mask', '_selected_triangles_mask', '_selected_positions'))
 
     EDGE0_DISPLAY_MASK = 1
     ALL_EDGES_DISPLAY_MASK = 7
