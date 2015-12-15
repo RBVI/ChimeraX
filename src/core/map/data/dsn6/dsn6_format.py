@@ -52,7 +52,7 @@ class dsn6_map:
   #
   def read_brix_header(self, file):
 
-    header = file.read(512)
+    header = file.read(512).decode('utf-8')
 
     if header[:3] != ":-)":
       raise SyntaxError('File does not start with :-)')
@@ -73,7 +73,7 @@ class dsn6_map:
     offset = 0
     values = []
     for f in fields:
-      if isinstance(f, basestring):
+      if isinstance(f, str):
         size = len(f)
         if header[offset:offset+size].lower() != f:
           raise SyntaxError(error_msg % offset)
