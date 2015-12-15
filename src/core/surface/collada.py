@@ -140,6 +140,6 @@ def set_instance_positions_and_colors(drawings):
 def register_collada_format():
     from .. import io, generic3d
     io.register_format(
-        "Collada", generic3d.CATEGORY, (".dae",),
+        "Collada", generic3d.CATEGORY, (".dae",), ("collada",),
         reference="https://www.khronos.org/collada/",
         open_func=read_collada_surfaces)
