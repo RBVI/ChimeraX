@@ -37,7 +37,7 @@ def open_pdb(session, filename, name, *args, **kw):
                        sum(m.num_bonds for m in models)))
 
 
-def fetch_pdb(session, pdb_id):
+def fetch_pdb(session, pdb_id, ignore_cache=False):
     if len(pdb_id) != 4:
         raise UserError("PDB identifiers are 4 characters long")
     import os
@@ -51,7 +51,8 @@ def fetch_pdb(session, pdb_id):
     pdb_name = "%s.pdb" % pdb_id.upper()
     url = "http://www.pdb.org/pdb/files/%s" % pdb_name
     from ..fetch import fetch_file
-    filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB')
+    filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
+                          ignore_cache=ignore_cache)
 
     from .. import io
     models, status = io.open_data(session, filename, format = 'pdb', name = pdb_id)

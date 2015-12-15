@@ -24,7 +24,8 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False):
   map_url = url_pattern % (site, id[1:3], id, map_name)
 
   from ..fetch import fetch_file
-  filename = fetch_file(session, map_url, 'map %s' % id, map_name, 'EDS')
+  filename = fetch_file(session, map_url, 'map %s' % id, map_name, 'EDS',
+                        ignore_cache=ignore_cache)
 
   from .. import io
   models, status = io.open_data(session, filename, format = 'dsn6', name = id)

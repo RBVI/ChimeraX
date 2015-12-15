@@ -8,7 +8,7 @@ default_autopack_database = 'https://github.com/mesoscope/cellPACK_data/raw/mast
 def fetch_cellpack(session, cellpack_id, database = default_autopack_database, ignore_cache = False):
 
     try:
-        path = fetch_autopack_results(session, cellpack_id)
+        path = fetch_autopack_results(session, cellpack_id, ignore_cache=ignore_cache)
         surf = fetch_autopack(session, path, cellpack_id, database, ignore_cache)
     except IOError as e:
         from chimerax.core.errors import UserError
