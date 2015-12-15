@@ -107,6 +107,9 @@ private:
     int  _ribbon_tether_sides = 4;
     float  _ribbon_tether_opacity = 0.5;
     bool  _ribbon_show_spine = false;
+    const int  SESSION_NUM_FLOATS = 1;
+    const int  SESSION_NUM_INTS = 7;
+    const int  SESSION_NUM_MISC = 4;
     mutable bool  _structure_cats_dirty;
 public:
     AtomicStructure(PyObject* logger = nullptr);

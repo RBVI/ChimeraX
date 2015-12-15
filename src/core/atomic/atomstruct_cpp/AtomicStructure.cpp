@@ -1003,7 +1003,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
 
     // AtomicStructure attrs
     int* int_array;
-    PyObject* npy_array = python_int_array(7, &int_array);
+    PyObject* npy_array = python_int_array(SESSION_NUM_INTS, &int_array);
     *int_array++ = _idatm_valid;
     int x = std::find(_coord_sets.begin(), _coord_sets.end(), _active_coord_set)
         - _coord_sets.begin();
@@ -1013,18 +1013,17 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     *int_array++ = is_traj;
     *int_array++ = lower_case_chains;
     *int_array++ = pdb_version;
-    // if you add ints, change the allocation above
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
 
     float* float_array;
-    npy_array = python_float_array(1, &float_array);
-    *float_array++ = ball_scale();
+    npy_array = python_float_array(SESSION_NUM_FLOATS, &float_array);
+    *float_array++ = _ball_scale;
     // if you add floats, change the allocation above
     if (PyList_Append(floats, npy_array) < 0)
         throw std::runtime_error("Couldn't append to floats list");
 
-    PyObject* attr_list = PyList_New(4);
+    PyObject* attr_list = PyList_New(SESSION_NUM_MISC);
     if (attr_list == nullptr)
         throw std::runtime_error("Cannot create Python list for misc info");
     if (PyList_Append(misc, attr_list) < 0)
@@ -1061,7 +1060,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     if (seq_source == nullptr)
         throw std::runtime_error("Cannot create Python string for seq info source");
     PyList_SET_ITEM(attr_list, 2, seq_source);
-    // pdb_headers
+    // metadata
     map = PyDict_New();
     if (map == nullptr)
         throw std::runtime_error("Cannot create Python map for metadata");
@@ -1315,7 +1314,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     if (!array_from_python(item, 1, Numeric_Array::Int, &iarray, false))
         throw std::invalid_argument("AtomicStructure int data is not a one-dimensional"
             " numpy int array");
-    if (iarray.size() != 7)
+    if (iarray.size() != SESSION_NUM_INTS)
         throw std::invalid_argument("AtomicStructure int array wrong size");
     int* int_array = static_cast<int*>(iarray.values());
     _idatm_valid = *int_array++;
@@ -1327,6 +1326,81 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     pdb_version = *int_array++;
     // if more added, change the array dimension check above
 
+    // AtomicStructure floats
+    item = PyList_GET_ITEM(floats, 0);
+    auto farray = Numeric_Array();
+    if (!array_from_python(item, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("AtomicStructure float data is not a one-dimensional"
+            " numpy int array");
+    if (farray.size() != SESSION_NUM_FLOATS)
+        throw std::invalid_argument("AtomicStructure float array wrong size");
+    float* float_array = static_cast<float*>(farray.values());
+    _ball_scale = *float_array++;
+    // if more added, change the array dimension check above
+
+    // AtomicStructure misc info
+    item = PyList_GET_ITEM(misc, 0);
+    if (!PyList_Check(item) || PyList_GET_SIZE(item) != SESSION_NUM_MISC)
+        throw std::invalid_argument("AtomicStructure misc data is not list or is wrong size");
+    // input_seq_info
+    PyObject* map = PyList_GET_ITEM(item, 0);
+    if (!PyDict_Check(map))
+        throw std::invalid_argument("input seq info is not a dict!");
+    Py_ssize_t index = 0;
+    PyObject* py_chain_id;
+    PyObject* py_residues;
+    _input_seq_info.clear();
+    while (PyDict_Next(map, &index, &py_chain_id, &py_residues)) {
+        if (!PyUnicode_Check(py_chain_id))
+            throw std::invalid_argument("input seq chain ID is not Unicode");
+        if (!PyList_Check(py_residues))
+            throw std::invalid_argument("input seq residues is not a list");
+        ChainID chain_id = PyUnicode_AsUTF8(py_chain_id);
+        InputSeqInfo::mapped_type res_names;
+        auto num_res = PyList_GET_SIZE(py_residues);
+        for (decltype(num_res) i = 0; i < num_res; ++i) {
+            PyObject* py_res_name = PyList_GET_ITEM(py_residues, i);
+            if (!PyUnicode_Check(py_res_name))
+                throw std::invalid_argument("input seq res name is not Unicode");
+            ResName res_name = PyUnicode_AsUTF8(py_res_name);
+            res_names.push_back(res_name);
+        }
+        _input_seq_info[chain_id] = res_names;
+    }
+    // name
+    PyObject* py_name = PyList_GET_ITEM(item, 1);
+    if (!PyUnicode_Check(py_name))
+        throw std::invalid_argument("structure name is not Unicode");
+    _name = PyUnicode_AsUTF8(py_name);
+    // input_seq_source
+    PyObject* py_seq_source = PyList_GET_ITEM(item, 2);
+    if (!PyUnicode_Check(py_seq_source))
+        throw std::invalid_argument("structure input seq source is not Unicode");
+    input_seq_source = PyUnicode_AsUTF8(py_seq_source);
+    // metadata
+    map = PyList_GET_ITEM(item, 3);
+    if (!PyDict_Check(map))
+        throw std::invalid_argument("structure metadata is not a dict!");
+    index = 0;
+    PyObject* py_hdr_type;
+    PyObject* py_headers;
+    _input_seq_info.clear();
+    while (PyDict_Next(map, &index, &py_hdr_type, &py_headers)) {
+        if (!PyUnicode_Check(py_hdr_type))
+            throw std::invalid_argument("structure metadata key is not Unicode");
+        if (!PyList_Check(py_headers))
+            throw std::invalid_argument("structure metadata value is not a list");
+        auto hdr_type = PyUnicode_AsUTF8(py_hdr_type);
+        decltype(metadata)::mapped_type headers;
+        auto num_hdrs = PyList_GET_SIZE(py_headers);
+        for (decltype(num_hdrs) i = 0; i < num_hdrs; ++i) {
+            PyObject* py_hdr = PyList_GET_ITEM(py_headers, i);
+            if (!PyUnicode_Check(py_hdr))
+                throw std::invalid_argument("structure metadata value is not Unicode");
+            headers.push_back(PyUnicode_AsUTF8(py_hdr));
+        }
+        metadata[hdr_type] = headers;
+    }
 }
 
 void
