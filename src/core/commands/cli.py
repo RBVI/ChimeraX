@@ -1890,6 +1890,13 @@ class Command:
                 self.word_info = None
                 self.command_name = text
                 return
+            if text.startswith(';'):
+                if cmd_name is None:
+                    self._error = None
+                self.amount_parsed = cur_end
+                self.word_info = parent_info
+                self.command_name = cmd_name
+                return
             if _debugging:
                 orig_text = text
             word, chars, text = next_token(text)
@@ -2127,6 +2134,10 @@ class Command:
         while 1:
             self._find_command_name(final, no_aliases=no_aliases, used_aliases=_used_aliases)
             if not self._ci:
+                if len(self.current_text) > self.amount_parsed and self.current_text[self.amount_parsed] == ';':
+                    # allow for leading and empty semicolon-separated commands
+                    self.amount_parsed += 1  # skip semicolon
+                    continue
                 return
             start = self.amount_parsed - len(self.command_name)
             prev_annos = self._process_positional_arguments()
