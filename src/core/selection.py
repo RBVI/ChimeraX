@@ -2,8 +2,7 @@ class Selection:
 
     def __init__(self, all_models):
         self._all_models = all_models	# Models object
-        self._promotion = SelectionPromotion(all_models.drawing)
-        self._intramodel_promotion_history = []
+        self._promotion = SelectionPromoter(all_models.drawing)
 
     def all_models(self):
         return self._all_models.list()
@@ -30,36 +29,15 @@ class Selection:
 
     def clear_hierarchy(self):
         self._promotion.clear_selection_promotion_history()
-        self._intramodel_promotion_history.clear()
 
     def promote(self):
-        # Check for intra-model promotions
-        imp = []
-        for m in self.models():
-            if hasattr(m, 'selection_promotion'):
-                p = m.selection_promotion()
-                if p:
-                    imp.append(p)
-        if imp:
-            level = min(p.level for p in imp)
-            impl = tuple(p for p in imp if p.level == level)
-            self._intramodel_promotion_history.append(impl)
-            for p in impl:
-                p.promote()
-        else:
-            # Promote model level selection
-            self._promotion.promote_selection()
+        self._promotion.promote_selection()
 
     def demote(self):
-        if not self._promotion.demote_selection():
-            # No model level demotion so try demoting intramodel selection
-            ph = self._intramodel_promotion_history
-            if ph:
-                for p in ph.pop():
-                    p.demote()
+        self._promotion.demote_selection()
 
 
-class SelectionPromotion:
+class SelectionPromoter:
 
     def __init__(self, root_drawing):
         self._drawing = root_drawing
@@ -70,48 +48,76 @@ class SelectionPromotion:
         Select the next larger containing group.  If one child is
         selected, then all become selected.
         '''
-        
-        pd = self._deepest_promotable_drawings(self._drawing)
-        if len(pd) == 0:
-            return
 
-        plevel = min(level for level, d in pd)
-        pdrawings = tuple(d for level, d in pd if level == plevel)
-        prevsel = tuple((d, (None if d.selected_positions is None else d.selected_positions.copy()))
-                        for d in pdrawings)
-        self._promotion_history.append(prevsel)
-        for d in pdrawings:
-            d.selected = True
+        plist = []
+        self._find_deepest_promotions(self._drawing, plist)
 
-    def _deepest_promotable_drawings(self, drawing, level=0):
+        for p in plist:
+            p.promote()
+
+        if plist:
+            self._promotion_history.append(plist)
+        else:
+            print ('no promotion')
+
+    def _find_deepest_promotions(self, drawing, promotions, level = 0, sel = None):
         '''
-        A drawing is promotable if some children are fully selected and others
-        are unselected, or if some copies are selected and other copies are
-        unselected.
+        Find the deepest level in the hierarchy rooted at drawing
+        where a selection promotion can be done.  Accumulate all 
+        selection promotions at that level in promotions lists.
         '''
-        sp = drawing.selected_positions
-        if sp is not None:
-            ns = sp.sum()
-            if ns == len(sp):
-                return []         # Fully selected
 
-        if not drawing.any_part_selected():
-            return []
+        if sel is None:
+            # Drawings that are partially selected
+            # or has some descendant partially selected.
+            sel = set()
 
-        # Don't look at child-drawings if model supports intramodel promotion
-        if not hasattr(drawing, 'selection_promotion'):
-            cd = drawing.child_drawings()
-            if cd:
-                nfsel = [d for d in cd if not d.fully_selected()]
-                if nfsel:
-                    pd = sum((self._deepest_promotable_drawings(d, level+1) for d in nfsel), [])
-#                    if len(pd) == 0 and len(nfsel) < len(cd):
-                    if len(pd) == 0:
-                        pd = [(level + 1, d) for d in nfsel]
-                    return pd
-        if sp is not None and ns < len(sp):
-            return [(level, drawing)]
-        return []
+        # Check for intra-model promotion
+        if hasattr(drawing, 'selection_promotion'):
+            p = drawing.selection_promotion()
+            if p:
+                self._add_promotion(p, promotions)
+            if p or drawing.any_part_selected():
+                sel.add(drawing)
+
+        # Check for deeper promotions
+        children = drawing.child_models()
+        for c in children:
+            self._find_deepest_promotions(c, promotions, level+1, sel)
+            if c in sel:
+                sel.add(drawing)
+
+        # Add drawing to selected set if it is selected.
+        if drawing not in sel:
+            sp = drawing.selected_positions
+            if sp is not None and sp.sum() > 0:
+                sel.add(drawing)
+
+        # If no deeper promotions can this drawing be selected.
+        if len(promotions) == 0 or promotions[0].level <= level:
+            # Check if some but not all children are selected.
+            nsel = [c for c in children if c not in sel]
+            if nsel and len(nsel) < len(children):
+                for c in nsel:
+                    self._add_promotion(ModelSelectionPromotion(c,level+0.5), promotions)
+
+            # Check if some but not all instances are selected.
+            sp = drawing.selected_positions
+            if sp is not None:
+                ns = sp.sum()
+                if ns < len(sp) and ns > 0:
+                    self._add_promotion(ModelSelectionPromotion(drawing,level), promotions)
+                    sel.add(drawing)
+
+    def _add_promotion(self, p, promotions):
+        '''
+        Added a SelectionPromotion to the list of deepest promotions.
+        '''
+        if len(promotions) == 0 or p.level == promotions[0].level:
+            promotions.append(p)
+        elif p.level > promotions[0].level:
+            promotions.clear()
+            promotions.append(p)
 
     def demote_selection(self):
         '''If the selection has previously been promoted, this returns
@@ -119,8 +125,8 @@ class SelectionPromotion:
         ph = self._promotion_history
         if len(ph) == 0:
             return False
-        for d, sp in ph.pop():
-            d.selected_positions = sp
+        for p in ph.pop():
+            p.demote()
         return True
 
     def clear_selection_promotion_history(self):
@@ -131,10 +137,21 @@ class SelectionPromotion:
         self._promotion_history.clear()
 
 
-class IntraModelSelectionPromotion:
+class SelectionPromotion:
     def __init__(self, level):
         self.level = level
     def promote(self):
         pass
     def demote(self):
         pass
+
+class ModelSelectionPromotion:
+    def __init__(self, model, level):
+        SelectionPromotion.__init__(self, level)
+        self.model = model
+        spos = model.selected_positions
+        self._prev_selected = None if spos is None else spos.copy() 
+    def promote(self):
+        self.model.selected = True
+    def demote(self):
+        self.model.selected_positions = self._prev_selected

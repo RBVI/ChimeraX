@@ -340,23 +340,6 @@ class Drawing:
                 return True
         return False
 
-    def fully_selected(self):
-        '''Is the entire Drawing including children selected.'''
-        sp = self._selected_positions
-        t = self.triangles
-        have_triangles = (t is not None and len(t) > 0)
-        if sp is None:
-            if have_triangles:
-                return False
-        elif sp.sum() == len(sp):
-            return True
-        elif have_triangles:
-            return False
-        for d in self.child_drawings():
-            if not d.fully_selected():
-                return False
-        return True
-
     def clear_selection(self):
         '''Unselect this drawing. Child drawings may remain selected.'''
         self.selected = False

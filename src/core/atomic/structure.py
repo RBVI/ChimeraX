@@ -881,17 +881,9 @@ class AtomicStructure(AtomicStructureData, Model):
             if c.any_part_selected():
                 return True
         return False
-
-    def fully_selected(self):
-        a = self.atoms
-        if a.num_selected < len(a):
-            return False
-        for c in self.child_models():
-            if not c.fully_selected():
-                return False
-        return True
         
     def clear_selection(self):
+        self.selected = False
         self.atoms.selected = False
         self._selection_changed()
 
@@ -917,7 +909,7 @@ class AtomicStructure(AtomicStructureData, Model):
         ares = in1d(rids, sel_rids)
         if ares.sum() > n:
             # Promote to entire residues
-            level = 1
+            level = 1003
             psel = ares
         else:
             from numpy import array
@@ -926,11 +918,11 @@ class AtomicStructure(AtomicStructureData, Model):
             ac = in1d(cids, sel_cids)
             if ac.sum() > n:
                 # Promote to entire chains
-                level = 2
+                level = 1002
                 psel = ac
             else:
                 # Promote to entire molecule
-                level = 3
+                level = 1001
                 ac[:] = True
                 psel = ac
 
@@ -1147,10 +1139,10 @@ class LevelOfDetail:
 
 # -----------------------------------------------------------------------------
 #
-from ..selection import IntraModelSelectionPromotion
-class PromoteAtomSelection(IntraModelSelectionPromotion):
+from ..selection import SelectionPromotion
+class PromoteAtomSelection(SelectionPromotion):
     def __init__(self, structure, level, atom_sel_mask, prev_sel_mask):
-        IntraModelSelectionPromotion.__init__(self, level)
+        SelectionPromotion.__init__(self, level)
         self._structure = structure
         self._atom_sel_mask = atom_sel_mask
         self._prev_sel_mask = prev_sel_mask
