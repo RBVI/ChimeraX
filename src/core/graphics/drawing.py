@@ -307,7 +307,8 @@ class Drawing:
         self.redraw_needed(selection_changed=True)
 
     selected = property(get_selected, set_selected)
-    '''Whether or not the drawing is selected. Does not include children.'''
+    '''Whether or not the drawing is selected.
+    Does not include or effect children.'''
 
     def get_selected_positions(self):
         return self._selected_positions
@@ -318,7 +319,8 @@ class Drawing:
 
     selected_positions = property(get_selected_positions,
                                   set_selected_positions)
-    '''Mask specifying which drawing positions are selected.'''
+    '''Mask specifying which drawing positions are selected.
+    Does not include or effect children.'''
 
     def get_selected_triangles_mask(self):
         return self._selected_triangles_mask
@@ -527,11 +529,9 @@ class Drawing:
             self.draw_self(renderer, place, draw_pass, selected_only)
 
         if self.child_drawings():
-            sp = self._selected_positions
             for i, p in enumerate(self.positions):
-                so = selected_only and (sp is None or not sp[i])
                 pp = place if p.is_identity() else place * p
-                self._draw_children(renderer, pp, draw_pass, so)
+                self._draw_children(renderer, pp, draw_pass, selected_only)
 
     def draw_self(self, renderer, place, draw_pass, selected_only=False):
         '''Draw this drawing without children using the given draw pass.'''
