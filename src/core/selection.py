@@ -57,8 +57,6 @@ class SelectionPromoter:
 
         if plist:
             self._promotion_history.append(plist)
-        else:
-            print ('no promotion')
 
     def _find_deepest_promotions(self, drawing, promotions, level = 0, sel = None):
         '''
