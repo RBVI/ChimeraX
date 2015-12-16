@@ -2,11 +2,11 @@
 from . import Annotation, AnnotationError
 
 
-def view(session, objects=None, frames=None, clip=True, cofr=True,
-         orient=False, all=False):
+def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False):
     '''
     Move camera so the displayed models fill the graphics window.
     Also camera and model positions can be saved and restored.
+    Adjust camera to view all models if objects is None.
 
     Parameters
     ----------
@@ -22,20 +22,17 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
       Specifying the orient keyword moves the camera view point to
       look down the scene z axis with the x-axis horizontal and y-axis
       vertical.
-    all : bool
-      Adjust camera to view all models if objects is None.
     '''
     v = session.main_view
     if orient:
         v.initial_camera_view()
 
     if objects is None:
-        if all:
-            v.view_all()
-            v.center_of_rotation_method = 'front center'
-            cp = v.clip_planes
-            cp.remove_plane('near')
-            cp.remove_plane('far')
+        v.view_all()
+        v.center_of_rotation_method = 'front center'
+        cp = v.clip_planes
+        cp.remove_plane('near')
+        cp.remove_plane('far')
     elif isinstance(objects, _View):
         show_view(session, objects, frames)
     else:
@@ -308,8 +305,7 @@ def register_command(session):
                   ('frames', PositiveIntArg)],
         keyword=[('clip', BoolArg),
                  ('cofr', BoolArg),
-                 ('orient', NoArg),
-                 ('all', NoArg)],
+                 ('orient', NoArg),],
         synopsis='adjust camera so everything is visible')
     register('view', desc, view)
     desc = CmdDesc(
