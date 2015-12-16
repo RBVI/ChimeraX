@@ -11,6 +11,7 @@
 #include <basegeom/destruct.h>
 #include <basegeom/Graph.tcc>
 #include <logger/logger.h>
+#include <pysupport/convert.h>
 #include <pythonarray.h>
 
 #include <algorithm>  // for std::find, std::sort, std::remove_if, std::min
@@ -1308,6 +1309,9 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         throw std::invalid_argument("AtomicStructure::session_info: third arg is not a"
             " 7-element list");
 
+    using pysupport::pylist_of_string_to_cvector;
+    using pysupport::pystring_to_cchar;
+
     // AtomicStructure ints
     PyObject* item = PyList_GET_ITEM(ints, 0);
     auto iarray = Numeric_Array();
@@ -1331,7 +1335,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     auto farray = Numeric_Array();
     if (!array_from_python(item, 1, Numeric_Array::Float, &farray, false))
         throw std::invalid_argument("AtomicStructure float data is not a one-dimensional"
-            " numpy int array");
+            " numpy float array");
     if (farray.size() != SESSION_NUM_FLOATS)
         throw std::invalid_argument("AtomicStructure float array wrong size");
     float* float_array = static_cast<float*>(farray.values());
@@ -1351,32 +1355,14 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     PyObject* py_residues;
     _input_seq_info.clear();
     while (PyDict_Next(map, &index, &py_chain_id, &py_residues)) {
-        if (!PyUnicode_Check(py_chain_id))
-            throw std::invalid_argument("input seq chain ID is not Unicode");
-        if (!PyList_Check(py_residues))
-            throw std::invalid_argument("input seq residues is not a list");
-        ChainID chain_id = PyUnicode_AsUTF8(py_chain_id);
-        InputSeqInfo::mapped_type res_names;
-        auto num_res = PyList_GET_SIZE(py_residues);
-        for (decltype(num_res) i = 0; i < num_res; ++i) {
-            PyObject* py_res_name = PyList_GET_ITEM(py_residues, i);
-            if (!PyUnicode_Check(py_res_name))
-                throw std::invalid_argument("input seq res name is not Unicode");
-            ResName res_name = PyUnicode_AsUTF8(py_res_name);
-            res_names.push_back(res_name);
-        }
-        _input_seq_info[chain_id] = res_names;
+        ChainID chain_id = pystring_to_cchar(py_chain_id, "input seq chain ID");
+        auto& res_names = _input_seq_info[chain_id];
+        pylist_of_string_to_cvector(py_residues, res_names, "chain residue name");
     }
     // name
-    PyObject* py_name = PyList_GET_ITEM(item, 1);
-    if (!PyUnicode_Check(py_name))
-        throw std::invalid_argument("structure name is not Unicode");
-    _name = PyUnicode_AsUTF8(py_name);
+    _name = pystring_to_cchar(PyList_GET_ITEM(item, 1), "structure name");
     // input_seq_source
-    PyObject* py_seq_source = PyList_GET_ITEM(item, 2);
-    if (!PyUnicode_Check(py_seq_source))
-        throw std::invalid_argument("structure input seq source is not Unicode");
-    input_seq_source = PyUnicode_AsUTF8(py_seq_source);
+    input_seq_source = pystring_to_cchar(PyList_GET_ITEM(item, 2), "structure input seq source");
     // metadata
     map = PyList_GET_ITEM(item, 3);
     if (!PyDict_Check(map))
@@ -1386,20 +1372,39 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     PyObject* py_headers;
     _input_seq_info.clear();
     while (PyDict_Next(map, &index, &py_hdr_type, &py_headers)) {
-        if (!PyUnicode_Check(py_hdr_type))
-            throw std::invalid_argument("structure metadata key is not Unicode");
-        if (!PyList_Check(py_headers))
-            throw std::invalid_argument("structure metadata value is not a list");
-        auto hdr_type = PyUnicode_AsUTF8(py_hdr_type);
-        decltype(metadata)::mapped_type headers;
-        auto num_hdrs = PyList_GET_SIZE(py_headers);
-        for (decltype(num_hdrs) i = 0; i < num_hdrs; ++i) {
-            PyObject* py_hdr = PyList_GET_ITEM(py_headers, i);
-            if (!PyUnicode_Check(py_hdr))
-                throw std::invalid_argument("structure metadata value is not Unicode");
-            headers.push_back(PyUnicode_AsUTF8(py_hdr));
-        }
-        metadata[hdr_type] = headers;
+        auto hdr_type = pystring_to_cchar(py_hdr_type, "structure metadata key");
+        auto& headers = metadata[hdr_type];
+        pylist_of_string_to_cvector(py_headers, headers, "structure metadata");
+    }
+
+    // atoms
+    PyObject* atoms_misc = PyList_GET_ITEM(misc, 1);
+    if (!PyList_Check(atoms_misc))
+        throw std::invalid_argument("atom misc info is not a list");
+    if (PyList_GET_SIZE(atoms_misc) < 1)
+        throw std::invalid_argument("atom names missing");
+    std::vector<AtomName> atom_names;
+    pylist_of_string_to_cvector(PyList_GET_ITEM(atoms_misc, 0), atom_names, "atom name");
+    if ((decltype(atom_names)::size_type)(PyList_GET_SIZE(atoms_misc)) != atom_names.size() + 1)
+        throw std::invalid_argument("bad atom misc info");
+    PyObject* atom_ints = PyList_GET_ITEM(ints, 1);
+    iarray = Numeric_Array();
+    if (!array_from_python(atom_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Atom int data is not a one-dimensional"
+            " numpy int array");
+    int_array = static_cast<int*>(iarray.values());
+    auto element_ints = int_array;
+    int_array += atom_names.size();
+    PyObject* atom_floats = PyList_GET_ITEM(floats, 1);
+    farray = Numeric_Array();
+    if (!array_from_python(atom_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Atom float data is not a one-dimensional"
+            " numpy float array");
+    float_array = static_cast<float*>(farray.values());
+    int i = 1; // atom names are in slot zero
+    for (auto aname: atom_names) {
+        auto a = new_atom(aname, Element::get_element(*element_ints++));
+        a->session_restore(&int_array, &float_array, PyList_GET_ITEM(atoms_misc, i++));
     }
 }
 

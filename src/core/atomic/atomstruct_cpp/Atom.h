@@ -108,6 +108,7 @@ public:
     int  coordination(int value_if_unknown) const;
     virtual const basegeom::Coord &coord() const;
     float  default_radius() const;
+    // draw_mode() inherited from BaseSphere
     const Element&  element() const { return *_element; }
     static const IdatmInfoMap&  get_idatm_info_map();
     bool  has_alt_loc(char al) const
@@ -132,6 +133,7 @@ public:
             + _alt_loc_map.size() * SESSION_ALTLOC_INTS;
     }
     int  session_num_floats() const;
+    void  session_restore(int** ints, float** floats, PyObject* misc);
     void  session_save(int** ints, float** floats, PyObject* misc) const;
     void  set_alt_loc(char alt_loc, bool create=false, bool from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
@@ -139,6 +141,7 @@ public:
     void  set_coord(const Point& coord) { set_coord(coord, NULL); }
     void  set_coord(const Point& coord, CoordSet* cs);
     void  set_computed_idatm_type(const char* it);
+    // set_draw_mode() inherited from BaseSphere
     void  set_idatm_type(const char* it);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
     void  set_name(const AtomName& name);

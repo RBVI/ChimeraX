@@ -11,7 +11,7 @@ template <class FinalGraph, class FinalConnectible, class FinalConnection>
 class BaseSphere: public Connectible<FinalGraph, FinalConnectible, FinalConnection> {
 public:
     enum class DrawMode : unsigned char { Sphere, EndCap, Ball };
-private:
+protected:
     float  _radius;
 
     DrawMode  _draw_mode = DrawMode::Sphere;

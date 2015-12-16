@@ -5,7 +5,7 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
 	   chutil_cpp commands devices \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
-	   map surface toolshed ui \
+	   map pysupport_cpp surface toolshed ui \
 	   webservices
 
 include $(TOP)/mk/subdir.make
@@ -64,7 +64,8 @@ clean:
 	rm -rf __pycache__ build dist chimerax.core.egg-info setup.py timestamp $(GENSRCS)
 
 _appdirs.install: appdirs_cpp.install
-atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install logger_cpp.install
+atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install \
+	logger_cpp.install pysupport_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
 map.install: arrays_cpp.install

@@ -31,6 +31,7 @@ private:
     FinalGraph*  _graph;
     Neighbors  _neighbors; // _connections/_neighbors in same order
 
+protected:
     bool  _display = true;
     int  _hide = 0;
     bool  _selected = false;
