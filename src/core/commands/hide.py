@@ -45,4 +45,5 @@ def register_command(session):
         url='help:user/commands/show.html',
         synopsis='hide specified objects')
     register('hide', desc, hide)
+    create_alias('~show', 'hide $*')
     create_alias('~display', 'hide $*')

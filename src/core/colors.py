@@ -41,8 +41,8 @@ class UserColors(SortedDict, State):
         self.clear()
         self.update(BuiltinColors)
 
-    def list(self, user=True):
-        if not user:
+    def list(self, all=False):
+        if all:
             return list(self.keys())
         return [name for name, color in self.items()
                 if name not in BuiltinColors or color != BuiltinColors[name]]
@@ -270,7 +270,7 @@ class Colormap:
 # Initialize built-in colormaps
 # Rainbow is blue to red instead of red to blue so that N-terminus to C-terminus rainbow coloring
 # produces the conventional blue to red.
-BuiltinColormaps['rainbow'] = Colormap(None, ((0, 0, 1, 1),  (0, 1, 1, 1), (0, 1, 0, 1), (1, 1, 0, 1), (1, 0, 0, 1)))
+BuiltinColormaps['rainbow'] = Colormap(None, ((0, 0, 1, 1), (0, 1, 1, 1), (0, 1, 0, 1), (1, 1, 0, 1), (1, 0, 0, 1)))
 BuiltinColormaps['grayscale'] = Colormap(None, ((0, 0, 0, 1), (1, 1, 1, 1)))
 # BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (1, 1, 1, 1), (0, 0, 1, 1)))
 BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (.7, .7, .7, 1), (0, 0, 1, 1)))

@@ -62,8 +62,15 @@ def _find_named_color(color_dict, name):
     return None, None, name
 
 
-def define_color(session, name, color=None):
-    """Create a user defined color."""
+def html_color_swatch(color):
+    return (
+        '&nbsp;<div style="width:1em; height:.6em; display:inline-block;'
+        ' border:1px solid #000; background-color:%s"></div>'
+        % color.hex())
+
+
+def name_color(session, name, color=None):
+    """Create a custom color."""
     if ColorNames.match(name) is None:
         from ..errors import UserError
         raise UserError('Illegal color name: "%s"' % name)
@@ -94,9 +101,9 @@ def define_color(session, name, color=None):
     if alpha >= 1:
         transmit = 'opaque'
     elif alpha <= 0:
-        transmit = 'transparent'
+        transmit = '100% transparent'
     else:
-        transmit = '%g%% transparent' % percent(1 - alpha)
+        transmit = '%.4g%% transparent' % percent(1 - alpha)
 
     msg = 'Color %r is %s, %.4g%% red, %.4g%% green, and %.4g%% blue' % (
         real_name, transmit, percent(red), percent(green),
@@ -109,20 +116,16 @@ def define_color(session, name, color=None):
     else:
         session.logger.status(msg)
         session.logger.info(
-            msg +
-            '<div style="width:1em; height:.5em;'
-            ' display:inline-block;'
-            ' border:1px solid #000; background-color:%s"></div>'
-            % color.hex(), is_html=True)
-    return
+            msg + html_color_swatch(color), is_html=True)
 
 
 def delete_color(session, name):
-    """Remove a user defined color."""
+    """Remove a custom color."""
     if name == 'all':
         color_names = session.user_colors.list()
         for name in color_names:
             session.user_colors.remove(name)
+        return
     if name not in session.user_colors:
         from ..errors import UserError
         raise UserError('Unknown color %r' % name)
@@ -133,17 +136,31 @@ def delete_color(session, name):
         raise UserError(v)
 
 
-def list_colors(session, internal=False):
+def list_colors(session, all=False):
     from . import cli
     logger = session.logger
-    colors = session.user_colors.list(user=not internal)
-    names = cli.commas(colors, ' and')
-    noun = cli.plural_form(colors, 'color')
-    if names:
-        logger.info('%d %s: %s' % (len(colors), noun, names))
+    color_names = session.user_colors.list(all=all)
+    names = cli.commas(color_names, ' and')
+    noun = cli.plural_form(color_names, 'color')
+    if not names:
+        logger.status('No %scolors.' % ('custom ' if not all else ''))
+    elif not session.ui.is_gui:
+        logger.info('%d %s: %s' % (len(color_names), noun, names))
     else:
-        logger.status('No %scolors.' % ('user ' if not internal else ''))
-    return
+        from html import escape
+        msg = '%d %s:' % (len(color_names), noun)
+        sep = ''
+        for n in color_names[:-1]:
+            c = session.user_colors[n]
+            msg += '%s %s' % (sep, escape(n)) + html_color_swatch(c)
+            sep = ','
+        if len(color_names) > 0:
+            if sep:
+                sep = ', and'
+            n = color_names[-1]
+            c = session.user_colors[n]
+            msg += '%s %s' % (sep, escape(n)) + html_color_swatch(c)
+        logger.info(msg, is_html=True)
 
 
 # -----------------------------------------------------------------------------
@@ -153,17 +170,17 @@ def register_command(session):
     register(
         'color list',
         CmdDesc(
-            keyword=[('internal', NoArg)],
+            keyword=[('all', NoArg)],
             synopsis='list colors'),
         list_colors
     )
 
     register(
-        'color define',
+        'color name',
         CmdDesc(required=[('name', StringArg)],
                 optional=[('color', ColorArg)],
-                synopsis="define a custom color"),
-        define_color
+                synopsis="name a custom color"),
+        name_color
     )
     register(
         'color delete',
@@ -171,5 +188,5 @@ def register_command(session):
                 synopsis="remove color definition"),
         delete_color
     )
-    create_alias('colordef', 'color define $*')
+    create_alias('colordef', 'color name $*')
     create_alias('~colordef', 'color delete $*')

@@ -39,7 +39,7 @@ class ColorArg(cli.Annotation):
             return c, text, rest
         m = _color_func.match(text)
         if m is None:
-            from .colordef import _find_named_color
+            from .colorname import _find_named_color
             color = None
             if session is not None:
                 name, color, rest = _find_named_color(session.user_colors, text)

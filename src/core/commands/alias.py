@@ -32,7 +32,7 @@ def list_aliases(session, internal=False):
     if names:
         logger.info('%d %s: %s' % (len(aliases), noun, names))
     else:
-        logger.status('No %saliases.' % ('user ' if not internal else ''))
+        logger.status('No %saliases.' % ('custom ' if not internal else ''))
     return
 
 
