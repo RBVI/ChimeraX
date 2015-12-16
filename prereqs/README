@@ -1,7 +1,12 @@
+Source packages and why they are in the repository
+
+Note this list is incomplete, since we use pip to install packages,
+and those packages may depend on packages not listed.
+
 PyOpenGL/
 	Python OpenGL, needed for graphics
 PyQt/
-	Python Qt library, NOT USED CURRENTLY
+	Python Qt library, NOT CURRENTLY USED
 Python/
 	Python source code, needed for main program
 expat/
