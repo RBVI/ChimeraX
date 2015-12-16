@@ -823,6 +823,16 @@ class AtomicStructure(AtomicStructureData, Model):
                         pclosest = PickedResidue(triangle_range.residue, p.distance)
         return pclosest
 
+    def set_selected(self, sel):
+        self.atoms.selected = sel
+        Model.set_selected(self, sel)
+    selected = property(Model.get_selected, set_selected)
+
+    def set_selected_positions(self, spos):
+        self.atoms.selected = (spos is not None and spos.sum() > 0)
+        Model.set_selected_positions(self, spos)
+    selected_positions = property(Model.get_selected_positions, set_selected_positions)
+
     def select_atom(self, atom, toggle=False, selected=True):
         '''
         Select or unselect a specified :class:`.Atom`.
@@ -841,7 +851,10 @@ class AtomicStructure(AtomicStructureData, Model):
         m = a.mask(atoms)
         from numpy import logical_not
         asel[m] = logical_not(asel[m]) if toggle else selected
-        a.selected = asel
+        self.select_mask_atoms(asel)
+
+    def select_mask_atoms(self, atom_mask):
+        self.atoms.selected = atom_mask
         self._selection_changed()
 
     def select_residue(self, residue, toggle=False, selected=True):
@@ -864,16 +877,25 @@ class AtomicStructure(AtomicStructureData, Model):
     def any_part_selected(self):
         if self.atoms.num_selected > 0:
             return True
-        return Model.any_part_selected(self)
+        for c in self.child_models():
+            if c.any_part_selected():
+                return True
+        return False
 
+    def fully_selected(self):
+        a = self.atoms
+        if a.num_selected < len(a):
+            return False
+        for c in self.child_models():
+            if not c.fully_selected():
+                return False
+        return True
+        
     def clear_selection(self):
         self.atoms.selected = False
         self._selection_changed()
 
-    def _selection_changed(self, promotion = False):
-        if not promotion:
-            self._selection_promotion_history = []
-
+    def _selection_changed(self):
         # Update selection on molecular surfaces
         # TODO: Won't work for surfaces spanning multiple molecules
         from .molsurf import MolecularSurface
@@ -881,13 +903,12 @@ class AtomicStructure(AtomicStructureData, Model):
             if isinstance(s, MolecularSurface):
                 s.update_selection()
 
-    def promote_selection(self):
+    def selection_promotion(self):
         atoms = self.atoms
         n = atoms.num_selected
         if n == 0 or n == len(atoms):
-            return
+            return None
         asel = atoms.selected
-        self._selection_promotion_history.append(asel)
 
         r = atoms.residues
         rids = r.unique_ids
@@ -896,6 +917,7 @@ class AtomicStructure(AtomicStructureData, Model):
         ares = in1d(rids, sel_rids)
         if ares.sum() > n:
             # Promote to entire residues
+            level = 1
             psel = ares
         else:
             from numpy import array
@@ -904,24 +926,15 @@ class AtomicStructure(AtomicStructureData, Model):
             ac = in1d(cids, sel_cids)
             if ac.sum() > n:
                 # Promote to entire chains
+                level = 2
                 psel = ac
             else:
                 # Promote to entire molecule
-                psel = True
-        atoms.selected = psel
-        self._selection_changed(promotion = True)
+                level = 3
+                ac[:] = True
+                psel = ac
 
-    def demote_selection(self):
-        pt = self._selection_promotion_history
-        if len(pt) > 0:
-            asel = pt.pop()
-            atoms = self.atoms
-            if len(asel) == len(atoms):
-                atoms.selected = asel
-                self._selection_changed(promotion = True)
-
-    def clear_selection_promotion_history(self):
-        self._selection_promotion_history = []
+        return PromoteAtomSelection(self, level, psel, asel)
 
     def _begin_ses_save(self, *args):
         self.session_save_setup()
@@ -1131,6 +1144,20 @@ class LevelOfDetail:
         ntri = self.clamp_geometric(ntri, nmin, nmax)
         ntri = 4*(ntri//4)	# Require multiple of 4
         return ntri
+
+# -----------------------------------------------------------------------------
+#
+from ..selection import IntraModelSelectionPromotion
+class PromoteAtomSelection(IntraModelSelectionPromotion):
+    def __init__(self, structure, level, atom_sel_mask, prev_sel_mask):
+        IntraModelSelectionPromotion.__init__(self, level)
+        self._structure = structure
+        self._atom_sel_mask = atom_sel_mask
+        self._prev_sel_mask = prev_sel_mask
+    def promote(self):
+        self._structure.select_mask_atoms(self._atom_sel_mask)
+    def demote(self):
+        self._structure.select_mask_atoms(self._prev_sel_mask)
 
 # -----------------------------------------------------------------------------
 #

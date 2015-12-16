@@ -343,8 +343,15 @@ class Drawing:
     def fully_selected(self):
         '''Is the entire Drawing including children selected.'''
         sp = self._selected_positions
-        if sp is not None and sp.sum() == len(sp):
+        t = self.triangles
+        have_triangles = (t is not None and len(t) > 0)
+        if sp is None:
+            if have_triangles:
+                return False
+        elif sp.sum() == len(sp):
             return True
+        elif have_triangles:
+            return False
         for d in self.child_drawings():
             if not d.fully_selected():
                 return False
@@ -355,63 +362,6 @@ class Drawing:
         self.selected = False
         self.selected_triangles_mask = None
         self.redraw_needed(selection_changed=True)
-
-    def promote_selection(self):
-        '''
-        Select the next larger containing group.  If one child is
-        selected, then all become selected.
-        '''
-        pd = self._deepest_promotable_drawings()
-        if len(pd) == 0:
-            return
-
-        plevel = min(level for level, drawing in pd)
-        pdrawings = tuple(d for level, d in pd if level == plevel)
-        prevsel = tuple((d, d.selected_positions.copy()) for d in pdrawings)
-        if hasattr(self, 'promotion_tower'):
-            self.promotion_tower.append(prevsel)
-        else:
-            self.promotion_tower = [prevsel]
-        for d in pdrawings:
-            d.selected = True
-
-    # A drawing is promotable if some children are fully selected and others
-    # are unselected, or if some copies are selected and other copies are
-    # unselected.
-    def _deepest_promotable_drawings(self, level=0):
-
-        sp = self._selected_positions
-        if sp is not None:
-            ns = sp.sum()
-            if ns == len(sp):
-                return []         # Fully selected
-        cd = self.child_drawings()
-        if cd:
-            nfsel = [d for d in cd if not d.fully_selected()]
-            if nfsel:
-                pd = sum((d.promotable_drawings(level + 1) for d in nfsel), [])
-                if len(pd) == 0 and len(nfsel) < len(cd):
-                    pd = [(level + 1, d) for d in nfsel]
-                return pd
-        if sp is not None and ns < len(sp):
-            return [(level, self)]
-        return []
-
-    def demote_selection(self):
-        '''If the selection has previously been promoted, this returns
-        it to the previous smaller selection.'''
-        pt = getattr(self, 'promotion_tower', None)
-        if pt:
-            for d, sp in pt.pop():
-                d.selected_positions = sp
-
-    def clear_selection_promotion_history(self):
-        '''
-        Forget the selection history promotion history.
-        This is used when the selection is changed manually.
-        '''
-        if hasattr(self, 'promotion_tower'):
-            delattr(self, 'promotion_tower')
 
     def get_position(self):
         return self._positions[0]
