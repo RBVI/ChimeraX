@@ -22,6 +22,9 @@ def info(session, models=None):
         npos = len(m.positions)
         if npos > 1:
             line += ', %d instances' % npos
+        spos = m.selected_positions
+        if spos is not None and spos.sum() > 0:
+            line += ', %d selected instances' % spos.sum()
         lines.append(line)     
     msg = '%d models\n' % len(models) + '\n'.join(lines)
     session.logger.info(msg)
