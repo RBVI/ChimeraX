@@ -717,11 +717,14 @@ class Drawing:
         dbounds = [d.bounds() for d in self.child_drawings() if d.display]
         if not self.empty_drawing():
             dbounds.append(self._geometry_bounds())
-        from ..geometry import bounds
-        b = bounds.union_bounds(dbounds)
+        if len(dbounds) == 1:
+            b = dbounds[0]
+        else:
+            from ..geometry import bounds
+            b = bounds.union_bounds(dbounds)
         if positions:
-            b = bounds.copies_bounding_box(
-                b, self.get_positions(displayed_only=True))
+            from ..geometry import bounds
+            b = bounds.copies_bounding_box(b, self.get_positions(displayed_only=True))
         return b
 
     def _geometry_bounds(self):
@@ -805,14 +808,25 @@ class Drawing:
             if fmin is not None:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
-            # TODO: Optimize to only check objects with bounding box close to line. 
+            # Only check objects with bounding box close to line. 
+            b = self.bounds(positions = False)
+            if b is None:
+                return None
+            c, r = b.center(), b.radius()
+            pos = self.positions
+            pc = pos * c
+            from ..geometry import segment_intercepts_spheres
+            bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
             dp = self._displayed_positions
-            for c, tf in enumerate(self.positions):
-                if dp is None or dp[c]:
-                    cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-                    fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
-                    if fmin is not None and (p is None or fmin < p.distance):
-                        p = TrianglePick(fmin, tmin, c, self)
+            if dp:
+                from numpy import logical_and
+                logical_and(bi, dp, bi)
+
+            for i in bi.nonzero()[0]:
+                cxyz1, cxyz2 = pos[i].inverse() * (mxyz1, mxyz2)
+                fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
+                if fmin is not None and (p is None or fmin < p.distance):
+                    p = TrianglePick(fmin, tmin, i, self)
         return p
 
     def delete(self):
