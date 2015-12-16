@@ -8,4 +8,5 @@ from ._geometry import natural_cubic_spline
 from ._geometry import sphere_axes_bounds, spheres_in_bounds, bounds_overlap
 from ._geometry import find_closest_points
 from ._geometry import closest_sphere_intercept, closest_cylinder_intercept, closest_triangle_intercept
+from ._geometry import segment_intercepts_spheres
 from .align import align_points

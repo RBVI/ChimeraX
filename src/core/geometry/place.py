@@ -436,8 +436,10 @@ class Places:
             return Places(pp)
         else:
             v = places_or_vector
-            from numpy import stack
-            return stack(tuple(p*v for p in self))
+            a = self.array()
+            from numpy import array, float32, dot
+            v4 = array((v[0], v[1], v[2], 1.0), float32)
+            return dot(a, v4)
 
     def is_identity(self):
         return len(self) == 1 and self[0].is_identity()
