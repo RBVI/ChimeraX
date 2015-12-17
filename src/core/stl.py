@@ -140,6 +140,6 @@ def stl_geometry(nv):
 def register():
     from . import io
     io.register_format(
-        "StereoLithography", generic3d.CATEGORY, (".stl",),
+        "StereoLithography", generic3d.CATEGORY, (".stl",), ("stl",),
         reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",
         open_func=open)

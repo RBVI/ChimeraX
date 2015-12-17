@@ -45,7 +45,7 @@ def open_mmcif(session, filename, name, *args, **kw):
                        sum(m.num_bonds for m in models)))
 
 
-def fetch_mmcif(session, pdb_id):
+def fetch_mmcif(session, pdb_id, ignore_cache=False):
     if len(pdb_id) != 4:
         raise UserError("PDB identifiers are 4 characters long")
     import os
@@ -59,7 +59,8 @@ def fetch_mmcif(session, pdb_id):
     pdb_name = "%s.cif" % pdb_id.upper()
     url = "http://www.pdb.org/pdb/files/%s" % pdb_name
     from ..fetch import fetch_file
-    filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB')
+    filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
+                          ignore_cache=ignore_cache)
 
     from .. import io
     models, status = io.open_data(session, filename, format = 'mmcif', name = pdb_id)
@@ -108,8 +109,8 @@ def register_mmcif_format():
     #     mime=("chemical/x-cif"),
     #    reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
     io.register_format(
-        "mmCIF", structure.CATEGORY, (".cif",), ("mmcif", "cif"),
-        mime=("chemical/x-mmcif", "chemical/x-cif"),
+        "mmCIF", structure.CATEGORY, (".cif",), ("mmcif",),
+        mime=("chemical/x-mmcif",),
         reference="http://mmcif.wwpdb.org/",
         requires_filename=True, open_func=open_mmcif)
 

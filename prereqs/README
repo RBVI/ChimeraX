@@ -1,59 +1,66 @@
+Source packages and why they are in the repository
+
+Note this list is incomplete, since we use pip to install packages,
+and those packages may depend on packages not listed.
+
 PyOpenGL/
 	Python OpenGL, needed for graphics
 PyQt/
-	Python Qt library, NOT USED CURRENTLY
+	Python Qt library, NOT CURRENTLY USED
 Python/
 	Python source code, needed for main program
 expat/
-	???
+	used to build Python
 ffmpeg/
 	movie encoding executable, needed for videos
 glew/
-	???
+	OpenGL extension wrapper, NOT CURRRENTLY USED, since all OpenGL
+	is done via PyOopenGL, but something like this would needed for
+	C++ code
 hdf5/
 	hdf5 library, needed for volume data files
 imex/
-	???
+	boilerplate for exporting symbols from C/C++ libraries
 jpeg/
 	jpeg library, needed for image I/O
 Cython==0.23.1
 	Required by pytables which is the python interface to hdf5, for reading hdf5 density maps.
 Jinja2==2.8
-	???
+	used internally by Sphinx
 Pillow==3.0.0
 	saving images, read image stack volume data
 Pygments==2.0.2
-	???
+	Used by sphinx to highlight code
 Sphinx==1.3.1
 	documentation software, needed for documentation
 appdirs==1.4.0
-	???
+	cross-platform access to applicatin directories
 beautifulsoup4==4.4.0
-	???
+	used to convert HTML output to plain text for nogui mode
 blockdiag==1.5.3
-	???
+	to be able to put block diagrams in sphinx documentation
 colorama==0.3.3
-	???
+	color terminal output for nogui mode
 distlib==0.2.1
 	distribution library, needed for toolshed
 docutils==0.12
-	???
+	used by sphinx
 flake8==2.4.1
-	???
+	Python linting
 funcparserlib==0.3.6
-	???
+	used by blockdiag
 grako==3.6.3
-	???
+	parser generator used by atomspec
 leapmotion/
 	SDK for leap motion input device, NOT CURRENTLY USED
 line_profiler==1.0
-	???
+	used to profile python code, see ChimeraX application documentaion
 llvm/
 	Compiler libraries used by offscreen-mesa to compile opengl shaders for image rendering in nogui mode.
 markupsafe==0.23
-	???
+	used by jinja2 for sphinx
 mccabe==0.3.1
-	???
+	used by flake8 for linting Python
 mesa/
 	Off-screen rendering in nogui mode using OSMesa (off-screen mesa), only used on Linux
 networkx==1.10
@@ -67,15 +74,15 @@ numpydoc==0.5
 oculus/
 	Oculus Rift library, needed for Oculus
 openssl/
-	???
+	used to build Python
 p7zip/
-	???
+	used to unpack source distributions (on Mac), might provide lz compression
 pcre/
-	???
+	used for C++ regular expressions
 pep8-naming==0.3.3
-	???
+	used by flake8 for linting Python
 pep8==1.6.2
-	???
+	used by flake8 for linting Python
 pip==7.1.2
 	pip library, needed for toolshed
 pips/
@@ -85,15 +92,15 @@ pkgconfig/
 pycollada/
 	COLLADA library, needed to read cellPack surface files
 pyflakes==0.9.2
-	???
+	used by flake8 for linting Python
 pypiserver==1.1.7
 	pypi web server, needed for toolshed
 pytables/
 	tables library, python wrapper of hdf5, needed to read/write volume data
 pythomnic3k/
-	???
+	used for typechecking in llgr, NOT CURRENTLY USED
 python-dateutil==2.4.2
-	???
+	extends Python's datetime module, used by numpy/pycollada/matplotlib
 qt/
 	Qt window toolkit C++ library, NOT CURRENTLY USED
 setuptools/
@@ -101,27 +108,28 @@ setuptools/
 sip/
 	C++ to Python code wrapping used to build PyQt, NOT CURRENTLY USED
 six==1.9.0
-	???
+	Compatibility module for Python 2 and 3, used by wx/numpy/matplotlib
+	and more
 sortedcontainers==0.9.6
-	???
+	provides SortedDict
 sphinxcontrib-blockdiag==1.5.4
 	Block diagrams for sphinx, needed for documentation ???
 suds-jurko==0.6
 	SOAP library, needed for web services
 webcolors==1.5
-	???
+	used by blockdiag
 wheel==0.24.0
 	wheel distribution format, needed for toolshed
 wrappy3/
-	???
+	Python C++ wrapping, used by readcif
 wx/
 	wx toolkit, needed for GUI
 xdg-utils/
 	Required to build mesa, off-screen rendering.
 xml2/
-	XML C parser from xmlsoft.org, needed to compile xslt
+	XML C parser from xmlsoft.org, needed to compile xslt, NOT CURRENTLY USED
 xslt/
-	eXtensible Stylesheet Language Transformations, needed for ???
+	eXtensible Stylesheet Language Transformations, NOT CURRENTLY USED
 win32/
 	win32-specific files, needed for compilation on Windows, NOT CURRENTLY USED
 zlib/

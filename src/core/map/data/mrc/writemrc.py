@@ -94,9 +94,11 @@ def mrc2000_header(grid_data, value_type, stats = None):
     else:
         machst = 0x11110000
 
-    from .... import version
+#    from .... import version
+# TODO: Get ChimeraX version, currently not available.
+    version = '0.1'
     from time import asctime
-    ver_stamp = 'Hydra %s %s' % (version, asctime())
+    ver_stamp = 'ChimeraX %s %s' % (version, asctime())
     labels = [ver_stamp[:80]]
 
     if grid_data.rotation != ((1,0,0),(0,1,0),(0,0,1)):

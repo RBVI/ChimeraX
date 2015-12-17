@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def sym(session, molecules, assembly = None, clear = False, surface_only = False):
+def sym(session, molecules, assembly = None, clear = False,
+        surface_only = False, resolution = None):
     '''
     Show molecular assemblies of molecular models defined in mmCIF files.
     These can be subassemblies or symmetrical copies with individual chains 
@@ -19,6 +20,8 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
       Instead of showing instances of the molecule, show instances
       of surfaces of each chain.  The chain surfaces are computed if
       they do not already exist.
+    resolution : float
+      Resolution for computing surfaces when surface_only is true.
     '''
     for m in molecules:
         assem = pdb_assemblies(m)
@@ -42,19 +45,20 @@ def sym(session, molecules, assembly = None, clear = False, surface_only = False
                                 % (assembly, ', '.join(a.id for a in assem)))
             a = amap[assembly]
             if surface_only:
-                a.show_surfaces(m, session)
+                a.show_surfaces(m, resolution, session)
             else:
                 a.show(m, session)
 
 def register_command(session):
-    from . import cli
-    _sym_desc = cli.CmdDesc(
-        required = [('molecules', cli.AtomicStructuresArg)],
-        keyword = [('assembly', cli.StringArg),
-                   ('clear', cli.NoArg),
-                   ('surface_only', cli.NoArg)],
+    from . import CmdDesc, register, AtomicStructuresArg, StringArg, NoArg, FloatArg
+    _sym_desc = CmdDesc(
+        required = [('molecules', AtomicStructuresArg)],
+        keyword = [('assembly', StringArg),
+                   ('clear', NoArg),
+                   ('surface_only', NoArg),
+                   ('resolution', FloatArg)],
         synopsis = 'create model copies')
-    cli.register('sym', _sym_desc, sym)
+    register('sym', _sym_desc, sym)
 
 def pdb_assemblies(m):
     if not hasattr(m, 'filename') or not m.filename.endswith('.cif'):
@@ -151,10 +155,10 @@ class Assembly:
                         catoms.displays = True
             m.positions = ops
 
-    def show_surfaces(self, mol, session):
+    def show_surfaces(self, mol, res, session):
         included_atoms, excluded_atoms = self._partition_atoms(mol.atoms, self._chain_ids())
         from .surface import surface
-        surfs = surface(session, included_atoms)
+        surfs = surface(session, included_atoms, resolution = res)
         if len(excluded_atoms) > 0:
             surface(session, excluded_atoms, hide = True)
         for s in surfs:

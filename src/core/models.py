@@ -83,8 +83,9 @@ class Model(State, Drawing):
         return cls.__new__(cls)
 
     def restore_snapshot_init(self, session, bundle_info, version, data):
-        self.name, self.id = data
-        Drawing.__init__(self, self.name)
+        name, id = data
+        self.__init__(name, session)
+        self.id = id
 
     def reset_state(self, session):
         pass

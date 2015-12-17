@@ -64,7 +64,7 @@ def _find_named_color(color_dict, name):
 
 def html_color_swatch(color):
     return (
-        '<div style="width:1em; height:.6em; display:inline-block;'
+        '&nbsp;<div style="width:1em; height:.6em; display:inline-block;'
         ' border:1px solid #000; background-color:%s"></div>'
         % color.hex())
 
@@ -125,6 +125,7 @@ def delete_color(session, name):
         color_names = session.user_colors.list()
         for name in color_names:
             session.user_colors.remove(name)
+        return
     if name not in session.user_colors:
         from ..errors import UserError
         raise UserError('Unknown color %r' % name)
@@ -153,8 +154,9 @@ def list_colors(session, all=False):
             c = session.user_colors[n]
             msg += '%s %s' % (sep, escape(n)) + html_color_swatch(c)
             sep = ','
-        if len(color_names) > 1:
-            sep = ', and'
+        if len(color_names) > 0:
+            if sep:
+                sep = ', and'
             n = color_names[-1]
             c = session.user_colors[n]
             msg += '%s %s' % (sep, escape(n)) + html_color_swatch(c)

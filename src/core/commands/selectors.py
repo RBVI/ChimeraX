@@ -12,7 +12,8 @@ def register_core_selectors(session):
     reg(None, "helix", _helices_selector)
     reg(None, "coil", _coil_selector)
     reg(None, "protein", lambda s, m, r: _polymer_selector(m, r, True))
-    reg(None, "nucleic acid", lambda s, m, r: _polymer_selector(m, r, False))
+    reg(None, "nucleic", lambda s, m, r: _polymer_selector(m, r, False))
+    reg(None, "nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False))
     reg(None, "pbonds", _pbonds_selector)
     from ..atomic import Element
     for i in range(1, 115):

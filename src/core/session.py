@@ -571,51 +571,11 @@ def _initialize():
 _initialize()
 
 
-class Selection:
-
-    def __init__(self, all_models):
-        self._all_models = all_models
-
-    def all_models(self):
-        return self._all_models.list()
-
-    def models(self):
-        return [m for m in self.all_models() if m.any_part_selected()]
-
-    def items(self, itype):
-        si = []
-        for m in self.models():
-            s = m.selected_items(itype)
-            si.extend(s)
-        return si
-
-    def empty(self):
-        for m in self.all_models():
-            if m.any_part_selected():
-                return False
-        return True
-
-    def clear(self):
-        for m in self.models():
-            m.clear_selection()
-
-    def clear_hierarchy(self):
-        for m in self.models():
-            m.clear_selection_promotion_history()
-
-    def promote(self):
-        for m in self.models():
-            m.promote_selection()
-
-    def demote(self):
-        for m in self.models():
-            m.demote_selection()
-
-
 def common_startup(sess):
     """Initialize session with common data containers"""
     from .core_triggers import register_core_triggers
     register_core_triggers(sess.triggers)
+    from .selection import Selection
     sess.selection = Selection(sess.models)
     try:
         from .core_settings import settings

@@ -343,8 +343,15 @@ class Drawing:
     def fully_selected(self):
         '''Is the entire Drawing including children selected.'''
         sp = self._selected_positions
-        if sp is not None and sp.sum() == len(sp):
+        t = self.triangles
+        have_triangles = (t is not None and len(t) > 0)
+        if sp is None:
+            if have_triangles:
+                return False
+        elif sp.sum() == len(sp):
             return True
+        elif have_triangles:
+            return False
         for d in self.child_drawings():
             if not d.fully_selected():
                 return False
@@ -355,63 +362,6 @@ class Drawing:
         self.selected = False
         self.selected_triangles_mask = None
         self.redraw_needed(selection_changed=True)
-
-    def promote_selection(self):
-        '''
-        Select the next larger containing group.  If one child is
-        selected, then all become selected.
-        '''
-        pd = self._deepest_promotable_drawings()
-        if len(pd) == 0:
-            return
-
-        plevel = min(level for level, drawing in pd)
-        pdrawings = tuple(d for level, d in pd if level == plevel)
-        prevsel = tuple((d, d.selected_positions.copy()) for d in pdrawings)
-        if hasattr(self, 'promotion_tower'):
-            self.promotion_tower.append(prevsel)
-        else:
-            self.promotion_tower = [prevsel]
-        for d in pdrawings:
-            d.selected = True
-
-    # A drawing is promotable if some children are fully selected and others
-    # are unselected, or if some copies are selected and other copies are
-    # unselected.
-    def _deepest_promotable_drawings(self, level=0):
-
-        sp = self._selected_positions
-        if sp is not None:
-            ns = sp.sum()
-            if ns == len(sp):
-                return []         # Fully selected
-        cd = self.child_drawings()
-        if cd:
-            nfsel = [d for d in cd if not d.fully_selected()]
-            if nfsel:
-                pd = sum((d.promotable_drawings(level + 1) for d in nfsel), [])
-                if len(pd) == 0 and len(nfsel) < len(cd):
-                    pd = [(level + 1, d) for d in nfsel]
-                return pd
-        if sp is not None and ns < len(sp):
-            return [(level, self)]
-        return []
-
-    def demote_selection(self):
-        '''If the selection has previously been promoted, this returns
-        it to the previous smaller selection.'''
-        pt = getattr(self, 'promotion_tower', None)
-        if pt:
-            for d, sp in pt.pop():
-                d.selected_positions = sp
-
-    def clear_selection_promotion_history(self):
-        '''
-        Forget the selection history promotion history.
-        This is used when the selection is changed manually.
-        '''
-        if hasattr(self, 'promotion_tower'):
-            delattr(self, 'promotion_tower')
 
     def get_position(self):
         return self._positions[0]
@@ -424,13 +374,13 @@ class Drawing:
             self._displayed_positions = None
         self.redraw_needed(shape_changed=True)
 
+    position = property(get_position, set_position)
+    '''Position and orientation of the surface in space.'''
+
     @property
     def scene_position(self):
         from ..geometry import product
         return product([d.position for d in self.drawing_lineage])
-
-    position = property(get_position, set_position)
-    '''Position and orientation of the surface in space.'''
 
     def get_positions(self, displayed_only=False):
         if displayed_only:
@@ -767,11 +717,14 @@ class Drawing:
         dbounds = [d.bounds() for d in self.child_drawings() if d.display]
         if not self.empty_drawing():
             dbounds.append(self._geometry_bounds())
-        from ..geometry import bounds
-        b = bounds.union_bounds(dbounds)
+        if len(dbounds) == 1:
+            b = dbounds[0]
+        else:
+            from ..geometry import bounds
+            b = bounds.union_bounds(dbounds)
         if positions:
-            b = bounds.copies_bounding_box(
-                b, self.get_positions(displayed_only=True))
+            from ..geometry import bounds
+            b = bounds.copies_bounding_box(b, self.get_positions(displayed_only=True))
         return b
 
     def _geometry_bounds(self):
@@ -855,14 +808,25 @@ class Drawing:
             if fmin is not None:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
-            # TODO: This will be very slow for large numbers of copies.
+            # Only check objects with bounding box close to line. 
+            b = self.bounds(positions = False)
+            if b is None:
+                return None
+            c, r = b.center(), b.radius()
+            pos = self.positions
+            pc = pos * c
+            from ..geometry import segment_intercepts_spheres
+            bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
             dp = self._displayed_positions
-            for c, tf in enumerate(self.positions):
-                if dp is None or dp[c]:
-                    cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-                    fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
-                    if fmin is not None and (p is None or fmin < p.distance):
-                        p = TrianglePick(fmin, tmin, c, self)
+            if dp:
+                from numpy import logical_and
+                logical_and(bi, dp, bi)
+
+            for i in bi.nonzero()[0]:
+                cxyz1, cxyz2 = pos[i].inverse() * (mxyz1, mxyz2)
+                fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
+                if fmin is not None and (p is None or fmin < p.distance):
+                    p = TrianglePick(fmin, tmin, i, self)
         return p
 
     def delete(self):
@@ -912,7 +876,7 @@ class Drawing:
     _effects_buffers = set(
         ('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
          'triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
-         '_edge_mask', '_triangle_mask', '_selected_triangles_mask'))
+         '_edge_mask', '_triangle_mask', '_selected_triangles_mask', '_selected_positions'))
 
     EDGE0_DISPLAY_MASK = 1
     ALL_EDGES_DISPLAY_MASK = 7

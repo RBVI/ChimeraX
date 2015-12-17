@@ -7,7 +7,7 @@ def fetch_file(session, url, name, save_name, save_dir, uncompress = False,
     filename = "%s/%s/%s" % (cache_dir, save_dir, save_name)
     from os.path import expanduser, exists, dirname
     filename = expanduser(filename)
-    if exists(filename):
+    if not ignore_cache and exists(filename):
         return filename
 
     dirname = dirname(filename)
@@ -195,10 +195,15 @@ def fetch_databases(session):
 
 # -----------------------------------------------------------------------------
 #
-def fetch_from_database(session, from_database, id, format=None, name=None):
+def database_formats(session, from_database):
+    return fetch_databases(session)[from_database].fetch_function.keys()
+
+# -----------------------------------------------------------------------------
+#
+def fetch_from_database(session, from_database, id, format=None, name=None, ignore_cache=False):
     d = fetch_databases(session)
     df = d[from_database]
-    models, status = df.fetch(session, id, format=format)
+    models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache)
     if name is not None:
         for m in models:
             m.name = name
@@ -230,7 +235,7 @@ class DatabaseFetch:
     def add_format(self, format_name, fetch_function):
 	# fetch_function() takes session and database id arguments, returns model list.
         self.fetch_function[format_name] = fetch_function
-    def fetch(self, session, database_id, format=None):
+    def fetch(self, session, database_id, format=None, ignore_cache=False):
         f = self.default_format if format is None else format
         fetch = self.fetch_function[f]
-        return fetch(session, database_id)
+        return fetch(session, database_id, ignore_cache=ignore_cache)

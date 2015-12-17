@@ -3,6 +3,11 @@
 TOP	= ../..
 include $(TOP)/mk/config.make
 
+ifeq ($(OS),Linux)
+# need root CAs for Python index to download
+export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+endif
+
 # You can set these variables from the command line.
 SPHINXOPTS    =
 ifdef USE_MAC_FRAMEWORKS

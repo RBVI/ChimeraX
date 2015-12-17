@@ -43,6 +43,8 @@ static struct PyMethodDef geometry_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, closest_triangle_intercept_doc},
   {const_cast<char*>("closest_sphere_intercept"), (PyCFunction)closest_sphere_intercept,
    METH_VARARGS|METH_KEYWORDS, closest_sphere_intercept_doc},
+  {const_cast<char*>("segment_intercepts_spheres"), (PyCFunction)segment_intercepts_spheres,
+   METH_VARARGS|METH_KEYWORDS, segment_intercepts_spheres_doc},
   {const_cast<char*>("closest_cylinder_intercept"), (PyCFunction)closest_cylinder_intercept,
    METH_VARARGS|METH_KEYWORDS, closest_cylinder_intercept_doc},
 
