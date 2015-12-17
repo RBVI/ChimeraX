@@ -307,6 +307,13 @@ class BaseSpheres(type):
                     { 'astype': containers_collective, 'read_only': True },
                     "Returns {} :class:`.{}` for each {}. Read only."
                     .format(container_prep, container_class, sphere)),
+                ('hides', None, (int32,), {},
+                    "Controls whether the {} is hidden (overrides display). "
+                    "Returns a :mod:`numpy` array of int32 values.  Possible values:\n"
+                    "HIDE_RIBBON\n"
+                    "    Hide mask for backbone atoms in ribbon.\n"
+                    "Can be set with such an array (or equivalent sequence), or with a "
+                    "single integer value.".format(name)),
                 ('radii', None, (float32,), {},
                     "Returns a :mod:`numpy` array of radii.  Can be "
                     "set with such an array (or equivalent sequence), or with a single "
@@ -489,10 +496,11 @@ class Atoms(Collection, metaclass=BaseSpheres):
     @property
     def shown_atoms(self):
         '''
-        Subset of Atoms including atoms that are displayed with
-        displayed structure and displayed parents.
+        Subset of Atoms including atoms that are displayed or "hidden"
+        because ribbon is displayed with displayed structure and displayed parents.
         '''
-        da = self.filter(self.displays | self.residues.ribbon_displays)
+        from .molobject import Atom
+        da = self.filter(self.displays | (self.hides == Atom.HIDE_RIBBON))
         datoms = concatenate([a for m, a in da.by_structure
                               if m.display and m.parents_displayed], Atoms)
         return datoms
