@@ -109,6 +109,7 @@ PyObject *c_array_to_python(const double *values, int size0, int size1);
 //
 // Create an uninitialized Numpy array.
 //
+PyObject *python_bool_array(int size, unsigned char **data = NULL);
 PyObject *python_uint8_array(int size, unsigned char **data = NULL);
 PyObject *python_uint8_array(int size1, int size2, unsigned char **data = NULL);
 PyObject *python_char_array(int size1, int size2, char **data = NULL);
