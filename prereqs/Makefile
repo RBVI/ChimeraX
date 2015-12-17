@@ -33,7 +33,8 @@ endif
 
 ifeq ($(OS),Darwin)
 NEED_OPENSSL=1
-SUBDIRS += leapmotion oculus
+#SUBDIRS += leapmotion
+SUBDIRS += oculus
 endif
 
 ifeq ($(OS),Linux)
