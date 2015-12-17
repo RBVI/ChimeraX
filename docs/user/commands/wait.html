@@ -27,6 +27,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 <i>wait-frames</i> before allowing execution of the next command in a script.
 It can also be used to generate duplicate image frames in movies
 (like <a href="movie.html#duplicate"><b>movie duplicate</b></a>).
+See also: <a href="stop.html"><b>stop</b></a>
 </p>
 
 <h4><a name="ordered">Ordered Command Execution</a></h4>
@@ -36,13 +37,14 @@ Following certain multi-frame commands,
 of frames for the command to finish (see the
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/wait.html#whichcmds">Chimera list</a>
 of such commands; other commands require the number to be given explicitly).
-In the following example, <b>wait</b> prevents <b>move</b>
-from starting until <b>roll</b> has finished:
+In the following example, <b>wait</b> prevents 
+<a href="move.html"><b>move</b></a>
+from starting until <a href="roll.html"><b>roll</b></a> has finished:
 </p>
 <blockquote>
-<b>roll y 3 120</b>
+<b><a href="roll.html">roll</a> y 3 120</b>
 <br><b>wait</b>
-<br><b>move x 0.2 75</b>
+<br><b><a href="move.html">move</a> x 0.2 75</b>
 </blockquote>
 <p>
 It is also acceptable to give the frame argument where it could have been

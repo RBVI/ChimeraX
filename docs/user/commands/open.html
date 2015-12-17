@@ -40,7 +40,9 @@ The command <b>open</b> reads <a href="#local">local files</a> and
 fetches <a href="#fetch">data from the Web</a>.
 Input files may contain 3D data to be displayed, 
 or commands or code to be executed.
-See also: <b>list</b>, <a href="close.html"><b>close</b></a>
+See also: <b>list</b>, 
+<a href="close.html"><b>close</b></a>,
+<a href="save.html"><b>save</b></a>
 </p><p>
 Any resulting model in ChimeraX is automatically assigned a model ID number,
 starting with #1. The name of the model (shown in the <b>Model Panel</b>)
@@ -71,6 +73,8 @@ Examples:
 <p>
 A local file is opened if its <i>filename</i> 
 (a pathname, including directory location) is supplied. 
+The pathname can be absolute or relative to the working directory
+reported by the command <b>pwd</b>.
 The file format can be indicated with either the
 <i>filename</i> suffix or the <b>format</b> option:
 </p>
