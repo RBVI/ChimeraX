@@ -57,6 +57,18 @@ public:
     static int  session_num_ints() {
         return SESSION_NUM_INTS + Rgba::session_num_ints();
     }
+    void  session_restore(int** ints, float** floats) {
+        _rgba.session_restore(ints, floats);
+        auto& int_ptr = *ints;
+        _display = int_ptr[0];
+        _hide = int_ptr[1];
+        _halfbond = int_ptr[2];
+        int_ptr += SESSION_NUM_INTS;
+
+        auto& float_ptr = *floats;
+        _radius = float_ptr[0];
+        float_ptr += SESSION_NUM_FLOATS;
+    }
     void  session_save(int** ints, float** floats) const {
         _rgba.session_save(ints, floats);
         auto& int_ptr = *ints;

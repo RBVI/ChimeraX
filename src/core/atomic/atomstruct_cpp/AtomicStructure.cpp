@@ -1406,6 +1406,30 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         auto a = new_atom(aname, Element::get_element(*element_ints++));
         a->session_restore(&int_array, &float_array, PyList_GET_ITEM(atoms_misc, i++));
     }
+
+    // bonds
+    PyObject* bond_ints = PyList_GET_ITEM(ints, 2);
+    iarray = Numeric_Array();
+    if (!array_from_python(bond_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Bond int data is not a one-dimensional"
+            " numpy int array");
+    int_array = static_cast<int*>(iarray.values());
+    auto num_bonds = *int_array++;
+    auto bond_index_ints = int_array;
+    int_array += 2 * num_bonds;
+    PyObject* bond_floats = PyList_GET_ITEM(floats, 2);
+    farray = Numeric_Array();
+    if (!array_from_python(bond_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Bond float data is not a one-dimensional"
+            " numpy float array");
+    float_array = static_cast<float*>(farray.values());
+    for (i = 0; i < num_bonds; ++i) {
+        Atom *a1 = atoms()[*bond_index_ints++];
+        Atom *a2 = atoms()[*bond_index_ints++];
+        auto b = new_bond(a1, a2);
+        b->session_restore(&int_array, &float_array);
+    }
+
 }
 
 void
