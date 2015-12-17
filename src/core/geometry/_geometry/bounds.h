@@ -17,6 +17,8 @@ PyObject *sphere_axes_bounds(PyObject *, PyObject *args, PyObject *keywds);
 PyObject *spheres_in_bounds(PyObject *, PyObject *args, PyObject *keywds);
 // bounds_overlap(bounds1, bounds2, padding) -> true/false
 PyObject *bounds_overlap(PyObject *, PyObject *args, PyObject *keywds);
+// points_within_planes(points, planes) -> point mask
+PyObject *points_within_planes(PyObject *, PyObject *args, PyObject *keywds);
 }
 
 #endif
