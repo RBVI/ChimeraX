@@ -252,9 +252,9 @@ class Drawing:
         dp = self._displayed_positions
         if dp is None:
             from numpy import empty, bool
-            self._displayed_positions = dp = empty((len(self._positions),),
-                                                   bool)
+            dp = empty((len(self._positions),), bool)
         dp[:] = display
+        self._displayed_positions = dp		# Need this to trigger buffer update
         self._any_displayed_positions = display
         self.redraw_needed(shape_changed=True)
         self.__class__.triggers.activate_trigger('display changed', self)
@@ -270,14 +270,14 @@ class Drawing:
         dp = self._displayed_positions
         if ((position_mask is None and dp is None) or
             (position_mask is not None and dp is not None and
-             array_equal(position_mask, dp))):
+             position_mask is not dp and array_equal(position_mask, dp))):
             return
         self._displayed_positions = position_mask
         self._any_displayed_positions = (position_mask.sum() > 0)
         self.redraw_needed(shape_changed=True)
 
     display_positions = property(get_display_positions, set_display_positions)
-    '''Mask specifying which copies are displayed.'''
+    '''Mask specifying which copies are displayed. Can be None meaning all positions displayed'''
 
     @property
     def parents_displayed(self):
@@ -834,6 +834,11 @@ class Drawing:
                 from .. import geometry
                 pmask = geometry.points_within_planes(pc, planes)
                 if pmask.sum() > 0:
+                    dp = self.display_positions
+                    if dp is not None:
+                        # Pick displayed positions only
+                        from numpy import logical_and
+                        logical_and(pmask, dp, pmask)
                     picks.append(InstancePick(pmask, self))
         for d in self.child_drawings():
             picks.extend(d.planes_pick(planes, exclude))
