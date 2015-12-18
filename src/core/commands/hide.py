@@ -31,9 +31,20 @@ def hide(session, objects=None, what=None):
         res = objects.atoms.unique_residues
         res.ribbon_displays = False
     elif what == 'models':
-        for m in objects.models:
-            m.display = False
-
+        minst = objects.model_instances
+        if minst:
+            from numpy import logical_and, logical_not
+            for m,inst in minst.items():
+                dp = m.display_positions
+                ninst = logical_not(inst)
+                if dp is None:
+                    dp = ninst
+                else:
+                    logical_and(dp, ninst, dp)
+                m.display_positions = dp
+        else:
+            for m in objects.models:
+                m.display = False
 
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, create_alias

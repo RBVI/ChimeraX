@@ -67,46 +67,24 @@ def show(session, objects=None, what=None, only=False):
             other_res.ribbon_displays = False
     elif what == 'models':
         models = objects.models
-        for m in models:
-            m.display = True
+        minst = objects.model_instances
+        if minst:
+            for m,inst in minst.items():
+                dp = m.display_positions
+                if dp is None or only:
+                    dp = inst
+                else:
+                    from numpy import logical_or
+                    logical_or(dp, inst, dp)
+                m.display_positions = dp
+        else:
+            for m in models:
+                m.display = True
         if only:
             mset = set(models)
             for m in session.models.list():
                 if m not in mset:
                     m.display = False
-
-def hide(session, objects=None, what=None):
-    '''Hide specified atoms, bonds or models.
-
-    Parameters
-    ----------
-    objects : Objects or None
-        Atoms, bonds or models to hide. If None then all are hidden.
-    what : 'atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons', 'models' or None
-        What to hide.  If None then 'atoms' if any atoms specified otherwise 'models'.
-    '''
-    if objects is None:
-        from . import atomspec
-        objects = atomspec.all_objects(session)
-
-    if what is None:
-        what = 'atoms' if objects.atoms else 'models'
-
-    if what == 'atoms':
-        objects.atoms.displays = False
-    elif what == 'bonds':
-        atoms = objects.atoms
-        atoms.inter_bonds.displays = False
-    elif what in ('pseudobonds', 'pbonds'):
-        from .. import atomic
-        pbonds = atomic.interatom_pseudobonds(objects.atoms, session)
-        pbonds.displays = False
-    elif what == 'cartoons' or what == 'ribbons':
-        res = objects.atoms.unique_residues
-        res.ribbon_displays = False
-    elif what == 'models':
-        for m in objects.models:
-            m.display = False
 
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, NoArg, create_alias
