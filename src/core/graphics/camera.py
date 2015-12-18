@@ -110,6 +110,31 @@ class Camera:
         '''
         return (None, None)
 
+    def rectangle_bounding_planes(self, corner1, corner2, window_size):
+        '''
+        Planes as 4-vectors bounding the view through a window rectangle.
+        Rectangle diagonally opposite corners are given by corner1 and corner2
+        in pixels, and window size is in pixels.
+        '''
+        x1, y1 = corner1
+        x2, y2 = corner2
+        corners = [(x1,y1), (x2,y1), (x2,y2), (x1,y2)]
+        clockwise = ((x2 > x1) != (y1 > y2))
+        if not clockwise:
+            corners.reverse()
+        dirs = []
+        for x,y in corners:
+            origin, direction = self.ray(x, y, window_size)	# Scene coords
+            if origin is None:
+                return [] # Camera does not support ray calculation
+            dirs.append(direction)
+        d1,d2,d3,d4 = dirs
+        o = origin
+        faces = ((o,o+d1,o+d2), (o,o+d2,o+d3), (o,o+d3,o+d4), (o,o+d4,o+d1))
+        from .. import geometry
+        planes = geometry.planes_as_4_vectors(faces)
+        return planes
+
     def set_special_render_modes(self, render):
         '''
         Set any special rendering options needed by this camera.
