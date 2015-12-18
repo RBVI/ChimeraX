@@ -823,6 +823,42 @@ class AtomicStructure(AtomicStructureData, Model):
                         pclosest = PickedResidue(triangle_range.residue, p.distance)
         return pclosest
 
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and hasattr(self, exclude):
+            return []
+
+        p = self._atoms_planes_pick(planes)
+        return p
+
+    def _atoms_planes_pick(self, planes):
+        d = self._atoms_drawing
+        if d is None or not d.display:
+            return []
+
+        xyz = d.positions.shift_and_scale_array()[:,:3]
+        dp = d.display_positions
+        if dp is not None:
+            xyz = xyz[dp,:]
+
+        picks = []
+        from .. import geometry
+        pmask = geometry.points_within_planes(xyz, planes)
+        if pmask.sum() == 0:
+            return []
+
+        a = self.atoms
+        if not dp is None:
+            anum = dp.nonzero()[0][pmask]    # Remap index to include undisplayed positions
+            atoms = a.filter(anum)
+        else:
+            atoms = a.filter(pmask)
+
+        p = PickedAtoms(atoms)
+
+        return [p]
+
     def set_selected(self, sel):
         self.atoms.selected = sel
         Model.set_selected(self, sel)
@@ -1163,6 +1199,22 @@ class PickedAtom(Pick):
     def select(self, toggle = False):
         a = self.atom
         a.structure.select_atom(a, toggle)
+
+# -----------------------------------------------------------------------------
+#
+class PickedAtoms(Pick):
+    def __init__(self, atoms):
+        Pick.__init__(self)
+        self.atoms = atoms
+    def description(self):
+        return '%d atoms' % len(self.atoms)
+    def select(self, toggle = False):
+        a = self.atoms
+        if toggle:
+            from numpy import logical_not
+            a.selected = logical_not(a.selected)
+        else:
+            a.selected = True
 
 # -----------------------------------------------------------------------------
 #
