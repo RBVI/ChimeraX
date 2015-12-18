@@ -78,7 +78,8 @@ class Collection:
     '''
     Base class of all molecular data collections that provides common
     methods such as length, iteration, indexing with square brackets,
-    intersection, union, subtracting, and filtering.
+    intersection, union, subtracting, and filtering.  By design, a
+    Collection is immutable.
     '''
     def __init__(self, pointers, object_class, objects_class):
         if pointers is None:
@@ -145,6 +146,10 @@ class Collection:
         eliminating all duplicates.'''
         return self.subtract(objects)
 
+    def copy(self):
+        '''Shallow copy, since Collections are immutable.'''
+        return self._objects_class(self._pointers)
+
     def intersect(self, objects):
         '''Return a new collection that is the intersection with the *objects* :class:`.Collection`.'''
         import numpy
@@ -168,15 +173,16 @@ class Collection:
         iarray = empty((n,), npy_bool)
         f(pointer(arrays), n, pointer(sizes), self._c_pointers, len(self), pointer(iarray))
         return iarray
-    def filter(self, mask):
+    def filter(self, mask_or_indices):
         '''Return a subset of the collection as a new collection.
 
         Parameters
         ----------
-        mask : numpy bool array
-          Array length must match the length of the collection.
+        mask_or_indices : numpy bool array (mask) or int array (indices)
+          Bool length must match the length of the collection and filters out items where
+          the bool array is False.
         '''
-        return self._objects_class(self._pointers[mask])
+        return self._objects_class(self._pointers[mask_or_indices])
     def mask(self, objects):
         '''Return bool array indicating for each object in current set whether that
         object appears in the argument objects.'''

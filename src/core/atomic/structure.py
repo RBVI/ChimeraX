@@ -100,10 +100,34 @@ class AtomicStructure(AtomicStructureData, Model):
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
             elif self.num_chains < 5:
                 lighting = "default"
-                atoms.displays = False
                 from .molobject import Atom, Bond
                 atoms.draw_modes = Atom.STICK_STYLE
-                self.residues.ribbon_displays = True
+                from ..colors import element_colors
+                het_atoms = atoms.filter(atoms.element_numbers != 6)
+                het_atoms.colors = element_colors(het_atoms.element_numbers)
+                ribbonable = self.chains.existing_residues
+                # 10 residues or less is basically a trivial depiction if ribboned
+                if len(ribbonable) > 10:
+                    atoms.displays = False
+                    ligand = atoms.filter(atoms.structure_categories == "ligand").residues
+                    ribbonable -= ligand
+                    metal_atoms = atoms.filter(atoms.elements.is_metal)
+                    metal_atoms.draw_modes = Atom.SPHERE_STYLE
+                    ligand |= metal_atoms.residues
+                    display = ligand
+                    pas = ribbonable.existing_principal_atoms
+                    nucleic = pas.residues.filter(pas.names != "CA")
+                    display |= nucleic
+                    if ligand:
+                        # show residues interacting with ligand
+                        lig_points = ligand.atoms.coords
+                        mol_points = atoms.coords
+                        from ..geometry import find_closest_points
+                        close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
+                        display |= atoms.filter(close_indices).residues
+                    display.atoms.displays = True
+                    ribbonable.ribbon_displays = True
+
             elif self.num_chains < 250:
                 lighting = "full"
                 from ..colors import chain_colors
