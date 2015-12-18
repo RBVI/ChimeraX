@@ -1065,6 +1065,8 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     r.draw_front_buffer(True)
     r.enable_depth_test(False)
     r.enable_xor(True)
+    rdc = r.disable_capabilities
+    r.disable_capabilities = rdc | r.SHADER_CLIP_PLANES
 
     w, h = r.render_size()
     from .camera import ortho
@@ -1072,6 +1074,7 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
 
     d.draw(r, p0, d.OPAQUE_DRAW_PASS)
 
+    r.disable_capabilities = rdc
     r.enable_xor(False)
     r.enable_depth_test(True)
     r.draw_front_buffer(False)
