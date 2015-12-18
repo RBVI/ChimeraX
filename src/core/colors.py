@@ -58,7 +58,7 @@ class UserColors(SortedDict, State):
         del self[key]
 
 
-class Color:
+class Color(State):
     """Basic color support.
 
     The color components are stored as a 4-element float32 numpy array
@@ -146,6 +146,16 @@ class Color:
             return False
         import numpy
         return not numpy.array_equal(self.rgba, other.rgba)
+
+    def take_snapshot(self, session, flags):
+        data = self.rgba
+        return CORE_STATE_VERSION, data
+
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        self.__init__(data, limit=False)
+
+    def reset_state(self, session):
+        pass
 
     def opaque(self):
         """Return if the color is opaque."""
