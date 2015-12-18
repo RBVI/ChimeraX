@@ -410,7 +410,7 @@ class Drawing:
 
     color = property(get_color, set_color)
     '''Single color of drawing used when per-vertex coloring is not
-    specified.'''
+    specified, 0-255 red, green, blue, alpha values.'''
 
     def get_colors(self):
         return self._colors
@@ -695,7 +695,8 @@ class Drawing:
 
     def bounds(self, positions=True):
         '''
-        The bounds of drawing and displayed children and displayed positions.
+        The bounds of drawing and displayed children and displayed positions
+        in the parent model coordinate system.
         '''
         dbounds = [d.bounds() for d in self.child_drawings() if d.display]
         if not self.empty_drawing():
@@ -712,7 +713,8 @@ class Drawing:
 
     def _geometry_bounds(self):
         '''
-        Return the bounds of the drawing not including positions nor children.
+        Return the bounds of the drawing not including positions nor children
+        in this drawing's coordinate system.
         '''
         cb = self._cached_bounds
         if cb is not None:
@@ -792,7 +794,7 @@ class Drawing:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
             # Only check objects with bounding box close to line. 
-            b = self.bounds(positions = False)
+            b = self._geometry_bounds()
             if b is None:
                 return None
             c, r = b.center(), b.radius()
@@ -801,7 +803,7 @@ class Drawing:
             from ..geometry import segment_intercepts_spheres
             bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
             dp = self._displayed_positions
-            if dp:
+            if dp is not None:
                 from numpy import logical_and
                 logical_and(bi, dp, bi)
 
@@ -811,6 +813,31 @@ class Drawing:
                 if fmin is not None and (p is None or fmin < p.distance):
                     p = TrianglePick(fmin, tmin, i, self)
         return p
+
+    def planes_pick(self, planes, exclude=None):
+        '''
+        Find the displayed drawing instances bounded by the specified planes
+        for this drawing and its children.  Each plane is a 4-vector.
+        Return a list of Pick objects for the contained items.
+        This routine is used for selecting objects in a frustum.
+        '''
+        if not self.display:
+            return []
+        if exclude is not None and hasattr(self, exclude):
+            return []
+
+        picks = []
+        if not self.empty_drawing():
+            b = self._geometry_bounds()
+            if b:
+                pc = self.positions * b.center()
+                from .. import geometry
+                pmask = geometry.points_within_planes(pc, planes)
+                if pmask.sum() > 0:
+                    picks.append(InstancePick(pmask, self))
+        for d in self.child_drawings():
+            picks.extend(d.planes_pick(planes, exclude))
+        return picks
 
     def delete(self):
         '''
@@ -1008,6 +1035,45 @@ def draw_outline(renderer, cvinv, drawings):
     r.finish_rendering_outline()
 
 
+def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
+    '''Draw rectangle outline on front buffer using xor mode.'''
+
+    if drawing is None:
+        d = Drawing('selection drag box')
+        from numpy import array, int32, uint8
+        d.triangles = array(((0,1,2), (0,2,3)), int32)
+        d.edge_mask = array((3, 6), uint8)
+        d.display_style = d.Mesh
+        d.use_lighting = False
+    else:
+        d = drawing
+
+    from numpy import array, float32
+    d.vertices = array(((x1, y1, 0), (x2, y1, 0), (x2, y2, 0), (x1, y2, 0)), float32)
+    d.color = color
+
+    r = renderer
+    from ..geometry import identity
+    p0 = identity()
+    r.set_view_matrix(p0)
+
+    r.draw_front_buffer(True)
+    r.enable_depth_test(False)
+    r.enable_xor(True)
+
+    w, h = r.render_size()
+    from .camera import ortho
+    r.set_projection_matrix(ortho(0, w, 0, h, -1, 1))
+
+    d.draw(r, p0, d.OPAQUE_DRAW_PASS)
+
+    r.enable_xor(False)
+    r.enable_depth_test(True)
+    r.draw_front_buffer(False)
+    r.flush()
+
+    return d
+
 def _element_type(display_style):
     from .opengl import Buffer
     if display_style == Drawing.Solid:
@@ -1204,7 +1270,7 @@ class Pick:
     '''
     A picked object returned by first_intercept() method of the Drawing class.
     '''
-    def __init__(self, distance):
+    def __init__(self, distance = None):
         self.distance = distance
 
     def description(self):
@@ -1268,6 +1334,43 @@ class TrianglePick(Pick):
             pmask = zeros((len(d.positions),), bool)
         c = self._copy
         pmask[c] = not pmask[c] if toggle else 1
+        d.selected_positions = pmask
+
+class InstancePick(Pick):
+    '''
+    A picked triangle of a drawing.
+    '''
+    def __init__(self, pmask, drawing):
+        Pick.__init__(self)
+        self._positions_mask = pmask
+        self._drawing = drawing
+
+    def description(self):
+        desc = self._drawing.name
+        pm = self._posititions_mask
+        np = pm.sum()
+        if np < len(pm):
+            desc += ', %d of %d instances' % (np, len(pm))
+        return desc
+
+    def id_string(self):
+        d = self.drawing()
+        return d.id_string() if hasattr(d, 'id_string') else '?'
+
+    def drawing(self):
+        return self._drawing
+
+    def select(self, toggle=False):
+        d = self.drawing()
+        pmask = d.selected_positions
+        pm = self._positions_mask
+        if pmask is None:
+            pmask = pm
+        elif toggle:
+            from numpy import logical_xor
+            logical_xor(pmask, pm, pmask)
+        else:
+            pmask = pm
         d.selected_positions = pmask
 
 

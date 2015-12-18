@@ -238,6 +238,12 @@ class View:
 
         return True
 
+    def draw_xor_rectangle(self, x1, y1, x2, y2, color):
+        self._use_opengl()
+        d = getattr(self, '_rectangle_drawing', None)
+        from .drawing import draw_xor_rectangle
+        self._rectangle_drawing = draw_xor_rectangle(self._render, x1, y1, x2, y2, color, d)
+
     @property
     def shape_changed(self):
         return self._drawing_manager.shape_changed
@@ -753,6 +759,26 @@ class View:
         f = p.distance
         p.position = (1.0 - f) * xyz1 + f * xyz2
         return p
+
+    def rectangle_intercept(self, win_x1, win_y1, win_x2, win_y2):
+        '''
+        Return a Pick object for the objects in the rectangle having
+        corners at the given screen window position (specified in pixels).
+        '''
+        xa,xb = min(win_x1, win_x2), max(win_x1, win_x2)
+        ya,yb = max(win_y1, win_y2), min(win_y1, win_y2) # Window y is opposite graphics y axis.
+        n1,f1 = self.clip_plane_points(xa,ya)
+        n2,f2 = self.clip_plane_points(xb,ya)
+        n3,f3 = self.clip_plane_points(xb,yb)
+        n4,f4 = self.clip_plane_points(xa,yb)
+
+        if n1 is None:
+            return []
+        faces = ((n1,n2,f1), (n2,n3,f2), (n3,n4,f3), (n4,n1,f4), (n1,n4,n2), (f1,f2,f4))
+        from .. import geometry
+        planes = geometry.planes_as_4_vectors(faces)
+        picks = self.drawing.planes_pick(planes, exclude='is_outline_box')
+        return picks
 
     def _update_projection(self, view_num=None, camera=None):
 
