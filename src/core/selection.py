@@ -27,7 +27,7 @@ class Selection:
         for m in self.models():
             m.clear_selection()
 
-    def clear_hierarchy(self):
+    def clear_promotion_history(self):
         self._promotion.clear_selection_promotion_history()
 
     def promote(self):
