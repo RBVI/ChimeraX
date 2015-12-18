@@ -15,16 +15,17 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01):
         for d in drawings:
             # Clip only drawings that have "clip_cap" attribute true.
             if (hasattr(d, 'clip_cap') and d.clip_cap and
-                d.triangles is not None and not hasattr(d, 'is_clip_cap')):
+                d.triangles is not None and not hasattr(d, 'clip_cap_owner')):
                 varray, narray, tarray = compute_cap(d, p, offset)
                 set_cap_drawing_geometry(d, p.name, varray, narray, tarray)
 
     # Remove caps for clip planes that are gone.
-    cap_names = set('cap ' + p.name for p in planes)
-    for d in drawings:
-        if hasattr(d, 'is_clip_cap') and d.name not in cap_names:
-            delattr(d.is_clip_cap, '_clip_cap_drawing_%s' % p.name)
-            d.parent.remove_drawing(d)
+    plane_names = set(p.name for p in planes)
+    for cap in drawings:
+        if hasattr(cap, 'clip_cap_owner') and cap.clip_plane_name not in plane_names:
+            d = cap.clip_cap_owner
+            del d._clip_cap_drawings[cap.clip_plane_name]
+            cap.parent.remove_drawing(cap)
 
 def compute_cap(drawing, plane, offset):
     # Undisplay cap for drawing with no geometry shown.
@@ -115,7 +116,9 @@ def concatenate_geometry(geom):
 def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
     d = drawing
     # Set cap drawing geometry.
-    mcap = getattr(d, '_clip_cap_drawing_%s' % plane_name, None)     # Find cap drawing
+    if not hasattr(d, '_clip_cap_drawings'):
+        d._clip_cap_drawings = {}
+    mcap = d._clip_cap_drawings.get(plane_name, None)     # Find cap drawing
     if varray is None:
         if mcap:
             mcap.display = False
@@ -129,7 +132,9 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
             cm = d.new_drawing(cap_name)
         else:
             cm = d.parent.new_drawing(cap_name)
-        cm.is_clip_cap = d
+        cm.clip_plane_name = plane_name
+        cm.clip_cap_owner = d
+        d._clip_cap_drawings[plane_name] = cm
     cm.vertices = varray
     cm.triangles = tarray
     cm.normals = narray
