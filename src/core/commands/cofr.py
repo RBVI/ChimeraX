@@ -12,7 +12,7 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None)
     ----------
     method : string
       "front center" or "fixed" specifies how the center of rotation point is defined.
-    objects : AtomSpecResults
+    objects : Objects
       Set the method to "fixed" and use the center of the bounding box of these objects
       as the pivot point.
     pivot : 3 floats

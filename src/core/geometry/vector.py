@@ -64,3 +64,19 @@ def ray_segment(origin, direction, clip_planes):
                 f1 = f if f1 is None else min(f1, f)
     return f0, f1
 
+
+def planes_as_4_vectors(triangles):
+    '''
+    Represent the plane of a triangle specified by 3 points
+    as a 4-vector where the first 3 components are the normal
+    and the 4th is an offset so that the equation of the plane
+    is (v0,v1,v2,v3)*(x,y,z,1) = 0.
+    '''
+    n = len(triangles)
+    from numpy import empty, float32
+    p = empty((n,4), float32)
+    for i, (a,b,c) in enumerate(triangles):
+        n = normalize_vector(cross_product(b-a, c-a))
+        p[i,:3] = n
+        p[i,3] = -inner_product(n,a)
+    return p

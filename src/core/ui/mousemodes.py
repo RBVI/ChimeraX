@@ -376,14 +376,71 @@ class SelectMouseMode(MouseMode):
     name = 'select'
     icon_file = 'select.png'
 
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+
+        self.minimum_drag_pixels = 5
+        self.drag_color = (0,255,0,255)	# Green
+        self._drawn_rectangle = None
+
     def mouse_down(self, event):
-        mouse_select(event, self.session, self.view)
+        MouseMode.mouse_down(self, event)
+
+    def mouse_drag(self, event):
+        if self._is_drag(event):
+            self._undraw_drag_rectangle()
+            self._draw_drag_rectangle(event)
+
+    def mouse_up(self, event):
+        self._undraw_drag_rectangle()
+        if self._is_drag(event):
+            # Select objects in rectangle
+            mouse_drag_select(self.mouse_down_position, event, self.session, self.view)
+        else:
+            # Select object under pointer
+            mouse_select(event, self.session, self.view)
+        MouseMode.mouse_up(self, event)
+
+    def _is_drag(self, event):
+        dp = self.mouse_down_position
+        if dp is None:
+            return False
+        dx,dy = dp
+        x, y = event.position()
+        mp = self.minimum_drag_pixels
+        return abs(x-dx) > mp or abs(y-dy) > mp
+
+    def _draw_drag_rectangle(self, event):
+        dx,dy = self.mouse_down_position
+        x, y = event.position()
+        v = self.session.main_view
+        w,h = v.window_size
+        v.draw_xor_rectangle(dx, h-dy, x, h-y, self.drag_color)
+        self._drawn_rectangle = (dx,dy), (x,y)
+
+    def _undraw_drag_rectangle(self):
+        dr = self._drawn_rectangle
+        if dr:
+            (dx,dy), (x,y) = dr
+            v = self.session.main_view
+            w,h = v.window_size
+            v.draw_xor_rectangle(dx, h-dy, x, h-y, self.drag_color)
+            self._drawn_rectangle = None
 
 def mouse_select(event, session, view):
-
     x,y = event.position()
     pick = view.first_intercept(x,y)
     toggle = event.shift_down()
+    select_pick(session, pick, toggle)
+
+def mouse_drag_select(start_xy, event, session, view):
+    sx, sy = start_xy
+    x,y = event.position()
+    pick = view.rectangle_intercept(sx,sy,x,y)
+    toggle = event.shift_down()
+    select_pick(session, pick, toggle)
+
+def select_pick(session, pick, toggle):
     sel = session.selection
     if pick is None:
         if not toggle:
@@ -392,8 +449,12 @@ def mouse_select(event, session, view):
     else:
         if not toggle:
             sel.clear()
-        pick.select(toggle)
-    sel.clear_hierarchy()
+        if isinstance(pick, list):
+            for p in pick:
+                p.select(toggle)
+        else:
+            pick.select(toggle)
+    sel.clear_promotion_history()
 
 class RotateMouseMode(MouseMode):
     '''

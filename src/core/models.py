@@ -193,7 +193,9 @@ class Models(State):
                 m.added_to_session(session)
             session.triggers.activate_trigger(ADD_MODELS, m_all)
             if start_count == 0 and len(self._models) > 0:
-                session.main_view.initial_camera_view()
+                v = session.main_view
+                v.initial_camera_view()
+                v.clip_planes.clear()	# Turn of clipping
 
         return m_all
 

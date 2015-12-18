@@ -3,11 +3,10 @@
 atomspec: atom specifier cli annotation and evaluation
 ======================================================
 
-The 'atomspec' module provides three classes:
+The 'atomspec' module provides two classes:
 
 - AtomSpecArg : command line argument annotation class.
 - AtomSpec : atom specifier class.
-- AtomSpecResults : atom specifier evaluation results class.
 
 AtomSpecArg is a cli type annotation and is used to describe an
 argument of a function that is registered with the cli module.  When
@@ -15,9 +14,9 @@ the registered function is called, the argument corresponding to
 the AtomSpecArg is an instance of AtomSpec, which contains a parsed
 version of the input atom specifier.  The model elements (atoms,
 bonds, models, etc) that match an AtomSpec may be found by calling
-the 'evaluate' method which returns an instance of AtomSpecResults.
+the 'evaluate' method which returns an instance of Objects.
 Each type of model elements may be accessed as an attribute of the
-AtomSpecResults instance.
+Objects instance.
 
 Selectors
 ---------
@@ -27,7 +26,7 @@ atom specifier.  The selectors may either be global (e.g., chemical
 groups) or session-specific (e.g., active site).  The selector
 name may appear wherever a model, residue or atom string does.
 The selector function is called when the atom specifier is
-evaluated and is expected to fill in an AtomSpecResults instance.
+evaluated and is expected to fill in an Objects instance.
 
 Example
 -------
@@ -545,7 +544,8 @@ class _ZoneSelector:
     def find_sub_parts(self, session, model, results):
         if self.model is None:
             return
-        my_results = AtomSpecResults()
+        from ..objects import Objects
+        my_results = Objects()
         self.model.find_sub_parts(session, model, my_results)
         # TODO: expand my_results before combining with results
         results.combine(my_results)
@@ -560,8 +560,9 @@ class _Term:
         return str(self._specifier)
 
     def evaluate(self, session, models):
-        """Return AtomSpecResults for model elements that match."""
-        results = AtomSpecResults()
+        """Return Objects for model elements that match."""
+        from ..objects import Objects
+        results = Objects()
         self._specifier.find_matches(session, models, results)
         return results
 
@@ -617,7 +618,7 @@ class AtomSpec:
 
         Returns
         -------
-        AtomSpecResults instance
+        Objects instance
             Instance containing data (atoms, bonds, etc) that match
             this atom specifier.
         """
@@ -629,102 +630,17 @@ class AtomSpec:
         elif self._operator == '|':
             left_results = self._left_spec.evaluate(session, models)
             right_results = self._right_spec.evaluate(session, models)
-            results = AtomSpecResults._union(left_results, right_results)
+            from ..objects import Objects
+            results = Objects.union(left_results, right_results)
         elif self._operator == '&':
             left_results = self._left_spec.evaluate(session, models)
             right_results = self._right_spec.evaluate(session, models)
-            results = AtomSpecResults._intersect(left_results, right_results)
+            from ..objects import Objects
+            results = Objects.intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
         return results
 
-
-class AtomSpecResults:
-    """AtomSpecResults store evaluation results from AtomSpec.
-
-    An AtomSpecResults instance, returned by calls to
-    'AtomSpec.evaluate', keeps track of model elements that
-    match the atom specifier.
-
-    Parameters
-    ----------
-    models : readonly list of chimerax.core.models.Model
-        List of models that matches the atom specifier
-    """
-    def __init__(self, atoms = None, models = None):
-        self._models = set() if models is None else set(models)
-        from ..atomic import Atoms
-        self._atoms = Atoms() if atoms is None else atoms
-
-    def add_model(self, m):
-        """Add model to atom spec results."""
-        self._models.add(m)
-
-    def add_atoms(self, atom_blob):
-        """Add atoms to atom spec results."""
-        self._atoms = self._atoms | atom_blob
-
-    def combine(self, other):
-        for m in other.models:
-            self.add_model(m)
-        self.add_atoms(other.atoms)
-
-    def invert(self, session, models):
-        from ..atomic import Atoms, AtomicStructure
-        atoms = Atoms()
-        imodels = set()
-        for m in models:
-            if isinstance(m, AtomicStructure):
-                if m in self._models:
-                    # Was selected, so invert model atoms
-                    keep = m.atoms - self._atoms
-                else:
-                    # Was not selected, so include all atoms
-                    keep = m.atoms
-                if len(keep) > 0:
-                    atoms = atoms | keep
-                    imodels.add(m)
-            elif m not in self._models:
-                imodels.add(m)
-        self._atoms = atoms
-        self._models = imodels
-
-    @property
-    def models(self):
-        return self._models
-
-    @property
-    def atoms(self):
-        return self._atoms
-
-    @staticmethod
-    def _union(left, right):
-        atom_spec = AtomSpecResults()
-        atom_spec._models = left._models | right._models
-        atom_spec._atoms = right._atoms.merge(left._atoms)
-        return atom_spec
-
-    @staticmethod
-    def _intersect(left, right):
-        atom_spec = AtomSpecResults()
-        atom_spec._models = left._models & right._models
-        atom_spec._atoms = right._atoms & left._atoms
-        return atom_spec
-
-    def empty(self):
-        return len(self._atoms) == 0 and len(self._models) == 0
-
-    def displayed(self):
-        '''Return AtomSpecResults containing only displayed atoms and models.'''
-	# Displayed models
-        dmodels = set(m for m in self.models if m.display and m.parents_displayed)
-        return AtomSpecResults(self.atoms.shown_atoms, dmodels)
-
-    def bounds(self):
-        from ..atomic import AtomicStructure
-        bm = [m.bounds() for m in self.models if not isinstance(m, AtomicStructure)]
-        from ..geometry import union_bounds
-        return union_bounds(bm + [self.atoms.scene_bounds])
 #
 # Selector registration and use
 #
@@ -759,7 +675,7 @@ def register_selector(session, name, func):
     func : callable object
         Selector evaluation function, called as 'func(session, models, results)'
         where 'models' are chimerax.core.models.Model instances and
-        'results' is an AtomSpecResults instance.
+        'results' is an Objects instance.
 
     """
     if not name[0].isalpha():
@@ -841,5 +757,5 @@ def everything(session):
     return AtomSpecArg.parse('#*', session)[0]
 
 def all_objects(session):
-    '''Return AtomSpecResults that matches everything.'''
+    '''Return Objects that matches everything.'''
     return everything(session).evaluate(session)

@@ -5,14 +5,14 @@ def select(session, objects=None, add=None, subtract=None, intersect=None, clear
 
     Parameters
     ----------
-    objects : AtomSpecResults
+    objects : Objects
       Select the specified objects (typically atoms). If no specifier is given then everything is selected.
       The current selection is replaced.
-    add : AtomSpecResults
+    add : Objects
       Modify the current selection by adding the specified objects.
-    subtract : AtomSpecResults
+    subtract : Objects
       Modify the current selection by unselecting the specified objects.
-    intersect : AtomSpecResults
+    intersect : Objects
       Modify the current selection keeping only those among the specified objects selected.
     clear : no value
       Clear the selection.

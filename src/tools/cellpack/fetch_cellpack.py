@@ -18,7 +18,7 @@ def fetch_cellpack(session, cellpack_id, database = default_autopack_database, i
 # -----------------------------------------------------------------------------
 #
 def fetch_autopack(session, path, results_name, database = default_autopack_database,
-                   ignore_cache = False, check_certificates = False):
+                   ignore_cache = False):
 
     from . import read_apr
     recipe_loc, pieces = read_apr.read_autopack_results(path)
@@ -27,7 +27,7 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
     recipe_filename = basename(recipe_loc)
     from chimerax.core.fetch import fetch_file
     recipe_path = fetch_file(session, recipe_url, 'recipe for ' + results_name, recipe_filename, 'cellPACK',
-                             ignore_cache=ignore_cache, check_certificates=check_certificates)
+                             ignore_cache=ignore_cache)
 
     ingr_filenames, comp_surfaces = read_apr.read_autopack_recipe(recipe_path)
 
@@ -43,14 +43,14 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
             comp_url = comp_loc.replace('autoPACKserver', database)
             comp_filename = basename(comp_loc)
             comp_path = fetch_file(session, comp_url, 'compartment surface ' + comp_filename, comp_filename, 'cellPACK',
-                                   ignore_cache=ignore_cache, check_certificates=check_certificates)
+                                   ignore_cache=ignore_cache)
             slist, msg = read_collada_surfaces(session, comp_path, 'representation')
             csurf.add(slist)
         if geom_loc is not None:
             geom_url = geom_loc.replace('autoPACKserver', database)
             geom_filename = basename(geom_loc)
             geom_path = fetch_file(session, geom_url, 'compartment bounds ' + geom_filename, geom_filename, 'cellPACK',
-                                   ignore_cache=ignore_cache, check_certificates=check_certificates)
+                                   ignore_cache=ignore_cache)
             slist, msg = read_collada_surfaces(session, geom_path, 'geometry')
             for s in slist:
                 s.display = False
@@ -70,12 +70,12 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
             from urllib.parse import urljoin
             ingr_url = urljoin(recipe_url, ingr_filename)
             ingr_path = fetch_file(session, ingr_url, 'ingredient ' + ingr_filename, ingr_filename, 'cellPACK',
-                                   ignore_cache=ignore_cache, check_certificates=check_certificates)
+                                   ignore_cache=ignore_cache)
             mesh_loc = read_apr.read_ingredient(ingr_path)
             mesh_url = mesh_loc.replace('autoPACKserver', database)
             mesh_filename = basename(mesh_loc)
             mesh_path = fetch_file(session, mesh_url, 'mesh ' + mesh_filename, mesh_filename, 'cellPACK',
-                                   ignore_cache=ignore_cache, check_certificates=check_certificates)
+                                   ignore_cache=ignore_cache)
             ingr_mesh_path[ingr_filename] = mesh_path
 
         comp_name, interior_or_surf, ingr_name = ingr_id
@@ -94,7 +94,7 @@ def fetch_autopack(session, path, results_name, database = default_autopack_data
 # Fetch AutoPack results files
 #
 def fetch_autopack_results(session, results_name, database = default_autopack_database,
-                           ignore_cache = False, check_certificates = False):
+                           ignore_cache = False):
 
     # Fetch results file.
     results_url = database + '/results/%s.apr.json' % results_name
@@ -102,7 +102,7 @@ def fetch_autopack_results(session, results_name, database = default_autopack_da
     results_filename = results_name + '.apr.json'
     from chimerax.core.fetch import fetch_file
     results_path = fetch_file(session, results_url, 'results ' + results_name, results_filename, 'cellPACK',
-                              ignore_cache=ignore_cache, check_certificates=check_certificates)
+                              ignore_cache=ignore_cache)
     return results_path
 
 # -----------------------------------------------------------------------------

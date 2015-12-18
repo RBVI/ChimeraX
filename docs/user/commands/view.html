@@ -46,11 +46,14 @@ positions of any models that have been moved separately.
 See also: <a href="cofr.html"><b>cofr</b></a>,
 <a href="position.html"><b>position</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
-<b>camera</b>
+<b>camera</b>,
+<b>clip</b>
 </p><p>
-The <b>view</b> command translates the scene and zooms in or out
-as needed to include the displayed parts of the specified items.
-If nothing is specified, all displayed items will be included.
+The <b>view</b> command translates the scene, zooms in or out,
+and places the global (near/far) clipping planes to bracket the
+displayed parts of the specified items.
+If nothing is specified, all displayed items will be included
+and global clipping deactivated.
 The <b>orient</b> option additionally rotates the scene to a
 standard orientation with X-axis horizontal increasing rightward,
 Y-axis vertical increasing upward,

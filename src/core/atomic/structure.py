@@ -100,10 +100,34 @@ class AtomicStructure(AtomicStructureData, Model):
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
             elif self.num_chains < 5:
                 lighting = "default"
-                atoms.displays = False
                 from .molobject import Atom, Bond
                 atoms.draw_modes = Atom.STICK_STYLE
-                self.residues.ribbon_displays = True
+                from ..colors import element_colors
+                het_atoms = atoms.filter(atoms.element_numbers != 6)
+                het_atoms.colors = element_colors(het_atoms.element_numbers)
+                ribbonable = self.chains.existing_residues
+                # 10 residues or less is basically a trivial depiction if ribboned
+                if len(ribbonable) > 10:
+                    atoms.displays = False
+                    ligand = atoms.filter(atoms.structure_categories == "ligand").residues
+                    ribbonable -= ligand
+                    metal_atoms = atoms.filter(atoms.elements.is_metal)
+                    metal_atoms.draw_modes = Atom.SPHERE_STYLE
+                    ligand |= metal_atoms.residues
+                    display = ligand
+                    pas = ribbonable.existing_principal_atoms
+                    nucleic = pas.residues.filter(pas.names != "CA")
+                    display |= nucleic
+                    if ligand:
+                        # show residues interacting with ligand
+                        lig_points = ligand.atoms.coords
+                        mol_points = atoms.coords
+                        from ..geometry import find_closest_points
+                        close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
+                        display |= atoms.filter(close_indices).residues
+                    display.atoms.displays = True
+                    ribbonable.ribbon_displays = True
+
             elif self.num_chains < 250:
                 lighting = "full"
                 from ..colors import chain_colors
@@ -840,6 +864,42 @@ class AtomicStructure(AtomicStructureData, Model):
                         pclosest = PickedResidue(triangle_range.residue, p.distance)
         return pclosest
 
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and hasattr(self, exclude):
+            return []
+
+        p = self._atoms_planes_pick(planes)
+        return p
+
+    def _atoms_planes_pick(self, planes):
+        d = self._atoms_drawing
+        if d is None or not d.display:
+            return []
+
+        xyz = d.positions.shift_and_scale_array()[:,:3]
+        dp = d.display_positions
+        if dp is not None:
+            xyz = xyz[dp,:]
+
+        picks = []
+        from .. import geometry
+        pmask = geometry.points_within_planes(xyz, planes)
+        if pmask.sum() == 0:
+            return []
+
+        a = self.atoms
+        if not dp is None:
+            anum = dp.nonzero()[0][pmask]    # Remap index to include undisplayed positions
+            atoms = a.filter(anum)
+        else:
+            atoms = a.filter(pmask)
+
+        p = PickedAtoms(atoms)
+
+        return [p]
+
     def set_selected(self, sel):
         self.atoms.selected = sel
         Model.set_selected(self, sel)
@@ -898,17 +958,9 @@ class AtomicStructure(AtomicStructureData, Model):
             if c.any_part_selected():
                 return True
         return False
-
-    def fully_selected(self):
-        a = self.atoms
-        if a.num_selected < len(a):
-            return False
-        for c in self.child_models():
-            if not c.fully_selected():
-                return False
-        return True
         
     def clear_selection(self):
+        self.selected = False
         self.atoms.selected = False
         self._selection_changed()
 
@@ -934,7 +986,7 @@ class AtomicStructure(AtomicStructureData, Model):
         ares = in1d(rids, sel_rids)
         if ares.sum() > n:
             # Promote to entire residues
-            level = 1
+            level = 1003
             psel = ares
         else:
             from numpy import array
@@ -943,11 +995,11 @@ class AtomicStructure(AtomicStructureData, Model):
             ac = in1d(cids, sel_cids)
             if ac.sum() > n:
                 # Promote to entire chains
-                level = 2
+                level = 1002
                 psel = ac
             else:
                 # Promote to entire molecule
-                level = 3
+                level = 1001
                 ac[:] = True
                 psel = ac
 
@@ -1164,10 +1216,10 @@ class LevelOfDetail:
 
 # -----------------------------------------------------------------------------
 #
-from ..selection import IntraModelSelectionPromotion
-class PromoteAtomSelection(IntraModelSelectionPromotion):
+from ..selection import SelectionPromotion
+class PromoteAtomSelection(SelectionPromotion):
     def __init__(self, structure, level, atom_sel_mask, prev_sel_mask):
-        IntraModelSelectionPromotion.__init__(self, level)
+        SelectionPromotion.__init__(self, level)
         self._structure = structure
         self._atom_sel_mask = atom_sel_mask
         self._prev_sel_mask = prev_sel_mask
@@ -1188,6 +1240,22 @@ class PickedAtom(Pick):
     def select(self, toggle = False):
         a = self.atom
         a.structure.select_atom(a, toggle)
+
+# -----------------------------------------------------------------------------
+#
+class PickedAtoms(Pick):
+    def __init__(self, atoms):
+        Pick.__init__(self)
+        self.atoms = atoms
+    def description(self):
+        return '%d atoms' % len(self.atoms)
+    def select(self, toggle = False):
+        a = self.atoms
+        if toggle:
+            from numpy import logical_not
+            a.selected = logical_not(a.selected)
+        else:
+            a.selected = True
 
 # -----------------------------------------------------------------------------
 #

@@ -23,6 +23,7 @@ static struct PyMethodDef geometry_cpp_methods[] =
   {const_cast<char*>("sphere_axes_bounds"), (PyCFunction)sphere_axes_bounds, METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("spheres_in_bounds"), (PyCFunction)spheres_in_bounds, METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("bounds_overlap"), (PyCFunction)bounds_overlap, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("points_within_planes"), (PyCFunction)points_within_planes, METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* closepoints.h */
   {const_cast<char*>("find_close_points"), (PyCFunction)find_close_points,

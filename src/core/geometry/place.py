@@ -368,10 +368,18 @@ class Places:
     def array(self):
         pa = self._place_array
         if pa is None:
-            from numpy import array, float32
-            self._place_array = pa = array(tuple(p.matrix
-                                                 for p in self._place_list),
-                                           float32)
+            if self._place_list is not None:
+                from numpy import array, float32
+                pa = array(tuple(p.matrix for p in self._place_list), float32)
+                self._place_array = pa
+            elif self._shift_and_scale is not None:
+                sas = self._shift_and_scale
+                from numpy import empty, float32
+                pa = empty((len(sas), 3, 4), float32)
+                pa[:,:,3] = sas[:,:3]
+                pa[:,0,0] = pa[:,1,1] = pa[:,2,2] = sas[:,3]
+            elif self._opengl_array is not None:
+                pa = self._opengl_array.transpose((0,2,1))[:,:3,:]
         return pa
 
     def masked(self, mask):

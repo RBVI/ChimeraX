@@ -377,7 +377,7 @@ class Render:
         if color is not None:
             self.single_color = color
         p = self.current_shader_program
-        if p is not None:
+        if p is not None and not (self.SHADER_VERTEX_COLORS & p.capabilities):
             p.set_rgba("color", self.single_color)
 
     def set_ambient_texture_transform(self, tf):
@@ -536,6 +536,19 @@ class Render:
         GL.glBlendFunc(GL.GL_CONSTANT_COLOR, GL.GL_ONE)
         GL.glEnable(GL.GL_BLEND)
 
+    def enable_xor(self, enable):
+        if enable:
+            GL.glLogicOp(GL.GL_XOR)
+            GL.glEnable(GL.GL_COLOR_LOGIC_OP)
+        else:
+            GL.glDisable(GL.GL_COLOR_LOGIC_OP)
+
+    def flush(self):
+        GL.glFlush()
+
+    def draw_front_buffer(self, front):
+        GL.glDrawBuffer(GL.GL_FRONT if front else GL.GL_BACK)
+
     def draw_transparent(self, draw_depth, draw):
         '''
         Render using single-layer transparency. This is a two-pass
@@ -690,7 +703,9 @@ class Render:
         self.push_framebuffer(mfb)
         self.set_background_color((0, 0, 0, 0))
         self.draw_background()
-        # Use flat single color rendering.
+        # Use unlit single color for drawing mask.
+        # Outline code requires non-zero red component.
+        self.set_single_color((1,0,0,1))	
         self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS
                                          | self.SHADER_TEXTURE_2D
                                          | self.SHADER_TEXTURE_CUBEMAP

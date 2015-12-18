@@ -621,6 +621,20 @@ PyObject *c_array_to_python(const int *data, int size0, int size1)
 
 // ----------------------------------------------------------------------------
 //
+PyObject *python_bool_array(int size, unsigned char **data)
+{
+  initialize_numpy();       // required before using NumPy.
+
+  int dimensions[1] = {size};
+  PyObject *a = allocate_python_array(1, dimensions, NPY_BOOL);
+  if (a && data)
+    *data = (unsigned char *)PyArray_DATA((PyArrayObject *)a);
+
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
 PyObject *python_uint8_array(int size, unsigned char **data)
 {
   initialize_numpy();       // required before using NumPy.

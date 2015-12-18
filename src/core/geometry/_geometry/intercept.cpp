@@ -322,7 +322,7 @@ PyObject *segment_intercepts_spheres(PyObject *, PyObject *args, PyObject *keywd
 
   int n = centers.size(0);
   unsigned char *intercept;
-  PyObject *ipy = python_uint8_array(n, &intercept);
+  PyObject *ipy = python_bool_array(n, &intercept);
   segment_intercepts_spheres(centers.values(), n, centers.stride(0), centers.stride(1),
 			     radius, xyz1, xyz2, intercept);
   return ipy;
