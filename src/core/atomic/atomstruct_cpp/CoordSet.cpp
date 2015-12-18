@@ -45,6 +45,31 @@ CoordSet::get_occupancy(const Atom *a) const
 }
 
 void
+CoordSet::session_restore(int** ints, float** floats)
+{
+    auto& int_ptr = *ints;
+    auto& float_ptr = *floats;
+
+    auto& atoms = structure()->atoms();
+
+    auto num_bfactor = *int_ptr++;
+    for (decltype(num_bfactor) i = 0; i < num_bfactor; ++i) {
+        _bfactor_map[atoms[*int_ptr++]] = *float_ptr++;
+    }
+
+    auto num_occupancy = *int_ptr++;
+    for (decltype(num_occupancy)i = 0; i < num_occupancy; ++i) {
+        _occupancy_map[atoms[*int_ptr++]] = *float_ptr++;
+    }
+
+    auto num_coords = *int_ptr++;
+    for (decltype(num_coords)i = 0; i < num_coords; ++i) {
+        _coords.emplace_back(float_ptr[0], float_ptr[1], float_ptr[2]);
+        float_ptr += 3;
+    }
+}
+
+void
 CoordSet::session_save(int** ints, float** floats) const
 {
     auto& int_ptr = *ints;

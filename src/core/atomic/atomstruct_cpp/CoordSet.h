@@ -39,6 +39,7 @@ public:
         return _bfactor_map.size() + _occupancy_map.size() + 3 * _coords.size();
     }
     int  session_num_ints() const { return _bfactor_map.size() + _occupancy_map.size() + 3; }
+    void  session_restore(int** ints, float** floats);
     void  session_save(int** ints, float** floats) const;
     void  set_bfactor(const Atom *, float);
     void  set_occupancy(const Atom *, float);

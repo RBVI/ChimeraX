@@ -1008,7 +1008,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     *int_array++ = _idatm_valid;
     int x = std::find(_coord_sets.begin(), _coord_sets.end(), _active_coord_set)
         - _coord_sets.begin();
-    *int_array++ = x; // can be size+1 if active coord set is null
+    *int_array++ = x; // can be == size if active coord set is null
     *int_array++ = asterisks_translated;
     *int_array++ = _display;
     *int_array++ = is_traj;
@@ -1430,6 +1430,31 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         b->session_restore(&int_array, &float_array);
     }
 
+    // coord sets
+    PyObject* cs_ints = PyList_GET_ITEM(ints, 3);
+    iarray = Numeric_Array();
+    if (!array_from_python(cs_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Coord set int data is not a one-dimensional"
+            " numpy int array");
+    int_array = static_cast<int*>(iarray.values());
+    auto num_cs = *int_array++;
+    auto cs_id_ints = int_array;
+    int_array += num_cs;
+    PyObject* cs_floats = PyList_GET_ITEM(floats, 3);
+    farray = Numeric_Array();
+    if (!array_from_python(cs_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Coord set float data is not a one-dimensional"
+            " numpy float array");
+    float_array = static_cast<float*>(farray.values());
+    for (i = 0; i < num_cs; ++i) {
+        auto cs = new_coord_set(*cs_id_ints++, atom_names.size());
+        cs->session_restore(&int_array, &float_array);
+    }
+    // can now resolve the active coord set
+    if ((CoordSets::size_type)active_cs < _coord_sets.size())
+        _active_coord_set = _coord_sets[active_cs];
+    else
+        _active_coord_set = nullptr;
 }
 
 void
