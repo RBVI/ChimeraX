@@ -172,8 +172,8 @@ def show(models, session):
         m.display = True
 
 def view(models, session):
-    from chimerax.core.commands import AtomSpecResults
-    view_objects = AtomSpecResults(models=models)
+    from chimerax.core.objects import Objects
+    view_objects = Objects(models=models)
     for model in models:
         if getattr(model, 'atoms', None):
             view_objects.add_atoms(model.atoms)

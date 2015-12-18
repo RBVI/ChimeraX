@@ -5,7 +5,7 @@ def show(session, objects=None, what=None, only=False):
 
     Parameters
     ----------
-    objects : AtomSpecResults or None
+    objects : Objects or None
         Atoms, bonds or models to show.  If None then all are shown.
         Objects that are already shown remain shown.
     what : 'atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons', 'models' or None
@@ -80,7 +80,7 @@ def hide(session, objects=None, what=None):
 
     Parameters
     ----------
-    objects : AtomSpecResults or None
+    objects : Objects or None
         Atoms, bonds or models to hide. If None then all are hidden.
     what : 'atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons', 'models' or None
         What to hide.  If None then 'atoms' if any atoms specified otherwise 'models'.
