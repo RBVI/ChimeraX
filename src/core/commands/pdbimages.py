@@ -103,9 +103,9 @@ def run(session, cmd_text):
     cmd.execute()
 
 def register_command(session):
-    from . import CmdDesc, StringArg, IntArg, ListOf, register
+    from . import CmdDesc, StringArg, SaveFolderNameArg, IntArg, ListOf, register
     desc = CmdDesc(
-        optional = [('directory', StringArg)],
+        optional = [('directory', SaveFolderNameArg)],
         keyword = [('width', IntArg),
                    ('height', IntArg),
                    ('supersample', IntArg),

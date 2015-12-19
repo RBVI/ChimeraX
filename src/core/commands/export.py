@@ -12,6 +12,6 @@ def export(session, filename, **kw):
 
 def register_command(session):
     from . import cli
-    desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
+    desc = cli.CmdDesc(required=[('filename', cli.SaveFileNameArg)],
                        synopsis='export data in format matching filename suffix')
     cli.register('export', desc, export)

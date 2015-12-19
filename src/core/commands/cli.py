@@ -609,6 +609,21 @@ class StringArg(Annotation):
         token, text, rest = next_token(text)
         return token, text, rest
 
+class FileNameArg(Annotation):
+    """Base class for Open/SaveFileNameArg"""
+    name = "file name"
+
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = StringArg.parse(text, session)
+        import os.path
+        return os.path.expanduser(token), text, rest
+
+# In the future when/if "browse" is supported as a file name,
+# Open/SaveFileNameArg may be different.  If/when that time
+# comes, the "name" class attr may also be made more specfic 
+OpenFileNameArg = SaveFileNameArg = OpenFolderNameArg = SaveFolderNameArg = FileNameArg
+
 
 class AxisArg(Annotation):
     '''Annotation for axis vector that can be 3 floats or "x", or "y", or "z"
