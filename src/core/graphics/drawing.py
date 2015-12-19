@@ -150,6 +150,7 @@ class Drawing:
         self._shader_opt = None                 # Cached shader options
         self._vertex_buffers = []               # Buffers used by both drawing and selection
 
+        self.pickable = True	# Whether first_intercept() and planes_pick() will consider this drawing
         self.was_deleted = False
         "Indicates whether this Drawing has been deleted."
 
@@ -778,7 +779,7 @@ class Drawing:
         return pclosest
 
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
-        if self.empty_drawing():
+        if self.empty_drawing() or not self.pickable:
             return None
         va = self.vertices
         ta = self.masked_triangles
@@ -827,7 +828,7 @@ class Drawing:
             return []
 
         picks = []
-        if not self.empty_drawing():
+        if not self.empty_drawing() and self.pickable:
             from ..geometry import points_within_planes
             if len(self.positions) > 1:
                 # Use center of instances.
