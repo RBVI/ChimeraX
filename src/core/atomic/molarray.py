@@ -64,8 +64,6 @@ def _atomic_structures(p):
     return AtomicStructures(p)
 def _atomic_structure_datas(p):
     return AtomicStructureDatas(p)
-def _residues(p):
-    return Residues(p)
 def _atoms_pair(p):
     return (Atoms(p[:,0].copy()), Atoms(p[:,1].copy()))
 def _pseudobond_group_map(a):
@@ -692,7 +690,10 @@ class Residues(Collection):
 
     Collection of C++ residue objects.
     '''
-    def __init__(self, residue_pointers = None):
+    def __init__(self, residue_pointers = None, residues = None):
+        if residues is not None:
+            # Extract C pointers from list of Python Residue objects.
+            residue_pointers = array([r._c_pointer.value for r in residues], cptr)
         Collection.__init__(self, residue_pointers, molobject.Residue, Residues)
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False)
