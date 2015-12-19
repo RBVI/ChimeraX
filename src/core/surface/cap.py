@@ -5,7 +5,7 @@ def update_clip_caps(view):
     for p in planes:
         p.update_direction(cpos)
     update = (cp.changed or (view.shape_changed and planes))
-    # TODO: Don't update caps if shape change is drawing that does not show caps.
+    # TODO: Update caps only on specific drawings whose shape changed.
     if update:
         drawings = view.drawing.all_drawings()
         show_surface_clip_caps(planes, drawings)
@@ -76,10 +76,12 @@ def compute_instances_cap(drawing, triangles, plane, offset):
     b = d.bounds(positions = False)
     if b is None:
         return None, None
-    dpos = positions_intersecting_box(d.positions, b, parent_ppoint, parent_pnormal)
-    if len(dpos) == 0:
+        
+    dpos = d.positions.masked(d.display_positions)
+    ipos = box_positions_intersecting_plane(dpos, b, parent_ppoint, parent_pnormal)
+    if len(ipos) == 0:
         return None, None
-    for pos in dpos:
+    for pos in ipos:
         pinv = pos.inverse()
         pnormal = pinv.apply_without_translation(parent_pnormal)
         from ..geometry import inner_product
@@ -91,7 +93,7 @@ def compute_instances_cap(drawing, triangles, plane, offset):
     varray, tarray = concatenate_geometry(geom)
     return varray, tarray
 
-def positions_intersecting_box(positions, b, origin, normal):
+def box_positions_intersecting_plane(positions, b, origin, normal):
     c, r = b.center(), b.radius()
     pc = positions * c
     pc -= origin
