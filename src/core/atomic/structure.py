@@ -969,22 +969,30 @@ class AtomicStructure(AtomicStructureData, Model):
         ares = in1d(rids, sel_rids)
         if ares.sum() > n:
             # Promote to entire residues
-            level = 1003
+            level = 1004
             psel = ares
         else:
-            from numpy import array
-            cids = array(r.chain_ids)
-            sel_cids = unique(cids[asel])
-            ac = in1d(cids, sel_cids)
-            if ac.sum() > n:
-                # Promote to entire chains
-                level = 1002
-                psel = ac
+            ssids = r.secondary_structure_ids
+            sel_ssids = unique(ssids[asel])
+            ass = in1d(ssids, sel_ssids)
+            if ass.sum() > n:
+                # Promote to secondary structure
+                level = 1003
+                psel = ass
             else:
-                # Promote to entire molecule
-                level = 1001
-                ac[:] = True
-                psel = ac
+                from numpy import array
+                cids = array(r.chain_ids)
+                sel_cids = unique(cids[asel])
+                ac = in1d(cids, sel_cids)
+                if ac.sum() > n:
+                    # Promote to entire chains
+                    level = 1002
+                    psel = ac
+                else:
+                    # Promote to entire molecule
+                    level = 1001
+                    ac[:] = True
+                    psel = ac
 
         return PromoteAtomSelection(self, level, psel, asel)
 
