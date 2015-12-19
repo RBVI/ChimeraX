@@ -132,6 +132,7 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
             cm = d.new_drawing(cap_name)
         else:
             cm = d.parent.new_drawing(cap_name)
+            cm.pickable = False	  # Don't want pick of one cap to pick all instance caps.
         cm.clip_plane_name = plane_name
         cm.clip_cap_owner = d
         d._clip_cap_drawings[plane_name] = cm
