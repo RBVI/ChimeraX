@@ -828,18 +828,33 @@ class Drawing:
 
         picks = []
         if not self.empty_drawing():
-            b = self._geometry_bounds()
-            if b:
-                pc = self.positions * b.center()
-                from .. import geometry
-                pmask = geometry.points_within_planes(pc, planes)
-                if pmask.sum() > 0:
-                    dp = self.display_positions
-                    if dp is not None:
-                        # Pick displayed positions only
-                        from numpy import logical_and
-                        logical_and(pmask, dp, pmask)
-                    picks.append(InstancePick(pmask, self))
+            from ..geometry import points_within_planes
+            if len(self.positions) > 1:
+                # Use center of instances.
+                b = self._geometry_bounds()
+                if b:
+                    pc = self.positions * b.center()
+                    pmask = points_within_planes(pc, planes)
+                    if pmask.sum() > 0:
+                        dp = self.display_positions
+                        if dp is not None:
+                            # Pick displayed positions only
+                            from numpy import logical_and
+                            logical_and(pmask, dp, pmask)
+                        picks.append(InstancePick(pmask, self))
+            else:
+                # For non-instances pick using all vertices.
+                vmask = points_within_planes(self.vertices, planes)
+                if vmask.sum() > 0:
+                    t = self.triangles
+                    from numpy import logical_or, logical_and
+                    tmask = logical_or(vmask[t[:,0]], vmask[t[:,1]])
+                    logical_or(tmask, vmask[t[:,2]], tmask)
+                    tm = self._triangle_mask
+                    if tm is not None:
+                        logical_and(tmask, tm, tmask)
+                    if tmask.sum() > 0:
+                        picks.append(TrianglesPick(tmask, self))
         for d in self.child_drawings():
             picks.extend(d.planes_pick(planes, exclude))
         return picks
@@ -1343,6 +1358,35 @@ class TrianglePick(Pick):
         c = self._copy
         pmask[c] = not pmask[c] if toggle else 1
         d.selected_positions = pmask
+
+class TrianglesPick(Pick):
+    '''
+    Picked triangles of a drawing.
+    '''
+    def __init__(self, tmask, drawing):
+        Pick.__init__(self)
+        self._triangles_mask = tmask
+        self._drawing = drawing
+
+    def description(self):
+        desc = self._drawing.name
+        tm = self._triangles_mask
+        nt = tm.sum()
+        if nt < len(tm):
+            desc += ', %d of %d triangles' % (nt, len(tm))
+        return desc
+
+    def id_string(self):
+        d = self.drawing()
+        return d.id_string() if hasattr(d, 'id_string') else '?'
+
+    def drawing(self):
+        return self._drawing
+
+    def select(self, toggle=False):
+        d = self.drawing()
+        d.selected = (not d.selected) if toggle else True
+
 
 class InstancePick(Pick):
     '''
