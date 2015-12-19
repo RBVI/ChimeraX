@@ -9,7 +9,7 @@ __all__ = [
     'View', 'OpenGLContext',
 ]
 
-from .drawing import Drawing, Pick
+from .drawing import Drawing, Pick, TrianglePick, TrianglesPick
 
 from .camera import Camera, MonoCamera, OrthographicCamera, StereoCamera
 from .camera360 import Mono360Camera, Stereo360Camera
