@@ -71,14 +71,14 @@ image_format_suffix = {
 format_suffix.update(image_format_suffix)
 
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, StringArg, IntArg, BoolArg, PositiveIntArg, Bounded
+    from . import CmdDesc, register, EnumOf, SaveFileNameArg, IntArg, BoolArg, PositiveIntArg, Bounded
     from .. import session as ses
     ses_suffix = ses.SESSION_SUFFIX[1:]
     img_fmts = EnumOf(image_format_suffix.keys())
     all_fmts = EnumOf(format_suffix.keys())
     quality_arg = Bounded(IntArg, min=0, max=100)
     desc = CmdDesc(
-        required=[('filename', StringArg), ],
+        required=[('filename', SaveFileNameArg), ],
         keyword=[
             ('width', PositiveIntArg),
             ('height', PositiveIntArg),
@@ -92,14 +92,14 @@ def register_command(session):
     register('save', desc, save)
 
     desc = CmdDesc(
-        required=[('filename', StringArg), ],
+        required=[('filename', SaveFileNameArg), ],
         # synopsis='save session'
     )
     from .. import session as ses
     register('save session', desc, ses.save)
 
     desc = CmdDesc(
-        required=[('filename', StringArg), ],
+        required=[('filename', SaveFileNameArg), ],
         keyword=[
             ('width', PositiveIntArg),
             ('height', PositiveIntArg),
