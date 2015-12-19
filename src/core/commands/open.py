@@ -103,7 +103,7 @@ def open_formats(session):
     session.logger.info(msg, is_html = True)
 
 def register_command(session):
-    from . import CmdDesc, register, DynamicEnum, StringArg, ModelIdArg, BoolArg
+    from . import CmdDesc, register, DynamicEnum, StringArg, ModelIdArg, BoolArg, OpenFileNameArg
     def formats():
         from .. import io
         prefixes = sum((tuple(io.prefixes(f)) for f in io.formats()), ())
@@ -111,7 +111,7 @@ def register_command(session):
     def db_formats():
         from .. import fetch
         return [f.database_name for f in fetch.fetch_databases(session).values()]
-    desc = CmdDesc(required=[('filename', StringArg)],
+    desc = CmdDesc(required=[('filename', OpenFileNameArg)],
                    keyword=[('format', DynamicEnum(formats)),
                             ('name', StringArg),
                             ('from_database', DynamicEnum(db_formats)),

@@ -19,7 +19,7 @@ Session data, ie., data that is archived, uses the :py:class:`State` API.
 """
 
 from .state import RestoreError, State, copy_state, dereference_state
-from .commands import CmdDesc, StringArg, register, commas
+from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, commas
 
 _builtin_open = open
 #: session file suffix
@@ -595,8 +595,8 @@ def common_startup(sess):
 
     register(
         'sdump',
-        CmdDesc(required=[('session_file', StringArg)],
-                optional=[('output', StringArg)],
+        CmdDesc(required=[('session_file', OpenFileNameArg)],
+                optional=[('output', SaveFileNameArg)],
                 synopsis="create human-readable session"),
         dump
     )

@@ -1,13 +1,13 @@
 from chimerax.core.errors import UserError as CommandError
 def register_movie_command():
 
-    from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf, ListOf, IntArg, Int2Arg, StringArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf, ListOf, IntArg, Int2Arg, StringArg, FloatArg, SaveFolderNameArg, SaveFileNameArg
 
     from .formats import image_formats, formats, qualities
     ifmts = image_formats
     fmts = tuple(formats.keys())
     record_desc = CmdDesc(
-        keyword = [('directory', StringArg),
+        keyword = [('directory', SaveFolderNameArg),
                    ('pattern', StringArg),
                    ('format', EnumOf(ifmts)),
                    ('size', Int2Arg),
@@ -18,7 +18,7 @@ def register_movie_command():
     from .movie import RESET_CLEAR, RESET_KEEP, RESET_NONE
     reset_modes = (RESET_CLEAR, RESET_KEEP, RESET_NONE)
     encode_desc = CmdDesc(
-        optional = [('output', ListOf(StringArg))],
+        optional = [('output', ListOf(SaveFileNameArg))],
         keyword = [('format', EnumOf(fmts)),
                    ('quality', EnumOf(qualities)),
                    ('qscale', IntArg),

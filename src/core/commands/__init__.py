@@ -12,6 +12,7 @@ from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
 from .cli import FloatArg, Float3Arg, FloatsArg, AxisArg, Bounded, PlaceArg
 from .cli import ModelIdArg, AtomsArg, AtomicStructuresArg, RestOfLine
 from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg
+from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg
 
 from .colorarg import ColorArg, ColormapArg
 
