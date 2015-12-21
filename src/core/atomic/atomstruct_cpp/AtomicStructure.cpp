@@ -1193,9 +1193,18 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     // PseudobondManager groups;
     // main version number needs to go up when manager's
     // version number goes up, so check it
-    if (_pb_mgr.session_info(ints, floats, misc) != 1) {
+    PyObject* pb_ints;
+    PyObject* pb_floats;
+    PyObject* pb_misc;
+    if (_pb_mgr.session_info(&pb_ints, &pb_floats, &pb_misc) != 1) {
         throw std::runtime_error("Unexpected version number from pseudobond manager");
     }
+    if (PyList_Append(ints, pb_ints) < 0)
+        throw std::runtime_error("Couldn't append pseudobond ints to int list");
+    if (PyList_Append(floats, pb_floats) < 0)
+        throw std::runtime_error("Couldn't append pseudobond floats to float list");
+    if (PyList_Append(misc, pb_misc) < 0)
+        throw std::runtime_error("Couldn't append pseudobond misc info to misc list");
 
     // residues
     int num_residues = residues().size();
@@ -1300,13 +1309,13 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
             " version of ChimeraX");
 
     if (!PyList_Check(ints) || PyList_Size(ints) != 7)
-        throw std::invalid_argument("AtomicStructure::session_info: first arg is not a"
+        throw std::invalid_argument("AtomicStructure::session_restore: first arg is not a"
             " 7-element list");
     if (!PyList_Check(floats) || PyList_Size(floats) != 7)
-        throw std::invalid_argument("AtomicStructure::session_info: second arg is not a"
+        throw std::invalid_argument("AtomicStructure::session_restore: second arg is not a"
             " 7-element list");
     if (!PyList_Check(misc) || PyList_Size(misc) != 7)
-        throw std::invalid_argument("AtomicStructure::session_info: third arg is not a"
+        throw std::invalid_argument("AtomicStructure::session_restore: third arg is not a"
             " 7-element list");
 
     using pysupport::pylist_of_string_to_cvector;
@@ -1455,6 +1464,29 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         _active_coord_set = _coord_sets[active_cs];
     else
         _active_coord_set = nullptr;
+
+    // PseudobondManager groups;
+    PyObject* pb_ints = PyList_GET_ITEM(ints, 4);
+    iarray = Numeric_Array();
+    if (!array_from_python(pb_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Pseudobond int data is not a one-dimensional"
+            " numpy int array");
+    int_array = static_cast<int*>(iarray.values());
+    PyObject* pb_floats = PyList_GET_ITEM(floats, 4);
+    farray = Numeric_Array();
+    if (!array_from_python(pb_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Pseudobond float data is not a one-dimensional"
+            " numpy float array");
+    float_array = static_cast<float*>(farray.values());
+    _pb_mgr.session_restore(&int_array, &float_array, PyList_GET_ITEM(misc, 4));
+#if 0
+    // PseudobondManager groups;
+    // main version number needs to go up when manager's
+    // version number goes up, so check it
+    if (_pb_mgr.session_info(ints, floats, misc) != 1) {
+        throw std::runtime_error("Unexpected version number from pseudobond manager");
+    }
+#endif
 }
 
 void

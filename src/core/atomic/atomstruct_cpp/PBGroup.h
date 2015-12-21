@@ -65,13 +65,14 @@ public:
     virtual bool  get_default_halfbond() const { return _default_halfbond; }
     BaseManager*  manager() const { return _manager; }
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
-    virtual const std::set<Pseudobond*>&  pseudobonds() const = 0;
+    virtual const Pseudobonds&  pseudobonds() const = 0;
     static int  session_num_floats() {
         return SESSION_NUM_FLOATS + Rgba::session_num_floats();
     }
     static int  session_num_ints() {
         return SESSION_NUM_INTS + Rgba::session_num_ints();
     }
+    virtual void  session_restore(int**, float**);
     virtual void  session_save(int**, float**) const;
     virtual void  set_default_color(const Rgba& rgba) { _default_color = rgba; }
     virtual void  set_default_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
@@ -94,12 +95,16 @@ protected:
     virtual  ~StructurePBGroupBase() {}
 public:
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
+    std::pair<Atom*, Atom*> session_get_pb_ctor_info(int** ints) const;
     void  session_note_pb_ctor_info(Pseudobond* pb, int** ints) const;
     static int  session_num_floats() {
         return SESSION_NUM_FLOATS + Group::session_num_floats();
     }
     static int  session_num_ints() {
         return SESSION_NUM_INTS + Group::session_num_ints();
+    }
+    virtual void  session_restore(int** ints, float** floats) {
+        Group::session_restore(ints, floats);
     }
     virtual void  session_save(int** ints, float** floats) const {
         Group::session_save(ints, floats);
@@ -109,7 +114,7 @@ public:
 
 class StructurePBGroup: public StructurePBGroupBase {
 public:
-    static const int  SESSION_NUM_INTS = 0;
+    static const int  SESSION_NUM_INTS = 1;
     static const int  SESSION_NUM_FLOATS = 0;
 private:
     friend class Proxy_PBGroup;
@@ -125,11 +130,15 @@ public:
     const Pseudobonds&  pseudobonds() const { return _pbonds; }
     int  session_num_ints() const;
     int  session_num_floats() const;
+    virtual void  session_restore(int** , float**);
     virtual void  session_save(int** , float**) const;
 };
 
 class CS_PBGroup: public StructurePBGroupBase
 {
+public:
+    static const int  SESSION_NUM_INTS = 1;
+    static const int  SESSION_NUM_FLOATS = 0;
 private:
     friend class Proxy_PBGroup;
     mutable std::unordered_map<const CoordSet*, Pseudobonds>  _pbonds;
@@ -147,6 +156,7 @@ public:
     const Pseudobonds&  pseudobonds(const CoordSet* cs) const { return _pbonds[cs]; }
     int  session_num_ints() const;
     int  session_num_floats() const;
+    virtual void  session_restore(int** , float**);
     virtual void  session_save(int** , float**) const;
 };
 

@@ -56,6 +56,9 @@ public:
     static int  session_num_ints() {
         return SESSION_NUM_INTS + Connection<Atom>::session_num_ints();
     }
+    void  session_restore(int** ints, float** floats) {
+        basegeom::Connection<Atom>::session_restore(ints, floats);
+    }
     void  session_save(int** ints, float** floats) const {
         basegeom::Connection<Atom>::session_save(ints, floats);
     }

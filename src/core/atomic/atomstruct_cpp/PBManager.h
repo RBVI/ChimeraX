@@ -30,11 +30,13 @@ public:
     static const int GRP_NONE = 0;
     static const int GRP_NORMAL = GRP_NONE + 1;
     typedef std::map<std::string, Proxy_PBGroup*>  GroupMap;
-    typedef std::map<AtomicStructure*, int>  SessionStructureMap;
+    typedef std::map<AtomicStructure*, int>  SessionStructureToIDMap;
+    typedef std::map<int, AtomicStructure*>  SessionIDToStructureMap;
 protected:
     ChangeTracker*  _change_tracker;
     GroupMap  _groups;
-    SessionStructureMap*  _ses_struct_map;
+    SessionStructureToIDMap*  _ses_struct_to_id_map;
+    SessionIDToStructureMap*  _ses_id_to_struct_map;
 public:
     BaseManager(ChangeTracker* ct): _change_tracker(ct) {}
     virtual  ~BaseManager();
@@ -43,8 +45,10 @@ public:
     virtual Proxy_PBGroup*  get_group(
             const std::string& name, int create = GRP_NONE) = 0;
     const GroupMap&  group_map() const { return _groups; }
-    SessionStructureMap*  ses_struct_map() const { return _ses_struct_map; }
-    int  session_info(PyObject* ints, PyObject* floats, PyObject* misc) const;
+    SessionStructureToIDMap*  ses_struct_to_id_map() const { return _ses_struct_to_id_map; }
+    SessionIDToStructureMap*  ses_id_to_struct_map() const { return _ses_id_to_struct_map; }
+    void  session_restore(int** ints, float** floats, PyObject* misc);
+    int  session_info(PyObject** ints, PyObject** floats, PyObject** misc) const;
 };
 
 class StructureManager: public BaseManager {

@@ -4,6 +4,7 @@
 #include "PBGroup.h"
 
 #include <basegeom/destruct.h>
+#include <pysupport/convert.h>
 
 #include <Python.h>
 #include <pythonarray.h>
@@ -101,14 +102,12 @@ AS_PBManager::remove_cs(const CoordSet* cs) {
 }
 
 int
-BaseManager::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
+BaseManager::session_info(PyObject** ints, PyObject** floats, PyObject** misc) const
 {
-    PyObject* misc_list = PyList_New(0);
-    if (misc_list == nullptr) {
+    *misc = PyList_New(0);
+    if (*misc == nullptr) {
         throw std::runtime_error("Can't allocate list for pseudobond misc info");
     }
-    if (PyList_Append(misc, misc_list) < 0)
-        throw std::runtime_error("Can't append pseudobond misc info to global list");
 
     int num_ints = group_map().size(); // to remember group types
     int num_floats = 0;
@@ -118,7 +117,7 @@ BaseManager::session_info(PyObject* ints, PyObject* floats, PyObject* misc) cons
     if (cat_list == nullptr) {
         throw std::runtime_error("Can't allocate list for pseudobond category names");
     }
-    if (PyList_Append(misc_list, cat_list) < 0)
+    if (PyList_Append(*misc, cat_list) < 0)
         throw std::runtime_error("Can't append pseudobond category name list to misc list");
     int cat_index = 0;
     for (auto cat_grp: group_map()) {
@@ -134,16 +133,34 @@ BaseManager::session_info(PyObject* ints, PyObject* floats, PyObject* misc) cons
         PyList_SET_ITEM(cat_list, cat_index++, py_cat);
     }
     int* int_array;
-    if (PyList_Append(ints, python_int_array(num_ints, &int_array)) < 0)
-        throw std::runtime_error("Couldn't append pb ints to int list");
+    *ints = python_int_array(num_ints, &int_array);
     float* float_array;
-    if (PyList_Append(floats, python_float_array(num_floats, &float_array)) < 0)
-        throw std::runtime_error("Couldn't append pb floats to int list");
+    *floats = python_float_array(num_floats, &float_array);
     for (auto grp: groups) {
         *int_array++ = grp->group_type();
         grp->session_save(&int_array, &float_array);
     }
     return 1;
+}
+
+void
+BaseManager::session_restore(int** ints, float** floats, PyObject* misc)
+{
+    auto& int_ptr = *ints;
+
+    if (!PyList_Check(misc) || PyList_Size(misc) != 1) {
+        throw std::invalid_argument("PBManager::session_restore: third arg is not a"
+            " 1-element list");
+    }
+    using pysupport::pylist_of_string_to_cvector;
+    std::vector<std::string> categories;
+    pylist_of_string_to_cvector(PyList_GET_ITEM(misc, 0), categories, "PB Group category");
+    auto grp_type_ints = int_ptr;
+    int_ptr += categories.size();
+    for (auto cat: categories) {
+        auto grp = get_group(cat, *grp_type_ints++);
+        grp->session_restore(ints, floats);
+    }
 }
 
 }  // namespace atomstruct
