@@ -1161,20 +1161,36 @@ extern "C" void residue_str(void *residues, size_t n, pyobject_t *strs)
     }
 }
 
-extern "C" void residue_unique_id(void *residues, size_t n, int32_t *rids)
+extern "C" void residue_secondary_structure_id(void *residues, size_t n, int32_t *ids)
 {
     Residue **res = static_cast<Residue **>(residues);
-    int32_t rid = -1;
-    const Residue *rprev = NULL;
+    std::map<const Residue *, int> sid;
     try {
-        for (size_t i = 0; i != n; ++i) {
-            const Residue *r = res[i];
-            if (rprev == NULL || r->position() != rprev->position() || r->chain_id() != rprev->chain_id()) {
-                rid += 1;
-                rprev = r;
-            }
-            rids[i] = rid;
-        }
+      int32_t id = 0;
+      for (size_t i = 0; i != n; ++i) {
+	const Residue *r = res[i];
+	if (sid.find(r) != sid.end())
+	  continue;
+	// Scan the chain of this residue to identify secondary structure.
+	Chain *c = r->chain();
+	if (c == NULL)
+	  sid[r] = ++id;	// Residue is not part of a chain.
+	else {
+	  const Chain::Residues &cr = c->residues();
+	  Residue *pres = NULL;
+	  for (auto cres: cr)
+	    if (cres) { // Chain residues are null for missing structure.
+	      sid[cres] = ((pres == NULL ||
+			    cres->ss_id() != pres->ss_id() ||
+			    cres->is_helix() != pres->is_helix() ||
+			    cres->is_sheet() != pres->is_sheet()) ?
+			   ++id : id);
+	      pres = cres;
+	    }
+	}
+      }
+      for (size_t i = 0; i != n; ++i)
+	ids[i] = sid[res[i]];
     } catch (...) {
         molc_error();
     }

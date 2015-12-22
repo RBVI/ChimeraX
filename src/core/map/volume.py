@@ -1067,6 +1067,13 @@ class Volume(Model):
     return p
 
   # ---------------------------------------------------------------------------
+  #
+  def clear_selection(self):
+    for d in self.surface_drawings:
+      d.selected = False
+    self.selected = False
+
+  # ---------------------------------------------------------------------------
   # The data ijk bounds with half a step size padding on all sides.
   #
   def ijk_bounds(self, step = None, subregion = None, integer = False):
@@ -1831,7 +1838,10 @@ class PickedMap(Pick):
     return '%s %s %s' % (self.map.id_string(), self.map.name, self.detail)
   def select(self, toggle = False):
     m = self.map
-    m.selected = not m.selected if toggle else True
+    sel = not m.selected if toggle else True
+    m.selected = sel
+    for d in m.surface_drawings:
+      d.selected = sel
     
 # -----------------------------------------------------------------------------
 #

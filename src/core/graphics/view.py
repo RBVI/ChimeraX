@@ -765,18 +765,17 @@ class View:
         Return a Pick object for the objects in the rectangle having
         corners at the given screen window position (specified in pixels).
         '''
-        xa,xb = min(win_x1, win_x2), max(win_x1, win_x2)
-        ya,yb = max(win_y1, win_y2), min(win_y1, win_y2) # Window y is opposite graphics y axis.
-        n1,f1 = self.clip_plane_points(xa,ya)
-        n2,f2 = self.clip_plane_points(xb,ya)
-        n3,f3 = self.clip_plane_points(xb,yb)
-        n4,f4 = self.clip_plane_points(xa,yb)
+        # Compute planes bounding view through rectangle.
+        planes = self.camera.rectangle_bounding_planes((win_x1, win_y1), (win_x2, win_y2), self.window_size)
+        if len(planes) == 0:
+            return []	# Camera does not support computation of bounding planes.
 
-        if n1 is None:
-            return []
-        faces = ((n1,n2,f1), (n2,n3,f2), (n3,n4,f3), (n4,n1,f4), (n1,n4,n2), (f1,f2,f4))
-        from .. import geometry
-        planes = geometry.planes_as_4_vectors(faces)
+        # Use clip planes.
+        cplanes = self.clip_planes.planes()
+        if cplanes:
+            from numpy import concatenate, array, float32
+            planes = concatenate((planes, array([cp.opengl_vec4() for cp in cplanes], float32)))
+
         picks = self.drawing.planes_pick(planes, exclude='is_outline_box')
         return picks
 

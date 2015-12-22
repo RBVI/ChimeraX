@@ -125,7 +125,7 @@ wrappy3/
 wx/
 	wx toolkit, needed for GUI
 xdg-utils/
-	Required to build mesa, off-screen rendering.
+	Required to build mesa, off-screen rendering and for linux installation
 xml2/
 	XML C parser from xmlsoft.org, needed to compile xslt, NOT CURRENTLY USED
 xslt/

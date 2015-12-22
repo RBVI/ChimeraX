@@ -34,7 +34,7 @@ Collections are immutable so can be hashed.  The only case in which their conten
 can be altered is if C++ objects they hold are deleted in which case those objects
 are automatically removed from the collection.
 '''
-from numpy import uint8, int32, float64, float32, bool as npy_bool, integer, empty, unique, array
+from numpy import uint8, int32, float64, float32, uintp, bool as npy_bool, integer, empty, unique, array
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, pointer, ctype_type_to_numpy
 from . import molobject
 import ctypes
@@ -64,8 +64,6 @@ def _atomic_structures(p):
     return AtomicStructures(p)
 def _atomic_structure_datas(p):
     return AtomicStructureDatas(p)
-def _residues(p):
-    return Residues(p)
 def _atoms_pair(p):
     return (Atoms(p[:,0].copy()), Atoms(p[:,1].copy()))
 def _pseudobond_group_map(a):
@@ -692,7 +690,10 @@ class Residues(Collection):
 
     Collection of C++ residue objects.
     '''
-    def __init__(self, residue_pointers = None):
+    def __init__(self, residue_pointers = None, residues = None):
+        if residues is not None:
+            # Extract C pointers from list of Python Residue objects.
+            residue_pointers = array([r._c_pointer.value for r in residues], cptr)
         Collection.__init__(self, residue_pointers, molobject.Residue, Residues)
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False)
@@ -732,12 +733,6 @@ class Residues(Collection):
     residue's name, sequence position, and chain ID in a readable
     form. Read only.
     '''
-    unique_ids = cvec_property('residue_unique_id', int32, read_only = True)
-    '''
-    A :mod:`numpy` array of integers. Multiple copies of the same residue
-    in the collection will have the same integer value in the returned array.
-    Read only.
-    '''
     ribbon_displays = cvec_property('residue_ribbon_display', npy_bool)
     '''A numpy bool array whether to display each residue in ribbon style.'''
     ribbon_colors = cvec_property('residue_ribbon_color', uint8, 4)
@@ -757,6 +752,12 @@ class Residues(Collection):
     ribbon_hide_backbones = cvec_property('residue_ribbon_hide_backbone', npy_bool)
     '''A :mod:`numpy` array of booleans. Whether a ribbon automatically hides
     the residue backbone atoms.'''
+    secondary_structure_ids = cvec_property('residue_secondary_structure_id', int32, read_only = True)
+    '''
+    A :mod:`numpy` array of integer secondary structure ids.  Every helix, sheet, coil
+    has a unique integer id.  The ids depend on the collection of residues and are
+    not persistent. Read only.
+    '''
 
     @property
     def unique_structures(self):
@@ -773,6 +774,15 @@ class Residues(Collection):
         '''Return list of pairs of structure and Residues for that structure.'''
         rmol = self.structures._pointers
         return [(m, self.filter(rmol==m._c_pointer.value)) for m in self.unique_structures]
+
+    @property
+    def unique_ids(self):
+        '''
+        A :mod:`numpy` array of uintp (unsigned integral type large enough to hold a pointer).
+        Multiple copies of the same residue in the collection will have the same integer value
+        in the returned array. Read only.
+        '''
+        return self._pointers
 
     def get_polymer_spline(self):
         '''Return a tuple of spline center and guide coordinates for a

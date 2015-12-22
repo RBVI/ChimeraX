@@ -150,6 +150,7 @@ class Drawing:
         self._shader_opt = None                 # Cached shader options
         self._vertex_buffers = []               # Buffers used by both drawing and selection
 
+        self.pickable = True	# Whether first_intercept() and planes_pick() will consider this drawing
         self.was_deleted = False
         "Indicates whether this Drawing has been deleted."
 
@@ -778,7 +779,7 @@ class Drawing:
         return pclosest
 
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
-        if self.empty_drawing():
+        if self.empty_drawing() or not self.pickable:
             return None
         va = self.vertices
         ta = self.masked_triangles
@@ -827,19 +828,34 @@ class Drawing:
             return []
 
         picks = []
-        if not self.empty_drawing():
-            b = self._geometry_bounds()
-            if b:
-                pc = self.positions * b.center()
-                from .. import geometry
-                pmask = geometry.points_within_planes(pc, planes)
-                if pmask.sum() > 0:
-                    dp = self.display_positions
-                    if dp is not None:
-                        # Pick displayed positions only
-                        from numpy import logical_and
-                        logical_and(pmask, dp, pmask)
-                    picks.append(InstancePick(pmask, self))
+        if not self.empty_drawing() and self.pickable:
+            from ..geometry import points_within_planes
+            if len(self.positions) > 1:
+                # Use center of instances.
+                b = self._geometry_bounds()
+                if b:
+                    pc = self.positions * b.center()
+                    pmask = points_within_planes(pc, planes)
+                    if pmask.sum() > 0:
+                        dp = self.display_positions
+                        if dp is not None:
+                            # Pick displayed positions only
+                            from numpy import logical_and
+                            logical_and(pmask, dp, pmask)
+                        picks.append(InstancePick(pmask, self))
+            else:
+                # For non-instances pick using all vertices.
+                vmask = points_within_planes(self.vertices, planes)
+                if vmask.sum() > 0:
+                    t = self.triangles
+                    from numpy import logical_or, logical_and
+                    tmask = logical_or(vmask[t[:,0]], vmask[t[:,1]])
+                    logical_or(tmask, vmask[t[:,2]], tmask)
+                    tm = self._triangle_mask
+                    if tm is not None:
+                        logical_and(tmask, tm, tmask)
+                    if tmask.sum() > 0:
+                        picks.append(TrianglesPick(tmask, self))
         for d in self.child_drawings():
             picks.extend(d.planes_pick(planes, exclude))
         return picks
@@ -1065,6 +1081,8 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     r.draw_front_buffer(True)
     r.enable_depth_test(False)
     r.enable_xor(True)
+    rdc = r.disable_capabilities
+    r.disable_capabilities = rdc | r.SHADER_CLIP_PLANES
 
     w, h = r.render_size()
     from .camera import ortho
@@ -1072,6 +1090,7 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
 
     d.draw(r, p0, d.OPAQUE_DRAW_PASS)
 
+    r.disable_capabilities = rdc
     r.enable_xor(False)
     r.enable_depth_test(True)
     r.draw_front_buffer(False)
@@ -1340,6 +1359,35 @@ class TrianglePick(Pick):
         c = self._copy
         pmask[c] = not pmask[c] if toggle else 1
         d.selected_positions = pmask
+
+class TrianglesPick(Pick):
+    '''
+    Picked triangles of a drawing.
+    '''
+    def __init__(self, tmask, drawing):
+        Pick.__init__(self)
+        self._triangles_mask = tmask
+        self._drawing = drawing
+
+    def description(self):
+        desc = self._drawing.name
+        tm = self._triangles_mask
+        nt = tm.sum()
+        if nt < len(tm):
+            desc += ', %d of %d triangles' % (nt, len(tm))
+        return desc
+
+    def id_string(self):
+        d = self.drawing()
+        return d.id_string() if hasattr(d, 'id_string') else '?'
+
+    def drawing(self):
+        return self._drawing
+
+    def select(self, toggle=False):
+        d = self.drawing()
+        d.selected = (not d.selected) if toggle else True
+
 
 class InstancePick(Pick):
     '''

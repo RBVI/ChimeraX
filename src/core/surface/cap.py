@@ -5,7 +5,7 @@ def update_clip_caps(view):
     for p in planes:
         p.update_direction(cpos)
     update = (cp.changed or (view.shape_changed and planes))
-    # TODO: Don't update caps if shape change is drawing that does not show caps.
+    # TODO: Update caps only on specific drawings whose shape changed.
     if update:
         drawings = view.drawing.all_drawings()
         show_surface_clip_caps(planes, drawings)
@@ -15,16 +15,17 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01):
         for d in drawings:
             # Clip only drawings that have "clip_cap" attribute true.
             if (hasattr(d, 'clip_cap') and d.clip_cap and
-                d.triangles is not None and not hasattr(d, 'is_clip_cap')):
+                d.triangles is not None and not hasattr(d, 'clip_cap_owner')):
                 varray, narray, tarray = compute_cap(d, p, offset)
                 set_cap_drawing_geometry(d, p.name, varray, narray, tarray)
 
     # Remove caps for clip planes that are gone.
-    cap_names = set('cap ' + p.name for p in planes)
-    for d in drawings:
-        if hasattr(d, 'is_clip_cap') and d.name not in cap_names:
-            delattr(d.is_clip_cap, '_clip_cap_drawing_%s' % p.name)
-            d.parent.remove_drawing(d)
+    plane_names = set(p.name for p in planes)
+    for cap in drawings:
+        if hasattr(cap, 'clip_cap_owner') and cap.clip_plane_name not in plane_names:
+            d = cap.clip_cap_owner
+            del d._clip_cap_drawings[cap.clip_plane_name]
+            cap.parent.remove_drawing(cap)
 
 def compute_cap(drawing, plane, offset):
     # Undisplay cap for drawing with no geometry shown.
@@ -75,10 +76,12 @@ def compute_instances_cap(drawing, triangles, plane, offset):
     b = d.bounds(positions = False)
     if b is None:
         return None, None
-    dpos = positions_intersecting_box(d.positions, b, parent_ppoint, parent_pnormal)
-    if len(dpos) == 0:
+        
+    dpos = d.positions.masked(d.display_positions)
+    ipos = box_positions_intersecting_plane(dpos, b, parent_ppoint, parent_pnormal)
+    if len(ipos) == 0:
         return None, None
-    for pos in dpos:
+    for pos in ipos:
         pinv = pos.inverse()
         pnormal = pinv.apply_without_translation(parent_pnormal)
         from ..geometry import inner_product
@@ -90,7 +93,7 @@ def compute_instances_cap(drawing, triangles, plane, offset):
     varray, tarray = concatenate_geometry(geom)
     return varray, tarray
 
-def positions_intersecting_box(positions, b, origin, normal):
+def box_positions_intersecting_plane(positions, b, origin, normal):
     c, r = b.center(), b.radius()
     pc = positions * c
     pc -= origin
@@ -115,7 +118,9 @@ def concatenate_geometry(geom):
 def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
     d = drawing
     # Set cap drawing geometry.
-    mcap = getattr(d, '_clip_cap_drawing_%s' % plane_name, None)     # Find cap drawing
+    if not hasattr(d, '_clip_cap_drawings'):
+        d._clip_cap_drawings = {}
+    mcap = d._clip_cap_drawings.get(plane_name, None)     # Find cap drawing
     if varray is None:
         if mcap:
             mcap.display = False
@@ -129,7 +134,10 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
             cm = d.new_drawing(cap_name)
         else:
             cm = d.parent.new_drawing(cap_name)
-        cm.is_clip_cap = d
+            cm.pickable = False	  # Don't want pick of one cap to pick all instance caps.
+        cm.clip_plane_name = plane_name
+        cm.clip_cap_owner = d
+        d._clip_cap_drawings[plane_name] = cm
     cm.vertices = varray
     cm.triangles = tarray
     cm.normals = narray

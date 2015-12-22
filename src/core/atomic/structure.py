@@ -871,6 +871,9 @@ class AtomicStructure(AtomicStructureData, Model):
             return []
 
         p = self._atoms_planes_pick(planes)
+        rp = self._ribbon_planes_pick(planes)
+        if rp:
+            p.extend(rp)
         return p
 
     def _atoms_planes_pick(self, planes):
@@ -899,6 +902,22 @@ class AtomicStructure(AtomicStructureData, Model):
         p = PickedAtoms(atoms)
 
         return [p]
+
+    def _ribbon_planes_pick(self, planes):
+        picks = []
+        for d, t2r in self._ribbon_t2r.items():
+            if d.display:
+                rp = d.planes_pick(planes)
+                from ..graphics import TrianglesPick
+                for p in rp:
+                    if isinstance(p, TrianglesPick) and p.drawing() is d:
+                        tmask = p._triangles_mask
+                        res = [rtr.residue for rtr in t2r if tmask[rtr.start:rtr.end].sum() > 0]
+                        if res:
+                            from .molarray import Residues
+                            rc = Residues(residues=res)
+                            picks.append(PickedResidues(rc))
+        return picks
 
     def set_selected(self, sel):
         self.atoms.selected = sel
@@ -986,22 +1005,30 @@ class AtomicStructure(AtomicStructureData, Model):
         ares = in1d(rids, sel_rids)
         if ares.sum() > n:
             # Promote to entire residues
-            level = 1003
+            level = 1004
             psel = ares
         else:
-            from numpy import array
-            cids = array(r.chain_ids)
-            sel_cids = unique(cids[asel])
-            ac = in1d(cids, sel_cids)
-            if ac.sum() > n:
-                # Promote to entire chains
-                level = 1002
-                psel = ac
+            ssids = r.secondary_structure_ids
+            sel_ssids = unique(ssids[asel])
+            ass = in1d(ssids, sel_ssids)
+            if ass.sum() > n:
+                # Promote to secondary structure
+                level = 1003
+                psel = ass
             else:
-                # Promote to entire molecule
-                level = 1001
-                ac[:] = True
-                psel = ac
+                from numpy import array
+                cids = array(r.chain_ids)
+                sel_cids = unique(cids[asel])
+                ac = in1d(cids, sel_cids)
+                if ac.sum() > n:
+                    # Promote to entire chains
+                    level = 1002
+                    psel = ac
+                else:
+                    # Promote to entire molecule
+                    level = 1001
+                    ac[:] = True
+                    psel = ac
 
         return PromoteAtomSelection(self, level, psel, asel)
 
@@ -1349,6 +1376,22 @@ class PickedResidue(Pick):
     def select(self, toggle=False):
         r = self.residue
         r.structure.select_residue(r, toggle)
+
+# -----------------------------------------------------------------------------
+#
+class PickedResidues(Pick):
+    def __init__(self, residues):
+        Pick.__init__(self)
+        self.residues = residues
+    def description(self):
+        return '%d residues' % len(self.residues)
+    def select(self, toggle = False):
+        a = self.residues.atoms
+        if toggle:
+            from numpy import logical_not
+            a.selected = logical_not(a.selected)
+        else:
+            a.selected = True
 
 # -----------------------------------------------------------------------------
 #
