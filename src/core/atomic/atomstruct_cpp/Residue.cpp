@@ -146,6 +146,35 @@ Residue::remove_atom(Atom* a)
 }
 
 void
+Residue::session_restore(int** ints, float** floats)
+{
+    _ribbon_rgba.session_restore(ints, floats);
+
+    auto& int_ptr = *ints;
+    auto& float_ptr = *floats;
+
+    _alt_loc = int_ptr[0];
+    _is_helix = int_ptr[1];
+    _is_het = int_ptr[2];
+    _is_sheet = int_ptr[3];
+    _polymer_type = (PolymerType)int_ptr[4];
+    _ribbon_display = int_ptr[5];
+    _ribbon_hide_backbone = int_ptr[6];
+    _ribbon_style = (Style)int_ptr[7];
+    _ss_id = int_ptr[8];
+    auto num_atoms = int_ptr[9];
+    int_ptr += SESSION_NUM_INTS;
+
+    _ribbon_adjust = float_ptr[0];
+    float_ptr += SESSION_NUM_FLOATS;
+
+    auto& atoms = structure()->atoms();
+    for (decltype(num_atoms) i = 0; i < num_atoms; ++i) {
+        add_atom(atoms[*int_ptr++]);
+    }
+}
+
+void
 Residue::session_save(int** ints, float** floats) const
 {
     _ribbon_rgba.session_save(ints, floats);

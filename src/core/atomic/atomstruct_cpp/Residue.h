@@ -84,6 +84,7 @@ public:
     int  session_num_ints() const {
         return SESSION_NUM_INTS + Rgba::session_num_ints() + atoms().size();
     }
+    void  session_restore(int**, float**);
     void  session_save(int**, float**) const;
     void  set_alt_loc(char alt_loc);
     void  set_is_helix(bool ih);

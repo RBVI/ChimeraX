@@ -1214,36 +1214,38 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         num_ints += res->session_num_ints();
         num_floats += res->session_num_floats();
     }
-    PyObject* res_misc = PyList_New(num_residues);
+    PyObject* res_misc = PyList_New(2);
     if (res_misc == nullptr)
         throw std::runtime_error("Cannot create Python list for residue misc info");
     if (PyList_Append(misc, res_misc) < 0)
         throw std::runtime_error("Couldn't append residue misc list to misc list");
     int* res_ints;
     PyObject* res_npy_ints = python_int_array(num_ints, &res_ints);
-    *res_ints++ = num_residues;
     if (PyList_Append(ints, res_npy_ints) < 0)
         throw std::runtime_error("Couldn't append residue ints to int list");
     float* res_floats;
     PyObject* res_npy_floats = python_float_array(num_floats, &res_floats);
     if (PyList_Append(floats, res_npy_floats) < 0)
         throw std::runtime_error("Couldn't append residue floats to float list");
+    PyObject* py_res_names = PyList_New(num_residues);
+    if (py_res_names == nullptr)
+        throw std::runtime_error("Cannot create Python list for residue names");
+    PyList_SET_ITEM(res_misc, 0, py_res_names);
+    PyObject* py_chain_ids = PyList_New(num_residues);
+    if (py_chain_ids == nullptr)
+        throw std::runtime_error("Cannot create Python list for chain IDs");
+    PyList_SET_ITEM(res_misc, 1, py_chain_ids);
     i = 0;
     for (auto res: residues()) {
         // remember res name and chain ID
-        PyObject* name_id = PyTuple_New(2);
-        if (name_id == nullptr)
-            throw std::runtime_error("Cannot create Python tuple for residue name/chainID");
-
         PyObject* name = PyUnicode_FromString(res->name());
         if (name == nullptr)
             throw::std::runtime_error("Cannot create Python string for residue name");
+        PyList_SET_ITEM(py_res_names, i, name);
         PyObject* chain_id = PyUnicode_FromString(res->chain_id());
         if (chain_id == nullptr)
             throw::std::runtime_error("Cannot create Python string for residue chain ID");
-        PyTuple_SET_ITEM(name_id, 0, name);
-        PyTuple_SET_ITEM(name_id, 1, chain_id);
-        PyList_SET_ITEM(res_misc, i++, name_id);
+        PyList_SET_ITEM(py_chain_ids, i++, chain_id);
         *res_ints++ = res->position();
         *res_ints++ = res->insertion_code();
         res->session_save(&res_ints, &res_floats);
@@ -1479,14 +1481,34 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
             " numpy float array");
     float_array = static_cast<float*>(farray.values());
     _pb_mgr.session_restore(&int_array, &float_array, PyList_GET_ITEM(misc, 4));
-#if 0
-    // PseudobondManager groups;
-    // main version number needs to go up when manager's
-    // version number goes up, so check it
-    if (_pb_mgr.session_info(ints, floats, misc) != 1) {
-        throw std::runtime_error("Unexpected version number from pseudobond manager");
+
+    // residues
+    PyObject* res_misc = PyList_GET_ITEM(misc, 5);
+    if (!PyList_Check(res_misc) or PyList_GET_SIZE(res_misc) != 2)
+        throw std::invalid_argument("residue misc info is not a  two-item list");
+    std::vector<ResName> res_names;
+    pylist_of_string_to_cvector(PyList_GET_ITEM(res_misc, 0), res_names, "residue name");
+    std::vector<ChainID> chain_ids;
+    pylist_of_string_to_cvector(PyList_GET_ITEM(res_misc, 1), chain_ids, "chain ID");
+    PyObject* py_res_ints = PyList_GET_ITEM(ints, 5);
+    iarray = Numeric_Array();
+    if (!array_from_python(py_res_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Residue int data is not a one-dimensional numpy int array");
+    auto res_ints = static_cast<int*>(iarray.values());
+    PyObject* py_res_floats = PyList_GET_ITEM(floats, 5);
+    farray = Numeric_Array();
+    if (!array_from_python(py_res_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Residue float data is not a one-dimensional"
+            " numpy float array");
+    auto res_floats = static_cast<float*>(farray.values());
+    for (decltype(res_names)::size_type i = 0; i < res_names.size(); ++i) {
+        auto& res_name = res_names[i];
+        auto& chain_id = chain_ids[i];
+        auto pos = *res_ints++;
+        auto insert = *res_ints++;
+        auto r = new_residue(res_name, chain_id, pos, insert);
+        r->session_restore(&res_ints, &res_floats);
     }
-#endif
 }
 
 void
