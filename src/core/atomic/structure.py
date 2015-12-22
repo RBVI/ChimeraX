@@ -29,6 +29,10 @@ class AtomicStructure(AtomicStructureData, Model):
         molobject.add_to_object_map(self)
 
         Model.__init__(self, name, session)
+        self._init_vars(level_of_detail, smart_initial_display)
+        self._make_drawing()
+
+    def _init_vars(self, level_of_detail = None, smart_initial_display = True):
         self._ses_handlers = [
             self.session.triggers.add_handler("begin save session", self._begin_ses_save),
             self.session.triggers.add_handler("end save session", self._end_ses_save)
@@ -64,7 +68,6 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
         self._ribbon_selected_residues = set()
 
-        self._make_drawing()
         self._smart_initial_display = smart_initial_display
 
     def delete(self):
@@ -154,13 +157,6 @@ class AtomicStructure(AtomicStructureData, Model):
         floats = []
         misc = []
         as_version = self.session_info(ints, floats, misc)
-        print("{} ints, {} floats, {} misc".format(len(ints), len(floats), len(misc)))
-        if len(ints) == len(floats) == len(misc):
-            classes = ["AtomicStructure", "Atom", "Bond", "CoordSet", "PBManager", "Residue", "Chain", "Ring"]
-            for i in range(len(ints)):
-                print("# ints for {}: {}".format(classes[i], len(ints[i])))
-                print("# floats for {}: {}".format(classes[i], len(floats[i])))
-                print("# misc for {}: {}".format(classes[i], len(misc[i])))
         return CORE_STATE_VERSION, [
             Model.take_snapshot(self, session, flags),
             (as_version, ints, floats, misc)
@@ -172,16 +168,10 @@ class AtomicStructure(AtomicStructureData, Model):
         # layer for an AtomicStructure, so initialize AtomicStructureData first...
         AtomicStructureData.__init__(self, logger=session.logger)
         Model.restore_snapshot_init(self, session, tool_info, *model_data)
+        self._init_vars()
         as_version, ints, floats, misc = c_data
-        print("{} ints, {} floats, {} misc".format(len(ints), len(floats), len(misc)))
-        if len(ints) == len(floats) == len(misc):
-            classes = ["AtomicStructure", "Atom", "Bond", "CoordSet", "PBManager", "Residue", "Chain", "Ring"]
-            for i in range(len(ints)):
-                print("# ints for {}: {}".format(classes[i], len(ints[i])))
-                print("# floats for {}: {}".format(classes[i], len(floats[i])))
-                print("# misc for {}: {}".format(classes[i], len(misc[i])))
         self.session_restore(*c_data)
-        raise ValueError("AtomicStructure restore not fully implemented")
+        self._make_drawing()
 
     def reset_state(self, session):
         pass

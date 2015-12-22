@@ -269,6 +269,11 @@ public:
             return static_cast<StructurePBGroup*>(_proxied)->session_num_floats();
         return static_cast<CS_PBGroup*>(_proxied)->session_num_floats();
     }
+    virtual void  session_restore(int** ints, float** floats) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->session_restore(ints, floats);
+        return static_cast<CS_PBGroup*>(_proxied)->session_restore(ints, floats);
+    }
     virtual void  session_save(int** ints, float** floats) const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<StructurePBGroup*>(_proxied)->session_save(ints, floats);
