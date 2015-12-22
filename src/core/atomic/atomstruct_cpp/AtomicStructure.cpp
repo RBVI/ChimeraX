@@ -1252,8 +1252,8 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     }
 
     // chains
-    int num_chains = _chains == nullptr ? 0 : _chains->size();
-    num_ints = 0;
+    int num_chains = _chains == nullptr ? -1 : _chains->size();
+    num_ints = 1; // for storing num_chains, since len(chain_ids) can't show nullptr
     num_floats = 0;
     if (_chains != nullptr) {
         for (auto ch: *_chains) {
@@ -1292,6 +1292,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     PyObject* chain_npy_floats = python_float_array(num_floats, &chain_floats);
     if (PyList_Append(floats, chain_npy_floats) < 0)
         throw std::runtime_error("Couldn't append chain floats to float list");
+    *chain_ints++ = num_chains;
     if (_chains != nullptr) {
         for (auto ch: *_chains) {
             ch->session_save(&chain_ints, &chain_floats);
@@ -1485,11 +1486,11 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     // residues
     PyObject* res_misc = PyList_GET_ITEM(misc, 5);
     if (!PyList_Check(res_misc) or PyList_GET_SIZE(res_misc) != 2)
-        throw std::invalid_argument("residue misc info is not a  two-item list");
+        throw std::invalid_argument("residue misc info is not a two-item list");
     std::vector<ResName> res_names;
     pylist_of_string_to_cvector(PyList_GET_ITEM(res_misc, 0), res_names, "residue name");
-    std::vector<ChainID> chain_ids;
-    pylist_of_string_to_cvector(PyList_GET_ITEM(res_misc, 1), chain_ids, "chain ID");
+    std::vector<ChainID> res_chain_ids;
+    pylist_of_string_to_cvector(PyList_GET_ITEM(res_misc, 1), res_chain_ids, "chain ID");
     PyObject* py_res_ints = PyList_GET_ITEM(ints, 5);
     iarray = Numeric_Array();
     if (!array_from_python(py_res_ints, 1, Numeric_Array::Int, &iarray, false))
@@ -1503,11 +1504,39 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     auto res_floats = static_cast<float*>(farray.values());
     for (decltype(res_names)::size_type i = 0; i < res_names.size(); ++i) {
         auto& res_name = res_names[i];
-        auto& chain_id = chain_ids[i];
+        auto& chain_id = res_chain_ids[i];
         auto pos = *res_ints++;
         auto insert = *res_ints++;
         auto r = new_residue(res_name, chain_id, pos, insert);
         r->session_restore(&res_ints, &res_floats);
+    }
+
+    // chains
+    PyObject* chain_misc = PyList_GET_ITEM(misc, 6);
+    if (!PyList_Check(chain_misc) or PyList_GET_SIZE(chain_misc) != 1)
+        throw std::invalid_argument("chain misc info is not a one-item list");
+    std::vector<ChainID> chain_chain_ids;
+    pylist_of_string_to_cvector(PyList_GET_ITEM(chain_misc, 0), chain_chain_ids, "chain ID");
+    PyObject* py_chain_ints = PyList_GET_ITEM(ints, 6);
+    iarray = Numeric_Array();
+    if (!array_from_python(py_chain_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Chain int data is not a one-dimensional numpy int array");
+    auto chain_ints = static_cast<int*>(iarray.values());
+    PyObject* py_chain_floats = PyList_GET_ITEM(floats, 6);
+    farray = Numeric_Array();
+    if (!array_from_python(py_chain_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Chain float data is not a one-dimensional"
+            " numpy float array");
+    auto chain_floats = static_cast<float*>(farray.values());
+    auto num_chains = *chain_ints++;
+    if (num_chains < 0) {
+        _chains = nullptr;
+    } else {
+        _chains = new Chains();
+        for (auto chain_id: chain_chain_ids) {
+            auto chain = _new_chain(chain_id);
+            chain->session_restore(&chain_ints, &chain_floats);
+        }
     }
 }
 

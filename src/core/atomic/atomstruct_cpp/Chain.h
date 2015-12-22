@@ -61,6 +61,7 @@ public:
         return Sequence::session_num_ints() + SESSION_NUM_INTS
             + 2 * _res_map.size() + _residues.size();
     }
+    void  session_restore(int**, float**);
     void  session_save(int**, float**) const;
     void  set(unsigned i, Residue* r, char character = -1);
     void  set_from_seqres(bool fs);
