@@ -14,7 +14,7 @@ install: $(SOURCE)
 
 app-install:
 	-mkdir $(app_datadir)/xdg-utils
-	$(RSYNC) $(datadir)/xdg-utils $(app_datadir)/xdg-utils
+	$(RSYNC) $(datadir)/xdg-utils $(app_datadir)
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
