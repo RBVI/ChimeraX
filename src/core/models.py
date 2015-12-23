@@ -195,7 +195,7 @@ class Models(State):
             if start_count == 0 and len(self._models) > 0:
                 v = session.main_view
                 v.initial_camera_view()
-                v.clip_planes.clear()	# Turn of clipping
+                v.clip_planes.clear()	# Turn off clipping
 
         return m_all
 
