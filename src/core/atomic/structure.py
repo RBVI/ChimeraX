@@ -21,38 +21,8 @@ class AtomicStructure(AtomicStructureData, Model):
 
     STRUCTURE_STATE_VERSION = 0
 
-    def __init__(self, name, session, *, c_pointer = None,
+    def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  level_of_detail = None, smart_initial_display = True):
-
-        AtomicStructureData.__init__(self, c_pointer)
-        from . import molobject
-        molobject.add_to_object_map(self)
-
-        Model.__init__(self, name, session)
-        self._init_vars(level_of_detail, smart_initial_display)
-        self._make_drawing()
-
-    def _init_vars(self, level_of_detail = None, smart_initial_display = True):
-        self._ses_handlers = [
-            self.session.triggers.add_handler("begin save session", self._begin_ses_save),
-            self.session.triggers.add_handler("end save session", self._end_ses_save)
-        ]
-
-        self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
-        self.bond_radius = 0.2
-        self.pseudobond_radius = 0.05
-        self._level_of_detail = LevelOfDetail() if level_of_detail is None else level_of_detail
-
-        self._atoms_drawing = None
-        self._bonds_drawing = None
-        self._pseudobond_group_drawings = {}    # Map PseudobondGroup to drawing
-        self._cached_atom_bounds = None
-        self._atom_bounds_needs_update = True
-
-        self._ribbon_drawing = None
-        self._ribbon_t2r = {}         # ribbon triangles-to-residue map
-        self._ribbon_r2t = {}         # ribbon residue-to-triangles map
-        self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         # Cross section coordinates are 2D and counterclockwise
         from .ribbon import XSection
         xsc_helix = [( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
@@ -61,14 +31,59 @@ class AtomicStructure(AtomicStructureData, Model):
         xsc_turn = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
         xsc_arrow_head = [(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]
         xsc_arrow_tail = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
-        self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
-        self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
-        self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
-        self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
-        self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
-        self._ribbon_selected_residues = set()
+       
+        # attrs that should be saved in sessions, along with their initial values...
+        self._session_attrs = {
+            'ball_scale': 0.3,		# Scales sphere radius in ball and stick style
+            'bond_radius': 0.2,
+            'pseudobond_radius': 0.05,
+            '_level_of_detail': LevelOfDetail() if level_of_detail is None else level_of_detail,
 
-        self._smart_initial_display = smart_initial_display
+            '_atoms_drawing': None,
+            '_bonds_drawing': None,
+            '_pseudobond_group_drawings': {},    # Map PseudobondGroup to drawing
+            '_cached_atom_bounds': None,
+            '_atom_bounds_needs_update': True,
+
+            '_ribbon_drawing': None,
+            '_ribbon_t2r': {},         # ribbon triangles-to-residue map
+            '_ribbon_r2t': {},         # ribbon residue-to-triangles map
+            '_ribbon_tether': [],      # ribbon tethers from ribbon to floating atoms
+            '_ribbon_xs_helix': XSection(xsc_helix, faceted=False),
+            '_ribbon_xs_strand': XSection(xsc_strand, faceted=True),
+            '_ribbon_xs_strand_start': XSection(xsc_turn, xsc_strand, faceted=True),
+            '_ribbon_xs_turn': XSection(xsc_turn, faceted=True),
+            '_ribbon_xs_arrow': XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True),
+            '_ribbon_selected_residues': set(),
+        }
+        # for now, restore attrs to default initial values even for sessions...
+        for attr_name, val in self._session_attrs.items():
+            setattr(self, attr_name, val)
+
+        if restore_data:
+            # from session
+            (tool_info, version, as_data) = restore_data
+            model_data, c_data = as_data
+            # Model will attempt to restore self.name, which is a property of the C++
+            # layer for an AtomicStructure, so initialize AtomicStructureData first...
+            AtomicStructureData.__init__(self, logger=session.logger)
+            Model.restore_snapshot_init(self, session, tool_info, *model_data)
+            #as_version, ints, floats, misc = c_data
+            self.session_restore(*c_data)
+            self._smart_initial_display = False
+        else:
+            AtomicStructureData.__init__(self, c_pointer)
+            Model.__init__(self, name, session)
+            self._smart_initial_display = smart_initial_display
+
+        from . import molobject
+        molobject.add_to_object_map(self)
+
+        self._ses_handlers = [
+            self.session.triggers.add_handler("begin save session", self._begin_ses_save),
+            self.session.triggers.add_handler("end save session", self._end_ses_save)
+        ]
+        self._make_drawing()
 
     def delete(self):
         '''Delete this structure.'''
@@ -83,7 +98,7 @@ class AtomicStructure(AtomicStructureData, Model):
         No atoms or other components of the structure
         are shared between the original and the copy.
         '''
-        m = AtomicStructure(name, AtomicStructureData._copy(self),
+        m = AtomicStructure(AtomicStructureData._copy(self), name = name,
                             level_of_detail = self._level_of_detail)
         m.positions = self.positions
         return m
@@ -163,15 +178,7 @@ class AtomicStructure(AtomicStructureData, Model):
         ]
 
     def restore_snapshot_init(self, session, tool_info, version, data):
-        model_data, c_data = data
-        # Model will attempt to restore self.name, which is a property of the C++
-        # layer for an AtomicStructure, so initialize AtomicStructureData first...
-        AtomicStructureData.__init__(self, logger=session.logger)
-        Model.restore_snapshot_init(self, session, tool_info, *model_data)
-        self._init_vars()
-        as_version, ints, floats, misc = c_data
-        self.session_restore(*c_data)
-        self._make_drawing()
+        AtomicStructure.__init__(self, session, restore_data=(tool_info, version, data))
 
     def reset_state(self, session):
         pass

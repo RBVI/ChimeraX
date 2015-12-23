@@ -738,6 +738,7 @@ BuiltinColors = SortedDict({
     'old lace': (253, 245, 230, 255),
     'olive': (128, 128, 0, 255),
     'olivedrab': (107, 142, 35, 255),
+    'olive drab': (107, 142, 35, 255),
     'orange': (255, 165, 0, 255),
     'orangered': (255, 69, 0, 255),
     'orange red': (255, 69, 0, 255),

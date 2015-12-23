@@ -29,7 +29,7 @@ def open_pdb(session, filename, name, *args, **kw):
             input.close()
 
     lod = session.atomic_level_of_detail
-    models = [structure.AtomicStructure(name, session, c_pointer = p, level_of_detail = lod)
+    models = [structure.AtomicStructure(session, name = name, c_pointer = p, level_of_detail = lod)
         for p in pointers]
 
     return models, ("Opened PDB data containing %d atoms and %d bonds"
