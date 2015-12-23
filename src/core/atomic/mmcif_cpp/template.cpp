@@ -68,9 +68,9 @@ struct ExtractTemplate: public readcif::CIFFile
     ExtractTemplate();
     virtual void data_block(const string& name);
     virtual void finished_parse();
-    void parse_chem_comp(bool in_loop);
-    void parse_chem_comp_atom(bool in_loop);
-    void parse_chem_comp_bond(bool in_loop);
+    void parse_chem_comp();
+    void parse_chem_comp_atom();
+    void parse_chem_comp_bond();
 
     vector<tmpl::Residue*> all_residues;
     tmpl::Residue* residue;         // current residue
@@ -86,16 +86,16 @@ ExtractTemplate::ExtractTemplate(): residue(NULL)
 {
     all_residues.reserve(32);
     register_category("chem_comp",
-        [this] (bool in_loop) {
-            parse_chem_comp(in_loop);
+        [this] () {
+            parse_chem_comp();
         });
     register_category("chem_comp_atom",
-        [this] (bool in_loop) {
-            parse_chem_comp_atom(in_loop);
+        [this] () {
+            parse_chem_comp_atom();
         }, { "chem_comp" });
     register_category("chem_comp_bond",
-        [this] (bool in_loop) {
-            parse_chem_comp_bond(in_loop);
+        [this] () {
+            parse_chem_comp_bond();
         }, { "chem_comp", "chem_comp_atom" });
 }
 
@@ -151,7 +151,7 @@ ExtractTemplate::finished_parse()
 }
 
 void
-ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
+ExtractTemplate::parse_chem_comp()
 {
     ResName  name;
     ResName  modres;
@@ -213,7 +213,7 @@ ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
 }
 
 void
-ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
+ExtractTemplate::parse_chem_comp_atom()
 {
     AtomName  name;
     char    symbol[3];
@@ -273,7 +273,7 @@ ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
 }
 
 void
-ExtractTemplate::parse_chem_comp_bond(bool /*in_loop*/)
+ExtractTemplate::parse_chem_comp_bond()
 {
     AtomName name1, name2;
 
