@@ -14,6 +14,7 @@
 
 #include <basegeom/ChangeTracker.h>
 #include <basegeom/Connectible.tcc>
+#include <pysupport/convert.h>
 
 // force instantiation
 template void basegeom::Connectible<atomstruct::AtomicStructure, atomstruct::Atom, atomstruct::Bond>::add_connection(atomstruct::Bond*);
@@ -850,7 +851,8 @@ Atom::rings(bool cross_residues, int all_size_threshold,
 int
 Atom::session_num_floats() const
 {
-    int num_floats = SESSION_NUM_FLOATS + _alt_loc_map.size() * SESSION_ALTLOC_FLOATS +
+    int num_floats = SESSION_NUM_FLOATS + Rgba::session_num_floats()
+        + _alt_loc_map.size() * SESSION_ALTLOC_FLOATS +
         (_aniso_u == nullptr ? 0 : _aniso_u->size());
     for (auto altloc_info : _alt_loc_map) {
         auto& info = altloc_info.second;
@@ -861,18 +863,88 @@ Atom::session_num_floats() const
 }
 
 void
+Atom::session_restore(int** ints, float** floats, PyObject* misc)
+{
+    using pysupport::pystring_to_cchar;
+
+    _rgba.session_restore(ints, floats);
+    auto& int_ptr = *ints;
+    _alt_loc = int_ptr[0];
+    auto num_alt_locs = int_ptr[1];
+    auto aniso_u_size = int_ptr[2];
+    _coord_index = int_ptr[3];
+    _serial_number = int_ptr[4];
+    _structure_category = (StructCat)int_ptr[5];
+    _draw_mode = (DrawMode)int_ptr[6];
+    _display = int_ptr[7];
+    _hide = int_ptr[8];
+    _selected = int_ptr[9];
+    int_ptr += SESSION_NUM_INTS;
+
+    auto& float_ptr = *floats;
+    _radius = float_ptr[0];
+    float_ptr += SESSION_NUM_FLOATS;
+
+    if (PyList_GET_SIZE(misc) != 2)
+        throw std::invalid_argument("Atom misc info wrong size");
+    _computed_idatm_type = pystring_to_cchar(PyList_GET_ITEM(misc, 0), "computed IDATM type");
+    _explicit_idatm_type = pystring_to_cchar(PyList_GET_ITEM(misc, 1), "explicit IDATM type");
+
+    if (aniso_u_size > 0) {
+        _aniso_u = new std::vector<float>();
+        _aniso_u->reserve(aniso_u_size);
+        for (decltype(aniso_u_size) i = 0; i < aniso_u_size; ++i)
+            _aniso_u->push_back(*float_ptr++);
+    } else {
+        _aniso_u = nullptr;
+    }
+
+    _alt_loc_map.clear();
+    for (decltype(num_alt_locs) i = 0; i < num_alt_locs; ++i) {
+        _Alt_loc_map::key_type alt_loc = int_ptr[0];
+        aniso_u_size = int_ptr[1];
+        _Alt_loc_info info;
+        info.serial_number = int_ptr[2];
+        int_ptr += SESSION_ALTLOC_INTS;
+
+        info.bfactor = float_ptr[0];
+        info.coord[0] = float_ptr[1];
+        info.coord[1] = float_ptr[2];
+        info.coord[2] = float_ptr[3];
+        info.occupancy = float_ptr[4];
+        float_ptr += SESSION_ALTLOC_FLOATS;
+
+        if (aniso_u_size > 0) {
+            info.aniso_u = new std::vector<float>();
+            info.aniso_u->reserve(aniso_u_size);
+            for (decltype(aniso_u_size) j = 0; j < aniso_u_size; ++j)
+                info.aniso_u->push_back(*float_ptr++);
+        } else {
+            info.aniso_u = nullptr;
+        }
+        _alt_loc_map[alt_loc] = info;
+    }
+}
+
+void
 Atom::session_save(int** ints, float** floats, PyObject* misc) const
 {
-    auto int_ptr = *ints;
+    color().session_save(ints, floats);
+    auto& int_ptr = *ints;
     int_ptr[0] = _alt_loc;
     int_ptr[1] = _alt_loc_map.size();
     int_ptr[2] = (_aniso_u == nullptr ? 0 : _aniso_u->size());
     int_ptr[3] = _coord_index;
     int_ptr[4] = _serial_number;
     int_ptr[5] = (int)_structure_category;
+    int_ptr[6] = (int)_draw_mode;
+    int_ptr[7] = (int)_display;
+    int_ptr[8] = (int)_hide;
+    int_ptr[9] = (int)_selected;
     int_ptr += SESSION_NUM_INTS;
 
-    auto float_ptr = *floats;
+    auto& float_ptr = *floats;
+    float_ptr[0] = _radius;
     float_ptr += SESSION_NUM_FLOATS;
 
     PyObject* c_idatm_type = PyUnicode_FromString(_computed_idatm_type);

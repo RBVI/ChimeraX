@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-from chimera.core.tools import ToolInstance
-from chimera.core.logger import HtmlLog
+from chimerax.core.tools import ToolInstance
+from chimerax.core.logger import HtmlLog
 
 context_menu_css = """
 .context-menu {
@@ -30,6 +30,15 @@ context_menu_css = """
 }
 .context-menu-active {
     display: block;
+}
+"""
+
+cxcmd_css = """
+.cxcmd {
+    display: block;
+    font-weight: bold;
+    margin-top: .5em;
+    background-color: #ddd;
 }
 """
 
@@ -115,12 +124,12 @@ class Log(ToolInstance, HtmlLog):
     SIZE = (575, 500)
     help = "help:user/tools/log.html"
 
-    def __init__(self, session, tool_info, *, restoring=False):
+    def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
+            ToolInstance.__init__(self, session, bundle_info)
         self.warning_shows_dialog = True
         self.error_shows_dialog = True
-        from chimera.core.ui import MainToolWindow
+        from chimerax.core.ui import MainToolWindow
 
         class LogWindow(MainToolWindow):
             close_destroys = False
@@ -182,16 +191,16 @@ class Log(ToolInstance, HtmlLog):
                 style = wx.OK | wx.OK_DEFAULT | icon | wx.CENTRE
                 graphics = self.session.ui.main_window.graphics_window
                 if is_html:
-                    from chimera.core.logger import html_to_plain
+                    from chimerax.core.logger import html_to_plain
                     dlg_msg = html_to_plain(msg)
                 else:
                     dlg_msg = msg
-                if dlg_msg.count('\n') > 30:
+                if dlg_msg.count('\n') > 20:
                     # avoid excessively high error dialogs where
                     # both the bottom buttons and top controls
                     # may be off the screen!
                     lines = dlg_msg.split('\n')
-                    dlg_msg = '\n'.join(lines[:15] + ["..."] + lines[-15:])
+                    dlg_msg = '\n'.join(lines[:10] + ["..."] + lines[-10:])
                 dlg = wx.MessageDialog(graphics, dlg_msg,
                                        caption=caption, style=style)
                 dlg.ShowModal()
@@ -211,8 +220,9 @@ class Log(ToolInstance, HtmlLog):
         return True
 
     def show_page_source(self):
+        css = context_menu_css + cxcmd_css
         self.log_window.SetPage("<style>%s</style>%s\n%s" % (
-            context_menu_css, context_menu_html, self.page_source), "")
+            css, context_menu_html, self.page_source), "")
 
     # wx event handling
 
@@ -230,6 +240,8 @@ class Log(ToolInstance, HtmlLog):
         session = self.session
         # Handle event
         url = event.GetURL()
+        from urllib.parse import unquote
+        url = unquote(url)
         if url.startswith("log:"):
             event.Veto()
             cmd = url.split(':', 1)[1]
@@ -240,7 +252,7 @@ class Log(ToolInstance, HtmlLog):
             elif cmd == 'copy':
                 pass  # TODO
             elif cmd == 'save':
-                from chimera.core.ui.open_save import SaveDialog
+                from chimerax.core.ui.open_save import SaveDialog
                 save_dialog = SaveDialog(
                     self.log_window, "Save Log", defaultFile="log",
                     wildcard="HTML files (*.html)|*.html",
@@ -255,11 +267,10 @@ class Log(ToolInstance, HtmlLog):
                 log(self.session, thumbnail=True)
             return
         elif url.startswith("cxcmd:"):
-            from urllib.parse import unquote
-            from chimera.core.commands import run
+            from chimerax.core.commands import run
             event.Veto()
             cmd = url.split(':', 1)[1]
-            run(session, unquote(cmd))
+            run(session, cmd)
             return
         from urllib.parse import urlparse
         parts = urlparse(url)
@@ -269,7 +280,7 @@ class Log(ToolInstance, HtmlLog):
                 # for each call to SetPage()
                 return
             event.Veto()
-            from chimera.core.commands import run
+            from chimerax.core.commands import run
             run(session, "help %s" % url, log=False)
             return
         # unknown scheme
@@ -290,7 +301,10 @@ class Log(ToolInstance, HtmlLog):
                 "<title> ChimeraX Log </title>\n"
                 "</head>\n"
                 "<body>\n"
-                "<h1> ChimeraX Log </h1>\n")
+                "<h1> ChimeraX Log </h1>\n"
+                "<style>\n"
+                "%s"
+                "</style>\n" % cxcmd_css)
         f.write(self.page_source)
         f.write("</body>\n"
                 "</html>\n")
@@ -301,16 +315,16 @@ class Log(ToolInstance, HtmlLog):
     #
     def take_snapshot(self, session, flags):
         data = {"shown": self.tool_window.shown}
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
         from .cmd import get_singleton
         return get_singleton(session)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         self.display(data["shown"])
 

@@ -11,6 +11,7 @@
 #include <basegeom/destruct.h>
 #include <basegeom/Graph.tcc>
 #include <logger/logger.h>
+#include <pysupport/convert.h>
 #include <pythonarray.h>
 
 #include <algorithm>  // for std::find, std::sort, std::remove_if, std::min
@@ -982,12 +983,14 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     //    PseudobondManager (needs Atoms and CoordSets)
     //    Residue
     //    Chain
-    //    Ring
     // For the numeric types, the objects will be numpy arrays: one-dimensional for
     // AtomicStructure attributes and two-dimensional for the others.  Except for
     // PseudobondManager; that will be a list of numpy arrays, one per group.  For the misc,
     // The objects will be Python lists, or lists of lists (same scheme as for the arrays),
     // though there may be exceptions (e.g. altloc info).
+    //
+    // Just let rings get recomputed instead of saving them.  Don't have to set up and
+    // tear down a bond map that way (rings are the only thing that needs bond references).
 
     if (!PyList_Check(ints) || PyList_Size(ints) != 0)
         throw std::invalid_argument("AtomicStructure::session_info: first arg is not an"
@@ -1001,32 +1004,27 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
 
     // AtomicStructure attrs
     int* int_array;
-    PyObject* npy_array = python_int_array(10, &int_array);
+    PyObject* npy_array = python_int_array(SESSION_NUM_INTS, &int_array);
     *int_array++ = _idatm_valid;
-    bool recompute_rings = _recompute_rings || _rings_last_ignore != nullptr;
-    *int_array++ = recompute_rings;
-    *int_array++ = _rings_last_all_size_threshold;
-    *int_array++ = _rings_last_cross_residues;
     int x = std::find(_coord_sets.begin(), _coord_sets.end(), _active_coord_set)
         - _coord_sets.begin();
-    *int_array++ = x; // can be size+1 if active coord set is null
+    *int_array++ = x; // can be == size if active coord set is null
     *int_array++ = asterisks_translated;
-    *int_array++ = display();
+    *int_array++ = _display;
     *int_array++ = is_traj;
     *int_array++ = lower_case_chains;
     *int_array++ = pdb_version;
-    // if you add ints, change the allocation above
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
 
     float* float_array;
-    npy_array = python_float_array(1, &float_array);
-    *float_array++ = ball_scale();
+    npy_array = python_float_array(SESSION_NUM_FLOATS, &float_array);
+    *float_array++ = _ball_scale;
     // if you add floats, change the allocation above
     if (PyList_Append(floats, npy_array) < 0)
         throw std::runtime_error("Couldn't append to floats list");
 
-    PyObject* attr_list = PyList_New(4);
+    PyObject* attr_list = PyList_New(SESSION_NUM_MISC);
     if (attr_list == nullptr)
         throw std::runtime_error("Cannot create Python list for misc info");
     if (PyList_Append(misc, attr_list) < 0)
@@ -1063,7 +1061,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     if (seq_source == nullptr)
         throw std::runtime_error("Cannot create Python string for seq info source");
     PyList_SET_ITEM(attr_list, 2, seq_source);
-    // pdb_headers
+    // metadata
     map = PyDict_New();
     if (map == nullptr)
         throw std::runtime_error("Cannot create Python map for metadata");
@@ -1087,7 +1085,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     PyList_SET_ITEM(attr_list, 3, map);
 
     // atoms
-    // We need to remember names and elments ourself for constructing the atoms.
+    // We need to remember names and elements ourself for constructing the atoms.
     // Make a list of num_atom+1 items, the first of which will be the list of
     //   names and the remainder of which will be empty lists which will be handed
     //   off individually to the atoms.
@@ -1119,8 +1117,12 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     for (auto a: atoms()) {
         *atom_ints++ = a->element().number();
     }
+    if (PyList_Append(ints, atom_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append atom ints to int list");
     float* atom_floats;
-    atom_npy_ints = python_float_array(1, &atom_floats);
+    PyObject* atom_npy_floats = python_float_array(num_floats, &atom_floats);
+    if (PyList_Append(floats, atom_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append atom floats to float list");
     i = 1;
     for (auto a: atoms()) {
         PyObject* empty_list = PyList_New(0);
@@ -1130,24 +1132,412 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         a->session_save(&atom_ints, &atom_floats, empty_list);
     }
 
-#if 0
+    // bonds
+    // We need to remember atom indices ourself for constructing the bonds.
+    int num_bonds = bonds().size();
+    num_ints = 1 + 2 * num_bonds; // to hold the # of bonds, and atom indices
+    num_floats = 0;
+    num_ints += num_bonds * Bond::session_num_ints();
+    num_floats += num_bonds * Bond::session_num_floats();
+    PyObject* bonds_misc = PyList_New(0);
+    if (bonds_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for bond misc info");
+    if (PyList_Append(misc, bonds_misc) < 0)
+        throw std::runtime_error("Couldn't append bond misc list to misc list");
+    int* bond_ints;
+    PyObject* bond_npy_ints = python_int_array(num_ints, &bond_ints);
+    *bond_ints++ = num_bonds;
+    for (auto b: bonds()) {
+        *bond_ints++ = (*session_save_atoms)[b->atoms()[0]];
+        *bond_ints++ = (*session_save_atoms)[b->atoms()[1]];
+    }
+    if (PyList_Append(ints, bond_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append bond ints to int list");
+    float* bond_floats;
+    PyObject* bond_npy_floats = python_float_array(num_floats, &bond_floats);
+    if (PyList_Append(floats, bond_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append bond floats to float list");
+    for (auto b: bonds()) {
+        b->session_save(&bond_ints, &bond_floats);
+    }
+
     // coord sets
-    int num_ints = 1; // to note the totol # of coord sets
-    int num_floats = 0;
+    int num_cs = coord_sets().size();
+    num_ints = 1 + num_cs; // to note the total # of coord sets, and coord set IDs
+    num_floats = 0;
     for (auto cs: _coord_sets) {
         num_ints += cs->session_num_ints();
         num_floats += cs->session_num_floats();
     }
-#endif
+    PyObject* cs_misc = PyList_New(0);
+    if (cs_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for coord set misc info");
+    if (PyList_Append(misc, cs_misc) < 0)
+        throw std::runtime_error("Couldn't append coord set misc list to misc list");
+    int* cs_ints;
+    PyObject* cs_npy_ints = python_int_array(num_ints, &cs_ints);
+    *cs_ints++ = num_cs;
+    for (auto cs: coord_sets()) {
+        *cs_ints++ = cs->id();
+    }
+    if (PyList_Append(ints, cs_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append coord set ints to int list");
+    float* cs_floats;
+    PyObject* cs_npy_floats = python_float_array(num_floats, &cs_floats);
+    if (PyList_Append(floats, cs_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append coord set floats to float list");
+    for (auto cs: coord_sets()) {
+        cs->session_save(&cs_ints, &cs_floats);
+    }
 
     // PseudobondManager groups;
     // main version number needs to go up when manager's
     // version number goes up, so check it
-    if (_pb_mgr.session_info(ints, floats, misc) != 1) {
+    PyObject* pb_ints;
+    PyObject* pb_floats;
+    PyObject* pb_misc;
+    if (_pb_mgr.session_info(&pb_ints, &pb_floats, &pb_misc) != 1) {
         throw std::runtime_error("Unexpected version number from pseudobond manager");
     }
+    if (PyList_Append(ints, pb_ints) < 0)
+        throw std::runtime_error("Couldn't append pseudobond ints to int list");
+    if (PyList_Append(floats, pb_floats) < 0)
+        throw std::runtime_error("Couldn't append pseudobond floats to float list");
+    if (PyList_Append(misc, pb_misc) < 0)
+        throw std::runtime_error("Couldn't append pseudobond misc info to misc list");
 
-    return 1;  // version number
+    // residues
+    int num_residues = residues().size();
+    num_ints = 2 * num_residues; // to note position and insertion code for constructor
+    num_floats = 0;
+    for (auto res: _residues) {
+        num_ints += res->session_num_ints();
+        num_floats += res->session_num_floats();
+    }
+    PyObject* res_misc = PyList_New(2);
+    if (res_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for residue misc info");
+    if (PyList_Append(misc, res_misc) < 0)
+        throw std::runtime_error("Couldn't append residue misc list to misc list");
+    int* res_ints;
+    PyObject* res_npy_ints = python_int_array(num_ints, &res_ints);
+    if (PyList_Append(ints, res_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append residue ints to int list");
+    float* res_floats;
+    PyObject* res_npy_floats = python_float_array(num_floats, &res_floats);
+    if (PyList_Append(floats, res_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append residue floats to float list");
+    PyObject* py_res_names = PyList_New(num_residues);
+    if (py_res_names == nullptr)
+        throw std::runtime_error("Cannot create Python list for residue names");
+    PyList_SET_ITEM(res_misc, 0, py_res_names);
+    PyObject* py_chain_ids = PyList_New(num_residues);
+    if (py_chain_ids == nullptr)
+        throw std::runtime_error("Cannot create Python list for chain IDs");
+    PyList_SET_ITEM(res_misc, 1, py_chain_ids);
+    i = 0;
+    for (auto res: residues()) {
+        // remember res name and chain ID
+        PyObject* name = PyUnicode_FromString(res->name());
+        if (name == nullptr)
+            throw::std::runtime_error("Cannot create Python string for residue name");
+        PyList_SET_ITEM(py_res_names, i, name);
+        PyObject* chain_id = PyUnicode_FromString(res->chain_id());
+        if (chain_id == nullptr)
+            throw::std::runtime_error("Cannot create Python string for residue chain ID");
+        PyList_SET_ITEM(py_chain_ids, i++, chain_id);
+        *res_ints++ = res->position();
+        *res_ints++ = res->insertion_code();
+        res->session_save(&res_ints, &res_floats);
+    }
+
+    // chains
+    int num_chains = _chains == nullptr ? -1 : _chains->size();
+    num_ints = 1; // for storing num_chains, since len(chain_ids) can't show nullptr
+    num_floats = 0;
+    if (_chains != nullptr) {
+        for (auto ch: *_chains) {
+            num_ints += ch->session_num_ints();
+            num_floats += ch->session_num_floats();
+        }
+    }
+    // allocate for list of chain IDs
+    PyObject* chain_misc = PyList_New(1);
+    if (chain_misc == nullptr)
+        throw std::runtime_error("Cannot create Python list for chain misc info");
+    if (PyList_Append(misc, chain_misc) < 0)
+        throw std::runtime_error("Couldn't append chain misc list to misc list");
+    PyObject* chain_ids = PyList_New(num_chains);
+    if (chain_ids == nullptr)
+        throw std::runtime_error("Cannot create Python list for chain IDs");
+    PyList_SET_ITEM(chain_misc, 0, chain_ids);
+    i = 0;
+    if (_chains != nullptr) {
+        for (auto ch: *_chains) {
+            num_ints += ch->session_num_ints();
+            num_floats += ch->session_num_floats();
+
+            // remember chain ID
+            PyObject* chain_id = PyUnicode_FromString(ch->chain_id());
+            if (chain_id == nullptr)
+                throw::std::runtime_error("Cannot create Python string for chain ID");
+            PyList_SET_ITEM(chain_ids, i++, chain_id);
+        }
+    }
+    int* chain_ints;
+    PyObject* chain_npy_ints = python_int_array(num_ints, &chain_ints);
+    if (PyList_Append(ints, chain_npy_ints) < 0)
+        throw std::runtime_error("Couldn't append chain ints to int list");
+    float* chain_floats;
+    PyObject* chain_npy_floats = python_float_array(num_floats, &chain_floats);
+    if (PyList_Append(floats, chain_npy_floats) < 0)
+        throw std::runtime_error("Couldn't append chain floats to float list");
+    *chain_ints++ = num_chains;
+    if (_chains != nullptr) {
+        for (auto ch: *_chains) {
+            ch->session_save(&chain_ints, &chain_floats);
+        }
+    }
+
+    return CURRENT_SESSION_VERSION;  // version number
+}
+
+void
+AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, PyObject* misc)
+{
+    // restore the stuff saved by session_info()
+
+    if (version > CURRENT_SESSION_VERSION)
+        throw std::invalid_argument("Don't know how to restore new session data; update your"
+            " version of ChimeraX");
+
+    if (!PyList_Check(ints) || PyList_Size(ints) != 7)
+        throw std::invalid_argument("AtomicStructure::session_restore: first arg is not a"
+            " 7-element list");
+    if (!PyList_Check(floats) || PyList_Size(floats) != 7)
+        throw std::invalid_argument("AtomicStructure::session_restore: second arg is not a"
+            " 7-element list");
+    if (!PyList_Check(misc) || PyList_Size(misc) != 7)
+        throw std::invalid_argument("AtomicStructure::session_restore: third arg is not a"
+            " 7-element list");
+
+    using pysupport::pylist_of_string_to_cvector;
+    using pysupport::pystring_to_cchar;
+
+    // AtomicStructure ints
+    PyObject* item = PyList_GET_ITEM(ints, 0);
+    auto iarray = Numeric_Array();
+    if (!array_from_python(item, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("AtomicStructure int data is not a one-dimensional"
+            " numpy int array");
+    if (iarray.size() != SESSION_NUM_INTS)
+        throw std::invalid_argument("AtomicStructure int array wrong size");
+    int* int_array = static_cast<int*>(iarray.values());
+    _idatm_valid = *int_array++;
+    int active_cs = *int_array++; // have to wait until CoordSets restored to set
+    asterisks_translated = *int_array++;
+    _display = *int_array++;
+    is_traj = *int_array++;
+    lower_case_chains = *int_array++;
+    pdb_version = *int_array++;
+    // if more added, change the array dimension check above
+
+    // AtomicStructure floats
+    item = PyList_GET_ITEM(floats, 0);
+    auto farray = Numeric_Array();
+    if (!array_from_python(item, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("AtomicStructure float data is not a one-dimensional"
+            " numpy float array");
+    if (farray.size() != SESSION_NUM_FLOATS)
+        throw std::invalid_argument("AtomicStructure float array wrong size");
+    float* float_array = static_cast<float*>(farray.values());
+    _ball_scale = *float_array++;
+    // if more added, change the array dimension check above
+
+    // AtomicStructure misc info
+    item = PyList_GET_ITEM(misc, 0);
+    if (!PyList_Check(item) || PyList_GET_SIZE(item) != SESSION_NUM_MISC)
+        throw std::invalid_argument("AtomicStructure misc data is not list or is wrong size");
+    // input_seq_info
+    PyObject* map = PyList_GET_ITEM(item, 0);
+    if (!PyDict_Check(map))
+        throw std::invalid_argument("input seq info is not a dict!");
+    Py_ssize_t index = 0;
+    PyObject* py_chain_id;
+    PyObject* py_residues;
+    _input_seq_info.clear();
+    while (PyDict_Next(map, &index, &py_chain_id, &py_residues)) {
+        ChainID chain_id = pystring_to_cchar(py_chain_id, "input seq chain ID");
+        auto& res_names = _input_seq_info[chain_id];
+        pylist_of_string_to_cvector(py_residues, res_names, "chain residue name");
+    }
+    // name
+    _name = pystring_to_cchar(PyList_GET_ITEM(item, 1), "structure name");
+    // input_seq_source
+    input_seq_source = pystring_to_cchar(PyList_GET_ITEM(item, 2), "structure input seq source");
+    // metadata
+    map = PyList_GET_ITEM(item, 3);
+    if (!PyDict_Check(map))
+        throw std::invalid_argument("structure metadata is not a dict!");
+    index = 0;
+    PyObject* py_hdr_type;
+    PyObject* py_headers;
+    _input_seq_info.clear();
+    while (PyDict_Next(map, &index, &py_hdr_type, &py_headers)) {
+        auto hdr_type = pystring_to_cchar(py_hdr_type, "structure metadata key");
+        auto& headers = metadata[hdr_type];
+        pylist_of_string_to_cvector(py_headers, headers, "structure metadata");
+    }
+
+    // atoms
+    PyObject* atoms_misc = PyList_GET_ITEM(misc, 1);
+    if (!PyList_Check(atoms_misc))
+        throw std::invalid_argument("atom misc info is not a list");
+    if (PyList_GET_SIZE(atoms_misc) < 1)
+        throw std::invalid_argument("atom names missing");
+    std::vector<AtomName> atom_names;
+    pylist_of_string_to_cvector(PyList_GET_ITEM(atoms_misc, 0), atom_names, "atom name");
+    if ((decltype(atom_names)::size_type)(PyList_GET_SIZE(atoms_misc)) != atom_names.size() + 1)
+        throw std::invalid_argument("bad atom misc info");
+    PyObject* atom_ints = PyList_GET_ITEM(ints, 1);
+    iarray = Numeric_Array();
+    if (!array_from_python(atom_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Atom int data is not a one-dimensional"
+            " numpy int array");
+    int_array = static_cast<int*>(iarray.values());
+    auto element_ints = int_array;
+    int_array += atom_names.size();
+    PyObject* atom_floats = PyList_GET_ITEM(floats, 1);
+    farray = Numeric_Array();
+    if (!array_from_python(atom_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Atom float data is not a one-dimensional"
+            " numpy float array");
+    float_array = static_cast<float*>(farray.values());
+    int i = 1; // atom names are in slot zero
+    for (auto aname: atom_names) {
+        auto a = new_atom(aname, Element::get_element(*element_ints++));
+        a->session_restore(&int_array, &float_array, PyList_GET_ITEM(atoms_misc, i++));
+    }
+
+    // bonds
+    PyObject* bond_ints = PyList_GET_ITEM(ints, 2);
+    iarray = Numeric_Array();
+    if (!array_from_python(bond_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Bond int data is not a one-dimensional"
+            " numpy int array");
+    int_array = static_cast<int*>(iarray.values());
+    auto num_bonds = *int_array++;
+    auto bond_index_ints = int_array;
+    int_array += 2 * num_bonds;
+    PyObject* bond_floats = PyList_GET_ITEM(floats, 2);
+    farray = Numeric_Array();
+    if (!array_from_python(bond_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Bond float data is not a one-dimensional"
+            " numpy float array");
+    float_array = static_cast<float*>(farray.values());
+    for (i = 0; i < num_bonds; ++i) {
+        Atom *a1 = atoms()[*bond_index_ints++];
+        Atom *a2 = atoms()[*bond_index_ints++];
+        auto b = new_bond(a1, a2);
+        b->session_restore(&int_array, &float_array);
+    }
+
+    // coord sets
+    PyObject* cs_ints = PyList_GET_ITEM(ints, 3);
+    iarray = Numeric_Array();
+    if (!array_from_python(cs_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Coord set int data is not a one-dimensional"
+            " numpy int array");
+    int_array = static_cast<int*>(iarray.values());
+    auto num_cs = *int_array++;
+    auto cs_id_ints = int_array;
+    int_array += num_cs;
+    PyObject* cs_floats = PyList_GET_ITEM(floats, 3);
+    farray = Numeric_Array();
+    if (!array_from_python(cs_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Coord set float data is not a one-dimensional"
+            " numpy float array");
+    float_array = static_cast<float*>(farray.values());
+    for (i = 0; i < num_cs; ++i) {
+        auto cs = new_coord_set(*cs_id_ints++, atom_names.size());
+        cs->session_restore(&int_array, &float_array);
+    }
+    // can now resolve the active coord set
+    if ((CoordSets::size_type)active_cs < _coord_sets.size())
+        _active_coord_set = _coord_sets[active_cs];
+    else
+        _active_coord_set = nullptr;
+
+    // PseudobondManager groups;
+    PyObject* pb_ints = PyList_GET_ITEM(ints, 4);
+    iarray = Numeric_Array();
+    if (!array_from_python(pb_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Pseudobond int data is not a one-dimensional"
+            " numpy int array");
+    int_array = static_cast<int*>(iarray.values());
+    PyObject* pb_floats = PyList_GET_ITEM(floats, 4);
+    farray = Numeric_Array();
+    if (!array_from_python(pb_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Pseudobond float data is not a one-dimensional"
+            " numpy float array");
+    float_array = static_cast<float*>(farray.values());
+    _pb_mgr.session_restore(&int_array, &float_array, PyList_GET_ITEM(misc, 4));
+
+    // residues
+    PyObject* res_misc = PyList_GET_ITEM(misc, 5);
+    if (!PyList_Check(res_misc) or PyList_GET_SIZE(res_misc) != 2)
+        throw std::invalid_argument("residue misc info is not a two-item list");
+    std::vector<ResName> res_names;
+    pylist_of_string_to_cvector(PyList_GET_ITEM(res_misc, 0), res_names, "residue name");
+    std::vector<ChainID> res_chain_ids;
+    pylist_of_string_to_cvector(PyList_GET_ITEM(res_misc, 1), res_chain_ids, "chain ID");
+    PyObject* py_res_ints = PyList_GET_ITEM(ints, 5);
+    iarray = Numeric_Array();
+    if (!array_from_python(py_res_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Residue int data is not a one-dimensional numpy int array");
+    auto res_ints = static_cast<int*>(iarray.values());
+    PyObject* py_res_floats = PyList_GET_ITEM(floats, 5);
+    farray = Numeric_Array();
+    if (!array_from_python(py_res_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Residue float data is not a one-dimensional"
+            " numpy float array");
+    auto res_floats = static_cast<float*>(farray.values());
+    for (decltype(res_names)::size_type i = 0; i < res_names.size(); ++i) {
+        auto& res_name = res_names[i];
+        auto& chain_id = res_chain_ids[i];
+        auto pos = *res_ints++;
+        auto insert = *res_ints++;
+        auto r = new_residue(res_name, chain_id, pos, insert);
+        r->session_restore(&res_ints, &res_floats);
+    }
+
+    // chains
+    PyObject* chain_misc = PyList_GET_ITEM(misc, 6);
+    if (!PyList_Check(chain_misc) or PyList_GET_SIZE(chain_misc) != 1)
+        throw std::invalid_argument("chain misc info is not a one-item list");
+    std::vector<ChainID> chain_chain_ids;
+    pylist_of_string_to_cvector(PyList_GET_ITEM(chain_misc, 0), chain_chain_ids, "chain ID");
+    PyObject* py_chain_ints = PyList_GET_ITEM(ints, 6);
+    iarray = Numeric_Array();
+    if (!array_from_python(py_chain_ints, 1, Numeric_Array::Int, &iarray, false))
+        throw std::invalid_argument("Chain int data is not a one-dimensional numpy int array");
+    auto chain_ints = static_cast<int*>(iarray.values());
+    PyObject* py_chain_floats = PyList_GET_ITEM(floats, 6);
+    farray = Numeric_Array();
+    if (!array_from_python(py_chain_floats, 1, Numeric_Array::Float, &farray, false))
+        throw std::invalid_argument("Chain float data is not a one-dimensional"
+            " numpy float array");
+    auto chain_floats = static_cast<float*>(farray.values());
+    auto num_chains = *chain_ints++;
+    if (num_chains < 0) {
+        _chains = nullptr;
+    } else {
+        _chains = new Chains();
+        for (auto chain_id: chain_chain_ids) {
+            auto chain = _new_chain(chain_id);
+            chain->session_restore(&chain_ints, &chain_floats);
+        }
+    }
 }
 
 void
@@ -1155,15 +1545,21 @@ AtomicStructure::session_save_setup() const
 {
     size_t index = 0;
 
-    session_save_atoms = new std::map<const Atom*, size_t>;
+    session_save_atoms = new std::unordered_map<const Atom*, size_t>;
     for (auto a: atoms()) {
         (*session_save_atoms)[a] = index++;
     }
 
     index = 0;
-    session_save_crdsets = new std::map<const CoordSet*, size_t>;
+    session_save_crdsets = new std::unordered_map<const CoordSet*, size_t>;
     for (auto cs: coord_sets()) {
         (*session_save_crdsets)[cs] = index++;
+    }
+
+    index = 0;
+    session_save_residues = new std::unordered_map<const Residue*, size_t>;
+    for (auto r: residues()) {
+        (*session_save_residues)[r] = index++;
     }
 }
 
@@ -1172,6 +1568,7 @@ AtomicStructure::session_save_teardown() const
 {
     delete session_save_atoms;
     delete session_save_crdsets;
+    delete session_save_residues;
 }
 
 void

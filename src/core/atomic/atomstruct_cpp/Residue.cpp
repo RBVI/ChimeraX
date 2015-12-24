@@ -106,11 +106,102 @@ Residue::find_atom(const AtomName& name) const
     return nullptr;
 }
 
+Atom*
+Residue::principal_atom() const
+{
+    // Return the 'chain trace' atom of the residue, if any
+    //
+    // Normally returns th C4' from a nucleic acid since that is always
+    // present, but in the case of a P-only trace it returns the P
+    auto am = atoms_map();
+    auto caf = am.find("CA");
+    if (caf != am.end()) {
+        auto ca = caf->second;
+        if (ca->element() != Element::C)
+            return nullptr;
+        if (am.find("N") != am.end() && am.find("C") != am.end())
+            return ca;
+        return am.size() == 1 ? ca : nullptr;
+    }
+    auto c4f = am.find("C4'");
+    if (c4f == am.end())
+        return nullptr;
+    auto c4 = c4f->second;
+    if (am.find("C3'") != am.end() && am.find("C5'") != am.end() && am.find("O5'") != am.end())
+        return c4;
+    if (am.size() > 1)
+        return nullptr;
+    auto pf = am.find("P");
+    if (pf == am.end())
+        return nullptr;
+    auto p = pf->second;
+    return p->element() == Element::P ? p : nullptr;
+}
+
 void
 Residue::remove_atom(Atom* a)
 {
     a->_residue = nullptr;
     _atoms.erase(std::find(_atoms.begin(), _atoms.end(), a));
+}
+
+void
+Residue::session_restore(int** ints, float** floats)
+{
+    _ribbon_rgba.session_restore(ints, floats);
+
+    auto& int_ptr = *ints;
+    auto& float_ptr = *floats;
+
+    _alt_loc = int_ptr[0];
+    _is_helix = int_ptr[1];
+    _is_het = int_ptr[2];
+    _is_sheet = int_ptr[3];
+    _polymer_type = (PolymerType)int_ptr[4];
+    _ribbon_display = int_ptr[5];
+    _ribbon_hide_backbone = int_ptr[6];
+    _ribbon_style = (Style)int_ptr[7];
+    _ss_id = int_ptr[8];
+    auto num_atoms = int_ptr[9];
+    int_ptr += SESSION_NUM_INTS;
+
+    _ribbon_adjust = float_ptr[0];
+    float_ptr += SESSION_NUM_FLOATS;
+
+    auto& atoms = structure()->atoms();
+    for (decltype(num_atoms) i = 0; i < num_atoms; ++i) {
+        add_atom(atoms[*int_ptr++]);
+    }
+}
+
+void
+Residue::session_save(int** ints, float** floats) const
+{
+    _ribbon_rgba.session_save(ints, floats);
+
+    auto& int_ptr = *ints;
+    auto& float_ptr = *floats;
+
+    int_ptr[0] = (int)_alt_loc;
+    int_ptr[1] = (int)_is_helix;
+    int_ptr[2] = (int)_is_het;
+    int_ptr[3] = (int)_is_sheet;
+    int_ptr[4] = (int)_polymer_type;
+    int_ptr[5] = (int)_ribbon_display;
+    int_ptr[6] = (int)_ribbon_hide_backbone;
+    int_ptr[7] = (int)_ribbon_style;
+    int_ptr[8] = (int)_ss_id;
+    int_ptr[9] = atoms().size();
+    int_ptr += SESSION_NUM_INTS;
+
+    float_ptr[0] = _ribbon_adjust;
+    float_ptr += SESSION_NUM_FLOATS;
+
+    auto& atom_map = *structure()->session_save_atoms;
+    for (auto a: atoms()) {
+        *int_ptr++ = atom_map[a];
+    }
+
 }
 
 void

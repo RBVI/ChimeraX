@@ -41,9 +41,9 @@ class ToolInstance(State):
 
     Parameters
     ----------
-    session : instance of chimera.core.session.Session
+    session : instance of chimerax.core.session.Session
         Session in which this tool instance was created.
-    tool_info : a :py:class:`~chimera.core.toolshed.ToolInfo` instance
+    bundle_info : a :py:class:`~chimerax.core.toolshed.BundleInfo` instance
         The tool information used to create this tool.
     id : int, optional
         See attribute.
@@ -56,7 +56,7 @@ class ToolInstance(State):
     display_name : str
         If a different name is desired (e.g. multi-instance tool) make sure
         to set the attribute before creating the first tool window.
-        Defaults to ``tool_info.display_name``.
+        Defaults to ``bundle_info.display_name``.
     SESSION_ENDURING : bool, class-level optional
         If True, then tool survives across sessions.
     SESSION_SKIP : bool, class-level optional
@@ -69,25 +69,25 @@ class ToolInstance(State):
     SESSION_SKIP = False
     help = None
 
-    def __init__(self, session, tool_info, id=None):
+    def __init__(self, session, bundle_info, id=None):
         self.id = id
         import weakref
         self._session = weakref.ref(session)
-        self.tool_info = tool_info
-        self.display_name = tool_info.display_name
+        self.bundle_info = bundle_info
+        self.display_name = bundle_info.display_name
         # TODO: track.created(ToolInstance, [self])
         session.tools.add([self])
 
     def take_snapshot(self, session, flags):
-        return CORE_STATE_VERSION, [self.id, self.tool_info.name]
+        return CORE_STATE_VERSION, [self.id, self.bundle_info.name]
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         id, tool_name = data
-        tool_info = session.toolshed.find_tool(tool_name)
-        if tool_info is None:
+        bundle_info = session.toolshed.find_bundle(tool_name)
+        if bundle_info is None:
             session.logger.info('unable to find tool "%s"' % tool_name)
             return
-        ToolInstance.__init__(self, session, tool_info, id=id)
+        ToolInstance.__init__(self, session, bundle_info, id=id)
 
     @property
     def session(self):
@@ -122,7 +122,7 @@ class ToolInstance(State):
 
     def display_help(self):
         """Show the help for this tool in the help viewer."""
-        from chimera.core.commands import run
+        from chimerax.core.commands import run
         run(self.session,
             'help %s' % self.help if self.help is not None else "")
 
@@ -131,13 +131,13 @@ def get_singleton(session, tool_class, tool_name, create=True, display=False, **
     if not session.ui.is_gui:
         return None
     running = [t for t in session.tools.find_by_class(tool_class)
-               if t.tool_info.name == tool_name]
+               if t.bundle_info.name == tool_name]
     if len(running) > 1:
         raise RuntimeError("too many %s instances running" % tool_name)
     if not running:
         if create:
-            tool_info = session.toolshed.find_tool(tool_name)
-            tinst = tool_class(session, tool_info, **kw)
+            bundle_info = session.toolshed.find_bundle(tool_name)
+            tinst = tool_class(session, bundle_info, **kw)
         else:
             tinst = None
     else:
@@ -160,7 +160,7 @@ class Tools(State):
 
         Parameters
         ----------
-        session : instance of chimera.core.session.Session
+        session : instance of chimerax.core.session.Session
             Session for which this state manager was created.
 
         """
@@ -176,19 +176,19 @@ class Tools(State):
     def take_snapshot(self, session, flags):
         """Save state of running tools.
 
-        Overrides chimera.core.session.State default method to save
+        Overrides chimerax.core.session.State default method to save
         state of all registered running tool instances.
 
         Parameters
         ----------
-        session : instance of chimera.core.session.Session
+        session : instance of chimerax.core.session.Session
             Session for which state is being saved.
             Should match the `session` argument given to `__init__`.
         phase : str
-            Take phase.  See `chimera.core.session` for more details.
+            Take phase.  See `chimerax.core.session` for more details.
         flags : int
             Flags indicating whether snapshot is being taken to
-            save scene or session.  See `chimera.core.session` for
+            save scene or session.  See `chimerax.core.session` for
             more details.
 
         """
@@ -201,24 +201,24 @@ class Tools(State):
         return CORE_STATE_VERSION, [data, next(self._id_counter)]
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
         try:
             return session.tools
         except AttributeError:
             return cls.__new__(cls)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         """Restore state of running tools.
 
-        Overrides chimera.core.session.State default method to restore
+        Overrides chimerax.core.session.State default method to restore
         state of all registered running tools.
 
         Parameters
         ----------
-        session : instance of chimera.core.session.Session
+        session : instance of chimerax.core.session.Session
             Session for which state is being saved.
             Should match the `session` argument given to `__init__`.
-        tool_info : instance of :py:class:`~chimera.core.toolshed.ToolInfo`
+        bundle_info : instance of :py:class:`~chimerax.core.toolshed.BundleInfo`
         version : any
             Version of state manager that saved the data.
             Used for determining how to parse the `data` argument.
@@ -235,7 +235,7 @@ class Tools(State):
     def reset_state(self, session):
         """Reset state manager to default state.
 
-        Overrides chimera.core.session.State default method to reset
+        Overrides chimerax.core.session.State default method to reset
         to default state.  Since the default state has no running
         tools, all registered tool instances are deleted.
 
@@ -324,7 +324,7 @@ class Tools(State):
         from .toolshed import ToolshedError
         from .core_settings import settings
         auto_ti = [None] * len(settings.autostart)
-        for tool_inst in session.toolshed.tool_info():
+        for tool_inst in session.toolshed.bundle_info():
             try:
                 auto_ti[settings.autostart.index(tool_inst.name)] = tool_inst
             except ValueError:

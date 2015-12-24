@@ -29,7 +29,7 @@ class Model(State, Drawing):
     id : None or tuple of int
         Model/submodel identification: *e.g.*, 1.3.2 is (1, 3, 2).
         Set and unset by :py:class:`Models` instance.
-    tool_info : a :py:class:`~chimera.core.toolshed.ToolInfo` instance
+    bundle_info : a :py:class:`~chimerax.core.toolshed.BundleInfo` instance
         The tool that provides the subclass.
     SESSION_ENDURING : bool, class-level optional
         If True, then model survives across sessions.
@@ -39,7 +39,7 @@ class Model(State, Drawing):
 
     SESSION_ENDURING = False
     SESSION_SKIP = False
-    tool_info = None    # default, should be set in subclass
+    bundle_info = None    # default, should be set in subclass
 
     def __init__(self, name, session):
         Drawing.__init__(self, name)
@@ -74,7 +74,7 @@ class Model(State, Drawing):
         return CORE_STATE_VERSION, [self.name, self.id]
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
         if data[1] is ():
             try:
                 return session.models.drawing
@@ -82,9 +82,10 @@ class Model(State, Drawing):
                 pass
         return cls.__new__(cls)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        self.name, self.id = data
-        Drawing.__init__(self, self.name)
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        name, id = data
+        Model.__init__(self, name, session)
+        self.id = id
 
     def reset_state(self, session):
         pass
@@ -125,13 +126,13 @@ class Models(State):
         return CORE_STATE_VERSION, data
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
         try:
             return session.models
         except AttributeError:
             return cls.__new__(cls)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         existing = self is session.models
         if not existing:
             self._session = weakref.ref(session)
@@ -170,6 +171,8 @@ class Models(State):
         return models
 
     def add(self, models, parent=None, _notify=True):
+        start_count = len(self._models)
+
         d = self.drawing if parent is None else parent
         for m in models:
             d.add_drawing(m)
@@ -189,6 +192,10 @@ class Models(State):
             for m in m_all:
                 m.added_to_session(session)
             session.triggers.activate_trigger(ADD_MODELS, m_all)
+            if start_count == 0 and len(self._models) > 0:
+                v = session.main_view
+                v.initial_camera_view()
+                v.clip_planes.clear()	# Turn off clipping
 
         return m_all
 
@@ -245,20 +252,17 @@ class Models(State):
         for m in models:
             m.delete()
 
-    def open(self, filenames, id=None, **kw):
+    def open(self, filenames, id=None, format=None, name=None, **kw):
         from . import io
         session = self._session()  # resolve back reference
-        models, status = io.open_multiple_data(session, filenames, **kw)
+        models, status = io.open_multiple_data(session, filenames, format=format, name=name, **kw)
         if status:
             session.logger.status(status)
         if models:
-            start_count = len(self._models)
             if len(models) > 1:
                 self.add_group(models)
             else:
                 self.add(models)
-            if start_count == 0 and len(self._models) > 0:
-                session.main_view.initial_camera_view()
         return models
 
 

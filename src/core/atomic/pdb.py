@@ -29,7 +29,7 @@ def open_pdb(session, filename, name, *args, **kw):
             input.close()
 
     lod = session.atomic_level_of_detail
-    models = [structure.AtomicStructure(name, session, c_pointer = p, level_of_detail = lod)
+    models = [structure.AtomicStructure(session, name = name, c_pointer = p, level_of_detail = lod)
         for p in pointers]
 
     return models, ("Opened PDB data containing %d atoms and %d bonds"
@@ -37,7 +37,7 @@ def open_pdb(session, filename, name, *args, **kw):
                        sum(m.num_bonds for m in models)))
 
 
-def fetch_pdb(session, pdb_id):
+def fetch_pdb(session, pdb_id, ignore_cache=False):
     if len(pdb_id) != 4:
         raise UserError("PDB identifiers are 4 characters long")
     import os
@@ -48,31 +48,24 @@ def fetch_pdb(session, pdb_id):
     if os.path.exists(sys_filename):
         return sys_filename, pdb_id
 
-    filename = "~/Downloads/Chimera/PDB/%s.pdb" % pdb_id.upper()
-    filename = os.path.expanduser(filename)
+    pdb_name = "%s.pdb" % pdb_id.upper()
+    url = "http://www.pdb.org/pdb/files/%s" % pdb_name
+    from ..fetch import fetch_file
+    filename = fetch_file(session, url, 'PDB %s' % pdb_id, pdb_name, 'PDB',
+                          ignore_cache=ignore_cache)
 
-    if os.path.exists(filename):
-        return filename, pdb_id  # TODO: check if cache needs updating
+    from .. import io
+    models, status = io.open_data(session, filename, format = 'pdb', name = pdb_id)
+    return models, status
 
-    dirname = os.path.dirname(filename)
-    os.makedirs(dirname, exist_ok=True)
-
-    from urllib.request import URLError, Request
-    from .. import utils
-    url = "http://www.pdb.org/pdb/files/%s.pdb" % pdb_id.upper()
-    request = Request(url, unverifiable=True, headers={
-        "User-Agent": utils.html_user_agent(session.app_dirs),
-    })
-    try:
-        return utils.retrieve_cached_url(request, filename, session.logger), pdb_id
-    except URLError as e:
-        raise UserError(str(e))
-
-
-def register():
+def register_pdb_format():
     from .. import io
     io.register_format(
         "PDB", structure.CATEGORY, (".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
         mime=("chemical/x-pdb", "chemical/x-spdbv"),
         reference="http://wwpdb.org/docs.html#format",
-        open_func=open_pdb, fetch_func=fetch_pdb)
+        open_func=open_pdb)
+
+def register_pdb_fetch(session):
+    from .. import fetch
+    fetch.register_fetch(session, 'pdb', fetch_pdb, 'pdb', prefixes = [])

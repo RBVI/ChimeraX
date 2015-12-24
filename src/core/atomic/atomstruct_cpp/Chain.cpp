@@ -169,6 +169,58 @@ Chain::remove_residue(Residue* r) {
     r->set_chain(nullptr);
 }
 
+void
+Chain::session_restore(int** ints, float** floats)
+{
+    Sequence::session_restore(ints, floats);
+
+    auto& int_ptr = *ints;
+    _from_seqres = int_ptr[0];
+    auto res_map_size = int_ptr[1];
+    auto residues_size = int_ptr[2];
+    int_ptr += SESSION_NUM_INTS;
+
+    auto& residues = _structure->residues();
+    for (decltype(res_map_size) i = 0; i < res_map_size; ++i) {
+        auto res_index = *int_ptr++;
+        auto pos = *int_ptr++;
+        _res_map[residues[res_index]] = pos;
+    }
+
+    _residues.reserve(residues_size);
+    for (decltype(residues_size) i = 0; i < residues_size; ++i) {
+        auto res_index = *int_ptr++;
+        if (res_index < 0)
+            _residues.push_back(nullptr);
+        else
+            _residues.push_back(residues[res_index]);
+    }
+}
+
+void
+Chain::session_save(int** ints, float** floats) const
+{
+    Sequence::session_save(ints, floats);
+
+    auto& int_ptr = *ints;
+    int_ptr[0] = _from_seqres;
+    int_ptr[1] = _res_map.size();
+    int_ptr[2] = _residues.size();
+    int_ptr += SESSION_NUM_INTS;
+
+    auto& ses_res = *_structure->session_save_residues;
+    for (auto r_pos: _res_map) {
+        *int_ptr++ = ses_res[r_pos.first];
+        *int_ptr++ = r_pos.second;
+    }
+    for (auto r: _residues) {
+        if (r == nullptr)
+            *int_ptr++ = -1;
+        else
+            *int_ptr++ = ses_res[r];
+    }
+}
+
 void 
 Chain::set(unsigned i, Residue *r, char character)
 {

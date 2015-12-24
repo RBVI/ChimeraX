@@ -158,7 +158,7 @@ Example
 
 Here is a simple example::
 
-    import from chimera.core.commands import cli, errors
+    import from chimerax.core.commands import cli, errors
     @register("echo", cli.CmdDesc(optional=[('text', cli.RestOfLine)]))
     def echo(session, text=''):
         print(text)
@@ -609,6 +609,21 @@ class StringArg(Annotation):
         token, text, rest = next_token(text)
         return token, text, rest
 
+class FileNameArg(Annotation):
+    """Base class for Open/SaveFileNameArg"""
+    name = "file name"
+
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = StringArg.parse(text, session)
+        import os.path
+        return os.path.expanduser(token), text, rest
+
+# In the future when/if "browse" is supported as a file name,
+# Open/SaveFileNameArg may be different.  If/when that time
+# comes, the "name" class attr may also be made more specfic 
+OpenFileNameArg = SaveFileNameArg = OpenFolderNameArg = SaveFolderNameArg = FileNameArg
+
 
 class AxisArg(Annotation):
     '''Annotation for axis vector that can be 3 floats or "x", or "y", or "z"
@@ -806,6 +821,7 @@ class AtomicStructuresArg(Annotation):
 
 
 class PseudobondGroupsArg(Annotation):
+    """Parse command atom specifier for pseudobond groups"""
     name = 'pseudobond groups'
 
     @staticmethod
@@ -975,6 +991,20 @@ class EnumOf(Annotation):
                 if ident.casefold() == folded:
                     return self.values[i], ident, rest
         raise AnnotationError("Should be %s" % self.name)
+
+
+class DynamicEnum(Annotation):
+    '''Enumerated type where enumeration values computed from a function.'''
+
+    def __init__(self, values_func):
+        self.values_func = values_func
+
+    def parse(self, text, session):
+        return EnumOf(self.values_func()).parse(text, session)
+
+    @property
+    def name(self):
+        return 'one of ' + ', '.join("'%s'" % str(v) for v in self.values_func())
 
 
 class Or(Annotation):
@@ -1444,7 +1474,7 @@ def delay_registration(name, proxy_function, logger=None):
 
     Example::
 
-        from chimera.core.commands import cli
+        from chimerax.core.commands import cli
 
         def lazy_reg():
             import module
@@ -1591,7 +1621,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
     words = name.split()
     name = ' '.join(words)  # canonicalize
     if cmd_desc is not None and cmd_desc.url is None:
-        import chimera
+        import chimerax
         import os
         cname = words[0]
         if cname.startswith('~'):
@@ -1599,7 +1629,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
             frag = ' '.join(words)
         else:
             frag = ' '.join(words[1:])
-        cpath = os.path.join(chimera.app_data_dir, 'docs', 'user', 'commands',
+        cpath = os.path.join(chimerax.app_data_dir, 'docs', 'user', 'commands',
                              '%s.html' % cname)
         if frag:
             frag = '#' + frag
@@ -1767,14 +1797,17 @@ class Command:
         results = []
         for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
             if log:
-                from html import escape
-                if ci.url is None:
-                    msg = escape(cmd_text)
+                if not session.ui.is_gui:
+                    session.logger.info("Cmd> %s" % cmd_text)
                 else:
-                    cargs = cmd_text[len(cmd_name):]
-                    msg = '<a href="%s">%s</a>%s' % (
-                        ci.url, escape(cmd_name), escape(cargs))
-                session.logger.info(msg, is_html=True)
+                    from html import escape
+                    if ci.url is None:
+                        msg = '<div class="cxcmd">%s</div>' % escape(cmd_text)
+                    else:
+                        cargs = cmd_text[len(cmd_name):]
+                        msg = '<div class="cxcmd"><a href="%s">%s</a>%s</div>' % (
+                            ci.url, escape(cmd_name), escape(cargs))
+                    session.logger.info(msg, is_html=True, add_newline=False)
             try:
                 if not isinstance(ci.function, Alias):
                     results.append(ci.function(session, **kw_args))
@@ -1866,6 +1899,19 @@ class Command:
                 self.word_info = parent_info
                 self.command_name = cmd_name
                 return
+            if text.startswith('#') and self.amount_parsed == start:
+                self._error = ''
+                self.amount_parsed = len(self.current_text)
+                self.word_info = None
+                self.command_name = text
+                return
+            if text.startswith(';'):
+                if cmd_name is None:
+                    self._error = None
+                self.amount_parsed = cur_end
+                self.word_info = parent_info
+                self.command_name = cmd_name
+                return
             if _debugging:
                 orig_text = text
             word, chars, text = next_token(text)
@@ -1882,6 +1928,7 @@ class Command:
                     # If final version of text, or if there
                     # is following text, make best guess,
                     # and retry
+                    self.amount_parsed = cur_end
                     c = self.completions[0]
                     self._replace(chars, c)
                     text = self.current_text[self.amount_parsed:]
@@ -2103,6 +2150,10 @@ class Command:
         while 1:
             self._find_command_name(final, no_aliases=no_aliases, used_aliases=_used_aliases)
             if not self._ci:
+                if len(self.current_text) > self.amount_parsed and self.current_text[self.amount_parsed] == ';':
+                    # allow for leading and empty semicolon-separated commands
+                    self.amount_parsed += 1  # skip semicolon
+                    continue
                 return
             start = self.amount_parsed - len(self.command_name)
             prev_annos = self._process_positional_arguments()
@@ -2224,10 +2275,12 @@ def html_usage(name, no_aliases=False):
     arg_syntax = []
     ci = cmd._ci
     if ci:
+        if ci.synopsis:
+            syntax += "<i>%s</i><br>\n" % escape(ci.synopsis)
         if cmd._ci.url is None:
-            syntax = '<b>%s</b>' % escape(cmd.command_name)
+            syntax += '<b>%s</b>' % escape(cmd.command_name)
         else:
-            syntax = '<b><a href="%s">%s</a></b>' % (
+            syntax += '<b><a href="%s">%s</a></b>' % (
                 ci.url, escape(cmd.command_name))
         for arg_name in ci._required:
             arg_type = ci._required[arg_name]

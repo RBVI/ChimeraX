@@ -368,10 +368,18 @@ class Places:
     def array(self):
         pa = self._place_array
         if pa is None:
-            from numpy import array, float32
-            self._place_array = pa = array(tuple(p.matrix
-                                                 for p in self._place_list),
-                                           float32)
+            if self._place_list is not None:
+                from numpy import array, float32
+                pa = array(tuple(p.matrix for p in self._place_list), float32)
+                self._place_array = pa
+            elif self._shift_and_scale is not None:
+                sas = self._shift_and_scale
+                from numpy import empty, float32
+                pa = empty((len(sas), 3, 4), float32)
+                pa[:,:,3] = sas[:,:3]
+                pa[:,0,0] = pa[:,1,1] = pa[:,2,2] = sas[:,3]
+            elif self._opengl_array is not None:
+                pa = self._opengl_array.transpose((0,2,1))[:,:3,:]
         return pa
 
     def masked(self, mask):
@@ -385,7 +393,7 @@ class Places:
             if oa is None:
                 p = Places(place_array=self.array()[mask])
             else:
-                p = Places(opengl_array = oa)
+                p = Places(opengl_array = oa[mask])
         return p
 
     def shift_and_scale_array(self):
@@ -426,12 +434,20 @@ class Places:
     def __iter__(self):
         return self.place_list().__iter__()
 
-    def __mul__(self, places):
-        pp = []
-        for p in self:
-            for p2 in places:
-                pp.append(Place(m34.multiply_matrices(p.matrix, p2.matrix)))
-        return Places(pp)
+    def __mul__(self, places_or_vector):
+        if isinstance(places_or_vector, Places):
+            places = places_or_vector
+            pp = []
+            for p in self:
+                for p2 in places:
+                    pp.append(Place(m34.multiply_matrices(p.matrix, p2.matrix)))
+            return Places(pp)
+        else:
+            v = places_or_vector
+            a = self.array()
+            from numpy import array, float32, dot
+            v4 = array((v[0], v[1], v[2], 1.0), float32)
+            return dot(a, v4)
 
     def is_identity(self):
         return len(self) == 1 and self[0].is_identity()

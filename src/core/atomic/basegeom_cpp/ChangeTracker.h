@@ -24,6 +24,7 @@ namespace basegeom {
 
 class Changes {
 public:
+    // plain "set" (rather than "unordered_set") empirically faster to add_created() and clear()
     std::set<const void*>  created; // use set so that deletions can be easily found
     std::set<const void*>  modified;
     std::set<std::string>   reasons;
@@ -86,6 +87,34 @@ public:
         changes.created.insert(ptr);
     }
 
+    // this aggregate routine seemingly *slower* than calling the single-pointer version in a loop,
+    //   possibly due to inlining chicanery
+    template<class C>
+    void  add_created(const std::set<C*>& ptrs) {
+        if (_discarding)
+            return;
+        auto& changes = _type_changes[_ptr_to_type(static_cast<typename std::set<C*>::value_type>(nullptr))];
+        // looping through and inserting individually empirically faster than the commented-out
+        //   single call below, possibly due to the generic nature of that call
+        for (auto ptr: ptrs)
+            changes.created.insert(ptr);
+        //changes.created.insert(ptrs.begin(), ptrs.end());
+    }
+
+    // this aggregate routine seemingly *slower* than calling the single-pointer version in a loop,
+    //   possibly due to inlining chicanery
+    template<class C>
+    void  add_created(const std::vector<C*>& ptrs) {
+        if (_discarding)
+            return;
+        auto& changes = _type_changes[_ptr_to_type(static_cast<typename std::vector<C*>::value_type>(nullptr))];
+        // looping through and inserting individually empirically faster than the commented-out
+        //   single call below, possibly due to the generic nature of that call
+        for (auto ptr: ptrs)
+            changes.created.insert(ptr);
+        //changes.created.insert(ptrs.begin(), ptrs.end());
+    }
+
     template<class C>
     void  add_modified(C* ptr, const std::string& reason) {
         if (_discarding)
@@ -136,7 +165,7 @@ public:
     };
 };
 
-// Before structures are opened in Chimera, they don't generate change-tracking
+// Before structures are opened in ChimeraX, they don't generate change-tracking
 // events.  This class enables that by being the "change tracker" until the
 // point that actual change tracking is turned on.
 class BASEGEOM_IMEX DiscardingChangeTracker : public ChangeTracker {

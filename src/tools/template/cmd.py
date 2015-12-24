@@ -2,7 +2,7 @@
 
 def subcommand_function(session, positional_arguments, keyword_arguments):
     pass
-from chimera.core.commands import CmdDesc
+from chimerax.core.commands import CmdDesc
 subcommand_desc = CmdDesc()
 
 # TODO: Add more subcommands here

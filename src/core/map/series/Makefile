@@ -1,7 +1,7 @@
 TOP = ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/map/series
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/series
 
 PYSRCS = __init__.py play.py series.py session.py slider.py vseries_command.py
 

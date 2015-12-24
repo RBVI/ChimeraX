@@ -13,11 +13,11 @@ between Buffers and shader program variables.  The Texture class manages
 2D texture storage.  '''
 
 def configure_offscreen_rendering():
-    from chimera import core
+    from chimerax import core
     if not hasattr(core, 'offscreen_rendering'):
         return
-    import chimera
-    if not hasattr(chimera, 'app_lib_dir'):
+    import chimerax
+    if not hasattr(chimerax, 'app_lib_dir'):
         return
     import sys
     if sys.platform == 'darwin':
@@ -25,13 +25,13 @@ def configure_offscreen_rendering():
     import os
     os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
     # OSMesa 10.6.2 gives an OpenGL 3.0 compatibility context on Linux with only GLSL 130 support.
-    # Chimera needs OpenGL 3.3 with GLSL 330 shaders and requires only a core context.
+    # ChimeraX needs OpenGL 3.3 with GLSL 330 shaders and requires only a core context.
     # Overriding Mesa to give OpenGL 3.3, gives a core context that really does support 3.3.
     # OSMesa doesn't allow requesting a core context, see OffscreenRenderingContext below.
     os.environ['MESA_GL_VERSION_OVERRIDE'] = '3.3'
     # Tell PyOpenGL where to find libOSMesa
     lib_suffix = '.dylib' if sys.platform == 'darwin' else '.so'
-    from chimera import app_lib_dir
+    from chimerax import app_lib_dir
     lib_mesa = os.path.join(app_lib_dir, 'libOSMesa' + lib_suffix)
     if os.path.exists(lib_mesa):
         os.environ['PYOPENGL_OSMESA_LIB_PATH'] = lib_mesa
@@ -361,13 +361,14 @@ class Render:
         if p is None:
             return
 
-        lp = self.lighting
-        n,f = self._near_far_clip
-        s = n + (f-n)*lp.depth_cue_start
-        e = n + (f-n)*lp.depth_cue_end
-        p.set_float('depth_cue_start', s)
-        p.set_float('depth_cue_end', e)
-        p.set_vector('depth_cue_color', lp.depth_cue_color)
+        if self.SHADER_DEPTH_CUE & p.capabilities and self.SHADER_LIGHTING & p.capabilities:
+            lp = self.lighting
+            n,f = self._near_far_clip
+            s = n + (f-n)*lp.depth_cue_start
+            e = n + (f-n)*lp.depth_cue_end
+            p.set_float('depth_cue_start', s)
+            p.set_float('depth_cue_end', e)
+            p.set_vector('depth_cue_color', lp.depth_cue_color)
 
     def set_single_color(self, color=None):
         '''
@@ -376,7 +377,7 @@ class Render:
         if color is not None:
             self.single_color = color
         p = self.current_shader_program
-        if p is not None:
+        if p is not None and not (self.SHADER_VERTEX_COLORS & p.capabilities):
             p.set_rgba("color", self.single_color)
 
     def set_ambient_texture_transform(self, tf):
@@ -535,6 +536,19 @@ class Render:
         GL.glBlendFunc(GL.GL_CONSTANT_COLOR, GL.GL_ONE)
         GL.glEnable(GL.GL_BLEND)
 
+    def enable_xor(self, enable):
+        if enable:
+            GL.glLogicOp(GL.GL_XOR)
+            GL.glEnable(GL.GL_COLOR_LOGIC_OP)
+        else:
+            GL.glDisable(GL.GL_COLOR_LOGIC_OP)
+
+    def flush(self):
+        GL.glFlush()
+
+    def draw_front_buffer(self, front):
+        GL.glDrawBuffer(GL.GL_FRONT if front else GL.GL_BACK)
+
     def draw_transparent(self, draw_depth, draw):
         '''
         Render using single-layer transparency. This is a two-pass
@@ -689,7 +703,9 @@ class Render:
         self.push_framebuffer(mfb)
         self.set_background_color((0, 0, 0, 0))
         self.draw_background()
-        # Use flat single color rendering.
+        # Use unlit single color for drawing mask.
+        # Outline code requires non-zero red component.
+        self.set_single_color((1,0,0,1))	
         self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS
                                          | self.SHADER_TEXTURE_2D
                                          | self.SHADER_TEXTURE_CUBEMAP
@@ -871,10 +887,9 @@ class Render:
             self._stereo_360_params = (camera_origin, camera_y, x_shift)
 
         p = self.current_shader_program
-        if p is None:
-            return
-        p.set_float4("camera_origin_and_shift", tuple(camera_origin) + (x_shift,))
-        p.set_float4("camera_vertical", tuple(camera_y) + (0,))
+        if p is not None and p.capabilities & self.SHADER_STEREO_360:
+            p.set_float4("camera_origin_and_shift", tuple(camera_origin) + (x_shift,))
+            p.set_float4("camera_vertical", tuple(camera_y) + (0,))
 
 def disk_grid(radius, exclude_origin=True):
     r = int(radius)

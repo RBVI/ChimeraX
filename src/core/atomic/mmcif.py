@@ -35,7 +35,7 @@ def open_mmcif(session, filename, name, *args, **kw):
         pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, log)
 
     lod = session.atomic_level_of_detail
-    models = [structure.AtomicStructure(name, session, c_pointer = p, level_of_detail = lod)
+    models = [structure.AtomicStructure(session, name = name, c_pointer = p, level_of_detail = lod)
         for p in pointers]
     for m in models:
         m.filename = filename
@@ -45,7 +45,7 @@ def open_mmcif(session, filename, name, *args, **kw):
                        sum(m.num_bonds for m in models)))
 
 
-def fetch_mmcif(session, pdb_id):
+def fetch_mmcif(session, pdb_id, ignore_cache=False):
     if len(pdb_id) != 4:
         raise UserError("PDB identifiers are 4 characters long")
     import os
@@ -56,26 +56,15 @@ def fetch_mmcif(session, pdb_id):
     if os.path.exists(sys_filename):
         return sys_filename, pdb_id
 
-    filename = "~/Downloads/Chimera/PDB/%s.cif" % pdb_id.upper()
-    filename = os.path.expanduser(filename)
+    pdb_name = "%s.cif" % pdb_id.upper()
+    url = "http://www.pdb.org/pdb/files/%s" % pdb_name
+    from ..fetch import fetch_file
+    filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
+                          ignore_cache=ignore_cache)
 
-    if os.path.exists(filename):
-        return filename, pdb_id  # TODO: check if cache needs updating
-
-    dirname = os.path.dirname(filename)
-    os.makedirs(dirname, exist_ok=True)
-
-    from urllib.request import URLError, Request
-    from .. import utils
-    url = "http://www.pdb.org/pdb/files/%s.cif" % pdb_id.upper()
-    request = Request(url, unverifiable=True, headers={
-        "User-Agent": utils.html_user_agent(session.app_dirs),
-    })
-    try:
-        utils.retrieve_cached_url(request, filename, session.logger)
-    except URLError as e:
-        raise UserError(str(e))
-    return filename, pdb_id
+    from .. import io
+    models, status = io.open_data(session, filename, format = 'mmcif', name = pdb_id)
+    return models, status
 
 
 def _get_template(name, app_dirs, logger):
@@ -92,14 +81,14 @@ def _get_template(name, app_dirs, logger):
     os.makedirs(dirname, exist_ok=True)
 
     from urllib.request import URLError, Request
-    from .. import utils
+    from .. import fetch
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
     request = Request(url, unverifiable=True, headers={
-        "User-Agent": utils.html_user_agent(app_dirs),
+        "User-Agent": fetch.html_user_agent(app_dirs),
     })
     try:
-        return utils.retrieve_cached_url(request, filename, logger)
+        return fetch.retrieve_cached_url(request, filename, logger)
     except URLError:
         if logger:
             logger.warning(
@@ -107,7 +96,7 @@ def _get_template(name, app_dirs, logger):
                 % name)
 
 
-def register():
+def register_mmcif_format():
     global _initialized
     if _initialized:
         return
@@ -120,11 +109,15 @@ def register():
     #     mime=("chemical/x-cif"),
     #    reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
     io.register_format(
-        "mmCIF", structure.CATEGORY, (".cif",), ("mmcif", "cif"),
-        mime=("chemical/x-mmcif", "chemical/x-cif"),
+        "mmCIF", structure.CATEGORY, (".cif",), ("mmcif",),
+        mime=("chemical/x-mmcif",),
         reference="http://mmcif.wwpdb.org/",
-        requires_filename=True, open_func=open_mmcif, fetch_func=fetch_mmcif)
+        requires_filename=True, open_func=open_mmcif)
 
+def register_mmcif_fetch(session):
+    from .. import fetch
+    fetch.register_fetch(session, 'pdb', fetch_mmcif, 'mmcif',
+                         prefixes = ['pdb'], default_format = True)
 
 def get_mmcif_tables(model, table_names):
     raw_tables = model.metadata
@@ -180,7 +173,7 @@ class MMCIFTable:
         t = self.tags
         missing = [n for n in field_names if n not in t]
         if missing:
-            from chimera.core.commands.cli import commas, plural_form
+            from chimerax.core.commands.cli import commas, plural_form
             missed = commas(missing, ' and')
             missed_noun = plural_form(missing, 'Field')
             missed_verb = plural_form(missing, 'is', 'are')

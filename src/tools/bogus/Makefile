@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.bogus
+PKG_NAME = chimerax.bogus
 PKG_VERSION = 0.1
 PKG_DESCRIPTION = Bogus Toolshed Demo Example
 

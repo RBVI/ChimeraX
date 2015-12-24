@@ -1,8 +1,8 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/map
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/map
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/map
 
 SUBDIRS	= _map data filter fit series
 

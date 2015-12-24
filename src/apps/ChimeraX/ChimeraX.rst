@@ -17,7 +17,7 @@ Command Line Arguments
 When running ChimeraX from a terminal, *a.k.a.*, a shell, it can be given
 various options followed by data files.
 The data files are specified with same syntax as the filename argument
-of Models' :py:func:`~chimerac.core.models.Models.open`.
+of Models' :py:func:`~chimerax.core.models.Models.open`.
 
 Command Line Options
 --------------------
@@ -69,13 +69,13 @@ In particular, the follow command line arguments are useful:
     This is done after ChimeraX has started up, so a ChimeraX session
     is available in the global variable ``session``.
     The module name is ``__main__`` instead of a sandbox name that
-    is used for normal :py:mod:`~chimera.core.scripting`.
+    is used for normal :py:mod:`~chimerax.core.scripting`.
 
 
 Initializing the Session
 ========================
 
-A :py:class:`~chimera.core.session.Session` instance is passed as an
+A :py:class:`~chimerax.core.session.Session` instance is passed as an
 argument to many functions.
 It is the way to access per-session data.
 Leaf functions frequently are only given one attribute (or none at all).
@@ -84,7 +84,7 @@ Leaf functions frequently are only given one attribute (or none at all).
     True if debugging.
 
 ``session.logger``
-    A :py:class:`~chimera.core.logger.Log` instance to log errors to.
+    A :py:class:`~chimerax.core.logger.Log` instance to log errors to.
 
 ``session.app_dirs``
     A versioned :py:class:`~appdirs.AppDirs` instance with directories
@@ -98,18 +98,18 @@ Leaf functions frequently are only given one attribute (or none at all).
     The location of "share" directory.
 
 ``session.ui``
-    A :py:class:`~chimera.core.logger.Log` instance.
+    A :py:class:`~chimerax.core.logger.Log` instance.
 
 ``session.toolshed``
-    A :py:class:`~chimera.core.toolshed.Toolshed` instance.
+    A :py:class:`~chimerax.core.toolshed.Toolshed` instance.
 
 ``session.tools``
-    A :py:class:`~chimera.core.tools.Tools` instance.
+    A :py:class:`~chimerax.core.tools.Tools` instance.
 
 ``session.tasks``
-    A :py:class:`~chimera.core.tasks.Tasks` instance.
+    A :py:class:`~chimerax.core.tasks.Tasks` instance.
 
-Other initial sessiona attributes are initialized in :py:func:`chimera.core.session.common_startup`.
+Other initial sessiona attributes are initialized in :py:func:`chimerax.core.session.common_startup`.
 
 Line Profiling
 ==============
@@ -136,5 +136,5 @@ Line Profiling
 
     5. Remove the function decorators before committing your changes.
 
-To use the :py:mod:`timeit` module, see the :py:mod:`~chimera.core.scripting`
+To use the :py:mod:`timeit` module, see the :py:mod:`~chimerax.core.scripting`
 documentation.

@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-from chimera.core.atomic import Residue, AtomicStructure
+from chimerax.core.atomic import Residue, AtomicStructure
 _StyleMap = {
     "ribbon": Residue.RIBBON,
     "pipe": Residue.PIPE,
@@ -61,7 +61,7 @@ def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=True,
         sets it for the entire structure.
     '''
     if spec is None:
-        from chimera.core.commands import atomspec
+        from chimerax.core.commands import atomspec
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     residues = results.atoms.residues
@@ -98,21 +98,21 @@ def uncartoon(session, spec=None):
         Hide ribbons for the specified residues. If no atom specifier is given then all ribbons are hidden.
     '''
     if spec is None:
-        from chimera.core.commands import atomspec
+        from chimerax.core.commands import atomspec
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = False
 
 
 def initialize(command_name):
-    from chimera.core.commands import register
-    from chimera.core.commands import CmdDesc, AtomSpecArg
+    from chimerax.core.commands import register
+    from chimerax.core.commands import CmdDesc, AtomSpecArg
     if command_name.startswith('~'):
         desc = CmdDesc(optional=[("spec", AtomSpecArg)],
                        synopsis='undisplay cartoon for specified residues')
         register(command_name, desc, uncartoon)
     else:
-        from chimera.core.commands import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg
+        from chimerax.core.commands import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg
         desc = CmdDesc(optional=[("spec", AtomSpecArg)],
                        keyword=[("adjust", Or(Bounded(FloatArg, 0.0, 1.0),
                                               EnumOf(["default"]))),

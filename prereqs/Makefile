@@ -32,16 +32,26 @@ SUBDIRS += win32
 endif
 
 ifeq ($(OS),Darwin)
-SUBDIRS += leapmotion oculus
+NEED_OPENSSL=1
+#SUBDIRS += leapmotion
+SUBDIRS += oculus
 endif
 
 ifeq ($(OS),Linux)
+NEED_OPENSSL=1
 SUBDIRS += llvm mesa pkgconfig xdg-utils
 endif
 
 #ifdef UNIX
 #SUBDIRS += unix
 #endif
+
+ifdef NEED_OPENSSL
+SUBDIRS += openssl
+else
+openssl.install:
+openssl.app-install:
+endif
 
 ifdef HYDRA
 SUBDIRS += qt sip PyQt
@@ -53,7 +63,7 @@ endif
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= expat ffmpeg fonts \
 	   glew hdf5 imex jpeg numexpr numpy \
-	   openssl p7zip pcre pips pycollada \
+	   p7zip pcre pips pycollada \
 	   PyOpenGL pytables pythomnic3k Python \
 	   setuptools wrappy3 wx zlib
 

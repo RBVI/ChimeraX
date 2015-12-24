@@ -21,34 +21,8 @@ class AtomicStructure(AtomicStructureData, Model):
 
     STRUCTURE_STATE_VERSION = 0
 
-    def __init__(self, name, session, *, c_pointer = None,
+    def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  level_of_detail = None, smart_initial_display = True):
-
-        AtomicStructureData.__init__(self, c_pointer)
-        from . import molobject
-        molobject.add_to_object_map(self)
-
-        Model.__init__(self, name, session)
-        self._ses_handlers = [
-            self.session.triggers.add_handler("begin save session", self._begin_ses_save),
-            self.session.triggers.add_handler("end save session", self._end_ses_save)
-        ]
-
-        self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
-        self.bond_radius = 0.2
-        self.pseudobond_radius = 0.05
-        self._level_of_detail = LevelOfDetail() if level_of_detail is None else level_of_detail
-
-        self._atoms_drawing = None
-        self._bonds_drawing = None
-        self._pseudobond_group_drawings = {}    # Map PseudobondGroup to drawing
-        self._cached_atom_bounds = None
-        self._atom_bounds_needs_update = True
-
-        self._ribbon_drawing = None
-        self._ribbon_t2r = {}         # ribbon triangles-to-residue map
-        self._ribbon_r2t = {}         # ribbon residue-to-triangles map
-        self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         # Cross section coordinates are 2D and counterclockwise
         from .ribbon import XSection
         xsc_helix = [( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
@@ -57,15 +31,59 @@ class AtomicStructure(AtomicStructureData, Model):
         xsc_turn = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
         xsc_arrow_head = [(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]
         xsc_arrow_tail = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
-        self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
-        self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
-        self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
-        self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
-        self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
-        self._ribbon_selected_residues = set()
+       
+        # attrs that should be saved in sessions, along with their initial values...
+        self._session_attrs = {
+            'ball_scale': 0.3,		# Scales sphere radius in ball and stick style
+            'bond_radius': 0.2,
+            'pseudobond_radius': 0.05,
+            '_level_of_detail': LevelOfDetail() if level_of_detail is None else level_of_detail,
 
+            '_atoms_drawing': None,
+            '_bonds_drawing': None,
+            '_pseudobond_group_drawings': {},    # Map PseudobondGroup to drawing
+            '_cached_atom_bounds': None,
+            '_atom_bounds_needs_update': True,
+
+            '_ribbon_drawing': None,
+            '_ribbon_t2r': {},         # ribbon triangles-to-residue map
+            '_ribbon_r2t': {},         # ribbon residue-to-triangles map
+            '_ribbon_tether': [],      # ribbon tethers from ribbon to floating atoms
+            '_ribbon_xs_helix': XSection(xsc_helix, faceted=False),
+            '_ribbon_xs_strand': XSection(xsc_strand, faceted=True),
+            '_ribbon_xs_strand_start': XSection(xsc_turn, xsc_strand, faceted=True),
+            '_ribbon_xs_turn': XSection(xsc_turn, faceted=True),
+            '_ribbon_xs_arrow': XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True),
+            '_ribbon_selected_residues': set(),
+        }
+        # for now, restore attrs to default initial values even for sessions...
+        for attr_name, val in self._session_attrs.items():
+            setattr(self, attr_name, val)
+
+        if restore_data:
+            # from session
+            (tool_info, version, as_data) = restore_data
+            model_data, c_data = as_data
+            # Model will attempt to restore self.name, which is a property of the C++
+            # layer for an AtomicStructure, so initialize AtomicStructureData first...
+            AtomicStructureData.__init__(self, logger=session.logger)
+            Model.restore_snapshot_init(self, session, tool_info, *model_data)
+            #as_version, ints, floats, misc = c_data
+            self.session_restore(*c_data)
+            self._smart_initial_display = False
+        else:
+            AtomicStructureData.__init__(self, c_pointer)
+            Model.__init__(self, name, session)
+            self._smart_initial_display = smart_initial_display
+
+        from . import molobject
+        molobject.add_to_object_map(self)
+
+        self._ses_handlers = [
+            self.session.triggers.add_handler("begin save session", self._begin_ses_save),
+            self.session.triggers.add_handler("end save session", self._end_ses_save)
+        ]
         self._make_drawing()
-        self._smart_initial_display = smart_initial_display
 
     def delete(self):
         '''Delete this structure.'''
@@ -80,7 +98,7 @@ class AtomicStructure(AtomicStructureData, Model):
         No atoms or other components of the structure
         are shared between the original and the copy.
         '''
-        m = AtomicStructure(name, AtomicStructureData._copy(self),
+        m = AtomicStructure(AtomicStructureData._copy(self), name = name,
                             level_of_detail = self._level_of_detail)
         m.positions = self.positions
         return m
@@ -91,7 +109,6 @@ class AtomicStructure(AtomicStructureData, Model):
             self.set_color(color.uint8x4())
 
             atoms = self.atoms
-            from ..commands import Command
             if self.num_chains == 0:
                 lighting = "default"
                 from .molobject import Atom, Bond
@@ -101,10 +118,34 @@ class AtomicStructure(AtomicStructureData, Model):
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
             elif self.num_chains < 5:
                 lighting = "default"
-                atoms.displays = False
                 from .molobject import Atom, Bond
                 atoms.draw_modes = Atom.STICK_STYLE
-                self.residues.ribbon_displays = True
+                from ..colors import element_colors
+                het_atoms = atoms.filter(atoms.element_numbers != 6)
+                het_atoms.colors = element_colors(het_atoms.element_numbers)
+                ribbonable = self.chains.existing_residues
+                # 10 residues or less is basically a trivial depiction if ribboned
+                if len(ribbonable) > 10:
+                    atoms.displays = False
+                    ligand = atoms.filter(atoms.structure_categories == "ligand").residues
+                    ribbonable -= ligand
+                    metal_atoms = atoms.filter(atoms.elements.is_metal)
+                    metal_atoms.draw_modes = Atom.SPHERE_STYLE
+                    ligand |= metal_atoms.residues
+                    display = ligand
+                    pas = ribbonable.existing_principal_atoms
+                    nucleic = pas.residues.filter(pas.names != "CA")
+                    display |= nucleic
+                    if ligand:
+                        # show residues interacting with ligand
+                        lig_points = ligand.atoms.coords
+                        mol_points = atoms.coords
+                        from ..geometry import find_closest_points
+                        close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
+                        display |= atoms.filter(close_indices).residues
+                    display.atoms.displays = True
+                    ribbonable.ribbon_displays = True
+
             elif self.num_chains < 250:
                 lighting = "full"
                 from ..colors import chain_colors
@@ -113,6 +154,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
             else:
                 lighting = "shadows true"
+            from ..commands import Command
             if len([m for m in session.models.list()
                     if isinstance(m, self.__class__)]) == 1:
                 Command(session, "lighting " + lighting, final=True).execute(log=False)
@@ -134,6 +176,9 @@ class AtomicStructure(AtomicStructureData, Model):
             Model.take_snapshot(self, session, flags),
             (as_version, ints, floats, misc)
         ]
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        AtomicStructure.__init__(self, session, restore_data=(tool_info, version, data))
 
     def reset_state(self, session):
         pass
@@ -524,7 +569,7 @@ class AtomicStructure(AtomicStructureData, Model):
         from .ribbon import normalize, normalize_vector_array
         ribbon_adjusts = rlist.ribbon_adjusts
         # Smooth helices
-        ss_ids = rlist.ss_id
+        ss_ids = rlist.ss_ids
         helices = rlist.is_helix
         for start, end in self._ss_ranges(helices, ss_ids, 8):
             # We only "optimize" longer helices because short
@@ -816,6 +861,71 @@ class AtomicStructure(AtomicStructureData, Model):
                         pclosest = PickedResidue(triangle_range.residue, p.distance)
         return pclosest
 
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and hasattr(self, exclude):
+            return []
+
+        p = self._atoms_planes_pick(planes)
+        rp = self._ribbon_planes_pick(planes)
+        if rp:
+            p.extend(rp)
+        return p
+
+    def _atoms_planes_pick(self, planes):
+        d = self._atoms_drawing
+        if d is None or not d.display:
+            return []
+
+        xyz = d.positions.shift_and_scale_array()[:,:3]
+        dp = d.display_positions
+        if dp is not None:
+            xyz = xyz[dp,:]
+
+        picks = []
+        from .. import geometry
+        pmask = geometry.points_within_planes(xyz, planes)
+        if pmask.sum() == 0:
+            return []
+
+        a = self.atoms
+        if not dp is None:
+            anum = dp.nonzero()[0][pmask]    # Remap index to include undisplayed positions
+            atoms = a.filter(anum)
+        else:
+            atoms = a.filter(pmask)
+
+        p = PickedAtoms(atoms)
+
+        return [p]
+
+    def _ribbon_planes_pick(self, planes):
+        picks = []
+        for d, t2r in self._ribbon_t2r.items():
+            if d.display:
+                rp = d.planes_pick(planes)
+                from ..graphics import TrianglesPick
+                for p in rp:
+                    if isinstance(p, TrianglesPick) and p.drawing() is d:
+                        tmask = p._triangles_mask
+                        res = [rtr.residue for rtr in t2r if tmask[rtr.start:rtr.end].sum() > 0]
+                        if res:
+                            from .molarray import Residues
+                            rc = Residues(residues=res)
+                            picks.append(PickedResidues(rc))
+        return picks
+
+    def set_selected(self, sel):
+        self.atoms.selected = sel
+        Model.set_selected(self, sel)
+    selected = property(Model.get_selected, set_selected)
+
+    def set_selected_positions(self, spos):
+        self.atoms.selected = (spos is not None and spos.sum() > 0)
+        Model.set_selected_positions(self, spos)
+    selected_positions = property(Model.get_selected_positions, set_selected_positions)
+
     def select_atom(self, atom, toggle=False, selected=True):
         '''
         Select or unselect a specified :class:`.Atom`.
@@ -834,7 +944,10 @@ class AtomicStructure(AtomicStructureData, Model):
         m = a.mask(atoms)
         from numpy import logical_not
         asel[m] = logical_not(asel[m]) if toggle else selected
-        a.selected = asel
+        self.select_mask_atoms(asel)
+
+    def select_mask_atoms(self, atom_mask):
+        self.atoms.selected = atom_mask
         self._selection_changed()
 
     def select_residue(self, residue, toggle=False, selected=True):
@@ -857,16 +970,17 @@ class AtomicStructure(AtomicStructureData, Model):
     def any_part_selected(self):
         if self.atoms.num_selected > 0:
             return True
-        return Model.any_part_selected(self)
-
+        for c in self.child_models():
+            if c.any_part_selected():
+                return True
+        return False
+        
     def clear_selection(self):
+        self.selected = False
         self.atoms.selected = False
         self._selection_changed()
 
-    def _selection_changed(self, promotion = False):
-        if not promotion:
-            self._selection_promotion_history = []
-
+    def _selection_changed(self):
         # Update selection on molecular surfaces
         # TODO: Won't work for surfaces spanning multiple molecules
         from .molsurf import MolecularSurface
@@ -874,13 +988,12 @@ class AtomicStructure(AtomicStructureData, Model):
             if isinstance(s, MolecularSurface):
                 s.update_selection()
 
-    def promote_selection(self):
+    def selection_promotion(self):
         atoms = self.atoms
         n = atoms.num_selected
         if n == 0 or n == len(atoms):
-            return
+            return None
         asel = atoms.selected
-        self._selection_promotion_history.append(asel)
 
         r = atoms.residues
         rids = r.unique_ids
@@ -889,32 +1002,32 @@ class AtomicStructure(AtomicStructureData, Model):
         ares = in1d(rids, sel_rids)
         if ares.sum() > n:
             # Promote to entire residues
+            level = 1004
             psel = ares
         else:
-            from numpy import array
-            cids = array(r.chain_ids)
-            sel_cids = unique(cids[asel])
-            ac = in1d(cids, sel_cids)
-            if ac.sum() > n:
-                # Promote to entire chains
-                psel = ac
+            ssids = r.secondary_structure_ids
+            sel_ssids = unique(ssids[asel])
+            ass = in1d(ssids, sel_ssids)
+            if ass.sum() > n:
+                # Promote to secondary structure
+                level = 1003
+                psel = ass
             else:
-                # Promote to entire molecule
-                psel = True
-        atoms.selected = psel
-        self._selection_changed(promotion = True)
+                from numpy import array
+                cids = array(r.chain_ids)
+                sel_cids = unique(cids[asel])
+                ac = in1d(cids, sel_cids)
+                if ac.sum() > n:
+                    # Promote to entire chains
+                    level = 1002
+                    psel = ac
+                else:
+                    # Promote to entire molecule
+                    level = 1001
+                    ac[:] = True
+                    psel = ac
 
-    def demote_selection(self):
-        pt = self._selection_promotion_history
-        if len(pt) > 0:
-            asel = pt.pop()
-            atoms = self.atoms
-            if len(asel) == len(atoms):
-                atoms.selected = asel
-                self._selection_changed(promotion = True)
-
-    def clear_selection_promotion_history(self):
-        self._selection_promotion_history = []
+        return PromoteAtomSelection(self, level, psel, asel)
 
     def _begin_ses_save(self, *args):
         self.session_save_setup()
@@ -1127,6 +1240,20 @@ class LevelOfDetail:
 
 # -----------------------------------------------------------------------------
 #
+from ..selection import SelectionPromotion
+class PromoteAtomSelection(SelectionPromotion):
+    def __init__(self, structure, level, atom_sel_mask, prev_sel_mask):
+        SelectionPromotion.__init__(self, level)
+        self._structure = structure
+        self._atom_sel_mask = atom_sel_mask
+        self._prev_sel_mask = prev_sel_mask
+    def promote(self):
+        self._structure.select_mask_atoms(self._atom_sel_mask)
+    def demote(self):
+        self._structure.select_mask_atoms(self._prev_sel_mask)
+
+# -----------------------------------------------------------------------------
+#
 from ..graphics import Pick
 class PickedAtom(Pick):
     def __init__(self, atom, distance):
@@ -1137,6 +1264,22 @@ class PickedAtom(Pick):
     def select(self, toggle = False):
         a = self.atom
         a.structure.select_atom(a, toggle)
+
+# -----------------------------------------------------------------------------
+#
+class PickedAtoms(Pick):
+    def __init__(self, atoms):
+        Pick.__init__(self)
+        self.atoms = atoms
+    def description(self):
+        return '%d atoms' % len(self.atoms)
+    def select(self, toggle = False):
+        a = self.atoms
+        if toggle:
+            from numpy import logical_not
+            a.selected = logical_not(a.selected)
+        else:
+            a.selected = True
 
 # -----------------------------------------------------------------------------
 #
@@ -1230,6 +1373,22 @@ class PickedResidue(Pick):
     def select(self, toggle=False):
         r = self.residue
         r.structure.select_residue(r, toggle)
+
+# -----------------------------------------------------------------------------
+#
+class PickedResidues(Pick):
+    def __init__(self, residues):
+        Pick.__init__(self)
+        self.residues = residues
+    def description(self):
+        return '%d residues' % len(self.residues)
+    def select(self, toggle = False):
+        a = self.residues.atoms
+        if toggle:
+            from numpy import logical_not
+            a.selected = logical_not(a.selected)
+        else:
+            a.selected = True
 
 # -----------------------------------------------------------------------------
 #

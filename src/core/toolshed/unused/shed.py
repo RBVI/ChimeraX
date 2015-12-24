@@ -26,13 +26,13 @@ _ChimeraToolboxPrefix = "shedtest.toolbox"
 _chimera_user_base = None
 _chimera_user_sitepackages = None
 def init():
-	"""Initialize and add user Chimera '''site-packages'''
+	"""Initialize and add user ChimeraX '''site-packages'''
 	to '''sys.path''' so that per-users tools may be found."""
 	global _chimera_user_base, _chimera_user_sitepackages
 	if _chimera_user_base is not None:
 		return
-	import version	# Chimera version
-	version_name = "chimera%d_%d" % (version.get_major_version(),
+	import version	# ChimeraX version
+	version_name = "chimerax%d_%d" % (version.get_major_version(),
 						version.get_minor_version())
 	import site
 	userbase = site.getuserbase()
@@ -285,7 +285,7 @@ def _depends_on(graph, da, db):
 # Command loop using ChimeraX cli interface
 #
 _looping = False
-from chimera.core.commands import cli
+from chimerax.core.commands import cli
 
 def command_loop(prompt=">"):
 	"""Run an command loop using stdin and stdout."""

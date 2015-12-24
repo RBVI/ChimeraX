@@ -3,7 +3,7 @@ libappdirs: C++ appdirs Interface
 =================================
 
 The libappdirs library provides an interface at the C++ level to the
-values in Chimera's Python appdirs_ object.  You link against the library
+values in ChimeraX's Python appdirs_ object.  You link against the library
 with ``-L$(shlibdir) -lappdirs`` in your Makefile.  You use the library
 by including ``appdirs_cpp/AppDirs.h`` in your code and calling
 ``appdirs_cpp::AppDirs::get()`` to get a const AppDirs instance.

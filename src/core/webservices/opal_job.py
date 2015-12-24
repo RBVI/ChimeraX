@@ -22,7 +22,7 @@ DEFAULT_OPAL_URL = "http://webservices.rbvi.ucsf.edu/opal2/services/"
 class OpalJob(Job):
     """Launch an Opal Toolkit web service request and monitor its status.
 
-    OpalJob derives from chimera.core.tasks.Job and
+    OpalJob derives from chimerax.core.tasks.Job and
     offers the same API.
 
     Attributes
@@ -42,7 +42,7 @@ class OpalJob(Job):
 
         Argument
         --------
-        logger : chimera.core.logger.Log instance
+        logger : chimerax.core.logger.Log instance
             Logger where info and error messages should be sent.
 
         """
@@ -51,7 +51,7 @@ class OpalJob(Job):
         self.reset_state()
 
     #
-    # Define chimera.core.tasks.Job ABC methods
+    # Define chimerax.core.tasks.Job ABC methods
     #
     def launch(self, service_name, cmd, opal_url=None,
                input_file_map=None, **kw):
@@ -79,9 +79,9 @@ class OpalJob(Job):
         ------
         RuntimeError
             If job is already launched
-        chimera.core.tasks.JobLaunchError
+        chimerax.core.tasks.JobLaunchError
             If job failed to launch
-        chimera.core.tasks.JobMonitorError
+        chimerax.core.tasks.JobMonitorError
             If status check failed
 
         """
@@ -164,7 +164,7 @@ class OpalJob(Job):
         return self._status_code in [4, 8]
 
     #
-    # Define chimera.core.session.State ABC methods
+    # Define chimerax.core.session.State ABC methods
     #
     def take_snapshot(self, session, flags):
         """Return snapshot of current state, [version, data], of instance.

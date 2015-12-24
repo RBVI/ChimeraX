@@ -1,12 +1,12 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/surface
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/surface
+PKG_DIR = $(PYSITEDIR)/chimerax/core/surface
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/surface
 
 SUBDIRS	= _surface
 
-PYSRCS = __init__.py area.py cap.py dust.py gaussian.py gridsurf.py icosahedron.py \
+PYSRCS = __init__.py area.py cap.py collada.py dust.py gaussian.py gridsurf.py icosahedron.py \
 	 sasa.py shapes.py split.py topology.py tube.py
 
 # All needed subdirectories must be set by now.

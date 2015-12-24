@@ -137,7 +137,7 @@ public:
     // The ParseCategory's arguments are the category name, the list
     // of tags in the category (without the category prefix), and
     // whether the category is given in a loop or not.
-    typedef std::function<void (bool in_loop)> ParseCategory;
+    typedef std::function<void ()> ParseCategory;
     void register_category(const std::string& category,
             ParseCategory callback, 
             const StringVector& dependencies = StringVector());
@@ -175,8 +175,12 @@ public:
     };
     typedef std::vector<ParseColumn> ParseValues;
     // ParseValues will be sorted in ascending order, the first time
-    // parse_row is called for a category
+    // parse_row is called for a category.  Returns false if there is
+    // no more data in table.
     bool parse_row(ParseValues& pv);
+
+    // Return complete contents of a category as a vector of strings.
+    StringVector& parse_whole_category();
 
     // Return current category.
     const std::string& category() const;
@@ -186,6 +190,9 @@ public:
 
     // Return current category column tags.
     const StringVector& tags() const;
+
+    // Return if current category has multiple rows 
+    bool multiple_rows() const;
 
     // Return current line number
     size_t line_number() const;
@@ -239,6 +246,7 @@ private:
     std::string current_category;
     StringVector    current_tags;   // data tags without category name
     StringVector    values;
+    bool        in_loop;
     bool        first_row;
     std::vector<int> columns;   // for stylized files
     // backtracking support:
@@ -304,6 +312,12 @@ inline size_t
 CIFFile::line_number() const
 {
     return lineno;
+}
+
+inline bool
+CIFFile::multiple_rows() const
+{
+    return in_loop;
 }
 
 } // namespace readcif

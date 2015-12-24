@@ -33,9 +33,13 @@ class ColorArg(cli.Annotation):
             c = Color(token)
             c.explicit_transparency = (len(token) in (5, 9, 17))
             return c, text, rest
+        if text[0].isdigit():
+            token, text, rest = cli.next_token(text)
+            c = _parse_rgba_values(token)
+            return c, text, rest
         m = _color_func.match(text)
         if m is None:
-            from .colordef import _find_named_color
+            from .colorname import _find_named_color
             color = None
             if session is not None:
                 name, color, rest = _find_named_color(session.user_colors, text)
@@ -120,9 +124,42 @@ class ColorArg(cli.Annotation):
             "Wrong number of components for %s specifier" % color_space,
             offset=m.end())
 
+def _parse_rgba_values(text):
+    values = text.split(',')
+    if len(values) not in (3,4):
+        raise ValueError('Color must be 3 or 4 comman-separate numbers 0-100')
+    try:
+        rgba = tuple(float(v)/100.0 for v in values)
+    except:
+        raise ValueError('Color must be 3 or 4 comman-separate numbers 0-100')
+    transparent = (len(rgba) == 4)
+    if len(rgba) == 3:
+        rgba += (1.0,)
+    c = Color(rgba)
+    c.explicit_transparency = transparent
+    return c
+
 
 class ColormapArg(cli.Annotation):
     """Support color map names and value-color pairs specifications.
+
+    Accepts name of a standard color map::
+
+        rainbow
+        grayscale, gray
+        red-white-blue, redblue,
+        blue-white-red, bluered
+        cyan-white-maroon, cyanmaroon
+
+    Or a custom color map can be specified as colon-separated colors, or as colon-separated
+    (value, color) pairs with values ranging from 0 to 1.
+
+    Example colormap specifications::
+
+        grayscale
+        orange:tan:green:yellow
+        0,purple:.49,khaki:.5,beige:1,blue
+
     """
     name = 'a colormap'
 
@@ -141,15 +178,33 @@ class ColormapArg(cli.Annotation):
                     values.append(float(vc[0]))
                     color, t, r = ColorArg.parse(vc[1], session)
                 else:
-                    raise ValueError("Too many fields in colormap")
+                    # More than one comma
+                    # Handle RGB color spec with commas
+                    try:
+                        color, t, r = ColorArg.parse(p, session)
+                    except:
+                        val, col = p.split(',', maxsplit=1)
+                        try:
+                            values.append(float(val))
+                            color, t, r = ColorArg.parse(col, session)
+                        except:
+                            raise ValueError("Could not parse colormap color %s" % p)
                 if r:
                     raise ValueError("Bad color in colormap")
                 colors.append(color)
-            if len(values) != len(colors):
+            if len(values) != len(colors) and len(values) > 0:
                 raise ValueError("Number of values and color must match in colormap")
-            from .. import colors
-            return colors.Colormap(values, colors), text, rest
+            if len(values) == 0:
+                values = None
+            from ..colors import Colormap
+            return Colormap(values, [c.rgba for c in colors]), text, rest
         else:
+            try:
+                palette_id = int(token)
+            except:
+                palette_id = None
+            if palette_id is not None:
+                return _fetch_colormap(session, palette_id), token, rest
             if session is not None:
                 i = session.user_colormaps.bisect_left(token)
                 if i < len(session.user_colormaps):
@@ -159,16 +214,34 @@ class ColormapArg(cli.Annotation):
             from ..colors import BuiltinColormaps
             i = BuiltinColormaps.bisect_left(token)
             if i >= len(BuiltinColormaps):
-                raise ValueError("Invalid colormap name")
+                raise ValueError("Invalid colormap name '%s'" % token)
             name = BuiltinColormaps.iloc[i]
             if not name.startswith(token):
-                raise ValueError("Invalid colormap name")
+                raise ValueError("Invalid colormap name '%s'" % token)
             return BuiltinColormaps[name], name, rest
 
 _color_func = re.compile(r"^(rgb|rgba|hsl|hsla|gray)\s*\(([^)]*)\)")
 _number = re.compile(r"\s*[-+]?([0-9]+(\.[0-9]*)?|\.[0-9]+)")
 _units = re.compile(r"\s*(%|deg|grad|rad|turn|)\s*")
 
+def _fetch_colormap(session, palette_id):
+    '''Fetch color map from colourlovers.com'''
+    url = 'http://www.colourlovers.com/api/palette/%d?format=json' % palette_id
+    from ..fetch import fetch_file
+    filename = fetch_file(session, url, 'palette %d' % palette_id, '%d.json' % palette_id, 'COLOURlovers')
+    f = open(filename, 'r')
+    import json
+    j = json.load(f)
+    f.close()
+    if len(j) == 0:
+        from ..errors import UserError
+        raise UserError('No palette %d at COLOURlovers.com' % palette_id)
+    hex_colors = j[0]['colors']
+    rgba = [tuple(int(r, base=16)/255 for r in (c[0:2], c[2:4], c[4:6])) + (1.0,)
+            for c in hex_colors]
+    from ..colors import Colormap
+    cmap = Colormap(None, rgba)
+    return cmap
 
 def _parse_numbers(text):
     # parse comma separated list of number [units]

@@ -10,7 +10,7 @@
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 class ToolUI(ToolInstance):
@@ -19,15 +19,15 @@ class ToolUI(ToolInstance):
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
     SIZE = (500, 25)
 
-    def __init__(self, session, tool_info, *, restoring=False):
+    def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
+            ToolInstance.__init__(self, session, bundle_info)
         # 'display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Tool UI"
         # in this case), so only override if different name desired
         self.display_name = "custom name for running tool"
         if session.ui.is_gui:
-            from chimera.core.ui import MainToolWindow
+            from chimerax.core.ui import MainToolWindow
             self.tool_window = MainToolWindow(self, size=self.SIZE)
             self.tool_window.manage(placement="bottom")
             parent = self.tool_window.ui_area
@@ -41,16 +41,16 @@ class ToolUI(ToolInstance):
             "ti": ToolInstance.take_snapshot(self, session, flags),
             "shown": self.tool_window.shown
         }
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
-            self, session, tool_info, ti_version, ti_data)
-        self.__init__(session, tool_info, restoring=True)
+            self, session, bundle_info, ti_version, ti_data)
+        self.__init__(session, bundle_info, restoring=True)
         self.display(data["shown"])
 
     def reset_state(self, session):

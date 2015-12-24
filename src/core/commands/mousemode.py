@@ -40,12 +40,15 @@ def mousemode(session, left_mode=None, middle_mode=None, right_mode=None,
         msg = '\n'.join(lines)
         session.logger.info(msg)
 
-class MouseModeArg:
+from .cli import Annotation
+class MouseModeArg(Annotation):
     '''Annotation for specifying a mouse mode.'''
-    name = 'mouse mode'
 
-    @staticmethod
-    def parse(text, session):
+    def __init__(self, session):
+        Annotation.__init__(self)
+        self._session = session
+
+    def parse(self, text, session):
         from ..ui import mousemodes
         modes = session.ui.main_window.graphics_window.mouse_modes.modes
         from .cli import EnumOf
@@ -54,15 +57,21 @@ class MouseModeArg:
         mmap = {m.name:m for m in modes}
         return mmap[value], used, rest
 
+    @property
+    def name(self):
+        modes = self._session.ui.main_window.graphics_window.mouse_modes.modes
+        return 'one of ' + ', '.join("'%s'" % m.name for m in modes)
+
 def register_command(session):
     from .cli import CmdDesc, register, StringArg, NoArg
+    mode_arg = MouseModeArg(session)
     desc = CmdDesc(
         keyword=[
-            ('left_mode', MouseModeArg),
-            ('middle_mode', MouseModeArg),
-            ('right_mode', MouseModeArg),
-            ('wheel_mode', MouseModeArg),
-            ('pause_mode', MouseModeArg),
+            ('left_mode', mode_arg),
+            ('middle_mode', mode_arg),
+            ('right_mode', mode_arg),
+            ('wheel_mode', mode_arg),
+            ('pause_mode', mode_arg),
             ('alt', NoArg),
             ('command', NoArg),
             ('control', NoArg),

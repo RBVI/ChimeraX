@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.help_viewer
+PKG_NAME = chimerax.help_viewer
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = Display help
 
@@ -10,7 +10,7 @@ PKG_DESCRIPTION = Display help
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
 TOOL_NAME = help_viewer
-TOOL_PKG_NAME = chimera.help_viewer
+TOOL_PKG_NAME = chimerax.help_viewer
 TOOL_DISPLAY_NAME = Help Viewer
 TOOL_CATEGORY = General
 TOOL_FILE_TYPES =

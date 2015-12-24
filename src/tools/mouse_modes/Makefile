@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.mouse_modes
+PKG_NAME = chimerax.mouse_modes
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = Mouse mode buttons
 
@@ -10,7 +10,7 @@ PKG_DESCRIPTION = Mouse mode buttons
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
 TOOL_NAME = mouse_modes
-TOOL_PKG_NAME = chimera.mouse_modes
+TOOL_PKG_NAME = chimerax.mouse_modes
 TOOL_DISPLAY_NAME = Mouse Modes for Right Button
 TOOL_CATEGORY = General
 TOOL_FILE_TYPES =

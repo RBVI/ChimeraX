@@ -65,14 +65,15 @@ public:
     virtual bool  get_default_halfbond() const { return _default_halfbond; }
     BaseManager*  manager() const { return _manager; }
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
-    virtual const std::set<Pseudobond*>&  pseudobonds() const = 0;
-    static int  session_num_floats(bool /*global*/ = false) {
+    virtual const Pseudobonds&  pseudobonds() const = 0;
+    static int  session_num_floats() {
         return SESSION_NUM_FLOATS + Rgba::session_num_floats();
     }
-    static int  session_num_ints(bool /*global*/ = false) {
+    static int  session_num_ints() {
         return SESSION_NUM_INTS + Rgba::session_num_ints();
     }
-    virtual void  session_save(int**, float**, PyObject*, bool /*global*/ = false) const;
+    virtual void  session_restore(int**, float**);
+    virtual void  session_save(int**, float**) const;
     virtual void  set_default_color(const Rgba& rgba) { _default_color = rgba; }
     virtual void  set_default_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a = 255) { this->set_default_color(Rgba(r,g,b,a)); }
@@ -94,20 +95,26 @@ protected:
     virtual  ~StructurePBGroupBase() {}
 public:
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
-    static int  session_num_floats(bool /*global*/ = false) {
+    std::pair<Atom*, Atom*> session_get_pb_ctor_info(int** ints) const;
+    void  session_note_pb_ctor_info(Pseudobond* pb, int** ints) const;
+    static int  session_num_floats() {
         return SESSION_NUM_FLOATS + Group::session_num_floats();
     }
-    static int  session_num_ints(bool /*global*/ = false) {
+    static int  session_num_ints() {
         return SESSION_NUM_INTS + Group::session_num_ints();
     }
-    virtual void  session_save(int** ints, float** floats, PyObject* misc,
-        bool global = false) const { Group::session_save(ints, floats, misc, global); }
+    virtual void  session_restore(int** ints, float** floats) {
+        Group::session_restore(ints, floats);
+    }
+    virtual void  session_save(int** ints, float** floats) const {
+        Group::session_save(ints, floats);
+    }
     AtomicStructure*  structure() const { return _structure; }
 };
 
 class StructurePBGroup: public StructurePBGroupBase {
 public:
-    static const int  SESSION_NUM_INTS = 0;
+    static const int  SESSION_NUM_INTS = 1;
     static const int  SESSION_NUM_FLOATS = 0;
 private:
     friend class Proxy_PBGroup;
@@ -121,13 +128,17 @@ public:
     void  clear();
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2);
     const Pseudobonds&  pseudobonds() const { return _pbonds; }
-    int  session_num_ints(bool global = false) const;
-    int  session_num_floats(bool global = false) const;
-    virtual void  session_save(int** , float** , PyObject* , bool global = false) const;
+    int  session_num_ints() const;
+    int  session_num_floats() const;
+    virtual void  session_restore(int** , float**);
+    virtual void  session_save(int** , float**) const;
 };
 
 class CS_PBGroup: public StructurePBGroupBase
 {
+public:
+    static const int  SESSION_NUM_INTS = 1;
+    static const int  SESSION_NUM_FLOATS = 0;
 private:
     friend class Proxy_PBGroup;
     mutable std::unordered_map<const CoordSet*, Pseudobonds>  _pbonds;
@@ -143,9 +154,10 @@ public:
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs);
     const Pseudobonds&  pseudobonds() const;
     const Pseudobonds&  pseudobonds(const CoordSet* cs) const { return _pbonds[cs]; }
-    int  session_num_ints(bool global = false) const;
-    int  session_num_floats(bool global = false) const;
-    virtual void  session_save(int** , float** , PyObject* , bool global = false) const;
+    int  session_num_ints() const;
+    int  session_num_floats() const;
+    virtual void  session_restore(int** , float**);
+    virtual void  session_save(int** , float**) const;
 };
 
 // Need a proxy class that can be contained/returned by the pseudobond
@@ -247,20 +259,25 @@ public:
             throw std::invalid_argument("Not a per-coordset pseudobond group");
         return static_cast<CS_PBGroup*>(_proxied)->pseudobonds(cs);
     }
-    int  session_num_ints(bool global = false) const {
+    int  session_num_ints() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<StructurePBGroup*>(_proxied)->session_num_ints(global);
-        return static_cast<CS_PBGroup*>(_proxied)->session_num_ints(global);
+            return static_cast<StructurePBGroup*>(_proxied)->session_num_ints();
+        return static_cast<CS_PBGroup*>(_proxied)->session_num_ints();
     }
-    int  session_num_floats(bool global = false) const {
+    int  session_num_floats() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<StructurePBGroup*>(_proxied)->session_num_floats(global);
-        return static_cast<CS_PBGroup*>(_proxied)->session_num_floats(global);
+            return static_cast<StructurePBGroup*>(_proxied)->session_num_floats();
+        return static_cast<CS_PBGroup*>(_proxied)->session_num_floats();
     }
-    virtual void  session_save(int** ints, float** floats, PyObject* misc, bool global = false) const {
+    virtual void  session_restore(int** ints, float** floats) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<StructurePBGroup*>(_proxied)->session_save(ints, floats, misc, global);
-        return static_cast<CS_PBGroup*>(_proxied)->session_save(ints, floats, misc, global);
+            return static_cast<StructurePBGroup*>(_proxied)->session_restore(ints, floats);
+        return static_cast<CS_PBGroup*>(_proxied)->session_restore(ints, floats);
+    }
+    virtual void  session_save(int** ints, float** floats) const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->session_save(ints, floats);
+        return static_cast<CS_PBGroup*>(_proxied)->session_save(ints, floats);
     }
     void  set_default_color(const Rgba& rgba) {
         if (_group_type == AS_PBManager::GRP_NORMAL)

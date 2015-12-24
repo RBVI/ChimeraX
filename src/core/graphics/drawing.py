@@ -150,6 +150,7 @@ class Drawing:
         self._shader_opt = None                 # Cached shader options
         self._vertex_buffers = []               # Buffers used by both drawing and selection
 
+        self.pickable = True	# Whether first_intercept() and planes_pick() will consider this drawing
         self.was_deleted = False
         "Indicates whether this Drawing has been deleted."
 
@@ -252,9 +253,9 @@ class Drawing:
         dp = self._displayed_positions
         if dp is None:
             from numpy import empty, bool
-            self._displayed_positions = dp = empty((len(self._positions),),
-                                                   bool)
+            dp = empty((len(self._positions),), bool)
         dp[:] = display
+        self._displayed_positions = dp		# Need this to trigger buffer update
         self._any_displayed_positions = display
         self.redraw_needed(shape_changed=True)
         self.__class__.triggers.activate_trigger('display changed', self)
@@ -270,14 +271,14 @@ class Drawing:
         dp = self._displayed_positions
         if ((position_mask is None and dp is None) or
             (position_mask is not None and dp is not None and
-             array_equal(position_mask, dp))):
+             position_mask is not dp and array_equal(position_mask, dp))):
             return
         self._displayed_positions = position_mask
         self._any_displayed_positions = (position_mask.sum() > 0)
         self.redraw_needed(shape_changed=True)
 
     display_positions = property(get_display_positions, set_display_positions)
-    '''Mask specifying which copies are displayed.'''
+    '''Mask specifying which copies are displayed. Can be None meaning all positions displayed'''
 
     @property
     def parents_displayed(self):
@@ -307,7 +308,8 @@ class Drawing:
         self.redraw_needed(selection_changed=True)
 
     selected = property(get_selected, set_selected)
-    '''Whether or not the drawing is selected.'''
+    '''Whether or not the drawing is selected.
+    Does not include or effect children.'''
 
     def get_selected_positions(self):
         return self._selected_positions
@@ -318,7 +320,8 @@ class Drawing:
 
     selected_positions = property(get_selected_positions,
                                   set_selected_positions)
-    '''Mask specifying which drawing positions are selected.'''
+    '''Mask specifying which drawing positions are selected.
+    Does not include or effect children.'''
 
     def get_selected_triangles_mask(self):
         return self._selected_triangles_mask
@@ -340,78 +343,11 @@ class Drawing:
                 return True
         return False
 
-    def fully_selected(self):
-        '''Is the entire Drawing including children selected.'''
-        sp = self._selected_positions
-        if sp is not None and sp.sum() == len(sp):
-            return True
-        for d in self.child_drawings():
-            if not d.fully_selected():
-                return False
-        return True
-
     def clear_selection(self):
         '''Unselect this drawing. Child drawings may remain selected.'''
         self.selected = False
         self.selected_triangles_mask = None
         self.redraw_needed(selection_changed=True)
-
-    def promote_selection(self):
-        '''
-        Select the next larger containing group.  If one child is
-        selected, then all become selected.
-        '''
-        pd = self._deepest_promotable_drawings()
-        if len(pd) == 0:
-            return
-
-        plevel = min(level for level, drawing in pd)
-        pdrawings = tuple(d for level, d in pd if level == plevel)
-        prevsel = tuple((d, d.selected_positions.copy()) for d in pdrawings)
-        if hasattr(self, 'promotion_tower'):
-            self.promotion_tower.append(prevsel)
-        else:
-            self.promotion_tower = [prevsel]
-        for d in pdrawings:
-            d.selected = True
-
-    # A drawing is promotable if some children are fully selected and others
-    # are unselected, or if some copies are selected and other copies are
-    # unselected.
-    def _deepest_promotable_drawings(self, level=0):
-
-        sp = self._selected_positions
-        if sp is not None:
-            ns = sp.sum()
-            if ns == len(sp):
-                return []         # Fully selected
-        cd = self.child_drawings()
-        if cd:
-            nfsel = [d for d in cd if not d.fully_selected()]
-            if nfsel:
-                pd = sum((d.promotable_drawings(level + 1) for d in nfsel), [])
-                if len(pd) == 0 and len(nfsel) < len(cd):
-                    pd = [(level + 1, d) for d in nfsel]
-                return pd
-        if sp is not None and ns < len(sp):
-            return [(level, self)]
-        return []
-
-    def demote_selection(self):
-        '''If the selection has previously been promoted, this returns
-        it to the previous smaller selection.'''
-        pt = getattr(self, 'promotion_tower', None)
-        if pt:
-            for d, sp in pt.pop():
-                d.selected_positions = sp
-
-    def clear_selection_promotion_history(self):
-        '''
-        Forget the selection history promotion history.
-        This is used when the selection is changed manually.
-        '''
-        if hasattr(self, 'promotion_tower'):
-            delattr(self, 'promotion_tower')
 
     def get_position(self):
         return self._positions[0]
@@ -424,13 +360,13 @@ class Drawing:
             self._displayed_positions = None
         self.redraw_needed(shape_changed=True)
 
+    position = property(get_position, set_position)
+    '''Position and orientation of the surface in space.'''
+
     @property
     def scene_position(self):
         from ..geometry import product
         return product([d.position for d in self.drawing_lineage])
-
-    position = property(get_position, set_position)
-    '''Position and orientation of the surface in space.'''
 
     def get_positions(self, displayed_only=False):
         if displayed_only:
@@ -475,7 +411,7 @@ class Drawing:
 
     color = property(get_color, set_color)
     '''Single color of drawing used when per-vertex coloring is not
-    specified.'''
+    specified, 0-255 red, green, blue, alpha values.'''
 
     def get_colors(self):
         return self._colors
@@ -594,11 +530,9 @@ class Drawing:
             self.draw_self(renderer, place, draw_pass, selected_only)
 
         if self.child_drawings():
-            sp = self._selected_positions
             for i, p in enumerate(self.positions):
-                so = selected_only and (sp is None or not sp[i])
                 pp = place if p.is_identity() else place * p
-                self._draw_children(renderer, pp, draw_pass, so)
+                self._draw_children(renderer, pp, draw_pass, selected_only)
 
     def draw_self(self, renderer, place, draw_pass, selected_only=False):
         '''Draw this drawing without children using the given draw pass.'''
@@ -762,21 +696,26 @@ class Drawing:
 
     def bounds(self, positions=True):
         '''
-        The bounds of drawing and displayed children and displayed positions.
+        The bounds of drawing and displayed children and displayed positions
+        in the parent model coordinate system.
         '''
         dbounds = [d.bounds() for d in self.child_drawings() if d.display]
         if not self.empty_drawing():
             dbounds.append(self._geometry_bounds())
-        from ..geometry import bounds
-        b = bounds.union_bounds(dbounds)
+        if len(dbounds) == 1:
+            b = dbounds[0]
+        else:
+            from ..geometry import bounds
+            b = bounds.union_bounds(dbounds)
         if positions:
-            b = bounds.copies_bounding_box(
-                b, self.get_positions(displayed_only=True))
+            from ..geometry import bounds
+            b = bounds.copies_bounding_box(b, self.get_positions(displayed_only=True))
         return b
 
     def _geometry_bounds(self):
         '''
-        Return the bounds of the drawing not including positions nor children.
+        Return the bounds of the drawing not including positions nor children
+        in this drawing's coordinate system.
         '''
         cb = self._cached_bounds
         if cb is not None:
@@ -840,7 +779,7 @@ class Drawing:
         return pclosest
 
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
-        if self.empty_drawing():
+        if self.empty_drawing() or not self.pickable:
             return None
         va = self.vertices
         ta = self.masked_triangles
@@ -855,15 +794,71 @@ class Drawing:
             if fmin is not None:
                 p = TrianglePick(fmin, tmin, 0, self)
         else:
-            # TODO: This will be very slow for large numbers of copies.
+            # Only check objects with bounding box close to line. 
+            b = self._geometry_bounds()
+            if b is None:
+                return None
+            c, r = b.center(), b.radius()
+            pos = self.positions
+            pc = pos * c
+            from ..geometry import segment_intercepts_spheres
+            bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
             dp = self._displayed_positions
-            for c, tf in enumerate(self.positions):
-                if dp is None or dp[c]:
-                    cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-                    fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
-                    if fmin is not None and (p is None or fmin < p.distance):
-                        p = TrianglePick(fmin, tmin, c, self)
+            if dp is not None:
+                from numpy import logical_and
+                logical_and(bi, dp, bi)
+
+            for i in bi.nonzero()[0]:
+                cxyz1, cxyz2 = pos[i].inverse() * (mxyz1, mxyz2)
+                fmin, tmin = closest_triangle_intercept(va, ta, cxyz1, cxyz2)
+                if fmin is not None and (p is None or fmin < p.distance):
+                    p = TrianglePick(fmin, tmin, i, self)
         return p
+
+    def planes_pick(self, planes, exclude=None):
+        '''
+        Find the displayed drawing instances bounded by the specified planes
+        for this drawing and its children.  Each plane is a 4-vector.
+        Return a list of Pick objects for the contained items.
+        This routine is used for selecting objects in a frustum.
+        '''
+        if not self.display:
+            return []
+        if exclude is not None and hasattr(self, exclude):
+            return []
+
+        picks = []
+        if not self.empty_drawing() and self.pickable:
+            from ..geometry import points_within_planes
+            if len(self.positions) > 1:
+                # Use center of instances.
+                b = self._geometry_bounds()
+                if b:
+                    pc = self.positions * b.center()
+                    pmask = points_within_planes(pc, planes)
+                    if pmask.sum() > 0:
+                        dp = self.display_positions
+                        if dp is not None:
+                            # Pick displayed positions only
+                            from numpy import logical_and
+                            logical_and(pmask, dp, pmask)
+                        picks.append(InstancePick(pmask, self))
+            else:
+                # For non-instances pick using all vertices.
+                vmask = points_within_planes(self.vertices, planes)
+                if vmask.sum() > 0:
+                    t = self.triangles
+                    from numpy import logical_or, logical_and
+                    tmask = logical_or(vmask[t[:,0]], vmask[t[:,1]])
+                    logical_or(tmask, vmask[t[:,2]], tmask)
+                    tm = self._triangle_mask
+                    if tm is not None:
+                        logical_and(tmask, tm, tmask)
+                    if tmask.sum() > 0:
+                        picks.append(TrianglesPick(tmask, self))
+        for d in self.child_drawings():
+            picks.extend(d.planes_pick(planes, exclude))
+        return picks
 
     def delete(self):
         '''
@@ -912,7 +907,7 @@ class Drawing:
     _effects_buffers = set(
         ('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
          'triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
-         '_edge_mask', '_triangle_mask', '_selected_triangles_mask'))
+         '_edge_mask', '_triangle_mask', '_selected_triangles_mask', '_selected_positions'))
 
     EDGE0_DISPLAY_MASK = 1
     ALL_EDGES_DISPLAY_MASK = 7
@@ -1060,6 +1055,48 @@ def draw_outline(renderer, cvinv, drawings):
     _draw_multiple(drawings, r, p, Drawing.SELECTION_DRAW_PASS)
     r.finish_rendering_outline()
 
+
+def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
+    '''Draw rectangle outline on front buffer using xor mode.'''
+
+    if drawing is None:
+        d = Drawing('selection drag box')
+        from numpy import array, int32, uint8
+        d.triangles = array(((0,1,2), (0,2,3)), int32)
+        d.edge_mask = array((3, 6), uint8)
+        d.display_style = d.Mesh
+        d.use_lighting = False
+    else:
+        d = drawing
+
+    from numpy import array, float32
+    d.vertices = array(((x1, y1, 0), (x2, y1, 0), (x2, y2, 0), (x1, y2, 0)), float32)
+    d.color = color
+
+    r = renderer
+    from ..geometry import identity
+    p0 = identity()
+    r.set_view_matrix(p0)
+
+    r.draw_front_buffer(True)
+    r.enable_depth_test(False)
+    r.enable_xor(True)
+    rdc = r.disable_capabilities
+    r.disable_capabilities = rdc | r.SHADER_CLIP_PLANES
+
+    w, h = r.render_size()
+    from .camera import ortho
+    r.set_projection_matrix(ortho(0, w, 0, h, -1, 1))
+
+    d.draw(r, p0, d.OPAQUE_DRAW_PASS)
+
+    r.disable_capabilities = rdc
+    r.enable_xor(False)
+    r.enable_depth_test(True)
+    r.draw_front_buffer(False)
+    r.flush()
+
+    return d
 
 def _element_type(display_style):
     from .opengl import Buffer
@@ -1257,7 +1294,7 @@ class Pick:
     '''
     A picked object returned by first_intercept() method of the Drawing class.
     '''
-    def __init__(self, distance):
+    def __init__(self, distance = None):
         self.distance = distance
 
     def description(self):
@@ -1321,6 +1358,72 @@ class TrianglePick(Pick):
             pmask = zeros((len(d.positions),), bool)
         c = self._copy
         pmask[c] = not pmask[c] if toggle else 1
+        d.selected_positions = pmask
+
+class TrianglesPick(Pick):
+    '''
+    Picked triangles of a drawing.
+    '''
+    def __init__(self, tmask, drawing):
+        Pick.__init__(self)
+        self._triangles_mask = tmask
+        self._drawing = drawing
+
+    def description(self):
+        desc = self._drawing.name
+        tm = self._triangles_mask
+        nt = tm.sum()
+        if nt < len(tm):
+            desc += ', %d of %d triangles' % (nt, len(tm))
+        return desc
+
+    def id_string(self):
+        d = self.drawing()
+        return d.id_string() if hasattr(d, 'id_string') else '?'
+
+    def drawing(self):
+        return self._drawing
+
+    def select(self, toggle=False):
+        d = self.drawing()
+        d.selected = (not d.selected) if toggle else True
+
+
+class InstancePick(Pick):
+    '''
+    A picked triangle of a drawing.
+    '''
+    def __init__(self, pmask, drawing):
+        Pick.__init__(self)
+        self._positions_mask = pmask
+        self._drawing = drawing
+
+    def description(self):
+        desc = self._drawing.name
+        pm = self._posititions_mask
+        np = pm.sum()
+        if np < len(pm):
+            desc += ', %d of %d instances' % (np, len(pm))
+        return desc
+
+    def id_string(self):
+        d = self.drawing()
+        return d.id_string() if hasattr(d, 'id_string') else '?'
+
+    def drawing(self):
+        return self._drawing
+
+    def select(self, toggle=False):
+        d = self.drawing()
+        pmask = d.selected_positions
+        pm = self._positions_mask
+        if pmask is None:
+            pmask = pm
+        elif toggle:
+            from numpy import logical_xor
+            logical_xor(pmask, pm, pmask)
+        else:
+            pmask = pm
         d.selected_positions = pmask
 
 

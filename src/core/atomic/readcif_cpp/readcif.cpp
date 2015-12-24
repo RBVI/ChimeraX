@@ -1,4 +1,4 @@
-// vi: set expandtab ts=4 sw=4:
+// vi: set noexpandtab ts=8 sw=8:
 /*
  * Copyright (c) 2014 The Regents of the University of California.
  * All rights reserved.
@@ -503,8 +503,9 @@ CIFFile::internal_parse(bool one_table)
 			if (save_values) {
 				seen.insert(current_category);
 				first_row = true;
+				in_loop = true;
 				ParseCategory& pf = cii->second.func;
-				pf(true);
+				pf();
 				first_row = false;
 				fixed_columns = false;
 				current_category.clear();
@@ -589,8 +590,9 @@ CIFFile::internal_parse(bool one_table)
 						// flush current category
 						seen.insert(current_category);
 						first_row = true;
+						in_loop = false;
 						ParseCategory& pf = cii->second.func;
-						pf(false);
+						pf();
 						first_row = false;
 						fixed_columns = false;
 						//current_category.clear();
@@ -627,7 +629,9 @@ CIFFile::internal_parse(bool one_table)
 				if (current_token != T_VALUE)
 					throw error("expected data value after data name");
 				if (save_values)
-					values.push_back(current_value());
+					//values.push_back(current_value());
+					values.emplace_back(current_value_start,
+									current_value_end - current_value_start);
 				next_token();
 				if (current_token != T_TAG)
 					break;
@@ -639,8 +643,9 @@ CIFFile::internal_parse(bool one_table)
 				// flush current category
 				seen.insert(current_category);
 				first_row = true;
+				in_loop = false;
 				ParseCategory& pf = cii->second.func;
-				pf(false);
+				pf();
 				first_row = false;
 				fixed_columns = false;
 				current_category.clear();
@@ -679,6 +684,7 @@ CIFFile::internal_reset_parse()
 	current_category.clear();
 	current_tags.clear();
 	values.clear();
+	in_loop = false;
 	first_row = false;
 	columns.clear();
 	seen.clear();
@@ -1186,6 +1192,36 @@ CIFFile::parse_row(ParseValues& pv)
 		next_token();
 	}
 	return true;
+}
+
+StringVector&
+CIFFile::parse_whole_category()
+{
+	if (current_category.empty())
+		// not category or exhausted values
+		throw error("no values available");
+	if (current_tags.empty())
+		return values;
+
+	if (!values.empty()) {
+		// values were given per-tag
+		// assert(current_tags.size() == values.size())
+		current_tags.clear();
+		return values;
+	}
+
+	//values.reserve(current_tags.size());
+	values.reserve(4000000);
+	while (current_token == T_VALUE) {
+		//values.push_back(current_value());
+		values.emplace_back(current_value_start,
+				  current_value_end - current_value_start);
+		next_token();
+	}
+	// assert(data.size() % current_tags.size() == 0);
+
+	current_tags.clear();
+	return values;
 }
 
 void

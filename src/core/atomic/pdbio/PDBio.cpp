@@ -610,8 +610,10 @@ start_t = end_t;
                 for (int i = key.length()-1; i >= 0 && key[i] == ' '; i--)
                     key.erase(i, 1);
                 
-                std::vector<std::string> &h = as->metadata[key];
-                h.push_back(std::string((const char *)line));
+                decltype(as->metadata)::mapped_type &h = as->metadata[key];
+                decltype(as->metadata)::mapped_type::value_type hdr = line;
+                hdr.pop_back(); // drop trailing newline
+                h.push_back(hdr);
                 break;
 
             }

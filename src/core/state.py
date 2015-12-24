@@ -27,7 +27,7 @@ class State(metaclass=abc.ABCMeta):
     ALL = SCENE | SESSION
 
     #: Which "tool" this state is from (None is core)
-    tool_info = None
+    bundle_info = None
 
     def take_snapshot(self, session, flags):
         """Return snapshot of current state, [version, data], of instance.
@@ -39,24 +39,24 @@ class State(metaclass=abc.ABCMeta):
         lists/dicts/etc., but shallow copy of named objects).
         Named objects are later converted to unique names. 
         """
-        version = self.tool_info.state_version
+        version = self.bundle_info.state_version
         data = self.vars().copy()
-        if 'tool_info' in data:
-            del data['tool_info']
+        if 'bundle_info' in data:
+            del data['bundle_info']
         return version, data
 
     @classmethod
-    def restore_snapshot_new(cls, session, tool_info, version, data):
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
         """Restore data snapshot into instance.
 
         Named instances in data will have been replaced with actual instance.
         """
         return cls.__new__(cls)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         obj.__dict__ = data
-        if obj.tool_info is None:
-            obj.tool_info = tool_info
+        if obj.bundle_info is None:
+            obj.bundle_info = bundle_info
 
     @abc.abstractmethod
     def reset_state(self, session):
@@ -132,7 +132,7 @@ def copy_state(data, convert=None):
     def _copy(data):
         global _final_primitives, _container_primitives
         nonlocal convert, Mapping, ndarray
-        if hasattr(data, 'tool_info'):
+        if hasattr(data, 'bundle_info'):
             return convert(data)
         if isinstance(data, _final_primitives):
             return data

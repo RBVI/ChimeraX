@@ -45,7 +45,7 @@ localized_app_name = {
 
 
 def parse_arguments(argv):
-    """Initialize Chimera application."""
+    """Initialize ChimeraX application."""
     import getopt
 
     if sys.platform.startswith('darwin'):
@@ -179,11 +179,11 @@ def init(argv, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
-    # use chimera.core's version
+    # use chimerax.core's version
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     for d in dists:
-        if d.key == 'chimera.core':
+        if d.key == 'chimerax.core':
             version = d.version
             break
     else:
@@ -205,12 +205,12 @@ def init(argv, event_loop=True):
         atexit.register(prof.dump_stats, "%s.lprof" % app_name)
 
     if opts.use_defaults:
-        from chimera.core import configinfo
+        from chimerax.core import configinfo
         configinfo.only_use_defaults = True
 
     if not opts.gui:
         # Flag to configure off-screen rendering before PyOpenGL imported
-        from chimera import core
+        from chimerax import core
         core.offscreen_rendering = True
 
     # figure out the user/system directories for application
@@ -254,24 +254,24 @@ def init(argv, event_loop=True):
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
     rootdir = os.path.dirname(bindir)
-    import chimera
-    chimera.app_data_dir = os.path.join(rootdir, "share")
-    chimera.app_bin_dir = os.path.join(rootdir, "bin")
-    chimera.app_lib_dir = os.path.join(rootdir, "lib")
+    import chimerax
+    chimerax.app_data_dir = os.path.join(rootdir, "share")
+    chimerax.app_bin_dir = os.path.join(rootdir, "bin")
+    chimerax.app_lib_dir = os.path.join(rootdir, "lib")
 
     # inform the C++ layer of the appdirs paths
-    from chimera.core import _appdirs
+    from chimerax.core import _appdirs
     _appdirs.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
                         ad.user_cache_dir, ad.site_data_dir,
                         ad.site_config_dir, ad.user_log_dir,
-                        chimera.app_data_dir, adu.user_cache_dir)
+                        chimerax.app_data_dir, adu.user_cache_dir)
 
-    from chimera.core import session
+    from chimerax.core import session
     sess = session.Session(app_name, debug=opts.debug)
     sess.app_dirs = ad
     sess.app_dirs_unversioned = adu
 
-    from chimera.core import core_settings
+    from chimerax.core import core_settings
     core_settings.init(sess)
 
     session.common_startup(sess)
@@ -281,10 +281,10 @@ def init(argv, event_loop=True):
 
     # initialize the user interface
     if opts.gui:
-        from chimera.core.ui import gui
+        from chimerax.core.ui import gui
         ui_class = gui.UI
     else:
-        from chimera.core.ui import nogui
+        from chimerax.core.ui import nogui
         ui_class = nogui.UI
     # sets up logging, splash screen if gui
     # calls "sess.save_in_session(self)"
@@ -311,12 +311,12 @@ def init(argv, event_loop=True):
                             next(splash_step), num_splash_steps)
         if sess.ui.is_gui and opts.debug:
             print("Initializing tools", flush=True)
-    from chimera.core import toolshed
+    from chimerax.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
     sess.toolshed = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
-    from chimera.core import tools
+    from chimerax.core import tools
     sess.add_state_manager('tools', tools.Tools(sess, first=True))  # access with sess.tools
-    from chimera.core import tasks
+    from chimerax.core import tasks
     sess.add_state_manager('tasks', tasks.Tasks(sess, first=True))  # access with sess.tasks
 
     if opts.version:
@@ -337,9 +337,9 @@ def init(argv, event_loop=True):
         for d in dists:
             key = d.key
             if opts.version == 2:
-                if not key.startswith('chimera.'):
+                if not key.startswith('chimerax.'):
                     continue
-                key = key[len('chimera.'):]
+                key = key[len('chimerax.'):]
             if d.has_version():
                 print("    %s: %s" % (key, d.version))
             else:
@@ -347,12 +347,12 @@ def init(argv, event_loop=True):
         return os.EX_OK
 
     if opts.list_file_types:
-        from chimera.core import io
+        from chimerax.core import io
         io.print_file_types()
         raise SystemExit(0)
 
     if sys.platform.startswith('linux'):
-        from chimera.core import _xdg
+        from chimerax.core import _xdg
         _xdg.install_if_needed(sess, localized_app_name)
 
     if opts.gui:
@@ -396,10 +396,10 @@ def init(argv, event_loop=True):
         return os.EX_OK
 
     # the rest of the arguments are data files
-    from chimera.core import errors
+    from chimerax.core import errors, commands
     for arg in args:
         try:
-            sess.models.open(arg)
+            commands.run(sess, 'open %s' % arg)
         except (IOError, errors.UserError) as e:
             sess.logger.error(str(e))
         except Exception as e:
@@ -451,7 +451,7 @@ def uninstall(sess):
         if os.path.basename(exe_dir) != 'bin':
             sys.logger.error('non-standard ChimeraX installation')
             return os.EX_SOFTWARE
-        from chimera.core import _xdg
+        from chimerax.core import _xdg
         _xdg.uninstall(sess)
         #parent = os.path.dirname(exe_dir)
         #rm_rf_path(parent, sess)

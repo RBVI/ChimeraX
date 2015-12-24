@@ -52,7 +52,7 @@ class TriangleInfo(State):
     def take_snapshot(self, session, flags):
         return CORE_STATE_VERSION, [self._stl, self._index]
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         self._stl, self._index = data
 
     def reset_state(self, session):
@@ -140,6 +140,6 @@ def stl_geometry(nv):
 def register():
     from . import io
     io.register_format(
-        "StereoLithography", generic3d.CATEGORY, (".stl",),
+        "StereoLithography", generic3d.CATEGORY, (".stl",), ("stl",),
         reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",
         open_func=open)

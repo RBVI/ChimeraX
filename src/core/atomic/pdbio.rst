@@ -3,6 +3,6 @@
 pdbio: PDB input/output
 =======================
 
-.. automodule:: chimera.core.atomic.pdbio
+.. automodule:: chimerax.core.atomic.pdbio
     :members:
     :show-inheritance:

@@ -1,7 +1,7 @@
 TOP = ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/map/filter
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/filter
 
 PYSRCS = __init__.py bin.py boxes.py cover.py falloff.py flatten.py flip.py fourier.py \
 	gaussian.py laplace.py localcorr.py median.py permute.py ridges.py scale.py \

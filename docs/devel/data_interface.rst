@@ -12,7 +12,7 @@ native data type: :doc:`molecular data <molecule>`,
 and
 :doc:`volume data <volume>`.
 
-I/O is managed by the :py:mod:`chimera.core.io` module.
+I/O is managed by the :py:mod:`chimerax.core.io` module.
 Data formats are registered with the io module with information about how
 to recognize files of that type and functions to read and/or write them.
 

@@ -25,9 +25,9 @@ allowed.
 *setup*
 ::
 
-    from chimera.core.settings import Settings
-    from chimera.core.configfile import Value
-    from chimera.core.commands import EnumOf
+    from chimerax.core.settings import Settings
+    from chimerax.core.configfile import Value
+    from chimerax.core.commands import EnumOf
     class FullEnum(EnumOf): allow_truncated = False
 
     class MyToolSettings(Settings):
@@ -59,17 +59,17 @@ As mentioned above, the AUTO_SAVE/EXPLICIT_SAVE keys have to be legal to use
 as attribute names.  The values can be just plain Python values, in which case
 their :py:func:`repr` will be saved to disk, or they can be more complex
 entities, like enumerations or class instances.  In the latter case you have
-to use the :py:class:`~chimera.core.configfile.Value` class to tell the settings
+to use the :py:class:`~chimerax.core.configfile.Value` class to tell the settings
 mechanism how to save and restore the value and perhaps check that the value is
 within its legal range of values.  The three arguments to Value() are:
 
 1. The default value.
 2. A function to convert text to the value, or an object that can convert the
    text into the needed value by following the
-   :py:class:`~chimera.core.commands.cli.Annotation` abstract class protocol.
+   :py:class:`~chimerax.core.commands.cli.Annotation` abstract class protocol.
 3. A function that converts a value to text.
 
-There are many Annotation subclasses in the :py:mod:`~chimera.core.commands.cli`
+There are many Annotation subclasses in the :py:mod:`~chimerax.core.commands.cli`
 module that can be used as the second argument to Value() and that also
 perform range checking.
 
@@ -84,7 +84,7 @@ Adding a setting
 
 Moving/deleting settings
     This involves adding properties to your Settings subclass and is
-    discussed in detail in the :py:mod:`~chimera.core.configfile`
+    discussed in detail in the :py:mod:`~chimerax.core.configfile`
     documentation.
 
 """
@@ -103,7 +103,7 @@ class Settings(ConfigFile):
     A tools uses Settings by subclassing and defining class dictionaries
     named AUTO_SAVE and EXPLICIT_SAVE containing the names of the settings
     and their default values.  This is explained in detail in the
-    :py:mod:`~chimera.core.settings` module documentation.
+    :py:mod:`~chimerax.core.settings` module documentation.
 
     Parameters
     ----------

@@ -1,8 +1,8 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/commands
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/commands
+PKG_DIR = $(PYSITEDIR)/chimerax/core/commands
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/commands
 
 GENSRCS = _atomspec.py
 PYSRCS = $(wildcard *.py) $(GENSRCS)

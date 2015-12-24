@@ -1,19 +1,22 @@
-# Use this make file to make a frozen verson of chimera for debugging
-
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
-PROG	= $(APP_NAME).valgrind
+VPROG	= $(APP_NAME).valgrind
+CPROG	= $(APP_NAME).callgrind
 SUPPRESS= valgrind.suppress
 
 all: $(SUPPRESS)
 
 install: all
-	$(RSYNC) app.sh $(bindir)/$(PROG)
+	$(RSYNC) valgrind.sh $(bindir)/$(VPROG)
 	$(RSYNC) $(SUPPRESS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
-		$(RSYNC) app.sh $(app_bindir)/$(PROG); \
+		$(RSYNC) valgrind.sh $(app_bindir)/$(VPROG); \
 		$(RSYNC) $(SUPPRESS) $(app_datadir); \
+	fi
+	$(RSYNC) callgrind.sh $(bindir)/$(CPROG)
+	if [ -d "$(app_prefix)" ]; then \
+		$(RSYNC) callgrind.sh $(app_bindir)/$(CPROG); \
 	fi
 
 clean:

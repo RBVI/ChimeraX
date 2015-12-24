@@ -18,6 +18,9 @@ static bool closest_sphere_intercept(const float *centers, int n, int cstride0, 
 				     const float *radii, int rstride,
 				     const float *xyz1, const float *xyz2,
 				     float *fmin, int *snum);
+static int segment_intercepts_spheres(const float *centers, int n, int cstride0, int cstride1,
+				      const float radius, const float *xyz1, const float *xyz2,
+				      unsigned char *intercept);
 static bool closest_cylinder_intercept(const float *base1, int n, int b1stride0, int b1stride1,
 				       const float *base2, int b2stride0, int b2stride1,
 				       const float *radii, int rstride,
@@ -277,6 +280,95 @@ static bool closest_sphere_intercept(const float *centers, int n, int cstride0, 
   *fmin = dc/d;
   *snum = sc;
   return true;
+}
+
+const char *segment_intercepts_spheres_doc =
+  "segment_intercepts_spheres(centers, radius, xyz1, xyz2) -> mask array\n"
+  "\n"
+  "Find which spheres intercept a line segment from xyz1 to xyz2.\n"
+  "Implemented in C++.\n"
+  "\n"
+  "Parameters\n"
+  "----------\n"
+  "centers : n by 3 float array\n"
+  "  x,y,z sphere center coordinates.\n"
+  "radius : float\n"
+  "  sphere radius.\n"
+  "xyz1, xyz2 : float 3-tuples\n"
+  "  x,y,z coordinates of line segment endpoints.\n"
+  "\n"
+  "Returns\n"
+  "-------\n"
+  "mask : array of bool\n"
+  "  array of booleans indicating whether the segment intercepts each sphere.\n";
+
+// ----------------------------------------------------------------------------
+// Find which spheres a segment intercepts.
+//
+extern "C"
+PyObject *segment_intercepts_spheres(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray centers;
+  float radius;
+  float xyz1[3], xyz2[3];
+  const char *kwlist[] = {"centers", "radius", "xyz1", "xyz2", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&fO&O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &centers,
+				   &radius,
+				   parse_float_3_array, &xyz1,
+				   parse_float_3_array, &xyz2))
+    return NULL;
+
+  int n = centers.size(0);
+  unsigned char *intercept;
+  PyObject *ipy = python_bool_array(n, &intercept);
+  segment_intercepts_spheres(centers.values(), n, centers.stride(0), centers.stride(1),
+			     radius, xyz1, xyz2, intercept);
+  return ipy;
+}
+
+// ----------------------------------------------------------------------------
+//
+static int segment_intercepts_spheres(const float *centers, int n, int cstride0, int cstride1,
+				      const float radius, const float *xyz1, const float *xyz2,
+				      unsigned char *intercept)
+{
+  float x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
+  float dx = xyz2[0]-xyz1[0], dy = xyz2[1]-xyz1[1], dz = xyz2[2]-xyz1[2];
+  float d = sqrt(dx*dx + dy*dy + dz*dz);
+  if (d == 0)
+    {
+      for (int s = 0 ; s < n ; ++s)
+	intercept[s] = 0;
+      return 0;
+    }
+  dx /= d; dy /= d; dz /= d;
+  float r2 = radius * radius;
+
+  int ic, count = 0;
+  for (int s = 0 ; s < n ; ++s)
+    {
+      ic = 0;
+      int s3 = cstride0*s;
+      float x = centers[s3], y = centers[s3+cstride1], z = centers[s3+2*cstride1];
+      float p = (x-x1)*dx + (y-y1)*dy + (z-z1)*dz;
+      if (p >= -radius && p <= d + radius)
+	{
+	  float xp = x-(x1+p*dx), yp = y-(y1+p*dy), zp = z-(z1+p*dz);	// perp vector
+	  float d2 = xp*xp + yp*yp + zp*zp;	// perp distance squared
+	  float a2 = r2 - d2;
+	  if (a2 > 0)
+	    {
+	      float a = sqrt(a2);
+	      ic = (p+a >= 0 || p-a <= d);
+	      if (ic)
+		count += 1;
+	    }
+	}
+      intercept[s] = ic;
+    }
+  return count;
 }
 
 const char *closest_cylinder_intercept_doc =

@@ -20,6 +20,8 @@ public:
     typedef std::vector<unsigned char>::size_type  SeqPos;
     typedef std::vector<Residue *>  Residues;
 
+    const int  SESSION_NUM_INTS = 1;
+    const int  SESSION_NUM_FLOATS = 0;
 private:
     friend class Residue;
     void  remove_residue(Residue* r);
@@ -54,6 +56,13 @@ public:
     void  pop_front();
     void  push_back(Residue* r);
     void  push_front(Residue* r);
+    int  session_num_floats() const { return Sequence::session_num_floats() + SESSION_NUM_FLOATS; }
+    int  session_num_ints() const {
+        return Sequence::session_num_ints() + SESSION_NUM_INTS
+            + 2 * _res_map.size() + _residues.size();
+    }
+    void  session_restore(int**, float**);
+    void  session_save(int**, float**) const;
     void  set(unsigned i, Residue* r, char character = -1);
     void  set_from_seqres(bool fs);
     AtomicStructure*  structure() const { return _structure; }

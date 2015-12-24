@@ -17,13 +17,13 @@ class Generic3DModel(Model):
             draw_state.take_snapshot(session, flags)
         ]
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         (model_version, model_data), (drawing_version, drawing_data) = data
         Model.restore_snapshot_init(
-            self, session, tool_info, model_version, model_data)
+            self, session, bundle_info, model_version, model_data)
         draw_state = DrawingState(self)
         draw_state.restore_snapshot_init(
-            session, tool_info, drawing_version, drawing_data)
+            session, bundle_info, drawing_version, drawing_data)
 
     def reset_state(self, session):
         pass

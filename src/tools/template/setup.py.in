@@ -28,7 +28,7 @@ setup(
         ("", ["timestamp"]),
     ],
     install_requires=[
-        "chimera.core",
+        "chimerax.core",
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
@@ -46,7 +46,7 @@ setup(
         "Topic :: Scientific/Engineering :: Vio-Informatics",
         # Each tool should have a single line with the following fields:
         #
-        # 'Chimera-Tool' :: tool_name :: module_name
+        # 'ChimeraX-Bundle' :: tool_name :: module_name
         # :: display_name :: commands :: categories
         # :: file_types :: session_versions :: custom_init
         # :: synopsis
@@ -59,7 +59,7 @@ setup(
         # a single package may provide multiple tools.
         # 'file_types' is a comma-separated list of colon-separated
         # strings.  The file_types arguments are used directly as
-        # arguments to chimera.core.io.register.
+        # arguments to chimerax.core.io.register.
         # 'session_versions' is a comma-separated two-tuple of
         # integers, representing the minimum and maximum session
         # versions that this tool can read.
@@ -70,7 +70,7 @@ setup(
         # because it needs to be part of the metadata available for
         # uninstalled tools, so that users can get more than just a
         # name for deciding whether they want the tool or not.
-        "Chimera-Tool "
+        "ChimeraX-Bundle "
             # ChimeraX metadata
         ":: TOOL_NAME "
             # Tool name

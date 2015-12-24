@@ -20,7 +20,7 @@ class MolecularSurface(Generic3DModel):
 
     Parameters
     ----------
-    session : :class:`~chimera.core.session.Session`
+    session : :class:`~chimerax.core.session.Session`
       The session the surface model will belong to
     enclose_atoms : :class:`.Atoms`
       Surface bounds these atoms.

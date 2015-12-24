@@ -1,16 +1,16 @@
 # module application
 #
 # Include this Makefile and set MOD_APP to the name of the
-# chimera module for the application.  bin/MOD_APP will be
-# the application and it invoke the chimera.MOD_APP module.
+# chimerax module for the application.  bin/MOD_APP will be
+# the application and it invoke the chimerax.MOD_APP module.
 # APP_NAME is set in config.make.
 
 TOP = ../../..
 include $(TOP)/mk/config.make
 
 #MOD_APP = 
-PKG_DIR = $(PYSITEDIR)/chimera
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera
+PKG_DIR = $(PYSITEDIR)/chimerax
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax
 ifeq ($(OS),Darwin)
 	OS_BIN = MacOS
 else

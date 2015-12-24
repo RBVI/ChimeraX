@@ -1,21 +1,21 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def start_tool(session, tool_info):
+def start_tool(session, bundle_info):
     # If providing more than one tool in package,
-    # look at the name in 'tool_info.name' to see which is being started.
+    # look at the name in 'bundle_info.name' to see which is being started.
     from . import gui
     try:
-        ui = getattr(gui, tool_info.name + "UI")
+        ui = getattr(gui, bundle_info.name + "UI")
     except AttributeError:
-        raise RuntimeError("cannot find UI for tool \"%s\"" % tool_info.name)
+        raise RuntimeError("cannot find UI for tool \"%s\"" % bundle_info.name)
     else:
-        return ui(session, tool_info)
+        return ui(session, bundle_info)
 
 
-def register_command(command_name, tool_info):
+def register_command(command_name, bundle_info):
     from . import cmd
-    from chimera.core.commands import register
+    from chimerax.core.commands import register
     desc_suffix = "_desc"
     for attr_name in dir(cmd):
         if not attr_name.endswith(desc_suffix):
@@ -29,7 +29,7 @@ def register_command(command_name, tool_info):
         desc = getattr(cmd, attr_name)
         register(command_name + ' ' + subcommand_name, desc, func)
 
-    from chimera.core.commands import atomspec
+    from chimerax.core.commands import atomspec
     atomspec.register_selector(None, "odd", _odd_models)
 
 

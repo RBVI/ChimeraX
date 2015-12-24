@@ -4,25 +4,25 @@
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, tool_info):
+def start_tool(session, bundle_info):
     # If providing more than one tool in package,
-    # look at the name in 'tool_info.name' to see which is being started.
+    # look at the name in 'bundle_info.name' to see which is being started.
 
     # Starting tools may only work in GUI mode, or in all modes.
     # To avoid starting when not in GUI mode, uncomment the next two lines:
     #if not session.ui.is_gui:
     #    return
     from .gui import ToolUI
-    return ToolUI(session, tool_info)     # UI should register itself with tool state manager
+    return ToolUI(session, bundle_info)     # UI should register itself with tool state manager
 
 
 #
 # 'register_command' is called by the toolshed on start up, if your setup.py says
 # that your tool provides a command
 #
-def register_command(command_name, tool_info):
+def register_command(command_name, bundle_info):
     from . import cmd
-    from chimera.core.commands import register
+    from chimerax.core.commands import register
     register(command_name + " SUBCOMMAND_NAME",
              cmd.subcommand_desc, cmd.subcommand_function)
     # TODO: Register more subcommands here

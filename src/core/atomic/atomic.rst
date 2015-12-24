@@ -30,11 +30,11 @@ Efficient collections of molecular objects and molecular surfaces are also avail
 Atomic data classes
 -------------------
 
-.. automodule:: chimera.core.atomic.structure
+.. automodule:: chimerax.core.atomic.structure
     :members:
 
-.. automodule:: chimera.core.atomic.molobject
+.. automodule:: chimerax.core.atomic.molobject
     :members:
 
-.. automodule:: chimera.core.atomic.pbgroup
+.. automodule:: chimerax.core.atomic.pbgroup
     :members:

@@ -9,8 +9,8 @@ include $(TOP)/mk/config.make
 
 SUBDIRS	= apbs ccp4 cmap dsn6 imagestack mrc
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/map/data
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/map/data
+PKG_DIR = $(PYSITEDIR)/chimerax/core/map/data
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/map/data
 
 PYSRCS = __init__.py arraygrid.py arrays.py datacache.py fileformats.py \
 	griddata.py memoryuse.py opendialog.py progress.py readarray.py \

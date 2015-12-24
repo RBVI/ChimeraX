@@ -238,6 +238,12 @@ class View:
 
         return True
 
+    def draw_xor_rectangle(self, x1, y1, x2, y2, color):
+        self._use_opengl()
+        d = getattr(self, '_rectangle_drawing', None)
+        from .drawing import draw_xor_rectangle
+        self._rectangle_drawing = draw_xor_rectangle(self._render, x1, y1, x2, y2, color, d)
+
     @property
     def shape_changed(self):
         return self._drawing_manager.shape_changed
@@ -633,9 +639,10 @@ class View:
 
     def drawing_bounds(self, clip=False):
         '''Return bounds of drawing, displayed part only.'''
+        self.check_for_drawing_change()
         dm = self._drawing_manager
         b = dm.cached_drawing_bounds
-        if b is None or self.check_for_drawing_change():
+        if b is None:
             dm.cached_drawing_bounds = b = self.drawing.bounds()
         if clip:
             planes = self.clip_planes.planes()
@@ -752,6 +759,25 @@ class View:
         f = p.distance
         p.position = (1.0 - f) * xyz1 + f * xyz2
         return p
+
+    def rectangle_intercept(self, win_x1, win_y1, win_x2, win_y2):
+        '''
+        Return a Pick object for the objects in the rectangle having
+        corners at the given screen window position (specified in pixels).
+        '''
+        # Compute planes bounding view through rectangle.
+        planes = self.camera.rectangle_bounding_planes((win_x1, win_y1), (win_x2, win_y2), self.window_size)
+        if len(planes) == 0:
+            return []	# Camera does not support computation of bounding planes.
+
+        # Use clip planes.
+        cplanes = self.clip_planes.planes()
+        if cplanes:
+            from numpy import concatenate, array, float32
+            planes = concatenate((planes, array([cp.opengl_vec4() for cp in cplanes], float32)))
+
+        picks = self.drawing.planes_pick(planes, exclude='is_outline_box')
+        return picks
 
     def _update_projection(self, view_num=None, camera=None):
 

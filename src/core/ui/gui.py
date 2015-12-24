@@ -340,9 +340,9 @@ class MainWindow(wx.Frame, PlainTextLog):
                 "{} text".format(func)))
         tools_menu = wx.Menu()
         categories = {}
-        for ti in session.toolshed.tool_info():
-            for cat in ti.menu_categories:
-                categories.setdefault(cat, {})[ti.display_name] = ti
+        for bi in session.toolshed.bundle_info():
+            for cat in bi.menu_categories:
+                categories.setdefault(cat, {})[bi.display_name] = bi
         cat_keys = sorted(categories.keys())
         try:
             cat_keys.remove('Hidden')
@@ -357,9 +357,9 @@ class MainWindow(wx.Frame, PlainTextLog):
                 tools_menu.Append(wx.ID_ANY, cat, cat_menu)
             cat_info = categories[cat]
             for tool_name in sorted(cat_info.keys()):
-                ti = cat_info[tool_name]
+                bi = cat_info[tool_name]
                 item = cat_menu.Append(wx.ID_ANY, tool_name)
-                cb = lambda evt, ses=session, ti=ti: ti.start(ses)
+                cb = lambda evt, ses=session, bi=bi: bi.start(ses)
                 self.Bind(wx.EVT_MENU, cb, item)
         menu_bar.Append(tools_menu, "&Tools")
 
@@ -371,7 +371,7 @@ class MainWindow(wx.Frame, PlainTextLog):
                            ('PDB images command', 'pdbimages')):
             item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
             def cb(evt, ses=session, t=topic):
-                from chimera.core.commands import run
+                from chimerax.core.commands import run
                 run(ses, 'help sethome help:%s' % t)
             self.Bind(wx.EVT_MENU, cb, item)
 
@@ -507,7 +507,7 @@ class MainToolWindow(ToolWindow):
 
     Parameters
     ----------
-    tool_instance : a :py:class:`~chimera.core.tools.ToolInstance` instance
+    tool_instance : a :py:class:`~chimerax.core.tools.ToolInstance` instance
         The tool creating this window.
     size : 2-tuple of ints, optional
         Requested size for the tool window, width by height, in pixels.

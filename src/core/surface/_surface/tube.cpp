@@ -348,7 +348,7 @@ PyObject *tube_triangle_mask(PyObject *, PyObject *args, PyObject *keywds)
   bool *ma = reinterpret_cast<bool *>(segmask.values());
   bool *tmask;
   int nt = 2*(nc-2) + 2*(ed1 + ed2 + (n-1)*(ns+1))*nc;
-  PyObject *r = python_uint8_array(nt, reinterpret_cast<unsigned char **>(&tmask));
+  PyObject *r = python_bool_array(nt, reinterpret_cast<unsigned char **>(&tmask));
   tube_triangle_mask(ma, n, ns, nc, ed1, ed2, tmask);
 
   return r;

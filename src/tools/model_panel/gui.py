@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 
 class ModelPanel(ToolInstance):
@@ -9,11 +9,11 @@ class ModelPanel(ToolInstance):
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
     SIZE = (200, 250)
 
-    def __init__(self, session, tool_info, *, restoring=False):
+    def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
+            ToolInstance.__init__(self, session, bundle_info)
         self.display_name = "Models"
-        from chimera.core.ui import MainToolWindow
+        from chimerax.core.ui import MainToolWindow
 
         class ModelPanelWindow(MainToolWindow):
             close_destroys = False
@@ -37,7 +37,7 @@ class ModelPanel(ToolInstance):
         self.table.SetColLabelValue(2, title)
         self.table.SetColSize(2, -1)
         self.table.SetColFormatBool(2)
-        from chimera.core.graphics import Drawing
+        from chimerax.core.graphics import Drawing
         Drawing.triggers.add_handler('display changed', self._initiate_fill_table)
         self.table.SetColLabelValue(3, "Name")
         self.table.HideRowLabels()
@@ -47,7 +47,7 @@ class ModelPanel(ToolInstance):
         self.table.CellHighlightPenWidth = 0
         self._fill_table()
         self.table.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK, self._left_click)
-        from chimera.core.models import ADD_MODELS, REMOVE_MODELS
+        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_table)
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_table)
         self.session.triggers.add_handler("atomic changes", self._changes_cb)
@@ -72,16 +72,16 @@ class ModelPanel(ToolInstance):
             "ti": ToolInstance.take_snapshot(self, session, flags),
             "shown": self.tool_window.shown
         }
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
-            self, session, tool_info, ti_version, ti_data)
-        self.__init__(session, tool_info, restoring=True)
+            self, session, bundle_info, ti_version, ti_data)
+        self.__init__(session, bundle_info, restoring=True)
         self.display(data["shown"])
 
     def reset_state(self, session):
@@ -122,7 +122,7 @@ class ModelPanel(ToolInstance):
         del locker
 
         self._frame_drawn_handler = None
-        from chimera.core.triggerset import DEREGISTER
+        from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
 
     def _left_click(self, event):
@@ -145,7 +145,7 @@ class ModelPanel(ToolInstance):
                 return most_common_color(shown.colors)
         return None
 
-from chimera.core.settings import Settings
+from chimerax.core.settings import Settings
 class ModelPanelSettings(Settings):
     AUTO_SAVE = {
         'last_use': None
@@ -172,11 +172,11 @@ def show(models, session):
         m.display = True
 
 def view(models, session):
-    from chimera.core.commands import AtomSpecResults
-    view_objects = AtomSpecResults(models=models)
+    from chimerax.core.objects import Objects
+    view_objects = Objects(models=models)
     for model in models:
         if getattr(model, 'atoms', None):
             view_objects.add_atoms(model.atoms)
-    from chimera.core.commands.view import view
+    from chimerax.core.commands.view import view
     view(session, view_objects)
 

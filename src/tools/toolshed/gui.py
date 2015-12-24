@@ -1,10 +1,10 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimera.core.tools import ToolInstance
+from chimerax.core.tools import ToolInstance
 
 _PageTemplate = """<html>
 <head>
-<title>Chimera Toolshed</title>
+<title>ChimeraX Toolshed</title>
 <script>
 function button_test() { window.location.href = "toolshed:button_test:arg"; }
 </script>
@@ -20,7 +20,7 @@ function button_test() { window.location.href = "toolshed:button_test:arg"; }
 </style>
 </head>
 <body>
-<h2>Chimera Toolshed
+<h2>ChimeraX Toolshed
     <a href="toolshed:_make_page" class="refresh">refresh</a></h2>
 <!-- button onclick="button_test();">Button Test</button> -->
 <h2>Running Tools</h2>
@@ -47,10 +47,10 @@ class ToolshedUI(ToolInstance):
     SESSION_ENDURING = True
     SIZE = (800, 50)
 
-    def __init__(self, session, tool_info, *, restoring=False):
+    def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
-        from chimera.core.ui import MainToolWindow
+            ToolInstance.__init__(self, session, bundle_info)
+        from chimerax.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
         from wx import html2
@@ -65,7 +65,7 @@ class ToolshedUI(ToolInstance):
         sizer.Add(self.webview, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
-        from chimera.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
+        from chimerax.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
         self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE,
                                                        self._make_page),
                           session.triggers.add_handler(REMOVE_TOOL_INSTANCE,
@@ -112,32 +112,32 @@ class ToolshedUI(ToolInstance):
         # installed
         s = StringIO()
         print("<ul>", file=s)
-        ti_list = ts.tool_info(installed=True, available=False)
-        if not ti_list:
+        bi_list = ts.bundle_info(installed=True, available=False)
+        if not bi_list:
             print("<li>No installed tools found.</li>", file=s)
         else:
-            for ti in ti_list:
-                start_link = _START_LINK % ti.name
-                update_link = _UPDATE_LINK % ti.name
-                remove_link = _REMOVE_LINK % ti.name
+            for bi in bi_list:
+                start_link = _START_LINK % bi.name
+                update_link = _UPDATE_LINK % bi.name
+                remove_link = _REMOVE_LINK % bi.name
                 print("<li>%s - %s. %s %s %s</li>"
-                      % (ti.display_name, ti.synopsis, start_link,
+                      % (bi.display_name, bi.synopsis, start_link,
                          update_link, remove_link), file=s)
         print("</ul>", file=s)
         page = page.replace("INSTALLED_TOOLS", s.getvalue())
 
         # available
         s = StringIO()
-        ti_list = ts.tool_info(installed=False, available=True)
+        bi_list = ts.bundle_info(installed=False, available=True)
         print("<ul>", file=s)
         print("<li>Remote URL: %s</li>" % ts.remote_url, file=s)
-        if not ti_list:
+        if not bi_list:
             print("<li>No available tools found.</li>", file=s)
         else:
-            for ti in ti_list:
-                link = _INSTALL_LINK % ti.name
+            for bi in bi_list:
+                link = _INSTALL_LINK % bi.name
                 print("<li>%s - %s. %s</li>"
-                      % (ti.display_name, ti.synopsis, link), file=s)
+                      % (bi.display_name, bi.synopsis, link), file=s)
         print("</ul>", file=s)
         page = page.replace("AVAILABLE_TOOLS", s.getvalue())
 
@@ -147,13 +147,13 @@ class ToolshedUI(ToolInstance):
     def refresh_installed(self, session):
         # refresh list of installed tools
         from . import cmd
-        cmd.ts_refresh(session, tool_type="installed")
+        cmd.ts_refresh(session, bundle_type="installed")
         self._make_page()
 
     def refresh_available(self, session):
         # refresh list of available tools
         from . import cmd
-        cmd.ts_refresh(session, tool_type="available")
+        cmd.ts_refresh(session, bundle_type="available")
         self._make_page()
 
     def _start_tool(self, session, tool_name):
@@ -209,24 +209,24 @@ class ToolshedUI(ToolInstance):
             "ti": ToolInstance.take_snapshot(self, session, flags),
             "shown": self.tool_window.shown
         }
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
-            self, session, tool_info, ti_version, ti_data)
-        self.__init__(session, tool_info, restoring=True)
+            self, session, bundle_info, ti_version, ti_data)
+        self.__init__(session, bundle_info, restoring=True)
         self.display(data["shown"])
 
     def reset_state(self, session):
         pass
 
     @classmethod
-    def get_singleton(self, session):
-        from chimera.core import tools
+    def get_singleton(cls, session):
+        from chimerax.core import tools
         return tools.get_singleton(session, ToolshedUI, 'toolshed')
 
     #

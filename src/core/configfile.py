@@ -4,7 +4,7 @@ configfile: Application saved settings support
 ==============================================
 
 Tools typically do not use this module directly;
-they instead use the :py:mod:`chimera.core.settings` module,
+they instead use the :py:mod:`chimerax.core.settings` module,
 which layers additional capabilities on top of this module's
 :py:class:`ConfigFile` class.
 
@@ -21,7 +21,7 @@ And those properties have names and values.
 
 Each tool has its own settings.
 The *MAJOR* part of the semantic version is embedded in its filename.
-For the chimera core,
+For the ChimeraX core,
 that version does not change during the life of the release,
 so patches may only introduce additional information.
 Tools are allowed to change and might or might not
@@ -37,9 +37,9 @@ Access Tool Configuration::
         pass
     settings.PROPERTY = value    # set a value
 
-Access Chimera Core Configuration::
+Access ChimeraX Core Configuration::
 
-    from chimera.core.core_settings import settings
+    from chimerax.core.core_settings import settings
     # (ibid)
 
 Declaring the Configuration API
@@ -93,7 +93,7 @@ or a :py:class:`Value` has three items associated with it:
 
     1. A default value.
     2. A function that can parse the value or a
-       cli :py:class:`~chimera.core.commands.cli.Annotation` that can parse the value.
+       cli :py:class:`~chimerax.core.commands.cli.Annotation` that can parse the value.
        This allows for error checking in the case where a user hand edits
        the configuration.
     3. A function to convert the value to a string.
@@ -228,7 +228,7 @@ class ConfigFile:
 
     Parameters
     ----------
-    session : :py:class:`~chimera.core.session.Session`
+    session : :py:class:`~chimerax.core.session.Session`
         (for ``app_dirs`` and ``logger``)
     tool_name : the name of the tool
     version : configuration file version, optional
@@ -431,7 +431,7 @@ class Value:
     from_str : function or Annotation, optional
         can be either a function that takes a string
         and returns a value of the right type, or a cli
-        :py:class:`~chimera.core.commands.cli.Annotation`.
+        :py:class:`~chimerax.core.commands.cli.Annotation`.
         Defaults to py:func:`ast.literal_eval`.
     to_str : function returning a string, optional
         Defaults to :py:func:`repr`.

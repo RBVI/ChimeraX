@@ -1,162 +1,144 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimera.core.commands import EnumOf, CmdDesc, StringArg, BoolArg
+from chimerax.core.commands import EnumOf, CmdDesc, StringArg, BoolArg
 
-_tool_types = EnumOf(["all", "installed", "available"])
-
-
-def _display_tools(ti_list, logger):
-    for ti in ti_list:
-        logger.info(" %s (%s %s): %s" % (ti.display_name, ti.name,
-                                         ti.version, ti.synopsis))
+_bundle_types = EnumOf(["all", "installed", "available"])
 
 
-def ts_list(session, tool_type="installed"):
-    '''List installed tools in the log.
+def _display_bundles(bi_list, logger):
+    for bi in bi_list:
+        logger.info(" %s (%s %s): %s" % (bi.display_name, bi.name,
+                                         bi.version, bi.synopsis))
+
+
+def ts_list(session, bundle_type="installed"):
+    '''List installed bundles in the log.
 
     Parameters
     ----------
-    tool_type : string
+    bundle_type : string
       Types are "installed", "available", or "all"
     '''
     ts = session.toolshed
     logger = session.logger
-    if tool_type == "installed" or tool_type == "all":
-        ti_list = ts.tool_info(installed=True, available=False)
-        if ti_list:
-            logger.info("List of installed tools:")
-            _display_tools(ti_list, logger)
+    if bundle_type == "installed" or bundle_type == "all":
+        bi_list = ts.bundle_info(installed=True, available=False)
+        if bi_list:
+            logger.info("List of installed bundles:")
+            _display_bundles(bi_list, logger)
         else:
-            logger.info("No installed tools found.")
-    if tool_type == "available" or tool_type == "all":
-        ti_list = ts.tool_info(installed=False, available=True)
-        if ti_list:
-            logger.info("List of available tools:")
-            _display_tools(ti_list, logger)
+            logger.info("No installed bundles found.")
+    if bundle_type in ("available", "all"):
+        bi_list = ts.bundle_info(installed=False, available=True)
+        if bi_list:
+            logger.info("List of available bundles:")
+            _display_bundles(bi_list, logger)
         else:
-            logger.info("No available tools found.")
-ts_list_desc = CmdDesc(optional=[("tool_type", _tool_types)],
-                       non_keyword=['tool_type'])
+            logger.info("No available bundles found.")
+ts_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types)],
+                       non_keyword=['bundle_type'])
 
 
-def ts_refresh(session, tool_type="installed"):
+def ts_refresh(session, bundle_type="installed"):
     '''
-    Check for new tools or new tool vesions on server and display
-    them in the tool shed window.
+    Check for new bundles or new bundle vesions on server and display
+    them in the toolshed window.
 
     Parameters
     ----------
-    tool_type : string
+    bundle_type : string
       Types are "installed", "available", or "all"
     '''
     ts = session.toolshed
     logger = session.logger
-    if tool_type == "installed":
+    if bundle_type == "installed":
         ts.reload(logger, rebuild_cache=True, check_remote=False)
-    elif tool_type == "available":
+    elif bundle_type == "available":
         ts.reload(logger, rebuild_cache=False, check_remote=True)
-    elif tool_type == "all":
+    elif bundle_type == "all":
         ts.reload(logger, rebuild_cache=True, check_remote=True)
-ts_refresh_desc = CmdDesc(optional=[("tool_type", _tool_types)])
+ts_refresh_desc = CmdDesc(optional=[("bundle_type", _bundle_types)])
 
 
-def _tool_string(tool_name, version):
+def _bundle_string(bundle_name, version):
     if version is None:
-        return tool_name
+        return bundle_name
     else:
-        return "%s (%s)" % (tool_name, version)
+        return "%s (%s)" % (bundle_name, version)
 
 
-def ts_install(session, tool_name, user_only=True, version=None):
+def ts_install(session, bundle_name, user_only=True, version=None):
     '''
-    Install a tool.
+    Install a bundle.
 
     Parameters
     ----------
-    tool_name : string
+    bundle_name : string
     user_only : bool
       Install for this user only, or install for all users.
     version : string
     '''
     ts = session.toolshed
     logger = session.logger
-    ti = ts.find_tool(tool_name, installed=True, version=version)
-    if ti:
-        logger.error("\"%s\" is already installed" % tool_name)
+    bi = ts.find_bundle(bundle_name, installed=True, version=version)
+    if bi:
+        logger.error("\"%s\" is already installed" % bundle_name)
         return
-    ti = ts.find_tool(tool_name, installed=False, version=version)
-    if ti is None:
-        logger.error("\"%s\" does not match any tools"
-                     % _tool_string(tool_name, version))
+    bi = ts.find_bundle(bundle_name, installed=False, version=version)
+    if bi is None:
+        logger.error("\"%s\" does not match any bundles"
+                     % _bundle_string(bundle_name, version))
         return
-    ts.install_tool(ti, logger, not user_only)
-ts_install_desc = CmdDesc(required=[("tool_name", StringArg)],
+    ts.install_bundle(bi, logger, not user_only)
+ts_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                           optional=[("user_only", BoolArg),
                                     ("version", StringArg)])
 
 
-def ts_remove(session, tool_name):
+def ts_remove(session, bundle_name):
     '''
-    Remove an installed tool.
+    Remove an installed bundle.
 
     Parameters
     ----------
-    tool_name : string
+    bundle_name : string
     '''
     ts = session.toolshed
     logger = session.logger
-    ti = ts.find_tool(tool_name, installed=True)
-    if ti is None:
-        logger.error("\"%s\" does not match any tools" % tool_name)
+    bi = ts.find_bundle(bundle_name, installed=True)
+    if bi is None:
+        logger.error("\"%s\" does not match any bundles" % bundle_name)
         return
-    ts.uninstall_tool(ti, logger)
-ts_remove_desc = CmdDesc(required=[("tool_name", StringArg)])
+    ts.uninstall_bundle(bi, logger)
+ts_remove_desc = CmdDesc(required=[("bundle_name", StringArg)])
 
 
-def ts_start(session, tool_name, *args, **kw):
+def ts_update(session, bundle_name, version=None):
     '''
-    Start a tool.
+    Update a bundle to the latest version.
 
     Parameters
     ----------
-    tool_name : string
-    '''
-    ts = session.toolshed
-    logger = session.logger
-    ti = ts.find_tool(tool_name, installed=True)
-    if ti is None:
-        logger.error("\"%s\" does not match any tools" % tool_name)
-        return
-    ti.start(session, *args, **kw)
-ts_start_desc = CmdDesc(required=[("tool_name", StringArg)])
-
-
-def ts_update(session, tool_name, version=None):
-    '''
-    Update a tool to the latest version.
-
-    Parameters
-    ----------
-    tool_name : string
+    bundle_name : string
     version : string
     '''
     ts = session.toolshed
     logger = session.logger
-    new_ti = ts.find_tool(tool_name, installed=False, version=version)
-    if new_ti is None:
-        logger.error("\"%s\" does not match any tools"
-                     % _tool_string(tool_name, version))
+    new_bi = ts.find_bundle(bundle_name, installed=False, version=version)
+    if new_bi is None:
+        logger.error("\"%s\" does not match any bundles"
+                     % _bundle_string(bundle_name, version))
         return
-    ti = ts.find_tool(tool_name, installed=True)
-    if ti is None:
-        logger.error("\"%s\" does not match any installed tools" % tool_name)
+    bi = ts.find_bundle(bundle_name, installed=True)
+    if bi is None:
+        logger.error("\"%s\" does not match any installed bundles" % bundle_name)
         return
-    if (version is None and not new_ti.newer_than(ti)
-            or new_ti.version == ti.version):
-        logger.info("\"%s\" is up to date" % tool_name)
+    if (version is None and not new_bi.newer_than(bi) or
+            new_bi.version == bi.version):
+        logger.info("\"%s\" is up to date" % bundle_name)
         return
-    ts.install_tool(new_ti, logger)
-ts_update_desc = CmdDesc(required=[("tool_name", StringArg)],
+    ts.install_bundle(new_bi, logger)
+ts_update_desc = CmdDesc(required=[("bundle_name", StringArg)],
                          optional=[("version", StringArg)])
 
 
@@ -164,51 +146,51 @@ ts_update_desc = CmdDesc(required=[("tool_name", StringArg)],
 # Commands that deal with GUI (singleton)
 #
 
-def ts_start(session, tool_name):
+def ts_start(session, bundle_name):
     '''
-    Start an instance of a tool.
+    Start a tool in a bundle.
 
     Parameters
     ----------
-    tool_name : string
+    bundle_name : string
     '''
     ts = session.toolshed
-    tinfo = ts.find_tool(tool_name)
+    tinfo = ts.find_bundle(bundle_name)
     if tinfo is None:
-        from chimera.core.errors import UserError
-        raise UserError('No installed tool named "%s"' % tool_name)
+        from chimerax.core.errors import UserError
+        raise UserError('No installed bundle named "%s"' % bundle_name)
     tinfo.start(session)
-from chimera.core.commands import StringArg
-ts_start_desc = CmdDesc(required = [('tool_name', StringArg)])
+ts_start_desc = CmdDesc(required=[('bundle_name', StringArg)])
 
-def ts_show(session, tool_name, _show = True):
+
+def ts_show(session, bundle_name, _show=True):
     '''
     Show a tool panel, or start one if none is running.
 
     Parameters
     ----------
-    tool_name : string
+    bundle_name : string
     '''
     ts = session.toolshed
-    tinfo = ts.find_tool(tool_name)
+    tinfo = ts.find_bundle(bundle_name)
     if tinfo is None:
-        from chimera.core.errors import UserError
-        raise UserError('No installed tool named "%s"' % tool_name)
-    tinst = [t for t in session.tools.list() if t.tool_info is tinfo]
-    for t in tinst:
-        t.display(_show)
+        from chimerax.core.errors import UserError
+        raise UserError('No installed bundle named "%s"' % bundle_name)
+    tinst = [t for t in session.tools.list() if t.bundle_info is tinfo]
+    for ti in tinst:
+        ti.display(_show)
     if len(tinst) == 0:
         tinfo.start(session)
-from chimera.core.commands import StringArg
-ts_show_desc = CmdDesc(required = [('tool_name', StringArg)])
+ts_show_desc = CmdDesc(required=[('bundle_name', StringArg)])
 
-def ts_hide(session, tool_name):
+
+def ts_hide(session, bundle_name):
     '''
     Hide tool panels.
 
     Parameters
     ----------
-    tool_name : string
+    bundle_name : string
     '''
-    ts_show(session, tool_name, _show = False)
-ts_hide_desc = CmdDesc(required = [('tool_name', StringArg)])
+    ts_show(session, bundle_name, _show=False)
+ts_hide_desc = CmdDesc(required=[('bundle_name', StringArg)])

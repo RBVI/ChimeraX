@@ -1,19 +1,20 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 """
-chimera.core: collection of base chimera functionality
-======================================================
+chimerax.core: collection of base ChimeraX functionality
+========================================================
 
 """
 __copyright__ = (
-    "Copyright \u00A9 2015 by the Regents of the University of California."
+    "Copyright \u00A9 2015-2016 by the Regents of the University of California."
     "  All Rights Reserved."
     "  Free for non-commercial use."
-    "  See http://www.cgl.ucsf.edu/chimera/ for license details."
+    "  See http://www.rbvi.ucsf.edu/chimerax/ for license details."
 )
 _class_cache = {}
 # list modules classes are found in
 _class_class_init = {
     'AtomicStructure': '.atomic',
+    'Color': '.colors',
     'Generic3DModel': '.generic3d',
     'Model': '.models',
     'Models': '.models',
@@ -31,7 +32,7 @@ _class_class_init = {
 
 
 def get_class(class_name):
-    """Return chimera.core class for instance in a session
+    """Return chimerax.core class for instance in a session
 
     Parameters
     ----------

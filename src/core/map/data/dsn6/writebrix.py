@@ -29,7 +29,7 @@ def write_brix(grid_data, path, options = {}, progress = None):
     h += ' ' * (header_length - len(h))
 
     f = open(path, 'wb')
-    f.write(h)
+    f.write(h.encode('utf-8'))
     write_data(matrix, prod, plus, f, progress)
     f.close()
   
@@ -41,7 +41,7 @@ def write_data(matrix, prod, plus, file, progress):
     block_size = 8
     bsize3 = block_size*block_size*block_size
     zsize, ysize, xsize = matrix.shape
-    xblocks, yblocks, zblocks = [(s-1)/block_size+1
+    xblocks, yblocks, zblocks = [(s-1)//block_size+1
                                  for s in (xsize,ysize,zsize)]
     from numpy import zeros, uint8
     d = zeros((block_size,block_size,block_size), matrix.dtype)

@@ -32,7 +32,7 @@ class UserColors(SortedDict, State):
                 if name not in BuiltinColors or color != BuiltinColors[name]}
         return CORE_STATE_VERSION, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         self.__init__()
         self.update(data)
 
@@ -41,11 +41,11 @@ class UserColors(SortedDict, State):
         self.clear()
         self.update(BuiltinColors)
 
-    def list(self, user=True):
-        if not user:
+    def list(self, all=False):
+        if all:
             return list(self.keys())
         return [name for name, color in self.items()
-            if name not in BuiltinColors or color != BuiltinColors[name]]
+                if name not in BuiltinColors or color != BuiltinColors[name]]
 
     def add(self, key, value):
         if key in BuiltinColors:
@@ -58,7 +58,7 @@ class UserColors(SortedDict, State):
         del self[key]
 
 
-class Color:
+class Color(State):
     """Basic color support.
 
     The color components are stored as a 4-element float32 numpy array
@@ -147,6 +147,16 @@ class Color:
         import numpy
         return not numpy.array_equal(self.rgba, other.rgba)
 
+    def take_snapshot(self, session, flags):
+        data = self.rgba
+        return CORE_STATE_VERSION, data
+
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        self.__init__(data, limit=False)
+
+    def reset_state(self, session):
+        pass
+
     def opaque(self):
         """Return if the color is opaque."""
         return self.rgba[3] >= 1.0
@@ -180,7 +190,7 @@ class UserColormaps(SortedDict, State):
     def take_snapshot(self, session, flags):
         return CORE_STATE_VERSION, dict(self)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot_init(self, session, bundle_info, version, data):
         self.__init__()
         self.update(data)
 
@@ -220,20 +230,23 @@ class Colormap:
                  color_above_value_range=None,
                  color_below_value_range=None,
                  color_no_value=None):
-        from numpy import array, float32, ndarray
+        from numpy import array, float32, ndarray, argsort
         if not data_values:
             import numpy
-            self.data_values = numpy.linspace(0.0, 1.0, len(colors))
+            v = numpy.linspace(0.0, 1.0, len(colors))
         elif isinstance(data_values, ndarray):
-            self.data_values = data_values
+            v = data_values
         else:
-            self.data_values = array(data_values, dtype=float32)
+            v = array(data_values, dtype=float32)
+        order = argsort(v)
+        self.data_values = v[order]
         if isinstance(colors[0], Color):
-            self.colors = array([c.rgba for c in colors])
+            c = array([c.rgba for c in colors])
         elif isinstance(colors, ndarray):
-            self.colors = colors
+            c = colors
         else:
-            self.colors = array(colors, dtype=float32)
+            c = array(colors, dtype=float32)
+        self.colors = c[order]
 
         if color_above_value_range is None:
             color_above_value_range = colors[-1]
@@ -265,7 +278,9 @@ class Colormap:
 
 
 # Initialize built-in colormaps
-BuiltinColormaps['rainbow'] = Colormap(None, ((1, 0, 0, 1), (1, 1, 0, 1), (0, 1, 0, 1), (0, 1, 1, 1), (0, 0, 1, 1)))
+# Rainbow is blue to red instead of red to blue so that N-terminus to C-terminus rainbow coloring
+# produces the conventional blue to red.
+BuiltinColormaps['rainbow'] = Colormap(None, ((0, 0, 1, 1), (0, 1, 1, 1), (0, 1, 0, 1), (1, 1, 0, 1), (1, 0, 0, 1)))
 BuiltinColormaps['grayscale'] = Colormap(None, ((0, 0, 0, 1), (1, 1, 1, 1)))
 # BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (1, 1, 1, 1), (0, 0, 1, 1)))
 BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (.7, .7, .7, 1), (0, 0, 1, 1)))
@@ -484,7 +499,7 @@ def chain_colors(cids):
 
     from numpy import array, uint8, empty
     if len(cids) == 0:
-        c = empty((0,4), uint8)
+        c = empty((0, 4), uint8)
     else:
         c = array(tuple(rgba_256[cid.lower()] for cid in cids), uint8)
     return c
@@ -503,6 +518,8 @@ def chain_rgba8(cid):
 
 
 _df_state = {}
+
+
 def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
     """Best effort to return an RGB that perceptually differs from the given RGBs"""
     if rgbs and len(rgbs[0]) > 3:
@@ -524,8 +541,8 @@ def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
             return candidate
         min_diff = None
         for rgb in rgbs:
-            diff = abs(rgb[0]-candidate[0]) + abs(rgb[1]-candidate[1]) \
-                + 0.5 * abs(rgb[2]-candidate[2])
+            diff = abs(rgb[0] - candidate[0]) + abs(rgb[1] - candidate[1]) \
+                + 0.5 * abs(rgb[2] - candidate[2])
             if min_diff is None or diff < min_diff:
                 min_diff = diff
         if max_diff is None or min_diff > max_diff:
@@ -611,6 +628,7 @@ BuiltinColors = SortedDict({
     'deep pink': (255, 20, 147, 255),
     'deepskyblue': (0, 191, 255, 255),
     'deep skyblue': (0, 191, 255, 255),
+    'deep sky blue': (0, 191, 255, 255),
     'dimgray': (105, 105, 105, 255),
     'dim gray': (105, 105, 105, 255),
     'dimgrey': (105, 105, 105, 255),
@@ -672,6 +690,7 @@ BuiltinColors = SortedDict({
     'light sea green': (32, 178, 170, 255),
     'lightskyblue': (135, 206, 250, 255),
     'light skyblue': (135, 206, 250, 255),
+    'light sky blue': (135, 206, 250, 255),
     'lightslategray': (119, 136, 153, 255),
     'light slate gray': (119, 136, 153, 255),
     'lightslategrey': (119, 136, 153, 255),
@@ -719,6 +738,7 @@ BuiltinColors = SortedDict({
     'old lace': (253, 245, 230, 255),
     'olive': (128, 128, 0, 255),
     'olivedrab': (107, 142, 35, 255),
+    'olive drab': (107, 142, 35, 255),
     'orange': (255, 165, 0, 255),
     'orangered': (255, 69, 0, 255),
     'orange red': (255, 69, 0, 255),

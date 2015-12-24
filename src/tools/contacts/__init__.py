@@ -4,19 +4,19 @@
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, tool_info):
+def start_tool(session, bundle_info):
     # GUI started by command, so this is for restoring sessions
     if not session.ui.is_gui:
         return None
     from .gui import Plot
-    return Plot(session, tool_info)
+    return Plot(session, bundle_info)
 
 
 #
 # 'register_command' is called by the toolshed on start up
 #
-def register_command(command_name, tool_info):
-    from chimera.core.commands import register
+def register_command(command_name, bundle_info):
+    from chimerax.core.commands import register
     from . import cmd
     register('contacts', cmd.contacts_desc, cmd.contacts)
 

@@ -2,10 +2,10 @@
 
 .. _core:
 
-Chimera Core
-============
+ChimeraX Core
+=============
 
-There are three major components of the Chimera core:
+There are three major components of the ChimeraX core:
 the :doc:`user interface <user_interface>` modules,
 the :doc:`data interface <data_interface>` modules,
 and the :doc:`tool interface <core/tools>` modules.

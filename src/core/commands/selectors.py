@@ -10,7 +10,10 @@ def register_core_selectors(session):
     reg(None, "solvent", lambda s, m, r: _structure_category_selector("solvent", m, r))
     reg(None, "strand", _strands_selector)
     reg(None, "helix", _helices_selector)
-    reg(None, "coil", _turns_selector)
+    reg(None, "coil", _coil_selector)
+    reg(None, "protein", lambda s, m, r: _polymer_selector(m, r, True))
+    reg(None, "nucleic", lambda s, m, r: _polymer_selector(m, r, False))
+    reg(None, "nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False))
     reg(None, "pbonds", _pbonds_selector)
     from ..atomic import Element
     for i in range(1, 115):
@@ -33,6 +36,9 @@ def _sel_selector(session, models, results):
     for m in models:
         if m.any_part_selected():
             results.add_model(m)
+            spos = m.selected_positions
+            if spos is not None and spos.sum() > 0:
+                results.add_model_instances(m, spos)
             if isinstance(m, AtomicStructure):
                 for atoms in m.selected_items('atoms'):
                     results.add_atoms(atoms)
@@ -65,16 +71,33 @@ def _helices_selector(session, models, results):
                 results.add_model(m)
                 results.add_atoms(helices.atoms)
 
-def _turns_selector(session, models, results):
+def _coil_selector(session, models, results):
     from ..atomic import AtomicStructure
     for m in models:
         if isinstance(m, AtomicStructure):
             from numpy import logical_not, logical_or
-            is_turn = logical_not(logical_or(m.residues.is_sheet, m.residues.is_helix))
-            turns = m.residues.filter(is_turn)
-            if turns:
+            cr = m.chains.existing_residues
+            is_coil = logical_not(logical_or(cr.is_sheet, cr.is_helix))
+            coil = cr.filter(is_coil)
+            # also exclude nucleic acids
+            coil = coil.existing_principal_atoms.residues
+            coil = coil.filter(coil.existing_principal_atoms.names == "CA")
+            if coil:
                 results.add_model(m)
-                results.add_atoms(turns.atoms)
+                results.add_atoms(coil.atoms)
+
+def _polymer_selector(models, results, protein):
+    from ..atomic import AtomicStructure
+    for m in models:
+        if isinstance(m, AtomicStructure):
+            pas = m.residues.existing_principal_atoms
+            if protein:
+                residues = pas.residues.filter(pas.names=="CA")
+            else:
+                residues = pas.residues.filter(pas.names!="CA")
+            if residues:
+                results.add_model(m)
+                results.add_atoms(residues.atoms)
 
 def _pbonds_selector(session, models, results):
     from ..atomic import AtomicStructure, structure_atoms, interatom_pseudobonds

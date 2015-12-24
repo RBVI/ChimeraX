@@ -1,12 +1,12 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.log
+PKG_NAME = chimerax.log
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = Chimera Logger User Interface
+PKG_DESCRIPTION = ChimeraX Logger User Interface
 
 TOOL_NAME = log
-TOOL_PKG_NAME = chimera.log
+TOOL_PKG_NAME = chimerax.log
 TOOL_DISPLAY_NAME = Log
 TOOL_CATEGORY = General
 TOOL_FILE_TYPES =

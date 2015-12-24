@@ -3,7 +3,7 @@
 def get_singleton(session, create=False):
     if not session.ui.is_gui:
         return None
-    from chimera.core import tools
+    from chimerax.core import tools
     from .gui import Log
     return tools.get_singleton(session, Log, 'log', create=create)
 
@@ -54,13 +54,13 @@ def log(session, show = False, hide = False, clear = False, save_path = None,
         if not error_dialog is None:
             log.error_shows_dialog = error_dialog
 
-from chimera.core.commands import CmdDesc, NoArg, BoolArg, IntArg, StringArg
+from chimerax.core.commands import CmdDesc, NoArg, BoolArg, IntArg, SaveFileNameArg
 log_desc = CmdDesc(keyword = [('show', NoArg),
                               ('hide', NoArg),
                               ('clear', NoArg),
                               ('thumbnail', NoArg),
                               ('width', IntArg),
                               ('height', IntArg),
-                              ('save_path', StringArg),
+                              ('save_path', SaveFileNameArg),
                               ('warning_dialog', BoolArg),
                               ('error_dialog', BoolArg)])

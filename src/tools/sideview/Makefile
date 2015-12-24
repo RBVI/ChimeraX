@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.sideview
+PKG_NAME = chimerax.sideview
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = Show side view interface
 

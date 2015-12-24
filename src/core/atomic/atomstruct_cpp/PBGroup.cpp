@@ -135,68 +135,163 @@ CS_PBGroup::pseudobonds() const
     return pseudobonds(_structure->active_coord_set());
 }
 
+std::pair<Atom*, Atom*>
+StructurePBGroupBase::session_get_pb_ctor_info(int** ints) const
+{
+    auto& int_ptr = *ints;
+    Atom* atoms[2];
+    for (int i = 0; i < 2; ++i) {
+        auto s = structure();
+        if (s == nullptr) {
+            // global pseudobond, need to determine structure for Atom
+            auto ss_map = manager()->ses_id_to_struct_map();
+            s = (*ss_map)[*int_ptr++];
+        }
+        atoms[i] = s->atoms()[*int_ptr++];
+    }
+    return std::pair<Atom*, Atom*>(atoms[0], atoms[1]);
+}
+
+void
+StructurePBGroupBase::session_note_pb_ctor_info(Pseudobond* pb, int** ints) const
+{
+    auto& int_ptr = *ints;
+    for (auto a: pb->atoms()) {
+        auto s = structure();
+        if (s == nullptr) {
+            // note structure info
+            s = a->structure();
+            auto ss_map = manager()->ses_struct_to_id_map();
+            int s_id;
+            if (ss_map->find(s) == ss_map->end()) {
+                s_id = ss_map->size();
+                (*ss_map)[s] = s_id;
+            } else {
+                s_id = (*ss_map)[s];
+            }
+            int_ptr[0] = s_id;
+            int_ptr++;
+        }
+        int_ptr[0] = (*(s->session_save_atoms))[a];
+        int_ptr++;
+    }
+}
+
 int
-CS_PBGroup::session_num_floats(bool global) const {
-    int num_floats = SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats()
-        + pseudobonds().size(); // that last is for references to coord sets
+CS_PBGroup::session_num_floats() const {
+    int num_floats = SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats();
     for (auto crdset_pbs: _pbonds) {
-        num_floats += crdset_pbs.second.size() * Pseudobond::session_num_floats(global);
+        num_floats += crdset_pbs.second.size() * Pseudobond::session_num_floats();
     }
     return num_floats;
 }
 
 int
-StructurePBGroup::session_num_floats(bool global) const {
+StructurePBGroup::session_num_floats() const {
     return SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats()
-        + pseudobonds().size() * Pseudobond::session_num_floats(global);
+        + pseudobonds().size() * Pseudobond::session_num_floats();
 }
 
 int
-CS_PBGroup::session_num_ints(bool global) const {
+CS_PBGroup::session_num_ints() const {
     int num_ints = SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
-        + pseudobonds().size(); // that last is for references to coord sets
+        + 2 * pseudobonds().size(); // that last is for references to coord sets and # pbonds
     for (auto crdset_pbs: _pbonds) {
-        num_ints += crdset_pbs.second.size() * Pseudobond::session_num_ints(global);
+        // the +2 in the next line is for the atom IDs
+        num_ints += crdset_pbs.second.size() * (Pseudobond::session_num_ints() + 2);
     }
     return num_ints;
 }
 
 int
-StructurePBGroup::session_num_ints(bool global) const {
-    return SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
-        + pseudobonds().size() * Pseudobond::session_num_ints(global);
+StructurePBGroup::session_num_ints() const {
+    int num_ints = SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
+        + pseudobonds().size() * (Pseudobond::session_num_ints() + 2); // +2 for the atom IDs
+    if (structure() == nullptr) // will need to remember the structure IDs too
+        num_ints += pseudobonds().size() * 2;
+    return num_ints;
 }
 
 void
-Group::session_save(int** ints, float** floats, PyObject* , bool /*global*/) const
+Group::session_restore(int** ints, float** floats)
+{
+    _default_color.session_restore(ints, floats);
+    auto& int_ptr = *ints;
+    _default_halfbond = int_ptr[0];
+    int_ptr += SESSION_NUM_INTS;
+}
+
+void
+CS_PBGroup::session_restore(int** ints, float** floats)
+{
+    StructurePBGroupBase::session_restore(ints, floats);
+    auto& int_ptr = *ints;
+    auto num_sets = int_ptr[0];
+    int_ptr += SESSION_NUM_INTS;
+    for (decltype(num_sets) i = 0; i < num_sets; ++i) {
+        auto cs_index = *int_ptr++;
+        auto cs = _structure->coord_sets()[cs_index];
+        auto num_pbs = *int_ptr++;
+        for (decltype(num_pbs) j = 0; j < num_pbs; ++j) {
+            std::pair<Atom*, Atom*> atoms = session_get_pb_ctor_info(ints);
+            auto pb = new_pseudobond(atoms.first, atoms.second, cs);
+            pb->session_restore(ints, floats);
+        }
+    }
+}
+
+void
+StructurePBGroup::session_restore(int** ints, float** floats)
+{
+    StructurePBGroupBase::session_restore(ints, floats);
+    auto& int_ptr = *ints;
+    auto num_pbs = int_ptr[0];
+    int_ptr += SESSION_NUM_INTS;
+    for (decltype(num_pbs) i = 0; i < num_pbs; ++i) {
+        std::pair<Atom*, Atom*> atoms = session_get_pb_ctor_info(ints);
+        auto pb = new_pseudobond(atoms.first, atoms.second);
+        pb->session_restore(ints, floats);
+    }
+}
+
+void
+Group::session_save(int** ints, float** floats) const
 {
     _default_color.session_save(ints, floats);
-    auto int_ptr = *ints;
+    auto& int_ptr = *ints;
     int_ptr[0] = _default_halfbond;
     int_ptr += SESSION_NUM_INTS;
 }
 
 void
-CS_PBGroup::session_save(int** ints, float** floats, PyObject* misc, bool global) const
+CS_PBGroup::session_save(int** ints, float** floats) const
 {
-    StructurePBGroupBase::session_save(ints, floats, misc, global);
+    StructurePBGroupBase::session_save(ints, floats);
+    auto& int_ptr = *ints;
+    int_ptr[0] = _pbonds.size();
+    int_ptr += SESSION_NUM_INTS;
     for (auto cs_pbs: _pbonds) {
         auto cs = cs_pbs.first;
-        auto pbs = cs_pbs.second;
-        auto int_ptr = *ints;
-        int_ptr[0] = (*structure()->session_save_crdsets)[cs];
-        int_ptr += 1;
-        for (auto pb: pbs)
-            pb->session_save(ints, floats, misc, global);
+        auto& pbs = cs_pbs.second;
+        *int_ptr++ = (*structure()->session_save_crdsets)[cs];
+        *int_ptr++ = pbs.size();
+        for (auto pb: pbs) {
+            session_note_pb_ctor_info(pb, ints);
+            pb->session_save(ints, floats);
+        }
     }
 }
 
 void
-StructurePBGroup::session_save(int** ints, float** floats, PyObject* misc, bool global) const
+StructurePBGroup::session_save(int** ints, float** floats) const
 {
-    StructurePBGroupBase::session_save(ints, floats, misc, global);
-    for (auto pb: pseudobonds()) {
-        pb->session_save(ints, floats, misc, global);
+    StructurePBGroupBase::session_save(ints, floats);
+    auto& int_ptr = *ints;
+    int_ptr[0] = _pbonds.size();
+    int_ptr += SESSION_NUM_INTS;
+    for (auto pb: _pbonds) {
+        session_note_pb_ctor_info(pb, ints);
+        pb->session_save(ints, floats);
     }
 }
 

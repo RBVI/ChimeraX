@@ -5,7 +5,7 @@ PKG_NAME = Replace with fully qualified Python package name
 PKG_VERSION = Replace with package version number (PEP 440 style)
 PKG_DESCRIPTION = Replace with short description of tool
 # Example:
-# PKG_NAME = chimera.cmd_line
+# PKG_NAME = chimerax.cmd_line
 # PKG_VERSION = 1.0
 # PKG_DESCRIPTION = ChimeraX command line interface
 
@@ -24,7 +24,7 @@ TOOL_SYNOPSIS = Replace with synopsis for tool
 COMMAND_NAME = Replace with one-word command name
 # Example:
 # TOOL_NAME = cmd_line
-# TOOL_PKG_NAME = chimera.cmd_line
+# TOOL_PKG_NAME = chimerax.cmd_line
 # TOOL_DISPLAY_NAME = Command Line Interface
 # TOOL_CATEGORY = General
 # TOOL_FILE_TYPES = 

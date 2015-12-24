@@ -1,7 +1,7 @@
 TOP	= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimera/core/devices/oculus
+PKG_DIR = $(PYSITEDIR)/chimerax/core/devices/oculus
 
 PYMOD_NAME = _oculus
 SRCS	= oculus.cpp

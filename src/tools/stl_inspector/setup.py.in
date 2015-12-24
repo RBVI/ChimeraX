@@ -28,7 +28,7 @@ setup(
         ("", ["timestamp"]),
     ],
     install_requires=[
-        "chimera.core",
+        "chimerax.core",
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
@@ -44,7 +44,7 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Vio-Informatics",
-        "Chimera-Tool "
+        "ChimeraX-Bundle "
             # ChimeraX metadata
         ":: TOOL_NAME "
             # Tool name

@@ -4,16 +4,16 @@
 #
 # 'start_tool' is called to start an instance of the tool
 #
-def start_tool(session, tool_info):
+def start_tool(session, bundle_info):
     from .gui import HelpUI
     return HelpUI.get_singleton(session)
 
 #
 # 'register_command' is called by the toolshed on start up
 #
-def register_command(command_name, tool_info):
+def register_command(command_name, bundle_info):
     from . import cmd
-    from chimera.core.commands import register
+    from chimerax.core.commands import register
     register(command_name, cmd.help_desc, cmd.help)
 
 

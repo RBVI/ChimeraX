@@ -11,27 +11,27 @@ lib_dir = "LIB_DIR"
 pkg_dir = "PKG_DIR"
 
 setup(
-    name="chimera.shortcuts",
+    name="chimerax.shortcuts",
     version="1.0",
     description="Keboard shortcuts",
     author="UCSF RBVI",
     author_email="chimerax@cgl.ucsf.edu",
     url="https://www.rbvi.ucsf.edu/chimerax/",
     package_dir={
-        "chimera.shortcuts": pkg_dir,
+        "chimerax.shortcuts": pkg_dir,
     },
     packages=[
-        "chimera.shortcuts",
+        "chimerax.shortcuts",
         # Add subpackage names here
     ],
     package_data={
-        "chimera.shortcuts": ['icons/*.png'],
+        "chimerax.shortcuts": ['icons/*.png'],
     },
     data_files=[
         ("", ["timestamp"]),
     ],
     install_requires=[
-        "chimera.core",
+        "chimerax.core",
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
@@ -49,13 +49,13 @@ setup(
         "Topic :: Scientific/Engineering :: Vio-Informatics",
         # Each tool should have a single line with up to seven fields:
         #
-        # 'Chimera-Tool' :: tool_name :: module_name
+        # 'ChimeraX-Bundle' :: tool_name :: module_name
         # :: display_name :: commands :: categories
         # :: synopsis
         #
         # 'tool_name', 'module_name' and 'display_name' are strings.
         # 'commands' and 'categories' are comma separated strings.
-        # Note that chimera.shortcuts does not need to match the install
+        # Note that chimerax.shortcuts does not need to match the install
         # package name; in particular, it may be a subpackage.
         # Molecule Display is distinct from Keboard shortcuts because
         # a single package may provide multiple tools.
@@ -65,9 +65,9 @@ setup(
         # name for deciding whether they want the tool or not.
         #
         # Example:
-        # "Chimera-Tool :: cmd_line :: chimera.cmd_line "
+        # "ChimeraX-Bundle :: cmd_line :: chimerax.cmd_line "
         # ":: Command Line Interface :: command_line :: General"
-        "Chimera-Tool :: molecule_display_shortcuts :: chimera.shortcuts :: Molecule Display :: ks :: General :: :: :: :: Two-letter shortcuts",
-        "Chimera-Tool :: graphics_shortcuts :: chimera.shortcuts :: Graphics :: :: General :: :: :: :: Two-letter shortcuts",
+        "ChimeraX-Bundle :: molecule_display_shortcuts :: chimerax.shortcuts :: Molecule Display :: ks :: General :: :: :: :: Two-letter shortcuts",
+        "ChimeraX-Bundle :: graphics_shortcuts :: chimerax.shortcuts :: Graphics :: :: General :: :: :: :: Two-letter shortcuts",
     ],
 )

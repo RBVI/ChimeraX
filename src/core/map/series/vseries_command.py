@@ -350,10 +350,10 @@ def release_stopped_players():
 #
 def vseries_slider(session, series):
     '''Display a graphical user interface slider to play through frames of a map series.'''
-    tool_info = session.toolshed.find_tool('map_series_gui')
-    if tool_info:
+    bundle_info = session.toolshed.find_bundle('map_series_gui')
+    if bundle_info:
         from chimera.map_series_gui.gui import MapSeries
-        MapSeries(session, tool_info, series).show()
+        MapSeries(session, bundle_info, series).show()
 
 # -----------------------------------------------------------------------------
 #

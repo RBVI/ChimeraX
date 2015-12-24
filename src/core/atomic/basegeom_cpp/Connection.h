@@ -27,7 +27,7 @@ class Connection {
 public:
     typedef End*  End_points[2];
 
-    static const int  SESSION_NUM_INTS = 5;
+    static const int  SESSION_NUM_INTS = 3;
     static const int  SESSION_NUM_FLOATS = 1;
 protected:
     virtual const char*  err_msg_loop() const
@@ -61,25 +61,33 @@ public:
     }
 
     // session related
-    virtual void  session_note_atoms(int** ints) const = 0;
-    virtual void  session_note_structures(int** ) const {}
-    static int  session_num_floats(bool /*global*/ = false) {
+    static int  session_num_floats() {
         return SESSION_NUM_FLOATS + Rgba::session_num_floats();
     }
-    static int  session_num_ints(bool global = false) {
-        return SESSION_NUM_INTS + Rgba::session_num_ints() + (global ? 2 : 0);
+    static int  session_num_ints() {
+        return SESSION_NUM_INTS + Rgba::session_num_ints();
     }
-    void  session_save(int** ints, float** floats, bool global = false) const {
-        if (global) session_note_structures(ints);
-        session_note_atoms(ints);
+    void  session_restore(int** ints, float** floats) {
+        _rgba.session_restore(ints, floats);
+        auto& int_ptr = *ints;
+        _display = int_ptr[0];
+        _hide = int_ptr[1];
+        _halfbond = int_ptr[2];
+        int_ptr += SESSION_NUM_INTS;
+
+        auto& float_ptr = *floats;
+        _radius = float_ptr[0];
+        float_ptr += SESSION_NUM_FLOATS;
+    }
+    void  session_save(int** ints, float** floats) const {
         _rgba.session_save(ints, floats);
-        auto int_ptr = *ints;
+        auto& int_ptr = *ints;
         int_ptr[0] = _display;
         int_ptr[1] = _hide;
         int_ptr[2] = _halfbond;
         int_ptr += SESSION_NUM_INTS;
 
-        auto float_ptr = *floats;
+        auto& float_ptr = *floats;
         float_ptr[0] = _radius;
         float_ptr += SESSION_NUM_FLOATS;
     }

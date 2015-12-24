@@ -38,15 +38,14 @@ class Graph: public GraphicsContainer {
 protected:
     typedef std::vector<Node*>  Nodes;
     typedef std::vector<Edge*>  Edges;
-private:
+
     Nodes  _nodes;
     Edges  _edges;
 
-    float  _ball_scale;
+    float  _ball_scale = 0.25;
     ChangeTracker*  _change_tracker;
     bool  _display = true;
 
-protected:
     void  add_edge(Edge *e) { _edges.emplace_back(e); }
     void  add_node(Node *v) { _nodes.emplace_back(v); }
     void  delete_edge(Edge *e);

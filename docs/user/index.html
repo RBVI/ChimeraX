@@ -33,7 +33,7 @@ here termed &ldquo;Chimera.&rdquo;
  <li><a href="tools/cli.html"><b>Command Line Interface</b></a>
  <li><b>Log</b>
  </ul>
-<li><a name="commands">Commands</a>:</li>
+<li><a name="commands">Commands</a> (potentially subject to change):</li>
  <ul>
  <li><a href="commands/alias.html"><b>alias</b></a>
  - define a command alias (shortcut or composite action)</li>
@@ -45,8 +45,12 @@ here termed &ldquo;Chimera.&rdquo;
  - close models</li> 
  <li><a href="commands/color.html"><b>color</b></a>
  - color atoms/bonds, cartoons, molecular surfaces</li>
- <li><a href="commands/colordef.html"><b>colordef</b></a>
- - define a color name</li>
+ <li><a href="commands/delete.html"><b>delete</b></a>
+ - delete atoms</li>
+ <li><a href="commands/exit.html"><b>exit</b> or <b>quit</b></a>
+  - exit from ChimeraX</li>
+ <li><a href="commands/lighting.html"><b>lighting</b></a>
+ - report or adjust lighting parameters</li>
  <li><a href="commands/log.html"><b>log</b></a>
  - clear, save to file, and other actions related to the <b>Log</b></li>
  <li><a href="commands/move.html"><b>move</b></a>
@@ -57,8 +61,8 @@ here termed &ldquo;Chimera.&rdquo;
  - record image frames and assemble them into a movie file</li>
  <li><a href="commands/open.html"><b>open</b></a>
   - open local file or fetch from repository</li> 
- <li><a href="commands/exit.html"><b>exit</b> or <b>quit</b></a>
-  - exit from ChimeraX</li>
+ <li><a href="commands/position.html"><b>position</b></a>
+ - set location and orientation of camera, models by input matrix</li>
  <li><a href="commands/roll.html"><b>roll</b></a>
  - rotate models continuously</li>
  <li><a href="commands/save.html"><b>save</b></a>
@@ -67,6 +71,8 @@ here termed &ldquo;Chimera.&rdquo;
  - show/hide atoms, bonds, cartoons, models</li>
  <li><a href="commands/select.html"><b>select</b></a>
  - select items (models or their parts) for subsequent operations</li>
+ <li><a href="commands/stop.html"><b>stop</b></a>
+ - halt ongoing motions
  <li><a href="commands/style.html"><b>style</b></a>
  - set display style of atoms and bonds</li>
  <li><a href="commands/surface.html"><b>surface</b></a>
@@ -100,24 +106,24 @@ here termed &ldquo;Chimera.&rdquo;
 <p>
 Many more commands exist but lack detailed documentation;
 several are listed below.
-Some are experimental and could be changed significantly or
-omitted from later versions of ChimeraX.
-The <b>usage</b> command can be used to show a brief description of
-a command in the <b>Log</b> (for example, <b>usage set</b>). 
-The <b>help</b> command (for example, <b>help style</b>) shows the 
-full manual page for a command if available, otherwise just the usage.
-Some commands are much the same as the corresponding Chimera commands,
+Some are nearly the same as the corresponding Chimera commands,
 except for <a href="commands/atomspec-diffsum.html">target-specification
-differences</a>.
+differences</a>. Try
+<b>usage <i>command</i></b> (for example, <b>usage set</b>)
+to show a brief description,
+<b>help <i>command</i></b> to show full documentation, if available.
 </p>
 <ul>
-<li><b>lighting</b> 
-(with options including <b>soft</b> for ambient occlusion, <b>flat</b> 
-for ambient-only, <b>full</b> with shadows, <b>default</b>)</li>
 <li><b>set</b>
 (with options including <b>bgColor</b> and <b>silhouette</b>)</li>
-<li><b>delete</b></li>
-<li><b>sym</b></li>
+<li><b>camera</b>
+- report or adjust camera parameters</li>
+<li><b>material</b>
+- report or adjust material properties</li>
+<li><b>clip</b>
+- control clipping planes</li>
+<li><b>sym</b>
+- build multimers from symmetry information</li>
 <li><b>sasa</b></li>
 <li><b>buriedarea</b></li>
 <li><b>contacts</b></li>
@@ -142,12 +148,6 @@ target="_blank"><b>molmap</b></a></li>
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/fitmap.html"
 target="_blank"><b>fitmap</b></a></li>
 <li><b>crossfade</b></li>
-<li><b>stop</b>
-- stop all motion, like Chimera 
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/freeze.html"
-target="_blank"><b>freeze</b></a></li>
-<li><b>camera</b>
-- report or adjust camera parameters</li>
 <li><b>title</b>
 - static annotation like Chimera 
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/2dlabels.html"
@@ -158,7 +158,8 @@ target="_blank"><b>2dlabels</b></a>, with some of the same options</li>
 target="_blank"><b>perframe</b></a></li>
 <li><b>list</b>
 - list current models</li>
-<li><b>material</b></li>
+<li><b>toolshed</b>
+- start, show/hide, and otherwise manage ChimeraX Tools
 <li><b>pdbimages</b>
 - batch-render images of molecular assemblies defined in mmCIF files
 (see <a href="../pdbimages/index.html">examples</a>)</li>

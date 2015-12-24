@@ -1,5 +1,5 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
-.. automodule:: chimera.core.orderedset
+.. automodule:: chimerax.core.orderedset
     :members:
     :show-inheritance:

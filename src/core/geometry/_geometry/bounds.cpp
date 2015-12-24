@@ -209,3 +209,39 @@ PyObject *sphere_bounds(PyObject *, PyObject *args, PyObject *keywds)
   sphere_bounding_box(centers, radii, xyz_bounds, xyz_bounds+3);
   return bounds;
 }
+
+// -----------------------------------------------------------------------------
+//
+static void points_within_planes(const FArray &points, const FArray &planes, unsigned char *pmask)
+{
+  float *p = points.values(), *pl = planes.values();
+  int n = points.size(0), np = planes.size(0), j;
+  long ps0 = points.stride(0), ps1 = points.stride(1);
+  long pls0 = planes.stride(0), pls1 = planes.stride(1);
+  for (int i = 0 ; i < n ; ++i)
+    {
+      for (j = 0 ; j < np ; ++j)
+	if (p[i*ps0]*pl[j*pls0] + p[i*ps0+ps1]*pl[j*pls0+pls1] + p[i*ps0+2*pls1]*pl[j*pls0+2*pls1] + pl[j*pls0+3*pls1] < 0)
+	    break;
+      pmask[i] = (j < np ? 0 : 1);
+    }
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *points_within_planes(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray points, planes;
+  const char *kwlist[] = {"points", "planes", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &points,
+				   parse_float_n4_array, &planes))
+    return NULL;
+
+  unsigned char *pmask;
+  PyObject *pm = python_bool_array(points.size(0), &pmask);
+  points_within_planes(points, planes, pmask);
+  return pm;
+}

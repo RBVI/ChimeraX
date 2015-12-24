@@ -1016,6 +1016,17 @@ extern "C" void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
     }
 }
 
+extern "C" void residue_principal_atom(void *residues, size_t n, pyobject_t *pas)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            pas[i] = r[i]->principal_atom();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void residue_is_helix(void *residues, size_t n, npy_bool *is_helix)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -1150,20 +1161,36 @@ extern "C" void residue_str(void *residues, size_t n, pyobject_t *strs)
     }
 }
 
-extern "C" void residue_unique_id(void *residues, size_t n, int32_t *rids)
+extern "C" void residue_secondary_structure_id(void *residues, size_t n, int32_t *ids)
 {
     Residue **res = static_cast<Residue **>(residues);
-    int32_t rid = -1;
-    const Residue *rprev = NULL;
+    std::map<const Residue *, int> sid;
     try {
-        for (size_t i = 0; i != n; ++i) {
-            const Residue *r = res[i];
-            if (rprev == NULL || r->position() != rprev->position() || r->chain_id() != rprev->chain_id()) {
-                rid += 1;
-                rprev = r;
-            }
-            rids[i] = rid;
-        }
+      int32_t id = 0;
+      for (size_t i = 0; i != n; ++i) {
+	const Residue *r = res[i];
+	if (sid.find(r) != sid.end())
+	  continue;
+	// Scan the chain of this residue to identify secondary structure.
+	Chain *c = r->chain();
+	if (c == NULL)
+	  sid[r] = ++id;	// Residue is not part of a chain.
+	else {
+	  const Chain::Residues &cr = c->residues();
+	  Residue *pres = NULL;
+	  for (auto cres: cr)
+	    if (cres) { // Chain residues are null for missing structure.
+	      sid[cres] = ((pres == NULL ||
+			    cres->ss_id() != pres->ss_id() ||
+			    cres->is_helix() != pres->is_helix() ||
+			    cres->is_sheet() != pres->is_sheet()) ?
+			   ++id : id);
+	      pres = cres;
+	    }
+	}
+      }
+      for (size_t i = 0; i != n; ++i)
+	ids[i] = sid[res[i]];
     } catch (...) {
         molc_error();
     }
@@ -1338,6 +1365,21 @@ extern "C" void chain_num_residues(void *chains, size_t n, size_t *nres)
     }
 }
 
+extern "C" void chain_num_existing_residues(void *chains, size_t n, size_t *nres)
+{
+    Chain **c = static_cast<Chain **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            size_t num_sr = 0;
+            for (auto r: c[i]->residues())
+                if (r != nullptr) ++num_sr;
+            nres[i] = num_sr;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void chain_residues(void *chains, size_t n, pyobject_t *res)
 {
     Chain **c = static_cast<Chain **>(chains);
@@ -1345,7 +1387,7 @@ extern "C" void chain_residues(void *chains, size_t n, pyobject_t *res)
         for (size_t i = 0; i != n; ++i) {
             const Chain::Residues &r = c[i]->residues();
             for (size_t j = 0; j != r.size(); ++j)
-                *res++ = r[i];
+                *res++ = r[j];
         }
     } catch (...) {
         molc_error();
@@ -1380,9 +1422,9 @@ extern "C" PyObject* change_tracker_changes(void *vct)
     PyObject* changes_data = NULL;
     try {
         changes_data = PyDict_New();
-        auto all_changes = ct->get_changes();
+        auto& all_changes = ct->get_changes();
         for (size_t i = 0; i < all_changes.size(); ++i) {
-            auto class_changes = all_changes[i];
+            auto& class_changes = all_changes[i];
             auto class_name = ct->python_class_names[i];
             PyObject* key = unicode_from_string(class_name);
             PyObject* value = PyTuple_New(4);
@@ -1751,6 +1793,17 @@ extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *float
     } catch (...) {
         molc_error();
         return -1;
+    }
+}
+
+extern "C" void structure_session_restore(void *mol, int version,
+    PyObject *ints, PyObject *floats, PyObject *misc)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        m->session_restore(version, ints, floats, misc);
+    } catch (...) {
+        molc_error();
     }
 }
 

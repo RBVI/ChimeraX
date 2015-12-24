@@ -12,9 +12,9 @@
 #
 import wx
 from wx import glcanvas
-from chimera.core.tools import ToolInstance
-from chimera.core.geometry import Place
-from chimera.core.graphics import Camera
+from chimerax.core.tools import ToolInstance
+from chimerax.core.geometry import Place
+from chimerax.core.graphics import Camera
 
 
 class _PixelLocations:
@@ -26,7 +26,6 @@ class OrthoCamera(Camera):
 
     def __init__(self):
         Camera.__init__(self)
-        from chimera.core.geometry import Place
         self.position = Place()
 
         self.view_width = 1
@@ -50,7 +49,7 @@ class OrthoCamera(Camera):
         w = self.view_width
         h = w * aspect
         left, right, bot, top = -0.5 * w, 0.5 * w, -0.5 * h, 0.5 * h
-        from chimera.core.graphics.camera import ortho
+        from chimerax.core.graphics.camera import ortho
         pm = ortho(left, right, bot, top, near, far)
         return pm
 
@@ -91,7 +90,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
         loc.far_bottom = 0  # right clip intersect far
         loc.far_top = 0     # left clip intersect far
 
-        from chimera.core.graphics import Drawing
+        from chimerax.core.graphics import Drawing
         self.applique = Drawing('sideview')
         self.applique.display_style = Drawing.Mesh
         self.applique.use_lighting = False
@@ -274,15 +273,15 @@ class SideViewUI(ToolInstance):
 
     SIZE = (300, 200)
 
-    def __init__(self, session, tool_info, *, restoring=False):
+    def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
-            ToolInstance.__init__(self, session, tool_info)
-        from chimera.core.ui import MainToolWindow
+            ToolInstance.__init__(self, session, bundle_info)
+        from chimerax.core.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
 
         # UI content code
-        from chimera.core.graphics.view import View
+        from chimerax.core.graphics.view import View
         self.opengl_context = oc = session.main_view.opengl_context()
         self.view = View(session.models.drawing, window_size=wx.DefaultSize, opengl_context=oc)
         self.view.camera = OrthoCamera()
@@ -311,16 +310,16 @@ class SideViewUI(ToolInstance):
             "ti": ToolInstance.take_snapshot(self, session, flags),
             "shown": self.tool_window.shown
         }
-        return self.tool_info.session_write_version, data
+        return self.bundle_info.session_write_version, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        if version not in tool_info.session_versions:
-            from chimera.core.state import RestoreError
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
+            from chimerax.core.state import RestoreError
             raise RestoreError("unexpected version")
         ti_version, ti_data = data["ti"]
         ToolInstance.restore_snapshot_init(
-            self, session, tool_info, ti_version, ti_data)
-        self.__init__(session, tool_info, restoring=True)
+            self, session, bundle_info, ti_version, ti_data)
+        self.__init__(session, bundle_info, restoring=True)
         self.display(data["shown"])
 
     def reset_state(self, session):

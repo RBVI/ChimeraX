@@ -246,7 +246,7 @@ class Shortcut:
 
         # User command string
         if isinstance(f, str):
-            from chimera.core import commands
+            from chimerax.core import commands
             commands.run(s, f)
             return
 
@@ -362,7 +362,7 @@ def register_selectors(session):
     if _registered_selectors:
         return
 
-    from chimera.core.commands import register_selector
+    from chimerax.core.commands import register_selector
     register_selector(None, "selAtoms", _sel_atoms_selector)
     register_selector(None, "selMaps", _sel_maps_selector)
     register_selector(None, "selModels", _sel_models_selector)
@@ -394,23 +394,23 @@ def shortcut_models(session, mclass = None, undisplayed = True):
     return mlist
 
 def shortcut_maps(session):
-    from chimera.core.map import Volume
+    from chimerax.core.map import Volume
     return shortcut_models(session, Volume)
 
 def shortcut_molecules(session):
-    from chimera.core.atomic import AtomicStructure
+    from chimerax.core.atomic import AtomicStructure
     return shortcut_models(session, AtomicStructure, undisplayed = False)
 
 def shortcut_atoms(session):
     matoms = []
     sel = session.selection
     atoms_list = sel.items('atoms')
-    from chimera.core.atomic import concatenate, Atoms
+    from chimerax.core.atomic import concatenate, Atoms
     if atoms_list:
         atoms = concatenate(atoms_list)
     elif sel.empty():
         # Nothing selected, so operate on all atoms
-        from chimera.core.atomic import all_atoms
+        from chimerax.core.atomic import all_atoms
         atoms = all_atoms(session)
     else:
         atoms = Atoms()
@@ -428,7 +428,7 @@ def shortcut_surfaces_and_maps(session):
     sel = session.selection
     models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
     # Avoid group nodes by only taking non-empty models.
-    from chimera.core.map import Volume
+    from chimerax.core.map import Volume
     sm = [m for m in models if isinstance(m,Volume) or not m.empty_drawing()]
     return sm
 
@@ -484,73 +484,73 @@ def toggle_box_faces(m):
   m.show('solid')
 
 def mark_map_surface_center(m):
-    from chimera.core import markers
+    from chimerax.core import markers
     markers.mark_map_center(m)
 
 def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimera.core.map import PlanesMouseMode
+    from chimerax.core.map import PlanesMouseMode
     m.bind_mouse_mode(button, PlanesMouseMode(m.session))
 
 def enable_contour_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimera.core.map import ContourLevelMouseMode
+    from chimerax.core.map import ContourLevelMouseMode
     m.bind_mouse_mode(button, ContourLevelMouseMode(m.session))
 
 def enable_marker_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimera.core import markers
+    from chimerax.core import markers
     m.bind_mouse_mode(button, markers.MarkerMouseMode(m.session))
 
 def enable_mark_center_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimera.core import markers
+    from chimerax.core import markers
     m.bind_mouse_mode(button, markers.MarkCenterMouseMode(m.session))
 
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimera.core.map import series
+    from chimerax.core.map import series
     m.bind_mouse_mode(button, series.PlaySeriesMouseMode(m.session))
 
 def enable_move_selected_mouse_mode(mouse_modes):
-    from chimera.core import  ui
+    from chimerax.core import ui
     m = mouse_modes
     m.bind_mouse_mode('left', ui.RotateSelectedMouseMode(m.session))
     m.bind_mouse_mode('middle', ui.TranslateSelectedMouseMode(m.session))
 
 def enable_translate_selected_mouse_mode(mouse_modes, button = 'right'):
-    from chimera.core import  ui
+    from chimerax.core import ui
     m = mouse_modes
     m.bind_mouse_mode(button, ui.TranslateSelectedMouseMode(m.session))
 
 def enable_rotate_selected_mouse_mode(mouse_modes, button = 'right'):
-    from chimera.core import  ui
+    from chimerax.core import ui
     m = mouse_modes
     m.bind_mouse_mode(button, ui.RotateSelectedMouseMode(m.session))
 
 def enable_move_mouse_mode(mouse_modes):
-    from chimera.core import  ui
+    from chimerax.core import ui
     m = mouse_modes
     m.bind_mouse_mode('left', ui.RotateMouseMode(m.session))
     m.bind_mouse_mode('middle', ui.TranslateMouseMode(m.session))
 
 def enable_select_mouse_mode(mouse_modes, button = 'right'):
-    from chimera.core import  ui
+    from chimerax.core import ui
     m = mouse_modes
     m.bind_mouse_mode(button, ui.SelectMouseMode(m.session))
 
 def enable_rotate_mouse_mode(mouse_modes, button = 'right'):
-    from chimera.core import  ui
+    from chimerax.core import ui
     m = mouse_modes
     m.bind_mouse_mode(button, ui.RotateMouseMode(m.session))
 
 def enable_translate_mouse_mode(mouse_modes, button = 'right'):
-    from chimera.core import  ui
+    from chimerax.core import ui
     m = mouse_modes
     m.bind_mouse_mode(button, ui.TranslateMouseMode(m.session))
 
 def enable_zoom_mouse_mode(mouse_modes, button = 'right'):
-    from chimera.core import  ui
+    from chimerax.core import ui
     m = mouse_modes
     m.bind_mouse_mode(button, ui.ZoomMouseMode(m.session))
 
@@ -568,25 +568,25 @@ def fit_molecule_in_map(session):
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
     xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.position.inverse() * mol.position
-    from chimera.core.map import fit
+    from chimerax.core.map import fit
     move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
     mol.position = mol.position * move_tf
 
     msg = ('Fit %s in %s, %d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
            % (mol.name, map.name, stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
     log.status(msg)
-    from chimera.core.map.fit import fitmap
+    from chimerax.core.map.fit import fitmap
     log.info(fitmap.atom_fit_message(mols, map, stats))
 
 def fit_subtract(session):
     models = session.models.list()
-    from chimera.core.map import Volume
+    from chimerax.core.map import Volume
     maps = [m for m in models if isinstance(m, Volume) and m.any_part_selected()]
     if len(maps) == 0:
         maps = [m for m in models if isinstance(m, Volume) and m.display]
     molfit = [m for m in shortcut_molecules(session) if m.display]
     mfitset = set(molfit)
-    from chimera.core.atomic import AtomicStructure
+    from chimerax.core.atomic import AtomicStructure
     molsub = [m for m in models
               if isinstance(m, AtomicStructure) and m.display and not m in mfitset]
     print ('fs', len(maps), len(molfit), len(molsub))
@@ -600,17 +600,17 @@ def fit_subtract(session):
 
     v = maps[0]
     res = 3*min(v.data.step)
-    from chimera.core.map.fit.fitmap import simulated_map
+    from chimerax.core.map.fit.fitmap import simulated_map
     mfit = [simulated_map(m.atoms, res, session) for m in molfit]
     msub = [simulated_map(m.atoms, res, session) for m in molsub]
-    from chimera.core.map.fit.fitcmd import fit_sequence
+    from chimerax.core.map.fit.fitcmd import fit_sequence
     fit_sequence(mfit, v, msub, resolution = res, sequence = len(mfit), log = log)
     print ('fit seq')
 
 def show_biological_unit(m, session):
 
     if hasattr(m, 'pdb_text'):
-        from chimera.core.atomic import biomt
+        from chimerax.core.atomic import biomt
         places = biomt.pdb_biomt_matrices(m.pdb_text)
         print (m.path, 'biomt', len(places))
         if places:
@@ -619,7 +619,7 @@ def show_biological_unit(m, session):
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
-        from chimera.core.geometry import Places
+        from chimerax.core.geometry import Places
         m.positions = Places([m.positions[0]])
 
 def display_surface(session):
@@ -652,8 +652,8 @@ def hide_surface(session):
                 m.display_positions = logical_and(dp,logical_not(sp))
 
 def toggle_surface_transparency(session):
-    from chimera.core.map import Volume
-    from chimera.core.graphics import Drawing
+    from chimerax.core.map import Volume
+    from chimerax.core.graphics import Drawing
     for m in shortcut_surfaces_and_maps(session):
         if isinstance(m, Volume):
             m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
@@ -667,8 +667,8 @@ def toggle_surface_transparency(session):
                 d.colors = c
 
 def show_surface_transparent(session, alpha = 0.5):
-    from chimera.core.map import Volume
-    from chimera.core.graphics import Drawing
+    from chimerax.core.map import Volume
+    from chimerax.core.graphics import Drawing
     a = int(255*alpha)
     for m in shortcut_surfaces_and_maps(session):
         if not m.display:
@@ -729,7 +729,7 @@ def show_ligands(m):
     m.show_ligand_atoms()
 def molecule_bonds(m, session):
     if m.bonds is None:
-        from chimera.core.atomic import connect
+        from chimerax.core.atomic import connect
         m.bonds, missing = connect.molecule_bonds(m, session)
         msg = 'Created %d bonds for %s using templates' % (len(m.bonds), m.name)
         log = session.logger
@@ -813,7 +813,7 @@ def show_framerate(session):
 
 def show_triangle_count(session):
     models = session.models.list()
-    from chimera.core.atomic import AtomicStructure
+    from chimerax.core.atomic import AtomicStructure
     mols = [m for m in models if isinstance(m, AtomicStructure)]
 
     na = sum(sum(m.atoms.displays) for m in mols if m.display)
@@ -826,31 +826,31 @@ def show_triangle_count(session):
     log.info(msg)
 
 def toggle_leap(session):
-    from chimera.core.devices import c2leap
+    from chimerax.core.devices import c2leap
     c2leap.toggle_leap(session)
 
 def leap_chopsticks_mode(session):
-    from chimera.core.devices import c2leap
+    from chimerax.core.devices import c2leap
     c2leap.leap_mode('chopsticks', session)
 
 def leap_position_mode(session):
-    from chimera.core.devices import c2leap
+    from chimerax.core.devices import c2leap
     c2leap.leap_mode('position', session)
 
 def leap_velocity_mode(session):
-    from chimera.core.devices import c2leap
+    from chimerax.core.devices import c2leap
     c2leap.leap_mode('velocity', session)
 
 def leap_focus(session):
-    from chimera.core.devices import c2leap
+    from chimerax.core.devices import c2leap
     c2leap.report_leap_focus(session)
 
 def leap_quit(session):
-    from chimera.core.devices import c2leap
+    from chimerax.core.devices import c2leap
     c2leap.quit_leap(session)
 
 def motion_blur(viewer):
-    from chimera.core.graphics import MotionBlur
+    from chimerax.core.graphics import MotionBlur
     mb = [o for o in viewer.overlays() if isinstance(o, MotionBlur)]
     if mb:
         viewer.remove_overlays(mb)
@@ -858,14 +858,14 @@ def motion_blur(viewer):
         MotionBlur(viewer)
 
 def mono_mode(viewer):
-    from chimera.core import graphics
+    from chimerax.core import graphics
     viewer.camera.mode = graphics.mono_camera_mode
 def stereo_mode(viewer):
-    from chimera.core import graphics
+    from chimerax.core import graphics
     viewer.camera.mode = graphics.stereo_camera_mode
 
 def start_oculus(session):
-    from chimera.core.devices import oculus
+    from chimerax.core.devices import oculus
     if session.main_view.camera.name() == 'oculus':
         oculus.stop_oculus(session)
     else:
@@ -881,15 +881,15 @@ def oculus_move(session):
             oc.on_primary = True
 
 def toggle_space_navigator(session):
-    from chimera.core.devices import spacenavigator
+    from chimerax.core.devices import spacenavigator
     spacenavigator.toggle_space_navigator(session)
 
 def toggle_space_navigator_fly_mode(session):
-    from chimera.core.devices import spacenavigator
+    from chimerax.core.devices import spacenavigator
     spacenavigator.toggle_fly_mode(session)
 
 def space_navigator_collisions(session):
-    from chimera.core.devices import spacenavigator
+    from chimerax.core.devices import spacenavigator
     spacenavigator.avoid_collisions(session)
 
 def undisplay_half(session):
@@ -928,7 +928,7 @@ def restore_position(session):
         c.position = session._saved_camera_view
 
 def minimize_crosslinks(atoms, session):
-    from chimera.core.crosslinks import crosslink
+    from chimerax.core.crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
 def keyboard_shortcuts(session):
@@ -954,6 +954,6 @@ def ks(session, shortcut = None):
         ks.try_shortcut(shortcut)
 
 def register_shortcut_command():
-    from chimera.core.commands import CmdDesc, StringArg, register
+    from chimerax.core.commands import CmdDesc, StringArg, register
     desc = CmdDesc(optional = [('shortcut', StringArg)])
     register('ks', desc, ks)

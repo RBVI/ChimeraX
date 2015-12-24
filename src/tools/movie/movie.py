@@ -10,7 +10,7 @@ RESET_CLEAR = 'clear'
 RESET_KEEP = 'keep'
 RESET_NONE = 'none'
 
-from chimera.core.errors import UserError as MovieError
+from chimerax.core.errors import UserError as MovieError
 
 class Movie:
 
