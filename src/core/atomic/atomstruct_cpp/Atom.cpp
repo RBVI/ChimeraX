@@ -23,10 +23,10 @@ template void basegeom::Connectible<atomstruct::AtomicStructure, atomstruct::Ato
 namespace atomstruct {
 
 Atom::Atom(AtomicStructure* as, const char* name, const Element& e):
-    BaseSphere<AtomicStructure, Atom, Bond>(as, -1.0), // -1 indicates not explicitly set
-    _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(&e),
-    _name(name), _residue(NULL), _serial_number(-1),
-    _structure_category(Atom::StructCat::Unassigned)
+    Connectible<AtomicStructure, Atom, Bond>(as),
+    _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(&e), _name(name),
+    _radius(-1.0), // -1 indicates not explicitly set
+    _residue(NULL), _serial_number(-1), _structure_category(Atom::StructCat::Unassigned)
 {
     structure()->change_tracker()->add_created(this);
     structure()->_structure_cats_dirty = true;
@@ -829,17 +829,6 @@ Atom::occupancy() const
     return structure()->active_coord_set()->get_occupancy(this);
 }
 
-float
-Atom::radius() const
-{
-    auto r = BaseSphere<AtomicStructure, Atom, Bond>::radius();
-    if (r >= 0.0)
-        // has been explicitly set
-        return r;
-
-    return default_radius();
-}
-
 const Atom::Rings&
 Atom::rings(bool cross_residues, int all_size_threshold,
         std::set<const Residue*>* ignore) const
@@ -1080,6 +1069,16 @@ Atom::set_coord(const basegeom::Coord& coord, CoordSet* cs)
 }
 
 void
+Atom::set_draw_mode(DrawMode dm)
+{
+    if (dm == _draw_mode)
+        return;
+    graphics_container()->set_gc_shape();
+    change_tracker()->add_modified(this, ChangeTracker::REASON_DRAW_MODE);
+    _draw_mode = dm;
+}
+
+void
 Atom::set_occupancy(float occupancy)
 {
     structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_OCCUPANCY);
@@ -1095,7 +1094,13 @@ Atom::set_radius(float r)
 {
     if (r <= 0.0)
         throw std::logic_error("radius must be positive");
-    BaseSphere<AtomicStructure, Atom, Bond>::set_radius(r);
+
+    if (r == _radius)
+        return;
+
+    graphics_container()->set_gc_shape();
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RADIUS);
+    _radius = r;
 }
 
 void

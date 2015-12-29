@@ -8,10 +8,10 @@
 #include <string>
 #include <vector>
 
+#include <basegeom/Connectible.h>
 #include <basegeom/Coord.h>
 #include <basegeom/Graph.h>
 #include <basegeom/Point.h>
-#include <basegeom/Sphere.h>
 #include <element/Element.h>
 #include "backbone.h"
 #include "imex.h"
@@ -27,8 +27,8 @@ typedef _object PyObject;
     
 namespace atomstruct {
 
-using basegeom::BaseSphere;
 using basegeom::ChangeTracker;
+using basegeom::Connectible;
 using basegeom::Graph;
 using basegeom::GraphicsContainer;
 using basegeom::Point;
@@ -41,7 +41,7 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom: public BaseSphere<AtomicStructure, Atom, Bond> {
+class ATOMSTRUCT_IMEX Atom: public Connectible<AtomicStructure, Atom, Bond> {
     friend class AtomicStructure;
     friend class Graph<AtomicStructure, Atom, Bond>;
     friend class Residue;
@@ -49,6 +49,7 @@ public:
     // HIDE_ constants are masks for hide bits in basegeom::Connectible
     static const unsigned int  HIDE_RIBBON = 0x1;
     typedef Connections Bonds;
+    enum class DrawMode: unsigned char { Sphere, EndCap, Ball };
     enum IdatmGeometry { Ion=0, Single=1, Linear=2, Planar=3, Tetrahedral=4 };
     struct IdatmInfo {
         IdatmGeometry  geometry;
@@ -83,10 +84,12 @@ private:
     unsigned int  _coord_index;
     void  _coordset_set_coord(const Point &);
     void  _coordset_set_coord(const Point &, CoordSet *cs);
+    DrawMode  _draw_mode = DrawMode::Sphere;
     const Element*  _element;
     AtomType  _explicit_idatm_type;
     AtomName  _name;
     unsigned int  _new_coord(const Point &);
+    float  _radius;
     Residue *  _residue;
     mutable Rings  _rings;
     int  _serial_number;
@@ -108,7 +111,7 @@ public:
     int  coordination(int value_if_unknown) const;
     virtual const basegeom::Coord &coord() const;
     float  default_radius() const;
-    // draw_mode() inherited from BaseSphere
+    DrawMode  draw_mode() const { return _draw_mode; }
     const Element&  element() const { return *_element; }
     static const IdatmInfoMap&  get_idatm_info_map();
     bool  has_alt_loc(char al) const
@@ -120,7 +123,11 @@ public:
     // neighbors() just simply inherited from Connectible (via BaseSphere)
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
-    float  radius() const;
+    float radius() const {
+        if (_radius >= 0.0) // has been explicitly set
+            return _radius;
+        return default_radius();
+    }
     void  register_field(std::string /*name*/, int /*value*/) {}
     void  register_field(std::string /*name*/, double /*value*/) {}
     void  register_field(std::string /*name*/, const std::string &/*value*/) {}
@@ -141,7 +148,7 @@ public:
     void  set_coord(const Point& coord) { set_coord(coord, NULL); }
     void  set_coord(const Point& coord, CoordSet* cs);
     void  set_computed_idatm_type(const char* it);
-    // set_draw_mode() inherited from BaseSphere
+    void  set_draw_mode(DrawMode dm);
     void  set_idatm_type(const char* it);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
     void  set_name(const AtomName& name);
