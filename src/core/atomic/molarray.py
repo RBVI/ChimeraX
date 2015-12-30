@@ -318,7 +318,7 @@ class Atoms(Collection):
         "Return scene bounds of atoms including instances of all parent models."
         blist = []
         from ..geometry import sphere_bounds, copy_tree_bounds, union_bounds
-        for m, a in self.by_graph:
+        for m, a in self.by_structure:
             ba = sphere_bounds(a.coords, a.radii)
             ib = copy_tree_bounds(ba,
                 [d.positions for d in m.drawing_lineage])
