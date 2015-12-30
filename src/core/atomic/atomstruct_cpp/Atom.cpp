@@ -13,20 +13,16 @@
 #include "Residue.h"
 
 #include <basegeom/ChangeTracker.h>
-#include <basegeom/Connectible.tcc>
+#include <basegeom/destruct.h>
 #include <pysupport/convert.h>
-
-// force instantiation
-template void basegeom::Connectible<atomstruct::AtomicStructure, atomstruct::Atom, atomstruct::Bond>::add_connection(atomstruct::Bond*);
-template void basegeom::Connectible<atomstruct::AtomicStructure, atomstruct::Atom, atomstruct::Bond>::remove_connection(atomstruct::Bond*);
 
 namespace atomstruct {
 
 Atom::Atom(AtomicStructure* as, const char* name, const Element& e):
-    Connectible<AtomicStructure, Atom, Bond>(as),
     _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(&e), _name(name),
     _radius(-1.0), // -1 indicates not explicitly set
-    _residue(NULL), _serial_number(-1), _structure_category(Atom::StructCat::Unassigned)
+    _residue(NULL), _serial_number(-1), _structure(as),
+    _structure_category(Atom::StructCat::Unassigned)
 {
     structure()->change_tracker()->add_created(this);
     structure()->_structure_cats_dirty = true;
@@ -34,11 +30,17 @@ Atom::Atom(AtomicStructure* as, const char* name, const Element& e):
 
 Atom::~Atom()
 {
+    basegeom::DestructionUser(this);
     structure()->change_tracker()->add_deleted(this);
 }
 
 void
-Atom::add_bond(Bond *b) { add_connection(b); }
+Atom::add_bond(Bond *b)
+{
+    _bonds.push_back(b);
+    _neighbors.push_back(b->other_end(this));
+    graphics_container()->set_gc_shape();
+}
 
 std::set<char>
 Atom::alt_locs() const
@@ -829,6 +831,15 @@ Atom::occupancy() const
     return structure()->active_coord_set()->get_occupancy(this);
 }
 
+void
+Atom::remove_bond(Bond *b)
+{
+    auto bi = std::find(_bonds.begin(), _bonds.end(), b);
+    _neighbors.erase(_neighbors.begin() + (bi - _bonds.begin()));
+    _bonds.erase(bi);
+    graphics_container()->set_gc_shape();
+}
+
 const Atom::Rings&
 Atom::rings(bool cross_residues, int all_size_threshold,
         std::set<const Residue*>* ignore) const
@@ -1045,6 +1056,16 @@ Atom::set_bfactor(float bfactor)
 }
 
 void
+Atom::set_color(const Rgba& rgba)
+{
+    if (rgba == _rgba)
+        return;
+    graphics_container()->set_gc_color();
+    change_tracker()->add_modified(this, ChangeTracker::REASON_COLOR);
+    _rgba = rgba;
+}
+
+void
 Atom::set_coord(const basegeom::Coord& coord, CoordSet* cs)
 {
     structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
@@ -1069,6 +1090,16 @@ Atom::set_coord(const basegeom::Coord& coord, CoordSet* cs)
 }
 
 void
+Atom::set_display(bool d)
+{
+    if (d == _display)
+        return;
+    graphics_container()->set_gc_shape();
+    change_tracker()->add_modified(this, ChangeTracker::REASON_DISPLAY);
+    _display = d;
+}
+
+void
 Atom::set_draw_mode(DrawMode dm)
 {
     if (dm == _draw_mode)
@@ -1076,6 +1107,16 @@ Atom::set_draw_mode(DrawMode dm)
     graphics_container()->set_gc_shape();
     change_tracker()->add_modified(this, ChangeTracker::REASON_DRAW_MODE);
     _draw_mode = dm;
+}
+
+void
+Atom::set_hide(int h)
+{
+    if (h == _hide)
+        return;
+    graphics_container()->set_gc_shape();
+    change_tracker()->add_modified(this, ChangeTracker::REASON_HIDE);
+    _hide = h;
 }
 
 void
@@ -1101,6 +1142,16 @@ Atom::set_radius(float r)
     graphics_container()->set_gc_shape();
     change_tracker()->add_modified(this, ChangeTracker::REASON_RADIUS);
     _radius = r;
+}
+
+void
+Atom::set_selected(bool s)
+{
+    if (s == _selected)
+        return;
+    graphics_container()->set_gc_shape();
+    change_tracker()->add_modified(this, ChangeTracker::REASON_SELECTED);
+    _selected = s;
 }
 
 void

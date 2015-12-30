@@ -22,7 +22,7 @@ Graph<FinalGraph, Node, Edge>::delete_edge(Edge *e)
         throw std::invalid_argument("delete_edge called for Edge not in Graph");
     auto db = DestructionBatcher(this);
     for (auto n: e->end_points())
-        n->remove_connection(e);
+        n->remove_bond(e);
     _edges.erase(i);
     set_gc_shape();
     delete e;
@@ -37,8 +37,8 @@ Graph<FinalGraph, Node, Edge>::delete_node(Node *n)
     if (i == _nodes.end())
         throw std::invalid_argument("delete_node called for Node not in Graph");
     auto db = DestructionBatcher(this);
-    for (auto e: n->connections())
-        e->other_end(n)->remove_connection(e);
+    for (auto e: n->bonds())
+        e->other_end(n)->remove_bond(e);
     _nodes.erase(i);
     set_gc_shape();
     delete n;
@@ -61,12 +61,12 @@ Graph<FinalGraph, Node, Edge>::delete_nodes(const std::set<Node*>& nodes)
 
     for (auto n: _nodes) {
         std::vector<Edge*> removals;
-        for (auto e: n->connections()) {
+        for (auto e: n->bonds()) {
             if (nodes.find(e->other_end(n)) != nodes.end())
                 removals.push_back(e);
         }
         for (auto e: removals)
-            n->remove_connection(e);
+            n->remove_bond(e);
     }
 
     auto new_e_end = std::remove_if(_edges.begin(), _edges.end(),

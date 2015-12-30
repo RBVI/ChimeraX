@@ -2,16 +2,18 @@
 #ifndef atomstruct_Atom
 #define atomstruct_Atom
 
+#include <algorithm>  // std::find
 #include <cstring>
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
 
-#include <basegeom/Connectible.h>
+#include <basegeom/Connection.h>
 #include <basegeom/Coord.h>
 #include <basegeom/Graph.h>
 #include <basegeom/Point.h>
+#include <basegeom/Rgba.h>
 #include <element/Element.h>
 #include "backbone.h"
 #include "imex.h"
@@ -28,11 +30,11 @@ typedef _object PyObject;
 namespace atomstruct {
 
 using basegeom::ChangeTracker;
-using basegeom::Connectible;
 using basegeom::Graph;
 using basegeom::GraphicsContainer;
 using basegeom::Point;
 using basegeom::Rgba;
+using basegeom::UniqueConnection;
 using element::Element;
 
 class AtomicStructure;
@@ -41,14 +43,16 @@ class CoordSet;
 class Residue;
 class Ring;
 
-class ATOMSTRUCT_IMEX Atom: public Connectible<AtomicStructure, Atom, Bond> {
+class ATOMSTRUCT_IMEX Atom {
     friend class AtomicStructure;
+    friend class UniqueConnection<Atom>;
     friend class Graph<AtomicStructure, Atom, Bond>;
     friend class Residue;
 public:
     // HIDE_ constants are masks for hide bits in basegeom::Connectible
     static const unsigned int  HIDE_RIBBON = 0x1;
-    typedef Connections Bonds;
+
+    typedef std::vector<Bond*> Bonds;
     enum class DrawMode: unsigned char { Sphere, EndCap, Ball };
     enum IdatmGeometry { Ion=0, Single=1, Linear=2, Planar=3, Tetrahedral=4 };
     struct IdatmInfo {
@@ -57,6 +61,7 @@ public:
         std::string  description;
     };
     typedef std::map<AtomType, IdatmInfo> IdatmInfoMap;
+    typedef std::vector<Atom*>  Neighbors;
     typedef std::vector<const Ring*>  Rings;
     enum class StructCat { Unassigned, Main, Ligand, Ions, Solvent };
 
@@ -80,20 +85,27 @@ private:
     typedef std::map<unsigned char, _Alt_loc_info>  _Alt_loc_map;
     _Alt_loc_map  _alt_loc_map;
     std::vector<float> *  _aniso_u;
+    Bonds  _bonds; // _bonds/_neighbors in same order
     mutable AtomType  _computed_idatm_type;
     unsigned int  _coord_index;
     void  _coordset_set_coord(const Point &);
     void  _coordset_set_coord(const Point &, CoordSet *cs);
+    bool  _display = true;
     DrawMode  _draw_mode = DrawMode::Sphere;
     const Element*  _element;
     AtomType  _explicit_idatm_type;
+    int  _hide = 0;
     AtomName  _name;
+    Neighbors  _neighbors; // _bonds/_neighbors in same order
     unsigned int  _new_coord(const Point &);
     float  _radius;
     Residue *  _residue;
+    Rgba  _rgba;
     mutable Rings  _rings;
+    bool  _selected = false;
     int  _serial_number;
     void  _set_structure_category(Atom::StructCat sc) const;
+    AtomicStructure*  _structure;
     mutable StructCat  _structure_category;
 public:
     // so that I/O routines can cheaply "change their minds" about element
@@ -105,11 +117,13 @@ public:
     char  alt_loc() const { return _alt_loc; }
     std::set<char>  alt_locs() const;
     float  bfactor() const;
-    const Bonds&  bonds() const { return connections(); }
-    // connects_to() just simply inherited from Connectible (via BaseSphere)
+    const Bonds&  bonds() const { return _bonds; }
+    bool  connects_to(const Atom* other) const {
+        return std::find(_neighbors.begin(), _neighbors.end(), other) != _neighbors.end();
+    }
+    const basegeom::Coord &coord() const;
     unsigned int  coord_index() const { return _coord_index; }
     int  coordination(int value_if_unknown) const;
-    virtual const basegeom::Coord &coord() const;
     float  default_radius() const;
     DrawMode  draw_mode() const { return _draw_mode; }
     const Element&  element() const { return *_element; }
@@ -120,7 +134,7 @@ public:
     const AtomType&  idatm_type() const;
     bool  is_backbone(BackboneExtent bbe) const;
     const AtomName&  name() const { return _name; }
-    // neighbors() just simply inherited from Connectible (via BaseSphere)
+    const Neighbors&  neighbors() const { return _neighbors; }
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
     float radius() const {
@@ -131,7 +145,7 @@ public:
     void  register_field(std::string /*name*/, int /*value*/) {}
     void  register_field(std::string /*name*/, double /*value*/) {}
     void  register_field(std::string /*name*/, const std::string &/*value*/) {}
-    void  remove_bond(Bond *b) { remove_connection(b); }
+    void  remove_bond(Bond *b);
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
@@ -156,15 +170,27 @@ public:
     void  set_radius(float);
     void  set_serial_number(int);
     std::string  str() const;
-    AtomicStructure*  structure() const { return graph(); }
+    AtomicStructure*  structure() const { return _structure; }
     StructCat  structure_category() const;
 
     // change tracking
     ChangeTracker*  change_tracker() const;
 
     // graphics related
+    const Rgba&  color() const { return _rgba; }
+    bool  display() const { return _display; }
+    int  hide() const { return _hide; }
     GraphicsContainer*  graphics_container() const {
         return reinterpret_cast<GraphicsContainer*>(structure()); }
+    bool  selected() const { return _selected; }
+    void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a) {
+        set_color(Rgba({r, g, b, a}));
+    }
+    void  set_color(const Rgba& rgba);
+    void  set_display(bool d);
+    void  set_hide(int h);
+    void  set_selected(bool s);
+    bool  visible() const { return _display && !_hide; }
 };
 
 }  // namespace atomstruct
