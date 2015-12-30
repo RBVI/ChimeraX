@@ -740,6 +740,7 @@ AtomicStructure::make_chains() const
                 chain->set_from_seqres(false);
                 continue;
             }
+            chain->set_from_seqres(true);
             auto& p2r = retvals.match_map.pos_to_res();
             Chain::Residues new_residues;
             for (Chain::SeqPos i = 0; i < sr_seq.size(); ++i ) {
