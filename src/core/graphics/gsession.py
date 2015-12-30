@@ -20,6 +20,8 @@ class ViewState(State):
         v = getattr(session, self.view_attr)
         (v.center_of_rotation, _,   # TODO: don't skip v.window_size
          v.background_color) = data[1:4]
+        # Root drawing had redraw callback set to None.  Restore callback.
+        v.drawing.set_redraw_callback(v._drawing_manager)
         from .camera import MonoCamera
         v.camera = MonoCamera()
         cam_version, cam_data = data[4]
