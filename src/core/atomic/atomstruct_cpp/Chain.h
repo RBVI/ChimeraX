@@ -20,7 +20,7 @@ public:
     typedef std::vector<unsigned char>::size_type  SeqPos;
     typedef std::vector<Residue *>  Residues;
 
-    const int  SESSION_NUM_INTS = 1;
+    const int  SESSION_NUM_INTS = 3;
     const int  SESSION_NUM_FLOATS = 0;
 private:
     friend class Residue;
