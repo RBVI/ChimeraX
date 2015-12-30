@@ -15,7 +15,7 @@ $(LIBRARY): imex.h $(OBJS)
 install: $(LIBRARY)
 	$(RSYNC) $(LIBRARY) $(libdir)
 	-mkdir $(includedir)/$(DIRNAME)
-	$(RSYNC) imex.h Connectible.tcc Graph.tcc $(wildcard *.h) $(includedir)/$(DIRNAME)
+	$(RSYNC) imex.h Graph.tcc $(wildcard *.h) $(includedir)/$(DIRNAME)
 
 clean:
 	/bin/rm -f $(LIBRARY) $(OBJS) imex.h
