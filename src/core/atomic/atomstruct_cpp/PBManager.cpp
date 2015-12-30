@@ -147,6 +147,7 @@ void
 BaseManager::session_restore(int** ints, float** floats, PyObject* misc)
 {
     auto& int_ptr = *ints;
+    auto& float_ptr = *floats;
 
     if (!PyList_Check(misc) || PyList_Size(misc) != 1) {
         throw std::invalid_argument("PBManager::session_restore: third arg is not a"
@@ -155,11 +156,9 @@ BaseManager::session_restore(int** ints, float** floats, PyObject* misc)
     using pysupport::pylist_of_string_to_cvector;
     std::vector<std::string> categories;
     pylist_of_string_to_cvector(PyList_GET_ITEM(misc, 0), categories, "PB Group category");
-    auto grp_type_ints = int_ptr;
-    int_ptr += categories.size();
     for (auto cat: categories) {
-        auto grp = get_group(cat, *grp_type_ints++);
-        grp->session_restore(ints, floats);
+        auto grp = get_group(cat, *int_ptr++);
+        grp->session_restore(&int_ptr, &float_ptr);
     }
 }
 
