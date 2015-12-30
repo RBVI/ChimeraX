@@ -1003,6 +1003,10 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         throw std::invalid_argument("AtomicStructure::session_info: third arg is not an"
             " empty list");
 
+    using pysupport::cchar_to_pystring;
+    using pysupport::cvec_of_char_to_pylist;
+    using pysupport::cmap_of_chars_to_pydict;
+
     // AtomicStructure attrs
     int* int_array;
     PyObject* npy_array = python_int_array(SESSION_NUM_INTS, &int_array);
@@ -1031,59 +1035,15 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     if (PyList_Append(misc, attr_list) < 0)
         throw std::runtime_error("Couldn't append to misc list");
     // input_seq_info
-    PyObject* map = PyDict_New();
-    if (map == nullptr)
-        throw std::runtime_error("Cannot create Python map for input seq info");
-    for (auto cid_residues: _input_seq_info) {
-        PyObject* chain_id = PyUnicode_FromString(cid_residues.first);
-        if (chain_id == nullptr)
-            throw std::runtime_error("Cannot create Python string for chain ID");
-        PyObject* res_list = PyList_New(cid_residues.second.size());
-        if (res_list == nullptr)
-            throw std::runtime_error("Cannot create Python list for residue names");
-        for (unsigned int i = 0; i < cid_residues.second.size(); ++i) {
-            PyObject* res_name = PyUnicode_FromString(cid_residues.second[i]);
-            if (res_name == nullptr)
-                throw std::runtime_error("Cannot create Python string for residue name");
-            PyList_SET_ITEM(res_list, i, res_name);
-        }
-        PyDict_SetItem(map, chain_id, res_list);
-        Py_DECREF(chain_id);
-        Py_DECREF(res_list);
-    }
-    PyList_SET_ITEM(attr_list, 0, map);
+    PyList_SET_ITEM(attr_list, 0, cmap_of_chars_to_pydict(_input_seq_info,
+        "residue chain ID", "residue name"));
     // name
-    PyObject* name = PyUnicode_FromString(_name.c_str());
-    if (name == nullptr)
-        throw std::runtime_error("Cannot create Python string for structure name");
-    PyList_SET_ITEM(attr_list, 1, name);
+    PyList_SET_ITEM(attr_list, 1, cchar_to_pystring(_name, "structure name"));
     // input_seq_source
-    PyObject* seq_source = PyUnicode_FromString(input_seq_source.c_str());
-    if (seq_source == nullptr)
-        throw std::runtime_error("Cannot create Python string for seq info source");
-    PyList_SET_ITEM(attr_list, 2, seq_source);
+    PyList_SET_ITEM(attr_list, 2, cchar_to_pystring(input_seq_source, "seq info source"));
     // metadata
-    map = PyDict_New();
-    if (map == nullptr)
-        throw std::runtime_error("Cannot create Python map for metadata");
-    for (auto type_hdrs: metadata) {
-        PyObject* htype = PyUnicode_FromString(type_hdrs.first.c_str());
-        if (htype == nullptr)
-            throw std::runtime_error("Cannot create Python string for metadata key");
-        PyObject* headers = PyList_New(type_hdrs.second.size());
-        if (headers == nullptr)
-            throw std::runtime_error("Cannot create Python list for metadata value");
-        for (unsigned int i = 0; i < type_hdrs.second.size(); ++i) {
-            PyObject* hdr = PyUnicode_FromString(type_hdrs.second[i].c_str());
-            if (hdr == nullptr)
-                throw std::runtime_error("Cannot create Python string for metadata line");
-            PyList_SET_ITEM(headers, i, hdr);
-        }
-        PyDict_SetItem(map, htype, headers);
-        Py_DECREF(htype);
-        Py_DECREF(headers);
-    }
-    PyList_SET_ITEM(attr_list, 3, map);
+    PyList_SET_ITEM(attr_list, 3, cmap_of_chars_to_pydict(metadata,
+        "metadata key", "metadata value"));
 
     // atoms
     // We need to remember names and elements ourself for constructing the atoms.
@@ -1108,10 +1068,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
         num_floats += a->session_num_floats();
 
         // remember name
-        PyObject* name = PyUnicode_FromString(a->name());
-        if (name == nullptr)
-            throw::std::runtime_error("Cannot create Python string for atom name");
-        PyList_SET_ITEM(atom_names, i++, name);
+        PyList_SET_ITEM(atom_names, i++, cchar_to_pystring(a->name(), "atom name"));
     }
     int* atom_ints;
     PyObject* atom_npy_ints = python_int_array(num_ints, &atom_ints);
@@ -1239,14 +1196,8 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     i = 0;
     for (auto res: residues()) {
         // remember res name and chain ID
-        PyObject* name = PyUnicode_FromString(res->name());
-        if (name == nullptr)
-            throw::std::runtime_error("Cannot create Python string for residue name");
-        PyList_SET_ITEM(py_res_names, i, name);
-        PyObject* chain_id = PyUnicode_FromString(res->chain_id());
-        if (chain_id == nullptr)
-            throw::std::runtime_error("Cannot create Python string for residue chain ID");
-        PyList_SET_ITEM(py_chain_ids, i++, chain_id);
+        PyList_SET_ITEM(py_res_names, i, cchar_to_pystring(res->name(), "residue name"));
+        PyList_SET_ITEM(py_chain_ids, i++, cchar_to_pystring(res->chain_id(), "residue chain ID"));
         *res_ints++ = res->position();
         *res_ints++ = res->insertion_code();
         res->session_save(&res_ints, &res_floats);
@@ -1279,10 +1230,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
             num_floats += ch->session_num_floats();
 
             // remember chain ID
-            PyObject* chain_id = PyUnicode_FromString(ch->chain_id());
-            if (chain_id == nullptr)
-                throw::std::runtime_error("Cannot create Python string for chain ID");
-            PyList_SET_ITEM(chain_ids, i++, chain_id);
+            PyList_SET_ITEM(chain_ids, i++, cchar_to_pystring(ch->chain_id(), "chain chain ID"));
         }
     }
     int* chain_ints;
@@ -1322,7 +1270,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         throw std::invalid_argument("AtomicStructure::session_restore: third arg is not a"
             " 7-element list");
 
-    using pysupport::pylist_of_string_to_cvector;
+    using pysupport::pylist_of_string_to_cvec;
     using pysupport::pystring_to_cchar;
 
     // AtomicStructure ints
@@ -1370,7 +1318,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     while (PyDict_Next(map, &index, &py_chain_id, &py_residues)) {
         ChainID chain_id = pystring_to_cchar(py_chain_id, "input seq chain ID");
         auto& res_names = _input_seq_info[chain_id];
-        pylist_of_string_to_cvector(py_residues, res_names, "chain residue name");
+        pylist_of_string_to_cvec(py_residues, res_names, "chain residue name");
     }
     // name
     _name = pystring_to_cchar(PyList_GET_ITEM(item, 1), "structure name");
@@ -1387,7 +1335,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     while (PyDict_Next(map, &index, &py_hdr_type, &py_headers)) {
         auto hdr_type = pystring_to_cchar(py_hdr_type, "structure metadata key");
         auto& headers = metadata[hdr_type];
-        pylist_of_string_to_cvector(py_headers, headers, "structure metadata");
+        pylist_of_string_to_cvec(py_headers, headers, "structure metadata");
     }
 
     // atoms
@@ -1397,7 +1345,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     if (PyList_GET_SIZE(atoms_misc) < 1)
         throw std::invalid_argument("atom names missing");
     std::vector<AtomName> atom_names;
-    pylist_of_string_to_cvector(PyList_GET_ITEM(atoms_misc, 0), atom_names, "atom name");
+    pylist_of_string_to_cvec(PyList_GET_ITEM(atoms_misc, 0), atom_names, "atom name");
     if ((decltype(atom_names)::size_type)(PyList_GET_SIZE(atoms_misc)) != atom_names.size() + 1)
         throw std::invalid_argument("bad atom misc info");
     PyObject* atom_ints = PyList_GET_ITEM(ints, 1);
@@ -1489,9 +1437,9 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     if (!PyList_Check(res_misc) or PyList_GET_SIZE(res_misc) != 2)
         throw std::invalid_argument("residue misc info is not a two-item list");
     std::vector<ResName> res_names;
-    pylist_of_string_to_cvector(PyList_GET_ITEM(res_misc, 0), res_names, "residue name");
+    pylist_of_string_to_cvec(PyList_GET_ITEM(res_misc, 0), res_names, "residue name");
     std::vector<ChainID> res_chain_ids;
-    pylist_of_string_to_cvector(PyList_GET_ITEM(res_misc, 1), res_chain_ids, "chain ID");
+    pylist_of_string_to_cvec(PyList_GET_ITEM(res_misc, 1), res_chain_ids, "chain ID");
     PyObject* py_res_ints = PyList_GET_ITEM(ints, 5);
     iarray = Numeric_Array();
     if (!array_from_python(py_res_ints, 1, Numeric_Array::Int, &iarray, false))
@@ -1517,7 +1465,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     if (!PyList_Check(chain_misc) or PyList_GET_SIZE(chain_misc) != 1)
         throw std::invalid_argument("chain misc info is not a one-item list");
     std::vector<ChainID> chain_chain_ids;
-    pylist_of_string_to_cvector(PyList_GET_ITEM(chain_misc, 0), chain_chain_ids, "chain ID");
+    pylist_of_string_to_cvec(PyList_GET_ITEM(chain_misc, 0), chain_chain_ids, "chain ID");
     PyObject* py_chain_ints = PyList_GET_ITEM(ints, 6);
     iarray = Numeric_Array();
     if (!array_from_python(py_chain_ints, 1, Numeric_Array::Int, &iarray, false))

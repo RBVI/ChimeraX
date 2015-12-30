@@ -947,15 +947,10 @@ Atom::session_save(int** ints, float** floats, PyObject* misc) const
     float_ptr[0] = _radius;
     float_ptr += SESSION_NUM_FLOATS;
 
-    PyObject* c_idatm_type = PyUnicode_FromString(_computed_idatm_type);
-    if (c_idatm_type == nullptr)
-        throw std::runtime_error("Cannot create Python string for computed atom type");
-    if (PyList_Append(misc, c_idatm_type) < 0)
+    using pysupport::cchar_to_pystring;
+    if (PyList_Append(misc, cchar_to_pystring(_computed_idatm_type, "computed IDATM type")) < 0)
         throw std::runtime_error("Cannot append computed atom type to misc list");
-    PyObject* e_idatm_type = PyUnicode_FromString(_explicit_idatm_type);
-    if (e_idatm_type == nullptr)
-        throw std::runtime_error("Cannot create Python string for explicit atom type");
-    if (PyList_Append(misc, e_idatm_type) < 0)
+    if (PyList_Append(misc, cchar_to_pystring(_explicit_idatm_type, "explicit IDATM type")) < 0)
         throw std::runtime_error("Cannot append explicit atom type to misc list");
 
     if (_aniso_u != nullptr) {

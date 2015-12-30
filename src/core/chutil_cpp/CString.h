@@ -66,6 +66,7 @@ public:
     const_iterator  begin() const { return _data; }
     const_iterator  end() const { return _data + strlen(_data); }
 
+    const char*  c_str() const { return _data; }
     void  clear() { _data[0] = '\0'; }
     bool  empty() const { return _data[0] == '\0'; }
     std::size_t  length() const { return strlen(_data); }
