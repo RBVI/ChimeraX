@@ -9,8 +9,8 @@ def start_tool(session, bi):
     # look at the name in 'bi.name' to see which is being started.
     if not session.ui.is_gui:
         return
-    from .gui import ModelPanel
-    return ModelPanel(session, bi)     # UI should register itself with tool state manager
+    from .gui import model_panel
+    return model_panel(session, bi)     # UI should register itself with tool state manager
 
 
 #
