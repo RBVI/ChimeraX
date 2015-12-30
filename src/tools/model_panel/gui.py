@@ -68,8 +68,13 @@ class ModelPanel(ToolInstance):
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, session, flags):
-        # we're a singleton; don't save/restore in sessions
+        # don't have any session-specific state...
         return 1, None
+
+    @classmethod
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
+        from chimerax.core import tools
+        return tools.get_singleton(session, ModelPanel, 'model panel', create=False)
 
     def restore_snapshot_init(self, session, bundle_info, version, data):
         pass
