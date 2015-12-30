@@ -179,6 +179,7 @@ Chain::session_restore(int** ints, float** floats)
     auto res_map_size = int_ptr[1];
     auto residues_size = int_ptr[2];
     int_ptr += SESSION_NUM_INTS;
+std::cerr << "  Chain " << _chain_id << ":  from seqres? " << _from_seqres << ", res map size: " << res_map_size << ", residues size: " << residues_size << "\n";
 
     auto& residues = _structure->residues();
     for (decltype(res_map_size) i = 0; i < res_map_size; ++i) {

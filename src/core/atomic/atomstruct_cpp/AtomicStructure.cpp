@@ -1324,6 +1324,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     using pysupport::pylist_of_string_to_cvector;
     using pysupport::pystring_to_cchar;
 
+std::cerr << "Restoring structure attrs\n";
     // AtomicStructure ints
     PyObject* item = PyList_GET_ITEM(ints, 0);
     auto iarray = Numeric_Array();
@@ -1389,6 +1390,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         pylist_of_string_to_cvector(py_headers, headers, "structure metadata");
     }
 
+std::cerr << "Restoring atom attrs\n";
     // atoms
     PyObject* atoms_misc = PyList_GET_ITEM(misc, 1);
     if (!PyList_Check(atoms_misc))
@@ -1419,6 +1421,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         a->session_restore(&int_array, &float_array, PyList_GET_ITEM(atoms_misc, i++));
     }
 
+std::cerr << "Restoring bond attrs\n";
     // bonds
     PyObject* bond_ints = PyList_GET_ITEM(ints, 2);
     iarray = Numeric_Array();
@@ -1442,6 +1445,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         b->session_restore(&int_array, &float_array);
     }
 
+std::cerr << "Restoring coord set attrs\n";
     // coord sets
     PyObject* cs_ints = PyList_GET_ITEM(ints, 3);
     iarray = Numeric_Array();
@@ -1468,6 +1472,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     else
         _active_coord_set = nullptr;
 
+std::cerr << "Restoring pseudobond attrs\n";
     // PseudobondManager groups;
     PyObject* pb_ints = PyList_GET_ITEM(ints, 4);
     iarray = Numeric_Array();
@@ -1483,6 +1488,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     float_array = static_cast<float*>(farray.values());
     _pb_mgr.session_restore(&int_array, &float_array, PyList_GET_ITEM(misc, 4));
 
+std::cerr << "Restoring residue attrs\n";
     // residues
     PyObject* res_misc = PyList_GET_ITEM(misc, 5);
     if (!PyList_Check(res_misc) or PyList_GET_SIZE(res_misc) != 2)
@@ -1511,6 +1517,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         r->session_restore(&res_ints, &res_floats);
     }
 
+std::cerr << "Restoring chain attrs\n";
     // chains
     PyObject* chain_misc = PyList_GET_ITEM(misc, 6);
     if (!PyList_Check(chain_misc) or PyList_GET_SIZE(chain_misc) != 1)
@@ -1529,6 +1536,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
             " numpy float array");
     auto chain_floats = static_cast<float*>(farray.values());
     auto num_chains = *chain_ints++;
+std::cerr << num_chains << " chains\n";
     if (num_chains < 0) {
         _chains = nullptr;
     } else {
@@ -1538,6 +1546,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
             chain->session_restore(&chain_ints, &chain_floats);
         }
     }
+std::cerr << "Done with structure restore\n";
 }
 
 void
