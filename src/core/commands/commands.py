@@ -15,7 +15,7 @@ def register_core_commands(session):
         'open', 'pdbimages', 'perframe', 'position', 'pwd', 'roll', 'run',
         'save', 'sasa', 'scolor', 'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
-        'transparency', 'turn', 'usage', 'view', 'wait', 'zoom'
+        'time', 'transparency', 'turn', 'usage', 'view', 'wait', 'zoom'
     ]
     for mod in modules:
         m = import_module(".%s" % mod, __package__)

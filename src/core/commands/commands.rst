@@ -52,6 +52,7 @@ and their code location is described with the function descriptions.
 | `style`_ - Change atom display style
 | `surface`_ - Compute a molecular surface
 | `sym`_ - Show molecular assemblies involving symmetry
+| `time`_ - Time a command
 | `title`_ * - Show text titles with graphics
 | `toolshed`_ * - Control the Tool Shed user interface
 | `transparency`_ - Set transparency of atoms, ribbons and surfaces
@@ -261,6 +262,10 @@ surface
 sym
 ===
 .. autofunction:: chimerax.core.commands.sym.sym
+
+time
+====
+.. autofunction:: chimerax.core.commands.time.time
 
 title
 =====
