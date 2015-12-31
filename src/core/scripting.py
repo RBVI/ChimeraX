@@ -69,7 +69,11 @@ def open_py(session, filename, name, *args, **kw):
 
 
 def open_ch(session, filename, name, *args, **kw):
-    """Execute utf-8 file as ChimeraX commands
+    """Execute utf-8 file as ChimeraX commands.
+
+    The current directory is changed to the file directory before the commands
+    are executed and restored to the previous current directory after the
+    commands are executed.
 
     This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
     :py:func:`~chimerax.core.io.open_data` API for files whose names end
@@ -85,8 +89,19 @@ def open_ch(session, filename, name, *args, **kw):
     if hasattr(filename, 'read'):
         # it's really a fetched stream
         input = filename
+        path = getattr(filename, 'name', None)
     else:
         input = _builtin_open(filename, 'rb')
+        path = filename
+
+    prev_dir = None
+    if path:
+        from os.path import dirname
+        dir = dirname(path)
+        if dir:
+            import os
+            prev_dir = os.getcwd()
+            os.chdir(dir)
 
     from .commands import run
     try:
@@ -96,6 +111,10 @@ def open_ch(session, filename, name, *args, **kw):
     finally:
         if input != filename:
             input.close()
+
+    if prev_dir:
+        os.chdir(prev_dir)
+
     return [], "executed %s" % name
 
 
