@@ -62,6 +62,7 @@ and their code location is described with the function descriptions.
 | `vop`_ - Filter density maps
 | `vseries`_ - Play density map time series
 | `wait`_ - Wait before executing next command
+| `windowsize`_ - Set or report graphics window size
 | `zoom`_ - Zoom in or out
 
 alias
@@ -312,6 +313,10 @@ vseries
 wait
 ====
 .. autofunction:: chimerax.core.commands.wait.wait
+
+windowsize
+==========
+.. autofunction:: chimerax.core.commands.windowsize.windowsize
 
 zoom
 ====
