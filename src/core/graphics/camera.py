@@ -48,8 +48,8 @@ class Camera:
         self._position = p
         self.redraw_needed = True
     position = property(get_position, set_position)
-    '''Location and orientation of the camera in scene coordinates. Camera
-    points along -z axis.'''
+    '''Place object giving location and orientation of the camera in scene coordinates.
+    Camera points along -z axis.'''
 
     def view_direction(self, view_num=None):
         '''The view direction of the camera in scene coordinates.'''
