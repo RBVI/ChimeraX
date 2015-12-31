@@ -111,7 +111,6 @@ BaseManager::session_info(PyObject** ints, PyObject** floats, PyObject** misc) c
 
     int num_ints = group_map().size(); // to remember group types
     int num_floats = 0;
-    std::vector<std::string> categories;
     std::vector<Proxy_PBGroup*> groups;
     PyObject* cat_list = PyList_New(group_map().size());
     if (cat_list == nullptr) {
@@ -119,18 +118,15 @@ BaseManager::session_info(PyObject** ints, PyObject** floats, PyObject** misc) c
     }
     if (PyList_Append(*misc, cat_list) < 0)
         throw std::runtime_error("Can't append pseudobond category name list to misc list");
+    using pysupport::cchar_to_pystring;
     int cat_index = 0;
     for (auto cat_grp: group_map()) {
         auto cat = cat_grp.first;
         auto grp = cat_grp.second;
-        categories.push_back(cat);
         groups.push_back(grp);
         num_ints += grp->session_num_ints();
         num_floats += grp->session_num_floats();
-        PyObject* py_cat = PyUnicode_FromString(cat.c_str());
-        if (py_cat == nullptr)
-            throw std::runtime_error("Cannot create Python string for pb group category");
-        PyList_SET_ITEM(cat_list, cat_index++, py_cat);
+        PyList_SET_ITEM(cat_list, cat_index++, cchar_to_pystring(cat, "pb group category"));
     }
     int* int_array;
     *ints = python_int_array(num_ints, &int_array);
@@ -153,9 +149,9 @@ BaseManager::session_restore(int** ints, float** floats, PyObject* misc)
         throw std::invalid_argument("PBManager::session_restore: third arg is not a"
             " 1-element list");
     }
-    using pysupport::pylist_of_string_to_cvector;
+    using pysupport::pylist_of_string_to_cvec;
     std::vector<std::string> categories;
-    pylist_of_string_to_cvector(PyList_GET_ITEM(misc, 0), categories, "PB Group category");
+    pylist_of_string_to_cvec(PyList_GET_ITEM(misc, 0), categories, "PB Group category");
     for (auto cat: categories) {
         auto grp = get_group(cat, *int_ptr++);
         grp->session_restore(&int_ptr, &float_ptr);
