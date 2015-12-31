@@ -726,6 +726,15 @@ class CenterArg(Annotation):
             else:
                 c = Center(coords)
 
+        # Center at camera
+        if c is None:
+            try:
+                cam, atext, rest = EnumOf(['camera']).parse(text, session)
+            except:
+                pass
+            else:
+                c = Center(coords = session.main_view.camera.position.origin())
+
         # Objects
         if c is None:
             try:
