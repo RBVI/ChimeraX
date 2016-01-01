@@ -49,7 +49,7 @@ class ATOMSTRUCT_IMEX Atom {
     friend class Graph<AtomicStructure, Atom, Bond>;
     friend class Residue;
 public:
-    // HIDE_ constants are masks for hide bits in basegeom::Connectible
+    // HIDE_ constants are masks for hide bits
     static const unsigned int  HIDE_RIBBON = 0x1;
 
     typedef std::vector<Bond*> Bonds;

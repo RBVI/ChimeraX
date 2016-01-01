@@ -19,7 +19,7 @@ using basegeom::ChangeTracker;
 class ATOMSTRUCT_IMEX Bond: public basegeom::UniqueConnection<Atom> {
     friend class AtomicStructure;
 public:
-    // HIDE_ constants are masks for hide bits in basegeom::Connectible
+    // HIDE_ constants are masks for hide bits in Atom
     static const unsigned int  HIDE_RIBBON = 0x1;
     typedef End_points  Atoms;
     typedef std::vector<const Ring*>  Rings;

@@ -16,7 +16,6 @@
 #include "tmpl/Atom.h"
 #include "tmpl/residues.h"
 
-#include <basegeom/Connectible.tcc>
 #include <basegeom/destruct.h>
 #include <basegeom/Graph.tcc>
 
