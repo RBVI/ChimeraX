@@ -47,14 +47,14 @@ class Objects:
     def invert(self, session, models):
         from .atomic import Atoms, AtomicStructure
         atoms = Atoms()
-        imodels = {}
+        imodels = set()
         for m in models:
             if isinstance(m, AtomicStructure):
-                if m in mi:
-                    # Was selected, so invert model atoms
+                if m in self._models:
+                    # include atoms not in current collection
                     keep = m.atoms - self._atoms
                 else:
-                    # Was not selected, so include all atoms
+                    # include all atoms
                     keep = m.atoms
                 if len(keep) > 0:
                     atoms = atoms | keep

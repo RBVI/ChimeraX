@@ -271,3 +271,16 @@ def descendant_models(models):
     for m in models:
         mset.update(m.all_models())
     return list(mset)
+
+def ancestor_models(models):
+    '''Return set of ancestors of models that are not in specified models.'''
+    ma = set()
+    mset = models if isinstance(models, set) else set(models)
+    for m in mset:
+        if hasattr(m, 'parent'):
+            p = m.parent
+            if p not in mset:
+                ma.add(p)
+    if ma:
+        ma.update(ancestor_models(ma))
+    return ma

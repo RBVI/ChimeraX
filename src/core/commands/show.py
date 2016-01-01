@@ -66,6 +66,7 @@ def show(session, objects=None, what=None, only=False):
             other_res = structure_residues(atoms.unique_structures) - res
             other_res.ribbon_displays = False
     elif what == 'models':
+        from ..models import ancestor_models
         models = objects.models
         minst = objects.model_instances
         if minst:
@@ -77,11 +78,16 @@ def show(session, objects=None, what=None, only=False):
                     from numpy import logical_or
                     logical_or(dp, inst, dp)
                 m.display_positions = dp
+            for m in ancestor_models(minst.keys()):
+                m.display = True
         else:
             for m in models:
                 m.display = True
+            for m in ancestor_models(models):
+                m.display = True
         if only:
             mset = set(models)
+            mset.update(ancestor_models(models))
             for m in session.models.list():
                 if m not in mset:
                     m.display = False
