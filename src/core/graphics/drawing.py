@@ -1011,6 +1011,7 @@ def draw_overlays(drawings, renderer):
     '''Render drawings using an identity projection matrix with no
     depth test.'''
     r = renderer
+    r.disable_shader_capabilities(r.SHADER_STEREO_360)	# Avoid geometry shift
     r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
                              (0, 0, 0, 1)))
     from ..geometry import place
@@ -1023,6 +1024,7 @@ def draw_overlays(drawings, renderer):
     _draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
     r.enable_blending(False)
     r.enable_depth_test(True)
+    r.disable_shader_capabilities(0)
 
 
 def draw_2d_overlays(drawings, renderer):
