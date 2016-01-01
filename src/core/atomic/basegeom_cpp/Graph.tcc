@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <set>
 
-#include "Connectible.tcc"
 #include "Connection.h"
 #include "destruct.h"
 #include "Graph.h"
