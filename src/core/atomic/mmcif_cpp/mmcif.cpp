@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include <set>
 
-#define CLOCK_PROFILING
+#undef CLOCK_PROFILING
 #ifdef CLOCK_PROFILING
 #include <ctime>
 #endif
