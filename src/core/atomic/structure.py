@@ -59,11 +59,17 @@ class AtomicStructure(AtomicStructureData, Model):
         # for now, restore attrs to default initial values even for sessions...
         for attr_name, val in self._session_attrs.items():
             setattr(self, attr_name, val)
+        #RIBBON: move the above loop into the "else:" block below
 
         if restore_data:
             # from session
             (tool_info, version, as_data) = restore_data
             model_data, c_data = as_data
+            #RIBBON: change the above line to:
+            #model_data, python_data, c_data = as_data
+            #for attr_name, default_val in self._session_attrs.items():
+            #    setattr(self, attr_name, python_data.get(attr_name, default_val))
+            #
             # Model will attempt to restore self.name, which is a property of the C++
             # layer for an AtomicStructure, so initialize AtomicStructureData first...
             AtomicStructureData.__init__(self, logger=session.logger)
@@ -72,6 +78,7 @@ class AtomicStructure(AtomicStructureData, Model):
             self.session_restore(*c_data)
             self._smart_initial_display = False
         else:
+            #RIBBON: move the loop noted above here
             AtomicStructureData.__init__(self, c_pointer)
             Model.__init__(self, name, session)
             self._smart_initial_display = smart_initial_display
@@ -174,6 +181,8 @@ class AtomicStructure(AtomicStructureData, Model):
         as_version = self.session_info(ints, floats, misc)
         return CORE_STATE_VERSION, [
             Model.take_snapshot(self, session, flags),
+            #RIBBON: uncomment this:
+            #{ attr_name: getattr(self, attr_name) for attr_name in self._session_attrs.keys() },
             (as_version, ints, floats, misc)
         ]
 
