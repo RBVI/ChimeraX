@@ -1365,7 +1365,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     int i = 1; // atom names are in slot zero
     for (auto aname: atom_names) {
         auto a = new_atom(aname, Element::get_element(*element_ints++));
-        a->session_restore(&int_array, &float_array, PyList_GET_ITEM(atoms_misc, i++));
+        a->session_restore(version, &int_array, &float_array, PyList_GET_ITEM(atoms_misc, i++));
     }
 
     // bonds

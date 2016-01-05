@@ -65,10 +65,11 @@ public:
     typedef std::vector<const Ring*>  Rings;
     enum class StructCat { Unassigned, Main, Ligand, Ions, Solvent };
 
-    const int  SESSION_NUM_INTS = 10;
-    const int  SESSION_NUM_FLOATS = 1;
-    const int  SESSION_ALTLOC_INTS = 3;
-    const int  SESSION_ALTLOC_FLOATS = 5;
+    // in the SESSION* functions, a version of "0" means the latest version
+    static int  SESSION_NUM_INTS(int /*version*/=0) { return 10; };
+    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; };
+    static int  SESSION_ALTLOC_INTS(int /*version*/=0) { return 3; };
+    static int  SESSION_ALTLOC_FLOATS(int /*version*/=0) { return 5; };
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
     Atom(AtomicStructure *as, const char* name, const Element& e);
@@ -149,12 +150,13 @@ public:
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
-    int  session_num_ints() const {
-        return SESSION_NUM_INTS + Rgba::session_num_ints()
-            + _alt_loc_map.size() * SESSION_ALTLOC_INTS;
+    // version "0" means latest version
+    int  session_num_ints(int version=0) const {
+        return SESSION_NUM_INTS(version) + Rgba::session_num_ints()
+            + _alt_loc_map.size() * SESSION_ALTLOC_INTS(version);
     }
-    int  session_num_floats() const;
-    void  session_restore(int** ints, float** floats, PyObject* misc);
+    int  session_num_floats(int version=0) const;
+    void  session_restore(int version, int** ints, float** floats, PyObject* misc);
     void  session_save(int** ints, float** floats, PyObject* misc) const;
     void  set_alt_loc(char alt_loc, bool create=false, bool from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
