@@ -80,7 +80,7 @@ class Mono360Camera(Camera):
 
 class Stereo360Camera(Camera):
 
-    def __init__(self):
+    def __init__(self, layout = 'top-bottom'):
 
         Camera.__init__(self)
         self.eye_separation_scene = 0.2			# Angstroms
@@ -90,6 +90,7 @@ class Stereo360Camera(Camera):
         self._drawing = {'left':None, 'right':None}	# Drawing of rectangle with cube map texture
         v = _cube_map_face_views()
         self._view_rotations = v + v		# Camera views for cube faces
+        self.layout = layout			# Packing of left/right eye images: top-bottom or side-by-side
 
     def name(self):
         '''Name of camera mode.'''
@@ -171,12 +172,18 @@ class Stereo360Camera(Camera):
     def _projection_drawing(self, eye):
         d = self._drawing[eye]
         if d is None:
-            region = ((-1,1),(0,1)) if eye == 'left' else ((-1,1),(-1,0))
             self._drawing[eye] = d = _equirectangular_projection_drawing(self._projection_size)
-            # Shift left eye to top half of window, right eye to bottom half
-            y = d.vertices[:,1]
-            y[:] += (1 if eye == 'left' else -1)
-            y[:] /= 2
+            if self.layout == 'top-bottom':
+                # Shift left eye to top half of window, right eye to bottom half
+                y = d.vertices[:,1]
+                y[:] += (1 if eye == 'left' else -1)
+                y[:] /= 2
+            elif self.layout == 'side-by-side':
+                # Shift left eye to left half of window, right eye to right half
+                x = d.vertices[:,0]
+                x[:] += (-1 if eye == 'left' else 1)
+                x[:] /= 2
+
         return d
 
 def view_width_360(point, origin):

@@ -8,7 +8,8 @@ def camera(session, type=None, field_of_view=None,
     Parameters
     ----------
     type : string
-        Controls type of projection, currently "mono", "360", "360s" (stereoscopic), stereo
+        Controls type of projection, currently "mono", "360", "360s" or "360tb" (stereoscopic top-bottom layout),
+        "360sbs" (stereoscopic side-by-side layout), "stereo"
     field_of_view : float
         Horizontal field of view in degrees.
     eye_separation : float
@@ -36,9 +37,12 @@ def camera(session, type=None, field_of_view=None,
         elif type == '360':
             from ..graphics import Mono360Camera
             view.camera = Mono360Camera()
-        elif type == '360s':
+        elif type == '360s' or type == '360tb':
             from ..graphics import Stereo360Camera
             view.camera = Stereo360Camera()
+        elif type == '360sbs':
+            from ..graphics import Stereo360Camera
+            view.camera = Stereo360Camera(layout = 'side-by-side')
         elif type == 'stereo':
             if not getattr(session.ui, 'have_stereo', False):
                 from ..errors import UserError
@@ -88,7 +92,7 @@ def register_command(session):
     from . import CmdDesc, register, FloatArg, EnumOf
     desc = CmdDesc(
         optional=[
-            ('type', EnumOf(('mono', 'ortho', '360', '360s', 'stereo'))),
+            ('type', EnumOf(('mono', 'ortho', '360', '360s', '360tb', '360sbs', 'stereo'))),
             ('field_of_view', FloatArg),
             ('eye_separation', FloatArg),
             ('pixel_eye_separation', FloatArg),
