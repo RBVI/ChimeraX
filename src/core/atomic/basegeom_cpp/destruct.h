@@ -37,8 +37,8 @@ public:
         if (notification_time) {
             // copy the _destroyed set in case
             // the observers destroy anything
-            auto destroyed_copy = _destroyed;
-            _destroyed.clear();
+            decltype(_destroyed) destroyed_copy;
+            destroyed_copy.swap(_destroyed);
             if (destroyed_copy.size() > 0) {
                 auto observers_copy = _observers;
                 for (auto o: observers_copy) {
