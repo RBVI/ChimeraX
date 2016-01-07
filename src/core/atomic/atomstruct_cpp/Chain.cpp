@@ -57,6 +57,14 @@ Chain::bulk_set(const Chain::Residues& residues,
         ChangeTracker::REASON_RESIDUES);
 }
 
+void
+Chain::clear_residues() {
+    // only called from ~AtomicStructure...
+    _residues.clear();
+    _res_map.clear();
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RESIDUES);
+}
+
 Chain&
 Chain::operator+=(Chain& addition)
 {

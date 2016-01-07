@@ -517,16 +517,16 @@ ExtractMolecule::parse_atom_site()
     pv.reserve(20);
 
     string entity_id;             // label_entity_id
-    ChainID chain_id;              // label_asym_id
-    ChainID auth_chain_id;         // auth_asym_id
+    ChainID chain_id;             // label_asym_id
+    ChainID auth_chain_id;        // auth_asym_id
     long position;                // label_seq_id
     long auth_position = INT_MAX; // auth_seq_id
     char ins_code = ' ';          // pdbx_PDB_ins_code
     char alt_id = '\0';           // label_alt_id
     AtomName atom_name;           // label_atom_id
     AtomName auth_atom_name;      // auth_atom_id
-    ResName residue_name;          // label_comp_id
-    ResName auth_residue_name;     // auth_comp_id
+    ResName residue_name;         // label_comp_id
+    ResName auth_residue_name;    // auth_comp_id
     char symbol[3];               // type_symbol
     long serial_num = 0;          // id
     float x, y, z;                // Cartn_[xyz]

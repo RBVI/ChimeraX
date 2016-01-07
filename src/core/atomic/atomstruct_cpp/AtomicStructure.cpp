@@ -40,7 +40,10 @@ AtomicStructure::AtomicStructure(PyObject* logger):
 AtomicStructure::~AtomicStructure() {
     // assign to variable so that it lives to end of destructor
     auto du = basegeom::DestructionUser(this);
+    change_tracker()->add_deleted(this);
     if (_chains != nullptr) {
+        for (auto ch: *_chains)
+            ch->clear_residues();
         // don't delete the actual chains -- they may be being
         // used as Sequences and the Python layer will delete 
         // them (as sequences) as appropriate
@@ -50,7 +53,6 @@ AtomicStructure::~AtomicStructure() {
         delete r;
     for (auto cs: _coord_sets)
         delete cs;
-    change_tracker()->add_deleted(this);
 }
 
 void
@@ -541,6 +543,10 @@ AtomicStructure::_delete_residue(Residue* r,
     const AtomicStructure::Residues::iterator& ri)
 {
     auto db = basegeom::DestructionBatcher(r);
+    if (r->chain() != nullptr) {
+        r->chain()->remove_residue(r);
+        set_gc_ribbon();
+    }
     for (auto a: r->atoms()) {
         _delete_atom(a);
     }
@@ -1546,20 +1552,6 @@ void
 AtomicStructure::start_change_tracking(ChangeTracker* ct)
 {
     Graph::start_change_tracking(ct);
-    for (auto a: atoms())
-        ct->add_created(a);
-    for (auto b: bonds())
-        ct->add_created(b);
-    for (auto cat_pbg: pb_mgr().group_map()) {
-        auto pbg = cat_pbg.second;
-        ct->add_created(pbg);
-        for (auto pb: pbg->pseudobonds())
-            ct->add_created(pb);
-    }
-    for (auto r: residues())
-        ct->add_created(r);
-    for (auto ch: chains())
-        ct->add_created(ch);
     ct->add_created(this);
 }
 

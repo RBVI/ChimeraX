@@ -26,6 +26,9 @@ private:
     friend class Residue;
     void  remove_residue(Residue* r);
 
+    friend class AtomicStructure;
+    void  clear_residues();
+
     ChainID  _chain_id;
     bool  _from_seqres;
     typedef std::map<Residue*, SeqPos>  ResMap;
