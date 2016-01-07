@@ -9,7 +9,7 @@ def camera(session, type=None, field_of_view=None,
     ----------
     type : string
         Controls type of projection, currently "mono", "360", "360s" or "360tb" (stereoscopic top-bottom layout),
-        "360sbs" (stereoscopic side-by-side layout), "stereo"
+        "360sbs" (stereoscopic side-by-side layout), "stereo", "sbs" (side by side stereo), "tb" (top bottom stereo)
     field_of_view : float
         Horizontal field of view in degrees.
     eye_separation : float
@@ -23,7 +23,6 @@ def camera(session, type=None, field_of_view=None,
         it is necessary to set this option to get comfortable stereoscopic viewing.
     '''
     view = session.main_view
-    cam = session.main_view.camera
     has_arg = False
     if type is not None:
         has_arg = True
@@ -51,7 +50,14 @@ def camera(session, type=None, field_of_view=None,
                                  if not session.ui.stereo else ''))
             from ..graphics import StereoCamera
             view.camera = StereoCamera()
+        elif type == 'sbs':
+            from ..graphics import SplitStereoCamera
+            view.camera = SplitStereoCamera()
+        elif type == 'tb':
+            from ..graphics import SplitStereoCamera
+            view.camera = SplitStereoCamera(layout = 'top-bottom')
 
+    cam = session.main_view.camera
     if field_of_view is not None:
         has_arg = True
         cam.field_of_view = field_of_view
@@ -92,7 +98,7 @@ def register_command(session):
     from . import CmdDesc, register, FloatArg, EnumOf
     desc = CmdDesc(
         optional=[
-            ('type', EnumOf(('mono', 'ortho', '360', '360s', '360tb', '360sbs', 'stereo'))),
+            ('type', EnumOf(('mono', 'ortho', '360', '360s', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))),
             ('field_of_view', FloatArg),
             ('eye_separation', FloatArg),
             ('pixel_eye_separation', FloatArg),

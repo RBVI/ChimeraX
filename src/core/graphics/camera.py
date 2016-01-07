@@ -373,6 +373,113 @@ class StereoCamera(Camera):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
         render.set_stereo_buffer(view_num)
 
+class SplitStereoCamera(Camera):
+    '''Side-by-side and top-bottom stereo.'''
+
+    def __init__(self, layout = 'side-by-side'):
+
+        Camera.__init__(self)
+        self.field_of_view = 30				# Horizontal field, degrees
+        self.eye_separation_scene = 5.0			# Angstroms
+        self._framebuffer = {'left':None, 'right':None} # Framebuffer for rendering each eye
+        self._drawing = {'left':None, 'right':None}	# Drawing of rectangle with cube map texture
+        self.layout = layout			# Packing of left/right eye images: top-bottom or side-by-side
+
+    def name(self):
+        '''Name of camera mode.'''
+        return 'split stereo'
+
+    def view(self, camera_position, view_num):
+        '''
+        Return the Place coordinate frame for a specific camera view number.
+        As a transform it maps camera coordinates to scene coordinates.
+        '''
+        if view_num is None:
+            v = camera_position
+        else:
+            # Stereo eyes view in same direction with position shifted along x.
+            s = -1 if view_num == 0 else 1
+            es = self.eye_separation_scene
+            from ..geometry import place
+            t = place.translation((s*0.5*es,0,0))
+            v = camera_position * t
+        return v
+
+    def number_of_views(self):
+        '''Number of views rendered by camera mode.'''
+        return 2
+
+    def view_all(self, center, size):
+        '''
+        Return the shift that makes the camera completely show models
+        having specified center and radius.  The camera view direction
+        is not changed.
+        '''
+        self.position = perspective_view_all(center, size, self.position, self.field_of_view)
+
+    def view_width(self, point):
+        return perspective_view_width(point, self.position.origin(), self.field_of_view)
+
+    def set_render_target(self, view_num, render):
+        '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        if view_num > 0:
+            render.pop_framebuffer()	        # Pop left eye framebuffer
+        eye = 'left' if view_num == 0 else 'right'
+        fb = self._eye_framebuffer(eye, render.render_size())
+        render.push_framebuffer(fb)		# Push eye framebuffer
+
+    def combine_rendered_camera_views(self, render):
+        '''Render the cube map using a projection.'''
+        render.pop_framebuffer()	        # Pop the right eye framebuffer.
+        drawings = [self._eye_drawing(eye) for eye in ('left', 'right')]
+        from .drawing import draw_overlays
+        draw_overlays(drawings, render)
+
+    def _eye_framebuffer(self, eye, window_size):
+        fb = self._framebuffer[eye]
+        w, h = window_size
+        if self.layout == 'side-by-side':
+            tw, th = w//2, h
+        else:
+            tw, th = w, h//2
+        if fb is None or (tw, th) != (fb.width, fb.height):
+            from .opengl import Texture, Framebuffer
+            t = Texture()
+            t.initialize_rgba((tw,th))
+            fb = Framebuffer(color_texture = t)
+            self._framebuffer[eye] = fb
+            d = self._drawing[eye]
+            if d:
+                d.texture = fb.color_texture	# Update drawing texture
+        return fb
+
+    def _eye_drawing(self, eye):
+        d = self._drawing[eye]
+        if d is None:
+            from .drawing import Drawing
+            self._drawing[eye] = d = Drawing('%s eye' % eye)
+            from numpy import array, float32, int32
+            va = array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32)
+            ta = array(((0,1,2),(0,2,3)), int32)
+            tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
+            if self.layout == 'top-bottom':
+                # Shift left eye to top half of window, right eye to bottom half
+                y = va[:,1]
+                y[:] += (1 if eye == 'left' else -1)
+                y[:] /= 2
+            elif self.layout == 'side-by-side':
+                # Shift left eye to left half of window, right eye to right half
+                x = va[:,0]
+                x[:] += (-1 if eye == 'left' else 1)
+                x[:] /= 2
+            d.geometry = va, ta
+            d.color = (255,255,255,255)
+            d.use_lighting = False
+            d.texture_coordinates = tc
+            d.texture = self._framebuffer[eye].color_texture
+            d.opaque_texture = True
+        return d
+
 # glFrustum() matrix
 def frustum(left, right, bottom, top, z_near, z_far, xshift=0, yshift=0):
     '''

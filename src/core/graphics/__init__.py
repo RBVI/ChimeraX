@@ -3,7 +3,9 @@
 # The following are intentionally exported
 __all__ = [
     'Drawing', 'Pick',
-    'Camera', 'MonoCamera', 'OrthographicCamera', 'Mono360Camera', 'Stereo360Camera', 'StereoCamera',
+    'Camera', 'MonoCamera', 'OrthographicCamera',
+    'StereoCamera', 'SplitStereoCamera',
+    'Mono360Camera', 'Stereo360Camera',
     'CrossFade', 'MotionBlur',
     'Texture', 'Lighting', 'Material',
     'View', 'OpenGLContext',
@@ -11,7 +13,7 @@ __all__ = [
 
 from .drawing import Drawing, Pick, TrianglePick, TrianglesPick
 
-from .camera import Camera, MonoCamera, OrthographicCamera, StereoCamera
+from .camera import Camera, MonoCamera, OrthographicCamera, StereoCamera, SplitStereoCamera
 from .camera360 import Mono360Camera, Stereo360Camera
 
 from .crossfade import CrossFade, MotionBlur
