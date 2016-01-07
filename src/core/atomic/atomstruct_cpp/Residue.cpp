@@ -41,10 +41,6 @@ Residue::Residue(AtomicStructure *as, const ResName& name,
 
 Residue::~Residue() {
     auto du = basegeom::DestructionUser(this);
-    if (_chain != nullptr) {
-        _chain->remove_residue(this);
-        _structure->set_gc_ribbon();
-    }
     _structure->change_tracker()->add_deleted(this);
 }
 

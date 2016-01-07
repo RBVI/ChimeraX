@@ -15,9 +15,9 @@
 #include "pythonarray.h"           // Use python_voidp_array()
 
 #include <functional>
-#include <iostream>
 #include <map>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
@@ -2101,19 +2101,44 @@ private:
 
     void remove_deleted_objects(const std::set<void*>& destroyed)
     {
-        if (PyDict_Size(object_map) == 0)
+        auto map_size = PyDict_Size(object_map);
+        if (map_size == 0)
             return;
-        // TODO: Optimize by looping over object_map if it is smaller than destroyed.
-        for (auto d: destroyed) {
-            PyObject *dp = PyLong_FromVoidPtr(d);
-            if (PyDict_Contains(object_map, dp)) {
-                PyObject *po = PyDict_GetItem(object_map, dp);
-                PyObject_DelAttrString(po, "_c_pointer");
-                PyObject_DelAttrString(po, "_c_pointer_ref");
-                PyDict_DelItem(object_map, dp);
+        if (destroyed.size() > (std::set<void*>::size_type)map_size) {
+            // object_map smaller than destroyed set, loop over object map
+            Py_ssize_t i = 0;
+            PyObject* key;
+            std::vector<PyObject*> removals;
+            while (PyDict_Next(object_map, &i, &key, nullptr)) {
+                auto key_as_long = PyNumber_Long(key);
+                if (key_as_long == nullptr) {
+                    std::stringstream buffer;
+                    buffer << "object map key is not a long, is " << Py_TYPE(key)->tp_name;
+                    throw std::invalid_argument(buffer.str());
+                }
+                auto ptr = PyLong_AsVoidPtr(key_as_long);
+                if (destroyed.find(ptr) != destroyed.end())
+                    removals.push_back(key);
+                Py_DECREF(key_as_long);
             }
-            Py_DECREF(dp);
+            for (auto rm: removals)
+                remove_from_map(rm);
+        } else {
+            // object_map larger than destroyed set, loop over destroyed set
+            for (auto d: destroyed) {
+                auto dp = PyLong_FromVoidPtr(d);
+                if (PyDict_Contains(object_map, dp))
+                    remove_from_map(dp);
+                Py_DECREF(dp);
+            }
         }
+    }
+
+    void remove_from_map(PyObject* obj) {
+        PyObject *po = PyDict_GetItem(object_map, obj);
+        PyObject_DelAttrString(po, "_c_pointer");
+        PyObject_DelAttrString(po, "_c_pointer_ref");
+        PyDict_DelItem(object_map, obj);
     }
 };
 
