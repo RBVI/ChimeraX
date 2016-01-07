@@ -1561,10 +1561,11 @@ class Texture:
         tdtype = GL.GL_FLOAT
         ncomp = 1
         self.initialize_texture(size, format, iformat, tdtype, ncomp,
-                                depth_compare_mode=depth_compare_mode)
+                                depth_compare_mode=depth_compare_mode,
+                                border_color = (1,1,1,1))
 
     def initialize_texture(self, size, format, iformat, tdtype, ncomp,
-                           data=None, depth_compare_mode=False):
+                           data=None, depth_compare_mode=False, border_color = (0, 0, 0, 0)):
 
         self.id = t = GL.glGenTextures(1)
         self.size = size
@@ -1590,7 +1591,7 @@ class Texture:
             GL.glTexImage3D(gl_target, 0, iformat, size[0], size[1], size[2],
                             0, format, tdtype, data)
 
-        GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR, (0, 0, 0, 0))
+        GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR, border_color)
         clamp = GL.GL_CLAMP_TO_EDGE if self.is_cubemap else GL.GL_CLAMP_TO_BORDER
         GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S, clamp)
         if dim >= 2:

@@ -26,7 +26,7 @@ void main (void)
   float ds = texture(tex2d, vec2(tex_coord_2d.s+depth_shift_and_jump.s, tex_coord_2d.t+depth_shift_and_jump.t)).r;
   float nf = depth_shift_and_jump.q;	// Correct depth compression based on perspective near/far ratio.
   float nf1 = 1-nf;
-  if (nf*(ds-d0) < depth_shift_and_jump.p * (1-nf1*ds) * (1-nf1*d0))
+  if (nf*(d0-ds) < depth_shift_and_jump.p * (1-nf1*ds) * (1-nf1*d0))
      discard;
   frag_color = color;
 }
