@@ -38,7 +38,6 @@ class MainSaveDialog:
         self.file_dialog = None
         self._registered_formats = {}
         self._format_selector = None
-        import io
         self.register(self.DEFAULT_FORMAT, _session_wildcard, None, None, _session_save)
 
     def register(self, format_name, wildcard, make_ui, update, save):
@@ -63,7 +62,7 @@ class MainSaveDialog:
         if self.file_dialog is None:
             from .open_save import SaveDialog
             self.file_dialog = SaveDialog(parent, "Save File")
-            self.file_dialog.SetExtraControlCreator(self._extraCreatorCB)
+            self.file_dialog.SetExtraControlCreator(self._extra_creator_cb)
         else:
             fmt = self.current_format()
             fmt.update(session, self)
@@ -77,7 +76,7 @@ class MainSaveDialog:
         filename = self.file_dialog.GetPath()
         fmt.save(session, filename)
 
-    def _extraCreatorCB(self, parent):
+    def _extra_creator_cb(self, parent):
         import wx
         # TODO: make tab traversal work on extra control panel
         p = wx.Panel(parent)
@@ -86,16 +85,16 @@ class MainSaveDialog:
             # Choice at top for selecting save file type
             format_selector = wx.Choice(p, style=wx.CB_READONLY)
             format_selector.Bind(wx.EVT_CHOICE, self._select_format)
-            s.Add(format_selector, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER, border=5)
+            s.Add(format_selector, proportion=0, flag=wx.ALL | wx.ALIGN_CENTER, border=5)
             # Panel for displaying format-specific options goes immediately below
             # Default is a window displaying text of "No user-settable options"
             # For some reason, a Panel does not work but a Window does
             no_options_window = wx.Window(p, style=wx.BORDER_SIMPLE)
             ns = wx.BoxSizer(wx.VERTICAL)
             t = wx.StaticText(no_options_window, label="No user-settable options")
-            ns.Add(t, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER, border=5)
+            ns.Add(t, proportion=1, flag=wx.ALL | wx.ALIGN_CENTER, border=5)
             no_options_window.SetSizerAndFit(ns)
-            s.Add(no_options_window, proportion=1, flag=wx.EXPAND|wx.ALL|wx.ALIGN_CENTER, border=2)
+            s.Add(no_options_window, proportion=1, flag=wx.EXPAND | wx.ALL | wx.ALIGN_CENTER, border=2)
             # Save references to widgets we need
             self._options_panel = p
             self._options_sizer = s
@@ -132,7 +131,8 @@ class MainSaveDialog:
         import wx
         self._current_option.Show(False)
         if w not in self._known_options:
-            self._options_sizer.Add(w, proportion=1, flag=wx.EXPAND|wx.ALL|wx.ALIGN_CENTER,
+            self._options_sizer.Add(w, proportion=1,
+                                    flag=wx.EXPAND | wx.ALL | wx.ALIGN_CENTER,
                                     border=2)
             self._known_options.add(w)
         w.Show(True)
@@ -178,8 +178,8 @@ class ImageSaver:
         self._save_dialog = weakref.ref(save_dialog)
 
     def wildcard(self):
-        from .. import commands
-        exts = list(commands.image_formats.keys())
+        from ..commands import save
+        exts = list(save.pil_image_formats.keys())
         exts.remove(self.DEFAULT_EXT)
         exts.insert(0, self.DEFAULT_EXT)
         fmts = ';'.join("*.%s" % e for e in exts)
@@ -188,53 +188,53 @@ class ImageSaver:
 
     def make_ui(self, parent):
         import wx
-        from .. import commands
+        from ..commands import save
         w = wx.Window(parent, style=wx.BORDER_SIMPLE)
         s = wx.FlexGridSizer(rows=3, cols=2, hgap=2, vgap=2)
 
-        selector = wx.Choice(w, choices=list(commands.image_formats.values()),
+        selector = wx.Choice(w, choices=list(save.pil_image_formats.values()),
                              style=wx.CB_READONLY)
         selector.Bind(wx.EVT_CHOICE, self._select_format)
         selector.SetSelection(selector.Items.index(self.DEFAULT_FORMAT))
-        s.Add(wx.StaticText(w, label="Format:"), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
-        s.Add(selector, proportion=1, flag=wx.ALL|wx.ALIGN_LEFT, border=5)
+        s.Add(wx.StaticText(w, label="Format:"), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        s.Add(selector, proportion=1, flag=wx.ALL | wx.ALIGN_LEFT, border=5)
         self._format_selector = selector
 
         size_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self._width = wx.TextCtrl(w)
         self._height = wx.TextCtrl(w)
         # debugging code:
-        # self._width.Bind(wx.EVT_TEXT, self.EvtText)
-        # self._width.Bind(wx.EVT_CHAR, self.EvtChar)
+        # self._width.Bind(wx.EVT_TEXT, self.evt_text)
+        # self._width.Bind(wx.EVT_CHAR, self.evt_char)
         size_sizer.Add(self._width, proportion=1)
-        size_sizer.Add(wx.StaticText(w, label="x"), flag=wx.LEFT|wx.RIGHT, border=4)
+        size_sizer.Add(wx.StaticText(w, label="x"), flag=wx.LEFT | wx.RIGHT, border=4)
         size_sizer.Add(self._height, proportion=1)
-        s.Add(wx.StaticText(w, label="Size:"), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
-        s.Add(size_sizer, proportion=1, flag=wx.ALL|wx.ALIGN_LEFT, border=5)
+        s.Add(wx.StaticText(w, label="Size:"), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        s.Add(size_sizer, proportion=1, flag=wx.ALL | wx.ALIGN_LEFT, border=5)
 
         ss = wx.Choice(w, choices=[o[0] for o in self.SUPERSAMPLE_OPTIONS], style=wx.CB_READONLY)
-        s.Add(wx.StaticText(w, label="Supersample:"), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
-        s.Add(ss, proportion=1, flag=wx.ALL|wx.ALIGN_LEFT, border=5)
+        s.Add(wx.StaticText(w, label="Supersample:"), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        s.Add(ss, proportion=1, flag=wx.ALL | wx.ALIGN_LEFT, border=5)
         self._supersample = ss
 
         w.SetSizerAndFit(s)
         parent.Fit()
         return w
 
-    def EvtText(self, event):
+    def evt_text(self, event):
         import sys
-        print("EvtText", event, event.GetString(), file=sys.__stderr__)
+        print("evt_text", event, event.GetString(), file=sys.__stderr__)
         event.Skip()
 
-    def EvtChar(self, event):
+    def evt_char(self, event):
         import sys
-        print("EvtChar", event, event.GetKeyCode(), file=sys.__stderr__)
+        print("evt_char", event, event.GetKeyCode(), file=sys.__stderr__)
         event.Skip()
 
     def _get_current_extension(self):
         format_name = self._format_selector.GetString(self._format_selector.Selection)
-        from .. import commands
-        for e, n in commands.image_formats.items():
+        from ..commands import save
+        for e, n in save.pil_image_formats.items():
             if n == format_name:
                 return e
         else:
@@ -275,8 +275,8 @@ class ImageSaver:
         ss = self.SUPERSAMPLE_OPTIONS[self._supersample.GetSelection()][1]
         # TODO: generate text command instead of calling function directly
         # so that command logging happens automatically
-        from .. import commands
-        commands.save_image(session, filename, width=w, height=h, supersample=ss)
+        from ..commands import save
+        save.save_image(session, filename, width=w, height=h, supersample=ss)
 
     def register(self):
         self._save_dialog().register("Image File", self.wildcard, self.make_ui,
