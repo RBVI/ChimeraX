@@ -48,12 +48,13 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
                 from ..errors import UserError
                 raise UserError('Only formats %s can be fetched from database %s'
                                 % (', '.join(db_formats), from_database))
-        models = fetch.fetch_from_database(session, from_database, filename,
-                                           format=format, name=name, ignore_cache=ignore_cache)
+        models, status = fetch.fetch_from_database(session, from_database, filename,
+                                                   format=format, name=name, ignore_cache=ignore_cache)
         if len(models) > 1:
             session.models.add_group(models)
         else:
             session.models.add(models)
+        session.logger.status(status, log = True)
         return models
 
     if format is not None:

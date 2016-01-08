@@ -243,7 +243,7 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
   else:
     dbid, dbn = dbfetch
     from ..files import fetch
-    mlist = fetch.fetch_from_database(dbid, dbn, session)
+    mlist, status = fetch.fetch_from_database(dbid, dbn, session)
     grids = [m.data for m in mlist]
     for m in mlist:
       m.delete()        # Only use grid data from fetch

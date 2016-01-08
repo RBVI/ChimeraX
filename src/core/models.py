@@ -257,7 +257,8 @@ class Models(State):
         session = self._session()  # resolve back reference
         models, status = io.open_multiple_data(session, filenames, format=format, name=name, **kw)
         if status:
-            session.logger.status(status)
+            log = session.logger
+            log.status(status, log=True)
         if models:
             if len(models) > 1:
                 self.add_group(models)
