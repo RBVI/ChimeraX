@@ -1019,6 +1019,7 @@ def draw_overlays(drawings, renderer):
     r.set_view_matrix(p0)
     r.set_model_matrix(p0)
     r.enable_depth_test(False)
+    r.enable_blending(False)
     _draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
     r.enable_blending(True)
     _draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
