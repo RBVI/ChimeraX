@@ -41,6 +41,30 @@ def select(session, objects=None, add=None, subtract=None, intersect=None, clear
 
     report_selection(session)
 
+def select_add(session, objects=None):
+    '''Add objects to the selection.
+    If objects is None everything is selected.'''
+    if objects is None:
+        from . import all_objects
+        objects = all_objects(session)
+    modify_selection(objects, 'add')
+
+def select_subtract(session, objects=None):
+    '''Subtract objects from the selection.
+    If objects is None the selection is cleared.'''
+    if objects is None:
+        session.selection.clear()
+    else:
+        modify_selection(objects, 'subtract')
+
+def select_intersect(session, objects=None):
+    '''Reduce the selection by intersecting with specified objects.'''
+    intersect_selection(objects, session)
+
+def select_clear(session, objects=None):
+    '''Clear the selection.'''
+    session.selection.clear()
+
 def report_selection(session):
     s = session.selection
     from ..atomic import MolecularSurface, AtomicStructure    
@@ -68,8 +92,11 @@ def modify_selection(objects, mode = 'add'):
 def intersect_selection(objects, session):
     atoms, models = _atoms_and_models(objects)
     from .. import atomic
-    subatoms = atomic.selected_atoms(session) - atoms
-    submodels = set(session.selection.models()).difference(models)
+    selatoms = atomic.selected_atoms(session)
+    subatoms = selatoms - atoms
+    from ..atomic import AtomicStructure
+    selmodels = set(m for m in session.selection.models() if not isinstance(m, AtomicStructure))
+    submodels = selmodels.difference(models)
     for m, matoms in subatoms.by_structure:
         m.select_atoms(matoms, selected = False)
     for m in submodels:
@@ -77,6 +104,7 @@ def intersect_selection(objects, session):
 
 def _atoms_and_models(objects):
     # Treat selecting molecular surface as selecting atoms.
+    # Returned models list does not include atomic models
     atoms = objects.atoms
     satoms = []
     models = []
@@ -92,7 +120,7 @@ def _atoms_and_models(objects):
     return atoms, models
 
 def register_command(session):
-    from . import CmdDesc, register, ObjectsArg, NoArg
+    from . import CmdDesc, register, ObjectsArg, NoArg, create_alias
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
                    keyword=[('add', ObjectsArg),
                             ('subtract', ObjectsArg),
@@ -100,3 +128,20 @@ def register_command(session):
                             ('clear', NoArg),],
                    synopsis='select specified objects')
     register('select', desc, select)
+
+    desc = CmdDesc(optional=[('objects', ObjectsArg)],
+                   synopsis='add objects to selection')
+    register('select add', desc, select_add)
+
+    desc = CmdDesc(optional=[('objects', ObjectsArg)],
+                   synopsis='subtract objects from selection')
+    register('select subtract', desc, select_subtract)
+
+    desc = CmdDesc(required=[('objects', ObjectsArg)],
+                   synopsis='intersect objects with selection')
+    register('select intersect', desc, select_intersect)
+
+    desc = CmdDesc(synopsis='clear the selection')
+    register('select clear', desc, select_clear)
+
+    create_alias('~select', 'select subtract $*')
