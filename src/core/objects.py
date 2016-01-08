@@ -47,26 +47,18 @@ class Objects:
         self.add_atoms(other.atoms)
 
     def invert(self, session, models):
-        from .atomic import Atoms, AtomicStructure
-        atoms = Atoms()
-        catoms = self.atoms()
+        from .atomic import AtomicStructure, Atoms, concatenate
+        matoms = []
         imodels = set()
         for m in models:
             if isinstance(m, AtomicStructure):
-                if m in self._models:
-                    # include atoms not in current collection
-                    # TODO: Optimize this for large catoms collection and many atomic models.
-                    keep = m.atoms - catoms
-                else:
-                    # include all atoms
-                    keep = m.atoms
-                if len(keep) > 0:
-                    atoms = atoms | keep
-                    imodels.add(m)
+                matoms.append(m.atoms)
             elif m not in self._models:
                 imodels.add(m)
-        self._atoms = [atoms]
-        self._cached_atoms = None
+        iatoms = concatenate(matoms, Atoms, remove_duplicates=True) - self.atoms
+        imodels.update(iatoms.unique_structures)
+        self._atoms = [iatoms]
+        self._cached_atoms = iatoms
         self._models = imodels
 
         from numpy import logical_not
