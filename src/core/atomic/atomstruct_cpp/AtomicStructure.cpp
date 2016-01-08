@@ -1015,7 +1015,7 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
 
     // AtomicStructure attrs
     int* int_array;
-    PyObject* npy_array = python_int_array(SESSION_NUM_INTS, &int_array);
+    PyObject* npy_array = python_int_array(SESSION_NUM_INTS(), &int_array);
     *int_array++ = _idatm_valid;
     int x = std::find(_coord_sets.begin(), _coord_sets.end(), _active_coord_set)
         - _coord_sets.begin();
@@ -1025,17 +1025,18 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     *int_array++ = is_traj;
     *int_array++ = lower_case_chains;
     *int_array++ = pdb_version;
+    // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
 
     float* float_array;
-    npy_array = python_float_array(SESSION_NUM_FLOATS, &float_array);
+    npy_array = python_float_array(SESSION_NUM_FLOATS(), &float_array);
     *float_array++ = _ball_scale;
     // if you add floats, change the allocation above
     if (PyList_Append(floats, npy_array) < 0)
         throw std::runtime_error("Couldn't append to floats list");
 
-    PyObject* attr_list = PyList_New(SESSION_NUM_MISC);
+    PyObject* attr_list = PyList_New(SESSION_NUM_MISC());
     if (attr_list == nullptr)
         throw std::runtime_error("Cannot create Python list for misc info");
     if (PyList_Append(misc, attr_list) < 0)
@@ -1160,7 +1161,8 @@ AtomicStructure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) 
     PyObject* pb_ints;
     PyObject* pb_floats;
     PyObject* pb_misc;
-    if (_pb_mgr.session_info(&pb_ints, &pb_floats, &pb_misc) != 1) {
+    *int_array = _pb_mgr.session_info(&pb_ints, &pb_floats, &pb_misc);
+    if (*int_array++ != 1) {
         throw std::runtime_error("Unexpected version number from pseudobond manager");
     }
     if (PyList_Append(ints, pb_ints) < 0)
@@ -1285,7 +1287,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     if (!array_from_python(item, 1, Numeric_Array::Int, &iarray, false))
         throw std::invalid_argument("AtomicStructure int data is not a one-dimensional"
             " numpy int array");
-    if (iarray.size() != SESSION_NUM_INTS)
+    if (iarray.size() != SESSION_NUM_INTS(version))
         throw std::invalid_argument("AtomicStructure int array wrong size");
     int* int_array = static_cast<int*>(iarray.values());
     _idatm_valid = *int_array++;
@@ -1295,6 +1297,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     is_traj = *int_array++;
     lower_case_chains = *int_array++;
     pdb_version = *int_array++;
+    auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 
     // AtomicStructure floats
@@ -1303,7 +1306,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     if (!array_from_python(item, 1, Numeric_Array::Float, &farray, false))
         throw std::invalid_argument("AtomicStructure float data is not a one-dimensional"
             " numpy float array");
-    if (farray.size() != SESSION_NUM_FLOATS)
+    if (farray.size() != SESSION_NUM_FLOATS(version))
         throw std::invalid_argument("AtomicStructure float array wrong size");
     float* float_array = static_cast<float*>(farray.values());
     _ball_scale = *float_array++;
@@ -1311,7 +1314,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
 
     // AtomicStructure misc info
     item = PyList_GET_ITEM(misc, 0);
-    if (!PyList_Check(item) || PyList_GET_SIZE(item) != SESSION_NUM_MISC)
+    if (!PyList_Check(item) || PyList_GET_SIZE(item) != SESSION_NUM_MISC(version))
         throw std::invalid_argument("AtomicStructure misc data is not list or is wrong size");
     // input_seq_info
     PyObject* map = PyList_GET_ITEM(item, 0);
@@ -1371,7 +1374,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     int i = 1; // atom names are in slot zero
     for (auto aname: atom_names) {
         auto a = new_atom(aname, Element::get_element(*element_ints++));
-        a->session_restore(&int_array, &float_array, PyList_GET_ITEM(atoms_misc, i++));
+        a->session_restore(version, &int_array, &float_array, PyList_GET_ITEM(atoms_misc, i++));
     }
 
     // bonds
@@ -1394,7 +1397,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         Atom *a1 = atoms()[*bond_index_ints++];
         Atom *a2 = atoms()[*bond_index_ints++];
         auto b = new_bond(a1, a2);
-        b->session_restore(&int_array, &float_array);
+        b->session_restore(version, &int_array, &float_array);
     }
 
     // coord sets
@@ -1415,7 +1418,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
     float_array = static_cast<float*>(farray.values());
     for (i = 0; i < num_cs; ++i) {
         auto cs = new_coord_set(*cs_id_ints++, atom_names.size());
-        cs->session_restore(&int_array, &float_array);
+        cs->session_restore(version, &int_array, &float_array);
     }
     // can now resolve the active coord set
     if ((CoordSets::size_type)active_cs < _coord_sets.size())
@@ -1436,7 +1439,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         throw std::invalid_argument("Pseudobond float data is not a one-dimensional"
             " numpy float array");
     float_array = static_cast<float*>(farray.values());
-    _pb_mgr.session_restore(&int_array, &float_array, PyList_GET_ITEM(misc, 4));
+    _pb_mgr.session_restore(pb_manager_version, &int_array, &float_array, PyList_GET_ITEM(misc, 4));
 
     // residues
     PyObject* res_misc = PyList_GET_ITEM(misc, 5);
@@ -1463,7 +1466,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         auto pos = *res_ints++;
         auto insert = *res_ints++;
         auto r = new_residue(res_name, chain_id, pos, insert);
-        r->session_restore(&res_ints, &res_floats);
+        r->session_restore(version, &res_ints, &res_floats);
     }
 
     // chains
@@ -1490,7 +1493,7 @@ AtomicStructure::session_restore(int version, PyObject* ints, PyObject* floats, 
         _chains = new Chains();
         for (auto chain_id: chain_chain_ids) {
             auto chain = _new_chain(chain_id);
-            chain->session_restore(&chain_ints, &chain_floats);
+            chain->session_restore(version, &chain_ints, &chain_floats);
         }
     }
 }

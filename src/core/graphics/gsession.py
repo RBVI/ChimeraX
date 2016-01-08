@@ -18,8 +18,7 @@ class ViewState(State):
     def restore_snapshot_init(self, session, bundle_info, version, data):
         self.view_attr = data[0]
         v = getattr(session, self.view_attr)
-        (v.center_of_rotation, _,   # TODO: don't skip v.window_size
-         v.background_color) = data[1:4]
+        (v.center_of_rotation, (width, height), v.background_color) = data[1:4]
         # Root drawing had redraw callback set to None.  Restore callback.
         v.drawing.set_redraw_callback(v._drawing_manager)
         from .camera import MonoCamera
@@ -27,6 +26,8 @@ class ViewState(State):
         cam_version, cam_data = data[4]
         CameraState(v.camera).restore_snapshot_init(
             session, bundle_info, cam_version, cam_data)
+        from ..commands.windowsize import window_size
+        window_size(session, width, height)
 
     def reset_state(self, session):
         """Reset state to data-less state"""

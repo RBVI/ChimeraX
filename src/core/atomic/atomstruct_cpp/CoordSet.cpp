@@ -45,7 +45,7 @@ CoordSet::get_occupancy(const Atom *a) const
 }
 
 void
-CoordSet::session_restore(int** ints, float** floats)
+CoordSet::session_restore(int /*version*/, int** ints, float** floats)
 {
     auto& int_ptr = *ints;
     auto& float_ptr = *floats;

@@ -152,12 +152,12 @@ Sequence::rname3to1(const ResName& rn)
 }
 
 void
-Sequence::session_restore(int** ints, float**)
+Sequence::session_restore(int version, int** ints, float**)
 {
     auto& int_ptr = *ints;
 
     auto size = int_ptr[0];
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS(version);
 
     _contents.reserve(size);
     for (decltype(size) i = 0; i < size; ++i) {
@@ -171,7 +171,7 @@ Sequence::session_save(int** ints, float**) const
     auto& int_ptr = *ints;
 
     int_ptr[0] = _contents.size();
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS();
 
     for (auto c: _contents)
         *int_ptr++ = c;

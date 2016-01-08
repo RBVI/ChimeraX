@@ -849,10 +849,10 @@ Atom::rings(bool cross_residues, int all_size_threshold,
 }
 
 int
-Atom::session_num_floats() const
+Atom::session_num_floats(int version) const
 {
-    int num_floats = SESSION_NUM_FLOATS + Rgba::session_num_floats()
-        + _alt_loc_map.size() * SESSION_ALTLOC_FLOATS +
+    int num_floats = SESSION_NUM_FLOATS(version) + Rgba::session_num_floats()
+        + _alt_loc_map.size() * SESSION_ALTLOC_FLOATS(version) +
         (_aniso_u == nullptr ? 0 : _aniso_u->size());
     for (auto altloc_info : _alt_loc_map) {
         auto& info = altloc_info.second;
@@ -863,7 +863,7 @@ Atom::session_num_floats() const
 }
 
 void
-Atom::session_restore(int** ints, float** floats, PyObject* misc)
+Atom::session_restore(int version, int** ints, float** floats, PyObject* misc)
 {
     using pysupport::pystring_to_cchar;
 
@@ -879,11 +879,11 @@ Atom::session_restore(int** ints, float** floats, PyObject* misc)
     _display = int_ptr[7];
     _hide = int_ptr[8];
     _selected = int_ptr[9];
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS(version);
 
     auto& float_ptr = *floats;
     _radius = float_ptr[0];
-    float_ptr += SESSION_NUM_FLOATS;
+    float_ptr += SESSION_NUM_FLOATS(version);
 
     if (PyList_GET_SIZE(misc) != 2)
         throw std::invalid_argument("Atom misc info wrong size");
@@ -905,14 +905,14 @@ Atom::session_restore(int** ints, float** floats, PyObject* misc)
         aniso_u_size = int_ptr[1];
         _Alt_loc_info info;
         info.serial_number = int_ptr[2];
-        int_ptr += SESSION_ALTLOC_INTS;
+        int_ptr += SESSION_ALTLOC_INTS(version);
 
         info.bfactor = float_ptr[0];
         info.coord[0] = float_ptr[1];
         info.coord[1] = float_ptr[2];
         info.coord[2] = float_ptr[3];
         info.occupancy = float_ptr[4];
-        float_ptr += SESSION_ALTLOC_FLOATS;
+        float_ptr += SESSION_ALTLOC_FLOATS(version);
 
         if (aniso_u_size > 0) {
             info.aniso_u = new std::vector<float>();
@@ -941,11 +941,11 @@ Atom::session_save(int** ints, float** floats, PyObject* misc) const
     int_ptr[7] = (int)_display;
     int_ptr[8] = (int)_hide;
     int_ptr[9] = (int)_selected;
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS();
 
     auto& float_ptr = *floats;
     float_ptr[0] = _radius;
-    float_ptr += SESSION_NUM_FLOATS;
+    float_ptr += SESSION_NUM_FLOATS();
 
     using pysupport::cchar_to_pystring;
     if (PyList_Append(misc, cchar_to_pystring(_computed_idatm_type, "computed IDATM type")) < 0)
@@ -966,14 +966,14 @@ Atom::session_save(int** ints, float** floats, PyObject* misc) const
         int_ptr[0] = alt_loc;
         int_ptr[1] = (info.aniso_u == nullptr ? 0 : info.aniso_u->size());
         int_ptr[2] = info.serial_number;
-        int_ptr += SESSION_ALTLOC_INTS;
+        int_ptr += SESSION_ALTLOC_INTS();
 
         float_ptr[0] = info.bfactor;
         float_ptr[1] = info.coord[0];
         float_ptr[2] = info.coord[1];
         float_ptr[3] = info.coord[2];
         float_ptr[4] = info.occupancy;
-        float_ptr += SESSION_ALTLOC_FLOATS;
+        float_ptr += SESSION_ALTLOC_FLOATS();
 
         if (info.aniso_u != nullptr) {
             for (auto v: *info.aniso_u) {

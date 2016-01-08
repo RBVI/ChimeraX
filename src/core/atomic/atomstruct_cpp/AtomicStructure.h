@@ -107,9 +107,10 @@ private:
     int  _ribbon_tether_sides = 4;
     float  _ribbon_tether_opacity = 0.5;
     bool  _ribbon_show_spine = false;
-    const int  SESSION_NUM_FLOATS = 1;
-    const int  SESSION_NUM_INTS = 7;
-    const int  SESSION_NUM_MISC = 4;
+    // in the SESSION* functions, a version of "0" means the latest version
+    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
+    static int  SESSION_NUM_INTS(int /*version*/=0) { return 8; }
+    static int  SESSION_NUM_MISC(int /*version*/=0) { return 4; }
     mutable bool  _structure_cats_dirty;
 public:
     AtomicStructure(PyObject* logger = nullptr);

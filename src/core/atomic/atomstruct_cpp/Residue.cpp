@@ -142,7 +142,7 @@ Residue::remove_atom(Atom* a)
 }
 
 void
-Residue::session_restore(int** ints, float** floats)
+Residue::session_restore(int version, int** ints, float** floats)
 {
     _ribbon_rgba.session_restore(ints, floats);
 
@@ -159,10 +159,10 @@ Residue::session_restore(int** ints, float** floats)
     _ribbon_style = (Style)int_ptr[7];
     _ss_id = int_ptr[8];
     auto num_atoms = int_ptr[9];
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS(version);
 
     _ribbon_adjust = float_ptr[0];
-    float_ptr += SESSION_NUM_FLOATS;
+    float_ptr += SESSION_NUM_FLOATS(version);
 
     auto& atoms = structure()->atoms();
     for (decltype(num_atoms) i = 0; i < num_atoms; ++i) {
@@ -188,10 +188,10 @@ Residue::session_save(int** ints, float** floats) const
     int_ptr[7] = (int)_ribbon_style;
     int_ptr[8] = (int)_ss_id;
     int_ptr[9] = atoms().size();
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS();
 
     float_ptr[0] = _ribbon_adjust;
-    float_ptr += SESSION_NUM_FLOATS;
+    float_ptr += SESSION_NUM_FLOATS();
 
     auto& atom_map = *structure()->session_save_atoms;
     for (auto a: atoms()) {

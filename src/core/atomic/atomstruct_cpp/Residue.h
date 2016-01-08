@@ -29,9 +29,6 @@ public:
     enum Style { RIBBON_RIBBON = 0,
                  RIBBON_PIPE = 1 };
     enum PolymerType { PT_NONE, PT_AMINO, PT_NUCLEIC };
-
-    const int  SESSION_NUM_INTS = 10;
-    const int  SESSION_NUM_FLOATS = 1;
 private:
     friend class AtomicStructure;
     Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);
@@ -42,6 +39,9 @@ private:
     friend class AtomicStructure;
     friend class Bond;
     void  set_polymer_type(PolymerType pt) { _polymer_type = pt; }
+
+    static int  SESSION_NUM_INTS(int /*version*/=0) { return 10; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
 
     char  _alt_loc;
     Atoms  _atoms;
@@ -80,11 +80,14 @@ public:
     int  position() const { return _position; }
     Atom*  principal_atom() const;
     void  remove_atom(Atom*);
-    int  session_num_floats() const { return SESSION_NUM_FLOATS + Rgba::session_num_floats(); }
-    int  session_num_ints() const {
-        return SESSION_NUM_INTS + Rgba::session_num_ints() + atoms().size();
+    // version "0" indicates latest version
+    int  session_num_floats(int version=0) const {
+        return SESSION_NUM_FLOATS(version) + Rgba::session_num_floats();
     }
-    void  session_restore(int**, float**);
+    int  session_num_ints(int version=0) const {
+        return SESSION_NUM_INTS(version) + Rgba::session_num_ints() + atoms().size();
+    }
+    void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set_alt_loc(char alt_loc);
     void  set_is_helix(bool ih);

@@ -23,9 +23,6 @@ public:
     static const unsigned int  HIDE_RIBBON = 0x1;
     typedef End_points  Atoms;
     typedef std::vector<const Ring*>  Rings;
-
-    static const int  SESSION_NUM_INTS = 0;
-    static const int  SESSION_NUM_FLOATS = 0;
 private:
     Bond(AtomicStructure *, Atom *, Atom *);
     void  add_to_endpoints() { atoms()[0]->add_bond(this); atoms()[1]->add_bond(this); }
@@ -35,6 +32,9 @@ private:
         { return "Can't bond an atom to itself"; }
     mutable Rings  _rings;
 
+    static int  session_base_version(int /*version*/) { return 1; }
+    static int  SESSION_NUM_INTS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
 public:
     virtual ~Bond() {}
     virtual bool shown() const;
@@ -54,13 +54,15 @@ public:
     // sqlength() inherited from UniqueConnection
 
     // session related
-    static int  session_num_floats() {
-        return SESSION_NUM_FLOATS + UniqueConnection<Atom>::session_num_floats();
+    static int  session_num_floats(int version=0) {
+        return SESSION_NUM_FLOATS(version)
+            + UniqueConnection<Atom>::session_num_floats(session_base_version(version));
     }
-    static int  session_num_ints() {
-        return SESSION_NUM_INTS + UniqueConnection<Atom>::session_num_ints();
+    static int  session_num_ints(int version=0) {
+        return SESSION_NUM_INTS(version)
+            + UniqueConnection<Atom>::session_num_ints(session_base_version(version));
     }
-    // session_save simply inherited from UniqueConnection
+    // session_restore and session_save simply inherited from UniqueConnection
 
     // change tracking
     ChangeTracker*  change_tracker() const;

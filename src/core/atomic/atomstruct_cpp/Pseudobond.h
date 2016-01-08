@@ -28,8 +28,6 @@ public:
     friend class StructurePBGroup;
     friend class CS_PBGroup;
 
-    static const int  SESSION_NUM_INTS = 0;
-    static const int  SESSION_NUM_FLOATS = 0;
 private:
     Group*  _group;
 
@@ -38,6 +36,12 @@ private:
             _halfbond = false;
             _radius = 0.05;
         };
+
+    // convert a global pb_manager version# to version# for Connection base class
+    static int  session_base_version(int /*version*/) { return 1; }
+    // version "0" means latest version
+    static int  SESSION_NUM_INTS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
 protected:
     const char*  err_msg_loop() const
         { return "Can't form pseudobond to itself"; }
@@ -50,14 +54,15 @@ public:
     ChangeTracker*  change_tracker() const;
     GraphicsContainer*  graphics_container() const;
     Group*  group() const { return _group; }
-    static int  session_num_floats() {
-        return SESSION_NUM_FLOATS + Connection<Atom>::session_num_floats();
+    // version "0" means latest version
+    static int  session_num_floats(int version=0) {
+        return SESSION_NUM_FLOATS(version) + Connection<Atom>::session_num_floats(version);
     }
-    static int  session_num_ints() {
-        return SESSION_NUM_INTS + Connection<Atom>::session_num_ints();
+    static int  session_num_ints(int version=0) {
+        return SESSION_NUM_INTS(version) + Connection<Atom>::session_num_ints(version);
     }
-    void  session_restore(int** ints, float** floats) {
-        basegeom::Connection<Atom>::session_restore(ints, floats);
+    void  session_restore(int version, int** ints, float** floats) {
+        basegeom::Connection<Atom>::session_restore(session_base_version(version), ints, floats);
     }
     void  session_save(int** ints, float** floats) const {
         basegeom::Connection<Atom>::session_save(ints, floats);
