@@ -29,8 +29,10 @@ protected:
     // can't inherit from vector, since we need to clear caches on changes
     Contents  _contents;
 
-    const int  SESSION_NUM_INTS = 3;
-    const int  SESSION_NUM_FLOATS = 0;
+private:
+    static int  SESSION_NUM_INTS(int /*version*/=0) { return 3; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
+
 public:
     static void  assign_rname3to1(const ResName& rname, char let,
         bool protein);
@@ -69,9 +71,9 @@ public:
     Contents::const_reverse_iterator  rbegin() const
         { return _contents.rbegin(); }
     Contents::const_reverse_iterator  rend() const { return _contents.rend(); }
-    int  session_num_floats() const { return SESSION_NUM_FLOATS; }
-    int  session_num_ints() const { return SESSION_NUM_INTS + _contents.size(); }
-    void  session_restore(int**, float**);
+    int  session_num_floats(int version=0) const { return SESSION_NUM_FLOATS(version); }
+    int  session_num_ints(int version=0) const { return SESSION_NUM_INTS(version) + _contents.size(); }
+    void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     Contents::size_type  size() const { return _contents.size(); }
     void  swap(Contents& x) { _clear_cache(); _contents.swap(x); }

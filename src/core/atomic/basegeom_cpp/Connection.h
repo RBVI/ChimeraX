@@ -27,8 +27,13 @@ class Connection {
 public:
     typedef End*  End_points[2];
 
-    static const int  SESSION_NUM_INTS = 3;
-    static const int  SESSION_NUM_FLOATS = 1;
+    // Since this is a base class shared between Bond and Pseudobond,
+    // the version number is specific to this class, rather than the
+    // global number.  The conversion will be done by the derived class.
+    // Therefore, update the derived class's session_base_version() when
+    // this class's version changes
+    static int  SESSION_NUM_INTS(int /*version*/=0) { return 3; }
+    static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
 protected:
     virtual const char*  err_msg_loop() const
         { return "Can't connect endpoint to itself"; }
@@ -61,23 +66,23 @@ public:
     }
 
     // session related
-    static int  session_num_floats() {
-        return SESSION_NUM_FLOATS + Rgba::session_num_floats();
+    static int  session_num_floats(int version=0) {
+        return SESSION_NUM_FLOATS(version) + Rgba::session_num_floats();
     }
-    static int  session_num_ints() {
-        return SESSION_NUM_INTS + Rgba::session_num_ints();
+    static int  session_num_ints(int version=0) {
+        return SESSION_NUM_INTS(version) + Rgba::session_num_ints();
     }
-    void  session_restore(int** ints, float** floats) {
+    void  session_restore(int version, int** ints, float** floats) {
         _rgba.session_restore(ints, floats);
         auto& int_ptr = *ints;
         _display = int_ptr[0];
         _hide = int_ptr[1];
         _halfbond = int_ptr[2];
-        int_ptr += SESSION_NUM_INTS;
+        int_ptr += SESSION_NUM_INTS(version);
 
         auto& float_ptr = *floats;
         _radius = float_ptr[0];
-        float_ptr += SESSION_NUM_FLOATS;
+        float_ptr += SESSION_NUM_FLOATS(version);
     }
     void  session_save(int** ints, float** floats) const {
         _rgba.session_save(ints, floats);
@@ -85,11 +90,11 @@ public:
         int_ptr[0] = _display;
         int_ptr[1] = _hide;
         int_ptr[2] = _halfbond;
-        int_ptr += SESSION_NUM_INTS;
+        int_ptr += SESSION_NUM_INTS();
 
         auto& float_ptr = *floats;
         float_ptr[0] = _radius;
-        float_ptr += SESSION_NUM_FLOATS;
+        float_ptr += SESSION_NUM_FLOATS();
     }
 
     // change tracking

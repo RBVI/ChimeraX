@@ -35,11 +35,14 @@ public:
     float  get_occupancy(const Atom *) const;
     void  fill(const CoordSet *source) { _coords = source->_coords; }
     int  id() const { return _cs_id; }
-    int  session_num_floats() const {
+    // version "0" means latest version
+    int  session_num_floats(int /*version*/=0) const {
         return _bfactor_map.size() + _occupancy_map.size() + 3 * _coords.size();
     }
-    int  session_num_ints() const { return _bfactor_map.size() + _occupancy_map.size() + 3; }
-    void  session_restore(int** ints, float** floats);
+    int  session_num_ints(int /*version*/=0) const {
+        return _bfactor_map.size() + _occupancy_map.size() + 3;
+    }
+    void  session_restore(int version, int** ints, float** floats);
     void  session_save(int** ints, float** floats) const;
     void  set_bfactor(const Atom *, float);
     void  set_occupancy(const Atom *, float);

@@ -178,15 +178,15 @@ Chain::remove_residue(Residue* r) {
 }
 
 void
-Chain::session_restore(int** ints, float** floats)
+Chain::session_restore(int version, int** ints, float** floats)
 {
-    Sequence::session_restore(ints, floats);
+    Sequence::session_restore(version, ints, floats);
 
     auto& int_ptr = *ints;
     _from_seqres = int_ptr[0];
     auto res_map_size = int_ptr[1];
     auto residues_size = int_ptr[2];
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS(version);
 
     auto& residues = _structure->residues();
     for (decltype(res_map_size) i = 0; i < res_map_size; ++i) {
@@ -214,7 +214,7 @@ Chain::session_save(int** ints, float** floats) const
     int_ptr[0] = _from_seqres;
     int_ptr[1] = _res_map.size();
     int_ptr[2] = _residues.size();
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS();
 
     auto& ses_res = *_structure->session_save_residues;
     for (auto r_pos: _res_map) {

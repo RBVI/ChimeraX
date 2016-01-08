@@ -178,56 +178,56 @@ StructurePBGroupBase::session_note_pb_ctor_info(Pseudobond* pb, int** ints) cons
 }
 
 int
-CS_PBGroup::session_num_floats() const {
-    int num_floats = SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats();
+CS_PBGroup::session_num_floats(int version) const {
+    int num_floats = SESSION_NUM_FLOATS(version) + StructurePBGroupBase::session_num_floats(version);
     for (auto crdset_pbs: _pbonds) {
-        num_floats += crdset_pbs.second.size() * Pseudobond::session_num_floats();
+        num_floats += crdset_pbs.second.size() * Pseudobond::session_num_floats(version);
     }
     return num_floats;
 }
 
 int
-StructurePBGroup::session_num_floats() const {
-    return SESSION_NUM_FLOATS + StructurePBGroupBase::session_num_floats()
-        + pseudobonds().size() * Pseudobond::session_num_floats();
+StructurePBGroup::session_num_floats(int version) const {
+    return SESSION_NUM_FLOATS(version) + StructurePBGroupBase::session_num_floats(version)
+        + pseudobonds().size() * Pseudobond::session_num_floats(version);
 }
 
 int
-CS_PBGroup::session_num_ints() const {
-    int num_ints = SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
+CS_PBGroup::session_num_ints(int version) const {
+    int num_ints = SESSION_NUM_INTS(version) + StructurePBGroupBase::session_num_ints(version)
         + 2 * pseudobonds().size(); // that last is for references to coord sets and # pbonds
     for (auto crdset_pbs: _pbonds) {
         // the +2 in the next line is for the atom IDs
-        num_ints += crdset_pbs.second.size() * (Pseudobond::session_num_ints() + 2);
+        num_ints += crdset_pbs.second.size() * (Pseudobond::session_num_ints(version) + 2);
     }
     return num_ints;
 }
 
 int
-StructurePBGroup::session_num_ints() const {
-    int num_ints = SESSION_NUM_INTS + StructurePBGroupBase::session_num_ints()
-        + pseudobonds().size() * (Pseudobond::session_num_ints() + 2); // +2 for the atom IDs
+StructurePBGroup::session_num_ints(int version) const {
+    int num_ints = SESSION_NUM_INTS(version) + StructurePBGroupBase::session_num_ints(version)
+        + pseudobonds().size() * (Pseudobond::session_num_ints(version) + 2); // +2 for the atom IDs
     if (structure() == nullptr) // will need to remember the structure IDs too
         num_ints += pseudobonds().size() * 2;
     return num_ints;
 }
 
 void
-Group::session_restore(int** ints, float** floats)
+Group::session_restore(int version, int** ints, float** floats)
 {
     _default_color.session_restore(ints, floats);
     auto& int_ptr = *ints;
     _default_halfbond = int_ptr[0];
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS(version);
 }
 
 void
-CS_PBGroup::session_restore(int** ints, float** floats)
+CS_PBGroup::session_restore(int version, int** ints, float** floats)
 {
-    StructurePBGroupBase::session_restore(ints, floats);
+    StructurePBGroupBase::session_restore(version, ints, floats);
     auto& int_ptr = *ints;
     auto num_sets = int_ptr[0];
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS(version);
     for (decltype(num_sets) i = 0; i < num_sets; ++i) {
         auto cs_index = *int_ptr++;
         auto cs = _structure->coord_sets()[cs_index];
@@ -235,22 +235,22 @@ CS_PBGroup::session_restore(int** ints, float** floats)
         for (decltype(num_pbs) j = 0; j < num_pbs; ++j) {
             std::pair<Atom*, Atom*> atoms = session_get_pb_ctor_info(ints);
             auto pb = new_pseudobond(atoms.first, atoms.second, cs);
-            pb->session_restore(ints, floats);
+            pb->session_restore(version, ints, floats);
         }
     }
 }
 
 void
-StructurePBGroup::session_restore(int** ints, float** floats)
+StructurePBGroup::session_restore(int version, int** ints, float** floats)
 {
-    StructurePBGroupBase::session_restore(ints, floats);
+    StructurePBGroupBase::session_restore(version, ints, floats);
     auto& int_ptr = *ints;
     auto num_pbs = int_ptr[0];
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS(version);
     for (decltype(num_pbs) i = 0; i < num_pbs; ++i) {
         std::pair<Atom*, Atom*> atoms = session_get_pb_ctor_info(ints);
         auto pb = new_pseudobond(atoms.first, atoms.second);
-        pb->session_restore(ints, floats);
+        pb->session_restore(version, ints, floats);
     }
 }
 
@@ -260,7 +260,7 @@ Group::session_save(int** ints, float** floats) const
     _default_color.session_save(ints, floats);
     auto& int_ptr = *ints;
     int_ptr[0] = _default_halfbond;
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS();
 }
 
 void
@@ -269,7 +269,7 @@ CS_PBGroup::session_save(int** ints, float** floats) const
     StructurePBGroupBase::session_save(ints, floats);
     auto& int_ptr = *ints;
     int_ptr[0] = _pbonds.size();
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS();
     for (auto cs_pbs: _pbonds) {
         auto cs = cs_pbs.first;
         auto& pbs = cs_pbs.second;
@@ -288,7 +288,7 @@ StructurePBGroup::session_save(int** ints, float** floats) const
     StructurePBGroupBase::session_save(ints, floats);
     auto& int_ptr = *ints;
     int_ptr[0] = _pbonds.size();
-    int_ptr += SESSION_NUM_INTS;
+    int_ptr += SESSION_NUM_INTS();
     for (auto pb: _pbonds) {
         session_note_pb_ctor_info(pb, ints);
         pb->session_save(ints, floats);

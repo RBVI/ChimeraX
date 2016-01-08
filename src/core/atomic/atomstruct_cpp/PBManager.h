@@ -47,7 +47,7 @@ public:
     const GroupMap&  group_map() const { return _groups; }
     SessionStructureToIDMap*  ses_struct_to_id_map() const { return _ses_struct_to_id_map; }
     SessionIDToStructureMap*  ses_id_to_struct_map() const { return _ses_id_to_struct_map; }
-    void  session_restore(int** ints, float** floats, PyObject* misc);
+    void  session_restore(int version, int** ints, float** floats, PyObject* misc);
     int  session_info(PyObject** ints, PyObject** floats, PyObject** misc) const;
 };
 

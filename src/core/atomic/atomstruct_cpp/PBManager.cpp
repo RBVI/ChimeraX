@@ -140,8 +140,11 @@ BaseManager::session_info(PyObject** ints, PyObject** floats, PyObject** misc) c
 }
 
 void
-BaseManager::session_restore(int** ints, float** floats, PyObject* misc)
+BaseManager::session_restore(int version, int** ints, float** floats, PyObject* misc)
 {
+    if (version > 1)
+        throw std::invalid_argument(
+            "Session pseudobond version too new; don't know how to restore");
     auto& int_ptr = *ints;
     auto& float_ptr = *floats;
 
@@ -154,7 +157,7 @@ BaseManager::session_restore(int** ints, float** floats, PyObject* misc)
     pylist_of_string_to_cvec(PyList_GET_ITEM(misc, 0), categories, "PB Group category");
     for (auto cat: categories) {
         auto grp = get_group(cat, *int_ptr++);
-        grp->session_restore(&int_ptr, &float_ptr);
+        grp->session_restore(version, &int_ptr, &float_ptr);
     }
 }
 
