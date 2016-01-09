@@ -85,8 +85,17 @@ class View:
 
     def opengl_version(self):
         '''Return the OpenGL version as a string.'''
-        self._use_opengl()
+        if self._opengl_context is None:
+            return None
+        self._opengl_context.make_current()
         return self._render.opengl_version()
+
+    def opengl_version_number(self):
+        if self._opengl_context is None:
+            return None
+        self._opengl_context.make_current()
+        vmajor, vminor = self._render.opengl_version_number()
+        return vmajor, vminor
 
     def _use_opengl(self):
         if self._opengl_context is None:
@@ -101,6 +110,7 @@ class View:
         self._opengl_initialized = True
 
         r = self._render
+        r.check_opengl_version()
         r.set_background_color(self.background_color)
         r.enable_depth_test(True)
 
