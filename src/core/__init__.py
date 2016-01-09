@@ -16,9 +16,10 @@ _class_class_init = {
     'AtomicStructure': '.atomic',
     'Color': '.colors',
     'Generic3DModel': '.generic3d',
+    'GridDataState': '.map.session',
     'Model': '.models',
     'Models': '.models',
-    'MolecularSurface': '.molsurf',
+    'MolecularSurface': '.atomic',
     'STLModel': '.stl',
     'Job': '.tasks',
     'Tasks': '.tasks',
@@ -27,6 +28,7 @@ _class_class_init = {
     'UserColors': '.colors',
     'UserColormaps': '.colors',
     'ViewState': '.graphics.gsession',
+    'Volume': '.map',
     '_Input': '.ui.nogui',
 }
 
