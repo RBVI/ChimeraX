@@ -573,17 +573,22 @@ _initialize()
 
 def common_startup(sess):
     """Initialize session with common data containers"""
+
     from .core_triggers import register_core_triggers
     register_core_triggers(sess.triggers)
+
     from .selection import Selection
     sess.selection = Selection(sess.models)
+
     try:
         from .core_settings import settings
         sess.main_view.background_color = settings.bg_color.rgba
     except ImportError:
         pass
+
     from .updateloop import UpdateLoop
     sess.update_loop = UpdateLoop()
+
     from .atomic import PseudobondManager, ChangeTracker, LevelOfDetail
     sess.change_tracker = ChangeTracker()
     sess.pb_manager = PseudobondManager(sess)
