@@ -18,7 +18,7 @@ _class_class_init = {
     'Generic3DModel': '.generic3d',
     'Model': '.models',
     'Models': '.models',
-    'MolecularSurface': '.molsurf',
+    'MolecularSurface': '.atomic',
     'STLModel': '.stl',
     'Job': '.tasks',
     'Tasks': '.tasks',
