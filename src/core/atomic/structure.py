@@ -24,7 +24,9 @@ class AtomicStructure(AtomicStructureData, Model):
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  level_of_detail = None, smart_initial_display = True):
         # Cross section coordinates are 2D and counterclockwise
-        from .ribbon import XSection
+        # Use C++ version of XSection instead of Python version
+        from .molobject import RibbonXSection as XSection
+        # from .ribbon import XSection
         xsc_helix = [( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
                      (-0.5,-0.1),(0.0,-0.2),( 0.5,-0.1),( 0.6,0.0)]
         xsc_strand = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
@@ -330,7 +332,7 @@ class AtomicStructure(AtomicStructureData, Model):
         p.selected_positions = _selected_bond_cylinders(bond_atoms)
 
     def _create_ribbon_graphics(self):
-        from .ribbon import Ribbon, XSection
+        from .ribbon import Ribbon
         from numpy import concatenate, array, zeros
         polymers = self.polymers(False, False)
         if self._ribbon_drawing is None:
@@ -490,7 +492,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 normal_list.append(s.normals)
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
-                if prev_band:
+                if prev_band is not None:
                     triangle_list.append(xss[i].blend(prev_band, s.front_band))
                     t_end += len(triangle_list[-1])
                 if next_cap:
@@ -520,7 +522,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 normal_list.append(s.normals)
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
-                if prev_band:
+                if prev_band is not None:
                     triangle_list.append(xss[-1].blend(prev_band, s.front_band))
                     t_end += len(triangle_list[-1])
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[-1])
