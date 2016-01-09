@@ -1818,10 +1818,21 @@ class Volume(Model):
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    pass
+    from ..state import CORE_STATE_VERSION
+    from .session import state_from_map, grid_data_state
+    data = {
+      'model state': Model.take_snapshot(self, session, flags),
+      'volume state': state_from_map(self),
+      'grid data': grid_data_state(self.data, session)
+    }
+    return CORE_STATE_VERSION, data
 
-  def restore_snapshot(self, phase, session, version, data):
-    pass
+  def restore_snapshot_init(self, session, tool_info, version, data):
+    Model.restore_snapshot_init(self, session, tool_info, *data['model state'])
+    grid_data = data['grid data'].grid_data
+    Volume.__init__(self, grid_data, session)
+    from .session import set_map_state
+    set_map_state(data['volume state'], self)
 
   def reset_state(self, session):
     pass
