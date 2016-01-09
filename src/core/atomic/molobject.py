@@ -128,7 +128,7 @@ class Atom:
             The backbone atoms that a ribbon depiction hides
         '''
         f = c_function('atom_is_backbone', args = (ctypes.c_void_p, ctypes.c_int),
-                ret = ctype.c_bool)
+                ret = ctypes.c_bool)
         return f(self._c_pointer, bb_type)
 
     @property
@@ -656,6 +656,64 @@ class Element:
         else:
             raise ValueError("'get_element' arg must be string or int")
         return _element(f(name_or_number))
+
+# -----------------------------------------------------------------------------
+#
+from collections import namedtuple
+ExtrudeValue = namedtuple("ExtrudeValue", ["vertices", "normals",
+                                           "triangles", "colors",
+                                           "front_band", "back_band"])
+
+class RibbonXSection:
+    '''
+    A cross section that can extrude ribbons when given the
+    required control points, tangents, normals and colors.
+    '''
+    def __init__(self, coords, coords2=None,
+                 normals=None, normals2=None, faceted=False):
+        f = c_function('rxsection_new',
+                       args = (ctypes.py_object,        # coords
+                               ctypes.py_object,        # coords2
+                               ctypes.py_object,        # normals
+                               ctypes.py_object,        # normals2
+                               ctypes.c_bool),          # faceted
+                               ret = ctypes.c_void_p)   # pointer to C++ instance
+        xs_pointer = f(coords, coords2, normals, normals2, faceted)
+        set_c_pointer(self, xs_pointer)
+
+    def delete(self):
+        '''Deletes the C++ data for this atomic structure.'''
+        c_function('rxsection_delete', args = (ctypes.c_void_p,))(self._c_pointer)
+
+    def extrude(self, centers, tangents, normals, color,
+                cap_front, cap_back, offset):
+        '''Return the points, normals and triangles for a ribbon.'''
+        f = c_function('rxsection_extrude',
+                       args = (ctypes.c_void_p,     # self
+                               ctypes.py_object,    # centers
+                               ctypes.py_object,    # tangents
+                               ctypes.py_object,    # normals
+                               ctypes.py_object,    # color
+                               ctypes.c_bool,       # cap_front
+                               ctypes.c_bool,       # cap_back
+                               ctypes.c_int),       # offset
+                       ret = ctypes.py_object)      # tuple
+        t = f(self._c_pointer, centers, tangents, normals, color,
+              cap_front, cap_back, offset)
+        if t is not None:
+            t = ExtrudeValue(*t)
+        return t
+
+    def blend(self, back_band, front_band):
+        '''Return the triangles blending front and back halves of ribbon.'''
+        f = c_function('rxsection_blend',
+                       args = (ctypes.c_void_p,     # self
+                               ctypes.py_object,    # back_band
+                               ctypes.py_object),    # front_band
+                       ret = ctypes.py_object)      # tuple
+        t = f(self._c_pointer, back_band, front_band)
+        return t
+
 
 # -----------------------------------------------------------------------------
 #
