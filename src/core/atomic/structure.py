@@ -26,13 +26,14 @@ class AtomicStructure(AtomicStructureData, Model):
         # Cross section coordinates are 2D and counterclockwise
         # Use C++ version of XSection instead of Python version
         from .molobject import RibbonXSection as XSection
+        from numpy import array
         # from .ribbon import XSection
-        xsc_helix = [( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
-                     (-0.5,-0.1),(0.0,-0.2),( 0.5,-0.1),( 0.6,0.0)]
-        xsc_strand = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
-        xsc_turn = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
-        xsc_arrow_head = [(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]
-        xsc_arrow_tail = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
+        xsc_helix = array([( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
+                           (-0.5,-0.1),(0.0,-0.2),( 0.5,-0.1),( 0.6,0.0)]) * 1.5
+        xsc_strand = array([(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]) * 1.5
+        xsc_turn = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
+        xsc_arrow_head = array([(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]) * 1.5
+        xsc_arrow_tail = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
        
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
