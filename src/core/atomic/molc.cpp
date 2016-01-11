@@ -1287,7 +1287,7 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                     has_guides = false;
             }
             if (r[i]->ribbon_display() && r[i]->ribbon_hide_backbone()) {
-                // Ribbon is shown, so hide backbone atoms and bonds
+                // Ribbon is shown and hides backbone, so hide backbone atoms and bonds
                 for (auto atom: a)
                     if ((atom->hide() & Atom::HIDE_RIBBON) == 0
                             && atom->is_backbone(BBE_RIBBON) && atom != center)
@@ -1301,7 +1301,7 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                 }
             }
             else {
-                // Ribbon is not shown, so unhide backbone atoms and bonds
+                // Ribbon is not shown or does not hide backbone, so unhide backbone atoms and bonds
                 for (auto atom: a)
                     if ((atom->hide() & Atom::HIDE_RIBBON) != 0
                             && atom->is_backbone(BBE_RIBBON) && atom != center)

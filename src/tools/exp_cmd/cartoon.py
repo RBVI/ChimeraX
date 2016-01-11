@@ -15,7 +15,7 @@ _TetherShapeMap = {
 }
 
 
-def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=True, show_spine=False):
+def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=None, show_spine=False):
     '''Display cartoon for specified residues.
 
     Parameters
