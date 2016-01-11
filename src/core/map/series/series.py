@@ -4,9 +4,9 @@
 from ...models import Model
 class Map_Series(Model):
 
-  def __init__(self, name, maps):
+  def __init__(self, name, maps, session):
 
-    Model.__init__(self, name)
+    Model.__init__(self, name, session)
     self.maps = maps
 
     self.add(maps)

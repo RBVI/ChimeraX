@@ -2809,7 +2809,7 @@ def open_map(session, stream, *args, **kw):
         from os.path import basename
         name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from .series import Map_Series
-        ms = Map_Series(name, maps)
+        ms = Map_Series(name, maps, session)
         return [ms], 'Opened map series %s' % name
     else:
       m0 = maps[0]

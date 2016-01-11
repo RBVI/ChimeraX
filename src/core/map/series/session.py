@@ -14,7 +14,7 @@ def restore_map_series(ms_states, session, file_paths, attributes_only = False):
         from ..session import find_volumes_by_session_id
         maps = find_volumes_by_session_id(ms_state['maps'], session)
         from .series import Map_Series
-        ms = Map_Series(ms_state['name'], maps)
+        ms = Map_Series(ms_state['name'], maps, session)
         ms.id = ms_state['id']
         oids = session.object_ids
         if 'session_id' in ms_state:
