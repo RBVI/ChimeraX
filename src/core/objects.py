@@ -96,7 +96,7 @@ class Objects:
     @staticmethod
     def intersect(left, right):
         u = Objects(models = (left._models & right._models),
-                    atoms = (right.atoms() & left.atoms()))
+                    atoms = (right.atoms & left.atoms))
         lmi, rmi = left.model_instances, right.model_instances
         from numpy import logical_and
         for m in lmi.keys():
