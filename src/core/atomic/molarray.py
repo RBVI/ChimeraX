@@ -208,7 +208,7 @@ class Collection:
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
 
-def concatenate(collections, object_class = None):
+def concatenate(collections, object_class = None, remove_duplicates = False):
     '''Concatenate any number of collections returning a new collection.
     All collections must have the same type.
     
@@ -220,8 +220,12 @@ def concatenate(collections, object_class = None):
     if len(collections) == 0:
         c = object_class()
     else:
-        from numpy import concatenate as concat
-        c = cl(concat([a._pointers for a in collections]))
+        import numpy
+        p = numpy.concatenate([a._pointers for a in collections])
+        if remove_duplicates:
+            pu, i = numpy.unique(p, return_index = True)
+            p = p[numpy.sort(i)]	# Preserve order when duplicates are removed.
+        c = cl(p)
     return c
 
 def depluralize(word):

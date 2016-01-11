@@ -71,11 +71,11 @@ class Model(State, Drawing):
         return dlist
 
     def take_snapshot(self, session, flags):
-        return CORE_STATE_VERSION, [self.name, self.id]
+        return CORE_STATE_VERSION, [self.name, self.id, self.positions.array()]
 
     @classmethod
     def restore_snapshot_new(cls, session, bundle_info, version, data):
-        if data[1] is ():
+        if cls is Model and data[1] is ():
             try:
                 return session.models.drawing
             except AttributeError:
@@ -83,9 +83,13 @@ class Model(State, Drawing):
         return cls.__new__(cls)
 
     def restore_snapshot_init(self, session, bundle_info, version, data):
-        name, id = data
+        if self is session.models.drawing:
+            return
+        name, id, positions = data
         Model.__init__(self, name, session)
         self.id = id
+        from .geometry import Places
+        self.positions = Places(place_array = positions)
 
     def reset_state(self, session):
         pass
@@ -257,7 +261,8 @@ class Models(State):
         session = self._session()  # resolve back reference
         models, status = io.open_multiple_data(session, filenames, format=format, name=name, **kw)
         if status:
-            session.logger.status(status)
+            log = session.logger
+            log.status(status, log=True)
         if models:
             if len(models) > 1:
                 self.add_group(models)

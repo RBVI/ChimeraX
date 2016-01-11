@@ -10,6 +10,7 @@
 #include "atomstruct/PBGroup.h"
 #include "atomstruct/Pseudobond.h"
 #include "atomstruct/Residue.h"
+#include "atomstruct/RibbonXSection.h"
 #include "basegeom/ChangeTracker.h"
 #include "basegeom/destruct.h"     // Use DestructionObserver
 #include "pythonarray.h"           // Use python_voidp_array()
@@ -22,6 +23,7 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <cmath>
 
 // Argument delcaration types:
 //
@@ -163,6 +165,9 @@ using basegeom::Coord;
 using basegeom::Real;
 using basegeom::DestructionObserver;
 
+// -------------------------------------------------------------------------
+// atom functions
+//
 extern "C" void atom_bfactor(void *atoms, size_t n, float32_t *bfactors)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -605,6 +610,9 @@ extern "C" PyObject *atom_inter_bonds(void *atoms, size_t n)
     }
 }
 
+// -------------------------------------------------------------------------
+// bond functions
+//
 extern "C" void bond_atoms(void *bonds, size_t n, pyobject_t *atoms)
 {
     Bond **b = static_cast<Bond **>(bonds);
@@ -762,6 +770,9 @@ extern "C" void bond_structure(void *bonds, size_t n, pyobject_t *molp)
     error_wrap_array_get(b, n, &Bond::structure, molp);
 }
 
+// -------------------------------------------------------------------------
+// pseudobond functions
+//
 extern "C" void pseudobond_atoms(void *pbonds, size_t n, pyobject_t *atoms)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
@@ -876,6 +887,9 @@ extern "C" void set_pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
     error_wrap_array_set<Pseudobond, float>(b, n, &Pseudobond::set_radius, radii);
 }
 
+// -------------------------------------------------------------------------
+// pseudobond group functions
+//
 extern "C" void pseudobond_group_category(void *pbgroups, int n, void **categories)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
@@ -991,6 +1005,9 @@ extern "C" void* pseudobond_global_manager_get_group(void *manager, const char* 
     }
 }
 
+// -------------------------------------------------------------------------
+// residue functions
+//
 extern "C" void residue_atoms(void *residues, size_t n, pyobject_t *atoms)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -1337,6 +1354,9 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
     }
 }
 
+// -------------------------------------------------------------------------
+// chain functions
+//
 extern "C" void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
 {
     Chain **c = static_cast<Chain **>(chains);
@@ -1394,6 +1414,9 @@ extern "C" void chain_residues(void *chains, size_t n, pyobject_t *res)
     }
 }
 
+// -------------------------------------------------------------------------
+// change tracker functions
+//
 extern "C" void *change_tracker_create()
 {
     try {
@@ -1500,6 +1523,9 @@ extern "C" void change_tracker_add_modified(void *vct, int class_num, void *modd
     }
 }
 
+// -------------------------------------------------------------------------
+// structure functions
+//
 extern "C" void set_structure_color(void *mol, uint8_t *rgba)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
@@ -1919,6 +1945,9 @@ extern "C" void *structure_new_residue(void *mol, const char *residue_name, cons
     }
 }
 
+// -------------------------------------------------------------------------
+// element functions
+//
 extern "C" void element_name(void *elements, size_t n, pyobject_t *names)
 {
     Element **e = static_cast<Element **>(elements);
@@ -1992,6 +2021,9 @@ extern "C" void element_valence(void *elements, size_t n, uint8_t *valence)
     error_wrap_array_get(e, n, &Element::valence, valence);
 }
 
+// -------------------------------------------------------------------------
+// initialization functions
+//
 static void *init_numpy()
 {
     import_array(); // Initialize use of numpy
@@ -1999,6 +2031,7 @@ static void *init_numpy()
 }
 
 // ---------------------------------------------------------------------------
+// array updater functions
 // When a C++ object is deleted eliminate it from numpy arrays of pointers.
 //
 class Array_Updater : DestructionObserver
@@ -2161,6 +2194,245 @@ extern "C" void delete_object_map_deletion_handler(void *handler)
     }
 }
 
+// -------------------------------------------------------------------------
+// ribbon xsection functions
+static FArray* _numpy_floats2(PyObject *a, FArray *farray)
+{
+    if (a == Py_None)
+        return NULL;
+    if (parse_float_n2_array(a, farray))
+        return farray;
+    throw std::invalid_argument("not a float[2] array");
+}
+
+static FArray* _numpy_floats3(PyObject *a, FArray *farray)
+{
+    if (a == Py_None)
+        return NULL;
+    if (parse_float_n3_array(a, farray))
+        return farray;
+    throw std::invalid_argument("not a float[3] array");
+}
+
+static FArray* _numpy_float3(PyObject *a, FArray *farray)
+{
+    if (a == Py_None)
+        return NULL;
+    if (parse_float_array(a, farray))
+        return farray;
+    throw std::invalid_argument("not an int array");
+}
+
+extern "C" void *rxsection_new(PyObject* coords, PyObject* coords2,
+                               PyObject* normals, PyObject* normals2, bool faceted)
+{
+    FArray fa_coords, fa_coords2, fa_normals, fa_normals2;
+    try {
+        FArray *c = _numpy_floats2(coords, &fa_coords);
+        FArray *c2 = _numpy_floats2(coords2, &fa_coords2);
+        FArray *n = _numpy_floats2(normals, &fa_normals);
+        FArray *n2 = _numpy_floats2(normals2, &fa_normals2);
+        RibbonXSection *xs = new RibbonXSection(c, c2, n, n2, faceted);
+        return xs;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void rxsection_delete(void *p)
+{
+    auto *xs = static_cast<RibbonXSection *>(p);
+    try {
+        delete xs;
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" PyObject *rxsection_extrude(void *p, PyObject *centers,
+                                       PyObject *tangents, PyObject *normals,
+                                       PyObject *colors, bool cap_front,
+                                       bool cap_back, int offset)
+{
+    auto *xs = static_cast<RibbonXSection *>(p);
+    FArray fa_centers, fa_tangents, fa_normals, fa_colors;
+    try {
+        FArray* c = _numpy_floats3(centers, &fa_centers);
+        FArray* t = _numpy_floats3(tangents, &fa_tangents);
+        FArray* n = _numpy_floats3(normals, &fa_normals);
+        FArray* co = _numpy_float3(colors, &fa_colors);
+        PyObject *r = xs->extrude(*c, *t, *n, *co, cap_front, cap_back, offset);
+        return r;
+    } catch (...) {
+        molc_error();
+        return NULL;
+    }
+}
+
+extern "C" PyObject *rxsection_blend(void *p, PyObject *back_band, PyObject *front_band)
+{
+    auto *xs = static_cast<RibbonXSection *>(p);
+    IArray back, front;
+    try {
+        if (!parse_int_n_array(back_band, &back) || !parse_int_n_array(front_band, &front))
+            return NULL;
+        PyObject *r = xs->blend(back, front);
+        return r;
+    } catch (...) {
+        molc_error();
+        return NULL;
+    }
+}
+
+// -------------------------------------------------------------------------
+// ribbon functions
+
+inline float inner(float* u, float* v)
+{
+    return u[0]*v[0] + u[1]*v[1] + u[2]*v[2];
+}
+
+inline float* cross(float* u, float* v, float* result)
+{
+    result[0] = u[1]*v[2] - u[2]*v[1];
+    result[1] = u[2]*v[0] - u[0]*v[2];
+    result[2] = u[0]*v[1] - u[1]*v[0];
+    return result;
+}
+
+static void _rotate_around(float* n, float c, float s, float* v)
+{
+    float c1 = 1 - c;
+    float m00 = c + n[0] * n[0] * c1;
+    float m01 = n[0] * n[1] * c1 - s * n[2];
+    float m02 = n[2] * n[0] * c1 + s * n[1];
+    float m10 = n[0] * n[1] * c1 + s * n[2];
+    float m11 = c + n[1] * n[1] * c1;
+    float m12 = n[2] * n[1] * c1 - s * n[0];
+    float m20 = n[0] * n[2] * c1 - s * n[1];
+    float m21 = n[1] * n[2] * c1 + s * n[0];
+    float m22 = c + n[2] * n[2] * c1;
+    // Use temporary so that v[0] does not get set too soon
+    float x = m00 * v[0] + m01 * v[1] + m02 * v[2];
+    float y = m10 * v[0] + m11 * v[1] + m12 * v[2];
+    float z = m20 * v[0] + m21 * v[1] + m22 * v[2];
+    v[0] = x;
+    v[1] = y;
+    v[2] = z;
+}
+
+static void _parallel_transport_normals(int num_pts, float* tangents, float* n0, float* normals)
+{
+    // First normal is same as given normal
+    normals[0] = n0[0];
+    normals[1] = n0[1];
+    normals[2] = n0[2];
+    // n: normal updated at each step
+    // b: binormal defined by cross product of two consecutive tangents
+    // b_hat: normalized b
+    // EPSILON: essentially zero
+    const float EPSILON = 1e-12;
+    float n[3] = { n0[0], n0[1], n0[2] };
+    float b[3];
+    float b_hat[3];
+    for (int i = 1; i != num_pts; ++i) {
+        float *ti1 = tangents + (i - 1) * 3;
+        float *ti = ti1 + 3;
+        cross(ti1, ti, b);
+        float b_len = inner(b, b);
+        if (b_len > EPSILON) {
+            b_len = sqrt(b_len);
+            b_hat[0] = b[0] / b_len;
+            b_hat[1] = b[1] / b_len;
+            b_hat[2] = b[2] / b_len;
+            float c = inner(ti1, ti);
+            float s = sqrt(1 - c*c);
+            _rotate_around(b_hat, c, s, n);
+        }
+        float *ni = normals + i * 3;
+        ni[0] = n[0];
+        ni[1] = n[1];
+        ni[2] = n[2];
+    }
+}
+
+extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end)
+{
+#ifdef DEBUG_CONSTRAINED_NORMALS
+    std::cerr << "constrained_normals\n";
+#endif
+    // Convert Python objects to arrays and pointers
+    FArray ta;
+    (void) _numpy_floats3(py_tangents, &ta);
+    float *tangents = ta.values();
+    FArray starta;
+    (void) _numpy_float3(py_start, &starta);
+    float *n_start = starta.values();
+    FArray enda;
+    (void) _numpy_float3(py_end, &enda);
+    float *n_end = enda.values();
+    // First get the "natural" normals
+    int num_pts = ta.size(0);
+#ifdef DEBUG_CONSTRAINED_NORMALS
+    std::cerr << "n_start" << ' ' << n_start[0] << ' ' << n_start[1] << ' ' << n_start[2] << '\n';
+    std::cerr << "n_end" << ' ' << n_end[0] << ' ' << n_end[1] << ' ' << n_end[2] << '\n';
+    std::cerr << "tangents\n";
+    for (int i = 0; i != num_pts; ++i) {
+        float *tp = tangents + i * 3;
+        std::cerr << "  " << i << ' ' << tp[0] << ' ' << tp[1] << ' ' << tp[2] << '\n';
+    }
+#endif
+    float* normals = NULL;
+    PyObject *py_normals = python_float_array(num_pts, 3, &normals);
+    _parallel_transport_normals(num_pts, tangents, n_start, normals);
+#ifdef DEBUG_CONSTRAINED_NORMALS
+    std::cerr << "returned from _parallel_transport_normals\n";
+    for (int i = 0; i != num_pts; ++i) {
+        float *np = normals + i * 3;
+        std::cerr << "  " << i << ' ' << np[0] << ' ' << np[1] << ' ' << np[2] << '\n';
+    }
+#endif
+    // Then figure out what twist is needed to make the
+    // ribbon end up with the desired ending normal
+    float* n = normals + (num_pts - 1) * 3;
+    float other_end[3] = { n_end[0], n_end[1], n_end[2] };
+    float twist = acos(inner(n, n_end));
+    // If twist is greater than 180 degrees, turn the opposite
+    // direction.  (Assumes that ribbons are symmetric.)
+    bool flipped = false;
+    if (twist > M_PI / 2) {
+        for (int i = 0; i != 3; ++i)
+            other_end[i] = -n_end[i];
+        twist = acos(inner(n, other_end));
+        flipped = true;
+    }
+    // Compute amount of twist per segment
+    float delta = twist / (num_pts - 1);
+    float *last_tangent = tangents + (num_pts - 1) * 3;
+    float tmp[3];
+    if (inner(cross(n, other_end, tmp), last_tangent) < 0)
+        delta = -delta;
+    // Apply twist to each normal along path
+    for (int i = 1; i != num_pts; ++i) {
+        int offset = i * 3;
+        float angle = i * delta;
+        float c = cos(angle);
+        float s = sin(angle);
+        _rotate_around(tangents + offset, c, s, normals + offset);
+    }
+    // Return both computed normals and whether normal ends up
+    // 180 degrees from targeted end normal.
+    PyObject *o = PyTuple_New(2);
+    PyTuple_SetItem(o, 0, py_normals);
+    PyObject *f = flipped ? Py_True : Py_False;
+    Py_INCREF(f);
+    PyTuple_SetItem(o, 1, f);
+    return o;
+}
+
+// -------------------------------------------------------------------------
+// pointer array functions
 extern "C" ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
 {
     void **pa = static_cast<void **>(pointer_array);

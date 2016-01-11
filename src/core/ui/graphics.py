@@ -13,6 +13,11 @@ class GraphicsWindow(wx.Panel):
         self.timer = None
         self.session = ui.session
         self.view = ui.session.main_view
+
+        self.redraw_interval = 16  # milliseconds
+        # perhaps redraw interval should be 10 to reduce
+        # frame drops at 60 frames/sec
+
         self.opengl_canvas = OpenGLCanvas(self, self.view, ui)
         if ui.have_stereo:
             from ..graphics import StereoCamera
@@ -27,10 +32,6 @@ class GraphicsWindow(wx.Panel):
         self.SetSizerAndFit(sizer)
 
         self.popup = Popup(parent)        # For display of atom spec balloons
-
-        self.redraw_interval = 16  # milliseconds
-        # perhaps redraw interval should be 10 to reduce
-        # frame drops at 60 frames/sec
 
         from .mousemodes import MouseModes
         self.mouse_modes = MouseModes(self, ui.session)
@@ -160,8 +161,7 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_SIZE, self.on_size)
 
     def on_paint(self, event):
-        # self.SetCurrent(view.opengl_context())
-        self.view.draw()
+        self.view.redraw_needed = True
 
     def on_size(self, event):
         wx.CallAfter(self.set_viewport)

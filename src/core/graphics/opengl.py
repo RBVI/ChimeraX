@@ -44,6 +44,9 @@ from OpenGL import GL
 # OpenGL workarounds:
 stencil8_needed = False
 
+class OpenGLVersionError(RuntimeError):
+    pass
+
 class Render:
     '''
     Manage shaders, viewing matrices and lighting parameters to render a scene.
@@ -444,6 +447,20 @@ class Render:
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
         return GL.glGetString(GL.GL_VERSION).decode('utf-8')
+
+    def opengl_version_number(self):
+        'Return major and minor opengl version numbers (integers).'
+        vs = self.opengl_version().split()[0].split('.')[:2]
+        vmajor, vminor = [int(v) for v in vs]
+        return vmajor, vminor
+
+    def check_opengl_version(self):
+        '''Check if current OpenGL context meets minimum required version.'''
+        vmajor, vminor = self.opengl_version_number()
+        if vmajor < 3 or (vmajor == 3 and vminor < 3):
+            raise OpenGLVersionError('ChimeraX requires OpenGL graphics version 3.3.\n'
+                                     'Your computer graphics driver provided version %d.%d.\n'
+                                     % (vmajor, vminor))
 
     def opengl_info(self):
         lines = ['vendor: %s' % GL.glGetString(GL.GL_VENDOR).decode('utf-8'),
@@ -1561,10 +1578,11 @@ class Texture:
         tdtype = GL.GL_FLOAT
         ncomp = 1
         self.initialize_texture(size, format, iformat, tdtype, ncomp,
-                                depth_compare_mode=depth_compare_mode)
+                                depth_compare_mode=depth_compare_mode,
+                                border_color = (1,1,1,1))
 
     def initialize_texture(self, size, format, iformat, tdtype, ncomp,
-                           data=None, depth_compare_mode=False):
+                           data=None, depth_compare_mode=False, border_color = (0, 0, 0, 0)):
 
         self.id = t = GL.glGenTextures(1)
         self.size = size
@@ -1590,7 +1608,7 @@ class Texture:
             GL.glTexImage3D(gl_target, 0, iformat, size[0], size[1], size[2],
                             0, format, tdtype, data)
 
-        GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR, (0, 0, 0, 0))
+        GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR, border_color)
         clamp = GL.GL_CLAMP_TO_EDGE if self.is_cubemap else GL.GL_CLAMP_TO_BORDER
         GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S, clamp)
         if dim >= 2:

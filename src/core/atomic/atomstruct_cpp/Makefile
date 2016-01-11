@@ -10,7 +10,7 @@ DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.o)
-INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS)
+INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 ifeq ($(OS),Darwin)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 endif

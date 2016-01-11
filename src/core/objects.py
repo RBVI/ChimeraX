@@ -18,8 +18,9 @@ class Objects:
     def __init__(self, atoms = None, models = None):
         self._models = set() if models is None else set(models)
         self._model_instances = {}
-        from .atomic import Atoms
-        self._atoms = Atoms() if atoms is None else atoms
+        # Use a list of Atoms collections so many concatenations is fast.
+        self._atoms = [] if atoms is None else [atoms]
+        self._cached_atoms = None	# Atoms collection containing all atoms.
 
     def add_model(self, m):
         """Add model to collection."""
@@ -35,9 +36,10 @@ class Objects:
         else:
             mi[m] = imask.copy()
 
-    def add_atoms(self, atom_blob):
+    def add_atoms(self, atoms):
         """Add atoms to collection."""
-        self._atoms = self._atoms | atom_blob
+        self._atoms.append(atoms)
+        self._cached_atoms = None
 
     def combine(self, other):
         for m in other.models:
@@ -45,23 +47,18 @@ class Objects:
         self.add_atoms(other.atoms)
 
     def invert(self, session, models):
-        from .atomic import Atoms, AtomicStructure
-        atoms = Atoms()
+        from .atomic import AtomicStructure, Atoms, concatenate
+        matoms = []
         imodels = set()
         for m in models:
             if isinstance(m, AtomicStructure):
-                if m in self._models:
-                    # include atoms not in current collection
-                    keep = m.atoms - self._atoms
-                else:
-                    # include all atoms
-                    keep = m.atoms
-                if len(keep) > 0:
-                    atoms = atoms | keep
-                    imodels.add(m)
+                matoms.append(m.atoms)
             elif m not in self._models:
                 imodels.add(m)
-        self._atoms = atoms
+        iatoms = concatenate(matoms, Atoms, remove_duplicates=True) - self.atoms
+        imodels.update(iatoms.unique_structures)
+        self._atoms = [iatoms]
+        self._cached_atoms = iatoms
         self._models = imodels
 
         from numpy import logical_not
@@ -77,12 +74,21 @@ class Objects:
 
     @property
     def atoms(self):
-        return self._atoms
+        ca = self._cached_atoms
+        if ca is None:
+            from . import atomic
+            ca = atomic.concatenate(self._atoms, atomic.Atoms, remove_duplicates = True)
+            self._cached_atoms = None
+        return ca
+
+    @property
+    def num_atoms(self):
+        return  sum(len(a) for a in self._atoms) if self._cached_atoms is None else len(self._cached_atoms)
 
     @staticmethod
     def union(left, right):
-        u = Objects(models = (left._models | right._models),
-                    atoms = right._atoms.merge(left._atoms))
+        u = Objects(models = (left._models | right._models))
+        u._atoms = left._atoms + right._atoms
         for m, minst in tuple(left.model_instances.items()) + tuple(right.model_instances.items()):
             u.add_model_instances(m, minst)
         return u
@@ -90,7 +96,7 @@ class Objects:
     @staticmethod
     def intersect(left, right):
         u = Objects(models = (left._models & right._models),
-                    atoms = (right._atoms & left._atoms))
+                    atoms = (right.atoms() & left.atoms()))
         lmi, rmi = left.model_instances, right.model_instances
         from numpy import logical_and
         for m in lmi.keys():
@@ -99,7 +105,7 @@ class Objects:
         return u
 
     def empty(self):
-        return len(self._atoms) == 0 and len(self._models) == 0 and len(self._model_instances) == 0
+        return self.num_atoms == 0 and len(self._models) == 0 and len(self._model_instances) == 0
 
     def displayed(self):
         '''Return Objects containing only displayed atoms and models.'''

@@ -240,8 +240,7 @@ def _set_sequential_chain(selected, cmap, opacity, target):
         try:
             sl = structures[structure]
         except KeyError:
-            sl = []
-            structures[structure] = sl
+            structures[structure] = sl = []
         sl.append((chain_id, atoms))
     # Make sure there is a colormap
     if cmap is None:
@@ -260,8 +259,42 @@ def _set_sequential_chain(selected, cmap, opacity, target):
                 res = atoms.unique_residues
                 _set_ribbon_colors(res, c, opacity)
 
+
+def _set_sequential_residue(selected, cmap, opacity, target):
+    # Make sure there is a colormap
+    if cmap is None:
+        from .. import colors
+        cmap = colors.BuiltinColormaps["rainbow"]
+    # Get chains and atoms in chains with "by_chain"
+    # Each chain is colored separately with cmap applied by residue
+    import numpy
+    from ..colors import Color
+    structure_chain_ids = {}
+    for structure, chain_id, atoms in selected.atoms.by_chain:
+        try:
+            cids = structure_chain_ids[structure]
+        except KeyError:
+            structure_chain_ids[structure] = cids = set()
+        cids.add(chain_id)
+    for structure, cids in structure_chain_ids.items():
+        for chain in structure.chains:
+            if chain.chain_id not in cids:
+                continue
+            residues = chain.existing_residues
+            colors = cmap.get_colors_for(numpy.linspace(0.0, 1.0, len(residues)))
+            for color, r in zip(colors, residues):
+                c = Color(color)
+                if target is None or 'a' in target:
+                    _set_atom_colors(r.atoms, c, opacity)
+                if target is None or 'c' in target:
+                    rgba = c.uint8x4()
+                    if opacity is not None:
+                        rgba[3] = opacity
+                    r.ribbon_color = rgba
+
 _SequentialColor = {
     "chains": _set_sequential_chain,
+    "residues": _set_sequential_residue,
 }
 
 

@@ -126,6 +126,50 @@ def absolute_path(path, file_paths, ask = False):
   return apath
 
 # ---------------------------------------------------------------------------
+# Get ChimeraX unique GridDataState object for a grid.
+#
+def grid_data_state(grid_data, session):
+  gs = getattr(session, '_volume_grid_data_session_states', None)
+  if gs is None:
+    session._volume_grid_data_session_states = gs = {}
+
+  if len(gs) == 0:
+    # Clear dictionary at the end of session restore.
+    session.triggers.add_handler("end save session", lambda t,td,gs=gs: gs.clear())
+
+  gds = gs.get(grid_data, None)
+  if gds is None:
+    gs[grid_data] = gds = GridDataState(grid_data)
+  return gds
+
+# ---------------------------------------------------------------------------
+# Encapsulate Grid_Data state for session saving in ChimeraX.
+#
+from ..state import State
+class GridDataState(State):
+
+  def __init__(self, grid_data):
+    self.grid_data = grid_data
+
+  # State save/restore in ChimeraX
+  def take_snapshot(self, session, flags):
+    from ..state import CORE_STATE_VERSION
+    data = state_from_grid_data(self.grid_data)
+    return CORE_STATE_VERSION, data
+
+  def restore_snapshot_init(self, session, tool_info, version, data):
+    gdcache = {}        # (path, grid_id) -> Grid_Data object
+    class FilePaths:
+      def find(self, path, ask = False):
+        # TODO: If path doesn't exist show file dialog to let user enter new path to file.
+        return path
+    grids = grid_data_from_state(data, gdcache, session, FilePaths())
+    GridDataState.__init__(self, grids[0])
+
+  def reset_state(self, session):
+    pass
+
+# ---------------------------------------------------------------------------
 #
 def state_from_grid_data(data):
     
@@ -243,7 +287,7 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
   else:
     dbid, dbn = dbfetch
     from ..files import fetch
-    mlist = fetch.fetch_from_database(dbid, dbn, session)
+    mlist, status = fetch.fetch_from_database(dbid, dbn, session)
     grids = [m.data for m in mlist]
     for m in mlist:
       m.delete()        # Only use grid data from fetch
@@ -331,15 +375,6 @@ def create_map_from_state(s, data, session):
 
   set_map_state(s, v, notify = False)
 
-  d = v.display
-  if d:
-    v.show()
-  else:
-    if not s.get('in_map_series',False):
-      v.show()      # Compute surface even if not displayed so that turning on display
-                    # for example with model panel that only sets display to true shows surface.
-    v.display = False
-
   return v
 
 # ---------------------------------------------------------------------------
@@ -378,6 +413,15 @@ def set_map_state(s, volume, notify = True):
                              'colors changed',
                              'rendering options changed',
                              'coordinates changed'))
+
+  d = v.display
+  if d:
+    v.show()
+  else:
+    if not s.get('in_map_series',False):
+      v.show()      # Compute surface even if not displayed so that turning on display
+                    # for example with model panel that only sets display to true shows surface.
+    v.display = False
 
 # -----------------------------------------------------------------------------
 #

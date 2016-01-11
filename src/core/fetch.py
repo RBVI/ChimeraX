@@ -207,7 +207,7 @@ def fetch_from_database(session, from_database, id, format=None, name=None, igno
     if name is not None:
         for m in models:
             m.name = name
-    return models
+    return models, status
 
 # -----------------------------------------------------------------------------
 #

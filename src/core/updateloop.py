@@ -17,7 +17,8 @@ class UpdateLoop:
             return False
 
         view = session.main_view
-        with self.block_redraw():
+        self.block_redraw()
+        try:
             session.triggers.activate_trigger('new frame', self)
             from . import atomic
             atomic.check_for_changes(session)
@@ -25,24 +26,29 @@ class UpdateLoop:
             surface.update_clip_caps(view)
             changed = view.check_for_drawing_change()
             if changed:
+                from .graphics import OpenGLVersionError
                 try:
                     view.draw(check_for_changes = False)
+                except OpenGLVersionError as e:
+                    self.block_redraw()
+                    session.logger.error(str(e))
                 except:
                     # Stop redraw if an error occurs to avoid continuous stream of errors.
-                    self._block_redraw_count += 1
+                    self.block_redraw()
                     import traceback
                     session.logger.error('Error in drawing scene. Redraw is now stopped.\n\n' +
                                         traceback.format_exc())
                 session.triggers.activate_trigger('frame drawn', self)
+        finally:
+            self.unblock_redraw()
 
         view.frame_number += 1
 
         return changed
 
-    from contextlib import contextmanager
-    @contextmanager
     def block_redraw(self):
         # Avoid redrawing when we are already in the middle of drawing.
         self._block_redraw_count += 1
-        yield
+
+    def unblock_redraw(self):
         self._block_redraw_count -= 1

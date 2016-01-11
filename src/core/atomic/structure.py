@@ -24,13 +24,16 @@ class AtomicStructure(AtomicStructureData, Model):
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  level_of_detail = None, smart_initial_display = True):
         # Cross section coordinates are 2D and counterclockwise
-        from .ribbon import XSection
-        xsc_helix = [( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
-                     (-0.5,-0.1),(0.0,-0.2),( 0.5,-0.1),( 0.6,0.0)]
-        xsc_strand = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
-        xsc_turn = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
-        xsc_arrow_head = [(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]
-        xsc_arrow_tail = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
+        # Use C++ version of XSection instead of Python version
+        from .molobject import RibbonXSection as XSection
+        from numpy import array
+        # from .ribbon import XSection
+        xsc_helix = array([( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
+                           (-0.5,-0.1),(0.0,-0.2),( 0.5,-0.1),( 0.6,0.0)]) * 1.5
+        xsc_strand = array([(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]) * 1.5
+        xsc_turn = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
+        xsc_arrow_head = array([(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]) * 1.5
+        xsc_arrow_tail = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
        
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
@@ -330,7 +333,7 @@ class AtomicStructure(AtomicStructureData, Model):
         p.selected_positions = _selected_bond_cylinders(bond_atoms)
 
     def _create_ribbon_graphics(self):
-        from .ribbon import Ribbon, XSection
+        from .ribbon import Ribbon
         from numpy import concatenate, array, zeros
         polymers = self.polymers(False, False)
         if self._ribbon_drawing is None:
@@ -490,7 +493,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 normal_list.append(s.normals)
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
-                if prev_band:
+                if prev_band is not None:
                     triangle_list.append(xss[i].blend(prev_band, s.front_band))
                     t_end += len(triangle_list[-1])
                 if next_cap:
@@ -520,7 +523,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 normal_list.append(s.normals)
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
-                if prev_band:
+                if prev_band is not None:
                     triangle_list.append(xss[-1].blend(prev_band, s.front_band))
                     t_end += len(triangle_list[-1])
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[-1])
@@ -580,41 +583,41 @@ class AtomicStructure(AtomicStructureData, Model):
         # Smooth helices
         ss_ids = rlist.ss_ids
         helices = rlist.is_helix
-        for start, end in self._ss_ranges(helices, ss_ids, 8):
-            # We only "optimize" longer helices because short
-            # ones do not contain enough information to do
-            # things intelligently
-            ss_coords = coords[start:end]
-            adjusts = ribbon_adjusts[start:end][:, newaxis]
-            axis, centroid, rel_coords = self._ss_axes(ss_coords)
-            # Compute position of cylinder center corresponding to
-            # helix control point atoms
-            axis_pos = dot(rel_coords, axis)[:, newaxis]
-            cyl_centers = centroid + axis * axis_pos
-            if False:
-                # Debugging code to display center of secondary structure
-                self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
-            # Compute radius of cylinder
-            spokes = ss_coords - cyl_centers
-            cyl_radius = mean(norm(spokes, axis=1))
-            # Compute smoothed position of helix control point atoms
-            ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
-            offsets = adjusts * (ideal - ss_coords)
-            new_coords = ss_coords + offsets
-            # Compute guide atom position relative to control point atom
-            delta_guides = guides[start:end] - ss_coords
-            # Update both control point and guide coordinates
-            coords[start:end] = new_coords
-            # Move the guide location so that it forces the
-            # ribbon parallel to the axis
-            guides[start:end] = new_coords + axis
-            # Originally, we just update the guide location to
-            # the same relative place as before
-            #   guides[start:end] = new_coords + delta_guides
-            # Update the tethered array (we compare against self.bond_radius
-            # because we want to create cones for the "worst" case which is
-            # when the atoms are displayed in stick mode, with radius self.bond_radius)
-            tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+#         for start, end in self._ss_ranges(helices, ss_ids, 8):
+#             # We only "optimize" longer helices because short
+#             # ones do not contain enough information to do
+#             # things intelligently
+#             ss_coords = coords[start:end]
+#             adjusts = ribbon_adjusts[start:end][:, newaxis]
+#             axis, centroid, rel_coords = self._ss_axes(ss_coords)
+#             # Compute position of cylinder center corresponding to
+#             # helix control point atoms
+#             axis_pos = dot(rel_coords, axis)[:, newaxis]
+#             cyl_centers = centroid + axis * axis_pos
+#             if False:
+#                 # Debugging code to display center of secondary structure
+#                 self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
+#             # Compute radius of cylinder
+#             spokes = ss_coords - cyl_centers
+#             cyl_radius = mean(norm(spokes, axis=1))
+#             # Compute smoothed position of helix control point atoms
+#             ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
+#             offsets = adjusts * (ideal - ss_coords)
+#             new_coords = ss_coords + offsets
+#             # Compute guide atom position relative to control point atom
+#             delta_guides = guides[start:end] - ss_coords
+#             # Update both control point and guide coordinates
+#             coords[start:end] = new_coords
+#             # Move the guide location so that it forces the
+#             # ribbon parallel to the axis
+#             guides[start:end] = new_coords + axis
+#             # Originally, we just update the guide location to
+#             # the same relative place as before
+#             #   guides[start:end] = new_coords + delta_guides
+#             # Update the tethered array (we compare against self.bond_radius
+#             # because we want to create cones for the "worst" case which is
+#             # when the atoms are displayed in stick mode, with radius self.bond_radius)
+#             tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
         # Smooth strands
         strands = logical_and(rlist.is_sheet, logical_not(helices))
         for start, end in self._ss_ranges(strands, ss_ids, 4):
