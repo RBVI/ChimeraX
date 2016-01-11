@@ -380,8 +380,8 @@ class Atoms(Collection):
 
     def delete(self):
         '''Delete the C++ Atom objects'''
-        uptrs = unique(self._c_pointers)
-        c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_size_t])(uptrs, len(uptrs))
+        c_function('atom_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
     def update_ribbon_visibility(self):
         '''Update the 'hide' status for ribbon control point atoms, which
