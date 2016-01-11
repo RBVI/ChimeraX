@@ -53,12 +53,12 @@ def set(session, bg_color=None,
 
     if not had_arg:
         msg = '\n'.join(('Current settings:',
-                         '  bg_color: ' + str(view.background_color),
-                         '  silhouettes: ' + str(view.silhouettes),
-                         '  silhouette width: ' + str(view.silhouette_thickness),
-                         '  silhouette color: ' + str(view.silhouette_color),
-                         '  silhouette depth jump: ' + str(view.silhouette_depth_jump),
-                         '  subdivision: ' + str(session.atomic_level_of_detail.quality)))
+                         '  Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3]),
+                         '  Silhouettes: ' + str(view.silhouettes),
+                         '  Silhouette width: %.3g' % view.silhouette_thickness,
+                         '  Silhouette color: %d,%d,%d' % tuple(100*r for r in view.silhouette_color[:3]),
+                         '  Silhouette depth jump: %.3g' % view.silhouette_depth_jump,
+                         '  Subdivision: %.3g'  % session.atomic_level_of_detail.quality))
         session.logger.info(msg)
 
 
