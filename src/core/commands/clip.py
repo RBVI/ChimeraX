@@ -81,8 +81,8 @@ def adjust_plane(name, offset, origin, normal, planes, view = None, camera_norma
         planes.remove_plane(name)
         return
 
-    if camera_normal is not None:
-        normal = camera.position.apply_without_translation(camera_normal)
+    if camera_normal is not None and view is not None:
+        normal = view.camera.position.apply_without_translation(camera_normal)
 
     p = planes.find_plane(name)
     if p is None:
