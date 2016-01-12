@@ -1225,6 +1225,35 @@ CIFFile::parse_whole_category()
 }
 
 void
+CIFFile::parse_whole_category(ParseValue func)
+{
+	if (current_category.empty())
+		// not category or exhausted values
+		throw error("no values available");
+	if (current_tags.empty())
+		return;
+
+
+	if (!values.empty()) {
+		// values were given per-tag
+		// assert(current_tags.size() == values.size())
+		for (auto& s: values) {
+			const char* start = &s[0];
+			const char* end = start + s.size();
+			func(start, end);
+		}
+		current_tags.clear();
+		return;
+	}
+
+	while (current_token == T_VALUE) {
+		func(current_value_start, current_value_end);
+		next_token();
+	}
+	current_tags.clear();
+}
+
+void
 CIFFile::process_stash()
 {
 	Token last_token = current_token;
