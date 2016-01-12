@@ -49,6 +49,37 @@ class CameraState(State):
 
     def take_snapshot(self, session, flags):
         c = self.camera
+        from .camera import MonoCamera
+        if isinstance(c, MonoCamera):
+            data = {a:getattr(c,a) for a in self.save_attrs}
+        else:
+            # TODO: Restore other camera modes.
+            session.logger.info('"%s" camera not currently saved in sessions' % c.name())
+            data = None
+            
+        return self.version, data
+
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        from .camera import MonoCamera
+        self.camera = c = MonoCamera()
+        if data is not None:
+            for k,v in data.items():
+                setattr(c, k, v)
+
+    def reset_state(self, session):
+        raise NotImplemented()
+
+
+class LightingState(State):
+
+    version = 1
+    save_attrs = ['position', 'field_of_view']
+
+    def __init__(self, camera):
+        self.camera = camera
+
+    def take_snapshot(self, session, flags):
+        c = self.camera
         data = {a:getattr(c,a) for a in self.save_attrs}
         return self.version, data
 
