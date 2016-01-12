@@ -1,117 +1,96 @@
 # Session save/restore of graphics state
 
-from ..state import State, CORE_STATE_VERSION
+from ..state import State
 
 
 class ViewState(State):
 
-    def __init__(self, session, attribute):
-        self.view_attr = attribute
+    version = 1
+    save_attrs = ['center_of_rotation', 'window_size', 'background_color']
+
+    def __init__(self, view):
+        self.view = view
 
     def take_snapshot(self, session, flags):
-        v = getattr(session, self.view_attr)
-        cs = CameraState(v.camera)
-        data = [self.view_attr, v.center_of_rotation, v.window_size,
-                v.background_color, cs.take_snapshot(session, flags)]
-        return CORE_STATE_VERSION, data
+        v = self.view
+        data = {a:getattr(v,a) for a in self.save_attrs}
+        data['camera_state'] = CameraState(v.camera)
+        return self.version, data
 
     def restore_snapshot_init(self, session, bundle_info, version, data):
-        self.view_attr = data[0]
-        v = getattr(session, self.view_attr)
-        (v.center_of_rotation, (width, height), v.background_color) = data[1:4]
+        # Restores session.main_view
+        self.view = v = session.main_view
+        for k,value in data.items():
+            setattr(v, k, value)
+
         # Root drawing had redraw callback set to None.  Restore callback.
         v.drawing.set_redraw_callback(v._drawing_manager)
-        from .camera import MonoCamera
-        v.camera = MonoCamera()
-        cam_version, cam_data = data[4]
-        CameraState(v.camera).restore_snapshot_init(
-            session, bundle_info, cam_version, cam_data)
+
+        # Restore camera
+        cs = data['camera_state']
+        v.camera = cs.camera
+
+        # Restore window size
         from ..commands.windowsize import window_size
+        width, height = v.window_size
         window_size(session, width, height)
 
     def reset_state(self, session):
-        """Reset state to data-less state"""
-        v = getattr(session, self.view_attr)
-        v.center_of_rotation_method = 'front center'
-        # v.window_size = ?
-        v.background_color = (0, 0, 0, 1)
+        pass
 
 
 class CameraState(State):
+
+    version = 1
+    save_attrs = ['position', 'field_of_view']
 
     def __init__(self, camera):
         self.camera = camera
 
     def take_snapshot(self, session, flags):
         c = self.camera
-        data = [c.position, c.field_of_view]
-        return CORE_STATE_VERSION, data
+        data = {a:getattr(c,a) for a in self.save_attrs}
+        return self.version, data
 
     def restore_snapshot_init(self, session, bundle_info, version, data):
-        c = self.camera
-        (c.position, c.field_of_view) = data
+        # TODO: Remember camera mode.
+        from .camera import MonoCamera
+        self.camera = c = MonoCamera()
+        for k,v in data.items():
+            setattr(c, k, v)
 
     def reset_state(self, session):
-        # delay implementing until needed
         raise NotImplemented()
 
 
 class DrawingState(State):
+
+    version = 1
+    save_attrs = ['name', 'vertices', 'triangles', 'normals', 'vertex_colors', 
+                  'triangle_mask', 'edge_mask', 'display_style', 'texture', 
+                  'ambient_texture', 'ambient_texture_transform', 
+                  'use_lighting', 'positions', 'display_positions', 
+                  'selected_positions', 'selected_triangles_mask', 'colors']
 
     def __init__(self, drawing):
         self.drawing = drawing
 
     def take_snapshot(self, session, flags):
         d = self.drawing
-        # all drawing objects should have the same version
-        data = {
-            'children': [c.take_snapshot(session, flags) for c in d.child_drawings()],
-            'name': d.name,
-            'vertices': d.vertices,
-            'triangles': d.triangles,
-            'normals': d.normals,
-            'vertex_colors': d.vertex_colors,
-            'triangle_mask': d._triangle_mask,
-            'edge_mask': d._edge_mask,
-            'display_style': d.display_style,
-            'texture': d.texture,
-            'ambient_texture ': d.ambient_texture,
-            'ambient_texture_transform': d.ambient_texture_transform,
-            'use_lighting': d.use_lighting,
-
-            'positions': d.positions,
-            'display_positions': d.display_positions,
-            'selected_positions': d.selected_positions,
-            'selected_triangles_mask': d.selected_triangles_mask,
-            'colors': d.colors,
-        }
-        return CORE_STATE_VERSION, data
+        data = {a:getattr(d,a) for a in self.save_attrs}
+        data['children'] = [DrawingState(c) for c in d.child_drawings()]
+        return self.version, data
 
     def restore_snapshot_init(self, session, bundle_info, version, data):
+        if not hasattr(self, 'drawing'):
+            from . import Drawing
+            self.drawing = Drawing('')
         d = self.drawing
-        for child_version, child_data in data['children']:
-            child = d.new_drawing()
-            DrawingState(child).restore_snapshot(session, bundle_info, child_version, child_data)
-        d.name = data['name']
-        d.vertices = data['vertices']
-        d.triangles = data['triangles']
-        d.normals = data['normals']
-        d.vertex_colors = data['vertex_colors']
-        d._triangle_mask = data['triangle_mask']
-        d._edge_mask = data['edge_mask']
-        d.display_style = data['display_style']
-        d.texture = data['texture']
-        d.ambient_texture = data['ambient_texture ']
-        d.ambient_texture_transform = data['ambient_texture_transform']
-        d.use_lighting = data['use_lighting']
-
-        d.positions = data['positions']
-        d.display_positions = data['display_positions']
-        d.selected_positions = data['selected_positions']
-        d.selected_triangles_mask = data['selected_triangles_mask']
-        d.colors = data['colors']
+        for k,v in data.items():
+            setattr(d, k, v)
+        for child_state in data['children']:
+            d.add_drawing(child_state.drawing)
 
 
     def reset_state(self, session):
-        # delay implementing until needed
         raise NotImplemented()

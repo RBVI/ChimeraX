@@ -329,7 +329,7 @@ class Session:
         self.main_view = View(self.models.drawing, window_size=(256, 256),
                               trigger_set=self.triggers)
         from .graphics.gsession import ViewState
-        self.add_state_manager('view', ViewState(self, 'main_view'))
+        self.add_state_manager('view', ViewState(self.main_view))
 
         from . import colors
         self.add_state_manager('user_colors', colors.UserColors())
@@ -455,7 +455,9 @@ class Session:
                     obj.restore_snapshot_init(self, bundle_info, cls_version, cls_data)
                     mgr.add_reference(name, obj)
         except:
-            self.logger.error("Unable to restore session, resetting.")
+            import traceback
+            self.logger.error("Unable to restore session, resetting.\n\n%s"
+                              % traceback.format_exc())
             self.reset()
         finally:
             self.triggers.activate_trigger("end restore session", self)

@@ -14,7 +14,9 @@ _class_cache = {}
 # list modules classes are found in
 _class_class_init = {
     'AtomicStructure': '.atomic',
+    'CameraState': '.graphics.gsession',
     'Color': '.colors',
+    'DrawingState': '.graphics.gsession',
     'Generic3DModel': '.generic3d',
     'GridDataState': '.map.session',
     'LevelOfDetail': '.atomic.structure',
