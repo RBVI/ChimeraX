@@ -1,0 +1,110 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: set</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: set</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>set</b>
+[&nbsp;<i>keyword</i>&nbsp;&nbsp;<i>value</i>&nbsp;]<sub><font size="-1">N</font></sub></h3>
+<p>
+</h3>
+<p>
+The <b>set</b> command sets various global parameters. 
+If given without arguments, it reports the current settings in the <b>Log</b>.
+</p>
+<ul>
+<li><a href="#bgColor" class="nounder"><b>bgColor</b></a>
+- background color
+<li><a href="#silhouettes" class="nounder"><b>silhouettes</b></a>
+- whether to outline borders
+<li><a href="#silhouetteColor" class="nounder"><b>silhouetteColor</b></a>
+- outline color
+<li><a href="#silhouetteWidth" class="nounder"><b>silhouetteWidth</b></a>
+- outline thickness
+<li><a href="#silhouetteDepthJump" 
+class="nounder"><b>silhouetteDepthJump</b></a>
+- change in depth needed to trigger drawing an outline
+<li><a href="#subdivision" class="nounder"><b>subdivision</b></a>
+- fineness of facets in stick, balls, spheres
+</ul>
+<p>
+One or more parameters can be specified in a single command. Examples:
+</p>
+<blockquote><b>
+set bg sky blue
+<br>
+set sil true silhouettew 2 
+</b></blockquote>
+<p>
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive options, and
+default values are indicated with <b>bold</b>.
+Synonyms for true: True, 1. Synonyms for false: False, 0.
+</p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="bgColor"><b>set bgColor</b></a> &nbsp;<i>color</i>
+<blockquote>
+Set background color, where <i>color</i> can be
+a <a href="colornames.html">color specification</a> by name, 
+hexadecimal color code, or component values (default <b>black</b>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="silhouettes"><b>set silhouettes</b></a>
+&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<blockquote>
+Whether to show <b><i>silhouettes</i></b>,
+outlines that emphasize borders and discontinuities.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="silhouetteColor"><b>set silhouetteColor</b></a> &nbsp;<i>color</i>
+<blockquote>
+Set silhouette color, where <i>color</i> can be
+a <a href="colornames.html">color specification</a> by name,
+hexadecimal color code, or component values (default <b>black</b>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="silhouetteWidth"><b>set silhouetteWidth</b></a> &nbsp;<i>linewidth</i>
+<blockquote>
+Set silhouette linewidth in pixels (default <b>1</b>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="silhouetteDepthJump"><b>set silhouetteDepthJump</b></a> &nbsp;<i>depth</i>
+<blockquote>
+Set depth change needed to trigger drawing silhouettes
+(default <b>0.03</b> &Aring;).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="subdivision"><b>set subdivision</b></a> &nbsp;<i>level</i>
+<blockquote>
+Set subdivision level, where a higher value increases the apparent smoothness
+of stick, ball-and-stick, and sphere representations by increasing
+the number of planar facets used to approximate them (default <b>1</b>).
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+January 2016</address>
+</body></html> 

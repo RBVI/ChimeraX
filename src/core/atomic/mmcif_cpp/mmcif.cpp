@@ -1,4 +1,5 @@
 // vi: set expandtab ts=4 sw=4:
+#include "_mmcif.h"
 #include "mmcif.h"
 #include <atomstruct/AtomicStructure.h>
 #include <atomstruct/Residue.h>
@@ -1415,5 +1416,105 @@ connect_residue_by_template(Residue* r, const tmpl::Residue* tr)
     }
 }
 
+
+struct ExtractTables: public readcif::CIFFile
+{
+    struct Done: std::exception {};
+    ExtractTables(const StringVector& categories);
+    virtual void data_block(const string& name);
+    void parse_category();
+
+    PyObject* data;
+};
+
+ExtractTables::ExtractTables(const StringVector& categories):
+    data(NULL)
+{
+    for (auto& c: categories) {
+        register_category(c,
+            [this] () {
+                parse_category();
+            });
+    }
+}
+
+void
+ExtractTables::data_block(const string& /*name*/)
+{
+    // can only handle one data block with categories in it
+    if (data)
+        throw Done();
+}
+
+void
+ExtractTables::parse_category()
+{
+    // this routine leaks memory for the PyStructSequence description
+    if (data == NULL)
+        data = PyDict_New();
+    const string& category = this->category();
+    const StringVector& tags = this->tags();
+    size_t num_tags = tags.size();
+
+    PyObject* fields = PyTuple_New(num_tags);
+    if (fields == NULL)
+        throw wrappy::PythonError();
+    for (size_t i = 0; i < num_tags; ++i) {
+        PyObject* o = wrappy::pyObject(tags[i]);
+        if (o == NULL) {
+            Py_DECREF(fields);
+            throw wrappy::PythonError();
+        }
+        PyTuple_SET_ITEM(fields, i, o);
+    }
+
+    PyObject* items = PyList_New(0);
+    parse_whole_category(
+        [&] (const char* start, const char* end) {
+            PyObject* o = PyUnicode_DecodeUTF8(start, end - start, "replace");
+            if (o == NULL || PyList_Append(items, o) < 0) {
+                Py_XDECREF(o);
+                Py_DECREF(fields);
+                Py_DECREF(items);
+                throw wrappy::PythonError();
+            }
+        });
+
+    PyObject* field_items = PyTuple_New(2);
+    if (field_items == NULL) {
+        Py_DECREF(fields);
+        Py_DECREF(items);
+        throw wrappy::PythonError();
+    }
+    PyTuple_SET_ITEM(field_items, 0, fields);
+    PyTuple_SET_ITEM(field_items, 1, items);
+
+    PyObject* o = wrappy::pyObject(category);
+    if (o == NULL) {
+        Py_DECREF(field_items);
+        throw wrappy::PythonError();
+    }
+    if (PyDict_SetItem(data, o, field_items) < 0) {
+        Py_DECREF(field_items);
+        throw wrappy::PythonError();
+    }
+}
+
+
+PyObject*
+extract_mmCIF_tables(const char* filename,
+                     const std::vector<std::string> &categories)
+{
+#ifdef CLOCK_PROFILING
+    ClockProfile p("extract_mmCIF tables");
+#endif
+    ExtractTables extract(categories);
+    try {
+        extract.parse_file(filename);
+    } catch (ExtractTables::Done&) {
+        // normal early termination
+    }
+    return extract.data;
+}
 
 } // namespace mmcif

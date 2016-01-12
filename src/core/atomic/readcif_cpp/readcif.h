@@ -182,6 +182,9 @@ public:
     // Return complete contents of a category as a vector of strings.
     StringVector& parse_whole_category();
 
+    // Tokenize complete contents of category and Call func for each item in it
+    void parse_whole_category(ParseValue func);
+
     // Return current category.
     const std::string& category() const;
 
