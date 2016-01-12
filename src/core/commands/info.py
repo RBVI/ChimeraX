@@ -18,7 +18,15 @@ def info(session, models=None):
     msort = list(models)
     msort.sort(key = lambda m: m.id)
     for m in msort:
-        line = '#%s, %s' % (m.id_string(), m.name)
+        disp = 'shown' if m.display else 'hidden'
+        line = '#%s, %s, %s' % (m.id_string(), m.name, disp)
+        if m.triangles is not None:
+            line += ', %d triangles' % len(m.triangles)
+        b = m.bounds()
+        if b is None:
+            line += ', no bounding box'
+        else:
+            line += ', bounds %.3g,%.3g,%.3g to ' % b.xyz_min + '%.3g,%.3g,%.3g' % b.xyz_max
         npos = len(m.positions)
         if npos > 1:
             line += ', %d instances' % npos
