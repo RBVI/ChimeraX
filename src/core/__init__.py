@@ -17,6 +17,7 @@ _class_class_init = {
     'Color': '.colors',
     'Generic3DModel': '.generic3d',
     'GridDataState': '.map.session',
+    'LevelOfDetail': '.atomic.structure',
     'Model': '.models',
     'Models': '.models',
     'MolecularSurface': '.atomic',

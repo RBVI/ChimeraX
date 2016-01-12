@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 from .. import io
 from ..models import Model
+from ..state import State
 from ..session import RestoreError
 from .molobject import AtomicStructureData
 
@@ -26,6 +27,7 @@ class AtomicStructure(AtomicStructureData, Model):
         # Cross section coordinates are 2D and counterclockwise
         # Use C++ version of XSection instead of Python version
         from .molobject import RibbonXSection as XSection
+        from .molarray import Residues
         from numpy import array
         # from .ribbon import XSection
         xsc_helix = array([( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
@@ -41,50 +43,48 @@ class AtomicStructure(AtomicStructureData, Model):
             'bond_radius': 0.2,
             'pseudobond_radius': 0.05,
             '_level_of_detail': LevelOfDetail() if level_of_detail is None else level_of_detail,
-
-            '_atoms_drawing': None,
-            '_bonds_drawing': None,
-            '_pseudobond_group_drawings': {},    # Map PseudobondGroup to drawing
-            '_cached_atom_bounds': None,
-            '_atom_bounds_needs_update': True,
-
-            '_ribbon_drawing': None,
-            '_ribbon_t2r': {},         # ribbon triangles-to-residue map
-            '_ribbon_r2t': {},         # ribbon residue-to-triangles map
-            '_ribbon_tether': [],      # ribbon tethers from ribbon to floating atoms
-            '_ribbon_xs_helix': XSection(xsc_helix, faceted=False),
-            '_ribbon_xs_strand': XSection(xsc_strand, faceted=True),
-            '_ribbon_xs_strand_start': XSection(xsc_turn, xsc_strand, faceted=True),
-            '_ribbon_xs_turn': XSection(xsc_turn, faceted=True),
-            '_ribbon_xs_arrow': XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True),
-            '_ribbon_selected_residues': set(),
+            #'_ribbon_selected_residues': Residues(),
         }
-        # for now, restore attrs to default initial values even for sessions...
-        for attr_name, val in self._session_attrs.items():
-            setattr(self, attr_name, val)
-        #RIBBON: move the above loop into the "else:" block below
 
         if restore_data:
             # from session
             (tool_info, version, as_data) = restore_data
-            model_data, c_data = as_data
-            #RIBBON: change the above line to:
-            #model_data, python_data, c_data = as_data
-            #for attr_name, default_val in self._session_attrs.items():
-            #    setattr(self, attr_name, python_data.get(attr_name, default_val))
+            model_data, python_data, c_data = as_data
             #
             # Model will attempt to restore self.name, which is a property of the C++
             # layer for an AtomicStructure, so initialize AtomicStructureData first...
             AtomicStructureData.__init__(self, logger=session.logger)
+            for attr_name, default_val in self._session_attrs.items():
+                setattr(self, attr_name, python_data.get(attr_name, default_val))
             Model.restore_snapshot_init(self, session, tool_info, *model_data)
             #as_version, ints, floats, misc = c_data
             self.session_restore(*c_data)
             self._smart_initial_display = False
         else:
-            #RIBBON: move the loop noted above here
             AtomicStructureData.__init__(self, c_pointer)
+            for attr_name, val in self._session_attrs.items():
+                setattr(self, attr_name, val)
             Model.__init__(self, name, session)
             self._smart_initial_display = smart_initial_display
+
+        # for now, restore attrs to default initial values even for sessions...
+        self._atoms_drawing = None
+        self._bonds_drawing = None
+        self._pseudobond_group_drawings = {}    # Map PseudobondGroup to drawing
+        self._cached_atom_bounds = None
+        self._atom_bounds_needs_update = True
+        self._ribbon_drawing = None
+        self._ribbon_t2r = {}         # ribbon triangles-to-residue map
+        self._ribbon_r2t = {}         # ribbon residue-to-triangles map
+        self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
+        self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
+        self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
+        self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
+        self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
+        self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
+        # TODO: move back into _session_attrs when Collection instances
+        # handle session saving/restoring
+        self._ribbon_selected_residues = Residues()
 
         from . import molobject
         molobject.add_to_object_map(self)
@@ -184,8 +184,7 @@ class AtomicStructure(AtomicStructureData, Model):
         as_version = self.session_info(ints, floats, misc)
         return CORE_STATE_VERSION, [
             Model.take_snapshot(self, session, flags),
-            #RIBBON: uncomment this:
-            #{ attr_name: getattr(self, attr_name) for attr_name in self._session_attrs.keys() },
+            { attr_name: getattr(self, attr_name) for attr_name in self._session_attrs.keys() },
             (as_version, ints, floats, misc)
         ]
 
@@ -704,12 +703,15 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _update_ribbon_graphics(self):
         # Set selected ribbons in graphics
+        from .molarray import Residues
         atoms = self.atoms
         if atoms.num_selected > 0:
-            rsel = set([r for r in atoms.filter(atoms.selected).unique_residues
-                        if r in self._ribbon_r2t])
+            residues = atoms.filter(atoms.selected).unique_residues
+            from numpy import array
+            mask = array([r in self._ribbon_r2t for r in residues], dtype=bool)
+            rsel = residues.filter(mask)
         else:
-            rsel = set()
+            rsel = Residues()
         hide = self._ribbon_selected_residues - rsel
         keep = self._ribbon_selected_residues & rsel
         show = rsel - self._ribbon_selected_residues
@@ -969,7 +971,7 @@ class AtomicStructure(AtomicStructureData, Model):
         Selecting a residue is equivalent to select all the residue atoms.
         '''
         if toggle:
-            selected = residue not in self._ribbon_selected_residues
+            selected = self._ribbon_selected_residues.index(residue) < 0
         self.select_atoms(residue.atoms, toggle=False, selected=selected)
 
     def selected_items(self, itype):
@@ -1167,10 +1169,13 @@ class AtomicStructure(AtomicStructureData, Model):
 
 # -----------------------------------------------------------------------------
 #
-class LevelOfDetail:
+class LevelOfDetail(State):
 
-    def __init__(self):
-        self.quality = 1
+    def __init__(self, restore_data=None):
+        if restore_data is not None:
+            self.quality = restore_data[0]
+        else:
+            self.quality = 1
 
         self._atom_min_triangles = 10
         self._atom_max_triangles = 400
@@ -1184,6 +1189,15 @@ class LevelOfDetail:
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
         self._ribbon_divisions = 10
+
+    def take_snapshot(self, session, flags):
+        return 1, [self.quality]
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        self.__init__(restore_data=data)
+
+    def reset_state(self):
+        self.quality = 1
 
     def set_atom_sphere_geometry(self, natoms, drawing):
         if natoms == 0:
