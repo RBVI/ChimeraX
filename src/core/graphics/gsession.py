@@ -79,16 +79,11 @@ class DrawingState(State):
             'ambient_texture_transform': d.ambient_texture_transform,
             'use_lighting': d.use_lighting,
 
-            'display': d.display,
-            'display_positions': d.display_positions,
-            'selected': d.selected,
-            'selected_positions': d.selected_positions,
-            'position': d.position,
             'positions': d.positions,
+            'display_positions': d.display_positions,
+            'selected_positions': d.selected_positions,
             'selected_triangles_mask': d.selected_triangles_mask,
-            'color': d.color,
             'colors': d.colors,
-            'geometry': d.geometry,
         }
         return CORE_STATE_VERSION, data
 
@@ -110,16 +105,12 @@ class DrawingState(State):
         d.ambient_texture_transform = data['ambient_texture_transform']
         d.use_lighting = data['use_lighting']
 
-        d.display = data['display']
-        d.selected = data['selected']
-        d.position = data['position']
         d.positions = data['positions']
-        d.selected_triangles_mask = data['selected_triangles_mask']
-        d.color = data['color']
-        d.colors = data['colors']
-        d.geometry = data['geometry']
         d.display_positions = data['display_positions']
         d.selected_positions = data['selected_positions']
+        d.selected_triangles_mask = data['selected_triangles_mask']
+        d.colors = data['colors']
+
 
     def reset_state(self, session):
         # delay implementing until needed
