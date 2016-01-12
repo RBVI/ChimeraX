@@ -19,7 +19,7 @@ def fetch_file(session, url, name, save_name, save_dir, uncompress = False,
     request = Request(url, unverifiable=True, headers=headers)
     try:
         retrieve_cached_url(request, filename, uncompress=uncompress, logger=session.logger,
-                            check_certificates=check_certificates)
+                            check_certificates=check_certificates, name=name)
     except URLError as e:
         from .errors import UserError
         raise UserError('Fetching url %s failed:\n%s' % (url,str(e)))
@@ -28,11 +28,12 @@ def fetch_file(session, url, name, save_name, save_dir, uncompress = False,
 # -----------------------------------------------------------------------------
 #
 def retrieve_cached_url(request, filename, logger=None,
-                        uncompress=False, update=False, check_certificates=True):
+                        uncompress=False, update=False, check_certificates=True, name=None):
     """Return requested URL in (cached) filename
 
     :param request: a :py:class:`urlib.request.Request`
     :param filename: where to cache the URL
+    :param name: string to use to identify the data in status messages
     :returns: the filename if successful
     :raises urllib.request.URLError: if unsuccessful
 
@@ -44,13 +45,14 @@ def retrieve_cached_url(request, filename, logger=None,
     save the URL in the filename, and set the file's modified date to
     the HTTP last modified date, and return the filename.
     """
-    # Last-Modified: Mon, 19 Sep 2011 22:46:21 GMT
     import os
+    if name is None:
+        name = os.path.basename(filename)
     from urllib.request import urlopen
     last_modified = None
     if update and os.path.exists(filename):
         if logger:
-            logger.status('check for newer version of %s' % filename)
+            logger.status('check for newer version of %s' % name, secondary=True)
         info = os.stat(filename)
         request.method = 'HEAD'
         with urlopen(request) as response:
@@ -61,9 +63,9 @@ def retrieve_cached_url(request, filename, logger=None,
         if last_modified is None or last_modified <= info.st_mtime:
             return filename
         request.method = 'GET'
+    if logger:
+        logger.status('fetching %s' % name, secondary=True)
     try:
-        if logger:
-            logger.status('fetching %s' % filename)
         request.headers['Accept-encoding'] = 'gzip, identity'
         if check_certificates:
             ssl_context = None
@@ -86,10 +88,14 @@ def retrieve_cached_url(request, filename, logger=None,
                         shutil.copyfileobj(response, f)
         if last_modified is not None:
             os.utime(filename, (last_modified, last_modified))
+        if logger:
+            logger.status('%s fetched' % name, secondary=True, blank_after=5)
         return filename
     except:
         if os.path.exists(filename):
             os.remove(filename)
+        if logger:
+            logger.status('Error fetching %s' % name, secondary=True, blank_after=15)
         raise
 
 # -----------------------------------------------------------------------------
