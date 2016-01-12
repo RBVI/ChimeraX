@@ -209,6 +209,12 @@ pyObject(char const* _x)
 }
 
 template <> inline PyObject*
+pyObject(char* _x)
+{
+	return pyObject(const_cast<char const*>(_x));
+}
+
+template <> inline PyObject*
 pyObject(std::string _x) { return PyUnicode_DecodeUTF8(_x.data(), _x.size(), "replace"); }
 
 template <> inline PyObject*
