@@ -6,7 +6,10 @@ from ..state import State
 class ViewState(State):
 
     version = 1
-    save_attrs = ['center_of_rotation', 'window_size', 'background_color']
+    save_attrs = ['center_of_rotation', 'window_size', 'background_color',
+                  'shadows', 'multishadow',
+                  'silhouettes', 'silhouette_thickness', 'silhouette_color',
+                  'silhouette_depth_jump']
 
     def __init__(self, view):
         self.view = view
@@ -15,6 +18,7 @@ class ViewState(State):
         v = self.view
         data = {a:getattr(v,a) for a in self.save_attrs}
         data['camera_state'] = CameraState(v.camera)
+        data['lighting_state'] = LightingState(v.lighting)
         return self.version, data
 
     def restore_snapshot_init(self, session, bundle_info, version, data):
@@ -29,6 +33,10 @@ class ViewState(State):
         # Restore camera
         cs = data['camera_state']
         v.camera = cs.camera
+
+        # Restore lighting
+        ls = data['lighting_state']
+        v.lighting = ls.lighting
 
         # Restore window size
         from ..commands.windowsize import window_size
@@ -73,22 +81,33 @@ class CameraState(State):
 class LightingState(State):
 
     version = 1
-    save_attrs = ['position', 'field_of_view']
-
-    def __init__(self, camera):
-        self.camera = camera
+    save_attrs = [
+        'key_light_direction',
+        'key_light_color',
+        'key_light_intensity',
+        'fill_light_direction',
+        'fill_light_color',
+        'fill_light_intensity',
+        'ambient_light_color',
+        'ambient_light_intensity',
+        'depth_cue_start',
+        'depth_cue_end',
+        'depth_cue_color',
+        'move_lights_with_camera',
+        ]
+    def __init__(self, lighting):
+        self.lighting = lighting
 
     def take_snapshot(self, session, flags):
-        c = self.camera
-        data = {a:getattr(c,a) for a in self.save_attrs}
+        l = self.lighting
+        data = {a:getattr(l,a) for a in self.save_attrs}
         return self.version, data
 
     def restore_snapshot_init(self, session, bundle_info, version, data):
-        # TODO: Remember camera mode.
-        from .camera import MonoCamera
-        self.camera = c = MonoCamera()
+        from . import Lighting
+        self.lighting = l = Lighting()
         for k,v in data.items():
-            setattr(c, k, v)
+            setattr(l, k, v)
 
     def reset_state(self, session):
         raise NotImplemented()
