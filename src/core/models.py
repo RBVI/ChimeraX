@@ -143,6 +143,8 @@ class Models(State):
             self._models = {}
         to_add = []
         for id, model in data.items():
+            if model is None:
+                continue    # eg., in case Volume model can't be restored
             if id is None:
                 self.drawing = model
                 continue

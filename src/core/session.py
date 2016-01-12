@@ -208,7 +208,10 @@ class _SaveManager:
     def process(self, obj):
         self._found_objs = []
         if isinstance(obj, State):
+            # TODO: if data is None or exception, log failure
             data = obj.take_snapshot(self.session, self.state_flags)
+            if data is None:
+                raise RuntimeError('missing data to restore %s instance' % obj.__class__.__name__)
         else:
             data = obj
         return copy_state(data, convert=self._add_obj)
