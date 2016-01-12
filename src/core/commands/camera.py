@@ -26,22 +26,23 @@ def camera(session, type=None, field_of_view=None,
     has_arg = False
     if type is not None:
         has_arg = True
+        camera = None
         if type == 'mono':
             from ..graphics import MonoCamera
-            view.camera = MonoCamera()
+            camera = MonoCamera()
         elif type == 'ortho':
             from ..graphics import OrthographicCamera
             w = view.camera.view_width(view.center_of_rotation)
-            view.camera = OrthographicCamera(w)
+            camera = OrthographicCamera(w)
         elif type == '360':
             from ..graphics import Mono360Camera
-            view.camera = Mono360Camera()
+            camera = Mono360Camera()
         elif type == '360s' or type == '360tb':
             from ..graphics import Stereo360Camera
-            view.camera = Stereo360Camera()
+            camera = Stereo360Camera()
         elif type == '360sbs':
             from ..graphics import Stereo360Camera
-            view.camera = Stereo360Camera(layout = 'side-by-side')
+            camera = Stereo360Camera(layout = 'side-by-side')
         elif type == 'stereo':
             if not getattr(session.ui, 'have_stereo', False):
                 from ..errors import UserError
@@ -49,13 +50,17 @@ def camera(session, type=None, field_of_view=None,
                                 ('\nUse --stereo command-line option'
                                  if not session.ui.stereo else ''))
             from ..graphics import StereoCamera
-            view.camera = StereoCamera()
+            camera = StereoCamera()
         elif type == 'sbs':
             from ..graphics import SplitStereoCamera
-            view.camera = SplitStereoCamera()
+            camera = SplitStereoCamera()
         elif type == 'tb':
             from ..graphics import SplitStereoCamera
-            view.camera = SplitStereoCamera(layout = 'top-bottom')
+            camera = SplitStereoCamera(layout = 'top-bottom')
+
+        if camera is not None:
+            camera.position = view.camera.position  # Preserve current camera position
+            view.camera = camera
 
     cam = session.main_view.camera
     if field_of_view is not None:

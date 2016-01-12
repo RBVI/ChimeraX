@@ -122,7 +122,6 @@ class View:
     def _set_camera(self, camera):
         c = self._camera
         c.clear_special_render_modes(self._render)
-        camera.position = c.position
         self._camera = camera
         camera.set_special_render_modes(self._render)
         self.redraw_needed = True
