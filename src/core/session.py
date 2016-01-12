@@ -429,28 +429,33 @@ class Session:
         bundle_infos = serialize.deserialize(stream)
         mgr.check_tools(self, bundle_infos)
 
-        self.reset()
         self.triggers.activate_trigger("begin restore session", self)
-        if metadata is not None:
-            self.metadata.update(metadata)
-        while True:
-            name = serialize.deserialize(stream)
-            if name is None:
-                break
-            data = serialize.deserialize(stream)
-            data = mgr.resolve_references(data)
-            if isinstance(name, str):
-                self.add_state_manager(name, data)
-            else:
-                # _UniqueName: find class
-                bundle_info, cls = name.bundle_info_and_class_of(self)
-                if cls is None:
-                    continue
-                cls_version, cls_data = data
-                obj = cls.restore_snapshot_new(self, bundle_info, cls_version, cls_data)
-                obj.restore_snapshot_init(self, bundle_info, cls_version, cls_data)
-                mgr.add_reference(name, obj)
-        self.triggers.activate_trigger("end restore session", self)
+        try:
+            self.reset()
+            if metadata is not None:
+                self.metadata.update(metadata)
+            while True:
+                name = serialize.deserialize(stream)
+                if name is None:
+                    break
+                data = serialize.deserialize(stream)
+                data = mgr.resolve_references(data)
+                if isinstance(name, str):
+                    self.add_state_manager(name, data)
+                else:
+                    # _UniqueName: find class
+                    bundle_info, cls = name.bundle_info_and_class_of(self)
+                    if cls is None:
+                        continue
+                    cls_version, cls_data = data
+                    obj = cls.restore_snapshot_new(self, bundle_info, cls_version, cls_data)
+                    obj.restore_snapshot_init(self, bundle_info, cls_version, cls_data)
+                    mgr.add_reference(name, obj)
+        except:
+            self.logger.error("Unable to restore session, resetting.")
+            self.reset()
+        finally:
+            self.triggers.activate_trigger("end restore session", self)
 
     def read_metadata(self, stream, skip_version=False):
         """Deserialize session metadata from stream."""
