@@ -269,9 +269,15 @@ class View:
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
 
-    def lighting(self):
-        '''Lighting parameters.'''
+    def get_lighting(self):
         return self._render.lighting
+
+    def set_lighting(self, lighting):
+        self._render.lighting = lighting
+        self.redraw_needed = True
+
+    lighting = property(get_lighting, set_lighting)
+    '''Lighting parameters.'''
 
     def material(self):
         '''Material reflectivity parameters.'''

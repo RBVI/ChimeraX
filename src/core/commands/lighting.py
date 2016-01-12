@@ -75,7 +75,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
       larger bias is needed than for directional shadows.  Initial value 0.05.
     '''
     v = session.main_view
-    lp = v.lighting()
+    lp = v.lighting
 
     if len([opt for opt in (preset, direction, intensity, color, fill_direction, fill_intensity, fill_color,
                             ambient_intensity, ambient_color, depth_cue, depth_cue_start, depth_cue_end,
