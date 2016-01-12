@@ -1,5 +1,5 @@
---- _mmcif.cpp.orig	2015-08-20 16:53:59.908863108 -0700
-+++ _mmcif.cpp	2015-08-20 17:00:34.744679789 -0700
+--- _mmcif.cpp.orig	2016-01-07 16:15:37.458556028 -0800
++++ _mmcif.cpp	2016-01-07 16:29:44.351886900 -0800
 @@ -61,6 +61,26 @@
  	}
  }
@@ -25,9 +25,22 @@
 +}
 +
  static PyObject*
- _mmcif_load_mmCIF_templates(PyObject*, PyObject* _ptArg)
+ _mmcif_extract_mmCIF_tables(PyObject*, PyObject* _args)
  {
-@@ -118,9 +138,9 @@
+@@ -72,9 +92,9 @@
+ 		if (!PyUnicode_Check(_ptArg1))
+ 			throw std::invalid_argument("argument 1 should be a str");
+ 		std::string cppArg1 = wrappy::PythonUnicode_AsCppString(_ptArg1);
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 2 should be a list of str");
+-		const std::vector<std::string>& cppArg2 = ?TODO?;
++		std::vector<std::string> cppArg2;
++		if (!sequence_to_vector_string(_ptArg2, &cppArg2))
++			throw std::invalid_argument("argument 2 should be a sequence of str");
+ 		PyObject* _result = extract_mmCIF_tables(cppArg1.c_str(), cppArg2);
+ 		return _result;
+ 	} catch (...) {
+@@ -142,9 +162,9 @@
  			return NULL;
  		try {
  			const unsigned char* cppArg1 = reinterpret_cast<unsigned char*>(_ptArg1.buf);
@@ -40,7 +53,7 @@
  			PyObject* cppArg3 = _ptArg3;
  			PyObject* _result = parse_mmCIF_buffer(cppArg1, cppArg2, cppArg3);
  			PyBuffer_Release(&_ptArg1);
-@@ -180,9 +200,9 @@
+@@ -204,9 +224,9 @@
  			if (!PyUnicode_Check(_ptArg1))
  				throw std::invalid_argument("argument 1 should be a str");
  			std::string cppArg1 = wrappy::PythonUnicode_AsCppString(_ptArg1);

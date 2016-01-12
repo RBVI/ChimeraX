@@ -1,6 +1,6 @@
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015 Regents of the University of California.
+Copyright (c) 2015-2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
@@ -26,6 +26,9 @@ class="clRight" alt="ChimeraX logo"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>select</b> (&nbsp;add&nbsp;|&nbsp;subtract&nbsp;|&nbsp;intersect&nbsp;) 
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>~select</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a></h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>select</b> clear
@@ -64,6 +67,9 @@ replacing any previous selection.
 Otherwise, <b>select</b> can be used to <b>add</b>, <b>subtract</b>, 
 or <b>intersect</b> the <a href="atomspec.html">specified</a> items
 with the current selection, or to <b>clear</b> it by deselecting everything.
+The <b>~select</b> command can be used to deselect specified items
+(like <b>select subtract</b>) or with a blank specification
+to deselect everything.
 </p><p>
 Selecting a <a href="surface.html">molecular surface</a>
 automatically also selects the atoms used to define it.
@@ -77,5 +83,5 @@ only the atom(s) directly contributing to that patch are selected.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2015</address>
+January 2016</address>
 </body></html>

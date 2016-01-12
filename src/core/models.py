@@ -143,11 +143,13 @@ class Models(State):
             self._models = {}
         to_add = []
         for id, model in data.items():
+            if model is None:
+                continue    # eg., in case Volume model can't be restored
             if id is None:
                 self.drawing = model
                 continue
             to_add.append(model)
-        self.add(to_add)
+        self.add(to_add, _from_session=True)
 
     def reset_state(self, session):
         models = self._models.values()
@@ -174,7 +176,7 @@ class Models(State):
             models = [m for m in models if isinstance(m,type)]
         return models
 
-    def add(self, models, parent=None, _notify=True):
+    def add(self, models, parent=None, _notify=True, _from_session=False):
         start_count = len(self._models)
 
         d = self.drawing if parent is None else parent
@@ -196,7 +198,7 @@ class Models(State):
             for m in m_all:
                 m.added_to_session(session)
             session.triggers.activate_trigger(ADD_MODELS, m_all)
-            if start_count == 0 and len(self._models) > 0:
+            if not _from_session and start_count == 0 and len(self._models) > 0:
                 v = session.main_view
                 v.initial_camera_view()
                 v.clip_planes.clear()	# Turn off clipping

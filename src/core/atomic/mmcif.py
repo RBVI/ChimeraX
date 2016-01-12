@@ -13,11 +13,11 @@ _builtin_open = open
 _initialized = False
 
 _additional_categories = (
-    'pdbx_struct_assembly',
-    'pdbx_struct_assembly_gen',
-    'pdbx_struct_oper_list',
-    'pdbx_poly_seq_scheme',
-    'pdbx_nonpoly_scheme'
+#    'pdbx_struct_assembly',
+#    'pdbx_struct_assembly_gen',
+#    'pdbx_struct_oper_list',
+#    'pdbx_poly_seq_scheme',
+#    'pdbx_nonpoly_scheme'
 )
 
 
@@ -119,11 +119,27 @@ def register_mmcif_fetch(session):
     fetch.register_fetch(session, 'pdb', fetch_mmcif, 'mmcif',
                          prefixes = ['pdb'], default_format = True)
 
+
 def get_mmcif_tables(model, table_names):
+    from . import _mmcif
+    data = _mmcif.extract_mmCIF_tables(model.filename, table_names)
+    tlist = []
+    for name in table_names:
+        if name not in data:
+            tlist.append(None)
+        else:
+            tags, values_1d = data[name]
+            num_columns = len(tags)
+            slices = [values_1d[i::num_columns] for i in range(num_columns)]
+            values_2d = list(zip(*slices))
+            tlist.append(MMCIFTable(name, tags, values_2d))
+    return tlist
+
+def get_mmcif_tables_from_metadata(model, table_names):
     raw_tables = model.metadata
     tlist = []
     for n in table_names:
-        if n not in raw_tables:
+        if n not in raw_tables or (n + ' data') not in raw_tables:
             tlist.append(None)
         else:
             tags = raw_tables[n]
