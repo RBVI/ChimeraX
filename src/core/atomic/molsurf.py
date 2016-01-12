@@ -4,9 +4,9 @@ molsurf: Compute molecular surfaces
 ===================================
 """
 
-from ..generic3d import Generic3DModel
+from ..models import Model
 
-class MolecularSurface(Generic3DModel):
+class MolecularSurface(Model):
     '''
     A molecular surface computed from a set of atoms.
     This can be a solvent excluded surface which is the
@@ -54,10 +54,12 @@ class MolecularSurface(Generic3DModel):
       triangle edges lie exactly between atoms. This creates less jagged
       edges when showing or coloring patches of surfaces for a subset of atoms.
     '''
+    SESSION_SKIP = True        # TODO: Need session support for saving atom collections.
+
     def __init__(self, session, enclose_atoms, show_atoms, probe_radius, grid_spacing,
                  resolution, level, name, color, visible_patches, sharp_boundaries):
         
-        Generic3DModel.__init__(self, name, session)
+        Model.__init__(self, name, session)
 
         self.atoms = enclose_atoms
         self.show_atoms = show_atoms	# Atoms for surface patch to show
