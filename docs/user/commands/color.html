@@ -1,6 +1,6 @@
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015 Regents of the University of California.
+Copyright (c) 2015-2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
@@ -30,15 +30,12 @@ class="clRight" alt="ChimeraX logo"/></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>color</b>
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a>
-&nbsp;<b>sequential chains</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+&nbsp;<b>sequential</b> (&nbsp;residues&nbsp;|&nbsp;chains&nbsp;)
+[&nbsp;cmap&nbsp;&nbsp;<a href="#cmap-options"><i>colormap</i></a>&nbsp;]
 [&nbsp;transparency&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<a href="#target">target</a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;halfbond&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;cmap&nbsp;&nbsp;<a href="#cmap-options"><i>colormap</i></a>&nbsp;]
-<!--
-<span class="nowrap">[&nbsp;cmap&nbsp;&nbsp;<i>palette</i>&nbsp;|&nbsp;<i>color-list</i>&nbsp;|&nbsp;<i>value-color-list</i>&nbsp;|&nbsp;<i>colourlovers-id</i>&nbsp;]</span>
--->
 </h3>
 <p>
 The <b>color</b> command colors atomic models, including
@@ -61,8 +58,7 @@ Subcommands:
 - forget user-defined color names
 </ul>
 <p>
-Keywords can be truncated to unique strings; for example, <b>seq ch</b>
-can be used in place of <b>sequential chains</b>.
+Keywords can be truncated to unique strings.
 <!--
 A vertical bar &ldquo;|&rdquo; designates mutually exclusive options, and
 default settings are indicated with <b>bold</b>.
@@ -71,8 +67,8 @@ Synonyms for true: True, 1.  Synonyms for false: False, 0.
 </p><p>
 For simple coloring, the <a name="colorname"><i>colorname</i></a> can be:
 <ul>
-<li><a href="colornames.html">color specification</a> by name,
-hexadecimal color code, or component values in RGB or other color spaces
+<li>a <a href="colornames.html">color specification</a> by name,
+hexadecimal color code, or component values
 <li><a name="byelement"><b>byelement</b> or <b>byatom</b></a>
 - a <a href="colortables.html">color-by-element scheme</a>; only applies to 
 atomic representations and per-atom patches of molecular surfaces
@@ -88,18 +84,21 @@ atomic representations and per-atom patches of molecular surfaces
 <li><a name="bymodel"><b>bymodel</b></a>
 - the <a href="colortables.html#autocolors">initial colors</a> of atomic models
 </ul>
-The <b>sequential chains</b> method applies a range of colors,
-setting a different color for each biopolymer chain in an atomic model.
+The <b>sequential</b> method applies a range of colors
+(a <a href="#cmap-options"><i>colormap</i></a>, default <b>rainbow</b>)
+to items at the specified level:
+<ul>
+<li><b>residues</b> - a different color for each residue in a biopolymer chain
+(always applies to entire chains)
+<li><b>chains</b> - a different color for each biopolymer chain in an 
+atomic model (always applies to entire models)
+</ul>
 Only the biopolymer chains are colored, not ligand and solvent residues,
 even if they have the same chain ID as a biopolymer chain.
-Future <b>sequential</b> sub-options will allow setting a different color
-for each residue or secondary structure element along a chain,
-or for each model.
-Sequential coloring always applies to entire models (not parts of models).
 </p><p>
 The <b>transparency</b> option sets transparency
 to the specified <i>percent</i>, where 0% is completely opaque 
-and 100% is completely transparent.  
+and 100% is completely transparent.
 Existing transparency is not changed unless this option is used or the
 <i>colorname</i> explicitly <a href="colornames.html">specifies</a> 
 alpha (opacity). An alpha value overrides the
@@ -248,24 +247,35 @@ Example <a href="#top"><b>color</b></a> commands:
 </blockquote>
 - color all pseudobonds yellow, but not their flanking atoms
 <blockquote>
-<b>color &nbsp;seq chain &nbsp;targ c</b>
-</blockquote>
-- assign a unique color per chain in each atomic model
-from blue &rarr; red through the rainbow, cartoons only
-<blockquote>
-<b>color #3 &nbsp;seq ch &nbsp;cmap cyan</b>
-</blockquote>
-- color chains in model 3 from a medium cyan through white to dark maroon
+<b>color &nbsp;seq res</b>
 <!--
-<blockquote>
-<b>color &nbsp;sequential res</b>
+<br>&ndash; or &ndash;
+<br><b>rainbow res</b>
+<br>&ndash; or &ndash;
+<br><b>rainbow</b>
+-->
 </blockquote>
-- rainbow-color residues blue &rarr; red in each biopolymer chain
+- rainbow-color residues blue &rarr; red along each biopolymer chain
 <blockquote>
-<b>color &nbsp;seq res &nbsp;target c</b>
+<b>color #3 &nbsp;seq chain &nbsp;cmap cyan</b>
+<!--
+<br>&ndash; or &ndash;
+<br><b>rainbow #3 &nbsp;chain &nbsp;cmap cyan</b>
+-->
 </blockquote>
-- rainbow-color residues blue &rarr; red in each biopolymer chain,
-cartoons only
+- color the chains in model 3 from a medium cyan through white to dark maroon
+<blockquote>
+<b>color &nbsp;seq chain &nbsp;targ c
+&nbsp;cmap cornflowerblue:red:gold</b>
+<!--
+<br>&ndash; or &ndash;
+<br><b>rainbow &nbsp;chain &nbsp;targ c
+&nbsp;cmap cornflowerblue:red:gold</b>
+-->
+</blockquote>
+- color the chains in each atomic model, cartoons only,
+along the range cornflower blue &rarr; red &rarr; gold
+<!--
 <blockquote>
 <b>color /A &nbsp;attribute bfactor &nbsp;target ac &nbsp;residueVal max</b>
 </blockquote>
@@ -335,5 +345,5 @@ A <a href="colornames.html">built-in color name</a> cannot be deleted.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2015</address>
+January 2016</address>
 </body></html>
