@@ -161,7 +161,10 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_SIZE, self.on_size)
 
     def on_paint(self, event):
-        self.view.redraw_needed = True
+        # TODO: Should just mark for redraw so all redraws go through update
+        # loop. But this causes bad flicker when resizing the window by hand.
+#        self.view.redraw_needed = True
+        self.view.draw()
 
     def on_size(self, event):
         wx.CallAfter(self.set_viewport)
