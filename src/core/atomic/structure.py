@@ -368,6 +368,7 @@ class AtomicStructure(AtomicStructureData, Model):
             # display as cylinders and planes, etc.)
             tethered = zeros(len(atoms), bool)
             self._smooth_ribbon(residues, coords, guides, atoms, tethered, p)
+            tethered &= displays
             if False:
                 # Debugging code to display line from control point to guide
                 cp = p.new_drawing(rlist.strs[0] + " control points")
