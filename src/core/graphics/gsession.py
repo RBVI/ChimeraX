@@ -7,7 +7,6 @@ class ViewState(State):
 
     version = 1
     save_attrs = ['center_of_rotation', 'window_size', 'background_color',
-                  'shadows', 'multishadow',
                   'silhouettes', 'silhouette_thickness', 'silhouette_color',
                   'silhouette_depth_jump']
 
@@ -94,6 +93,12 @@ class LightingState(State):
         'depth_cue_end',
         'depth_cue_color',
         'move_lights_with_camera',
+        'shadows',
+        'shadow_map_size',
+        'shadow_depth_bias',
+        'multishadow',
+        'multishadow_map_size',
+        'multishadow_depth_bias',
         ]
     def __init__(self, lighting):
         self.lighting = lighting
