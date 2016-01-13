@@ -374,6 +374,30 @@ class MainWindow(wx.Frame, PlainTextLog):
                 from chimerax.core.commands import run
                 run(ses, 'help sethome help:%s' % t)
             self.Bind(wx.EVT_MENU, cb, item)
+        item = help_menu.Append(wx.ID_ANY, "About UCSF ChimeraX")
+        self.Bind(wx.EVT_MENU, self.about, item)
+
+    def about(self, event):
+        import wx.adv
+        from wx.lib.wordwrap import wordwrap
+        width = 400
+        dc = wx.ClientDC(self)
+        info = wx.adv.AboutDialogInfo()
+        import chimerax, os
+        icon_path = os.path.join(chimerax.app_data_dir, "ChimeraX-icon512.png")
+        if os.path.exists(icon_path):
+            #icon = wx.Icon(icon_path, wx.BITMAP_TYPE_PNG)
+            image = wx.Image(icon_path, wx.BITMAP_TYPE_PNG)
+            image.Rescale(128, 128)
+            info.SetIcon(wx.Icon(wx.Bitmap(image)))
+        info.SetName("UCSF ChimeraX")
+        info.SetVersion("0.1")  # TODO: chimerax.core version
+        info.Description = wordwrap("An application for molecular visualization and analysis, with an emphasis on molecular assemblies.", width, dc)
+        info.Copyright = wordwrap("\N{Copyright Sign} 2016 by the Regents of the University of California.  All Rights Reserved.", width, dc)
+        info.SetWebSite("http://www.rbvi.ucsf.edu/chimerax/", "UCSF ChimeraX home page")
+        info.SetLicense(wordwrap("UCSF ChimeraX is free for non-commercial use.  Contact chimera@cgl.ucsf.edu for other licensing terms.", width, dc))
+
+        wx.adv.AboutBox(info)
 
     def _tool_window_destroy(self, tool_window):
         tool_instance = tool_window.tool_instance
