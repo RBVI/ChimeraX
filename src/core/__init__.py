@@ -20,6 +20,7 @@ _class_class_init = {
     'Generic3DModel': '.generic3d',
     'GridDataState': '.map.session',
     'LevelOfDetail': '.atomic.structure',
+    'LightingState': '.graphics.gsession',
     'Model': '.models',
     'Models': '.models',
     'MolecularSurface': '.atomic',
