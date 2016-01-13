@@ -690,7 +690,10 @@ def show_surface_opaque(session):
     show_surface_transparent(session, alpha = 1)
 
 def toggle_shadows(viewer):
-    viewer.shadows = not viewer.shadows
+    lp = viewer.lighting
+    lp.shadows = not lp.shadows
+    viewer.update_lighting = True
+    viewer.redraw_needed = True
 
 def toggle_silhouettes(viewer):
     viewer.silhouettes = not viewer.silhouettes

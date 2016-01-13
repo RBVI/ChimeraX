@@ -316,6 +316,24 @@ class Render:
         if p is not None and self.SHADER_FRAME_NUMBER & p.capabilities:
             p.set_float('frame_number', f)
 
+    def set_lighting_shader_capabilities(self):
+        lp = self.lighting
+
+        if lp.depth_cue:
+            self.enable_capabilities |= self.SHADER_DEPTH_CUE
+        else:
+            self.enable_capabilities &= ~self.SHADER_DEPTH_CUE
+
+        if lp.shadows:
+            self.enable_capabilities |= self.SHADER_SHADOWS
+        else:
+            self.enable_capabilities &= ~self.SHADER_SHADOWS
+
+        if lp.multishadow > 0:
+            self.enable_capabilities |= self.SHADER_MULTISHADOW
+        else:
+            self.enable_capabilities &= ~self.SHADER_MULTISHADOW
+
     def set_shader_lighting_parameters(self):
         '''Private. Sets shader lighting variables using the lighting
         parameters object given in the contructor.'''
@@ -1138,6 +1156,9 @@ class Lighting:
         self.ambient_light_intensity = 0.4
         '''Ambient light brightness.'''
 
+        self.depth_cue = True
+        "Is depth cuing enabled."
+
         self.depth_cue_start = 0.5
         "Fraction of distance from near to far clip plane where dimming starts."
 
@@ -1145,11 +1166,34 @@ class Lighting:
         "Fraction of distance from near to far clip plane where dimming ends."
 
         self.depth_cue_color = (0, 0, 0)
-        '''Color to fade towards.'''
+        "Color to fade towards."
 
         self.move_lights_with_camera = True
-        '''Whether lights are attached to camera, or fixed in the scene.'''
+        "Whether lights are attached to camera, or fixed in the scene."
 
+        self.shadows = False
+        "Does key light cast shadows."
+
+        self.shadow_map_size = 2048
+        "Size of 2D opengl texture used for casting shadows."
+
+        self.shadow_depth_bias = 0.005
+        "Offset as fraction of scene depth for avoiding surface self-shadowing."
+
+        self.multishadow = 0
+        '''
+        The number of shadows to use for ambient shadowing,
+        for example, 64 or 128.  To turn off ambient shadows specify 0
+        shadows.  Shadows are cast from uniformly distributed directions.
+        This is GPU intensive, each shadow requiring a texture lookup.
+        '''
+
+        self.multishadow_map_size = 128
+        '''Size of 2D opengl texture used for casting ambient shadows.
+        This texture is tiled to hold shadow maps for all directions.'''
+        
+        self.multishadow_depth_bias = 0.05
+        "Offset as fraction of scene depth for avoiding surface ambient self-shadowing."
 
 class Material:
     '''

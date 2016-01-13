@@ -93,11 +93,11 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
             'Ambient intensity: %.5g' % lp.ambient_light_intensity,
             'Ambient color: %d,%d,%d' % tuple(100*r for r in lp.ambient_light_color),
             'Depth cue: %d, start %.5g, end %.5g, color %d,%d,%d'
-              % ((v.depth_cue, lp.depth_cue_start, lp.depth_cue_end) + tuple(100*r for r in lp.depth_cue_color)),
+              % ((lp.depth_cue, lp.depth_cue_start, lp.depth_cue_end) + tuple(100*r for r in lp.depth_cue_color)),
             'Shadow: %s (depth map size %d, depth bias %.5g)'
-              % (v.shadows, v.shadow_map_size, v.shadow_depth_bias),
+              % (lp.shadows, lp.shadow_map_size, lp.shadow_depth_bias),
             'Multishadows: %d (max %d, depth map size %d, depth bias %.5g)'
-              % (v.multishadow, v.max_multishadow(), v.multishadow_map_size, v.multishadow_depth_bias),
+              % (lp.multishadow, v.max_multishadow(), lp.multishadow_map_size, lp.multishadow_depth_bias),
         )
         msg = '\n'.join(lines)
         session.logger.info(msg)
@@ -107,24 +107,24 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     from numpy import array, float32
 
     if preset == 'default' or preset == 'simple':
-        v.shadows = False
-        v.multishadow = 0
+        lp.shadows = False
+        lp.multishadow = 0
         lp.set_default_parameters()
     elif preset == 'full':
-        v.shadows = True
-        v.multishadow = 64
+        lp.shadows = True
+        lp.multishadow = 64
         lp.key_light_intensity = 0.7
         lp.fill_light_intensity = 0.3
         lp.ambient_light_intensity = 1
     elif preset == 'soft':
-        v.shadows = False
-        v.multishadow = 64
+        lp.shadows = False
+        lp.multishadow = 64
         lp.key_light_intensity = 0
         lp.fill_light_intensity = 0
         lp.ambient_light_intensity = 1.5
     elif preset == 'flat':
-        v.shadows = False
-        v.multishadow = 0
+        lp.shadows = False
+        lp.multishadow = 0
         lp.key_light_intensity = 0
         lp.fill_light_intensity = 0
         lp.ambient_light_intensity = 1
@@ -147,7 +147,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     if not ambient_color is None:
         lp.ambient_light_color = ambient_color.rgba[:3]
     if not depth_cue is None:
-        v.depth_cue = depth_cue
+        lp.depth_cue = depth_cue
     if not depth_cue_start is None:
         lp.depth_cue_start = depth_cue_start
     if not depth_cue_end is None:
@@ -157,7 +157,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     if not move_with_camera is None:
         lp.move_lights_with_camera = move_with_camera
     if not shadows is None:
-        v.shadows = shadows
+        lp.shadows = shadows
     if not quality_of_shadows is None:
         sizes = {'normal':2048, 'fine':4096, 'finer':8192, 'coarse':1024}
         if quality_of_shadows in sizes:
@@ -169,15 +169,15 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
                 from ..errors import UserError
                 raise UserError('qualityOfShadows value must be an integer or one of %s'
                                 % ', '.join('%s (%d)' % (nm,s) for nm,s in sizes.items()))
-        v.shadow_map_size = size
+        lp.shadow_map_size = size
     if not depth_bias is None:
-        v.shadow_depth_bias = depth_bias
+        lp.shadow_depth_bias = depth_bias
     if not multi_shadow is None:
-        v.multishadow = multi_shadow
+        lp.multishadow = multi_shadow
     if not ms_map_size is None:
-        v.multishadow_map_size = ms_map_size
+        lp.multishadow_map_size = ms_map_size
     if not ms_depth_bias is None:
-        v.multishadow_depth_bias = ms_depth_bias
+        lp.multishadow_depth_bias = ms_depth_bias
 
     v.update_lighting = True
     v.redraw_needed = True
