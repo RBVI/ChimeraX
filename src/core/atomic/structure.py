@@ -245,7 +245,7 @@ class AtomicStructure(AtomicStructureData, Model):
         # Update graphics
         if c or s or se:
             self._gc_color = self._gc_shape = self._gc_select = False
-            if s:
+            if c or s:
                 self._update_ribbon_tethers()
             self._update_graphics()
             self.redraw_needed(shape_changed = s, selection_changed = se)
