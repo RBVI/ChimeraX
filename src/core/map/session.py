@@ -148,14 +148,14 @@ def grid_data_state(grid_data, session):
 from ..state import State
 class GridDataState(State):
 
+  version = 1
   def __init__(self, grid_data):
     self.grid_data = grid_data
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    from ..state import CORE_STATE_VERSION
     data = state_from_grid_data(self.grid_data)
-    return CORE_STATE_VERSION, data
+    return self.version, data
 
   def restore_snapshot_init(self, session, tool_info, version, data):
     gdcache = {}        # (path, grid_id) -> Grid_Data object
