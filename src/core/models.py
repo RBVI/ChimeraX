@@ -261,7 +261,11 @@ class Models(State):
     def open(self, filenames, id=None, format=None, name=None, **kw):
         from . import io
         session = self._session()  # resolve back reference
-        models, status = io.open_multiple_data(session, filenames, format=format, name=name, **kw)
+        from .logger import Collator
+        with Collator(session.logger, "Summary of problems opening file(s)",
+                                                kw.pop('log_errors', True)):
+            models, status = io.open_multiple_data(session, filenames,
+                format=format, name=name, **kw)
         if status:
             log = session.logger
             log.status(status, log=True)

@@ -27,12 +27,10 @@ def open_mmcif(session, filename, name, *args, **kw):
         # it's really a fetched stream
         filename = filename.name
 
-    log = session.logger
     from . import _mmcif
-    from ..logger import Collator
-    with Collator(log, "Summary of problems reading mmCIF file", kw.pop('log_errors', True)):
-        _mmcif.set_Python_locate_function(lambda name: _get_template(name, session.app_dirs, log))
-        pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, log)
+    _mmcif.set_Python_locate_function(
+        lambda name: _get_template(name, session.app_dirs, session.logger))
+    pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, session.logger)
 
     lod = session.atomic_level_of_detail
     models = [structure.AtomicStructure(session, name = name, c_pointer = p, level_of_detail = lod)
