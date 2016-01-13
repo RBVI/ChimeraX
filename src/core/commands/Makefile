@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/chimerax/core/commands
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/commands
 
-GENSRCS = _atomspec.py
+GENSRCS = _atomspec.py version.py
 PYSRCS = $(wildcard *.py) $(GENSRCS)
 
 all: $(PYOBJS)
@@ -23,6 +23,10 @@ dir:
 
 test_peg:	_atomspec.py
 	$(PYTHON_EXE) _atomspec.py --trace atomspec_test.in atom_specifier
+
+version.py: version.py.in mkversion
+	rm -f version.py
+	$(PYTHON_EXE) mkversion $(TOP) > version.py || rm -f version.py
 
 clean:
 	rm -rf __pycache__ $(GENSRCS)

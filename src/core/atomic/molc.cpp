@@ -2332,7 +2332,6 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
     // b: binormal defined by cross product of two consecutive tangents
     // b_hat: normalized b
     // EPSILON: essentially zero
-    const float EPSILON = 1e-12;
     float n[3] = { n0[0], n0[1], n0[2] };
     float b[3];
     float b_hat[3];
@@ -2340,15 +2339,17 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
         float *ti1 = tangents + (i - 1) * 3;
         float *ti = ti1 + 3;
         cross(ti1, ti, b);
-        float b_len = inner(b, b);
-        if (b_len > EPSILON) {
-            b_len = sqrt(b_len);
+        float b_len = sqrtf(inner(b, b));
+        if (!isnan(b_len)) {
             b_hat[0] = b[0] / b_len;
             b_hat[1] = b[1] / b_len;
             b_hat[2] = b[2] / b_len;
             float c = inner(ti1, ti);
-            float s = sqrt(1 - c*c);
-            _rotate_around(b_hat, c, s, n);
+            if (!isnan(c)) {
+                float s = sqrtf(1 - c*c);
+                if (!isnan(s))
+                    _rotate_around(b_hat, c, s, n);
+            }
         }
         float *ni = normals + i * 3;
         ni[0] = n[0];
@@ -2356,6 +2357,8 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
         ni[2] = n[2];
     }
 }
+
+// #define DEBUG_CONSTRAINED_NORMALS   1
 
 extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end)
 {
@@ -2407,19 +2410,32 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
         twist = acos(inner(n, other_end));
         flipped = true;
     }
+#ifdef DEBUG_CONSTRAINED_NORMALS
+    std::cerr << "total twist " << twist << "\n";
+#endif
     // Compute amount of twist per segment
     float delta = twist / (num_pts - 1);
     float *last_tangent = tangents + (num_pts - 1) * 3;
     float tmp[3];
     if (inner(cross(n, other_end, tmp), last_tangent) < 0)
         delta = -delta;
+#ifdef DEBUG_CONSTRAINED_NORMALS
+    std::cerr << "per step delta " << delta << "\n";
+#endif
     // Apply twist to each normal along path
     for (int i = 1; i != num_pts; ++i) {
         int offset = i * 3;
         float angle = i * delta;
         float c = cos(angle);
         float s = sin(angle);
+#ifdef DEBUG_CONSTRAINED_NORMALS
+        std::cerr << "twist " << i << " angle " << angle << " -> ";
+#endif
         _rotate_around(tangents + offset, c, s, normals + offset);
+#ifdef DEBUG_CONSTRAINED_NORMALS
+        float* n = normals + offset;
+        std::cerr << n[0] << ' ' << n[1] << ' ' << n[2] << '\n';
+#endif
     }
     // Return both computed normals and whether normal ends up
     // 180 degrees from targeted end normal.

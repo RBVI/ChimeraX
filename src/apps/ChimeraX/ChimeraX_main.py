@@ -76,7 +76,7 @@ def parse_arguments(argv):
     opts.stereo = False
     opts.uninstall = False
     opts.use_defaults = False
-    opts.version = 0
+    opts.version = -1
 
     # Will build usage string from list of arguments
     arguments = [
@@ -164,7 +164,7 @@ def parse_arguments(argv):
     if help:
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
-    if opts.version or opts.list_file_types:
+    if opts.version >= 0 or opts.list_file_types:
         opts.gui = False
         opts.silent = True
     return opts, args
@@ -319,31 +319,11 @@ def init(argv, event_loop=True):
     from chimerax.core import tasks
     sess.add_state_manager('tasks', tasks.Tasks(sess, first=True))  # access with sess.tasks
 
-    if opts.version:
-        print("%s: %s" % (app_name, version))
-        if opts.version == 1:
-            return os.EX_OK
-        import pip
-        dists = pip.get_installed_distributions(local_only=True)
-        if not dists:
-            sess.logger.error("no version information available")
-            return os.EX_SOFTWARE
-        dists = list(dists)
-        dists.sort(key=lambda d: d.key)
-        if opts.version == 2:
-            print("Installed tools:")
-        else:
-            print("Installed packages:")
-        for d in dists:
-            key = d.key
-            if opts.version == 2:
-                if not key.startswith('chimerax.'):
-                    continue
-                key = key[len('chimerax.'):]
-            if d.has_version():
-                print("    %s: %s" % (key, d.version))
-            else:
-                print("    %s: unknown" % key)
+    if opts.version >= 0:
+        format = ['terse', 'bundles', 'packages'][opts.version]
+        from chimerax.core.commands import command_function
+        version_cmd = command_function("version")
+        version_cmd(sess, format)
         return os.EX_OK
 
     if opts.list_file_types:
