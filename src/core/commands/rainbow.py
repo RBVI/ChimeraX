@@ -21,5 +21,6 @@ def register_command(session):
                             ('cmap', ColormapArg),
                             ('cmap_range', Or(TupleOf(FloatArg, 2), EnumOf(_CmapRanges))),
                             ('halfbond', BoolArg)],
+                   url='help:user/commands/color.html#rainbow',
                    synopsis="color residues and chains sequentially")
     register('rainbow', desc, rainbow)
