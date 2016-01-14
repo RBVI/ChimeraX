@@ -323,9 +323,9 @@ class Annotation(metaclass=abc.ABCMeta):
     .. py:attribute:: name
 
         Set to textual description of the annotation, including
-        the leading article, *e.g.*, `"a truth value"`.
+        the leading article, *e.g.*, `"an integer"`.
     """
-    name = None  #: article name, *e.g.*, "a truth value"
+    name = None  #: article name, *e.g.*, "an integer"
     url = None  #: URL for help information
 
     def __init__(self, name=None, url=None):
@@ -543,7 +543,7 @@ class DottedTupleOf(Aggregate):
 
 class BoolArg(Annotation):
     """Annotation for boolean literals"""
-    name = "a truth value"
+    name = "true or false"
 
     @staticmethod
     def parse(text, session):
@@ -609,6 +609,7 @@ class StringArg(Annotation):
         token, text, rest = next_token(text)
         return token, text, rest
 
+
 class FileNameArg(Annotation):
     """Base class for Open/SaveFileNameArg"""
     name = "file name"
@@ -621,7 +622,7 @@ class FileNameArg(Annotation):
 
 # In the future when/if "browse" is supported as a file name,
 # Open/SaveFileNameArg may be different.  If/when that time
-# comes, the "name" class attr may also be made more specfic 
+# comes, the "name" class attr may also be made more specfic
 OpenFileNameArg = SaveFileNameArg = OpenFolderNameArg = SaveFolderNameArg = FileNameArg
 
 
@@ -733,7 +734,7 @@ class CenterArg(Annotation):
             except:
                 pass
             else:
-                c = Center(coords = session.main_view.camera.position.origin())
+                c = Center(coords=session.main_view.camera.position.origin())
 
         # Objects
         if c is None:
