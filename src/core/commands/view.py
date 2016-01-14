@@ -125,6 +125,7 @@ def list_views(session):
 def _named_views(session):
     if not hasattr(session, '_named_views'):
         session._named_views = {}
+        session.add_state_manager('named views', NamedViewsState())
     return session._named_views
 
 
@@ -163,6 +164,49 @@ class _View:
                 p = pos[m]
                 if m.positions is not p:
                     m.positions = p
+
+from ..state import State
+class NamedViewState(State):
+    '''Session saving for a named view.'''
+    version = 1
+    save_attrs = [
+        'camera',
+        'clip_planes',
+        'look_at',
+        'positions',
+    ]
+
+    def __init__(self, named_view):
+        self.named_view = named_view		# _View object
+
+    def take_snapshot(self, session, flags):
+        nv = self.named_view
+        data = {a:getattr(nv,a) for a in self.save_attrs}
+        return self.version, data
+
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        self.named_view = nv = _View.__new__(_View)
+        for k,v in data.items():
+            setattr(nv, k, v)
+
+    def reset_state(self, session):
+        raise NotImplemented()
+
+class NamedViewsState(State):
+    '''Session saving for named views.'''
+    version = 1
+    def take_snapshot(self, session, flags):
+        data = {name:NamedViewState(nv) for name,nv in _named_views(session).items()}
+        return self.version, data
+
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        nvs = _named_views(session)
+        nvs.clear()
+        for name,nvstate in data.items():
+            nvs[name] = nvstate.named_view
+
+    def reset_state(self, session):
+        raise NotImplemented()
 
 
 class _InterpolateViews:

@@ -25,6 +25,8 @@ _class_class_init = {
     'Model': '.models',
     'Models': '.models',
     'MolecularSurface': '.atomic',
+    'NamedViewState': '.commands.view',
+    'NamedViewsState': '.commands.view',
     'STLModel': '.stl',
     'Job': '.tasks',
     'Tasks': '.tasks',
