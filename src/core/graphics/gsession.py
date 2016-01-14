@@ -36,6 +36,7 @@ class ViewState(State):
         # Restore lighting
         ls = data['lighting_state']
         v.lighting = ls.lighting
+        v.update_lighting = True
 
         # Restore window size
         from ..commands.windowsize import window_size
