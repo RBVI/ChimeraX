@@ -61,8 +61,8 @@ class CameraState(State):
             data = {a:getattr(c,a) for a in self.save_attrs}
         else:
             # TODO: Restore other camera modes.
-            session.logger.info('"%s" camera not currently saved in sessions' % c.name())
-            data = None
+            session.logger.info('"%s" camera settings not currently saved in sessions' % c.name())
+            data = {'position': c.position}
             
         return self.version, data
 
