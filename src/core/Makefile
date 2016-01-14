@@ -8,6 +8,10 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
 	   map pysupport_cpp surface toolshed ui \
 	   webservices
 
+ifeq ($(OS),Darwin)
+SUBDIRS += mac_util_cpp
+endif
+
 include $(TOP)/mk/subdir.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax/core

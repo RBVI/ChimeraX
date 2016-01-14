@@ -514,7 +514,13 @@ def save(session, filename, **kw):
         if my_open is not None:
             output.close()
 
-
+    # Associate thumbnail image with session file for display by operating system file browser.
+    from . import utils
+    if isinstance(filename, str) and utils.can_set_file_icon():
+        width = height = 512
+        image = session.main_view.image(width, height)
+        utils.set_file_icon(filename, image)
+    
 def dump(session, session_file, output=None):
     """dump contents of session for debugging"""
     from . import serialize
