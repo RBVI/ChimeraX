@@ -15,9 +15,10 @@ from chimerax.core.errors import UserError as MovieError
 class Movie:
 
     def __init__(self, img_fmt=None, img_dir=None, input_pattern=None,
-                 size=None, supersample=0, limit = None, session = None):
+                 size=None, supersample=0, limit = None, verbose = False, session = None):
 
         self.session = session
+        self.verbose = verbose
 
         self.img_fmt = "PNG" if img_fmt is None else img_fmt.upper()
 
@@ -280,7 +281,7 @@ class Movie:
         self.encoder = ffmpeg_encoder(output_file, output_format, output_size, video_codec, pixel_format,
                                       size_restriction, framerate, bit_rate, quality, round_trip,
                                       self.getImgDir(), pattern, self.getFrameCount(), self._notifyStatus,
-                                      self.session)
+                                      self.verbose, self.session)
         self._notifyStatus('Started encoding %d frames' % self.getFrameCount())
 
         class Status_Reporter:
