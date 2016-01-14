@@ -31,6 +31,9 @@ upgrade:
 app-install:	$(APP_PYSITEDIR)/matplotlib
 	$(APP_PIP) install -r app_requirements.txt
 
+app-upgrade:
+	$(APP_PIP) install -U -r app_requirements.txt
+
 $(APP_PYSITEDIR)/matplotlib:
 	LANG=$(LANG) $(APP_PIP) install matplotlib==$(MPL_VERSION)
 	-for p in $(MPL_PATCHES); do \
