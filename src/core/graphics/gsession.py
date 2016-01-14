@@ -18,6 +18,7 @@ class ViewState(State):
         data = {a:getattr(v,a) for a in self.save_attrs}
         data['camera_state'] = CameraState(v.camera)
         data['lighting_state'] = LightingState(v.lighting)
+        data['clip_plane_states'] = [ClipPlaneState(cp) for cp in v.clip_planes.planes()]
         return self.version, data
 
     def restore_snapshot_init(self, session, bundle_info, version, data):
@@ -37,6 +38,9 @@ class ViewState(State):
         ls = data['lighting_state']
         v.lighting = ls.lighting
         v.update_lighting = True
+
+        # Restore clip planes
+        v.clip_planes.replace_planes([cps.clip_plane for cps in data['clip_plane_states']])
 
         # Restore window size
         from ..commands.windowsize import window_size
@@ -114,6 +118,32 @@ class LightingState(State):
         self.lighting = l = Lighting()
         for k,v in data.items():
             setattr(l, k, v)
+
+    def reset_state(self, session):
+        raise NotImplemented()
+
+
+class ClipPlaneState(State):
+
+    version = 1
+    save_attrs = [
+        'name',
+        'normal',
+        'plane_point',
+        'camera_normal',
+    ]
+
+    def __init__(self, clip_plane):
+        self.clip_plane = clip_plane
+
+    def take_snapshot(self, session, flags):
+        cp = self.clip_plane
+        data = {a:getattr(cp,a) for a in self.save_attrs}
+        return self.version, data
+
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        from . import ClipPlane
+        self.clip_plane = ClipPlane(**data)
 
     def reset_state(self, session):
         raise NotImplemented()

@@ -15,6 +15,7 @@ _class_cache = {}
 _class_class_init = {
     'AtomicStructure': '.atomic',
     'CameraState': '.graphics.gsession',
+    'ClipPlaneState': '.graphics.gsession',
     'Color': '.colors',
     'DrawingState': '.graphics.gsession',
     'Generic3DModel': '.generic3d',
