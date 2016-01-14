@@ -121,8 +121,12 @@ class HelpUI(ToolInstance):
             from urllib.parse import unquote
             from chimerax.core.commands import run
             event.Veto()
-            cmd = url.split(':', 1)[1]
-            run(session, unquote(cmd))
+            cmd = unquote(url.split(':', 1)[1])
+            # Insert command in command-line entry field
+            for ti in session.tools.list():
+                if ti.bundle_info.name == 'cmd_line':
+                    ti.cmd_replace(cmd)
+            run(session, cmd)
             return
         # TODO: check if http url is within ChimeraX docs
         # TODO: handle missing doc -- redirect to web server
