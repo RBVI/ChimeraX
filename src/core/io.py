@@ -509,6 +509,9 @@ def open_data(session, filespec, format=None, name=None, **kw):
     if not stream.closed:
         stream.close()
 
+    if filename is not None:
+        session.triggers.activate_trigger('file opened', (filename, models))
+
     if name is None:
         name = dname
     if name is not None:
