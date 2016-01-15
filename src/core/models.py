@@ -261,9 +261,18 @@ class Models(State):
     def open(self, filenames, id=None, format=None, name=None, **kw):
         from . import io
         session = self._session()  # resolve back reference
-        from .logger import Collator
-        with Collator(session.logger, "Summary of problems opening file(s)",
-                                                kw.pop('log_errors', True)):
+        collation_okay = True
+        for fn in filenames:
+            if io.category(io.deduce_format(fn, has_format=format)[0]) == io.SCRIPT:
+                collation_okay = False
+                break
+        if collation_okay:
+            from .logger import Collator
+            with Collator(session.logger, "Summary of problems opening file(s)",
+                                                    kw.pop('log_errors', True)):
+                models, status = io.open_multiple_data(session, filenames,
+                format=format, name=name, **kw)
+        else:
             models, status = io.open_multiple_data(session, filenames,
                 format=format, name=name, **kw)
         if status:
