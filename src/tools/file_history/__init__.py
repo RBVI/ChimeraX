@@ -57,13 +57,12 @@ class FileHistory:
             f[file_path][1] = t
         else:
             f[file_path] = [None, t]
+            # Delay capturing thumbnails until after models added to session.
+            # Smart display style for molecules is only done after model added to session.
+            self._need_thumbnails.append((file_path, models))
+            t = self.session.triggers
+            t.add_handler('frame drawn', self.capture_thumbnails_cb)
         self._save_files = True
-
-        # Delay capturing thumbnails until after models added to session.
-        # Smart display style for molecules is only done after model added to session.
-        self._need_thumbnails.append((file_path, models))
-        t = self.session.triggers
-        t.add_handler('frame drawn', self.capture_thumbnails_cb)
 
     def capture_thumbnails_cb(self, name, data):
         f = self._files
