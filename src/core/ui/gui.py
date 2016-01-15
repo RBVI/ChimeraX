@@ -123,8 +123,11 @@ class UI(wx.App):
         wx.SafeYield()
 
     def quit(self, confirm=True):
-        self.session.logger.status("Exiting ...", blank_after=0)
-        self.session.logger.clear()    # clear logging timers
+        # TODO: This code is not called on Mac when window frame close button
+        # pressed or when Command-Q used to close.  Only called when exit command used.
+        s = self.session
+        s.logger.status("Exiting ...", blank_after=0)
+        s.logger.clear()    # clear logging timers
         self.main_window.close()
 
     def thread_safe(self, func, *args, **kw):
