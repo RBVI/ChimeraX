@@ -72,7 +72,8 @@ def _pseudobond_group_map(a):
 
 # -----------------------------------------------------------------------------
 #
-class Collection:
+from ..state import State
+class Collection(State):
     '''
     Base class of all molecular data collections that provides common
     methods such as length, iteration, indexing with square brackets,
@@ -207,6 +208,15 @@ class Collection:
         All duplicates are removed.'''
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
+
+    def reset_state(self, session):
+        self._pointers = numpy.empty((0,), cptr)
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        raise NotImplementedError(
+            self.__class__.__name__ + " has not implemented restore_snapshot_init")
+    def take_snapshot(self, session, flags):
+        raise NotImplementedError(
+            self.__class__.__name__ + " has not implemented take_snapshot")
 
 def concatenate(collections, object_class = None, remove_duplicates = False):
     '''Concatenate any number of collections returning a new collection.
@@ -389,6 +399,15 @@ class Atoms(Collection):
         f = c_function('atom_update_ribbon_visibility',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
+
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        raise NotImplementedError(
+            self.__class__.__name__ + " has not implemented restore_snapshot_init")
+    def take_snapshot(self, session, flags):
+        from ..state import CORE_STATE_VERSION
+        structures = self.structures
+        return CORE_STATE_VERSION, [structures, array([s.session_atom_to_id(ptr)
+                                            for s, ptr in zip(structures, self._c_pointers)])]
 
 # -----------------------------------------------------------------------------
 #
@@ -758,6 +777,12 @@ class AtomicStructures(AtomicStructureDatas):
     def __init__(self, mol_pointers):
         from . import structure
         Collection.__init__(self, mol_pointers, structure.AtomicStructure, AtomicStructures)
+
+    def restore_snapshot_init(self, session, bundle_info, version, data):
+        raise NotImplementedError(
+            self.__class__.__name__ + " has not implemented restore_snapshot_init")
+    def take_snapshot(self, session, flags):
+        return CORE_STATE_VERSION, [s for s in self]
 
 # -----------------------------------------------------------------------------
 #

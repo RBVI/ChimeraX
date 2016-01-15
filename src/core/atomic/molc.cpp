@@ -1811,6 +1811,30 @@ extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name
     }
 }
 
+extern "C" size_t structure_session_atom_to_id(void *mol, void* atom)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    Atom *a = static_cast<Atom *>(atom);
+    try {
+        return (*m->session_save_atoms)[a];
+    } catch (...) {
+        molc_error();
+        return -1;
+    }
+}
+
+extern "C" size_t structure_session_residue_to_id(void *mol, void* res)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    Residue *r = static_cast<Residue *>(res);
+    try {
+        return (*m->session_save_residues)[r];
+    } catch (...) {
+        molc_error();
+        return -1;
+    }
+}
+
 extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *floats, PyObject *misc)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);

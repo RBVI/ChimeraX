@@ -1,5 +1,5 @@
 from .molobject import Atom, Element, Residue, add_to_object_map, PseudobondManager, ChangeTracker
-from .molarray import Atoms, Pseudobonds, concatenate
+from .molarray import Atoms, AtomicStructures, Pseudobonds, concatenate
 from .structure import AtomicStructure, LevelOfDetail
 from .structure import selected_atoms, all_atoms, all_atomic_structures, structure_atoms, structure_residues
 from .molsurf import buried_area, MolecularSurface, surfaces_with_atoms

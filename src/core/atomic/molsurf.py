@@ -54,7 +54,7 @@ class MolecularSurface(Model):
       triangle edges lie exactly between atoms. This creates less jagged
       edges when showing or coloring patches of surfaces for a subset of atoms.
     '''
-    SESSION_SKIP = True        # TODO: Need session support for saving atom collections.
+    #SESSION_SKIP = True        # TODO: Need session support for saving atom collections.
 
     def __init__(self, session, enclose_atoms, show_atoms, probe_radius, grid_spacing,
                  resolution, level, name, color, visible_patches, sharp_boundaries):
@@ -275,6 +275,11 @@ class MolecularSurface(Model):
         tmask = self._atom_triangle_mask(asel)
         self.selected = (tmask.sum() > 0)
         self.selected_triangles_mask = tmask
+
+    def take_snapshot(self, session, flags):
+        from ..state import CORE_STATE_VERSION
+        print("Saving surface")
+        return CORE_STATE_VERSION, self.atoms
 
 def remove_solvent_ligands_ions(atoms, keep = None):
     '''Remove solvent, ligands and ions unless that removes all atoms

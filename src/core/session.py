@@ -95,7 +95,7 @@ class _UniqueName:
             # double check that class will be able to be restored
             from chimerax.core import get_class
             if obj_cls != get_class(class_name):
-                raise RuntimeError('unable to restore objects of %s class' % class_name)
+                raise RuntimeError('Will not be able to restore objects of %s class' % class_name)
         else:
             class_name = (bundle_info.name, obj_cls.__name__)
             # double check that class will be able to be restored

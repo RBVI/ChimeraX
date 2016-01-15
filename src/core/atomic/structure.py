@@ -177,7 +177,6 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def take_snapshot(self, session, flags):
         from ..state import CORE_STATE_VERSION
-        # TODO: also need to save this class's own state
         ints = []
         floats = []
         misc = []

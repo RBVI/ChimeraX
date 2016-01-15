@@ -507,6 +507,18 @@ class AtomicStructureData:
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
         return object_map(pbg, PseudobondGroupData)
 
+    def session_atom_to_id(self, ptr):
+        '''Map Atom pointer to session ID'''
+        f = c_function('structure_session_atom_to_id',
+                    args = (ctypes.c_void_p, ctypes.c_void_p), ret = size_t)
+        return f(self._c_pointer, ptr)
+
+    def session_residue_to_id(self, ptr):
+        '''Map Residue pointer to session ID'''
+        f = c_function('structure_session_residue_to_id',
+                    args = (ctypes.c_void_p, ctypes.c_void_p), ret = size_t)
+        return f(self._c_pointer, ptr)
+
     def session_info(self, ints, floats, misc):
         '''Gather session info; return version number'''
         f = c_function('structure_session_info',
