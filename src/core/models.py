@@ -262,7 +262,11 @@ class Models(State):
         from . import io
         session = self._session()  # resolve back reference
         collation_okay = True
-        for fn in filenames:
+        if isinstance(filenames, "".__class__):
+            fns = [filenames]
+        else:
+            fns = filenames
+        for fn in fns:
             if io.category(io.deduce_format(fn, has_format=format)[0]) == io.SCRIPT:
                 collation_okay = False
                 break
