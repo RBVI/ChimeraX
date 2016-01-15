@@ -209,14 +209,28 @@ class Collection(State):
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
 
+    STATE_VERSION = 1
     def reset_state(self, session):
         self._pointers = numpy.empty((0,), cptr)
     def restore_snapshot_init(self, session, bundle_info, version, data):
-        raise NotImplementedError(
-            self.__class__.__name__ + " has not implemented restore_snapshot_init")
+        if version > self.STATE_VERSION:
+            raise ValueError("Don't know how to restore Collections from this session"
+                " (session version [{}] > code version [{}]);"
+                " update your ChimeraX".format(version, self.STATE_VERSION))
+        object_class_name, objects_class_name, ptr_data = data
+        exec("from .molobject import {} as object_class".format(object_class_name))
+        exec("objects_class = {}".format(objects_class_name))
+        self.__init__(self.session_restore_pointers(ptr_data), object_class, objects_class)
     def take_snapshot(self, session, flags):
+        print("Saving:", self.STATE_VERSION, (self._object_class,__name__, self._objects_class.__name__, self.session_save_pointers()))
+        return self.STATE_VERSION, (self._object_class,__name__, self._objects_class.__name__,
+            self.session_save_pointers())
+    def session_restore_pointers(self, data):
         raise NotImplementedError(
-            self.__class__.__name__ + " has not implemented take_snapshot")
+            self.__class__.__name__ + " has not implemented session_restore_pointers")
+    def session_save_pointers(self):
+        raise NotImplementedError(
+            self.__class__.__name__ + " has not implemented session_save_pointers")
 
 def concatenate(collections, object_class = None, remove_duplicates = False):
     '''Concatenate any number of collections returning a new collection.
@@ -400,13 +414,11 @@ class Atoms(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        raise NotImplementedError(
-            self.__class__.__name__ + " has not implemented restore_snapshot_init")
-    def take_snapshot(self, session, flags):
-        from ..state import CORE_STATE_VERSION
+    def session_restore_pointers(self, data):
+        return array([s.session_id_to_atom(i) for s, i in zip(data)])
+    def session_save_pointers(self):
         structures = self.structures
-        return CORE_STATE_VERSION, [structures, array([s.session_atom_to_id(ptr)
+        return [structures, array([s.session_atom_to_id(ptr)
                                             for s, ptr in zip(structures, self._c_pointers)])]
 
 # -----------------------------------------------------------------------------
@@ -781,8 +793,10 @@ class AtomicStructures(AtomicStructureDatas):
     def restore_snapshot_init(self, session, bundle_info, version, data):
         raise NotImplementedError(
             self.__class__.__name__ + " has not implemented restore_snapshot_init")
-    def take_snapshot(self, session, flags):
-        return CORE_STATE_VERSION, [s for s in self]
+    def session_restore_pointers(self, data):
+        return array([s._c_pointer for s in data])
+    def session_save_pointers(self):
+        return [s for s in self]
 
 # -----------------------------------------------------------------------------
 #

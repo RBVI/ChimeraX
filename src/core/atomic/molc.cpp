@@ -1823,6 +1823,17 @@ extern "C" size_t structure_session_atom_to_id(void *mol, void* atom)
     }
 }
 
+extern "C" void* structure_session_id_to_atom(void *mol, size_t i)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        return m->atoms()[i];
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" size_t structure_session_residue_to_id(void *mol, void* res)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
