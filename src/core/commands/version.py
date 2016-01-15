@@ -25,9 +25,17 @@ def version(session, format='terse'):
     dists = list(dists)
     dists.sort(key=lambda d: d.key)
     if format == 'bundles':
-        session.logger.info("Installed bundles:")
+        info = "Installed bundles:"
     else:
-        session.logger.info("Installed packages:")
+        info ="Installed packages:"
+    if session.ui.is_gui:
+        info += "\n<ul>"
+        sep = "<li>"
+        from html import escape
+    else:
+        sep = '  '
+        def escape(txt):
+            return txt
     for d in dists:
         key = d.key
         if format == 'bundles':
@@ -35,9 +43,12 @@ def version(session, format='terse'):
                 continue
             key = key[len('chimerax.'):]
         if d.has_version():
-            session.logger.info("    %s: %s" % (key, d.version))
+            info += "\n%s %s: %s" % (sep, escape(key), escape(d.version))
         else:
-            session.logger.info("    %s: unknown" % key)
+            info += "\n%s %s: unknown" % (sep, escape(key))
+    if session.ui.is_gui:
+        info += "\n</ul>"
+    session.logger.info(info, is_html=session.ui.is_gui)
 
 
 def register_command(session):

@@ -397,7 +397,7 @@ class MainWindow(wx.Frame, PlainTextLog):
             image.Rescale(128, 128)
             info.SetIcon(wx.Icon(wx.Bitmap(image)))
         info.SetName("%s %s" % (ad.appauthor, ad.appname))
-        info.SetVersion("%s (%s)" % (buildinfo.version, buildinfo.date.split()[0]))
+        info.SetVersion("%s (%s)" % (ad.version, buildinfo.date.split()[0]))
         info.Description = wordwrap(buildinfo.synopsis, width, dc)
         info.Copyright = wordwrap(buildinfo.copyright, width, dc)
         info.SetWebSite(buildinfo.web_site)
