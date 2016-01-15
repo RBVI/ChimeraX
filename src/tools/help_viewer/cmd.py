@@ -43,54 +43,38 @@ def help(session, topic=None, *, option=None, is_query=False):
                 return True
             if os.path.isdir(path):
                 path += '/index.html'
+            from urllib.parse import urlunparse
+            from urllib.request import pathname2url
+            url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
         else:
-            import os
-            base_dir = os.path.join(session.app_data_dir, 'docs')
-
-            # check if topic matches a command name
-            cmd = Command(None)
-            cmd.current_text = topic
-            cmd._find_command_name(True)
-            is_alias = False
-            if cmd.command_name is not None:
-                alias = cli.expand_alias(cmd.command_name)
-                while alias:
-                    is_alias = True
-                    cmd = Command(None)
-                    cmd.current_text = alias
-                    cmd._find_command_name(True)
-                    if cmd.command_name is None:
+            cmd_name = topic
+            while 1:
+                try:
+                    url = cli.command_url(cmd_name)
+                except ValueError:
+                    session.logger.error("No help found for '%s'" % topic)
+                    return
+                if url:
+                    if is_query:
+                        return True
+                    return help(session, url, option=option, is_query=is_query)
+                alias = cli.expand_alias(topic)
+                if not alias:
+                    break
+                if not is_query:
+                    run(session, "usage %s" % cmd_name, log=False)
+                alias_words = alias.split()
+                for i in range(len(alias_words)):
+                    try:
+                        cmd_name = ' '.join(alias_words[0:i + 1])
+                        cli.command_url(cmd_name)
+                    except ValueError:
+                        cmd_name = ' '.join(alias_words[0:i])
                         break
-                    alias = cli.expand_alias(cmd.command_name)
-            if cmd.command_name is None:
-                if is_query:
-                    return False
-                session.logger.error("No help found for '%s'" % topic)
-                return
-            # handle multi word command names
-            #  -- use first word for filename and rest for #fragment
-            if cmd.command_name.startswith('~'):
-                cmd_name = cmd.command_name.split(maxsplit=1)[0][1:]
-                fragment = cmd.command_name
-            elif ' ' not in cmd.command_name:
-                cmd_name = cmd.command_name
-                fragment = ""
-            else:
-                cmd_name, fragment = cmd.command_name.split(maxsplit=1)
-            path = os.path.join(base_dir, 'user', 'commands',
-                                '%s.html' % cmd_name)
-            if is_alias:
-                run(session, "usage %s" % topic, log=False)
-            if not os.path.exists(path):
-                if is_query:
-                    return False
-                run(session, "usage %s" % cmd_name, log=False)
-                return
             if is_query:
-                return True
-        from urllib.parse import urlunparse
-        from urllib.request import pathname2url
-        url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
+                return False
+            run(session, "usage %s" % topic, log=False)
+            return
 
     if session.ui.is_gui:
         from .gui import HelpUI

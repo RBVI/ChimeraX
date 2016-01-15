@@ -123,8 +123,11 @@ class UI(wx.App):
         wx.SafeYield()
 
     def quit(self, confirm=True):
-        self.session.logger.status("Exiting ...", blank_after=0)
-        self.session.logger.clear()    # clear logging timers
+        # TODO: This code is not called on Mac when window frame close button
+        # pressed or when Command-Q used to close.  Only called when exit command used.
+        s = self.session
+        s.logger.status("Exiting ...", blank_after=0)
+        s.logger.clear()    # clear logging timers
         self.main_window.close()
 
     def thread_safe(self, func, *args, **kw):
@@ -374,28 +377,31 @@ class MainWindow(wx.Frame, PlainTextLog):
                 from chimerax.core.commands import run
                 run(ses, 'help sethome help:%s' % t)
             self.Bind(wx.EVT_MENU, cb, item)
-        item = help_menu.Append(wx.ID_ANY, "About UCSF ChimeraX")
-        self.Bind(wx.EVT_MENU, self.about, item)
+        ad = session.app_dirs
+        item = help_menu.Append(wx.ID_ANY, "About %s %s" % (ad.appauthor, ad.appname))
+        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.about(ses, evt),
+                  item)
 
-    def about(self, event):
+    def about(self, session, event):
         import wx.adv
         from wx.lib.wordwrap import wordwrap
+        import os
+        from .. import buildinfo
+        ad = session.app_dirs
         width = 400
         dc = wx.ClientDC(self)
         info = wx.adv.AboutDialogInfo()
-        import chimerax, os
-        icon_path = os.path.join(chimerax.app_data_dir, "ChimeraX-icon512.png")
+        icon_path = os.path.join(session.app_data_dir, "%s-icon512.png" % ad.appname)
         if os.path.exists(icon_path):
-            #icon = wx.Icon(icon_path, wx.BITMAP_TYPE_PNG)
             image = wx.Image(icon_path, wx.BITMAP_TYPE_PNG)
             image.Rescale(128, 128)
             info.SetIcon(wx.Icon(wx.Bitmap(image)))
-        info.SetName("UCSF ChimeraX")
-        info.SetVersion("0.1")  # TODO: chimerax.core version
-        info.Description = wordwrap("An application for molecular visualization and analysis, with an emphasis on molecular assemblies.", width, dc)
-        info.Copyright = wordwrap("\N{Copyright Sign} 2016 by the Regents of the University of California.  All Rights Reserved.", width, dc)
-        info.SetWebSite("http://www.rbvi.ucsf.edu/chimerax/", "UCSF ChimeraX home page")
-        info.SetLicense(wordwrap("UCSF ChimeraX is free for non-commercial use.  Contact chimera@cgl.ucsf.edu for other licensing terms.", width, dc))
+        info.SetName("%s %s" % (ad.appauthor, ad.appname))
+        info.SetVersion("%s (%s)" % (ad.version, buildinfo.date.split()[0]))
+        info.Description = wordwrap(buildinfo.synopsis, width, dc)
+        info.Copyright = wordwrap(buildinfo.copyright, width, dc)
+        info.SetWebSite(buildinfo.web_site)
+        info.SetLicense(wordwrap(buildinfo.license, width, dc))
 
         wx.adv.AboutBox(info)
 

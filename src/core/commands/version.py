@@ -7,31 +7,35 @@ def version(session, format='terse'):
     Parameters
     ----------
     format : one of 'terse', ''bundles', or 'package'
-        
     '''
+    ad = session.app_dirs
+    session.logger.info("%s %s version: %s" % (ad.appauthor, ad.appname, ad.version))
+    from .. import buildinfo
+    session.logger.info("date: %s" % buildinfo.date)
+    session.logger.info("branch: %s" % buildinfo.branch)
+    session.logger.info("commit: %s" % buildinfo.commit)
+    if format == 'terse':
+        return
+    import os
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     if not dists:
-        sess.logger.error("no version information available")
+        session.logger.error("no version information available")
         return os.EX_SOFTWARE
-    for d in dists:
-        if d.key == 'chimerax.core':
-            version = d.version
-            break
-    if version is None:
-        version = 'unknown'
-    session.logger.info("%s version: %s" % (session.app_dirs.appname, version))
-    session.logger.info("date: DAYTIME")
-    session.logger.info("branch: BRANCH")
-    session.logger.info("commit: COMMIT")
-    if format == 'terse':
-        return
     dists = list(dists)
     dists.sort(key=lambda d: d.key)
     if format == 'bundles':
-        session.logger.info("Installed bundles:")
+        info = "Installed bundles:"
     else:
-        session.logger.info("Installed packages:")
+        info ="Installed packages:"
+    if session.ui.is_gui:
+        info += "\n<ul>"
+        sep = "<li>"
+        from html import escape
+    else:
+        sep = '  '
+        def escape(txt):
+            return txt
     for d in dists:
         key = d.key
         if format == 'bundles':
@@ -39,9 +43,12 @@ def version(session, format='terse'):
                 continue
             key = key[len('chimerax.'):]
         if d.has_version():
-            session.logger.info("    %s: %s" % (key, d.version))
+            info += "\n%s %s: %s" % (sep, escape(key), escape(d.version))
         else:
-            session.logger.info("    %s: unknown" % key)
+            info += "\n%s %s: unknown" % (sep, escape(key))
+    if session.ui.is_gui:
+        info += "\n</ul>"
+    session.logger.info(info, is_html=session.ui.is_gui)
 
 
 def register_command(session):

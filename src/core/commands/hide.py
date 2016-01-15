@@ -53,7 +53,7 @@ def register_command(session):
     desc = CmdDesc(
         optional=[('objects', Or(ObjectsArg, EmptyArg)),
                   ('what', what_arg)],
-        url='help:user/commands/show.html',
+        url='help:user/commands/show.html#hide',
         synopsis='hide specified objects')
     register('hide', desc, hide)
     create_alias('~show', 'hide $*')

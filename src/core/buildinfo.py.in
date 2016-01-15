@@ -1,0 +1,27 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# information about the current build
+
+commit = "COMMIT"   # last commit
+date = "DAYTIME"    # date of last commit
+branch = "BRANCH"   # (modified) branch of last commit
+
+# general information
+
+copyright = (
+    "Copyright \N{Copyright Sign} 2015-2016"
+    " by the Regents of the University of California."
+    "  All Rights Reserved."
+)
+
+license = (
+    "Free for non-commercial use."
+    "  Contact chimera@cgl.ucsf.edu for other licensing terms."
+)
+
+synopsis = (
+    "An application for molecular visualization and analysis,"
+    " with an emphasis on molecular assemblies."
+)
+
+web_site = "http://www.rbvi.ucsf.edu/chimerax/"
