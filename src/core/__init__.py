@@ -5,7 +5,7 @@ chimerax.core: collection of base ChimeraX functionality
 
 """
 __copyright__ = (
-    "Copyright \u00A9 2015-2016 by the Regents of the University of California."
+    "Copyright \N{Copyright Sign} 2015-2016 by the Regents of the University of California."
     "  All Rights Reserved."
     "  Free for non-commercial use."
     "  See http://www.rbvi.ucsf.edu/chimerax/ for license details."
@@ -61,6 +61,7 @@ def get_class(class_name):
         cls = getattr(mod, class_name)
     _class_cache[class_name] = cls
     return cls
+
 
 def profile(func):
     def wrapper(*args, **kw):

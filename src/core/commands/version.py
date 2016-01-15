@@ -7,25 +7,21 @@ def version(session, format='terse'):
     Parameters
     ----------
     format : one of 'terse', ''bundles', or 'package'
-        
     '''
+    ad = session.app_dirs
+    session.logger.info("%s %s version: %s" % (ad.appauthor, ad.appname, ad.version))
+    from .. import buildinfo
+    session.logger.info("date: %s" % buildinfo.date)
+    session.logger.info("branch: %s" % buildinfo.branch)
+    session.logger.info("commit: %s" % buildinfo.commit)
+    if format == 'terse':
+        return
+    import os
     import pip
     dists = pip.get_installed_distributions(local_only=True)
     if not dists:
-        sess.logger.error("no version information available")
+        session.logger.error("no version information available")
         return os.EX_SOFTWARE
-    for d in dists:
-        if d.key == 'chimerax.core':
-            version = d.version
-            break
-    if version is None:
-        version = 'unknown'
-    session.logger.info("%s version: %s" % (session.app_dirs.appname, version))
-    session.logger.info("date: DAYTIME")
-    session.logger.info("branch: BRANCH")
-    session.logger.info("commit: COMMIT")
-    if format == 'terse':
-        return
     dists = list(dists)
     dists.sort(key=lambda d: d.key)
     if format == 'bundles':
