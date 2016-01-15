@@ -1690,7 +1690,7 @@ def deregister(name, *, is_user_alias=False):
 
     hidden_word = _aliased_commands.get(name, None)
     if hidden_word:
-        parent_info = word_info.parent
+        parent_info = hidden_word.parent
         parent_info.subcommands[word] = hidden_word
         del _aliased_commands[name]
     else:
