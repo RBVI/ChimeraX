@@ -20,6 +20,6 @@ def register_command(session):
                             ('transparency', FloatArg),
                             ('cmap', ColormapArg),
                             ('halfbond', BoolArg)],
-                   synopsis="color residues and chains sequentially",
-                   url='help:user/commands/color.html')
+                   url='help:user/commands/color.html#rainbow',
+                   synopsis="color residues and chains sequentially")
     register('rainbow', desc, rainbow)
