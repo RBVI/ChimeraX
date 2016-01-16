@@ -5,6 +5,7 @@ from chimerax.core.tools import ToolInstance
 class FilePanel(ToolInstance):
 
     SESSION_ENDURING = True
+    SESSION_SKIP = True
     SIZE = (575, 500)
     help = "help:user/tools/filehistory.html"
 
@@ -39,26 +40,25 @@ class FilePanel(ToolInstance):
         t.add_handler('file history changed', self.file_history_changed_cb)
 
     def history_html(self):
-        from . import file_history
-        files = file_history(self.session)
+        from chimerax.core.filehistory import file_history
+        files = file_history(self.session).files
         if len(files) == 0:
             html = '<html><body>No files in history</body></html>'
         else:
-            flist = [(path,image,time) for path, (image, time) in files.items()]
-            flist.sort(key = lambda f: f[2], reverse=True)	# Sort by time
             lines = ['<html>', '<body>', '<style>', 'table { float:left; }', '</style>']
             w,h = self.thumbnail_size
-            from os.path import basename,splitext
-            for p,i,t in flist:
-                name = splitext(basename(p))[0]
-                if i is None:
-                    line = '<a href="open:%s">%s</a>' % (p, name)
+            for f in reversed(files):
+                name = f.short_name()
+                import html
+                cmd = html.escape(f.open_command())
+                if f.image is None:
+                    line = '<a href="cxcmd:%s">%s</a>' % (cmd, name)
                 else:
                     line = ('<table>'
-                            '<tr><td><a href="open:%s"><img src="data:image/png;base64,%s" width=%d height=%d></a>'
-                            '<tr><td align=center><a href="open:%s">%s</a>'
+                            '<tr><td><a href="cxcmd:%s"><img src="data:image/jpeg;base64,%s" width=%d height=%d></a>'
+                            '<tr><td align=center><a href="cxcmd:%s">%s</a>'
                             '</table></a>'
-                            % (p, i, w, h, p, name))
+                            % (cmd, f.image, w, h, cmd, name))
                 lines.append(line)
             lines.extend(['</body>', '</html>'])
             html = '\n'.join(lines)
@@ -85,11 +85,11 @@ class FilePanel(ToolInstance):
         url = event.GetURL()
         from urllib.parse import unquote
         url = unquote(url)
-        if url.startswith("open:"):
+        if url.startswith("cxcmd:"):
             event.Veto()
-            file_spec = url.split(':', 1)[1]
+            cmd = url.split(':', 1)[1]
             from chimerax.core.commands import run
-            run(self.session, 'open "%s"' % file_spec)
+            run(self.session, cmd)
         elif url == 'file:///':
             # show_page_source() causes this
             pass

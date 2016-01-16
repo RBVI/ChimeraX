@@ -314,6 +314,7 @@ class Session:
         self.triggers = triggerset.TriggerSet()
         self._state_containers = {}  # stuff to save in sessions
         self.metadata = {}           #: session metadata
+        self.in_script = InScriptFlag()
         if minimal:
             return
 
@@ -452,6 +453,8 @@ class Session:
                         continue
                     cls_version, cls_data = data
                     obj = cls.restore_snapshot_new(self, bundle_info, cls_version, cls_data)
+                    if obj is None:
+                        print (bundle_info, cls_data)
                     obj.restore_snapshot_init(self, bundle_info, cls_version, cls_data)
                     mgr.add_reference(name, obj)
         except:
@@ -472,6 +475,15 @@ class Session:
             return metadata
         return version, metadata
 
+class InScriptFlag:
+    def __init__(self):
+        self._level = 0
+    def __enter__(self):
+        self._level += 1
+    def __exit__(self, *_):
+        self._level -= 1
+    def __bool__(self):
+        return self._level > 0
 
 def save(session, filename, **kw):
     """command line version of saving a session"""
@@ -520,7 +532,11 @@ def save(session, filename, **kw):
         width = height = 512
         image = session.main_view.image(width, height)
         utils.set_file_icon(filename, image)
-    
+
+    # Remember session in file history
+    from .filehistory import remember_file
+    remember_file(session, filename, 'ses', 'all models')
+
 def dump(session, session_file, output=None):
     """dump contents of session for debugging"""
     from . import serialize

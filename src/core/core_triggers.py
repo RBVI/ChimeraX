@@ -13,7 +13,6 @@ trigger_info = {
     "begin save session": False,
     "end restore session": False,
     "end save session": False,
-    "file opened": False,
     "frame drawn": True,
     "graphics update": True,
     "new frame": True,
