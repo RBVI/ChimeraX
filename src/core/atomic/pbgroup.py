@@ -117,20 +117,21 @@ def all_pseudobond_groups(models):
 
 def interatom_pseudobonds(atoms, session):
     # Inter-model pseudobond groups
-    pbgs = session.models.list(PseudobondGroup)
+    pbgs = session.models.list(type = PseudobondGroup)
     # Intra-model pseudobond groups
     for m in atoms.unique_structures:
-        pbgs.extend(tuple(m.pbg_map.values()))
+        pbgs.extend(m.pbg_map.values())
     # Collect bonds
-    from . import Pseudobonds
-    ipbonds = Pseudobonds()
+    ipbonds = []
     for pbg in pbgs:
         pbonds = pbg.pseudobonds
-        a1, a2 = pbonds.atoms
-        ipb = pbonds.filter(a1.mask(atoms) & a2.mask(atoms))
+        ipb = pbonds.filter(pbonds.between_atoms(atoms))
+        print ('%s pbonds got %d' % (pbg.category, len(ipb)))
         if ipb:
-            ipbonds |= ipb
-    return ipbonds
+            ipbonds.append(ipb)
+    from . import Pseudobonds, concatenate
+    ipb = concatenate(ipbonds, Pseudobonds)
+    return ipb
 
 # -----------------------------------------------------------------------------
 #
