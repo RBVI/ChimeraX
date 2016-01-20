@@ -442,7 +442,7 @@ class CollatingLog(PlainTextLog):
     combined message.  You call the logger's :py:meth:`~Logger.add_log`
     method to start collating, and remove it with :py:meth:`~Logger.remove_log`
     to stop collating.  If the operation may produce many consecutive
-    simiilar (or identical) log messagesm you may also want to set the logger's
+    similar (or identical) log messages you may also want to set the logger's
     :py:attr:`~Logger.collapse_similar` attribute to True after adding
     the log, and set it back to its original value before removing the log.
 
