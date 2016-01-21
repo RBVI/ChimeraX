@@ -270,15 +270,19 @@ class Models(State):
             if io.category(io.deduce_format(fn, has_format=format)[0]) == io.SCRIPT:
                 collation_okay = False
                 break
+        from sys import __stderr__
         if collation_okay:
+            print("Collating opening of", fns[0], file=__stderr__)
             from .logger import Collator
             with Collator(session.logger, "Summary of problems opening file(s)",
                                                     kw.pop('log_errors', True)):
                 models, status = io.open_multiple_data(session, filenames,
                 format=format, name=name, **kw)
         else:
+            print("Not collating opening of", fns[0], file=__stderr__)
             models, status = io.open_multiple_data(session, filenames,
                 format=format, name=name, **kw)
+        print("Done opening", fns[0], file=__stderr__)
         if status:
             log = session.logger
             log.status(status, log=True)

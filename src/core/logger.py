@@ -287,6 +287,7 @@ class Logger:
                 follow_time,
                 lambda fw=follow_with, clr=color, log=log, sec=secondary,
                 fl=follow_log: self._follow_timeout(fw, clr, log, sec, fl))
+            follow_timer.daemon = True
             follow_timer.start()
         elif msg:
             if blank_after is None:
@@ -295,6 +296,7 @@ class Logger:
                 from threading import Timer
                 status_timer = Timer(blank_after, lambda sec=secondary:
                                      self._status_timeout(sec))
+                status_timer.daemon = True
                 status_timer.start()
 
         if secondary:
@@ -368,6 +370,7 @@ class Logger:
                             self._sim_timer.cancel()
                         from threading import Timer
                         self._sim_timer = Timer(0.5, self._sim_timer_cb)
+                        self._sim_timer.daemon = True
                         self._sim_timer.start()
                         return
                     # let first few reps get logged immediately...
@@ -443,7 +446,7 @@ class CollatingLog(PlainTextLog):
     combined message.  You call the logger's :py:meth:`~Logger.add_log`
     method to start collating, and remove it with :py:meth:`~Logger.remove_log`
     to stop collating.  If the operation may produce many consecutive
-    simiilar (or identical) log messagesm you may also want to set the logger's
+    similar (or identical) log messages you may also want to set the logger's
     :py:attr:`~Logger.collapse_similar` attribute to True after adding
     the log, and set it back to its original value before removing the log.
 
