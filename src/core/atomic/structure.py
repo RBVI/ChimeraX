@@ -70,7 +70,6 @@ class AtomicStructure(AtomicStructureData, Model):
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
         self._bonds_drawing = None
-        self._pseudobond_group_drawings = {}    # Map PseudobondGroup to drawing
         self._cached_atom_bounds = None
         self._atom_bounds_needs_update = True
         self._ribbon_drawing = None
@@ -214,8 +213,8 @@ class AtomicStructure(AtomicStructureData, Model):
         # Create graphics
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
-        for name, pbg in self.pbg_map.items():
-            self._update_pseudobond_graphics(name, pbg)
+        for pbg in self.pbg_map.values():
+            pbg._update_graphics(structure = self)
         self._create_ribbon_graphics()
 
     def set_subdivision(self, subdivision):
@@ -255,8 +254,8 @@ class AtomicStructure(AtomicStructureData, Model):
     def _update_graphics(self):
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
-        for name, pbg in self.pbg_map.items():
-            self._update_pseudobond_graphics(name, pbg)
+        for pbg in self.pbg_map.values():
+            pbg._update_graphics(structure = self)
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, atoms):
@@ -311,24 +310,6 @@ class AtomicStructure(AtomicStructureData, Model):
         p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, bonds.radii)
         p.display_positions = _shown_bond_cylinders(bonds)
         p.colors = c = bonds.half_colors
-        p.selected_positions = _selected_bond_cylinders(bond_atoms)
-
-    def _update_pseudobond_graphics(self, name, pbgroup):
-
-        pg = self._pseudobond_group_drawings
-        if pbgroup in pg:
-            p = pg[pbgroup]
-        else:
-            pg[pbgroup] = p = self.new_drawing(name)
-            va, na, ta = _pseudobond_geometry()
-            p.geometry = va, ta
-            p.normals = na
-
-        pbonds = pbgroup.pseudobonds
-        ba1, ba2 = bond_atoms = pbonds.atoms
-        p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, pbonds.radii)
-        p.display_positions = _shown_bond_cylinders(pbonds)
-        p.colors = pbonds.half_colors
         p.selected_positions = _selected_bond_cylinders(bond_atoms)
 
     def _create_ribbon_graphics(self):
@@ -853,8 +834,9 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _pseudobond_first_intercept(self, mxyz1, mxyz2):
         fc = bc = None
-        for pbg, d in self._pseudobond_group_drawings.items():
-            if d.display:
+        for pbg in self.pbg_map.values():
+            d = pbg._pbond_drawing
+            if d and d.display:
                 b,f = _bond_intercept(pbg.pseudobonds, mxyz1, mxyz2)
                 if f is not None and (fc is None or f < fc):
                     fc = f
@@ -1541,12 +1523,6 @@ def _tether_placements(xyz0, xyz1, radius, shape):
         return _bond_cylinder_placements(xyz1, xyz0, radius)
     else:
         return _bond_cylinder_placements(xyz0, xyz1, radius)
-
-# -----------------------------------------------------------------------------
-#
-def _pseudobond_geometry(segments = 9):
-    from .. import surface
-    return surface.dashed_cylinder_geometry(segments)
 
 # -----------------------------------------------------------------------------
 #

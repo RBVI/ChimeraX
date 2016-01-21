@@ -555,6 +555,11 @@ class Pseudobonds(Collection):
         f = c_function('pseudobond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
 
+    def between_atoms(self, atoms):
+        '''Return mask of those pseudobonds which have both ends in the given set of atoms.'''
+        a1, a2 = self.atoms
+        return a1.mask(atoms) & a2.mask(atoms)
+
 # -----------------------------------------------------------------------------
 #
 class Residues(Collection):

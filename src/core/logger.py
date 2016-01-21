@@ -188,6 +188,7 @@ class Logger:
 
     @collapse_similar.setter
     def collapse_similar(self, cs):
+        return
         if cs == self._collapse_similar:
             return
         self._collapse_similar = cs

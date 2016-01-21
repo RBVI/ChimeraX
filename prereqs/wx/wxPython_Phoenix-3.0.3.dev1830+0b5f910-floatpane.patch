@@ -1,0 +1,26 @@
+--- wxPython_Phoenix-3.0.3.dev1719+62a2221/wx/lib/agw/aui/framemanager.py.orig	2015-03-07 14:44:13.000000000 -0800
++++ wxPython_Phoenix-3.0.3.dev1719+62a2221/wx/lib/agw/aui/framemanager.py	2015-06-29 17:14:47.000000000 -0700
+@@ -2857,12 +2857,11 @@
+ 
+ # -- AuiFloatingFrame class implementation --
+ 
+-class AuiFloatingFrame(wx.MiniFrame):
++class AuiFloatingFrame(wx.Frame):
+     """ AuiFloatingFrame is the frame class that holds floating panes. """
+ 
+     def __init__(self, parent, owner_mgr, pane=None, id=wx.ID_ANY, title="",
+-                 style=wx.FRAME_TOOL_WINDOW | wx.FRAME_FLOAT_ON_PARENT |
+-                 wx.FRAME_NO_TASKBAR | wx.CLIP_CHILDREN):
++                 style=wx.FRAME_NO_TASKBAR | wx.CLIP_CHILDREN):
+         """
+         Default class constructor. Used internally, do not call it in your code!
+ 
+@@ -2891,7 +2890,7 @@
+             if pane.HasMinimizeButton():
+                 style += wx.MINIMIZE_BOX
+ 
+-        wx.MiniFrame.__init__(self, parent, id, title, pos=pane.floating_pos,
++        wx.Frame.__init__(self, parent, id, title, pos=pane.floating_pos,
+                               size=pane.floating_size, style=style, name="auiFloatingFrame")
+ 
+         self._fly_timer = wx.Timer(self, wx.ID_ANY)

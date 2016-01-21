@@ -109,6 +109,8 @@ def dashed_cylinder_geometry(segments = 5, radius = 1, height = 1, nz = 2, nc = 
     Return vertex, normal vector and triangle arrays for a sequence of colinear cylinders.
     '''
     va, na, ta = cylinder_geometry(radius, height, nz, nc, caps)
+    if segments == 0:
+      return va, na, ta
     h = 0.5/segments
     va[:,2] *= h
     nv = len(va)
