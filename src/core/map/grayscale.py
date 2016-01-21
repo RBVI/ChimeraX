@@ -120,7 +120,14 @@ class Gray_Scale_Drawing(Drawing):
     czaxis = cv.apply_without_translation(zaxis) # z axis in camera coords
     self.reverse_order_children = (czaxis[2] < 0)
 
+    max_proj = dtransp and self.maximum_intensity_projection
+    if max_proj:
+      renderer.blend_max(True)
+      renderer.write_depth(False)
     Drawing.draw(self, renderer, place, draw_pass, selected_only)
+    if max_proj:
+      renderer.write_depth(True)
+      renderer.blend_max(False)
 
   def remove_planes(self):
 
