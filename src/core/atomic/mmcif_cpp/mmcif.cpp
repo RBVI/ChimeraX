@@ -885,7 +885,7 @@ ExtractMolecule::parse_struct_conn()
         // TODO: survey PDB mmCIF files and test in descending prevalence
         if (conn_type == "covale" || conn_type == "disulf")
             normal = true;
-        else if (conn_type == "hydro")
+        else if (conn_type == "hydrog")
             hydro = true;
         else if (conn_type == "metalc")
             metal = true;
