@@ -31,10 +31,12 @@ class FileHistory:
 
     def remember_file(self, path, format, models, database = None):
         f = self._files
-        if path in f:
-            f[path].set_access_time()
+        fs = f.get(path, None)
+        if fs:
+            fs.set_access_time()
         else:
-            f[path] = FileSpec(path, format, database = database)
+            f[path] = fs = FileSpec(path, format, database = database)
+        if fs.image is None:
             # Delay capturing thumbnails until after models added to session.
             # Smart display style for molecules is only done after model added to session.
             self._need_thumbnails.append((path, models))
