@@ -9,6 +9,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
     via the :class:`.PseudobondGroupData` base class.
     """
 
+    SESSION_SKIP = True		# TODO: Session save not currently supported
+
     def __init__(self, pbg_pointer, *, session=None):
 
         PseudobondGroupData.__init__(self, pbg_pointer)
