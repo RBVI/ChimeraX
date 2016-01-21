@@ -222,7 +222,7 @@ class Oculus_Rift_Camera(Camera):
         from ...graphics.camera import perspective_view_width
         return perspective_view_width(point, self.position.origin(), self.field_of_view)
 
-    def pixel_shift(self, view_num):
+    def view_pixel_shift(self, view_num):
         '''Shift of center away from center of render target.'''
         if view_num is None:
             return 0,0

@@ -70,16 +70,19 @@ class Camera:
         '''
         return camera_position
 
-    def pixel_shift(self, view_num):
+    def view_pixel_shift(self, view_num):
         '''
         Per view pixel shift of center away from center of render target.
-        This is used for example to shift stereoscopic left/right eye images.
-        Also used for supersampled image save.
+        This is used for example to shift left/right eye images in sequential
+        stereo camera.
         '''
-        return self._pixel_shift
+        return (0,0)
 
-    def set_pixel_shift(self, shift):
-        '''Set per view pixel shift of center away from center of render target.'''
+    def set_fixed_pixel_shift(self, shift):
+        '''
+        Set per view pixel shift of center away from center of render target.
+        Used for supersampled image capture.
+        '''
         self._pixel_shift = shift
 
     def view_all(self, center, size):
@@ -98,7 +101,7 @@ class Camera:
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
         xps, yps = self._pixel_shift		# supersampling shift
-        vxs, vys = self.pixel_shift(view_num)	# Per-view shift
+        vxs, vys = self.view_pixel_shift(view_num)	# Per-view shift
         pixel_shift = (xps + vxs, yps + vys)
         return perspective_projection_matrix(self.field_of_view, window_size,
                                              near_far_clip, pixel_shift)
@@ -362,7 +365,7 @@ class StereoCamera(Camera):
         scene coordinates.'''
         return perspective_view_width(center, self.position.origin(), self.field_of_view)
 
-    def pixel_shift(self, view_num):
+    def view_pixel_shift(self, view_num):
         '''Shift of center away from center of render target.'''
         if view_num is None:
             return 0, 0
