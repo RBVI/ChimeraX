@@ -2,7 +2,7 @@
 from . import Annotation, AnnotationError
 
 
-def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False):
+def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False, pad=0.05):
     '''
     Move camera so the displayed models fill the graphics window.
     Also camera and model positions can be saved and restored.
@@ -22,13 +22,16 @@ def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False)
       Specifying the orient keyword moves the camera view point to
       look down the scene z axis with the x-axis horizontal and y-axis
       vertical.
+    pad : float
+      When making objects fit in window use a window size reduced by this fraction.
+      Default value is 0.05.  Pad is ignored when restoring named views.
     '''
     v = session.main_view
     if orient:
         v.initial_camera_view()
 
     if objects is None:
-        v.view_all()
+        v.view_all(pad = pad)
         v.center_of_rotation_method = 'front center'
         cp = v.clip_planes
         cp.remove_plane('near')
@@ -36,10 +39,10 @@ def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False)
     elif isinstance(objects, _View):
         show_view(session, objects, frames)
     else:
-        view_objects(objects, v, clip, cofr)
+        view_objects(objects, v, clip, cofr, pad)
 
 
-def view_objects(objects, v, clip, cofr):
+def view_objects(objects, v, clip, cofr, pad):
     if objects.empty():
         from ..errors import UserError
         raise UserError('No objects specified.')
@@ -48,7 +51,7 @@ def view_objects(objects, v, clip, cofr):
     if b is None:
         from ..errors import UserError
         raise UserError('No displayed objects specified.')
-    v.view_all(b)
+    v.view_all(b, pad = pad)
     c, r = b.center(), b.radius()
     if cofr:
         v.center_of_rotation = c
@@ -342,14 +345,15 @@ class NamedViewArg(Annotation):
 
 
 def register_command(session):
-    from . import CmdDesc, register, ObjectsArg, NoArg
+    from . import CmdDesc, register, ObjectsArg, NoArg, FloatArg
     from . import StringArg, PositiveIntArg, Or, BoolArg
     desc = CmdDesc(
         optional=[('objects', Or(ObjectsArg, NamedViewArg)),
                   ('frames', PositiveIntArg)],
         keyword=[('clip', BoolArg),
                  ('cofr', BoolArg),
-                 ('orient', NoArg),],
+                 ('orient', NoArg),
+                 ('pad', FloatArg)],
         synopsis='adjust camera so everything is visible')
     register('view', desc, view)
     desc = CmdDesc(

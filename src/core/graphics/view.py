@@ -590,7 +590,7 @@ class View:
             dm.cached_any_part_selected = s = self.drawing.any_part_selected()
         return s
 
-    def initial_camera_view(self):
+    def initial_camera_view(self, pad = 0.05):
         '''Set the camera position to show all displayed drawings,
         looking down the z axis.'''
         b = self.drawing_bounds()
@@ -599,18 +599,23 @@ class View:
         c = self.camera
         from ..geometry import identity
         c.position = identity()
-        c.view_all(b.center(), b.width())
+        w,h = self.window_size
+        c.view_all(b, aspect = h/w, pad = pad)
         self._center_of_rotation = b.center()
         self._update_center_of_rotation = True
 
-    def view_all(self, bounds = None):
+    def view_all(self, bounds = None, pad = 0):
         '''Adjust the camera to show all displayed drawings using the
-        current view direction.'''
+        current view direction.  If bounds is given then view is adjusted
+        to show those bounds instead of the current drawing bounds.
+        If pad is specified the fit is to a window size reduced by this fraction.
+        '''
         if bounds is None:
             bounds = self.drawing_bounds()
             if bounds is None:
                 return
-        self.camera.view_all(bounds.center(), bounds.width())
+        w,h = self.window_size
+        self.camera.view_all(bounds, aspect = h/w, pad = pad)
         if self._center_of_rotation_method == 'front center':
             self._update_center_of_rotation = True
 
