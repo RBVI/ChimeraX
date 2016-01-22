@@ -11,7 +11,7 @@ software or any revisions or derivations thereof.
 
 <html><head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Command: color</title>
+<title>Command: color, rainbow</title>
 </head><body>
 
 <a name="top"></a>
@@ -19,7 +19,7 @@ software or any revisions or derivations thereof.
 <img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
 class="clRight" alt="ChimeraX logo"/></a>
 
-<h3>Command: color</h3>
+<h3>Command: color, rainbow</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>color</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
@@ -50,7 +50,7 @@ cartoon and molecular surface representations.
 The absence of an atom or model specifier implies &ldquo;all.&rdquo;
 Bonds and <a href="../pseudobonds.html">pseudobonds</a>
 are considered as specified when both flanking atoms are specified.
-See <a href="#examples">examples</a> below.
+See the <a href="#examples">examples</a> below.
 See also: <a href="transparency.html"><b>transparency</b></a>,
 <b>volume</b>,
 <a href="colortables.html#autocolors">initial colors</a>
@@ -85,8 +85,9 @@ atomic representations and per-atom patches of molecular surfaces
 <li><a name="bymodel"><b>bymodel</b></a>
 - the <a href="colortables.html#autocolors">initial colors</a> of atomic models
 </ul>
-The <b>sequential</b> method applies a range of colors
-(a <a href="#cmap-options"><i>colormap</i></a>)
+The <b>sequential</b> method 
+(synonym <b>rainbow</b>, see <a href="#examples">examples</a>)
+applies a <a href="#cmap-options"><i>colormap</i></a>
 to items at the specified level:
 <ul>
 <li><b>residues</b> - a different color for each residue in a biopolymer chain
@@ -96,9 +97,6 @@ atomic model (always applies to entire models)
 </ul>
 Only the biopolymer chains are colored, not ligand and solvent residues,
 even if they have the same chain ID as a biopolymer chain.
-</p><p>
-The <b>rainbow</b> command is a synonym for <b>color sequential</b>
-(see <a href="#examples">examples</a>).
 </p>
 
 <p class="nav">
@@ -175,8 +173,8 @@ This option affects only the specified bonds
 <h3>Colormap Options</h3>
 <p>
 <a name="cmap"></a>
-The <b>cmap</b></a> option specifies a <i>colormap</i> for sequential coloring
-as one of the following:
+The <b>cmap</b></a> option specifies a <i>colormap</i> for
+<b>sequential</b> coloring as one of the following:
 </p>
 <ul>
 <li>the name of a pre-defined palette (colors listed in ascending value order):
@@ -265,7 +263,7 @@ Example <a href="#top"><b>color</b></a> commands:
 </blockquote>
 - color all pseudobonds yellow, but not their flanking atoms
 <blockquote>
-<b>color &nbsp;seq res</b>
+<b>color seq res</b>
 <br>&ndash; or &ndash;
 <br><b>rainbow res</b>
 <!--
@@ -275,16 +273,16 @@ Example <a href="#top"><b>color</b></a> commands:
 </blockquote>
 - rainbow-color residues blue &rarr; red along each biopolymer chain
 <blockquote>
-<b>color #3 &nbsp;seq chain &nbsp;cmap cyan</b>
+<b>color #3 seq chain &nbsp;cmap cyan</b>
 <br>&ndash; or &ndash;
-<br><b>rainbow #3 &nbsp;chain &nbsp;cmap cyan</b>
+<br><b>rainbow #3 chain &nbsp;cmap cyan</b>
 </blockquote>
 - color the chains in model 3 from a medium cyan through white to dark maroon
 <blockquote>
-<b>color &nbsp;seq chain &nbsp;targ c
+<b>color seq chain &nbsp;targ c
 &nbsp;cmap cornflowerblue:red:gold</b>
 <br>&ndash; or &ndash;
-<br><b>rainbow &nbsp;chain &nbsp;targ c
+<br><b>rainbow chain &nbsp;targ c
 &nbsp;cmap cornflowerblue:red:gold</b>
 </blockquote>
 - color the chains in each atomic model, cartoons only,

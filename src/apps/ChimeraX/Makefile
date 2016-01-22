@@ -43,7 +43,7 @@ install: $(PROG)
 ifeq ($(OS),Darwin)
 	# Must use hard link for code signing to work
 	-if [ -d "$(app_prefix)" ]; then \
-		ln -nf $(app_prefix)/bin/$(PROG) $(app_prefix)/MacOS/$(APP_NAME); \
+		ln -nf $(app_bindir)/$(PROG) $(app_prefix)/MacOS/$(APP_NAME); \
 		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
 		$(RSYNC) chimerax-icon.icns $(app_prefix)/Resources/chimerax-icon.icns; \
 	fi
