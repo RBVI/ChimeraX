@@ -12,8 +12,6 @@ def time(session, command):
     session.triggers.add_handler('frame drawn', lambda name,data,s=session,t=t1: _report_draw_time(s,t))
 
     msg = 'command time %.4g seconds' % (t1-t0)
-    from sys import __stderr__
-    print(msg, file=__stderr__)
     log = session.logger
     log.status(msg)
     log.info(msg)
@@ -22,8 +20,6 @@ def _report_draw_time(session, tstart):
     from time import time
     tend = time()
     session.logger.info('draw time %.4g seconds' % (tend-tstart))
-    from sys import __stderr__
-    print('draw time %.4g seconds' % (tend-tstart), file=__stderr__)
     from ..triggerset import DEREGISTER
     return DEREGISTER
 
