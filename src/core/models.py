@@ -152,13 +152,7 @@ class Models(State):
         self.add(to_add, _from_session=True)
 
     def reset_state(self, session):
-        models = self._models.values()
-        self._models.clear()
-        for model in models:
-            if model.SESSION_ENDURING:
-                self._models[model.id] = model
-                continue
-            model.delete()
+        self.remove([m for m in self.list() if not m.SESSION_ENDURING])
 
     def list(self, model_id=None, type=None):
         if model_id is None:
