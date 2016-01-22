@@ -25,6 +25,11 @@ def window_size(session, width=None, height=None):
             ww = cww + (width - w)
             wh = cwh + (height - h)
             win.SetSize(ww, wh)
+            # To make the windowsize take effect before
+            # subsequent commands in a script, need to let
+            # wx process events.
+            import wx
+            wx.SafeYield()
 
 
 def register_command(session):
