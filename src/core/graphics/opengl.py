@@ -1603,7 +1603,7 @@ class Texture:
 
     def initialize_rgba(self, size):
 
-        format = GL.GL_BGRA
+        format = GL.GL_RGBA
         iformat = GL.GL_RGBA8
         tdtype = GL.GL_UNSIGNED_BYTE
         ncomp = 4
