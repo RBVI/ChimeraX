@@ -111,16 +111,20 @@ A vertical bar &ldquo;|&rdquo; designates mutually exclusive options, and
 default settings are indicated with <b>bold</b>.
 -->
 Synonyms for true: True, 1.  Synonyms for false: False, 0.
-</p><p>
-The <b>transparency</b> option sets transparency
-to the specified <i>percent</i>, where 0% is completely opaque 
-and 100% is completely transparent.
+</p>
+<blockquote>
+<b>transparency</b>&nbsp;&nbsp;<i>percent</i>
+<br>
+Set transparency to the specified <i>percent</i>, 
+where 0% is completely opaque and 100% is completely transparent.
 Existing transparency is not changed unless this option is used or the
 <i>colorname</i> explicitly <a href="colornames.html">specifies</a> 
-alpha (opacity). An alpha value overrides the
-<b>transparency</b> &nbsp;<i>percent</i> if both are given.
-</p><p>
-The <a name="target"><b>target</b></a> option allows coloring only 
+alpha (opacity). An alpha value overrides this option if both are given.
+</blockquote>
+<blockquote>
+<a name="target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>
+<br>
+Specify coloring only 
 a subset of the possible displays of a given atom, residue, <i>etc.</i>
 The <i>string</i> can be any combination of the following letters,
 without commas or spaces:
@@ -152,30 +156,31 @@ not yet implemented for <b>sequential</b> coloring
 </font>
 (if atoms have been colored sequentially, however,
 the surface can be colored to match the atoms with the command: 
-<b>color fromatoms target s</b>). 
-</p><p>
-By default, bonds are shown in
-<a name="halfbond"><b><i>halfbond mode</i></b></a>,
+<b>color fromatoms target s</b>).
+</blockquote>
+<blockquote>
+<a name="halfbond"><b>halfbond</b></a>&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+By default, bonds are shown in <b><i>halfbond mode</i></b>,
 with color and transparency settings from the flanking atoms.
 Turning halfbond mode off for a bond (or pseudobond) reveals its
 own color/transparency settings independent of the atoms.
-The <b>halfbond</b> option can be used to toggle halfbond mode
+This option can be used to toggle halfbond mode
 regardless of whether a color is given in the command.
-This option affects only the specified bonds 
-(not specified pseudobonds), except obeying the 
-<a href="#target">target</a> when it includes <b>p</b>.
-</p>
+It affects only the specified bonds (not pseudobonds),
+except obeying the <a href="#target">target</a> when it includes <b>p</b>.
+</blockquote>
 
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
 <a name="cmap-options"></a>
 <h3>Colormap Options</h3>
-<p>
-<a name="cmap"></a>
-The <b>cmap</b></a> option specifies a <i>colormap</i> for
-<b>sequential</b> coloring as one of the following:
-</p>
+<blockquote>
+<a name="cmap"><b>cmap</b></a>&nbsp;&nbsp;<i>colormap</i>
+<br>
+Specify a <i>colormap</i> for <b>sequential</b> coloring
+(synonym <b>rainbow</b>) as one of the following:
 <ul>
 <li>the name of a pre-defined palette (colors listed in ascending value order):
   <ul>
