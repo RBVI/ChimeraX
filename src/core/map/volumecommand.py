@@ -32,7 +32,7 @@ def register_volume_command():
                ('origin', Float1or3Arg),
                ('origin_index', Float1or3Arg),
                ('voxel_size', Float1or3Arg),
-#               ('planes', planes_arg),
+               ('planes', PlanesArg),
 # Symmetry assignment.
                ('symmetry', StringArg),
                ('center', StringArg),
@@ -184,7 +184,7 @@ def volume(session,
     origin : sequence of 3 floats
     origin_index : sequence of 3 floats
     voxel_size : sequence of 3 floats
-    planes : not currently supported
+    planes : tuple of (axis, start, end, increment, depth), last 3 are optional
 
     ------------------------------------------------------------------------------------------------
     Symmetry assignment options
@@ -561,3 +561,31 @@ def all_maps(models):
         if isinstance(m, Model):
             maps.extend(all_maps(m.child_drawings()))
     return maps
+    
+# -----------------------------------------------------------------------------
+#
+from ..commands import Annotation
+class PlanesArg(Annotation):
+    '''
+    Parse planes argument to volume command axis,start,end,increment,depth.
+    axis can be x, y, or z, and the other values are integers with the last 3
+    being optional.
+    '''
+    name = 'planes x|y|z,<start>[,<end>[,<increment>[,<depth>]]]'
+
+    @staticmethod
+    def parse(text, session):
+        from ..commands import next_token, AnnotationError
+        token, text, rest = next_token(text)
+        fields = token.split(',')
+        if len(fields) < 2:
+            raise AnnotationError('Planes argument requires at least 2 comma-separated fields:'
+                                  ' axis,start,end,increment,depth')
+        if fields[0] not in ('x', 'y', 'z'):
+            raise AnnotationError('Planes argument first field must be x, y, or z, got "%s"' % fields[0])
+        try:
+            values = [int(f) for f in fields[1:]]
+        except:
+            raise AnnotationError('Planes arguments after axis must be integers')
+        result = tuple([fields[0]] + values)
+        return result, text, rest
