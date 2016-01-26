@@ -34,8 +34,13 @@ The <b>style</b> command sets the display style of the
 <li><b>ball</b> - ball-and-stick with scaled-down van der Waals (VDW) radii
 <li><b>sphere</b> - space-filling with full VDW radii
 </ul>
-In addition, it can set the number of dashes in
-<a href="atomspec.html">specified</a> pseudobonds.
+In addition, <b>style</b> can set the number of <b>dashes</b> per
+<a href="../pseudobonds.html">pseudobond</a>. Bonds and pseudobonds
+are considered as specified when both flanking atoms are specified,
+and all of the pseudobonds in a <a href="../pseudobonds.html">group</a>
+will be affected in parallel. Only whole numbers are accepted, with 0
+indicating solid sticks. Currently, odd numbers are rounded down 
+to give an even number of dashes.
 </p><p>
 As per the usual convention, a blank specification means &ldquo;all.&rdquo;
 See also: <a href="show.html"><b>show</b></a>
