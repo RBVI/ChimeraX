@@ -22,9 +22,10 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._structure = None		# AtomicStructure if pseudobond group in intra-molecular
 
     def delete(self):
+        pbm = self.session.pb_manager
         Model.delete(self)
         self._pbond_drawing = None
-        PseudobondGroupData.delete(self)
+        pbm.delete_group(self)
 
     def added_to_session(self, session):
         # Detect when atoms moved so pseudobonds must be redrawn.
@@ -36,8 +37,9 @@ class PseudobondGroup(PseudobondGroupData, Model):
         ]
 
     def removed_from_session(self, session):
+        t = session.triggers
         while self.handlers:
-            session.delete_handler(self.handlers.pop())
+            t.delete_handler(self.handlers.pop())
         self.handlers = []
 
     def _get_dashes(self):

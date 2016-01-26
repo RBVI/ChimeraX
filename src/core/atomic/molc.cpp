@@ -1005,6 +1005,17 @@ extern "C" void* pseudobond_global_manager_get_group(void *manager, const char* 
     }
 }
 
+extern "C" void pseudobond_global_manager_delete_group(void *manager, void *pbgroup)
+{
+    try {
+        PBManager* mgr = static_cast<PBManager*>(manager);
+        Proxy_PBGroup* pbg = static_cast<Proxy_PBGroup*>(pbgroup);
+        return mgr->delete_group(pbg);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 // -------------------------------------------------------------------------
 // residue functions
 //

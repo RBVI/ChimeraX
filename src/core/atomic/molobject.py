@@ -293,6 +293,11 @@ class PseudobondManager:
         return object_map(pbg,
             lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
 
+    def delete_group(self, pbg):
+        f = c_function('pseudobond_global_manager_delete_group',
+                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
+        f(self._c_pointer, pbg._c_pointer)
+
 
 # -----------------------------------------------------------------------------
 #
