@@ -41,6 +41,7 @@ and their code location is described with the function descriptions.
 | `rainbow`_ - Color residues and chains
 | `roll`_ - Rotate models
 | `run`_ - Run a user command string
+| `rungs`_ - Display nucleotides as cylinders
 | `sasa`_ - Compute solvent accessible surface area
 | `save`_ - Save sessions, images, density maps...
 | `scolor`_ - Color surfaces
@@ -220,6 +221,10 @@ roll
 run
 ===
 .. autofunction:: chimerax.core.commands.run.run
+
+rungs
+=====
+.. autofunction:: chimerax.core.commands.rungs.rungs
 
 sasa
 ====
