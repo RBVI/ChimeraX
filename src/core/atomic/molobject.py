@@ -510,7 +510,8 @@ class AtomicStructureData:
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
-        return object_map(pbg, PseudobondGroupData)
+        from .pbgroup import PseudobondGroup
+        return object_map(pbg, PseudobondGroup)
 
     def session_info(self, ints, floats, misc):
         '''Gather session info; return version number'''
