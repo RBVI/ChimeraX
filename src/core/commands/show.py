@@ -8,11 +8,12 @@ def show(session, objects=None, what=None, target=None, only=False):
     objects : Objects or None
         Atoms, bonds or models to show.  If None then all are shown.
         Objects that are already shown remain shown.
-    what : 'atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons', 'models' or None
+    what : 'atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons', 'surfaces', 'models' or None
         What to show.  If None then 'atoms' if any atoms specified otherwise 'models'.
     target : set of "what" values, or None
         Alternative to the "what" option for specifying what to show.
-        Characters indicating what to show, a = atoms, b = bonds, p = pseudobonds, c = cartoon, m = models.
+        Characters indicating what to show, a = atoms, b = bonds, p = pseudobonds, c = cartoon,
+        s = surfaces, m = models.
     only : bool
         Show only the specified atoms/bonds/residues in each specified molecule.
         If what is models then only show then hide models that are not specified.
@@ -35,6 +36,8 @@ def show(session, objects=None, what=None, target=None, only=False):
         show_pseudobonds(session, objects, only)
     if 'cartoons' in what_to_show or 'ribbons' in what_to_show:
         show_cartoons(session, objects, only)
+    if 'surfaces' in what_to_show:
+        show_surfaces(session, objects, only)
     if 'models' in what_to_show:
         show_models(session, objects, only)
 
@@ -86,6 +89,25 @@ def show_cartoons(session, objects, only):
         other_res = structure_residues(atoms.unique_structures) - res
         other_res.ribbon_displays = False
 
+def show_surfaces(session, objects, only):
+    atoms = objects.atoms
+    if len(atoms) == 0:
+        return
+
+    # Show existing surfaces
+    from ..atomic import molsurf, concatenate, Atoms
+    surfs = molsurf.show_surfaces(atoms, session.models, only = only)
+
+    # Create new surfaces if they don't yet exist.
+    if surfs:
+        patoms, all_small = molsurf.remove_solvent_ligands_ions(atoms)
+        extra_atoms = patoms - concatenate([s.atoms for s in surfs], Atoms)
+    else:
+        extra_atoms = atoms
+    if extra_atoms:
+        from .surface import surface
+        surface(session, extra_atoms)
+
 def show_models(session, objects, only):
     from ..models import ancestor_models
     models = objects.models
@@ -114,12 +136,13 @@ def show_models(session, objects, only):
                 m.display = False
 
 from . import EnumOf, Annotation
-WhatArg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons', 'models'))
+WhatArg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons',
+                  'surfaces', 'models'))
 
 class TargetArg(Annotation):
     '''
     Character string indicating what to show or hide,
-    a = atoms, b = bonds, p = pseudobonds, c = cartoon, m = models.
+    a = atoms, b = bonds, p = pseudobonds, c = cartoon, s = surfaces, m = models.
     '''
     name = 'object type'
     
@@ -127,7 +150,8 @@ class TargetArg(Annotation):
     def parse(text, session):
         from . import StringArg
         token, text, rest = StringArg.parse(text, session)
-        target_chars = {'a':'atoms', 'c':'cartoons', 'm':'models', 'b':'bonds', 'p':'pseudobonds'}
+        target_chars = {'a':'atoms', 'b':'bonds', 'p':'pseudobonds', 'c':'cartoons',
+                        's':'surfaces', 'm':'models'}
         for c in token:
             if c not in target_chars:
                 from . import AnnotationError

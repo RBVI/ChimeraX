@@ -218,12 +218,12 @@ class MolecularSurface(Model):
         logical_and(shown_triangles, shown_vertices[t[:,2]], shown_triangles)
         return shown_triangles
 
-    def show(self, atoms):
+    def show(self, atoms, only = False):
         '''
         Show the surface patch near these :class:`.Atoms` in
         addition to any already shown surface patch.
         '''
-        self.show_atoms = self.show_atoms.merge(atoms)
+        self.show_atoms = atoms if only else self.show_atoms.merge(atoms)
         self.triangle_mask = self._calc_triangle_mask()
 
     def hide(self, atoms):
@@ -338,11 +338,11 @@ def surfaces_with_atoms(atoms, models):
                     surfs.append(s)
     return surfs
 
-def show_surfaces(atoms, models):
+def show_surfaces(atoms, models, only = False):
     surfs = surfaces_with_atoms(atoms, models)
     for s in surfs:
         s.display = True
-        s.show(atoms & s.atoms)
+        s.show(atoms & s.atoms, only = only)
     return surfs
 
 def hide_surfaces(atoms, models):
