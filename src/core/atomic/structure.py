@@ -562,72 +562,90 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered, p):
         from numpy import logical_and, logical_not
-        from numpy import dot, newaxis, mean
-        from numpy.linalg import norm
-        import math
-        from .ribbon import normalize, normalize_vector_array
         ribbon_adjusts = rlist.ribbon_adjusts
         # Smooth helices
         ss_ids = rlist.ss_ids
         helices = rlist.is_helix
-#         for start, end in self._ss_ranges(helices, ss_ids, 8):
-#             # We only "optimize" longer helices because short
-#             # ones do not contain enough information to do
-#             # things intelligently
-#             ss_coords = coords[start:end]
-#             adjusts = ribbon_adjusts[start:end][:, newaxis]
-#             axis, centroid, rel_coords = self._ss_axes(ss_coords)
-#             # Compute position of cylinder center corresponding to
-#             # helix control point atoms
-#             axis_pos = dot(rel_coords, axis)[:, newaxis]
-#             cyl_centers = centroid + axis * axis_pos
-#             if False:
-#                 # Debugging code to display center of secondary structure
-#                 self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
-#             # Compute radius of cylinder
-#             spokes = ss_coords - cyl_centers
-#             cyl_radius = mean(norm(spokes, axis=1))
-#             # Compute smoothed position of helix control point atoms
-#             ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
-#             offsets = adjusts * (ideal - ss_coords)
-#             new_coords = ss_coords + offsets
-#             # Compute guide atom position relative to control point atom
-#             delta_guides = guides[start:end] - ss_coords
-#             # Update both control point and guide coordinates
-#             coords[start:end] = new_coords
-#             # Move the guide location so that it forces the
-#             # ribbon parallel to the axis
-#             guides[start:end] = new_coords + axis
-#             # Originally, we just update the guide location to
-#             # the same relative place as before
-#             #   guides[start:end] = new_coords + delta_guides
-#             # Update the tethered array (we compare against self.bond_radius
-#             # because we want to create cones for the "worst" case which is
-#             # when the atoms are displayed in stick mode, with radius self.bond_radius)
-#             tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+        # Skip helix smoothing for now since it does not work well
+        # for bent helices
+        # for start, end in self._ss_ranges(helices, ss_ids, 8):
+        #     self._smooth_helix(coords, guides, tethered, ribbon_adjusts, start, end)
         # Smooth strands
         strands = logical_and(rlist.is_sheet, logical_not(helices))
         for start, end in self._ss_ranges(strands, ss_ids, 4):
-            ss_coords = coords[start:end]
-            adjusts = ribbon_adjusts[start:end][:, newaxis]
-            axis, centroid, rel_coords = self._ss_axes(ss_coords)
-            # Compute position for strand control point atom on
-            # axis by projection
-            axis = normalize(axis)
-            axis_pos = dot(rel_coords, axis)[:, newaxis]
-            ideal = centroid + axis * axis_pos
-            if False:
-                # Debugging code to display center of secondary structure
-                self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
-            offsets = adjusts * (ideal - ss_coords)
-            new_coords = ss_coords + offsets
-            # Compute guide atom position relative to control point atom
-            delta_guides = guides[start:end] - ss_coords
-            # Update both control point and guide coordinates
-            coords[start:end] = new_coords
-            guides[start:end] = new_coords + delta_guides
-            # Update the tethered array
-            tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+            self._smooth_strand(coords, guides, tethered, ribbon_adjusts, start, end)
+
+    def _smooth_helix(self, coords, guides, tethered, ribbon_adjusts, start, end):
+        # Try to fix up the ribbon orientation so that it is parallel to the helical axis
+        from numpy import dot, newaxis, mean
+        from numpy.linalg import norm
+        from .ribbon import normalize_vector_array
+        # We only "optimize" longer helices because short
+        # ones do not contain enough information to do
+        # things intelligently
+        ss_coords = coords[start:end]
+        adjusts = ribbon_adjusts[start:end][:, newaxis]
+        axis, centroid, rel_coords = self._ss_axes(ss_coords)
+        # Compute position of cylinder center corresponding to
+        # helix control point atoms
+        axis_pos = dot(rel_coords, axis)[:, newaxis]
+        cyl_centers = centroid + axis * axis_pos
+        if False:
+            # Debugging code to display center of secondary structure
+            self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
+        # Compute radius of cylinder
+        spokes = ss_coords - cyl_centers
+        cyl_radius = mean(norm(spokes, axis=1))
+        # Compute smoothed position of helix control point atoms
+        ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
+        offsets = adjusts * (ideal - ss_coords)
+        new_coords = ss_coords + offsets
+        # Compute guide atom position relative to control point atom
+        delta_guides = guides[start:end] - ss_coords
+        # Update both control point and guide coordinates
+        coords[start:end] = new_coords
+        # Move the guide location so that it forces the
+        # ribbon parallel to the axis
+        guides[start:end] = new_coords + axis
+        # Originally, we just update the guide location to
+        # the same relative place as before
+        #   guides[start:end] = new_coords + delta_guides
+        # Update the tethered array (we compare against self.bond_radius
+        # because we want to create cones for the "worst" case which is
+        # when the atoms are displayed in stick mode, with radius self.bond_radius)
+        tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+
+    def _smooth_strand(self, coords, guides, tethered, ribbon_adjusts, start, end):
+        if (end - start + 1) <= 4:
+            # Short strands do not need smoothing
+            return
+        from numpy import empty, dot, newaxis
+        from numpy.linalg import norm
+        from .ribbon import normalize
+        ss_coords = coords[start:end]
+        adjusts = ribbon_adjusts[start:end][:, newaxis]
+        ideal = empty(ss_coords.shape, dtype=float)
+        ideal[0] = ss_coords[0]
+        ideal[1:-1] = (ss_coords[1:-1] * 2 + ss_coords[:-2] + ss_coords[2:]) / 4
+        ideal[-1] = ss_coords[-1]
+#         axis, centroid, rel_coords = self._ss_axes(ss_coords)
+#         # Compute position for strand control point atom on
+#         # axis by projection
+#         axis = normalize(axis)
+#         axis_pos = dot(rel_coords, axis)[:, newaxis]
+#         ideal = centroid + axis * axis_pos
+        offsets = adjusts * (ideal - ss_coords)
+        new_coords = ss_coords + offsets
+        if False:
+            # Debugging code to display center of secondary structure
+            self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
+        # Compute guide atom position relative to control point atom
+        delta_guides = guides[start:end] - ss_coords
+        # Update both control point and guide coordinates
+        coords[start:end] = new_coords
+        guides[start:end] = new_coords + delta_guides
+        # Update the tethered array
+        tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
     def _ss_ranges(self, ba, ss_ids, min_length):
         # Return ranges of True in boolean array "ba"
