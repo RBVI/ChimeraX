@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def show(session, objects=None, what=None, only=False):
+def show(session, objects=None, what=None, target=None, only=False):
     '''Show specified atoms, bonds or models.
 
     Parameters
@@ -10,6 +10,9 @@ def show(session, objects=None, what=None, only=False):
         Objects that are already shown remain shown.
     what : 'atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons', 'models' or None
         What to show.  If None then 'atoms' if any atoms specified otherwise 'models'.
+    target : set of "what" values, or None
+        Alternative to the "what" option for specifying what to show.
+        Characters indicating what to show, a = atoms, b = bonds, p = pseudobonds, c = cartoon, m = models.
     only : bool
         Show only the specified atoms/bonds/residues in each specified molecule.
         If what is models then only show then hide models that are not specified.
@@ -18,87 +21,128 @@ def show(session, objects=None, what=None, only=False):
         from . import atomspec
         objects = atomspec.all_objects(session)
 
-    if what is None:
-        what = 'atoms' if objects.atoms else 'models'
+    what_to_show = set() if target is None else set(target)
+    if what is not None:
+        what_to_show.update([what])
+    if len(what_to_show) == 0:
+        what_to_show = set(['atoms' if objects.atoms else 'models'])
 
-    if what == 'atoms':
-        atoms = objects.atoms
-        atoms.displays = True
-        if only:
-            from ..atomic import structure_atoms
-            other_atoms = structure_atoms(atoms.unique_structures) - atoms
-            other_atoms.displays = False
-    elif what == 'bonds':
-        bonds = objects.atoms.inter_bonds
-        bonds.displays = True
-        a1, a2 = bonds.atoms
-        a1.displays = True	   # Atoms need to be displayed for bond to appear
-        a2.displays = True
-        if only:
-            mbonds = [m.bonds for m in atoms.unique_structures]
-            if mbonds:
-                from ..atomic import concatenate
-                all_bonds = concatenate(mbonds)
-                other_bonds = all_bonds - bonds
-                other_bonds.displays = False
-    elif what in ('pseudobonds', 'pbonds'):
-        atoms = objects.atoms
-        from .. import atomic
-        pbonds = atomic.interatom_pseudobonds(atoms, session)
-        pbonds.displays = True
-        a1, a2 = pbonds.atoms
-        a1.displays = True	   # Atoms need to be displayed for bond to appear
-        a2.displays = True
-        if only:
-            pbs = sum([[pbg.pseudobonds for pbg in m.pbg_map.values()]
-                       for m in atoms.unique_structures], [])
-            if pbs:
-                from ..atomic import concatenate
-                all_pbonds = concatenate(pbs)
-                other_pbonds = all_pbonds - pbonds
-                other_pbonds.displays = False
-    elif what == 'cartoons' or what == 'ribbons':
-        atoms = objects.atoms
-        res = atoms.unique_residues
-        res.ribbon_displays = True
-        if only:
-            from ..atomic import structure_residues
-            other_res = structure_residues(atoms.unique_structures) - res
-            other_res.ribbon_displays = False
-    elif what == 'models':
-        from ..models import ancestor_models
-        models = objects.models
-        minst = objects.model_instances
-        if minst:
-            for m,inst in minst.items():
-                dp = m.display_positions
-                if dp is None or only:
-                    dp = inst
-                else:
-                    from numpy import logical_or
-                    logical_or(dp, inst, dp)
-                m.display_positions = dp
-            for m in ancestor_models(minst.keys()):
-                m.display = True
-        else:
-            for m in models:
-                m.display = True
-            for m in ancestor_models(models):
-                m.display = True
-        if only:
-            mset = set(models)
-            mset.update(ancestor_models(models))
-            for m in session.models.list():
-                if m not in mset:
-                    m.display = False
+    if 'atoms' in what_to_show:
+        show_atoms(session, objects, only)
+    if 'bonds' in what_to_show:
+        show_bonds(session, objects, only)
+    if 'pseudobonds' in what_to_show or 'pbonds' in what_to_show:
+        show_pseudobonds(session, objects, only)
+    if 'cartoons' in what_to_show or 'ribbons' in what_to_show:
+        show_cartoons(session, objects, only)
+    if 'models' in what_to_show:
+        show_models(session, objects, only)
+
+def show_atoms(session, objects, only):
+    atoms = objects.atoms
+    atoms.displays = True
+    if only:
+        from ..atomic import structure_atoms
+        other_atoms = structure_atoms(atoms.unique_structures) - atoms
+        other_atoms.displays = False
+
+def show_bonds(session, objects, only):
+    bonds = objects.atoms.inter_bonds
+    bonds.displays = True
+    a1, a2 = bonds.atoms
+    a1.displays = True	   # Atoms need to be displayed for bond to appear
+    a2.displays = True
+    if only:
+        mbonds = [m.bonds for m in atoms.unique_structures]
+        if mbonds:
+            from ..atomic import concatenate
+            all_bonds = concatenate(mbonds)
+            other_bonds = all_bonds - bonds
+            other_bonds.displays = False
+
+def show_pseudobonds(session, objects, only):
+    atoms = objects.atoms
+    from .. import atomic
+    pbonds = atomic.interatom_pseudobonds(atoms, session)
+    pbonds.displays = True
+    a1, a2 = pbonds.atoms
+    a1.displays = True	   # Atoms need to be displayed for bond to appear
+    a2.displays = True
+    if only:
+        pbs = sum([[pbg.pseudobonds for pbg in m.pbg_map.values()]
+                   for m in atoms.unique_structures], [])
+        if pbs:
+            from ..atomic import concatenate
+            all_pbonds = concatenate(pbs)
+            other_pbonds = all_pbonds - pbonds
+            other_pbonds.displays = False
+
+def show_cartoons(session, objects, only):
+    atoms = objects.atoms
+    res = atoms.unique_residues
+    res.ribbon_displays = True
+    if only:
+        from ..atomic import structure_residues
+        other_res = structure_residues(atoms.unique_structures) - res
+        other_res.ribbon_displays = False
+
+def show_models(session, objects, only):
+    from ..models import ancestor_models
+    models = objects.models
+    minst = objects.model_instances
+    if minst:
+        for m,inst in minst.items():
+            dp = m.display_positions
+            if dp is None or only:
+                dp = inst
+            else:
+                from numpy import logical_or
+                logical_or(dp, inst, dp)
+            m.display_positions = dp
+        for m in ancestor_models(minst.keys()):
+            m.display = True
+    else:
+        for m in models:
+            m.display = True
+        for m in ancestor_models(models):
+            m.display = True
+    if only:
+        mset = set(models)
+        mset.update(ancestor_models(models))
+        for m in session.models.list():
+            if m not in mset:
+                m.display = False
+
+from . import EnumOf, Annotation
+WhatArg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbons', 'models'))
+
+class TargetArg(Annotation):
+    '''
+    Character string indicating what to show or hide,
+    a = atoms, b = bonds, p = pseudobonds, c = cartoon, m = models.
+    '''
+    name = 'object type'
+    
+    @staticmethod
+    def parse(text, session):
+        from . import StringArg
+        token, text, rest = StringArg.parse(text, session)
+        target_chars = {'a':'atoms', 'c':'cartoons', 'm':'models', 'b':'bonds', 'p':'pseudobonds'}
+        for c in token:
+            if c not in target_chars:
+                from . import AnnotationError
+                raise AnnotationError('Target option can only include letters ' +
+                                      ', '.join('%s = %s' % (ch,name) for ch,name in target_chars.items()) +
+                                      ', got %s' % c)
+        targets = set(target_chars[char] for char in token)
+        return targets, text, rest
 
 def register_command(session):
     from . import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, NoArg, create_alias
-    what_arg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds',
-                       'cartoons', 'ribbons', 'models'))
     desc = CmdDesc(optional=[('objects', Or(ObjectsArg, EmptyArg)),
-                             ('what', what_arg)],
-                   keyword=[('only', NoArg)],
+                             ('what', WhatArg)],
+                   keyword=[('target', TargetArg),
+                            ('only', NoArg)],
                    synopsis='show specified objects')
     register('show', desc, show)
     create_alias('display', 'show $*')
