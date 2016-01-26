@@ -36,6 +36,7 @@ class AtomicStructure(AtomicStructureData, Model):
         xsc_turn = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
         xsc_arrow_head = array([(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]) * 1.5
         xsc_arrow_tail = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
+        xsc_nuc = array([(0.1,0.5),(-0.1,0.5),(-0.1,-0.5),(0.1,-0.5)]) * 1.5
        
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
@@ -81,6 +82,7 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
         self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
         self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
+        self._ribbon_xs_nuc = XSection(xsc_nuc, faceted=True)
         # TODO: move back into _session_attrs when Collection instances
         # handle session saving/restoring
         self._ribbon_selected_residues = Residues()
@@ -314,6 +316,7 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _create_ribbon_graphics(self):
         from .ribbon import Ribbon
+        from .molobject import Residue
         from numpy import concatenate, array, zeros
         polymers = self.polymers(False, False)
         if self._ribbon_drawing is None:
@@ -390,10 +393,13 @@ class AtomicStructure(AtomicStructureData, Model):
             # Assign cross sections
             is_helix = residues.is_helix
             is_sheet = residues.is_sheet
+            polymer_type = residues.polymer_types
             xss = []
             was_strand = False
             for i in range(len(residues)):
-                if is_sheet[i]:
+                if polymer_type[i] == Residue.PT_NUCLEIC:
+                    xss.append(self._ribbon_xs_nuc)
+                elif is_sheet[i]:
                     if was_strand:
                         xss.append(self._ribbon_xs_strand)
                     else:

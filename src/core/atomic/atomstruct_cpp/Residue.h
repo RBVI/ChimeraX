@@ -28,7 +28,7 @@ public:
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
     enum Style { RIBBON_RIBBON = 0,
                  RIBBON_PIPE = 1 };
-    enum PolymerType { PT_NONE, PT_AMINO, PT_NUCLEIC };
+    enum PolymerType { PT_NONE = 0, PT_AMINO = 1, PT_NUCLEIC = 2 };
 private:
     friend class AtomicStructure;
     Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);

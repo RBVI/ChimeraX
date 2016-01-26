@@ -1055,6 +1055,12 @@ extern "C" void residue_principal_atom(void *residues, size_t n, pyobject_t *pas
     }
 }
 
+extern "C" void residue_polymer_type(void *residues, size_t n, int32_t *polymer_type)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::polymer_type, polymer_type);
+}
+
 extern "C" void residue_is_helix(void *residues, size_t n, npy_bool *is_helix)
 {
     Residue **r = static_cast<Residue **>(residues);

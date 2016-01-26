@@ -578,6 +578,8 @@ class Residues(Collection):
     '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.'''
     chain_ids = cvec_property('residue_chain_id', string, read_only = True)
     '''Returns a numpy array of chain IDs. Read only.'''
+    polymer_types = cvec_property('residue_polymer_type', int32, read_only = True)
+    '''Returns a numpy int array of residue types. Read only.'''
     is_helix = cvec_property('residue_is_helix', npy_bool)
     '''Returns a numpy bool array whether each residue is in a protein helix. Read only.'''
     is_sheet = cvec_property('residue_is_sheet', npy_bool)
