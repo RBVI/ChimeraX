@@ -831,8 +831,8 @@ class Volume(Model):
 
     tf = self.transfer_function()
     s.set_colormap(tf, self.solid_brightness_factor, self.transparency_depth)
-    s.set_matrix(self.matrix_size(), self.data.value_type, self.matrix_id,
-                 self.matrix_plane)
+    s.set_matrix(self.matrix_size(), self.data.value_type, self.matrix_id, self.matrix_plane)
+#    s.image_blend(self.blend_volumes())
 
     s.update_model(self)
     s.show()
@@ -840,6 +840,57 @@ class Volume(Model):
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
                           ro.outline_box_linewidth)
 
+  # ---------------------------------------------------------------------------
+  #
+  def blend_volumes(self):
+
+    b = getattr(self, '_blend_volumes', None)
+
+    ro = self.rendering_options
+    if ro.maximum_intensity_projection:
+      if b:
+        for v in b.volumes:
+          v._blend_volumes = None
+          if v is not self:
+            v.update_solid()
+      return None
+
+    vlist = self.session.models.list(type = Volume)
+    vmatch = [v for v in vlist
+              if (v.representation == 'solid' and
+                  v.region == self.region and 
+                  not v.rendering_options.maximum_intensity_projection and
+                  (v.data.ijk_to_xyz_transform == self.data.ijk_to_xyz_transform).all())]
+    vmatch.sort(key = lambda v: v.id)
+    if b and vmatch == b.volumes:
+      return b 	# No change to blending group
+
+    class ImageBlend:
+      def __init__(self, volumes):
+        self.volumes = volumes
+      def master(self):
+        return self.volumes[0].solid.drawing
+      def dependents(self):
+        return tuple(v.solid.drawing for v in self.volumes[1:])
+
+    if len(vmatch) >= 2:
+      bnew = ImageBlend(vmatch)
+      for v in vmatch:
+        v._blend_volumes = bnew
+        if v is not self:
+          v.update_solid()
+    else:
+      bnew = None
+
+    if b:
+      for v in b.volumes:
+        if v not in vmatch:
+          v._blend_volumes = None
+          if v is not self:
+            v.update_solid()
+      return None
+      
+    return bnew
 
   # ---------------------------------------------------------------------------
   #

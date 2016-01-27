@@ -14,6 +14,7 @@ class Gray_Scale_Drawing(Drawing):
     self.get_color_plane = None
     self.texture_planes = {}    # maps plane index to texture id
     self.update_colors = False
+    self.image_blend = None	# Blend colors with other drawings
 
     # Mode names rgba4, rgba8, rgba12, rgba16, rgb4, rgb8, rgb12, rgb16,
     #   la4, la8, la12, la16, l4, l8, l12, l16
@@ -101,6 +102,10 @@ class Gray_Scale_Drawing(Drawing):
 
   def draw(self, renderer, place, draw_pass, selected_only = False):
 
+    b = self.image_blend
+    if b and b.master() is not self:
+      return	# Will be drawn by blending with another model
+
     from ..graphics import Drawing
     dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not 'a' in self.color_mode)
     dtransp = (draw_pass == Drawing.TRANSPARENT_DRAW_PASS and 'a' in self.color_mode)
@@ -123,10 +128,12 @@ class Gray_Scale_Drawing(Drawing):
     max_proj = dtransp and self.maximum_intensity_projection
     if max_proj:
       renderer.blend_max(True)
-      renderer.write_depth(False)
+    renderer.write_depth(False)
+
     Drawing.draw(self, renderer, place, draw_pass, selected_only)
+
+    renderer.write_depth(True)
     if max_proj:
-      renderer.write_depth(True)
       renderer.blend_max(False)
 
   def remove_planes(self):
@@ -219,6 +226,22 @@ class Gray_Scale_Drawing(Drawing):
       p = self.get_color_plane(axis, k)
     else:
       p = None
+
+    b = self.image_blend
+    if b and b.master() is self:
+      a = p.shape[2]-1	# Alpha color component index.
+      if a == 0:
+        a = None	# No alpha channel
+      for d in b.dependents():
+        dp = d.color_plane(k, axis)
+        # TODO: Clamp colors when blending and combine alpha properly
+        if a is None:
+          p += dp
+        else:
+          p[:,:,:a] += dp[:,:,:a]
+          from numpy import maximum
+          maximum(p[:,:,a], dp[:,:,a], p[:,:,a])
+
     return p
 
   def reload_textures(self):

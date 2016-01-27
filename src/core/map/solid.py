@@ -19,7 +19,7 @@ class Solid:
 
     self.transform = transform
 
-    self.volume = None                  # Volume_Model
+    self.drawing = None                  # Gray_Scale_Drawing
     self.add_handler = None
 
     self.attached_model = align
@@ -123,16 +123,29 @@ class Solid:
   def set_transform(self, transform):
 
     self.transform = transform
+    
+  # ---------------------------------------------------------------------------
+  #
+  def image_blend(self, b):
+
+    self.blend_volumes = b
+    if b:
+      if self.c_mode != 'rgba8':
+        self.color_mode = self.c_mode = 'rgba8'
+        self.update_colors = True
+    d = self.drawing
+    if d:
+      d.image_blend = b
 
   # ---------------------------------------------------------------------------
   #
   def update_model(self, parent_drawing, open = True):
 
-    create_volume = self.volume is None
-    if create_volume:
-      self.volume = self.make_model(parent_drawing)
+    create_drawing = self.drawing is None
+    if create_drawing:
+      self.drawing = self.make_drawing(parent_drawing)
 
-    v = self.volume
+    v = self.drawing
     v.display = True
     v.set_array_coordinates(self.transform)
     v.color_mode = self.c_mode
@@ -157,14 +170,20 @@ class Solid:
         axis_bits |= (1 << a)
     v.show_ortho_planes = axis_bits
     v.ortho_planes_position = self.orthoplane_mijk
+#    v.image_blend = self.blend_volumes
 
-    if create_volume or self.update_colors:
+    if create_drawing or self.update_colors:
       self.update_colors = False
       self.update_coloring()
+      # b = self.blend_volumes
+      # if b:
+      #   bm = b.master()
+      #   if bm is not self:
+      #     bm.update_colors = True	# Tell blend master colors have changed
     
   # ---------------------------------------------------------------------------
   #
-  def make_model(self, parent_drawing):
+  def make_drawing(self, parent_drawing):
 
     from . import grayscale
     gsd = grayscale.Gray_Scale_Drawing()
@@ -176,13 +195,13 @@ class Solid:
   #
   def show(self):
 
-    self.volume.display = True
+    self.drawing.display = True
 
   # ---------------------------------------------------------------------------
   #
   def hide(self):
 
-    self.volume.display = False
+    self.drawing.display = False
     
   # ---------------------------------------------------------------------------
   #
@@ -194,10 +213,10 @@ class Solid:
       def get_color_plane(axis, plane,
                           self = self, cmap = cmap, cmap_range = cmap_range):
         return self.color_values(axis, plane, cmap, cmap_range)
-      self.volume.set_color_plane_callback(self.size, get_color_plane)
+      self.drawing.set_color_plane_callback(self.size, get_color_plane)
     else:
       colors = self.color_values()
-      self.volume.set_volume_colors(colors)
+      self.drawing.set_volume_colors(colors)
     self.message('')
 
   # ---------------------------------------------------------------------------
@@ -241,7 +260,7 @@ class Solid:
   #
   def color_array(self, ctype, cshape):
 
-    v = self.volume
+    v = self.drawing
     if hasattr(v, '_grayscale_color_array'):
       colors = v._grayscale_color_array
       if colors.dtype == ctype and tuple(colors.shape) == cshape:
@@ -257,7 +276,7 @@ class Solid:
     return colors
   
   # ---------------------------------------------------------------------------
-  # Returned values are uint8 or uint16 with 4 (BGRA), 3 (BGR), 2 (LA), or 1 (L)
+  # Returned values are uint8 or uint16 with 4 (RGBA), 3 (RGB), 2 (LA), or 1 (L)
   # components per color depending on color mode.
   # Transparency and brightness adjustments are applied to transfer function.
   #
@@ -300,7 +319,7 @@ class Solid:
         atrans = alpha[trans]
         alpha[trans] = 1.0 - (1.0-atrans) ** (1.0/(planes*(1-atrans)))
 
-    # Use only needed color components (e.g. bgra, la, l).
+    # Use only needed color components (e.g. rgba, la, l).
     cmap = self.rgba_to_colormap(tfcmap)
 
     # Convert from float to uint8 or uint16.
@@ -362,11 +381,11 @@ class Solid:
   def colormap_components(self):
 
     m = self.c_mode
-    if m.startswith('rgba'):    c = (2,1,0,3)  # BGRA
-    elif m.startswith('rgb'):   c = (2,1,0)    # BGR
+    if m.startswith('rgba'):    c = (0,1,2,3)  # RGBA
+    elif m.startswith('rgb'):   c = (0,1,2)    # RGB
     elif m.startswith('la'):    c = (0,3)      # RA
     elif m.startswith('l'):     c = (0,)       # R
-    else:                       c = (2,1,0,3)  # BGRA
+    else:                       c = (0,1,2,3)  # RGBA
     return c
 
   # ---------------------------------------------------------------------------
@@ -425,16 +444,16 @@ class Solid:
   #
   def model(self):
 
-    return self.volume
+    return self.drawing
     
   # ---------------------------------------------------------------------------
   #
   def close_model(self, parent_drawing):
 
-    v = self.volume
+    v = self.drawing
     if not v is None:
       parent_drawing.remove_drawing(v)
-    self.volume = None
+    self.drawing = None
 
 # -----------------------------------------------------------------------------
 #
