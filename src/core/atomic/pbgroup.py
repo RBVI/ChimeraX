@@ -119,7 +119,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
 def all_pseudobond_groups(models):
     return [m for m in models.list() if isinstance(m, PseudobondGroup)]
 
-def interatom_pseudobonds(atoms, session):
+def interatom_pseudobonds(atoms, session, group_name = None):
     # Inter-model pseudobond groups
     pbgs = session.models.list(type = PseudobondGroup)
     # Intra-model pseudobond groups
@@ -128,6 +128,8 @@ def interatom_pseudobonds(atoms, session):
     # Collect bonds
     ipbonds = []
     for pbg in pbgs:
+        if group_name is not None and pbg.category != group_name:
+            continue
         pbonds = pbg.pseudobonds
         ipb = pbonds.filter(pbonds.between_atoms(atoms))
         print ('%s pbonds got %d' % (pbg.category, len(ipb)))

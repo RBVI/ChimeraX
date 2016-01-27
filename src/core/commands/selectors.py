@@ -15,6 +15,7 @@ def register_core_selectors(session):
     reg(None, "nucleic", lambda s, m, r: _polymer_selector(m, r, False))
     reg(None, "nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False))
     reg(None, "pbonds", _pbonds_selector)
+    reg(None, "hbonds", _hbonds_selector)
     from ..atomic import Element
     for i in range(1, 115):
         e = Element.get_element(i)
@@ -103,6 +104,16 @@ def _pbonds_selector(session, models, results):
     from ..atomic import AtomicStructure, structure_atoms, interatom_pseudobonds
     atoms = structure_atoms([m for m in models if isinstance(m, AtomicStructure)])
     pbonds = interatom_pseudobonds(atoms, session)
+    a1, a2 = pbonds.atoms
+    atoms = a1 | a2
+    for m in atoms.unique_structures:
+        results.add_model(m)
+    results.add_atoms(atoms)
+
+def _hbonds_selector(session, models, results):
+    from ..atomic import AtomicStructure, structure_atoms, interatom_pseudobonds
+    atoms = structure_atoms([m for m in models if isinstance(m, AtomicStructure)])
+    pbonds = interatom_pseudobonds(atoms, session, group_name = 'hydrogen bonds')
     a1, a2 = pbonds.atoms
     atoms = a1 | a2
     for m in atoms.unique_structures:
