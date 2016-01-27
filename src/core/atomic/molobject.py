@@ -316,6 +316,14 @@ class Residue:
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
     chain_id = c_property('residue_chain_id', string, read_only = True)
     '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
+    PT_NONE = 0
+    '''Residue polymer type = none.'''
+    PT_AMINO = 1
+    '''Residue polymer type = amino acid.'''
+    PT_NUCLEIC = 2
+    '''Residue polymer type = nucleotide.'''
+    polymer_type = c_property('residue_polymer_type', int32, read_only = True)
+    '''Polymer type of residue. Integer value.'''
     is_helix = c_property('residue_is_helix', npy_bool)
     '''Whether this residue belongs to a protein alpha helix. Boolean value.'''
     is_sheet = c_property('residue_is_sheet', npy_bool)
