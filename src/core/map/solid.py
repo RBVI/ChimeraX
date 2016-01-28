@@ -19,7 +19,7 @@ class Solid:
 
     self.transform = transform
 
-    self.drawing = None                  # Gray_Scale_Drawing
+    self.drawing = None                  # GrayScaleDrawing
     self.add_handler = None
 
     self.attached_model = align
@@ -139,11 +139,11 @@ class Solid:
 
   # ---------------------------------------------------------------------------
   #
-  def update_model(self, parent_drawing, open = True):
+  def update_model(self, parent_drawing, blend_manager, open = True):
 
     create_drawing = self.drawing is None
     if create_drawing:
-      self.drawing = self.make_drawing(parent_drawing)
+      self.drawing = self.make_drawing(parent_drawing, blend_manager)
 
     v = self.drawing
     v.display = True
@@ -183,10 +183,10 @@ class Solid:
     
   # ---------------------------------------------------------------------------
   #
-  def make_drawing(self, parent_drawing):
+  def make_drawing(self, parent_drawing, blend_manager):
 
     from . import grayscale
-    gsd = grayscale.Gray_Scale_Drawing()
+    gsd = grayscale.GrayScaleDrawing(self.name, blend_manager)
     parent_drawing.add_drawing(gsd)
 
     return gsd
