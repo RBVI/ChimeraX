@@ -153,16 +153,17 @@ class _Input(Task):
             return
         logger = self.session.logger
         try:
-            self._cmd.parse_text(text, final=True)
-            logger.info(self._cmd.current_text)
-            self._cmd.execute()
+            self._cmd.run(text)
         except errors.UserError as err:
             rest = self._cmd.current_text[self._cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = self._cmd.amount_parsed + spaces
             syntax_error = error_at < len(self._cmd.current_text)
             if syntax_error:
-                logger.error("%s^" % ('.' * error_at))
+                error_at -= self._cmd.start
+                logger.error(self._cmd.current_text[self._cmd.start:])
+                if error_at:
+                    logger.error("%s^" % ('.' * error_at))
             logger.error(str(err))
         except Exception:
             logger.error("\nUnexpected exception, save your work and exit:\n")

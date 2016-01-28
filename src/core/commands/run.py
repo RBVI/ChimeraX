@@ -18,8 +18,7 @@ def run(session, text, *, log=True, downgrade_errors=False):
     from ..errors import UserError
     command = cli.Command(session)
     try:
-        command.parse_text(text, final=True)
-        return command.execute(log = log)
+        return command.run(text, log=log)
     except UserError as err:
         if downgrade_errors:
             session.logger.info(str(err))
