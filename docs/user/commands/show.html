@@ -1,6 +1,6 @@
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015 Regents of the University of California.
+Copyright (c) 2015-2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
@@ -23,7 +23,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>show</b> 
 &nbsp;<a href="atomspec.html"><i>spec</i></a>
-[&nbsp;<a href="#level"><i>level</i></a>&nbsp;]
+[&nbsp;<i>level</i>&nbsp;&nbsp;|&nbsp;<b>target</b>&nbsp;&nbsp;<i>string</i>&nbsp;]
 <!--
 [&nbsp;only&nbsp;]
 -->
@@ -31,46 +31,92 @@ class="clRight" alt="ChimeraX logo"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>hide</b> 
 &nbsp;<a href="atomspec.html"><i>spec</i></a>
-[&nbsp;<a href="#level"><i>level</i></a>&nbsp;]
+[&nbsp;<i>level</i>&nbsp;&nbsp;|&nbsp;<b>target</b>&nbsp;&nbsp;<i>string</i>&nbsp;]
 </h3>
 <p>
 The commands <b>show</b> and <b>hide</b> display and undisplay the
 <a href="atomspec.html">specified</a>
 atoms, bonds, <a href="../pseudobonds.html">pseudobonds</a>,
-cartoons, and entire models.
+cartoons, molecular surfaces, and entire models.
 Following the usual convention, a blank specification means &ldquo;all.&rdquo;
-See the command <a href="surface.html"><b>surface</b></a>
-for showing and hiding molecular surfaces.
 See also: <a href="style.html"><b>style</b></a>,
 <a href="cartoon.html"><b>cartoon</b></a>,
+<a href="surface.html"><b>surface</b></a>,
 <b>volume</b>
 </p><p>
-<a name="level"></a>
-The <i>level</i> can be:
-<ul>
-<li><b>atoms</b> - specified atoms
-<li><b>bonds</b> - bonds with both end atoms specified; includes end atoms
+Examples:
+</p>
+<blockquote>
+<b>show #1/a</b>
+<br>
+<b>hide /b-d cartoon</b>
+<br>
+<b>hide <a href="atomspec.html#builtin">hbonds</a> targ p</b>
+<br>
+<b>hide <a href="atomspec.html#builtin">nucleic</a> targ cp</b>
+</blockquote>
+<p>
+Which of the possible displays of a given atom, residue, <i>etc.</i>
+to show or hide can be specified with a <i>level</i> keyword or 
+the <b>target</b> option:
+</p>
+<table border cellpadding="5" cellspacing="0" width="98%">
+<tr>
+<td align="center"><b><i>level</i></b></td>
+<td align="center"><b>equivalent</b></td>
+<td align="center"><b>meaning</b></td>
+</tr><tr>
+<td align="center"><b>atoms</b></td>
+<td align="center"><b>target a</b></td>
+<td align="left">specified atoms;
+bonds and <a href="../pseudobonds.html">pseudobonds</a> with
+both end atoms hidden are also hidden automatically</td>
+</tr><tr>
+<td align="center"><b>bonds</b></td>
+<td align="center"><b>target b</b></td>
+<td align="left">bonds with both end atoms specified; includes end atoms
 for <b>show</b> (since they are required to display the bond,
-see <a href="../hierarchy.html">hierarchy</a>) but not for <b>hide</b>
-<li><b>pseudobonds</b> or <b>pbonds</b>
-- <a href="../pseudobonds.html">pseudobonds</a>
+see <a href="../hierarchy.html">hierarchy</a>) but not for <b>hide</b></td>
+</tr><tr>
+<td align="center"><b>pseudobonds</b> <br>or<br><b>pbonds</b></td>
+<td align="center"><b>target p</b></td>
+<td align="left"><a href="../pseudobonds.html">pseudobonds</a>
 with both end atoms specified; includes end atoms
 for <b>show</b> (since they are required to display the pseudobond,
-see <a href="../hierarchy.html">hierarchy</a>) but not for <b>hide</b>
-<li><b>cartoons</b> or <b>ribbons</b> 
-- cartoon (ribbon) segments of the specified residues
-<li><b>models</b>
-- entire models, without affecting the display status of their subparts
+see <a href="../hierarchy.html">hierarchy</a>) but not for <b>hide</b></td>
+</tr><tr>
+<td align="center"><b>cartoons</b> <br>or<br> <b>ribbons</b> </td>
+<td align="center"><b>target c</b></td>
+<td align="left">cartoon (ribbon) segments of the specified residues</td>
+</tr><tr>
+<td align="center"><b>surfaces</b></td>
+<td align="center"><b>target s</b></td>
+<td align="left"><a href="surface.html">molecular surface</a> patches of the specified atoms;
+<b>show</b> will use an existing surface, if any, otherwise generate
+it with default <a href="surface.html"><b>surface</b></a> parameters</td>
+</tr><tr>
+<td align="center"><b>models</b></td>
+<td align="center"><b>target m</b></td>
+<td align="left">entire models, 
+without affecting the display status of their subparts
 (for example, which atoms are shown; 
-see <a href="../hierarchy.html">hierarchy</a>)
-</ul>
-The <i>level</i> argument is optional and can be truncated.
+see <a href="../hierarchy.html">hierarchy</a>)</td>
+</tr>
+</table>
+<p>
 The default <i>level</i> is <b>atoms</b>
 when <a href="atomspec.html"><i>spec</i></a> includes atoms, but
 <b>models</b> when only nonatomic (<i>e.g.</i>, volume) models are specified.
 A blank specification includes atoms when atomic models are present.
-<!--
 </p><p>
+Alternatively,
+the <b>target</b> option allows specifying one or more levels
+as a single <i>string</i> of single-letter codes in any order,
+without commas or spaces.  For example,
+<b>target acs</b> indicates atoms, cartoons, and molecular surfaces.
+</p>
+<!--
+<p>
 The <b>only</b> keyword indicates undisplaying the rest of the model
 when <a href="atomspec.html"><i>spec</i></a> contains just part of a model.
 Other models are not affected.
@@ -78,10 +124,10 @@ An exception to this behavior is when the <i>level</i> is <b>models</b>,
 in which case other models are hidden.
 When the <i>level</i> is also specified,
 the <b>only</b> keyword must be given last.
--->
 </p>
+-->
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2015</address>
+January 2016</address>
 </body></html>

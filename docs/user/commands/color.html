@@ -32,11 +32,6 @@ class="clRight" alt="ChimeraX logo"/></a>
 &nbsp;<b>sequential</b> (&nbsp;residues&nbsp;|&nbsp;chains&nbsp;)
 [&nbsp;cmap&nbsp;&nbsp;<a href="#cmap-options"><i>colormap</i></a>&nbsp;]
 &nbsp;<a href="#general-options"><i>general-options</i></a>
-<!--
-[&nbsp;transparency&nbsp;&nbsp;<i>percent</i>&nbsp;]
-[&nbsp;<a href="#target">target</a>&nbsp;&nbsp;<i>string</i>&nbsp;]
-[&nbsp;halfbond&nbsp;true&nbsp;|&nbsp;false&nbsp;]
--->
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>rainbow</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
@@ -113,15 +108,6 @@ default settings are indicated with <b>bold</b>.
 Synonyms for true: True, 1.  Synonyms for false: False, 0.
 </p>
 <blockquote>
-<b>transparency</b>&nbsp;&nbsp;<i>percent</i>
-<br>
-Set transparency to the specified <i>percent</i>, 
-where 0% is completely opaque and 100% is completely transparent.
-Existing transparency is not changed unless this option is used or the
-<i>colorname</i> explicitly <a href="colornames.html">specifies</a> 
-alpha (opacity). An alpha value overrides this option if both are given.
-</blockquote>
-<blockquote>
 <a name="target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>
 <br>
 Specify coloring only 
@@ -131,11 +117,11 @@ without commas or spaces:
   <ul>
   <li><b>a</b> - atoms/bonds
   (coloring shown for bonds in <a href="#halfbond">halfbond mode</a>)
-  <li><b>b</b> - bonds-only
-  (coloring shown for bonds not in <a href="#halfbond">halfbond mode</a>)
 <!--
   <li><b>l</b> - atom labels
 -->
+  <li><b>b</b> - bonds-only
+  (coloring shown for bonds not in <a href="#halfbond">halfbond mode</a>)
   <li><b>c</b> - cartoons (divisible to per-residue segments)
   <li><b>s</b> - surfaces
   (molecular surfaces divisible to per-atom patches)
@@ -149,7 +135,7 @@ without commas or spaces:
   <li><b>d</b> - distances and other pseudobond labels
 -->
   </ul>
-The default target is <b>abcs</b>, 
+The default is <b>target abcs</b>, 
 <font color="brown">
 except that surface coloring is
 not yet implemented for <b>sequential</b> coloring
@@ -157,6 +143,18 @@ not yet implemented for <b>sequential</b> coloring
 (if atoms have been colored sequentially, however,
 the surface can be colored to match the atoms with the command: 
 <b>color fromatoms target s</b>).
+<p>
+Alternatively, for simple coloring only, a single target
+can be specified with a keyword immediately following the 
+<a href="#colorname"><i>colorname</i></a>:
+</p>
+<ul>
+<li><b>atoms</b> - equivalent to <b>target a</b>
+<li><b>bonds</b> - equivalent to <b>target b</b>
+<li><b>cartoons</b> or <b>ribbons</b> - equivalent to <b>target c</b>
+<li><b>surfaces</b> - equivalent to <b>target s</b>
+<li><b>pseudobonds</b> - equivalent to <b>target p</b>
+</ul>
 </blockquote>
 <blockquote>
 <a name="halfbond"><b>halfbond</b></a>&nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -169,6 +167,17 @@ This option can be used to toggle halfbond mode
 regardless of whether a color is given in the command.
 It affects only the specified bonds (not pseudobonds),
 except obeying the <a href="#target">target</a> when it includes <b>p</b>.
+</blockquote>
+<blockquote>
+<b>transparency</b>&nbsp;&nbsp;<i>percent</i>
+<br>
+Set transparency to the specified <i>percent</i>, 
+where 0% is completely opaque and 100% is completely transparent.
+Existing transparency is not changed unless this option is used or the
+<i>colorname</i> explicitly <a href="colornames.html">specifies</a> 
+alpha (opacity). An alpha value overrides this option if both are given.
+Note that the <a href="transparency.html"><b>transparency</b></a> command
+can be used to set transparency apart from color.
 </blockquote>
 
 <p class="nav">
@@ -260,6 +269,8 @@ Example <a href="#top"><b>color</b></a> commands:
 </p>
 <blockquote>
 <b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;target a</b>
+<br>&ndash; or &ndash;</br>
+<b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;atoms</b>
 </blockquote>
 - color residues 12 and 260-275 in chains A and B, atoms/bonds only
 <blockquote>
@@ -269,8 +280,8 @@ Example <a href="#top"><b>color</b></a> commands:
 - color all pseudobonds yellow, but not their flanking atoms
 <blockquote>
 <b>color seq res</b>
-<br>&ndash; or &ndash;
-<br><b>rainbow res</b>
+<br>&ndash; or &ndash;<br>
+<b>rainbow res</b>
 <!--
 <br>&ndash; or &ndash;
 <br><b>rainbow</b>
@@ -279,15 +290,15 @@ Example <a href="#top"><b>color</b></a> commands:
 - rainbow-color residues blue &rarr; red along each biopolymer chain
 <blockquote>
 <b>color #3 seq chain &nbsp;cmap cyan</b>
-<br>&ndash; or &ndash;
-<br><b>rainbow #3 chain &nbsp;cmap cyan</b>
+<br>&ndash; or &ndash;<br>
+<b>rainbow #3 chain &nbsp;cmap cyan</b>
 </blockquote>
 - color the chains in model 3 from a medium cyan through white to dark maroon
 <blockquote>
 <b>color seq chain &nbsp;targ c
 &nbsp;cmap cornflowerblue:red:gold</b>
-<br>&ndash; or &ndash;
-<br><b>rainbow chain &nbsp;targ c
+<br>&ndash; or &ndash;<br>
+<b>rainbow chain &nbsp;targ c
 &nbsp;cmap cornflowerblue:red:gold</b>
 </blockquote>
 - color the chains in each atomic model, cartoons only,
@@ -348,9 +359,10 @@ Examples:
 <b>color name tgreen rgba(0%, 80%, 40%, 0.5)</b>
 </blockquote>
 <p>
-The command <b>color list</b> shows any user-defined colors in the <b>Log</b>,
-whereas <b>color list all</b> also lists the
-<a href="colornames.html">built-in color names</a>.
+The command <b>color list</b> shows names and color swatches for
+any user-defined colors in the <b>Log</b>,
+whereas <b>color list all</b> also shows the
+<a href="colornames.html">built-in colors</a>.
 The <b>rgba</b> (red, green, blue, opacity) definition 
 of an existing color can be shown in the <b>Log</b>
 with <b>color name</b> <i>cname</i>.
