@@ -80,8 +80,10 @@ public:
     operator const char*() const { return _data; }
     bool  operator==(const char* s) const { return strcmp(_data, s) == 0; }
     bool  operator==(const CString& s) const { return *this == s._data; }
+    bool  operator==(char ch) const { return _data[0] == ch && _data[1] == '\0'; }
     bool  operator!=(const char* s) const { return strcmp(_data, s) != 0; }
     bool  operator!=(const CString& s) const { return *this != s._data; }
+    bool  operator!=(char ch) const { return _data[0] != ch || _data[1] != '\0'; }
     bool  operator<(const char* s) const { return strcmp(_data, s) < 0; }
     bool  operator<(const CString& cstr) const { return *this < cstr._data; }
     char&  operator[](const int i) { return _data[i]; }

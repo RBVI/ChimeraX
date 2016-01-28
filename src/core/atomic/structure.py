@@ -168,7 +168,8 @@ class AtomicStructure(AtomicStructureData, Model):
             from ..commands import Command
             if len([m for m in session.models.list()
                     if isinstance(m, self.__class__)]) == 1:
-                Command(session, "lighting " + lighting, final=True).execute(log=False)
+                cmd = Command(session)
+                cmd.run("lighting " + lighting, log=False)
 
         self._start_change_tracking(session.change_tracker)
         self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)

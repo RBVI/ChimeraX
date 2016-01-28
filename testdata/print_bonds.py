@@ -1,4 +1,4 @@
-from chimera.core.structure import StructureModel
+from chimerax.core.atomic import AtomicStructure
 
 
 def osl_ident(chain_id, residue_number, atom_name):
@@ -7,10 +7,10 @@ def osl_ident(chain_id, residue_number, atom_name):
 
 
 for m in session.models.list():
-    if not isinstance(m, StructureModel):
+    if not isinstance(m, AtomicStructure):
         continue
     bonds = {}
-    a0s, a1s = m.mol_blob.bonds.atoms
+    a0s, a1s = m.bonds.atoms
     a0names = a0s.names
     a0rn = a0s.residues.numbers
     a0rc = a0s.residues.chain_ids
@@ -32,5 +32,4 @@ for m in session.models.list():
         print("%s: %s" % (osl_ident(*a),
                           ', '.join([osl_ident(*x) for x in other_atoms])))
 
-session.logger.clear()
 raise SystemExit(0)

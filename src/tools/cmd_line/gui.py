@@ -116,9 +116,8 @@ class CommandLine(ToolInstance):
             if not cmd_text:
                 continue
             try:
-                cmd = Command(session, cmd_text, final=True)
-                cmd.error_check()
-                cmd.execute()
+                cmd = Command(session)
+                cmd.run(cmd_text)
             except SystemExit:
                 # TODO: somehow quit application
                 raise
@@ -132,8 +131,8 @@ class CommandLine(ToolInstance):
                 err_text = '<span style="color:%s;">%s</span>\n' % (
                     err_color, escape(str(err)))
                 if syntax_error:
-                    err_text = '<p>%s<span style="color:white; background-color:%s;">%s</span><br>\n' % (
-                        escape(cmd.current_text[:error_at]), err_color,
+                    err_text = '<div class="cxcmd">%s<span style="color:white; background-color:%s;">%s</span></div>\n' % (
+                        escape(cmd.current_text[cmd.start:error_at]), err_color,
                         escape(cmd.current_text[error_at:])) + err_text
                 logger.info(err_text, is_html=True)
                 logger.status(str(err))

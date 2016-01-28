@@ -879,6 +879,8 @@ ExtractMolecule::parse_struct_conn()
     while (parse_row(pv)) {
         if (symmetry1 != symmetry2)
             continue;
+        if (atom_name1 == '?' || atom_name2 == '?')
+            continue;
         bool normal = false;
         bool metal = false;
         bool hydro = false;
