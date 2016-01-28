@@ -1929,21 +1929,21 @@ class Command:
             if start:
                 self.amount_parsed += start
                 text = text[start:]
-            if not text:
-                return None, None
-            if text[0] == ';':
-                return None, None
+            if text and text[0] == ';':
+                text = ''
             if kw_name in self._ci._optional:
                 # check if next token matches a keyword and if so,
                 # terminate positional arguments
+                if not text:
+                    return last_anno, None
                 _, tmp, _ = next_token(text, no_raise=True)
                 if not tmp:
-                    return None, None
+                    return last_anno, None
                 if tmp[0].isalpha():
                     tmp = _user_kw(tmp)
                     if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
                             any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
-                        return None, None
+                        return last_anno, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 if is_python_keyword(kw_name):

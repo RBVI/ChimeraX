@@ -75,7 +75,9 @@ class AtomSpecArg(Annotation):
     @staticmethod
     def parse(text, session):
         """Parse text and return an atomspec parse tree"""
-        assert(text and not text[0].isspace())
+        if not text or text[0].isspace():
+            from .cli import AnnotationError
+            raise AnnotationError("empty atom specifier")
         if text[0] == '"':
             return AtomSpecArg._parse_quoted(text, session)
         else:
