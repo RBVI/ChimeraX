@@ -127,14 +127,16 @@ class CommandLine(ToolInstance):
                 error_at = cmd.amount_parsed + spaces
                 syntax_error = error_at < len(cmd.current_text)
                 # error message in red text
+                msg = '<div class="cxcmd">%s' % escape(
+                        cmd.current_text[cmd.start:error_at])
                 err_color = 'crimson'
-                err_text = '<span style="color:%s;">%s</span>\n' % (
-                    err_color, escape(str(err)))
                 if syntax_error:
-                    err_text = '<div class="cxcmd">%s<span style="color:white; background-color:%s;">%s</span></div>\n' % (
-                        escape(cmd.current_text[cmd.start:error_at]), err_color,
-                        escape(cmd.current_text[error_at:])) + err_text
-                logger.info(err_text, is_html=True)
+                    msg += '<span style="color:white; background-color:%s;">%s</span>' % (
+                        err_color,
+                        escape(cmd.current_text[error_at:]))
+                msg += '</div>\n<span style="color:%s;">%s</span>\n' % (
+                    err_color, escape(str(err)))
+                logger.info(msg, is_html=True)
                 logger.status(str(err))
             except:
                 import traceback
