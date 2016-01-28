@@ -1808,19 +1808,21 @@ class Command:
         parent_info = _commands
         cmd_name = None
         self.start = self.amount_parsed
+        start = self.start
         while 1:
             m = _whitespace.match(self.current_text, self.amount_parsed)
             cur_end = m.end()
             text = self.current_text[cur_end:]
             if not text:
-                if self.amount_parsed == self.start:
+                if self.amount_parsed == start:
                     self._error = ''
                     self.amount_parsed = cur_end
                 self.word_info = parent_info
                 self.command_name = cmd_name
                 return
-            self.start = cur_end
-            if text.startswith('#') and self.amount_parsed == self.start:
+            if self.amount_parsed == start:
+                self.start = cur_end
+            if text.startswith('#') and self.amount_parsed == start:
                 self._error = ''
                 self.amount_parsed = len(self.current_text)
                 self.word_info = None
