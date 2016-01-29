@@ -160,10 +160,17 @@ class AtomicStructure(AtomicStructureData, Model):
 
             elif self.num_chains < 250:
                 lighting = "full"
-                from ..colors import chain_colors
+                from ..colors import chain_colors, element_colors
                 residues = self.residues
                 residues.ribbon_colors = chain_colors(residues.chain_ids)
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
+                from .molobject import Atom
+                ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
+                ligand_atoms.draw_modes = Atom.STICK_STYLE
+                ligand_atoms.colors = element_colors(ligand_atoms.element_numbers)
+                solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
+                solvent_atoms.draw_modes = Atom.BALL_STYLE
+                solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
             else:
                 lighting = "shadows true"
             from ..commands import Command
