@@ -18,6 +18,9 @@ class View:
         self.window_size = window_size		# pixels
         self._opengl_context = None
         self._render = None
+        from .opengl import Lighting, Material
+        self._lighting = Lighting()
+        self._material = Material()
 
         if opengl_context:
             self.initialize_context(opengl_context)
@@ -72,7 +75,9 @@ class View:
             raise ValueError("OpenGL context is alread set")
         self._opengl_context = oc
         from .opengl import Render
-        self._render = Render()
+        self._render = r = Render()
+        r.lighting = self._lighting
+        r.material = self._material
 
     def opengl_context(self):
         return self._opengl_context
@@ -231,7 +236,7 @@ class View:
         if dm.shape_changed or cp.changed:
             self._update_center_of_rotation = True
 
-        if (self.lighting.multishadow > 0 and
+        if (self._lighting.multishadow > 0 and
             ((dm.redraw_needed and dm.shape_changed) or cp.changed)):
             self._multishadow_update_needed = True
 
@@ -267,10 +272,13 @@ class View:
     '''Background color as R, G, B, A values in 0-1 range.'''
 
     def get_lighting(self):
-        return self._render.lighting
+        return self._lighting
 
     def set_lighting(self, lighting):
-        self._render.lighting = lighting
+        self._lighting = lighting
+        r = self._render
+        if r:
+            r.lighting = lighting
         self.redraw_needed = True
 
     lighting = property(get_lighting, set_lighting)
