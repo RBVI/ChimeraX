@@ -326,7 +326,7 @@ wait
 
 windowsize
 ==========
-.. autofunction:: chimerax.core.commands.windowsize.windowsize
+.. autofunction:: chimerax.core.commands.windowsize.window_size
 
 zoom
 ====
