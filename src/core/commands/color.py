@@ -65,6 +65,11 @@ def color(session, objects, color=None, what=None,
     if getattr(color, 'explicit_transparency', False):
         opacity = color.uint8x4()[3]
 
+    if halfbond is not None and atoms is not None:
+        bonds = atoms.inter_bonds
+        if len(bonds) > 0:
+            bonds.halfbonds = halfbond
+
     if sequential is not None:
         try:
             f = _SequentialColor[sequential]
@@ -123,15 +128,7 @@ def color(session, objects, color=None, what=None,
             if len(bonds) > 0:
                 if color not in _SpecialColors and color is not None:
                     bonds.colors = color.uint8x4()
-                if halfbond is not None:
-                    bonds.halfbonds = halfbond
                 what.append('%d bonds' % len(bonds))
-
-    if halfbond is not None and 'b' not in target and 'p' not in target and atoms is not None:
-        bonds = atoms.inter_bonds
-        if len(bonds) > 0:
-            bonds.halfbonds = halfbond
-            what.append('%d halfbonds' % len(bonds))
 
     if 'p' in target:
         if atoms is not None:
@@ -140,8 +137,6 @@ def color(session, objects, color=None, what=None,
             if len(bonds) > 0:
                 if color not in _SpecialColors and color is not None:
                     bonds.colors = color.uint8x4()
-                if halfbond is not None:
-                    bonds.halfbonds = halfbond
                 what.append('%d pseudobonds' % len(bonds))
 
     if 'd' in target:
