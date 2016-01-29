@@ -1,5 +1,5 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-from chimerax.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, Command, run, cli
+from chimerax.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, run, cli
 
 
 def help(session, topic=None, *, option=None, is_query=False):
