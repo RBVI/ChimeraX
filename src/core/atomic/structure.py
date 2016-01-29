@@ -109,7 +109,8 @@ class AtomicStructure(AtomicStructureData, Model):
         No atoms or other components of the structure
         are shared between the original and the copy.
         '''
-        m = AtomicStructure(AtomicStructureData._copy(self), name = name,
+        m = AtomicStructure(self.session, name = name,
+                            c_pointer = AtomicStructureData._copy(self),
                             level_of_detail = self._level_of_detail)
         m.positions = self.positions
         return m
