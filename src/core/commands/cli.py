@@ -2201,7 +2201,7 @@ def command_url(name, no_aliases=False):
     return cmd._ci.url
 
 
-def usage(name, no_aliases=False):
+def usage(name, no_aliases=False, no_subcommands=False):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -2243,7 +2243,8 @@ def usage(name, no_aliases=False):
     if arg_syntax:
         syntax += '\n%s' % '\n'.join(arg_syntax)
 
-    if cmd.word_info is not None and cmd.word_info.has_subcommands():
+    if (not no_subcommands and cmd.word_info is not None and
+            cmd.word_info.has_subcommands()):
         name = cmd.command_name
         if syntax:
             syntax += '\n'
@@ -2253,11 +2254,12 @@ def usage(name, no_aliases=False):
     return syntax
 
 
-def html_usage(name, no_aliases=False):
+def html_usage(name, no_aliases=False, no_subcommands=False):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
     :param no_aliases: True if aliases should not be considered.
+    :param no_subcommands: True if subcommands should not be considered.
     :returns: a HTML usage string for the command
     """
     cmd = Command(None)
@@ -2316,7 +2318,8 @@ def html_usage(name, no_aliases=False):
     if arg_syntax:
         syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
 
-    if cmd.word_info is not None and cmd.word_info.has_subcommands():
+    if (not no_subcommands and cmd.word_info is not None and
+            cmd.word_info.has_subcommands()):
         name = cmd.command_name
         if syntax:
             syntax += '<br>\n'
