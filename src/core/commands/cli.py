@@ -2460,8 +2460,9 @@ class Alias:
                 text += args[part]
         if echo_tag is not None:
             session.logger.info('%s%s' % (echo_tag, text))
-        cmd = Command(session)
-        return cmd.run(text, _used_aliases=_used_aliases, log=log)
+        # save Command object so error reporting can give underlying error
+        self.cmd = Command(session)
+        return self.cmd.run(text, _used_aliases=_used_aliases, log=log)
 
 
 def list_aliases(all=False):
