@@ -79,6 +79,8 @@ class HelpUI(ToolInstance):
         self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATED, self.on_navigated)
         self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
                               id=self.help_window.GetId())
+        self.help_window.Bind(html2.EVT_WEBVIEW_NEWWINDOW, self.on_new_window,
+                              id=self.help_window.GetId())
         self.help_window.Bind(html2.EVT_WEBVIEW_TITLE_CHANGED,
                               self.on_title_change)
         self.help_window.EnableContextMenu()
@@ -138,6 +140,13 @@ class HelpUI(ToolInstance):
     def on_title_change(self, event):
         new_title = self.help_window.CurrentTitle
         self.tool_window.set_title(new_title)
+
+    def on_new_window(self, event):
+        # TODO: create new help viewer tab or window
+        event.Veto()
+        url = event.GetURL()
+        import webbrowser
+        webbrowser.open(url)
 
     #
     # Implement session.State methods if deriving from ToolInstance
