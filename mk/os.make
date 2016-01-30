@@ -63,24 +63,12 @@ ifneq (,$(MACOSX_DEPLOYMENT_TARGET))
 	ifneq (,$(wildcard $(XCODE_SDKS)))
 		SYSROOT = $(XCODE_SDKS)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
 	else
-        $(error unable to find SYSROOT for $(MACOSX_DEPLOYMENT_TARGET))
+		$(error unable to find SYSROOT for $(MACOSX_DEPLOYMENT_TARGET))
 	endif
-else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.9.sdk))
-	export MACOSX_DEPLOYMENT_TARGET=10.9
-	SYSROOT = $(XCODE_SDKS)/MacOSX10.9.sdk
-	SDK = macosx10.9
-else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.8.sdk))
-	export MACOSX_DEPLOYMENT_TARGET=10.8
-	SYSROOT = $(XCODE_SDKS)/MacOSX10.8.sdk
-	SDK = macosx10.8
-else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.7.sdk))
-	export MACOSX_DEPLOYMENT_TARGET=10.7
-	SYSROOT = $(XCODE_SDKS)/MacOSX10.7.sdk
-	SDK = macosx10.7
-else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.6.sdk))
-	export MACOSX_DEPLOYMENT_TARGET=10.6
-	SYSROOT = $(XCODE_SDKS)/MacOSX10.6.sdk
-	SDK = macosx10.6
+else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX$(OSXVER).sdk))
+	export MACOSX_DEPLOYMENT_TARGET=$(OSXVER)
+	SYSROOT = $(XCODE_SDKS)/MacOSX$(OSXVER).sdk
+	SDK = macosx$(OSXVER)
 else
     $(error Unable to find Xcode sysroot)
 endif
