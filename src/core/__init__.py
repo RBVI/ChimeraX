@@ -33,6 +33,7 @@ _class_class_init = {
     '_Input': '.ui.nogui',
 }
 
+window_sys = None # updated when command line args processed
 
 def get_class(class_name):
     """Return chimerax.core class for instance in a session

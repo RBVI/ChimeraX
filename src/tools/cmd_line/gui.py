@@ -6,7 +6,6 @@ from chimerax.core.tools import ToolInstance
 class CommandLine(ToolInstance):
 
     SESSION_ENDURING = True
-    SIZE = (500, 25)
 
     show_history_label = "Command History..."
     compact_label = "Remove duplicate consecutive commands"
@@ -19,9 +18,21 @@ class CommandLine(ToolInstance):
 
         class CmdWindow(MainToolWindow):
             close_destroys = False
-        self.tool_window = CmdWindow(self, size=self.SIZE)
+        self.tool_window = CmdWindow(self)
         parent = self.tool_window.ui_area
+        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QWidget, QLineEdit
+        container = QWidget(parent)
+        self.text = QLineEdit(container)
+        self.menu = QComboBox(container)
+        layout = QHBoxLayout(container)
+        layout.addWidget(self.text, 1)
+        layout.addWidget(self.menu)
+        container.setLayout(layout)
+        parent.setWidget(container)
+        self.text.editingFinished.connect(self.execute)
+        """
         import wx
+        SIZE = (500, 25)
         self.text = wx.ComboBox(parent, size=self.SIZE,
                                 style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -34,15 +45,12 @@ class CommandLine(ToolInstance):
         self.text.Bind(wx.EVT_TEXT, self.history_dialog._entry_modified)
         self.text.Bind(wx.EVT_TEXT_ENTER, self.on_enter)
         self.text.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        """
         self.tool_window.manage(placement="bottom")
+        """
         self.history_dialog.populate()
-        session.ui.register_for_keystrokes(self)
-        # since only TextCtrls have the EmulateKeyPress method,
-        # create a completely hidden TextCtrl so that we can
-        # process forwarded keystrokes and copy the result back
-        # into the ComboBox!
-        self.kludge_text = wx.TextCtrl(parent)
-        self.kludge_text.Hide()
+        """
+        session.ui.register_for_keystrokes(self.text)
 
     def cmd_clear(self):
         self.text.SetValue("")
@@ -52,7 +60,7 @@ class CommandLine(ToolInstance):
         self.text.SetInsertionPointEnd()
 
     def delete(self):
-        self.session.ui.deregister_for_keystrokes(self)
+        self.session.ui.deregister_for_keystrokes(self.text)
         super().delete()
 
     def forwarded_keystroke(self, event):
@@ -104,10 +112,10 @@ class CommandLine(ToolInstance):
         else:
             event.Skip()
 
-    def on_enter(self, event):
+    def execute(self):
         session = self.session
         logger = session.logger
-        text = self.text.Value
+        text = self.text.text()
         logger.status("")
         from chimerax.core import errors
         from chimerax.core.commands import Command
@@ -141,9 +149,11 @@ class CommandLine(ToolInstance):
                 import traceback
                 session.logger.error(traceback.format_exc())
             else:
-                self.history_dialog.add(cmd_text)
-        self.text.SetValue(cmd_text)
-        self.text.SelectAll()
+                pass
+                #QT disabled
+                #self.history_dialog.add(cmd_text)
+        self.text.setText(cmd_text)
+        self.text.selectAll()
 
     def on_key_down(self, event):
         import wx

@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.2.1
+VERSION = 5.5.1
 DISTRIBUTION = PyQt-gpl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/PyQt-gpl-$(VERSION)
 
@@ -13,7 +13,8 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
 
-app-install:;
+app-install:
+	$(RSYNC) $(PYSITEDIR)/PyQt5 $(APP_PYSITEDIR)
 
 $(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

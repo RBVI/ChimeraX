@@ -64,8 +64,8 @@ endif
 SUBDIRS	+= expat ffmpeg fonts \
 	   glew hdf5 imex jpeg numexpr numpy \
 	   p7zip pcre pips pycollada \
-	   PyOpenGL pytables pythomnic3k Python \
-	   setuptools wrappy3 wx zlib
+	   PyOpenGL PyQt pytables pythomnic3k Python \
+	   qt setuptools sip wrappy3 wx zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

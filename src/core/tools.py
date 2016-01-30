@@ -323,6 +323,10 @@ class Tools(State):
         session = self._session()   # resolve back reference
         from .toolshed import ToolshedError
         from .core_settings import settings
+        from chimerax.core import window_sys
+        if window_sys == "qt":
+            #QT disabled
+            settings.autostart = ['cmd_line']
         auto_ti = [None] * len(settings.autostart)
         for tool_inst in session.toolshed.bundle_info():
             try:

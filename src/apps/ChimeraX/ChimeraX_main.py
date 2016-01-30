@@ -77,6 +77,7 @@ def parse_arguments(argv):
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = 0
+    opts.window_sys = "wx"
 
     # Will build usage string from list of arguments
     arguments = [
@@ -87,11 +88,12 @@ def parse_arguments(argv):
         "--listfiletypes",
         "--silent",
         "--nostatus",
-        "--notools",
         "--stereo",
+        "--notools",
         "--uninstall",
         "--usedefaults",
         "--version",
+        "--windowsys ",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -103,9 +105,9 @@ def parse_arguments(argv):
         "--gui",
         "--nolineprofile",
         "--nosilent",
-        "--nousedefaults",
         "--status",
         "--tools",
+        "--nousedefaults",
     ]
     if len(sys.argv) > 2 and sys.argv[1] == '-m':
         # treat like Python's -m argument
@@ -161,6 +163,11 @@ def parse_arguments(argv):
             opts.load_tools = opt[2] == 'u'
         elif opt == "--version":
             opts.version += 1
+        elif opt == "--windowsys":
+            if optarg not in ("wx", "qt"):
+                print("--windowsys argument must be either wx or qt", file=sys.stderr)
+                raise SystemExit(os.EX_USAGE)
+            opts.window_sys = optarg
     if help:
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
@@ -281,6 +288,8 @@ def init(argv, event_loop=True):
 
     # initialize the user interface
     if opts.gui:
+        import chimerax.core
+        chimerax.core.window_sys = opts.window_sys
         from chimerax.core.ui import gui
         ui_class = gui.UI
     else:

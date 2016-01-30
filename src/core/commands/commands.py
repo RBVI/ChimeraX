@@ -13,7 +13,10 @@ def register_core_commands(session):
         'delete', 'echo', 'exit', 'export', 'hide', 'info',
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd', 'rainbow', 'roll', 'run',
-        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'split',
+        'save', 'sasa',
+        #QT disabled
+        #'scolor',
+        'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'transparency', 'turn', 'usage', 'view', 'wait', 'windowsize', 'zoom'
     ]
@@ -21,6 +24,8 @@ def register_core_commands(session):
         m = import_module(".%s" % mod, __package__)
         m.register_command(session)
 
+    #QT disabled
+    return
     from .. import map
     map.register_volume_command()
     map.register_molmap_command()

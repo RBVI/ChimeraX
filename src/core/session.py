@@ -626,8 +626,9 @@ def _register_core_file_formats():
     mmcif.register_mmcif_format()
     from . import scripting
     scripting.register()
-    from . import map
-    map.register_map_file_readers()
+    #QT disabled
+    #from . import map
+    #map.register_map_file_readers()
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
     from .surface import collada
@@ -639,6 +640,7 @@ def _register_core_database_fetch(session):
     pdb.register_pdb_fetch(s)
     from .atomic import mmcif
     mmcif.register_mmcif_fetch(s)
-    from . import map
-    map.register_eds_fetch(s)
-    map.register_emdb_fetch(s)
+    #QT disabled
+    #from . import map
+    #map.register_eds_fetch(s)
+    #map.register_emdb_fetch(s)

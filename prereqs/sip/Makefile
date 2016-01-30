@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 4.15.5
+VERSION = 4.17
 DISTRIBUTION = sip-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/sip-$(VERSION)
 
@@ -11,7 +11,8 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) && $(PYTHON_EXE) configure.py && $(MAKE) && $(MAKE) install
 
-app-install:;
+app-install:
+	$(RSYNC) $(PYSITEDIR)/sip.$(PYMOD_EXT) $(APP_PYSITEDIR)
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
