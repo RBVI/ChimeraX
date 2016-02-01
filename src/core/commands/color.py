@@ -4,8 +4,8 @@ _SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bymodel",
                   "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "helix", "helices", "strands",
-                     "SSEs", "chains", "molecules",
-                     "volmodels", "models"]
+                     "SSEs", "chains", "molmodels",
+                     "volmodels", "allmodels"]
 
 _CmapRanges = ["full"]
 
@@ -30,7 +30,7 @@ def color(session, objects, color=None, what=None,
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
-    sequential : "residues", "chains", "molecules"
+    sequential : "residues", "chains", "molmodels"
       Assigns each object a color from a color map.
     cmap : :class:`.Colormap`
       Color map to use with sequential coloring.
@@ -302,7 +302,7 @@ def _set_sequential_residue(session, selected, cmap, opacity, target):
 
 # -----------------------------------------------------------------------------
 #
-def _set_sequential_molecules(session, selected, cmap, opacity, target):
+def _set_sequential_structures(session, selected, cmap, opacity, target):
     # Make sure there is a colormap
     if cmap is None:
         from .. import colors
@@ -331,7 +331,7 @@ def _set_sequential_molecules(session, selected, cmap, opacity, target):
 _SequentialColor = {
     "chains": _set_sequential_chain,
     "residues": _set_sequential_residue,
-    "molecules": _set_sequential_molecules,
+    "molmodels": _set_sequential_structures,
 }
 
 
