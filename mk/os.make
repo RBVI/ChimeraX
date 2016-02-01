@@ -70,7 +70,7 @@ else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX$(OSXVER).sdk))
 	SYSROOT = $(XCODE_SDKS)/MacOSX$(OSXVER).sdk
 	SDK = macosx$(OSXVER)
 else
-    $(error Unable to find Xcode sysroot)
+    $(error Unable to find Xcode sysroot $(XCODE_SDKS)/MacOSX$(OSXVER).sdk)
 endif
 	# sysctl needs to be on path for numpy, numexpr, pytables
 	export PATH := $(PATH):/usr/sbin
