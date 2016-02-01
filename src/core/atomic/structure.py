@@ -36,6 +36,7 @@ class AtomicStructure(AtomicStructureData, Model):
         xsc_turn = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
         xsc_arrow_head = array([(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]) * 1.5
         xsc_arrow_tail = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
+        xsc_nuc = array([(0.1,0.5),(-0.1,0.5),(-0.1,-0.5),(0.1,-0.5)]) * 1.5
        
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
@@ -70,7 +71,6 @@ class AtomicStructure(AtomicStructureData, Model):
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
         self._bonds_drawing = None
-        self._pseudobond_group_drawings = {}    # Map PseudobondGroup to drawing
         self._cached_atom_bounds = None
         self._atom_bounds_needs_update = True
         self._ribbon_drawing = None
@@ -82,6 +82,7 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
         self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
         self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
+        self._ribbon_xs_nuc = XSection(xsc_nuc, faceted=True)
         # TODO: move back into _session_attrs when Collection instances
         # handle session saving/restoring
         self._ribbon_selected_residues = Residues()
@@ -108,7 +109,8 @@ class AtomicStructure(AtomicStructureData, Model):
         No atoms or other components of the structure
         are shared between the original and the copy.
         '''
-        m = AtomicStructure(AtomicStructureData._copy(self), name = name,
+        m = AtomicStructure(self.session, name = name,
+                            c_pointer = AtomicStructureData._copy(self),
                             level_of_detail = self._level_of_detail)
         m.positions = self.positions
         return m
@@ -158,16 +160,24 @@ class AtomicStructure(AtomicStructureData, Model):
 
             elif self.num_chains < 250:
                 lighting = "full"
-                from ..colors import chain_colors
+                from ..colors import chain_colors, element_colors
                 residues = self.residues
                 residues.ribbon_colors = chain_colors(residues.chain_ids)
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
+                from .molobject import Atom
+                ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
+                ligand_atoms.draw_modes = Atom.STICK_STYLE
+                ligand_atoms.colors = element_colors(ligand_atoms.element_numbers)
+                solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
+                solvent_atoms.draw_modes = Atom.BALL_STYLE
+                solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
             else:
                 lighting = "shadows true"
             from ..commands import Command
             if len([m for m in session.models.list()
                     if isinstance(m, self.__class__)]) == 1:
-                Command(session, "lighting " + lighting, final=True).execute(log=False)
+                cmd = Command(session)
+                cmd.run("lighting " + lighting, log=False)
 
         self._start_change_tracking(session.change_tracker)
         self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
@@ -213,8 +223,8 @@ class AtomicStructure(AtomicStructureData, Model):
         # Create graphics
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
-        for name, pbg in self.pbg_map.items():
-            self._update_pseudobond_graphics(name, pbg)
+        for pbg in self.pbg_map.values():
+            pbg._update_graphics(structure = self)
         self._create_ribbon_graphics()
 
     def set_subdivision(self, subdivision):
@@ -254,8 +264,8 @@ class AtomicStructure(AtomicStructureData, Model):
     def _update_graphics(self):
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
-        for name, pbg in self.pbg_map.items():
-            self._update_pseudobond_graphics(name, pbg)
+        for pbg in self.pbg_map.values():
+            pbg._update_graphics(structure = self)
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, atoms):
@@ -312,26 +322,9 @@ class AtomicStructure(AtomicStructureData, Model):
         p.colors = c = bonds.half_colors
         p.selected_positions = _selected_bond_cylinders(bond_atoms)
 
-    def _update_pseudobond_graphics(self, name, pbgroup):
-
-        pg = self._pseudobond_group_drawings
-        if pbgroup in pg:
-            p = pg[pbgroup]
-        else:
-            pg[pbgroup] = p = self.new_drawing(name)
-            va, na, ta = _pseudobond_geometry()
-            p.geometry = va, ta
-            p.normals = na
-
-        pbonds = pbgroup.pseudobonds
-        ba1, ba2 = bond_atoms = pbonds.atoms
-        p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, pbonds.radii)
-        p.display_positions = _shown_bond_cylinders(pbonds)
-        p.colors = pbonds.half_colors
-        p.selected_positions = _selected_bond_cylinders(bond_atoms)
-
     def _create_ribbon_graphics(self):
         from .ribbon import Ribbon
+        from .molobject import Residue
         from numpy import concatenate, array, zeros
         polymers = self.polymers(False, False)
         if self._ribbon_drawing is None:
@@ -408,10 +401,13 @@ class AtomicStructure(AtomicStructureData, Model):
             # Assign cross sections
             is_helix = residues.is_helix
             is_sheet = residues.is_sheet
+            polymer_type = residues.polymer_types
             xss = []
             was_strand = False
             for i in range(len(residues)):
-                if is_sheet[i]:
+                if polymer_type[i] == Residue.PT_NUCLEIC:
+                    xss.append(self._ribbon_xs_nuc)
+                elif is_sheet[i]:
                     if was_strand:
                         xss.append(self._ribbon_xs_strand)
                     else:
@@ -574,72 +570,90 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered, p):
         from numpy import logical_and, logical_not
-        from numpy import dot, newaxis, mean
-        from numpy.linalg import norm
-        import math
-        from .ribbon import normalize, normalize_vector_array
         ribbon_adjusts = rlist.ribbon_adjusts
         # Smooth helices
         ss_ids = rlist.ss_ids
         helices = rlist.is_helix
-#         for start, end in self._ss_ranges(helices, ss_ids, 8):
-#             # We only "optimize" longer helices because short
-#             # ones do not contain enough information to do
-#             # things intelligently
-#             ss_coords = coords[start:end]
-#             adjusts = ribbon_adjusts[start:end][:, newaxis]
-#             axis, centroid, rel_coords = self._ss_axes(ss_coords)
-#             # Compute position of cylinder center corresponding to
-#             # helix control point atoms
-#             axis_pos = dot(rel_coords, axis)[:, newaxis]
-#             cyl_centers = centroid + axis * axis_pos
-#             if False:
-#                 # Debugging code to display center of secondary structure
-#                 self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
-#             # Compute radius of cylinder
-#             spokes = ss_coords - cyl_centers
-#             cyl_radius = mean(norm(spokes, axis=1))
-#             # Compute smoothed position of helix control point atoms
-#             ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
-#             offsets = adjusts * (ideal - ss_coords)
-#             new_coords = ss_coords + offsets
-#             # Compute guide atom position relative to control point atom
-#             delta_guides = guides[start:end] - ss_coords
-#             # Update both control point and guide coordinates
-#             coords[start:end] = new_coords
-#             # Move the guide location so that it forces the
-#             # ribbon parallel to the axis
-#             guides[start:end] = new_coords + axis
-#             # Originally, we just update the guide location to
-#             # the same relative place as before
-#             #   guides[start:end] = new_coords + delta_guides
-#             # Update the tethered array (we compare against self.bond_radius
-#             # because we want to create cones for the "worst" case which is
-#             # when the atoms are displayed in stick mode, with radius self.bond_radius)
-#             tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+        # Skip helix smoothing for now since it does not work well
+        # for bent helices
+        # for start, end in self._ss_ranges(helices, ss_ids, 8):
+        #     self._smooth_helix(coords, guides, tethered, ribbon_adjusts, start, end)
         # Smooth strands
         strands = logical_and(rlist.is_sheet, logical_not(helices))
         for start, end in self._ss_ranges(strands, ss_ids, 4):
-            ss_coords = coords[start:end]
-            adjusts = ribbon_adjusts[start:end][:, newaxis]
-            axis, centroid, rel_coords = self._ss_axes(ss_coords)
-            # Compute position for strand control point atom on
-            # axis by projection
-            axis = normalize(axis)
-            axis_pos = dot(rel_coords, axis)[:, newaxis]
-            ideal = centroid + axis * axis_pos
-            if False:
-                # Debugging code to display center of secondary structure
-                self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
-            offsets = adjusts * (ideal - ss_coords)
-            new_coords = ss_coords + offsets
-            # Compute guide atom position relative to control point atom
-            delta_guides = guides[start:end] - ss_coords
-            # Update both control point and guide coordinates
-            coords[start:end] = new_coords
-            guides[start:end] = new_coords + delta_guides
-            # Update the tethered array
-            tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+            self._smooth_strand(coords, guides, tethered, ribbon_adjusts, start, end)
+
+    def _smooth_helix(self, coords, guides, tethered, ribbon_adjusts, start, end):
+        # Try to fix up the ribbon orientation so that it is parallel to the helical axis
+        from numpy import dot, newaxis, mean
+        from numpy.linalg import norm
+        from .ribbon import normalize_vector_array
+        # We only "optimize" longer helices because short
+        # ones do not contain enough information to do
+        # things intelligently
+        ss_coords = coords[start:end]
+        adjusts = ribbon_adjusts[start:end][:, newaxis]
+        axis, centroid, rel_coords = self._ss_axes(ss_coords)
+        # Compute position of cylinder center corresponding to
+        # helix control point atoms
+        axis_pos = dot(rel_coords, axis)[:, newaxis]
+        cyl_centers = centroid + axis * axis_pos
+        if False:
+            # Debugging code to display center of secondary structure
+            self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
+        # Compute radius of cylinder
+        spokes = ss_coords - cyl_centers
+        cyl_radius = mean(norm(spokes, axis=1))
+        # Compute smoothed position of helix control point atoms
+        ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
+        offsets = adjusts * (ideal - ss_coords)
+        new_coords = ss_coords + offsets
+        # Compute guide atom position relative to control point atom
+        delta_guides = guides[start:end] - ss_coords
+        # Update both control point and guide coordinates
+        coords[start:end] = new_coords
+        # Move the guide location so that it forces the
+        # ribbon parallel to the axis
+        guides[start:end] = new_coords + axis
+        # Originally, we just update the guide location to
+        # the same relative place as before
+        #   guides[start:end] = new_coords + delta_guides
+        # Update the tethered array (we compare against self.bond_radius
+        # because we want to create cones for the "worst" case which is
+        # when the atoms are displayed in stick mode, with radius self.bond_radius)
+        tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+
+    def _smooth_strand(self, coords, guides, tethered, ribbon_adjusts, start, end):
+        if (end - start + 1) <= 4:
+            # Short strands do not need smoothing
+            return
+        from numpy import empty, dot, newaxis
+        from numpy.linalg import norm
+        from .ribbon import normalize
+        ss_coords = coords[start:end]
+        adjusts = ribbon_adjusts[start:end][:, newaxis]
+        ideal = empty(ss_coords.shape, dtype=float)
+        ideal[0] = ss_coords[0]
+        ideal[1:-1] = (ss_coords[1:-1] * 2 + ss_coords[:-2] + ss_coords[2:]) / 4
+        ideal[-1] = ss_coords[-1]
+#         axis, centroid, rel_coords = self._ss_axes(ss_coords)
+#         # Compute position for strand control point atom on
+#         # axis by projection
+#         axis = normalize(axis)
+#         axis_pos = dot(rel_coords, axis)[:, newaxis]
+#         ideal = centroid + axis * axis_pos
+        offsets = adjusts * (ideal - ss_coords)
+        new_coords = ss_coords + offsets
+        if False:
+            # Debugging code to display center of secondary structure
+            self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
+        # Compute guide atom position relative to control point atom
+        delta_guides = guides[start:end] - ss_coords
+        # Update both control point and guide coordinates
+        coords[start:end] = new_coords
+        guides[start:end] = new_coords + delta_guides
+        # Update the tethered array
+        tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
     def _ss_ranges(self, ba, ss_ids, min_length):
         # Return ranges of True in boolean array "ba"
@@ -852,8 +866,9 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _pseudobond_first_intercept(self, mxyz1, mxyz2):
         fc = bc = None
-        for pbg, d in self._pseudobond_group_drawings.items():
-            if d.display:
+        for pbg in self.pbg_map.values():
+            d = pbg._pbond_drawing
+            if d and d.display:
                 b,f = _bond_intercept(pbg.pseudobonds, mxyz1, mxyz2)
                 if f is not None and (fc is None or f < fc):
                     fc = f
@@ -1540,12 +1555,6 @@ def _tether_placements(xyz0, xyz1, radius, shape):
         return _bond_cylinder_placements(xyz1, xyz0, radius)
     else:
         return _bond_cylinder_placements(xyz0, xyz1, radius)
-
-# -----------------------------------------------------------------------------
-#
-def _pseudobond_geometry(segments = 9):
-    from .. import surface
-    return surface.dashed_cylinder_geometry(segments)
 
 # -----------------------------------------------------------------------------
 #

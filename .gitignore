@@ -22,5 +22,15 @@ errs*
 build
 pip.log
 prebuilt*.bz2
-.gitignore
 ChimeraX.app
+imex.h
+timestamp
+setup.py
+*.egg-info
+dist
+*~
+*.out
+_build
+src/core/buildinfo.py
+src/core/commands/_atomspec.py
+src/wheelhouse/Makefile.wheelhouse

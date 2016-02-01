@@ -31,10 +31,7 @@ def sym(session, molecules, assembly = None, clear = False,
             for s in m.surfaces():
                 s.position = Place()
         elif assembly is None:
-            ainfo = '\n'.join(' %s = %s (%s copies)'
-                              % (a.id,a.description,
-                                 ','.join(str(len(ops)) for cids, expr, ops in a.chain_ops))
-                              for a in assem)
+            ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description) for a in assem)
             anames = ainfo if assem else "no assemblies"
             session.logger.info('Assemblies for %s:\n%s' % (m.name, anames))
         else:
@@ -137,7 +134,7 @@ class Assembly:
         self.chain_ops = cops	# Triples of chain id list, operator expression, operator matrices
 
         self.operator_table = operator_table
-        # Chain map maps ChimeraX chain id, res name to mmcif chain id used in chain_ids
+        # Chain map maps ChimeraX (chain id, res number) to mmcif chain id used in chain_ids
         self.chain_map = chain_map
 
     def show(self, mol, session):
@@ -202,7 +199,20 @@ class Assembly:
             mol._sym_copies = copies
         mols = [mol] + copies
         return mols
-            
+
+    @property
+    def copy_description(self):
+        return ', '.join('%d copies of %d chains' % (len(ops), len(self._author_cids(cids)))
+                         for cids, expr, ops in self.chain_ops)
+
+    def _author_cids(self, mmcif_cids):
+        cids = set()
+        mcids = set(mmcif_cids)
+        cmap = self.chain_map
+        for (cid, rnum), mcid in cmap.items():
+            if mcid in mcids:
+                cids.add(cid)
+        return cids
 
 def mmcif_chain_ids(atoms, chain_map):
     if len(chain_map) == 0:

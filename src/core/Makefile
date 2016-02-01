@@ -17,7 +17,8 @@ include $(TOP)/mk/subdir.make
 PKG_DIR = $(PYSITEDIR)/chimerax/core
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core
 
-PYSRCS = $(wildcard *.py)
+GENSRCS = buildinfo.py
+PYSRCS = $(wildcard *.py) $(GENSRCS)
 CORE_VERSION = 0.1
 WHEEL = dist/chimerax.core-$(CORE_VERSION)-py3-none-any.whl
 
@@ -66,6 +67,10 @@ test:
 
 clean:
 	rm -rf __pycache__ build dist chimerax.core.egg-info setup.py timestamp $(GENSRCS)
+
+buildinfo.py: buildinfo.py.in mkbuildinfo
+	rm -f buildinfo.py
+	$(PYTHON_EXE) mkbuildinfo $(TOP) > buildinfo.py || rm -f buildinfo.py
 
 _appdirs.install: appdirs_cpp.install
 atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install \

@@ -46,7 +46,8 @@ the following fields separated by double colons (``::``).
 10. ``synopsis`` : str
     A short description of the bundle.
 
-Modules referenced in distribution metadata must define:
+
+Depending on the values of metadata fields, modules may need to define:
 
   ``start_tool(session, bi)``
     Called to create a tool instance.
@@ -56,8 +57,6 @@ Modules referenced in distribution metadata must define:
     If no tool instance is created when called,
     ``start_tool`` should return ``None``.
     Errors should be reported via exceptions.
-
-Depending on the values of metadata fields, modules may need to define:
 
   ``register_command(command_name)``
     Called when delayed command line registration occurs.

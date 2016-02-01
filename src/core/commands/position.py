@@ -52,7 +52,7 @@ def report_positions(session):
 def _position_string(p):
     return ','.join('%.5g' % x for x in tuple(p.matrix.flat))
 
-from . import Annotation
+from . import Annotation, AnnotationError
 class ModelPlacesArg(Annotation):
     """Annotation for model id and positioning matrix as 12 floats."""
     name = "model positions"

@@ -6,7 +6,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.0.3.dev1836+f764b32
+VERSION = 3.0.3.dev1839+4ecd949
 SHLIB_VER = 3.0.0.3.0
 DISTRIBUTION = wxPython_Phoenix-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)

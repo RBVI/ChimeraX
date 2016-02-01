@@ -879,13 +879,15 @@ ExtractMolecule::parse_struct_conn()
     while (parse_row(pv)) {
         if (symmetry1 != symmetry2)
             continue;
+        if (atom_name1 == '?' || atom_name2 == '?')
+            continue;
         bool normal = false;
         bool metal = false;
         bool hydro = false;
         // TODO: survey PDB mmCIF files and test in descending prevalence
         if (conn_type == "covale" || conn_type == "disulf")
             normal = true;
-        else if (conn_type == "hydro")
+        else if (conn_type == "hydrog")
             hydro = true;
         else if (conn_type == "metalc")
             metal = true;

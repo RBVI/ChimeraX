@@ -3,17 +3,20 @@
 # Stack of transparent rectangles.
 #
 from ..graphics import Drawing
-class Gray_Scale_Drawing(Drawing):
+class GrayScaleDrawing(Drawing):
 
-  def __init__(self):
+  def __init__(self, name, blend_manager = None):
 
-    Drawing.__init__(self, 'grayscale')
+    Drawing.__init__(self, name)
 
     self.grid_size = None
     self.color_grid = None
     self.get_color_plane = None
     self.texture_planes = {}    # maps plane index to texture id
     self.update_colors = False
+    self.blend_manager = blend_manager	# ImageBlendManager to blend colors with other drawings,
+    if blend_manager:			# is None for BlendedImage.
+      blend_manager.add_drawing(self)
 
     # Mode names rgba4, rgba8, rgba12, rgba16, rgb4, rgb8, rgb12, rgb16,
     #   la4, la8, la12, la16, l4, l8, l12, l16
@@ -49,6 +52,14 @@ class Gray_Scale_Drawing(Drawing):
     self._show_ortho_planes = 0  # bits 0,1,2 correspond to axes x,y,z.
     self.ortho_planes_position = (0,0,0)
 
+  def delete(self):
+    print ('deleted', self.name)
+    b = self.blend_manager
+    if b:
+      b.remove_drawing(self)
+    self.remove_planes()
+    Drawing.delete(self)
+
   def shown_orthoplanes(self):
     return self._show_ortho_planes
   def set_shown_orthoplanes(self, s):
@@ -74,9 +85,10 @@ class Gray_Scale_Drawing(Drawing):
   def array_coordinates(self):
     return self.ijk_to_xyz
   def set_array_coordinates(self, tf):
-    self.ijk_to_xyz = tf
-    # TODO: Just update vertex buffer.
-    self.remove_planes()
+    if tf != self.ijk_to_xyz:
+      self.ijk_to_xyz = tf
+      # TODO: Just update vertex buffer.
+      self.remove_planes()
 
   def set_volume_colors(self, color_values):	# uint8 or float
     self.color_grid = color_values
@@ -101,6 +113,10 @@ class Gray_Scale_Drawing(Drawing):
 
   def draw(self, renderer, place, draw_pass, selected_only = False):
 
+    b = self.blend_manager
+    if b and b.draw_blended(self, renderer, place, draw_pass, selected_only):
+      return	# Was drawn blended with another model
+
     from ..graphics import Drawing
     dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not 'a' in self.color_mode)
     dtransp = (draw_pass == Drawing.TRANSPARENT_DRAW_PASS and 'a' in self.color_mode)
@@ -112,7 +128,7 @@ class Gray_Scale_Drawing(Drawing):
       self.make_planes()
     elif self.update_colors:
       self.reload_textures()
-      self.update_colors = False
+    self.update_colors = False
 
     # Compare stack z axis to view direction to decide whether to reverse plane drawing order.
     zaxis = self.ijk_to_xyz.z_axis()
@@ -120,7 +136,16 @@ class Gray_Scale_Drawing(Drawing):
     czaxis = cv.apply_without_translation(zaxis) # z axis in camera coords
     self.reverse_order_children = (czaxis[2] < 0)
 
+    max_proj = dtransp and self.maximum_intensity_projection
+    if max_proj:
+      renderer.blend_max(True)
+    renderer.write_depth(False)
+
     Drawing.draw(self, renderer, place, draw_pass, selected_only)
+
+    renderer.write_depth(True)
+    if max_proj:
+      renderer.blend_max(False)
 
   def remove_planes(self):
 
@@ -212,6 +237,7 @@ class Gray_Scale_Drawing(Drawing):
       p = self.get_color_plane(axis, k)
     else:
       p = None
+
     return p
 
   def reload_textures(self):
@@ -222,3 +248,141 @@ class Gray_Scale_Drawing(Drawing):
       k,axis = p.plane
       data = self.color_plane(k,axis)
       t.reload_texture(data)
+
+# ---------------------------------------------------------------------------
+#
+class BlendedImage(GrayScaleDrawing):
+
+  def __init__(self, drawings):
+
+    name = 'blend ' + ', '.join(d.name for d in drawings)
+    GrayScaleDrawing.__init__(self, name)
+
+    d = drawings[0]
+
+    self.grid_size = d.grid_size
+    self.ijk_to_xyz = d.ijk_to_xyz
+
+    self.drawings = drawings
+    for d in drawings:
+      d.remove_planes()	# Free textures and opengl buffers
+
+  def color_plane(self, k, axis):
+    p = None
+    for d in self.drawings:
+      dp = d.color_plane(k, axis)
+      d.update_colors = False
+      dp = rgba8_plane(dp, d.color_mode, d.mod_rgba)
+      if p is None:
+        p = dp
+      else:
+        # TODO: Clamp colors when blending and combine alpha properly
+        p[:,:,:3] += dp[:,:,:3]
+        from numpy import maximum
+        maximum(p[:,:,3], dp[:,:,3], p[:,:,3])
+    return p
+
+  def check_update_colors(self):
+    for d in self.drawings:
+      if d.update_colors:
+        self.update_colors = True
+        d.update_colors = False
+
+# ---------------------------------------------------------------------------
+#
+def rgba8_plane(plane, color_mode, color):
+  if color_mode == 'rgba8':
+    return plane
+  elif color_mode == 'la8':
+    h,w = plane.shape[:2]
+    from numpy import empty, uint8, float32, array
+    p = empty((h,w,4), uint8)
+    p[:,:,3] = plane[:,:,1]
+    rgb = array(color[:3], float32)
+    ctable = array([rgb*i for i in range(256)], uint8)
+    p[:,:,:3] = ctable[plane[:,:,0],:]
+  else:
+    raise ValueError('Converting %s to rgba8 for blending not supported' % color_mode)
+  return p
+
+# ---------------------------------------------------------------------------
+#
+class ImageBlendManager:
+  def __init__(self):
+    self.blend_images = set()
+    self.drawing_blend_image = {}	# Map drawing to BlendedImage
+  def add_drawing(self, d):
+    self.drawing_blend_image[d] = None
+  def remove_drawing(self, d):
+    dbi = self.drawing_blend_image
+    bi = dbi.get(d)
+    if bi:
+      for d2 in bi.drawings:
+        dbi[d2] = None
+      self.blend_images.discard(bi)
+      bi.delete()
+    del dbi[d]
+
+  def update_groups(self):
+    # TODO: Don't update groups unless drawing added, removed, or changed.
+    groups = []
+    dbi = self.drawing_blend_image
+    drawings = list(dbi.keys())
+    drawings.sort(key = lambda d: d.name)
+    aligned = {}
+    for d in drawings:
+      if d.display and d.parents_displayed and not d.maximum_intensity_projection:
+        # Need to have matching grid size, scene position and grid spacing
+        k = (tuple(d.grid_size), tuple(d.scene_position.matrix.flat), tuple(d.ijk_to_xyz.matrix.flat))
+        if k in aligned:
+          aligned[k].append(d)
+        else:
+          g = [d]
+          groups.append(g)
+          aligned[k] = g
+
+    dgroup = {}
+    for g in groups:
+      if len(g) >= 2:
+        for d in g:
+          dgroup[d] = g
+
+    # Remove blend images for groups that no longer exist.
+    bi_gone = []
+    bis = self.blend_images
+    for bi in bis:
+      d = bi.drawings[0]
+      if dgroup.get(d,None) != bi.drawings:
+        bi_gone.append(bi)
+    for bi in bi_gone:
+      for d in bi.drawings:
+        dbi[d] = None
+      bis.discard(bi)
+
+    # Created blend images for new groups
+    for g in groups:
+      if len(g) >= 2:
+        if dbi[g[0]] is None:
+          bi = BlendedImage(g)
+          bis.add(bi)
+          for d in g:
+            dbi[d] = bi
+
+  def draw_blended(self, drawing, renderer, place, draw_pass, selected_only = False):
+    bi = self.drawing_blend_image.get(drawing, None)
+    if bi:
+      if bi.drawings[0] is drawing:
+        bi.check_update_colors()
+        bi.draw(renderer, place, draw_pass, selected_only)
+      return True
+    return False
+
+# ---------------------------------------------------------------------------
+#
+def blend_manager(session):
+  m = getattr(session, '_image_blend_manager', None)
+  if m is None:
+    session._image_blend_manager = m = ImageBlendManager()
+    t = session.triggers
+    t.add_handler('new frame', lambda *args, m=m: m.update_groups())
+  return m

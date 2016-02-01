@@ -558,6 +558,10 @@ class Render:
         else:
             GL.glDisable(GL.GL_DEPTH_TEST)
 
+    def write_depth(self, write):
+        'Enable or disable writing to depth buffer.'
+        GL.glDepthMask(write)
+
     def enable_blending(self, enable):
         'Enable OpenGL alpha blending.'
         if enable:
@@ -570,6 +574,10 @@ class Render:
         GL.glBlendColor(f, f, f, f)
         GL.glBlendFunc(GL.GL_CONSTANT_COLOR, GL.GL_ONE)
         GL.glEnable(GL.GL_BLEND)
+
+    def blend_max(self, enable):
+        # Used for maximum intensity projection texture rendering.
+        GL.glBlendEquation(GL.GL_MAX if enable else GL.GL_FUNC_ADD)
 
     def enable_xor(self, enable):
         if enable:
@@ -1595,7 +1603,7 @@ class Texture:
 
     def initialize_rgba(self, size):
 
-        format = GL.GL_BGRA
+        format = GL.GL_RGBA
         iformat = GL.GL_RGBA8
         tdtype = GL.GL_UNSIGNED_BYTE
         ncomp = 4

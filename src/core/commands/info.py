@@ -26,14 +26,23 @@ def info(session, models=None):
         if b is None:
             line += ', no bounding box'
         else:
-            line += ', bounds %.3g,%.3g,%.3g to ' % b.xyz_min + '%.3g,%.3g,%.3g' % b.xyz_max
+            line += ', bounds %.3g,%.3g,%.3g to ' % tuple(b.xyz_min) + '%.3g,%.3g,%.3g' % tuple(b.xyz_max)
         npos = len(m.positions)
         if npos > 1:
             line += ', %d instances' % npos
         spos = m.selected_positions
         if spos is not None and spos.sum() > 0:
             line += ', %d selected instances' % spos.sum()
-        lines.append(line)     
+        from ..atomic import AtomicStructure
+        if isinstance(m, AtomicStructure):
+            line += ('\n%d atoms, %d bonds, %d residues, %d chains'
+                    % (m.num_atoms, m.num_bonds, m.num_residues, m.num_chains))
+            pmap = m.pbg_map
+            if pmap:
+                line += '\n' + ', '.join('%d %s' % (pbg.num_pseudobonds, name)
+                                         for name, pbg in pmap.items())
+                           
+        lines.append(line)
     msg = '%d models\n' % len(models) + '\n'.join(lines)
     session.logger.info(msg)
 

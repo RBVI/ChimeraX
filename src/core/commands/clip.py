@@ -9,7 +9,7 @@ def clip(session, near=None, far=None, front=None, back=None, slab=None, list=No
     ----------
     near, far, front, back : float or "off"
        Distance to move near, far, front or back clip planes.
-       Near and far clip planes emain perpendicular to the view direction.
+       Near and far clip planes remain perpendicular to the view direction.
        Front and back planes rotate with models.  If a plane is not currently
        enabled then the offset value is from the center of rotation.
        Positive distances are further away, negative are closer.

@@ -8,7 +8,7 @@ def camera(session, type=None, field_of_view=None,
     Parameters
     ----------
     type : string
-        Controls type of projection, currently "mono", "360", "360s" or "360tb" (stereoscopic top-bottom layout),
+        Controls type of projection, currently "mono", "360", "360tb" (stereoscopic top-bottom layout),
         "360sbs" (stereoscopic side-by-side layout), "stereo", "sbs" (side by side stereo), "tb" (top bottom stereo)
     field_of_view : float
         Horizontal field of view in degrees.
@@ -37,7 +37,7 @@ def camera(session, type=None, field_of_view=None,
         elif type == '360':
             from ..graphics import Mono360Camera
             camera = Mono360Camera()
-        elif type == '360s' or type == '360tb':
+        elif type == '360tb':
             from ..graphics import Stereo360Camera
             camera = Stereo360Camera()
         elif type == '360sbs':
@@ -101,13 +101,12 @@ def camera(session, type=None, field_of_view=None,
 
 def register_command(session):
     from . import CmdDesc, register, FloatArg, EnumOf
+    types = EnumOf(('mono', 'ortho', '360', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))
     desc = CmdDesc(
-        optional=[
-            ('type', EnumOf(('mono', 'ortho', '360', '360s', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))),
-            ('field_of_view', FloatArg),
-            ('eye_separation', FloatArg),
-            ('pixel_eye_separation', FloatArg),
-        ],
+        optional = [('type', types)],
+        keyword = [('field_of_view', FloatArg),
+                   ('eye_separation', FloatArg),
+                   ('pixel_eye_separation', FloatArg)],
         synopsis='adjust camera parameters'
     )
     register('camera', desc, camera)

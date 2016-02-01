@@ -1,6 +1,6 @@
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015 Regents of the University of California.
+Copyright (c) 2015-2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
@@ -24,6 +24,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 <BR><b>view</b> 
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 [&nbsp;orient&nbsp;]
+[&nbsp;pad&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>view</b> &nbsp;<b>name</b> &nbsp;<i>view-name</i>
@@ -46,7 +47,7 @@ positions of any models that have been moved separately.
 See also: <a href="cofr.html"><b>cofr</b></a>,
 <a href="position.html"><b>position</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
-<b>camera</b>,
+<a href="camera.html"><b>camera</b></a>,
 <b>clip</b>
 </p><p>
 The <b>view</b> command translates the scene, zooms in or out,
@@ -60,8 +61,13 @@ Y-axis vertical increasing upward,
 and Z-axis perpendicular to the screen increasing toward the viewer;
 in other words, it aligns <a href="#scenecoords">scene coordinates</a> with
 <a href="#screencoords">screen coordinates</a>.
+The zoom level is adjusted to make the bounding box of the relevant items
+abut the edges of the graphics window minus a <b>pad</b> <i>fraction</i> 
+(allowed values &lt; 1.0, default <b>0.05</b> of the window width and height)
+The desired <i>fraction</i> will usually be positive,
+but negative values can be used to zoom in further.
 The center of rotation is set to a fixed point at the 
-center of the bounding box of the specified items (displayed parts only),
+center of the bounding box of the relevant items,
 or if nothing is specified, allowed to vary according to the
 <a href="cofr.html#method">front center method</a>.
 </p><p>
@@ -117,5 +123,5 @@ The <b><i>screen coordinate system</i></b> has:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2015</address>
+January 2016</address>
 </body></html>

@@ -831,15 +831,14 @@ class Volume(Model):
 
     tf = self.transfer_function()
     s.set_colormap(tf, self.solid_brightness_factor, self.transparency_depth)
-    s.set_matrix(self.matrix_size(), self.data.value_type, self.matrix_id,
-                 self.matrix_plane)
+    s.set_matrix(self.matrix_size(), self.data.value_type, self.matrix_id, self.matrix_plane)
 
-    s.update_model(self)
+    from .grayscale import blend_manager
+    s.update_model(self, blend_manager(self.session))
     s.show()
 
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
                           ro.outline_box_linewidth)
-
 
   # ---------------------------------------------------------------------------
   #

@@ -10,7 +10,8 @@ _SequentialLevels = ["residues", "helix", "helices", "strands",
 _CmapRanges = ["full"]
 
 
-def color(session, objects, color=None, target=None, transparency=None,
+def color(session, objects, color=None, what=None,
+          target=None, transparency=None,
           sequential=None, cmap=None, cmap_range=None, halfbond=None):
     """Color atoms, ribbons, surfaces, ....
 
@@ -20,7 +21,10 @@ def color(session, objects, color=None, target=None, transparency=None,
       Which objects to color.
     color : Color
       Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bymodel".
+    what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
+      What to color. Everything is colored if option is not specified.
     target : string
+      Alternative to the "what" option for specifying what to color.
       Characters indicating what to color, a = atoms, c = cartoon, s = surfaces, m = models,
       n = non-molecule models, l = labels, r = residue labels, b = bonds, p = pseudobonds, d = distances.
       Everything is colored if no target is specified.
@@ -43,9 +47,16 @@ def color(session, objects, color=None, target=None, transparency=None,
     if color == "byhetero":
         atoms = atoms.filter(atoms.element_numbers != 6)
 
-    default_target = (target is None)
+    default_target = (target is None and what is None)
     if default_target:
         target = 'acsmnlrbd'
+
+    if what is not None:
+        what_target = {'atoms':'a', 'cartoons':'c', 'ribbons':'c',
+                       'surfaces':'s', 'bonds':'b', 'pseudobonds':'p'}
+        if target is None:
+            target = ''
+        target += what_target[what]
 
     # Decide whether to set or preserve transparency
     opacity = None
@@ -53,6 +64,11 @@ def color(session, objects, color=None, target=None, transparency=None,
         opacity = min(255, max(0, int(2.56 * (100 - transparency))))
     if getattr(color, 'explicit_transparency', False):
         opacity = color.uint8x4()[3]
+
+    if halfbond is not None and atoms is not None:
+        bonds = atoms.inter_bonds
+        if len(bonds) > 0:
+            bonds.halfbonds = halfbond
 
     if sequential is not None:
         try:
@@ -112,15 +128,7 @@ def color(session, objects, color=None, target=None, transparency=None,
             if len(bonds) > 0:
                 if color not in _SpecialColors and color is not None:
                     bonds.colors = color.uint8x4()
-                if halfbond is not None:
-                    bonds.halfbonds = halfbond
                 what.append('%d bonds' % len(bonds))
-
-    if halfbond is not None and 'b' not in target and 'p' not in target and atoms is not None:
-        bonds = atoms.inter_bonds
-        if len(bonds) > 0:
-            bonds.halfbonds = halfbond
-            what.append('%d halfbonds' % len(bonds))
 
     if 'p' in target:
         if atoms is not None:
@@ -129,8 +137,6 @@ def color(session, objects, color=None, target=None, transparency=None,
             if len(bonds) > 0:
                 if color not in _SpecialColors and color is not None:
                     bonds.colors = color.uint8x4()
-                if halfbond is not None:
-                    bonds.halfbonds = halfbond
                 what.append('%d pseudobonds' % len(bonds))
 
     if 'd' in target:
@@ -303,8 +309,10 @@ _SequentialColor = {
 def register_command(session):
     from . import register, CmdDesc, ColorArg, ColormapArg, ObjectsArg
     from . import EmptyArg, Or, EnumOf, StringArg, TupleOf, FloatArg, BoolArg
+    what_arg = EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds'))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
-                   optional=[('color', Or(ColorArg, EnumOf(_SpecialColors)))],
+                   optional=[('color', Or(ColorArg, EnumOf(_SpecialColors))),
+                             ('what', what_arg)],
                    keyword=[('target', StringArg),
                             ('transparency', FloatArg),
                             ('sequential', EnumOf(_SequentialLevels)),

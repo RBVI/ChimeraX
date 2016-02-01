@@ -152,13 +152,7 @@ class Models(State):
         self.add(to_add, _from_session=True)
 
     def reset_state(self, session):
-        models = self._models.values()
-        self._models.clear()
-        for model in models:
-            if model.SESSION_ENDURING:
-                self._models[model.id] = model
-                continue
-            model.delete()
+        self.remove([m for m in self.list() if not m.SESSION_ENDURING])
 
     def list(self, model_id=None, type=None):
         if model_id is None:
@@ -261,9 +255,23 @@ class Models(State):
     def open(self, filenames, id=None, format=None, name=None, **kw):
         from . import io
         session = self._session()  # resolve back reference
-        from .logger import Collator
-        with Collator(session.logger, "Summary of problems opening file(s)",
-                                                kw.pop('log_errors', True)):
+        collation_okay = True
+        if isinstance(filenames, "".__class__):
+            fns = [filenames]
+        else:
+            fns = filenames
+        for fn in fns:
+            if io.category(io.deduce_format(fn, has_format=format)[0]) == io.SCRIPT:
+                collation_okay = False
+                break
+        if collation_okay:
+            from .logger import Collator
+            descript = "files" if len(fns) > 1 else filenames
+            with Collator(session.logger, "Summary of problems opening " + descript,
+                                                    kw.pop('log_errors', True)):
+                models, status = io.open_multiple_data(session, filenames,
+                format=format, name=name, **kw)
+        else:
             models, status = io.open_multiple_data(session, filenames,
                 format=format, name=name, **kw)
         if status:

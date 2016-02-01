@@ -62,8 +62,8 @@ def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
         elif not color is None:
             vcolors[v] = color.uint8x4()
         if opacity is None:
-            if s.vertex_colors is not None:
-                vcolors[v,3] = s.vertex_colors[v,3]	# Preserve current transparency
+            # Preserve current transparency
+            vcolors[v,3] = s.vertex_colors[v,3] if s.vertex_colors is not None else s.color[3]
         elif opacity != 'computed':
             vcolors[v,3] = opacity
         s.vertex_colors = vcolors

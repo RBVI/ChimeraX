@@ -586,6 +586,11 @@ class Pseudobonds(Collection):
         f = c_function('pseudobond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
 
+    def between_atoms(self, atoms):
+        '''Return mask of those pseudobonds which have both ends in the given set of atoms.'''
+        a1, a2 = self.atoms
+        return a1.mask(atoms) & a2.mask(atoms)
+
 # -----------------------------------------------------------------------------
 #
 class Residues(Collection):
@@ -604,6 +609,8 @@ class Residues(Collection):
     '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.'''
     chain_ids = cvec_property('residue_chain_id', string, read_only = True)
     '''Returns a numpy array of chain IDs. Read only.'''
+    polymer_types = cvec_property('residue_polymer_type', int32, read_only = True)
+    '''Returns a numpy int array of residue types. Read only.'''
     is_helix = cvec_property('residue_is_helix', npy_bool)
     '''Returns a numpy bool array whether each residue is in a protein helix. Read only.'''
     is_sheet = cvec_property('residue_is_sheet', npy_bool)

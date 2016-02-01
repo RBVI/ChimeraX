@@ -28,13 +28,12 @@ class Mono360Camera(Camera):
         '''Number of views rendered by camera mode.'''
         return 6
 
-    def view_all(self, center, size):
+    def view_all(self, bounds, aspect = None, pad = 0):
         '''
         Return the shift that makes the camera completely show models
-        having specified center and radius.  The camera view direction
-        is not changed.
+        having specified bounds.  The camera view direction is not changed.
         '''
-        self.position = view_all_360(center, size, self.position)
+        self.position = view_all_360(bounds, self.position)
 
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
@@ -110,13 +109,12 @@ class Stereo360Camera(Camera):
         '''Number of views rendered by camera mode.'''
         return 12
 
-    def view_all(self, center, size):
+    def view_all(self, bounds, aspect = None, pad = 0):
         '''
         Return the shift that makes the camera completely show models
-        having specified center and radius.  The camera view direction
-        is not changed.
+        having specified bounds.  The camera view direction is not changed.
         '''
-        self.position = view_all_360(center, size, self.position)
+        self.position = view_all_360(bounds, self.position)
 
     def view_width(self, point):
         return view_width_360(point, self.position.origin())
@@ -191,7 +189,8 @@ def view_width_360(point, origin):
     from ..geometry import vector
     return 2 * pi * vector.distance(origin, point)
 
-def view_all_360(center, size, cam_position):
+def view_all_360(bounds, cam_position):
+    center, size = bounds.center(), bounds.width()
     shift = center - cam_position.origin() + 2*size*cam_position.z_axis()
     from ..geometry import translation
     return translation(shift) * cam_position

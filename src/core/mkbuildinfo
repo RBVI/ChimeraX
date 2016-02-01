@@ -20,8 +20,8 @@ if len(sys.argv) != 2:
 	print("usage: %s topdir" % sys.argv[0], file=sys.stderr)
 
 directory = sys.argv[1]
-template = "version.py.in"
-result = "version.py"
+template = "buildinfo.py.in"
+result = "buildinfo.py"
 
 branch = None
 build = None

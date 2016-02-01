@@ -28,18 +28,18 @@ def usage(session, command_name=None):
         return
     elif command_name == 'all':
         info("Syntax for all commands:")
-        cmds = cli.registered_commands()
+        cmds = cli.registered_commands(multiword=True)
         cmds.sort(key=lambda x: x[x[0] == '~':])
         if not session.ui.is_gui:
             for name in cmds:
                 try:
-                    info(cli.usage(name))
+                    info(cli.usage(name, no_subcommands=True))
                 except:
                     info('%s -- no documentation' % name)
             return
         for name in cmds:
             try:
-                info(cli.html_usage(name), is_html=True)
+                info(cli.html_usage(name, no_subcommands=True), is_html=True)
             except:
                 from html import escape
                 info('<b>%s</b> &mdash; no documentation' % escape(name),

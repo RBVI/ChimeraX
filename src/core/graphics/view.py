@@ -18,6 +18,9 @@ class View:
         self.window_size = window_size		# pixels
         self._opengl_context = None
         self._render = None
+        from .opengl import Lighting, Material
+        self._lighting = Lighting()
+        self._material = Material()
 
         if opengl_context:
             self.initialize_context(opengl_context)
@@ -72,7 +75,9 @@ class View:
             raise ValueError("OpenGL context is alread set")
         self._opengl_context = oc
         from .opengl import Render
-        self._render = Render()
+        self._render = r = Render()
+        r.lighting = self._lighting
+        r.material = self._material
 
     def opengl_context(self):
         return self._opengl_context
@@ -231,7 +236,7 @@ class View:
         if dm.shape_changed or cp.changed:
             self._update_center_of_rotation = True
 
-        if (self.lighting.multishadow > 0 and
+        if (self._lighting.multishadow > 0 and
             ((dm.redraw_needed and dm.shape_changed) or cp.changed)):
             self._multishadow_update_needed = True
 
@@ -267,10 +272,13 @@ class View:
     '''Background color as R, G, B, A values in 0-1 range.'''
 
     def get_lighting(self):
-        return self._render.lighting
+        return self._lighting
 
     def set_lighting(self, lighting):
-        self._render.lighting = lighting
+        self._lighting = lighting
+        r = self._render
+        if r:
+            r.lighting = lighting
         self.redraw_needed = True
 
     lighting = property(get_lighting, set_lighting)
@@ -366,10 +374,10 @@ class View:
             s0 = -0.5 + 0.5 * s
             for i in range(n):
                 for j in range(n):
-                    c.set_pixel_shift((s0 + i * s, s0 + j * s))
+                    c.set_fixed_pixel_shift((s0 + i * s, s0 + j * s))
                     self.draw(c, drawings, swap_buffers = False)
                     srgba += r.frame_buffer_image(w, h)
-            c.set_pixel_shift((0, 0))
+            c.set_fixed_pixel_shift((0, 0))
             srgba /= n * n
             # third index 0, 1, 2, 3 is r, g, b, a
             rgba = srgba.astype(uint8)
@@ -590,7 +598,7 @@ class View:
             dm.cached_any_part_selected = s = self.drawing.any_part_selected()
         return s
 
-    def initial_camera_view(self):
+    def initial_camera_view(self, pad = 0.05):
         '''Set the camera position to show all displayed drawings,
         looking down the z axis.'''
         b = self.drawing_bounds()
@@ -599,18 +607,23 @@ class View:
         c = self.camera
         from ..geometry import identity
         c.position = identity()
-        c.view_all(b.center(), b.width())
+        w,h = self.window_size
+        c.view_all(b, aspect = h/w, pad = pad)
         self._center_of_rotation = b.center()
         self._update_center_of_rotation = True
 
-    def view_all(self, bounds = None):
+    def view_all(self, bounds = None, pad = 0):
         '''Adjust the camera to show all displayed drawings using the
-        current view direction.'''
+        current view direction.  If bounds is given then view is adjusted
+        to show those bounds instead of the current drawing bounds.
+        If pad is specified the fit is to a window size reduced by this fraction.
+        '''
         if bounds is None:
             bounds = self.drawing_bounds()
             if bounds is None:
                 return
-        self.camera.view_all(bounds.center(), bounds.width())
+        w,h = self.window_size
+        self.camera.view_all(bounds, aspect = h/w, pad = pad)
         if self._center_of_rotation_method == 'front center':
             self._update_center_of_rotation = True
 

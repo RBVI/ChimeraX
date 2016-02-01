@@ -293,6 +293,11 @@ class PseudobondManager:
         return object_map(pbg,
             lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
 
+    def delete_group(self, pbg):
+        f = c_function('pseudobond_global_manager_delete_group',
+                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
+        f(self._c_pointer, pbg._c_pointer)
+
 
 # -----------------------------------------------------------------------------
 #
@@ -311,6 +316,14 @@ class Residue:
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
     chain_id = c_property('residue_chain_id', string, read_only = True)
     '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
+    PT_NONE = 0
+    '''Residue polymer type = none.'''
+    PT_AMINO = 1
+    '''Residue polymer type = amino acid.'''
+    PT_NUCLEIC = 2
+    '''Residue polymer type = nucleotide.'''
+    polymer_type = c_property('residue_polymer_type', int32, read_only = True)
+    '''Polymer type of residue. Integer value.'''
     is_helix = c_property('residue_is_helix', npy_bool)
     '''Whether this residue belongs to a protein alpha helix. Boolean value.'''
     is_sheet = c_property('residue_is_sheet', npy_bool)
@@ -505,7 +518,8 @@ class AtomicStructureData:
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
-        return object_map(pbg, PseudobondGroupData)
+        from .pbgroup import PseudobondGroup
+        return object_map(pbg, PseudobondGroup)
 
     def session_atom_to_id(self, ptr):
         '''Map Atom pointer to session ID'''

@@ -24,8 +24,9 @@ class ViewState(State):
     def restore_snapshot_init(self, session, bundle_info, version, data):
         # Restores session.main_view
         self.view = v = session.main_view
-        for k,value in data.items():
-            setattr(v, k, value)
+        for k in self.save_attrs:
+            if k in data and k != 'window_size':
+                setattr(v, k, data[k])
 
         # Root drawing had redraw callback set to None.  Restore callback.
         v.drawing.set_redraw_callback(v._drawing_manager)
@@ -44,7 +45,7 @@ class ViewState(State):
 
         # Restore window size
         from ..commands.windowsize import window_size
-        width, height = v.window_size
+        width, height = data['window_size']
         window_size(session, width, height)
 
     def reset_state(self, session):

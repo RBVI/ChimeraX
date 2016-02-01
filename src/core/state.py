@@ -83,7 +83,7 @@ def _init_primitives():
     # These primitives should be exactly the same ones that can be serialized
     global _final_primitives, _container_primitives
     import collections
-    import numpy
+    from numpy import ndarray, int32, int64, uint32, uint64, float32, float64
     import datetime
     from PIL import Image
     from . import geometry
@@ -92,6 +92,7 @@ def _init_primitives():
         bool, bytes, bytearray,
         complex, float,
         int, range, str,
+        int32, int64, uint32, uint64, float32, float64,
         collections.Counter,
         datetime.date, datetime.time, datetime.timedelta, datetime.datetime,
         datetime.timezone,
@@ -101,7 +102,7 @@ def _init_primitives():
     _container_primitives = (
         dict, frozenset, list, set, tuple,
         collections.deque, collections.OrderedDict,
-        numpy.ndarray,
+        ndarray,
     )
 
 

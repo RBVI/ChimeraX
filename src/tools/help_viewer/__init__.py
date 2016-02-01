@@ -8,6 +8,7 @@ def start_tool(session, bundle_info):
     from .gui import HelpUI
     return HelpUI.get_singleton(session)
 
+
 #
 # 'register_command' is called by the toolshed on start up
 #

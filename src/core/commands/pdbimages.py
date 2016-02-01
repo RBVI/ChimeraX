@@ -99,8 +99,8 @@ def save_assembly_images(mol, width, height, supersample, image_prefix, image_su
 
 def run(session, cmd_text):
     from . import Command
-    cmd = Command(session, cmd_text, final=True)
-    cmd.execute()
+    cmd = Command(session)
+    cmd.run(cmd_text)
 
 def register_command(session):
     from . import CmdDesc, StringArg, SaveFolderNameArg, IntArg, ListOf, register

@@ -25,7 +25,7 @@ _builtin_open = open
 _sandbox_count = 0
 
 
-def open_py(session, filename, name, *args, **kw):
+def open_python_script(session, filename, name, *args, **kw):
     """Execute Python script in a ChimeraX context
 
     This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
@@ -68,7 +68,7 @@ def open_py(session, filename, name, *args, **kw):
     return [], "executed %s" % name
 
 
-def open_ch(session, filename, name, *args, **kw):
+def open_command_script(session, filename, name, *args, **kw):
     """Execute utf-8 file as ChimeraX commands.
 
     The current directory is changed to the file directory before the commands
@@ -124,9 +124,9 @@ def register():
         "Python", io.SCRIPT, (".py", ".pyc", ".pyo"), ("py",),
         mime=('text/x-python', 'application/x-python-code'),
         reference="http://www.python.org/",
-        open_func=open_py)
+        open_func=open_python_script)
     io.register_format(
         "ChimeraX", io.SCRIPT, (".cxc",), ("cmd",),
         mime=('text/x-chimerax', 'application/x-chimerax-code'),
         reference="http://www.rbvi.ucsf.edu/chimerax/",
-        open_func=open_ch)
+        open_func=open_command_script)

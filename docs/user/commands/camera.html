@@ -1,0 +1,73 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: camera</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: camera</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>camera</b> [&nbsp;<i>mode</i>&nbsp;]
+[&nbsp;<b>fieldOfView</b>&nbsp;&nbsp;<i>angle</i>&nbsp;]
+[&nbsp;<b>eyeSeparation</b>&nbsp;&nbsp;<i>distance</i>&nbsp;]
+[&nbsp;<b>pixelEyeSeparation</b>&nbsp;&nbsp;<i>pixels</i>&nbsp;]
+</h3>
+<p>
+The <b>camera</b> command sets mono or stereo viewing and related
+parameters. If given without arguments, it reports the current settings
+in the <b>Log</b>, including position and view direction.
+See also:
+<a href="view.html"><b>view</b></a>,
+<a href="zoom.html"><b>zoom</b></a>,
+<a href="position.html"><b>position</b></a>
+</p><p>
+The camera <i>mode</i> can be:
+<ul>
+<li><b>mono</b> (default) - monoscopic with perspective 
+(apparent size decreasing with distance from the viewer)
+<li><b>ortho</b> - orthographic, monoscopic without perspective
+<li><b>stereo</b> - sequential stereoscopic
+<li><b>sbs</b> - stereoscopic side-by-side layout
+<li><b>tb</b> - stereoscopic top-bottom layout
+<li><b>360</b> - 360&deg; monoscopic
+<li><b>360sbs</b> - 360&deg; stereoscopic side-by-side layout
+<li><b>360tb</b> - 360&deg; stereoscopic top-bottom layout
+</ul>
+The <b>fieldOfView</b> option specifies the horizontal
+angular field of view (default <b>30</b>&deg;) for all modes
+except 360&deg; and orthographic.
+The previous field-of-view angle is not remembered through uses of 
+orthographic or any 360&deg; mode and the value will revert to 30&deg;
+upon switching from one of those modes to a relevant mode.
+</p><p>
+The <b>eyeSeparation</b> option specifies the distance between
+left- and right-eye viewpoints in scene distance units, 
+usually &Aring;, for all stereo modes
+(default <b>0.2</b> for 360&deg; modes, otherwise <b>5.0</b>).
+</p><p>
+The <b>pixelEyeSeparation</b> option specifies the distance between
+left- and right-eye viewpoints in screen pixels (default <b>200</b>)
+for sequential stereo.
+This is usually determined adequately by the display, but adjustments 
+may be needed for comfortable viewing when sequential stereo is projected.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+January 2016</address>
+</body></html> 
