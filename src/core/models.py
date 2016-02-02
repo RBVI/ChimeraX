@@ -256,7 +256,7 @@ class Models(State):
         from . import io
         session = self._session()  # resolve back reference
         collation_okay = True
-        if isinstance(filenames, "".__class__):
+        if isinstance(filenames, str):
             fns = [filenames]
         else:
             fns = filenames
