@@ -488,6 +488,14 @@ class Bonds(Collection):
         f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
 
+    def session_restore_pointers(self, session, data):
+        structures, ids = data
+        return array([s.session_id_to_bond(i) for s, i in zip(structures, ids)])
+    def session_save_pointers(self, session):
+        structures = self.structures
+        return [structures, array([s.session_bond_to_id(ptr)
+                                            for s, ptr in zip(structures, self._c_pointers)])]
+
 # -----------------------------------------------------------------------------
 #
 class Elements(Collection):

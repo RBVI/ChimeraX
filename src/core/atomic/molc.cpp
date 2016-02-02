@@ -1840,11 +1840,34 @@ extern "C" size_t structure_session_atom_to_id(void *mol, void* atom)
     }
 }
 
+extern "C" size_t structure_session_bond_to_id(void *mol, void* bond)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    Bond *b = static_cast<Bond *>(bond);
+    try {
+        return (*m->session_save_bonds)[b];
+    } catch (...) {
+        molc_error();
+        return -1;
+    }
+}
+
 extern "C" void* structure_session_id_to_atom(void *mol, size_t i)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
     try {
         return m->atoms()[i];
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void* structure_session_id_to_bond(void *mol, size_t i)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+        return m->bonds()[i];
     } catch (...) {
         molc_error();
         return nullptr;

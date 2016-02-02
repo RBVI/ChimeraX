@@ -1509,6 +1509,12 @@ AtomicStructure::session_save_setup() const
     }
 
     index = 0;
+    session_save_bonds = new std::unordered_map<const Bond*, size_t>;
+    for (auto b: bonds()) {
+        (*session_save_bond)[b] = index++;
+    }
+
+    index = 0;
     session_save_crdsets = new std::unordered_map<const CoordSet*, size_t>;
     for (auto cs: coord_sets()) {
         (*session_save_crdsets)[cs] = index++;
