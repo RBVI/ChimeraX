@@ -536,7 +536,7 @@ class AtomicStructureData:
     def session_id_to_atom(self, i):
         '''Map sessionID to Atom pointer'''
         f = c_function('structure_session_id_to_atom',
-                    args = (ctypes.c_void_p, size_t), ret = ctypes.c_void_p)
+                    args = (ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.c_void_p)
         return f(self._c_pointer, i)
 
     def session_info(self, ints, floats, misc):

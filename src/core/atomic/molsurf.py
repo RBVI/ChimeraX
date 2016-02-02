@@ -276,11 +276,6 @@ class MolecularSurface(Model):
         self.selected = (tmask.sum() > 0)
         self.selected_triangles_mask = tmask
 
-    def take_snapshot(self, session, flags):
-        from ..state import CORE_STATE_VERSION
-        print("Saving surface")
-        return CORE_STATE_VERSION, self.atoms
-
 def remove_solvent_ligands_ions(atoms, keep = None):
     '''Remove solvent, ligands and ions unless that removes all atoms
     in which case don't remove any.'''
