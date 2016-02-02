@@ -123,7 +123,10 @@ class Ribbon:
         try:
             coords, tangents, normals = self._seg_cache[seg]
         except KeyError:
-            coords, tangents = self._segment_path(seg, divisions)
+            coeffs = [self.coefficients[0][seg],
+                      self.coefficients[1][seg],
+                      self.coefficients[2][seg]]
+            coords, tangents = self._segment_path(coeffs, 0, 1, divisions)
             tangents = normalize_vector_array(tangents)
             ns = self.normals[seg]
             ne = self.normals[seg + 1]
@@ -143,17 +146,15 @@ class Ribbon:
                 end = divisions
         return coords[start:end], tangents[start:end], normals[start:end]
 
-    def _segment_path(self, seg, divisions):
+    def _segment_path(self, coeffs, tmin, tmax, divisions):
         # Compute coordinates by multiplying spline parameter vector
         # (1, t, t**2, t**3) by the spline coefficients, and
         # compute tangents by multiplying spline parameter vector
         # (0, 1, 2*t, 3*t**2) by the same spline coefficients
         from numpy import array, zeros, ones, linspace, dot
-        spline = array([self.coefficients[0][seg],
-                        self.coefficients[1][seg],
-                        self.coefficients[2][seg]]).transpose()
+        spline = array(coeffs).transpose()
         nc = divisions + 1
-        t = linspace(0.0, 1.0, nc)
+        t = linspace(tmin, tmax, nc)
         t2 = t * t
         coeff_shape = (nc, 4)
         ct = ones(coeff_shape, float)    # coords coefficients
@@ -167,6 +168,36 @@ class Ribbon:
         tt[:,3] = 3 * t2
         tangents = dot(tt, spline)
         return coords, tangents
+
+    def lead_segment(self, divisions):
+        coeffs = [self.coefficients[0][0],
+                  self.coefficients[1][0],
+                  self.coefficients[2][0]]
+        # We do not want to go from -0.5 to 0 because the
+        # first residue will already have the "0" coordinates
+        # as part of its ribbon.  We want to connect to that
+        # coordinate smoothly.
+        step = 0.5 / (divisions + 1)
+        coords, tangents = self._segment_path(coeffs, -0.5, -step, divisions)
+        tangents = normalize_vector_array(tangents)
+        n = self.normals[0]
+        normals, flipped = constrained_normals(tangents, n, n)
+        return coords, tangents, normals
+
+    def trail_segment(self, divisions):
+        coeffs = [self.coefficients[0][-1],
+                  self.coefficients[1][-1],
+                  self.coefficients[2][-1]]
+        # We do not want to go from 1 to 1.5 because the
+        # last residue will already have the "1" coordinates
+        # as part of its ribbon.  We want to connect to that
+        # coordinate smoothly.
+        step = 0.5 / (divisions + 1)
+        coords, tangents = self._segment_path(coeffs, 1 + step, 1.5, divisions)
+        tangents = normalize_vector_array(tangents)
+        n = self.normals[-1]
+        normals, flipped = constrained_normals(tangents, n, n)
+        return coords, tangents, normals
 
 
 def normalize(v):

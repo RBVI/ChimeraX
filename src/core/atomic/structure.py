@@ -423,6 +423,9 @@ class AtomicStructure(AtomicStructureData, Model):
                     else:
                         xss.append(self._ribbon_xs_turn)
                     was_strand = False
+            if was_strand:
+                # 1hxx ends in a strand
+                xss[-1] = self._ribbon_xs_arrow
 
             # Draw first and last residue differently because they
             # are each only a single half segment, while the middle
@@ -432,7 +435,11 @@ class AtomicStructure(AtomicStructureData, Model):
             if displays[0]:
                 capped = displays[0] != displays[1] or xss[0] != xss[1]
                 seg = capped and seg_cap or seg_blend
-                centers, tangents, normals = ribbon.segment(0, ribbon.FRONT, seg)
+                front_c, front_t, front_n = ribbon.lead_segment(seg_cap / 2)
+                back_c, back_t, back_n = ribbon.segment(0, ribbon.FRONT, seg)
+                centers = concatenate((front_c, back_c))
+                tangents = concatenate((front_t, back_t))
+                normals = concatenate((front_n, back_n))
                 if self.ribbon_show_spine:
                     spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
                                                                                      centers, normals,
@@ -505,7 +512,11 @@ class AtomicStructure(AtomicStructureData, Model):
             # Last residue
             if displays[-1]:
                 seg = capped and seg_cap or seg_blend
-                centers, tangents, normals = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, last=True)
+                front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg)
+                back_c, back_t, back_n = ribbon.trail_segment(seg_cap / 2)
+                centers = concatenate((front_c, back_c))
+                tangents = concatenate((front_t, back_t))
+                normals = concatenate((front_n, back_n))
                 if self.ribbon_show_spine:
                     spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
                                                                                      centers, normals,
