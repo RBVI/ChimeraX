@@ -59,6 +59,15 @@ def fetch_mmcif(session, pdb_id, ignore_cache=False):
     from ..fetch import fetch_file
     filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name, 'PDB',
                           ignore_cache=ignore_cache)
+    # double check that a mmCIF file was downloaded instead of an
+    # HTML error message saying the ID does not exist
+    with open(filename, 'U') as f:
+        line = f.readline()
+        if not line.startswith(('data_', '#')):
+            f.close()
+            import os
+            os.remove(filename)
+            raise UserError("Invalid mmCIF identifier")
 
     from .. import io
     models, status = io.open_data(session, filename, format = 'mmcif', name = pdb_id)
