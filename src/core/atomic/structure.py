@@ -103,12 +103,14 @@ class AtomicStructure(AtomicStructureData, Model):
             self.session.triggers.delete_handler(handler)
         Model.delete(self)
 
-    def copy(self, name):
+    def copy(self, name = None):
         '''
         Return a copy of this structure with a new name.
         No atoms or other components of the structure
         are shared between the original and the copy.
         '''
+        if name is None:
+            name = self.name
         m = AtomicStructure(self.session, name = name,
                             c_pointer = AtomicStructureData._copy(self),
                             level_of_detail = self._level_of_detail)
