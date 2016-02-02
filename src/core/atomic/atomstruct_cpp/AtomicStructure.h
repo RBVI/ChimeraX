@@ -173,6 +173,7 @@ public:
     void  session_restore(int version, PyObject* ints, PyObject* floats, PyObject* misc);
     mutable std::unordered_map<const Atom*, size_t>  *session_save_atoms;
     mutable std::unordered_map<const Bond*, size_t>  *session_save_bonds;
+    mutable std::unordered_map<const Chain*, size_t>  *session_save_chains;
     mutable std::unordered_map<const CoordSet*, size_t>  *session_save_crdsets;
     mutable std::unordered_map<const Residue*, size_t>  *session_save_residues;
     void  session_save_setup() const;

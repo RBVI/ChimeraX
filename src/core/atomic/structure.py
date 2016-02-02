@@ -20,8 +20,6 @@ class AtomicStructure(AtomicStructureData, Model):
     ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
         "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
 
-    STRUCTURE_STATE_VERSION = 0
-
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  level_of_detail = None, smart_initial_display = True):
         # Cross section coordinates are 2D and counterclockwise
@@ -50,16 +48,14 @@ class AtomicStructure(AtomicStructureData, Model):
         if restore_data:
             # from session
             (tool_info, version, as_data) = restore_data
-            model_data, python_data, c_data = as_data
+            model_data, c_data, python_data = as_data
             #
             # Model will attempt to restore self.name, which is a property of the C++
             # layer for an AtomicStructure, so initialize AtomicStructureData first...
-            AtomicStructureData.__init__(self, logger=session.logger)
+            AtomicStructureData.restore_snapshot_init(self, session, tool_info, *c_data)
             for attr_name, default_val in self._session_attrs.items():
                 setattr(self, attr_name, python_data.get(attr_name, default_val))
             Model.restore_snapshot_init(self, session, tool_info, *model_data)
-            #as_version, ints, floats, misc = c_data
-            self.session_restore(*c_data)
             self._smart_initial_display = False
         else:
             AtomicStructureData.__init__(self, c_pointer)
@@ -189,14 +185,10 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def take_snapshot(self, session, flags):
         from ..state import CORE_STATE_VERSION
-        ints = []
-        floats = []
-        misc = []
-        as_version = self.session_info(ints, floats, misc)
         return CORE_STATE_VERSION, [
             Model.take_snapshot(self, session, flags),
-            { attr_name: getattr(self, attr_name) for attr_name in self._session_attrs.keys() },
-            (as_version, ints, floats, misc)
+            AtomicStructureData.take_snapshot(self, session, flags),
+            { attr_name: getattr(self, attr_name) for attr_name in self._session_attrs.keys() }
         ]
 
     def restore_snapshot_init(self, session, tool_info, version, data):
@@ -1061,10 +1053,10 @@ class AtomicStructure(AtomicStructureData, Model):
         return PromoteAtomSelection(self, level, psel, asel)
 
     def _begin_ses_save(self, *args):
-        self.session_save_setup()
+        self._session_save_setup()
 
     def _end_ses_save(self, *args):
-        self.session_save_teardown()
+        self._session_save_teardown()
 
     def surfaces(self):
         '''List of :class:`.MolecularSurface` objects for this structure.'''

@@ -1511,7 +1511,13 @@ AtomicStructure::session_save_setup() const
     index = 0;
     session_save_bonds = new std::unordered_map<const Bond*, size_t>;
     for (auto b: bonds()) {
-        (*session_save_bond)[b] = index++;
+        (*session_save_bonds)[b] = index++;
+    }
+
+    index = 0;
+    session_save_chains = new std::unordered_map<const Chain*, size_t>;
+    for (auto c: chains()) {
+        (*session_save_chains)[c] = index++;
     }
 
     index = 0;
@@ -1531,6 +1537,8 @@ void
 AtomicStructure::session_save_teardown() const
 {
     delete session_save_atoms;
+    delete session_save_bonds;
+    delete session_save_chains;
     delete session_save_crdsets;
     delete session_save_residues;
 }

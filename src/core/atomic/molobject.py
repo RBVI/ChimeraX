@@ -417,11 +417,20 @@ class AtomicStructureData:
     This base class manages the atomic data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
-    def __init__(self, mol_pointer=None, logger=None):
+    def __init__(self, mol_pointer=None, logger=None, restore_data=None):
         if mol_pointer is None:
             # Create a new atomic structure
             mol_pointer = c_function('structure_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
+
+        if restore_data:
+            '''Restore from session info'''
+            version, data = restore_data
+            ints, floats, misc = data
+            f = c_function('structure_session_restore',
+                    args = (ctypes.c_void_p, ctypes.c_int,
+                            ctypes.py_object, ctypes.py_object, ctypes.py_object))
+            f(self._c_pointer, version, ints, floats, misc)
 
     def delete(self):
         '''Deletes the C++ data for this atomic structure.'''
@@ -521,6 +530,9 @@ class AtomicStructureData:
         from .pbgroup import PseudobondGroup
         return object_map(pbg, PseudobondGroup)
 
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        AtomicStructureData.__init__(self, logger=session.logger, restore_data=(version, data))
+
     def session_atom_to_id(self, ptr):
         '''Map Atom pointer to session ID'''
         f = c_function('structure_session_atom_to_id',
@@ -539,36 +551,32 @@ class AtomicStructureData:
                     args = (ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.c_void_p)
         return f(self._c_pointer, i)
 
-    def session_info(self, ints, floats, misc):
-        '''Gather session info; return version number'''
-        f = c_function('structure_session_info',
-                    args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
-                        ctypes.py_object),
-                    ret = ctypes.c_int)
-        return f(self._c_pointer, ints, floats, misc)
-
-    def session_restore(self, version, ints, floats, misc):
-        '''Restore from session info'''
-        f = c_function('structure_session_restore',
-                args = (ctypes.c_void_p, ctypes.c_int,
-                        ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        return f(self._c_pointer, version, ints, floats, misc)
-
-    def session_save_setup(self):
-        '''Allow C++ layer to setup data structures it needs during session save'''
-        f = c_function('structure_session_save_setup', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
-
-    def session_save_teardown(self):
-        '''Allow C++ layer to teardown data structures it made during session save setup'''
-        f = c_function('structure_session_save_teardown', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
-
     def set_color(self, rgba):
         '''Set color of atoms, bonds, and residues'''
         f = c_function('set_structure_color',
                     args = (ctypes.c_void_p, ctypes.c_void_p))
         return f(self._c_pointer, pointer(rgba))
+
+    def take_snapshot(self, session, flags):
+        '''Gather session info; return version number'''
+        f = c_function('structure_session_info',
+                    args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
+                        ctypes.py_object),
+                    ret = ctypes.c_int)
+        ints = []
+        floats = []
+        misc = []
+        return f(self._c_pointer, ints, floats, misc), (ints, floats, misc)
+
+    def _session_save_setup(self):
+        '''Allow C++ layer to setup data structures it needs during session save'''
+        f = c_function('structure_session_save_setup', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
+
+    def _session_save_teardown(self):
+        '''Allow C++ layer to teardown data structures it made during session save setup'''
+        f = c_function('structure_session_save_teardown', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def _start_change_tracking(self, change_tracker):
         f = c_function('structure_start_change_tracking',

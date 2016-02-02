@@ -1852,6 +1852,30 @@ extern "C" size_t structure_session_bond_to_id(void *mol, void* bond)
     }
 }
 
+extern "C" size_t structure_session_chain_to_id(void *mol, void* chain)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    Chain *c = static_cast<Chain *>(chain);
+    try {
+        return (*m->session_save_chains)[c];
+    } catch (...) {
+        molc_error();
+        return -1;
+    }
+}
+
+extern "C" size_t structure_session_residue_to_id(void *mol, void* res)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    Residue *r = static_cast<Residue *>(res);
+    try {
+        return (*m->session_save_residues)[r];
+    } catch (...) {
+        molc_error();
+        return -1;
+    }
+}
+
 extern "C" void* structure_session_id_to_atom(void *mol, size_t i)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
@@ -1874,15 +1898,14 @@ extern "C" void* structure_session_id_to_bond(void *mol, size_t i)
     }
 }
 
-extern "C" size_t structure_session_residue_to_id(void *mol, void* res)
+extern "C" void* structure_session_id_to_chain(void *mol, size_t i)
 {
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
-    Residue *r = static_cast<Residue *>(res);
     try {
-        return (*m->session_save_residues)[r];
+        return m->chains()[i];
     } catch (...) {
         molc_error();
-        return -1;
+        return nullptr;
     }
 }
 

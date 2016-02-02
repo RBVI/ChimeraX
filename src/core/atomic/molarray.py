@@ -531,6 +531,12 @@ class Elements(Collection):
     valences = cvec_property('element_valence', uint8, read_only = True)
     '''Returns a :mod:`numpy` array of atomic valence numbers (integers). Read only.'''
 
+    def session_restore_pointers(self, session, data):
+        f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+        return [f(en) for en in data]
+    def session_save_pointers(self, session):
+        structures = self.structures
+        return self.numbers
 
 # -----------------------------------------------------------------------------
 #
@@ -736,6 +742,14 @@ class Chains(Collection):
     '''A numpy integer array containing the number of existing residues in each chain.'''
     num_residues = cvec_property('chain_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
+
+    def session_restore_pointers(self, session, data):
+        structures, ids = data
+        return array([s.session_id_to_chain(i) for s, i in zip(structures, ids)])
+    def session_save_pointers(self, session):
+        structures = self.structures
+        return [structures, array([s.session_chain_to_id(ptr)
+                                            for s, ptr in zip(structures, self._c_pointers)])]
 
 # -----------------------------------------------------------------------------
 #
