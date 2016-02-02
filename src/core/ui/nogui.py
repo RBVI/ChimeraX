@@ -18,11 +18,11 @@ class NoGuiLog(PlainTextLog):
         else:
             from colorama import Fore
             if level == self.LEVEL_INFO:
-                print(Fore.GREEN + msg + Fore.RESET, end='')
+                print(Fore.GREEN + msg + Fore.WHITE, end='')
             elif level == self.LEVEL_ERROR:
-                print(Fore.RED + msg + Fore.RESET, end='')
+                print(Fore.RED + msg + Fore.WHITE, end='')
             elif level == self.LEVEL_WARNING:
-                print(Fore.YELLOW + msg + Fore.RESET, end='')
+                print(Fore.YELLOW + msg + Fore.WHITE, end='')
         return True
 
     def status(self, msg, color, secondary):
@@ -33,7 +33,7 @@ class NoGuiLog(PlainTextLog):
                 print("status: %s" % msg)
             else:
                 from colorama import Fore
-                print(Fore.MAGENTA + msg + Fore.RESET)
+                print(Fore.MAGENTA + msg + Fore.WHITE)
         return True
 
 
@@ -125,7 +125,7 @@ class _Input(Task):
         prompt = 'cmd> '
         if _color_output:
             from colorama import Fore, Style
-            prompt = Fore.GREEN + Style.BRIGHT + prompt + Fore.RESET
+            prompt = Fore.GREEN + Style.BRIGHT + prompt + Fore.WHITE
         ui = self.session.ui
         while True:
             try:
