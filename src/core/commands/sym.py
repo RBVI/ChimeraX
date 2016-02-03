@@ -184,11 +184,15 @@ class Assembly:
                 if len(excluded_atoms) > 0:
                     excluded_atoms.delete()
                 self._show_atoms(included_atoms)
-                if surface_only:
-                    from .surface import surface
-                    surface(session, included_atoms, resolution = resolution)
+
         g = session.models.add_group(mlist)[0]
         g.name = '%s assembly %s' % (mol.name, self.id)
+
+        if surface_only:
+            from .surface import surface
+            for m in mlist:
+                surface(session, m.atoms, resolution = resolution)
+
         mol.display = False
 
     def _partition_atoms(self, atoms, chain_ids):
