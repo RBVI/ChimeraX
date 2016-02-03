@@ -14,8 +14,7 @@
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Residue.h>
 #include <atomstruct/Sequence.h>
-#include <basegeom/destruct.h>
-#include <basegeom/Graph.tcc>
+#include <atomstruct/destruct.h>
 #include <logger/logger.h>
 #include "pythonarray.h"	// Use python_voidp_array()
 
@@ -27,12 +26,12 @@ using atomstruct::AtomName;
 using atomstruct::Bond;
 using atomstruct::ChainID;
 using atomstruct::CoordSet;
-using atomstruct::Element;
+using element::Element;
 using atomstruct::MolResId;
 using atomstruct::Residue;
 using atomstruct::ResName;
 using atomstruct::Sequence;
-using basegeom::Coord;
+using atomstruct::Coord;
 
 std::string pdb_segment("pdb_segment");
 std::string pdb_charge("formal_charge");
@@ -934,7 +933,7 @@ read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode)
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    auto notifications_off = basegeom::DestructionNotificationsOff();
+    auto notifications_off = atomstruct::DestructionNotificationsOff();
     PyObject *http_mod = PyImport_ImportModule("http.client");
     if (http_mod == NULL)
         return NULL;

@@ -1,9 +1,9 @@
 // vi: set expandtab ts=4 sw=4:
 
 #include "AtomicStructure.h"
+#include "destruct.h"
 #include "PBGroup.h"
 
-#include <basegeom/destruct.h>
 #include <pysupport/convert.h>
 
 #include <Python.h>
@@ -14,7 +14,7 @@ namespace atomstruct {
 BaseManager::~BaseManager()
 {
     // assign to var so it lives to end of destructor
-    auto du = basegeom::DestructionUser(this);
+    auto du = DestructionUser(this);
     // delete groups while DestructionUser active
     for (auto name_grp: this->_groups) {
         delete name_grp.second;

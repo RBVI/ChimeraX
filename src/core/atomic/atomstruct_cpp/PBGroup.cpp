@@ -2,10 +2,9 @@
 
 #include "Atom.h"
 #include "AtomicStructure.h"
+#include "destruct.h"
 #include "PBGroup.h"
 #include "Pseudobond.h"
-
-#include <basegeom/destruct.h>
 
 #include <Python.h>
 #include <pythonarray.h>
@@ -46,7 +45,7 @@ _check_destroyed_atoms(Group::Pseudobonds& pbonds, const std::set<void*>& destro
 void
 CS_PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
 {
-    auto db = basegeom::DestructionBatcher(this);
+    auto db = DestructionBatcher(this);
     for (auto& cs_pbs: _pbonds)
         _check_destroyed_atoms(cs_pbs.second, destroyed,
             static_cast<GraphicsContainer*>(this));
@@ -55,7 +54,7 @@ CS_PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
 void
 StructurePBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
 {
-    auto db = basegeom::DestructionBatcher(this);
+    auto db = DestructionBatcher(this);
     _check_destroyed_atoms(_pbonds, destroyed,
         static_cast<GraphicsContainer*>(this));
 }
@@ -80,7 +79,7 @@ StructurePBGroup::clear()
 CS_PBGroup::~CS_PBGroup()
 {
     _destruction_relevant = false;
-    auto du = basegeom::DestructionUser(this);
+    auto du = DestructionUser(this);
     for (auto name_pbs: _pbonds) {
         for (auto pb: name_pbs.second)
             delete pb;
@@ -91,7 +90,7 @@ void
 Group::dtor_code()
 {
     _destruction_relevant = false;
-    auto du = basegeom::DestructionUser(this);
+    auto du = DestructionUser(this);
     for (auto pb: pseudobonds())
         delete pb;
 }

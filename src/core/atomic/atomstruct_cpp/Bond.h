@@ -5,27 +5,26 @@
 #include <set>
 #include <vector>
 
-#include <basegeom/Connection.h>
+#include "Connection.h"
 #include "imex.h"
 
 namespace atomstruct {
 
 class Atom;
 class AtomicStructure;
+class ChangeTracker;
 class Residue;
 class Ring;
-using basegeom::ChangeTracker;
 
-class ATOMSTRUCT_IMEX Bond: public basegeom::UniqueConnection<Atom> {
+class ATOMSTRUCT_IMEX Bond: public UniqueConnection {
     friend class AtomicStructure;
 public:
     // HIDE_ constants are masks for hide bits in Atom
     static const unsigned int  HIDE_RIBBON = 0x1;
-    typedef End_points  Atoms;
     typedef std::vector<const Ring*>  Rings;
 private:
     Bond(AtomicStructure *, Atom *, Atom *);
-    void  add_to_endpoints() { atoms()[0]->add_bond(this); atoms()[1]->add_bond(this); }
+    void  add_to_atoms() { atoms()[0]->add_bond(this); atoms()[1]->add_bond(this); }
     const char*  err_msg_exists() const
         { return "Bond already exists between these atoms"; }
     const char*  err_msg_loop() const
@@ -40,14 +39,12 @@ public:
     virtual bool shown() const;
     const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
-    const Atoms&  atoms() const { return end_points(); }
     AtomicStructure*  structure() const { return atoms()[0]->structure(); }
     // length() inherited from UniqueConnection
     const Rings&  minimum_rings(bool cross_residues = false,
             std::set<const Residue*>* ignore = nullptr) const {
         return rings(cross_residues, 0, ignore);
     }
-    Atom*  other_atom(Atom *a) const { return other_end(a); }
     Atom*  polymeric_start_atom() const;
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
@@ -56,11 +53,11 @@ public:
     // session related
     static int  session_num_floats(int version=0) {
         return SESSION_NUM_FLOATS(version)
-            + UniqueConnection<Atom>::session_num_floats(session_base_version(version));
+            + UniqueConnection::session_num_floats(session_base_version(version));
     }
     static int  session_num_ints(int version=0) {
         return SESSION_NUM_INTS(version)
-            + UniqueConnection<Atom>::session_num_ints(session_base_version(version));
+            + UniqueConnection::session_num_ints(session_base_version(version));
     }
     // session_restore and session_save simply inherited from UniqueConnection
 
@@ -88,7 +85,7 @@ inline bool Bond::shown() const {
        atoms()[0]->draw_mode() != Atom::DrawMode::Sphere);
 }
 
-inline basegeom::ChangeTracker*
+inline ChangeTracker*
 Bond::change_tracker() const { return atoms()[0]->change_tracker(); }
 
 inline const Bond::Rings&

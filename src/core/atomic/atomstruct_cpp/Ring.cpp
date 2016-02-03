@@ -4,13 +4,11 @@
 
 #include "Atom.h"
 #include "Bond.h"
+#include "Coord.h"
+#include "Real.h"
 #include "Ring.h"
-#include <basegeom/Coord.h>
-#include <basegeom/Real.h>
 
 namespace atomstruct {
-
-using basegeom::Real;
 
 bool
 Ring::operator<(const Ring &other) const
@@ -58,7 +56,7 @@ Ring::planarity(double ABCD[4], double* avg_err, double* max_err) const
     Bond *cur_bond = *(remaining.begin());
     remaining.erase(remaining.begin());
 
-    std::vector<basegeom::Coord> coords(num_atoms + 1);
+    std::vector<Coord> coords(num_atoms + 1);
     coords[0] = cur_bond->atoms()[0]->coord();
     coords[1] = cur_bond->atoms()[1]->coord();
     // put first atom on end of list as well to simplify later loops

@@ -1,8 +1,8 @@
 // vi: set expandtab ts=4 sw=4:
-#ifndef basegeom_Rgba
-#define basegeom_Rgba
+#ifndef atomstruct_Rgba
+#define atomstruct_Rgba
 
-namespace basegeom {
+namespace atomstruct {
     
 class Rgba {
 public:
@@ -43,6 +43,6 @@ public:
     }
 };
 
-} //  namespace basegeom
+} //  namespace atomstruct
 
-#endif  // basegeom_Rgba
+#endif  // atomstruct_Rgba

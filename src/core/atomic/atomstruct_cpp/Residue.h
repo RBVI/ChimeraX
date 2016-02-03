@@ -8,9 +8,10 @@
 #include <vector>
 
 #include "backbone.h"
-#include <basegeom/Rgba.h>
 #include "imex.h"
 #include "string_types.h"
+#include "ChangeTracker.h"
+#include "Rgba.h"
 
 namespace atomstruct {
 
@@ -18,9 +19,6 @@ class Atom;
 class AtomicStructure;
 class Bond;
 class Chain;
-
-using basegeom::ChangeTracker;
-using basegeom::Rgba;
 
 class ATOMSTRUCT_IMEX Residue {
 public:

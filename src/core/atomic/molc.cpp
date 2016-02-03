@@ -11,8 +11,8 @@
 #include "atomstruct/Pseudobond.h"
 #include "atomstruct/Residue.h"
 #include "atomstruct/RibbonXSection.h"
-#include "basegeom/ChangeTracker.h"
-#include "basegeom/destruct.h"     // Use DestructionObserver
+#include "atomstruct/ChangeTracker.h"
+#include "atomstruct/destruct.h"     // Use DestructionObserver
 #include "pythonarray.h"           // Use python_voidp_array()
 
 #include <functional>
@@ -160,10 +160,6 @@ error_wrap_array_set(T** instances, size_t n, void (T::*pm)(Elem), Elem2* args)
 
 
 using namespace atomstruct;
-using basegeom::ChangeTracker;
-using basegeom::Coord;
-using basegeom::Real;
-using basegeom::DestructionObserver;
 
 // -------------------------------------------------------------------------
 // atom functions

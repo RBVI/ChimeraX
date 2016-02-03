@@ -1,10 +1,10 @@
 // vi: set expandtab ts=4 sw=4:
-#ifndef basegeom_destruct
-#define basegeom_destruct
+#ifndef atomstruct_destruct
+#define atomstruct_destruct
 
 #include <set>
 
-namespace basegeom {
+namespace atomstruct {
 
 class DestructionObserver {
 // Base class for classes that are interested in getting only one
@@ -120,6 +120,6 @@ public:
     }
 };
 
-}  // namespace basegeom
+}  // namespace atomstruct
 
-#endif  // basegeom_destruct
+#endif  // atomstruct_destruct

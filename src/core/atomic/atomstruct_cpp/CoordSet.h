@@ -2,11 +2,11 @@
 #ifndef atomstruct_CoordSet
 #define atomstruct_CoordSet
 
-#include <basegeom/Coord.h>
+#include "Coord.h"
 #include "imex.h"
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace atomstruct {
@@ -16,7 +16,7 @@ class ATOMSTRUCT_IMEX CoordSet {
     friend class AtomicStructure;
 
 public:
-    typedef std::vector<basegeom::Coord>  Coords;
+    typedef std::vector<Coord>  Coords;
 
 private:
     Coords  _coords;

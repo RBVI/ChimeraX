@@ -5,7 +5,7 @@
 #include "Atom.h"
 #include "AtomicStructure.h"
 #include "CoordSet.h"
-#include <basegeom/destruct.h>
+#include "destruct.h"
 
 namespace atomstruct {
 
@@ -22,7 +22,7 @@ CoordSet::CoordSet(AtomicStructure* as, int cs_id, int size):
 
 CoordSet::~CoordSet()
 {
-    if (basegeom::DestructionCoordinator::destruction_parent() != _structure)
+    if (DestructionCoordinator::destruction_parent() != _structure)
         _structure->pb_mgr().remove_cs(this);
 }
 

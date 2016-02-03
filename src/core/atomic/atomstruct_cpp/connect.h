@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 #include <set>
-#include "imex.h"
-#include "AtomicStructure.h"
-#include "Residue.h"
+
 #include "Atom.h"
+#include "AtomicStructure.h"
+#include "imex.h"
 #include "MolResId.h"
+#include "Residue.h"
 #include "tmpl/Residue.h"
 
 namespace atomstruct {
