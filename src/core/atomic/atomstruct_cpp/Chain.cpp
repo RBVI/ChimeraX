@@ -4,11 +4,10 @@
 
 #include "AtomicStructure.h"
 #include "Chain.h"
+#include "ChangeTracker.h"
+#include "destruct.h"
 #include "Sequence.h"
 #include "Residue.h"
-
-#include <basegeom/ChangeTracker.h>
-#include <basegeom/destruct.h>
 
 namespace atomstruct {
 
@@ -162,7 +161,7 @@ Chain::remove_residue(Residue* r) {
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
         ChangeTracker::REASON_RESIDUES);
     if (no_structure_left()) {
-        if (basegeom::DestructionCoordinator::destruction_parent() != _structure)
+        if (DestructionCoordinator::destruction_parent() != _structure)
             _structure->remove_chain(this);
         _structure = nullptr;
     } else {

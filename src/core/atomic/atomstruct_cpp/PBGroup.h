@@ -7,12 +7,11 @@
 #include <string>
 #include <unordered_map>
 
-#include <basegeom/destruct.h>
-#include <basegeom/Graph.h>
-#include <basegeom/Rgba.h>
-
+#include "destruct.h"
+#include "Graph.h"
 #include "imex.h"
 #include "PBManager.h"
+#include "Rgba.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -29,9 +28,7 @@ class AtomicStructure;
 class CoordSet;
 class Pseudobond;
 
-using basegeom::Rgba;
-
-class Group: public basegeom::DestructionObserver, public basegeom::GraphicsContainer {
+class Group: public DestructionObserver, public GraphicsContainer {
 public:
     typedef std::set<Pseudobond*>  Pseudobonds;
 
@@ -181,7 +178,7 @@ private:
     Proxy_PBGroup(BaseManager* manager, const std::string& cat, AtomicStructure* as, int grp_type):
         StructurePBGroupBase(cat, as, manager) { init(grp_type); }
     ~Proxy_PBGroup() {
-        auto du = basegeom::DestructionUser(this);
+        auto du = DestructionUser(this);
         if (_group_type == AS_PBManager::GRP_NORMAL)
             delete static_cast<StructurePBGroup*>(_proxied);
         else

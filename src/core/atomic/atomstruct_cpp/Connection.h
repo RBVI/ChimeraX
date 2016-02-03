@@ -1,14 +1,14 @@
 // vi: set expandtab ts=4 sw=4:
-#ifndef basegeom_Connection
-#define basegeom_Connection
+#ifndef atomstruct_Connection
+#define atomstruct_Connection
 
 #include <stdexcept>
 
 #include "ChangeTracker.h"
-#include "Graph.h"
+#include "Coord.h"
+#include "destruct.h"
 #include "Real.h"
 #include "Rgba.h"
-#include "destruct.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -18,14 +18,14 @@ struct _object;
 typedef _object PyObject;
 #endif
     
-namespace basegeom {
+namespace atomstruct {
 
-using ::basegeom::ChangeTracker;
+class Atom;
+class GraphicsContainer;
 
-template <class End>
 class Connection {
 public:
-    typedef End*  End_points[2];
+    typedef Atom*  Atoms[2];
 
     // Since this is a base class shared between Bond and Pseudobond,
     // the version number is specific to this class, rather than the
@@ -36,11 +36,11 @@ public:
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
 protected:
     virtual const char*  err_msg_loop() const
-        { return "Can't connect endpoint to itself"; }
-    virtual const char*  err_msg_not_end() const
-        { return "Endpoint arg of other_end() not in Connection"; }
+        { return "Can't connect atom to itself"; }
+    virtual const char*  err_msg_not_in_connection() const
+        { return "Atom arg of other_atom() not in bond/pseudobond"; }
 
-    End_points  _end_points;
+    Atoms  _atoms;
 
     bool  _display = true;
     int  _hide = 0;
@@ -48,22 +48,16 @@ protected:
     float  _radius = 0.2;
     Rgba  _rgba;
 public:
-    Connection(End *e1, End *e2);
-    void  finish_construction(); // virtual calls now working...
+    Connection(Atom* a1, Atom* a2) { _atoms[0] = a1; _atoms[1] = a2; }
+
+    virtual void  finish_construction(); // virtual calls now working...
     virtual  ~Connection() { auto du = DestructionUser(this); }
-    bool  contains(End* e) const {
-        return e == _end_points[0] || e == _end_points[1];
-    }
-    const End_points &  end_points() const { return _end_points; }
-    Real  length() const {
-        return _end_points[0]->coord().distance(_end_points[1]->coord());
-    }
-    End *  other_end(End* e) const;
-    void  session_info(bool intra_mol,
-        PyObject* ints, PyObject* floats, PyObject* misc) const;
-    Real  sqlength() const {
-        return _end_points[0]->coord().sqdistance(_end_points[1]->coord());
-    }
+    bool  contains(Atom* a) const { return a == _atoms[0] || a == _atoms[1]; }
+    const Atoms&  atoms() const { return _atoms; }
+    Real  length() const { return _atoms[0]->coord().distance(_atoms[1]->coord()); }
+    Atom*  other_atom(Atom* a) const;
+    void  session_info(bool intra_mol, PyObject* ints, PyObject* floats, PyObject* misc) const;
+    Real  sqlength() const { return _atoms[0]->coord().sqdistance(_atoms[1]->coord()); }
 
     // session related
     static int  session_num_floats(int version=0) {
@@ -145,68 +139,51 @@ public:
         _hide = h;
     }
     virtual bool shown() const
-        { return visible() && _end_points[0]->visible() && _end_points[1]->visible(); }
+        { return visible() && _atoms[0]->visible() && _atoms[1]->visible(); }
     bool  visible() const
         { return _hide ? false : _display; }
 };
 
-template <class End>
-class UniqueConnection: public Connection<End> {
+class UniqueConnection: public Connection {
 protected:
     virtual const char*  err_msg_exists() const
-        { return "Connection already exists between endpoints"; }
+        { return "Connection already exists between atoms"; }
 public:
-    UniqueConnection(End *e1, End *e2);
-    virtual void  add_to_endpoints() = 0;
+    UniqueConnection(Atom *a1, Atom *a2) : Connection(a1, a2) {}
+    virtual void  add_to_atoms() = 0;
     void  finish_construction(); // virtual calls now working...
     virtual  ~UniqueConnection() {}
 };
 
-template <class End>
-Connection<End>::Connection(End *e1, End *e2)
+inline void
+Connection::finish_construction()
 {
-    _end_points[0] = e1;
-    _end_points[1] = e2;
-}
-
-template <class End>
-void
-Connection<End>::finish_construction()
-{
-    if (_end_points[0] == _end_points[1])
+    if (_atoms[0] == _atoms[1])
         throw std::invalid_argument(err_msg_loop());
     graphics_container()->set_gc_shape();
 }
 
-template <class End>
-UniqueConnection<End>::UniqueConnection(End *e1, End *e2) :
-    Connection<End>(e1, e2)
+inline void
+UniqueConnection::finish_construction()
 {
-}
-
-template <class End>
-void
-UniqueConnection<End>::finish_construction()
-{
-    static_cast<Connection<End> *>(this)->finish_construction();
-    End* e1 = this->_end_points[0]; // "this->" necessary because compiler
-    End* e2 = this->_end_points[1]; // doesn't automatically look in parents
-    if (e1->connects_to(e2))
+    Connection::finish_construction();
+    Atom* a1 = _atoms[0];
+    Atom* a2 = _atoms[1];
+    if (a1->connects_to(a2))
         throw std::invalid_argument(err_msg_exists());
-    add_to_endpoints();
+    add_to_atoms();
 }
 
-template <class End>
-End *
-Connection<End>::other_end(End *e) const
+inline Atom *
+Connection::other_atom(Atom *a) const
 {
-    if (e == _end_points[0])
-        return _end_points[1];
-    if (e == _end_points[1])
-        return _end_points[0];
-    throw std::invalid_argument(err_msg_not_end());
+    if (a == _atoms[0])
+        return _atoms[1];
+    if (a == _atoms[1])
+        return _atoms[0];
+    throw std::invalid_argument(err_msg_not_in_connection());
 }
 
-} //  namespace basegeom
+} //  namespace atomstruct
 
-#endif  // basegeom_Connection
+#endif  // atomstruct_Connection

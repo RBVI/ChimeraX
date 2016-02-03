@@ -1,6 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
-#ifndef basegeom_Graph
-#define basegeom_Graph
+#ifndef atomstruct_Graph
+#define atomstruct_Graph
 
 #include <set>
 #include <vector>
@@ -9,9 +9,10 @@
 #include "destruct.h"
 #include "Rgba.h"
 
-namespace basegeom {
+namespace atomstruct {
 
-using ::basegeom::ChangeTracker;
+class Atom;
+class Bond;
     
 class GraphicsContainer {
 private:
@@ -33,40 +34,31 @@ public:
     virtual void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
 };
 
-template <class FinalGraph, class Node, class Edge>
 class Graph: public GraphicsContainer {
-protected:
-    typedef std::vector<Node*>  Nodes;
-    typedef std::vector<Edge*>  Edges;
+public:
+    typedef std::vector<Atom*>  Atoms;
+    typedef std::vector<Bond*>  Bonds;
 
-    Nodes  _nodes;
-    Edges  _edges;
+protected:
+    Atoms  _atoms;
+    Bonds  _bonds;
 
     float  _ball_scale = 0.25;
     ChangeTracker*  _change_tracker;
     bool  _display = true;
 
-    void  add_edge(Edge *e) { _edges.emplace_back(e); }
-    void  add_node(Node *v) { _nodes.emplace_back(v); }
-    void  delete_edge(Edge *e);
-    void  delete_node(Node *v);
-    void  delete_nodes(const Nodes& ns) {
-        delete_nodes(std::set<Node*>(ns.begin(), ns.end()));
-    }
-    void  delete_nodes(const std::set<Node*>& ns);
-    const Edges &  edges() const { return _edges; }
-    const Nodes &  nodes() const { return _nodes; }
+    void  add_bond(Bond* b) { _bonds.emplace_back(b); }
+    void  add_atom(Atom* a) { _atoms.emplace_back(a); }
+    void  delete_bond(Bond* b);
+    void  delete_atom(Atom* a);
+    void  delete_atoms(const std::set<Atom*>& atoms);
 
 public:
     Graph(): _change_tracker(DiscardingChangeTracker::discarding_change_tracker()) {}
-    virtual  ~Graph() {
-        // need to assign to variable make it live to end of destructor
-        auto du = DestructionUser(this);
-        for (auto e: _edges)
-            delete e;
-        for (auto n: _nodes)
-            delete n;
-    }
+    virtual  ~Graph();
+
+    const Atoms&  atoms() const { return _atoms; }
+    const Bonds&  bonds() const { return _bonds; }
 
     // graphics related
     float  ball_scale() const { return _ball_scale; }
@@ -77,8 +69,7 @@ public:
             return;
         set_gc_shape();
         _ball_scale = bs;
-        change_tracker()->add_modified(dynamic_cast<FinalGraph*>(this),
-            ChangeTracker::REASON_BALL_SCALE);
+        change_tracker()->add_modified(this, ChangeTracker::REASON_BALL_SCALE);
     }
     virtual void  set_color(const Rgba&);
     void  set_display(bool d) {
@@ -86,12 +77,11 @@ public:
             return;
         set_gc_shape();
         _display = d;
-        change_tracker()->add_modified(dynamic_cast<FinalGraph*>(this),
-            ChangeTracker::REASON_DISPLAY);
+        change_tracker()->add_modified(this, ChangeTracker::REASON_DISPLAY);
     }
     virtual void  start_change_tracking(ChangeTracker* ct) { _change_tracker = ct; }
 };
 
-} //  namespace basegeom
+} //  namespace atomstruct
 
-#endif  // basegeom_Graph
+#endif  // atomstruct_Graph

@@ -1,7 +1,7 @@
 // vi: set expandtab ts=4 sw=4:
 #include "ChangeTracker.h"
 
-namespace basegeom {
+namespace atomstruct {
 
 const std::string ChangeTracker::REASON_ACTIVE_COORD_SET("active_coord_set changed");
 const std::string ChangeTracker::REASON_ALT_LOC("alt_loc changed");
@@ -40,4 +40,4 @@ DiscardingChangeTracker  dct;
 DiscardingChangeTracker*
 DiscardingChangeTracker::discarding_change_tracker() { return &dct; }
 
-}  // namespace basegeom
+}  // namespace atomstruct

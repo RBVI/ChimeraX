@@ -41,9 +41,9 @@ using atomstruct::Residue;
 using atomstruct::Bond;
 using atomstruct::Atom;
 using atomstruct::CoordSet;
-using atomstruct::Element;
+using element::Element;
 using atomstruct::MolResId;
-using basegeom::Coord;
+using atomstruct::Coord;
 
 namespace mmcif {
 

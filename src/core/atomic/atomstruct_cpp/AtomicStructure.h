@@ -3,6 +3,7 @@
 #define atomstruct_AtomicStructure
 
 #include <algorithm>
+#include <element/Element.h>
 #include <map>
 #include <set>
 #include <string>
@@ -11,15 +12,11 @@
 #include <vector>
 
 #include "Chain.h"
+#include "ChangeTracker.h"
+#include "Graph.h"
 #include "PBManager.h"
 #include "Ring.h"
 #include "string_types.h"
-
-#include <basegeom/ChangeTracker.h>
-#include <basegeom/Graph.h>
-#include <basegeom/Rgba.h>
-#include <basegeom/destruct.h>
-#include <element/Element.h>
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -29,6 +26,8 @@ struct _object;
 typedef _object PyObject;
 #endif
     
+using element::Element;
+
 namespace atomstruct {
 
 class Atom;
@@ -36,18 +35,13 @@ class Bond;
 class Chain;
 class CoordSet;
 class Residue;
+class Rgba;
 
-using basegeom::ChangeTracker;
-using basegeom::Rgba;
-using element::Element;
-
-class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<AtomicStructure, Atom, Bond> {
+class ATOMSTRUCT_IMEX AtomicStructure: public Graph {
     friend class Atom; // for IDATM stuff and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
     friend class Residue; // for _polymers_computed
 public:
-    typedef Nodes  Atoms;
-    typedef Edges  Bonds;
     typedef std::vector<Chain*>  Chains;
     typedef std::vector<CoordSet*>  CoordSets;
     typedef std::map<ChainID, std::vector<ResName>>  InputSeqInfo;
@@ -118,18 +112,16 @@ public:
 
     CoordSet*  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
-    const Atoms&    atoms() const { return nodes(); }
     // ball_scale() inherited from Graph
     std::map<Residue *, char>  best_alt_locs() const;
     void  bonded_groups(std::vector<std::vector<Atom*>>* groups,
         bool consider_missing_structure) const;
-    const Bonds&    bonds() const { return edges(); }
     const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     const CoordSets&  coord_sets() const { return _coord_sets; }
     AtomicStructure*  copy() const;
     void  delete_atom(Atom* a);
     void  delete_atoms(std::vector<Atom*> atoms);
-    void  delete_bond(Bond* b) { delete_edge(b); _structure_cats_dirty = true; }
+    void  delete_bond(Bond* b) { delete_bond(b); _structure_cats_dirty = true; }
     void  delete_residue(Residue* r);
     // display() inherited from Graph
     void  extend_input_seq_info(ChainID& chain_id, ResName& res_name) {
@@ -255,7 +247,7 @@ atomstruct::AtomicStructure::_delete_atom(atomstruct::Atom* a)
 {
     if (a->element().number() == 1)
         --_num_hyds;
-    delete_node(a);
+    delete_atom(a);
 }
 
 inline void
@@ -268,7 +260,7 @@ atomstruct::AtomicStructure::remove_chain(Chain* chain)
 inline void
 atomstruct::AtomicStructure::set_color(const Rgba& rgba)
 {
-    basegeom::Graph<AtomicStructure, Atom, Bond>::set_color(rgba);
+    Graph::set_color(rgba);
     for (auto r: residues())
         r->set_ribbon_color(rgba);
 }

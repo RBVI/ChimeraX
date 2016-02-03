@@ -1,6 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
-#ifndef basegeom_ChangeTracker
-#define basegeom_ChangeTracker
+#ifndef atomstruct_ChangeTracker
+#define atomstruct_ChangeTracker
 
 #include <set>
 #include <string>
@@ -20,7 +20,7 @@ class Proxy_PBGroup;
     
 }
 
-namespace basegeom {
+namespace atomstruct {
 
 class Changes {
 public:
@@ -34,7 +34,7 @@ public:
     void  clear() { created.clear(); modified.clear(); reasons.clear(); num_deleted=0; }
 };
 
-class BASEGEOM_IMEX ChangeTracker {
+class ATOMSTRUCT_IMEX ChangeTracker {
 protected:
     static const int  _num_types = 7;
     template<class C>
@@ -168,7 +168,7 @@ public:
 // Before structures are opened in ChimeraX, they don't generate change-tracking
 // events.  This class enables that by being the "change tracker" until the
 // point that actual change tracking is turned on.
-class BASEGEOM_IMEX DiscardingChangeTracker : public ChangeTracker {
+class ATOMSTRUCT_IMEX DiscardingChangeTracker : public ChangeTracker {
 public:
     DiscardingChangeTracker() : ChangeTracker() { _discarding = true; }
     static DiscardingChangeTracker*  discarding_change_tracker();
@@ -230,6 +230,6 @@ template <>
 inline int
 ChangeTracker::_ptr_to_type(const atomstruct::Proxy_PBGroup*) { return 6; }
 
-}  // namespace basegeom
+}  // namespace atomstruct
 
 #endif  // atomstruct_ChangeTracker

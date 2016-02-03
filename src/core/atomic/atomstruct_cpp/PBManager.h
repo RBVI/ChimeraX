@@ -5,7 +5,6 @@
 #include <map>
 #include <string>
 
-#include <basegeom/ChangeTracker.h>
 #include "imex.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
@@ -18,9 +17,8 @@ typedef _object PyObject;
     
 namespace atomstruct {
 
-using basegeom::ChangeTracker;
-
 class AtomicStructure;
+class ChangeTracker;
 class CoordSet;
 class Proxy_PBGroup;
 

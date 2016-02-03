@@ -1,8 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= atomstruct_cpp basegeom_cpp element_cpp mmcif_cpp \
-	pdb_cpp pdbio readcif_cpp
+SUBDIRS	+= atomstruct_cpp element_cpp mmcif_cpp pdb_cpp pdbio readcif_cpp
 
 include $(TOP)/mk/subdir.make
 
@@ -38,16 +37,15 @@ lint:
 
 molc.o: $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/Bond.h \
 	$(includedir)/atomstruct/Chain.h $(includedir)/atomstruct/Pseudobond.h \
-	$(includedir)/atomstruct/Residue.h $(includedir)/basegeom/destruct.h
+	$(includedir)/atomstruct/Residue.h $(includedir)/atomstruct/destruct.h
 
 $(includedir)/atomstruct/Atom.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Bond.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Chain.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Pseudobond.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Residue.h: atomstruct_cpp.install
-$(includedir)/basegeom/destruct.h: basegeom_cpp.install
+$(includedir)/atomstruct/destruct.h: atomstruct_cpp.install
 
-atomstruct_cpp.install: basegeom_cpp.install element_cpp.install pseudobond_cpp.install
+atomstruct_cpp.install: element_cpp.install
 mmcif_cpp.install: readcif_cpp.install atomstruct_cpp.install
-pdbio.install: atomstruct_cpp.install pdb_cpp.install basegeom_cpp.install
-pseudobond_cpp.install: basegeom_cpp.install
+pdbio.install: atomstruct_cpp.install pdb_cpp.install

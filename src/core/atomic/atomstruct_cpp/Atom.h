@@ -4,19 +4,19 @@
 
 #include <algorithm>  // std::find
 #include <cstring>
+#include <element/Element.h>
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
 
-#include <basegeom/Connection.h>
-#include <basegeom/Coord.h>
-#include <basegeom/Graph.h>
-#include <basegeom/Point.h>
-#include <basegeom/Rgba.h>
-#include <element/Element.h>
 #include "backbone.h"
+#include "ChangeTracker.h"
+#include "Coord.h"
+#include "Graph.h"
 #include "imex.h"
+#include "Point.h"
+#include "Rgba.h"
 #include "string_types.h"
 
 // "forward declare" PyObject, which is a typedef of a struct,
@@ -26,16 +26,10 @@
 struct _object;
 typedef _object PyObject;
 #endif
+
+using element::Element;
     
 namespace atomstruct {
-
-using basegeom::ChangeTracker;
-using basegeom::Graph;
-using basegeom::GraphicsContainer;
-using basegeom::Point;
-using basegeom::Rgba;
-using basegeom::UniqueConnection;
-using element::Element;
 
 class AtomicStructure;
 class Bond;
@@ -45,8 +39,8 @@ class Ring;
 
 class ATOMSTRUCT_IMEX Atom {
     friend class AtomicStructure;
-    friend class UniqueConnection<Atom>;
-    friend class Graph<AtomicStructure, Atom, Bond>;
+    friend class UniqueConnection;
+    friend class Graph;
     friend class Residue;
 public:
     // HIDE_ constants are masks for hide bits
@@ -122,7 +116,7 @@ public:
     bool  connects_to(const Atom* other) const {
         return std::find(_neighbors.begin(), _neighbors.end(), other) != _neighbors.end();
     }
-    const basegeom::Coord &coord() const;
+    const Coord &coord() const;
     unsigned int  coord_index() const { return _coord_index; }
     int  coordination(int value_if_unknown) const;
     float  default_radius() const;
@@ -201,7 +195,7 @@ public:
 
 namespace atomstruct {
 
-inline basegeom::ChangeTracker*
+inline ChangeTracker*
 Atom::change_tracker() const { return structure()->change_tracker(); }
 
 inline const atomstruct::AtomType&

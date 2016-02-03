@@ -3,7 +3,7 @@
 #include <sstream>
 #include <cmath>
 
-namespace basegeom {
+namespace atomstruct {
     
 Real
 Point::angle(const Point& pt1, const Point& pt3) const
@@ -51,4 +51,4 @@ Point::str() const
     return crd_string.str();
 }
 
-} //  namespace basegeom
+} //  namespace atomstruct

@@ -3,13 +3,12 @@
 #include "AtomicStructure.h"
 #include "Bond.h"
 #include "CoordSet.h"
+#include "destruct.h"
 #include "PBGroup.h"
 #include "Pseudobond.h"
 #include "Residue.h"
 #include "seq_assoc.h"
 
-#include <basegeom/destruct.h>
-#include <basegeom/Graph.tcc>
 #include <logger/logger.h>
 #include <pysupport/convert.h>
 #include <pythonarray.h>
@@ -39,7 +38,7 @@ AtomicStructure::AtomicStructure(PyObject* logger):
 
 AtomicStructure::~AtomicStructure() {
     // assign to variable so that it lives to end of destructor
-    auto du = basegeom::DestructionUser(this);
+    auto du = DestructionUser(this);
     change_tracker()->add_deleted(this);
     if (_chains != nullptr) {
         for (auto ch: *_chains)
@@ -499,7 +498,7 @@ AtomicStructure::delete_atom(Atom* a)
 void
 AtomicStructure::delete_atoms(std::vector<Atom*> del_atoms)
 {
-    auto du = basegeom::DestructionBatcher(this);
+    auto du = DestructionBatcher(this);
 
     // construct set first to ensure uniqueness before tests...
     auto del_atoms_set = std::set<Atom*>(del_atoms.begin(), del_atoms.end());
@@ -535,14 +534,14 @@ AtomicStructure::delete_atoms(std::vector<Atom*> del_atoms)
             });
         _residues.erase(new_end, _residues.end());
     }
-    delete_nodes(std::set<Atom*>(del_atoms.begin(), del_atoms.end()));
+    Graph::delete_atoms(std::set<Atom*>(del_atoms.begin(), del_atoms.end()));
 }
 
 void
 AtomicStructure::_delete_residue(Residue* r,
     const AtomicStructure::Residues::iterator& ri)
 {
-    auto db = basegeom::DestructionBatcher(r);
+    auto db = DestructionBatcher(r);
     if (r->chain() != nullptr) {
         r->chain()->remove_residue(r);
         set_gc_ribbon();
@@ -765,7 +764,7 @@ Atom *
 AtomicStructure::new_atom(const char* name, const Element& e)
 {
     Atom *a = new Atom(this, name, e);
-    add_node(a);
+    add_atom(a);
     if (e.number() == 1)
         ++_num_hyds;
     return a;
@@ -776,7 +775,7 @@ AtomicStructure::new_bond(Atom *a1, Atom *a2)
 {
     Bond *b = new Bond(this, a1, a2);
     b->finish_construction(); // virtual calls work now
-    add_edge(b);
+    add_bond(b);
     return b;
 }
 

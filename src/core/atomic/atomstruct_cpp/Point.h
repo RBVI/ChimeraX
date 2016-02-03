@@ -1,15 +1,16 @@
 // vi: set expandtab ts=4 sw=4:
-#ifndef basegeom_Point
-#define basegeom_Point
+#ifndef atomstruct_Point
+#define atomstruct_Point
 
 #include <cmath>
 #include <string>
+
 #include "imex.h"
 #include "Real.h"
 
-namespace basegeom {
+namespace atomstruct {
     
-class BASEGEOM_IMEX Point {
+class ATOMSTRUCT_IMEX Point {
     Real  _xyz[3];
 public:
     Point(Real x, Real y, Real z) {
@@ -39,6 +40,6 @@ public:
     std::string  str() const;
 };
 
-} //  namespace basegeom
+} //  namespace atomstruct
 
-#endif  // basegeom_Point
+#endif  // atomstruct_Point
