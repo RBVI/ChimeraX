@@ -65,6 +65,8 @@ ifneq (,$(SYSLIBS))
 endif
 endif
 endif
+	# wx leaves some files only readable by owner
+	chmod -R +r $(APP_PYSITEDIR)/wx*
 
 $(SOURCE) source:
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
@@ -75,7 +77,7 @@ ifneq (,$(PATCHES))
 endif
 ifneq (,$(PATCHINES))
 	for f in $(PATCHINES) ; do \
-		sed 's,SDK_PATH,"$(SYSROOT)",' $$f \
+		sed 's,SDK_PATH,"/",' $$f \
 			| ( cd $(SOURCE) && patch -p1 ) ; \
 	done
 endif
