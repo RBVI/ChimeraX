@@ -9,7 +9,7 @@ OBJS= $(SRCS:.cpp=.o)
 LIBNAME = pdbio
 PYMOD= $(LIBNAME).so
 INCS += -I$(includedir) $(PYTHON_INCLUDE_DIRS)
-LIBS += -L$(libdir) -latomstruct -lelement -ltmpl -llogger -lpdb -lbasegeom -larrays $(PYTHON_LIB)
+LIBS += -L$(libdir) -latomstruct -lelement -ltmpl -llogger -lpdb -larrays $(PYTHON_LIB)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
@@ -23,7 +23,6 @@ clean:
 
 PDBio.o: $(includedir)/pdb/PDB.h $(includedir)/atomstruct/Atom.h \
 	$(includedir)/atomstruct/AtomicStructure.h $(includedir)/atomstruct/Bond.h \
-	$(includedir)/atomstruct/CoordSet.h $(includedir)/atomstruct/Residue.h \
-	$(includedir)/atomstruct/Sequence.h $(includedir)/atomstruct/connect.h \
-	$(includedir)/basegeom/Graph.tcc $(includedir)/basegeom/destruct.h \
-	$(includedir)/logger/logger.h
+	$(includedir)/atomstruct/connect.h $(includedir)/atomstruct/CoordSet.h \
+	$(includedir)/atomstruct/Residue.h $(includedir)/atomstruct/Sequence.h \
+	$(includedir)/atomstruct/destruct.h $(includedir)/logger/logger.h

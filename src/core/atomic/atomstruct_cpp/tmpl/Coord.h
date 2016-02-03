@@ -2,11 +2,11 @@
 #ifndef templates_Coord
 #define    templates_Coord
 
-#include <basegeom/Point.h>
+#include <atomstruct/Point.h>
 
 namespace tmpl {
 
-typedef basegeom::Point  Coord;
+typedef atomstruct::Point  Coord;
 
 }  // namespace tmpl
 
