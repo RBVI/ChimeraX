@@ -53,7 +53,6 @@ class GrayScaleDrawing(Drawing):
     self.ortho_planes_position = (0,0,0)
 
   def delete(self):
-    print ('deleted', self.name)
     b = self.blend_manager
     if b:
       b.remove_drawing(self)
@@ -271,20 +270,37 @@ class BlendedImage(GrayScaleDrawing):
     for d in drawings:
       d.remove_planes()	# Free textures and opengl buffers
 
+    self._rgba8_array = None
+
   def color_plane(self, k, axis):
     p = None
     for d in self.drawings:
       dp = d.color_plane(k, axis)
       d.update_colors = False
-      dp = rgba8_plane(dp, d.color_mode, d.mod_rgba)
+      cmode = d.color_mode
       if p is None:
-        p = dp
+        h,w = dp.shape[:2]
+        p = self.rgba8_array(w,h)
+        if cmode == 'rgba8':
+          p[:] = dp
+        elif cmode == 'la8':
+          copy_la_to_rgba(dp, d.mod_rgba, p)
+        else:
+          raise ValueError('Cannot blend with color mode %s' % cmode)
       else:
-        # TODO: Clamp colors when blending and combine alpha properly
-        p[:,:,:3] += dp[:,:,:3]
-        from numpy import maximum
-        maximum(p[:,:,3], dp[:,:,3], p[:,:,3])
+        if cmode == 'rgba8':
+          blend_rgba(dp, p)
+        elif cmode == 'la8':
+          blend_la_to_rgba(dp, d.mod_rgba, p)
     return p
+
+  def rgba8_array(self, w, h):
+    # Reuse same array for faster color updating.
+    a = self._rgba8_array
+    if a is None or tuple(a.shape) != (h, w, 4):
+      from numpy import empty, uint8
+      self._rgba8_array = a = empty((h,w,4), uint8)
+    return a
 
   def check_update_colors(self):
     for d in self.drawings:
@@ -294,20 +310,24 @@ class BlendedImage(GrayScaleDrawing):
 
 # ---------------------------------------------------------------------------
 #
-def rgba8_plane(plane, color_mode, color):
-  if color_mode == 'rgba8':
-    return plane
-  elif color_mode == 'la8':
-    h,w = plane.shape[:2]
-    from numpy import empty, uint8, float32, array
-    p = empty((h,w,4), uint8)
-    p[:,:,3] = plane[:,:,1]
-    rgb = array(color[:3], float32)
-    ctable = array([rgb*i for i in range(256)], uint8)
-    p[:,:,:3] = ctable[plane[:,:,0],:]
-  else:
-    raise ValueError('Converting %s to rgba8 for blending not supported' % color_mode)
-  return p
+def copy_la_to_rgba(la_plane, color, rgba_plane):
+  h, w = la_plane.shape[:2]
+  from . import _map
+  _map.copy_la_to_rgba(la_plane.reshape((w*h,2)), color, rgba_plane.reshape((w*h,4)))
+
+# ---------------------------------------------------------------------------
+#
+def blend_la_to_rgba(la_plane, color, rgba_plane):
+  h, w = la_plane.shape[:2]
+  from . import _map
+  _map.blend_la_to_rgba(la_plane.reshape((w*h,2)), color, rgba_plane.reshape((w*h,4)))
+
+# ---------------------------------------------------------------------------
+#
+def blend_rgba(rgba1, rgba2):
+  h, w = rgba1.shape[:2]
+  from . import _map
+  _map.blend_rgba(rgba1.reshape((w*h,4)), rgba2.reshape((w*h,4)))
 
 # ---------------------------------------------------------------------------
 #
