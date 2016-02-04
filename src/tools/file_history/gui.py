@@ -14,7 +14,7 @@ class FilePanel(ToolInstance):
 
         self.thumbnail_size = (64,64)	# Pixels
 
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
         class FilesWindow(MainToolWindow):
             close_destroys = False
         self.tool_window = FilesWindow(self, size=self.SIZE)

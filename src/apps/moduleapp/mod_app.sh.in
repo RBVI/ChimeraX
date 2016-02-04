@@ -39,7 +39,7 @@ CHIMERA=`dirname "$bindir"`
 app="$CHIMERA/OS_BIN/APP_NAME"
 if test $# -gt 0
 then
-	exec "$app" -m chimera.MOD_APP "$@"
+	exec "$app" -m chimerax.MOD_APP "$@"
 else
-	exec "$app" -m chimera.MOD_APP
+	exec "$app" -m chimerax.MOD_APP
 fi

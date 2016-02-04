@@ -26,7 +26,7 @@ class ShortcutPanel(ToolInstance):
         panel_height = rows * self.icon_size
         panel_size = (min_panel_width, panel_height)
 
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
         class ShortcutWindow(MainToolWindow):
             close_destroys = False
 

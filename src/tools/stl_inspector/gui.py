@@ -24,7 +24,7 @@ class ToolUI(ToolInstance):
         self.display_name = "STL Inspector"
         self.ti_list = []
         if session.ui.is_gui:
-            from chimerax.core.ui import MainToolWindow
+            from chimerax.core.ui.gui import MainToolWindow
             self.tool_window = MainToolWindow(self, size=self.SIZE)
             self.tool_window.manage(placement="right")
             parent = self.tool_window.ui_area

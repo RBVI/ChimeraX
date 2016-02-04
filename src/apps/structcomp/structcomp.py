@@ -50,14 +50,14 @@ def bonds(atoms):
 def compare(session, pdb_id, pdb_path, mmcif_path):
     # return True if they differ
     print('Comparing %s' % pdb_id)
-    from chimerax.core import io
+    from chimerax.core import models
     try:
-        pdb_models = io.open(session, pdb_path)[0]
+        pdb_models = session.models.open(pdb_path, format='pdb')[0]
     except Exception as e:
         print("error: %s: unable to open pdb file: %s" % (pdb_id, e))
         return True
     try:
-        mmcif_models = io.open(session, mmcif_path)[0]
+        mmcif_models = session.models.open(mmcif_path, format='mmcif')[0]
     except Exception as e:
         print("error: %s: unable to open mmcif file: %s" % (pdb_id, e))
         return
@@ -336,11 +336,11 @@ def compare_id(session, pdb_id):
     if os.path.exists(PDB_DIR):
         pdb_path = os.path.join(PDB_DIR, pdb_id[1:3], 'pdb%s.ent' % pdb_id)
     else:
-        pdb_path = "pdb:%s" % pdb_id
+        pdb_path = pdb_id
     if os.path.exists(MMCIF_DIR):
         mmcif_path = os.path.join(MMCIF_DIR, pdb_id[1:3], '%s.cif' % pdb_id)
     else:
-        mmcif_path = "mmcif:%s" % pdb_id
+        mmcif_path = pdb_id
     return compare(session, pdb_id, pdb_path, mmcif_path)
 
 
@@ -357,7 +357,6 @@ def usage():
 def main():
     import getopt
     import sys
-    session = session  # noqa
     try:
         opts, args = getopt.getopt(
             sys.argv[1:], "ahi:", ["all", "help"])

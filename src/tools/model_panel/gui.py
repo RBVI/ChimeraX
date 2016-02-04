@@ -13,7 +13,7 @@ class ModelPanel(ToolInstance):
         if not restoring:
             ToolInstance.__init__(self, session, bundle_info)
         self.display_name = "Models"
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
 
         class ModelPanelWindow(MainToolWindow):
             close_destroys = False

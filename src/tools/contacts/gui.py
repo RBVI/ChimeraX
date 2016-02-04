@@ -11,7 +11,7 @@ class Plot(ToolInstance):
         if not restoring:
             ToolInstance.__init__(self, session, bundle_info)
 
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
         tw = MainToolWindow(self, size=self.SIZE)
         self.tool_window = tw
         parent = tw.ui_area
