@@ -2,6 +2,7 @@
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
+#include "colors.h"			// use blend_la_to_rgba, ...
 #include "combine.h"			// use linear_combination
 #include "contourpy.h"			// use surface_py, ...
 #include "fittingpy.h"			// use py_correlation_gradient, ...
@@ -20,6 +21,12 @@ namespace Map_Cpp
 //
 static struct PyMethodDef map_cpp_methods[] =
 {
+  /* colors.h */
+  {const_cast<char*>("copy_la_to_rgba"), (PyCFunction)copy_la_to_rgba,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("blend_la_to_rgba"), (PyCFunction)blend_la_to_rgba,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
   /* combine.h */
   {const_cast<char*>("linear_combination"), (PyCFunction)linear_combination,
    METH_VARARGS|METH_KEYWORDS, NULL},
