@@ -26,6 +26,13 @@ PyObject *copy_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds);
 //
 PyObject *blend_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds);
 
+// ----------------------------------------------------------------------------
+// Blend two arrays with rgba uint8 values.
+//
+// blend_rgba(la, color, rgba)
+//
+PyObject *blend_rgba(PyObject *, PyObject *args, PyObject *keywds);
+
 }	// end extern C
 
 }	// end of namespace Map_Cpp

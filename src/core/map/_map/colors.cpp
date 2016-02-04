@@ -38,7 +38,7 @@ copy_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 {
   CArray la, rgba;
   float color[4];
-  const char *kwlist[] = {"la_plane", "color", "rgba_plane", NULL};
+  const char *kwlist[] = {"la", "color", "rgba", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
 				   (char **)kwlist,
 				   parse_uint8_n2_array, &la,
@@ -86,7 +86,7 @@ blend_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 {
   CArray la, rgba;
   float color[4];
-  const char *kwlist[] = {"la_plane", "color", "rgba_plane", NULL};
+  const char *kwlist[] = {"la", "color", "rgba", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
 				   (char **)kwlist,
 				   parse_uint8_n2_array, &la,
@@ -101,6 +101,50 @@ blend_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
       return NULL;
     }
   blend_la_to_rgba(la, color, rgba);
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+// ----------------------------------------------------------------------------
+//
+static void blend_rgba(const CArray &rgba1, const CArray &rgba2)
+{
+  long n = rgba1.size(0);
+  unsigned char *q = (unsigned char *)rgba1.values(), *r = (unsigned char *)rgba2.values();
+  long qs0 = rgba1.stride(0), qs1 = rgba1.stride(1);
+  long rs0 = rgba2.stride(0), rs1 = rgba2.stride(1);
+  int m = 255;
+  for (long i = 0 ; i < n ; ++i, q += qs0, r += rs0)
+    {
+      r[0] = std::min(m, (int)r[0]+(int)q[0]);
+      r[rs1] = std::min(m, (int)r[rs1]+(int)q[qs1]);
+      r[2*rs1] = std::min(m, (int)r[2*rs1]+(int)q[2*qs1]);
+      int a1 = q[3*qs1], a2 = r[3*rs1];
+      r[3*rs1] = (65025 - (255-a1)*(255-a2)) >> 8;	// Blend alpha a = 1 - (1-a1)*(1-a2);
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *
+blend_rgba(PyObject *, PyObject *args, PyObject *keywds)
+{
+  CArray rgba1, rgba2;
+  const char *kwlist[] = {"rgba1", "rgba2", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&"),
+				   (char **)kwlist,
+				   parse_uint8_n4_array, &rgba1,
+				   parse_uint8_n4_array, &rgba2))
+    return NULL;
+
+  if (rgba1.size(0) != rgba2.size(0))
+    {
+      PyErr_Format(PyExc_TypeError, "RGBA arrays have different sizes (%d and %d).",
+		   rgba1.size(0), rgba2.size(0));
+      return NULL;
+    }
+  blend_rgba(rgba1, rgba2);
 
   Py_INCREF(Py_None);
   return Py_None;

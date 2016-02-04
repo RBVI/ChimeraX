@@ -26,6 +26,8 @@ static struct PyMethodDef map_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("blend_la_to_rgba"), (PyCFunction)blend_la_to_rgba,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("blend_rgba"), (PyCFunction)blend_rgba,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* combine.h */
   {const_cast<char*>("linear_combination"), (PyCFunction)linear_combination,
