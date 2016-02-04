@@ -65,6 +65,7 @@ class AtomicStructure(AtomicStructureData, Model):
             self._smart_initial_display = smart_initial_display
 
         # for now, restore attrs to default initial values even for sessions...
+        self._deleted = False
         self._atoms_drawing = None
         self._bonds_drawing = None
         self._cached_atom_bounds = None
@@ -94,10 +95,15 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def delete(self):
         '''Delete this structure.'''
+        self._deleted = True
         AtomicStructureData.delete(self)
         for handler in self._ses_handlers:
             self.session.triggers.delete_handler(handler)
         Model.delete(self)
+
+    def deleted(self):
+        '''Has this atomic structure been deleted.'''
+        return self._deleted
 
     def copy(self, name = None):
         '''
@@ -824,7 +830,7 @@ class AtomicStructure(AtomicStructureData, Model):
         ppb = self._pseudobond_first_intercept(xyz1, xyz2)
         pr = self._ribbon_first_intercept(xyz1, xyz2)
         # Handle molecular surfaces
-        ps = self.first_intercept_children(self.child_models(), xyz1, xyz2, exclude)
+        ps = self.first_intercept_children(self.child_models(), mxyz1, mxyz2, exclude)
         picks = [pa, pb, ppb, pr, ps]
 
         # TODO: for now, tethers pick nothing, but it should either pick
