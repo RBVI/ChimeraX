@@ -1,0 +1,98 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: material</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: material</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>material</b>
+[&nbsp;<a href="#preset"><i>preset</i></a>&nbsp;]
+&nbsp;<a href="#options"><i>options</i></a>
+</h3>
+<p>
+The <b>material</b> command sets material properties for light reflection,
+through individual <a href="#options">options</a> and through
+<a href="#preset">presets</a> that may change more than one parameter
+at a time. Currently, all objects use the same material properties.
+Parameters that are not specified retain their current values. 
+Without arguments, <b>material</b> reports the current settings in the
+<b>Log</b>.
+See also: 
+<a href="lighting.html"><b>lighting</b></a>,
+<a href="set.html"><b>set</b></a>
+</p><p>
+The <a name="preset"><i>preset</i></a> can be:
+</p>
+<ul>
+<li><b>default</b>
+- all properties default values 
+<li><b>shiny</b>
+- specular reflectivity 1
+<li><b>dull</b>
+- specular reflectivity 0
+</ul>
+
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="options"></a>
+<h3>Options</h3>
+<p>
+Option keywords can be truncated to unique strings.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
+default settings are indicated with <b>bold</b>.
+Synonyms for true: True, 1.  Synonyms for false: False, 0.
+</p>
+
+<blockquote>
+<b>reflectivity</b> &nbsp;<i>f<sub>d</sub></i>
+<br>
+Set the fraction of directional light that is reflected diffusely,
+equally in all directions (default <b>0.8</b>).
+There are two directional lights, key and fill
+(<a href="lighting.html">details...</a>).
+</blockquote>
+<blockquote>
+<b>specularReflectivity</b> &nbsp;<i>f<sub>s</sub></i>
+<br>
+Set the fraction of key light that is reflected specularly, like a mirror
+(default <b>0.8</b>). 
+The amount of spread is controlled by the specular exponent.
+</blockquote>
+<blockquote>
+<b>exponent</b> &nbsp;<i>s</i>
+<br>
+Set the specular exponent, which controls the spread
+of specular highlights (range 0.0-128.0, default <b>30.0</b>).
+Lower values yield larger, more diffuse highlights, 
+while higher values yield more pointlike highlights. 
+The effective highlight intensity varies as the cosine of the angle 
+between the view direction and the direction of the reflected light, 
+raised to the power of this exponent. 
+</blockquote>
+<blockquote>
+<b>ambientReflectivity</b> &nbsp;<i>f<sub>a</sub></i>
+<br>
+Set the fraction of ambient light that is reflected (default <b>0.8</b>).
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+February 2016</address>
+</body></html>
