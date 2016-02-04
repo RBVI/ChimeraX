@@ -29,13 +29,14 @@ class="clRight" alt="ChimeraX logo"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>color</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
-&nbsp;<b>sequential</b> (&nbsp;residues&nbsp;|&nbsp;chains&nbsp;)
+&nbsp;<b>sequential</b>
+&nbsp;<a href="#level"><i>level</i></a>&nbsp;
 [&nbsp;cmap&nbsp;&nbsp;<a href="#cmap-options"><i>colormap</i></a>&nbsp;]
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>rainbow</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
-(&nbsp;residues&nbsp;|&nbsp;chains&nbsp;)
+[&nbsp;<a href="#level"><i>level</i></a>&nbsp;]
 [&nbsp;cmap&nbsp;&nbsp;<a href="#cmap-options"><i>colormap</i></a>&nbsp;]
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 </h3>
@@ -80,18 +81,22 @@ atomic representations and per-atom patches of molecular surfaces
 <li><a name="bymodel"><b>bymodel</b></a>
 - the <a href="colortables.html#autocolors">initial colors</a> of atomic models
 </ul>
-The <b>sequential</b> method 
+<a name="level"></a>
+The <b>sequential</b> coloring method 
 (synonym <b>rainbow</b>, see <a href="#examples">examples</a>)
-applies a <a href="#cmap-options"><i>colormap</i></a>
-to items at the specified level:
+applies a <a href="#cmap-options">series of colors</a>
+at the specified <i>level</i>:
 <ul>
 <li><b>residues</b> - a different color for each residue in a biopolymer chain
-(always applies to entire chains)
+(always applies to entire chains); non-biopolymer residues 
+such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <li><b>chains</b> - a different color for each biopolymer chain in an 
-atomic model (always applies to entire models)
+atomic model (always applies to entire models); non-biopolymer residues
+are not affected
+<li><b>molmodels</b> - a different color for each atomic model
 </ul>
-Only the biopolymer chains are colored, not ligand and solvent residues,
-even if they have the same chain ID as a biopolymer chain.
+For <b>rainbow</b> only, 
+the <i>level</i> can be omitted and defaults to <b>residues</b>.
 </p>
 
 <p class="nav">
@@ -185,6 +190,8 @@ can be used to set transparency apart from color.
 </p>
 <a name="cmap-options"></a>
 <h3>Colormap Options</h3>
+<p>
+A <b><i>colormap</i></b> is an ordered list of colors or color-value pairs.
 <blockquote>
 <a name="cmap"><b>cmap</b></a>&nbsp;&nbsp;<i>colormap</i>
 <br>
@@ -215,7 +222,8 @@ a series of colon-separated
 <i>value</i>,<a href="colornames.html"><i>color-spec</i></a> pairs,
 collectively enclosed in quotation marks if it contains any spaces
 (example: <b>cmap "0,cornflower&nbsp;blue:1,gold:0.7,red"</b>).
-For sequential coloring, an entire range (such as the residues in each chain 
+For <b>sequential</b> coloring,
+an entire range (such as the residues in each chain 
 or the chains in each model) is mapped to fractional values 0.0-1.0.
 <!-- 
 For numerical data,
@@ -282,6 +290,8 @@ Example <a href="#top"><b>color</b></a> commands:
 <b>color seq res</b>
 <br>&ndash; or &ndash;<br>
 <b>rainbow res</b>
+<br>&ndash; or &ndash;<br>
+<b>rainbow</b>
 <!--
 <br>&ndash; or &ndash;
 <br><b>rainbow</b>
@@ -374,5 +384,5 @@ A <a href="colornames.html">built-in color name</a> cannot be deleted.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2016</address>
+February 2016</address>
 </body></html>
