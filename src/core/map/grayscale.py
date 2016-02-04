@@ -79,8 +79,12 @@ class GrayScaleDrawing(Drawing):
   def modulation_rgba(self):
     return self.mod_rgba
   def set_modulation_rgba(self, rgba):
-    self.mod_rgba = rgba
-      
+    if rgba != self.mod_rgba:
+      self.mod_rgba = rgba
+      rgba8 = tuple(int(255*r) for r in rgba)
+      for p in self.child_drawings():
+        p.color = rgba8
+
   # 3 by 4 matrix mapping grid indices to xyz coordinate space.
   def array_coordinates(self):
     return self.ijk_to_xyz
