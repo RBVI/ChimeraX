@@ -233,6 +233,15 @@ class MolecularSurface(Model):
         self.show_atoms = self.show_atoms.subtract(atoms)
         self.triangle_mask = self._calc_triangle_mask()
 
+    def _get_single_color(self):
+        vc = self.vertex_colors
+        from ..colors import most_common_color
+        return self.color if vc is None else most_common_color(vc)
+    def _set_single_color(self, color):
+        self.color = color
+        self.vertex_colors = None
+    single_color = property(_get_single_color, _set_single_color)
+
     def _preserve_colors(self):
         vc = self.vertex_colors
         if vc is None:

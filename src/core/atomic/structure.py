@@ -115,7 +115,8 @@ class AtomicStructure(AtomicStructureData, Model):
             name = self.name
         m = AtomicStructure(self.session, name = name,
                             c_pointer = AtomicStructureData._copy(self),
-                            level_of_detail = self._level_of_detail)
+                            level_of_detail = self._level_of_detail,
+                            smart_initial_display = False)
         m.positions = self.positions
         return m
 
@@ -218,6 +219,22 @@ class AtomicStructure(AtomicStructureData, Model):
             avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
             model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
         return model_color
+
+    def _get_single_color(self):
+        residues = self.residues
+        ribbon_displays = residues.ribbon_displays
+        from ..colors import most_common_color
+        if ribbon_displays.any():
+            return most_common_color(residues.filter(ribbon_displays).ribbon_colors)
+        atoms = self.atoms
+        shown = atoms.filter(atoms.displays)
+        if shown:
+            return most_common_color(shown.colors)
+        return most_common_color(atoms.colors)
+    def _set_single_color(self, color):
+        self.atoms.colors = color
+        self.residues.ribbon_colors = color
+    single_color = property(_get_single_color, _set_single_color)
 
     def _make_drawing(self):
         # Create graphics

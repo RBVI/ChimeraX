@@ -298,6 +298,26 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def _get_single_color(self):
+    rep = self.representation
+    from ..colors import rgba_to_rgba8
+    from numpy import argmin
+    if rep in ('surface', 'mesh'):
+      lev = self.surface_levels
+      if lev:
+        return rgba_to_rgba8(self.surface_colors[argmin(lev)])
+    elif rep == 'solid':
+      lev = self.solid_levels
+      if lev:
+        return rgba_to_rgba8(self.solid_colors[argmin(lev)])
+    return None
+  def _set_single_color(self, color):
+    from ..colors import rgba8_to_rgba
+    self.set_color(rgba8_to_rgba(color))
+  single_color = property(_get_single_color, _set_single_color)
+
+  # ---------------------------------------------------------------------------
+  #
   def new_region(self, ijk_min = None, ijk_max = None, ijk_step = None,
                  show = True, adjust_step = True, save_in_region_queue = True):
     '''

@@ -54,6 +54,17 @@ class Model(State, Drawing):
     def id_string(self):
         return '.'.join(str(i) for i in self.id)
 
+    def _get_single_color(self):
+        return None
+    def _set_single_color(self, color):
+        return
+    single_color = property(_get_single_color, _set_single_color)
+    '''
+    Getting the single color may give the dominant color.
+    Setting the single color will set the model to that color.
+    Color values are rgba uint8 arrays.
+    '''
+
     def add(self, models):
         for m in models:
             self.add_drawing(m)

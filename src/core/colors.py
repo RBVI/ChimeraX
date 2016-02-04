@@ -808,6 +808,21 @@ BuiltinColors = SortedDict({
 BuiltinColors['transparent'] = (0, 0, 0, 0)
 
 
+def most_common_color(colors):
+    import numpy
+    as32 = colors.view(numpy.int32).reshape((len(colors),))
+    unique, indices, counts = numpy.unique(as32, return_index=True, return_counts=True)
+    max_index = numpy.argmax(counts)
+    if counts[max_index] < len(colors) / 10:
+        return None
+    return colors[indices[max_index]]
+
+def rgba_to_rgba8(rgba):
+    return tuple(int(255*r) for r in rgba)
+
+def rgba8_to_rgba(rgba):
+    return tuple(r/255.0 for r in rgba)
+
 def _init():
     for name in BuiltinColors:
         rgb = BuiltinColors[name]
