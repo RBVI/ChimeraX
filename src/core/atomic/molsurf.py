@@ -54,7 +54,6 @@ class MolecularSurface(Model):
       triangle edges lie exactly between atoms. This creates less jagged
       edges when showing or coloring patches of surfaces for a subset of atoms.
     '''
-    #SESSION_SKIP = True        # TODO: Need session support for saving atom collections.
 
     def __init__(self, session, enclose_atoms, show_atoms, probe_radius, grid_spacing,
                  resolution, level, name, color, visible_patches, sharp_boundaries):
@@ -67,7 +66,6 @@ class MolecularSurface(Model):
         self.grid_spacing = grid_spacing
         self.resolution = resolution    # Only used for Gaussian surface
         self.level = level		# Contour level for Gaussian surface, atomic number units
-        self.name = name
         self.color = color
         self.visible_patches = visible_patches
         self.sharp_boundaries = sharp_boundaries
@@ -284,6 +282,37 @@ class MolecularSurface(Model):
         tmask = self._atom_triangle_mask(asel)
         self.selected = (tmask.sum() > 0)
         self.selected_triangles_mask = tmask
+
+    # State save/restore in ChimeraX
+    _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_max_radius', '_atom_colors',
+                   'vertices', 'normals', 'triangles', 'triangle_mask', 'vertex_colors', 'color')
+
+    def take_snapshot(self, session, flags):
+        init_attrs = ('atoms', 'show_atoms', 'probe_radius', 'grid_spacing', 'resolution', 'level',
+                      'name', 'color', 'visible_patches', 'sharp_boundaries')
+        data = {attr:getattr(self, attr) for attr in init_attrs}
+        data['model state'] = Model.take_snapshot(self, session, flags)
+        data.update({attr:getattr(self,attr) for attr in self._save_attrs})
+        from ..state import CORE_STATE_VERSION
+        return CORE_STATE_VERSION, data
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        d = data
+        MolecularSurface.__init__(self, session, d['atoms'], d['show_atoms'],
+                                  d['probe_radius'], d['grid_spacing'], d['resolution'],
+                                  d['level'], d['name'], d['color'], d['visible_patches'],
+                                  d['sharp_boundaries'])
+        # TODO: Model base class restore has to come after MolecularSurface constructor
+        # because both are colling Model constructor. This shouldn't happen but the new
+        # session saving API needs changing to fix this.  The Model restore_snapshot_init()
+        # has to come after because it restores the hierarchy -- otherwise the hierarchy
+        # does not get restored.
+        Model.restore_snapshot_init(self, session, tool_info, *d['model state'])
+        for attr in self._save_attrs:
+            setattr(self, attr, d[attr])
+
+    def reset_state(self, session):
+        pass
 
 def remove_solvent_ligands_ions(atoms, keep = None):
     '''Remove solvent, ligands and ions unless that removes all atoms
