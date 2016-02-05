@@ -19,6 +19,9 @@ def mousemode(session, left_mode=None, middle_mode=None, right_mode=None,
     pause_mode : mode
        Bind mouse hover to mouse mode.
     '''
+    if not session.ui.is_gui:
+        session.logger.info("mouse is not supported in nogui mode")
+        return
     mm = session.ui.main_window.graphics_window.mouse_modes
     bmode = (('left', left_mode), ('middle', middle_mode), ('right', right_mode),
              ('wheel', wheel_mode), ('pause', pause_mode))
@@ -59,6 +62,8 @@ class MouseModeArg(Annotation):
 
     @property
     def name(self):
+        if not self._session.ui.is_gui:
+            return 'a mouse mode'
         modes = self._session.ui.main_window.graphics_window.mouse_modes.modes
         return 'one of ' + ', '.join("'%s'" % m.name for m in modes)
 

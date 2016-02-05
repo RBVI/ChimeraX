@@ -234,18 +234,18 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_struct_conn();
         }, { "atom_site" });
-    register_category("struct_conf",
-        [this] () {
-            parse_struct_conf();
-        }, { "struct_conn" });
-    register_category("struct_sheet_range",
-        [this] () {
-            parse_struct_sheet_range();
-        }, { "struct_conn" });
     register_category("entity_poly_seq",
         [this] () {
             parse_entity_poly_seq();
         });
+    register_category("struct_conf",
+        [this] () {
+            parse_struct_conf();
+        }, { "struct_conn", "entity_poly_seq" });
+    register_category("struct_sheet_range",
+        [this] () {
+            parse_struct_sheet_range();
+        }, { "struct_conn" });
     for (auto& c: generic_categories) {
         if (std::find(std::begin(builtin_categories), std::end(builtin_categories), c) != std::end(builtin_categories)) {
             logger::warning(_logger, "Can not overriden builtin parsing for "

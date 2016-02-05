@@ -24,7 +24,7 @@ class MouseModePanel(ToolInstance):
         panel_height = self.icon_size
         panel_size = (min_panel_width, panel_height)
 
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
         class MouseModesWindow(MainToolWindow):
             close_destroys = False
 

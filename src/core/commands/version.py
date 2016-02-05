@@ -1,20 +1,23 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def version(session, format='terse'):
+def version(session, format=None):
     '''Show version information.
 
     Parameters
     ----------
-    format : one of 'terse', ''bundles', or 'package'
+    format : one of 'verbose', ''bundles', or 'package'
     '''
-    ad = session.app_dirs
-    session.logger.info("%s %s version: %s" % (ad.appauthor, ad.appname, ad.version))
     from .. import buildinfo
+    ad = session.app_dirs
+    if format is None:
+        session.logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, ad.version, buildinfo.date.split()[0]))
+        return
+    session.logger.info("%s %s version: %s" % (ad.appauthor, ad.appname, ad.version))
     session.logger.info("date: %s" % buildinfo.date)
     session.logger.info("branch: %s" % buildinfo.branch)
     session.logger.info("commit: %s" % buildinfo.commit)
-    if format == 'terse':
+    if format == 'verbose':
         return
     import os
     import pip
@@ -54,7 +57,7 @@ def version(session, format='terse'):
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(
-        optional=[('format', cli.EnumOf(['terse', 'bundles', 'package']))],
+        optional=[('format', cli.EnumOf(['verbose', 'bundles', 'package']))],
         non_keyword=['format'],
         synopsis='show version information')
     cli.register('version', desc, version)

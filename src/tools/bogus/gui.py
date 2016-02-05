@@ -41,7 +41,7 @@ ACTION_BUTTONS
             ToolInstance.__init__(self, session, bundle_info)
 
         self.display_name = "Open Models"
-        from chimerax.core.gui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
