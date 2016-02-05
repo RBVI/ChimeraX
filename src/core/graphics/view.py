@@ -728,20 +728,28 @@ class View:
             return
 
         c = self.camera if camera is None else camera
-        near, far = self._near_far_distances(c, view_num)
+        near, far = self.near_far_distances(c, view_num)
         # TODO: Different camera views need to use same near/far if they are part of
         # a cube map, otherwise depth cue dimming is not continuous across cube faces.
         pm = c.projection_matrix((near, far), view_num, (ww, wh))
         r.set_projection_matrix(pm)
-        r.set_near_far_clip(near, far)
+        r.set_near_far_clip(near, far)	# Used by depth cue
 
         return near / far
 
-    def _near_far_distances(self, camera, view_num):
-        '''Near and far clip plane distances from camera.'''
+    def near_far_distances(self, camera, view_num, include_clipping = True):
+        '''Near and far scene bounds as distances from camera.'''
         cp = camera.get_position(view_num).origin()
         vd = camera.view_direction(view_num)
         near, far = self._near_far_bounds(cp, vd)
+        if include_clipping:
+            p = self.clip_planes
+            np, fp = p.find_plane('near'), p.find_plane('far')
+            from ..geometry import inner_product
+            if np:
+                near = max(near, inner_product(vd, (np.plane_point - cp)))
+            if fp:
+                far = min(far, inner_product(vd, (fp.plane_point - cp)))
         cnear, cfar = self._clamp_near_far(near, far)
         return cnear, cfar
 
@@ -772,7 +780,7 @@ class View:
         if origin is None:
             return (None, None)
 
-        near, far = self._near_far_distances(c, view_num)
+        near, far = self.near_far_distances(c, view_num, include_clipping = False)
         cplanes = [(origin + near*direction, direction), 
                    (origin + far*direction, -direction)]
         cplanes.extend((p.plane_point, p.normal) for p in self.clip_planes.planes())
@@ -908,7 +916,7 @@ class ClipPlane:
     def __init__(self, name, normal, plane_point, camera_normal = None):
         self.name = name
         self.normal = normal		# Vector perpendicular to plane, points toward shown half-space
-        self.plane_point = plane_point	# Point on clip plane
+        self.plane_point = plane_point	# Point on clip plane in scene coordinates
         self.camera_normal = camera_normal # Used for near/far clip planes, normal in camera coords.
         self._last_distance = None	# For handling rotation with camera_normal.
         self._changed = False
