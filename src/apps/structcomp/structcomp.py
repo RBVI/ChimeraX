@@ -50,14 +50,24 @@ def bonds(atoms):
 def compare(session, pdb_id, pdb_path, mmcif_path):
     # return True if they differ
     print('Comparing %s' % pdb_id)
-    from chimerax.core import models
+    from chimerax.core import io, fetch
     try:
-        pdb_models = session.models.open(pdb_path, format='pdb')[0]
+        if os.path.isabs(pdb_path):
+            pdb_models = io.open(
+                session, pdb_path, format='pdb')[0]
+        else:
+            pdb_models = fetch.fetch_from_database(
+                session, 'pdb', pdb_path, format='pdb')[0]
     except Exception as e:
         print("error: %s: unable to open pdb file: %s" % (pdb_id, e))
         return True
     try:
-        mmcif_models = session.models.open(mmcif_path, format='mmcif')[0]
+        if os.path.isabs(mmcif_path):
+            mmcif_models = io.open(
+                session, pdb_path, format='mmcif')[0]
+        else:
+            mmcif_models = fetch.fetch_from_database(
+                session, 'pdb', mmcif_path, format='mmcif')[0]
     except Exception as e:
         print("error: %s: unable to open mmcif file: %s" % (pdb_id, e))
         return
