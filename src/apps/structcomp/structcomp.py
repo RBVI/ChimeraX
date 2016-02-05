@@ -53,7 +53,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
     from chimerax.core import io, fetch
     try:
         if os.path.isabs(pdb_path):
-            pdb_models = io.open(
+            pdb_models = io.open_data(
                 session, pdb_path, format='pdb')[0]
         else:
             pdb_models = fetch.fetch_from_database(
@@ -63,7 +63,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
         return True
     try:
         if os.path.isabs(mmcif_path):
-            mmcif_models = io.open(
+            mmcif_models = io.open_data(
                 session, pdb_path, format='mmcif')[0]
         else:
             mmcif_models = fetch.fetch_from_database(
@@ -195,7 +195,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
             pbg = 'missing structure'
             if pbg in extra:
-                pdb_bonds = bonds(pdb_pbg_map[pbg].atoms)
+                pdb_bonds = bonds(pdb_pbg_map[pbg].pseudobonds.atoms)
                 pdb_bonds = list(pdb_bonds)
                 pdb_bonds.sort()
                 print('error: %s:' % pdb_id, len(extra),
@@ -209,14 +209,14 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
             pbg = 'missing structure'
             if pbg in extra:
-                mmcif_bonds = bonds(mmcif_pbg_map[pbg].atoms)
+                mmcif_bonds = bonds(mmcif_pbg_map[pbg].pseudobonds.atoms)
                 mmcif_bonds = list(mmcif_bonds)
                 mmcif_bonds.sort()
                 print('error: %s:' % pdb_id, len(extra),
                       'extra mmcif', pbg, 'bond(s):', mmcif_bonds)
             for pbg in common_pbgs:
-                pdb_bonds = bonds(pdb_pbg_map[pbg].atoms)
-                mmcif_bonds = bonds(mmcif_pbg_map[pbg].atoms)
+                pdb_bonds = bonds(pdb_pbg_map[pbg].pseudobonds.atoms)
+                mmcif_bonds = bonds(mmcif_pbg_map[pbg].pseudobonds.atoms)
                 common = pdb_bonds & mmcif_bonds
                 extra = pdb_bonds - common
                 if extra:
