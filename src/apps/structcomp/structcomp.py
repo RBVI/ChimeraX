@@ -203,7 +203,8 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 session.logger.error('error: %s: %d extra pdb %s bond(s): %s' % (
                     pdb_id, len(extra), pbg, pdb_bonds))
             extra = mmcif_pbgs - common_pbgs
-            if extra:
+            if extra and not (len(extra) == 1 and 'hydrogen bonds' in extra):
+                # mmcif file having hydrogen bonds and pdb not is normal
                 extra = list(extra)
                 extra.sort()
                 session.logger.error('error: %s: %d extra mmcif pseudobond group(s): %s' % (
