@@ -82,11 +82,19 @@ class Model(State, Drawing):
         return dlist
 
     def take_snapshot(self, session, flags):
-        return CORE_STATE_VERSION, [self.name, self.id, self.positions.array()]
+        p = getattr(self, 'parent', None)
+        if p is session.models.drawing:
+            p = None	# Don't include root as a parent since root is not saved.
+        data = {'name':self.name,
+                'id':self.id,
+                'parent':p,
+                'positions':self.positions.array(),
+        }
+        return CORE_STATE_VERSION, data
 
     @classmethod
     def restore_snapshot_new(cls, session, bundle_info, version, data):
-        if cls is Model and data[1] is ():
+        if cls is Model and data['id'] is ():
             try:
                 return session.models.drawing
             except AttributeError:
@@ -96,11 +104,13 @@ class Model(State, Drawing):
     def restore_snapshot_init(self, session, bundle_info, version, data):
         if self is session.models.drawing:
             return
-        name, id, positions = data
-        Model.__init__(self, name, session)
-        self.id = id
+        Model.__init__(self, data['name'], session)
+        self.id = data['id']
+        p = data['parent']
+        if p:
+            p.add([self])
         from .geometry import Places
-        self.positions = Places(place_array = positions)
+        self.positions = Places(place_array = data['positions'])
 
     def reset_state(self, session):
         pass
@@ -137,7 +147,6 @@ class Models(State):
             if model.SESSION_SKIP:
                 continue
             data[id] = model
-        data[None] = self.drawing
         return CORE_STATE_VERSION, data
 
     @classmethod
@@ -152,15 +161,10 @@ class Models(State):
         if not existing:
             self._session = weakref.ref(session)
             self._models = {}
-        to_add = []
         for id, model in data.items():
-            if model is None:
-                continue    # eg., in case Volume model can't be restored
-            if id is None:
-                self.drawing = model
-                continue
-            to_add.append(model)
-        self.add(to_add, _from_session=True)
+            if model:        # model can be None if it could not be restored, eg Volume w/o map file
+                if not hasattr(model, 'parent'):
+                    self.add([model], _from_session=True)
 
     def reset_state(self, session):
         self.remove([m for m in self.list() if not m.SESSION_ENDURING])
@@ -186,7 +190,8 @@ class Models(State):
 
         d = self.drawing if parent is None else parent
         for m in models:
-            d.add_drawing(m)
+            if not hasattr(m, 'parent') or m.parent is not d:
+                d.add_drawing(m)
 
         # Assign id numbers
         m_all = list(models)
@@ -194,7 +199,7 @@ class Models(State):
             if model.id is None:
                 model.id = self._next_child_id(d)
             self._models[model.id] = model
-            children = [c for c in model.child_drawings() if isinstance(c, Model)]
+            children = model.child_models()
             if children:
                 m_all.extend(self.add(children, model, _notify=False))
 
