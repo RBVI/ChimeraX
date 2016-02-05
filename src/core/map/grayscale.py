@@ -14,7 +14,7 @@ class GrayScaleDrawing(Drawing):
     self.get_color_plane = None
     self.texture_planes = {}    # maps plane index to texture id
     self.update_colors = False
-    self.blend_manager = blend_manager	# ImageBlendManager to blend colors with other drawings,
+    self._blend_manager = blend_manager	# ImageBlendManager to blend colors with other drawings,
     if blend_manager:			# is None for BlendedImage.
       blend_manager.add_drawing(self)
 
@@ -53,11 +53,16 @@ class GrayScaleDrawing(Drawing):
     self.ortho_planes_position = (0,0,0)
 
   def delete(self):
-    b = self.blend_manager
+    b = self._blend_manager
     if b:
       b.remove_drawing(self)
     self.remove_planes()
     Drawing.delete(self)
+
+  @property
+  def blend_image(self):
+    b = self._blend_manager
+    return b.blend_image(self) if b else None
 
   def shown_orthoplanes(self):
     return self._show_ortho_planes
@@ -92,6 +97,9 @@ class GrayScaleDrawing(Drawing):
       self.ijk_to_xyz = tf
       # TODO: Just update vertex buffer.
       self.remove_planes()
+      bi = self.blend_image
+      if bi:
+        bi.set_array_coordinates(tf)
 
   def set_volume_colors(self, color_values):	# uint8 or float
     self.color_grid = color_values
@@ -108,17 +116,19 @@ class GrayScaleDrawing(Drawing):
     self.update_colors = True
 
   def set_grid_size(self, grid_size):
-    if grid_size == self.grid_size:
-      return
-
-    self.remove_planes()
-    self.grid_size = grid_size
+    if grid_size != self.grid_size:
+      self.remove_planes()
+      self.grid_size = grid_size
+      bi = self.blend_image
+      if bi:
+        bi.set_grid_size(grid_size)
 
   def draw(self, renderer, place, draw_pass, selected_only = False):
-
-    b = self.blend_manager
-    if b and b.draw_blended(self, renderer, place, draw_pass, selected_only):
-      return	# Was drawn blended with another model
+    bi = self.blend_image
+    if bi:
+      if self is bi.master_drawing:
+        bi.draw(renderer, place, draw_pass, selected_only)
+      return
 
     from ..graphics import Drawing
     dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not 'a' in self.color_mode)
@@ -272,6 +282,14 @@ class BlendedImage(GrayScaleDrawing):
 
     self._rgba8_array = None
 
+  def draw(self, renderer, place, draw_pass, selected_only = False):
+    self.check_update_colors()
+    GrayScaleDrawing.draw(self, renderer, place, draw_pass, selected_only)
+
+  @property
+  def master_drawing(self):
+      return self.drawings[0]
+
   def color_plane(self, k, axis):
     p = None
     for d in self.drawings:
@@ -335,8 +353,10 @@ class ImageBlendManager:
   def __init__(self):
     self.blend_images = set()
     self.drawing_blend_image = {}	# Map drawing to BlendedImage
+
   def add_drawing(self, d):
     self.drawing_blend_image[d] = None
+
   def remove_drawing(self, d):
     dbi = self.drawing_blend_image
     bi = dbi.get(d)
@@ -346,6 +366,9 @@ class ImageBlendManager:
       self.blend_images.discard(bi)
       bi.delete()
     del dbi[d]
+
+  def blend_image(self, drawing):
+    return self.drawing_blend_image.get(drawing, None)
 
   def update_groups(self):
     # TODO: Don't update groups unless drawing added, removed, or changed.
@@ -391,15 +414,6 @@ class ImageBlendManager:
           bis.add(bi)
           for d in g:
             dbi[d] = bi
-
-  def draw_blended(self, drawing, renderer, place, draw_pass, selected_only = False):
-    bi = self.drawing_blend_image.get(drawing, None)
-    if bi:
-      if bi.drawings[0] is drawing:
-        bi.check_update_colors()
-        bi.draw(renderer, place, draw_pass, selected_only)
-      return True
-    return False
 
 # ---------------------------------------------------------------------------
 #
