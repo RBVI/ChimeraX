@@ -89,11 +89,15 @@ with spacing 0.5 &Aring; for an SES and 0.1<i>r</i>
 <p>
 The <b>clear</b> keyword indicates removing all graphical clones
 of the specified model(s). 
-Additional models from using the <b>copies</b> option are not removed.
+Additional models such as from using the <b>copies</b> option are not removed.
 </p><p>
-Even when <b>copies</b> is not used, it is sometimes necessary to
-add one or more copies of the full atomic model, namely when the assembly
-specifies different sets of matrices for different chains.
+Even when <b>copies</b> is not used,
+one or more copies of the full atomic model may be added, namely
+when the assembly specifies different sets of matrices for different chains.
+In that case, restoring the original state may require not only using 
+<b>clear</b> but also <a href="close.html">closing</a> the added model(s) and 
+<a href="show.html">showing</a> all chains of the original copy
+(some chains may have been hidden when the assembly was shown).
 </p>
 
 <hr>
