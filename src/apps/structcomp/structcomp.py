@@ -53,8 +53,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
     from chimerax.core import io, fetch
     try:
         if os.path.isabs(pdb_path):
-            pdb_models = io.open_data(
-                session, pdb_path, format='pdb')[0]
+            pdb_models = io.open_data(session, pdb_path)[0]
         else:
             pdb_models = fetch.fetch_from_database(
                 session, 'pdb', pdb_path, format='pdb')[0]
@@ -63,8 +62,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
         return True
     try:
         if os.path.isabs(mmcif_path):
-            mmcif_models = io.open_data(
-                session, pdb_path, format='mmcif')[0]
+            mmcif_models = io.open_data(session, mmcif_path)[0]
         else:
             mmcif_models = fetch.fetch_from_database(
                 session, 'pdb', mmcif_path, format='mmcif')[0]
