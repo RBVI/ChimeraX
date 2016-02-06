@@ -35,9 +35,10 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
 
     if frames is not None:
         def turn_step(session, frame):
-            a = angle if rock is None or ((frame+rock//4) % rock) <= (rock//2) else -angle
-            turn(session, axis=axis, angle=a, frames=None, rock=None, center=center,
-                 coordinate_system=coordinate_system, models=models)
+            rp = _rock_phase(rock, frame)
+            if rp != 0:
+                turn(session, axis=axis, angle=rp*angle, frames=None, rock=None, center=center,
+                     coordinate_system=coordinate_system, models=models)
         from . import motion
         motion.CallForNFrames(turn_step, frames, session)
         return
@@ -58,6 +59,17 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
     else:
         for m in models:
             m.positions = r * m.positions
+
+def _rock_phase(rock, frame):
+    if rock is None:
+        return 1
+    p = (frame + (rock+2)//4) % rock
+    h = rock//2
+    if p < h:
+        return 1
+    elif p < 2*h:
+        return -1
+    return 0
 
 def register_command(session):
     from .cli import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
