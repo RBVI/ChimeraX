@@ -227,8 +227,8 @@ class SideViewCanvas(glcanvas.GLCanvas):
             self.applique.vertices[11] = (loc.far, loc.far_bottom, 0)
             self.applique.triangles = array([
                 [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
-                # TODO [4, 5],    # near plane
-                # TODO [6, 7],    # far plane
+                [4, 5],    # near plane
+                [6, 7],    # far plane
                 [8, 9],    # left plane
                 [10, 11],  # right plane
             ], dtype=int32)

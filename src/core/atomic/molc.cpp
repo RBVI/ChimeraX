@@ -2495,6 +2495,8 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
     float* n = normals + (num_pts - 1) * 3;
     float other_end[3] = { n_end[0], n_end[1], n_end[2] };
     float twist = acos(inner(n, n_end));
+    if (isnan(twist))
+        twist = 0;
     // If twist is greater than 180 degrees, turn the opposite
     // direction.  (Assumes that ribbons are symmetric.)
     bool flipped = false;
