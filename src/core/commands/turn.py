@@ -35,7 +35,7 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
 
     if frames is not None:
         def turn_step(session, frame):
-            a = angle if rock is None or (frame % rock) <= rock//2 else -angle
+            a = angle if rock is None or ((frame+rock//4) % rock) <= (rock//2) else -angle
             turn(session, axis=axis, angle=a, frames=None, rock=None, center=center,
                  coordinate_system=coordinate_system, models=models)
         from . import motion
