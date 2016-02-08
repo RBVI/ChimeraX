@@ -345,6 +345,10 @@ class Session:
         return self._state_containers['models']
 
     @property
+    def pb_manager(self):
+        return self._state_containers['pb_manager']
+
+    @property
     def scenes(self):
         return self._state_containers['scenes']
 
@@ -621,9 +625,12 @@ def common_startup(sess):
     from .updateloop import UpdateLoop
     sess.update_loop = UpdateLoop()
 
-    from .atomic import PseudobondManager, ChangeTracker, LevelOfDetail
+    from .atomic import ChangeTracker, LevelOfDetail
     sess.change_tracker = ChangeTracker()
-    sess.pb_manager = PseudobondManager(sess)
+    # change_tracker needs to exist before global pseudobond manager
+    # can be created
+    from .atomic import PseudobondManager
+    sess.add_state_manager('pb_manager', PseudobondManager(sess))
     sess.atomic_level_of_detail = LevelOfDetail()
 
     from . import commands
