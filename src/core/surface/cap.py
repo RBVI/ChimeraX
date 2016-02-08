@@ -59,7 +59,7 @@ def compute_cap(drawing, plane, offset):
     if tarray is None or len(tarray) == 0:
         return None, None, None
     narray = varray.copy()
-    narray[:] = plane.normal
+    narray[:] = pnormal
 
     return varray, narray, tarray
 

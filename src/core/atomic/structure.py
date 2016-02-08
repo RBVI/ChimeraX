@@ -65,6 +65,7 @@ class AtomicStructure(AtomicStructureData, Model):
             self._smart_initial_display = smart_initial_display
 
         # for now, restore attrs to default initial values even for sessions...
+        self._deleted = False
         self._atoms_drawing = None
         self._bonds_drawing = None
         self._cached_atom_bounds = None
@@ -95,10 +96,15 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def delete(self):
         '''Delete this structure.'''
+        self._deleted = True
         AtomicStructureData.delete(self)
         for handler in self._ses_handlers:
             self.session.triggers.delete_handler(handler)
         Model.delete(self)
+
+    def deleted(self):
+        '''Has this atomic structure been deleted.'''
+        return self._deleted
 
     def copy(self, name = None):
         '''
@@ -110,7 +116,8 @@ class AtomicStructure(AtomicStructureData, Model):
             name = self.name
         m = AtomicStructure(self.session, name = name,
                             c_pointer = AtomicStructureData._copy(self),
-                            level_of_detail = self._level_of_detail)
+                            level_of_detail = self._level_of_detail,
+                            smart_initial_display = False)
         m.positions = self.positions
         return m
 
@@ -213,6 +220,22 @@ class AtomicStructure(AtomicStructureData, Model):
             avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
             model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
         return model_color
+
+    def _get_single_color(self):
+        residues = self.residues
+        ribbon_displays = residues.ribbon_displays
+        from ..colors import most_common_color
+        if ribbon_displays.any():
+            return most_common_color(residues.filter(ribbon_displays).ribbon_colors)
+        atoms = self.atoms
+        shown = atoms.filter(atoms.displays)
+        if shown:
+            return most_common_color(shown.colors)
+        return most_common_color(atoms.colors)
+    def _set_single_color(self, color):
+        self.atoms.colors = color
+        self.residues.ribbon_colors = color
+    single_color = property(_get_single_color, _set_single_color)
 
     def _make_drawing(self):
         # Create graphics
@@ -825,7 +848,7 @@ class AtomicStructure(AtomicStructureData, Model):
         ppb = self._pseudobond_first_intercept(xyz1, xyz2)
         pr = self._ribbon_first_intercept(xyz1, xyz2)
         # Handle molecular surfaces
-        ps = self.first_intercept_children(self.child_models(), xyz1, xyz2, exclude)
+        ps = self.first_intercept_children(self.child_models(), mxyz1, mxyz2, exclude)
         picks = [pa, pb, ppb, pr, ps]
 
         # TODO: for now, tethers pick nothing, but it should either pick

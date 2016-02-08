@@ -360,6 +360,9 @@ def init(argv, event_loop=True):
 
     if opts.gui:
         sess.ui.close_splash()
+    import chimerax.core.commands.version as vercmd
+    vercmd.version(sess)  # report version in log
+    if opts.gui:
         sess.logger.info('OpenGL ' + sess.main_view.opengl_version())
 
     if opts.module:

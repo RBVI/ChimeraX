@@ -24,7 +24,7 @@ class MapSeries(ToolInstance):
             #          (' length %d' % n))
 
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
 
         class MapSeriesWindow(MainToolWindow):
             close_destroys = False

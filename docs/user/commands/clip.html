@@ -1,0 +1,96 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: clip</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: clip</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>clip</b>
+[&nbsp;near&nbsp;&nbsp;<i>offset<sub><font size="-1">near</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
+[&nbsp;far&nbsp;&nbsp;<i>offset<sub><font size="-1">far</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
+[&nbsp;front&nbsp;&nbsp;<i>offset<sub><font size="-1">front</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
+[&nbsp;back&nbsp;&nbsp;<i>offset<sub><font size="-1">back</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
+[&nbsp;position&nbsp;&nbsp;<i>refpoint</i>&nbsp;]
+[&nbsp;axis&nbsp;&nbsp;<i>normal</i></a>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>clip</b> off
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>clip</b> list
+</h3>
+
+<p>
+The <b>clip</b> command controls clipping planes. 
+Up to four planes can be active:
+<ul>
+<li><b><i>near</i></b> and <b><i>far</i></b> planes are
+always perpendicular to the line of sight and do not move with the scene
+<li><b><i>front</i></b> and <b><i>back</i></b> planes
+move along with the scene and can be oriented in any direction
+</ul>
+The command <b>clip off</b> turns off all clipping planes, whereas 
+<b>clip list</b> reports the locations of any active clipping planes.
+See also: <a href="view.html"><b>view</b></a>,
+<a href="mousemode.html"><b>mousemode</b></a>
+</p><p>
+Each plane can be turned on or off individually, and specifying
+an offset activates a plane if it was not already active.
+All plane offsets are in physical distance units (generally &Aring;), with 
+positive values increasing away from the viewer for the near/far planes.
+Plane offsets are relative to the <b>position</b> reference point, if given.
+If no reference point is given, offsets are relative to the current positions 
+of the planes, or (if a plane is newly activated)
+the center of the bounding box of displayed models.
+The position of a plane is forgotten when it is turned off.
+</p><p>
+The <b>position</b> <i>refpoint</i> can be given as:
+</p>
+<ul>
+<li><i>x,y,z</i> (three values separated by commas only) - an arbitrary point
+<li>an <a href="atomspec.html"><i>atom-spec</i></a> 
+- the center of the bounding box of the specified items
+</ul>
+<p>
+The <b>axis</b> option sets front/back plane orientation,
+where the <i>normal</i> (the axis perpendicular to the plane) can be given as:
+</p>
+<ul>
+<li><b>x</b> - unit vector along the X-axis (1,0,0)
+<li><b>y</b> - unit vector along the Y-axis (0,1,0)
+<li><b>z</b> - unit vector along the Z-axis (0,0,1)
+<li><i>x,y,z</i> (three values separated by commas only) - an arbitrary vector 
+</ul>
+<p>
+The <b>coordinateSystem</b> for interpreting <b>position</b> and <b>axis</b>
+coordinates can be <a href="atomspec.html">specified</a>
+by reference model number N preceded by #.
+Otherwise, the <a href="view.html#screencoords">screen coordinate system</a>
+(X horizontal, Y vertical, Z in/out of screen) will be used.
+The default initial orientation of front/back planes is normal
+to the screen Z-axis or line of sight.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+February 2016</address>
+</body></html>

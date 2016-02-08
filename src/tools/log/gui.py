@@ -127,7 +127,7 @@ class Log(ToolInstance, HtmlLog):
             ToolInstance.__init__(self, session, bundle_info)
         self.warning_shows_dialog = True
         self.error_shows_dialog = True
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
 
         class LogWindow(MainToolWindow):
             close_destroys = False

@@ -2,7 +2,7 @@
 #ifndef templates_Coord
 #define    templates_Coord
 
-#include <atomstruct/Point.h>
+#include "../Point.h"
 
 namespace tmpl {
 

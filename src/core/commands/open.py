@@ -61,8 +61,19 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
 
     if format is not None:
         format = format_from_prefix(format)
+
+    from os.path import exists
+    if exists(filename):
+        paths = [filename]
+    else:
+        from glob import glob
+        paths = glob(filename)
+        if len(paths) == 0:
+            from ..errors import UserError
+            raise UserError('File not found: %s' % filename)
+
     try:
-        models = session.models.open(filename, format=format, name=name)
+        models = session.models.open(paths, format=format, name=name)
     except OSError as e:
         from ..errors import UserError
         raise UserError(e)

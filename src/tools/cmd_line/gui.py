@@ -15,7 +15,7 @@ class CommandLine(ToolInstance):
     def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
             ToolInstance.__init__(self, session, bundle_info)
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
 
         class CmdWindow(MainToolWindow):
             close_destroys = False
@@ -205,7 +205,7 @@ class _HistoryDialog:
     def __init__(self, controller):
         # make dialog hidden initially
         self.controller = controller
-        from chimerax.core.ui import ChildToolWindow
+        from chimerax.core.ui.gui import ChildToolWindow
 
         class HistoryWindow(ChildToolWindow):
             close_destroys = False

@@ -35,7 +35,7 @@ class HelpUI(ToolInstance):
         # in this case), so only override if different name desired
         self.display_name = "%s Help Viewer" % session.app_dirs.appname
         self.home_page = None
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code

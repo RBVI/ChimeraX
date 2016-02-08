@@ -74,10 +74,6 @@ endif
 ifeq ($(OS),Darwin)
 SWIFT_SDK = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-migrator/sdk/MacOSX.sdk
 install:
-ifneq (,$(wildcard $(SYSROOT)/usr/include/openssl))
-	#/Developer/SDKs/MacOSX10.5.sdk/usr/include/openssl/opensslv.h
-	ln -fs $(SYSROOT)/usr/include/openssl $(includedir)
-endif
 ifneq (,$(wildcard $(SWIFT_SDK)/usr/include/openssl))
 	#/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-migrator/sdk/MacOSX.sdk/usr/include/openssl/opensslv.h
 	ln -fs $(SWIFT_SDK)/usr/include/openssl $(includedir)

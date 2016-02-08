@@ -13,7 +13,7 @@ class ModelPanel(ToolInstance):
         if not restoring:
             ToolInstance.__init__(self, session, bundle_info)
         self.display_name = "Models"
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
 
         class ModelPanelWindow(MainToolWindow):
             close_destroys = False
@@ -127,33 +127,13 @@ class ModelPanel(ToolInstance):
         event.Skip()
 
     def _model_color(self, model):
-        # should be done generically
-        residues = getattr(model, 'residues', None)
-        if residues:
-            ribbon_displays = residues.ribbon_displays
-            if ribbon_displays.any():
-                return most_common_color(residues.filter(ribbon_displays).ribbon_colors)
-        atoms = getattr(model, 'atoms', None)
-        if atoms:
-            shown = atoms.filter(atoms.displays)
-            if shown:
-                return most_common_color(shown.colors)
-        return None
+        return model.single_color
 
 from chimerax.core.settings import Settings
 class ModelPanelSettings(Settings):
     AUTO_SAVE = {
         'last_use': None
     }
-
-def most_common_color(colors):
-    import numpy
-    as32 = colors.view(numpy.int32).reshape((len(colors),))
-    unique, indices, counts = numpy.unique(as32, return_index=True, return_counts=True)
-    max_index = numpy.argmax(counts)
-    if counts[max_index] < len(colors) / 10:
-        return None
-    return colors[indices[max_index]]
 
 def close(models, session):
     session.models.close(models)

@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/chimerax/core/map
 
 PYMOD_NAME = _map
-SRCS	= combine.cpp contourdata.cpp contourpy.cpp \
+SRCS	= colors.cpp combine.cpp contourdata.cpp contourpy.cpp \
 	  distgrid.cpp fitting.cpp fittingpy.cpp  \
 	  gaussian.cpp  histogram.cpp interpolate.cpp interpolatepy.cpp \
 	  module.cpp occupancy.cpp squaremesh.cpp transfer.cpp
