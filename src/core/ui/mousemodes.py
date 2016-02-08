@@ -666,6 +666,7 @@ class ClipMouseMode(MouseMode):
     Move front plane with no modifiers, back plane with alt,
     both planes with shift, and slab thickness with alt and shift.
     Move scene planes unless only near/far planes are enabled.
+    If the planes do not exist create them.
     '''
     name = 'clip'
     icon_file = 'clip.png'
@@ -695,7 +696,6 @@ class ClipMouseMode(MouseMode):
             # Move scene clip plane
             d = self._tilt_shift(delta_xy, self.view.camera, p.normal)
         else:
-
             # near/far clip
             d = delta_xy[1]*self.pixel_size()
 
