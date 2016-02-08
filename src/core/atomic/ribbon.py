@@ -178,7 +178,7 @@ class Ribbon:
         # as part of its ribbon.  We want to connect to that
         # coordinate smoothly.
         step = 0.5 / (divisions + 1)
-        coords, tangents = self._segment_path(coeffs, -0.5, -step, divisions)
+        coords, tangents = self._segment_path(coeffs, -0.3, -step, divisions)
         tangents = normalize_vector_array(tangents)
         n = self.normals[0]
         normals, flipped = constrained_normals(tangents, n, n)
@@ -193,7 +193,7 @@ class Ribbon:
         # as part of its ribbon.  We want to connect to that
         # coordinate smoothly.
         step = 0.5 / (divisions + 1)
-        coords, tangents = self._segment_path(coeffs, 1 + step, 1.5, divisions)
+        coords, tangents = self._segment_path(coeffs, 1 + step, 1.3, divisions)
         tangents = normalize_vector_array(tangents)
         n = self.normals[-1]
         normals, flipped = constrained_normals(tangents, n, n)
