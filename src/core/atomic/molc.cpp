@@ -990,6 +990,16 @@ extern "C" void *pseudobond_create_global_manager(void* change_tracker)
     }
 }
 
+extern "C" void pseudobond_global_manager_clear(void *manager)
+{
+    try {
+        PBManager* mgr = static_cast<PBManager*>(manager);
+        mgr->clear();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void* pseudobond_global_manager_get_group(void *manager, const char* name, int create)
 {
     try {
@@ -1007,6 +1017,130 @@ extern "C" void pseudobond_global_manager_delete_group(void *manager, void *pbgr
         PBManager* mgr = static_cast<PBManager*>(manager);
         Proxy_PBGroup* pbg = static_cast<Proxy_PBGroup*>(pbgroup);
         return mgr->delete_group(pbg);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void pseudobond_global_manager_session_restore_setup(void *manager)
+{
+    try {
+        PBManager* mgr = static_cast<PBManager*>(manager);
+        mgr->session_restore_setup();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void pseudobond_global_manager_session_restore_teardown(void *manager)
+{
+    try {
+        PBManager* mgr = static_cast<PBManager*>(manager);
+        mgr->session_restore_teardown();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" int pseudobond_global_manager_session_info(void *manager, PyObject *retvals)
+{
+    PBManager *mgr = static_cast<PBManager *>(manager);
+    if (!PyList_Check(retvals)) {
+        molc_error();
+    } else {
+        try {
+            PyObject* ints;
+            PyObject* floats;
+            PyObject* misc;
+            auto version =  mgr->session_info(&ints, &floats, &misc);
+            PyList_Append(retvals, ints);
+            PyList_Append(retvals, floats);
+            PyList_Append(retvals, misc);
+            return version;
+        } catch (...) {
+            molc_error();
+        }
+    }
+    return -1;
+}
+
+extern "C" void pseudobond_global_manager_session_restore(void *manager, int version,
+    PyObject *ints, PyObject *floats, PyObject *misc)
+{
+    PBManager *mgr = static_cast<PBManager *>(manager);
+    try {
+        auto iarray = Numeric_Array();
+        if (!array_from_python(ints, 1, Numeric_Array::Int, &iarray, false))
+            throw std::invalid_argument("Global pseudobond int data is not a one-dimensional"
+                " numpy int array");
+        int* int_array = static_cast<int*>(iarray.values());
+        auto farray = Numeric_Array();
+        if (!array_from_python(floats, 1, Numeric_Array::Float, &farray, false))
+            throw std::invalid_argument("Global pseudobond float data is not a one-dimensional"
+                " numpy float array");
+        float* float_array = static_cast<float*>(farray.values());
+        mgr->session_restore(version, &int_array, &float_array, misc);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" PyObject *pseudobond_global_manager_session_save_structure_mapping(void *manager)
+{
+    PyObject* mapping = PyDict_New();
+    if (mapping == nullptr)
+        molc_error();
+    else {
+        try {
+            PBManager* mgr = static_cast<PBManager*>(manager);
+            for (auto struct_id: *(mgr->ses_struct_to_id_map())) {
+                PyObject* key = PyLong_FromVoidPtr(struct_id.first);
+                PyObject* val = PyLong_FromLong(struct_id.second);
+                PyDict_SetItem(mapping, key, val);
+                Py_DECREF(key);
+                Py_DECREF(val);
+            }
+        } catch (...) {
+            molc_error();
+        }
+    }
+    return mapping;
+}
+
+extern "C" void pseudobond_global_manager_session_restore_structure_mapping(void *manager,
+    PyObject* mapping)
+{
+    try {
+        PBManager* mgr = static_cast<PBManager*>(manager);
+        auto c_map = mgr->ses_id_to_struct_map();
+        if (!PyDict_Check(mapping))
+            throw std::invalid_argument("session-restore pb structure mapping not a dict!");
+        Py_ssize_t index = 0;
+        PyObject* ses_id;
+        PyObject* ptr;
+        while (PyDict_Next(mapping, &index, &ses_id, &ptr)) {
+            (*c_map)[PyLong_AsLong(ses_id)] = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(ptr));
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void pseudobond_global_manager_session_save_setup(void *manager)
+{
+    try {
+        PBManager* mgr = static_cast<PBManager*>(manager);
+        mgr->session_save_setup();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void pseudobond_global_manager_session_save_teardown(void *manager)
+{
+    try {
+        PBManager* mgr = static_cast<PBManager*>(manager);
+        mgr->session_save_teardown();
     } catch (...) {
         molc_error();
     }
@@ -1802,6 +1936,8 @@ extern "C" void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
                 PyObject* name = unicode_from_string(grp_info.first.c_str());
                 PyObject *pbg = PyLong_FromVoidPtr(grp_info.second);
                 PyDict_SetItem(pbg_map, name, pbg);
+                Py_DECREF(name);
+                Py_DECREF(pbg);
             }
             pbgs[i] = pbg_map;
             pbg_map = NULL;
@@ -1922,6 +2058,26 @@ extern "C" void structure_session_restore(void *mol, int version,
     AtomicStructure *m = static_cast<AtomicStructure *>(mol);
     try {
         m->session_restore(version, ints, floats, misc);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void structure_session_restore_setup(void *mol)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+            m->session_restore_setup();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void structure_session_restore_teardown(void *mol)
+{
+    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    try {
+            m->session_restore_teardown();
     } catch (...) {
         molc_error();
     }
