@@ -38,7 +38,7 @@ private:
     // convert a global pb_manager version# to version# for Connection base class
     static int  session_base_version(int /*version*/) { return 1; }
     // version "0" means latest version
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 0; }
+    static int  SESSION_NUM_INTS(int /*version*/=0) { return 1; }
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
 protected:
     const char*  err_msg_loop() const
@@ -57,12 +57,8 @@ public:
     static int  session_num_ints(int version=0) {
         return SESSION_NUM_INTS(version) + Connection::session_num_ints(version);
     }
-    void  session_restore(int version, int** ints, float** floats) {
-        Connection::session_restore(session_base_version(version), ints, floats);
-    }
-    void  session_save(int** ints, float** floats) const {
-        Connection::session_save(ints, floats);
-    }
+    void  session_restore(int version, int** ints, float** floats);
+    void  session_save(int** ints, float** floats) const;
     void  track_change(const std::string& reason) const {
         change_tracker()->add_modified(this, reason);
     }

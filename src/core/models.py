@@ -282,7 +282,7 @@ class Models(State):
                 break
         if collation_okay:
             from .logger import Collator
-            descript = "files" if len(fns) > 1 else filenames
+            descript = "files" if len(fns) > 1 else fns[0]
             with Collator(session.logger, "Summary of problems opening " + descript,
                                                     kw.pop('log_errors', True)):
                 models, status = io.open_multiple_data(session, filenames,

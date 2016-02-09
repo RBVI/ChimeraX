@@ -269,6 +269,10 @@ class Render:
             not p.capabilities & self.SHADER_TEXTURE_MASK and
             not p.capabilities & self.SHADER_DEPTH_OUTLINE):
             p.set_matrix('model_view_matrix', mv4)
+            if self.SHADER_CLIP_PLANES & p.capabilities:
+                cmm = self.current_model_matrix
+                if cmm:
+                    p.set_matrix('model_matrix', cmm.opengl_matrix())
 #            if p.capabilities & self.SHADER_MULTISHADOW:
 #                m4 = self.current_model_matrix.opengl_matrix()
 #                p.set_matrix('model_matrix', m4)

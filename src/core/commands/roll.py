@@ -3,7 +3,7 @@ from .motion import CallForNFrames
 
 from .cli import Axis
 
-def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite,
+def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite, rock=None,
          center=None, coordinate_system=None, models=None):
     '''Rotate the scene.  Same as the turn command with infinite frames argument and angle step 1 degree.
 
@@ -15,6 +15,9 @@ def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite,
        Rotation angle in degrees.
     frames : integer
        Repeat the rotation for N frames, typically used in recording movies.
+    rock : integer
+       Repeat the rotation reversing the direction every N/2 frames.  The first reversal
+       occurs at N/4 frames so that the rocking motion is centered at the current orientation.
     center : Center
        Specifies the center of rotation. If not specified, then the current
        center of rotation is used.
@@ -25,7 +28,7 @@ def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite,
        Only these models are moved.  If not specified, then the camera is moved.
     '''
     from .turn import turn
-    turn(session, axis=axis, angle=angle, frames=frames, center=center,
+    turn(session, axis=axis, angle=angle, frames=frames, rock=rock, center=center,
          coordinate_system=coordinate_system, models=models)
 
 
@@ -38,6 +41,7 @@ def register_command(session):
                    ('frames', PositiveIntArg)],
         keyword = [('center', CenterArg),
                    ('coordinate_system', ModelArg),
+                   ('rock', PositiveIntArg),
                    ('models', TopModelsArg)],
         synopsis='rotate models continuously'
     )

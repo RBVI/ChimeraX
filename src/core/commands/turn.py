@@ -17,8 +17,8 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
     frames : integer
        Repeat the rotation for N frames, typically used in recording movies.
     rock : integer
-       Repeat the rotation reversing the direction every N frames.  The first reversal
-       occurs at N/2 frames so that the rocking motion is centered at the current orientation.
+       Repeat the rotation reversing the direction every N/2 frames.  The first reversal
+       occurs at N/4 frames so that the rocking motion is centered at the current orientation.
        If the frames option is not given the rocking continues indefinitely.
     center : Center
        Specifies the center of rotation. If not specified, then the current
