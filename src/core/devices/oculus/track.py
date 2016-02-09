@@ -257,6 +257,10 @@ class Oculus_Rift_Camera(Camera):
             if self.debug_oculus:
                 self._draw_oculus_unwarped(render)
             else:
+                # On Mac OS 10.11 (El Capitan), left eye flickers black.  This flush avoids that bug.
+                render.flush()
+                # The two eye images are rendered to textures by the main graphics context.
+                # The oculus window has a different context that displays these textures.
                 t0,t1 = [rb.color_texture for rb in self._warp_framebuffers]
                 self.oculus_opengl_context.make_current()
                 o.render(t0.size[0], t0.size[1], t0.id, t1.id)
