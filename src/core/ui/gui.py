@@ -801,26 +801,15 @@ else:
                 self._keystroke_sinks[-1].keyPressEvent(*args, **kw)
 
 
-    from PyQt5.QtWidgets import QMainWindow, QStatusBar, QStackedWidget, QLabel
+    from PyQt5.QtWidgets import QMainWindow, QStatusBar, QStackedWidget, QLabel, QDesktopWidget
     class MainWindow(QMainWindow, PlainTextLog):
         def __init__(self, ui, session):
-            """
-            # make main window 2/3 of full screen of primary display
-            primary_display = None
-            for display in [wx.Display(i) for i in range(wx.Display.GetCount())]:
-                if display.IsPrimary():
-                    x, y = display.GetGeometry().GetSize()
-                    break
-            else:
-                # no primary display?!?
-                x, y = wx.DisplaySize()
-            req_size = ((2*x)/3, (2*y)/3)
-
-            wx.Frame.__init__(self, None, title="ChimeraX", size=req_size)
-
-            """
             QMainWindow.__init__(self)
             self.setWindowTitle("ChimeraX")
+            # make main window 2/3 of full screen of primary display
+            dw = QDesktopWidget()
+            main_screen = dw.availableGeometry(dw.primaryScreen())
+            self.setFixedSize(main_screen.width()*.67, main_screen.height()*.67)
 
             from PyQt5.QtCore import QSize
             class GraphicsArea(QStackedWidget):
@@ -1232,8 +1221,10 @@ else:
             if not mw:
                 raise RuntimeError("No main window or main window dead")
 
-            from PyQt5.QtWidgets import QDockWidget
-            self.ui_area = QDockWidget(title, mw)
+            from PyQt5.QtWidgets import QDockWidget, QWidget
+            self.dock_widget = QDockWidget(title, mw)
+            self.ui_area = QWidget(self.dock_widget)
+            self.dock_widget.setWidget(self.ui_area)
 
             #QT disabled
             """
@@ -1248,6 +1239,7 @@ else:
             self.tool_window = None
             self.main_window = None
             self.ui_area.destroy()
+            self.dock_widget.destroy()
 
         def manage(self, placement, fixed_size=False):
             from PyQt5.QtCore import Qt
@@ -1262,9 +1254,9 @@ else:
                     side = self.placement_map[placement]
 
             mw = self.main_window
-            mw.addDockWidget(side, self.ui_area)
+            mw.addDockWidget(side, self.dock_widget)
             if placement is None:
-                self.ui_area.setFloating(True)
+                self.dock_widget.setFloating(True)
 
             #QT disable
             """
@@ -1279,7 +1271,7 @@ else:
             """
 
             if self.tool_window.close_destroys:
-                self.ui_area.setAttribute(Qt.WA_DeleteOnClose)
+                self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
             #QT disable
             """
@@ -1307,20 +1299,20 @@ else:
             """
 
         def _get_shown(self):
-            return not self.ui_area.isHidden()
+            return not self.dock_widget.isHidden()
 
         def _set_shown(self, shown):
-            if shown != self.ui_area.isHidden():
+            if shown != self.dock_widget.isHidden():
                 if shown:
                     #ensure it's on top
-                    self.ui_area.raise_()
+                    self.dock_widget.raise_()
                 return
             if shown:
-                self.ui_area.show()
+                self.dock_widget.show()
                 #ensure it's on top
-                self.ui_area.raise_()
+                self.dock_widget.raise_()
             else:
-                self.ui_area.hide()
+                self.dock_widget.hide()
 
         shown = property(_get_shown, _set_shown)
 

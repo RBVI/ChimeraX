@@ -326,7 +326,7 @@ class Tools(State):
         from chimerax.core import window_sys
         if window_sys == "qt":
             #QT disabled
-            settings.autostart = ['cmd_line']
+            settings.autostart = ['cmd_line', 'log']
         auto_ti = [None] * len(settings.autostart)
         for tool_inst in session.toolshed.bundle_info():
             try:

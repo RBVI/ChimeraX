@@ -20,15 +20,13 @@ class CommandLine(ToolInstance):
             close_destroys = False
         self.tool_window = CmdWindow(self)
         parent = self.tool_window.ui_area
-        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QWidget, QLineEdit
-        container = QWidget(parent)
-        self.text = QLineEdit(container)
-        self.menu = QComboBox(container)
-        layout = QHBoxLayout(container)
+        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLineEdit
+        self.text = QLineEdit(parent)
+        self.menu = QComboBox(parent)
+        layout = QHBoxLayout(parent)
         layout.addWidget(self.text, 1)
         layout.addWidget(self.menu)
-        container.setLayout(layout)
-        parent.setWidget(container)
+        parent.setLayout(layout)
         self.text.editingFinished.connect(self.execute)
         """
         import wx
