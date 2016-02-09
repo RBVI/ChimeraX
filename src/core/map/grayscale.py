@@ -64,6 +64,11 @@ class GrayScaleDrawing(Drawing):
     b = self._blend_manager
     return b.blend_image(self) if b else None
 
+  def update_blend_groups(self):
+    b = self._blend_manager
+    if b:
+      b.update_groups()
+
   def shown_orthoplanes(self):
     return self._show_ortho_planes
   def set_shown_orthoplanes(self, s):
@@ -124,6 +129,7 @@ class GrayScaleDrawing(Drawing):
         bi.set_grid_size(grid_size)
 
   def draw(self, renderer, place, draw_pass, selected_only = False):
+    self.update_blend_groups()
     bi = self.blend_image
     if bi:
       if self is bi.master_drawing:
@@ -353,9 +359,11 @@ class ImageBlendManager:
   def __init__(self):
     self.blend_images = set()
     self.drawing_blend_image = {}	# Map drawing to BlendedImage
+    self.need_group_update = False
 
   def add_drawing(self, d):
     self.drawing_blend_image[d] = None
+    self.need_group_update = True
 
   def remove_drawing(self, d):
     dbi = self.drawing_blend_image
@@ -366,12 +374,17 @@ class ImageBlendManager:
       self.blend_images.discard(bi)
       bi.delete()
     del dbi[d]
+    self.need_group_update = True
 
   def blend_image(self, drawing):
     return self.drawing_blend_image.get(drawing, None)
 
   def update_groups(self):
-    # TODO: Don't update groups unless drawing added, removed, or changed.
+    if not self.need_group_update:
+      return
+    self.need_group_update = False
+
+    # TODO: Don't update groups unless drawing changed.
     groups = []
     dbi = self.drawing_blend_image
     drawings = list(dbi.keys())
@@ -421,6 +434,7 @@ def blend_manager(session):
   m = getattr(session, '_image_blend_manager', None)
   if m is None:
     session._image_blend_manager = m = ImageBlendManager()
-    t = session.triggers
-    t.add_handler('new frame', lambda *args, m=m: m.update_groups())
+    def need_group_update(*args, m=m):
+      m.need_group_update = True
+    session.triggers.add_handler('new frame', need_group_update)
   return m
