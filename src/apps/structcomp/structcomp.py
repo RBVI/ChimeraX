@@ -60,7 +60,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
             pdb_models = fetch.fetch_from_database(
                 session, 'pdb', pdb_path, format='pdb')[0]
     except Exception as e:
-        session.logger.error("error: %s: unable to open pdb file: %s" % (pdb_id, e))
+        session.logger.error("%s: unable to open pdb file: %s" % (pdb_id, e))
         return True
     try:
         if os.path.isabs(mmcif_path):
@@ -69,11 +69,11 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
             mmcif_models = fetch.fetch_from_database(
                 session, 'pdb', mmcif_path, format='mmcif')[0]
     except Exception as e:
-        session.logger.error("error: %s: unable to open mmcif file: %s" % (pdb_id, e))
+        session.logger.error("%s: unable to open mmcif file: %s" % (pdb_id, e))
         return
 
     if len(pdb_models) != len(mmcif_models):
-        session.logger.error("error: %s: pdb version has %d model(s), mmcif version has %d" % (
+        session.logger.error("%s: pdb version has %d model(s), mmcif version has %d" % (
             pdb_id, len(pdb_models), len(mmcif_models)))
         all_same = False
     else:
@@ -98,14 +98,14 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
             if extra:
                 extra = list(extra)
                 extra.sort()
-                session.logger.error('error: %s: %d extra pdb atom(s): %s' % (
+                session.logger.error('%s: %d extra pdb atom(s): %s' % (
                     pdb_id, len(extra), extra))
                 same = False
             extra = mmcif_tmp - common
             if extra:
                 extra = list(extra)
                 extra.sort()
-                session.logger.error('error: %s: %d extra mmcif atom(s): %s' % (
+                session.logger.error('%s: %d extra mmcif atom(s): %s' % (
                     pdb_id, len(extra), extra))
                 same = False
 
@@ -117,14 +117,14 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
             if extra:
                 extra = list(extra)
                 extra.sort()
-                session.logger.error('error: %s: %d extra pdb bond(s): %s' % (
+                session.logger.error('%s: %d extra pdb bond(s): %s' % (
                     pdb_id, len(extra), extra))
                 same = False
             extra = mmcif_bonds - common
             if extra:
                 extra = list(extra)
                 extra.sort()
-                session.logger.error('error: %s: %d extra mmcif bond(s): %s' % (
+                session.logger.error('%s: %d extra mmcif bond(s): %s' % (
                     pdb_id, len(extra), extra))
                 same = False
 
@@ -136,14 +136,14 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
             if extra:
                 extra = list(extra)
                 extra.sort()
-                session.logger.error('error: %s: %d extra pdb residue(s): %s' % (
+                session.logger.error('%s: %d extra pdb residue(s): %s' % (
                     pdb_id, len(extra), extra))
                 same = False
             extra = mmcif_residues - common
             if extra:
                 extra = list(extra)
                 extra.sort()
-                session.logger.error('error: %s: %d extra mmcif residue(s): %s' % (
+                session.logger.error('%s: %d extra mmcif residue(s): %s' % (
                     pdb_id, len(extra), extra))
                 same = False
             pdb_helix = p.residues.is_helix
@@ -171,14 +171,14 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
             # chains
             diff = p.num_chains - m.num_chains
             if diff != 0:
-                session.logger.error("error: %s: pdb has %d chain(s) vs. %d mmcif chain(s)" % (
+                session.logger.error("%s: pdb has %d chain(s) vs. %d mmcif chain(s)" % (
                     pdb_id, p.num_chains, m.num_chains))
                 same = False
 
             # coord_sets
             diff = p.num_coord_sets - m.num_coord_sets
             if diff != 0:
-                session.logger.error("error: %s: pdb has %d coord_set(s) %s than mmcif" % (
+                session.logger.error("%s: pdb has %d coord_set(s) %s than mmcif" % (
                     pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
                 same = False
 
@@ -192,7 +192,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
             if extra:
                 extra = list(extra)
                 extra.sort()
-                session.logger.error('error: %s: %d extra pdb pseudobond group(s): %s' % (
+                session.logger.error('%s: %d extra pdb pseudobond group(s): %s' % (
                     pdb_id, len(extra), extra))
                 same = False
             pbg = 'missing structure'
@@ -200,14 +200,14 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 pdb_bonds = bonds(pdb_pbg_map[pbg].pseudobonds.atoms)
                 pdb_bonds = list(pdb_bonds)
                 pdb_bonds.sort()
-                session.logger.error('error: %s: %d extra pdb %s bond(s): %s' % (
+                session.logger.error('%s: %d extra pdb %s bond(s): %s' % (
                     pdb_id, len(extra), pbg, pdb_bonds))
             extra = mmcif_pbgs - common_pbgs
             if extra and not (len(extra) == 1 and 'hydrogen bonds' in extra):
                 # mmcif file having hydrogen bonds and pdb not is normal
                 extra = list(extra)
                 extra.sort()
-                session.logger.error('error: %s: %d extra mmcif pseudobond group(s): %s' % (
+                session.logger.error('%s: %d extra mmcif pseudobond group(s): %s' % (
                     pdb_id, len(extra), extra))
                 same = False
             pbg = 'missing structure'
@@ -215,7 +215,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 mmcif_bonds = bonds(mmcif_pbg_map[pbg].pseudobonds.atoms)
                 mmcif_bonds = list(mmcif_bonds)
                 mmcif_bonds.sort()
-                session.logger.error('error: %s: %d extra mmcif %s bond(s): %s' % (
+                session.logger.error('%s: %d extra mmcif %s bond(s): %s' % (
                     pdb_id, len(extra), pbg, mmcif_bonds))
             for pbg in common_pbgs:
                 pdb_bonds = bonds(pdb_pbg_map[pbg].pseudobonds.atoms)
@@ -225,14 +225,14 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 if extra:
                     extra = list(extra)
                     extra.sort()
-                    session.logger.error('error: %s: %d extra pdb %s bond(s): %s' % (
+                    session.logger.error('%s: %d extra pdb %s bond(s): %s' % (
                         pdb_id, len(extra), pbg, pdb_bonds))
                     same = False
                 extra = mmcif_bonds - common
                 if extra:
                     extra = list(extra)
                     extra.sort()
-                    session.logger.error('error: %s: %d extra mmcif %s bond(s): %s' % (
+                    session.logger.error('%s: %d extra mmcif %s bond(s): %s' % (
                         pdb_id, len(extra), pbg, extra))
                     same = False
 
@@ -358,9 +358,9 @@ def compare_id(session, pdb_id):
 
 def usage():
     import sys
-    session.logger.warning(
+    print(
         'usage: %s: [-a] [-h] [--all] [--help] [pdb_id(s)]' % sys.argv[0])
-    session.logger.warning(
+    print(
         '''Compare the structures produced by the PDB and mmCIF readers.
         Give one or more pdb identifiers to compare just those structures.
         Or give --all (-a) option to compare all of the strctures in

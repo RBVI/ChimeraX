@@ -191,7 +191,9 @@ Chain::session_restore(int version, int** ints, float** floats)
     for (decltype(res_map_size) i = 0; i < res_map_size; ++i) {
         auto res_index = *int_ptr++;
         auto pos = *int_ptr++;
-        _res_map[residues[res_index]] = pos;
+        auto res = residues[res_index];
+        _res_map[res] = pos;
+        res->set_chain(this);
     }
 
     _residues.reserve(residues_size);

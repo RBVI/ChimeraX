@@ -87,10 +87,11 @@ class AtomicStructure(AtomicStructureData, Model):
         from . import molobject
         molobject.add_to_object_map(self)
 
-        self._ses_handlers = [
-            self.session.triggers.add_handler("begin save session", self._begin_ses_save),
-            self.session.triggers.add_handler("end save session", self._end_ses_save)
-        ]
+        self._ses_handlers = []
+        for ses_func, trig_name in [("save_setup", "begin save session"),
+                ("save_teardown", "end save session")]:
+            self._ses_handlers.append(self.session.triggers.add_handler(trig_name,
+                    lambda *args, qual=ses_func: self._ses_call(qual)))
         self._make_drawing()
 
     def delete(self):
@@ -1085,12 +1086,6 @@ class AtomicStructure(AtomicStructureData, Model):
                     psel = ac
 
         return PromoteAtomSelection(self, level, psel, asel)
-
-    def _begin_ses_save(self, *args):
-        self._session_save_setup()
-
-    def _end_ses_save(self, *args):
-        self._session_save_teardown()
 
     def surfaces(self):
         '''List of :class:`.MolecularSurface` objects for this structure.'''

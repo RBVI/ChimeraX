@@ -1530,6 +1530,8 @@ AtomicStructure::session_save_setup() const
     for (auto r: residues()) {
         (*session_save_residues)[r] = index++;
     }
+
+    _pb_mgr.session_save_setup();
 }
 
 void
@@ -1540,6 +1542,8 @@ AtomicStructure::session_save_teardown() const
     delete session_save_chains;
     delete session_save_crdsets;
     delete session_save_residues;
+
+    _pb_mgr.session_save_teardown();
 }
 
 void
