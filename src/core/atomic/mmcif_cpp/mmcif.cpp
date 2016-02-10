@@ -301,7 +301,7 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
                 a1 = find_closest(a0, r1, nullptr, true);
             if (a1 == nullptr)
                 continue;
-            if (gap) {
+            if (gap || !Bond::polymer_bond_atoms(a0, a1)) {
                 auto as = r0->structure();
                 auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
                     atomstruct::AS_PBManager::GRP_NORMAL);
