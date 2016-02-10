@@ -715,9 +715,18 @@ class Residues(Collection):
         f = c_function('residue_polymer_spline',
                        args = [ctypes.c_void_p, ctypes.c_size_t],
                        ret = ctypes.py_object)
-        atom_pointers, centers, guides = f(self._c_pointers, len(self))
-        atoms = Atoms(atom_pointers)
-        return atoms, centers, guides
+        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self))
+        if atom_pointers is None:
+            atoms = None
+        else:
+            atoms = Atoms(atom_pointers)
+        return any_display, atoms, centers, guides
+
+    def ribbon_clear_hides(self):
+        '''Clear the hide bit for all atoms in given residues.'''
+        f = c_function('residue_ribbon_clear_hide',
+                       args = [ctypes.c_void_p, ctypes.c_size_t])
+        f(self._c_pointers, len(self))
 
 # -----------------------------------------------------------------------------
 #

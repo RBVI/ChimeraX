@@ -341,10 +341,6 @@ class AtomicStructure(AtomicStructureData, Model):
         p.selected_positions = _selected_bond_cylinders(bond_atoms)
 
     def _create_ribbon_graphics(self):
-        from .ribbon import Ribbon
-        from .molobject import Residue
-        from numpy import concatenate, array, zeros
-        polymers = self.polymers(False, False)
         if self._ribbon_drawing is None:
             self._ribbon_drawing = p = self.new_drawing('ribbon')
             p.display = True
@@ -354,13 +350,20 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_t2r = {}
         self._ribbon_r2t = {}
         self._ribbon_tether = []
-        import sys
+        if self.ribbon_display_count == 0:
+            return
+        from .ribbon import Ribbon
+        from .molobject import Residue
+        from numpy import concatenate, array, zeros
+        polymers = self.polymers(False, False)
         for rlist in polymers:
             rp = p.new_drawing(rlist.strs[0])
             t2r = []
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
-            atoms, coords, guides = rlist.get_polymer_spline()
+            any_display, atoms, coords, guides = rlist.get_polymer_spline()
+            if not any_display:
+                continue
             residues = atoms.residues
             # Always update all atom visibility so that undisplaying ribbon
             # will bring back previously hidden backbone atoms

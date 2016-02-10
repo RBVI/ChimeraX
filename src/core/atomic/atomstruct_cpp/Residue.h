@@ -33,7 +33,7 @@ private:
     virtual  ~Residue();
 
     friend class Chain;
-    void  set_chain(Chain* chain) { _chain = chain; }
+    void  set_chain(Chain* chain) { _chain = chain; if (chain == nullptr) set_ribbon_display(false); }
     friend class AtomicStructure;
     friend class Bond;
     void  set_polymer_type(PolymerType pt) { _polymer_type = pt; }
@@ -120,6 +120,7 @@ public:
     void  set_ribbon_display(bool d);
     void  set_ribbon_hide_backbone(bool d);
     void  set_ribbon_style(Style s);
+    void  ribbon_clear_hide();
 };
 
 }  // namespace atomstruct
@@ -215,6 +216,12 @@ Residue::set_ribbon_display(bool d) {
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_DISPLAY);
     _structure->set_gc_ribbon();
     _ribbon_display = d;
+    if (d)
+        _structure->_ribbon_display_count += 1;
+    else {
+        _structure->_ribbon_display_count -= 1;
+        ribbon_clear_hide();
+    }
 }
 
 inline void
@@ -233,6 +240,12 @@ Residue::set_ribbon_style(Style s) {
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_STYLE);
     _structure->set_gc_ribbon();
     _ribbon_style = s;
+}
+
+inline void
+Residue::ribbon_clear_hide() {
+    for (auto atom: atoms())
+        atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
 }
 
 inline void
