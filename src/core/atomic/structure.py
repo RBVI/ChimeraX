@@ -340,11 +340,8 @@ class AtomicStructure(AtomicStructureData, Model):
         p.colors = c = bonds.half_colors
         p.selected_positions = _selected_bond_cylinders(bond_atoms)
 
+    @line_profile
     def _create_ribbon_graphics(self):
-        from .ribbon import Ribbon
-        from .molobject import Residue
-        from numpy import concatenate, array, zeros
-        polymers = self.polymers(False, False)
         if self._ribbon_drawing is None:
             self._ribbon_drawing = p = self.new_drawing('ribbon')
             p.display = True
@@ -354,7 +351,13 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_t2r = {}
         self._ribbon_r2t = {}
         self._ribbon_tether = []
-        import sys
+        if self.ribbon_display_count == 0:
+            self.residues.ribbon_clear_hides()
+            return
+        from .ribbon import Ribbon
+        from .molobject import Residue
+        from numpy import concatenate, array, zeros
+        polymers = self.polymers(False, False)
         for rlist in polymers:
             rp = p.new_drawing(rlist.strs[0])
             t2r = []

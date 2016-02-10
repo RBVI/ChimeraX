@@ -719,6 +719,12 @@ class Residues(Collection):
         atoms = Atoms(atom_pointers)
         return atoms, centers, guides
 
+    def ribbon_clear_hides(self):
+        '''Clear the hide bit for all atoms in given residues.'''
+        f = c_function('residue_ribbon_clear_hide',
+                       args = [ctypes.c_void_p, ctypes.c_size_t])
+        f(self._c_pointers, len(self))
+
 # -----------------------------------------------------------------------------
 #
 class Chains(Collection):

@@ -563,12 +563,10 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
                         break;
                     }
             }
-            if (hide) {
+            if (hide)
                 atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
-            }
-            else {
+            else
                 atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
-            }
         }
     } catch (...) {
         molc_error();
@@ -1501,6 +1499,17 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
     }
 }
 
+extern "C" void residue_ribbon_clear_hide(void *residues, size_t n)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            r[i]->ribbon_clear_hide();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 // -------------------------------------------------------------------------
 // chain functions
 //
@@ -1923,6 +1932,12 @@ extern "C" void set_structure_ribbon_show_spine(void *mols, size_t n, npy_bool *
 {
     AtomicStructure **m = static_cast<AtomicStructure **>(mols);
     error_wrap_array_set(m, n, &AtomicStructure::set_ribbon_show_spine, ribbon_show_spine);
+}
+
+extern "C" void structure_ribbon_display_count(void *mols, size_t n, int32_t *ribbon_display_count)
+{
+    AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+    error_wrap_array_get(m, n, &AtomicStructure::ribbon_display_count, ribbon_display_count);
 }
 
 extern "C" void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
