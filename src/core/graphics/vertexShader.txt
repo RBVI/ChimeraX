@@ -74,9 +74,9 @@ uniform vec4 camera_vertical;
 #endif
 
 #ifdef USE_CLIP_PLANES
-uniform mat4 model_matrix;
+uniform mat4 model_matrix;	// Map model coordinates to scene coordinates
 uniform int num_clip_planes;
-uniform vec4 clip_planes[8];
+uniform vec4 clip_planes[8];	// Normal in scene coordinates and offset
 out float gl_ClipDistance[8];
 #endif
 

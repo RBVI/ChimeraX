@@ -47,7 +47,7 @@ def compute_cap(drawing, plane, offset):
     # Compute cap geometry.
     # TODO: Cap instances
     if len(d.positions) > 1:
-        varray, tarray = compute_instances_cap(d, t, plane, offset)
+        varray, tarray, pnormal = compute_instances_cap(d, t, plane, offset)
     else:
         dp = d.scene_position.inverse()
         pnormal = dp.apply_without_translation(plane.normal)
@@ -75,12 +75,12 @@ def compute_instances_cap(drawing, triangles, plane, offset):
     # TODO: Optimize by testing if plane intercepts bounding sphere.
     b = d.bounds(positions = False)
     if b is None:
-        return None, None
+        return None, None, None
         
     dpos = d.positions.masked(d.display_positions)
     ipos = box_positions_intersecting_plane(dpos, b, parent_ppoint, parent_pnormal)
     if len(ipos) == 0:
-        return None, None
+        return None, None, None
     for pos in ipos:
         pinv = pos.inverse()
         pnormal = pinv.apply_without_translation(parent_pnormal)
@@ -91,7 +91,7 @@ def compute_instances_cap(drawing, triangles, plane, offset):
         pos.move(ivarray)
         geom.append((ivarray, itarray))
     varray, tarray = concatenate_geometry(geom)
-    return varray, tarray
+    return varray, tarray, parent_pnormal
 
 def box_positions_intersecting_plane(positions, b, origin, normal):
     c, r = b.center(), b.radius()

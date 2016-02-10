@@ -55,7 +55,7 @@ If <i>model-name</i> contains spaces, it should be
 enclosed in quotation marks.
 </p><p>
 The <b>open formats</b> command lists the possible formats and databases
-in the <b>Log</b>.
+in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
 Examples:
 <blockquote>
@@ -74,10 +74,15 @@ Examples:
 <a name="local"></a>
 <h3><a href="#top" class="nounder"><b>&larr;</b></a>Local Files</h3>
 <p>
-A local file is opened if its <i>filename</i> 
-(a pathname, including directory location) is supplied. 
-The pathname can be absolute or relative to the working directory
-reported by the command <b>pwd</b>.
+The <i>filename</i> is generally a pathname to a local file, 
+either absolute or relative to the current working directory as
+reported by the command <a href="pwd.html"><b>pwd</b></a>.
+A pathname may start with &ldquo;<b>~</b>&rdquo; to indicate the user's 
+home directory. One or more files can be specified at a time by including 
+<b>*</b> (wild card), <b>?</b> (single-character wild card), 
+and/or square-bracketed character ranges in the <i>filename</i>
+(Unix-style pathname expansion or <b><i>globbing</i></b>).
+</p><p>
 The file format can be indicated with either the
 <i>filename</i> suffix or the <b>format</b> option:
 </p>
@@ -244,5 +249,5 @@ with <b>ignoreCache true</b>, although the new data will still be cached.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2016</address>
+February 2016</address>
 </body></html>

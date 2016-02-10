@@ -1,6 +1,6 @@
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015 Regents of the University of California.
+Copyright (c) 2015-2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
@@ -24,6 +24,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
  <BR><b>turn</b>
 [&nbsp;<i>axis</i>&nbsp;[&nbsp;<i>angle</i>&nbsp; [&nbsp;<i>frames</i>&nbsp;]]]
+[&nbsp;rock&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;center&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>coordinateSystem</b> 
 &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
@@ -33,8 +34,11 @@ class="clRight" alt="ChimeraX logo"/></a>
 The <b>turn</b> command performs a rotation of <i>angle</i>
 (default <b>90</b>&deg;) around a specified <i>axis</i> (default <b>y</b>)
 at each of a specified number of image update <i>frames</i>
-(default <b>1</b> frame).
-The <i>angle</i> can be positive or negative. Model(s) to rotate
+(default <b>1</b> frame, except <b>infinity</b> if <b>rock</b> is used).
+The <i>angle</i> can be positive or negative. 
+The <b>rock</b> option performs one cycle of rocking per <i>N</i> frames,
+reversing the direction of rotation 1/4 and 3/4 of the way through each cycle,
+and repeating until all <i>frames</i> have elapsed. Model(s) to rotate
 can be <a href="atomspec.html">specified</a> with the <b>models</b> keyword;
 otherwise, the scene will be rotated as a whole.
 The commands <b>turn</b> and <a href="roll.html"><b>roll</b></a> are the same
@@ -96,5 +100,5 @@ To halt an ongoing <b>turn</b>, use <a href="stop.html"><b>stop</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2015</address>
+February 2016</address>
 </body></html> 

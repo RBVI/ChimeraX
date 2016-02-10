@@ -89,6 +89,8 @@ def adjust_plane(name, offset, origin, normal, planes, view = None, camera_norma
         n = normal
         if n is None:
             n = view.camera.view_direction()
+            if name == 'back':
+                n = -n
             face_pair = {'front':'back', 'back':'front'}
             if name in face_pair:
                 pp = planes.find_plane(face_pair[name])
