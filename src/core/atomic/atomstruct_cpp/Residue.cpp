@@ -41,6 +41,8 @@ Residue::Residue(AtomicStructure *as, const ResName& name,
 
 Residue::~Residue() {
     auto du = DestructionUser(this);
+    if (_ribbon_display)
+        _structure->_ribbon_display_count -= 1;
     _structure->change_tracker()->add_deleted(this);
 }
 

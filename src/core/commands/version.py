@@ -6,7 +6,7 @@ def version(session, format=None):
 
     Parameters
     ----------
-    format : one of 'verbose', ''bundles', or 'package'
+    format : one of 'verbose', ''bundles', or 'packages'
     '''
     from .. import buildinfo
     ad = session.app_dirs
@@ -57,7 +57,7 @@ def version(session, format=None):
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(
-        optional=[('format', cli.EnumOf(['verbose', 'bundles', 'package']))],
+        optional=[('format', cli.EnumOf(['verbose', 'bundles', 'packages']))],
         non_keyword=['format'],
         synopsis='show version information')
     cli.register('version', desc, version)

@@ -101,6 +101,7 @@ private:
     int  _ribbon_tether_sides = 4;
     float  _ribbon_tether_opacity = 0.5;
     bool  _ribbon_show_spine = false;
+    int _ribbon_display_count = 0;
     // in the SESSION* functions, a version of "0" means the latest version
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
     static int  SESSION_NUM_INTS(int /*version*/=0) { return 8; }
@@ -189,6 +190,7 @@ public:
     int  ribbon_tether_sides() const { return _ribbon_tether_sides; }
     float  ribbon_tether_opacity() const { return _ribbon_tether_opacity; }
     bool  ribbon_show_spine() const { return _ribbon_show_spine; }
+    int  ribbon_display_count() const { return _ribbon_display_count; }
     void  set_ribbon_tether_scale(float s);
     void  set_ribbon_tether_shape(TetherShape ts);
     void  set_ribbon_tether_sides(int s);

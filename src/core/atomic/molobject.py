@@ -522,6 +522,8 @@ class AtomicStructureData:
     '''Ribbon tether shape. Integer value.'''
     ribbon_show_spine = c_property('structure_ribbon_show_spine', npy_bool)
     '''Display ribbon spine. Boolean.'''
+    ribbon_display_count = c_property('structure_ribbon_display_count', int32, read_only = True)
+    '''Return number of residues with ribbon display set. Integer.'''
     TETHER_CONE = 0
     TETHER_REVERSE_CONE = 1
     TETHER_CYLINDER = 2

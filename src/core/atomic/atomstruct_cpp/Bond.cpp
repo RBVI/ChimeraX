@@ -74,12 +74,9 @@ _polymer_res(Residue* r, Atom* a, bool* is_nucleic)
     return true;
 }
 
-Atom *
-Bond::polymeric_start_atom() const
+static Atom*
+_polymeric_start_atom(Atom* a1, Atom* a2, Residue::PolymerType* pt = nullptr)
 {
-    const Atoms& as = atoms();
-    Atom *a1 = as[0];
-    Atom *a2 = as[1];
     Residue *r1 = a1->residue();
     Residue *r2 = a2->residue();
     if (r1 == r2)
@@ -109,30 +106,47 @@ Bond::polymeric_start_atom() const
 
     if (n1) {
         // both nucleic
+        if (pt != nullptr)
+            *pt = Residue::PT_NUCLEIC;
         if (a1->name() == "O3'" && a2->name() == "P") {
-            r1->set_polymer_type(Residue::PT_NUCLEIC);
-            r2->set_polymer_type(Residue::PT_NUCLEIC);
             return a1;
         }
         if (a1->name() == "P" && a2->name() == "O3'") {
-            r1->set_polymer_type(Residue::PT_NUCLEIC);
-            r2->set_polymer_type(Residue::PT_NUCLEIC);
             return a2;
         }
     } else {
         // both protein
+        if (pt != nullptr)
+            *pt = Residue::PT_AMINO;
         if (a1->name() == "C" && a2->name() == "N") {
-            r1->set_polymer_type(Residue::PT_AMINO);
-            r2->set_polymer_type(Residue::PT_AMINO);
             return a1;
         }
         if (a1->name() == "N" && a2->name() == "C") {
-            r1->set_polymer_type(Residue::PT_AMINO);
-            r2->set_polymer_type(Residue::PT_AMINO);
             return a2;
         }
     }
     return nullptr;
+}
+
+// polymer_bond_atoms:  if the 'first' atom (e.g. N) were bonded to the second atom
+// (e.g. C), would that be a polymeric bond?
+bool
+Bond::polymer_bond_atoms(Atom* first, Atom* second)
+{
+    return _polymeric_start_atom(first, second) == first;
+}
+
+Atom*
+Bond::polymeric_start_atom() const
+{
+    const Atoms& as = atoms();
+    Atom *a1 = as[0];
+    Atom *a2 = as[1];
+    Residue::PolymerType pt;
+    auto psa = _polymeric_start_atom(a1, a2, &pt);
+    a1->residue()->set_polymer_type(pt);
+    a2->residue()->set_polymer_type(pt);
+    return psa;
 }
 
 }  // namespace atomstruct

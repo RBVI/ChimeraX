@@ -45,6 +45,7 @@ public:
             std::set<const Residue*>* ignore = nullptr) const {
         return rings(cross_residues, 0, ignore);
     }
+    static bool  polymer_bond_atoms(Atom* first, Atom* second);
     Atom*  polymeric_start_atom() const;
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
