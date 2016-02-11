@@ -141,7 +141,8 @@ class AtomicStructure(AtomicStructureData, Model):
                 from ..colors import element_colors
                 het_atoms = atoms.filter(atoms.element_numbers != 6)
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
-                ribbonable = self.chains.existing_residues
+                physical_residues = self.chains.existing_residues
+                ribbonable = physical_residues.filter(physical_residues.num_atoms > 1)
                 # 10 residues or less is basically a trivial depiction if ribboned
                 if len(ribbonable) > 10:
                     atoms.displays = False
@@ -163,7 +164,9 @@ class AtomicStructure(AtomicStructureData, Model):
                         display |= atoms.filter(close_indices).residues
                     display.atoms.displays = True
                     ribbonable.ribbon_displays = True
-
+                elif len(ribbonable) == 0:
+                    # CA only?
+                    atoms.draw_modes = Atom.BALL_STYLE
             elif self.num_chains < 250:
                 lighting = "full"
                 from ..colors import chain_colors, element_colors
