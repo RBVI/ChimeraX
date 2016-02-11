@@ -1075,26 +1075,52 @@ class ClipRotateMouseMode(MouseMode):
 
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
-    #QT disabled
-    #from .. import map, markers
-    #from ..map import series
-    mode_classes = [
-        SelectMouseMode,
-        RotateMouseMode,
-        TranslateMouseMode,
-        ZoomMouseMode,
-        RotateAndSelectMouseMode,
-        TranslateSelectedMouseMode,
-        RotateSelectedMouseMode,
-        ClipMouseMode,
-        ClipRotateMouseMode,
-        #ObjectIdMouseMode,
-        #map.ContourLevelMouseMode,
-        #map.PlanesMouseMode,
-        #markers.MarkerMouseMode,
-        #markers.MarkCenterMouseMode,
-        #markers.ConnectMouseMode,
-        #series.PlaySeriesMouseMode,
-        NullMouseMode,
-    ]
+    if window_sys == "wx":
+        #from .. import map, markers
+        #from ..map import series
+        mode_classes = [
+            SelectMouseMode,
+            RotateMouseMode,
+            TranslateMouseMode,
+            ZoomMouseMode,
+            RotateAndSelectMouseMode,
+            TranslateSelectedMouseMode,
+            RotateSelectedMouseMode,
+            ClipMouseMode,
+            ClipRotateMouseMode,
+            ObjectIdMouseMode,
+            #map.ContourLevelMouseMode,
+            #map.PlanesMouseMode,
+            #markers.MarkerMouseMode,
+            #markers.MarkCenterMouseMode,
+            #markers.ConnectMouseMode,
+            #series.PlaySeriesMouseMode,
+            NullMouseMode,
+        ]
+    else:
+        #QT disabled
+        #from .. import map, markers
+        #from ..map import series
+        mode_classes = [
+            SelectMouseMode,
+            RotateMouseMode,
+            TranslateMouseMode,
+            ZoomMouseMode,
+            RotateAndSelectMouseMode,
+            TranslateSelectedMouseMode,
+            RotateSelectedMouseMode,
+            ClipMouseMode,
+            ClipRotateMouseMode,
+            #ObjectIdMouseMode,
+            #map.ContourLevelMouseMode,
+            #map.PlanesMouseMode,
+            #markers.MarkerMouseMode,
+            #markers.MarkCenterMouseMode,
+            #markers.ConnectMouseMode,
+            #series.PlaySeriesMouseMode,
+            NullMouseMode,
+        ]
     return mode_classes
+
+import chimerax.core.ui
+chimerax.core.ui.MouseMode = MouseMode

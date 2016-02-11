@@ -487,8 +487,7 @@ if window_sys == "wx":
             If not specified, uses the window system default.
         """
         def __init__(self, tool_instance, size=None):
-            super().__init__(tool_instance,
-                tool_instance.display_name, size)
+            super().__init__(tool_instance, tool_instance.display_name, size)
 
         def create_child_window(self, title, size=None, window_class=None):
             """Make additional tool window
@@ -1258,11 +1257,13 @@ else:
             if placement is None:
                 self.dock_widget.setFloating(True)
 
+            #QT disable: create a 'hide_title_bar' option
+            if side == Qt.BottomDockWidgetArea:
+                from PyQt5.QtWidgets import QWidget
+                self.dock_widget.setTitleBarWidget(QWidget())
+
             #QT disable
             """
-            if side == wx.BOTTOM:
-                pane_info.CaptionVisible(False)
-
             # hack
             if self.tool_window.tool_instance.display_name == "Log":
                 pane_info.dock_proportion = 50

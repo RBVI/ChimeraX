@@ -20,35 +20,49 @@ class CommandLine(ToolInstance):
             close_destroys = False
         self.tool_window = CmdWindow(self)
         parent = self.tool_window.ui_area
-        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLineEdit
-        self.text = QLineEdit(parent)
-        self.menu = QComboBox(parent)
-        layout = QHBoxLayout(parent)
-        layout.addWidget(self.text, 1)
-        layout.addWidget(self.menu)
-        parent.setLayout(layout)
-        self.text.editingFinished.connect(self.execute)
-        """
-        import wx
-        SIZE = (500, 25)
-        self.text = wx.ComboBox(parent, size=self.SIZE,
-                                style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        label = wx.StaticText(parent, label="Command:")
-        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(self.text, 1, wx.EXPAND)
-        parent.SetSizerAndFit(sizer)
-        self.history_dialog = _HistoryDialog(self)
-        self.text.Bind(wx.EVT_COMBOBOX, self.on_combobox)
-        self.text.Bind(wx.EVT_TEXT, self.history_dialog._entry_modified)
-        self.text.Bind(wx.EVT_TEXT_ENTER, self.on_enter)
-        self.text.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        """
+        from chimerax.core import window_sys
+        self.window_sys = window_sys
+        if window_sys == "qt":
+            from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLineEdit, QLabel
+            label = QLabel(parent)
+            label.setText("Command:")
+            self.text = QLineEdit(parent)
+            self.menu = QComboBox(parent)
+            layout = QHBoxLayout(parent)
+            layout.setSpacing(1)
+            layout.setContentsMargins(2, 0, 0, 0)
+            layout.addWidget(label)
+            layout.addWidget(self.text, 1)
+            layout.addWidget(self.menu)
+            parent.setLayout(layout)
+            self.text.returnPressed.connect(self.execute)
+            self.text.editingFinished.connect(self.text.selectAll)
+            session.ui.register_for_keystrokes(self.text)
+        else:
+            import wx
+            SIZE = (500, 25)
+            self.text = wx.ComboBox(parent, size=SIZE,
+                                    style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            label = wx.StaticText(parent, label="Command:")
+            sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
+            sizer.Add(self.text, 1, wx.EXPAND)
+            parent.SetSizerAndFit(sizer)
+            self.history_dialog = _HistoryDialog(self)
+            self.text.Bind(wx.EVT_COMBOBOX, self.on_combobox)
+            self.text.Bind(wx.EVT_TEXT, self.history_dialog._entry_modified)
+            self.text.Bind(wx.EVT_TEXT_ENTER, lambda e: self.execute())
+            self.text.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+            session.ui.register_for_keystrokes(self)
+            # since only TextCtrls have the EmulateKeyPress method,
+            # create a completely hidden TextCtrl so that we can
+            # process forwarded keystrokes and copy the result back
+            # into the ComboBox!
+            self.kludge_text = wx.TextCtrl(parent)
+            self.kludge_text.Hide()
+        #QT disabled
+        #self.history_dialog.populate()
         self.tool_window.manage(placement="bottom")
-        """
-        self.history_dialog.populate()
-        """
-        session.ui.register_for_keystrokes(self.text)
 
     def cmd_clear(self):
         self.text.SetValue("")
@@ -64,7 +78,7 @@ class CommandLine(ToolInstance):
     def forwarded_keystroke(self, event):
         import wx
         if event.KeyCode == 13:          # Return
-            self.on_enter(event)
+            self.execute()
         elif event.KeyCode == 14:        # Ctrl-N
             self.history_dialog.down(event.GetModifiers() & wx.MOD_SHIFT)
         elif event.KeyCode == 16:        # Ctrl-P
@@ -113,7 +127,10 @@ class CommandLine(ToolInstance):
     def execute(self):
         session = self.session
         logger = session.logger
-        text = self.text.text()
+        if self.window_sys == "wx":
+            text = self.text.Value
+        else:
+            text = self.text.text()
         logger.status("")
         from chimerax.core import errors
         from chimerax.core.commands import Command
@@ -150,8 +167,12 @@ class CommandLine(ToolInstance):
                 pass
                 #QT disabled
                 #self.history_dialog.add(cmd_text)
-        self.text.setText(cmd_text)
-        self.text.selectAll()
+        if self.window_sys == "wx":
+            self.text.SetValue(cmd_text)
+            self.text.SelectAll()
+        else:
+            self.text.setText(cmd_text)
+            self.text.selectAll()
 
     def on_key_down(self, event):
         import wx

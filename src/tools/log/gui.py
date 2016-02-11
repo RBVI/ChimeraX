@@ -152,20 +152,20 @@ class Log(ToolInstance, HtmlLog):
             session.logger.add_log(self)
             self.log_window.Bind(wx.EVT_CLOSE, self.on_close)
             self.log_window.Bind(html2.EVT_WEBVIEW_LOADED, self.on_load)
-            self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
+            self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.navigate,
                                  id=self.log_window.GetId())
             self.log = self._wx_log
         else: # qt
             self.tool_window = LogWindow(self)
             parent = self.tool_window.ui_area
-            from PyQt5.QtWebKitWidgets import QWebView
+            from PyQt5.QtWebKitWidgets import QWebView, QWebPage
             class HtmlWindow(QWebView):
                 def sizeHint(self):
                     from PyQt5.QtCore import QSize
                     return QSize(*Log.SIZE)
-                def contextMenuEvent(self, event):
-                    import sys
-                    print("Inherited context menu event", file=sys.__stderr__)
+                #def contextMenuEvent(self, event):
+                #    import sys
+                #    print("Inherited context menu event", file=sys.__stderr__)
             self.log_window = HtmlWindow(parent)
             from PyQt5.QtWidgets import QGridLayout
             layout = QGridLayout(parent)
@@ -177,8 +177,13 @@ class Log(ToolInstance, HtmlLog):
             session.logger.add_log(self)
             self.log_window.loadFinished.connect(self.on_load)
             #self.log_window.contextMenuEvent = self.contextMenuEvent
-            import sys
-            print("context menu policy:", self.log_window.contextMenuPolicy(), file=sys.__stderr__)
+            #from PyQt5.QtCore import Qt
+            #self.log_window.setContextMenuPolicy(Qt.CustomContextMenu)
+            #self.log_window.customContextMenuRequested.connect(self.contextMenu)
+            #import sys
+            #print("context menu policy:", self.log_window.contextMenuPolicy(), file=sys.__stderr__)
+            self.log_window.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
+            self.log_window.linkClicked.connect(self.navigate)
             #self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
             #                     id=self.log_window.GetId())
             self.log = self._qt_log
@@ -312,12 +317,12 @@ class Log(ToolInstance, HtmlLog):
         return True
 
     def show_page_source(self):
+        css = context_menu_css + cxcmd_css
+        html = "<style>%s</style>%s\n%s" % (css, context_menu_html, self.page_source)
         if self.window_sys == "wx":
-            css = context_menu_css + cxcmd_css
-            self.log_window.SetPage("<style>%s</style>%s\n%s" % (
-                css, context_menu_html, self.page_source), "")
+            self.log_window.SetPage(html, "")
         else:
-            self.log_window.setHtml("<style>%s</style>%s" % (cxcmd_css, self.page_source))
+            self.log_window.setHtml(html)
 
     # wx event handling
 
@@ -326,20 +331,29 @@ class Log(ToolInstance, HtmlLog):
 
     def on_load(self, event):
         # scroll to bottom
-        main_frame = self.log_window.page().mainFrame()
-        main_frame.evaluateJavaScript(
-            "window.scrollTo(0, document.body.scrollHeight);")
+        if self.window_sys == "wx":
+            javascript = self.log_window.RunScript
+        else:
+            javascript = self.log_window.page().mainFrame().evaluateJavaScript
+        javascript("window.scrollTo(0, document.body.scrollHeight);")
         # setup context menu
-        main_frame.evaluateJavaScript(context_menu_script)
+        javascript(context_menu_script)
 
-    def on_navigating(self, event):
+    def navigate(self, data):
         session = self.session
         # Handle event
-        url = event.GetURL()
+        if self.window_sys == "wx":
+            # data is wx event
+            url = data.GetURL()
+            link_handled = data.Veto
+        else:
+            # data is QUrl
+            url = data.toString()
+            link_handled = lambda: False
         from urllib.parse import unquote
         url = unquote(url)
         if url.startswith("log:"):
-            event.Veto()
+            link_handled()
             cmd = url.split(':', 1)[1]
             if cmd == 'help':
                 self.display_help()
@@ -364,7 +378,7 @@ class Log(ToolInstance, HtmlLog):
             return
         elif url.startswith("cxcmd:"):
             from chimerax.core.commands import run
-            event.Veto()
+            link_handled()
             cmd = url.split(':', 1)[1]
             run(session, cmd)
             return
@@ -375,13 +389,17 @@ class Log(ToolInstance, HtmlLog):
                 # Ingore file:/// URL event that Mac generates
                 # for each call to SetPage()
                 return
-            event.Veto()
+            link_handled()
             from chimerax.core.commands import run
             run(session, "help %s" % url, log=False)
             return
         # unknown scheme
-        event.Veto()
+        link_handled()
         session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
+
+    def contextMenu(self):
+        import sys
+        print("Context menu requested", file=sys.__stderr__)
 
     def contextMenuEvent(self, event):
         import sys
