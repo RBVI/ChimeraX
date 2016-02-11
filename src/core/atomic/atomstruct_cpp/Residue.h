@@ -160,7 +160,7 @@ Residue::ribbon_adjust() const {
     if (_ribbon_adjust >= 0)
         return _ribbon_adjust;
     else if (_is_sheet)
-        return 0.7;
+        return 1.0;
     else if (_is_helix)
         return 0.0;
     else
