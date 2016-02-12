@@ -808,7 +808,7 @@ else:
             # make main window 2/3 of full screen of primary display
             dw = QDesktopWidget()
             main_screen = dw.availableGeometry(dw.primaryScreen())
-            self.setFixedSize(main_screen.width()*.67, main_screen.height()*.67)
+            self.resize(main_screen.width()*.67, main_screen.height()*.67)
 
             from PyQt5.QtCore import QSize
             class GraphicsArea(QStackedWidget):
