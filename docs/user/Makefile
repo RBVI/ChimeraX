@@ -7,7 +7,7 @@ SUBDIRS = tools
 
 DOCDIR = $(app_datadir)/docs/user
 
-SRCS = $(wildcard *.html) userdocs.css commands tools
+SRCS = $(wildcard *.html) userdocs.css commands
 IMAGES = $(wildcard *.png) ChimeraX-icon.svg
 
 # All needed subdirectories must be set by now.
