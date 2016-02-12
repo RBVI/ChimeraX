@@ -1,4 +1,4 @@
-# Makefile for user quick start guide.
+# Makefile for user guide
 #
 TOP	= ../../..
 include $(TOP)/mk/config.make
