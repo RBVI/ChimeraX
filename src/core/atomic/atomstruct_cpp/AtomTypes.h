@@ -2,11 +2,11 @@
 #ifndef atomstruct_AtomTypes
 #define atomstruct_AtomTypes
 
-#include "AtomicStructure.h"
+#include "Graph.h"
 
 namespace atomstruct {
 
-void compute_atom_types(AtomicStructure& mol);
+void compute_atom_types(Graph& mol);
 
 } // namespace atomstruct
 

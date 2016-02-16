@@ -37,6 +37,7 @@ using std::unordered_map;
 using std::vector;
 
 using atomstruct::AtomicStructure;
+using atomstruct::Graph;
 using atomstruct::Residue;
 using atomstruct::Bond;
 using atomstruct::Atom;
@@ -313,7 +314,7 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
 }
 
 void
-copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
+copy_nmr_info(Graph* from, Graph* to, PyObject* _logger)
 {
     if (from->num_atoms() != to->num_atoms())
         logger::warning(_logger, "Mismatched number of atoms (",

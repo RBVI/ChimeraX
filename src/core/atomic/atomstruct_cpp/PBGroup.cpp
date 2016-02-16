@@ -1,8 +1,8 @@
 // vi: set expandtab ts=4 sw=4:
 
 #include "Atom.h"
-#include "AtomicStructure.h"
 #include "destruct.h"
+#include "Graph.h"
 #include "PBGroup.h"
 #include "Pseudobond.h"
 

@@ -18,9 +18,9 @@ typedef _object PyObject;
     
 namespace atomstruct {
 
-class AtomicStructure;
 class ChangeTracker;
 class CoordSet;
+class Graph;
 class Proxy_PBGroup;
 class Pseudobond;
 
@@ -30,8 +30,8 @@ public:
     static const int GRP_NONE = 0;
     static const int GRP_NORMAL = GRP_NONE + 1;
     typedef std::map<std::string, Proxy_PBGroup*>  GroupMap;
-    typedef std::map<AtomicStructure*, int>  SessionStructureToIDMap;
-    typedef std::map<int, AtomicStructure*>  SessionIDToStructureMap;
+    typedef std::map<Graph*, int>  SessionStructureToIDMap;
+    typedef std::map<int, Graph*>  SessionIDToStructureMap;
 protected:
     ChangeTracker*  _change_tracker;
     GroupMap  _groups;
@@ -78,12 +78,12 @@ public:
 
 class StructureManager: public BaseManager {
 protected:
-    AtomicStructure*  _structure;
+    Graph*  _structure;
 public:
-    StructureManager(AtomicStructure* structure);
+    StructureManager(Graph* structure);
     virtual  ~StructureManager() {}
 
-    AtomicStructure*  structure() const { return _structure; }
+    Graph*  structure() const { return _structure; }
 };
 
 // global pseudobond manager
@@ -101,9 +101,9 @@ class AS_PBManager: public StructureManager
 public:
     static const int  GRP_PER_CS = GRP_NORMAL + 1;
 private:
-    friend class AtomicStructure;
+    friend class Graph;
     friend class CoordSet;
-    AS_PBManager(AtomicStructure* as): StructureManager(as) {}
+    AS_PBManager(Graph* as): StructureManager(as) {}
 
     void  remove_cs(const CoordSet* cs);
 public:

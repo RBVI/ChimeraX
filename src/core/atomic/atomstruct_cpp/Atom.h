@@ -31,9 +31,9 @@ using element::Element;
     
 namespace atomstruct {
 
-class AtomicStructure;
 class Bond;
 class CoordSet;
+class Graph;
 class Residue;
 class Ring;
 
@@ -66,7 +66,7 @@ public:
     static int  SESSION_ALTLOC_FLOATS(int /*version*/=0) { return 5; };
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
-    Atom(AtomicStructure *as, const char* name, const Element& e);
+    Atom(Graph *as, const char* name, const Element& e);
     virtual ~Atom();
 
     char  _alt_loc;
@@ -100,7 +100,7 @@ private:
     bool  _selected = false;
     int  _serial_number;
     void  _set_structure_category(Atom::StructCat sc) const;
-    AtomicStructure*  _structure;
+    Graph*  _structure;
     mutable StructCat  _structure_category;
 public:
     // so that I/O routines can cheaply "change their minds" about element
@@ -166,7 +166,7 @@ public:
     void  set_radius(float);
     void  set_serial_number(int);
     std::string  str() const;
-    AtomicStructure*  structure() const { return _structure; }
+    Graph*  structure() const { return _structure; }
     StructCat  structure_category() const;
 
     // change tracking
@@ -191,7 +191,7 @@ public:
 
 }  // namespace atomstruct
 
-#include "AtomicStructure.h"
+#include "Graph.h"
 
 namespace atomstruct {
 

@@ -54,10 +54,10 @@ public:
     virtual  ~Connection() { auto du = DestructionUser(this); }
     bool  contains(Atom* a) const { return a == _atoms[0] || a == _atoms[1]; }
     const Atoms&  atoms() const { return _atoms; }
-    Real  length() const { return _atoms[0]->coord().distance(_atoms[1]->coord()); }
+    Real  length() const;
     Atom*  other_atom(Atom* a) const;
     void  session_info(bool intra_mol, PyObject* ints, PyObject* floats, PyObject* misc) const;
-    Real  sqlength() const { return _atoms[0]->coord().sqdistance(_atoms[1]->coord()); }
+    Real  sqlength() const;
 
     // session related
     static int  session_num_floats(int version=0) {
@@ -98,50 +98,18 @@ public:
     const Rgba&  color() const { return _rgba; }
     bool  display() const { return _display; }
     bool  halfbond() const { return _halfbond; }
+    int  hide() const { return _hide; }
     virtual GraphicsContainer*  graphics_container() const = 0;
+    float  radius() const { return _radius; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a)
         { set_color(Rgba({r, g, b, a})); }
-    void  set_color(const Rgba& rgba) {
-        if (rgba == _rgba)
-            return;
-        graphics_container()->set_gc_color();
-        track_change(ChangeTracker::REASON_COLOR);
-        _rgba = rgba;
-    }
-    void  set_display(bool d) {
-        if (d == _display)
-            return;
-        graphics_container()->set_gc_shape();
-        track_change(ChangeTracker::REASON_DISPLAY);
-        _display = d;
-    }
-    void  set_halfbond(bool hb) {
-        if (hb == _halfbond)
-            return;
-        graphics_container()->set_gc_color();
-        track_change(ChangeTracker::REASON_HALFBOND);
-        _halfbond = hb;
-    }
-    void  set_radius(float r) {
-        if (r == _radius)
-            return;
-        graphics_container()->set_gc_shape();
-        track_change(ChangeTracker::REASON_RADIUS);
-        _radius = r;
-    }
-    float  radius() const { return _radius; }
-    int  hide() const { return _hide; }
-    void  set_hide(int h) {
-        if (h == _hide)
-            return;
-        graphics_container()->set_gc_shape();
-        track_change(ChangeTracker::REASON_HIDE);
-        _hide = h;
-    }
-    virtual bool shown() const
-        { return visible() && _atoms[0]->visible() && _atoms[1]->visible(); }
-    bool  visible() const
-        { return _hide ? false : _display; }
+    void  set_color(const Rgba& rgba);
+    void  set_display(bool d);
+    void  set_halfbond(bool hb);
+    void  set_hide(int h);
+    void  set_radius(float r);
+    virtual bool shown() const;
+    bool  visible() const { return _hide ? false : _display; }
 };
 
 class UniqueConnection: public Connection {
@@ -155,12 +123,89 @@ public:
     virtual  ~UniqueConnection() {}
 };
 
+inline Atom *
+Connection::other_atom(Atom *a) const
+{
+    if (a == _atoms[0])
+        return _atoms[1];
+    if (a == _atoms[1])
+        return _atoms[0];
+    throw std::invalid_argument(err_msg_not_in_connection());
+}
+
+} //  namespace atomstruct
+
+#include "Atom.h"
+#include "Graph.h"
+
+namespace atomstruct {
+
 inline void
 Connection::finish_construction()
 {
     if (_atoms[0] == _atoms[1])
         throw std::invalid_argument(err_msg_loop());
     graphics_container()->set_gc_shape();
+}
+
+inline Real
+Connection::length() const {
+    return _atoms[0]->coord().distance(_atoms[1]->coord());
+}
+
+inline void
+Connection::set_display(bool d) {
+    if (d == _display)
+        return;
+    graphics_container()->set_gc_shape();
+    track_change(ChangeTracker::REASON_DISPLAY);
+    _display = d;
+}
+
+inline void
+Connection::set_color(const Rgba& rgba) {
+    if (rgba == _rgba)
+        return;
+    graphics_container()->set_gc_color();
+    track_change(ChangeTracker::REASON_COLOR);
+    _rgba = rgba;
+}
+
+inline void
+Connection::set_halfbond(bool hb) {
+    if (hb == _halfbond)
+        return;
+    graphics_container()->set_gc_color();
+    track_change(ChangeTracker::REASON_HALFBOND);
+    _halfbond = hb;
+}
+
+inline void
+Connection::set_hide(int h) {
+    if (h == _hide)
+        return;
+    graphics_container()->set_gc_shape();
+    track_change(ChangeTracker::REASON_HIDE);
+    _hide = h;
+}
+
+inline void
+Connection::set_radius(float r) {
+    if (r == _radius)
+        return;
+    graphics_container()->set_gc_shape();
+    track_change(ChangeTracker::REASON_RADIUS);
+    _radius = r;
+}
+
+inline bool
+Connection::shown() const {
+    return visible() && _atoms[0]->visible() && _atoms[1]->visible();
+}
+
+inline Real
+Connection::sqlength() const {
+    return _atoms[0]->coord().sqdistance(_atoms[1]->coord());
 }
 
 inline void
@@ -172,16 +217,6 @@ UniqueConnection::finish_construction()
     if (a1->connects_to(a2))
         throw std::invalid_argument(err_msg_exists());
     add_to_atoms();
-}
-
-inline Atom *
-Connection::other_atom(Atom *a) const
-{
-    if (a == _atoms[0])
-        return _atoms[1];
-    if (a == _atoms[1])
-        return _atoms[0];
-    throw std::invalid_argument(err_msg_not_in_connection());
 }
 
 } //  namespace atomstruct

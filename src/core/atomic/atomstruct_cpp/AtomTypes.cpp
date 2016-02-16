@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "AtomTypes.h"
+#include "AtomicStructure.h"
 #include "Bond.h"
 #include "Coord.h"
 #include "Residue.h"

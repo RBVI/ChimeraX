@@ -16,9 +16,9 @@
 namespace atomstruct {
 
 class Atom;
-class AtomicStructure;
 class Bond;
 class Chain;
+class Graph;
 
 class ATOMSTRUCT_IMEX Residue {
 public:
@@ -28,8 +28,8 @@ public:
                  RIBBON_PIPE = 1 };
     enum PolymerType { PT_NONE = 0, PT_AMINO = 1, PT_NUCLEIC = 2 };
 private:
-    friend class AtomicStructure;
-    Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);
+    friend class Graph;
+    Residue(Graph *as, const ResName& name, const ChainID& chain, int pos, char insert);
     virtual  ~Residue();
 
     friend class Chain;
@@ -58,7 +58,7 @@ private:
     Rgba  _ribbon_rgba;
     Style  _ribbon_style;
     int  _ss_id;
-    AtomicStructure *  _structure;
+    Graph *  _structure;
 public:
     void  add_atom(Atom*);
     const Atoms &  atoms() const { return _atoms; }
@@ -94,7 +94,7 @@ public:
     void  set_ss_id(int ssid);
     int  ss_id() const { return _ss_id; }
     std::string  str() const;
-    AtomicStructure*  structure() const { return _structure; }
+    Graph*  structure() const { return _structure; }
     std::vector<Atom*>  template_assign(
         void (Atom::*assign_func)(const char*), const char* app,
         const char* template_dir, const char* extension) const;
@@ -125,7 +125,7 @@ public:
 
 }  // namespace atomstruct
 
-#include "AtomicStructure.h"
+#include "Graph.h"
 #include "Chain.h"
 
 namespace atomstruct {
@@ -243,18 +243,24 @@ Residue::set_ribbon_style(Style s) {
 }
 
 inline void
-Residue::ribbon_clear_hide() {
-    for (auto atom: atoms())
-        atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
-}
-
-inline void
 Residue::set_ss_id(int ss_id)
 {
     if (ss_id == _ss_id)
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SS_ID);
     _ss_id = ss_id;
+}
+
+}  // namespace atomstruct
+
+#include "Atom.h"
+
+namespace atomstruct {
+    
+inline void
+Residue::ribbon_clear_hide() {
+    for (auto atom: atoms())
+        atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
 }
 
 }  // namespace atomstruct

@@ -11,19 +11,19 @@
 namespace atomstruct {
 
 class Atom;
-class AtomicStructure;
 class ChangeTracker;
+class Graph;
 class Residue;
 class Ring;
 
 class ATOMSTRUCT_IMEX Bond: public UniqueConnection {
-    friend class AtomicStructure;
+    friend class Graph;
 public:
     // HIDE_ constants are masks for hide bits in Atom
     static const unsigned int  HIDE_RIBBON = 0x1;
     typedef std::vector<const Ring*>  Rings;
 private:
-    Bond(AtomicStructure *, Atom *, Atom *);
+    Bond(Graph*, Atom*, Atom*);
     void  add_to_atoms() { atoms()[0]->add_bond(this); atoms()[1]->add_bond(this); }
     const char*  err_msg_exists() const
         { return "Bond already exists between these atoms"; }
@@ -39,7 +39,7 @@ public:
     virtual bool shown() const;
     const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
-    AtomicStructure*  structure() const { return atoms()[0]->structure(); }
+    Graph*  structure() const;
     // length() inherited from UniqueConnection
     const Rings&  minimum_rings(bool cross_residues = false,
             std::set<const Residue*>* ignore = nullptr) const {
@@ -69,14 +69,13 @@ public:
     }
 
     // graphics related
-    GraphicsContainer*  graphics_container() const {
-        return reinterpret_cast<GraphicsContainer*>(atoms()[0]->structure());
-    }
+    GraphicsContainer*  graphics_container() const;
 };
 
 }  // namespace atomstruct
 
-#include "AtomicStructure.h"
+#include "Atom.h"
+#include "Graph.h"
 
 namespace atomstruct {
 
@@ -99,6 +98,11 @@ Bond::all_rings(bool cross_residues, int size_threshold,
     return rings(cross_residues, max_ring_size, ignore);
 }
 
+inline GraphicsContainer*
+Bond::graphics_container() const {
+    return reinterpret_cast<GraphicsContainer*>(atoms()[0]->structure());
+}
+
 inline const Bond::Rings&
 Bond::rings(bool cross_residues, int all_size_threshold,
     std::set<const Residue*>* ignore) const
@@ -106,6 +110,8 @@ Bond::rings(bool cross_residues, int all_size_threshold,
     atoms()[0]->structure()->rings(cross_residues, all_size_threshold, ignore);
     return _rings;
 }
+
+inline Graph* Bond::structure() const { return atoms()[0]->structure(); }
 
 }  // namespace atomstruct
 

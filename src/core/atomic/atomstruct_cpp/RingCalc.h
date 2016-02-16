@@ -2,12 +2,12 @@
 #ifndef atomstruct_RingCalc
 #define atomstruct_RingCalc
 
-#include "AtomicStructure.h"
+#include "Graph.h"
 
 namespace atomstruct {
 
-void calculate_rings(const AtomicStructure& as, bool cross_residues,
-    unsigned int all_size_threshold, AtomicStructure::Rings& calculated_rings,
+void calculate_rings(const Graph& as, bool cross_residues,
+    unsigned int all_size_threshold, Graph::Rings& calculated_rings,
     std::set<const Residue *>* ignore);
 
 } // namespace atomstruct

@@ -8,8 +8,8 @@
 #define MAP map
 #define SET set
 
-#include "AtomicStructure.h"
 #include "Bond.h"
+#include "Graph.h"
 #include "Residue.h"
 
 namespace atomstruct {
@@ -25,7 +25,7 @@ static Ring::Bonds::iterator contains_exactly_one(
 //      _all_ rings of at least the given size [ and no rings
 //      greater than that size, even if minimal ]
 void
-AtomicStructure::_calculate_rings(bool cross_residue,
+Graph::_calculate_rings(bool cross_residue,
     unsigned int all_size_threshold,
     std::set<const Residue *>* ignore) const
 {
