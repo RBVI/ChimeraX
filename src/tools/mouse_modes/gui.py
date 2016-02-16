@@ -50,8 +50,11 @@ class MouseModePanel(ToolInstance):
             tb = wx.BitmapToggleButton(parent, i+1, self.bitmap(mode.icon_file))
             def button_press_cb(event, mode=mode, tb=tb):
                 self.unset_other_buttons(tb)
-                modifiers = []
-                self.mouse_modes.bind_mouse_mode(button_to_bind, modifiers, mode)
+                mname = mode.name
+                if ' ' in mname:
+                    mname = '"%s"' % mname
+                from chimerax.core.commands import run
+                run(self.session, 'mousemode %s %s' % (button_to_bind, mname))
             parent.Bind(wx.EVT_TOGGLEBUTTON, button_press_cb, id=i+1)
             tb.SetToolTip(wx.ToolTip(mode.name))
             buttons.append(tb)
