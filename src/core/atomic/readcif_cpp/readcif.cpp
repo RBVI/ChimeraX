@@ -235,10 +235,23 @@ CIFFile::CIFFile()
 }
 
 void
-CIFFile::register_category(const std::string& category, ParseCategory callback, 
+CIFFile::register_category(const string& category, ParseCategory callback, 
 					const StringVector& dependencies)
 {
-	for (auto dep: dependencies) {
+#ifdef CASE_INSENSITIVE
+	string cname = category;
+	for (auto& c: cname)
+		c = tolower(c);
+	StringVector deps = dependencies;
+	for (auto& dep: deps) {
+		for (auto& c: dep)
+			c = tolower(c);
+	}
+#define category cname
+#define dependencies deps
+#endif
+
+	for (auto& dep: dependencies) {
 		if (categories.find(dep) != categories.end())
 			continue;
 		std::ostringstream err;
@@ -257,6 +270,10 @@ CIFFile::register_category(const std::string& category, ParseCategory callback,
 		categories.erase(category);
 	}
 }
+#ifdef CASE_INSENSITIVE
+#undef category
+#undef dependencies
+#endif
 
 #ifdef _WIN32
 void
@@ -410,14 +427,14 @@ CIFFile::parse(const char* buffer)
 }
 
 std::runtime_error
-CIFFile::error(const std::string& text)
+CIFFile::error(const string& text)
 {
 	std::ostringstream os;
 	os << text << " on line " << lineno;
 	return std::move(std::runtime_error(os.str()));
 }
 
-inline std::string
+inline string
 CIFFile::current_value()
 {
 	return string(current_value_start, current_value_end - current_value_start);
@@ -448,7 +465,7 @@ CIFFile::internal_parse(bool one_table)
 			Categories::iterator cii;
 			string cv = current_value();
 			size_t sep = cv.find('.');
-			DDL_v2 = (sep != std::string::npos);
+			DDL_v2 = (sep != string::npos);
 			if (DDL_v2) {
 				current_category = cv.substr(0, sep);
 				cii = categories.find(current_category);
@@ -457,7 +474,7 @@ CIFFile::internal_parse(bool one_table)
 				current_category = cv;
 				for (;;) {
 					sep = current_category.rfind('_');
-					if (sep == std::string::npos)
+					if (sep == string::npos)
 						break;
 					current_category.resize(sep);
 					cii = categories.find(current_category);
@@ -556,7 +573,7 @@ CIFFile::internal_parse(bool one_table)
 			Categories::iterator cii = categories.end();
 			string cv = current_value();
 			size_t sep = cv.find('.');
-			DDL_v2 = (sep != std::string::npos);
+			DDL_v2 = (sep != string::npos);
 			for (;;) {
 				string category;
 				if (DDL_v2) {
@@ -569,7 +586,7 @@ CIFFile::internal_parse(bool one_table)
 						category = current_category;
 					else for (;;) {
 						sep = category.rfind('_');
-						if (sep == std::string::npos)
+						if (sep == string::npos)
 							break;
 						category.resize(sep);
 						if (categories.find(category)
@@ -788,6 +805,10 @@ again:
 		for (e = pos + 1; is_not_whitespace(*e); ++e)
 			continue;
 		current_value_tmp = string(pos + 1, e - pos - 1);
+#ifdef CASE_INSENSITIVE
+		for (auto& c: current_value_tmp)
+			c = tolower(c);
+#endif
 		current_value_start = current_value_tmp.c_str();
 		current_value_end = current_value_start + current_value_tmp.size();
 		current_token = T_TAG;
@@ -993,11 +1014,11 @@ CIFFile::stylized_next_keyword(bool tag_okay)
 	}
 }
 
-std::vector<int>
+vector<int>
 CIFFile::find_column_offsets()
 {
 	// Find starting character position of each table column on a line
-	std::vector<int> offsets;
+	vector<int> offsets;
 	const char* save_start = current_value_start;
 	const char* start = save_start;
 	if (is_not_whitespace(*(start - 1)))
@@ -1045,7 +1066,12 @@ CIFFile::get_column(const char* tag, bool required)
 {
 	if (current_tags.empty())
 		throw std::runtime_error("must be parsing a table before getting a column position");
-	auto i = std::find(current_tags.begin(), current_tags.end(), std::string(tag));
+	string tagname(tag);
+#ifdef CASE_INSENSITIVE
+	for (auto& c: tagname)
+		c = tolower(c);
+#endif
+	auto i = std::find(current_tags.begin(), current_tags.end(), tagname);
 	if (i != current_tags.end())
 		return i - current_tags.begin();
 	if (!required)

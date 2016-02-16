@@ -704,6 +704,13 @@ ExtractMolecule::parse_atom_site()
             cur_comp_id = residue_name;
         }
 
+        if (isnan(x) || isnan(y) || isnan(z)) {
+            logger::warning(_logger, "Skipping atom \"", atom_name,
+                            "\" on line ", line_number(),
+                            ": missing coordinates");
+            continue;
+        }
+
         Atom* a;
         if (alt_id && cur_residue->count_atom(atom_name) == 1) {
             a = cur_residue->find_atom(atom_name);
