@@ -167,7 +167,8 @@ class Log(ToolInstance, HtmlLog):
                 #    import sys
                 #    print("Inherited context menu event", file=sys.__stderr__)
             self.log_window = HtmlWindow(parent)
-            from PyQt5.QtWidgets import QGridLayout
+            from PyQt5.QtWidgets import QGridLayout, QErrorMessage
+            self.error_dialog = QErrorMessage(parent)
             layout = QGridLayout(parent)
             layout.addWidget(self.log_window, 0, 0)
             parent.setLayout(layout)
@@ -198,6 +199,10 @@ class Log(ToolInstance, HtmlLog):
         Parameters documented in HtmlLog base class
         """
 
+        import sys
+        print("logging message '%s...' as %s, show error: %s, show warning: %s" %
+            (msg[:10], self.LEVEL_DESCRIPTS[level],
+            self.error_shows_dialog, self.warning_shows_dialog), file=sys.__stderr__)
         image, image_break = image_info
         if image:
             import io
@@ -212,33 +217,11 @@ class Log(ToolInstance, HtmlLog):
             if image_break:
                 self.page_source += "<br>\n"
         else:
-            """
             if ((level == self.LEVEL_ERROR and self.error_shows_dialog) or
                     (level == self.LEVEL_WARNING and self.warning_shows_dialog)):
-                if level == self.LEVEL_ERROR:
-                    caption = "ChimeraX Error"
-                    icon = wx.ICON_ERROR
-                else:
-                    caption = "ChimeraX Warning"
-                    icon = wx.ICON_EXCLAMATION
-                style = wx.OK | wx.OK_DEFAULT | icon | wx.CENTRE
-                graphics = self.session.ui.main_window.graphics_window
-                if is_html:
-                    from chimerax.core.logger import html_to_plain
-                    dlg_msg = html_to_plain(msg)
-                else:
-                    dlg_msg = msg
-                if dlg_msg.count('\n') > 20:
-                    # avoid excessively high error dialogs where
-                    # both the bottom buttons and top controls
-                    # may be off the screen!
-                    lines = dlg_msg.split('\n')
-                    dlg_msg = '\n'.join(lines[:10] + ["..."] + lines[-10:])
-                dlg = wx.MessageDialog(graphics, dlg_msg,
-                                       caption=caption, style=style)
-                dlg.ShowModal()
-            """
-
+                if not is_html:
+                    dlg_msg = "<br>".join(msg.split("\n"))
+                self.error_dialog.showMessage(dlg_msg)
             if not is_html:
                 from html import escape
                 msg = escape(msg)
