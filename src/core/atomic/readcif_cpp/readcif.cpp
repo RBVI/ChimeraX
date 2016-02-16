@@ -255,8 +255,8 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 		if (categories.find(dep) != categories.end())
 			continue;
 		std::ostringstream err;
-		err << "Missing dependency " << dep << " for category "
-							<< category;
+		err << "Reference to unregistered dependency " << dep
+			<< " in category " << category;
 		throw std::logic_error(err.str());
 	}
 	if (callback) {
