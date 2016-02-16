@@ -403,7 +403,7 @@ class CollatingLog(PlainTextLog):
                     else:
                         summarized.append("{} messages similar to the above omitted\n".format(
                             sim_reps - self.sim_collapse_after))
-                        self._sim_info = None
+                        sim_info = None
                 elif prev_msg is not None:
                     st = self.sim_test_size
                     similar = True
