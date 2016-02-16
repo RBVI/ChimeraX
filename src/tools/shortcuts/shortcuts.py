@@ -60,8 +60,8 @@ def standard_shortcuts(session):
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
 #        ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
-        ('dm', 'display selModels models', 'Display selected models', ocat, noarg, smenu),
-        ('hm', '~display selModels models', 'Hide selected models', ocat, noarg, smenu),
+        ('dm', 'show selModels models', 'Display selected models', ocat, noarg, smenu),
+        ('hm', 'hide selModels models', 'Hide selected models', ocat, noarg, smenu),
         ('Ds', 'close sel', 'Delete selected models', ocat, noarg, smenu, sep),
         ('cs', 'select clear', 'Clear selection', gcat, noarg, smenu),
 
@@ -73,7 +73,7 @@ def standard_shortcuts(session):
         ('bl', motion_blur, 'Toggle motion blur', gcat, viewarg, smenu, sep),
 
         ('sh', toggle_shadows, 'Toggle shadows', gcat, viewarg, smenu),
-        ('se', toggle_silhouettes, 'Toggle silhouette edges', gcat, viewarg, smenu),
+        ('se', toggle_silhouettes, 'Toggle silhouette edges', gcat, sesarg, smenu),
         ('la', 'lighting soft', 'Ambient lighting', gcat, noarg, mlmenu),
         ('lf', 'lighting full', 'Full lighting', gcat, noarg, mlmenu),
         ('ls', 'lighting simple', 'Simple lighting', gcat, noarg, mlmenu),
@@ -105,31 +105,31 @@ def standard_shortcuts(session):
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
         # Molecules
-        ('da', 'display selAtoms', 'Display atoms', molcat, noarg, mlmenu),
-        ('ha', '~display selAtoms', 'Undisplay atoms', molcat, noarg, mlmenu, sep),
+        ('da', 'show selAtoms', 'Show atoms', molcat, noarg, mlmenu),
+        ('ha', 'hide selAtoms', 'Hide atoms', molcat, noarg, mlmenu, sep),
 
         ('bs', 'style selAtoms ball', 'Display atoms in ball and stick', molcat, noarg, mlmenu),
         ('sp', 'style selAtoms sphere', 'Display atoms in sphere style', molcat, noarg, mlmenu),
         ('st', 'style selAtoms stick', 'Display atoms in stick style', molcat, noarg, mlmenu, sep),
 
-        ('rb', 'ribbon selAtoms', 'Display ribbon', molcat, noarg, mlmenu),
-        ('hr', '~ribbon selAtoms', 'Undisplay ribbon', molcat, noarg, mlmenu),
+        ('rb', 'show selAtoms ribbon', 'Display ribbon', molcat, noarg, mlmenu),
+        ('hr', 'hide selAtoms ribbon', 'Undisplay ribbon', molcat, noarg, mlmenu),
 #        ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
 #        ('la', show_ligands, 'Show ligand atoms', molcat, molarg, mlmenu),
-        ('sw', 'display solvent', 'Show water atoms', molcat, noarg, mlmenu),
-        ('hw', '~display solvent', 'Hide water atoms', molcat, noarg, mlmenu, sep),
+        ('sw', 'show solvent', 'Show water atoms', molcat, noarg, mlmenu),
+        ('hw', 'hide solvent', 'Hide water atoms', molcat, noarg, mlmenu, sep),
 
-        ('db', 'display selAtoms bonds', 'Display bonds', molcat, noarg, mlmenu),
-        ('hb', '~display selAtoms bonds', 'Hide bonds', molcat, noarg, mlmenu),
+        ('db', 'show selAtoms bonds', 'Display bonds', molcat, noarg, mlmenu),
+        ('hb', 'hide selAtoms bonds', 'Hide bonds', molcat, noarg, mlmenu),
 
         ('Hb', 'color selAtoms halfbond true', 'Half bond coloring', molcat, noarg, mlmenu),
         ('Sb', 'color selAtoms halfbond false', 'Single color bonds', molcat, noarg, mlmenu),
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('cc', 'color selAtoms bychain', 'Color chains', molcat, noarg, mlmenu, sep),
-        ('ce', 'color selAtoms byelement', 'Color atoms by element', molcat, noarg, mlmenu),
+        ('ce', 'color selAtoms byhet', 'Color non-carbon atoms by element', molcat, noarg, mlmenu),
         ('rc', 'color selAtoms random target a', 'Random color atoms', molcat, noarg, mlmenu),
         ('bf', color_by_bfactor, 'Color by bfactor', molcat, atomsarg, mlmenu),
 
@@ -276,8 +276,6 @@ class Shortcut:
     def log(self, logger):
         smsg = '%s - %s' % (self.key_name, self.description)
         logger.status(smsg)
-        imsg = '%s (%s)' % (self.description, self.key_name)
-        logger.info(imsg)
 
 class Keyboard_Shortcuts:
     '''
@@ -695,9 +693,10 @@ def toggle_shadows(viewer):
     viewer.update_lighting = True
     viewer.redraw_needed = True
 
-def toggle_silhouettes(viewer):
-    viewer.silhouettes = not viewer.silhouettes
-    viewer.redraw_needed = True
+def toggle_silhouettes(session):
+    v = session.main_view
+    from chimerax.core.commands import run
+    run(session, 'set silhouettes %s' % ('false' if v.silhouettes else 'true'))
 
 def depth_cue(viewer):
     viewer.depth_cue = not viewer.depth_cue
