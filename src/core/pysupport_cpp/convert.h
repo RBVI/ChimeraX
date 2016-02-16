@@ -2,6 +2,7 @@
 #ifndef pysupport_convert
 #define pysupport_convert
 
+#include <stdexcept>
 #include <sstream>
 #include <string>
 #include <vector>
