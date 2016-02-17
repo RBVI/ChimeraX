@@ -17,4 +17,6 @@ TODO: evaluate if this is needed.
 
     apps/ChimeraX/ChimeraX.rst
 
+    apps/moduleapp/moduleapp.rst
+
     webapp.rst

@@ -1284,7 +1284,6 @@ CIFFile::process_stash()
 {
 	Token last_token = current_token;
 	size_t last_lineno = lineno;
-	current_token = T_SOI;	// make sure next_token return values
 	auto save_stash = std::move(stash);
 	stash.clear();
 	for (auto c: categoryOrder) {
@@ -1297,6 +1296,7 @@ CIFFile::process_stash()
 		}
 		pos = si->second.start;
 		lineno = si->second.lineno;
+		current_token = T_SOI;	// make sure next_token returns values
 		internal_parse(true);
 	}
 	current_token = last_token;

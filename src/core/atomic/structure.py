@@ -28,13 +28,13 @@ class AtomicStructure(AtomicStructureData, Model):
         from .molarray import Residues
         from numpy import array
         # from .ribbon import XSection
-        xsc_helix = array([( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
-                           (-0.5,-0.1),(0.0,-0.2),( 0.5,-0.1),( 0.6,0.0)]) * 1.5
-        xsc_strand = array([(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]) * 1.5
-        xsc_turn = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
-        xsc_arrow_head = array([(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]) * 1.5
-        xsc_arrow_tail = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
-        xsc_nuc = array([(0.1,0.5),(-0.1,0.5),(-0.1,-0.5),(0.1,-0.5)]) * 1.5
+        xsc_helix = array([( 5, 1),(0, 1.5),(-5, 1),(-6,0),
+                           (-5,-1),(0,-1.5),( 5,-1),( 6,0)]) * 0.15
+        xsc_strand = array([(5,1),(-5,1),(-5,-1),(5,-1)]) * 0.15
+        xsc_turn = array([(1,1),(-1,1),(-1,-1),(1,-1)]) * 0.15
+        xsc_arrow_head = array([(10,1),(-10,1),(-10,-1),(10,-1)]) * 0.15
+        xsc_arrow_tail = array([(1,1),(-1,1),(-1,-1),(1,-1)]) * 0.15
+        xsc_nuc = array([(1,5),(-1,5),(-1,-5),(1,-5)]) * 0.15
        
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
@@ -75,6 +75,7 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
+        self._ribbon_xs_helix_start = self._ribbon_xs_helix     # nothing special for helix start
         self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
         self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
         self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
@@ -428,6 +429,7 @@ class AtomicStructure(AtomicStructureData, Model):
             polymer_type = residues.polymer_types
             xss = []
             was_strand = False
+            was_helix = False
             for i in range(len(residues)):
                 if polymer_type[i] == Residue.PT_NUCLEIC:
                     xss.append(self._ribbon_xs_nuc)
@@ -437,14 +439,20 @@ class AtomicStructure(AtomicStructureData, Model):
                     else:
                         xss.append(self._ribbon_xs_strand_start)
                         was_strand = True
+                    was_helix = False
                 else:
                     if was_strand:
                         xss[-1] = self._ribbon_xs_arrow
+                        was_strand = False
                     if is_helix[i]:
-                        xss.append(self._ribbon_xs_helix)
+                        if was_helix:
+                            xss.append(self._ribbon_xs_helix)
+                        else:
+                            xss.append(self._ribbon_xs_helix_start)
+                            was_helix = True
                     else:
                         xss.append(self._ribbon_xs_turn)
-                    was_strand = False
+                        was_helix = False
             if was_strand:
                 # 1hxx ends in a strand
                 xss[-1] = self._ribbon_xs_arrow
@@ -455,7 +463,8 @@ class AtomicStructure(AtomicStructureData, Model):
 
             # First residues
             if displays[0]:
-                capped = displays[0] != displays[1] or xss[0] != xss[1]
+                xss_compat = self._xss_compatible(xss[0], xss[1])
+                capped = displays[0] != displays[1] or not xss_compat
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.lead_segment(seg_cap / 2)
                 back_c, back_t, back_n = ribbon.segment(0, ribbon.FRONT, seg)
@@ -476,7 +485,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 normal_list.append(s.normals)
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
-                if displays[1] and xss[0] == xss[1]:
+                if displays[1] and xss_compat:
                     prev_band = s.back_band
                 else:
                     prev_band = None
@@ -499,7 +508,7 @@ class AtomicStructure(AtomicStructureData, Model):
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                next_cap = displays[i] != displays[i + 1] or xss[i] != xss[i + 1]
+                next_cap = displays[i] != displays[i + 1] or not self._xss_compatible(xss[i], xss[i + 1])
                 seg = next_cap and seg_cap or seg_blend
                 back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg)
                 if self.ribbon_show_spine:
@@ -736,6 +745,15 @@ class AtomicStructure(AtomicStructureData, Model):
         ss_colors = empty((len(ss_radii), 4), float32)
         ss_colors[:] = (0,255,0,255)
         ssp.colors = ss_colors
+
+    def _xss_compatible(self, xs0, xs1):
+        if xs0 is xs1:
+            return True
+        if xs0 is self._ribbon_xs_strand_start and xs1 is self._ribbon_xs_strand:
+            return True
+        if xs0 is self._ribbon_xs_helix_start and xs1 is self._ribbon_xs_helix:
+            return True
+        return False
 
     def _ribbon_update_spine(self, c, centers, normals, spine_colors, spine_xyz1, spine_xyz2):
         from numpy import empty
