@@ -2644,11 +2644,11 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
     }
 }
 
-// #define DEBUG_CONSTRAINED_NORMALS   1
+#define DEBUG_CONSTRAINED_NORMALS   0
 
 extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end)
 {
-#ifdef DEBUG_CONSTRAINED_NORMALS
+#if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "constrained_normals\n";
 #endif
     // Convert Python objects to arrays and pointers
@@ -2663,19 +2663,21 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
     float *n_end = enda.values();
     // First get the "natural" normals
     int num_pts = ta.size(0);
-#ifdef DEBUG_CONSTRAINED_NORMALS
+#if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "n_start" << ' ' << n_start[0] << ' ' << n_start[1] << ' ' << n_start[2] << '\n';
     std::cerr << "n_end" << ' ' << n_end[0] << ' ' << n_end[1] << ' ' << n_end[2] << '\n';
+#if DEBUG_CONSTRAINED_NORMALS > 1
     std::cerr << "tangents\n";
     for (int i = 0; i != num_pts; ++i) {
         float *tp = tangents + i * 3;
         std::cerr << "  " << i << ' ' << tp[0] << ' ' << tp[1] << ' ' << tp[2] << '\n';
     }
 #endif
+#endif
     float* normals = NULL;
     PyObject *py_normals = python_float_array(num_pts, 3, &normals);
     _parallel_transport_normals(num_pts, tangents, n_start, normals);
-#ifdef DEBUG_CONSTRAINED_NORMALS
+#if DEBUG_CONSTRAINED_NORMALS > 1
     std::cerr << "returned from _parallel_transport_normals\n";
     for (int i = 0; i != num_pts; ++i) {
         float *np = normals + i * 3;
@@ -2687,9 +2689,12 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
     float* n = normals + (num_pts - 1) * 3;
     float other_end[3] = { n_end[0], n_end[1], n_end[2] };
     float twist = acos(inner(n, n_end));
+#if DEBUG_CONSTRAINED_NORMALS > 0
+    std::cerr << "initial twist " << twist << "\n";
+#endif
     if (isnan(twist))
         twist = 0;
-    // If twist is greater than 180 degrees, turn the opposite
+    // If twist is greater than 90 degrees, turn the opposite
     // direction.  (Assumes that ribbons are symmetric.)
     bool flipped = false;
     if (twist > M_PI / 2) {
@@ -2697,17 +2702,21 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
             other_end[i] = -n_end[i];
         twist = acos(inner(n, other_end));
         flipped = true;
-    }
-#ifdef DEBUG_CONSTRAINED_NORMALS
-    std::cerr << "total twist " << twist << "\n";
+#if DEBUG_CONSTRAINED_NORMALS > 0
+    std::cerr << "flipping twist " << twist << "\n";
 #endif
-    // Compute amount of twist per segment
-    float delta = twist / (num_pts - 1);
+    }
+#if DEBUG_CONSTRAINED_NORMALS > 0
+    std::cerr << "final twist " << twist << " flipped " << flipped << "\n";
+#endif
+    // Figure out direction of twist (right-hand rule)
     float *last_tangent = tangents + (num_pts - 1) * 3;
     float tmp[3];
     if (inner(cross(n, other_end, tmp), last_tangent) < 0)
-        delta = -delta;
-#ifdef DEBUG_CONSTRAINED_NORMALS
+        twist = -twist;
+    // Compute amount of twist per segment
+    float delta = twist / (num_pts - 1);
+#if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "per step delta " << delta << "\n";
 #endif
     // Apply twist to each normal along path
@@ -2716,15 +2725,19 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
         float angle = i * delta;
         float c = cos(angle);
         float s = sin(angle);
-#ifdef DEBUG_CONSTRAINED_NORMALS
+#if DEBUG_CONSTRAINED_NORMALS > 0
         std::cerr << "twist " << i << " angle " << angle << " -> ";
 #endif
         _rotate_around(tangents + offset, c, s, normals + offset);
-#ifdef DEBUG_CONSTRAINED_NORMALS
+#if DEBUG_CONSTRAINED_NORMALS > 0
         float* n = normals + offset;
         std::cerr << n[0] << ' ' << n[1] << ' ' << n[2] << '\n';
 #endif
     }
+#if DEBUG_CONSTRAINED_NORMALS > 0
+    if (fabs(inner(normals + (num_pts - 1) * 3, n_end)) < 1e-4)
+        std::cerr << "***** WRONG ROTATION *****\n";
+#endif
     // Return both computed normals and whether normal ends up
     // 180 degrees from targeted end normal.
     PyObject *o = PyTuple_New(2);
