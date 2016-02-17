@@ -67,7 +67,7 @@ setup(
         # Example:
         # "ChimeraX-Bundle :: cmd_line :: chimerax.cmd_line "
         # ":: Command Line Interface :: command_line :: General"
-        "ChimeraX-Bundle :: molecule_display_shortcuts :: chimerax.shortcuts :: Molecule Display :: ks :: General :: :: :: :: Two-letter shortcuts",
-        "ChimeraX-Bundle :: graphics_shortcuts :: chimerax.shortcuts :: Graphics :: :: General :: :: :: :: Two-letter shortcuts",
+        "ChimeraX-Bundle :: molecule_display_shortcuts :: chimerax.shortcuts :: Molecule Display :: ks :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
+        "ChimeraX-Bundle :: graphics_shortcuts :: chimerax.shortcuts :: Graphics :: :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
     ],
 )
