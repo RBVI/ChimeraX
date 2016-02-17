@@ -227,22 +227,22 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_audit_conform();
         });
-    register_category("atom_site",
-        [this] () {
-            parse_atom_site();
-        });
-    register_category("struct_conn",
-        [this] () {
-            parse_struct_conn();
-        }, { "atom_site" });
     register_category("entity_poly_seq",
         [this] () {
             parse_entity_poly_seq();
         });
+    register_category("atom_site",
+        [this] () {
+            parse_atom_site();
+        }, { "entity_poly_seq" });
+    register_category("struct_conn",
+        [this] () {
+            parse_struct_conn();
+        }, { "atom_site" });
     register_category("struct_conf",
         [this] () {
             parse_struct_conf();
-        }, { "struct_conn", "entity_poly_seq" });
+        }, { "struct_conn" /*, "entity_poly_seq" */ });
     register_category("struct_sheet_range",
         [this] () {
             parse_struct_sheet_range();
@@ -418,7 +418,7 @@ ExtractMolecule::finished_parse()
             if (lastp && lastp->seq_id == p.seq_id) {
                 if (!lastp->hetero)
                     logger::warning(_logger, "Duplicate entity_id/seq_id ",
-                        p.seq_id, ") without hetero");
+                        p.seq_id, " without hetero");
                 current.push_back(r);
             } else {
                 if (!previous.empty() && !current.empty()) {
@@ -444,7 +444,7 @@ ExtractMolecule::finished_parse()
         seqres.reserve(entity_poly_seq.size());
         lastp = nullptr;
         for (auto& p: entity_poly_seq) {
-            if (lastp && lastp->seq_id == p.seq_id)
+            if (lastp && lastp->seq_id == p.seq_id && p.hetero)
                 continue;  // ignore microheterogeneity
             seqres.push_back(p.mon_id);
             lastp = &p;
@@ -536,6 +536,7 @@ ExtractMolecule::parse_atom_site()
     float b_factor = FLT_MAX;     // B_iso_or_equiv
     int model_num = 0;            // pdbx_PDB_model_num
 
+    bool missing_poly_seq = poly_seq.empty();
 
     pv.emplace_back(get_column("id"), false,
         [&] (const char* start, const char*) {
@@ -682,7 +683,6 @@ ExtractMolecule::parse_atom_site()
         || cur_auth_seq_id != auth_position
         || cur_chain_id != chain_id
         || cur_comp_id != residue_name) {
-            chain_entity_map[chain_id] = entity_id;
             ResName rname;
             ChainID cid;
             long pos;
@@ -699,15 +699,20 @@ ExtractMolecule::parse_atom_site()
             else
                 pos = position;
             cur_residue = mol->new_residue(rname, cid, pos, ins_code);
-            if (model_num == first_model_num) {
-                all_residues[chain_id]
-                    [ResidueKey(entity_id, position, residue_name)] = cur_residue;
-            }
             cur_entity_id = entity_id;
             cur_seq_id = position;
             cur_auth_seq_id = auth_position;
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
+            if (missing_poly_seq) {
+                entity_id = cid.c_str();
+                poly_seq[entity_id].emplace(pos, rname, false);
+            }
+            chain_entity_map[chain_id] = entity_id;
+            if (model_num == first_model_num) {
+                all_residues[chain_id]
+                    [ResidueKey(entity_id, position, residue_name)] = cur_residue;
+            }
         }
 
         if (isnan(x) || isnan(y) || isnan(z)) {
