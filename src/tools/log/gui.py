@@ -199,10 +199,6 @@ class Log(ToolInstance, HtmlLog):
         Parameters documented in HtmlLog base class
         """
 
-        import sys
-        print("logging message '%s...' as %s, show error: %s, show warning: %s" %
-            (msg[:10], self.LEVEL_DESCRIPTS[level],
-            self.error_shows_dialog, self.warning_shows_dialog), file=sys.__stderr__)
         image, image_break = image_info
         if image:
             import io

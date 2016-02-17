@@ -452,8 +452,7 @@ else:
                 ('middle', [], 'translate'),
                 ('right', [], 'zoom'),
                 ('wheel', [], 'zoom'),
-                #QT disabled
-                #('pause', [], 'identify object'),
+                ('pause', [], 'identify object'),
                 )
             mmap = {m.name:m for m in self.modes}
             for button, modifiers, mode_name in standard_modes:
@@ -1111,7 +1110,7 @@ def standard_mouse_mode_classes():
             RotateSelectedMouseMode,
             ClipMouseMode,
             ClipRotateMouseMode,
-            #ObjectIdMouseMode,
+            ObjectIdMouseMode,
             #map.ContourLevelMouseMode,
             #map.PlanesMouseMode,
             #markers.MarkerMouseMode,

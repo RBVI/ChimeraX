@@ -274,10 +274,7 @@ else:
                 self.view.camera = StereoCamera()
             self.view.initialize_context(self.opengl_context)
 
-            #QT disabled
-            """
-            self.popup = Popup(parent)        # For display of atom spec balloons
-            """
+            self.popup = Popup(self)        # For display of atom spec balloons
 
             from .mousemodes import MouseModes
             self.mouse_modes = MouseModes(self, ui.session)
@@ -339,6 +336,21 @@ else:
                 self.session.update_loop.draw_new_frame(self.session) \
                     or self.mouse_modes.mouse_pause_tracking()
                 self.last_redraw_finish_time = time.perf_counter()
+
+    from PyQt5.QtWidgets import QLabel
+    class Popup(QLabel):
+
+        def __init__(self, graphics_window):
+            from PyQt5.QtCore import Qt
+            QLabel.__init__(self)
+            self.setWindowFlags(self.windowFlags() | Qt.ToolTip)
+            self.graphics_window = graphics_window
+
+        def show_text(self, text, position):
+            self.setText(text)
+            from PyQt5.QtCore import QPoint
+            self.move(self.graphics_window.mapToGlobal(QPoint(*position)))
+            self.show()
 
     from PyQt5.QtGui import QOpenGLContext, QSurfaceFormat
     class OpenGLContext(QOpenGLContext):
