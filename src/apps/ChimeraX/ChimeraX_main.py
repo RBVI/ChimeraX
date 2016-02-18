@@ -72,6 +72,7 @@ def parse_arguments(argv):
     opts.list_file_types = False
     opts.load_tools = True
     opts.silent = False
+    opts.start_tools = []
     opts.status = True
     opts.stereo = False
     opts.uninstall = False
@@ -87,6 +88,7 @@ def parse_arguments(argv):
         "--listfiletypes",
         "--silent",
         "--nostatus",
+        "--start <tool name>",
         "--notools",
         "--stereo",
         "--uninstall",
@@ -153,6 +155,8 @@ def parse_arguments(argv):
             opts.status = opt[2] == 's'
         elif opt in "--stereo":
             opts.stereo = True
+        elif opt == "--start":
+            opts.start_tools.append(optarg)
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
@@ -352,6 +356,14 @@ def init(argv, event_loop=True):
                 print("Loading autostart tools", flush=True)
         sess.tools.autostart()
 
+    if opts.start_tools:
+        if not opts.silent:
+            msg = 'Starting tools %s' % ', '.join(opts.start_tools)
+            sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
+            if sess.ui.is_gui and opts.debug:
+                print(msg, flush=True)
+        sess.tools.start_tools(opts.start_tools)
+        
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
                             next(splash_step), num_splash_steps)

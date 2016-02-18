@@ -320,13 +320,18 @@ class Tools(State):
 
     def autostart(self):
         """Start tools that should start when applications starts up."""
+        from .core_settings import settings
+        self.start_tools(settings.autostart)
+
+    def start_tools(self, tool_names):
+        """Start tools that are specified by name."""
         session = self._session()   # resolve back reference
         from .toolshed import ToolshedError
         from .core_settings import settings
-        auto_ti = [None] * len(settings.autostart)
+        auto_ti = [None] * len(tool_names)
         for tool_inst in session.toolshed.bundle_info():
             try:
-                auto_ti[settings.autostart.index(tool_inst.name)] = tool_inst
+                auto_ti[tool_names.index(tool_inst.name)] = tool_inst
             except ValueError:
                 continue
         # start them in the same order as given in the setting
