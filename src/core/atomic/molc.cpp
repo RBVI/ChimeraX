@@ -1720,7 +1720,7 @@ extern "C" void set_structure_color(void *mol, uint8_t *rgba)
 
 extern "C" void *structure_copy(void *mol)
 {
-    AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+    Graph *m = static_cast<Graph *>(mol);
     try {
         return m->copy();
     } catch (...) {
@@ -2169,6 +2169,17 @@ extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structur
         return poly;
     } catch (...) {
         Py_XDECREF(poly);
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void *graph_new(PyObject* logger)
+{
+    try {
+        Graph *g = new Graph(logger);
+        return g;
+    } catch (...) {
         molc_error();
         return nullptr;
     }

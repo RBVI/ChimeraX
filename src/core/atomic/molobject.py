@@ -464,16 +464,11 @@ class Chain(Sequence):
 
 # -----------------------------------------------------------------------------
 #
-class AtomicStructureData:
-    '''
-    This is a base class of :class:`.AtomicStructure`.
-    This base class manages the atomic data while the
-    derived class handles the graphical 3-dimensional rendering using OpenGL.
-    '''
+class GraphData:
     def __init__(self, mol_pointer=None, logger=None, restore_data=None):
         if mol_pointer is None:
-            # Create a new atomic structure
-            mol_pointer = c_function('structure_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
+            # Create a new graph
+            mol_pointer = c_function('graph_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
 
         if restore_data:
@@ -645,6 +640,20 @@ class AtomicStructureData:
     _gc_select = c_property('structure_gc_select', npy_bool)
     _gc_shape = c_property('structure_gc_shape', npy_bool)
     _gc_ribbon = c_property('structure_gc_ribbon', npy_bool)
+
+# -----------------------------------------------------------------------------
+#
+class AtomicStructureData(GraphData):
+    '''
+    This is a base class of :class:`.AtomicStructure`.
+    This base class manages the atomic data while the
+    derived class handles the graphical 3-dimensional rendering using OpenGL.
+    '''
+    def __init__(self, mol_pointer=None, logger=None, restore_data=None):
+        if mol_pointer is None:
+            # Create a new atomic structure
+            mol_pointer = c_function('structure_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
+        GraphData.__init__(self, mol_pointer=mol_pointer, logger=logger, restore_data=restore_data)
 
 # -----------------------------------------------------------------------------
 #
