@@ -706,7 +706,9 @@ ExtractMolecule::parse_atom_site()
             cur_comp_id = residue_name;
             if (missing_poly_seq) {
                 entity_id = cid.c_str();
-                poly_seq[entity_id].emplace(pos, rname, false);
+                // TODO: should only save amino and nucleic acids
+                if (residue_name != "HOH")
+                    poly_seq[entity_id].emplace(position, residue_name, false);
             }
             chain_entity_map[chain_id] = entity_id;
             if (model_num == first_model_num) {
