@@ -145,7 +145,7 @@ protected:
         std::set<const Residue *>* ignore = nullptr) const;
     // in the SESSION* functions, a version of "0" means the latest version
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 8; }
+    static int  SESSION_NUM_INTS(int /*version*/=0) { return 9; }
     static int  SESSION_NUM_MISC(int /*version*/=0) { return 4; }
 
 public:
