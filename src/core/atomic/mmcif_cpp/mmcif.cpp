@@ -242,7 +242,7 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
     register_category("struct_conf",
         [this] () {
             parse_struct_conf();
-        }, { "struct_conn" /*, "entity_poly_seq" */ });
+        }, { "struct_conn",  "entity_poly_seq" });
     register_category("struct_sheet_range",
         [this] () {
             parse_struct_sheet_range();
