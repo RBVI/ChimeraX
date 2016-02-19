@@ -79,8 +79,8 @@ def standard_shortcuts(session):
         ('ls', 'lighting simple', 'Simple lighting', gcat, noarg, mlmenu),
         ('lF', 'lighting flat', 'Flat lighting', gcat, noarg, mlmenu),
 
-        ('sx', 'save ~/Desktop/image.png supersample 3', 'Save snapshot', gcat, noarg, mlmenu),
-        ('vd', 'movie record ; turn y 2 180 ; wait ; movie encode ~/Desktop/movie.mp4', 'Record spin movie', gcat, noarg, mlmenu),
+        ('sx', save_image, 'Save snapshot', gcat, sesarg, mlmenu),
+        ('vd', save_spin_movie, 'Record spin movie', gcat, sesarg, mlmenu),
 #        ('Mo', mono_mode, 'Set mono camera mode', gcat, viewarg, smenu),
 #        ('So', stereo_mode, 'Set sequential stereo mode', gcat, viewarg, smenu, sep),
 
@@ -933,6 +933,36 @@ def minimize_crosslinks(atoms, session):
     from chimerax.core.crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
+def save_image(session, basepath = '~/Desktop/image', suffix = '.png'):
+    from chimerax.core.commands import run
+    run(session, 'save %s supersample 3' % unused_file_name(basepath, suffix))
+
+def save_spin_movie(session, basepath = '~/Desktop/movie', suffix = '.mp4'):
+    cmd = 'movie record ; turn y 2 180 ; wait ; movie encode %s' % unused_file_name(basepath, suffix)
+    from chimerax.core.commands import run
+    run(session, cmd)
+    
+def unused_file_name(basepath, suffix):
+    '''
+    Return path which is basepath plus a positive integer plus the file suffix
+    such that the integer is greater than any other file that has this form.
+    '''
+    from os.path import dirname, basename, expanduser
+    dir = expanduser(dirname(basepath))
+    from os import listdir
+    files = listdir(dir)
+    bname = basename(basepath)
+    nums = []
+    for f in files:
+        if f.startswith(bname) and f.endswith(suffix):
+            try:
+                nums.append(int(f[len(bname):len(f)-len(suffix)]))
+            except:
+                pass
+    n = max(nums, default = 0) + 1
+    path = '%s%d%s' % (basepath, n, suffix)
+    return path
+    
 def keyboard_shortcuts(session):
     ks = getattr(session, 'keyboard_shortcuts', None)
     if ks is None:
