@@ -7,6 +7,7 @@ from chimerax.core.tools import ToolInstance
 class MouseModePanel(ToolInstance):
 
     SESSION_ENDURING = True
+    help = "help:user/tools/mousemodes.html"
 
     def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
