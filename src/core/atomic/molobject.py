@@ -583,7 +583,7 @@ class GraphData:
         return object_map(pbg, PseudobondGroup)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
-        AtomicStructureData.__init__(self, logger=session.logger,
+        GraphData.__init__(self, logger=session.logger,
             restore_data=(session, version, data))
 
     def session_atom_to_id(self, ptr):
@@ -654,6 +654,10 @@ class AtomicStructureData(GraphData):
             # Create a new atomic structure
             mol_pointer = c_function('structure_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         GraphData.__init__(self, mol_pointer=mol_pointer, logger=logger, restore_data=restore_data)
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        AtomicStructureData.__init__(self, logger=session.logger,
+            restore_data=(session, version, data))
 
 # -----------------------------------------------------------------------------
 #
