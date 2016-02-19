@@ -674,15 +674,20 @@ class ClipMouseMode(MouseMode):
     def mouse_drag(self, event):
 
         dx, dy = self.mouse_motion(event)
+        front_shift, back_shift = self.which_planes(event)
+        self.clip_move((dx,-dy), front_shift, back_shift)
+
+    def which_planes(self, event):
         shift, alt = event.shift_down(), event.alt_down()
         front_shift = 1 if shift or not alt else 0
         back_shift = 0 if not (alt or shift) else (1 if alt and shift else -1)
-        self.clip_move((dx,-dy), front_shift, back_shift)
-
+        return front_shift, back_shift
+    
     def wheel(self, event):
         d = event.wheel_value()
         psize = self.pixel_size()
-        self.clip_move(None, 1, 0, delta = 10*psize*d)
+        front_shift, back_shift = self.which_planes(event)
+        self.clip_move(None, front_shift, back_shift, delta = 100*psize*d)
 
     def clip_move(self, delta_xy, front_shift, back_shift, delta = None):
         pf, pb = self._planes(front_shift, back_shift)
