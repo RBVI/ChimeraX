@@ -3,19 +3,11 @@ from .. import io
 from ..models import Model
 from ..state import State
 from ..session import RestoreError
-from .molobject import AtomicStructureData
+from .molobject import AtomicStructureData, GraphData
 
 CATEGORY = io.STRUCTURE
 
-
-class AtomicStructure(AtomicStructureData, Model):
-    """
-    Bases: :class:`.AtomicStructureData`, :class:`.Model`
-
-    Molecular model including atomic coordinates.
-    The data is managed by the :class:`.AtomicStructureData` base class
-    which provides access to the C++ structures.
-    """
+class StructureGraphBase(Model):
 
     ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
         "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
@@ -52,13 +44,13 @@ class AtomicStructure(AtomicStructureData, Model):
             #
             # Model will attempt to restore self.name, which is a property of the C++
             # layer for an AtomicStructure, so initialize AtomicStructureData first...
-            AtomicStructureData.restore_snapshot_init(self, session, tool_info, *c_data)
+            self.DATA_BASE_CLASS.restore_snapshot_init(self, session, tool_info, *c_data)
             for attr_name, default_val in self._session_attrs.items():
                 setattr(self, attr_name, python_data.get(attr_name, default_val))
             Model.restore_snapshot_init(self, session, tool_info, *model_data)
             self._smart_initial_display = False
         else:
-            AtomicStructureData.__init__(self, c_pointer)
+            self.DATA_BASE_CLASS.__init__(self, c_pointer)
             for attr_name, val in self._session_attrs.items():
                 setattr(self, attr_name, val)
             Model.__init__(self, name, session)
@@ -98,7 +90,7 @@ class AtomicStructure(AtomicStructureData, Model):
     def delete(self):
         '''Delete this structure.'''
         self._deleted = True
-        AtomicStructureData.delete(self)
+        self.DATA_BASE_CLASS.delete(self)
         for handler in self._ses_handlers:
             self.session.triggers.delete_handler(handler)
         Model.delete(self)
@@ -115,8 +107,8 @@ class AtomicStructure(AtomicStructureData, Model):
         '''
         if name is None:
             name = self.name
-        m = AtomicStructure(self.session, name = name,
-                            c_pointer = AtomicStructureData._copy(self),
+        m = self.__class__(self.session, name = name,
+                            c_pointer = self.DATA_BASE_CLASS._copy(self),
                             level_of_detail = self._level_of_detail,
                             smart_initial_display = False)
         m.positions = self.positions
@@ -199,12 +191,12 @@ class AtomicStructure(AtomicStructureData, Model):
         from ..state import CORE_STATE_VERSION
         return CORE_STATE_VERSION, [
             Model.take_snapshot(self, session, flags),
-            AtomicStructureData.take_snapshot(self, session, flags),
+            self.DATA_BASE_CLASS.take_snapshot(self, session, flags),
             { attr_name: getattr(self, attr_name) for attr_name in self._session_attrs.keys() }
         ]
 
     def restore_snapshot_init(self, session, tool_info, version, data):
-        AtomicStructure.__init__(self, session, restore_data=(tool_info, version, data))
+        self.__class__.__init__(self, session, restore_data=(tool_info, version, data))
 
     def reset_state(self, session):
         pass
@@ -586,7 +578,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 tp = p.new_drawing(residues.strs[0] + "_tethers")
                 nc = m.ribbon_tether_sides
                 from .. import surface
-                if m.ribbon_tether_shape == AtomicStructureData.TETHER_CYLINDER:
+                if m.ribbon_tether_shape == self.TETHER_CYLINDER:
                     va, na, ta = surface.cylinder_geometry(nc=nc, nz=2, caps=False)
                 else:
                     # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
@@ -1228,6 +1220,27 @@ class AtomicStructure(AtomicStructureData, Model):
             selected = numpy.logical_or(selected, s)
         # print("AtomicStructure._atomspec_filter_atom", selected)
         return selected
+
+class AtomicStructure(AtomicStructureData, StructureGraphBase):
+    """
+    Bases: :class:`.AtomicStructureData`, :class:`.Model`
+
+    Molecular model including atomic coordinates.
+    The data is managed by the :class:`.AtomicStructureData` base class
+    which provides access to the C++ structures.
+    """
+    DATA_BASE_CLASS = AtomicStructureData
+
+    __init__ = StructureGraphBase.__init__
+    take_snapshot = StructureGraphBase.take_snapshot
+    restore_snapshot_init = StructureGraphBase.restore_snapshot_init
+
+class Graph(GraphData, StructureGraphBase):
+    DATA_BASE_CLASS = GraphData
+
+    __init__ = StructureGraphBase.__init__
+    take_snapshot = StructureGraphBase.take_snapshot
+    restore_snapshot_init = StructureGraphBase.restore_snapshot_init
 
 # -----------------------------------------------------------------------------
 #
