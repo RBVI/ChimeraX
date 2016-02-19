@@ -254,10 +254,10 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 	for (auto& dep: dependencies) {
 		if (categories.find(dep) != categories.end())
 			continue;
-		std::ostringstream err;
-		err << "Reference to unregistered dependency " << dep
+		std::ostringstream err_msg;
+		err_msg << "Reference to unregistered dependency " << dep
 			<< " in category " << category;
-		throw std::logic_error(err.str());
+		throw std::logic_error(err_msg.str());
 	}
 	if (callback) {
 		categoryOrder.push_back(category);
@@ -286,18 +286,18 @@ throw_windows_error(DWORD errno, const char* where)
 		NULL, errno,
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		&message_buffer, 0, NULL);
-	std::ostringstream msg;
+	std::ostringstream err_msg;
 	if (where)
-		msg << where << ": ";
-	msg << message_buffer;
-	throw std::runtime_error(msg.str());
+		err_msg << where << ": ";
+	err_msg << message_buffer;
+	throw std::runtime_error(err_msg.str());
 }
 #endif
 
 void
 CIFFile::parse_file(const char* filename)
 {
-	std::ostringstream err;
+	std::ostringstream err_msg;
 #ifdef _WIN32
 	// TODO: Not tested
 	HANDLE file = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL,
@@ -340,14 +340,14 @@ CIFFile::parse_file(const char* filename)
 	int fd = open(filename, O_RDONLY);
 	if (fd == -1) {
 		int err_num = errno;
-		err << "open: " << strerror(err_num);
-		throw std::runtime_error(err.str());
+		err_msg << "open: " << strerror(err_num);
+		throw std::runtime_error(err_msg.str());
 	}
 	struct stat sb;
 	if (fstat(fd, &sb) == -1) {
 		int err_num = errno;
-		err << "stat: " << strerror(err_num);
-		throw std::runtime_error(err.str());
+		err_msg << "stat: " << strerror(err_num);
+		throw std::runtime_error(err_msg.str());
 	}
 
 	bool used_mmap = false;
@@ -359,8 +359,8 @@ CIFFile::parse_file(const char* filename)
 				fd, 0);
 		if (buf == MAP_FAILED) {
 			int err_num = errno;
-			err << "mmap: " << strerror(err_num);
-			throw std::runtime_error(err.str());
+			err_msg << "mmap: " << strerror(err_num);
+			throw std::runtime_error(err_msg.str());
 		}
 		buffer = reinterpret_cast<char*>(buf);
 		used_mmap = true;
@@ -368,8 +368,8 @@ CIFFile::parse_file(const char* filename)
 		buffer = new char [sb.st_size + 1];
 		if (read(fd, buffer, sb.st_size) == -1) {
 			int err_num = errno;
-			err << "read: " << strerror(err_num);
-			throw std::runtime_error(err.str());
+			err_msg << "read: " << strerror(err_num);
+			throw std::runtime_error(err_msg.str());
 		}
 		buffer[sb.st_size] = '\0';
 	}
@@ -387,8 +387,8 @@ CIFFile::parse_file(const char* filename)
 	if (used_mmap) {
 		if (munmap(buffer, sb.st_size + 1) == -1) {
 			int err_num = errno;
-			err << "munmap: " << strerror(err_num);
-			throw std::runtime_error(err.str());
+			err_msg << "munmap: " << strerror(err_num);
+			throw std::runtime_error(err_msg.str());
 		}
 	} else {
 		delete [] buffer;
@@ -429,9 +429,9 @@ CIFFile::parse(const char* buffer)
 std::runtime_error
 CIFFile::error(const string& text)
 {
-	std::ostringstream os;
-	os << text << " on line " << lineno;
-	return std::move(std::runtime_error(os.str()));
+	std::ostringstream err_msg;
+	err_msg << text << " near line " << lineno;
+	return std::move(std::runtime_error(err_msg.str()));
 }
 
 inline string
@@ -1076,9 +1076,9 @@ CIFFile::get_column(const char* tag, bool required)
 		return i - current_tags.begin();
 	if (!required)
 		return -1;
-	std::ostringstream os;
-	os << "Missing tag " << tag << " in category " << current_category;
-	throw error(os.str());
+	std::ostringstream err_msg;
+	err_msg << "Missing tag " << tag /*<< " in category " << current_category*/;
+	throw error(err_msg.str());
 }
 
 bool
