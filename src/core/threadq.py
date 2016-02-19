@@ -90,6 +90,5 @@ def redirect_stdout_stderr(redirect):
         out = sys.stdout
         sys.stdout = sys._keep_stdout
         sys.stderr = sys._keep_stderr
-        print(out)
             
         
