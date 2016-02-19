@@ -21,6 +21,7 @@ _class_class_init = {
     'Color': '.colors',
     'DrawingState': '.graphics.gsession',
     'Generic3DModel': '.generic3d',
+    'Graph': '.atomic',
     'GridDataState': '.map.session',
     'LevelOfDetail': '.atomic.structure',
     'LightingState': '.graphics.gsession',
