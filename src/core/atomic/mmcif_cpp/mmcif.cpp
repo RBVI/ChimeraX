@@ -497,14 +497,19 @@ ExtractMolecule::parse_audit_conform()
 
     CIFFile::ParseValues pv;
     pv.reserve(2);
-    pv.emplace_back(get_column("dict_name", true), true,
-        [&dict_name] (const char* start, const char* end) {
-            dict_name = string(start, end - start);
-        });
-    pv.emplace_back(get_column("dict_version"), false,
-        [&dict_version] (const char* start, const char*) {
-            dict_version = atof(start);
-        });
+    try {
+        pv.emplace_back(get_column("dict_name", true), true,
+            [&dict_name] (const char* start, const char* end) {
+                dict_name = string(start, end - start);
+            });
+        pv.emplace_back(get_column("dict_version"), false,
+            [&dict_version] (const char* start, const char*) {
+                dict_version = atof(start);
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping audit_conform table: ", e.what());
+        return;
+    }
     parse_row(pv);
     if (dict_name == "mmcif_pdbx.dic" && dict_version > 4)
         set_PDB_style(true);
@@ -538,123 +543,128 @@ ExtractMolecule::parse_atom_site()
 
     bool missing_poly_seq = poly_seq.empty();
 
-    pv.emplace_back(get_column("id"), false,
-        [&] (const char* start, const char*) {
-            serial_num = readcif::str_to_int(start);
-        });
+    try {
+        pv.emplace_back(get_column("id"), false,
+            [&] (const char* start, const char*) {
+                serial_num = readcif::str_to_int(start);
+            });
 
-    pv.emplace_back(get_column("label_entity_id"), true,
-        [&] (const char* start, const char* end) {
-            entity_id = string(start, end - start);
-        });
+        pv.emplace_back(get_column("label_entity_id"), true,
+            [&] (const char* start, const char* end) {
+                entity_id = string(start, end - start);
+            });
 
-    pv.emplace_back(get_column("label_asym_id", true), true,
-        [&] (const char* start, const char* end) {
-            chain_id = ChainID(start, end - start);
-        });
-    pv.emplace_back(get_column("auth_asym_id"), true,
-        [&] (const char* start, const char* end) {
-            auth_chain_id = ChainID(start, end - start);
-            if (auth_chain_id == "." || auth_chain_id == "?")
-                auth_chain_id.clear();
-        });
-    pv.emplace_back(get_column("pdbx_PDB_ins_code"), true,
-        [&] (const char* start, const char* end) {
-            if (end == start + 1 && (*start == '.' || *start == '?'))
-                ins_code = ' ';
-            else {
-                // TODO: check if more than one character
-                ins_code = *start;
-            }
-        });
-    pv.emplace_back(get_column("label_seq_id", true), false,
-        [&] (const char* start, const char*) {
-            position = readcif::str_to_int(start);
-        });
-    pv.emplace_back(get_column("auth_seq_id"), false,
-        [&] (const char* start, const char*) {
-            if (*start == '.' || *start == '?')
-                auth_position = INT_MAX;
-            else
-                auth_position = readcif::str_to_int(start);
-        });
+        pv.emplace_back(get_column("label_asym_id", true), true,
+            [&] (const char* start, const char* end) {
+                chain_id = ChainID(start, end - start);
+            });
+        pv.emplace_back(get_column("auth_asym_id"), true,
+            [&] (const char* start, const char* end) {
+                auth_chain_id = ChainID(start, end - start);
+                if (auth_chain_id == "." || auth_chain_id == "?")
+                    auth_chain_id.clear();
+            });
+        pv.emplace_back(get_column("pdbx_PDB_ins_code"), true,
+            [&] (const char* start, const char* end) {
+                if (end == start + 1 && (*start == '.' || *start == '?'))
+                    ins_code = ' ';
+                else {
+                    // TODO: check if more than one character
+                    ins_code = *start;
+                }
+            });
+        pv.emplace_back(get_column("label_seq_id", true), false,
+            [&] (const char* start, const char*) {
+                position = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column("auth_seq_id"), false,
+            [&] (const char* start, const char*) {
+                if (*start == '.' || *start == '?')
+                    auth_position = INT_MAX;
+                else
+                    auth_position = readcif::str_to_int(start);
+            });
 
-    pv.emplace_back(get_column("label_alt_id"), true,
-        [&] (const char* start, const char* end) {
-            if (end == start + 1
-            && (*start == '.' || *start == '?' || *start == ' '))
-                alt_id = '\0';
-            else {
-                // TODO: what about more than one character?
-                alt_id = *start;
-            }
-        });
-    pv.emplace_back(get_column("type_symbol", true), false,
-        [&] (const char* start, const char*) {
-            symbol[0] = *start;
-            symbol[1] = *(start + 1);
-            if (readcif::is_whitespace(symbol[1]))
-                symbol[1] = '\0';
-            else
-                symbol[2] = '\0';
-        });
-    pv.emplace_back(get_column("label_atom_id", true), true,
-        [&] (const char* start, const char* end) {
-            // deal with Coot's braindead leading and trailing
-            // spaces in atom names
-            while (isspace(*start))
-                ++start;
-            while (end > start && isspace(*(end - 1)))
-                --end;
-            atom_name = AtomName(start, end - start);
-        });
-    pv.emplace_back(get_column("auth_atom_id"), true,
-        [&] (const char* start, const char* end) {
-            auth_atom_name = AtomName(start, end - start);
-            if (auth_atom_name == "." || auth_atom_name == "?")
-                auth_atom_name.clear();
-        });
-    pv.emplace_back(get_column("label_comp_id", true), true,
-        [&] (const char* start, const char* end) {
-            residue_name = ResName(start, end - start);
-        });
-    pv.emplace_back(get_column("auth_comp_id"), true,
-        [&] (const char* start, const char* end) {
-            auth_residue_name = ResName(start, end - start);
-            if (auth_residue_name == "." || auth_residue_name == "?")
-                auth_residue_name.clear();
-        });
-    // x, y, z are not required by mmCIF, but are by us
-    pv.emplace_back(get_column("Cartn_x", true), false,
-        [&] (const char* start, const char*) {
-            x = readcif::str_to_float(start);
-        });
-    pv.emplace_back(get_column("Cartn_y", true), false,
-        [&] (const char* start, const char*) {
-            y = readcif::str_to_float(start);
-        });
-    pv.emplace_back(get_column("Cartn_z", true), false,
-        [&] (const char* start, const char*) {
-            z = readcif::str_to_float(start);
-        });
-    pv.emplace_back(get_column("occupancy"), false,
-        [&] (const char* start, const char*) {
-            if (*start == '?')
-                occupancy = FLT_MAX;
-            else
-                occupancy = readcif::str_to_float(start);
-        });
-    pv.emplace_back(get_column("B_iso_or_equiv"), false,
-        [&] (const char* start, const char*) {
-            if (*start == '?')
-                b_factor = FLT_MAX;
-            else
-                b_factor = readcif::str_to_float(start);
-        });
-    pv.emplace_back(get_column("pdbx_PDB_model_num"), false,
-        [&] (const char* start, const char*) {
-            model_num = readcif::str_to_int(start);
-        });
+        pv.emplace_back(get_column("label_alt_id"), true,
+            [&] (const char* start, const char* end) {
+                if (end == start + 1
+                && (*start == '.' || *start == '?' || *start == ' '))
+                    alt_id = '\0';
+                else {
+                    // TODO: what about more than one character?
+                    alt_id = *start;
+                }
+            });
+        pv.emplace_back(get_column("type_symbol", true), false,
+            [&] (const char* start, const char*) {
+                symbol[0] = *start;
+                symbol[1] = *(start + 1);
+                if (readcif::is_whitespace(symbol[1]))
+                    symbol[1] = '\0';
+                else
+                    symbol[2] = '\0';
+            });
+        pv.emplace_back(get_column("label_atom_id", true), true,
+            [&] (const char* start, const char* end) {
+                // deal with Coot's braindead leading and trailing
+                // spaces in atom names
+                while (isspace(*start))
+                    ++start;
+                while (end > start && isspace(*(end - 1)))
+                    --end;
+                atom_name = AtomName(start, end - start);
+            });
+        pv.emplace_back(get_column("auth_atom_id"), true,
+            [&] (const char* start, const char* end) {
+                auth_atom_name = AtomName(start, end - start);
+                if (auth_atom_name == "." || auth_atom_name == "?")
+                    auth_atom_name.clear();
+            });
+        pv.emplace_back(get_column("label_comp_id", true), true,
+            [&] (const char* start, const char* end) {
+                residue_name = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column("auth_comp_id"), true,
+            [&] (const char* start, const char* end) {
+                auth_residue_name = ResName(start, end - start);
+                if (auth_residue_name == "." || auth_residue_name == "?")
+                    auth_residue_name.clear();
+            });
+        // x, y, z are not required by mmCIF, but are by us
+        pv.emplace_back(get_column("Cartn_x", true), false,
+            [&] (const char* start, const char*) {
+                x = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("Cartn_y", true), false,
+            [&] (const char* start, const char*) {
+                y = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("Cartn_z", true), false,
+            [&] (const char* start, const char*) {
+                z = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("occupancy"), false,
+            [&] (const char* start, const char*) {
+                if (*start == '?')
+                    occupancy = FLT_MAX;
+                else
+                    occupancy = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("B_iso_or_equiv"), false,
+            [&] (const char* start, const char*) {
+                if (*start == '?')
+                    b_factor = FLT_MAX;
+                else
+                    b_factor = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("pdbx_PDB_model_num"), false,
+            [&] (const char* start, const char*) {
+                model_num = readcif::str_to_int(start);
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping atom_site table: ", e.what());
+        return;
+    }
 
     long atom_serial = 0;
     Residue* cur_residue = nullptr;
@@ -719,7 +729,7 @@ ExtractMolecule::parse_atom_site()
 
         if (isnan(x) || isnan(y) || isnan(z)) {
             logger::warning(_logger, "Skipping atom \"", atom_name,
-                            "\" on line ", line_number(),
+                            "\" near line ", line_number(),
                             ": missing coordinates");
             continue;
         }
@@ -789,108 +799,113 @@ ExtractMolecule::parse_struct_conn()
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
-    pv.emplace_back(get_column("conn_type_id", true), true,
-        [&] (const char* start, const char* end) {
-            conn_type = string(start, end - start);
-        });
+    try {
+        pv.emplace_back(get_column("conn_type_id", true), true,
+            [&] (const char* start, const char* end) {
+                conn_type = string(start, end - start);
+            });
 
-    pv.emplace_back(get_column(P1 ASYM_ID, true), true,
-        [&] (const char* start, const char* end) {
-            chain_id1 = ChainID(start, end - start);
-        });
-    pv.emplace_back(get_column("pdbx_" P1 INS_CODE), true,
-        [&] (const char* start, const char* end) {
-            if (end == start + 1 && (*start == '.' || *start == '?'))
-                ins_code1 = ' ';
-            else {
-                // TODO: check if more than one character
-                ins_code1 = *start;
-            }
-        });
-    pv.emplace_back(get_column(P1 SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position1 = readcif::str_to_int(start);
-        });
-    pv.emplace_back(get_column(P1 AUTH_SEQ_ID), false,
-        [&] (const char* start, const char*) {
-            if (*start == '.' || *start == '?')
-                auth_position1 = INT_MAX;
-            else
-                auth_position1 = readcif::str_to_int(start);
-        });
-    pv.emplace_back(get_column("pdbx_" P1 ALT_ID), true,
-        [&] (const char* start, const char* end) {
-            if (end == start + 1
-            && (*start == '.' || *start == '?' || *start == ' '))
-                alt_id1 = '\0';
-            else {
-                // TODO: what about more than one character?
-                alt_id1 = *start;
-            }
-        });
-    pv.emplace_back(get_column(P1 ATOM_ID, true), true,
-        [&] (const char* start, const char* end) {
-            atom_name1 = AtomName(start, end - start);
-        });
-    pv.emplace_back(get_column(P1 COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name1 = ResName(start, end - start);
-        });
-    pv.emplace_back(get_column(P1 SYMMETRY), true,
-        [&] (const char* start, const char* end) {
-            symmetry1 = string(start, end - start);
-        });
+        pv.emplace_back(get_column(P1 ASYM_ID, true), true,
+            [&] (const char* start, const char* end) {
+                chain_id1 = ChainID(start, end - start);
+            });
+        pv.emplace_back(get_column("pdbx_" P1 INS_CODE), true,
+            [&] (const char* start, const char* end) {
+                if (end == start + 1 && (*start == '.' || *start == '?'))
+                    ins_code1 = ' ';
+                else {
+                    // TODO: check if more than one character
+                    ins_code1 = *start;
+                }
+            });
+        pv.emplace_back(get_column(P1 SEQ_ID, true), false,
+            [&] (const char* start, const char*) {
+                position1 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column(P1 AUTH_SEQ_ID), false,
+            [&] (const char* start, const char*) {
+                if (*start == '.' || *start == '?')
+                    auth_position1 = INT_MAX;
+                else
+                    auth_position1 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column("pdbx_" P1 ALT_ID), true,
+            [&] (const char* start, const char* end) {
+                if (end == start + 1
+                && (*start == '.' || *start == '?' || *start == ' '))
+                    alt_id1 = '\0';
+                else {
+                    // TODO: what about more than one character?
+                    alt_id1 = *start;
+                }
+            });
+        pv.emplace_back(get_column(P1 ATOM_ID, true), true,
+            [&] (const char* start, const char* end) {
+                atom_name1 = AtomName(start, end - start);
+            });
+        pv.emplace_back(get_column(P1 COMP_ID, true), true,
+            [&] (const char* start, const char* end) {
+                residue_name1 = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column(P1 SYMMETRY), true,
+            [&] (const char* start, const char* end) {
+                symmetry1 = string(start, end - start);
+            });
 
-    pv.emplace_back(get_column(P2 ASYM_ID, true), true,
-        [&] (const char* start, const char* end) {
-            chain_id2 = ChainID(start, end - start);
-        });
-    pv.emplace_back(get_column("pdbx_" P2 INS_CODE), true,
-        [&] (const char* start, const char* end) {
-            if (end == start + 1 && (*start == '.' || *start == '?'))
-                ins_code2 = ' ';
-            else {
-                // TODO: check if more than one character
-                ins_code2 = *start;
-            }
-        });
-    pv.emplace_back(get_column(P2 SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position2 = readcif::str_to_int(start);
-        });
-    pv.emplace_back(get_column(P2 AUTH_SEQ_ID), false,
-        [&] (const char* start, const char*) {
-            if (*start == '.' || *start == '?')
-                auth_position2 = INT_MAX;
-            else
-                auth_position2 = readcif::str_to_int(start);
-        });
-    pv.emplace_back(get_column("pdbx_" P2 ALT_ID), true,
-        [&] (const char* start, const char* end) {
-            if (end == start + 1
-            && (*start == '.' || *start == '?' || *start == ' '))
-                alt_id2 = '\0';
-            else {
-                // TODO: what about more than one character?
-                alt_id2 = *start;
-            }
-        });
-    pv.emplace_back(get_column(P2 ATOM_ID, true), true,
-        [&] (const char* start, const char* end) {
-            atom_name2 = AtomName(start, end - start);
-        });
-    pv.emplace_back(get_column(P2 COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name2 = ResName(start, end - start);
-        });
-    pv.emplace_back(get_column(P2 SYMMETRY), true,
-        [&] (const char* start, const char* end) {
-            symmetry2 = string(start, end - start);
-        });
-    pv.emplace_back(get_column("pdbx_dist_value"), false,
-        [&] (const char* start, const char*) {
-            distance = readcif::str_to_float(start);
-        });
+        pv.emplace_back(get_column(P2 ASYM_ID, true), true,
+            [&] (const char* start, const char* end) {
+                chain_id2 = ChainID(start, end - start);
+            });
+        pv.emplace_back(get_column("pdbx_" P2 INS_CODE), true,
+            [&] (const char* start, const char* end) {
+                if (end == start + 1 && (*start == '.' || *start == '?'))
+                    ins_code2 = ' ';
+                else {
+                    // TODO: check if more than one character
+                    ins_code2 = *start;
+                }
+            });
+        pv.emplace_back(get_column(P2 SEQ_ID, true), false,
+            [&] (const char* start, const char*) {
+                position2 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column(P2 AUTH_SEQ_ID), false,
+            [&] (const char* start, const char*) {
+                if (*start == '.' || *start == '?')
+                    auth_position2 = INT_MAX;
+                else
+                    auth_position2 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column("pdbx_" P2 ALT_ID), true,
+            [&] (const char* start, const char* end) {
+                if (end == start + 1
+                && (*start == '.' || *start == '?' || *start == ' '))
+                    alt_id2 = '\0';
+                else {
+                    // TODO: what about more than one character?
+                    alt_id2 = *start;
+                }
+            });
+        pv.emplace_back(get_column(P2 ATOM_ID, true), true,
+            [&] (const char* start, const char* end) {
+                atom_name2 = AtomName(start, end - start);
+            });
+        pv.emplace_back(get_column(P2 COMP_ID, true), true,
+            [&] (const char* start, const char* end) {
+                residue_name2 = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column(P2 SYMMETRY), true,
+            [&] (const char* start, const char* end) {
+                symmetry2 = string(start, end - start);
+            });
+        pv.emplace_back(get_column("pdbx_dist_value"), false,
+            [&] (const char* start, const char*) {
+                distance = readcif::str_to_float(start);
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping struct_conn table: ", e.what());
+        return;
+    }
 
     atomstruct::Proxy_PBGroup* metal_pbg = nullptr;
     atomstruct::Proxy_PBGroup* hydro_pbg = nullptr;
@@ -999,58 +1014,63 @@ ExtractMolecule::parse_struct_conf()
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
-    pv.emplace_back(get_column("id", true), true,
-        [&] (const char* start, const char* end) {
-            id = string(start, end - start);
-        });
-    pv.emplace_back(get_column("conf_type_id", true), true,
-        [&] (const char* start, const char* end) {
-            conf_type = string(start, end - start);
-        });
+    try {
+        pv.emplace_back(get_column("id", true), true,
+            [&] (const char* start, const char* end) {
+                id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("conf_type_id", true), true,
+            [&] (const char* start, const char* end) {
+                conf_type = string(start, end - start);
+            });
 
-    pv.emplace_back(get_column(BEG ASYM_ID, true), true,
-        [&] (const char* start, const char* end) {
-            chain_id1 = ChainID(start, end - start);
-        });
-    pv.emplace_back(get_column(BEG COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name1 = ResName(start, end - start);
-        });
-    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position1 = readcif::str_to_int(start);
-        });
-    pv.emplace_back(get_column("pdbx_" BEG INS_CODE), true,
-        [&] (const char* start, const char* end) {
-            if (end == start + 1 && (*start == '.' || *start == '?'))
-                ins_code1 = ' ';
-            else {
-                // TODO: check if more than one character
-                ins_code1 = *start;
-            }
-        });
+        pv.emplace_back(get_column(BEG ASYM_ID, true), true,
+            [&] (const char* start, const char* end) {
+                chain_id1 = ChainID(start, end - start);
+            });
+        pv.emplace_back(get_column(BEG COMP_ID, true), true,
+            [&] (const char* start, const char* end) {
+                residue_name1 = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column(BEG SEQ_ID, true), false,
+            [&] (const char* start, const char*) {
+                position1 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column("pdbx_" BEG INS_CODE), true,
+            [&] (const char* start, const char* end) {
+                if (end == start + 1 && (*start == '.' || *start == '?'))
+                    ins_code1 = ' ';
+                else {
+                    // TODO: check if more than one character
+                    ins_code1 = *start;
+                }
+            });
 
-    pv.emplace_back(get_column(END ASYM_ID, true), true,
-        [&] (const char* start, const char* end) {
-            chain_id2 = ChainID(start, end - start);
-        });
-    pv.emplace_back(get_column(END COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name2 = ResName(start, end - start);
-        });
-    pv.emplace_back(get_column(END SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position2 = readcif::str_to_int(start);
-        });
-    pv.emplace_back(get_column("pdbx_" END INS_CODE), true,
-        [&] (const char* start, const char* end) {
-            if (end == start + 1 && (*start == '.' || *start == '?'))
-                ins_code2 = ' ';
-            else {
-                // TODO: check if more than one character
-                ins_code2 = *start;
-            }
-        });
+        pv.emplace_back(get_column(END ASYM_ID, true), true,
+            [&] (const char* start, const char* end) {
+                chain_id2 = ChainID(start, end - start);
+            });
+        pv.emplace_back(get_column(END COMP_ID, true), true,
+            [&] (const char* start, const char* end) {
+                residue_name2 = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column(END SEQ_ID, true), false,
+            [&] (const char* start, const char*) {
+                position2 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column("pdbx_" END INS_CODE), true,
+            [&] (const char* start, const char* end) {
+                if (end == start + 1 && (*start == '.' || *start == '?'))
+                    ins_code2 = ' ';
+                else {
+                    // TODO: check if more than one character
+                    ins_code2 = *start;
+                }
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping struct_conf table: ", e.what());
+        return;
+    }
 
     #undef BEG
     #undef END
@@ -1069,7 +1089,7 @@ ExtractMolecule::parse_struct_conf()
         if (chain_id1 != chain_id2) {
             logger::warning(_logger, "Start and end residues of secondary"
                           " structure \"", id,
-                          "\" are in different chains on line ", line_number());
+                          "\" are in different chains near line ", line_number());
             continue;
         }
         // Only expect helixes and turns, strands were in mmCIF v. 2,
@@ -1096,7 +1116,7 @@ ExtractMolecule::parse_struct_conf()
         if (ari == all_residues.end()) {
             logger::warning(_logger, "Invalid residue range for secondardy"
                             " structure \"", id, "\": invalid chain \"",
-                            chain_id1, "\", on line ", line_number());
+                            chain_id1, "\", near line ", line_number());
             continue;
         }
         const ResidueMap& residue_map = ari->second;
@@ -1104,7 +1124,7 @@ ExtractMolecule::parse_struct_conf()
         if (cemi == chain_entity_map.end()) {
             logger::warning(_logger, "Invalid residue range for secondary",
                             " structure \"", id, "\": invalid chain \"",
-                            chain_id1, "\", on line ", line_number());
+                            chain_id1, "\", near line ", line_number());
             continue;
         }
         string entity_id = cemi->second;
@@ -1112,7 +1132,7 @@ ExtractMolecule::parse_struct_conf()
         if (psi == poly_seq.end()) {
             logger::warning(_logger, "Invalid residue range for secondary",
                             " structure \"", id, "\": invalid entity \"",
-                            entity_id, "\", on line ", line_number());
+                            entity_id, "\", near line ", line_number());
             continue;
         }
         auto& entity_poly_seq = psi->second;
@@ -1122,7 +1142,7 @@ ExtractMolecule::parse_struct_conf()
         if (end_ps_key < init_ps_key) {
             logger::warning(_logger, "Invalid sheet range for secondary",
                             " structure \"", id, "\": ends before it starts"
-                            ", on line ", line_number());
+                            ", near line ", line_number());
             continue;
         }
         auto init_ps = entity_poly_seq.lower_bound(init_ps_key);
@@ -1131,7 +1151,7 @@ ExtractMolecule::parse_struct_conf()
         // TODO: || end_ps == entity_poly_seq.end()) {
             logger::warning(_logger,
                             "Bad residue range for secondary strcture \"", id,
-                            "\" on line ", line_number());
+                            "\" near line ", line_number());
             continue;
         }
         for (auto pi = init_ps; pi != end_ps; ++pi) {
@@ -1177,58 +1197,63 @@ ExtractMolecule::parse_struct_sheet_range()
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
-    pv.emplace_back(get_column("sheet_id", true), true,
-        [&] (const char* start, const char* end) {
-            sheet_id = string(start, end - start);
-        });
-    pv.emplace_back(get_column("id", true), true,
-        [&] (const char* start, const char* end) {
-            id = string(start, end - start);
-        });
+    try {
+        pv.emplace_back(get_column("sheet_id", true), true,
+            [&] (const char* start, const char* end) {
+                sheet_id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("id", true), true,
+            [&] (const char* start, const char* end) {
+                id = string(start, end - start);
+            });
 
-    pv.emplace_back(get_column(BEG ASYM_ID, true), true,
-        [&] (const char* start, const char* end) {
-            chain_id1 = ChainID(start, end - start);
-        });
-    pv.emplace_back(get_column(BEG COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name1 = ResName(start, end - start);
-        });
-    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position1 = readcif::str_to_int(start);
-        });
-    pv.emplace_back(get_column("pdbx_" BEG INS_CODE), true,
-        [&] (const char* start, const char* end) {
-            if (end == start + 1 && (*start == '.' || *start == '?'))
-                ins_code1 = ' ';
-            else {
-                // TODO: check if more than one character
-                ins_code1 = *start;
-            }
-        });
+        pv.emplace_back(get_column(BEG ASYM_ID, true), true,
+            [&] (const char* start, const char* end) {
+                chain_id1 = ChainID(start, end - start);
+            });
+        pv.emplace_back(get_column(BEG COMP_ID, true), true,
+            [&] (const char* start, const char* end) {
+                residue_name1 = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column(BEG SEQ_ID, true), false,
+            [&] (const char* start, const char*) {
+                position1 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column("pdbx_" BEG INS_CODE), true,
+            [&] (const char* start, const char* end) {
+                if (end == start + 1 && (*start == '.' || *start == '?'))
+                    ins_code1 = ' ';
+                else {
+                    // TODO: check if more than one character
+                    ins_code1 = *start;
+                }
+            });
 
-    pv.emplace_back(get_column(END ASYM_ID, true), true,
-        [&] (const char* start, const char* end) {
-            chain_id2 = ChainID(start, end - start);
-        });
-    pv.emplace_back(get_column(END COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name2 = ResName(start, end - start);
-        });
-    pv.emplace_back(get_column(END SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position2 = readcif::str_to_int(start);
-        });
-    pv.emplace_back(get_column("pdbx_" END INS_CODE), true,
-        [&] (const char* start, const char* end) {
-            if (end == start + 1 && (*start == '.' || *start == '?'))
-                ins_code2 = ' ';
-            else {
-                // TODO: check if more than one character
-                ins_code2 = *start;
-            }
-        });
+        pv.emplace_back(get_column(END ASYM_ID, true), true,
+            [&] (const char* start, const char* end) {
+                chain_id2 = ChainID(start, end - start);
+            });
+        pv.emplace_back(get_column(END COMP_ID, true), true,
+            [&] (const char* start, const char* end) {
+                residue_name2 = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column(END SEQ_ID, true), false,
+            [&] (const char* start, const char*) {
+                position2 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column("pdbx_" END INS_CODE), true,
+            [&] (const char* start, const char* end) {
+                if (end == start + 1 && (*start == '.' || *start == '?'))
+                    ins_code2 = ' ';
+                else {
+                    // TODO: check if more than one character
+                    ins_code2 = *start;
+                }
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping struct_sheet_range table: ", e.what());
+        return;
+    }
 
     #undef BEG
     #undef END
@@ -1242,7 +1267,7 @@ ExtractMolecule::parse_struct_sheet_range()
         if (chain_id1 != chain_id2) {
             logger::warning(_logger, "Invalid sheet range for strand \"",
                             sheet_id, ' ', id, "\": different chains"
-                            ", on line ", line_number());
+                            ", near line ", line_number());
             continue;
         }
 
@@ -1250,7 +1275,7 @@ ExtractMolecule::parse_struct_sheet_range()
         if (ari == all_residues.end()) {
             logger::warning(_logger, "Invalid sheet range for strand \"",
                             sheet_id, ' ', id, "\": invalid chain \"",
-                            chain_id1, "\", on line ", line_number());
+                            chain_id1, "\", near line ", line_number());
             continue;
         }
         const ResidueMap& residue_map = ari->second;
@@ -1258,7 +1283,7 @@ ExtractMolecule::parse_struct_sheet_range()
         if (cemi == chain_entity_map.end()) {
             logger::warning(_logger, "Invalid sheet range for strand \"",
                             sheet_id, ' ', id, "\": invalid chain \"",
-                            chain_id1, "\", on line ", line_number());
+                            chain_id1, "\", near line ", line_number());
             continue;
         }
         string entity_id = cemi->second;
@@ -1266,7 +1291,7 @@ ExtractMolecule::parse_struct_sheet_range()
         if (psi == poly_seq.end()) {
             logger::warning(_logger, "Invalid sheet range for strand \"",
                             sheet_id, ' ', id, "\": invalid entity \"",
-                            entity_id, "\", on line ", line_number());
+                            entity_id, "\", near line ", line_number());
             continue;
         }
         auto& entity_poly_seq = psi->second;
@@ -1276,7 +1301,7 @@ ExtractMolecule::parse_struct_sheet_range()
         if (end_ps_key < init_ps_key) {
             logger::warning(_logger, "Invalid sheet range for strand \"",
                             sheet_id, ' ', id, "\": ends before it starts"
-                            ", on line ", line_number());
+                            ", near line ", line_number());
             continue;
         }
         auto init_ps = entity_poly_seq.lower_bound(init_ps_key);
@@ -1284,7 +1309,7 @@ ExtractMolecule::parse_struct_sheet_range()
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end()) {
             logger::warning(_logger, "Invalid sheet range for strand \"",
-                            sheet_id, ' ', id, "\" on line ", line_number());
+                            sheet_id, ' ', id, "\" near line ", line_number());
             continue;
         }
         int strand_id;
@@ -1319,22 +1344,27 @@ ExtractMolecule::parse_entity_poly_seq()
 
     CIFFile::ParseValues pv;
     pv.reserve(4);
-    pv.emplace_back(get_column("entity_id", true), true,
-        [&] (const char* start, const char* end) {
-            entity_id = string(start, end - start);
-        });
-    pv.emplace_back(get_column("num", true), false,
-        [&] (const char* start, const char*) {
-            seq_id = readcif::str_to_int(start);
-        });
-    pv.emplace_back(get_column("mon_id", true), true,
-        [&] (const char* start, const char* end) {
-            mon_id = ResName(start, end - start);
-        });
-    pv.emplace_back(get_column("hetero"), false,
-        [&] (const char* start, const char*) {
-            hetero = *start == 'Y' || *start == 'y';
-        });
+    try {
+        pv.emplace_back(get_column("entity_id", true), true,
+            [&] (const char* start, const char* end) {
+                entity_id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("num", true), false,
+            [&] (const char* start, const char*) {
+                seq_id = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column("mon_id", true), true,
+            [&] (const char* start, const char* end) {
+                mon_id = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column("hetero"), false,
+            [&] (const char* start, const char*) {
+                hetero = *start == 'Y' || *start == 'y';
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping entity_poly_seq table: ", e.what());
+        return;
+    }
 
     while (parse_row(pv)) {
         poly_seq[entity_id].emplace(seq_id, mon_id, hetero);
