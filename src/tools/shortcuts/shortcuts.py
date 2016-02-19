@@ -130,7 +130,7 @@ def standard_shortcuts(session):
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('cc', 'color selAtoms bychain', 'Color chains', molcat, noarg, mlmenu, sep),
         ('ce', 'color selAtoms byhet', 'Color non-carbon atoms by element', molcat, noarg, mlmenu),
-        ('rc', 'color selAtoms random target a', 'Random color atoms', molcat, noarg, mlmenu),
+        ('rc', 'color selAtoms random', 'Random color atoms and residues', molcat, noarg, mlmenu),
         ('bf', color_by_bfactor, 'Color by bfactor', molcat, atomsarg, mlmenu),
 
         ('ms', 'show selAtoms surface', 'Show molecular surface', molcat, noarg, mlmenu),
