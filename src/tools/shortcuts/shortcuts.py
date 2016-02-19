@@ -133,7 +133,7 @@ def standard_shortcuts(session):
         ('rc', 'color selAtoms random target a', 'Random color atoms', molcat, noarg, mlmenu),
         ('bf', color_by_bfactor, 'Color by bfactor', molcat, atomsarg, mlmenu),
 
-        ('ms', 'surface selAtoms', 'Show molecular surface', molcat, noarg, mlmenu),
+        ('ms', 'show selAtoms surface', 'Show molecular surface', molcat, noarg, mlmenu),
         ('sa', 'sasa selAtoms', 'Compute solvent accesible surface area', molcat, noarg, mlmenu, sep),
 
         ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),
@@ -145,7 +145,7 @@ def standard_shortcuts(session):
 
         # Surfaces
         ('ds', display_surface, 'Display surface', surfcat, sesarg, sfmenu),
-        ('hs', 'surface selAtoms hide', 'Hide surface', surfcat, noarg, sfmenu),
+        ('hs', 'hide selAtoms surface', 'Hide surface', surfcat, noarg, sfmenu),
 # TODO: hs used to also hide non-molecular surfaces.
 #        ('hs', hide_surface, 'Hide surface', surfcat, sesarg, sfmenu),
 # TODO: Show filled and mesh used to work on surfaces, now only maps.
