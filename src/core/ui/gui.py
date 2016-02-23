@@ -959,7 +959,9 @@ else:
 
         def _populate_menus(self, session):
             from PyQt5.QtWidgets import QAction
-            file_menu = self.menuBar().addMenu("&File")
+
+            mb = self.menuBar()
+            file_menu = mb.addMenu("&File")
             open_action = QAction("&Open...", self)
             open_action.setShortcut("Ctrl+O")
             open_action.setStatusTip("Open input file")
@@ -975,25 +977,8 @@ else:
             quit_action.setStatusTip("Quit ChimeraX")
             quit_action.triggered.connect(lambda arg, s=self, sess=session: s.file_quit_cb(sess))
             file_menu.addAction(quit_action)
-            return
-            item = file_menu.Append(wx.ID_OPEN, "Open...\tCtrl+O", "Open input file")
-            self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_open(evt, ses),
-                item)
-            item = file_menu.Append(wx.ID_ANY, "Save...\tCtrl+S", "Save output file")
-            self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_save(evt, ses),
-                item)
-            item = file_menu.Append(wx.ID_EXIT, "Quit\tCtrl-Q", "Quit application")
-            self.Bind(wx.EVT_MENU, self.on_quit, item)
-            edit_menu = wx.Menu()
-            menu_bar.Append(edit_menu, "&Edit")
-            for wx_id, letter, func in [
-                    (wx.ID_CUT, "X", "Cut"),
-                    (wx.ID_COPY, "C", "Copy"),
-                    (wx.ID_PASTE, "V", "Paste")]:
-                self.Bind(wx.EVT_MENU, lambda e, f=func: self.on_edit(e, f),
-                    edit_menu.Append(wx_id, "{}\tCtrl-{}".format(func, letter),
-                    "{} text".format(func)))
-            tools_menu = wx.Menu()
+
+            tools_menu = mb.addMenu("&Tools")
             categories = {}
             for bi in session.toolshed.bundle_info():
                 for cat in bi.menu_categories:
@@ -1008,27 +993,27 @@ else:
                 if one_menu:
                     cat_menu = tools_menu
                 else:
-                    cat_menu = wx.Menu()
-                    tools_menu.Append(wx.ID_ANY, cat, cat_menu)
+                    cat_menu = tools_menu.addMenu(cat)
                 cat_info = categories[cat]
                 for tool_name in sorted(cat_info.keys()):
                     bi = cat_info[tool_name]
-                    item = cat_menu.Append(wx.ID_ANY, tool_name)
-                    cb = lambda evt, ses=session, bi=bi: bi.start(ses)
-                    self.Bind(wx.EVT_MENU, cb, item)
-            menu_bar.Append(tools_menu, "&Tools")
+                    tool_action = QAction(tool_name, self)
+                    tool_action.setStatusTip(bi.synopsis)
+                    tool_action.triggered.connect(lambda arg, ses=session, bi=bi: bi.start(ses))
+                    tools_menu.addAction(tool_action)
 
-            help_menu = wx.Menu()
-            menu_bar.Append(help_menu, "&Help")
+            help_menu = mb.addMenu("&Help")
             for entry, topic in (('User Guide', 'user'),
                                ('Quick Start Guide', 'quickstart'),
                                ('Programming Guide', 'devel'),
                                ('PDB images command', 'pdbimages')):
-                item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
-                def cb(evt, ses=session, t=topic):
+                help_action = QAction(entry, self)
+                help_action.setStatusTip("Show " + entry)
+                def cb(arg, ses=session, t=topic):
                     from chimerax.core.commands import run
                     run(ses, 'help sethome help:%s' % t)
-                self.Bind(wx.EVT_MENU, cb, item)
+                help_action.triggered.connect(cb)
+                help_menu.addAction(help_action)
 
         def _tool_window_destroy(self, tool_window):
             tool_instance = tool_window.tool_instance
