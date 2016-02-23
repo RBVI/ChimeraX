@@ -183,10 +183,10 @@ if window_sys == "wx":
                 event.Skip()
 
         def on_open(self, event, session):
-            from .. import io
-            dlg = wx.FileDialog(self, "Open file",
-                wildcard=io.wx_open_file_filter(all=True),
-                style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_MULTIPLE)
+            from .open_save import OpenDialog, open_file_filter
+            dlg = OpenDialog(self, "Open file",
+                wildcard=open_file_filter(all=True),
+                style=wx.FD_FILE_MUST_EXIST|wx.FD_MULTIPLE)
             if dlg.ShowModal() == wx.ID_CANCEL:
                 return
 
@@ -822,26 +822,19 @@ else:
             self._stack.setCurrentWidget(g.widget)
             self.setCentralWidget(self._stack)
 
-            #QT disabled
-            """
-            from wx.lib.agw.aui import AuiManager, EVT_AUI_PANE_CLOSE
-            self.aui_mgr = AuiManager(self)
-            self.aui_mgr.SetManagedWindow(self)
-            self.aui_mgr.SetDockSizeConstraint(0.5, 0.4)
-            """
+            from .save_dialog import MainSaveDialog, ImageSaver
+            self.save_dialog = MainSaveDialog(self)
+            ImageSaver(self.save_dialog).register()
 
             self.tool_pane_to_window = {}
             self.tool_instance_to_windows = {}
 
-            """
-            self._build_graphics(ui)
-            """
             self._build_status()
-            """
-            self._build_menus(session)
-            """
+            self._populate_menus(session)
 
             session.logger.add_log(self)
+
+            #QT disabled
             """
             self.Bind(wx.EVT_CLOSE, self.on_close)
             self.Bind(EVT_AUI_PANE_CLOSE, self.on_pane_close)
@@ -853,14 +846,12 @@ else:
             func, args, kw = event.func_info
             func(*args, **kw)
 
-            """
         def close(self):
             self.aui_mgr.UnInit()
             del self.aui_mgr
             if self.graphics_window.timer is not None:
                 self.graphics_window.timer.Stop()
             self.Destroy()
-            """
 
         def log(self, *args, **kw):
             return False
@@ -875,18 +866,17 @@ else:
                 getattr(widget, func)()
             else:
                 event.Skip()
+        """
 
-        def on_open(self, event, session):
-            from .. import io
-            dlg = wx.FileDialog(self, "Open file",
-                wildcard=io.wx_open_file_filter(all=True),
-                style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_MULTIPLE)
-            if dlg.ShowModal() == wx.ID_CANCEL:
+        def file_open_cb(self, session):
+            from PyQt5.QtWidgets import QFileDialog
+            from .open_save import open_file_filter
+            paths = QFileDialog.getOpenFileNames(filter=open_file_filter(all=True))
+            if not paths:
                 return
+            session.models.open(paths[0])
 
-            paths = dlg.GetPaths()
-            session.models.open(paths)
-
+        """
         def on_pane_close(self, event):
             pane_info = event.GetPane()
             tool_window = self.tool_pane_to_window[pane_info.window]
@@ -910,13 +900,15 @@ else:
                 for window in all_windows:
                     window._prev_shown = window.shown
                     window.shown = False
+        """
 
-        def on_quit(self, event):
-            self.close()
+        def file_save_cb(self, session):
+            self.save_dialog.display(self, session)
 
-        def on_save(self, event, ses):
-            self.save_dialog.display(self, ses)
+        def file_quit_cb(self, session):
+            session.ui.quit()
 
+        """
         def remove_tool(self, tool_instance):
             tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
             if tool_windows:
@@ -950,11 +942,6 @@ else:
             from .save_dialog import MainSaveDialog, ImageSaver
             self.save_dialog = MainSaveDialog(self)
             ImageSaver(self.save_dialog).register()
-
-        def _build_menus(self, session):
-            menu_bar = wx.MenuBar()
-            self._populate_menus(menu_bar, session)
-            self.SetMenuBar(menu_bar)
             """
 
         def _build_status(self):
@@ -965,30 +952,30 @@ else:
             sb.addPermanentWidget(self._secondary_status_label)
             sb.showMessage("Welcome to Chimera X")
             self.setStatusBar(sb)
-            return
-
-            # as a kludge, use 3 fields so that I can center the initial
-            # "Welcome" text
-            self.status_bar = self.CreateStatusBar(3,
-                wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
-                | wx.FULL_REPAINT_ON_RESIZE)
-            greeting = "Welcome to ChimeraX"
-            greeting_size = wx.Window.GetTextExtent(self, greeting)
-            self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
-            self.status_bar.SetStatusText("", 0)
-            self.status_bar.SetStatusText(greeting, 1)
-            self.status_bar.SetStatusText("", 2)
-            self._initial_status_kludge = True
 
         def _new_tool_window(self, tw):
             self.tool_pane_to_window[tw.ui_area] = tw
             self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
-            """
-        def _populate_menus(self, menu_bar, session):
-            import sys
-            file_menu = wx.Menu()
-            menu_bar.Append(file_menu, "&File")
+        def _populate_menus(self, session):
+            from PyQt5.QtWidgets import QAction
+            file_menu = self.menuBar().addMenu("&File")
+            open_action = QAction("&Open...", self)
+            open_action.setShortcut("Ctrl+O")
+            open_action.setStatusTip("Open input file")
+            open_action.triggered.connect(lambda arg, s=self, sess=session: s.file_open_cb(sess))
+            file_menu.addAction(open_action)
+            save_action = QAction("&Save...", self)
+            save_action.setShortcut("Ctrl+S")
+            save_action.setStatusTip("Save output file")
+            save_action.triggered.connect(lambda arg, s=self, sess=session: s.file_save_cb(sess))
+            file_menu.addAction(save_action)
+            quit_action = QAction("&Quit", self)
+            quit_action.setShortcut("Ctrl+Q")
+            quit_action.setStatusTip("Quit ChimeraX")
+            quit_action.triggered.connect(lambda arg, s=self, sess=session: s.file_quit_cb(sess))
+            file_menu.addAction(quit_action)
+            return
             item = file_menu.Append(wx.ID_OPEN, "Open...\tCtrl+O", "Open input file")
             self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_open(evt, ses),
                 item)
@@ -1042,7 +1029,6 @@ else:
                     from chimerax.core.commands import run
                     run(ses, 'help sethome help:%s' % t)
                 self.Bind(wx.EVT_MENU, cb, item)
-            """
 
         def _tool_window_destroy(self, tool_window):
             tool_instance = tool_window.tool_instance
