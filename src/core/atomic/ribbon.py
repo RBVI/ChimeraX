@@ -14,8 +14,8 @@ class Ribbon:
         # ribbon is straight on either end.  Compute the spline
         # coefficients for each axis.  Then throw away the
         # coefficients for the fake ends.
-        from numpy import zeros
-        c = zeros((len(coords) + 2, 3), float)
+        from numpy import empty
+        c = empty((len(coords) + 2, 3), float)
         c[0] = coords[0] + (coords[0] - coords[1])
         c[1:-1] = coords
         c[-1] = coords[-1] + (coords[-1] - coords[-2])
@@ -23,11 +23,11 @@ class Ribbon:
         for i in range(3):
             self._compute_coefficients(c, i)
         # Compute spline normals from guide atom positions.
-        self.normals = self._compute_normals_numpy(coords, guides)
+        self.normals = self._compute_normals(coords, guides)
         # Initialize segment cache
         self._seg_cache = {}
 
-    def _compute_normals_numpy(self, coords, guides):
+    def _compute_normals_old(self, coords, guides):
         from numpy import zeros, array
         from sys import __stderr__ as stderr
         t = self.get_tangents()
@@ -36,6 +36,94 @@ class Ribbon:
         for i in range(len(coords)):
             normals[i,:] = get_orthogonal_component(n[i], t[i])
         return normalize_vector_array(normals)
+
+    def _compute_normals(self, coords, guides):
+        # This version ignores the guide atom positions and computes normals
+        # at each control point by making it perpendicular to the vectors pointing
+        # to control points on either side.  The two ends and any collinear control
+        # points are handled afterwards.  We also assume that ribbon cross sections
+        # are symmetric in both x- and y-axis so that a twist by more than 90 degrees
+        # is equvalent to an opposite twist of (180 - original_twist) degrees.
+        from numpy import cross, empty, array, dot
+        from numpy.linalg import norm
+        #
+        # Compute normals by cross-product of vectors to prev and next control points.
+        # Normals are for range [1:-1] since 0 and -1 are missing prev and next
+        # control points.  Normal index is therefore off by one.
+        tangents = self.get_tangents()
+        dv = coords[:-1] - coords[1:]
+        raw_normals = cross(dv[:-1], -dv[1:])
+        for i in range(len(raw_normals)):
+            raw_normals[i] = get_orthogonal_component(raw_normals[i], tangents[i+1])
+        #
+        # Assign normal for first control point.  If there are collinear control points
+        # at the beginning, assign same normal for all of them.  If there is no usable
+        # normal across the entire "spline" (all control points collinear), just pick
+        # a random vector normal to the line.
+        normals = empty(coords.shape, float)
+        lengths = norm(raw_normals, axis=1)
+        for i in range(len(raw_normals)):
+            if lengths[i] > EPSILON:
+                # Normal for this control point is propagated to all previous ones
+                prev_normal = raw_normals[i] / lengths[i]
+                prev_index = i
+                # Use i+2 because we need to assign one normal for the first control point
+                # which has no corresponding raw_normal and (i + 1) for all the control
+                # points up to and including this one.
+                normals[:i+2] = prev_normal
+                break
+        else:
+            # All control points collinear
+            for i in range(3):
+                v = [0.0, 0.0, 0.0]
+                v[i] = 1.0
+                rn = cross(array(v), v_prev[0])
+                d = norm(rn)
+                if d > EPSILON:
+                    n = rn / d
+                    normals[:] = n
+                    return normals
+            # Really, we only need range(2) for i since the spline line can only be
+            # collinear with one of the axis, but we put 3 for esthetics.
+            # If we try all three and fail, something is seriously wrong.
+            raise RuntimeError("spline normal computation for straight line")
+        #
+        # Now we have at least one normal assigned.  This is the anchor and we
+        # look for the next control point that has a non-zero raw normal.
+        # If we do not find one, then this is the last anchor and we just assign
+        # the normal to the remainder of the control points.  Otherwise, we
+        # have two normals (perpendicular to the same straight line) for 2 or
+        # more control points.  The first normal is from the previous control
+        # point whose normal we already set, and the second normal is for the
+        # last control point in our range of 2 or more.  If there are more than
+        # 2 control points, we interpolate the two normals to get the intermediate
+        # normals.
+        while i < len(raw_normals):
+            if lengths[i] > EPSILON:
+                # Our control points run from prev_index to i
+                n = raw_normals[i] / lengths[i]
+                # First we check whether we should flip it due to too much twist
+                if dot(n, prev_normal) < 0:
+                    n = -n
+                # Now we compute normals for intermediate control points (if any)
+                # Instead of slerp, we just use linear interpolation for simplicity
+                ncp = i - prev_index
+                dv = n - prev_normal
+                for j in range(1, ncp):
+                    f = j / ncp
+                    rn = dv * f + prev_normal
+                    d = norm(rn)
+                    int_n = rn / d
+                    normals[prev_index+j] = int_n
+                # Finally, we assign normal for this control point
+                normals[i+1] = n
+                prev_normal = n
+                prev_index = i
+            i += 1
+        # This is the last part of the spline, so assign the remainder of
+        # the normals.
+        normals[prev_index+1:] = prev_normal
+        return normals
 
     def _compute_coefficients(self, coords, n):
         # Matrix from http://mathworld.wolfram.com/CubicSpline.html
@@ -130,6 +218,9 @@ class Ribbon:
             tangents = normalize_vector_array(tangents)
             ns = self.normals[seg]
             ne = self.normals[seg + 1]
+            import sys
+            print("ns, ne", ns, ne, file=sys.__stderr__)
+            sys.__stderr__.flush()
             normals, flipped = constrained_normals(tangents, ns, ne)
             if flipped:
                 self.normals[seg + 1] = -ne

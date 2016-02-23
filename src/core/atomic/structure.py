@@ -22,6 +22,8 @@ class StructureGraphBase(Model):
         # from .ribbon import XSection
         xsc_helix = array([( 5, 1),(0, 1.5),(-5, 1),(-6,0),
                            (-5,-1),(0,-1.5),( 5,-1),( 6,0)]) * 0.15
+        xsc_helix_start = array([( 1.5, 1),(0, 1.5),(-1.5, 1),(-2,0),
+                                 (-1.5,-1),(0,-1.5),( 1.5,-1),( 2,0)]) * 0.15
         xsc_strand = array([(5,1),(-5,1),(-5,-1),(5,-1)]) * 0.15
         xsc_turn = array([(1,1),(-1,1),(-1,-1),(1,-1)]) * 0.15
         xsc_arrow_head = array([(10,1),(-10,1),(-10,-1),(10,-1)]) * 0.15
@@ -67,7 +69,8 @@ class StructureGraphBase(Model):
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
-        self._ribbon_xs_helix_start = self._ribbon_xs_helix     # nothing special for helix start
+        #self._ribbon_xs_helix_start = self._ribbon_xs_helix     # nothing special for helix start
+        self._ribbon_xs_helix_start = XSection(xsc_helix_start, xsc_helix, faceted=False)
         self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
         self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
         self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
@@ -452,9 +455,12 @@ class StructureGraphBase(Model):
             # Draw first and last residue differently because they
             # are each only a single half segment, while the middle
             # residues are each two half segments.
+            strs = residues.strs
+            import sys
 
             # First residues
             if displays[0]:
+                print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
                 xss_compat = self._xss_compatible(xss[0], xss[1])
                 capped = displays[0] != displays[1] or not xss_compat
                 seg = capped and seg_cap or seg_blend
@@ -492,10 +498,11 @@ class StructureGraphBase(Model):
             for i in range(1, len(residues) - 1):
                 if not displays[i]:
                     continue
+                print(strs[i], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg)
                 if self.ribbon_show_spine:
-                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
+                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                      front_c, front_n,
                                                                                      spine_colors,
                                                                                      spine_xyz1,
@@ -504,7 +511,7 @@ class StructureGraphBase(Model):
                 seg = next_cap and seg_cap or seg_blend
                 back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg)
                 if self.ribbon_show_spine:
-                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
+                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                      back_c, back_n,
                                                                                      spine_colors,
                                                                                      spine_xyz1,
@@ -534,6 +541,7 @@ class StructureGraphBase(Model):
                 t_start = t_end
             # Last residue
             if displays[-1]:
+                print(strs[-1], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg)
                 back_c, back_t, back_n = ribbon.trail_segment(seg_cap / 2)
@@ -541,7 +549,7 @@ class StructureGraphBase(Model):
                 tangents = concatenate((front_t, back_t))
                 normals = concatenate((front_n, back_n))
                 if self.ribbon_show_spine:
-                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
+                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[-1],
                                                                                      centers, normals,
                                                                                      spine_colors,
                                                                                      spine_xyz1,
@@ -672,21 +680,15 @@ class StructureGraphBase(Model):
         ideal[0] = ss_coords[0]
         ideal[1:-1] = (ss_coords[1:-1] * 2 + ss_coords[:-2] + ss_coords[2:]) / 4
         ideal[-1] = ss_coords[-1]
-#         axis, centroid, rel_coords = self._ss_axes(ss_coords)
-#         # Compute position for strand control point atom on
-#         # axis by projection
-#         axis = normalize(axis)
-#         axis_pos = dot(rel_coords, axis)[:, newaxis]
-#         ideal = centroid + axis * axis_pos
         offsets = adjusts * (ideal - ss_coords)
         new_coords = ss_coords + offsets
         if False:
             # Debugging code to display center of secondary structure
             self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
-        # Compute guide atom position relative to control point atom
-        delta_guides = guides[start:end] - ss_coords
         # Update both control point and guide coordinates
         coords[start:end] = new_coords
+        # Compute guide atom position relative to control point atom
+        delta_guides = guides[start:end] - ss_coords
         guides[start:end] = new_coords + delta_guides
         # Update the tethered array
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
@@ -1263,7 +1265,7 @@ class LevelOfDetail(State):
         self._bond_max_total_triangles = 5000000
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
-        self._ribbon_divisions = 10
+        self._ribbon_divisions = 20
 
     def take_snapshot(self, session, flags):
         return 1, [self.quality]
