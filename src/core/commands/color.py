@@ -338,7 +338,7 @@ _SequentialColor = {
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import register, CmdDesc, ColorArg, ColormapArg, ObjectsArg
+    from . import register, CmdDesc, ColorArg, ColormapArg, ObjectsArg, create_alias
     from . import EmptyArg, Or, EnumOf, StringArg, TupleOf, FloatArg, BoolArg
     what_arg = EnumOf(('atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds'))
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg))],
@@ -352,3 +352,4 @@ def register_command(session):
                             ('halfbond', BoolArg)],
                    synopsis="color objects")
     register('color', desc, color)
+    create_alias('colour', 'color $*')
