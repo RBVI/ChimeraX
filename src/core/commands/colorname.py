@@ -69,16 +69,24 @@ def html_color_swatch(color):
         % color.hex())
 
 
-def name_color(session, name, color=None):
+def name_color(session, name, color):
     """Create a custom color."""
     if ColorNames.match(name) is None:
         from ..errors import UserError
         raise UserError('Illegal color name: "%s"' % name)
 
-    if color is not None:
-        name = ' '.join(name.split())   # canonicalize
-        session.user_colors.add(name, color)
-        return
+    name = ' '.join(name.split())   # canonicalize
+    session.user_colors.add(name, color)
+    show_color(session, name)
+
+
+def show_color(session, name):
+    """Show color in log."""
+    if ColorNames.match(name) is None:
+        from ..errors import UserError
+        raise UserError('Illegal color name: "%s"' % name)
+
+    name = ' '.join(name.split())   # canonicalize
 
     if session is not None:
         real_name, color, rest = _find_named_color(session.user_colors, name)
@@ -166,7 +174,7 @@ def list_colors(session, all=False):
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import register, CmdDesc, StringArg, ColorArg, NoArg, EnumOf, Or, create_alias
+    from . import register, CmdDesc, StringArg, ColorArg, NoArg, EnumOf, Or, RestOfLine, create_alias
     register(
         'color list',
         CmdDesc(
@@ -176,9 +184,14 @@ def register_command(session):
     )
 
     register(
+        'color show',
+        CmdDesc(required=[('name', RestOfLine)],
+                synopsis="show color"),
+        show_color
+    )
+    register(
         'color name',
-        CmdDesc(required=[('name', StringArg)],
-                optional=[('color', ColorArg)],
+        CmdDesc(required=[('name', StringArg), ('color', ColorArg)],
                 synopsis="name a custom color"),
         name_color
     )
