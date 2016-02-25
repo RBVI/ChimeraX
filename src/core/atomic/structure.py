@@ -455,12 +455,12 @@ class StructureGraphBase(Model):
             # Draw first and last residue differently because they
             # are each only a single half segment, while the middle
             # residues are each two half segments.
-            strs = residues.strs
-            import sys
+            # strs = residues.strs
+            # import sys
 
             # First residues
             if displays[0]:
-                print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
+                # print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
                 xss_compat = self._xss_compatible(xss[0], xss[1])
                 capped = displays[0] != displays[1] or not xss_compat
                 seg = capped and seg_cap or seg_blend
@@ -496,9 +496,9 @@ class StructureGraphBase(Model):
                 prev_band = None
             # Middle residues
             for i in range(1, len(residues) - 1):
+                # print(strs[i], file=sys.__stderr__); sys.__stderr__.flush()
                 if not displays[i]:
                     continue
-                print(strs[i], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg)
                 if self.ribbon_show_spine:
@@ -541,7 +541,7 @@ class StructureGraphBase(Model):
                 t_start = t_end
             # Last residue
             if displays[-1]:
-                print(strs[-1], file=sys.__stderr__); sys.__stderr__.flush()
+                # print(strs[-1], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg)
                 back_c, back_t, back_n = ribbon.trail_segment(seg_cap / 2)
