@@ -28,6 +28,8 @@ class ColorArg(cli.Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise ValueError("Missing color name or specifier")
         if text[0] == '#':
             token, text, rest = cli.next_token(text)
             c = Color(token)

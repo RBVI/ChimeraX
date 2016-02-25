@@ -347,6 +347,9 @@ class Annotation(metaclass=abc.ABCMeta):
 
         The leading space in text must already be removed.
         It is up to the particular annotation to support abbreviations.
+
+        Empty text should raise an exception (the exceptions being NoArg
+        and EmptyArg).
         """
         raise NotImplemented
 
