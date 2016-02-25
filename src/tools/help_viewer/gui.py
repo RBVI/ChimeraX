@@ -128,7 +128,11 @@ class HelpUI(ToolInstance):
             for ti in session.tools.list():
                 if ti.bundle_info.name == 'cmd_line':
                     ti.cmd_replace(cmd)
-            run(session, cmd)
+                    ti.on_enter(None)
+                    break
+            else:
+                # no command line?!?
+                run(session, cmd)
             return
         # TODO: check if http url is within ChimeraX docs
         # TODO: handle missing doc -- redirect to web server

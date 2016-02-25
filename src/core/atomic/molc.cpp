@@ -2628,7 +2628,6 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
     // n: normal updated at each step
     // b: binormal defined by cross product of two consecutive tangents
     // b_hat: normalized b
-    // EPSILON: essentially zero
     float n[3] = { n0[0], n0[1], n0[2] };
     float b[3];
     float b_hat[3];
@@ -2655,7 +2654,7 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
     }
 }
 
-#define DEBUG_CONSTRAINED_NORMALS   0
+#define DEBUG_CONSTRAINED_NORMALS   1
 
 extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end)
 {
@@ -2677,6 +2676,8 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
 #if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "n_start" << ' ' << n_start[0] << ' ' << n_start[1] << ' ' << n_start[2] << '\n';
     std::cerr << "n_end" << ' ' << n_end[0] << ' ' << n_end[1] << ' ' << n_end[2] << '\n';
+    std::cerr << "start inner: " << inner(n_start, tangents)
+        << " end inner: " << inner(n_end, tangents + num_pts * 3) << '\n';
 #if DEBUG_CONSTRAINED_NORMALS > 1
     std::cerr << "tangents\n";
     for (int i = 0; i != num_pts; ++i) {
@@ -2701,7 +2702,7 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
     float other_end[3] = { n_end[0], n_end[1], n_end[2] };
     float twist = acos(inner(n, n_end));
 #if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "initial twist " << twist << "\n";
+    std::cerr << "initial twist " << twist << " sqlen(n): " << inner(n, n) << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
 #endif
     if (isnan(twist))
         twist = 0;
@@ -2714,17 +2715,17 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
         twist = acos(inner(n, other_end));
         flipped = true;
 #if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "flipping twist " << twist << "\n";
+    std::cerr << "flipped twist " << twist << " sqlen(n): " << inner(n, n) << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
 #endif
     }
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "final twist " << twist << " flipped " << flipped << "\n";
-#endif
     // Figure out direction of twist (right-hand rule)
     float *last_tangent = tangents + (num_pts - 1) * 3;
     float tmp[3];
     if (inner(cross(n, other_end, tmp), last_tangent) < 0)
         twist = -twist;
+#if DEBUG_CONSTRAINED_NORMALS > 0
+    std::cerr << "final twist " << twist << " flipped " << flipped << "\n";
+#endif
     // Compute amount of twist per segment
     float delta = twist / (num_pts - 1);
 #if DEBUG_CONSTRAINED_NORMALS > 0
@@ -2736,17 +2737,26 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
         float angle = i * delta;
         float c = cos(angle);
         float s = sin(angle);
-#if DEBUG_CONSTRAINED_NORMALS > 0
+#if DEBUG_CONSTRAINED_NORMALS > 1
+        float before = inner(tangents + offset, normals + offset);
         std::cerr << "twist " << i << " angle " << angle << " -> ";
 #endif
         _rotate_around(tangents + offset, c, s, normals + offset);
-#if DEBUG_CONSTRAINED_NORMALS > 0
+#if DEBUG_CONSTRAINED_NORMALS > 1
+        float after = inner(tangents + offset, normals + offset);
         float* n = normals + offset;
-        std::cerr << n[0] << ' ' << n[1] << ' ' << n[2] << '\n';
+        std::cerr << n[0] << ' ' << n[1] << ' ' << n[2]
+            << " before/after: " << before << ' ' << after << '\n';
 #endif
     }
+#if DEBUG_CONSTRAINED_NORMALS > 1
+    float *last_n = normals + (num_pts - 1) * 3;
+    std::cerr << "check: last n: " << last_n[0] << ' ' << last_n[1] << ' ' << last_n[2]
+            << " other_end: " << other_end[0] << ' ' << other_end[1] << ' ' << other_end[2]
+            << " dot: " << inner(last_n, other_end) << '\n';
+#endif
 #if DEBUG_CONSTRAINED_NORMALS > 0
-    if (fabs(inner(normals + (num_pts - 1) * 3, n_end)) < 1e-4)
+    if (fabs(inner(normals + (num_pts - 1) * 3, other_end)) < (1 - 1e-2))
         std::cerr << "***** WRONG ROTATION *****\n";
 #endif
     // Return both computed normals and whether normal ends up
