@@ -34,6 +34,9 @@ class FilePanel(ToolInstance):
         fhw.Bind(html2.EVT_WEBVIEW_LOADED, self.on_load)
         fhw.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating, id=fhw.GetId())
 
+        from chimerax.core.filehistory import file_history
+        file_history(session).remove_missing_files()
+
         self.update_html()
 
         t = session.triggers
