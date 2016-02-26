@@ -8,8 +8,6 @@ class Ribbon:
     BACK = 2
 
     def __init__(self, coords, guides):
-        if guides is None or len(coords) != len(guides):
-            raise ValueError("different number of coordinates and guides")
         # Extend the coordinates at start and end to make sure the
         # ribbon is straight on either end.  Compute the spline
         # coefficients for each axis.  Then throw away the
@@ -23,9 +21,21 @@ class Ribbon:
         for i in range(3):
             self._compute_coefficients(c, i)
         # Compute spline normals from guide atom positions.
-        #self.normals = self._compute_normals_from_guides(coords, guides)
-        self.normals = self._compute_normals_from_curvature(coords, guides)
-        #self.normals = self._compute_normals_from_control_points(coords, guides)
+        #
+        # --- If we can compute normals from guides well, use this:
+        # if guides is None or len(coords) != len(guides):
+        #     self.normals = self._compute_normals_from_guides(coords, guides)
+        # else:
+        #     self.normals = self._compute_normals_from_control_points(coords)
+        #
+        # --- If not, choose one of the three options manually
+        # if guides is None or len(coords) != len(guides):
+        #     raise ValueError("different number of coordinates and guides")
+        # else:
+        #     self.normals = self._compute_normals_from_guides(coords, guides)
+        # self.normals = self._compute_normals_from_curvature(coords)
+        self.normals = self._compute_normals_from_control_points(coords)
+        # ---
         # Initialize segment cache
         self._seg_cache = {}
 
@@ -114,7 +124,7 @@ class Ribbon:
                 normals[j] = last_normal
         return normals
 
-    def _compute_normals_from_control_points(self, coords, guides):
+    def _compute_normals_from_control_points(self, coords):
         # This version ignores the guide atom positions and computes normals
         # at each control point by making it perpendicular to the vectors pointing
         # to control points on either side.  The two ends and any collinear control
