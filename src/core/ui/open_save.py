@@ -27,19 +27,26 @@ if window_sys == "wx":
         def __add_extension(self, path):
             if self.__add_ext is None:
                 return path
-            appended = []
             import os.path
             front, ext = os.path.splitext(path)
             if ext:
                 return path
             return path + self.__add_ext
 
-    def export_file_filter(category=None, all=False):
+    def export_file_filter(category=None, format_name=None, all=False):
         """Return file name filter suitable for Export File dialog for WX"""
 
+        if format_name:
+            # since it seems we will be doing the exporting, don't filter
+            # formats with no registered export function
+            export_kw_val = False
+        else:
+            export_kw_val = True
         result = []
         from .. import io
-        for fmt_name in io.format_names(open=False, export=True):
+        for fmt_name in io.format_names(open=False, export=export_kw_val):
+            if fmt_name != format_name:
+                continue
             if category and io.category(fmt_name) != category:
                 continue
             exts = ', '.join(io.extensions(fmt_name))
@@ -82,35 +89,38 @@ else:
     from PyQt5.QtWidgets import QFileDialog
     class SaveDialog(QFileDialog):
         def __init__(self, parent, *args, **kw):
-            self.__add_ext = kw.pop('add_extension', None)
+            default_suffix = kw.pop('add_extension', None)
+            name_filter = kw.pop('name_filter', None)
             super().__init__(parent, *args, **kw)
             self.setFileMode(QFileDialog.AnyFile)
             self.setAcceptMode(QFileDialog.AcceptSave)
             self.setOption(QFileDialog.DontUseNativeDialog)
+            if default_suffix:
+                self.setDefaultSuffix(default_suffix)
+            if name_filter:
+                self.setNameFilter(name_filter)
 
         def get_path(self):
             paths = self.selectedFiles()
             if not paths:
                 return None
             path = paths[0]
-            return self.__add_extension(path)
+            return path
 
-        def __add_extension(self, path):
-            if self.__add_ext is None:
-                return path
-            appended = []
-            import os.path
-            front, ext = os.path.splitext(path)
-            if ext:
-                return path
-            return path + self.__add_ext
-
-    def export_file_filter(category=None, all=False):
+    def export_file_filter(category=None, format_name=None, all=False):
         """Return file name filter suitable for Export File dialog for Qt"""
 
+        if format_name:
+            # since it seems we will be doing the exporting, don't filter
+            # formats with no registered export function
+            export_kw_val = False
+        else:
+            export_kw_val = True
         result = []
         from .. import io
-        for fmt_name in io.format_names(open=False, export=True):
+        for fmt_name in io.format_names(open=False, export=export_kw_val):
+            if fmt_name != format_name:
+                continue
             if category and io.category(fmt_name) != category:
                 continue
             exts = '*' + ' *'.join(io.extensions(fmt_name))

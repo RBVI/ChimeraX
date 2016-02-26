@@ -1274,11 +1274,18 @@ else:
             return not self.dock_widget.isHidden()
 
         def _set_shown(self, shown):
+            # isHidden() is not to be trusted before the main window is shown
+            # since it will return True even though the window _will_ be shown
+            # once the main window shows, so comment out the optimization
+            # until I can figure something out (showEvent and QTimer(0) both
+            # seem to fire too early...)
+            """
             if shown != self.dock_widget.isHidden():
                 if shown:
                     #ensure it's on top
                     self.dock_widget.raise_()
                 return
+            """
             if shown:
                 self.dock_widget.show()
                 #ensure it's on top
