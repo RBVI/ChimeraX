@@ -45,7 +45,7 @@ if window_sys == "wx":
         result = []
         from .. import io
         for fmt_name in io.format_names(open=False, export=export_kw_val):
-            if fmt_name != format_name:
+            if format_name and fmt_name != format_name:
                 continue
             if category and io.category(fmt_name) != category:
                 continue
@@ -99,6 +99,18 @@ else:
                 self.setDefaultSuffix(default_suffix)
             if name_filter:
                 self.setNameFilter(name_filter)
+            self._custom_area = None
+
+        @property
+        def custom_area(self):
+            if self._custom_area is None:
+                layout = self.layout()
+                row = layout.rowCount()
+                from PyQt5.QtWidgets import QFrame
+                self._custom_area = QFrame(self)
+                from PyQt5.QtCore import Qt
+                layout.addWidget(self._custom_area, row, 0, 1, -1, Qt.AlignCenter)
+            return self._custom_area
 
         def get_path(self):
             paths = self.selectedFiles()
@@ -119,7 +131,7 @@ else:
         result = []
         from .. import io
         for fmt_name in io.format_names(open=False, export=export_kw_val):
-            if fmt_name != format_name:
+            if format_name and fmt_name != format_name:
                 continue
             if category and io.category(fmt_name) != category:
                 continue

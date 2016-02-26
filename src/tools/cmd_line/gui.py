@@ -409,13 +409,10 @@ class _HistoryDialog:
                 self._record_dialog = dlg = SaveDialog(self.window.ui_area,
                     "Record Commands", name_filter=export_file_filter(format_name="ChimeraX"),
                     add_extension=extensions("ChimeraX")[0])
-                dialog_layout = dlg.layout()
-                row = dialog_layout.rowCount()
                 from PyQt5.QtWidgets import QFrame, QLabel, QHBoxLayout, QVBoxLayout, QComboBox
                 from PyQt5.QtWidgets import QCheckBox
-                options_frame = QFrame(dlg)
                 from PyQt5.QtCore import Qt
-                dialog_layout.addWidget(options_frame, row, 0, 1, -1, Qt.AlignCenter)
+                options_frame = dlg.custom_area
                 options_layout = QVBoxLayout(options_frame)
                 options_frame.setLayout(options_layout)
                 amount_frame = QFrame(options_frame)

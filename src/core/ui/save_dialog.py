@@ -318,12 +318,9 @@ else:
             self.file_dialog.setNameFilters(fmt.wildcard.split(';;'))
 
         def _customize_file_dialog(self):
-            dialog_layout = self.file_dialog.layout()
-            row = dialog_layout.rowCount()
-            from PyQt5.QtWidgets import QWidget, QComboBox, QHBoxLayout, QLabel, QFrame
-            self._options_panel = options_panel = QWidget(self.file_dialog)
+            from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel, QFrame
             from PyQt5.QtCore import Qt
-            dialog_layout.addWidget(options_panel, row, 0, 1, -1, Qt.AlignCenter)
+            self._options_panel = options_panel = self.file_dialog.custom_area
             self._format_selector = selector = QComboBox(options_panel)
             selector.currentIndexChanged.connect(self._select_format)
             self._no_options_label = no_opt_label = QLabel(options_panel)
