@@ -652,13 +652,14 @@ class StructureGraphBase(Model):
         ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
         offsets = adjusts * (ideal - ss_coords)
         new_coords = ss_coords + offsets
-        # Compute guide atom position relative to control point atom
-        delta_guides = guides[start:end] - ss_coords
         # Update both control point and guide coordinates
         coords[start:end] = new_coords
-        # Move the guide location so that it forces the
-        # ribbon parallel to the axis
-        guides[start:end] = new_coords + axis
+        if guides is not None:
+            # Compute guide atom position relative to control point atom
+            delta_guides = guides[start:end] - ss_coords
+            # Move the guide location so that it forces the
+            # ribbon parallel to the axis
+            guides[start:end] = new_coords + axis
         # Originally, we just update the guide location to
         # the same relative place as before
         #   guides[start:end] = new_coords + delta_guides
@@ -687,9 +688,10 @@ class StructureGraphBase(Model):
             self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
         # Update both control point and guide coordinates
         coords[start:end] = new_coords
-        # Compute guide atom position relative to control point atom
-        delta_guides = guides[start:end] - ss_coords
-        guides[start:end] = new_coords + delta_guides
+        if guides is not None:
+            # Compute guide atom position relative to control point atom
+            delta_guides = guides[start:end] - ss_coords
+            guides[start:end] = new_coords + delta_guides
         # Update the tethered array
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
