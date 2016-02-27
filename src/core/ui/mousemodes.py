@@ -594,9 +594,12 @@ else:
             gw.mousePressEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_down")
             gw.mouseMoveEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_drag")
             gw.mouseReleaseEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_up")
-            #QT disabled
-            #gw.wheelEvent = self._wheel_event
-            #gw.touchEvent = self._touch_event
+            gw.wheelEvent = self._wheel_event
+
+        def _wheel_event(self, event):
+            f = self.mode('wheel', self._key_modifiers(event))
+            if f:
+                f.wheel(MouseEvent(event))
 
     class MouseEvent:
         '''
@@ -625,7 +628,11 @@ else:
             Number of clicks the mouse wheel was turned, signed float.
             One click is typically 15 degrees of wheel rotation.
             '''
-            return self._event.angleDelta()/120.0   # Usually one wheel click is delta of 120
+            deltas = self._event.angleDelta()
+            delta = max(deltas.x(), deltas.y())
+            if delta == 0:
+                delta = min(deltas.x(), deltas.y())
+            return delta/120.0   # Usually one wheel click is delta of 120
 
 class SelectMouseMode(MouseMode):
     '''Mouse mode to select objects by clicking on them.'''
@@ -1075,8 +1082,8 @@ class ClipRotateMouseMode(MouseMode):
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
     if window_sys == "wx":
-        #from .. import map, markers
-        #from ..map import series
+        from .. import map, markers
+        from ..map import series
         mode_classes = [
             SelectMouseMode,
             RotateMouseMode,
@@ -1088,18 +1095,17 @@ def standard_mouse_mode_classes():
             ClipMouseMode,
             ClipRotateMouseMode,
             ObjectIdMouseMode,
-            #map.ContourLevelMouseMode,
-            #map.PlanesMouseMode,
-            #markers.MarkerMouseMode,
-            #markers.MarkCenterMouseMode,
-            #markers.ConnectMouseMode,
-            #series.PlaySeriesMouseMode,
+            map.ContourLevelMouseMode,
+            map.PlanesMouseMode,
+            markers.MarkerMouseMode,
+            markers.MarkCenterMouseMode,
+            markers.ConnectMouseMode,
+            series.PlaySeriesMouseMode,
             NullMouseMode,
         ]
     else:
-        #QT disabled
-        #from .. import map, markers
-        #from ..map import series
+        from .. import map, markers
+        from ..map import series
         mode_classes = [
             SelectMouseMode,
             RotateMouseMode,
@@ -1111,12 +1117,12 @@ def standard_mouse_mode_classes():
             ClipMouseMode,
             ClipRotateMouseMode,
             ObjectIdMouseMode,
-            #map.ContourLevelMouseMode,
-            #map.PlanesMouseMode,
-            #markers.MarkerMouseMode,
-            #markers.MarkCenterMouseMode,
-            #markers.ConnectMouseMode,
-            #series.PlaySeriesMouseMode,
+            map.ContourLevelMouseMode,
+            map.PlanesMouseMode,
+            markers.MarkerMouseMode,
+            markers.MarkCenterMouseMode,
+            markers.ConnectMouseMode,
+            series.PlaySeriesMouseMode,
             NullMouseMode,
         ]
     return mode_classes
