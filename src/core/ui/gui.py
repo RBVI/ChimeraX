@@ -764,8 +764,7 @@ else:
                     self._keystroke_sinks[i + 1:]
 
         def event_loop(self):
-            #QT disabled
-            #redirect_stdio_to_logger(self.session.logger)
+            redirect_stdio_to_logger(self.session.logger)
             self.exec_()
             self.session.logger.clear()
 
@@ -836,7 +835,6 @@ else:
 
             #QT disabled
             """
-            self.Bind(wx.EVT_CLOSE, self.on_close)
             self.Bind(EVT_AUI_PANE_CLOSE, self.on_pane_close)
             """
             self.show()
@@ -846,20 +844,10 @@ else:
             func, args, kw = event.func_info
             func(*args, **kw)
 
-        def close(self):
-            self.aui_mgr.UnInit()
-            del self.aui_mgr
-            if self.graphics_window.timer is not None:
-                self.graphics_window.timer.Stop()
-            self.Destroy()
-
         def log(self, *args, **kw):
             return False
 
-            """
-        def on_close(self, event):
-            self.close()
-
+        """
         def on_edit(self, event, func):
             widget = self.FindFocus()
             if widget and hasattr(widget, func):
