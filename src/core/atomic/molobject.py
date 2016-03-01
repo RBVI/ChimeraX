@@ -473,8 +473,8 @@ class StructureData:
     def __init__(self, mol_pointer=None, *, logger=None, restore_data=None):
         if mol_pointer is None:
             # Create a new graph
-            new_func = 'structure_new' \
-                if self.__class__.__name__ == "AtomicStructure" else 'graph_new'
+            from .structure import AtomicStructure
+            new_func = 'structure_new' if isinstance(self, AtomicStructure) else 'graph_new'
             mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
 
