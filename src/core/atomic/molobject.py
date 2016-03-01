@@ -38,7 +38,7 @@ def _chains(p):
     return Chains(p)
 def _atomic_structure(p):
     if p == 0: return None
-    return object_map(p, AtomicStructureData)
+    return object_map(p, StructureData)
 def _pseudobond_group_map(pbgc_map):
     from .pbgroup import PseudobondGroup
     pbg_map = dict((name, object_map(pbg,PseudobondGroup)) for name, pbg in pbgc_map.items())
@@ -464,11 +464,18 @@ class Chain(Sequence):
 
 # -----------------------------------------------------------------------------
 #
-class GraphData:
-    def __init__(self, mol_pointer=None, logger=None, restore_data=None):
+class StructureData:
+    '''
+    This is a base class of both :class:`.AtomicStructure` and :class:`.Graph`.
+    This base class manages the data while the
+    derived class handles the graphical 3-dimensional rendering using OpenGL.
+    '''
+    def __init__(self, mol_pointer=None, *, logger=None, restore_data=None):
         if mol_pointer is None:
             # Create a new graph
-            mol_pointer = c_function('graph_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
+            new_func = 'structure_new' \
+                if self.__class__.__name__ == "AtomicStructure" else 'graph_new'
+            mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
 
         if restore_data:
@@ -583,7 +590,7 @@ class GraphData:
         return object_map(pbg, PseudobondGroup)
 
     def restore_snapshot_init(self, session, tool_info, version, data):
-        GraphData.__init__(self, logger=session.logger,
+        StructureData.__init__(self, logger=session.logger,
             restore_data=(session, version, data))
 
     def session_atom_to_id(self, ptr):
@@ -640,24 +647,6 @@ class GraphData:
     _gc_select = c_property('structure_gc_select', npy_bool)
     _gc_shape = c_property('structure_gc_shape', npy_bool)
     _gc_ribbon = c_property('structure_gc_ribbon', npy_bool)
-
-# -----------------------------------------------------------------------------
-#
-class AtomicStructureData(GraphData):
-    '''
-    This is a base class of :class:`.AtomicStructure`.
-    This base class manages the atomic data while the
-    derived class handles the graphical 3-dimensional rendering using OpenGL.
-    '''
-    def __init__(self, mol_pointer=None, logger=None, restore_data=None):
-        if mol_pointer is None:
-            # Create a new atomic structure
-            mol_pointer = c_function('structure_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
-        GraphData.__init__(self, mol_pointer=mol_pointer, logger=logger, restore_data=restore_data)
-
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        AtomicStructureData.__init__(self, logger=session.logger,
-            restore_data=(session, version, data))
 
 # -----------------------------------------------------------------------------
 #

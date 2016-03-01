@@ -62,8 +62,8 @@ def _chains(p):
     return Chains(p)
 def _atomic_structures(p):
     return AtomicStructures(p)
-def _atomic_structure_datas(p):
-    return AtomicStructureDatas(p)
+def structure_datas(p):
+    return StructureDatas(p)
 def _atoms_pair(p):
     return (Atoms(p[:,0].copy()), Atoms(p[:,1].copy()))
 def _pseudobond_group_map(a):
@@ -474,7 +474,7 @@ class Bonds(Collection):
     and at least one atom is not Sphere style.
     '''
     structures = cvec_property('bond_structure', cptr, astype = _atomic_structures, read_only = True)
-    '''Returns an :class:`.AtomicStructureDatas` with the structure for each bond. Read only.'''
+    '''Returns an :class:`.StructureDatas` with the structure for each bond. Read only.'''
 
     @property
     def num_shown(self):
@@ -626,7 +626,7 @@ class Residues(Collection):
     is_sheet = cvec_property('residue_is_sheet', npy_bool)
     '''Returns a numpy bool array whether each residue is in a protein sheet. Read only.'''
     structures = cvec_property('residue_structure', cptr, astype = _atomic_structures, read_only = True)
-    '''Returns :class:`.AtomicStructureDatas` collection containing structures for each residue.'''
+    '''Returns :class:`.StructureDatas` collection containing structures for each residue.'''
     names = cvec_property('residue_name', string, read_only = True)
     '''Returns a numpy array of residue names. Read only.'''
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True)
@@ -682,8 +682,8 @@ class Residues(Collection):
 
     @property
     def unique_structures(self):
-        '''The unique structures as an :class:`.AtomicStructureDatas` collection'''
-        return AtomicStructureDatas(unique(self.structures._pointers))
+        '''The unique structures as an :class:`.StructureDatas` collection'''
+        return StructureDatas(unique(self.structures._pointers))
 
     @property
     def unique_chain_ids(self):
@@ -743,7 +743,7 @@ class Chains(Collection):
     chain_ids = cvec_property('chain_chain_id', string, read_only = True)
     '''A numpy array of string chain ids for each chain. Read only.'''
     structures = cvec_property('chain_structure', cptr, astype = _atomic_structures, read_only = True)
-    '''A :class:`.AtomicStructureDatas` collection containing structures for each chain.'''
+    '''A :class:`.StructureDatas` collection containing structures for each chain.'''
     existing_residues = cvec_property('chain_residues', cptr, 'num_residues',
         astype = _non_null_residues, read_only = True, per_object = False)
     '''A :class:`Residues` containing the existing residues of all chains. Read only.'''
@@ -762,14 +762,14 @@ class Chains(Collection):
 
 # -----------------------------------------------------------------------------
 #
-class AtomicStructureDatas(Collection):
+class StructureDatas(Collection):
     '''
     Bases: :class:`.Collection`
 
     Collection of C++ atomic structure objects.
     '''
     def __init__(self, mol_pointers):
-        Collection.__init__(self, mol_pointers, molobject.AtomicStructureData, AtomicStructureDatas)
+        Collection.__init__(self, mol_pointers, molobject.StructureData, StructureDatas)
 
     atoms = cvec_property('structure_atoms', cptr, 'num_atoms', astype = _atoms,
                           read_only = True, per_object = False)
@@ -814,9 +814,9 @@ class AtomicStructureDatas(Collection):
 
 # -----------------------------------------------------------------------------
 #
-class AtomicStructures(AtomicStructureDatas):
+class AtomicStructures(StructureDatas):
     '''
-    Bases: :class:`.AtomicStructureDatas`
+    Bases: :class:`.StructureDatas`
 
     Collection of Python atomic structure objects.
     '''
