@@ -20,13 +20,10 @@ def open_pdb(session, filename, name, *args, **kw):
     else:
         input = _builtin_open(filename, 'rb')
 
-    log = session.logger
-    from ..logger import Collator
-    with Collator(log, "Summary of problems reading PDB file", kw.pop('log_errors', True)):
-        from . import pdbio
-        pointers = pdbio.read_pdb_file(input, log=log)
-        if input != filename:
-            input.close()
+    from . import pdbio
+    pointers = pdbio.read_pdb_file(input, log=session.logger)
+    if input != filename:
+        input.close()
 
     lod = session.atomic_level_of_detail
     models = [structure.AtomicStructure(session, name = name, c_pointer = p, level_of_detail = lod)

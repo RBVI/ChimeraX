@@ -3,18 +3,18 @@
 #include <utility>  // for pair
 
 #include "Atom.h"
-#include "AtomicStructure.h"
 #include "CoordSet.h"
-#include <basegeom/destruct.h>
+#include "destruct.h"
+#include "Graph.h"
 
 namespace atomstruct {
 
-CoordSet::CoordSet(AtomicStructure* as, int cs_id):
+CoordSet::CoordSet(Graph* as, int cs_id):
     _cs_id(cs_id), _structure(as)
 {
 }
 
-CoordSet::CoordSet(AtomicStructure* as, int cs_id, int size):
+CoordSet::CoordSet(Graph* as, int cs_id, int size):
     _cs_id(cs_id), _structure(as)
 {
     _coords.reserve(size);
@@ -22,7 +22,7 @@ CoordSet::CoordSet(AtomicStructure* as, int cs_id, int size):
 
 CoordSet::~CoordSet()
 {
-    if (basegeom::DestructionCoordinator::destruction_parent() != _structure)
+    if (DestructionCoordinator::destruction_parent() != _structure)
         _structure->pb_mgr().remove_cs(this);
 }
 

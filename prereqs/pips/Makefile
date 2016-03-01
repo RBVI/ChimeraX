@@ -8,19 +8,10 @@ APP_PIP	= $(APP_PYTHON_EXE) -m pip --log pip.log
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-MPL_VERSION	= 1.4.3
-MPL_PATCHES	= matplotlib-$(MPL_VERSION)-wxphoenix.patch
-
 all:
 
-install:	$(PYSITEDIR)/matplotlib
+install:
 	LANG=$(LANG) $(PIP) install -r build_requirements.txt
-
-$(PYSITEDIR)/matplotlib:
-	LANG=$(LANG) $(PIP) install matplotlib==$(MPL_VERSION)
-	-for p in $(MPL_PATCHES); do \
-		patch -d $(PYSITEDIR) -N -p0 < $$p ; \
-	done
 
 list:
 	$(PIP) list
@@ -28,14 +19,28 @@ list:
 upgrade:
 	$(PIP) install -U -r build_requirements.txt
 
-app-install:	$(APP_PYSITEDIR)/matplotlib
+app-install:
 	$(APP_PIP) install -r app_requirements.txt
 
-$(APP_PYSITEDIR)/matplotlib:
-	LANG=$(LANG) $(APP_PIP) install matplotlib==$(MPL_VERSION)
-	-for p in $(MPL_PATCHES); do \
-		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
-	done
+app-upgrade:
+	$(APP_PIP) install -U -r app_requirements.txt
+
+# Example targets for patching a pip package. These targets would
+# be dependencies of the install and app-install targets.
+#
+# MPL_VERSION	= 1.5.1
+#
+# $(PYSITEDIR)/matplotlib:
+#	LANG=$(LANG) $(PIP) install matplotlib==$(MPL_VERSION)
+#	-for p in $(MPL_PATCHES); do \
+#		patch -d $(PYSITEDIR) -N -p0 < $$p ; \
+#	done
+#
+# $(APP_PYSITEDIR)/matplotlib:
+#	LANG=$(LANG) $(APP_PIP) install matplotlib==$(MPL_VERSION)
+#	-for p in $(MPL_PATCHES); do \
+#		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
+#	done
 
 clean:
 	rm -f pip.log

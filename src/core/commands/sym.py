@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def sym(session, molecules, assembly = None, clear = False,
+def sym(session, molecules, assembly = None, copies = False, clear = False,
         surface_only = False, resolution = None):
     '''
     Show molecular assemblies of molecular models defined in mmCIF files.
@@ -14,6 +14,11 @@ def sym(session, molecules, assembly = None, clear = False,
     assembly : string
       The name of assembly in the mmCIF file. If this parameter is None
       then the names of available assemblies are printed in log.
+    copies : bool
+      Whether to make copies of the molecule chains.  If copies are not made
+      then clones of the original molecule.  Copies are needed to give different
+      colors or styles to each copy.  When copies are made a new model with
+      submodels are created, one submode for each copy.
     clear : bool
       Revert to displaying no assembly, resets the use of any symmetry matrices.
     surface_only : bool
@@ -31,10 +36,7 @@ def sym(session, molecules, assembly = None, clear = False,
             for s in m.surfaces():
                 s.position = Place()
         elif assembly is None:
-            ainfo = '\n'.join(' %s = %s (%s copies)'
-                              % (a.id,a.description,
-                                 ','.join(str(len(ops)) for cids, expr, ops in a.chain_ops))
-                              for a in assem)
+            ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description) for a in assem)
             anames = ainfo if assem else "no assemblies"
             session.logger.info('Assemblies for %s:\n%s' % (m.name, anames))
         else:
@@ -44,7 +46,9 @@ def sym(session, molecules, assembly = None, clear = False,
                 raise UserError('Assembly "%s" not found, have %s'
                                 % (assembly, ', '.join(a.id for a in assem)))
             a = amap[assembly]
-            if surface_only:
+            if copies:
+                a.show_copies(m, surface_only, resolution, session)
+            elif surface_only:
                 a.show_surfaces(m, resolution, session)
             else:
                 a.show(m, session)
@@ -54,6 +58,7 @@ def register_command(session):
     _sym_desc = CmdDesc(
         required = [('molecules', AtomicStructuresArg)],
         keyword = [('assembly', StringArg),
+                   ('copies', NoArg),
                    ('clear', NoArg),
                    ('surface_only', NoArg),
                    ('resolution', FloatArg)],
@@ -137,7 +142,7 @@ class Assembly:
         self.chain_ops = cops	# Triples of chain id list, operator expression, operator matrices
 
         self.operator_table = operator_table
-        # Chain map maps ChimeraX chain id, res name to mmcif chain id used in chain_ids
+        # Chain map maps ChimeraX (chain id, res number) to mmcif chain id used in chain_ids
         self.chain_map = chain_map
 
     def show(self, mol, session):
@@ -148,12 +153,15 @@ class Assembly:
                 # Hide chains that are not part of assembly
                 excluded_atoms.displays = False
                 excluded_atoms.unique_residues.ribbon_displays = False
-            if not included_atoms.displays.all():
-                # Show chains that have not atoms or ribbons shown.
-                for mc, cid, catoms in included_atoms.by_chain:
-                    if not catoms.displays.any() and not catoms.residues.ribbon_displays.any():
-                        catoms.displays = True
+            self._show_atoms(included_atoms)
             m.positions = ops
+
+    def _show_atoms(self, atoms):
+        if not atoms.displays.all():
+            # Show chains that have not atoms or ribbons shown.
+            for mc, cid, catoms in atoms.by_chain:
+                if not catoms.displays.any() and not catoms.residues.ribbon_displays.any():
+                    catoms.displays = True
 
     def show_surfaces(self, mol, res, session):
         included_atoms, excluded_atoms = self._partition_atoms(mol.atoms, self._chain_ids())
@@ -164,6 +172,28 @@ class Assembly:
         for s in surfs:
             cid = s.atoms[0].residue.chain_id
             s.positions = self._chain_operators(cid)
+
+    def show_copies(self, mol, surface_only, resolution, session):
+        mlist = []
+        for chain_ids, op_expr, ops in self.chain_ops:
+            for pos in ops:
+                m = mol.copy()
+                mlist.append(m)
+                m.position = pos
+                included_atoms, excluded_atoms = self._partition_atoms(m.atoms, chain_ids)
+                if len(excluded_atoms) > 0:
+                    excluded_atoms.delete()
+                self._show_atoms(included_atoms)
+
+        g = session.models.add_group(mlist)[0]
+        g.name = '%s assembly %s' % (mol.name, self.id)
+
+        if surface_only:
+            from .surface import surface
+            for m in mlist:
+                surface(session, m.atoms, resolution = resolution)
+
+        mol.display = False
 
     def _partition_atoms(self, atoms, chain_ids):
         mmcif_cids = mmcif_chain_ids(atoms, self.chain_map)
@@ -186,7 +216,7 @@ class Assembly:
         return Places(cops)
 
     def _molecule_copies(self, mol, session):
-        copies = getattr(mol, '_sym_copies', [])
+        copies = [m for m in getattr(mol, '_sym_copies', []) if not m.deleted()]
         nm = 1 + len(copies)
         n = len(self.chain_ops)
         if nm < n:
@@ -202,7 +232,20 @@ class Assembly:
             mol._sym_copies = copies
         mols = [mol] + copies
         return mols
-            
+
+    @property
+    def copy_description(self):
+        return ', '.join('%d copies of %d chains' % (len(ops), len(self._author_cids(cids)))
+                         for cids, expr, ops in self.chain_ops)
+
+    def _author_cids(self, mmcif_cids):
+        cids = set()
+        mcids = set(mmcif_cids)
+        cmap = self.chain_map
+        for (cid, rnum), mcid in cmap.items():
+            if mcid in mcids:
+                cids.add(cid)
+        return cids
 
 def mmcif_chain_ids(atoms, chain_map):
     if len(chain_map) == 0:

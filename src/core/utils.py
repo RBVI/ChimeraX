@@ -64,3 +64,23 @@ def initialize_ssl_cert_dir():
             # os.environ[dvp.openssl_capath_env] = os.path.dirname(fn)
             return
 _ssl_init_done = False
+
+
+def can_set_file_icon():
+    '''Can an icon image be associated with a file on this operating system.'''
+    from sys import platform
+    return platform == 'darwin'
+
+def set_file_icon(path, image):
+    '''Assoicate an icon image with a file to be shown by the operating system file browser.'''
+    if not can_set_file_icon():
+        return
+
+    # Encode image as jpeg.
+    import io
+    f = io.BytesIO()
+    image.save(f, 'JPEG')
+    s = f.getvalue()
+
+    from . import _mac_util
+    _mac_util.set_file_icon(path, s)

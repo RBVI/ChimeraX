@@ -1248,8 +1248,12 @@ class _DrawShape:
     def update_instance_arrays(self, positions, colors, position_mask):
         sas = positions.shift_and_scale_array()
         np = len(positions)
-        ic = colors if np > 1 or sas is not None else None
         im = positions.opengl_matrices() if sas is None and np > 1 else None
+        ic = colors if np > 1 or sas is not None else None
+        if ic is not None and len(ic) != np:
+            # If instance colors array is not same length as positions, resize colors.
+            import numpy
+            ic = numpy.resize(ic, (np,4))
 
         pm = position_mask
         if pm is not None:

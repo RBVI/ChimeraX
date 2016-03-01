@@ -197,8 +197,9 @@ ifeq ($(OS),Windows)
 	  $(bindir)/Lib \
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
-	$(RSYNC) --exclude Resources/Python.app \
-		$(frameworkdir)/Python.framework $(app_frameworkdir)
+	# next line breaks code signing 1/22/16
+	#ln -nf $(app_bindir)/python$(PYTHON_VERSION) $(app_prefix)/MacOS/
+	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)

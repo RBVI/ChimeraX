@@ -95,7 +95,7 @@ class _UniqueName:
             # double check that class will be able to be restored
             from chimerax.core import get_class
             if obj_cls != get_class(class_name):
-                raise RuntimeError('unable to restore objects of %s class' % class_name)
+                raise RuntimeError('Will not be able to restore objects of %s class' % class_name)
         else:
             class_name = (bundle_info.name, obj_cls.__name__)
             # double check that class will be able to be restored
@@ -314,6 +314,7 @@ class Session:
         self.triggers = triggerset.TriggerSet()
         self._state_containers = {}  # stuff to save in sessions
         self.metadata = {}           #: session metadata
+        self.in_script = InScriptFlag()
         if minimal:
             return
 
@@ -329,7 +330,7 @@ class Session:
         self.main_view = View(self.models.drawing, window_size=(256, 256),
                               trigger_set=self.triggers)
         from .graphics.gsession import ViewState
-        self.add_state_manager('view', ViewState(self, 'main_view'))
+        self.add_state_manager('view', ViewState(self.main_view))
 
         from . import colors
         self.add_state_manager('user_colors', colors.UserColors())
@@ -342,6 +343,10 @@ class Session:
     @property
     def models(self):
         return self._state_containers['models']
+
+    @property
+    def pb_manager(self):
+        return self._state_containers['pb_manager']
 
     @property
     def scenes(self):
@@ -452,10 +457,14 @@ class Session:
                         continue
                     cls_version, cls_data = data
                     obj = cls.restore_snapshot_new(self, bundle_info, cls_version, cls_data)
+                    if obj is None:
+                        print (bundle_info, cls_data)
                     obj.restore_snapshot_init(self, bundle_info, cls_version, cls_data)
                     mgr.add_reference(name, obj)
         except:
-            self.logger.error("Unable to restore session, resetting.")
+            import traceback
+            self.logger.error("Unable to restore session, resetting.\n\n%s"
+                              % traceback.format_exc())
             self.reset()
         finally:
             self.triggers.activate_trigger("end restore session", self)
@@ -470,6 +479,15 @@ class Session:
             return metadata
         return version, metadata
 
+class InScriptFlag:
+    def __init__(self):
+        self._level = 0
+    def __enter__(self):
+        self._level += 1
+    def __exit__(self, *_):
+        self._level -= 1
+    def __bool__(self):
+        return self._level > 0
 
 def save(session, filename, **kw):
     """command line version of saving a session"""
@@ -512,6 +530,16 @@ def save(session, filename, **kw):
         if my_open is not None:
             output.close()
 
+    # Associate thumbnail image with session file for display by operating system file browser.
+    from . import utils
+    if isinstance(filename, str) and utils.can_set_file_icon():
+        width = height = 512
+        image = session.main_view.image(width, height)
+        utils.set_file_icon(filename, image)
+
+    # Remember session in file history
+    from .filehistory import remember_file
+    remember_file(session, filename, 'ses', 'all models')
 
 def dump(session, session_file, output=None):
     """dump contents of session for debugging"""
@@ -597,9 +625,12 @@ def common_startup(sess):
     from .updateloop import UpdateLoop
     sess.update_loop = UpdateLoop()
 
-    from .atomic import PseudobondManager, ChangeTracker, LevelOfDetail
+    from .atomic import ChangeTracker, LevelOfDetail
     sess.change_tracker = ChangeTracker()
-    sess.pb_manager = PseudobondManager(sess)
+    # change_tracker needs to exist before global pseudobond manager
+    # can be created
+    from .atomic import PseudobondManager
+    sess.add_state_manager('pb_manager', PseudobondManager(sess))
     sess.atomic_level_of_detail = LevelOfDetail()
 
     from . import commands

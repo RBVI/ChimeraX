@@ -45,11 +45,6 @@ cxcmd_css = """
 context_menu_html = """
 <nav id="context-menu" class="context-menu">
     <ul class="context-menu-items">
-        <!--
-        <li class="context-menu-item">
-            <a href="log:copy" class="context-menu-link"> Copy </a>
-        </li>
-        -->
         <li class="context-menu-item">
             <a href="log:image" class="context-menu-link"> Insert image </a>
         </li>
@@ -58,6 +53,9 @@ context_menu_html = """
         </li>
         <li class="context-menu-item">
             <a href="log:clear" class="context-menu-link"> Clear </a>
+        </li>
+        <li class="context-menu-item">
+            <a href="log:select-all" class="context-menu-link"> Select All </a>
         </li>
         <hr style="margin:0;">
         <li class="context-menu-item">
@@ -129,7 +127,7 @@ class Log(ToolInstance, HtmlLog):
             ToolInstance.__init__(self, session, bundle_info)
         self.warning_shows_dialog = True
         self.error_shows_dialog = True
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
 
         class LogWindow(MainToolWindow):
             close_destroys = False
@@ -396,8 +394,8 @@ class Log(ToolInstance, HtmlLog):
                 self.display_help()
             elif cmd == 'clear':
                 self.clear()
-            elif cmd == 'copy':
-                pass  # TODO
+            elif cmd == 'select-all':
+                self.log_window.SelectAll()
             elif cmd == 'save':
                 from chimerax.core.ui.open_save import SaveDialog
                 save_dialog = SaveDialog(

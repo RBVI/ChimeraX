@@ -351,6 +351,33 @@ if window_sys == "wx":
                     from chimerax.core.commands import run
                     run(ses, 'help sethome help:%s' % t)
                 self.Bind(wx.EVT_MENU, cb, item)
+            ad = session.app_dirs
+            item = help_menu.Append(wx.ID_ANY, "About %s %s" % (ad.appauthor, ad.appname))
+            self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.about(ses, evt),
+                      item)
+
+        def about(self, session, event):
+            import wx.adv
+            from wx.lib.wordwrap import wordwrap
+            import os
+            from .. import buildinfo
+            ad = session.app_dirs
+            width = 400
+            dc = wx.ClientDC(self)
+            info = wx.adv.AboutDialogInfo()
+            icon_path = os.path.join(session.app_data_dir, "%s-icon512.png" % ad.appname)
+            if os.path.exists(icon_path):
+                image = wx.Image(icon_path, wx.BITMAP_TYPE_PNG)
+                image.Rescale(128, 128)
+                info.SetIcon(wx.Icon(wx.Bitmap(image)))
+            info.SetName("%s %s" % (ad.appauthor, ad.appname))
+            info.SetVersion("%s (%s)" % (ad.version, buildinfo.date.split()[0]))
+            info.Description = wordwrap(buildinfo.synopsis, width, dc)
+            info.Copyright = wordwrap(buildinfo.copyright, width, dc)
+            info.SetWebSite(buildinfo.web_site)
+            info.SetLicense(wordwrap(buildinfo.license, width, dc))
+
+            wx.adv.AboutBox(info)
 
         def _tool_window_destroy(self, tool_window):
             tool_instance = tool_window.tool_instance
@@ -783,6 +810,12 @@ else:
             self.splash.showMessage(msg, Qt.AlignLeft|Qt.AlignBottom, Qt.red)
             self.processEvents()
 
+        def quit(self, confirm=True):
+            # called by exit command
+            self.session.logger.status("Exiting ...", blank_after=0)
+            self.session.logger.clear()    # clear logging timers
+            self.closeAllWindows()
+
         def thread_safe(self, func, *args, **kw):
             """Call function 'func' in a thread-safe manner
             """
@@ -1002,6 +1035,36 @@ else:
                     run(ses, 'help sethome help:%s' % t)
                 help_action.triggered.connect(cb)
                 help_menu.addAction(help_action)
+            #QT disabled
+            """
+            ad = session.app_dirs
+            item = help_menu.Append(wx.ID_ANY, "About %s %s" % (ad.appauthor, ad.appname))
+            self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.about(ses, evt),
+                      item)
+
+        def about(self, session, event):
+            import wx.adv
+            from wx.lib.wordwrap import wordwrap
+            import os
+            from .. import buildinfo
+            ad = session.app_dirs
+            width = 400
+            dc = wx.ClientDC(self)
+            info = wx.adv.AboutDialogInfo()
+            icon_path = os.path.join(session.app_data_dir, "%s-icon512.png" % ad.appname)
+            if os.path.exists(icon_path):
+                image = wx.Image(icon_path, wx.BITMAP_TYPE_PNG)
+                image.Rescale(128, 128)
+                info.SetIcon(wx.Icon(wx.Bitmap(image)))
+            info.SetName("%s %s" % (ad.appauthor, ad.appname))
+            info.SetVersion("%s (%s)" % (ad.version, buildinfo.date.split()[0]))
+            info.Description = wordwrap(buildinfo.synopsis, width, dc)
+            info.Copyright = wordwrap(buildinfo.copyright, width, dc)
+            info.SetWebSite(buildinfo.web_site)
+            info.SetLicense(wordwrap(buildinfo.license, width, dc))
+
+            wx.adv.AboutBox(info)
+            """
 
         def _tool_window_destroy(self, tool_window):
             tool_instance = tool_window.tool_instance

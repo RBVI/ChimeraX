@@ -38,7 +38,7 @@ def _chains(p):
     return Chains(p)
 def _atomic_structure(p):
     if p == 0: return None
-    return object_map(p, AtomicStructureData)
+    return object_map(p, StructureData)
 def _pseudobond_group_map(pbgc_map):
     from .pbgroup import PseudobondGroup
     pbg_map = dict((name, object_map(pbg,PseudobondGroup)) for name, pbg in pbgc_map.items())
@@ -271,7 +271,8 @@ class PseudobondGroupData:
 
 # -----------------------------------------------------------------------------
 #
-class PseudobondManager:
+from ..state import State
+class PseudobondManager(State):
     '''Per-session singleton pseudobond manager keeps track of all
     :class:`.PseudobondGroupData` objects.'''
 
@@ -280,6 +281,14 @@ class PseudobondManager:
         f = c_function('pseudobond_create_global_manager', args = (ctypes.c_void_p,),
             ret = ctypes.c_void_p)
         set_c_pointer(self, f(session.change_tracker._c_pointer))
+        self.session.triggers.add_handler("begin save session",
+            lambda *args: self._ses_call("save_setup"))
+        self.session.triggers.add_handler("end save session",
+            lambda *args: self._ses_call("save_teardown"))
+        self.session.triggers.add_handler("begin restore session",
+            lambda *args: self._ses_call("restore_setup"))
+        self.session.triggers.add_handler("end restore session",
+            lambda *args: self._ses_call("restore_teardown"))
 
     def get_group(self, category, create = True):
         '''Get an existing :class:`.PseudobondGroup` or create a new one given a category name.'''
@@ -292,6 +301,55 @@ class PseudobondManager:
         from .pbgroup import PseudobondGroup
         return object_map(pbg,
             lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
+
+    def delete_group(self, pbg):
+        f = c_function('pseudobond_global_manager_delete_group',
+                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
+        f(self._c_pointer, pbg._c_pointer)
+
+    def take_snapshot(self, session, flags):
+        '''Gather session info; return version number'''
+        f = c_function('pseudobond_global_manager_session_info',
+                    args = (ctypes.c_void_p, ctypes.py_object), ret = ctypes.c_int)
+        retvals = []
+        version = f(self._c_pointer, retvals)
+        # remember the structure->int mapping the pseudobonds used...
+        f = c_function('pseudobond_global_manager_session_save_structure_mapping',
+                       args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        ptr_map = f(self._c_pointer)
+        # mapping is ptr->int, change to int->obj
+        obj_map = {}
+        for ptr, ses_id in ptr_map.items():
+            # shouldn't be _creating_ any objects, so pass None as the type
+            obj_map[ses_id] = object_map(ptr, None)
+        return version, (retvals, obj_map)
+
+    def reset_state(self, session):
+        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
+
+    @classmethod
+    def restore_snapshot_new(cls, session, bundle_info, version, data):
+        return session.pb_manager
+
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        mgr_data, structure_mapping = data
+        # restore the int->structure mapping the pseudobonds use...
+        ptr_mapping = {}
+        for ses_id, structure in structure_mapping.items():
+            ptr_mapping[ses_id] = structure._c_pointer.value
+        f = c_function('pseudobond_global_manager_session_restore_structure_mapping',
+                       args = (ctypes.c_void_p, ctypes.py_object))
+        f(self._c_pointer, ptr_mapping)
+        ints, floats, misc = mgr_data
+        f = c_function('pseudobond_global_manager_session_restore',
+                args = (ctypes.c_void_p, ctypes.c_int,
+                        ctypes.py_object, ctypes.py_object, ctypes.py_object))
+        f(self._c_pointer, version, ints, floats, misc)
+
+    def _ses_call(self, func_qual):
+        f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))
+        f(self._c_pointer)
 
 
 # -----------------------------------------------------------------------------
@@ -311,6 +369,14 @@ class Residue:
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
     chain_id = c_property('residue_chain_id', string, read_only = True)
     '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
+    PT_NONE = 0
+    '''Residue polymer type = none.'''
+    PT_AMINO = 1
+    '''Residue polymer type = amino acid.'''
+    PT_NUCLEIC = 2
+    '''Residue polymer type = nucleotide.'''
+    polymer_type = c_property('residue_polymer_type', int32, read_only = True)
+    '''Polymer type of residue. Integer value.'''
     is_helix = c_property('residue_is_helix', npy_bool)
     '''Whether this residue belongs to a protein alpha helix. Boolean value.'''
     is_sheet = c_property('residue_is_sheet', npy_bool)
@@ -398,17 +464,30 @@ class Chain(Sequence):
 
 # -----------------------------------------------------------------------------
 #
-class AtomicStructureData:
+class StructureData:
     '''
-    This is a base class of :class:`.AtomicStructure`.
-    This base class manages the atomic data while the
+    This is a base class of both :class:`.AtomicStructure` and :class:`.Graph`.
+    This base class manages the data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
-    def __init__(self, mol_pointer=None, logger=None):
+    def __init__(self, mol_pointer=None, *, logger=None, restore_data=None):
         if mol_pointer is None:
-            # Create a new atomic structure
-            mol_pointer = c_function('structure_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
+            # Create a new graph
+            from .structure import AtomicStructure
+            new_func = 'structure_new' if isinstance(self, AtomicStructure) else 'graph_new'
+            mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
+
+        if restore_data:
+            '''Restore from session info'''
+            self._ses_call("restore_setup")
+            session, version, data = restore_data
+            ints, floats, misc = data
+            f = c_function('structure_session_restore',
+                    args = (ctypes.c_void_p, ctypes.c_int,
+                            ctypes.py_object, ctypes.py_object, ctypes.py_object))
+            f(self._c_pointer, version, ints, floats, misc)
+            session.triggers.add_handler("end restore session", self._ses_restore_teardown)
 
     def delete(self):
         '''Deletes the C++ data for this atomic structure.'''
@@ -445,6 +524,8 @@ class AtomicStructureData:
     '''Ribbon tether shape. Integer value.'''
     ribbon_show_spine = c_property('structure_ribbon_show_spine', npy_bool)
     '''Display ribbon spine. Boolean.'''
+    ribbon_display_count = c_property('structure_ribbon_display_count', int32, read_only = True)
+    '''Return number of residues with ribbon display set. Integer.'''
     TETHER_CONE = 0
     TETHER_REVERSE_CONE = 1
     TETHER_CYLINDER = 2
@@ -505,38 +586,56 @@ class AtomicStructureData:
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
-        return object_map(pbg, PseudobondGroupData)
+        from .pbgroup import PseudobondGroup
+        return object_map(pbg, PseudobondGroup)
 
-    def session_info(self, ints, floats, misc):
-        '''Gather session info; return version number'''
-        f = c_function('structure_session_info',
-                    args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
-                        ctypes.py_object),
-                    ret = ctypes.c_int)
-        return f(self._c_pointer, ints, floats, misc)
+    def restore_snapshot_init(self, session, tool_info, version, data):
+        StructureData.__init__(self, logger=session.logger,
+            restore_data=(session, version, data))
 
-    def session_restore(self, version, ints, floats, misc):
-        '''Restore from session info'''
-        f = c_function('structure_session_restore',
-                args = (ctypes.c_void_p, ctypes.c_int,
-                        ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        return f(self._c_pointer, version, ints, floats, misc)
+    def session_atom_to_id(self, ptr):
+        '''Map Atom pointer to session ID'''
+        f = c_function('structure_session_atom_to_id',
+                    args = (ctypes.c_void_p, ctypes.c_void_p), ret = size_t)
+        return f(self._c_pointer, ptr)
 
-    def session_save_setup(self):
-        '''Allow C++ layer to setup data structures it needs during session save'''
-        f = c_function('structure_session_save_setup', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
+    def session_residue_to_id(self, ptr):
+        '''Map Residue pointer to session ID'''
+        f = c_function('structure_session_residue_to_id',
+                    args = (ctypes.c_void_p, ctypes.c_void_p), ret = size_t)
+        return f(self._c_pointer, ptr)
 
-    def session_save_teardown(self):
-        '''Allow C++ layer to teardown data structures it made during session save setup'''
-        f = c_function('structure_session_save_teardown', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
+    def session_id_to_atom(self, i):
+        '''Map sessionID to Atom pointer'''
+        f = c_function('structure_session_id_to_atom',
+                    args = (ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.c_void_p)
+        return f(self._c_pointer, i)
 
     def set_color(self, rgba):
         '''Set color of atoms, bonds, and residues'''
         f = c_function('set_structure_color',
                     args = (ctypes.c_void_p, ctypes.c_void_p))
         return f(self._c_pointer, pointer(rgba))
+
+    def take_snapshot(self, session, flags):
+        '''Gather session info; return version number'''
+        f = c_function('structure_session_info',
+                    args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
+                        ctypes.py_object),
+                    ret = ctypes.c_int)
+        ints = []
+        floats = []
+        misc = []
+        return f(self._c_pointer, ints, floats, misc), (ints, floats, misc)
+
+    def _ses_call(self, func_qual):
+        f = c_function('structure_session_' + func_qual, args=(ctypes.c_void_p,))
+        f(self._c_pointer)
+
+    def _ses_restore_teardown(self, *args):
+        self._ses_call("restore_teardown")
+        from ..triggerset import DEREGISTER
+        return DEREGISTER
 
     def _start_change_tracking(self, change_tracker):
         f = c_function('structure_start_change_tracking',

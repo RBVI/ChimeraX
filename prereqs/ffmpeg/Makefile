@@ -17,10 +17,20 @@ YASM_DISTRIB = yasm-$(YASM_VERSION).tar.bz2
 YASM_SOURCE = $(tmpdir)/yasm-$(YASM_VERSION)
 YASM_EXE = $(bindir)/yasm
 
-FFMPEG_OPTS	= --disable-network --disable-doc --disable-devices \
-			--disable-ffplay --disable-ffserver --disable-ffprobe --disable-mmx \
-			--extra-ldflags="$(LDFLAGS)"
-FFMPEG_OPTS += --enable-gpl --enable-libx264 --yasmexe=$(bindir)/yasm --extra-cflags="-I$(includedir)" --extra-ldflags="-L$(libdir)" --extra-libs="-ldl"
+FFMPEG_OPTS	= --disable-network \
+			--disable-doc \
+			--disable-devices \
+			--disable-ffplay \
+			--disable-ffserver \
+			--disable-ffprobe \
+			--disable-mmx \
+			--enable-gpl \
+			--enable-libx264 \
+			--yasmexe=$(bindir)/yasm \
+			--optflags=-O \
+			--extra-cflags="-I$(includedir)" \
+			--extra-ldflags="$(LDFLAGS) -L$(libdir)" \
+			--extra-libs="-ldl"
 
 all: $(FFMPEG_EXE)
 

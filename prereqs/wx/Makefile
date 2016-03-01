@@ -6,7 +6,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.0.3.dev1830+0b5f910
+VERSION = 3.0.3.dev1839+4ecd949
 SHLIB_VER = 3.0.0.3.0
 DISTRIBUTION = wxPython_Phoenix-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)
@@ -65,6 +65,8 @@ ifneq (,$(SYSLIBS))
 endif
 endif
 endif
+	# wx leaves some files only readable by owner
+	chmod -R +r $(APP_PYSITEDIR)/wx*
 
 $(SOURCE) source:
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
@@ -75,7 +77,7 @@ ifneq (,$(PATCHES))
 endif
 ifneq (,$(PATCHINES))
 	for f in $(PATCHINES) ; do \
-		sed 's,SDK_PATH,"$(SYSROOT)",' $$f \
+		sed 's,SDK_PATH,"/",' $$f \
 			| ( cd $(SOURCE) && patch -p1 ) ; \
 	done
 endif

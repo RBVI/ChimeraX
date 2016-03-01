@@ -27,6 +27,7 @@ def register_movie_command():
                    ('reset_mode', EnumOf(reset_modes)),
                    ('round_trip', BoolArg),
                    ('wait', BoolArg),
+                   ('verbose', BoolArg),
                ])
     register('movie encode', encode_desc, movie_encode)
 
@@ -107,7 +108,7 @@ def movie_record(session, directory = None, pattern = None, format = None,
     movie = getattr(session, 'movie', None)
     if movie is None:
         from .movie import Movie
-        movie = Movie(format, directory, pattern, size, supersample, limit, session)
+        movie = Movie(format, directory, pattern, size, supersample, limit, False, session)
         session.replace_attribute('movie', movie)
     elif movie.is_recording():
         raise CommandError("Already recording a movie")
@@ -122,7 +123,7 @@ def ignore_movie_commands(session):
     return ignore
 
 def movie_encode(session, output=None, format=None, quality=None, qscale=None, bitrate=None,
-                 framerate=25, round_trip=False, reset_mode=RESET_CLEAR, wait=False):
+                 framerate=25, round_trip=False, reset_mode=RESET_CLEAR, wait=False, verbose=False):
     '''Enode images captured with movie record command creating a movie file.
     This uses the standalone video encoding program ffmpeg which is included with ChimeraX.
     
@@ -165,13 +166,13 @@ def movie_encode(session, output=None, format=None, quality=None, qscale=None, b
             encode_op(session, o, format, quality, qscale, bitrate,
                       framerate, round_trip, reset_mode = RESET_NONE, wait = True)
         encode_op(session, output[-1], format, quality, qscale, bitrate,
-                  framerate, round_trip, reset_mode, wait)
+                  framerate, round_trip, reset_mode, wait, verbose)
     else:
         encode_op(session, output, format, quality, qscale, bitrate,
-                  framerate, round_trip, reset_mode, wait)
+                  framerate, round_trip, reset_mode, wait, verbose)
     
 def encode_op(session, output=None, format=None, quality=None, qscale=None, bitrate=None,
-              framerate=25, round_trip=False, reset_mode=RESET_CLEAR, wait=False):
+              framerate=25, round_trip=False, reset_mode=RESET_CLEAR, wait=False, verbose=False):
 
     from . import formats
 
@@ -219,6 +220,7 @@ def encode_op(session, output=None, format=None, quality=None, qscale=None, bitr
         raise CommandError('No frames have been recorded')
     if movie.is_recording():
         movie.stop_recording()
+    movie.verbose = verbose
 
     movie.start_encoding(output, f['ffmpeg_name'], output_size, f['ffmpeg_codec'], "yuv420p", f['size_restriction'],
                          framerate, bit_rate, qual, round_trip, reset_mode)

@@ -1,6 +1,6 @@
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015 Regents of the University of California.
+Copyright (c) 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
@@ -26,21 +26,23 @@ class="clRight" alt="ChimeraX logo"/></a>
 &nbsp;<a href="#options"><i>options</i></a>
 </h3>
 <p>
-The <b>lighting</b> command controls lighting parameters, both
-individually through specific <a href="#options">options</a> and
-in combinations through convenient <a href="#preset">presets</a>.
+The <b>lighting</b> command controls lighting parameters,
+through individual <a href="#options">options</a> and
+in convenient <a href="#preset">preset</a> combinations.
 Parameters that are not specified retain their current values. 
 Without arguments, <b>lighting</b> reports the current settings in the
-<b>Log</b>. Colors are reported as red, green, and blue components
+<a href="../tools/log.html"><b>Log</b></a>.
+Colors are reported as red, green, and blue components
 in the range 0-100 (percentages).
 See also: 
-<b>material</b>,
-<b>set</b>
+<a href="material.html"><b>material</b></a>,
+<a href="set.html"><b>set</b></a>,
+<a href="../tools/graphics.html"><b>Graphics</b></a> icons
 </p><p>
 There are two directional lights, key and fill, plus ambient lighting.
 The <b><i>key light</i></b> is often the dominant source and can cast 
 shadows; the first set of intensity, direction, and color values 
-reported in the <b>Log</b> refer to this light.
+reported in the <a href="../tools/log.html"><b>Log</b></a> refer to this light.
 The <b><i>fill light</i></b> serves as a secondary 
 directional source to improve the visibility of regions that would 
 otherwise be dark. The <b><i>ambient</i></b> lighting 
@@ -58,8 +60,12 @@ The <a name="preset"><i>preset</i></a> can be:
 ambient shadowing from 64 directions
 <li><b>soft</b> - ambient lighting only,
 ambient shadowing from 64 directions
-<li><b>flat</b> - ambient lighting only, no shadows,
-silhouettes on (use <b>set silhouettes false</b> to turn them back off)
+<li><b>flat</b> - ambient lighting only, no shadows, silhouettes on 
+<br>
+(for silhouettes off, use
+<a href="set.html#silhouettes"><b>set silhouettes false</b></a> 
+or the <a href="../tools/graphics.html"><b>Graphics</b></a> icon
+<img border=1 src="../tools/shortcut-icons/silhouette.png" width="18px">)
 </ul>
 
 <p class="nav">
@@ -144,7 +150,7 @@ Set the position of the depth-cueing ramp.
 Depth-cueing shading increases linearly from <i>start</i> to <i>end</i>,
 each expressed as a position relative to the front (0.0) and 
 back (1.0) global clipping planes (default <b>0.5</b> to <b>1.0</b>).
-See also: <b>clip</b>
+See also: <a href="clip.html"><b>clip</b></a>
 </blockquote>
 
 <blockquote>
@@ -207,5 +213,5 @@ or to the <a href="view.html#scenecoords">scene coordinate system</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2015</address>
+February 2016</address>
 </body></html>

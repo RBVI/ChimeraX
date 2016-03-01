@@ -15,6 +15,7 @@ class ffmpeg_encoder:
                  image_file_pattern,
                  image_count,
                  status = None,
+                 verbose = False,
                  session = None,
                  ffmpeg_cmd = 'ffmpeg'):
 
@@ -23,6 +24,7 @@ class ffmpeg_encoder:
         self.image_file_pattern = image_file_pattern
         self.image_count = image_count
         self.status = status
+        self.verbose = verbose
         import os.path
         self.output_file = os.path.expanduser(output_file)
         self.ffmpeg_cmd = ffmpeg_cmd
@@ -97,7 +99,6 @@ class ffmpeg_encoder:
 
         ffmpeg_exe = join(session.app_bin_dir, self.ffmpeg_cmd)
         arg_list.insert(0, ffmpeg_exe)
-        session.logger.info(' '.join(arg_list))
 
         return arg_list
 
@@ -209,6 +210,7 @@ class ffmpeg_encoder:
         error = '' if exit_code == 0 else ffmpeg_output
         self.exit_status = (exit_code, status, error)
 
-        self.session.logger.info(ffmpeg_output)
+        if exit_code or self.verbose:
+            self.session.logger.info(' '.join(self.arg_list) + '\n' + ffmpeg_output)
 
         self.remove_backwards_frames()

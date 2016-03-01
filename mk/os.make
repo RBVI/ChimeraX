@@ -54,36 +54,6 @@ ifeq ($(OS),Darwin)
 	SHLIB_LINK = $(LOADER) $(LDFLAGS) -dynamiclib -headerpad_max_install_names -install_name @rpath/$(SHLIB) -o $(SHLIB) $(OBJS) $(LIBS)
 	PROG_EXT =
 	PROG_LINK = $(LOADER) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
-
-	# SDK is one of the sdk arguments listed in `xcodebuild -showsdks`
-	# SYSROOT is the path the the SDKs
-	XCODE_SDKS = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
-ifneq (,$(MACOSX_DEPLOYMENT_TARGET))
-	SDK = macosx$(MACOSX_DEPLOYMENT_TARGET)
-	ifneq (,$(wildcard $(XCODE_SDKS)))
-		SYSROOT = $(XCODE_SDKS)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
-	else
-        $(error unable to find SYSROOT for $(MACOSX_DEPLOYMENT_TARGET))
-	endif
-else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.9.sdk))
-	export MACOSX_DEPLOYMENT_TARGET=10.9
-	SYSROOT = $(XCODE_SDKS)/MacOSX10.9.sdk
-	SDK = macosx10.9
-else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.8.sdk))
-	export MACOSX_DEPLOYMENT_TARGET=10.8
-	SYSROOT = $(XCODE_SDKS)/MacOSX10.8.sdk
-	SDK = macosx10.8
-else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.7.sdk))
-	export MACOSX_DEPLOYMENT_TARGET=10.7
-	SYSROOT = $(XCODE_SDKS)/MacOSX10.7.sdk
-	SDK = macosx10.7
-else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.6.sdk))
-	export MACOSX_DEPLOYMENT_TARGET=10.6
-	SYSROOT = $(XCODE_SDKS)/MacOSX10.6.sdk
-	SDK = macosx10.6
-else
-    $(error Unable to find Xcode sysroot)
-endif
 	# sysctl needs to be on path for numpy, numexpr, pytables
 	export PATH := $(PATH):/usr/sbin
 ifdef DEBUG
@@ -91,8 +61,8 @@ ifdef DEBUG
 else
 	OPT = -O3 -Wall -Wextra
 endif
-	CC = clang --sysroot $(SYSROOT)
-	CXX = clang++ --sysroot $(SYSROOT) -std=c++11 -stdlib=libc++
+	CC = clang
+	CXX = clang++ -std=c++11 -stdlib=libc++
 	EXTRA_CFLAGS = -fPIC
 	EXTRA_CXXFLAGS = -fPIC -fvisibility-ms-compat
 

@@ -50,7 +50,7 @@ class ToolshedUI(ToolInstance):
     def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
             ToolInstance.__init__(self, session, bundle_info)
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
         from wx import html2

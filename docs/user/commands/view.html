@@ -1,6 +1,6 @@
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015 Regents of the University of California.
+Copyright (c) 2015-2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
@@ -24,6 +24,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 <BR><b>view</b> 
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 [&nbsp;orient&nbsp;]
+[&nbsp;pad&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>view</b> &nbsp;<b>name</b> &nbsp;<i>view-name</i>
@@ -46,22 +47,28 @@ positions of any models that have been moved separately.
 See also: <a href="cofr.html"><b>cofr</b></a>,
 <a href="position.html"><b>position</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
-<b>camera</b>,
-<b>clip</b>
+<a href="camera.html"><b>camera</b></a>,
+<a href="clip.html"><b>clip</b></a>,
+<a href="../tools/graphics.html"><b>Graphics</b></a> icons
 </p><p>
 The <b>view</b> command translates the scene, zooms in or out,
-and places the global (near/far) clipping planes to bracket the
-displayed parts of the specified items.
+and places the <a href="clip.html">near/far clipping planes</a>
+to bracket the displayed parts of the specified items.
 If nothing is specified, all displayed items will be included
-and global clipping deactivated.
+and near/far clipping deactivated.
 The <b>orient</b> option additionally rotates the scene to a
 standard orientation with X-axis horizontal increasing rightward,
 Y-axis vertical increasing upward,
 and Z-axis perpendicular to the screen increasing toward the viewer;
 in other words, it aligns <a href="#scenecoords">scene coordinates</a> with
 <a href="#screencoords">screen coordinates</a>.
+The zoom level is adjusted to make the bounding box of the relevant items
+abut the edges of the graphics window minus a <b>pad</b> <i>fraction</i> 
+(allowed values &lt; 1.0, default <b>0.05</b> of the window width and height)
+The desired <i>fraction</i> will usually be positive,
+but negative values can be used to zoom in further.
 The center of rotation is set to a fixed point at the 
-center of the bounding box of the specified items (displayed parts only),
+center of the bounding box of the relevant items,
 or if nothing is specified, allowed to vary according to the
 <a href="cofr.html#method">front center method</a>.
 </p><p>
@@ -72,8 +79,8 @@ over a specified number of image update <i>frames</i> (default <b>1</b> frame).
 The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
 view or <b>all</b> views. 
 The <b>list</b> option reports the names of all currently saved 
-views in the <b>Log</b>, and clicking a name therein restores 
-the corresponding view.
+views in the <a href="../tools/log.html"><b>Log</b></a>,
+and clicking a name therein restores the corresponding view.
 </p>
 
 <p class="nav">
@@ -117,5 +124,5 @@ The <b><i>screen coordinate system</i></b> has:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2015</address>
+January 2016</address>
 </body></html>

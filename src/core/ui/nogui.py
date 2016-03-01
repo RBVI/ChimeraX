@@ -9,31 +9,38 @@ from ..tasks import Task
 from ..logger import PlainTextLog
 _color_output = False
 
+_log_level = {
+        PlainTextLog.LEVEL_INFO: 'info',
+        PlainTextLog.LEVEL_WARNING: 'warning',
+        PlainTextLog.LEVEL_ERROR: 'error',
+}
+
+_colors = {
+        "info": "",
+        "warning": "",
+        "error": "",
+        "status": "",
+        "normal": "",
+        "background": "",
+        "prompt": "",
+        "endprompt": "",
+}
+
 
 class NoGuiLog(PlainTextLog):
 
     def log(self, level, msg):
-        if not _color_output:
-            print("%s: %s" % (level, msg))
-        else:
-            from colorama import Fore
-            if level == self.LEVEL_INFO:
-                print(Fore.GREEN + msg + Fore.RESET, end='')
-            elif level == self.LEVEL_ERROR:
-                print(Fore.RED + msg + Fore.RESET, end='')
-            elif level == self.LEVEL_WARNING:
-                print(Fore.YELLOW + msg + Fore.RESET, end='')
+        level_name = _log_level[level]
+        print("%s%s: %s%s" % (
+            _colors[level_name], level_name, msg, _colors["normal"]), end='')
         return True
 
     def status(self, msg, color, secondary):
         if secondary:
             return False
         if msg:
-            if not _color_output:
-                print("status: %s" % msg)
-            else:
-                from colorama import Fore
-                print(Fore.MAGENTA + msg + Fore.RESET)
+            print("%sstatus: %s%s" % (
+                _colors["status"], msg, _colors["normal"]))
         return True
 
 
@@ -52,7 +59,14 @@ class UI:
                 import colorama
                 colorama.init()
                 _color_output = True
-                print(colorama.Fore.WHITE + colorama.Back.BLACK, end='')
+                _colors["info"] = colorama.Fore.GREEN
+                _colors["warning"] = colorama.Fore.YELLOW
+                _colors["error"] = colorama.Fore.RED
+                _colors["status"] = colorama.Fore.MAGENTA
+                _colors["normal"] = colorama.Fore.WHITE
+                _colors["background"] = colorama.Back.BLACK
+                _colors["prompt"] = colorama.Fore.BLUE + colorama.Style.BRIGHT
+                _colors["endprompt"] = colorama.Style.NORMAL + _colors["normal"]
             except ImportError:
                 pass
 
@@ -124,8 +138,7 @@ class _Input(Task):
         # Schedules calls to self.execute in UI thread
         prompt = 'cmd> '
         if _color_output:
-            from colorama import Fore, Style
-            prompt = Fore.GREEN + Style.BRIGHT + prompt + Fore.RESET
+            prompt = _colors["prompt"] + prompt + _colors["endprompt"]
         ui = self.session.ui
         while True:
             try:
@@ -153,16 +166,17 @@ class _Input(Task):
             return
         logger = self.session.logger
         try:
-            self._cmd.parse_text(text, final=True)
-            logger.info(self._cmd.current_text)
-            self._cmd.execute()
+            self._cmd.run(text)
         except errors.UserError as err:
             rest = self._cmd.current_text[self._cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = self._cmd.amount_parsed + spaces
             syntax_error = error_at < len(self._cmd.current_text)
             if syntax_error:
-                logger.error("%s^" % ('.' * error_at))
+                error_at -= self._cmd.start
+                logger.error(self._cmd.current_text[self._cmd.start:])
+                if error_at:
+                    logger.error("%s^" % ('.' * error_at))
             logger.error(str(err))
         except Exception:
             logger.error("\nUnexpected exception, save your work and exit:\n")

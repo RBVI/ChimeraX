@@ -1,8 +1,8 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = cellpack cmd_line contacts exp_cmd help_viewer \
-	  log map_series_gui model_panel mouse_modes movie \
+SUBDIRS = cellpack cmd_line contacts exp_cmd file_history help_viewer \
+	  log map_series_gui model_panel mouse_modes movie remote_control \
 	  shell shortcuts sideview title test toolshed
 
 include $(TOP)/mk/subdir.make

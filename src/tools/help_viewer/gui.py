@@ -35,7 +35,7 @@ class HelpUI(ToolInstance):
         # in this case), so only override if different name desired
         self.display_name = "%s Help Viewer" % session.app_dirs.appname
         self.home_page = None
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
@@ -79,6 +79,8 @@ class HelpUI(ToolInstance):
         self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATED, self.on_navigated)
         self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
                               id=self.help_window.GetId())
+        self.help_window.Bind(html2.EVT_WEBVIEW_NEWWINDOW, self.on_new_window,
+                              id=self.help_window.GetId())
         self.help_window.Bind(html2.EVT_WEBVIEW_TITLE_CHANGED,
                               self.on_title_change)
         self.help_window.EnableContextMenu()
@@ -121,8 +123,16 @@ class HelpUI(ToolInstance):
             from urllib.parse import unquote
             from chimerax.core.commands import run
             event.Veto()
-            cmd = url.split(':', 1)[1]
-            run(session, unquote(cmd))
+            cmd = unquote(url.split(':', 1)[1])
+            # Insert command in command-line entry field
+            for ti in session.tools.list():
+                if ti.bundle_info.name == 'cmd_line':
+                    ti.cmd_replace(cmd)
+                    ti.on_enter(None)
+                    break
+            else:
+                # no command line?!?
+                run(session, cmd)
             return
         # TODO: check if http url is within ChimeraX docs
         # TODO: handle missing doc -- redirect to web server
@@ -134,6 +144,13 @@ class HelpUI(ToolInstance):
     def on_title_change(self, event):
         new_title = self.help_window.CurrentTitle
         self.tool_window.set_title(new_title)
+
+    def on_new_window(self, event):
+        # TODO: create new help viewer tab or window
+        event.Veto()
+        url = event.GetURL()
+        import webbrowser
+        webbrowser.open(url)
 
     #
     # Implement session.State methods if deriving from ToolInstance

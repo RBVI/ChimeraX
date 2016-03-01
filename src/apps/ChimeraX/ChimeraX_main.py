@@ -72,11 +72,12 @@ def parse_arguments(argv):
     opts.list_file_types = False
     opts.load_tools = True
     opts.silent = False
+    opts.start_tools = []
     opts.status = True
     opts.stereo = False
     opts.uninstall = False
     opts.use_defaults = False
-    opts.version = 0
+    opts.version = -1
     opts.window_sys = "wx"
 
     # Will build usage string from list of arguments
@@ -88,12 +89,14 @@ def parse_arguments(argv):
         "--listfiletypes",
         "--silent",
         "--nostatus",
+        "--start <tool name>",
+        "--notools",
         "--stereo",
         "--notools",
         "--uninstall",
         "--usedefaults",
         "--version",
-        "--windowsys ",
+        "--windowsys <qt|wx>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -155,6 +158,8 @@ def parse_arguments(argv):
             opts.status = opt[2] == 's'
         elif opt in "--stereo":
             opts.stereo = True
+        elif opt == "--start":
+            opts.start_tools.append(optarg)
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
@@ -171,7 +176,7 @@ def parse_arguments(argv):
     if help:
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
-    if opts.version or opts.list_file_types:
+    if opts.version >= 0 or opts.list_file_types:
         opts.gui = False
         opts.silent = True
     return opts, args
@@ -328,31 +333,11 @@ def init(argv, event_loop=True):
     from chimerax.core import tasks
     sess.add_state_manager('tasks', tasks.Tasks(sess, first=True))  # access with sess.tasks
 
-    if opts.version:
-        print("%s: %s" % (app_name, version))
-        if opts.version == 1:
-            return os.EX_OK
-        import pip
-        dists = pip.get_installed_distributions(local_only=True)
-        if not dists:
-            sess.logger.error("no version information available")
-            return os.EX_SOFTWARE
-        dists = list(dists)
-        dists.sort(key=lambda d: d.key)
-        if opts.version == 2:
-            print("Installed tools:")
-        else:
-            print("Installed packages:")
-        for d in dists:
-            key = d.key
-            if opts.version == 2:
-                if not key.startswith('chimerax.'):
-                    continue
-                key = key[len('chimerax.'):]
-            if d.has_version():
-                print("    %s: %s" % (key, d.version))
-            else:
-                print("    %s: unknown" % key)
+    if opts.version >= 0:
+        format = ['terse', 'bundles', 'packages'][opts.version]
+        from chimerax.core.commands import command_function
+        version_cmd = command_function("version")
+        version_cmd(sess, format)
         return os.EX_OK
 
     if opts.list_file_types:
@@ -381,6 +366,14 @@ def init(argv, event_loop=True):
                 print("Loading autostart tools", flush=True)
         sess.tools.autostart()
 
+    if opts.start_tools:
+        if not opts.silent:
+            msg = 'Starting tools %s' % ', '.join(opts.start_tools)
+            sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
+            if sess.ui.is_gui and opts.debug:
+                print(msg, flush=True)
+        sess.tools.start_tools(opts.start_tools)
+        
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
                             next(splash_step), num_splash_steps)
@@ -389,6 +382,9 @@ def init(argv, event_loop=True):
 
     if opts.gui:
         sess.ui.close_splash()
+    import chimerax.core.commands.version as vercmd
+    vercmd.version(sess)  # report version in log
+    if opts.gui:
         sess.logger.info('OpenGL ' + sess.main_view.opengl_version())
 
     if opts.module:

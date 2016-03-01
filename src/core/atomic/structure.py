@@ -3,24 +3,14 @@ from .. import io
 from ..models import Model
 from ..state import State
 from ..session import RestoreError
-from .molobject import AtomicStructureData
+from .molobject import StructureData
 
 CATEGORY = io.STRUCTURE
 
-
-class AtomicStructure(AtomicStructureData, Model):
-    """
-    Bases: :class:`.AtomicStructureData`, :class:`.Model`
-
-    Molecular model including atomic coordinates.
-    The data is managed by the :class:`.AtomicStructureData` base class
-    which provides access to the C++ structures.
-    """
+class Graph(Model, StructureData):
 
     ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
         "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
-
-    STRUCTURE_STATE_VERSION = 0
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  level_of_detail = None, smart_initial_display = True):
@@ -30,12 +20,15 @@ class AtomicStructure(AtomicStructureData, Model):
         from .molarray import Residues
         from numpy import array
         # from .ribbon import XSection
-        xsc_helix = array([( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
-                           (-0.5,-0.1),(0.0,-0.2),( 0.5,-0.1),( 0.6,0.0)]) * 1.5
-        xsc_strand = array([(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]) * 1.5
-        xsc_turn = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
-        xsc_arrow_head = array([(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]) * 1.5
-        xsc_arrow_tail = array([(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]) * 1.5
+        xsc_helix = array([( 5, 1),(0, 1.5),(-5, 1),(-6,0),
+                           (-5,-1),(0,-1.5),( 5,-1),( 6,0)]) * 0.15
+        xsc_helix_start = array([( 1.5, 1),(0, 1.5),(-1.5, 1),(-2,0),
+                                 (-1.5,-1),(0,-1.5),( 1.5,-1),( 2,0)]) * 0.15
+        xsc_strand = array([(5,1),(-5,1),(-5,-1),(5,-1)]) * 0.15
+        xsc_turn = array([(1,1),(-1,1),(-1,-1),(1,-1)]) * 0.15
+        xsc_arrow_head = array([(10,1),(-10,1),(-10,-1),(10,-1)]) * 0.15
+        xsc_arrow_tail = array([(1,1),(-1,1),(-1,-1),(1,-1)]) * 0.15
+        xsc_nuc = array([(1,5),(-1,5),(-1,-5),(1,-5)]) * 0.15
        
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
@@ -49,28 +42,26 @@ class AtomicStructure(AtomicStructureData, Model):
         if restore_data:
             # from session
             (tool_info, version, as_data) = restore_data
-            model_data, python_data, c_data = as_data
+            model_data, c_data, python_data = as_data
             #
             # Model will attempt to restore self.name, which is a property of the C++
-            # layer for an AtomicStructure, so initialize AtomicStructureData first...
-            AtomicStructureData.__init__(self, logger=session.logger)
+            # layer for an AtomicStructure, so initialize StructureData first...
+            StructureData.restore_snapshot_init(self, session, tool_info, *c_data)
             for attr_name, default_val in self._session_attrs.items():
                 setattr(self, attr_name, python_data.get(attr_name, default_val))
             Model.restore_snapshot_init(self, session, tool_info, *model_data)
-            #as_version, ints, floats, misc = c_data
-            self.session_restore(*c_data)
             self._smart_initial_display = False
         else:
-            AtomicStructureData.__init__(self, c_pointer)
+            StructureData.__init__(self, c_pointer)
             for attr_name, val in self._session_attrs.items():
                 setattr(self, attr_name, val)
             Model.__init__(self, name, session)
             self._smart_initial_display = smart_initial_display
 
         # for now, restore attrs to default initial values even for sessions...
+        self._deleted = False
         self._atoms_drawing = None
         self._bonds_drawing = None
-        self._pseudobond_group_drawings = {}    # Map PseudobondGroup to drawing
         self._cached_atom_bounds = None
         self._atom_bounds_needs_update = True
         self._ribbon_drawing = None
@@ -78,10 +69,13 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
         self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
+        #self._ribbon_xs_helix_start = self._ribbon_xs_helix     # nothing special for helix start
+        self._ribbon_xs_helix_start = XSection(xsc_helix_start, xsc_helix, faceted=False)
         self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
         self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
         self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
         self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
+        self._ribbon_xs_nuc = XSection(xsc_nuc, faceted=True)
         # TODO: move back into _session_attrs when Collection instances
         # handle session saving/restoring
         self._ribbon_selected_residues = Residues()
@@ -89,34 +83,42 @@ class AtomicStructure(AtomicStructureData, Model):
         from . import molobject
         molobject.add_to_object_map(self)
 
-        self._ses_handlers = [
-            self.session.triggers.add_handler("begin save session", self._begin_ses_save),
-            self.session.triggers.add_handler("end save session", self._end_ses_save)
-        ]
+        self._ses_handlers = []
+        for ses_func, trig_name in [("save_setup", "begin save session"),
+                ("save_teardown", "end save session")]:
+            self._ses_handlers.append(self.session.triggers.add_handler(trig_name,
+                    lambda *args, qual=ses_func: self._ses_call(qual)))
         self._make_drawing()
 
     def delete(self):
         '''Delete this structure.'''
-        AtomicStructureData.delete(self)
+        self._deleted = True
+        StructureData.delete(self)
         for handler in self._ses_handlers:
             self.session.triggers.delete_handler(handler)
         Model.delete(self)
 
-    def copy(self, name):
+    def deleted(self):
+        '''Has this atomic structure been deleted.'''
+        return self._deleted
+
+    def copy(self, name = None):
         '''
         Return a copy of this structure with a new name.
         No atoms or other components of the structure
         are shared between the original and the copy.
         '''
-        m = AtomicStructure(AtomicStructureData._copy(self), name = name,
-                            level_of_detail = self._level_of_detail)
+        if name is None:
+            name = self.name
+        m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
+                        level_of_detail = self._level_of_detail, smart_initial_display = False)
         m.positions = self.positions
         return m
 
     def added_to_session(self, session):
         if self._smart_initial_display:
             color = self.initial_color(session.main_view.background_color)
-            self.set_color(color.uint8x4())
+            self.set_color(color)
 
             atoms = self.atoms
             if self.num_chains == 0:
@@ -133,7 +135,8 @@ class AtomicStructure(AtomicStructureData, Model):
                 from ..colors import element_colors
                 het_atoms = atoms.filter(atoms.element_numbers != 6)
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
-                ribbonable = self.chains.existing_residues
+                physical_residues = self.chains.existing_residues
+                ribbonable = physical_residues.filter(physical_residues.num_atoms > 1)
                 # 10 residues or less is basically a trivial depiction if ribboned
                 if len(ribbonable) > 10:
                     atoms.displays = False
@@ -155,19 +158,29 @@ class AtomicStructure(AtomicStructureData, Model):
                         display |= atoms.filter(close_indices).residues
                     display.atoms.displays = True
                     ribbonable.ribbon_displays = True
-
+                elif len(ribbonable) == 0:
+                    # CA only?
+                    atoms.draw_modes = Atom.BALL_STYLE
             elif self.num_chains < 250:
                 lighting = "full"
-                from ..colors import chain_colors
+                from ..colors import chain_colors, element_colors
                 residues = self.residues
                 residues.ribbon_colors = chain_colors(residues.chain_ids)
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
+                from .molobject import Atom
+                ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
+                ligand_atoms.draw_modes = Atom.STICK_STYLE
+                ligand_atoms.colors = element_colors(ligand_atoms.element_numbers)
+                solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
+                solvent_atoms.draw_modes = Atom.BALL_STYLE
+                solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
             else:
                 lighting = "shadows true"
             from ..commands import Command
             if len([m for m in session.models.list()
                     if isinstance(m, self.__class__)]) == 1:
-                Command(session, "lighting " + lighting, final=True).execute(log=False)
+                cmd = Command(session)
+                cmd.run("lighting " + lighting, log=False)
 
         self._start_change_tracking(session.change_tracker)
         self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
@@ -177,19 +190,14 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def take_snapshot(self, session, flags):
         from ..state import CORE_STATE_VERSION
-        # TODO: also need to save this class's own state
-        ints = []
-        floats = []
-        misc = []
-        as_version = self.session_info(ints, floats, misc)
         return CORE_STATE_VERSION, [
             Model.take_snapshot(self, session, flags),
-            { attr_name: getattr(self, attr_name) for attr_name in self._session_attrs.keys() },
-            (as_version, ints, floats, misc)
+            StructureData.take_snapshot(self, session, flags),
+            { attr_name: getattr(self, attr_name) for attr_name in self._session_attrs.keys() }
         ]
 
     def restore_snapshot_init(self, session, tool_info, version, data):
-        AtomicStructure.__init__(self, session, restore_data=(tool_info, version, data))
+        self.__class__.__init__(self, session, restore_data=(tool_info, version, data))
 
     def reset_state(self, session):
         pass
@@ -210,12 +218,37 @@ class AtomicStructure(AtomicStructureData, Model):
             model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
         return model_color
 
+    def set_color(self, color):
+        from ..colors import Color
+        if isinstance(color, Color):
+            rgba = color.uint8x4()
+        else:
+            rgba = color
+        StructureData.set_color(self, rgba)
+        Model.set_color(self, rgba)
+
+    def _get_single_color(self):
+        residues = self.residues
+        ribbon_displays = residues.ribbon_displays
+        from ..colors import most_common_color
+        if ribbon_displays.any():
+            return most_common_color(residues.filter(ribbon_displays).ribbon_colors)
+        atoms = self.atoms
+        shown = atoms.filter(atoms.displays)
+        if shown:
+            return most_common_color(shown.colors)
+        return most_common_color(atoms.colors)
+    def _set_single_color(self, color):
+        self.atoms.colors = color
+        self.residues.ribbon_colors = color
+    single_color = property(_get_single_color, _set_single_color)
+
     def _make_drawing(self):
         # Create graphics
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
-        for name, pbg in self.pbg_map.items():
-            self._update_pseudobond_graphics(name, pbg)
+        for pbg in self.pbg_map.values():
+            pbg._update_graphics(structure = self)
         self._create_ribbon_graphics()
 
     def set_subdivision(self, subdivision):
@@ -245,7 +278,7 @@ class AtomicStructure(AtomicStructureData, Model):
         # Update graphics
         if c or s or se:
             self._gc_color = self._gc_shape = self._gc_select = False
-            if s:
+            if c or s:
                 self._update_ribbon_tethers()
             self._update_graphics()
             self.redraw_needed(shape_changed = s, selection_changed = se)
@@ -255,8 +288,8 @@ class AtomicStructure(AtomicStructureData, Model):
     def _update_graphics(self):
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
-        for name, pbg in self.pbg_map.items():
-            self._update_pseudobond_graphics(name, pbg)
+        for pbg in self.pbg_map.values():
+            pbg._update_graphics(structure = self)
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, atoms):
@@ -313,28 +346,7 @@ class AtomicStructure(AtomicStructureData, Model):
         p.colors = c = bonds.half_colors
         p.selected_positions = _selected_bond_cylinders(bond_atoms)
 
-    def _update_pseudobond_graphics(self, name, pbgroup):
-
-        pg = self._pseudobond_group_drawings
-        if pbgroup in pg:
-            p = pg[pbgroup]
-        else:
-            pg[pbgroup] = p = self.new_drawing(name)
-            va, na, ta = _pseudobond_geometry()
-            p.geometry = va, ta
-            p.normals = na
-
-        pbonds = pbgroup.pseudobonds
-        ba1, ba2 = bond_atoms = pbonds.atoms
-        p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, pbonds.radii)
-        p.display_positions = _shown_bond_cylinders(pbonds)
-        p.colors = pbonds.half_colors
-        p.selected_positions = _selected_bond_cylinders(bond_atoms)
-
     def _create_ribbon_graphics(self):
-        from .ribbon import Ribbon
-        from numpy import concatenate, array, zeros
-        polymers = self.polymers(False, False)
         if self._ribbon_drawing is None:
             self._ribbon_drawing = p = self.new_drawing('ribbon')
             p.display = True
@@ -344,13 +356,20 @@ class AtomicStructure(AtomicStructureData, Model):
         self._ribbon_t2r = {}
         self._ribbon_r2t = {}
         self._ribbon_tether = []
-        import sys
+        if self.ribbon_display_count == 0:
+            return
+        from .ribbon import Ribbon
+        from .molobject import Residue
+        from numpy import concatenate, array, zeros
+        polymers = self.polymers(False, False)
         for rlist in polymers:
             rp = p.new_drawing(rlist.strs[0])
             t2r = []
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
-            atoms, coords, guides = rlist.get_polymer_spline()
+            any_display, atoms, coords, guides = rlist.get_polymer_spline()
+            if not any_display:
+                continue
             residues = atoms.residues
             # Always update all atom visibility so that undisplaying ribbon
             # will bring back previously hidden backbone atoms
@@ -368,6 +387,7 @@ class AtomicStructure(AtomicStructureData, Model):
             # display as cylinders and planes, etc.)
             tethered = zeros(len(atoms), bool)
             self._smooth_ribbon(residues, coords, guides, atoms, tethered, p)
+            tethered &= displays
             if False:
                 # Debugging code to display line from control point to guide
                 cp = p.new_drawing(rlist.strs[0] + " control points")
@@ -408,33 +428,54 @@ class AtomicStructure(AtomicStructureData, Model):
             # Assign cross sections
             is_helix = residues.is_helix
             is_sheet = residues.is_sheet
+            polymer_type = residues.polymer_types
             xss = []
             was_strand = False
+            was_helix = False
             for i in range(len(residues)):
-                if is_sheet[i]:
+                if polymer_type[i] == Residue.PT_NUCLEIC:
+                    xss.append(self._ribbon_xs_nuc)
+                elif is_sheet[i]:
                     if was_strand:
                         xss.append(self._ribbon_xs_strand)
                     else:
                         xss.append(self._ribbon_xs_strand_start)
                         was_strand = True
+                    was_helix = False
                 else:
                     if was_strand:
                         xss[-1] = self._ribbon_xs_arrow
+                        was_strand = False
                     if is_helix[i]:
-                        xss.append(self._ribbon_xs_helix)
+                        if was_helix:
+                            xss.append(self._ribbon_xs_helix)
+                        else:
+                            xss.append(self._ribbon_xs_helix_start)
+                            was_helix = True
                     else:
                         xss.append(self._ribbon_xs_turn)
-                    was_strand = False
+                        was_helix = False
+            if was_strand:
+                # 1hxx ends in a strand
+                xss[-1] = self._ribbon_xs_arrow
 
             # Draw first and last residue differently because they
             # are each only a single half segment, while the middle
             # residues are each two half segments.
+            # strs = residues.strs
+            # import sys
 
             # First residues
             if displays[0]:
-                capped = displays[0] != displays[1] or xss[0] != xss[1]
+                # print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
+                xss_compat = self._xss_compatible(xss[0], xss[1])
+                capped = displays[0] != displays[1] or not xss_compat
                 seg = capped and seg_cap or seg_blend
-                centers, tangents, normals = ribbon.segment(0, ribbon.FRONT, seg)
+                front_c, front_t, front_n = ribbon.lead_segment(seg_cap / 2)
+                back_c, back_t, back_n = ribbon.segment(0, ribbon.FRONT, seg)
+                centers = concatenate((front_c, back_c))
+                tangents = concatenate((front_t, back_t))
+                normals = concatenate((front_n, back_n))
                 if self.ribbon_show_spine:
                     spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
                                                                                      centers, normals,
@@ -449,7 +490,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 normal_list.append(s.normals)
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
-                if displays[1] and xss[0] == xss[1]:
+                if displays[1] and xss_compat:
                     prev_band = s.back_band
                 else:
                     prev_band = None
@@ -462,21 +503,22 @@ class AtomicStructure(AtomicStructureData, Model):
                 prev_band = None
             # Middle residues
             for i in range(1, len(residues) - 1):
+                # print(strs[i], file=sys.__stderr__); sys.__stderr__.flush()
                 if not displays[i]:
                     continue
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg)
                 if self.ribbon_show_spine:
-                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
+                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                      front_c, front_n,
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                next_cap = displays[i] != displays[i + 1] or xss[i] != xss[i + 1]
+                next_cap = displays[i] != displays[i + 1] or not self._xss_compatible(xss[i], xss[i + 1])
                 seg = next_cap and seg_cap or seg_blend
                 back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg)
                 if self.ribbon_show_spine:
-                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
+                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                      back_c, back_n,
                                                                                      spine_colors,
                                                                                      spine_xyz1,
@@ -506,10 +548,15 @@ class AtomicStructure(AtomicStructureData, Model):
                 t_start = t_end
             # Last residue
             if displays[-1]:
+                # print(strs[-1], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
-                centers, tangents, normals = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, last=True)
+                front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg)
+                back_c, back_t, back_n = ribbon.trail_segment(seg_cap / 2)
+                centers = concatenate((front_c, back_c))
+                tangents = concatenate((front_t, back_t))
+                normals = concatenate((front_n, back_n))
                 if self.ribbon_show_spine:
-                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[0],
+                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[-1],
                                                                                      centers, normals,
                                                                                      spine_colors,
                                                                                      spine_xyz1,
@@ -546,7 +593,7 @@ class AtomicStructure(AtomicStructureData, Model):
                 tp = p.new_drawing(residues.strs[0] + "_tethers")
                 nc = m.ribbon_tether_sides
                 from .. import surface
-                if m.ribbon_tether_shape == AtomicStructureData.TETHER_CYLINDER:
+                if m.ribbon_tether_shape == self.TETHER_CYLINDER:
                     va, na, ta = surface.cylinder_geometry(nc=nc, nz=2, caps=False)
                 else:
                     # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
@@ -574,72 +621,86 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered, p):
         from numpy import logical_and, logical_not
-        from numpy import dot, newaxis, mean
-        from numpy.linalg import norm
-        import math
-        from .ribbon import normalize, normalize_vector_array
         ribbon_adjusts = rlist.ribbon_adjusts
         # Smooth helices
         ss_ids = rlist.ss_ids
         helices = rlist.is_helix
-#         for start, end in self._ss_ranges(helices, ss_ids, 8):
-#             # We only "optimize" longer helices because short
-#             # ones do not contain enough information to do
-#             # things intelligently
-#             ss_coords = coords[start:end]
-#             adjusts = ribbon_adjusts[start:end][:, newaxis]
-#             axis, centroid, rel_coords = self._ss_axes(ss_coords)
-#             # Compute position of cylinder center corresponding to
-#             # helix control point atoms
-#             axis_pos = dot(rel_coords, axis)[:, newaxis]
-#             cyl_centers = centroid + axis * axis_pos
-#             if False:
-#                 # Debugging code to display center of secondary structure
-#                 self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
-#             # Compute radius of cylinder
-#             spokes = ss_coords - cyl_centers
-#             cyl_radius = mean(norm(spokes, axis=1))
-#             # Compute smoothed position of helix control point atoms
-#             ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
-#             offsets = adjusts * (ideal - ss_coords)
-#             new_coords = ss_coords + offsets
-#             # Compute guide atom position relative to control point atom
-#             delta_guides = guides[start:end] - ss_coords
-#             # Update both control point and guide coordinates
-#             coords[start:end] = new_coords
-#             # Move the guide location so that it forces the
-#             # ribbon parallel to the axis
-#             guides[start:end] = new_coords + axis
-#             # Originally, we just update the guide location to
-#             # the same relative place as before
-#             #   guides[start:end] = new_coords + delta_guides
-#             # Update the tethered array (we compare against self.bond_radius
-#             # because we want to create cones for the "worst" case which is
-#             # when the atoms are displayed in stick mode, with radius self.bond_radius)
-#             tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+        # Skip helix smoothing for now since it does not work well
+        # for bent helices
+        # for start, end in self._ss_ranges(helices, ss_ids, 8):
+        #     self._smooth_helix(coords, guides, tethered, ribbon_adjusts, start, end)
         # Smooth strands
         strands = logical_and(rlist.is_sheet, logical_not(helices))
         for start, end in self._ss_ranges(strands, ss_ids, 4):
-            ss_coords = coords[start:end]
-            adjusts = ribbon_adjusts[start:end][:, newaxis]
-            axis, centroid, rel_coords = self._ss_axes(ss_coords)
-            # Compute position for strand control point atom on
-            # axis by projection
-            axis = normalize(axis)
-            axis_pos = dot(rel_coords, axis)[:, newaxis]
-            ideal = centroid + axis * axis_pos
-            if False:
-                # Debugging code to display center of secondary structure
-                self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
-            offsets = adjusts * (ideal - ss_coords)
-            new_coords = ss_coords + offsets
+            self._smooth_strand(coords, guides, tethered, ribbon_adjusts, start, end)
+
+    def _smooth_helix(self, coords, guides, tethered, ribbon_adjusts, start, end):
+        # Try to fix up the ribbon orientation so that it is parallel to the helical axis
+        from numpy import dot, newaxis, mean
+        from numpy.linalg import norm
+        from .ribbon import normalize_vector_array
+        # We only "optimize" longer helices because short
+        # ones do not contain enough information to do
+        # things intelligently
+        ss_coords = coords[start:end]
+        adjusts = ribbon_adjusts[start:end][:, newaxis]
+        axis, centroid, rel_coords = self._ss_axes(ss_coords)
+        # Compute position of cylinder center corresponding to
+        # helix control point atoms
+        axis_pos = dot(rel_coords, axis)[:, newaxis]
+        cyl_centers = centroid + axis * axis_pos
+        if False:
+            # Debugging code to display center of secondary structure
+            self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
+        # Compute radius of cylinder
+        spokes = ss_coords - cyl_centers
+        cyl_radius = mean(norm(spokes, axis=1))
+        # Compute smoothed position of helix control point atoms
+        ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
+        offsets = adjusts * (ideal - ss_coords)
+        new_coords = ss_coords + offsets
+        # Update both control point and guide coordinates
+        coords[start:end] = new_coords
+        if guides is not None:
             # Compute guide atom position relative to control point atom
             delta_guides = guides[start:end] - ss_coords
-            # Update both control point and guide coordinates
-            coords[start:end] = new_coords
+            # Move the guide location so that it forces the
+            # ribbon parallel to the axis
+            guides[start:end] = new_coords + axis
+        # Originally, we just update the guide location to
+        # the same relative place as before
+        #   guides[start:end] = new_coords + delta_guides
+        # Update the tethered array (we compare against self.bond_radius
+        # because we want to create cones for the "worst" case which is
+        # when the atoms are displayed in stick mode, with radius self.bond_radius)
+        tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+
+    def _smooth_strand(self, coords, guides, tethered, ribbon_adjusts, start, end):
+        if (end - start + 1) <= 4:
+            # Short strands do not need smoothing
+            return
+        from numpy import empty, dot, newaxis
+        from numpy.linalg import norm
+        from .ribbon import normalize
+        ss_coords = coords[start:end]
+        adjusts = ribbon_adjusts[start:end][:, newaxis]
+        ideal = empty(ss_coords.shape, dtype=float)
+        ideal[0] = ss_coords[0]
+        ideal[1:-1] = (ss_coords[1:-1] * 2 + ss_coords[:-2] + ss_coords[2:]) / 4
+        ideal[-1] = ss_coords[-1]
+        offsets = adjusts * (ideal - ss_coords)
+        new_coords = ss_coords + offsets
+        if False:
+            # Debugging code to display center of secondary structure
+            self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
+        # Update both control point and guide coordinates
+        coords[start:end] = new_coords
+        if guides is not None:
+            # Compute guide atom position relative to control point atom
+            delta_guides = guides[start:end] - ss_coords
             guides[start:end] = new_coords + delta_guides
-            # Update the tethered array
-            tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
+        # Update the tethered array
+        tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
     def _ss_ranges(self, ba, ss_ids, min_length):
         # Return ranges of True in boolean array "ba"
@@ -687,6 +748,15 @@ class AtomicStructure(AtomicStructureData, Model):
         ss_colors = empty((len(ss_radii), 4), float32)
         ss_colors[:] = (0,255,0,255)
         ssp.colors = ss_colors
+
+    def _xss_compatible(self, xs0, xs1):
+        if xs0 is xs1:
+            return True
+        if xs0 is self._ribbon_xs_strand_start and xs1 is self._ribbon_xs_strand:
+            return True
+        if xs0 is self._ribbon_xs_helix_start and xs1 is self._ribbon_xs_helix:
+            return True
+        return False
 
     def _ribbon_update_spine(self, c, centers, normals, spine_colors, spine_xyz1, spine_xyz2):
         from numpy import empty
@@ -805,7 +875,7 @@ class AtomicStructure(AtomicStructureData, Model):
         ppb = self._pseudobond_first_intercept(xyz1, xyz2)
         pr = self._ribbon_first_intercept(xyz1, xyz2)
         # Handle molecular surfaces
-        ps = self.first_intercept_children(self.child_models(), xyz1, xyz2, exclude)
+        ps = self.first_intercept_children(self.child_models(), mxyz1, mxyz2, exclude)
         picks = [pa, pb, ppb, pr, ps]
 
         # TODO: for now, tethers pick nothing, but it should either pick
@@ -852,8 +922,9 @@ class AtomicStructure(AtomicStructureData, Model):
 
     def _pseudobond_first_intercept(self, mxyz1, mxyz2):
         fc = bc = None
-        for pbg, d in self._pseudobond_group_drawings.items():
-            if d.display:
+        for pbg in self.pbg_map.values():
+            d = pbg._pbond_drawing
+            if d and d.display:
                 b,f = _bond_intercept(pbg.pseudobonds, mxyz1, mxyz2)
                 if f is not None and (fc is None or f < fc):
                     fc = f
@@ -1043,12 +1114,6 @@ class AtomicStructure(AtomicStructureData, Model):
 
         return PromoteAtomSelection(self, level, psel, asel)
 
-    def _begin_ses_save(self, *args):
-        self.session_save_setup()
-
-    def _end_ses_save(self, *args):
-        self.session_save_teardown()
-
     def surfaces(self):
         '''List of :class:`.MolecularSurface` objects for this structure.'''
         from .molsurf import MolecularSurface
@@ -1167,6 +1232,16 @@ class AtomicStructure(AtomicStructureData, Model):
         # print("AtomicStructure._atomspec_filter_atom", selected)
         return selected
 
+class AtomicStructure(Graph):
+    """
+    Bases: :class:`.StructureData`, :class:`.Model`, :class:`.Graph`
+
+    Molecular model including atomic coordinates.
+    The data is managed by the :class:`.StructureData` base class
+    which provides access to the C++ structures.
+    """
+    pass
+
 # -----------------------------------------------------------------------------
 #
 class LevelOfDetail(State):
@@ -1188,7 +1263,7 @@ class LevelOfDetail(State):
         self._bond_max_total_triangles = 5000000
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
-        self._ribbon_divisions = 10
+        self._ribbon_divisions = 20
 
     def take_snapshot(self, session, flags):
         return 1, [self.quality]
@@ -1536,16 +1611,10 @@ def _selected_bond_cylinders(bond_atoms):
 # -----------------------------------------------------------------------------
 #
 def _tether_placements(xyz0, xyz1, radius, shape):
-    if shape == AtomicStructureData.TETHER_REVERSE_CONE:
+    if shape == StructureData.TETHER_REVERSE_CONE:
         return _bond_cylinder_placements(xyz1, xyz0, radius)
     else:
         return _bond_cylinder_placements(xyz0, xyz1, radius)
-
-# -----------------------------------------------------------------------------
-#
-def _pseudobond_geometry(segments = 9):
-    from .. import surface
-    return surface.dashed_cylinder_geometry(segments)
 
 # -----------------------------------------------------------------------------
 #

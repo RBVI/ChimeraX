@@ -156,7 +156,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
             main_view = self.main_view
             main_camera = main_view.camera
             view_num = None  # TODO: 0, 1 for stereo
-            near, far = main_view._near_far_distances(main_camera, view_num)
+            near, far = main_view.near_far_distances(main_camera, view_num)
 
             main_pos = main_camera.get_position(view_num)
             main_axes = main_pos.axes()
@@ -227,8 +227,8 @@ class SideViewCanvas(glcanvas.GLCanvas):
             self.applique.vertices[11] = (loc.far, loc.far_bottom, 0)
             self.applique.triangles = array([
                 [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
-                # TODO [4, 5],    # near plane
-                # TODO [6, 7],    # far plane
+                [4, 5],    # near plane
+                [6, 7],    # far plane
                 [8, 9],    # left plane
                 [10, 11],  # right plane
             ], dtype=int32)
@@ -276,7 +276,7 @@ class SideViewUI(ToolInstance):
     def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
             ToolInstance.__init__(self, session, bundle_info)
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
 

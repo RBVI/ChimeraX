@@ -22,7 +22,7 @@ def fetch_file(session, url, name, save_name, save_dir, uncompress = False,
                             check_certificates=check_certificates, name=name)
     except URLError as e:
         from .errors import UserError
-        raise UserError('Fetching url %s failed:\n%s' % (url,str(e)))
+        raise UserError('Fetching url %s failed:\n%s' % (url, str(e)))
     return filename
 
 # -----------------------------------------------------------------------------
@@ -63,8 +63,6 @@ def retrieve_cached_url(request, filename, logger=None,
         if last_modified is None or last_modified <= info.st_mtime:
             return filename
         request.method = 'GET'
-    if logger:
-        logger.status('fetching %s' % name, secondary=True)
     try:
         request.headers['Accept-encoding'] = 'gzip, identity'
         if check_certificates:
@@ -76,6 +74,9 @@ def retrieve_cached_url(request, filename, logger=None,
             ssl_context.verify_mode = ssl.CERT_NONE
         with urlopen(request, context = ssl_context) as response:
             compressed = (response.headers['Content-Encoding'] == 'gzip' or uncompress)
+            if logger:
+                logger.status('fetching%s %s' % (
+                    " compressed" if compressed else "", name), secondary=True)
             d = response.headers['Last-modified']
             last_modified = _convert_to_timestamp(d)
             import shutil
@@ -209,7 +210,9 @@ def database_formats(session, from_database):
 def fetch_from_database(session, from_database, id, format=None, name=None, ignore_cache=False):
     d = fetch_databases(session)
     df = d[from_database]
-    models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache)
+    from .logger import Collator
+    with Collator(session.logger, "Summary of problems opening %s fetched from %s"  % (id, from_database)):
+        models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache)
     if name is not None:
         for m in models:
             m.name = name
@@ -239,7 +242,7 @@ class DatabaseFetch:
         self.fetch_function = {}		# Map format to fetch function
         self.prefix_format = {}
     def add_format(self, format_name, fetch_function):
-	# fetch_function() takes session and database id arguments, returns model list.
+        # fetch_function() takes session and database id arguments, returns model list.
         self.fetch_function[format_name] = fetch_function
     def fetch(self, session, database_id, format=None, ignore_cache=False):
         f = self.default_format if format is None else format

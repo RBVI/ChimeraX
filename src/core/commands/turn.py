@@ -2,7 +2,7 @@
 
 from .cli import Axis
 
-def turn(session, axis=Axis((0,1,0)), angle=90, frames=None,
+def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
          center=None, coordinate_system=None, models=None):
     '''
     Rotate the scene.  Actually the camera is rotated about the scene center of rotation
@@ -16,6 +16,10 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None,
        Rotation angle in degrees.
     frames : integer
        Repeat the rotation for N frames, typically used in recording movies.
+    rock : integer
+       Repeat the rotation reversing the direction every N/2 frames.  The first reversal
+       occurs at N/4 frames so that the rocking motion is centered at the current orientation.
+       If the frames option is not given the rocking continues indefinitely.
     center : Center
        Specifies the center of rotation. If not specified, then the current
        center of rotation is used.
@@ -26,10 +30,15 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None,
        Only these models are moved.  If not specified, then the camera is moved.
     '''
 
+    if rock is not None and frames is None:
+        frames = -1	# Continue motion indefinitely.
+
     if frames is not None:
         def turn_step(session, frame):
-            turn(session, axis=axis, angle=angle, frames=None, center=center,
-                 coordinate_system=coordinate_system, models=models)
+            rp = _rock_phase(rock, frame)
+            if rp != 0:
+                turn(session, axis=axis, angle=rp*angle, frames=None, rock=None, center=center,
+                     coordinate_system=coordinate_system, models=models)
         from . import motion
         motion.CallForNFrames(turn_step, frames, session)
         return
@@ -51,6 +60,17 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None,
         for m in models:
             m.positions = r * m.positions
 
+def _rock_phase(rock, frame):
+    if rock is None:
+        return 1
+    p = (frame + (rock+2)//4) % rock
+    h = rock//2
+    if p < h:
+        return 1
+    elif p < 2*h:
+        return -1
+    return 0
+
 def register_command(session):
     from .cli import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
     from .cli import CenterArg, ModelArg, TopModelsArg
@@ -60,6 +80,7 @@ def register_command(session):
                    ('frames', PositiveIntArg)],
         keyword = [('center', CenterArg),
                    ('coordinate_system', ModelArg),
+                   ('rock', PositiveIntArg),
                    ('models', TopModelsArg)],
         synopsis='rotate models'
     )

@@ -5,9 +5,11 @@
 #include <stdlib.h>
 
 #include "Atom.h"
-#include "AtomicStructure.h"
 #include "Bond.h"
 #include "connect.h"
+#include "Coord.h"
+#include "destruct.h"
+#include "Graph.h"
 #include "MolResId.h"
 #include "PBGroup.h"
 #include "Residue.h"
@@ -16,12 +18,7 @@
 #include "tmpl/Atom.h"
 #include "tmpl/residues.h"
 
-#include <basegeom/destruct.h>
-#include <basegeom/Graph.tcc>
-
 namespace atomstruct {
-
-using basegeom::Coord;
 
 // standard_residues contains the names of residues that should use
 // PDB ATOM records.
@@ -299,7 +296,7 @@ hookup(Atom* a, Residue* res, bool definitely_connect=true)
     return made_connection;
 }
 static std::set<Bond*>
-metal_coordination_bonds(AtomicStructure* as)
+metal_coordination_bonds(Graph* as)
 {
     std::set<Bond*> mc_bonds;
     std::set<Atom*> metals;
@@ -383,10 +380,10 @@ metal_coordination_bonds(AtomicStructure* as)
 }
 
 void
-find_and_add_metal_coordination_bonds(AtomicStructure* as)
+find_and_add_metal_coordination_bonds(Graph* as)
 {
     // make metal-coordination complexes
-    auto notifications_off = basegeom::DestructionNotificationsOff();
+    auto notifications_off = DestructionNotificationsOff();
     auto mc_bonds = metal_coordination_bonds(as);
     if (mc_bonds.size() > 0) {
         auto pbg = as->pb_mgr().get_group(as->PBG_METAL_COORDINATION, 
@@ -404,7 +401,7 @@ find_and_add_metal_coordination_bonds(AtomicStructure* as)
 //    Connect atoms in structure by template if one is found, or by distance.
 //    Adjacent residues are connected if appropriate.
 void
-connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
+connect_structure(Graph* as, std::vector<Residue *>* start_residues,
     std::vector<Residue *>* end_residues, std::set<Atom *>* conect_atoms,
     std::set<MolResId>* mod_res)
 {
@@ -416,7 +413,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
     // start/end residues much more efficient to search as a map...
     std::set<Residue*> sres_map(start_residues->begin(), start_residues->end());
     std::set<Residue*> eres_map(end_residues->begin(), end_residues->end());
-    for (AtomicStructure::Residues::const_iterator ri = as->residues().begin();
+    for (Graph::Residues::const_iterator ri = as->residues().begin();
     ri != as->residues().end(); ++ri) {
         Residue *r = *ri;
 
@@ -542,7 +539,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
     // involving at least one non-standard residue
     bool break_long = false;
     if (conect_atoms->empty() && mod_res->empty()) {
-        for (AtomicStructure::Residues::const_iterator ri=as->residues().begin()
+        for (Graph::Residues::const_iterator ri=as->residues().begin()
         ; ri != as->residues().end(); ++ri) {
             Residue *r = *ri;
             if (standard_residue(r->name()) || r->name() == "UNK")
@@ -553,10 +550,10 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             }
         }
     }
-    auto notifications_off = basegeom::DestructionNotificationsOff();
+    auto notifications_off = DestructionNotificationsOff();
     if (break_long) {
         std::vector<Bond *> break_these;
-        for (AtomicStructure::Bonds::const_iterator bi = as->bonds().begin();
+        for (Graph::Bonds::const_iterator bi = as->bonds().begin();
         bi != as->bonds().end(); ++bi) {
             Bond *b = *bi;
             const Bond::Atoms & atoms = b->atoms();
@@ -590,7 +587,8 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             if (r1 == r2)
                 continue;
             if (r1->chain_id() == r2->chain_id()
-            && abs(r1->position() - r2->position()) < 2)
+            && abs(r1->position() - r2->position()) < 2
+            && b->polymeric_start_atom() != nullptr) // CA/P-only should use missing structure
                 continue;
             auto idealBL = Element::bond_length(a1->element(), a2->element());
             if (b->sqlength() >= 3.0625 * idealBL * idealBL)

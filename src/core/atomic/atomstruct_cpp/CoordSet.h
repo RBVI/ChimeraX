@@ -2,30 +2,30 @@
 #ifndef atomstruct_CoordSet
 #define atomstruct_CoordSet
 
-#include <basegeom/Coord.h>
+#include "Coord.h"
 #include "imex.h"
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace atomstruct {
 
 class ATOMSTRUCT_IMEX CoordSet {
     friend class Atom;
-    friend class AtomicStructure;
+    friend class Graph;
 
 public:
-    typedef std::vector<basegeom::Coord>  Coords;
+    typedef std::vector<Coord>  Coords;
 
 private:
     Coords  _coords;
     int  _cs_id;
     std::unordered_map<const Atom *, float>  _bfactor_map;
     std::unordered_map<const Atom *, float>  _occupancy_map;
-    AtomicStructure*  _structure;
-    CoordSet(AtomicStructure* as, int cs_id);
-    CoordSet(AtomicStructure* as, int cs_id, int size);
+    Graph*  _structure;
+    CoordSet(Graph* as, int cs_id);
+    CoordSet(Graph* as, int cs_id, int size);
 
 public:
     void  add_coord(const Point &coord) { _coords.push_back(coord); }
@@ -46,7 +46,7 @@ public:
     void  session_save(int** ints, float** floats) const;
     void  set_bfactor(const Atom *, float);
     void  set_occupancy(const Atom *, float);
-    AtomicStructure*  structure() const { return _structure; }
+    Graph*  structure() const { return _structure; }
 };
 
 }  // namespace atomstruct

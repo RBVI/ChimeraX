@@ -5,20 +5,20 @@
 #include <utility>  // for std::pair
 
 #include "Atom.h"
-#include "AtomicStructure.h"
 #include "Bond.h"
+#include "ChangeTracker.h"
 #include "CoordSet.h"
+#include "destruct.h"
+#include "Graph.h"
 #include "PBGroup.h"
 #include "Pseudobond.h"
 #include "Residue.h"
 
-#include <basegeom/ChangeTracker.h>
-#include <basegeom/destruct.h>
 #include <pysupport/convert.h>
 
 namespace atomstruct {
 
-Atom::Atom(AtomicStructure* as, const char* name, const Element& e):
+Atom::Atom(Graph* as, const char* name, const Element& e):
     _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(&e), _name(name),
     _radius(-1.0), // -1 indicates not explicitly set
     _residue(NULL), _serial_number(-1), _structure(as),
@@ -30,7 +30,7 @@ Atom::Atom(AtomicStructure* as, const char* name, const Element& e):
 
 Atom::~Atom()
 {
-    basegeom::DestructionUser(this);
+    DestructionUser(this);
     structure()->change_tracker()->add_deleted(this);
 }
 
@@ -38,7 +38,7 @@ void
 Atom::add_bond(Bond *b)
 {
     _bonds.push_back(b);
-    _neighbors.push_back(b->other_end(this));
+    _neighbors.push_back(b->other_atom(this));
     graphics_container()->set_gc_shape();
 }
 
@@ -118,7 +118,7 @@ Atom::_new_coord(const Point &coord)
     return index;
 }
 
-const basegeom::Coord &
+const Coord &
 Atom::coord() const
 {
     if (_coord_index == COORD_UNASSIGNED)
@@ -139,8 +139,7 @@ Atom::coordination(int value_if_unknown) const
     if (bonds().size() > 0)
         return bonds().size();
     int num_pb = 0;
-    auto pbg = structure()->pb_mgr().get_group(
-        AtomicStructure::PBG_METAL_COORDINATION);
+    auto pbg = structure()->pb_mgr().get_group(Graph::PBG_METAL_COORDINATION);
     if (pbg != nullptr) {
         for (auto pb: pbg->pseudobonds()) {
             for (auto a: pb->atoms()) {
@@ -1061,7 +1060,7 @@ Atom::set_color(const Rgba& rgba)
 }
 
 void
-Atom::set_coord(const basegeom::Coord& coord, CoordSet* cs)
+Atom::set_coord(const Coord& coord, CoordSet* cs)
 {
     structure()->change_tracker()->add_modified(this, ChangeTracker::REASON_COORD);
     if (cs == NULL) {

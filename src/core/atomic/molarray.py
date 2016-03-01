@@ -62,8 +62,8 @@ def _chains(p):
     return Chains(p)
 def _atomic_structures(p):
     return AtomicStructures(p)
-def _atomic_structure_datas(p):
-    return AtomicStructureDatas(p)
+def structure_datas(p):
+    return StructureDatas(p)
 def _atoms_pair(p):
     return (Atoms(p[:,0].copy()), Atoms(p[:,1].copy()))
 def _pseudobond_group_map(a):
@@ -72,7 +72,8 @@ def _pseudobond_group_map(a):
 
 # -----------------------------------------------------------------------------
 #
-class Collection:
+from ..state import State
+class Collection(State):
     '''
     Base class of all molecular data collections that provides common
     methods such as length, iteration, indexing with square brackets,
@@ -207,6 +208,24 @@ class Collection:
         All duplicates are removed.'''
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
+
+    STATE_VERSION = 1
+    def reset_state(self, session):
+        self._pointers = numpy.empty((0,), cptr)
+    def restore_snapshot_init(self, session, bundle_info, version, ptr_data):
+        if version > self.STATE_VERSION:
+            raise ValueError("Don't know how to restore Collections from this session"
+                " (session version [{}] > code version [{}]);"
+                " update your ChimeraX".format(version, self.STATE_VERSION))
+        self.__init__(self.session_restore_pointers(session, ptr_data))
+    def take_snapshot(self, session, flags):
+        return self.STATE_VERSION, self.session_save_pointers(session)
+    def session_restore_pointers(self, session, data):
+        raise NotImplementedError(
+            self.__class__.__name__ + " has not implemented session_restore_pointers")
+    def session_save_pointers(self, session):
+        raise NotImplementedError(
+            self.__class__.__name__ + " has not implemented session_save_pointers")
 
 def concatenate(collections, object_class = None, remove_duplicates = False):
     '''Concatenate any number of collections returning a new collection.
@@ -390,6 +409,14 @@ class Atoms(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
+    def session_restore_pointers(self, session, data):
+        structures, ids = data
+        return array([s.session_id_to_atom(i) for s, i in zip(structures, ids)])
+    def session_save_pointers(self, session):
+        structures = self.structures
+        return [structures, array([s.session_atom_to_id(ptr)
+                                            for s, ptr in zip(structures, self._c_pointers)])]
+
 # -----------------------------------------------------------------------------
 #
 class Bonds(Collection):
@@ -447,7 +474,7 @@ class Bonds(Collection):
     and at least one atom is not Sphere style.
     '''
     structures = cvec_property('bond_structure', cptr, astype = _atomic_structures, read_only = True)
-    '''Returns an :class:`.AtomicStructureDatas` with the structure for each bond. Read only.'''
+    '''Returns an :class:`.StructureDatas` with the structure for each bond. Read only.'''
 
     @property
     def num_shown(self):
@@ -460,6 +487,14 @@ class Bonds(Collection):
         '''2N x 4 RGBA uint8 numpy array of half bond colors.'''
         f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
+
+    def session_restore_pointers(self, session, data):
+        structures, ids = data
+        return array([s.session_id_to_bond(i) for s, i in zip(structures, ids)])
+    def session_save_pointers(self, session):
+        structures = self.structures
+        return [structures, array([s.session_bond_to_id(ptr)
+                                            for s, ptr in zip(structures, self._c_pointers)])]
 
 # -----------------------------------------------------------------------------
 #
@@ -496,6 +531,12 @@ class Elements(Collection):
     valences = cvec_property('element_valence', uint8, read_only = True)
     '''Returns a :mod:`numpy` array of atomic valence numbers (integers). Read only.'''
 
+    def session_restore_pointers(self, session, data):
+        f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
+        return [f(en) for en in data]
+    def session_save_pointers(self, session):
+        structures = self.structures
+        return self.numbers
 
 # -----------------------------------------------------------------------------
 #
@@ -555,6 +596,11 @@ class Pseudobonds(Collection):
         f = c_function('pseudobond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
 
+    def between_atoms(self, atoms):
+        '''Return mask of those pseudobonds which have both ends in the given set of atoms.'''
+        a1, a2 = self.atoms
+        return a1.mask(atoms) & a2.mask(atoms)
+
 # -----------------------------------------------------------------------------
 #
 class Residues(Collection):
@@ -573,12 +619,14 @@ class Residues(Collection):
     '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.'''
     chain_ids = cvec_property('residue_chain_id', string, read_only = True)
     '''Returns a numpy array of chain IDs. Read only.'''
+    polymer_types = cvec_property('residue_polymer_type', int32, read_only = True)
+    '''Returns a numpy int array of residue types. Read only.'''
     is_helix = cvec_property('residue_is_helix', npy_bool)
     '''Returns a numpy bool array whether each residue is in a protein helix. Read only.'''
     is_sheet = cvec_property('residue_is_sheet', npy_bool)
     '''Returns a numpy bool array whether each residue is in a protein sheet. Read only.'''
     structures = cvec_property('residue_structure', cptr, astype = _atomic_structures, read_only = True)
-    '''Returns :class:`.AtomicStructureDatas` collection containing structures for each residue.'''
+    '''Returns :class:`.StructureDatas` collection containing structures for each residue.'''
     names = cvec_property('residue_name', string, read_only = True)
     '''Returns a numpy array of residue names. Read only.'''
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True)
@@ -634,8 +682,8 @@ class Residues(Collection):
 
     @property
     def unique_structures(self):
-        '''The unique structures as an :class:`.AtomicStructureDatas` collection'''
-        return AtomicStructureDatas(unique(self.structures._pointers))
+        '''The unique structures as an :class:`.StructureDatas` collection'''
+        return StructureDatas(unique(self.structures._pointers))
 
     @property
     def unique_chain_ids(self):
@@ -667,9 +715,18 @@ class Residues(Collection):
         f = c_function('residue_polymer_spline',
                        args = [ctypes.c_void_p, ctypes.c_size_t],
                        ret = ctypes.py_object)
-        atom_pointers, centers, guides = f(self._c_pointers, len(self))
-        atoms = Atoms(atom_pointers)
-        return atoms, centers, guides
+        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self))
+        if atom_pointers is None:
+            atoms = None
+        else:
+            atoms = Atoms(atom_pointers)
+        return any_display, atoms, centers, guides
+
+    def ribbon_clear_hides(self):
+        '''Clear the hide bit for all atoms in given residues.'''
+        f = c_function('residue_ribbon_clear_hide',
+                       args = [ctypes.c_void_p, ctypes.c_size_t])
+        f(self._c_pointers, len(self))
 
 # -----------------------------------------------------------------------------
 #
@@ -686,7 +743,7 @@ class Chains(Collection):
     chain_ids = cvec_property('chain_chain_id', string, read_only = True)
     '''A numpy array of string chain ids for each chain. Read only.'''
     structures = cvec_property('chain_structure', cptr, astype = _atomic_structures, read_only = True)
-    '''A :class:`.AtomicStructureDatas` collection containing structures for each chain.'''
+    '''A :class:`.StructureDatas` collection containing structures for each chain.'''
     existing_residues = cvec_property('chain_residues', cptr, 'num_residues',
         astype = _non_null_residues, read_only = True, per_object = False)
     '''A :class:`Residues` containing the existing residues of all chains. Read only.'''
@@ -695,16 +752,24 @@ class Chains(Collection):
     num_residues = cvec_property('chain_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
 
+    def session_restore_pointers(self, session, data):
+        structures, ids = data
+        return array([s.session_id_to_chain(i) for s, i in zip(structures, ids)])
+    def session_save_pointers(self, session):
+        structures = self.structures
+        return [structures, array([s.session_chain_to_id(ptr)
+                                            for s, ptr in zip(structures, self._c_pointers)])]
+
 # -----------------------------------------------------------------------------
 #
-class AtomicStructureDatas(Collection):
+class StructureDatas(Collection):
     '''
     Bases: :class:`.Collection`
 
     Collection of C++ atomic structure objects.
     '''
     def __init__(self, mol_pointers):
-        Collection.__init__(self, mol_pointers, molobject.AtomicStructureData, AtomicStructureDatas)
+        Collection.__init__(self, mol_pointers, molobject.StructureData, StructureDatas)
 
     atoms = cvec_property('structure_atoms', cptr, 'num_atoms', astype = _atoms,
                           read_only = True, per_object = False)
@@ -749,15 +814,20 @@ class AtomicStructureDatas(Collection):
 
 # -----------------------------------------------------------------------------
 #
-class AtomicStructures(AtomicStructureDatas):
+class AtomicStructures(StructureDatas):
     '''
-    Bases: :class:`.AtomicStructureDatas`
+    Bases: :class:`.StructureDatas`
 
     Collection of Python atomic structure objects.
     '''
     def __init__(self, mol_pointers):
         from . import structure
         Collection.__init__(self, mol_pointers, structure.AtomicStructure, AtomicStructures)
+
+    def session_restore_pointers(self, session, data):
+        return array([s._c_pointer.value for s in data])
+    def session_save_pointers(self, session):
+        return [s for s in self]
 
 # -----------------------------------------------------------------------------
 #

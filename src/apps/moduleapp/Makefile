@@ -1,14 +1,14 @@
 # module application
 #
-# Include this Makefile and set MOD_APP to the name of the
-# chimerax module for the application.  bin/MOD_APP will be
-# the application and it invoke the chimerax.MOD_APP module.
-# APP_NAME is set in config.make.
+# Include this Makefile and set MOD_NAME to the name of the
+# chimerax module for the application.  bin/MOD_NAME will be
+# the application and it invoke the chimerax.MOD_NAME module.
+# (APP_NAME is set in config.make.)
 
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-#MOD_APP = 
+#MOD_NAME = 
 PKG_DIR = $(PYSITEDIR)/chimerax
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax
 ifeq ($(OS),Darwin)
@@ -17,25 +17,33 @@ else
 	OS_BIN = bin
 endif
 
-all: $(MOD_APP)
+all: $(MOD_NAME).sh
 
 install: all
-	$(RSYNC) $(MOD_APP).py $(PKG_DIR)
-	$(RSYNC) $(MOD_APP) $(bindir)
+	SUFFIX=""; \
+	if [ -d $(MOD_NAME) ]; then \
+		SUFFIX=".py"; \
+	fi; \
+	if [ -f $(MOD_NAME)$(SUFFIX); then \
+		$(RSYNC) $(MOD_NAME)$(SUFFIX) $(PKG_DIR); \
+	fi; \
+	$(RSYNC) $(MOD_NAME).sh $(bindir)/$(MOD_NAME); \
 	if [ -d "$(app_prefix)" ]; then \
-		$(RSYNC) $(MOD_APP).py $(APP_PKG_DIR); \
-		$(RSYNC) $(MOD_APP) $(app_bindir); \
+		if [ -f $(MOD_NAME)$(SUFFIX); then \
+			$(RSYNC) $(MOD_NAME)$(SUFFIX) $(APP_PKG_DIR); \
+		fi; \
+		$(RSYNC) $(MOD_NAME).sh $(app_bindir)/$(MOD_NAME); \
 	fi
 
 clean:
-	rm -f $(MOD_APP)
+	rm -f $(MOD_NAME)
 
 lint:
-	$(PYLINT) $(MOD_APP).py
+	$(PYLINT) $(MOD_NAME).py
 
-$(MOD_APP): ../moduleapp/mod_app.sh.in
+$(MOD_NAME).sh: ../moduleapp/mod_app.sh.in
 	sed -e 's,APP_NAME,$(APP_NAME),' \
 		-e 's,OS_BIN,$(OS_BIN),' \
-		-e 's,MOD_APP,$(MOD_APP),' \
-		< ../moduleapp/mod_app.sh.in > $(MOD_APP)
-	chmod +x $(MOD_APP)
+		-e 's,MOD_NAME,$(MOD_NAME),' \
+		< ../moduleapp/mod_app.sh.in > $(MOD_NAME).sh
+	chmod +x $(MOD_NAME).sh

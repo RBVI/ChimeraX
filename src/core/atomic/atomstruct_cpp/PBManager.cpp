@@ -1,9 +1,9 @@
 // vi: set expandtab ts=4 sw=4:
 
-#include "AtomicStructure.h"
+#include "destruct.h"
+#include "Graph.h"
 #include "PBGroup.h"
 
-#include <basegeom/destruct.h>
 #include <pysupport/convert.h>
 
 #include <Python.h>
@@ -14,39 +14,37 @@ namespace atomstruct {
 BaseManager::~BaseManager()
 {
     // assign to var so it lives to end of destructor
-    auto du = basegeom::DestructionUser(this);
+    auto du = DestructionUser(this);
     // delete groups while DestructionUser active
-    for (auto name_grp: this->_groups) {
+    for (auto name_grp: _groups) {
         delete name_grp.second;
     }
 }
 
 void
-AS_PBManager::delete_group(Proxy_PBGroup* group)
+BaseManager::clear()
 {
-    auto gmi = this->_groups.find(group->category());
-    if (gmi == this->_groups.end())
-        throw std::invalid_argument("Asking for deletion of group not in manager!");
-    delete group;
-    this->_groups.erase(gmi);
+    for (auto cat_grp: _groups)
+        delete cat_grp.second;
+    _groups.clear();
 }
 
 void
-PBManager::delete_group(Proxy_PBGroup* group)
+BaseManager::delete_group(Proxy_PBGroup* group)
 {
-    auto gmi = this->_groups.find(group->category());
-    if (gmi == this->_groups.end())
+    auto gmi = _groups.find(group->category());
+    if (gmi == _groups.end())
         throw std::invalid_argument("Asking for deletion of group not in manager!");
     delete group;
-    this->_groups.erase(gmi);
+    _groups.erase(gmi);
 }
 
 Proxy_PBGroup*
 AS_PBManager::get_group(const std::string& name, int create)
 {
     Proxy_PBGroup* grp;
-    auto gmi = this->_groups.find(name);
-    if (gmi != this->_groups.end()) {
+    auto gmi = _groups.find(name);
+    if (gmi != _groups.end()) {
         grp = (*gmi).second;
         if (create != GRP_NONE && grp->group_type() != create) {
             throw std::invalid_argument("Group type mismatch");
@@ -72,8 +70,8 @@ Proxy_PBGroup*
 PBManager::get_group(const std::string& name, int create)
 {
     Proxy_PBGroup* grp;
-    auto gmi = this->_groups.find(name);
-    if (gmi != this->_groups.end()) {
+    auto gmi = _groups.find(name);
+    if (gmi != _groups.end()) {
         grp = (*gmi).second;
         if (create != GRP_NONE && grp->group_type() != create) {
             throw std::invalid_argument("Group type mismatch");
@@ -93,7 +91,7 @@ PBManager::get_group(const std::string& name, int create)
     return grp;
 }
 
-StructureManager::StructureManager(AtomicStructure* as):
+StructureManager::StructureManager(Graph* as):
     BaseManager(as->change_tracker()), _structure(as) {}
 
 void
@@ -145,6 +143,9 @@ BaseManager::session_restore(int version, int** ints, float** floats, PyObject* 
     if (version > 1)
         throw std::invalid_argument(
             "Session pseudobond version too new; don't know how to restore");
+
+    clear(); // only really relevant for global manager, but oh well
+
     auto& int_ptr = *ints;
     auto& float_ptr = *floats;
 

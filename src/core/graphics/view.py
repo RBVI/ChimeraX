@@ -18,6 +18,9 @@ class View:
         self.window_size = window_size		# pixels
         self._opengl_context = None
         self._render = None
+        from .opengl import Lighting, Material
+        self._lighting = Lighting()
+        self._material = Material()
 
         if opengl_context:
             self.initialize_context(opengl_context)
@@ -34,16 +37,11 @@ class View:
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
 
-        # Shadows
-        self._shadows = False
-        self._shadow_map_size = 2048
-        self._shadow_depth_bias = 0.005
-        self._multishadow = 0                   # Number of shadows
-        self._multishadow_map_size = 128
-        self._multishadow_depth_bias = 0.05
+        # Ambient shadows cached state
         self._multishadow_dir = None
         self._multishadow_transforms = []
         self._multishadow_depth = None
+        self._multishadow_current_params = None
         self._multishadow_update_needed = False
 
         # Silhouette edges
@@ -77,8 +75,9 @@ class View:
             raise ValueError("OpenGL context is alread set")
         self._opengl_context = oc
         from .opengl import Render
-        self._render = Render()
-        self.depth_cue = True
+        self._render = r = Render()
+        r.lighting = self._lighting
+        r.material = self._material
 
     def opengl_context(self):
         return self._opengl_context
@@ -122,7 +121,6 @@ class View:
     def _set_camera(self, camera):
         c = self._camera
         c.clear_special_render_modes(self._render)
-        camera.position = c.position
         self._camera = camera
         camera.set_special_render_modes(self._render)
         self.redraw_needed = True
@@ -147,22 +145,24 @@ class View:
         r = self._render
         self.clip_planes.enable_clip_planes(r, camera.position)
 
-        if self.shadows:
+        lp = r.lighting
+        shadows = lp.shadows
+        if shadows:
             # Light direction in camera coords
-            kl = r.lighting.key_light_direction
+            kl = lp.key_light_direction
             # Light direction in scene coords.
             lightdir = camera.position.apply_without_translation(kl)
             stf = self._use_shadow_map(lightdir, drawings)
-        if self.multishadow > 0:
+        multishadows = lp.multishadow
+        if multishadows > 0:
             mstf, msdepth \
-                = self._use_multishadow_map(self._multishadow_directions(),
-                                            drawings)
+                = self._use_multishadow_map(self._multishadow_directions(), drawings)
 
         r.set_background_color(self.background_color)
 
         if self.update_lighting:
             self.update_lighting = False
-            r.set_shader_lighting_parameters()
+            r.set_lighting_shader_capabilities()
 
         if drawings is None:
             any_selected = self.any_drawing_selected()
@@ -183,9 +183,9 @@ class View:
                     = self._update_projection(vnum, camera=camera)
                 cp = camera.get_position(vnum)
                 cpinv = cp.inverse()
-                if self.shadows and stf is not None:
+                if shadows and stf is not None:
                     r.set_shadow_transform(stf * cp)
-                if self.multishadow > 0 and mstf is not None:
+                if multishadows > 0 and mstf is not None:
                     r.set_multishadow_transforms(mstf, cp, msdepth)
                     # Initial depth pass optimization to avoid lighting
                     # calculation on hidden geometry
@@ -194,7 +194,7 @@ class View:
                 self._start_timing()
                 draw_drawings(r, cpinv, mdraw)
                 self._finish_timing()
-                if self.multishadow > 0:
+                if multishadows > 0:
                     r.allow_equal_depth(False)
                 if any_selected:
                     draw_outline(r, cpinv, mdraw)
@@ -236,7 +236,8 @@ class View:
         if dm.shape_changed or cp.changed:
             self._update_center_of_rotation = True
 
-        if self.multishadow > 0 and ((dm.redraw_needed and dm.shape_changed) or cp.changed):
+        if (self._lighting.multishadow > 0 and
+            ((dm.redraw_needed and dm.shape_changed) or cp.changed)):
             self._multishadow_update_needed = True
 
         c.redraw_needed = False
@@ -270,106 +271,22 @@ class View:
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
 
-    def lighting(self):
-        '''Lighting parameters.'''
-        return self._render.lighting
+    def get_lighting(self):
+        return self._lighting
+
+    def set_lighting(self, lighting):
+        self._lighting = lighting
+        r = self._render
+        if r:
+            r.lighting = lighting
+        self.redraw_needed = True
+
+    lighting = property(get_lighting, set_lighting)
+    '''Lighting parameters.'''
 
     def material(self):
         '''Material reflectivity parameters.'''
         return self._render.material
-
-    def get_depth_cue(self):
-        r = self._render
-        return bool(r.enable_capabilities & r.SHADER_DEPTH_CUE)
-    def set_depth_cue(self, enable):
-        r = self._render
-        if enable:
-            r.enable_capabilities |= r.SHADER_DEPTH_CUE
-        else:
-            r.enable_capabilities &= ~r.SHADER_DEPTH_CUE
-        self.redraw_needed = True
-    depth_cue = property(get_depth_cue, set_depth_cue)
-    '''Is dimming with depth enabled. Boolean value.'''
-
-    def get_shadows(self):
-        return self._shadows
-
-    def set_shadows(self, onoff):
-        onoff = bool(onoff)
-        if onoff == self._shadows:
-            return
-        self._shadows = onoff
-        r = self._render
-        if onoff:
-            r.enable_capabilities |= r.SHADER_SHADOWS
-        else:
-            r.enable_capabilities &= ~r.SHADER_SHADOWS
-        self.redraw_needed = True
-    shadows = property(get_shadows, set_shadows)
-    '''Is a shadow cast by the key light enabled? Boolean value.'''
-
-    def max_multishadow(self):
-        return self._render.max_multishadows()
-    def get_multishadow(self):
-        return self._multishadow
-    def set_multishadow(self, n):
-        '''
-        Specify the number of shadows to use for ambient shadowing,
-        for example, 64 or 128.  To turn off ambient shadows specify 0
-        shadows.  Shadows are cast from uniformly distributed directions.
-        This is GPU intensive, each shadow requiring a texture lookup.
-        '''
-        self._multishadow = n
-        r = self._render
-        if n > 0:
-            r.enable_capabilities |= r.SHADER_MULTISHADOW
-        else:
-            # TODO: free multishadow framebuffer.
-            self._multishadow_transforms = []
-            r.enable_capabilities &= ~r.SHADER_MULTISHADOW
-        self.redraw_needed = True
-    multishadow = property(get_multishadow, set_multishadow)
-
-    def get_shadow_depth_bias(self):
-        return self._shadow_depth_bias
-    def set_shadow_depth_bias(self, bias):
-        self._shadow_depth_bias = bias
-        self.redraw_needed = True
-    shadow_depth_bias = property(get_shadow_depth_bias, set_shadow_depth_bias)
-
-    def get_multishadow_depth_bias(self):
-        return self._multishadow_depth_bias
-    def set_multishadow_depth_bias(self, bias):
-        self._multishadow_depth_bias = bias
-        self._multishadow_transforms = []
-        self.redraw_needed = True
-    multishadow_depth_bias = property(get_multishadow_depth_bias, set_multishadow_depth_bias)
-    
-    def get_shadow_map_size(self):
-        return self._shadow_map_size
-    def set_shadow_map_size(self, size):
-        '''
-        Set the size of the 2-d texture for casting shadows.
-        Typical values are 1024, 2048, 4096.
-        Larger sizes give shadows with smoother edges.
-        '''
-        if size != self._shadow_map_size:
-            self._shadow_map_size = size
-            self.redraw_needed = True
-    shadow_map_size = property(get_shadow_map_size, set_shadow_map_size)
-    
-    def get_multishadow_map_size(self):
-        return self._multishadow_map_size
-    def set_multishadow_map_size(self, size):
-        '''
-        Set the size of the 2-d texture for casting shadows.
-        Small values (128, 256) give nicer smoother appearance.
-        '''
-        if size != self._multishadow_map_size:
-            self._multishadow_map_size = size
-            self._multishadow_transforms = []   # Cause shadow recomputation
-            self.redraw_needed = True
-    multishadow_map_size = property(get_multishadow_map_size, set_multishadow_map_size)
 
     def add_overlay(self, overlay):
         '''
@@ -457,10 +374,10 @@ class View:
             s0 = -0.5 + 0.5 * s
             for i in range(n):
                 for j in range(n):
-                    c.set_pixel_shift((s0 + i * s, s0 + j * s))
+                    c.set_fixed_pixel_shift((s0 + i * s, s0 + j * s))
                     self.draw(c, drawings, swap_buffers = False)
                     srgba += r.frame_buffer_image(w, h)
-            c.set_pixel_shift((0, 0))
+            c.set_fixed_pixel_shift((0, 0))
             srgba /= n * n
             # third index 0, 1, 2, 3 is r, g, b, a
             rgba = srgba.astype(uint8)
@@ -564,15 +481,13 @@ class View:
     def _multishadow_directions(self):
 
         directions = self._multishadow_dir
-        if directions is None or len(directions) != self.multishadow:
-            n = self.multishadow    # requested number of directions
+        n = self.lighting.multishadow
+        if directions is None or len(directions) != n:
             from ..geometry import sphere
             self._multishadow_dir = directions = sphere.sphere_points(n)
         return directions
 
     def _use_shadow_map(self, light_direction, drawings):
-
-        r = self._render
 
         # Compute drawing bounds so shadow map can cover all drawings.
         center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
@@ -580,12 +495,14 @@ class View:
             return None
 
         # Compute shadow map depth texture
-        size = self.shadow_map_size
+        r = self._render
+        lp = r.lighting
+        size = lp.shadow_map_size
         r.start_rendering_shadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
         # Compute light view and scene to shadow map transforms
-        bias = self._shadow_depth_bias
+        bias = lp.shadow_depth_bias
         lvinv, stf = r.shadow_transforms(light_direction, center, radius, bias)
         from .drawing import draw_drawings
         draw_drawings(r, lvinv, bdrawings)
@@ -597,13 +514,21 @@ class View:
 
         return stf      # Scene to shadow map texture coordinates
 
+    def max_multishadow(self):
+        return self._render.max_multishadows()
+
     def _use_multishadow_map(self, light_directions, drawings):
+
+        r = self._render
+        lp = r.lighting
+        msp = (lp.multishadow, lp.multishadow_map_size, lp.multishadow_depth_bias)
+        if self._multishadow_current_params != msp:
+            self._multishadow_update_needed = True
 
         if self._multishadow_update_needed:
             self._multishadow_transforms = []
             self._multishadow_update_needed = False
 
-        r = self._render
         if len(self._multishadow_transforms) == len(light_directions):
             # Bind shadow map for subsequent rendering of shadows.
             dt = r.multishadow_map_framebuffer.depth_texture
@@ -616,7 +541,7 @@ class View:
             return None, None
 
         # Compute shadow map depth texture
-        size = self.multishadow_map_size
+        size = lp.multishadow_map_size
         r.start_rendering_multishadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
@@ -628,7 +553,7 @@ class View:
         from math import ceil, sqrt
         d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
         s = size // d               # Subtexture size.
-        bias = self._multishadow_depth_bias
+        bias = lp.multishadow_depth_bias
         for l in range(nl):
             x, y = (l % d), (l // d)
             r.set_viewport(x * s, y * s, s, s)
@@ -642,6 +567,7 @@ class View:
         shadow_map.bind_texture(r.multishadow_texture_unit)
 
         # TODO: Clear shadow cache whenever scene changes
+        self._multishadow_current_params = msp
         self._multishadow_transforms = mstf
         self._multishadow_depth = msd = 2 * radius
 #        r.set_multishadow_transforms(mstf, None, msd)
@@ -672,7 +598,7 @@ class View:
             dm.cached_any_part_selected = s = self.drawing.any_part_selected()
         return s
 
-    def initial_camera_view(self):
+    def initial_camera_view(self, pad = 0.05):
         '''Set the camera position to show all displayed drawings,
         looking down the z axis.'''
         b = self.drawing_bounds()
@@ -681,18 +607,23 @@ class View:
         c = self.camera
         from ..geometry import identity
         c.position = identity()
-        c.view_all(b.center(), b.width())
+        w,h = self.window_size
+        c.view_all(b, aspect = h/w, pad = pad)
         self._center_of_rotation = b.center()
         self._update_center_of_rotation = True
 
-    def view_all(self, bounds = None):
+    def view_all(self, bounds = None, pad = 0):
         '''Adjust the camera to show all displayed drawings using the
-        current view direction.'''
+        current view direction.  If bounds is given then view is adjusted
+        to show those bounds instead of the current drawing bounds.
+        If pad is specified the fit is to a window size reduced by this fraction.
+        '''
         if bounds is None:
             bounds = self.drawing_bounds()
             if bounds is None:
                 return
-        self.camera.view_all(bounds.center(), bounds.width())
+        w,h = self.window_size
+        self.camera.view_all(bounds, aspect = h/w, pad = pad)
         if self._center_of_rotation_method == 'front center':
             self._update_center_of_rotation = True
 
@@ -797,20 +728,28 @@ class View:
             return
 
         c = self.camera if camera is None else camera
-        near, far = self._near_far_distances(c, view_num)
+        near, far = self.near_far_distances(c, view_num)
         # TODO: Different camera views need to use same near/far if they are part of
         # a cube map, otherwise depth cue dimming is not continuous across cube faces.
         pm = c.projection_matrix((near, far), view_num, (ww, wh))
         r.set_projection_matrix(pm)
-        r.set_near_far_clip(near, far)
+        r.set_near_far_clip(near, far)	# Used by depth cue
 
         return near / far
 
-    def _near_far_distances(self, camera, view_num):
-        '''Near and far clip plane distances from camera.'''
+    def near_far_distances(self, camera, view_num, include_clipping = True):
+        '''Near and far scene bounds as distances from camera.'''
         cp = camera.get_position(view_num).origin()
         vd = camera.view_direction(view_num)
         near, far = self._near_far_bounds(cp, vd)
+        if include_clipping:
+            p = self.clip_planes
+            np, fp = p.find_plane('near'), p.find_plane('far')
+            from ..geometry import inner_product
+            if np:
+                near = max(near, inner_product(vd, (np.plane_point - cp)))
+            if fp:
+                far = min(far, inner_product(vd, (fp.plane_point - cp)))
         cnear, cfar = self._clamp_near_far(near, far)
         return cnear, cfar
 
@@ -841,7 +780,7 @@ class View:
         if origin is None:
             return (None, None)
 
-        near, far = self._near_far_distances(c, view_num)
+        near, far = self.near_far_distances(c, view_num, include_clipping = False)
         cplanes = [(origin + near*direction, direction), 
                    (origin + far*direction, -direction)]
         cplanes.extend((p.plane_point, p.normal) for p in self.clip_planes.planes())
@@ -977,7 +916,7 @@ class ClipPlane:
     def __init__(self, name, normal, plane_point, camera_normal = None):
         self.name = name
         self.normal = normal		# Vector perpendicular to plane, points toward shown half-space
-        self.plane_point = plane_point	# Point on clip plane
+        self.plane_point = plane_point	# Point on clip plane in scene coordinates
         self.camera_normal = camera_normal # Used for near/far clip planes, normal in camera coords.
         self._last_distance = None	# For handling rotation with camera_normal.
         self._changed = False

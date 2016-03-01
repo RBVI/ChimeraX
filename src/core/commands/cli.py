@@ -158,15 +158,15 @@ Example
 
 Here is a simple example::
 
-    import from chimerax.core.commands import cli, errors
-    @register("echo", cli.CmdDesc(optional=[('text', cli.RestOfLine)]))
+    import from chimerax.core.commands import Command, CmdDesc, RestOfLine
+    import from chimerax.core import errors
+    @register("echo", CmdDesc(optional=[('text', RestOfLine)]))
     def echo(session, text=''):
         print(text)
     ...
-    command = cli.Command(session)
-    command.parse_text(text, final=True)
+    command = Command(session)
     try:
-        status = command.execute()
+        status = command.run(text)
         if status:
             print(status)
     except errors.UserError as err:
@@ -323,9 +323,9 @@ class Annotation(metaclass=abc.ABCMeta):
     .. py:attribute:: name
 
         Set to textual description of the annotation, including
-        the leading article, *e.g.*, `"a truth value"`.
+        the leading article, *e.g.*, `"an integer"`.
     """
-    name = None  #: article name, *e.g.*, "a truth value"
+    name = None  #: article name, *e.g.*, "an integer"
     url = None  #: URL for help information
 
     def __init__(self, name=None, url=None):
@@ -347,6 +347,9 @@ class Annotation(metaclass=abc.ABCMeta):
 
         The leading space in text must already be removed.
         It is up to the particular annotation to support abbreviations.
+
+        Empty text should raise an exception (the exceptions being NoArg
+        and EmptyArg).
         """
         raise NotImplemented
 
@@ -543,7 +546,7 @@ class DottedTupleOf(Aggregate):
 
 class BoolArg(Annotation):
     """Annotation for boolean literals"""
-    name = "a truth value"
+    name = "true or false"
 
     @staticmethod
     def parse(text, session):
@@ -609,6 +612,7 @@ class StringArg(Annotation):
         token, text, rest = next_token(text)
         return token, text, rest
 
+
 class FileNameArg(Annotation):
     """Base class for Open/SaveFileNameArg"""
     name = "file name"
@@ -621,7 +625,7 @@ class FileNameArg(Annotation):
 
 # In the future when/if "browse" is supported as a file name,
 # Open/SaveFileNameArg may be different.  If/when that time
-# comes, the "name" class attr may also be made more specfic 
+# comes, the "name" class attr may also be made more specfic
 OpenFileNameArg = SaveFileNameArg = OpenFolderNameArg = SaveFolderNameArg = FileNameArg
 
 
@@ -733,7 +737,7 @@ class CenterArg(Annotation):
             except:
                 pass
             else:
-                c = Center(coords = session.main_view.camera.position.origin())
+                c = Center(coords=session.main_view.camera.position.origin())
 
         # Objects
         if c is None:
@@ -1689,7 +1693,7 @@ def deregister(name, *, is_user_alias=False):
 
     hidden_word = _aliased_commands.get(name, None)
     if hidden_word:
-        parent_info = word_info.parent
+        parent_info = hidden_word.parent
         parent_info.subcommands[word] = hidden_word
         del _aliased_commands[name]
     else:
@@ -1712,9 +1716,9 @@ def add_keyword_arguments(name, kw_info):
     """
     if not isinstance(kw_info, dict):
         raise ValueError("kw_info must be a dictionary")
-    cmd = Command(None, name, final=True)
+    cmd = Command(None)
     cmd.current_text = name
-    cmd._find_command_name(True, no_aliases=True)
+    cmd._find_command_name(no_aliases=True)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
         raise ValueError("'%s' is not a command name" % name)
     # TODO: fail if there are conflicts with existing keywords?
@@ -1722,11 +1726,14 @@ def add_keyword_arguments(name, kw_info):
     cmd._ci._keyword_map.update([(_user_kw(n), n) for n in kw_info])
 
 
+class _FakeSession:
+    pass
+
+
 class Command:
     """Keep track of (partially) typed command with possible completions
 
-    :param text: the command text
-    :param final: true if text is the complete command line (final version).
+    :param session: the session to run the command in (may be None for testing)
 
     .. data: current_text
 
@@ -1735,6 +1742,10 @@ class Command:
     .. data: amount_parsed
 
         Amount of current text that has been successfully parsed.
+
+    .. data: start
+
+        Start of current command in current_text
 
     .. data: completions
 
@@ -1747,16 +1758,12 @@ class Command:
     """
     # nested = 0  # DEBUG nested aliases
 
-    def __init__(self, session, text='', final=False, _used_aliases=None):
+    def __init__(self, session):
         import weakref
         if session is None:
-            class FakeSession:
-                pass
-            session = FakeSession()
+            session = _FakeSession()
         self._session = weakref.ref(session)
         self._reset()
-        if text:
-            self.parse_text(text, final=final, _used_aliases=_used_aliases)
 
     def _reset(self):
         self.current_text = ""
@@ -1768,99 +1775,6 @@ class Command:
         self._ci = None
         self.command_name = None
         self._kw_args = {}
-        self._error_checked = False
-
-    def error_check(self):
-        """Error check results of calling parse_text
-
-        :raises UserError: if parsing error is found
-
-        Separate error checking logic from execute() so
-        it may be done separately
-        """
-        if self._error:
-            raise UserError(self._error)
-        for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
-            missing = [kw for kw in ci._required_arguments if kw not in kw_args]
-            if missing:
-                arg_names = ['"%s"' % m for m in missing]
-                msg = commas(arg_names, ' and')
-                noun = plural_form(arg_names, 'argument')
-                raise UserError("Missing required %s %s" % (msg, noun))
-            for cond in ci._postconditions:
-                if not cond.check(kw_args):
-                    raise UserError(cond.error_message())
-        self._error_checked = True
-
-    def execute(self, log=True, *, _used_aliases=None):
-        """If command is valid, execute it with given session."""
-
-        # Command.nested += 1                # DEBUG
-        # if Command.nested > 4:             # DEBUG
-        #    raise RuntimeError('too deep')  # DEBUG
-        session = self._session()  # resolve back reference
-        if session is None:
-            log = False
-        if not self._error_checked:
-            self.error_check()
-        results = []
-        for (cmd_name, cmd_text, ci, kw_args) in self._multiple:
-            if log:
-                if not session.ui.is_gui:
-                    session.logger.info("Cmd> %s" % cmd_text)
-                else:
-                    from html import escape
-                    if ci.url is None:
-                        msg = '<div class="cxcmd">%s</div>' % escape(cmd_text)
-                    else:
-                        cargs = cmd_text[len(cmd_name):]
-                        msg = '<div class="cxcmd"><a href="%s">%s</a>%s</div>' % (
-                            ci.url, escape(cmd_name), escape(cargs))
-                    session.logger.info(msg, is_html=True, add_newline=False)
-            try:
-                if not isinstance(ci.function, Alias):
-                    results.append(ci.function(session, **kw_args))
-                    continue
-                arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
-                arg_names.sort()
-                args = [kw_args[k] for k in arg_names]
-                if 'optional' in kw_args:
-                    optional = kw_args['optional']
-                else:
-                    optional = ''
-                if _used_aliases is None:
-                    _used_aliases = {cmd_name}
-                else:
-                    _used_aliases.add(cmd_name)
-                results.append(ci.function(session, *args, optional=optional,
-                               _used_aliases=_used_aliases))
-                continue
-            except UserError as err:
-                if isinstance(ci.function, Alias):
-                    # propagate expanded alias
-                    cmd = ci.function.cmd
-                    self.current_text = cmd.current_text
-                    self.amount_parsed = cmd.amount_parsed
-                    self._error = cmd._error
-                raise
-            except ValueError as err:
-                if isinstance(ci.function, Alias):
-                    # propagate expanded alias
-                    cmd = ci.function.cmd
-                    self.current_text = cmd.current_text
-                    self.amount_parsed = cmd.amount_parsed
-                    self._error = cmd._error
-                # convert function's ValueErrors to UserErrors,
-                # but not those of functions it calls
-                import traceback
-                _, _, exc_traceback = sys.exc_info()
-                if len(traceback.extract_tb(exc_traceback)) > 2:
-                    raise
-                raise UserError(err)
-            from .. import atomic
-            atomic.check_for_changes(session)
-        # Command.nested -= 1  # DEBUG
-        return results
 
     def _replace(self, chars, replacement):
         # insert replacement taking into account quotes
@@ -1887,7 +1801,7 @@ class Command:
         self.amount_parsed += self._replace(text, replacement)
         return value, rest
 
-    def _find_command_name(self, final, *, no_aliases=False, used_aliases=None):
+    def _find_command_name(self, final=True, no_aliases=False, used_aliases=None):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
@@ -1896,7 +1810,8 @@ class Command:
         self.word_info = None  # filled in when partial command is matched
         parent_info = _commands
         cmd_name = None
-        start = self.amount_parsed
+        self.start = self.amount_parsed
+        start = self.start
         while 1:
             m = _whitespace.match(self.current_text, self.amount_parsed)
             cur_end = m.end()
@@ -1908,6 +1823,8 @@ class Command:
                 self.word_info = parent_info
                 self.command_name = cmd_name
                 return
+            if self.amount_parsed == start:
+                self.start = cur_end
             if text.startswith('#') and self.amount_parsed == start:
                 self._error = ''
                 self.amount_parsed = len(self.current_text)
@@ -1943,14 +1860,14 @@ class Command:
                     text = self.current_text[self.amount_parsed:]
                     continue
                 if word and self._ci is None:
-                    self._error = "Unknown command: %s" % self.current_text
+                    self._error = "Unknown command: %s" % self.current_text[self.start:]
                 return
             self.amount_parsed = cur_end
             self._ci = None
             self.word_info = what
             self.command_name = None
             self.amount_parsed += len(chars)
-            cmd_name = self.current_text[start:self.amount_parsed]
+            cmd_name = self.current_text[self.start:self.amount_parsed]
             cmd_name = ' '.join(cmd_name.split())   # canonicalize
             if what.is_deferred():
                 what.lazy_register()
@@ -1984,7 +1901,7 @@ class Command:
             # word might be part of multiword command name
             if parent_info.cmd_desc is None:
                 self._error = ("Incomplete command: %s"
-                               % self.current_text[start:self.amount_parsed])
+                               % self.current_text[self.start:self.amount_parsed])
 
     def _process_positional_arguments(self):
         # side effects:
@@ -2015,21 +1932,21 @@ class Command:
             if start:
                 self.amount_parsed += start
                 text = text[start:]
-            if not text:
-                return None, None
-            if text[0] == ';':
-                return None, None
+            if text and text[0] == ';':
+                text = ''
             if kw_name in self._ci._optional:
                 # check if next token matches a keyword and if so,
                 # terminate positional arguments
+                if not text:
+                    return last_anno, None
                 _, tmp, _ = next_token(text, no_raise=True)
                 if not tmp:
-                    return None, None
+                    return last_anno, None
                 if tmp[0].isalpha():
                     tmp = _user_kw(tmp)
                     if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
                             any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
-                        return None, None
+                        return last_anno, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
                 if is_python_keyword(kw_name):
@@ -2138,49 +2055,122 @@ class Command:
             if not text:
                 break
 
-    def parse_text(self, text, final=False, no_aliases=False, _used_aliases=None):
-        """Parse text into function and arguments
+    def run(self, text, *, log=True, _used_aliases=None):
+        """Parse and execute commands in the text
 
         :param text: The text to be parsed.
-        :param final: True if last version of command text.
-        :param no_aliases: True if aliases should not be considered.
+        :param log: True (default) if commands are logged.
 
-        May be called multiple times.  There are a couple side effects:
+        There are a couple side effects:
 
         * The automatically completed text is put in self.current_text.
         * Possible completions are in self.completions.
         * The prefix of the completions is in self.completion_prefix.
         """
-        self._reset()   # don't be smart, just start over
+        session = self._session()  # resolve back reference
+        if isinstance(session, _FakeSession):
+            log = False
 
-        # find command name
+        self._reset()
         self.current_text = text
+        final = True    # TODO: support partial parsing for cmd/arg completion
+        results = []
 
         while 1:
-            self._find_command_name(final, no_aliases=no_aliases, used_aliases=_used_aliases)
+            self._find_command_name(final, used_aliases=_used_aliases)
+            if self._error:
+                raise UserError(self._error)
             if not self._ci:
                 if len(self.current_text) > self.amount_parsed and self.current_text[self.amount_parsed] == ';':
                     # allow for leading and empty semicolon-separated commands
                     self.amount_parsed += 1  # skip semicolon
                     continue
-                return
-            start = self.amount_parsed - len(self.command_name)
+                return results
             prev_annos = self._process_positional_arguments()
             if self._error:
-                return
+                raise UserError(self._error)
             self._process_keyword_arguments(final, prev_annos)
             if self._error:
-                return
-            self._multiple.append((
-                self.command_name, self.current_text[start:self.amount_parsed],
-                self._ci, self._kw_args))
+                raise UserError(self._error)
+            missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
+            if missing:
+                arg_names = ['"%s"' % m for m in missing]
+                msg = commas(arg_names, ' and')
+                noun = plural_form(arg_names, 'argument')
+                raise UserError("Missing required %s %s" % (msg, noun))
+            for cond in self._ci._postconditions:
+                if not cond.check(self._kw_args):
+                    raise UserError(cond.error_message())
+
+            if not final:
+                return results
+
+            cmd_text = self.current_text[self.start:self.amount_parsed]
+            ci = self._ci
+            kw_args = self._kw_args
+            if log:
+                if not session.ui.is_gui:
+                    session.logger.info("Executing: %s" % cmd_text)
+                else:
+                    from html import escape
+                    if ci.url is None:
+                        msg = '<div class="cxcmd">%s</div>' % escape(cmd_text)
+                    else:
+                        cargs = cmd_text[len(self.command_name):]
+                        msg = '<div class="cxcmd"><a href="%s">%s</a>%s</div>' % (
+                            ci.url, escape(self.command_name), escape(cargs))
+                    session.logger.info(msg, is_html=True, add_newline=False)
+            try:
+                if not isinstance(ci.function, Alias):
+                    results.append(ci.function(session, **kw_args))
+                else:
+                    arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
+                    arg_names.sort()
+                    args = [kw_args[k] for k in arg_names]
+                    if 'optional' in kw_args:
+                        optional = kw_args['optional']
+                    else:
+                        optional = ''
+                    if _used_aliases is None:
+                        used_aliases = {self.command_name}
+                    else:
+                        used_aliases = _used_aliases.copy()
+                        used_aliases.add(self.command_name)
+                    results.append(ci.function(session, *args, optional=optional,
+                                   _used_aliases=used_aliases))
+            except UserError as err:
+                if isinstance(ci.function, Alias):
+                    # propagate expanded alias
+                    cmd = ci.function.cmd
+                    self.current_text = cmd.current_text
+                    self.amount_parsed = cmd.amount_parsed
+                    self._error = cmd._error
+                    raise UserError(self._error)
+                raise
+            except ValueError as err:
+                if isinstance(ci.function, Alias):
+                    # propagate expanded alias
+                    cmd = ci.function.cmd
+                    self.current_text = cmd.current_text
+                    self.amount_parsed = cmd.amount_parsed
+                    self._error = cmd._error
+                # convert function's ValueErrors to UserErrors,
+                # but not those of functions it calls
+                import traceback
+                _, _, exc_traceback = sys.exc_info()
+                if len(traceback.extract_tb(exc_traceback)) > 2:
+                    raise
+                raise UserError(err)
+            from .. import atomic
+            atomic.check_for_changes(session)
+
             self.command_name = None
             self._ci = None
             self._kw_args = {}
             m = _whitespace.match(self.current_text, self.amount_parsed)
             self.amount_parsed = m.end()
             if self.amount_parsed == len(self.current_text):
-                return
+                return results
             self.amount_parsed += 1  # skip semicolon
 
 
@@ -2193,7 +2183,7 @@ def command_function(name, no_aliases=False):
     """
     cmd = Command(None)
     cmd.current_text = name
-    cmd._find_command_name(True, no_aliases=no_aliases)
+    cmd._find_command_name(no_aliases=no_aliases)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
         raise ValueError('"%s" is not a command name' % name)
     return cmd._ci.function
@@ -2208,13 +2198,13 @@ def command_url(name, no_aliases=False):
     """
     cmd = Command(None)
     cmd.current_text = name
-    cmd._find_command_name(True, no_aliases=no_aliases)
+    cmd._find_command_name(no_aliases=no_aliases)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
         raise ValueError('"%s" is not a command name' % name)
     return cmd._ci.url
 
 
-def usage(name, no_aliases=False):
+def usage(name, no_aliases=False, no_subcommands=False):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -2223,7 +2213,7 @@ def usage(name, no_aliases=False):
     """
     cmd = Command(None)
     cmd.current_text = name
-    cmd._find_command_name(True, no_aliases=no_aliases)
+    cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed != len(cmd.current_text):
         raise ValueError('"%s" is not a command name' % name)
 
@@ -2256,7 +2246,8 @@ def usage(name, no_aliases=False):
     if arg_syntax:
         syntax += '\n%s' % '\n'.join(arg_syntax)
 
-    if cmd.word_info is not None and cmd.word_info.has_subcommands():
+    if (not no_subcommands and cmd.word_info is not None and
+            cmd.word_info.has_subcommands()):
         name = cmd.command_name
         if syntax:
             syntax += '\n'
@@ -2266,16 +2257,17 @@ def usage(name, no_aliases=False):
     return syntax
 
 
-def html_usage(name, no_aliases=False):
+def html_usage(name, no_aliases=False, no_subcommands=False):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
     :param no_aliases: True if aliases should not be considered.
+    :param no_subcommands: True if subcommands should not be considered.
     :returns: a HTML usage string for the command
     """
     cmd = Command(None)
     cmd.current_text = name
-    cmd._find_command_name(True, no_aliases=no_aliases)
+    cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed != len(cmd.current_text):
         raise ValueError('"%s" is not a command name' % name)
     from html import escape
@@ -2329,7 +2321,8 @@ def html_usage(name, no_aliases=False):
     if arg_syntax:
         syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
 
-    if cmd.word_info is not None and cmd.word_info.has_subcommands():
+    if (not no_subcommands and cmd.word_info is not None and
+            cmd.word_info.has_subcommands()):
         name = cmd.command_name
         if syntax:
             syntax += '<br>\n'
@@ -2338,7 +2331,7 @@ def html_usage(name, no_aliases=False):
             subcmd = '%s %s' % (name, word)
             cmd = Command(None)
             cmd.current_text = subcmd
-            cmd._find_command_name(True, no_aliases=no_aliases)
+            cmd._find_command_name(no_aliases=no_aliases)
             if cmd.amount_parsed != len(cmd.current_text):
                 url = None
             elif cmd._ci.url is None:
@@ -2398,7 +2391,6 @@ class Alias:
         self.user_generated = user
         self.num_args = 0
         self.parts = []  # list of strings and integer argument numbers
-        self.cmd = None
         self.optional_rest_of_line = False
         not_dollar = re.compile(r"[^$]*")
         number = re.compile(r"\d*")
@@ -2456,7 +2448,6 @@ class Alias:
                  _used_aliases=None, log=True):
         # when echo_tag is not None, echo the substitued alias with
         # the given tag
-        self.cmd = None
         if len(args) < self.num_args:
             raise UserError("Not enough arguments")
         # substitute args for positional arguments
@@ -2472,9 +2463,9 @@ class Alias:
                 text += args[part]
         if echo_tag is not None:
             session.logger.info('%s%s' % (echo_tag, text))
-        self.cmd = Command(session, text, final=True,
-                           _used_aliases=_used_aliases)
-        return self.cmd.execute(_used_aliases=_used_aliases, log=log)
+        # save Command object so error reporting can give underlying error
+        self.cmd = Command(session)
+        return self.cmd.run(text, _used_aliases=_used_aliases, log=log)
 
 
 def list_aliases(all=False):
@@ -2505,7 +2496,7 @@ def expand_alias(name):
     """
     cmd = Command(None)
     cmd.current_text = name
-    cmd._find_command_name(True, no_aliases=False)
+    cmd._find_command_name(no_aliases=False)
     if cmd.amount_parsed != len(cmd.current_text):
         return None
     if not cmd.word_info.is_alias():
@@ -2525,7 +2516,7 @@ def create_alias(name, text, *, user=False, logger=None):
     alias = Alias(text, user=user)
     cmd = Command(None)
     cmd.current_text = text
-    cmd._find_command_name(True)
+    cmd._find_command_name()
     if cmd.word_info is None or cmd._ci:
         aliasing = cmd.command_name
     else:
@@ -2745,8 +2736,7 @@ if __name__ == '__main__':
         while True:
             try:
                 text = input(prompt)
-                cmd.parse_text(text, final=True)
-                results = cmd.execute()
+                results = cmd.run(text)
                 for result in flattened(results):
                     if result is not None:
                         print(result)
@@ -2832,9 +2822,7 @@ if __name__ == '__main__':
         fail, final, text = t
         try:
             print("\nTEST: '%s'" % text)
-            cmd.parse_text(text, final=final)
-            print(cmd.current_text)
-            results = cmd.execute()
+            wesults = cmd.run(text)
             if results:
                 for result in flattened(results):
                     if result is not None:
@@ -2850,6 +2838,7 @@ if __name__ == '__main__':
             rest = cmd.current_text[cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = cmd.amount_parsed + spaces
+            print(cmd.current_text)
             print("%s^" % ('.' * error_at))
             if fail:
                 successes += 1

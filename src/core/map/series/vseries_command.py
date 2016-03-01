@@ -48,6 +48,7 @@ def register_vseries_command():
                                    ('direction', EnumOf(('forward', 'backward', 'oscillate'))),
                                    ('normalize', BoolArg),
                                    ('max_frame_rate', FloatArg),
+                                   ('pause_frames', IntArg),
                                    ('markers', AtomsArg),
                                    ('preceding_marker_frames', IntArg),
                                    ('following_marker_frames', IntArg),
@@ -66,7 +67,7 @@ def register_vseries_command():
 
 # -----------------------------------------------------------------------------
 #
-def vseries_play(session, series, direction = 'forward', loop = False, max_frame_rate = None,
+def vseries_play(session, series, direction = 'forward', loop = False, max_frame_rate = None, pause_frames = 0,
             jump_to = None, range = None, start = None, normalize = False, markers = None,
             preceding_marker_frames = 0, following_marker_frames = 0,
             color_range = None, cache_frames = 1):
@@ -76,6 +77,7 @@ def vseries_play(session, series, direction = 'forward', loop = False, max_frame
                          play_direction = direction,
                          loop = loop,
                          max_frame_rate = max_frame_rate,
+                         pause_frames = pause_frames,
                          normalize_thresholds = normalize,
                          markers = markers,
                          preceding_marker_frames = preceding_marker_frames,

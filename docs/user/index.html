@@ -16,22 +16,26 @@ software or any revisions or derivations thereof.
 </head><body>
 
 <a name="top"></a>
-<h2><img width="70px" src="ChimeraX-icon.svg" alt="ChimeraX logo"/>
+<h2><img width="70px" src="ChimeraX-icon.svg" alt="ChimeraX logo"
+title="click this icon on linked pages to return to the index"/>
 UCSF ChimeraX User Guide</h2>
 <p>
-<b>UCSF ChimeraX</b> is the successor program to <b>UCSF Chimera</b>,
-here termed &ldquo;Chimera.&rdquo;
+<b>UCSF ChimeraX</b> is the successor program to <b>UCSF Chimera</b>.
 </p>
 <ul class="none">
 <li>General:</li>
  <ul>
- <li><a href="advantages.html">advantages <i>vs.</i> Chimera</a></li>
+ <li><a href="advantages.html">ChimeraX advantages <i>vs.</i> Chimera</a></li>
  <li><a href="../quickstart/index.html">Quick Start Guide</a></li>
  </ul>
 <li><a name="tools">Tools</a>:</li>
  <ul>
- <li><a href="tools/cli.html"><b>Command Line Interface</b></a>
- <li><b>Log</b>
+ <li><a href="tools/cli.html"><b>Command Line Interface</b></a></li>
+ <li><a href="tools/graphics.html"><b>Graphics</b></a> icons</li>
+ <li><a href="tools/log.html"><b>Log</b></a></li>
+ <li><a href="tools/moldisplay.html"><b>Molecule Display</b></a> icons</li>
+ <li><a href="tools/mousemodes.html"><b>Mouse Modes
+ for Right Button</b></a> icons</li>
  </ul>
 <li><a name="commands">Commands</a> (potentially subject to change):</li>
  <ul>
@@ -39,11 +43,15 @@ here termed &ldquo;Chimera.&rdquo;
  - define a command alias (shortcut or composite action)</li>
  <li><a href="commands/cartoon.html"><b>cartoon</b> or <b>ribbon</b></a>
  - create cartoons, set cartoon parameters</li>
- <li><a href="commands/cofr.html"><b>cofr</b></a>
- - set center of rotation</li> 
+ <li><a href="commands/camera.html"><b>camera</b></a>
+ - set mono or stereo viewing and related parameters</li>
+ <li><a href="commands/clip.html"><b>clip</b></a>
+ - control clipping planes</li>
  <li><a href="commands/close.html"><b>close</b></a>
  - close models</li> 
- <li><a href="commands/color.html"><b>color</b></a>
+ <li><a href="commands/cofr.html"><b>cofr</b></a>
+ - set center of rotation</li> 
+ <li><a href="commands/color.html"><b>color</b>, <b>rainbow</b></a>
  - color atoms/bonds, cartoons, molecular surfaces</li>
  <li><a href="commands/delete.html"><b>delete</b></a>
  - delete atoms</li>
@@ -52,7 +60,10 @@ here termed &ldquo;Chimera.&rdquo;
  <li><a href="commands/lighting.html"><b>lighting</b></a>
  - report or adjust lighting parameters</li>
  <li><a href="commands/log.html"><b>log</b></a>
- - clear, save to file, and other actions related to the <b>Log</b></li>
+ - clear, save to file, and other actions related to the 
+ <a href="tools/log.html"><b>Log</b></a></li>
+ <li><a href="commands/material.html"><b>material</b></a>
+ - report or adjust material properties for light reflection</li>
  <li><a href="commands/move.html"><b>move</b></a>
  - translate models</li>
  <li><a href="commands/mousemode.html"><b>mousemode</b></a>
@@ -63,6 +74,9 @@ here termed &ldquo;Chimera.&rdquo;
   - open local file or fetch from repository</li> 
  <li><a href="commands/position.html"><b>position</b></a>
  - set location and orientation of camera, models by input matrix</li>
+ <li><a href="commands/pwd.html"><b>pwd</b></a>
+ - print working directory to the 
+ <a href="tools/log.html"><b>Log</b></a></li>
  <li><a href="commands/roll.html"><b>roll</b></a>
  - rotate models continuously</li>
  <li><a href="commands/save.html"><b>save</b></a>
@@ -79,10 +93,14 @@ here termed &ldquo;Chimera.&rdquo;
  - set display style of atoms and bonds</li>
  <li><a href="commands/surface.html"><b>surface</b></a>
  - create and show/hide molecular surfaces</li>
+ <li><a href="commands/sym.html"><b>sym</b></a>
+ - build multimers using mmCIF assembly information</li>
  <li><a href="commands/transparency.html"><b>transparency</b></a>
  - adjust transparency of atoms/bonds, cartoons, molecular surfaces</li>
  <li><a href="commands/turn.html"><b>turn</b></a>
  - rotate models</li>
+ <li><a href="commands/version.html"><b>version</b></a>
+ - report ChimeraX version</li>
  <li><a href="commands/view.html"><b>view</b></a>
   - adjust the view to specified items; save/restore views</li>
  <li><a href="commands/wait.html"><b>wait</b></a>
@@ -118,35 +136,30 @@ to show a brief description,
 <b>help <i>command</i></b> to show full documentation, if available.
 </p>
 <ul>
-<li><b>camera</b>
-- report or adjust camera parameters</li>
-<li><b>material</b>
-- report or adjust material properties</li>
-<li><b>clip</b>
-- control clipping planes</li>
-<li><b>sym</b>
-- build multimers from symmetry information</li>
-<li><b>sasa</b></li>
-<li><b>buriedarea</b></li>
-<li><b>contacts</b></li>
+<li><b>sasa</b>
+- calculate solvent-accessible surface area</li>
+<li><b>buriedarea</b>
+- calculate buried surface area</li>
+<li><b>contacts</b>
+- draw interchain contact diagram based on buried surface areas</li>
 <li><b>volume</b>
-- same as Chimera
+- almost the same as Chimera
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/volume.html"
 target="_blank"><b>volume</b></a></li>
 <li><b>vop</b>
-- same as Chimera
+- almost the same as Chimera
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/vop.html"
 target="_blank"><b>vop</b></a></li>
 <li><b>vseries</b>
-- same as Chimera
+- almost the same as Chimera
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/vseries.html"
 target="_blank"><b>vseries</b></a></li>
 <li><b>molmap</b>
-- same as Chimera
+- almost the same as Chimera
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/molmap.html"
 target="_blank"><b>molmap</b></a></li>
 <li><b>fitmap</b>
-- same as Chimera
+- almost the same as Chimera
 <a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/fitmap.html"
 target="_blank"><b>fitmap</b></a></li>
 <li><b>crossfade</b></li>

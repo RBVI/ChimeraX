@@ -149,23 +149,24 @@ is_concave(float ix, float iy, float jx, float jy, float kx, float ky)
 void
 RibbonXSection::_generate_normals()
 {
-    int num_coords = xs_coords.size(0);
+    FArray &c = is_arrow ? xs_coords2 : xs_coords;
+    int num_coords = c.size(0);
     int index0[2] = { 0, 0 };
     int index1[2] = { 0, 1 };
     if (!is_faceted) {
-        xs_normals = FArray(xs_coords.dimension(), xs_coords.sizes());
+        xs_normals = FArray(c.dimension(), c.sizes());
         for (int i = 0; i != num_coords; ++i) {
             index0[0] = index1[0] = i;
-            float ix = xs_coords.value(index0);
-            float iy = xs_coords.value(index1);
+            float ix = c.value(index0);
+            float iy = c.value(index1);
             int j = (i + 1) % num_coords;
             index0[0] = index1[0] = j;
-            float jx = xs_coords.value(index0);
-            float jy = xs_coords.value(index1);
+            float jx = c.value(index0);
+            float jy = c.value(index1);
             int k = (i + 2) % num_coords;
             index0[0] = index1[0] = k;
-            float kx = xs_coords.value(index0);
-            float ky = xs_coords.value(index1);
+            float kx = c.value(index0);
+            float ky = c.value(index1);
             index0[0] = index1[0] = j;
             if (is_concave(ix, iy, jx, jy, kx, ky)) {
                 xs_normals.set(index0, iy - ky);
@@ -179,16 +180,16 @@ RibbonXSection::_generate_normals()
         _normalize_normals(xs_normals);
     }
     else {
-        xs_normals = FArray(xs_coords.dimension(), xs_coords.sizes());
-        xs_normals2 = FArray(xs_coords.dimension(), xs_coords.sizes());
+        xs_normals = FArray(c.dimension(), c.sizes());
+        xs_normals2 = FArray(c.dimension(), c.sizes());
         for (int i = 0; i != num_coords; ++i) {
             index0[0] = index1[0] = i;
-            float ix = xs_coords.value(index0);
-            float iy = xs_coords.value(index1);
+            float ix = c.value(index0);
+            float iy = c.value(index1);
             int j = (i + 1) % num_coords;
             index0[0] = index1[0] = j;
-            float jx = xs_coords.value(index0);
-            float jy = xs_coords.value(index1);
+            float jx = c.value(index0);
+            float jy = c.value(index1);
             float dx = jx - ix;
             float dy = jy - iy;
             xs_normals2.set(index0, dy);

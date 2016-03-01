@@ -14,7 +14,7 @@ class CommandLine(ToolInstance):
     def __init__(self, session, bundle_info, *, restoring=False):
         if not restoring:
             ToolInstance.__init__(self, session, bundle_info)
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
 
         class CmdWindow(MainToolWindow):
             close_destroys = False
@@ -163,9 +163,8 @@ class CommandLine(ToolInstance):
             if not cmd_text:
                 continue
             try:
-                cmd = Command(session, cmd_text, final=True)
-                cmd.error_check()
-                cmd.execute()
+                cmd = Command(session)
+                cmd.run(cmd_text)
             except SystemExit:
                 # TODO: somehow quit application
                 raise
@@ -175,14 +174,16 @@ class CommandLine(ToolInstance):
                 error_at = cmd.amount_parsed + spaces
                 syntax_error = error_at < len(cmd.current_text)
                 # error message in red text
+                msg = '<div class="cxcmd">%s' % escape(
+                        cmd.current_text[cmd.start:error_at])
                 err_color = 'crimson'
-                err_text = '<span style="color:%s;">%s</span>\n' % (
-                    err_color, escape(str(err)))
                 if syntax_error:
-                    err_text = '<p>%s<span style="color:white; background-color:%s;">%s</span><br>\n' % (
-                        escape(cmd.current_text[:error_at]), err_color,
-                        escape(cmd.current_text[error_at:])) + err_text
-                logger.info(err_text, is_html=True)
+                    msg += '<span style="color:white; background-color:%s;">%s</span>' % (
+                        err_color,
+                        escape(cmd.current_text[error_at:]))
+                msg += '</div>\n<span style="color:%s;">%s</span>\n' % (
+                    err_color, escape(str(err)))
+                logger.info(msg, is_html=True)
                 logger.status(str(err))
             except:
                 import traceback
@@ -255,7 +256,7 @@ class _HistoryDialog:
     def __init__(self, controller):
         # make dialog hidden initially
         self.controller = controller
-        from chimerax.core.ui import ChildToolWindow
+        from chimerax.core.ui.gui import ChildToolWindow
 
         class HistoryWindow(ChildToolWindow):
             close_destroys = False

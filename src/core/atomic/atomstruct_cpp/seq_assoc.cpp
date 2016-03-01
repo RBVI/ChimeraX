@@ -4,8 +4,8 @@
 #include <cctype>  // std::islower
 #include <cmath>  // std::abs
 
-#include "AtomicStructure.h"
 #include "Chain.h"
+#include "Graph.h"
 #include "Residue.h"
 #include "seq_assoc.h"
 

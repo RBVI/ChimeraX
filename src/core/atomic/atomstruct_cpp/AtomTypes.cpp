@@ -1,15 +1,15 @@
 // vi: set expandtab ts=4 sw=4:
 
-#include <vector>
+#include <logger/logger.h>
 #include <map>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
-#include "AtomTypes.h"
-#include <basegeom/Coord.h>
+#include "AtomicStructure.h"
 #include "Bond.h"
-#include <logger/logger.h>
+#include "Coord.h"
 #include "Residue.h"
 #include "tmpl/TAexcept.h"
 
@@ -389,8 +389,6 @@ aromatic_geometry(const Ring& r)
     //     Interactions Reflected in Aromatic Character of pi-Electron
     //     Systems
     //  J. Chem. Inf. Comput. Sci., 1993, 33, 70-78
-    using basegeom::Real;
-    using basegeom::Coord;
     Real sum = 0.0;
     int bonds = 0;
     for (auto b: r.bonds()) {
@@ -435,7 +433,6 @@ AtomicStructure::_compute_atom_types()
 #ifdef REPORT_TIME
 clock_t start_t = clock();
 #endif
-    using basegeom::Real;
 
     // angle values used to discriminate between hybridization states
     const Real angle23val1 = 115.0;

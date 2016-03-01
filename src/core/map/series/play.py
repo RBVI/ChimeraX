@@ -5,7 +5,7 @@
 class Play_Series:
 
   def __init__(self, series = [], session = None, range = None, start_time = None, time_step_cb = None,
-               play_direction = 'forward', loop = False, max_frame_rate = None,
+               play_direction = 'forward', loop = False, max_frame_rate = None, pause_frames = 0,
                markers = None,
                preceding_marker_frames = 0, following_marker_frames = 0,
                color_range = None,
@@ -23,6 +23,8 @@ class Play_Series:
     self.set_play_direction(play_direction) # 'forward', 'backward', 'oscillate'
     self.loop = loop
     self.max_frame_rate = max_frame_rate
+    self.pause_frames = pause_frames
+    self._pause_count = 0
     self.last_rendering_walltime = None
 
     self.markers = markers      # Marker molecule
@@ -109,6 +111,13 @@ class Play_Series:
   # ---------------------------------------------------------------------------
   #
   def delay_next_frame(self):
+
+    pf = self.pause_frames
+    if pf > 0:
+      pc = self._pause_count
+      self._pause_count = pc+1
+      if pc % pf != 0:
+        return True
 
     if self.max_frame_rate is None:
       return False

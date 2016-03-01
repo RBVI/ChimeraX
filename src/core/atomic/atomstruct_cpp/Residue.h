@@ -8,19 +8,17 @@
 #include <vector>
 
 #include "backbone.h"
-#include <basegeom/Rgba.h>
 #include "imex.h"
 #include "string_types.h"
+#include "ChangeTracker.h"
+#include "Rgba.h"
 
 namespace atomstruct {
 
 class Atom;
-class AtomicStructure;
 class Bond;
 class Chain;
-
-using basegeom::ChangeTracker;
-using basegeom::Rgba;
+class Graph;
 
 class ATOMSTRUCT_IMEX Residue {
 public:
@@ -28,14 +26,14 @@ public:
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
     enum Style { RIBBON_RIBBON = 0,
                  RIBBON_PIPE = 1 };
-    enum PolymerType { PT_NONE, PT_AMINO, PT_NUCLEIC };
+    enum PolymerType { PT_NONE = 0, PT_AMINO = 1, PT_NUCLEIC = 2 };
 private:
-    friend class AtomicStructure;
-    Residue(AtomicStructure *as, const ResName& name, const ChainID& chain, int pos, char insert);
+    friend class Graph;
+    Residue(Graph *as, const ResName& name, const ChainID& chain, int pos, char insert);
     virtual  ~Residue();
 
     friend class Chain;
-    void  set_chain(Chain* chain) { _chain = chain; }
+    void  set_chain(Chain* chain) { _chain = chain; if (chain == nullptr) set_ribbon_display(false); }
     friend class AtomicStructure;
     friend class Bond;
     void  set_polymer_type(PolymerType pt) { _polymer_type = pt; }
@@ -60,7 +58,7 @@ private:
     Rgba  _ribbon_rgba;
     Style  _ribbon_style;
     int  _ss_id;
-    AtomicStructure *  _structure;
+    Graph *  _structure;
 public:
     void  add_atom(Atom*);
     const Atoms &  atoms() const { return _atoms; }
@@ -96,7 +94,7 @@ public:
     void  set_ss_id(int ssid);
     int  ss_id() const { return _ss_id; }
     std::string  str() const;
-    AtomicStructure*  structure() const { return _structure; }
+    Graph*  structure() const { return _structure; }
     std::vector<Atom*>  template_assign(
         void (Atom::*assign_func)(const char*), const char* app,
         const char* template_dir, const char* extension) const;
@@ -122,11 +120,12 @@ public:
     void  set_ribbon_display(bool d);
     void  set_ribbon_hide_backbone(bool d);
     void  set_ribbon_style(Style s);
+    void  ribbon_clear_hide();
 };
 
 }  // namespace atomstruct
 
-#include "AtomicStructure.h"
+#include "Graph.h"
 #include "Chain.h"
 
 namespace atomstruct {
@@ -161,7 +160,7 @@ Residue::ribbon_adjust() const {
     if (_ribbon_adjust >= 0)
         return _ribbon_adjust;
     else if (_is_sheet)
-        return 0.7;
+        return 1.0;
     else if (_is_helix)
         return 0.0;
     else
@@ -217,6 +216,12 @@ Residue::set_ribbon_display(bool d) {
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_DISPLAY);
     _structure->set_gc_ribbon();
     _ribbon_display = d;
+    if (d)
+        _structure->_ribbon_display_count += 1;
+    else {
+        _structure->_ribbon_display_count -= 1;
+        ribbon_clear_hide();
+    }
 }
 
 inline void
@@ -244,6 +249,22 @@ Residue::set_ss_id(int ss_id)
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SS_ID);
     _ss_id = ss_id;
+}
+
+}  // namespace atomstruct
+
+#include "Atom.h"
+#include "Bond.h"
+
+namespace atomstruct {
+    
+inline void
+Residue::ribbon_clear_hide() {
+    for (auto atom: atoms()) {
+        atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+        for (auto bond: atom->bonds())
+            bond->set_hide(bond->hide() & ~Bond::HIDE_RIBBON);
+    }
 }
 
 }  // namespace atomstruct

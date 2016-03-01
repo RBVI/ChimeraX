@@ -12,13 +12,14 @@ def register_core_commands(session):
         'camera', 'clip', 'close', 'cofr', 'color', 'colorname', 'crossfade', 'crosslinks',
         'delete', 'echo', 'exit', 'export', 'hide', 'info',
         'lighting', 'list', 'material', 'mousemode', 'move',
-        'open', 'pdbimages', 'perframe', 'position', 'pwd', 'rainbow', 'roll', 'run',
+        'open', 'pdbimages', 'perframe', 'position', 'pwd', 'rainbow', 'roll', 'run', 'rungs',
         'save', 'sasa',
         #QT disabled
         #'scolor',
         'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
-        'time', 'transparency', 'turn', 'usage', 'view', 'wait', 'windowsize', 'zoom'
+        'time', 'transparency', 'turn',
+        'usage', 'view', 'version', 'wait', 'windowsize', 'zoom'
     ]
     for mod in modules:
         m = import_module(".%s" % mod, __package__)

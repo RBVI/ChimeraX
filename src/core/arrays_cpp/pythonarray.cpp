@@ -1066,6 +1066,17 @@ extern "C" int parse_writable_uint8_n_array(PyObject *arg, void *carray)
 
 // ----------------------------------------------------------------------------
 //
+extern "C" int parse_uint8_n2_array(PyObject *arg, void *carray)
+{
+  Numeric_Array v;
+  int s = parse_nm_array(arg, Numeric_Array::Unsigned_Char, 2, false, v);
+  if (s)
+    *static_cast<CArray*>(carray) = static_cast<CArray>(v);
+  return s;
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" int parse_uint8_n4_array(PyObject *arg, void *carray)
 {
   Numeric_Array v;

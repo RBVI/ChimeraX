@@ -298,6 +298,26 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def _get_single_color(self):
+    rep = self.representation
+    from ..colors import rgba_to_rgba8
+    from numpy import argmin
+    if rep in ('surface', 'mesh'):
+      lev = self.surface_levels
+      if lev:
+        return rgba_to_rgba8(self.surface_colors[argmin(lev)])
+    elif rep == 'solid':
+      lev = self.solid_levels
+      if lev:
+        return rgba_to_rgba8(self.solid_colors[argmin(lev)])
+    return None
+  def _set_single_color(self, color):
+    from ..colors import rgba8_to_rgba
+    self.set_color(rgba8_to_rgba(color))
+  single_color = property(_get_single_color, _set_single_color)
+
+  # ---------------------------------------------------------------------------
+  #
   def new_region(self, ijk_min = None, ijk_max = None, ijk_step = None,
                  show = True, adjust_step = True, save_in_region_queue = True):
     '''
@@ -831,15 +851,14 @@ class Volume(Model):
 
     tf = self.transfer_function()
     s.set_colormap(tf, self.solid_brightness_factor, self.transparency_depth)
-    s.set_matrix(self.matrix_size(), self.data.value_type, self.matrix_id,
-                 self.matrix_plane)
+    s.set_matrix(self.matrix_size(), self.data.value_type, self.matrix_id, self.matrix_plane)
 
-    s.update_model(self)
+    from .grayscale import blend_manager
+    s.update_model(self, blend_manager(self.session))
     s.show()
 
     self.show_outline_box(ro.show_outline_box, ro.outline_box_rgb,
                           ro.outline_box_linewidth)
-
 
   # ---------------------------------------------------------------------------
   #

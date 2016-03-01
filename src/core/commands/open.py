@@ -40,6 +40,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
+    from ..filehistory import remember_file
     if from_database is not None:
         from .. import fetch
         if format is not None:
@@ -54,16 +55,31 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add_group(models)
         else:
             session.models.add(models)
+        remember_file(session, filename, format, models, database = from_database)
         session.logger.status(status, log = True)
         return models
 
     if format is not None:
         format = format_from_prefix(format)
+
+    from os.path import exists
+    if exists(filename):
+        paths = [filename]
+    else:
+        from glob import glob
+        paths = glob(filename)
+        if len(paths) == 0:
+            from ..errors import UserError
+            raise UserError('File not found: %s' % filename)
+
     try:
-        models = session.models.open(filename, format=format, name=name)
+        models = session.models.open(paths, format=format, name=name)
     except OSError as e:
         from ..errors import UserError
         raise UserError(e)
+
+    # Remember in file history
+    remember_file(session, filename, format, models or 'all models')
 
     return models
 

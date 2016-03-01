@@ -30,6 +30,20 @@ def material(session, preset = None, reflectivity = None,
     v = session.main_view
     m = v.material()
 
+    if len([opt for opt in (preset, reflectivity, specular_reflectivity, exponent,
+                            ambient_reflectivity)
+            if not opt is None]) == 0:
+        # Report current settings.
+        lines = (
+            'Reflectivity: %.5g' % m.diffuse_reflectivity,
+            'Specular reflectivity %.5g' % m.specular_reflectivity,
+            'Specular exponent: %.5g' % m.specular_exponent,
+            'Ambient reflectivity %.5g' % m.ambient_reflectivity,
+        )
+        msg = '\n'.join(lines)
+        session.logger.info(msg)
+        return
+
     if preset == 'default':
         m.set_default_parameters()
     elif preset == 'shiny':

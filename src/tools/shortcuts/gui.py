@@ -15,6 +15,11 @@ class ShortcutPanel(ToolInstance):
         from .shortcuts import keyboard_shortcuts
         self.keyboard_shortcuts = keyboard_shortcuts(session)
 
+        self.help = {
+            'molecule_display_shortcuts': "help:user/tools/moldisplay.html",
+            'graphics_shortcuts': "help:user/tools/graphics.html"
+        }.get(bundle_info.name, None)
+
         self.icon_size = 48
         self.max_icon_size = 48
         self.min_icon_size = 24
@@ -26,7 +31,7 @@ class ShortcutPanel(ToolInstance):
         panel_height = rows * self.icon_size
         panel_size = (min_panel_width, panel_height)
 
-        from chimerax.core.ui import MainToolWindow
+        from chimerax.core.ui.gui import MainToolWindow
         class ShortcutWindow(MainToolWindow):
             close_destroys = False
 

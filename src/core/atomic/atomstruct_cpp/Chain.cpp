@@ -2,17 +2,16 @@
 
 #include <algorithm>
 
-#include "AtomicStructure.h"
 #include "Chain.h"
+#include "ChangeTracker.h"
+#include "destruct.h"
+#include "Graph.h"
 #include "Sequence.h"
 #include "Residue.h"
 
-#include <basegeom/ChangeTracker.h>
-#include <basegeom/destruct.h>
-
 namespace atomstruct {
 
-Chain::Chain(const ChainID& chain_id, AtomicStructure* as): Sequence(),
+Chain::Chain(const ChainID& chain_id, Graph* as): Sequence(),
     _chain_id(chain_id), _from_seqres(false), _structure(as)
 {
     _structure->change_tracker()->add_created(this);
@@ -162,7 +161,7 @@ Chain::remove_residue(Residue* r) {
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SEQUENCE,
         ChangeTracker::REASON_RESIDUES);
     if (no_structure_left()) {
-        if (basegeom::DestructionCoordinator::destruction_parent() != _structure)
+        if (DestructionCoordinator::destruction_parent() != _structure)
             _structure->remove_chain(this);
         _structure = nullptr;
     } else {
@@ -192,7 +191,9 @@ Chain::session_restore(int version, int** ints, float** floats)
     for (decltype(res_map_size) i = 0; i < res_map_size; ++i) {
         auto res_index = *int_ptr++;
         auto pos = *int_ptr++;
-        _res_map[residues[res_index]] = pos;
+        auto res = residues[res_index];
+        _res_map[res] = pos;
+        res->set_chain(this);
     }
 
     _residues.reserve(residues_size);

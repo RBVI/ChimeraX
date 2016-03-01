@@ -5,7 +5,7 @@ chimerax.core: collection of base ChimeraX functionality
 
 """
 __copyright__ = (
-    "Copyright \u00A9 2015-2016 by the Regents of the University of California."
+    "Copyright \N{Copyright Sign} 2015-2016 by the Regents of the University of California."
     "  All Rights Reserved."
     "  Free for non-commercial use."
     "  See http://www.rbvi.ucsf.edu/chimerax/ for license details."
@@ -14,13 +14,23 @@ _class_cache = {}
 # list modules classes are found in
 _class_class_init = {
     'AtomicStructure': '.atomic',
+    'AtomicStructures': '.atomic',
+    'Atoms': '.atomic',
+    'CameraState': '.graphics.gsession',
+    'ClipPlaneState': '.graphics.gsession',
     'Color': '.colors',
+    'DrawingState': '.graphics.gsession',
     'Generic3DModel': '.generic3d',
+    'Graph': '.atomic',
     'GridDataState': '.map.session',
     'LevelOfDetail': '.atomic.structure',
+    'LightingState': '.graphics.gsession',
     'Model': '.models',
     'Models': '.models',
     'MolecularSurface': '.atomic',
+    'NamedViewState': '.commands.view',
+    'NamedViewsState': '.commands.view',
+    'PseudobondManager': '.atomic.molobject',
     'STLModel': '.stl',
     'Job': '.tasks',
     'Tasks': '.tasks',
@@ -54,6 +64,7 @@ def get_class(class_name):
         cls = getattr(mod, class_name)
     _class_cache[class_name] = cls
     return cls
+
 
 def profile(func):
     def wrapper(*args, **kw):

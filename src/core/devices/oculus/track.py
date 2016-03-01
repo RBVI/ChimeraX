@@ -222,7 +222,7 @@ class Oculus_Rift_Camera(Camera):
         from ...graphics.camera import perspective_view_width
         return perspective_view_width(point, self.position.origin(), self.field_of_view)
 
-    def pixel_shift(self, view_num):
+    def view_pixel_shift(self, view_num):
         '''Shift of center away from center of render target.'''
         if view_num is None:
             return 0,0
@@ -230,9 +230,9 @@ class Oculus_Rift_Camera(Camera):
         sx,sy = self.oculus_centering_shift # For left eye
         return (s*sx, s*sy)
 
-    def view_all(self, center, size):
+    def view_all(self, bounds, aspect = None, pad = 0):
         from ...graphics import camera
-        self.position = camera.perspective_view_all(center, size, self.position, self.field_of_view)
+        self.position = camera.perspective_view_all(bounds, self.position, self.field_of_view, aspect, pad)
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
@@ -257,6 +257,10 @@ class Oculus_Rift_Camera(Camera):
             if self.debug_oculus:
                 self._draw_oculus_unwarped(render)
             else:
+                # On Mac OS 10.11 (El Capitan), left eye flickers black.  This flush avoids that bug.
+                render.flush()
+                # The two eye images are rendered to textures by the main graphics context.
+                # The oculus window has a different context that displays these textures.
                 t0,t1 = [rb.color_texture for rb in self._warp_framebuffers]
                 self.oculus_opengl_context.make_current()
                 o.render(t0.size[0], t0.size[1], t0.id, t1.id)

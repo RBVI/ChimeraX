@@ -1,0 +1,115 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Graphics</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Tool: Graphics</h3>
+<p>
+The <b>Graphics</b> tool provides a series of icons for adjusting
+or acting on the overall display with a single click.
+Like other tools, this interface can be opened from the <b>Tools</b> menu 
+and closed by clicking the small &ldquo;x&rdquo; near its top right corner,
+or shown/hidden with the <b>toolshed</b> command.
+See also:
+<a href="moldisplay.html"><b>Molecule Display</b></a> icons,
+<a href="mousemodes.html"><b>Mouse Modes for Right Button</b></a> icons
+</p><p>
+Clicking an icon shows the executed command(s) in the
+<a href="log.html"><b>Log</b></a>.
+</p>
+<table border cellpadding="4" cellspacing="0">
+<tr>
+<td align="center"><b>Graphics</b> icon</td>
+<td align="center">description</td>
+<td align="center"><b>command</b> equivalent</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/whitebg.png" width="35px"></td>
+<td align="center">white background</td>
+<td align="center">
+<b><a href="../commands/set.html#bgColor">set bgColor</a> white</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/graybg.png" width="35px"></td>
+<td align="center">gray background</td>
+<td align="center">
+<b><a href="../commands/set.html#bgColor">set bgColor</a> gray</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/blackbg.png" width="35px"></td>
+<td align="center">black background</td>
+<td align="center">
+<b><a href="../commands/set.html#bgColor">set bgColor</a> black</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/simplelight.png" width="35px"></td>
+<td align="center">&nbsp;default lighting: directional and ambient, no shadows</td>
+<td align="center">
+<b><a href="../commands/lighting.html">lighting</a> simple</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/softlight.png" width="35px"></td>
+<td align="center">ambient lighting and ambient shadows</td>
+<td align="center">
+<b><a href="../commands/lighting.html">lighting</a> soft</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/fulllight.png" width="35px"></td>
+<td align="center">directional and ambient lighting, 
+<br>directional and ambient shadows</td>
+<td align="center">
+<b><a href="../commands/lighting.html">lighting</a> full</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/flat.png" width="35px"></td>
+<td align="center">ambient lighting, no shadows, silhouettes</td>
+<td align="center">
+<b><a href="../commands/lighting.html">lighting</a> flat</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/silhouette.png" width="35px"></td>
+<td align="center">toggle silhouettes (outlines)</td>
+<td align="center">
+<b><a href="../commands/set.html#silhouettes">set silhouettes</a> true</b>
+<br>- OR -<br>
+<b><a href="../commands/set.html#silhouettes">set silhouettes</a> false</b>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/viewall.png" width="35px"></td>
+<td align="center">view all</td>
+<td align="center">
+<b><a href="../commands/view.html">view</a></b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/orient.png" width="35px"></td>
+<td align="center">view all, standard orientation</td>
+<td align="center">
+<b><a href="../commands/view.html">view</a> orient</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/camera.png" width="35px"></td>
+<td align="center">save image file</td>
+<td align="center">
+&nbsp;<b><a href="../commands/save.html">save</a>
+~/Desktop/image.png supersample 3</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/video.png" width="35px"></td>
+<td align="center">make spin movie</td>
+<td align="center">
+<b><a href="../commands/movie.html#record">movie record</a>;
+<a href="../commands/turn.html">turn</a> y 2 180;
+<a href="../commands/wait.html">wait</a>;
+<br>
+<a href="../commands/movie.html#encode">movie encode</a> ~/Desktop/movie.mp4</b></td>
+</tr>
+</table>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+February 2016</address>
+</body></html>

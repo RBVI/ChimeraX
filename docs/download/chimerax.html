@@ -2,7 +2,7 @@
 <title>UCSF ChimeraX Prerelease</title>
 <body>
 
-<img src="../quickstart/images/chimerax.png" align=right width=500px
+<img src="../quickstart/images/chimerax.png" align=right width=600px
 style="margin:4px 4px 4px 12px; border:1px solid black">
 
 <h1>UCSF ChimeraX Prerelease</h1>
@@ -10,8 +10,9 @@ style="margin:4px 4px 4px 12px; border:1px solid black">
 <p>November 25, 2015</p>
 
 <p>
-UCSF ChimeraX is the next-generation visualization program from the Computer Graphics Lab at UC San Francisco,
-following Midas, MidasPlus, and Chimera.
+UCSF ChimeraX is the next-generation visualization program from the 
+Resource for Biocomputing, Visualization, and Informatics
+at UC San Francisco, following Midas, MidasPlus, and Chimera.
 </p>
 
 <h2>
@@ -33,10 +34,10 @@ Missing Features
 </h2>
 
 <p>
-ChimeraX currently has a <font color=red>very limited set of features</font> 
+ChimeraX currently has a <font color=red>limited set of features</font> 
 compared to the production
 <a href="http://www.cgl.ucsf.edu/chimera/">Chimera</a>. 
-It has almost no user interface dialogs, no structure alignment, 
+It has almost no user-interface dialogs, no structure alignment, 
 no sequence tools, no trajectory playback,
 no distance measurements, no hydrogen-bond or clash detection, <i>etc.</i>
 We will be adding these in the future.
@@ -54,11 +55,17 @@ ChimeraX is not backward compatible with Chimera, although many aspects will be 
 Prerelease Downloads
 </h2>
 
-<p>
 <font color=red>
-Warning: ChimeraX is not yet released and the command syntax is subject to change.
-</font>
+<p>
+Warnings: 
 </p>
+<ul>
+<li>ChimeraX is not yet released and the command syntax is subject to change.
+<li>Sessions saved with prerelease versions of ChimeraX are 
+only guaranteed to be restorable using the same version
+and may not be compatible with future versions.
+</ul>
+</font>
 
 <table BORDER=1 CELLPADDING=8 cellspacing=0 bgcolor="#f0f0f0">
 
@@ -70,19 +77,19 @@ Warning: ChimeraX is not yet released and the command syntax is subject to chang
 <th>Notes
 <tr>
 <td width=100>Mac OS 10.10
-<td><a href="../../builds/macosx/chimerax-0.1.daily.dmg">chimerax-0.1.daily.dmg</a>
+<td><a href="../../builds/macosx/chimerax-0.1.daily.pkg">chimerax-0.1.daily.pkg</a>
 <td>Main development platform.
 <tr>
 <td valign=top>Linux Debian 8
-<td valign=top><a href="../../builds/linux/chimerax-0.1.daily.tar.gz">chimerax-0.1.tar.gz</a> 
-<td width=>Many user interface glitches.  See Linux notes below.
+<td valign=top><a href="../../builds/linux/chimerax-0.1.daily.tar.gz">chimerax-0.1.daily.tar.gz</a>
+<td width=>Many user-interface glitches.  See Linux notes below.
 <tr>
 <td>Windows 10
 <td>Not yet available
 <td>Coming in 2016.
 </table>
 <p><font size="-1">
-*Daily builds are generated automatically each night from the 
+Daily builds are generated automatically each night from the 
 development source code. Thus the software will change from day to day,
 and while a given build may have unforeseen problems, these are often
 fixed by the next day.
