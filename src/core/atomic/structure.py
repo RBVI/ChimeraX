@@ -118,7 +118,7 @@ class Graph(Model, StructureData):
     def added_to_session(self, session):
         if self._smart_initial_display:
             color = self.initial_color(session.main_view.background_color)
-            self.set_color(color.uint8x4())
+            self.set_color(color)
 
             atoms = self.atoms
             if self.num_chains == 0:
@@ -217,6 +217,15 @@ class Graph(Model, StructureData):
             avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
             model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
         return model_color
+
+    def set_color(self, color):
+        from ..colors import Color
+        if isinstance(color, Color):
+            rgba = color.uint8x4()
+        else:
+            rgba = color
+        StructureData.set_color(self, rgba)
+        Model.set_color(self, rgba)
 
     def _get_single_color(self):
         residues = self.residues
