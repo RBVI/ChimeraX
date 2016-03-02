@@ -2,11 +2,7 @@
 
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
-# Since ToolInstance derives from core.session.State, which
-# is an abstract base class, ToolUI classes must implement
-#   "take_snapshot" - return current state for saving
-#   "restore_snapshot_init" - restore from given state
-#   "reset_state" - reset to data-less state
+#
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
@@ -36,9 +32,8 @@ ACTION_BUTTONS
 </body>
 </html>"""
 
-    def __init__(self, session, bundle_info, *, restoring=False):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info):
+        ToolInstance.__init__(self, session, bundle_info)
 
         self.display_name = "Open Models"
         from chimerax.core.ui.gui import MainToolWindow
@@ -107,22 +102,3 @@ ACTION_BUTTONS
 
     def _action(self, session, action):
         print("bogus action button clicked: %s" % action)
-
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        data = [ToolInstance.take_snapshot(self, session, flags)]
-        return self.bundle_info.session_write_version, data
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        ti_version, ti_data = data[0]
-        ToolInstance.restore_snapshot_init(
-            self, session, bundle_info, ti_version, ti_data)
-        self.__init__(session, bundle_info, restoring=True)
-
-    def reset_state(self, session):
-        pass
