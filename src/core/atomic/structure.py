@@ -2,11 +2,11 @@
 from .. import io
 from ..models import Model
 from ..state import State
-from .molobject import AtomicStructureData, GraphData
+from .molobject import StructureData
 
 CATEGORY = io.STRUCTURE
 
-class StructureGraphBase(Model):
+class Graph(Model, StructureData):
 
     ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
         "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
@@ -38,7 +38,7 @@ class StructureGraphBase(Model):
             #'_ribbon_selected_residues': Residues(),
         }
 
-        self.DATA_BASE_CLASS.__init__(self, c_pointer)
+        StructureData.__init__(self, c_pointer)
         for attr_name, val in self._session_attrs.items():
             setattr(self, attr_name, val)
         Model.__init__(self, name, session)
@@ -81,7 +81,7 @@ class StructureGraphBase(Model):
     def delete(self):
         '''Delete this structure.'''
         self._deleted = True
-        self.DATA_BASE_CLASS.delete(self)
+        StructureData.delete(self)
         t = self.session.triggers
         for handler in self._ses_handlers:
             t.delete_handler(handler)
@@ -99,17 +99,15 @@ class StructureGraphBase(Model):
         '''
         if name is None:
             name = self.name
-        m = self.__class__(self.session, name = name,
-                            c_pointer = self.DATA_BASE_CLASS._copy(self),
-                            level_of_detail = self._level_of_detail,
-                            smart_initial_display = False)
+        m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
+                        level_of_detail = self._level_of_detail, smart_initial_display = False)
         m.positions = self.positions
         return m
 
     def added_to_session(self, session):
         if self._smart_initial_display:
             color = self.initial_color(session.main_view.background_color)
-            self.set_color(color.uint8x4())
+            self.set_color(color)
 
             atoms = self.atoms
             if self.num_chains == 0:
@@ -181,19 +179,19 @@ class StructureGraphBase(Model):
 
     def take_snapshot(self, session, flags):
         data = {'model state': Model.take_snapshot(self, session, flags),
-                'base state': self.DATA_BASE_CLASS.take_snapshot(self, session, flags)}
+                'structure state': StructureData.take_snapshot(self, session, flags)}
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
         from ..state import CORE_STATE_VERSION
         return CORE_STATE_VERSION, data
 
-    @staticmethod
+    @classmethod
     def restore_snapshot(cls, session, tool_info, version, data):
         s = cls(session, smart_initial_display = False)
 
-        # Model restores self.name, which is a property of the C++ AtomicStructureData
-        # so initialize AtomicStructureData first.
-        cls.DATA_BASE_CLASS.set_state_from_snapshot(s, session, *data['base state'])
+        # Model restores self.name, which is a property of the C++ StructureData
+        # so initialize StructureData first.
+        StructureData.set_state_from_snapshot(s, session, *data['structure state'])
         Model.set_state_from_snapshot(s, *data['model state'])
 
         for attr_name, default_val in s._session_attrs.items():
@@ -223,6 +221,15 @@ class StructureGraphBase(Model):
             avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
             model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
         return model_color
+
+    def set_color(self, color):
+        from ..colors import Color
+        if isinstance(color, Color):
+            rgba = color.uint8x4()
+        else:
+            rgba = color
+        StructureData.set_color(self, rgba)
+        Model.set_color(self, rgba)
 
     def _get_single_color(self):
         residues = self.residues
@@ -459,12 +466,12 @@ class StructureGraphBase(Model):
             # Draw first and last residue differently because they
             # are each only a single half segment, while the middle
             # residues are each two half segments.
-            strs = residues.strs
-            import sys
+            # strs = residues.strs
+            # import sys
 
             # First residues
             if displays[0]:
-#                print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
+                # print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
                 xss_compat = self._xss_compatible(xss[0], xss[1])
                 capped = displays[0] != displays[1] or not xss_compat
                 seg = capped and seg_cap or seg_blend
@@ -500,9 +507,9 @@ class StructureGraphBase(Model):
                 prev_band = None
             # Middle residues
             for i in range(1, len(residues) - 1):
+                # print(strs[i], file=sys.__stderr__); sys.__stderr__.flush()
                 if not displays[i]:
                     continue
-#                print(strs[i], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg)
                 if self.ribbon_show_spine:
@@ -545,7 +552,7 @@ class StructureGraphBase(Model):
                 t_start = t_end
             # Last residue
             if displays[-1]:
-#                print(strs[-1], file=sys.__stderr__); sys.__stderr__.flush()
+                # print(strs[-1], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg)
                 back_c, back_t, back_n = ribbon.trail_segment(seg_cap / 2)
@@ -656,13 +663,14 @@ class StructureGraphBase(Model):
         ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
         offsets = adjusts * (ideal - ss_coords)
         new_coords = ss_coords + offsets
-        # Compute guide atom position relative to control point atom
-        delta_guides = guides[start:end] - ss_coords
         # Update both control point and guide coordinates
         coords[start:end] = new_coords
-        # Move the guide location so that it forces the
-        # ribbon parallel to the axis
-        guides[start:end] = new_coords + axis
+        if guides is not None:
+            # Compute guide atom position relative to control point atom
+            delta_guides = guides[start:end] - ss_coords
+            # Move the guide location so that it forces the
+            # ribbon parallel to the axis
+            guides[start:end] = new_coords + axis
         # Originally, we just update the guide location to
         # the same relative place as before
         #   guides[start:end] = new_coords + delta_guides
@@ -691,9 +699,10 @@ class StructureGraphBase(Model):
             self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
         # Update both control point and guide coordinates
         coords[start:end] = new_coords
-        # Compute guide atom position relative to control point atom
-        delta_guides = guides[start:end] - ss_coords
-        guides[start:end] = new_coords + delta_guides
+        if guides is not None:
+            # Compute guide atom position relative to control point atom
+            delta_guides = guides[start:end] - ss_coords
+            guides[start:end] = new_coords + delta_guides
         # Update the tethered array
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
@@ -1227,30 +1236,15 @@ class StructureGraphBase(Model):
         # print("AtomicStructure._atomspec_filter_atom", selected)
         return selected
 
-class AtomicStructure(AtomicStructureData, StructureGraphBase):
+class AtomicStructure(Graph):
     """
-    Bases: :class:`.AtomicStructureData`, :class:`.Model`
+    Bases: :class:`.StructureData`, :class:`.Model`, :class:`.Graph`
 
     Molecular model including atomic coordinates.
-    The data is managed by the :class:`.AtomicStructureData` base class
+    The data is managed by the :class:`.StructureData` base class
     which provides access to the C++ structures.
     """
-    DATA_BASE_CLASS = AtomicStructureData
-
-    __init__ = StructureGraphBase.__init__
-    take_snapshot = StructureGraphBase.take_snapshot
-    @classmethod
-    def restore_snapshot(cls, session, tool_info, version, data):
-        return StructureGraphBase.restore_snapshot(cls, session, tool_info, version, data)
-
-class Graph(GraphData, StructureGraphBase):
-    DATA_BASE_CLASS = GraphData
-
-    __init__ = StructureGraphBase.__init__
-    take_snapshot = StructureGraphBase.take_snapshot
-    @classmethod
-    def restore_snapshot(cls, session, tool_info, version, data):
-        return StructureGraphBase.restore_snapshot(cls, session, tool_info, version, data)
+    pass
 
 # -----------------------------------------------------------------------------
 #
@@ -1624,7 +1618,7 @@ def _selected_bond_cylinders(bond_atoms):
 # -----------------------------------------------------------------------------
 #
 def _tether_placements(xyz0, xyz1, radius, shape):
-    if shape == AtomicStructureData.TETHER_REVERSE_CONE:
+    if shape == StructureData.TETHER_REVERSE_CONE:
         return _bond_cylinder_placements(xyz1, xyz0, radius)
     else:
         return _bond_cylinder_placements(xyz0, xyz1, radius)

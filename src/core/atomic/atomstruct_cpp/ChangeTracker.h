@@ -162,7 +162,7 @@ public:
     const std::vector<Changes>&  get_changes() const { return _type_changes; }
     const std::string  python_class_names[_num_types] = {
         "Atom", "Bond", "Pseudobond", "Residue", "Chain",
-        "AtomicStructureData", "PseudobondGroupData"
+        "StructureData", "PseudobondGroupData"
     };
 };
 

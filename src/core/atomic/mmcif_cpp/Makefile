@@ -52,7 +52,12 @@ endif
 
 mmcif.o: $(includedir)/atomstruct/Atom.h \
 	$(includedir)/atomstruct/AtomicStructure.h $(includedir)/atomstruct/Bond.h \
-	$(includedir)/atomstruct/CoordSet.h $(includedir)/atomstruct/Residue.h \
-	$(includedir)/atomstruct/connect.h $(includedir)/atomstruct/tmpl/Atom.h \
-	$(includedir)/atomstruct/tmpl/Residue.h \
+	$(includedir)/atomstruct/CoordSet.h $(includedir)/atomstruct/connect.h \
+	$(includedir)/atomstruct/PBGroup.h $(includedir)/atomstruct/Pseudobond.h \
+	$(includedir)/atomstruct/Residue.h \
+	$(includedir)/atomstruct/tmpl/Atom.h $(includedir)/atomstruct/tmpl/Residue.h \
 	$(includedir)/atomstruct/string_types.h $(includedir)/logger/logger.h
+template.o: $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/AtomicStructure.h \
+	$(includedir)/atomstruct/Bond.h $(includedir)/atomstruct/connect.h \
+	$(includedir)/atomstruct/CoordSet.h \
+	$(includedir)/atomstruct/Residue.h $(includedir)/atomstruct/Sequence.h

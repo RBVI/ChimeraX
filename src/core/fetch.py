@@ -211,7 +211,7 @@ def fetch_from_database(session, from_database, id, format=None, name=None, igno
     d = fetch_databases(session)
     df = d[from_database]
     from .logger import Collator
-    with Collator(session.logger, "Summary of problems opening %s from %s"  % (id, from_database)):
+    with Collator(session.logger, "Summary of problems opening %s fetched from %s"  % (id, from_database)):
         models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache)
     if name is not None:
         for m in models:

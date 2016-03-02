@@ -68,7 +68,7 @@ C++ helper Modules
 
 .. seealso::
 
-    :doc:`Readcif <core/readcif_cpp/docs/api>`
+    :doc:`Readcif <core/atomic/readcif_cpp/docs/api>`
         C++ library for reading mmCIF files.
 
 Builtin Data formats

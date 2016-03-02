@@ -38,7 +38,7 @@ def _chains(p):
     return Chains(p)
 def _atomic_structure(p):
     if p == 0: return None
-    return object_map(p, AtomicStructureData)
+    return object_map(p, StructureData)
 def _pseudobond_group_map(pbgc_map):
     from .pbgroup import PseudobondGroup
     pbg_map = dict((name, object_map(pbg,PseudobondGroup)) for name, pbg in pbgc_map.items())
@@ -463,11 +463,18 @@ class Chain(Sequence):
 
 # -----------------------------------------------------------------------------
 #
-class GraphData:
-    def __init__(self, mol_pointer=None, logger=None):
+class StructureData:
+    '''
+    This is a base class of both :class:`.AtomicStructure` and :class:`.Graph`.
+    This base class manages the data while the
+    derived class handles the graphical 3-dimensional rendering using OpenGL.
+    '''
+    def __init__(self, mol_pointer=None, *, logger=None):
         if mol_pointer is None:
             # Create a new graph
-            mol_pointer = c_function('graph_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
+            from .structure import AtomicStructure
+            new_func = 'structure_new' if isinstance(self, AtomicStructure) else 'graph_new'
+            mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
 
     def delete(self):
@@ -572,7 +579,7 @@ class GraphData:
 
     @classmethod
     def restore_snapshot(cls, session, tool_info, version, data):
-        g = GraphData(logger=session.logger)
+        g = StructureData(logger=session.logger)
         g.set_state_from_snapshot(session, version, data)
         return g
 
@@ -641,25 +648,6 @@ class GraphData:
     _gc_shape = c_property('structure_gc_shape', npy_bool)
     _gc_ribbon = c_property('structure_gc_ribbon', npy_bool)
 
-# -----------------------------------------------------------------------------
-#
-class AtomicStructureData(GraphData):
-    '''
-    This is a base class of :class:`.AtomicStructure`.
-    This base class manages the atomic data while the
-    derived class handles the graphical 3-dimensional rendering using OpenGL.
-    '''
-    def __init__(self, mol_pointer=None, logger=None):
-        if mol_pointer is None:
-            # Create a new atomic structure
-            mol_pointer = c_function('structure_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
-        GraphData.__init__(self, mol_pointer=mol_pointer, logger=logger)
-
-    def set_state_from_snapshot(self, session, version, data):
-        GraphData.set_state_from_snapshot(self, session, version, data)
-        
-# -----------------------------------------------------------------------------
-#
 class ChangeTracker:
     '''Per-session singleton change tracker keeps track of all
     atomic data changes'''

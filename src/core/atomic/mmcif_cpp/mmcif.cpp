@@ -98,6 +98,8 @@ struct ExtractMolecule: public readcif::CIFFile
     void parse_struct_conf();
     void parse_struct_sheet_range();
     void parse_entity_poly_seq();
+    void parse_struct();
+    void parse_pdbx_database_PDB_obs_spr();
     void parse_generic_category();
 
     std::map<string, StringVector> generic_tables;
@@ -206,6 +208,7 @@ struct ExtractMolecule: public readcif::CIFFile
     typedef multiset<PolySeq> EntityPolySeq;
     map<string /* entity_id */, EntityPolySeq> poly_seq;
     int first_model_num;
+    string entry_id;
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -227,6 +230,14 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_audit_conform();
         });
+    register_category("struct",
+        [this] () {
+            parse_struct();
+        });
+    register_category("pdbx_database_PDB_obs_spr",
+        [this] () {
+            parse_pdbx_database_PDB_obs_spr();
+        }, { "struct" });
     register_category("entity_poly_seq",
         [this] () {
             parse_entity_poly_seq();
@@ -268,6 +279,7 @@ ExtractMolecule::reset_parse()
     atom_map.clear();
     chain_entity_map.clear();
     all_residues.clear();
+    entry_id.clear();
 }
 
 void
@@ -474,6 +486,60 @@ ExtractMolecule::data_block(const string& /*name*/)
 {
     if (!molecules.empty())
         finished_parse();
+    else
+        reset_parse();
+}
+
+void
+ExtractMolecule::parse_struct()
+{
+    CIFFile::ParseValues pv;
+    pv.reserve(1);
+    try {
+        pv.emplace_back(get_column("entry_id", true), true,
+            [&] (const char* start, const char* end) {
+                entry_id = string(start, end - start);
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping struct category: ", e.what());
+        return;
+    }
+    parse_row(pv);
+}
+
+void
+ExtractMolecule::parse_pdbx_database_PDB_obs_spr()
+{
+    if (entry_id.empty())
+        return;
+
+    string id, pdb_id, replace_pdb_id;
+    CIFFile::ParseValues pv;
+    pv.reserve(3);
+    try {
+        pv.emplace_back(get_column("id", true), true,
+            [&] (const char* start, const char* end) {
+                id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("pdb_id", true), true,
+            [&] (const char* start, const char* end) {
+                pdb_id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("replace_pdb_id", true), true,
+            [&] (const char* start, const char* end) {
+                replace_pdb_id = string(start, end - start);
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping pdbx_database_PDB_obs_spr category: ", e.what());
+        return;
+    }
+    while (parse_row(pv)) {
+        if (id != "OBSLTE")
+            continue;
+        if (replace_pdb_id == entry_id)
+            logger::warning(_logger, replace_pdb_id, " has been replaced by ",
+                         pdb_id);
+    }
 }
 
 void
@@ -507,7 +573,7 @@ ExtractMolecule::parse_audit_conform()
                 dict_version = atof(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping audit_conform table: ", e.what());
+        logger::warning(_logger, "skipping audit_conform category: ", e.what());
         return;
     }
     parse_row(pv);
@@ -662,7 +728,7 @@ ExtractMolecule::parse_atom_site()
                 model_num = readcif::str_to_int(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping atom_site table: ", e.what());
+        logger::warning(_logger, "skipping atom_site category: ", e.what());
         return;
     }
 
@@ -903,7 +969,7 @@ ExtractMolecule::parse_struct_conn()
                 distance = readcif::str_to_float(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_conn table: ", e.what());
+        logger::warning(_logger, "skipping struct_conn category: ", e.what());
         return;
     }
 
@@ -1068,7 +1134,7 @@ ExtractMolecule::parse_struct_conf()
                 }
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_conf table: ", e.what());
+        logger::warning(_logger, "skipping struct_conf category: ", e.what());
         return;
     }
 
@@ -1251,7 +1317,7 @@ ExtractMolecule::parse_struct_sheet_range()
                 }
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_sheet_range table: ", e.what());
+        logger::warning(_logger, "skipping struct_sheet_range category: ", e.what());
         return;
     }
 
@@ -1362,7 +1428,7 @@ ExtractMolecule::parse_entity_poly_seq()
                 hetero = *start == 'Y' || *start == 'y';
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping entity_poly_seq table: ", e.what());
+        logger::warning(_logger, "skipping entity_poly_seq category: ", e.what());
         return;
     }
 

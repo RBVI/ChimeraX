@@ -35,16 +35,22 @@ clean:
 lint:
 	$(PYLINT) $(PYSRCS)
 
-molc.o: $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/Bond.h \
-	$(includedir)/atomstruct/Chain.h $(includedir)/atomstruct/Pseudobond.h \
-	$(includedir)/atomstruct/Residue.h $(includedir)/atomstruct/destruct.h
+molc.o: $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/AtomicStructure.h \
+	$(includedir)/atomstruct/Bond.h $(includedir)/atomstruct/Chain.h \
+	$(includedir)/atomstruct/ChangeTracker.h $(includedir)/atomstruct/destruct.h \
+	$(includedir)/atomstruct/PBGroup.h $(includedir)/atomstruct/Pseudobond.h \
+	$(includedir)/atomstruct/Residue.h $(includedir)/atomstruct/RibbonXSection.h
 
 $(includedir)/atomstruct/Atom.h: atomstruct_cpp.install
+$(includedir)/atomstruct/AtomicStructure.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Bond.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Chain.h: atomstruct_cpp.install
+$(includedir)/atomstruct/ChangeTracker.h: atomstruct_cpp.install
+$(includedir)/atomstruct/destruct.h: atomstruct_cpp.install
+$(includedir)/atomstruct/PBGroup.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Pseudobond.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Residue.h: atomstruct_cpp.install
-$(includedir)/atomstruct/destruct.h: atomstruct_cpp.install
+$(includedir)/atomstruct/RibbonXSection.h: atomstruct_cpp.install
 
 atomstruct_cpp.install: element_cpp.install
 mmcif_cpp.install: readcif_cpp.install atomstruct_cpp.install

@@ -2654,7 +2654,7 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
     }
 }
 
-#define DEBUG_CONSTRAINED_NORMALS   1
+#define DEBUG_CONSTRAINED_NORMALS   0
 
 extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end)
 {

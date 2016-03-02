@@ -8,8 +8,6 @@ class Ribbon:
     BACK = 2
 
     def __init__(self, coords, guides):
-        if guides is None or len(coords) != len(guides):
-            raise ValueError("different number of coordinates and guides")
         # Extend the coordinates at start and end to make sure the
         # ribbon is straight on either end.  Compute the spline
         # coefficients for each axis.  Then throw away the
@@ -23,11 +21,25 @@ class Ribbon:
         for i in range(3):
             self._compute_coefficients(c, i)
         # Compute spline normals from guide atom positions.
-        self.normals = self._compute_normals(coords, guides)
+        #
+        # --- If we can compute normals from guides well, use this:
+        # if guides is None or len(coords) != len(guides):
+        #     self.normals = self._compute_normals_from_guides(coords, guides)
+        # else:
+        #     self.normals = self._compute_normals_from_control_points(coords)
+        #
+        # --- If not, choose one of the three options manually
+        # if guides is None or len(coords) != len(guides):
+        #     raise ValueError("different number of coordinates and guides")
+        # else:
+        #     self.normals = self._compute_normals_from_guides(coords, guides)
+        # self.normals = self._compute_normals_from_curvature(coords)
+        self.normals = self._compute_normals_from_control_points(coords)
+        # ---
         # Initialize segment cache
         self._seg_cache = {}
 
-    def _compute_normals_old(self, coords, guides):
+    def _compute_normals_from_guides(self, coords, guides):
         from numpy import zeros, array
         from sys import __stderr__ as stderr
         t = self.get_tangents()
@@ -37,7 +49,82 @@ class Ribbon:
             normals[i,:] = get_orthogonal_component(n[i], t[i])
         return normalize_vector_array(normals)
 
-    def _compute_normals(self, coords, guides):
+    def _compute_normals_from_curvature(self, coords, guides):
+        from numpy import empty, array, cross, inner
+        from numpy.linalg import norm
+        tangents = self.get_tangents()
+        raw_normals = empty(coords.shape, float)
+        xcv = self.coefficients[0]
+        ycv = self.coefficients[1]
+        zcv = self.coefficients[2]
+        # Curvature for the N-1 points are at the start of a segment
+        # but the last one is at the end of the last segment and has
+        # to be treated specially
+        for seg in range(len(raw_normals) - 1):
+            curvature = array((xcv[seg][2], ycv[seg][2], zcv[seg][2]))
+            raw_normals[seg] = cross(curvature, tangents[seg])
+        xc = xcv[-1]
+        yc = ycv[-1]
+        zc = zcv[-1]
+        curvature = array((2 * xc[2] + 6 * xc[3],
+                           2 * yc[2] + 6 * yc[3],
+                           2 * zc[2] + 6 * zc[3]))
+        raw_normals[-1] = cross(curvature, tangents[-1])
+        #
+        # The normals are NOT normalized.  We check for any near-zero
+        # normals and replace them with vectors computed from well-defined
+        # normals of adjacent control points
+        normals = empty(raw_normals.shape, float)
+        lengths = norm(raw_normals, axis=1)
+        last_valid = None
+        last_normal = None
+        for i in range(len(lengths)):
+            if lengths[i] > EPSILON:
+                n = raw_normals[i] / lengths[i]
+                normals[i] = n
+                if last_valid is None:
+                    # At start of spline, so we propagate this normal
+                    # backwards (if needed)
+                    for j in range(i):
+                        normals[j] = n
+                else:
+                    # There was a previous normal defined so we interpolate
+                    # for intermediates (if needed)
+                    dv = n - last_normal
+                    ncp = i - last_valid
+                    for j in range(1, ncp):
+                        f = j / ncp
+                        rn = dv * f + last_normal
+                        d = norm(rn)
+                        int_n = rn / d
+                        normals[last_valid+j] = int_n
+                last_valid = i
+                last_normal = n
+        # Check whether there are control points at the end that have
+        # no normals.  It could actually be all control points if the
+        # spline is really a straight line.
+        if last_valid is None:
+            # No valid control point normals assigned.
+            # Just pick a random one.
+            for i in range(3):
+                v = [0.0, 0.0, 0.0]
+                v[i] = 1.0
+                rn = cross(array(v), tangents[0])
+                d = norm(rn)
+                if d > EPSILON:
+                    n = rn / d
+                    normals[:] = n
+                    return normals
+            # Really, we only need range(2) for i since the spline line can only be
+            # collinear with one of the axis, but we put 3 for esthetics.
+            # If we try all three and fail, something is seriously wrong.
+            raise RuntimeError("spline normal computation for straight line")
+        else:
+            for j in range(last_valid + 1, len(lengths)):
+                normals[j] = last_normal
+        return normals
+
+    def _compute_normals_from_control_points(self, coords):
         # This version ignores the guide atom positions and computes normals
         # at each control point by making it perpendicular to the vectors pointing
         # to control points on either side.  The two ends and any collinear control
@@ -77,7 +164,7 @@ class Ribbon:
             for i in range(3):
                 v = [0.0, 0.0, 0.0]
                 v[i] = 1.0
-                rn = cross(array(v), v_prev[0])
+                rn = cross(array(v), tangents[0])
                 d = norm(rn)
                 if d > EPSILON:
                     n = rn / d
@@ -207,7 +294,7 @@ class Ribbon:
     def normal(self, n):
         return self.normals[n]
 
-    def segment(self, seg, side, divisions, last=False):
+    def segment(self, seg, side, divisions, prev_normal=None, last=False):
         try:
             coords, tangents, normals = self._seg_cache[seg]
         except KeyError:
@@ -218,12 +305,12 @@ class Ribbon:
             tangents = normalize_vector_array(tangents)
             ns = self.normals[seg]
             ne = self.normals[seg + 1]
-            import sys
-            print("ns, ne", ns, ne, file=sys.__stderr__)
-            sys.__stderr__.flush()
+            # import sys
+            # print("ns, ne", ns, ne, file=sys.__stderr__); sys.__stderr__.flush()
             normals, flipped = constrained_normals(tangents, ns, ne)
             if flipped:
                 self.normals[seg + 1] = -ne
+            #normals = curvature_to_normals(curvature, tangents, prev_normal)
             self._seg_cache[seg] = (coords, tangents, normals)
         # divisions = number of segments = number of vertices + 1
         if side is self.FRONT:
@@ -247,17 +334,20 @@ class Ribbon:
         nc = divisions + 1
         t = linspace(tmin, tmax, nc)
         t2 = t * t
-        coeff_shape = (nc, 4)
-        ct = ones(coeff_shape, float)    # coords coefficients
-        ct[:,1] = t
-        ct[:,2] = t2
-        ct[:,3] = t * t2
-        coords = dot(ct, spline)
-        tt = zeros(coeff_shape, float)   # tangent coefficients
-        tt[:,1] = 1.0
-        tt[:,2] = 2.0 * t
-        tt[:,3] = 3 * t2
-        tangents = dot(tt, spline)
+        st = ones((nc, 4), float)    # spline multiplier matrix
+        # st[:,0] is 1.0        # 1
+        st[:,1] = t             # t
+        st[:,2] = t2            # t^2
+        st[:,3] = t * t2        # t^3
+        coords = dot(st, spline)
+        # st[:,0] stays at 1.0  # 1
+        st[:,1] *= 2.0          # 2t
+        st[:,2] *= 3.0          # 3t^2
+        tangents = dot(st[:,:-1], spline[1:])
+        #st[:,0] = 2.0           # 2
+        #st[:,1] *= 3.0;         # 6t
+        #curvature = dot(st[:,:-2], spline[2:])
+        #return coords, tangents, curvature
         return coords, tangents
 
     def lead_segment(self, divisions):
@@ -273,9 +363,10 @@ class Ribbon:
         tangents = normalize_vector_array(tangents)
         n = self.normals[0]
         normals, flipped = constrained_normals(tangents, n, n)
+        #normals = curvature_to_normals(curvature, tangents, None)
         return coords, tangents, normals
 
-    def trail_segment(self, divisions):
+    def trail_segment(self, divisions, prev_normal=None):
         coeffs = [self.coefficients[0][-1],
                   self.coefficients[1][-1],
                   self.coefficients[2][-1]]
@@ -288,6 +379,7 @@ class Ribbon:
         tangents = normalize_vector_array(tangents)
         n = self.normals[-1]
         normals, flipped = constrained_normals(tangents, n, n)
+        #normals = curvature_to_normals(curvature, tangents, prev_normal)
         return coords, tangents, normals
 
 
@@ -353,6 +445,26 @@ def constrained_normals(tangents, n_start, n_end):
                    ret = ctypes.py_object)
     return f(tangents, n_start, n_end)
 
+
+def curvature_to_normals(curvature, tangents, prev_normal):
+    from numpy.linalg import norm
+    from numpy import empty, cross, dot
+    normals = empty(curvature.shape, dtype=float)
+    for i in range(len(curvature)):
+        c_len = norm(curvature[i])
+        if c_len < EPSILON:
+            # No curvature, must use previous normal
+            # TODO: more here
+            pass
+        else:
+            # Normal case
+            n = cross(curvature[i], tangents[i])
+            if prev_normal is not None and dot(prev_normal, n) < 0:
+                n = -n
+            prev_normal = normals[i] = n
+    #normals = normalize_vector_array(cross(curvature, tangents))
+    normals = normalize_vector_array(normals)
+    return normals
 
 
 
