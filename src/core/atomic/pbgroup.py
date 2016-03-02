@@ -9,8 +9,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
     via the :class:`.PseudobondGroupData` base class.
     """
 
-    SESSION_SKIP = True		# TODO: Session save not currently supported
-
     def __init__(self, pbg_pointer, *, session=None):
 
         PseudobondGroupData.__init__(self, pbg_pointer)
@@ -106,16 +104,27 @@ class PseudobondGroup(PseudobondGroupData, Model):
         return p
 
     def take_snapshot(self, session, flags):
-        # TODO: Save the state.
-        data = {'version': self.STRUCTURE_STATE_VERSION}
+        data = {
+            'version': 1,
+            'mgr': session.pb_manager, # so that the global manager gets restored before we do
+            'category': self.category,
+            'structure': self._structure,
+            'dashes': self._dashes
+        }
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        if data['version'] != self.STRUCTURE_STATE_VERSION or len(data) > 1:
-            raise RestoreError("Unexpected version or data")
-        # TODO: Restore state.
-    
+        if data['version'] != 1:
+            raise RestoreError("Unexpected pb group session version")
+        if data['structure'] is not None:
+            grp = data['structure'].pseudobond_group(data['category'], create_type=None)
+        else:
+            grp = session.pb_manager.get_group(data['category'], create=False)
+        grp._structure = data['structure']
+        grp._dashes = data['dashes']
+        return grp
+
     def reset_state(self, session):
         pass
 

@@ -31,6 +31,7 @@ _class_class_init = {
     'MolecularSurface': '.atomic',
     'NamedViewState': '.commands.view',
     'NamedViewsState': '.commands.view',
+    'PseudobondGroup': '.atomic.pbgroup',
     'PseudobondManager': '.atomic.molobject',
     'STLModel': '.stl',
     'Job': '.tasks',
