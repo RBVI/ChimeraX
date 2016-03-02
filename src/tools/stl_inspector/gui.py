@@ -74,15 +74,15 @@ class ToolUI(ToolInstance):
     def take_snapshot(self, session, flags):
         data = {
             'tool state': ToolInstance.take_snapshot(self, session, flags),
-            'triangles': self.ti_list
+            'triangles': self.ti_list,
+            'version': self.bundle_info.session_write_version,
         }
-        return self.bundle_info.session_write_version, data
+        return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, version, data):
-        ti_version, ti_data = data['tool state']
+    def restore_snapshot(session, bundle_info, data):
         tui = ToolUI(session, bundle_info)
-        tui.set_state_from_snapshot(session, bundle_info, ti_version, ti_data)
+        tui.set_state_from_snapshot(session, data['tool state'])
         tui.ti_list = data['triangles']
         if session.ui.is_gui:
             tui._make_page()

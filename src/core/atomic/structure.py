@@ -183,16 +183,17 @@ class Graph(Model, StructureData):
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
         from ..state import CORE_STATE_VERSION
-        return CORE_STATE_VERSION, data
+        data['version'] = CORE_STATE_VERSION
+        return data
 
     @classmethod
-    def restore_snapshot(cls, session, tool_info, version, data):
+    def restore_snapshot(cls, session, tool_info, data):
         s = cls(session, smart_initial_display = False)
 
         # Model restores self.name, which is a property of the C++ StructureData
         # so initialize StructureData first.
-        StructureData.set_state_from_snapshot(s, session, *data['structure state'])
-        Model.set_state_from_snapshot(s, *data['model state'])
+        StructureData.set_state_from_snapshot(s, session, data['structure state'])
+        Model.set_state_from_snapshot(s, session, data['model state'])
 
         for attr_name, default_val in s._session_attrs.items():
             setattr(s, attr_name, data.get(attr_name, default_val))
@@ -1270,10 +1271,11 @@ class LevelOfDetail(State):
         self._ribbon_divisions = 20
 
     def take_snapshot(self, session, flags):
-        return 1, {'quality': self.quality}
+        return {'quality': self.quality,
+                'version': 1}
 
-    @classmethod
-    def restore_snapshot(cls, session, tool_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, tool_info, data):
         lod = LevelOfDetail()
         lod.quality = data['quality']
         return lod

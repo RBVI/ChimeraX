@@ -123,23 +123,23 @@ class Map_Series(Model):
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    data = {'model state': Model.take_snapshot(self, session, flags),
-            'map ids': [m.id for m in self.maps]}
-    # Can't reference maps directly because it creates cyclic dependency.
     from ...state import CORE_STATE_VERSION
-    return CORE_STATE_VERSION, data
+    data = {'model state': Model.take_snapshot(self, session, flags),
+            # Can't reference maps directly because it creates cyclic dependency.
+            'map ids': [m.id for m in self.maps],
+            'version': CORE_STATE_VERSION}
+    return data
 
   @staticmethod
-  def restore_snapshot(session, bundle_info, version, data):
+  def restore_snapshot(session, bundle_info, data):
     maps = []
     s = Map_Series('series', maps, session)
-    Model.set_state_from_snapshot(s, *data['model state'])
+    Model.set_state_from_snapshot(s, session, data['model state'])
 
     # Restore child map list after child maps are restored.
     def restore_maps(trigger_name, session, series = s, map_ids = data['map ids']):
       idm = {m.id : m for m in s.child_models()}
       series.maps = [idm[id] for id in map_ids if id in idm]
-      print ('series', series.name, 'maps', len(series.maps))
       from ...triggerset import DEREGISTER
       return DEREGISTER
     session.triggers.add_handler('end restore session', restore_maps)

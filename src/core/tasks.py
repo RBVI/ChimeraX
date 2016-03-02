@@ -355,16 +355,18 @@ class Tasks(State):
             more details.
 
         """
-        data = {}
+        tasks = {}
         for tid, task in self._tasks.items():
             assert(isinstance(task, Task))
             if task.state == RUNNING and not task.SESSION_SKIP:
-                data[tid] = task
+                tasks[tid] = task
+        data = {'tasks': tasks,
+                'version': CORE_STATE_VERSION}
         # TODO: self._id_counter?
-        return CORE_STATE_VERSION, data
+        return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, version, data):
+    def restore_snapshot(session, bundle_info, data):
         """Restore state of running tasks.
 
         Overrides :py:class:`~chimerax.core.session.State` default method to
@@ -376,15 +378,12 @@ class Tasks(State):
             Session for which state is being saved.
             Should match the ``session`` argument given to ``__init__``.
         bundle_info : instance of :py:class:`~chimerax.core.toolshed.BundleInfo`
-        version : any
-            Version of tool state that saved the data.
-            Used for determining how to parse the ``data`` argument.
         data : any
             Data saved by state manager during :py:meth:`take_snapshot`.
 
         """
         t = session.tasks
-        for tid, task in data.items():
+        for tid, task in data['tasks'].items():
             t._tasks[tid] = task
         # TODO: t._id_counter?
         return t

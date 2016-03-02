@@ -322,24 +322,26 @@ class PseudobondManager(State):
         for ptr, ses_id in ptr_map.items():
             # shouldn't be _creating_ any objects, so pass None as the type
             obj_map[ses_id] = object_map(ptr, None)
-        return version, (retvals, obj_map)
+        data = {'version': version,
+                'mgr data':retvals,
+                'structure mapping': obj_map}
+        return data
 
-    @classmethod
-    def restore_snapshot(cls, session, tool_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, tool_info, data):
         pbm = session.pb_manager
-        mgr_data, structure_mapping = data
         # restore the int->structure mapping the pseudobonds use...
         ptr_mapping = {}
-        for ses_id, structure in structure_mapping.items():
+        for ses_id, structure in data['structure mapping'].items():
             ptr_mapping[ses_id] = structure._c_pointer.value
         f = c_function('pseudobond_global_manager_session_restore_structure_mapping',
                        args = (ctypes.c_void_p, ctypes.py_object))
         f(pbm._c_pointer, ptr_mapping)
-        ints, floats, misc = mgr_data
+        ints, floats, misc = data['mgr data']
         f = c_function('pseudobond_global_manager_session_restore',
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        f(pbm._c_pointer, version, ints, floats, misc)
+        f(pbm._c_pointer, data['version'], ints, floats, misc)
         return pbm
 
     def reset_state(self, session):
@@ -578,19 +580,18 @@ class StructureData:
         return object_map(pbg, PseudobondGroup)
 
     @classmethod
-    def restore_snapshot(cls, session, tool_info, version, data):
+    def restore_snapshot(cls, session, tool_info, data):
         g = StructureData(logger=session.logger)
-        g.set_state_from_snapshot(session, version, data)
+        g.set_state_from_snapshot(session, data)
         return g
 
-    def set_state_from_snapshot(self, session, version, data):
+    def set_state_from_snapshot(self, session, data):
         '''Restore from session info'''
         self._ses_call("restore_setup")
-        ints, floats, misc = data
         f = c_function('structure_session_restore',
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        f(self._c_pointer, version, ints, floats, misc)
+        f(self._c_pointer, data['version'], data['ints'], data['floats'], data['misc'])
         session.triggers.add_handler("end restore session", self._ses_restore_teardown)
 
     def session_atom_to_id(self, ptr):
@@ -623,10 +624,11 @@ class StructureData:
                     args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
                         ctypes.py_object),
                     ret = ctypes.c_int)
-        ints = []
-        floats = []
-        misc = []
-        return f(self._c_pointer, ints, floats, misc), (ints, floats, misc)
+        data = {'ints': [],
+                'floats': [],
+                'misc': []}
+        data['version'] = f(self._c_pointer, data['ints'], data['floats'], data['misc'])
+        return data
 
     def _ses_call(self, func_qual):
         f = c_function('structure_session_' + func_qual, args=(ctypes.c_void_p,))

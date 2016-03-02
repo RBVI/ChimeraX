@@ -89,20 +89,21 @@ class Model(State, Drawing):
                 'id':self.id,
                 'parent':p,
                 'positions':self.positions.array(),
+                'version': CORE_STATE_VERSION,
         }
-        return CORE_STATE_VERSION, data
+        return data
 
     @classmethod
-    def restore_snapshot(cls, session, bundle_info, version, data):
+    def restore_snapshot(cls, session, bundle_info, data):
         if cls is Model and data['id'] is ():
             return session.models.drawing
         # TODO: Could call the cls constructor here to handle a derived class,
         #       but that would require the derived constructor have the same args.
         m = Model(data['name'], session)
-        m.set_state_from_snapshot(version, data)
+        m.set_state_from_snapshot(session, data)
         return m
 
-    def set_state_from_snapshot(self, version, data):
+    def set_state_from_snapshot(self, session, data):
         self.name = data['name']
         self.id = data['id']
         p = data['parent']
@@ -140,18 +141,20 @@ class Models(State):
         r.id = ()
 
     def take_snapshot(self, session, flags):
-        data = {}
+        models = {}
         for id, model in self._models.items():
             assert(isinstance(model, Model))
             if model.SESSION_SKIP:
                 continue
-            data[id] = model
-        return CORE_STATE_VERSION, data
+            models[id] = model
+        data = {'models': models,
+                'version': CORE_STATE_VERSION}
+        return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, version, data):
+    def restore_snapshot(session, bundle_info, data):
         m = session.models
-        for id, model in data.items():
+        for id, model in data['models'].items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
                 if not hasattr(model, 'parent'):
                     m.add([model], _from_session=True)

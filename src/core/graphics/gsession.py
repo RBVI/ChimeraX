@@ -19,19 +19,20 @@ class ViewState(State):
         data['camera_state'] = CameraState(v.camera)
         data['lighting_state'] = LightingState(v.lighting)
         data['clip_plane_states'] = [ClipPlaneState(cp) for cp in v.clip_planes.planes()]
-        return self.version, data
+        data['version'] = self.version
+        return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, version, data):
+    def restore_snapshot(session, bundle_info, data):
         # Restores session.main_view
         vs = ViewState(session.main_view)
-        vs.set_state_from_snapshot(session, version, data)
+        vs.set_state_from_snapshot(session, data)
         return vs
 
-    def set_state_from_snapshot(self, session, version, data):
+    def set_state_from_snapshot(self, session, data):
         v = self.view
         for k in self.save_attrs:
-            if k in data and k != 'window_size':
+            if k in data and k != 'window_size' and k != 'version':
                 setattr(v, k, data[k])
 
         # Root drawing had redraw callback set to None.  Restore callback.
@@ -75,21 +76,22 @@ class CameraState(State):
             # TODO: Restore other camera modes.
             session.logger.info('"%s" camera settings not currently saved in sessions' % c.name())
             data = {'position': c.position}
-            
-        return self.version, data
+        data['version'] = self.version
+        return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, version, data):
+    def restore_snapshot(session, bundle_info, data):
         from .camera import MonoCamera
         cs = CameraState(MonoCamera())
-        cs.set_state_from_snapshot(session, version, data)
+        cs.set_state_from_snapshot(session, data)
         return cs
 
-    def set_state_from_snapshot(self, session, version, data):
+    def set_state_from_snapshot(self, session, data):
         c = self.camera
         if data is not None:
             for k,v in data.items():
-                setattr(c, k, v)
+                if k != 'version':
+                    setattr(c, k, v)
 
     def reset_state(self, session):
         pass
@@ -124,19 +126,21 @@ class LightingState(State):
     def take_snapshot(self, session, flags):
         l = self.lighting
         data = {a:getattr(l,a) for a in self.save_attrs}
-        return self.version, data
+        data['version'] = self.version
+        return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, version, data):
+    def restore_snapshot(session, bundle_info, data):
         from . import Lighting
         ls = LightingState(Lighting())
-        ls.set_state_from_snapshot(session, version, data)
+        ls.set_state_from_snapshot(session, data)
         return ls
 
-    def set_state_from_snapshot(self, session, version, data):
+    def set_state_from_snapshot(self, session, data):
         l = self.lighting
         for k,v in data.items():
-            setattr(l, k, v)
+            if k != 'version':
+                setattr(l, k, v)
 
     def reset_state(self, session):
         pass
@@ -158,12 +162,14 @@ class ClipPlaneState(State):
     def take_snapshot(self, session, flags):
         cp = self.clip_plane
         data = {a:getattr(cp,a) for a in self.save_attrs}
-        return self.version, data
+        data['version'] = self.version
+        return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, version, data):
+    def restore_snapshot(session, bundle_info, data):
         from . import ClipPlane
-        return ClipPlaneState(ClipPlane(**data))
+        cp = ClipPlane(data['name'], data['normal'], data['plane_point'], data['camera_normal'])
+        return ClipPlaneState(cp)
 
     def reset_state(self, session):
         pass
@@ -185,18 +191,20 @@ class DrawingState(State):
         d = self.drawing
         data = {a:getattr(d,a) for a in self.save_attrs}
         data['children'] = [DrawingState(c) for c in d.child_drawings()]
-        return self.version, data
+        data['version'] = self.version
+        return data
 
     @staticmethod
-    def restore_snapshot(self, session, bundle_info, version, data):
+    def restore_snapshot(session, bundle_info, data):
         ds = DrawingState(Drawing(''))
-        ds.set_state_from_stanpshot(session, bundle_info, version, data)
+        ds.set_state_from_stanpshot(session, data)
         return ds
 
-    def set_state_from_snapshot(self, session, bundle_info, version, data):
+    def set_state_from_snapshot(self, session, data):
         d = self.drawing
-        for k,v in data.items():
-            setattr(d, k, v)
+        for k in self.save_attrs:
+            if k in data:
+                setattr(d, k, data[k])
         for child_state in data['children']:
             d.add_drawing(child_state.drawing)
 

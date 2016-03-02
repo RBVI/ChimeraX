@@ -50,10 +50,10 @@ class TriangleInfo(State):
         return self._stl.vertices[self._stl.triangles[self._index]]
 
     def take_snapshot(self, session, flags):
-        return CORE_STATE_VERSION, {'stl model': self._stl, 'triangle index': self._index}
+        return {'stl model': self._stl, 'triangle index': self._index, 'version':CORE_STATE_VERSION}
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, version, data):
+    def restore_snapshot(session, bundle_info, data):
         return TriangleInfo(data['stl model'], data['triangle index'])
 
     def reset_state(self, session):

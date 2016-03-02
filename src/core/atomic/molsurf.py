@@ -294,16 +294,17 @@ class MolecularSurface(Model):
         data['model state'] = Model.take_snapshot(self, session, flags)
         data.update({attr:getattr(self,attr) for attr in self._save_attrs})
         from ..state import CORE_STATE_VERSION
-        return CORE_STATE_VERSION, data
+        data['version'] = CORE_STATE_VERSION
+        return data
 
-    @classmethod
-    def restore_snapshot(cls, session, tool_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, tool_info, data):
         d = data
         s = MolecularSurface(session, d['atoms'], d['show_atoms'],
                              d['probe_radius'], d['grid_spacing'], d['resolution'],
                              d['level'], d['name'], d['color'], d['visible_patches'],
                              d['sharp_boundaries'])
-        Model.set_state_from_snapshot(s, *d['model state'])
+        Model.set_state_from_snapshot(s, session, d['model state'])
         for attr in MolecularSurface._save_attrs:
             setattr(s, attr, d[attr])
 

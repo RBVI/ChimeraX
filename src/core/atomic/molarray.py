@@ -211,14 +211,15 @@ class Collection(State):
 
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
-        return self.STATE_VERSION, self.session_save_pointers(session)
+        return {'version': self.STATE_VERSION,
+                'pointers': self.session_save_pointers(session)}
     @classmethod
-    def restore_snapshot(cls, session, bundle_info, version, ptr_data):
-        if version > cls.STATE_VERSION:
+    def restore_snapshot(cls, session, bundle_info, data):
+        if data['version'] > cls.STATE_VERSION:
             raise ValueError("Don't know how to restore Collections from this session"
                              " (session version [{}] > code version [{}]);"
-                             " update your ChimeraX".format(version, self.STATE_VERSION))
-        c_pointers = cls.session_restore_pointers(session, ptr_data)
+                             " update your ChimeraX".format(data['version'], self.STATE_VERSION))
+        c_pointers = cls.session_restore_pointers(session, data['pointers'])
         return cls(c_pointers)
     def reset_state(self, session):
         self._pointers = numpy.empty((0,), cptr)

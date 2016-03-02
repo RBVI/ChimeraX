@@ -28,14 +28,16 @@ class UserColors(SortedDict, State):
 
     def take_snapshot(self, session, flags):
         # only save differences from builtin colors
-        data = {name: color for name, color in self.items()
+        cmap = {name: color for name, color in self.items()
                 if name not in BuiltinColors or color != BuiltinColors[name]}
-        return CORE_STATE_VERSION, data
+        data = {'colors':cmap,
+                'version': CORE_STATE_VERSION}
+        return data
 
-    @classmethod
-    def restore_snapshot(cls, session, bundle_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, bundle_info, data):
         c = UserColors()
-        c.update(data)
+        c.update(data['colors'])
         return c
 
     def reset_state(self, session):
@@ -191,12 +193,14 @@ class UserColormaps(SortedDict, State):
     """
 
     def take_snapshot(self, session, flags):
-        return CORE_STATE_VERSION, dict(self)
+        data = {'colormaps': dict(self),
+                'version': CORE_STATE_VERSION,}
+        return data
 
-    @classmethod
-    def restore_snapshot(cls, session, bundle_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, bundle_info, data):
         c = UserColormaps()
-        c.update(data)
+        c.update(data['colormaps'])
         return c
 
     def reset_state(self, session):
