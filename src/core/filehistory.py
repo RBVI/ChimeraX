@@ -32,7 +32,7 @@ class FileHistory:
     def remember_file(self, path, format, models, database = None, file_saved = False):
         f = self._files
         from os.path import abspath
-        apath = abspath(path)
+        apath = abspath(path) if database is None else path
         fs = f.get(apath, None)
         if fs:
             fs.set_access_time()
