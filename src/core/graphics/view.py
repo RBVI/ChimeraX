@@ -241,7 +241,6 @@ class View:
             self._multishadow_update_needed = True
 
         c.redraw_needed = False
-        cp.changed = False
         dm.redraw_needed = False
         dm.shape_changed = False
 
@@ -857,7 +856,7 @@ class ClipPlanes:
 
     def replace_planes(self, planes):
         self._clip_planes = planes
-        self._changed = True
+        self.changed = True
 
     def remove_plane(self, name):
         self._clip_planes = [p for p in self._clip_planes if p.name != name]
