@@ -858,7 +858,6 @@ else:
             self.save_dialog = MainSaveDialog(self)
             ImageSaver(self.save_dialog).register()
 
-            self.tool_pane_to_window = {}
             self.tool_instance_to_windows = {}
 
             self._build_status()
@@ -866,28 +865,35 @@ else:
 
             session.logger.add_log(self)
 
-            #QT disabled
-            """
-            self.Bind(EVT_AUI_PANE_CLOSE, self.on_pane_close)
-            """
             self.show()
+
+        def close_request(self, tool_window, close_event):
+            tool_instance = tool_window.tool_instance
+            all_windows = self.tool_instance_to_windows[tool_instance]
+            is_main_window = tool_window is all_windows[0]
+            close_destroys = tool_window.close_destroys
+            if is_main_window and close_destroys:
+                close_event.accept()
+                tool_instance.delete()
+                return
+            if tool_window.close_destroys:
+                close_event.accept()
+                tool_window._destroy()
+                all_windows.remove(tool_window)
+            else:
+                close_event.ignore()
+                tool_window.shown = False
+
+            if is_main_window:
+                # close hides, since close destroys is handled above
+                for window in all_windows:
+                    window._prev_shown = window.shown
+                    window.shown = False
 
         def customEvent(self, event):
             # handle requests to execute GUI functions from threads
             func, args, kw = event.func_info
             func(*args, **kw)
-
-        def log(self, *args, **kw):
-            return False
-
-        """
-        def on_edit(self, event, func):
-            widget = self.FindFocus()
-            if widget and hasattr(widget, func):
-                getattr(widget, func)()
-            else:
-                event.Skip()
-        """
 
         def file_open_cb(self, session):
             from PyQt5.QtWidgets import QFileDialog
@@ -897,48 +903,22 @@ else:
                 return
             session.models.open(paths[0])
 
-        """
-        def on_pane_close(self, event):
-            pane_info = event.GetPane()
-            tool_window = self.tool_pane_to_window[pane_info.window]
-            tool_instance = tool_window.tool_instance
-            all_windows = self.tool_instance_to_windows[tool_instance]
-            is_main_window = tool_window is all_windows[0]
-            close_destroys = tool_window.close_destroys
-            if is_main_window and close_destroys:
-                tool_instance.delete()
-                return
-            if tool_window.close_destroys:
-                del self.tool_pane_to_window[tool_window.ui_area]
-                tool_window._destroy()
-                all_windows.remove(tool_window)
-            else:
-                tool_window.shown = False
-                event.Veto()
-
-            if is_main_window:
-                # close hides, since close destroys is handled above
-                for window in all_windows:
-                    window._prev_shown = window.shown
-                    window.shown = False
-        """
-
         def file_save_cb(self, session):
             self.save_dialog.display(self, session)
 
         def file_quit_cb(self, session):
             session.ui.quit()
 
-        """
         def remove_tool(self, tool_instance):
             tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
             if tool_windows:
                 for tw in tool_windows:
                     tw._mw_set_shown(False)
-                    del self.tool_pane_to_window[tw.ui_area]
                     tw._destroy()
                 del self.tool_instance_to_windows[tool_instance]
-            """
+
+        def log(self, *args, **kw):
+            return False
 
         def set_tool_shown(self, tool_instance, shown):
             tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
@@ -954,17 +934,6 @@ else:
             label.setText("<font color='" + color + "'>" + msg + "</font>")
             label.show()
 
-            """
-        def _build_graphics(self, ui):
-            from .graphics import GraphicsWindow
-            self.graphics_window = g = GraphicsWindow(self, ui)
-            from wx.lib.agw.aui import AuiPaneInfo
-            self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
-            from .save_dialog import MainSaveDialog, ImageSaver
-            self.save_dialog = MainSaveDialog(self)
-            ImageSaver(self.save_dialog).register()
-            """
-
         def _build_status(self):
             sb = QStatusBar(self)
             self._primary_status_label = QLabel(sb)
@@ -975,7 +944,6 @@ else:
             self.setStatusBar(sb)
 
         def _new_tool_window(self, tw):
-            self.tool_pane_to_window[tw.ui_area] = tw
             self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
         def _populate_menus(self, session):
@@ -1073,7 +1041,6 @@ else:
             if is_main_window:
                 tool_instance.delete()
                 return
-            del self.tool_pane_to_window[tool_window.ui_area]
             tool_window._destroy()
             all_windows.remove(tool_window)
 
@@ -1244,13 +1211,10 @@ else:
 
             from PyQt5.QtWidgets import QDockWidget, QWidget
             self.dock_widget = QDockWidget(title, mw)
+            self.dock_widget.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
             self.ui_area = QWidget(self.dock_widget)
+            self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e.globalPos())
             self.dock_widget.setWidget(self.ui_area)
-
-            #QT disabled
-            """
-            self.ui_area.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
-            """
 
         def destroy(self):
             if not self.tool_window:
@@ -1284,42 +1248,27 @@ else:
                 from PyQt5.QtWidgets import QWidget
                 self.dock_widget.setTitleBarWidget(QWidget())
 
-            #QT disable
-            """
-            # hack
-            if self.tool_window.tool_instance.display_name == "Log":
-                pane_info.dock_proportion = 50
-            else:
-                pane_info.dock_proportion = 15
-            """
-
             if self.tool_window.close_destroys:
                 self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
-            #QT disable
-            """
-            mw.aui_mgr.Update()
+        def show_context_menu(self, pos):
+            from PyQt5.QtWidgets import QMenu, QAction
+            menu = QMenu(self.ui_area)
 
-        def on_context_menu(self, event):
-            menu = wx.Menu()
             self.tool_window.fill_context_menu(menu)
-            if menu.GetMenuItemCount() > 0:
-                menu.Append(wx.ID_SEPARATOR)
-            help_id = wx.NewId()
-            # TODO: once help system more fleshed out, look for help attribute
-            # or method in tool window instance and do something appropriate...
+            if not menu.isEmpty():
+                menu.addSeparator()
             ti = self.tool_window.tool_instance
             if ti.help is not None:
-                menu.Append(help_id, "Help")
-                def help_func(event, tool_instance=ti):
-                    tool_instance.display_help()
-                self.ui_area.Bind(wx.EVT_MENU, help_func, id=help_id)
+                help_action = QAction("Help", self.ui_area)
+                help_action.setStatusTip("Show tool help")
+                help_action.triggered.connect(lambda arg, ti=ti: ti.display_help())
+                menu.addAction(help_action)
             else:
-                menu.Append(help_id, "No help available")
-                menu.Enable(help_id, False)
-            self.ui_area.PopupMenu(menu)
-            menu.Destroy()
-            """
+                no_help_action = QAction("No help available", self.ui_area)
+                no_help_action.setEnabled(False)
+                menu.addAction(no_help_action)
+            menu.exec(pos)
 
         def _get_shown(self):
             return not self.dock_widget.isHidden()
