@@ -2,17 +2,23 @@
 
 EPSILON = 1e-6
 
+# Must match values in molc.cpp
+FLIP_MINIMIZE = 0
+FLIP_PREVENT = 1
+FLIP_FORCE = 2
+
 class Ribbon:
 
     FRONT = 1
     BACK = 2
 
-    def __init__(self, coords, guides):
+    def __init__(self, coords, guides, orient):
         # Extend the coordinates at start and end to make sure the
         # ribbon is straight on either end.  Compute the spline
         # coefficients for each axis.  Then throw away the
         # coefficients for the fake ends.
-        from numpy import empty
+        from .structure import AtomicStructure
+        from numpy import empty, zeros
         c = empty((len(coords) + 2, 3), float)
         c[0] = coords[0] + (coords[0] - coords[1])
         c[1:-1] = coords
@@ -20,22 +26,25 @@ class Ribbon:
         self.coefficients = []
         for i in range(3):
             self._compute_coefficients(c, i)
-        # Compute spline normals from guide atom positions.
-        #
-        # --- If we can compute normals from guides well, use this:
-        # if guides is None or len(coords) != len(guides):
-        #     self.normals = self._compute_normals_from_guides(coords, guides)
-        # else:
-        #     self.normals = self._compute_normals_from_control_points(coords)
-        #
-        # --- If not, choose one of the three options manually
-        # if guides is None or len(coords) != len(guides):
-        #     raise ValueError("different number of coordinates and guides")
-        # else:
-        #     self.normals = self._compute_normals_from_guides(coords, guides)
-        # self.normals = self._compute_normals_from_curvature(coords)
-        self.normals = self._compute_normals_from_control_points(coords)
-        # ---
+        self.flipped = zeros(len(coords), bool)
+        if orient == AtomicStructure.RIBBON_ORIENT_ATOMS:
+            print("orientation from atoms")
+            self.normals = self._compute_normals_from_control_points(coords)
+            self.ignore_flip_mode = True
+        elif orient == AtomicStructure.RIBBON_ORIENT_CURVATURE:
+            print("orientation from curvature")
+            self.normals = self._compute_normals_from_curvature(coords)
+            self.ignore_flip_mode = True
+        else:
+            # RIBBON_ORIENT_GUIDES and default case
+            if guides is None or len(coords) != len(guides):
+                print("orientation from atoms")
+                self.normals = self._compute_normals_from_control_points(coords)
+                self.ignore_flip_mode = True
+            else:
+                print("orientation from guides")
+                self.normals = self._compute_normals_from_guides(coords, guides)
+                self.ignore_flip_mode = False
         # Initialize segment cache
         self._seg_cache = {}
 
@@ -49,7 +58,7 @@ class Ribbon:
             normals[i,:] = get_orthogonal_component(n[i], t[i])
         return normalize_vector_array(normals)
 
-    def _compute_normals_from_curvature(self, coords, guides):
+    def _compute_normals_from_curvature(self, coords):
         from numpy import empty, array, cross, inner
         from numpy.linalg import norm
         tangents = self.get_tangents()
@@ -294,7 +303,7 @@ class Ribbon:
     def normal(self, n):
         return self.normals[n]
 
-    def segment(self, seg, side, divisions, prev_normal=None, last=False):
+    def segment(self, seg, side, divisions, flip_mode=FLIP_MINIMIZE, prev_normal=None, last=False):
         try:
             coords, tangents, normals = self._seg_cache[seg]
         except KeyError:
@@ -307,8 +316,12 @@ class Ribbon:
             ne = self.normals[seg + 1]
             # import sys
             # print("ns, ne", ns, ne, file=sys.__stderr__); sys.__stderr__.flush()
-            normals, flipped = constrained_normals(tangents, ns, ne)
+            if self.ignore_flip_mode:
+                flip_mode = FLIP_MINIMIZE
+            normals, flipped = constrained_normals(tangents, ns, ne, flip_mode,
+                                                   self.flipped[seg], self.flipped[seg + 1])
             if flipped:
+                self.flipped[seg + 1] = not self.flipped[seg + 1]
                 self.normals[seg + 1] = -ne
             #normals = curvature_to_normals(curvature, tangents, prev_normal)
             self._seg_cache[seg] = (coords, tangents, normals)
@@ -362,7 +375,7 @@ class Ribbon:
         coords, tangents = self._segment_path(coeffs, -0.3, -step, divisions)
         tangents = normalize_vector_array(tangents)
         n = self.normals[0]
-        normals, flipped = constrained_normals(tangents, n, n)
+        normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False)
         #normals = curvature_to_normals(curvature, tangents, None)
         return coords, tangents, normals
 
@@ -378,7 +391,7 @@ class Ribbon:
         coords, tangents = self._segment_path(coeffs, 1 + step, 1.3, divisions)
         tangents = normalize_vector_array(tangents)
         n = self.normals[-1]
-        normals, flipped = constrained_normals(tangents, n, n)
+        normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False)
         #normals = curvature_to_normals(curvature, tangents, prev_normal)
         return coords, tangents, normals
 
@@ -437,13 +450,14 @@ def get_orthogonal_component(v, ref):
     return v + ref * (-d / ref_len)
 
 
-def constrained_normals(tangents, n_start, n_end):
+def constrained_normals(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped):
     from .molc import c_function
     import ctypes
     f = c_function("constrained_normals",
-                   args=(ctypes.py_object, ctypes.py_object, ctypes.py_object),
+                   args=(ctypes.py_object, ctypes.py_object, ctypes.py_object,
+                         ctypes.c_int, ctypes.c_bool, ctypes.c_bool),
                    ret = ctypes.py_object)
-    return f(tangents, n_start, n_end)
+    return f(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped)
 
 
 def curvature_to_normals(curvature, tangents, prev_normal):

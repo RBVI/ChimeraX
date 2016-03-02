@@ -372,7 +372,7 @@ class Graph(Model, StructureData):
             t2r = []
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
-            any_display, atoms, coords, guides = rlist.get_polymer_spline()
+            any_display, atoms, coords, guides = rlist.get_polymer_spline(self.ribbon_orientation)
             if not any_display:
                 continue
             residues = atoms.residues
@@ -410,7 +410,7 @@ class Graph(Model, StructureData):
 
             # Generate ribbon
             any_ribbon = True
-            ribbon = Ribbon(coords, guides)
+            ribbon = Ribbon(coords, guides, self.ribbon_orientation)
             v_start = 0         # for tracking starting vertex index for each residue
             t_start = 0         # for tracking starting triangle index for each residue
             vertex_list = []
@@ -471,6 +471,7 @@ class Graph(Model, StructureData):
             # import sys
 
             # First residues
+            from .ribbon import FLIP_MINIMIZE, FLIP_PREVENT, FLIP_FORCE
             if displays[0]:
                 # print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
                 xss_compat = self._xss_compatible(xss[0], xss[1])
@@ -521,7 +522,12 @@ class Graph(Model, StructureData):
                                                                                      spine_xyz2)
                 next_cap = displays[i] != displays[i + 1] or not self._xss_compatible(xss[i], xss[i + 1])
                 seg = next_cap and seg_cap or seg_blend
-                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg)
+                flip_mode = FLIP_MINIMIZE
+                if is_helix[i] and is_helix[i + 1]:
+                    flip_mode = FLIP_PREVENT
+                elif is_sheet[i] and is_sheet[i + 1]:
+                    flip_mode = FLIP_FORCE
+                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, flip_mode=flip_mode)
                 if self.ribbon_show_spine:
                     spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                      back_c, back_n,

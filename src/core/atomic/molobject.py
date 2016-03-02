@@ -512,13 +512,24 @@ class StructureData:
     '''Ribbon tether thickness scale factor (1.0 = match displayed atom radius, 0=invisible).'''
     ribbon_tether_shape = c_property('structure_ribbon_tether_shape', int32)
     '''Ribbon tether shape. Integer value.'''
+    TETHER_CONE = 0
+    '''Tether is cone with point at ribbon.'''
+    TETHER_REVERSE_CONE = 1
+    '''Tether is cone with point at atom.'''
+    TETHER_CYLINDER = 2
+    '''Tether is cylinder.'''
     ribbon_show_spine = c_property('structure_ribbon_show_spine', npy_bool)
     '''Display ribbon spine. Boolean.'''
+    ribbon_orientation = c_property('structure_ribbon_orientation', int32)
+    '''Ribbon orientation. Integer value.'''
+    RIBBON_ORIENT_GUIDES = 1
+    '''Ribbon orientation from guide atoms.'''
+    RIBBON_ORIENT_ATOMS = 2
+    '''Ribbon orientation from interpolated atoms.'''
+    RIBBON_ORIENT_CURVATURE = 3
+    '''Ribbon orientation perpendicular to ribbon curvature.'''
     ribbon_display_count = c_property('structure_ribbon_display_count', int32, read_only = True)
     '''Return number of residues with ribbon display set. Integer.'''
-    TETHER_CONE = 0
-    TETHER_REVERSE_CONE = 1
-    TETHER_CYLINDER = 2
     ribbon_tether_sides = c_property('structure_ribbon_tether_sides', int32)
     '''Number of sides for ribbon tether. Integer value.'''
     ribbon_tether_opacity = c_property('structure_ribbon_tether_opacity', float32)

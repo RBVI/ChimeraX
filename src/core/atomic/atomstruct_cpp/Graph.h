@@ -85,6 +85,10 @@ public:
     enum TetherShape { RIBBON_TETHER_CONE = 0,
                        RIBBON_TETHER_REVERSE_CONE = 1,
                        RIBBON_TETHER_CYLINDER = 2 };
+    enum RibbonOrientation { RIBBON_ORIENT_DEFAULT = 0,
+                             RIBBON_ORIENT_GUIDES = 1,
+                             RIBBON_ORIENT_ATOMS = 2,
+                             RIBBON_ORIENT_CURVATURE = 3 };
 protected:
     const int  CURRENT_SESSION_VERSION = 1;
 
@@ -107,6 +111,7 @@ protected:
     mutable bool  _recompute_rings;
     Residues  _residues;
     int _ribbon_display_count = 0;
+    RibbonOrientation _ribbon_orientation = RIBBON_ORIENT_DEFAULT;
     bool  _ribbon_show_spine = false;
     float  _ribbon_tether_scale = 1.0;
     TetherShape  _ribbon_tether_shape = RIBBON_TETHER_CONE;
@@ -244,11 +249,13 @@ public:
     float  ribbon_tether_opacity() const { return _ribbon_tether_opacity; }
     bool  ribbon_show_spine() const { return _ribbon_show_spine; }
     int  ribbon_display_count() const { return _ribbon_display_count; }
+    RibbonOrientation  ribbon_orientation() const { return _ribbon_orientation; }
     void  set_ribbon_tether_scale(float s);
     void  set_ribbon_tether_shape(TetherShape ts);
     void  set_ribbon_tether_sides(int s);
     void  set_ribbon_tether_opacity(float o);
     void  set_ribbon_show_spine(bool ss);
+    void  set_ribbon_orientation(RibbonOrientation o);
 };
 
 inline void
@@ -294,6 +301,15 @@ Graph::set_ribbon_show_spine(bool ss) {
     change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_STYLE);
     set_gc_ribbon();
     _ribbon_show_spine = ss;
+}
+
+inline void
+Graph::set_ribbon_orientation(RibbonOrientation o) {
+    if (o == _ribbon_orientation)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_ORIENTATION);
+    set_gc_ribbon();
+    _ribbon_orientation = o;
 }
 
 } //  namespace atomstruct

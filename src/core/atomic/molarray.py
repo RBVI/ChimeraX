@@ -712,7 +712,7 @@ class Residues(Collection):
         '''
         return self._pointers
 
-    def get_polymer_spline(self):
+    def get_polymer_spline(self, orient):
         '''Return a tuple of spline center and guide coordinates for a
 	polymer chain.  Residues in the chain that do not have a center
 	atom will have their display bit turned off.  Center coordinates
@@ -720,9 +720,9 @@ class Residues(Collection):
 	if all spline atoms have matching guide atoms; otherwise, None is
 	returned for guide coordinates.'''
         f = c_function('residue_polymer_spline',
-                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int],
                        ret = ctypes.py_object)
-        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self))
+        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self), orient)
         if atom_pointers is None:
             atoms = None
         else:
@@ -819,6 +819,8 @@ class StructureDatas(Collection):
     '''Returns an array of opacity scale factor for ribbon tethers.'''
     ribbon_show_spines = cvec_property('structure_ribbon_show_spine', npy_bool)
     '''Returns an array of booleans of whether to show ribbon spines.'''
+    ribbon_orientations = cvec_property('structure_ribbon_orientation', int32)
+    '''Returns an array of ribbon orientations.'''
 
 # -----------------------------------------------------------------------------
 #
