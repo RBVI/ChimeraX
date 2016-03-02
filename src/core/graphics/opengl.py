@@ -593,6 +593,9 @@ class Render:
     def flush(self):
         GL.glFlush()
 
+    def finish(self):
+        GL.glFinish()
+
     def draw_front_buffer(self, front):
         GL.glDrawBuffer(GL.GL_FRONT if front else GL.GL_BACK)
 
