@@ -2,11 +2,7 @@
 
 # HelpUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
-# Since ToolInstance derives from core.session.State, which
-# is an abstract base class, ToolUI classes must implement
-#   "take_snapshot" - return current state for saving
-#   "restore_snapshot_init" - restore from given state
-#   "reset_state" - reset to data-less state
+#
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
@@ -27,9 +23,8 @@ class HelpUI(ToolInstance):
     SESSION_ENDURING = False    # default
     SIZE = (500, 500)
 
-    def __init__(self, session, bundle_info, *, restoring=False):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info):
+        ToolInstance.__init__(self, session, bundle_info)
         # 'display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Help UI"
         # in this case), so only override if different name desired
@@ -151,26 +146,6 @@ class HelpUI(ToolInstance):
         url = event.GetURL()
         import webbrowser
         webbrowser.open(url)
-
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        data = {"shown": self.tool_window.shown}
-        return self.bundle_info.session_write_version, data
-
-    @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        return cls.get_singleton(session)
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        self.display(data["shown"])
-
-    def reset_state(self, session):
-        pass
 
     @classmethod
     def get_singleton(cls, session):

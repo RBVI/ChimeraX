@@ -2,11 +2,6 @@
 
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
-# Since ToolInstance derives from core.session.State, which
-# is an abstract base class, ToolUI classes must implement
-#   "take_snapshot" - return current state for saving
-#   "restore_snapshot_init" - restore from given state
-#   "reset_state" - reset to data-less state
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
@@ -18,9 +13,8 @@ class ToolUI(ToolInstance):
     SESSION_ENDURING = False    # default
     SIZE = (500, 25)
 
-    def __init__(self, session, bundle_info, *, restoring=False):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info):
+        ToolInstance.__init__(self, session, bundle_info)
         self.display_name = "STL Inspector"
         self.ti_list = []
         if session.ui.is_gui:
@@ -78,25 +72,17 @@ class ToolUI(ToolInstance):
     # Implement session.State methods if deriving from ToolInstance
     #
     def take_snapshot(self, session, flags):
-        data = [
-            ToolInstance.take_snapshot(self, session, flags),
-            self.tool_window.shown,
-            self.ti_list
-        ]
+        data = {
+            'tool state': ToolInstance.take_snapshot(self, session, flags),
+            'triangles': self.ti_list
+        }
         return self.bundle_info.session_write_version, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        ti_version, ti_data = data[0]
-        ToolInstance.restore_snapshot_init(
-            self, session, bundle_info, ti_version, ti_data)
-        self.__init__(session, bundle_info, restoring=True)
-        self.ti_list = data[2]
+    @staticmethod
+    def restore_snapshot(session, bundle_info, version, data):
+        ti_version, ti_data = data['tool state']
+        tui = ToolUI(session, bundle_info)
+        tui.set_state_from_snapshot(session, bundle_info, ti_version, ti_data)
+        tui.ti_list = data['triangles']
         if session.ui.is_gui:
-            self._make_page()
-            self.display(data[1])
-
-    def reset_state(self, session):
-        pass
+            tui._make_page()

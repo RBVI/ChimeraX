@@ -100,19 +100,3 @@ class FilePanel(ToolInstance):
             # unknown scheme
             event.Veto()
             self.session.logger.error("Unknown URL scheme: '%s'" % url)
-
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        return 1, None
-
-    @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        pass
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        pass
-
-    def reset_state(self, session):
-        pass
