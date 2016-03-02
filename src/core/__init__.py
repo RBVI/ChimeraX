@@ -25,6 +25,7 @@ _class_class_init = {
     'GridDataState': '.map.session',
     'LevelOfDetail': '.atomic.structure',
     'LightingState': '.graphics.gsession',
+    'Map_Series': '.map.series',
     'Model': '.models',
     'Models': '.models',
     'MolecularSurface': '.atomic',
