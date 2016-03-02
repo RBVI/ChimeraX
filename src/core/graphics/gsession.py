@@ -21,9 +21,15 @@ class ViewState(State):
         data['clip_plane_states'] = [ClipPlaneState(cp) for cp in v.clip_planes.planes()]
         return self.version, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, bundle_info, version, data):
         # Restores session.main_view
-        self.view = v = session.main_view
+        vs = ViewState(session.main_view)
+        vs.set_state_from_snapshot(session, version, data)
+        return vs
+
+    def set_state_from_snapshot(self, session, version, data):
+        v = self.view
         for k in self.save_attrs:
             if k in data and k != 'window_size':
                 setattr(v, k, data[k])
@@ -72,15 +78,21 @@ class CameraState(State):
             
         return self.version, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, bundle_info, version, data):
         from .camera import MonoCamera
-        self.camera = c = MonoCamera()
+        cs = CameraState(MonoCamera())
+        cs.set_state_from_snapshot(session, version, data)
+        return cs
+
+    def set_state_from_snapshot(self, session, version, data):
+        c = self.camera
         if data is not None:
             for k,v in data.items():
                 setattr(c, k, v)
 
     def reset_state(self, session):
-        raise NotImplemented()
+        pass
 
 
 class LightingState(State):
@@ -114,14 +126,20 @@ class LightingState(State):
         data = {a:getattr(l,a) for a in self.save_attrs}
         return self.version, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, bundle_info, version, data):
         from . import Lighting
-        self.lighting = l = Lighting()
+        ls = LightingState(Lighting())
+        ls.set_state_from_snapshot(session, version, data)
+        return ls
+
+    def set_state_from_snapshot(self, session, version, data):
+        l = self.lighting
         for k,v in data.items():
             setattr(l, k, v)
 
     def reset_state(self, session):
-        raise NotImplemented()
+        pass
 
 
 class ClipPlaneState(State):
@@ -142,12 +160,13 @@ class ClipPlaneState(State):
         data = {a:getattr(cp,a) for a in self.save_attrs}
         return self.version, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, bundle_info, version, data):
         from . import ClipPlane
-        self.clip_plane = ClipPlane(**data)
+        return ClipPlaneState(ClipPlane(**data))
 
     def reset_state(self, session):
-        raise NotImplemented()
+        pass
 
 
 class DrawingState(State):
@@ -168,16 +187,18 @@ class DrawingState(State):
         data['children'] = [DrawingState(c) for c in d.child_drawings()]
         return self.version, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if not hasattr(self, 'drawing'):
-            from . import Drawing
-            self.drawing = Drawing('')
+    @staticmethod
+    def restore_snapshot(self, session, bundle_info, version, data):
+        ds = DrawingState(Drawing(''))
+        ds.set_state_from_stanpshot(session, bundle_info, version, data)
+        return ds
+
+    def set_state_from_snapshot(self, session, bundle_info, version, data):
         d = self.drawing
         for k,v in data.items():
             setattr(d, k, v)
         for child_state in data['children']:
             d.add_drawing(child_state.drawing)
 
-
     def reset_state(self, session):
-        raise NotImplemented()
+        pass

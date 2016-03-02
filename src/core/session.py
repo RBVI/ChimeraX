@@ -392,7 +392,7 @@ class Session:
         # if tag in self._state_containers:
         #     return
         if not isinstance(container, State) and not hasattr(container, 'clear'):
-            raise ValueError('container must follow State API')
+            raise ValueError('container "%s" of type "%s" does not have State base class and does not have clear method' % (tag, str(type(container))))
         self._state_containers[tag] = container
 
     def get_state_manager(self, tag):
@@ -456,10 +456,7 @@ class Session:
                     if cls is None:
                         continue
                     cls_version, cls_data = data
-                    obj = cls.restore_snapshot_new(self, bundle_info, cls_version, cls_data)
-                    if obj is None:
-                        print (bundle_info, cls_data)
-                    obj.restore_snapshot_init(self, bundle_info, cls_version, cls_data)
+                    obj = cls.restore_snapshot(self, bundle_info, cls_version, cls_data)
                     mgr.add_reference(name, obj)
         except:
             import traceback

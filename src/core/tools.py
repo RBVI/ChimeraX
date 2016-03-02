@@ -79,15 +79,38 @@ class ToolInstance(State):
         session.tools.add([self])
 
     def take_snapshot(self, session, flags):
-        return CORE_STATE_VERSION, [self.id, self.bundle_info.name]
+        data = {'id':self.id,
+                'name':self.bundle_info.name}
+        if hasattr(self, 'tool_window'):
+            data['shown'] = self.tool_window.shown
+        return CORE_STATE_VERSION, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        id, tool_name = data
-        bundle_info = session.toolshed.find_bundle(tool_name)
+    @classmethod
+    def restore_snapshot(cls, session, bundle_info, version, data):
+        if version not in bundle_info.session_versions:
+            from chimerax.core.state import RestoreError
+            raise RestoreError('unexpected version restoring tool "%s", got %d, expected %s'
+                               % (cls.__name__, version,
+                                  ', '.join(str(v) for v in bundle_info.session_versions)))
+        bundle_info = session.toolshed.find_bundle(data['name'])
         if bundle_info is None:
-            session.logger.info('unable to find tool "%s"' % tool_name)
-            return
-        ToolInstance.__init__(self, session, bundle_info, id=id)
+            session.logger.info('unable to find tool "%s"' % data['name'])
+            return None
+        if hasattr(cls, 'get_singleton'):
+            ti = cls.get_singleton(session)
+        else:
+            ti = cls(session, bundle_info)
+        if ti:
+            ti.set_state_from_snapshot(session, bundle_info, version, data)
+        return ti
+                            
+    def set_state_from_snapshot(self, session, bundle_info, version, data):
+        self.id = data['id']
+        if 'shown' in data:
+            self.display(data['shown'])
+
+    def reset_state(self, session):
+        pass
 
     @property
     def session(self):
@@ -192,22 +215,18 @@ class Tools(State):
             more details.
 
         """
-        data = {}
+        tmap = {}
         for tid, tool_inst in self._tool_instances.items():
             assert(isinstance(tool_inst, ToolInstance))
             if tool_inst.SESSION_SKIP:
                 continue
-            data[tid] = tool_inst
-        return CORE_STATE_VERSION, [data, next(self._id_counter)]
+            tmap[tid] = tool_inst
+        data = {'tools': tmap,
+                'next id': next(self._id_counter)}
+        return CORE_STATE_VERSION, data
 
-    @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        try:
-            return session.tools
-        except AttributeError:
-            return cls.__new__(cls)
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, bundle_info, version, data):
         """Restore state of running tools.
 
         Overrides chimerax.core.session.State default method to restore
@@ -226,10 +245,11 @@ class Tools(State):
             Data saved by state manager during `take_snapshot`.
 
         """
-        self.__init__(session)
-        self._tool_instances.update(data[0])
+        t = session.tools
+        t._tool_instances.update(data['tools'])
         import itertools
-        self._id_counter = itertools.count(data[1])
+        t._id_counter = itertools.count(data['next id'])
+        return t
 
 
     def reset_state(self, session):

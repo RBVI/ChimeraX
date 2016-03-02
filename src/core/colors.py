@@ -32,9 +32,11 @@ class UserColors(SortedDict, State):
                 if name not in BuiltinColors or color != BuiltinColors[name]}
         return CORE_STATE_VERSION, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        self.__init__()
-        self.update(data)
+    @classmethod
+    def restore_snapshot(cls, session, bundle_info, version, data):
+        c = UserColors()
+        c.update(data)
+        return c
 
     def reset_state(self, session):
         """Reset state to data-less state"""
@@ -148,11 +150,12 @@ class Color(State):
         return not numpy.array_equal(self.rgba, other.rgba)
 
     def take_snapshot(self, session, flags):
-        data = self.rgba
+        data = {'rgba': self.rgba}
         return CORE_STATE_VERSION, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        self.__init__(data, limit=False)
+    @classmethod
+    def restore_snapshot(cls, session, bundle_info, version, data):
+        return Color(data['rgba'], limit=False)
 
     def reset_state(self, session):
         pass
@@ -190,9 +193,11 @@ class UserColormaps(SortedDict, State):
     def take_snapshot(self, session, flags):
         return CORE_STATE_VERSION, dict(self)
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        self.__init__()
-        self.update(data)
+    @classmethod
+    def restore_snapshot(cls, session, bundle_info, version, data):
+        c = UserColormaps()
+        c.update(data)
+        return c
 
     def reset_state(self, session):
         """Reset state to data-less state"""

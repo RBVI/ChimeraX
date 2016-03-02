@@ -2,7 +2,6 @@
 from .. import io
 from ..models import Model
 from ..state import State
-from ..session import RestoreError
 from .molobject import AtomicStructureData, GraphData
 
 CATEGORY = io.STRUCTURE
@@ -39,24 +38,11 @@ class StructureGraphBase(Model):
             #'_ribbon_selected_residues': Residues(),
         }
 
-        if restore_data:
-            # from session
-            (tool_info, version, as_data) = restore_data
-            model_data, c_data, python_data = as_data
-            #
-            # Model will attempt to restore self.name, which is a property of the C++
-            # layer for an AtomicStructure, so initialize AtomicStructureData first...
-            self.DATA_BASE_CLASS.restore_snapshot_init(self, session, tool_info, *c_data)
-            for attr_name, default_val in self._session_attrs.items():
-                setattr(self, attr_name, python_data.get(attr_name, default_val))
-            Model.restore_snapshot_init(self, session, tool_info, *model_data)
-            self._smart_initial_display = False
-        else:
-            self.DATA_BASE_CLASS.__init__(self, c_pointer)
-            for attr_name, val in self._session_attrs.items():
-                setattr(self, attr_name, val)
-            Model.__init__(self, name, session)
-            self._smart_initial_display = smart_initial_display
+        self.DATA_BASE_CLASS.__init__(self, c_pointer)
+        for attr_name, val in self._session_attrs.items():
+            setattr(self, attr_name, val)
+        Model.__init__(self, name, session)
+        self._smart_initial_display = smart_initial_display
 
         # for now, restore attrs to default initial values even for sessions...
         self._deleted = False
@@ -84,18 +70,21 @@ class StructureGraphBase(Model):
         molobject.add_to_object_map(self)
 
         self._ses_handlers = []
+        t = self.session.triggers
         for ses_func, trig_name in [("save_setup", "begin save session"),
                 ("save_teardown", "end save session")]:
-            self._ses_handlers.append(self.session.triggers.add_handler(trig_name,
+            self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
+
         self._make_drawing()
 
     def delete(self):
         '''Delete this structure.'''
         self._deleted = True
         self.DATA_BASE_CLASS.delete(self)
+        t = self.session.triggers
         for handler in self._ses_handlers:
-            self.session.triggers.delete_handler(handler)
+            t.delete_handler(handler)
         Model.delete(self)
 
     def deleted(self):
@@ -191,15 +180,30 @@ class StructureGraphBase(Model):
         session.triggers.delete_handler(self.handler)
 
     def take_snapshot(self, session, flags):
+        data = {'model state': Model.take_snapshot(self, session, flags),
+                'base state': self.DATA_BASE_CLASS.take_snapshot(self, session, flags)}
+        for attr_name in self._session_attrs.keys():
+            data[attr_name] = getattr(self, attr_name)
         from ..state import CORE_STATE_VERSION
-        return CORE_STATE_VERSION, [
-            Model.take_snapshot(self, session, flags),
-            self.DATA_BASE_CLASS.take_snapshot(self, session, flags),
-            { attr_name: getattr(self, attr_name) for attr_name in self._session_attrs.keys() }
-        ]
+        return CORE_STATE_VERSION, data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        self.__class__.__init__(self, session, restore_data=(tool_info, version, data))
+    @staticmethod
+    def restore_snapshot(cls, session, tool_info, version, data):
+        s = cls(session, smart_initial_display = False)
+
+        # Model restores self.name, which is a property of the C++ AtomicStructureData
+        # so initialize AtomicStructureData first.
+        cls.DATA_BASE_CLASS.set_state_from_snapshot(s, session, *data['base state'])
+        Model.set_state_from_snapshot(s, *data['model state'])
+
+        for attr_name, default_val in s._session_attrs.items():
+            setattr(s, attr_name, data.get(attr_name, default_val))
+
+        # TODO: For some reason ribbon drawing does not update automatically.
+        s._gc_ribbon = True
+        s._gc_shape = True	# TODO: Also marker atoms do not draw without this.
+
+        return s
 
     def reset_state(self, session):
         pass
@@ -460,7 +464,7 @@ class StructureGraphBase(Model):
 
             # First residues
             if displays[0]:
-                print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
+#                print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
                 xss_compat = self._xss_compatible(xss[0], xss[1])
                 capped = displays[0] != displays[1] or not xss_compat
                 seg = capped and seg_cap or seg_blend
@@ -498,7 +502,7 @@ class StructureGraphBase(Model):
             for i in range(1, len(residues) - 1):
                 if not displays[i]:
                     continue
-                print(strs[i], file=sys.__stderr__); sys.__stderr__.flush()
+#                print(strs[i], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg)
                 if self.ribbon_show_spine:
@@ -541,7 +545,7 @@ class StructureGraphBase(Model):
                 t_start = t_end
             # Last residue
             if displays[-1]:
-                print(strs[-1], file=sys.__stderr__); sys.__stderr__.flush()
+#                print(strs[-1], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg)
                 back_c, back_t, back_n = ribbon.trail_segment(seg_cap / 2)
@@ -1235,24 +1239,28 @@ class AtomicStructure(AtomicStructureData, StructureGraphBase):
 
     __init__ = StructureGraphBase.__init__
     take_snapshot = StructureGraphBase.take_snapshot
-    restore_snapshot_init = StructureGraphBase.restore_snapshot_init
+    @classmethod
+    def restore_snapshot(cls, session, tool_info, version, data):
+        return StructureGraphBase.restore_snapshot(cls, session, tool_info, version, data)
 
 class Graph(GraphData, StructureGraphBase):
     DATA_BASE_CLASS = GraphData
 
     __init__ = StructureGraphBase.__init__
     take_snapshot = StructureGraphBase.take_snapshot
-    restore_snapshot_init = StructureGraphBase.restore_snapshot_init
+    @classmethod
+    def restore_snapshot(cls, session, tool_info, version, data):
+        return StructureGraphBase.restore_snapshot(cls, session, tool_info, version, data)
 
 # -----------------------------------------------------------------------------
 #
 class LevelOfDetail(State):
 
     def __init__(self, restore_data=None):
-        if restore_data is not None:
-            self.quality = restore_data[0]
-        else:
-            self.quality = 1
+        # if restore_data is not None:
+        #     self.quality = restore_data[0]
+        # else:
+        self.quality = 1
 
         self._atom_min_triangles = 10
         self._atom_max_triangles = 400
@@ -1268,10 +1276,13 @@ class LevelOfDetail(State):
         self._ribbon_divisions = 20
 
     def take_snapshot(self, session, flags):
-        return 1, [self.quality]
+        return 1, {'quality': self.quality}
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        self.__init__(restore_data=data)
+    @classmethod
+    def restore_snapshot(cls, session, tool_info, version, data):
+        lod = LevelOfDetail()
+        lod.quality = data['quality']
+        return lod
 
     def reset_state(self):
         self.quality = 1

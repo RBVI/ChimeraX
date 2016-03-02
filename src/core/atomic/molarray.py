@@ -210,17 +210,20 @@ class Collection(State):
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
 
     STATE_VERSION = 1
-    def reset_state(self, session):
-        self._pointers = numpy.empty((0,), cptr)
-    def restore_snapshot_init(self, session, bundle_info, version, ptr_data):
-        if version > self.STATE_VERSION:
-            raise ValueError("Don't know how to restore Collections from this session"
-                " (session version [{}] > code version [{}]);"
-                " update your ChimeraX".format(version, self.STATE_VERSION))
-        self.__init__(self.session_restore_pointers(session, ptr_data))
     def take_snapshot(self, session, flags):
         return self.STATE_VERSION, self.session_save_pointers(session)
-    def session_restore_pointers(self, session, data):
+    @classmethod
+    def restore_snapshot(cls, session, bundle_info, version, ptr_data):
+        if version > cls.STATE_VERSION:
+            raise ValueError("Don't know how to restore Collections from this session"
+                             " (session version [{}] > code version [{}]);"
+                             " update your ChimeraX".format(version, self.STATE_VERSION))
+        c_pointers = cls.session_restore_pointers(session, ptr_data)
+        return cls(c_pointers)
+    def reset_state(self, session):
+        self._pointers = numpy.empty((0,), cptr)
+    @classmethod
+    def session_restore_pointers(cls, session, data):
         raise NotImplementedError(
             self.__class__.__name__ + " has not implemented session_restore_pointers")
     def session_save_pointers(self, session):
@@ -409,13 +412,14 @@ class Atoms(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
-    def session_restore_pointers(self, session, data):
-        structures, ids = data
-        return array([s.session_id_to_atom(i) for s, i in zip(structures, ids)])
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        structures, atom_ids = data
+        return array([s.session_id_to_atom(i) for s, i in zip(structures, atom_ids)])
     def session_save_pointers(self, session):
         structures = self.structures
-        return [structures, array([s.session_atom_to_id(ptr)
-                                            for s, ptr in zip(structures, self._c_pointers)])]
+        atom_ids = [s.session_atom_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
+        return [structures, array(atom_ids)]
 
 # -----------------------------------------------------------------------------
 #
@@ -488,13 +492,14 @@ class Bonds(Collection):
         f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
 
-    def session_restore_pointers(self, session, data):
-        structures, ids = data
-        return array([s.session_id_to_bond(i) for s, i in zip(structures, ids)])
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        structures, bond_ids = data
+        return array([s.session_id_to_bond(i) for s, i in zip(structures, bond_ids)])
     def session_save_pointers(self, session):
         structures = self.structures
-        return [structures, array([s.session_bond_to_id(ptr)
-                                            for s, ptr in zip(structures, self._c_pointers)])]
+        bond_ids = [s.session_bond_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
+        return [structures, array(bond_ids)]
 
 # -----------------------------------------------------------------------------
 #
@@ -531,7 +536,8 @@ class Elements(Collection):
     valences = cvec_property('element_valence', uint8, read_only = True)
     '''Returns a :mod:`numpy` array of atomic valence numbers (integers). Read only.'''
 
-    def session_restore_pointers(self, session, data):
+    @classmethod
+    def session_restore_pointers(cls, session, data):
         f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
         return [f(en) for en in data]
     def session_save_pointers(self, session):
@@ -752,13 +758,14 @@ class Chains(Collection):
     num_residues = cvec_property('chain_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
 
-    def session_restore_pointers(self, session, data):
-        structures, ids = data
-        return array([s.session_id_to_chain(i) for s, i in zip(structures, ids)])
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        structures, chain_ses_ids = data
+        return array([s.session_id_to_chain(i) for s, i in zip(structures, chain_ses_ids)])
     def session_save_pointers(self, session):
         structures = self.structures
-        return [structures, array([s.session_chain_to_id(ptr)
-                                            for s, ptr in zip(structures, self._c_pointers)])]
+        chain_ses_ids = [s.session_chain_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
+        return [structures, array(chain_ses_ids)]
 
 # -----------------------------------------------------------------------------
 #
@@ -824,7 +831,8 @@ class AtomicStructures(AtomicStructureDatas):
         from . import structure
         Collection.__init__(self, mol_pointers, structure.AtomicStructure, AtomicStructures)
 
-    def session_restore_pointers(self, session, data):
+    @classmethod
+    def session_restore_pointers(cls, session, data):
         return array([s._c_pointer.value for s in data])
     def session_save_pointers(self, session):
         return [s for s in self]

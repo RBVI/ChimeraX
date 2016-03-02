@@ -106,13 +106,16 @@ class PseudobondGroup(PseudobondGroupData, Model):
         return p
 
     def take_snapshot(self, session, flags):
+        # TODO: Save the state.
         data = {}
-        return data
+        return self.STRUCTURE_STATE_VERSION, data
 
-    def restore_snapshot(self, phase, session, version, data):
+    @classmethod
+    def restore_snapshot(cls, phase, session, version, data):
         if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
             raise RestoreError("Unexpected version or data")
-
+        # TODO: Restore state.
+    
     def reset_state(self, session):
         pass
 

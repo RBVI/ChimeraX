@@ -171,6 +171,7 @@ class OpalJob(Job):
 
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped."""
+        # TODO: Needs rewriting using current session API.
         data = [
             self.service_url,
             self.job_id,
@@ -191,6 +192,7 @@ class OpalJob(Job):
         second phase should restore references to other objects (data is None).
         The session instance is used to convert unique ids into instances.
         """
+        # TODO: Needs rewriting using current session API.
         if phase != self.CREATE_PHASE:
             return
         if version == 1:

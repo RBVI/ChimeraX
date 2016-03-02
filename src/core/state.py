@@ -46,17 +46,13 @@ class State(metaclass=abc.ABCMeta):
         return version, data
 
     @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        """Restore data snapshot into instance.
-
-        Named instances in data will have been replaced with actual instance.
-        """
-        return cls.__new__(cls)
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    def restore_snapshot(cls, session, bundle_info, version, data):
+        """Create object using snapshot data."""
+        obj = cls()
         obj.__dict__ = data
         if obj.bundle_info is None:
             obj.bundle_info = bundle_info
+        return obj
 
     @abc.abstractmethod
     def reset_state(self, session):

@@ -1846,12 +1846,14 @@ class Volume(Model):
     }
     return CORE_STATE_VERSION, data
 
-  def restore_snapshot_init(self, session, tool_info, version, data):
-    Model.restore_snapshot_init(self, session, tool_info, *data['model state'])
+  @staticmethod
+  def restore_snapshot(session, tool_info, version, data):
     grid_data = data['grid data'].grid_data
-    Volume.__init__(self, grid_data, session)
+    v = Volume(grid_data, session)
+    Model.set_state_from_snapshot(v, *data['model state'])
     from .session import set_map_state
-    set_map_state(data['volume state'], self)
+    set_map_state(data['volume state'], v)
+    return v
 
   def reset_state(self, session):
     pass

@@ -187,10 +187,12 @@ class NamedViewState(State):
         data = {a:getattr(nv,a) for a in self.save_attrs}
         return self.version, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        self.named_view = nv = _View.__new__(_View)
+    @classmethod
+    def restore_snapshot(cls, session, bundle_info, version, data):
+        nv = _View.__new__(_View)
         for k,v in data.items():
             setattr(nv, k, v)
+        return NamedViewState(nv)
 
     def reset_state(self, session):
         raise NotImplemented()
@@ -202,15 +204,17 @@ class NamedViewsState(State):
         data = {name:NamedViewState(nv) for name,nv in _named_views(session).items()}
         return self.version, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    @classmethod
+    def restore_snapshot(cls, session, bundle_info, version, data):
         nvs = _named_views(session)
         nvs.clear()
         for name,nvstate in data.items():
             nvs[name] = nvstate.named_view
+        return nvs
 
     def reset_state(self, session):
-        raise NotImplemented()
-
+        nvs = _named_views(session)
+        nvs.clear()
 
 class _InterpolateViews:
     def __init__(self, v1, v2, frames, session):

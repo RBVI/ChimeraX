@@ -192,5 +192,5 @@ class _Input(Task):
     def take_snapshot(self, session, flags):
         return
 
-    def restore_snapshot(self, phase, session, version, data):
+    def restore_snapshot(self, session, bundle_info, version, data):
         pass

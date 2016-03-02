@@ -324,15 +324,9 @@ class PseudobondManager(State):
             obj_map[ses_id] = object_map(ptr, None)
         return version, (retvals, obj_map)
 
-    def reset_state(self, session):
-        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
-        f(self._c_pointer)
-
     @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        return session.pb_manager
-
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    def restore_snapshot(cls, session, tool_info, version, data):
+        pbm = session.pb_manager
         mgr_data, structure_mapping = data
         # restore the int->structure mapping the pseudobonds use...
         ptr_mapping = {}
@@ -340,12 +334,17 @@ class PseudobondManager(State):
             ptr_mapping[ses_id] = structure._c_pointer.value
         f = c_function('pseudobond_global_manager_session_restore_structure_mapping',
                        args = (ctypes.c_void_p, ctypes.py_object))
-        f(self._c_pointer, ptr_mapping)
+        f(pbm._c_pointer, ptr_mapping)
         ints, floats, misc = mgr_data
         f = c_function('pseudobond_global_manager_session_restore',
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        f(self._c_pointer, version, ints, floats, misc)
+        f(pbm._c_pointer, version, ints, floats, misc)
+        return pbm
+
+    def reset_state(self, session):
+        f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
+        f(self._c_pointer)
 
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -465,22 +464,11 @@ class Chain(Sequence):
 # -----------------------------------------------------------------------------
 #
 class GraphData:
-    def __init__(self, mol_pointer=None, logger=None, restore_data=None):
+    def __init__(self, mol_pointer=None, logger=None):
         if mol_pointer is None:
             # Create a new graph
             mol_pointer = c_function('graph_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
-
-        if restore_data:
-            '''Restore from session info'''
-            self._ses_call("restore_setup")
-            session, version, data = restore_data
-            ints, floats, misc = data
-            f = c_function('structure_session_restore',
-                    args = (ctypes.c_void_p, ctypes.c_int,
-                            ctypes.py_object, ctypes.py_object, ctypes.py_object))
-            f(self._c_pointer, version, ints, floats, misc)
-            session.triggers.add_handler("end restore session", self._ses_restore_teardown)
 
     def delete(self):
         '''Deletes the C++ data for this atomic structure.'''
@@ -582,9 +570,21 @@ class GraphData:
         from .pbgroup import PseudobondGroup
         return object_map(pbg, PseudobondGroup)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        GraphData.__init__(self, logger=session.logger,
-            restore_data=(session, version, data))
+    @classmethod
+    def restore_snapshot(cls, session, tool_info, version, data):
+        g = GraphData(logger=session.logger)
+        g.set_state_from_snapshot(session, version, data)
+        return g
+
+    def set_state_from_snapshot(self, session, version, data):
+        '''Restore from session info'''
+        self._ses_call("restore_setup")
+        ints, floats, misc = data
+        f = c_function('structure_session_restore',
+                args = (ctypes.c_void_p, ctypes.c_int,
+                        ctypes.py_object, ctypes.py_object, ctypes.py_object))
+        f(self._c_pointer, version, ints, floats, misc)
+        session.triggers.add_handler("end restore session", self._ses_restore_teardown)
 
     def session_atom_to_id(self, ptr):
         '''Map Atom pointer to session ID'''
@@ -649,16 +649,15 @@ class AtomicStructureData(GraphData):
     This base class manages the atomic data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
-    def __init__(self, mol_pointer=None, logger=None, restore_data=None):
+    def __init__(self, mol_pointer=None, logger=None):
         if mol_pointer is None:
             # Create a new atomic structure
             mol_pointer = c_function('structure_new', args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
-        GraphData.__init__(self, mol_pointer=mol_pointer, logger=logger, restore_data=restore_data)
+        GraphData.__init__(self, mol_pointer=mol_pointer, logger=logger)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        AtomicStructureData.__init__(self, logger=session.logger,
-            restore_data=(session, version, data))
-
+    def set_state_from_snapshot(self, session, version, data):
+        GraphData.set_state_from_snapshot(self, session, version, data)
+        
 # -----------------------------------------------------------------------------
 #
 class ChangeTracker:

@@ -363,14 +363,8 @@ class Tasks(State):
         # TODO: self._id_counter?
         return CORE_STATE_VERSION, data
 
-    @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        try:
-            return session.tasks
-        except AttributeError:
-            return cls.__new__(cls)
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, bundle_info, version, data):
         """Restore state of running tasks.
 
         Overrides :py:class:`~chimerax.core.session.State` default method to
@@ -389,10 +383,11 @@ class Tasks(State):
             Data saved by state manager during :py:meth:`take_snapshot`.
 
         """
-        self.__init__(session)
+        t = session.tasks
         for tid, task in data.items():
-            self._tasks[tid] = task
-        # TODO: self._id_counter?
+            t._tasks[tid] = task
+        # TODO: t._id_counter?
+        return t
 
     def reset_state(self, session):
         """Reset state manager to default state.
