@@ -157,7 +157,7 @@ class GridDataState(State):
     return data
 
   @staticmethod
-  def restore_snapshot(session, tool_info, data):
+  def restore_snapshot(session, data):
     gdcache = {}        # (path, grid_id) -> Grid_Data object
     class FilePaths:
       def find(self, path, ask = False):

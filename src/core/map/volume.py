@@ -1848,7 +1848,7 @@ class Volume(Model):
     return data
 
   @staticmethod
-  def restore_snapshot(session, tool_info, data):
+  def restore_snapshot(session, data):
     grid_data = data['grid data'].grid_data
     v = Volume(grid_data, session)
     Model.set_state_from_snapshot(v, session, data['model state'])

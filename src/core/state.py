@@ -40,18 +40,19 @@ class State(metaclass=abc.ABCMeta):
         Named objects are later converted to unique names. 
         """
         data = self.vars().copy()
+        data['bundle name'] = self.bundle_info.name
         data['version'] = self.bundle_info.state_version
         if 'bundle_info' in data:
             del data['bundle_info']
         return data
 
     @classmethod
-    def restore_snapshot(cls, session, bundle_info, data):
+    def restore_snapshot(cls, session, data):
         """Create object using snapshot data."""
         obj = cls()
         obj.__dict__ = data
         if obj.bundle_info is None:
-            obj.bundle_info = bundle_info
+            obj.bundle_info = session.toolshed.find_bundle(data['bundle name'])
         return obj
 
     @abc.abstractmethod

@@ -19,7 +19,7 @@ class Generic3DModel(Model):
         return data
 
     @classmethod
-    def restore_snapshot(cls, session, bundle_info, data):
+    def restore_snapshot(cls, session, data):
         m = cls('name', session)
         m.set_state_from_snapshot(session, data['model state'])
         from .graphics.gsession import DrawingState

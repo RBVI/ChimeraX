@@ -189,7 +189,7 @@ class NamedViewState(State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         nv = _View.__new__(_View)
         for k,v in data['view attrs'].items():
             setattr(nv, k, v)
@@ -207,7 +207,7 @@ class NamedViewsState(State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         nvs = _named_views(session)
         nvs.clear()
         for name,nvstate in data['views'].items():

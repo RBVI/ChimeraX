@@ -94,7 +94,7 @@ class Model(State, Drawing):
         return data
 
     @classmethod
-    def restore_snapshot(cls, session, bundle_info, data):
+    def restore_snapshot(cls, session, data):
         if cls is Model and data['id'] is ():
             return session.models.drawing
         # TODO: Could call the cls constructor here to handle a derived class,
@@ -152,7 +152,7 @@ class Models(State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         m = session.models
         for id, model in data['models'].items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file

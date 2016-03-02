@@ -111,7 +111,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         if data['version'] != self.STRUCTURE_STATE_VERSION or len(data) > 1:
             raise RestoreError("Unexpected version or data")
         # TODO: Restore state.

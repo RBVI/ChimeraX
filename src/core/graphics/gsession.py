@@ -23,7 +23,7 @@ class ViewState(State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         # Restores session.main_view
         vs = ViewState(session.main_view)
         vs.set_state_from_snapshot(session, data)
@@ -80,7 +80,7 @@ class CameraState(State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         from .camera import MonoCamera
         cs = CameraState(MonoCamera())
         cs.set_state_from_snapshot(session, data)
@@ -130,7 +130,7 @@ class LightingState(State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         from . import Lighting
         ls = LightingState(Lighting())
         ls.set_state_from_snapshot(session, data)
@@ -166,7 +166,7 @@ class ClipPlaneState(State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         from . import ClipPlane
         cp = ClipPlane(data['name'], data['normal'], data['plane_point'], data['camera_normal'])
         return ClipPlaneState(cp)
@@ -195,7 +195,7 @@ class DrawingState(State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         ds = DrawingState(Drawing(''))
         ds.set_state_from_stanpshot(session, data)
         return ds

@@ -455,7 +455,7 @@ class Session:
                     bundle_info, cls = name.bundle_info_and_class_of(self)
                     if cls is None:
                         continue
-                    obj = cls.restore_snapshot(self, bundle_info, data)
+                    obj = cls.restore_snapshot(self, data)
                     mgr.add_reference(name, obj)
         except:
             import traceback

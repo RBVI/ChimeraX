@@ -187,7 +187,7 @@ class Graph(Model, StructureData):
         return data
 
     @classmethod
-    def restore_snapshot(cls, session, tool_info, data):
+    def restore_snapshot(cls, session, data):
         s = cls(session, smart_initial_display = False)
 
         # Model restores self.name, which is a property of the C++ StructureData
@@ -1275,7 +1275,7 @@ class LevelOfDetail(State):
                 'version': 1}
 
     @staticmethod
-    def restore_snapshot(session, tool_info, data):
+    def restore_snapshot(session, data):
         lod = LevelOfDetail()
         lod.quality = data['quality']
         return lod

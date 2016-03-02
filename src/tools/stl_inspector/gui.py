@@ -73,6 +73,7 @@ class ToolUI(ToolInstance):
     #
     def take_snapshot(self, session, flags):
         data = {
+            'name': self.bundle_info.name,
             'tool state': ToolInstance.take_snapshot(self, session, flags),
             'triangles': self.ti_list,
             'version': self.bundle_info.session_write_version,
@@ -80,7 +81,8 @@ class ToolUI(ToolInstance):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
+        bundle_info = session.toolshed.find_bundle(data['name'])
         tui = ToolUI(session, bundle_info)
         tui.set_state_from_snapshot(session, data['tool state'])
         tui.ti_list = data['triangles']

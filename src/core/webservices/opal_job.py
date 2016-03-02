@@ -178,7 +178,7 @@ class OpalJob(Job):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         """Restore data snapshot creating instance."""
         j = OpalJob.__new__(OpalJob)
         for a in self.save_attrs:

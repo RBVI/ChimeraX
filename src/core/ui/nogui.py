@@ -193,5 +193,5 @@ class _Input(Task):
         return
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         pass

@@ -298,7 +298,7 @@ class MolecularSurface(Model):
         return data
 
     @staticmethod
-    def restore_snapshot(session, tool_info, data):
+    def restore_snapshot(session, data):
         d = data
         s = MolecularSurface(session, d['atoms'], d['show_atoms'],
                              d['probe_radius'], d['grid_spacing'], d['resolution'],

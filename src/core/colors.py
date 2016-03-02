@@ -35,7 +35,7 @@ class UserColors(SortedDict, State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         c = UserColors()
         c.update(data['colors'])
         return c
@@ -155,8 +155,8 @@ class Color(State):
         data = {'rgba': self.rgba}
         return CORE_STATE_VERSION, data
 
-    @classmethod
-    def restore_snapshot(cls, session, bundle_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, data):
         return Color(data['rgba'], limit=False)
 
     def reset_state(self, session):
@@ -198,7 +198,7 @@ class UserColormaps(SortedDict, State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         c = UserColormaps()
         c.update(data['colormaps'])
         return c

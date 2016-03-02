@@ -214,7 +214,7 @@ class Collection(State):
         return {'version': self.STATE_VERSION,
                 'pointers': self.session_save_pointers(session)}
     @classmethod
-    def restore_snapshot(cls, session, bundle_info, data):
+    def restore_snapshot(cls, session, data):
         if data['version'] > cls.STATE_VERSION:
             raise ValueError("Don't know how to restore Collections from this session"
                              " (session version [{}] > code version [{}]);"

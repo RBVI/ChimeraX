@@ -366,7 +366,7 @@ class Tasks(State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, bundle_info, data):
+    def restore_snapshot(session, data):
         """Restore state of running tasks.
 
         Overrides :py:class:`~chimerax.core.session.State` default method to
@@ -377,7 +377,6 @@ class Tasks(State):
         session : instance of :py:class:`~chimerax.core.session.Session`
             Session for which state is being saved.
             Should match the ``session`` argument given to ``__init__``.
-        bundle_info : instance of :py:class:`~chimerax.core.toolshed.BundleInfo`
         data : any
             Data saved by state manager during :py:meth:`take_snapshot`.
 

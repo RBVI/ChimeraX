@@ -328,7 +328,7 @@ class PseudobondManager(State):
         return data
 
     @staticmethod
-    def restore_snapshot(session, tool_info, data):
+    def restore_snapshot(session, data):
         pbm = session.pb_manager
         # restore the int->structure mapping the pseudobonds use...
         ptr_mapping = {}
@@ -580,7 +580,7 @@ class StructureData:
         return object_map(pbg, PseudobondGroup)
 
     @classmethod
-    def restore_snapshot(cls, session, tool_info, data):
+    def restore_snapshot(cls, session, data):
         g = StructureData(logger=session.logger)
         g.set_state_from_snapshot(session, data)
         return g

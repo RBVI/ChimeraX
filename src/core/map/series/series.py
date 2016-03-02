@@ -131,7 +131,7 @@ class Map_Series(Model):
     return data
 
   @staticmethod
-  def restore_snapshot(session, bundle_info, data):
+  def restore_snapshot(session, data):
     maps = []
     s = Map_Series('series', maps, session)
     Model.set_state_from_snapshot(s, session, data['model state'])
