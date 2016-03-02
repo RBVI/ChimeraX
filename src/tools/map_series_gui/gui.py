@@ -8,20 +8,13 @@ from chimerax.core.tools import ToolInstance
 class MapSeries(ToolInstance):
 
     SIZE = (500, 25)
+    SESSION_SKIP = True
 
-    def __init__(self, session, bundle_info, *, restoring=False, series=None):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info, *, series=[]):
+        ToolInstance.__init__(self, session, bundle_info)
 
         self.series = series
         self.playing = False
-
-        if series is None:
-            n = 1
-        else:
-            n = max(ser.number_of_times() for ser in series)
-            # sname = (', '.join('#%d' % ser.id for ser in series) +
-            #          (' length %d' % n))
 
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
         from chimerax.core.ui.gui import MainToolWindow
@@ -35,16 +28,15 @@ class MapSeries(ToolInstance):
 
         import wx
         label = wx.StaticText(parent, label="Time")
-        self.time = tt = wx.SpinCtrl(parent, max=n - 1, size=(50, -1))
+        self._slider_max = n = max((ser.number_of_times() for ser in series), default = 0)
+        self.time = tt = wx.SpinCtrl(parent, max=max(0,n-1), size=(50, -1))
         tt.Bind(wx.EVT_SPINCTRL, self.time_changed_cb)
-        self.slider = sl = wx.Slider(parent, value=0, minValue=0,
-                                     maxValue=n - 1)
+        self.slider = sl = wx.Slider(parent, value=0, minValue=0, maxValue=max(0,n-1))
         sl.Bind(wx.EVT_SLIDER, self.slider_moved_cb)
         self.play_button = pb = wx.ToggleButton(parent, style=wx.BU_EXACTFIT)
         self.set_play_button_icon(play=True)
         pb.Bind(wx.EVT_TOGGLEBUTTON, self.play_cb)
-        self.subsample_button = x2 = wx.ToggleButton(parent,
-                                                     style=wx.BU_EXACTFIT)
+        self.subsample_button = x2 = wx.ToggleButton(parent, style=wx.BU_EXACTFIT)
         from os.path import dirname, join
         hbm = wx.Bitmap(join(dirname(__file__), 'half.png'))
         x2.SetBitmap(hbm)
@@ -71,11 +63,13 @@ class MapSeries(ToolInstance):
         self.tool_window.shown = False
 
     def time_changed_cb(self, event):
+        self.update_slider_range()
         t = self.time.GetValue()
         self.slider.SetValue(t)
         self.update_time(t)
 
     def slider_moved_cb(self, event):
+        self.update_slider_range()
         t = self.slider.GetValue()
         self.time.SetValue(t)
         self.update_time(t)
@@ -105,6 +99,7 @@ class MapSeries(ToolInstance):
         p = vseries_play(self.session, self.series, start=t, loop=True, cache_frames=n)
 
         def update_slider(t, self=self):
+            self.update_slider_range()
             self.slider.SetValue(t)
             self.time.SetValue(t)
         p.time_step_cb = update_slider
@@ -143,45 +138,24 @@ class MapSeries(ToolInstance):
     def set_series(self, series):
         # TODO: use this in session restore
         self.stop()
-        if series is None:
-            n = 1
-        else:
-            n = max(ser.number_of_times() for ser in series)
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
         self.series = series
-        self.time.SetRange(0, n - 1)
-        self.slider.SetMax(n - 1)
+        self.update_slider_range()
 
-    #
-    # Override ToolInstance methods
-    #
+    def update_slider_range(self):
+        n = max((ser.number_of_times() for ser in self.series), default = 0)
+        if n == self._slider_max:
+            return
+        self._slider_max = n
+        maxt = max(0,n-1)
+        self.time.SetRange(0, maxt)
+        self.slider.SetMax(maxt)
+
+    # Override ToolInstance method
     def delete(self):
         s = self.session
         s.triggers.delete_handler(self.model_close_handler)
         super().delete()
-
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        data = {
-            "ti": ToolInstance.take_snapshot(self, session, flags),
-            "shown": self.tool_window.shown
-        }
-        return self.bundle_info.session_write_version, data
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        ti_version, ti_data = data["ti"]
-        ToolInstance.restore_snapshot_init(
-            self, session, bundle_info, ti_version, ti_data)
-        self.__init__(session, bundle_info, restoring=True)
-        self.display(data["shown"])
-
-    def reset_state(self, session):
-        pass
 
 
 def show_slider_on_open(session):
