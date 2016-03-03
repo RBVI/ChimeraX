@@ -39,9 +39,11 @@ def _chains(p):
 def _atomic_structure(p):
     if p == 0: return None
     return object_map(p, StructureData)
-def _pseudobond_group_map(pbgc_map):
+def _pseudobond_group(p):
     from .pbgroup import PseudobondGroup
-    pbg_map = dict((name, object_map(pbg,PseudobondGroup)) for name, pbg in pbgc_map.items())
+    return object_map(p, PseudobondGroup)
+def _pseudobond_group_map(pbgc_map):
+    pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
 
 # -----------------------------------------------------------------------------
@@ -207,6 +209,8 @@ class Pseudobond:
     Whether to display the bond if both atoms are shown.
     Can be overriden by the hide attribute.
     '''
+    group = c_property('pseudobond_group', cptr, astype = _pseudobond_group, read_only = True)
+    ''':py:class:`.pbgroup.PseudobondGroup` that this pseudobond belongs to'''
     halfbond = c_property('pseudobond_halfbond', npy_bool)
     '''
     Whether to color the each half of the bond nearest an end atom to match that atom
