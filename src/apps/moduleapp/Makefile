@@ -24,12 +24,12 @@ install: all
 	if [ -d $(MOD_NAME) ]; then \
 		SUFFIX=".py"; \
 	fi; \
-	if [ -f $(MOD_NAME)$(SUFFIX); then \
+	if [ -f $(MOD_NAME)$(SUFFIX) ]; then \
 		$(RSYNC) $(MOD_NAME)$(SUFFIX) $(PKG_DIR); \
 	fi; \
 	$(RSYNC) $(MOD_NAME).sh $(bindir)/$(MOD_NAME); \
 	if [ -d "$(app_prefix)" ]; then \
-		if [ -f $(MOD_NAME)$(SUFFIX); then \
+		if [ -f $(MOD_NAME)$(SUFFIX) ]; then \
 			$(RSYNC) $(MOD_NAME)$(SUFFIX) $(APP_PKG_DIR); \
 		fi; \
 		$(RSYNC) $(MOD_NAME).sh $(app_bindir)/$(MOD_NAME); \
