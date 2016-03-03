@@ -10,6 +10,7 @@
 #include "atomstruct/Chain.h"
 #include "atomstruct/PBGroup.h"
 #include "atomstruct/Pseudobond.h"
+#include "atomstruct/PBGroup.h"
 #include "atomstruct/Residue.h"
 #include "atomstruct/RibbonXSection.h"
 #include "atomstruct/ChangeTracker.h"
@@ -815,6 +816,22 @@ extern "C" void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
     }
 }
 
+extern "C" PyObject *pseudobond_group(void *pbonds, size_t n)
+{
+    Pseudobond **pb = static_cast<Pseudobond **>(pbonds);
+    void **grps;
+    PyObject *groups = python_voidp_array(n, &grps);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            Proxy_PBGroup* grp = pb[i]->group()->proxy();
+            *grps++ = grp;
+        }
+    } catch (...) {
+        molc_error();
+    }
+    return groups;
+}
+
 extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
@@ -838,6 +855,33 @@ extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
         molc_error();
     }
     return colors;
+}
+
+extern "C" PyObject *pseudobond_get_session_ids(void *ptrs, size_t n)
+{
+    Pseudobond **pbonds = static_cast<Pseudobond **>(ptrs);
+    int *ses_id;
+    PyObject *ses_ids = python_int_array(n, 4, &ses_id);
+    try {
+        for (size_t i = 0; i < n; ++i) {
+            Pseudobond* pb = pbonds[i];
+            *ses_id++ = (*pb->group()->manager()->session_save_pbs)[pb];
+        }
+    } catch (...) {
+        molc_error();
+    }
+    return ses_ids;
+}
+
+extern "C" void *pseudobond_group_resolve_session_id(void *ptr, int ses_id)
+{
+    Proxy_PBGroup *grp = static_cast<Proxy_PBGroup *>(ptr);
+    try {
+        return (void*)((*grp->manager()->session_restore_pbs)[ses_id]);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
 }
 
 extern "C" void pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
