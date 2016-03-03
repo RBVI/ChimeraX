@@ -1070,16 +1070,14 @@ ExtractMolecule::parse_struct_conf()
     #define ASYM_ID "_label_asym_id"
     #define COMP_ID "_label_comp_id"
     #define SEQ_ID "_label_seq_id"
-    #define INS_CODE "_PDB_ins_code" // pdbx
     string conf_type;                       // conf_type_id
     string id;                              // id
     ChainID chain_id1, chain_id2;            // (beg|end)_label_asym_id
     long position1, position2;              // (beg|end)_label_seq_id
     ResName residue_name1, residue_name2;    // (beg|end)_label_comp_id
-    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_(beg|end)_PDB_ins_code
 
     CIFFile::ParseValues pv;
-    pv.reserve(32);
+    pv.reserve(14);
     try {
         pv.emplace_back(get_column("id", true), true,
             [&] (const char* start, const char* end) {
@@ -1102,15 +1100,6 @@ ExtractMolecule::parse_struct_conf()
             [&] (const char* start, const char*) {
                 position1 = readcif::str_to_int(start);
             });
-        pv.emplace_back(get_column("pdbx_" BEG INS_CODE), true,
-            [&] (const char* start, const char* end) {
-                if (end == start + 1 && (*start == '.' || *start == '?'))
-                    ins_code1 = ' ';
-                else {
-                    // TODO: check if more than one character
-                    ins_code1 = *start;
-                }
-            });
 
         pv.emplace_back(get_column(END ASYM_ID, true), true,
             [&] (const char* start, const char* end) {
@@ -1123,15 +1112,6 @@ ExtractMolecule::parse_struct_conf()
         pv.emplace_back(get_column(END SEQ_ID, true), false,
             [&] (const char* start, const char*) {
                 position2 = readcif::str_to_int(start);
-            });
-        pv.emplace_back(get_column("pdbx_" END INS_CODE), true,
-            [&] (const char* start, const char* end) {
-                if (end == start + 1 && (*start == '.' || *start == '?'))
-                    ins_code2 = ' ';
-                else {
-                    // TODO: check if more than one character
-                    ins_code2 = *start;
-                }
             });
     } catch (std::runtime_error& e) {
         logger::warning(_logger, "skipping struct_conf category: ", e.what());
@@ -1253,16 +1233,14 @@ ExtractMolecule::parse_struct_sheet_range()
     #define ASYM_ID "_label_asym_id"
     #define COMP_ID "_label_comp_id"
     #define SEQ_ID "_label_seq_id"
-    #define INS_CODE "_PDB_ins_code"        // pdbx
     string sheet_id;                        // sheet_id
     string id;                              // id
     ChainID chain_id1, chain_id2;            // (beg|end)_label_asym_id
     long position1, position2;              // (beg|end)_label_seq_id
-    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_(beg|end)_PDB_ins_code
     ResName residue_name1, residue_name2;    // (beg|end)_label_comp_id
 
     CIFFile::ParseValues pv;
-    pv.reserve(32);
+    pv.reserve(14);
     try {
         pv.emplace_back(get_column("sheet_id", true), true,
             [&] (const char* start, const char* end) {
@@ -1285,15 +1263,6 @@ ExtractMolecule::parse_struct_sheet_range()
             [&] (const char* start, const char*) {
                 position1 = readcif::str_to_int(start);
             });
-        pv.emplace_back(get_column("pdbx_" BEG INS_CODE), true,
-            [&] (const char* start, const char* end) {
-                if (end == start + 1 && (*start == '.' || *start == '?'))
-                    ins_code1 = ' ';
-                else {
-                    // TODO: check if more than one character
-                    ins_code1 = *start;
-                }
-            });
 
         pv.emplace_back(get_column(END ASYM_ID, true), true,
             [&] (const char* start, const char* end) {
@@ -1306,15 +1275,6 @@ ExtractMolecule::parse_struct_sheet_range()
         pv.emplace_back(get_column(END SEQ_ID, true), false,
             [&] (const char* start, const char*) {
                 position2 = readcif::str_to_int(start);
-            });
-        pv.emplace_back(get_column("pdbx_" END INS_CODE), true,
-            [&] (const char* start, const char* end) {
-                if (end == start + 1 && (*start == '.' || *start == '?'))
-                    ins_code2 = ' ';
-                else {
-                    // TODO: check if more than one character
-                    ins_code2 = *start;
-                }
             });
     } catch (std::runtime_error& e) {
         logger::warning(_logger, "skipping struct_sheet_range category: ", e.what());
