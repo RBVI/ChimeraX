@@ -9,8 +9,7 @@
 #include <atomstruct/Pseudobond.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/connect.h>
-#include <atomstruct/tmpl/Atom.h>
-#include <atomstruct/tmpl/Residue.h>
+#include <atomstruct/tmpl/restmpl.h>
 #include <logger/logger.h>
 #include "pythonarray.h"	// Use python_voidp_array()
 #include <readcif.h>
@@ -89,9 +88,12 @@ struct ExtractMolecule: public readcif::CIFFile
     static const char* builtin_categories[];
     PyObject* _logger;
     ExtractMolecule(PyObject* logger, const StringVector& generic_categories);
+    ~ExtractMolecule();
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
+    void connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap);
+    const tmpl::Residue* find_template_residue(const ResName& name);
     void parse_audit_conform();
     void parse_atom_site();
     void parse_struct_conn();
@@ -101,6 +103,9 @@ struct ExtractMolecule: public readcif::CIFFile
     void parse_entry();
     void parse_pdbx_database_PDB_obs_spr();
     void parse_generic_category();
+    // for inline resiude templates
+    void parse_chem_comp();
+    void parse_chem_comp_bond();
 
     std::map<string, StringVector> generic_tables;
     vector<AtomicStructure*> all_molecules;
@@ -209,6 +214,7 @@ struct ExtractMolecule: public readcif::CIFFile
     map<string /* entity_id */, EntityPolySeq> poly_seq;
     int first_model_num;
     string entry_id;
+    tmpl::Molecule* my_templates;
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -224,7 +230,7 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
 }
 
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories):
-    _logger(logger), first_model_num(INT_MAX)
+    _logger(logger), first_model_num(INT_MAX), my_templates(nullptr)
 {
     register_category("audit_conform",
         [this] () {
@@ -269,6 +275,20 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
                 parse_generic_category();
             });
     }
+    register_category("chem_comp",
+        [this] () {
+            parse_chem_comp();
+        });
+    register_category("chem_comp_bond",
+        [this] () {
+            parse_chem_comp_bond();
+        }, { "chem_comp" });
+}
+
+ExtractMolecule::~ExtractMolecule()
+{
+    if (my_templates)
+        delete my_templates;
 }
 
 void
@@ -280,10 +300,25 @@ ExtractMolecule::reset_parse()
     chain_entity_map.clear();
     all_residues.clear();
     entry_id.clear();
+    if (my_templates) {
+        delete my_templates;
+        my_templates = nullptr;
+    }
+}
+
+const tmpl::Residue*
+ExtractMolecule::find_template_residue(const ResName& name)
+{
+    if (my_templates) {
+        tmpl::Residue* tr = my_templates->find_residue(name);
+        if (tr)
+            return tr;
+    }
+    return mmcif::find_template_residue(name);
 }
 
 void
-connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
+ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
 {
     // Connect adjacent residues that have the same type
     // and have link & chief atoms (i.e., peptides and nucleotides)
@@ -550,6 +585,116 @@ ExtractMolecule::parse_generic_category()
     generic_tables[category] = tags;
     StringVector& data = parse_whole_category();
     generic_tables[category + " data"].swap(data);
+}
+
+void
+ExtractMolecule::parse_chem_comp()
+{
+    ResName name;
+    string  type;
+
+    CIFFile::ParseValues pv;
+    pv.reserve(4);
+    try {
+        pv.emplace_back(get_column("id", true), true,
+            [&] (const char* start, const char* end) {
+                name = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column("type", true), true,
+            [&] (const char* start, const char* end) {
+                type = string(start, end - start);
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping chem_comp category: ", e.what());
+        return;
+    }
+    while (parse_row(pv)) {
+        // convert type to lowercase
+        for (auto& c: type) {
+            if (isupper(c))
+                c = tolower(c);
+        }
+        if (my_templates == nullptr)
+            my_templates = new tmpl::Molecule();
+
+        tmpl::Residue* tr = my_templates->find_residue(name);
+        if (!tr) {
+            tr = my_templates->new_residue(name);
+            bool is_peptide = type.find("peptide") != string::npos;
+            if (is_peptide)
+                tr->description("peptide");
+            else {
+                bool is_nucleotide = type.compare(0, 3, "dna") == 0
+                    || type.compare(0, 3, "rna") == 0;
+                if (is_nucleotide)
+                    tr->description("nucleotide");
+            }
+        }
+    }
+}
+
+void
+ExtractMolecule::parse_chem_comp_bond()
+{
+    if (!my_templates)
+        return;
+
+    ResName  rname;
+    AtomName aname1, aname2;
+
+    CIFFile::ParseValues pv;
+    pv.reserve(4);
+    try {
+        pv.emplace_back(get_column("comp_id", true), true,
+            [&] (const char* start, const char* end) {
+                rname = ResName(start, end - start);
+            });
+        pv.emplace_back(get_column("atom_id_1", true), true,
+            [&] (const char* start, const char* end) {
+                aname1 = AtomName(start, end - start);
+            });
+        pv.emplace_back(get_column("atom_id_2", true), true,
+            [&] (const char* start, const char* end) {
+                aname2 = AtomName(start, end - start);
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "skipping chem_comp_bond category: ", e.what());
+        return;
+    }
+    // pretend all atoms are the same element, only need connectivity
+    const Element& e = Element::get_element("H");
+    while (parse_row(pv)) {
+        tmpl::Residue* tr = my_templates->find_residue(rname);
+        if (!tr)
+            continue;
+        tmpl::Atom* a1 = tr->find_atom(aname1);
+        if (!a1) {
+            a1 = my_templates->new_atom(aname1, e);
+            tr->add_atom(a1);
+        }
+        tmpl::Atom* a2 = tr->find_atom(aname2);
+        if (!a2) {
+            a2 = my_templates->new_atom(aname2, e);
+            tr->add_atom(a2);
+        }
+        if (a1 != a2)
+            my_templates->new_bond(a1, a2);
+        else
+            logger::info(_logger, "error in chem_comp_bond near line ",
+                         line_number(), ": atom can not connect to itself");
+    }
+
+    // sneak in chief and link atoms
+    for (auto& ri: my_templates->residues_map()) {
+        tmpl::Residue* tr = ri.second;
+        if (tr->description() == "peptide") {
+            tr->chief(tr->find_atom("N"));
+            tr->link(tr->find_atom("C"));
+        } else if (tr->description() == "nucleotide") {
+            tr->chief(tr->find_atom("P"));
+            tr->link(tr->find_atom("O3'"));
+        }
+    }
 }
 
 void
@@ -1475,7 +1620,7 @@ connect_residue_by_template(Residue* r, const tmpl::Residue* tr)
     // Confirm all atoms in residue are in template, if not connect by distance
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
-        if (ta == NULL) {
+        if (!ta) {
             connect_residue_by_distance(r);
             return;
         }
@@ -1507,7 +1652,7 @@ struct ExtractTables: public readcif::CIFFile
 };
 
 ExtractTables::ExtractTables(const StringVector& categories):
-    data(NULL)
+    data(nullptr)
 {
     for (auto& c: categories) {
         register_category(c,
@@ -1529,18 +1674,18 @@ void
 ExtractTables::parse_category()
 {
     // this routine leaks memory for the PyStructSequence description
-    if (data == NULL)
+    if (!data)
         data = PyDict_New();
     const string& category = this->category();
     const StringVector& tags = this->tags();
     size_t num_tags = tags.size();
 
     PyObject* fields = PyTuple_New(num_tags);
-    if (fields == NULL)
+    if (!fields)
         throw wrappy::PythonError();
     for (size_t i = 0; i < num_tags; ++i) {
         PyObject* o = wrappy::pyObject(tags[i]);
-        if (o == NULL) {
+        if (!o) {
             Py_DECREF(fields);
             throw wrappy::PythonError();
         }
@@ -1551,7 +1696,7 @@ ExtractTables::parse_category()
     parse_whole_category(
         [&] (const char* start, const char* end) {
             PyObject* o = PyUnicode_DecodeUTF8(start, end - start, "replace");
-            if (o == NULL || PyList_Append(items, o) < 0) {
+            if (!o || PyList_Append(items, o) < 0) {
                 Py_XDECREF(o);
                 Py_DECREF(fields);
                 Py_DECREF(items);
@@ -1560,7 +1705,7 @@ ExtractTables::parse_category()
         });
 
     PyObject* field_items = PyTuple_New(2);
-    if (field_items == NULL) {
+    if (!field_items) {
         Py_DECREF(fields);
         Py_DECREF(items);
         throw wrappy::PythonError();
@@ -1569,7 +1714,7 @@ ExtractTables::parse_category()
     PyTuple_SET_ITEM(field_items, 1, items);
 
     PyObject* o = wrappy::pyObject(category);
-    if (o == NULL) {
+    if (!o) {
         Py_DECREF(field_items);
         throw wrappy::PythonError();
     }

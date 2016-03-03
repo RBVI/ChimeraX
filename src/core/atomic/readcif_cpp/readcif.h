@@ -132,6 +132,7 @@ public:
     //  register_category("atom_site", 
     //      std::bind(&SUBCLASS::parse_atom_site, this, _1, _2, _3));
     CIFFile();
+    virtual ~CIFFile() {}
 
     // Use register_category to indicate which categories should be parsed.
     // The ParseCategory's arguments are the category name, the list

@@ -247,6 +247,9 @@ class Pseudobond:
         from math import sqrt
         return sqrt((v*v).sum())
 
+    _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
+        doc="Used by session save/restore internals")
+
 # -----------------------------------------------------------------------------
 #
 class PseudobondGroupData:
