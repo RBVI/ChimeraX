@@ -56,12 +56,15 @@ Subcommands of <b>color</b>:
 </p>
 <ul>
 <li><a href="#name"><b>color name</b></a> 
-- define color names, show existing definitions in the
-<a href="../tools/log.html"><b>Log</b></a>
-<li><a href="#list"><b>color list</b></a>
-- list color names in the <a href="../tools/log.html"><b>Log</b></a> 
+- define color names 
 <li><a href="#delete"><b>color delete</b></a>
 - forget user-defined color names
+<li><a href="#list"><b>color list</b></a>
+- show color names and swatches in 
+the <a href="../tools/log.html"><b>Log</b></a> 
+<li><a href="#show"><b>color show</b></a> 
+- report RGB definitions of color names in the
+<a href="../tools/log.html"><b>Log</b></a>
 </ul>
 <p>
 For simple coloring, the <a name="colorname"><i>colorname</i></a> can be:
@@ -343,28 +346,30 @@ surface-only), create new atom attribute named <b>esp</b>
 <a name="name"></a>
 <a name="delete"></a>
 <a name="list"></a>
+<a name="show"></a>
 <h3>Defining and Listing Colors</h3>
 
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>color name</b> &nbsp;<i>cname</i>
-[&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<BR><b>color list</b> [&nbsp;all&nbsp;]
+&nbsp;<a href="colornames.html"><i>color-spec</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>color delete</b>
 (&nbsp;<i>cname</i>&nbsp;|&nbsp;all&nbsp;)
 </h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>color list</b> [&nbsp;all&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>color show</b> &nbsp;<i>cname</i>
 </h3>
 <p>
-The command <b>color name</b> defines a new color name 
-or redefines an existing one. 
-The <i>name</i> is assigned as the name of the
+The command <b>color name</b> assigns <i>cname</i> as the name of the
 <a href="colornames.html">specified</a> color.  
+It can be used to define a new color name or redefine an existing one. 
 Color names must begin with an alphabetical letter and may contain 
 only lowercase letters, numbers, hyphens, underscores, and spaces. 
-If <i>name</i> has embedded spaces, it must be enclosed in quotation marks.
+If <i>cname</i> has embedded spaces, it must be enclosed in quotation marks.
 </p>
 Examples:
 <blockquote>
@@ -373,20 +378,22 @@ Examples:
 <b>color name tgreen rgba(0%, 80%, 40%, 0.5)</b>
 </blockquote>
 <p>
-The command <b>color list</b> shows names and color swatches for
-any user-defined colors in the <a href="../tools/log.html"><b>Log</b></a>,
-whereas <b>color list all</b> also shows the
-<a href="colornames.html">built-in colors</a>.
-The <b>rgba</b> (red, green, blue, opacity) definition 
-of an existing color can be shown in the
-<a href="../tools/log.html"><b>Log</b></a> with <b>color name</b> <i>cname</i>.
-</p><p>
 The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
 user-defined color or <b>all</b> user-defined colors. 
 A <a href="colornames.html">built-in color name</a> cannot be deleted.
+</p><p>
+The command <b>color list</b> gives the names and color swatches of
+any user-defined colors in the <a href="../tools/log.html"><b>Log</b></a>,
+whereas <b>color list all</b> includes the
+<a href="colornames.html">built-in colors</a> as well.
+</p><p>
+The command &ldquo;<b>color show</b> <i>cname</i>&rdquo;
+reports in the <a href="../tools/log.html"><b>Log</b></a>
+the <b>rgba</b> (red, green, blue, opacity) definition of an existing color
+named <i>cname</i>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2016</address>
+March 2016</address>
 </body></html>
