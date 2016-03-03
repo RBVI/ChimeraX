@@ -2724,6 +2724,18 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
 #define FLIP_PREVENT    1
 #define FLIP_FORCE      2
 
+inline float delta_to_angle(float twist, float f)
+{
+    // twist is total twist
+    // f is between 0 and 1
+    // linear interpolation - show cusp artifact
+    // return twist * f;
+    // cosine interpolation - second degree continuity
+    // return (1 - cos(f * M_PI)) / 2 * twist;
+    // sigmoidal interpolation - second degree continuity
+    return (1.0 / (1 + exp(-8.0 * (f - 0.5)))) * twist;
+}
+
 extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end,
                                          int flip_mode, bool start_flipped, bool end_flipped)
 {
@@ -2812,15 +2824,15 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
 #if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "final twist " << twist << " need_flip " << need_flip << "\n";
 #endif
-    // Compute amount of twist per segment
-    float delta = twist / (num_pts - 1);
+    // Compute fraction per step
+    float delta = 1.0 / (num_pts - 1);
 #if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "per step delta " << delta << "\n";
 #endif
     // Apply twist to each normal along path
     for (int i = 1; i != num_pts; ++i) {
         int offset = i * 3;
-        float angle = i * delta;
+        float angle = delta_to_angle(twist, i * delta);
         float c = cos(angle);
         float s = sin(angle);
 #if DEBUG_CONSTRAINED_NORMALS > 1

@@ -28,21 +28,17 @@ class Ribbon:
             self._compute_coefficients(c, i)
         self.flipped = zeros(len(coords), bool)
         if orient == AtomicStructure.RIBBON_ORIENT_ATOMS:
-            print("orientation from atoms")
             self.normals = self._compute_normals_from_control_points(coords)
             self.ignore_flip_mode = True
         elif orient == AtomicStructure.RIBBON_ORIENT_CURVATURE:
-            print("orientation from curvature")
             self.normals = self._compute_normals_from_curvature(coords)
             self.ignore_flip_mode = True
         else:
             # RIBBON_ORIENT_GUIDES and default case
             if guides is None or len(coords) != len(guides):
-                print("orientation from atoms")
                 self.normals = self._compute_normals_from_control_points(coords)
                 self.ignore_flip_mode = True
             else:
-                print("orientation from guides")
                 self.normals = self._compute_normals_from_guides(coords, guides)
                 self.ignore_flip_mode = False
         # Initialize segment cache
