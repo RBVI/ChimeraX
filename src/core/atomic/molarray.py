@@ -891,6 +891,12 @@ class PseudobondGroups(PseudobondGroupDatas):
         from . import pbgroup
         Collection.__init__(self, pbg_pointers, pbgroup.PseudobondGroup, PseudobondGroups)
 
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        return array([s._c_pointer.value for s in data])
+    def session_save_pointers(self, session):
+        return [s for s in self]
+
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.
 #
