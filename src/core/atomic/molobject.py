@@ -142,6 +142,15 @@ class Atom:
         '''
         return self.structure.scene_position * self.coord
 
+    def take_snapshot(self, session, flags):
+        data = {'structure': self.structure,
+                'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return _atom_or_none(data['structure'].session_id_to_atom(data['ses_id']))
+
 # -----------------------------------------------------------------------------
 #
 class Bond:
@@ -185,6 +194,15 @@ class Bond:
         the specified atom.'''
         a1,a2 = self.atoms
         return a2 if atom is a1 else a1
+
+    def take_snapshot(self, session, flags):
+        data = {'structure': self.structure,
+                'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return _atom_or_none(data['structure'].session_id_to_bond(data['ses_id']))
 
 # -----------------------------------------------------------------------------
 #
