@@ -36,7 +36,7 @@ def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False,
         cp = v.clip_planes
         cp.remove_plane('near')
         cp.remove_plane('far')
-    elif isinstance(objects, _View):
+    elif isinstance(objects, NamedView):
         show_view(session, objects, frames)
     else:
         view_objects(objects, v, clip, cofr, pad)
@@ -72,10 +72,10 @@ def save_view(session, name):
       Name the current camera view and model positions so they can be shown
       later with the "show" option.
     """
-    nv = _named_views(session)
+    nv = _named_views(session).views
     v = session.main_view
     models = session.models.list()
-    nv[name] = _View(v, v.center_of_rotation, models)
+    nv[name] = NamedView(v, v.center_of_rotation, models)
 
 
 def delete_view(session, name):
@@ -86,7 +86,7 @@ def delete_view(session, name):
     name : string
       Name of the view.  "all" deletes all named views.
     """
-    nv = _named_views(session)
+    nv = _named_views(session).views
     if name == 'all':
         nv.clear()
     elif name in nv:
@@ -107,7 +107,7 @@ def show_view(session, v2, frames=None):
         frames = 1
     v = session.main_view
     models = session.models.list()
-    v1 = _View(v, v.center_of_rotation, models)
+    v1 = NamedView(v, v.center_of_rotation, models)
     _InterpolateViews(v1, v2, frames, session)
 
 
@@ -116,7 +116,7 @@ def list_views(session):
 
     The names are links and clicking them show the corresponding view.
     """
-    nv = _named_views(session)
+    nv = _named_views(session).views
     names = ['<a href="cxcmd:view %s">%s</a>' % (name, name) for name in sorted(nv.keys())]
     if names:
         msg = 'Named views: ' + ', '.join(names)
@@ -126,13 +126,15 @@ def list_views(session):
 
 
 def _named_views(session):
+    # Returns dictionary mapping name to NamedView.
     if not hasattr(session, '_named_views'):
-        session._named_views = {}
-        session.add_state_manager('named views', NamedViewsState())
+        session._named_views = nvs = NamedViews()
+        session.add_state_manager('named views', nvs)
     return session._named_views
 
 
-class _View:
+from ..state import State
+class NamedView(State):
     camera_attributes = ('position', 'field_of_view', 'field_width',
                          'eye_separation_scene', 'eye_separation_pixels')
 
@@ -168,9 +170,7 @@ class _View:
                 if m.positions is not p:
                     m.positions = p
 
-from ..state import State
-class NamedViewState(State):
-    '''Session saving for a named view.'''
+    # Session saving for a named view.
     version = 1
     save_attrs = [
         'camera',
@@ -178,40 +178,43 @@ class NamedViewState(State):
         'look_at',
         'positions',
     ]
-
-    def __init__(self, named_view):
-        self.named_view = named_view		# _View object
-
     def take_snapshot(self, session, flags):
-        nv = self.named_view
-        data = {'view attrs': {a:getattr(nv,a) for a in self.save_attrs},
+        data = {'view attrs': {a:getattr(self,a) for a in self.save_attrs},
                 'version': self.version}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        nv = _View.__new__(_View)
+        nv = NamedView.__new__(NamedView)
         for k,v in data['view attrs'].items():
             setattr(nv, k, v)
-        return NamedViewState(nv)
+        return nv
 
     def reset_state(self, session):
-        raise NotImplemented()
+        pass
 
-class NamedViewsState(State):
-    '''Session saving for named views.'''
+class NamedViews(State):
+    def __init__(self):
+        self._views = {}	# Maps name to NamedView
+
+    @property
+    def views(self):
+        return self._views
+
+    def clear(self):
+        self._views.clear()
+    
+    # Session saving for named views.
     version = 1
     def take_snapshot(self, session, flags):
-        data = {'views': {name:NamedViewState(nv) for name,nv in _named_views(session).items()},
+        data = {'views': self.views,
                 'version': self.version}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        nvs = _named_views(session)
-        nvs.clear()
-        for name,nvstate in data['views'].items():
-            nvs[name] = nvstate.named_view
+        nvs = _named_views(session)	# Get singleton NamedViews object
+        nvs._views = data['views']
         return nvs
 
     def reset_state(self, session):
@@ -344,7 +347,7 @@ class NamedViewArg(Annotation):
     def parse(text, session):
         from . import next_token
         token, text, rest = next_token(text)
-        nv = _named_views(session)
+        nv = _named_views(session).views
         if token in nv:
             return nv[token], text, rest
         raise AnnotationError("Expected a view name")
