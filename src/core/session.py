@@ -132,7 +132,7 @@ class _UniqueName:
             return "Core's %s" % class_name
         return "Tool %s's %s" % class_name
 
-    def bundle_info_and_class_of(self, session):
+    def class_of(self, session):
         """Return class associated with unique id
 
         The restore process makes sure that the right tools are present,
@@ -141,15 +141,15 @@ class _UniqueName:
         class_name, ordinal = self.uid
         if isinstance(class_name, str):
             from chimerax.core import get_class
-            bundle_info = None
             cls = get_class(class_name)
         else:
             tool_name, class_name = class_name
             bundle_info = session.toolshed.find_bundle(tool_name)
             if bundle_info is None:
-                return None, None
-            cls = bundle_info.get_class(class_name)
-        return bundle_info, cls
+                cls = None
+            else:
+                cls = bundle_info.get_class(class_name)
+        return cls
 
 #    @classmethod
 #    def restore_unique_id(self, obj, uid):
@@ -452,7 +452,7 @@ class Session:
                     self.add_state_manager(name, data)
                 else:
                     # _UniqueName: find class
-                    bundle_info, cls = name.bundle_info_and_class_of(self)
+                    cls = name.class_of(self)
                     if cls is None:
                         continue
                     obj = cls.restore_snapshot(self, data)
