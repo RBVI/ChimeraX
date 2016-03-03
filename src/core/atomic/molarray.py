@@ -620,7 +620,7 @@ class Pseudobonds(Collection):
         groups, ids = data
         f = c_function('pseudobond_group_resolve_session_id',
             args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
-        ptrs = [f(grp, id) for grp, id in zip(groups, ids)]
+        ptrs = [f(grp_ptr, id) for grp_ptr, id in zip(groups._c_pointers, ids)]
         return Pseudobonds(array(ptrs))
     def session_save_pointers(self, session):
         f = c_function('pseudobond_get_session_ids', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
