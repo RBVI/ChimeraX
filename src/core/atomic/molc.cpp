@@ -10,6 +10,7 @@
 #include "atomstruct/Chain.h"
 #include "atomstruct/PBGroup.h"
 #include "atomstruct/Pseudobond.h"
+#include "atomstruct/PBGroup.h"
 #include "atomstruct/Residue.h"
 #include "atomstruct/RibbonXSection.h"
 #include "atomstruct/ChangeTracker.h"
@@ -815,6 +816,22 @@ extern "C" void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
     }
 }
 
+extern "C" PyObject *pseudobond_group(void *pbonds, size_t n)
+{
+    Pseudobond **pb = static_cast<Pseudobond **>(pbonds);
+    void **grps;
+    PyObject *groups = python_voidp_array(n, &grps);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            Proxy_PBGroup* grp = pb[i]->group()->proxy();
+            *grps++ = grp;
+        }
+    } catch (...) {
+        molc_error();
+    }
+    return groups;
+}
+
 extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
@@ -838,6 +855,33 @@ extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
         molc_error();
     }
     return colors;
+}
+
+extern "C" PyObject *pseudobond_get_session_ids(void *ptrs, size_t n)
+{
+    Pseudobond **pbonds = static_cast<Pseudobond **>(ptrs);
+    int *ses_id;
+    PyObject *ses_ids = python_int_array(n, 4, &ses_id);
+    try {
+        for (size_t i = 0; i < n; ++i) {
+            Pseudobond* pb = pbonds[i];
+            *ses_id++ = (*pb->group()->manager()->session_save_pbs)[pb];
+        }
+    } catch (...) {
+        molc_error();
+    }
+    return ses_ids;
+}
+
+extern "C" void *pseudobond_group_resolve_session_id(void *ptr, int ses_id)
+{
+    Proxy_PBGroup *grp = static_cast<Proxy_PBGroup *>(ptr);
+    try {
+        return (void*)((*grp->manager()->session_restore_pbs)[ses_id]);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
 }
 
 extern "C" void pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
@@ -2680,6 +2724,18 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
 #define FLIP_PREVENT    1
 #define FLIP_FORCE      2
 
+inline float delta_to_angle(float twist, float f)
+{
+    // twist is total twist
+    // f is between 0 and 1
+    // linear interpolation - show cusp artifact
+    // return twist * f;
+    // cosine interpolation - second degree continuity
+    // return (1 - cos(f * M_PI)) / 2 * twist;
+    // sigmoidal interpolation - second degree continuity
+    return (1.0 / (1 + exp(-8.0 * (f - 0.5)))) * twist;
+}
+
 extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end,
                                          int flip_mode, bool start_flipped, bool end_flipped)
 {
@@ -2768,15 +2824,15 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
 #if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "final twist " << twist << " need_flip " << need_flip << "\n";
 #endif
-    // Compute amount of twist per segment
-    float delta = twist / (num_pts - 1);
+    // Compute fraction per step
+    float delta = 1.0 / (num_pts - 1);
 #if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "per step delta " << delta << "\n";
 #endif
     // Apply twist to each normal along path
     for (int i = 1; i != num_pts; ++i) {
         int offset = i * 3;
-        float angle = i * delta;
+        float angle = delta_to_angle(twist, i * delta);
         float c = cos(angle);
         float s = sin(angle);
 #if DEBUG_CONSTRAINED_NORMALS > 1

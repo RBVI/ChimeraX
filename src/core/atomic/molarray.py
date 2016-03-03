@@ -49,6 +49,8 @@ def _non_null_atoms(p):
     return Atoms(p[p!=0])
 def _bonds(p):
     return Bonds(p)
+def _pseudobond_groups(p):
+	return PseudobondGroups(p)
 def _pseudobonds(p):
 	return Pseudobonds(p)
 def _elements(p):
@@ -578,6 +580,11 @@ class Pseudobonds(Collection):
     single value.  Pseudobonds are shown only if display is
     true, hide is false, and both atoms are shown.
     '''
+    groups = cvec_property('pseudobond_group', cptr, astype = _pseudobond_groups, read_only = True)
+    '''
+    Returns a :py:class:`PseudobondGroups` collection
+    of the pseudobond groups these pseudobonds belong to
+    '''
     halfbonds = cvec_property('pseudobond_halfbond', npy_bool)
     '''
     Controls whether the pseudobonds should be colored in "halfbond"
@@ -607,6 +614,18 @@ class Pseudobonds(Collection):
         '''Return mask of those pseudobonds which have both ends in the given set of atoms.'''
         a1, a2 = self.atoms
         return a1.mask(atoms) & a2.mask(atoms)
+
+    @staticmethod
+    def session_restore_pointers(session, data):
+        groups, ids = data
+        f = c_function('pseudobond_group_resolve_session_id',
+            args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
+        ptrs = [f(grp, id) for grp, id in zip(groups, ids)]
+        return Pseudobonds(array(ptrs))
+    def session_save_pointers(self, session):
+        f = c_function('pseudobond_get_session_ids', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
+        pseudobond_ids = f(self._c_pointers, len(self))
+        return [self.groups, pseudobond_ids]
 
 # -----------------------------------------------------------------------------
 #
@@ -871,6 +890,12 @@ class PseudobondGroups(PseudobondGroupDatas):
     def __init__(self, pbg_pointers):
         from . import pbgroup
         Collection.__init__(self, pbg_pointers, pbgroup.PseudobondGroup, PseudobondGroups)
+
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        return array([s._c_pointer.value for s in data])
+    def session_save_pointers(self, session):
+        return [s for s in self]
 
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.

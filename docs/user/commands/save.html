@@ -113,15 +113,18 @@ The <b>quality</b> setting applies to JPEG format only, with values
 of <i>M</i> in the range 0&ndash;100 (default <b>95</b>).
 </p><p>
 Image pixel dimensions can be specified directly with 
-<b>width</b> and <b>height</b> or set relative to the physical scale 
-with <b>pixelSize</b>.  The <b>pixelSize</b> value specifies
-physical distance units (usually &Aring;) per pixel at the center depth
-of scene.  If no size option is used,
+<b>width</b> and <b>height</b> or relative to the physical dimensions
+of the scene with <b>pixelSize</b>. If none of these are given,
 the image will have the same pixel dimensions as the graphics window.
 If only width or height is specified, the other will be set according to the
 graphics window aspect ratio; if both are specified but the image aspect
 ratio is not the same as the graphics window aspect ratio, the image
 contents will differ from what is shown in the window.
+With the <b>pixelSize</b> option, the image contents will be the same as 
+what is shown in the window, but image width and height in pixels will be 
+chosen to give pixels of size <i>p</i> in &Aring;.  
+With <a href="camera.html">perspective</a>, the pixel size varies with depth 
+and is measured at the depth of the center of the scene.
 </p><p>
 The <b>transparentBackground</b> option (default <b>false</b>)
 indicates whether to include opacity values (alpha) 

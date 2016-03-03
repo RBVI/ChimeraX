@@ -98,7 +98,7 @@ struct ExtractMolecule: public readcif::CIFFile
     void parse_struct_conf();
     void parse_struct_sheet_range();
     void parse_entity_poly_seq();
-    void parse_struct();
+    void parse_entry();
     void parse_pdbx_database_PDB_obs_spr();
     void parse_generic_category();
 
@@ -230,14 +230,14 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_audit_conform();
         });
-    register_category("struct",
+    register_category("entry",
         [this] () {
-            parse_struct();
+            parse_entry();
         });
     register_category("pdbx_database_PDB_obs_spr",
         [this] () {
             parse_pdbx_database_PDB_obs_spr();
-        }, { "struct" });
+        }, { "entry" });
     register_category("entity_poly_seq",
         [this] () {
             parse_entity_poly_seq();
@@ -491,17 +491,17 @@ ExtractMolecule::data_block(const string& /*name*/)
 }
 
 void
-ExtractMolecule::parse_struct()
+ExtractMolecule::parse_entry()
 {
     CIFFile::ParseValues pv;
     pv.reserve(1);
     try {
-        pv.emplace_back(get_column("entry_id", true), true,
+        pv.emplace_back(get_column("id", true), true,
             [&] (const char* start, const char* end) {
                 entry_id = string(start, end - start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct category: ", e.what());
+        logger::warning(_logger, "skipping entry category: ", e.what());
         return;
     }
     parse_row(pv);

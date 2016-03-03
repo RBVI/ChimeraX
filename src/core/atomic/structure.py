@@ -253,7 +253,7 @@ class Graph(Model, StructureData):
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
         for pbg in self.pbg_map.values():
-            pbg._update_graphics(structure = self)
+            pbg._update_graphics()
         self._create_ribbon_graphics()
 
     def set_subdivision(self, subdivision):
@@ -294,7 +294,7 @@ class Graph(Model, StructureData):
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
         for pbg in self.pbg_map.values():
-            pbg._update_graphics(structure = self)
+            pbg._update_graphics()
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, atoms):
