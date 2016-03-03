@@ -615,6 +615,8 @@ class Pseudobonds(Collection):
         a1, a2 = self.atoms
         return a1.mask(atoms) & a2.mask(atoms)
 
+    _ses_ids = cvec_property('pseudobond_get_session_id', int32, read_only = True,
+        doc="Used internally to save/restore in sessions")
     @staticmethod
     def session_restore_pointers(session, data):
         groups, ids = data
@@ -623,9 +625,7 @@ class Pseudobonds(Collection):
         ptrs = [f(grp_ptr, id) for grp_ptr, id in zip(groups._c_pointers, ids)]
         return Pseudobonds(array(ptrs))
     def session_save_pointers(self, session):
-        f = c_function('pseudobond_get_session_ids', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
-        pseudobond_ids = f(self._c_pointers, len(self))
-        return [self.groups, pseudobond_ids]
+        return [self.groups, self._ses_ids]
 
 # -----------------------------------------------------------------------------
 #
