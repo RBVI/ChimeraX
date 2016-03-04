@@ -2138,6 +2138,17 @@ extern "C" void* structure_session_id_to_chain(void *mol, size_t i)
     }
 }
 
+extern "C" void* structure_session_id_to_residue(void *mol, size_t i)
+{
+    Graph *m = static_cast<Graph *>(mol);
+    try {
+        return m->residues()[i];
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *floats, PyObject *misc)
 {
     Graph *m = static_cast<Graph *>(mol);
