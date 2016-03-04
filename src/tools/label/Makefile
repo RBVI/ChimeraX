@@ -1,23 +1,23 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimerax.title
+PKG_NAME = chimerax.label
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = Add title text to graphics
+PKG_DESCRIPTION = Add text label to graphics
 
 # For many cases, only a single tool and a single command
 # is provided by a package.  Variables below are designed
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
-TOOL_NAME = title
-TOOL_PKG_NAME = chimerax.title
-TOOL_DISPLAY_NAME = Titles
+TOOL_NAME = label
+TOOL_PKG_NAME = chimerax.label
+TOOL_DISPLAY_NAME = Labels
 TOOL_CATEGORY = Hidden
 TOOL_FILE_TYPES =
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
-TOOL_SYNOPSIS = Add title text to graphics
-COMMAND_NAME = title
+TOOL_SYNOPSIS = Add text labels to graphics
+COMMAND_NAME = 2dlabels
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
