@@ -7,8 +7,9 @@ def start_tool(session, bundle_info):
     # This function is simple because we "know" we only provide
     # a single tool in the entire package, so we do not need to
     # look at the name in 'bundle_info.name'
-    from . import gui
-    spanel = gui.get_singleton(bundle_info.name, session, create = True)
+    from .gui import panel_classes
+    cls = panel_classes[bundle_info.name]
+    spanel = cls.get_singleton(session)
     if spanel is not None:
         spanel.display(True)
 
@@ -31,7 +32,8 @@ def register_command(command_name, bundle_info):
 # 'get_class' is called by session code to get class saved in a session
 #
 def get_class(class_name):
-    if class_name == 'ShortcutPanel':
-        from . import gui
-        return gui.ShortcutPanel
+    from .gui import panel_classes
+    for c in panel_classes.values():
+        if class_name == c.__name__:
+            return c
     return None

@@ -294,22 +294,19 @@ class MolecularSurface(Model):
         data['model state'] = Model.take_snapshot(self, session, flags)
         data.update({attr:getattr(self,attr) for attr in self._save_attrs})
         from ..state import CORE_STATE_VERSION
-        return CORE_STATE_VERSION, data
+        data['version'] = CORE_STATE_VERSION
+        return data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, data):
         d = data
-        MolecularSurface.__init__(self, session, d['atoms'], d['show_atoms'],
-                                  d['probe_radius'], d['grid_spacing'], d['resolution'],
-                                  d['level'], d['name'], d['color'], d['visible_patches'],
-                                  d['sharp_boundaries'])
-        # TODO: Model base class restore has to come after MolecularSurface constructor
-        # because both are colling Model constructor. This shouldn't happen but the new
-        # session saving API needs changing to fix this.  The Model restore_snapshot_init()
-        # has to come after because it restores the hierarchy -- otherwise the hierarchy
-        # does not get restored.
-        Model.restore_snapshot_init(self, session, tool_info, *d['model state'])
-        for attr in self._save_attrs:
-            setattr(self, attr, d[attr])
+        s = MolecularSurface(session, d['atoms'], d['show_atoms'],
+                             d['probe_radius'], d['grid_spacing'], d['resolution'],
+                             d['level'], d['name'], d['color'], d['visible_patches'],
+                             d['sharp_boundaries'])
+        Model.set_state_from_snapshot(s, session, d['model state'])
+        for attr in MolecularSurface._save_attrs:
+            setattr(s, attr, d[attr])
 
     def reset_state(self, session):
         pass

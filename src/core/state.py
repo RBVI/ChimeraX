@@ -30,7 +30,7 @@ class State(metaclass=abc.ABCMeta):
     bundle_info = None
 
     def take_snapshot(self, session, flags):
-        """Return snapshot of current state, [version, data], of instance.
+        """Return snapshot of current state of instance.
 
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped.
@@ -39,24 +39,21 @@ class State(metaclass=abc.ABCMeta):
         lists/dicts/etc., but shallow copy of named objects).
         Named objects are later converted to unique names. 
         """
-        version = self.bundle_info.state_version
         data = self.vars().copy()
+        data['bundle name'] = self.bundle_info.name
+        data['version'] = self.bundle_info.state_version
         if 'bundle_info' in data:
             del data['bundle_info']
-        return version, data
+        return data
 
     @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        """Restore data snapshot into instance.
-
-        Named instances in data will have been replaced with actual instance.
-        """
-        return cls.__new__(cls)
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    def restore_snapshot(cls, session, data):
+        """Create object using snapshot data."""
+        obj = cls()
         obj.__dict__ = data
         if obj.bundle_info is None:
-            obj.bundle_info = bundle_info
+            obj.bundle_info = session.toolshed.find_bundle(data['bundle name'])
+        return obj
 
     @abc.abstractmethod
     def reset_state(self, session):

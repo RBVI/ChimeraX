@@ -192,5 +192,6 @@ class _Input(Task):
     def take_snapshot(self, session, flags):
         return
 
-    def restore_snapshot(self, phase, session, version, data):
+    @staticmethod
+    def restore_snapshot(session, data):
         pass

@@ -806,8 +806,10 @@ again:
 			continue;
 		current_value_tmp = string(pos + 1, e - pos - 1);
 #ifdef CASE_INSENSITIVE
-		for (auto& c: current_value_tmp)
-			c = tolower(c);
+		if (!stylized) {
+			for (auto& c: current_value_tmp)
+				c = tolower(c);
+		}
 #endif
 		current_value_start = current_value_tmp.c_str();
 		current_value_end = current_value_start + current_value_tmp.size();
@@ -1068,8 +1070,10 @@ CIFFile::get_column(const char* tag, bool required)
 		throw std::runtime_error("must be parsing a table before getting a column position");
 	string tagname(tag);
 #ifdef CASE_INSENSITIVE
-	for (auto& c: tagname)
-		c = tolower(c);
+	if (!stylized) {
+		for (auto& c: tagname)
+			c = tolower(c);
+	}
 #endif
 	auto i = std::find(current_tags.begin(), current_tags.end(), tagname);
 	if (i != current_tags.end())

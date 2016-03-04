@@ -89,22 +89,22 @@ class Model(State, Drawing):
                 'id':self.id,
                 'parent':p,
                 'positions':self.positions.array(),
+                'version': CORE_STATE_VERSION,
         }
-        return CORE_STATE_VERSION, data
+        return data
 
     @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
+    def restore_snapshot(cls, session, data):
         if cls is Model and data['id'] is ():
-            try:
-                return session.models.drawing
-            except AttributeError:
-                pass
-        return cls.__new__(cls)
+            return session.models.drawing
+        # TODO: Could call the cls constructor here to handle a derived class,
+        #       but that would require the derived constructor have the same args.
+        m = Model(data['name'], session)
+        m.set_state_from_snapshot(session, data)
+        return m
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if self is session.models.drawing:
-            return
-        Model.__init__(self, data['name'], session)
+    def set_state_from_snapshot(self, session, data):
+        self.name = data['name']
         self.id = data['id']
         p = data['parent']
         if p:
@@ -141,30 +141,24 @@ class Models(State):
         r.id = ()
 
     def take_snapshot(self, session, flags):
-        data = {}
+        models = {}
         for id, model in self._models.items():
             assert(isinstance(model, Model))
             if model.SESSION_SKIP:
                 continue
-            data[id] = model
-        return CORE_STATE_VERSION, data
+            models[id] = model
+        data = {'models': models,
+                'version': CORE_STATE_VERSION}
+        return data
 
-    @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        try:
-            return session.models
-        except AttributeError:
-            return cls.__new__(cls)
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        existing = self is session.models
-        if not existing:
-            self._session = weakref.ref(session)
-            self._models = {}
-        for id, model in data.items():
+    @staticmethod
+    def restore_snapshot(session, data):
+        m = session.models
+        for id, model in data['models'].items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
                 if not hasattr(model, 'parent'):
-                    self.add([model], _from_session=True)
+                    m.add([model], _from_session=True)
+        return m
 
     def reset_state(self, session):
         self.remove([m for m in self.list() if not m.SESSION_ENDURING])

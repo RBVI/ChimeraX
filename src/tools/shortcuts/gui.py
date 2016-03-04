@@ -6,19 +6,14 @@ from chimerax.core.tools import ToolInstance
 #
 class ShortcutPanel(ToolInstance):
 
+    shortcuts = []
     SESSION_ENDURING = True
 
-    def __init__(self, session, bundle_info, *, restoring=False, shortcuts=[]):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info):
+        ToolInstance.__init__(self, session, bundle_info)
 
         from .shortcuts import keyboard_shortcuts
         self.keyboard_shortcuts = keyboard_shortcuts(session)
-
-        self.help = {
-            'molecule_display_shortcuts': "help:user/tools/moldisplay.html",
-            'graphics_shortcuts': "help:user/tools/graphics.html"
-        }.get(bundle_info.name, None)
 
         self.icon_size = 48
         self.max_icon_size = 48
@@ -26,7 +21,7 @@ class ShortcutPanel(ToolInstance):
         self.icon_border = 4
 
         columns = 12
-        rows = (len(shortcuts) + columns - 1)//columns
+        rows = (len(self.shortcuts) + columns - 1)//columns
         min_panel_width = self.icon_size
         panel_height = rows * self.icon_size
         panel_size = (min_panel_width, panel_height)
@@ -38,18 +33,18 @@ class ShortcutPanel(ToolInstance):
         self.tool_window = tw = ShortcutWindow(self, size=panel_size)
         parent = tw.ui_area
 
-        self.buttons = self.create_buttons(shortcuts, parent)
+        self.buttons = self.create_buttons(parent)
 
         tw.manage(placement="right", fixed_size = True)
 
         import wx
         parent.Bind(wx.EVT_SIZE, self.resize_cb)
 
-    def create_buttons(self, shortcuts, parent):
+    def create_buttons(self, parent):
 
         import wx
         buttons = []
-        for i, (keys, icon_file, descrip) in enumerate(shortcuts):
+        for i, (keys, icon_file, descrip) in enumerate(self.shortcuts):
             tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file))
             tb.icon_file = icon_file
             def button_press_cb(event, keys=keys, ks=self.keyboard_shortcuts):
@@ -100,33 +95,14 @@ class ShortcutPanel(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        data = {"shown": self.tool_window.shown}
-        return self.bundle_info.session_write_version, data
-
     @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        return get_singleton(bundle_info.name, session, create=True)
+    def get_singleton(cls, session):
+        from chimerax.core import tools
+        return tools.get_singleton(session, cls, cls.tool_name)
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        self.display(data["shown"])
-
-    def reset_state(self, session):
-        pass
-
-def get_singleton(tool_name, session, create=False):
-    from chimerax.core import tools
-    return tools.get_singleton(session, ShortcutPanel, tool_name, create=create,
-                               **{'shortcuts': _shortcuts[tool_name]})
-    
-_shortcuts = {
-    'molecule_display_shortcuts': (
+class MoleculeDisplayPanel(ShortcutPanel):
+    tool_name = 'molecule_display_shortcuts'
+    shortcuts = (
         ('da', 'atomshow.png', 'Show atoms'),
         ('ha', 'atomhide.png', 'Hide atoms'),
         ('rb', 'ribshow.png', 'Show molecule ribbons'),
@@ -139,8 +115,12 @@ _shortcuts = {
         ('ce', 'colorbyelement.png', 'Color atoms by element'),
         ('cc', 'colorbychain.png', 'Color atoms by chain'),
         ('rc', 'colorrandom.png', 'Random atom colors'),
-    ),
-    'graphics_shortcuts': (
+    )
+    help = "help:user/tools/moldisplay.html"
+
+class GraphicsPanel(ShortcutPanel):
+    tool_name = 'graphics_shortcuts'
+    shortcuts = (
         ('wb', 'whitebg.png', 'White background'),
         ('gb', 'graybg.png', 'Gray background'),
         ('bk', 'blackbg.png', 'Black background'),
@@ -153,5 +133,10 @@ _shortcuts = {
         ('dv', 'orient.png', 'Standard orientation'),
         ('sx', 'camera.png', 'Save snapshot to desktop'),
         ('vd', 'video.png', 'Record spin movie'),
-    ),
+    )
+    help = "help:user/tools/graphics.html"
+
+panel_classes = {
+    'molecule_display_shortcuts': MoleculeDisplayPanel,
+    'graphics_shortcuts': GraphicsPanel,
 }

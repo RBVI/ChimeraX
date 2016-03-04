@@ -8,6 +8,11 @@ _StyleMap = {
     "plank": Residue.PIPE,
     "pandp": Residue.PIPE,
 }
+_OrientMap = {
+    "guides": AtomicStructure.RIBBON_ORIENT_GUIDES,
+    "atoms": AtomicStructure.RIBBON_ORIENT_ATOMS,
+    "curvature": AtomicStructure.RIBBON_ORIENT_CURVATURE,
+}
 _TetherShapeMap = {
     "cone": AtomicStructure.TETHER_CONE,
     "cylinder": AtomicStructure.TETHER_CYLINDER,
@@ -15,7 +20,8 @@ _TetherShapeMap = {
 }
 
 
-def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=None, show_spine=False):
+def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=None, orient=None,
+            show_spine=False):
     '''Display cartoon for specified residues.
 
     Parameters
@@ -35,6 +41,12 @@ def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=None, sho
     hide_backbone : boolean
         Set whether displaying a ribbon hides the sphere/ball/stick representation of
         backbone atoms.
+    orient : string
+        Choose which method to use for determining ribbon orientation FOR THE ENTIRE STRUCTURE.
+        "guides" uses "guide" atoms like the carbonyl oxygens.
+        "atoms" generates orientation from ribbon atoms like alpha carbons.
+        "curvature" orients ribbon to be perpendicular to maximum curvature direction.
+        "default" is to use "guides" if guide atoms are all present or "atoms" if not.
     show_spine : boolean
         Display ribbon "spine" (horizontal lines across center of ribbon).
         This parameter applies at the atomic structure level, so setting it for any residue
@@ -54,6 +66,10 @@ def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=None, sho
     if style is not None:
         s = _StyleMap.get(style, Residue.RIBBON)
         residues.ribbon_styles = s
+    if orient is not None:
+        o = _OrientMap.get(orient, None)
+        for m in residues.unique_structures:
+            m.ribbon_orientation = o
     if hide_backbone is not None:
         residues.ribbon_hide_backbones = hide_backbone
     if show_spine is not None:
@@ -131,6 +147,7 @@ def initialize(command_name):
                        keyword=[("adjust", Or(Bounded(FloatArg, 0.0, 1.0),
                                               EnumOf(["default"]))),
                                 ("style", EnumOf(list(_StyleMap.keys()))),
+                                ("orient", EnumOf(list(_OrientMap.keys()))),
                                 ("hide_backbone", BoolArg),
                                 ("show_spine", BoolArg),
                                 ],

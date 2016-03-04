@@ -10,6 +10,7 @@
 #include "atomstruct/Chain.h"
 #include "atomstruct/PBGroup.h"
 #include "atomstruct/Pseudobond.h"
+#include "atomstruct/PBGroup.h"
 #include "atomstruct/Residue.h"
 #include "atomstruct/RibbonXSection.h"
 #include "atomstruct/ChangeTracker.h"
@@ -815,6 +816,22 @@ extern "C" void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
     }
 }
 
+extern "C" PyObject *pseudobond_group(void *pbonds, size_t n)
+{
+    Pseudobond **pb = static_cast<Pseudobond **>(pbonds);
+    void **grps;
+    PyObject *groups = python_voidp_array(n, &grps);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            Proxy_PBGroup* grp = pb[i]->group()->proxy();
+            *grps++ = grp;
+        }
+    } catch (...) {
+        molc_error();
+    }
+    return groups;
+}
+
 extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
@@ -838,6 +855,30 @@ extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
         molc_error();
     }
     return colors;
+}
+
+extern "C" void pseudobond_get_session_id(void *ptrs, size_t n, int32_t *ses_ids)
+{
+    Pseudobond **pbonds = static_cast<Pseudobond **>(ptrs);
+    try {
+        for (size_t i = 0; i < n; ++i) {
+            Pseudobond* pb = pbonds[i];
+            ses_ids[i] = static_cast<int32_t>((*pb->group()->manager()->session_save_pbs)[pb]);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void *pseudobond_group_resolve_session_id(void *ptr, int ses_id)
+{
+    Proxy_PBGroup *grp = static_cast<Proxy_PBGroup *>(ptr);
+    try {
+        return (void*)((*grp->manager()->session_restore_pbs)[ses_id]);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
 }
 
 extern "C" void pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
@@ -1402,8 +1443,11 @@ extern "C" void set_residue_ribbon_color(void *residues, size_t n, uint8_t *rgba
     }
 }
 
-extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
+extern "C" PyObject* residue_polymer_spline(void *residues, size_t n, int orient)
 {
+    bool want_guides = true;
+    if (orient == Graph::RIBBON_ORIENT_ATOMS || orient == Graph::RIBBON_ORIENT_CURVATURE)
+        want_guides = false;
     Residue **r = static_cast<Residue **>(residues);
     try {
         std::vector<Atom *> centers;
@@ -1434,7 +1478,7 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n)
                     AtomName name = atom->name();
                     if (name == "CA" || name == "C5'")
                         center = atom;
-                    else if (name == "O" || name == "C1'")
+                    else if (want_guides && (name == "O" || name == "C1'"))
                         guide = atom;
                 }
                 if (center == NULL) {
@@ -1943,6 +1987,23 @@ extern "C" void set_structure_ribbon_tether_opacity(void *mols, size_t n, float3
     error_wrap_array_set(m, n, &Graph::set_ribbon_tether_opacity, ribbon_tether_opacity);
 }
 
+extern "C" void structure_ribbon_orientation(void *mols, size_t n, int32_t *ribbon_orientation)
+{
+    Graph **m = static_cast<Graph **>(mols);
+    error_wrap_array_get(m, n, &Graph::ribbon_orientation, ribbon_orientation);
+}
+
+extern "C" void set_structure_ribbon_orientation(void *mols, size_t n, int32_t *ribbon_orientation)
+{
+    Graph **m = static_cast<Graph **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            m[i]->set_ribbon_orientation(static_cast<Graph::RibbonOrientation>(ribbon_orientation[i]));
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
 {
     Graph **m = static_cast<Graph **>(mols);
@@ -2071,6 +2132,17 @@ extern "C" void* structure_session_id_to_chain(void *mol, size_t i)
     Graph *m = static_cast<Graph *>(mol);
     try {
         return m->chains()[i];
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void* structure_session_id_to_residue(void *mol, size_t i)
+{
+    Graph *m = static_cast<Graph *>(mol);
+    try {
+        return m->residues()[i];
     } catch (...) {
         molc_error();
         return nullptr;
@@ -2656,7 +2728,24 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
 
 #define DEBUG_CONSTRAINED_NORMALS   0
 
-extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end)
+#define FLIP_MINIMIZE   0
+#define FLIP_PREVENT    1
+#define FLIP_FORCE      2
+
+inline float delta_to_angle(float twist, float f)
+{
+    // twist is total twist
+    // f is between 0 and 1
+    // linear interpolation - show cusp artifact
+    // return twist * f;
+    // cosine interpolation - second degree continuity
+    // return (1 - cos(f * M_PI)) / 2 * twist;
+    // sigmoidal interpolation - second degree continuity
+    return (1.0 / (1 + exp(-8.0 * (f - 0.5)))) * twist;
+}
+
+extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end,
+                                         int flip_mode, bool start_flipped, bool end_flipped)
 {
 #if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "constrained_normals\n";
@@ -2706,17 +2795,34 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
 #endif
     if (isnan(twist))
         twist = 0;
-    // If twist is greater than 90 degrees, turn the opposite
-    // direction.  (Assumes that ribbons are symmetric.)
-    bool flipped = false;
-    if (twist > M_PI / 2) {
+    // Now we figure out whether to flip the ribbon or not
+    bool need_flip = false;
+    if (flip_mode == FLIP_MINIMIZE) {
+        // If twist is greater than 90 degrees, turn the opposite
+        // direction.  (Assumes that ribbons are symmetric.)
+        if (twist > M_PI / 2)
+            need_flip = true;
+    } else if (flip_mode == FLIP_PREVENT) {
+        // Make end_flip the same as start_flip
+        if (end_flipped != start_flipped)
+            need_flip = true;
+    } else if (flip_mode == FLIP_FORCE) {
+        // Make end_flip the opposite of start_flip
+        if (end_flipped == start_flipped)
+            need_flip = true;
+    }
+#if DEBUG_CONSTRAINED_NORMALS > 0
+    std::cerr << "flip_mode: " << flip_mode << " start_flipped: " << start_flipped
+              << " end_flipped: " << end_flipped << " need_flip: " << need_flip << '\n';
+#endif
+    if (need_flip) {
+#if DEBUG_CONSTRAINED_NORMALS > 0
+        std::cerr << "flipped twist " << twist << " sqlen(n): " << inner(n, n)
+                  << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
+#endif
         for (int i = 0; i != 3; ++i)
             other_end[i] = -n_end[i];
         twist = acos(inner(n, other_end));
-        flipped = true;
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "flipped twist " << twist << " sqlen(n): " << inner(n, n) << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
-#endif
     }
     // Figure out direction of twist (right-hand rule)
     float *last_tangent = tangents + (num_pts - 1) * 3;
@@ -2724,17 +2830,17 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
     if (inner(cross(n, other_end, tmp), last_tangent) < 0)
         twist = -twist;
 #if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "final twist " << twist << " flipped " << flipped << "\n";
+    std::cerr << "final twist " << twist << " need_flip " << need_flip << "\n";
 #endif
-    // Compute amount of twist per segment
-    float delta = twist / (num_pts - 1);
+    // Compute fraction per step
+    float delta = 1.0 / (num_pts - 1);
 #if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "per step delta " << delta << "\n";
 #endif
     // Apply twist to each normal along path
     for (int i = 1; i != num_pts; ++i) {
         int offset = i * 3;
-        float angle = i * delta;
+        float angle = delta_to_angle(twist, i * delta);
         float c = cos(angle);
         float s = sin(angle);
 #if DEBUG_CONSTRAINED_NORMALS > 1
@@ -2763,7 +2869,7 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
     // 180 degrees from targeted end normal.
     PyObject *o = PyTuple_New(2);
     PyTuple_SetItem(o, 0, py_normals);
-    PyObject *f = flipped ? Py_True : Py_False;
+    PyObject *f = need_flip ? Py_True : Py_False;
     Py_INCREF(f);
     PyTuple_SetItem(o, 1, f);
     return o;

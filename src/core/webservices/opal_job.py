@@ -166,56 +166,30 @@ class OpalJob(Job):
     #
     # Define chimerax.core.session.State ABC methods
     #
+    save_attrs = ('service_url', 'job_id', 'launch_time', 'end_time',
+                  '_status_code', '_status_message', '_status_url','_outputs')
     def take_snapshot(self, session, flags):
-        """Return snapshot of current state, [version, data], of instance.
+        """Return snapshot of current state of instance.
 
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped."""
-        data = [
-            self.service_url,
-            self.job_id,
-            self.launch_time,
-            self.end_time,
-            self._status_code,
-            self._status_message,
-            self._status_url,
-            self._outputs,
-        ]
+        data = {a:getattr(self,a) for a in self.save_attrs}
+        data['version'] = 1
         return data
 
-    def restore_snapshot(self, phase, session, version, data):
-        """Restore data snapshot into instance.
-
-        Restoration is done in two phases: CREATE_PHASE and RESOLVE_PHASE.  The
-        first phase should restore all of the data.  The
-        second phase should restore references to other objects (data is None).
-        The session instance is used to convert unique ids into instances.
-        """
-        if phase != self.CREATE_PHASE:
-            return
-        if version == 1:
-            self.service_url = data[0]
-            self.job_id = data[1]
-            self.launch_time = data[2]
-            self.end_time = data[3]
-            self._status_code = data[4]
-            self._status_message = data[5]
-            self._status_url = data[6]
-            self._outputs = data[7]
-            return
-        from ..session import RestoreError
-        raise RestoreError("Unexpected version")
+    @staticmethod
+    def restore_snapshot(session, data):
+        """Restore data snapshot creating instance."""
+        j = OpalJob.__new__(OpalJob)
+        for a in self.save_attrs:
+            if a in data:
+                setattr(j, a, data[a])
+        return j
 
     def reset_state(self):
         """Reset state to data-less state"""
-        self.service_url = None
-        self.job_id = None
-        self.launch_time = None
-        self.end_time = None
-        self._status_code = None
-        self._status_message = None
-        self._status_url = None
-        self._outputs = None
+        for a in self.save_attrs:
+            setattr(self, a, None)
 
     #
     # Other Opal-specific methods

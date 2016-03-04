@@ -184,13 +184,16 @@ class NamedViewState(State):
 
     def take_snapshot(self, session, flags):
         nv = self.named_view
-        data = {a:getattr(nv,a) for a in self.save_attrs}
-        return self.version, data
+        data = {'view attrs': {a:getattr(nv,a) for a in self.save_attrs},
+                'version': self.version}
+        return data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        self.named_view = nv = _View.__new__(_View)
-        for k,v in data.items():
+    @staticmethod
+    def restore_snapshot(session, data):
+        nv = _View.__new__(_View)
+        for k,v in data['view attrs'].items():
             setattr(nv, k, v)
+        return NamedViewState(nv)
 
     def reset_state(self, session):
         raise NotImplemented()
@@ -199,18 +202,21 @@ class NamedViewsState(State):
     '''Session saving for named views.'''
     version = 1
     def take_snapshot(self, session, flags):
-        data = {name:NamedViewState(nv) for name,nv in _named_views(session).items()}
-        return self.version, data
+        data = {'views': {name:NamedViewState(nv) for name,nv in _named_views(session).items()},
+                'version': self.version}
+        return data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    @staticmethod
+    def restore_snapshot(session, data):
         nvs = _named_views(session)
         nvs.clear()
-        for name,nvstate in data.items():
+        for name,nvstate in data['views'].items():
             nvs[name] = nvstate.named_view
+        return nvs
 
     def reset_state(self, session):
-        raise NotImplemented()
-
+        nvs = _named_views(session)
+        nvs.clear()
 
 class _InterpolateViews:
     def __init__(self, v1, v2, frames, session):

@@ -34,6 +34,9 @@ class FilePanel(ToolInstance):
         fhw.Bind(html2.EVT_WEBVIEW_LOADED, self.on_load)
         fhw.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating, id=fhw.GetId())
 
+        from chimerax.core.filehistory import file_history
+        file_history(session).remove_missing_files()
+
         self.update_html()
 
         t = session.triggers
@@ -97,19 +100,3 @@ class FilePanel(ToolInstance):
             # unknown scheme
             event.Veto()
             self.session.logger.error("Unknown URL scheme: '%s'" % url)
-
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        return 1, None
-
-    @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        pass
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        pass
-
-    def reset_state(self, session):
-        pass

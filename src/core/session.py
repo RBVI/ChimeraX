@@ -392,7 +392,7 @@ class Session:
         # if tag in self._state_containers:
         #     return
         if not isinstance(container, State) and not hasattr(container, 'clear'):
-            raise ValueError('container must follow State API')
+            raise ValueError('container "%s" of type "%s" does not have State base class and does not have clear method' % (tag, str(type(container))))
         self._state_containers[tag] = container
 
     def get_state_manager(self, tag):
@@ -455,11 +455,7 @@ class Session:
                     bundle_info, cls = name.bundle_info_and_class_of(self)
                     if cls is None:
                         continue
-                    cls_version, cls_data = data
-                    obj = cls.restore_snapshot_new(self, bundle_info, cls_version, cls_data)
-                    if obj is None:
-                        print (bundle_info, cls_data)
-                    obj.restore_snapshot_init(self, bundle_info, cls_version, cls_data)
+                    obj = cls.restore_snapshot(self, data)
                     mgr.add_reference(name, obj)
         except:
             import traceback
@@ -539,7 +535,7 @@ def save(session, filename, **kw):
 
     # Remember session in file history
     from .filehistory import remember_file
-    remember_file(session, filename, 'ses', 'all models')
+    remember_file(session, filename, 'ses', 'all models', file_saved = True)
 
 def dump(session, session_file, output=None):
     """dump contents of session for debugging"""

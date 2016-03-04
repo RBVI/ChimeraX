@@ -2,7 +2,7 @@
 
 
 def save(session, filename, width=None, height=None, supersample=3,
-         transparent_background=False, quality=95, format=None):
+         pixel_size=None, transparent_background=False, quality=95, format=None):
     '''Save data, sessions, images.
 
     Parameters
@@ -17,6 +17,12 @@ def save(session, filename, width=None, height=None, supersample=3,
         If width is not specified the current graphics window width is used.
     height : integer
         Height of image in pixels for saving image files.
+    pixel_size : float
+        The size of one pixel in the saved image in physical units,
+        typically Angstroms.  Set the image width and height in pixels is set
+        to achieve this physical pixel size.  For perspective projection the
+        pixel size is at the depth of the center of the bounding box of the
+        visible scene.
     supersample : integer
         Supersampling for saving images.
         Makes an image N times larger in each dimension
@@ -42,7 +48,7 @@ def save(session, filename, width=None, height=None, supersample=3,
         filename += '.%s' % suffix
     if suffix in pil_image_formats:
         save_image(session, filename, format, width, height,
-                   supersample, transparent_background, quality)
+                   supersample, pixel_size, transparent_background, quality)
     elif suffix == format_suffix['session']:
         from ..session import save as save_session
         save_session(session, filename)
@@ -71,7 +77,8 @@ image_format_suffix = {
 format_suffix.update(image_format_suffix)
 
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, SaveFileNameArg, IntArg, BoolArg, PositiveIntArg, Bounded
+    from . import CmdDesc, register, EnumOf, SaveFileNameArg
+    from . import IntArg, BoolArg, PositiveIntArg, Bounded, FloatArg
     from .. import session as ses
     ses_suffix = ses.SESSION_SUFFIX[1:]
     img_fmts = EnumOf(image_format_suffix.keys())
@@ -83,6 +90,7 @@ def register_command(session):
             ('width', PositiveIntArg),
             ('height', PositiveIntArg),
             ('supersample', PositiveIntArg),
+            ('pixel_size', FloatArg),
             ('transparent_background', BoolArg),
             ('quality', quality_arg),
             ('format', all_fmts),
@@ -104,6 +112,7 @@ def register_command(session):
             ('width', PositiveIntArg),
             ('height', PositiveIntArg),
             ('supersample', PositiveIntArg),
+            ('pixel_size', FloatArg),
             ('transparent_background', BoolArg),
             ('quality', quality_arg),
             ('format', img_fmts),
@@ -123,7 +132,7 @@ pil_image_formats = {
 }
 
 def save_image(session, filename, format=None, width=None, height=None,
-               supersample=3, transparent_background=False, quality=95):
+               supersample=3, pixel_size=None, transparent_background=False, quality=95):
     '''
     Save an image of the current graphics window contents.
     '''
@@ -134,6 +143,23 @@ def save_image(session, filename, format=None, width=None, height=None,
         from ..errors import UserError
         raise UserError('Directory "%s" does not exist' % dir)
 
+    if pixel_size is not None:
+        from ..errors import UserError
+        if width is not None or height is not None:
+            raise UserError('Cannot specify width or height if pixel_size is given')
+        v = session.main_view
+        b = v.drawing_bounds()
+        if b is None:
+            raise UserError('Cannot specify use pixel_size option when nothing is shown')
+        psize = v.pixel_size(b.center())
+        if psize > 0 and pixel_size > 0:
+            f = psize / pixel_size
+            w, h = v.window_size
+            width, height = int(round(f*w)), int(round(f*h))
+        else:
+            raise UserError('Pixel size option (%g) and screen pixel size (%g) must be positive'
+                            % (pixel_size, psize))
+        
     suffix = splitext(path)[1][1:].casefold()
     if suffix == '':
         if format is None:

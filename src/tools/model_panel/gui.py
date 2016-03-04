@@ -9,9 +9,8 @@ class ModelPanel(ToolInstance):
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
     SIZE = (200, 250)
 
-    def __init__(self, session, bundle_info, *, restoring=False):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info):
+        ToolInstance.__init__(self, session, bundle_info)
         self.display_name = "Models"
         from chimerax.core.ui.gui import MainToolWindow
 
@@ -64,23 +63,10 @@ class ModelPanel(ToolInstance):
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
 
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        # don't have any session-specific state...
-        return 1, None
-
     @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
+    def get_singleton(self, session):
         from chimerax.core import tools
         return tools.get_singleton(session, ModelPanel, 'model panel', create=False)
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        pass
-
-    def reset_state(self, session):
-        pass
 
     def _changes_cb(self, trigger_name, data):
         reasons = data["Atom"].reasons

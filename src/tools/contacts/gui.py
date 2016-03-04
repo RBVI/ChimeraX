@@ -7,9 +7,8 @@ class Plot(ToolInstance):
 
     SIZE = (300, 300)
 
-    def __init__(self, session, bundle_info, *, restoring=False, title='Plot'):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info, *, title='Plot'):
+        ToolInstance.__init__(self, session, bundle_info)
 
         from chimerax.core.ui.gui import MainToolWindow
         tw = MainToolWindow(self, size=self.SIZE)
@@ -35,29 +34,6 @@ class Plot(ToolInstance):
 
     def hide(self):
         self.tool_window.shown = False
-
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        data = {
-            "ti": ToolInstance.take_snapshot(self, session, flags),
-            "shown": self.tool_window.shown
-        }
-        return self.bundle_info.session_write_version, data
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        ti_version, ti_data = data["ti"]
-        ToolInstance.restore_snapshot_init(
-            self, session, bundle_info, ti_version, ti_data)
-        self.__init__(session, bundle_info, restoring=True)
-        self.display(data["shown"])
-
-    def reset_state(self, session):
-        pass
 
 def show_contact_graph(node_weights, edge_weights, short_names, colors, spring_constant, session):
 

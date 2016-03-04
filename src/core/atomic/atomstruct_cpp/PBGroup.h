@@ -27,6 +27,7 @@ class Atom;
 class CoordSet;
 class Graph;
 class Pseudobond;
+class Proxy_PBGroup;
 
 class Group: public DestructionObserver, public GraphicsContainer {
 public:
@@ -41,10 +42,11 @@ protected:
     bool  _default_halfbond = false;
     bool  _destruction_relevant;
     BaseManager*  _manager;
+    Proxy_PBGroup* _proxy; // the proxy for this group
 
     // the manager will need to be declared as a friend...
     Group(const std::string& cat, BaseManager* manager):
-        _category(cat), _destruction_relevant(true), _manager(manager) { }
+        _category(cat), _destruction_relevant(true), _manager(manager), _proxy(nullptr) { }
     virtual  ~Group() {}
 
     // can't call pure virtuals from base class destructors, so
@@ -63,6 +65,7 @@ public:
     virtual bool  get_default_halfbond() const { return _default_halfbond; }
     BaseManager*  manager() const { return _manager; }
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
+    Proxy_PBGroup*  proxy() const { return _proxy; }
     virtual const Pseudobonds&  pseudobonds() const = 0;
     // version "0" means latest version
     static int  session_num_floats(int version=0) {
@@ -194,6 +197,7 @@ private:
             _proxied = new StructurePBGroup(_category, _structure, _manager);
         else
             _proxied = new CS_PBGroup(_category, _structure, _manager);
+        _proxy = this;
     }
     void  remove_cs(const CoordSet* cs) {
         if (_group_type == AS_PBManager::GRP_PER_CS)
