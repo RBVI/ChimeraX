@@ -164,6 +164,7 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         # TODO: Should just mark for redraw so all redraws go through update
         # loop. But this causes bad flicker when resizing the window by hand.
 #        self.view.redraw_needed = True
+        self.set_viewport()	# Make sure redraw uses correct graphics window size.
         self.view.draw()
 
     def on_size(self, event):

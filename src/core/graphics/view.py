@@ -414,6 +414,7 @@ class View:
             fb = self._render.default_framebuffer()
             fb.width, fb.height = width, height
             fb.viewport = (0, 0, width, height)
+            self.redraw_needed = True
 
     def _window_size_matching_aspect(self, width, height):
         w, h = width, height
