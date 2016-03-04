@@ -13,10 +13,15 @@ __copyright__ = (
 _class_cache = {}
 # list modules classes are found in
 _class_class_init = {
+    'Atom': '.atomic',
     'AtomicStructure': '.atomic',
     'AtomicStructures': '.atomic',
     'Atoms': '.atomic',
+    'Bond': '.atomic',
+    'Bonds': '.atomic',
     'CameraState': '.graphics.gsession',
+    'Chain': '.atomic',
+    'Chains': '.atomic',
     'ClipPlaneState': '.graphics.gsession',
     'Color': '.colors',
     'DrawingState': '.graphics.gsession',
@@ -31,8 +36,12 @@ _class_class_init = {
     'MolecularSurface': '.atomic',
     'NamedViewState': '.commands.view',
     'NamedViewsState': '.commands.view',
+    'Pseudobond': '.atomic',
     'PseudobondGroup': '.atomic.pbgroup',
     'PseudobondManager': '.atomic.molobject',
+    'Pseudobonds': '.atomic',
+    'Residue': '.atomic',
+    'Residues': '.atomic',
     'STLModel': '.stl',
     'Job': '.tasks',
     'Tasks': '.tasks',
