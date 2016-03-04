@@ -48,7 +48,6 @@ class ViewState:
 
         # Restore lighting
         v.lighting = data['lighting']
-        v.update_lighting = True
 
         # Restore clip planes
         v.clip_planes.replace_planes(data['clip_planes'])
@@ -140,7 +139,7 @@ class LightingState:
     @staticmethod
     def set_state_from_snapshot(lighting, session, data):
         l = lighting
-        for k in DrawingState.save_attrs:
+        for k in LightingState.save_attrs:
             if k in data:
                 setattr(l, k, data[k])
 
