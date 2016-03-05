@@ -35,10 +35,10 @@ class ShortcutPanel(ToolInstance):
 
         self.buttons = self.create_buttons(parent)
 
-        tw.manage(placement="right", fixed_size = True)
-
         import wx
         parent.Bind(wx.EVT_SIZE, self.resize_cb)
+
+        tw.manage(placement="right", fixed_size = True)
 
     def create_buttons(self, parent):
 
@@ -71,12 +71,12 @@ class ShortcutPanel(ToolInstance):
         # self.tool_window.ui_area.SetSize((w,100))
 
     def resize_buttons(self, columns, icon_size):
+        self.icon_size = icon_size
         for i,b in enumerate(self.buttons):
             b.SetBitmap(self.bitmap(b.icon_file))
             b.SetSize((icon_size,icon_size))
             pos = ((i%columns)*icon_size,(i//columns)*icon_size)
             b.SetPosition(pos)
-        self.icon_size = icon_size
 
     def bitmap(self, filename):
         width = height = self.icon_size - 2*self.icon_border
