@@ -1269,7 +1269,7 @@ class LevelOfDetail(State):
         self.quality = 1
 
         self._atom_min_triangles = 10
-        self._atom_max_triangles = 400
+        self._atom_max_triangles = 2000
         self._atom_max_total_triangles = 10000000
         self._step_factor = 1.2
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
