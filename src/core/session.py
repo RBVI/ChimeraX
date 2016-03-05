@@ -413,12 +413,13 @@ class Session:
         if issubclass(cls, State):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
-            from .graphics import View, MonoCamera, Lighting, ClipPlane, Drawing, gsession as g
+            from .graphics import View, MonoCamera, Lighting, Material, ClipPlane, Drawing, gsession as g
             from .geometry import Place, Places, psession as p
             self._snapshot_methods = {
                 View : g.ViewState,
                 MonoCamera : g.CameraState,
                 Lighting : g.LightingState,
+                Material : g.MaterialState,
                 ClipPlane : g.ClipPlaneState,
                 Drawing : g.DrawingState,
                 Place : p.PlaceState,

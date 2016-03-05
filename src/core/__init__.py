@@ -25,6 +25,7 @@ _class_class_init = {
     'LevelOfDetail': '.atomic.structure',
     'Lighting': '.graphics',
     'Map_Series': '.map.series',
+    'Material': '.graphics',
     'Model': '.models',
     'Models': '.models',
     'MolecularSurface': '.atomic',

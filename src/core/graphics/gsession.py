@@ -3,7 +3,8 @@
 class ViewState:
 
     version = 1
-    save_attrs = ['center_of_rotation', 'window_size', 'background_color',
+    save_attrs = ['camera', 'lighting', 'material',
+                  'center_of_rotation', 'background_color',
                   'silhouettes', 'silhouette_thickness', 'silhouette_color',
                   'silhouette_depth_jump']
 
@@ -19,9 +20,8 @@ class ViewState:
             p = c.position
             c = MonoCamera()
             c.position = p
-            
-        data['camera'] = v.camera
-        data['lighting'] = v.lighting
+
+        data['window_size'] = v.window_size
         data['clip_planes'] = v.clip_planes.planes()
         data['version'] = ViewState.version
         return data
@@ -37,17 +37,11 @@ class ViewState:
     def set_state_from_snapshot(view, session, data):
         v = view
         for k in ViewState.save_attrs:
-            if k in data and k != 'window_size':
+            if k in data:
                 setattr(v, k, data[k])
 
-        # Root drawing had redraw callback set to None.  Restore callback.
+        # Root drawing has redraw callback set to None -- fix it.
         v.drawing.set_redraw_callback(v._drawing_manager)
-
-        # Restore camera
-        v.camera = data['camera']
-
-        # Restore lighting
-        v.lighting = data['lighting']
 
         # Restore clip planes
         v.clip_planes.replace_planes(data['clip_planes'])
@@ -145,6 +139,42 @@ class LightingState:
 
     @staticmethod
     def reset_state(lighting, session):
+        pass
+
+
+class MaterialState:
+
+    version = 1
+    save_attrs = [
+        'ambient_reflectivity',
+        'diffuse_reflectivity',
+        'specular_reflectivity',
+        'specular_exponent',
+        ]
+
+    @staticmethod
+    def take_snapshot(material, session, flags):
+        m = material
+        data = {a:getattr(m,a) for a in MaterialState.save_attrs}
+        data['version'] = MaterialState.version
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        from . import Material
+        m = Material()
+        MaterialState.set_state_from_snapshot(m, session, data)
+        return m
+
+    @staticmethod
+    def set_state_from_snapshot(material, session, data):
+        m = material
+        for k in MaterialState.save_attrs:
+            if k in data:
+                setattr(m, k, data[k])
+
+    @staticmethod
+    def reset_state(Material, session):
         pass
 
 

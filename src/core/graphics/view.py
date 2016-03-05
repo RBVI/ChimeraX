@@ -270,22 +270,33 @@ class View:
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
 
-    def get_lighting(self):
+    def _get_lighting(self):
         return self._lighting
 
-    def set_lighting(self, lighting):
+    def _set_lighting(self, lighting):
         self._lighting = lighting
         r = self._render
         if r:
             r.lighting = lighting
+        self.update_lighting = True
         self.redraw_needed = True
 
-    lighting = property(get_lighting, set_lighting)
+    lighting = property(_get_lighting, _set_lighting)
     '''Lighting parameters.'''
 
-    def material(self):
-        '''Material reflectivity parameters.'''
-        return self._render.material
+    def _get_material(self):
+        return self._material
+
+    def _set_material(self, material):
+        self._material = material
+        r = self._render
+        if r:
+            r.material = material
+        self.update_lighting = True
+        self.redraw_needed = True
+
+    material = property(_get_material, _set_material)
+    '''Material reflectivity parameters.'''
 
     def add_overlay(self, overlay):
         '''
