@@ -13,9 +13,14 @@ __copyright__ = (
 _class_cache = {}
 # list modules classes are found in used by session restore to recreate objects.
 _class_class_init = {
+    'Atom': '.atomic',
     'AtomicStructure': '.atomic',
     'AtomicStructures': '.atomic',
     'Atoms': '.atomic',
+    'Bond': '.atomic',
+    'Bonds': '.atomic',
+    'Chain': '.atomic',
+    'Chains': '.atomic',
     'ClipPlane': '.graphics',
     'Color': '.colors',
     'Drawing': '.graphics',
@@ -34,8 +39,12 @@ _class_class_init = {
     'NamedViews': '.commands.view',
     'Place': '.geometry',
     'Places': '.geometry',
+    'Pseudobond': '.atomic',
     'PseudobondGroup': '.atomic.pbgroup',
     'PseudobondManager': '.atomic.molobject',
+    'Pseudobonds': '.atomic',
+    'Residue': '.atomic',
+    'Residues': '.atomic',
     'STLModel': '.stl',
     'Job': '.tasks',
     'Tasks': '.tasks',
