@@ -50,6 +50,7 @@ and their code location is described with the function descriptions.
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
 | `snav`_ - Enable space navigator input device
+| `sop`_ - Surface operations
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
 | `style`_ - Change atom display style
@@ -258,6 +259,11 @@ show
 snav
 ====
 .. autofunction:: chimerax.core.devices.spacenavigator.snav.snav
+
+sop
+===
+.. automodule:: chimerax.core.commands.sop
+  :members:		
 
 split
 =====
