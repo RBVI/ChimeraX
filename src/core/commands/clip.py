@@ -23,7 +23,7 @@ def clip(session, near=None, far=None, front=None, back=None, slab=None, list=No
        is relative to center of bounding box of displayed models.
     axis : Axis
        Normal to clip plane for planes front and back.  Not used for near and far planes.
-    coordinate_system : Model
+    coordinate_system : Place
        Coordinate system for axis and position, if none then screen coordinates are used.
     '''
 
@@ -146,7 +146,8 @@ def report_clip_info(viewer, log):
     log.status(msg)
 
 def register_command(session):
-    from .cli import CmdDesc, register, FloatArg, NoArg, AxisArg, ModelArg, CenterArg, Or, EnumOf, create_alias
+    from .cli import CmdDesc, register, FloatArg, NoArg, AxisArg
+    from .cli import CenterArg, CoordSysArg, Or, EnumOf, create_alias
     offset_arg = Or(EnumOf(['off']), FloatArg)
     desc = CmdDesc(
         optional=[],
@@ -158,7 +159,7 @@ def register_command(session):
                  ('off', NoArg),
                  ('position', CenterArg),
                  ('axis', AxisArg),
-                 ('coordinate_system', ModelArg)],
+                 ('coordinate_system', CoordSysArg)],
         synopsis='set clip planes'
     )
     register('clip', desc, clip)

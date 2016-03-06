@@ -13,9 +13,9 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None, mode
        Distance to shift in scene units.
     frames : integer
        Repeat the shift for N frames.
-    coordinate_system : Model
+    coordinate_system : Place
        The coordinate system for the axis.
-       If no model coordinate system is specified then scene coordinates are used.
+       If no coordinate system is specified then scene coordinates are used.
     models : list of Models
        Only these models are moved.  If not specified, then the camera is moved.
     '''
@@ -43,12 +43,12 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None, mode
 
 def register_command(session):
     from .cli import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from .cli import ModelArg, TopModelsArg
+    from .cli import CoordSysArg, TopModelsArg
     desc = CmdDesc(
         required = [('axis', AxisArg)],
         optional = [('distance', FloatArg),
                     ('frames', PositiveIntArg)],
-        keyword = [('coordinate_system', ModelArg),
+        keyword = [('coordinate_system', CoordSysArg),
                    ('models', TopModelsArg)],
         synopsis='translate models'
     )
