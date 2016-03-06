@@ -860,6 +860,20 @@ class PseudobondGroupsArg(Annotation):
         return pbgs, used, rest
 
 
+class SurfacesArg(Annotation):
+    """Parse command surfaces specifier"""
+    name = "surfaces"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import AtomicStructure
+        surfs = [m for m in models if not isinstance(m, AtomicStructure)]
+        return surfs, text, rest
+
+
 class ModelArg(Annotation):
     """Parse command model specifier"""
     name = "model"
