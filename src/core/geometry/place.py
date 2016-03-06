@@ -426,6 +426,9 @@ class Places:
                 for p2 in places:
                     pp.append(Place(m34.multiply_matrices(p.matrix, p2.matrix)))
             return Places(pp)
+        elif isinstance(places_or_vector, Place):
+            place = places_or_vector
+            return Places([p*place for p in self])
         else:
             v = places_or_vector
             a = self.array()
