@@ -6,6 +6,7 @@ available from the ChimeraX command-line.  Tools define additional commands note
 and their code location is described with the function descriptions.
 
 | `alias`_ - Define aliases for commands
+| `align`_ - Align one set of atoms to another
 | `buriedarea`_ - Compute buried area between atomic structures
 | `camera`_ - Change camera settings
 | `cartoon`_ * - Display atomic structure ribbons or pipes/planks
@@ -70,6 +71,10 @@ and their code location is described with the function descriptions.
 alias
 =====
 .. autofunction:: chimerax.core.commands.alias.alias
+
+align
+=====
+.. autofunction:: chimerax.core.commands.align.align
 
 buriedarea
 ==========
