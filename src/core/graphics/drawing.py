@@ -363,10 +363,13 @@ class Drawing:
     position = property(get_position, set_position)
     '''Position and orientation of the surface in space.'''
 
-    @property
-    def scene_position(self):
+    def _get_scene_position(self):
         from ..geometry import product
         return product([d.position for d in self.drawing_lineage])
+    def _set_scene_position(self, pos):
+        self.positions = self.positions * (self.scene_position.inverse() * pos)
+    scene_position = property(_get_scene_position, _set_scene_position)
+    '''Position in scene coordinates.'''
 
     def get_positions(self, displayed_only=False):
         if displayed_only:

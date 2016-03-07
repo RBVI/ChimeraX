@@ -494,6 +494,32 @@ extern "C" void atom_scene_coords(void *atoms, size_t n, void *mols, size_t m, f
     }
 }
 
+// Set atom coordinates after applying a per-structure transform.
+extern "C" void atom_set_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    Graph **ma = static_cast<Graph **>(mols);
+
+    try {
+        std::map<Graph *, double *> tf;
+        for (size_t i = 0; i != m; ++i)
+            tf[ma[i]] = mtf + 12*i;
+
+	Point p;
+        for (size_t i = 0; i != n; ++i, xyz += 3) {
+            Graph *s = a[i]->structure();
+            double *t = tf[s];
+            double x = xyz[0], y = xyz[1], z = xyz[2];
+            p.set_xyz(t[0]*x + t[1]*y + t[2]*z + t[3],
+		      t[4]*x + t[5]*y + t[6]*z + t[7],
+		      t[8]*x + t[9]*y + t[10]*z + t[11]);
+	    a[i]->set_coord(p);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void atom_selected(void *atoms, size_t n, npy_bool *sel)
 {
     Atom **a = static_cast<Atom **>(atoms);

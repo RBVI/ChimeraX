@@ -186,23 +186,23 @@ class Graph(Model, StructureData):
         data['version'] = CORE_STATE_VERSION
         return data
 
-    @classmethod
-    def restore_snapshot(cls, session, data):
-        s = cls(session, smart_initial_display = False)
+    @staticmethod
+    def restore_snapshot(session, data):
+        s = Graph(session, smart_initial_display = False)
+        s.set_state_from_snapshot(session, data)
+        return s
 
+    def set_state_from_snapshot(self, session, data):
         # Model restores self.name, which is a property of the C++ StructureData
         # so initialize StructureData first.
-        StructureData.set_state_from_snapshot(s, session, data['structure state'])
-        Model.set_state_from_snapshot(s, session, data['model state'])
+        StructureData.set_state_from_snapshot(self, session, data['structure state'])
+        Model.set_state_from_snapshot(self, session, data['model state'])
 
-        for attr_name, default_val in s._session_attrs.items():
-            setattr(s, attr_name, data.get(attr_name, default_val))
+        for attr_name, default_val in self._session_attrs.items():
+            setattr(self, attr_name, data.get(attr_name, default_val))
 
-        # TODO: For some reason ribbon drawing does not update automatically.
-        s._gc_ribbon = True
-        s._gc_shape = True	# TODO: Also marker atoms do not draw without this.
-
-        return s
+        self._gc_ribbon = True  # TODO: For some reason ribbon drawing does not update automatically.
+        self._gc_shape = True	# TODO: Also marker atoms do not draw without this.
 
     def reset_state(self, session):
         pass
@@ -1251,7 +1251,12 @@ class AtomicStructure(Graph):
     The data is managed by the :class:`.StructureData` base class
     which provides access to the C++ structures.
     """
-    pass
+    @staticmethod
+    def restore_snapshot(session, data):
+        s = AtomicStructure(session, smart_initial_display = False)
+        Graph.set_state_from_snapshot(s, session, data)
+        return s
+
 
 # -----------------------------------------------------------------------------
 #
@@ -1264,7 +1269,7 @@ class LevelOfDetail(State):
         self.quality = 1
 
         self._atom_min_triangles = 10
-        self._atom_max_triangles = 400
+        self._atom_max_triangles = 2000
         self._atom_max_total_triangles = 10000000
         self._step_factor = 1.2
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)

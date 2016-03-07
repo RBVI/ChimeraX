@@ -83,7 +83,6 @@ def _init_primitives():
     from numpy import ndarray, int32, int64, uint32, uint64, float32, float64
     import datetime
     from PIL import Image
-    from . import geometry
     _final_primitives = (
         type(None), type(Ellipsis),
         bool, bytes, bytearray,
@@ -93,7 +92,6 @@ def _init_primitives():
         collections.Counter,
         datetime.date, datetime.time, datetime.timedelta, datetime.datetime,
         datetime.timezone,
-        geometry.Place, geometry.Places,
         Image.Image,
     )
     _container_primitives = (
@@ -130,23 +128,23 @@ def copy_state(data, convert=None):
     def _copy(data):
         global _final_primitives, _container_primitives
         nonlocal convert, Mapping, ndarray
-        if hasattr(data, 'bundle_info'):
-            return convert(data)
         if isinstance(data, _final_primitives):
             return data
-        if not isinstance(data, _container_primitives):
-            raise ValueError("unable to copy %s.%s objects" % (
-                data.__class__.__module__, data.__class__.__name__))
-        if isinstance(data, Mapping):
-            items = [(_copy(k), _copy(v)) for k, v in data.items()]
-        elif isinstance(data, ndarray):
-            if data.dtype != object:
-                return data.copy()
-            items = [_copy(o) for o in data]
+        if isinstance(data, _container_primitives):
+            if isinstance(data, Mapping):
+                items = [(_copy(k), _copy(v)) for k, v in data.items()]
+            elif isinstance(data, ndarray):
+                if data.dtype != object:
+                    return data.copy()
+                items = [_copy(o) for o in data]
+            else:
+                # must be isinstance(data, (deque, Sequence, Set)):
+                items = [_copy(o) for o in data]
+            return data.__class__(items)
         else:
-            # must be isinstance(data, (deque, Sequence, Set)):
-            items = [_copy(o) for o in data]
-        return data.__class__(items)
+            # Use state methods to convert object to primitives
+            return convert(data)
+
     return _copy(data)
 
 

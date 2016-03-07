@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def position(session, camera=None, models=None):
+def position(session, camera=None, models=None, coordinate_system=None):
     '''
     Set model and camera positions. With no options positions are reported
     for the camera and all models. Positions are specified as 12-numbers,
@@ -13,13 +13,17 @@ def position(session, camera=None, models=None):
       Set the camera position.
     models : list of (Model, Place)
       Set model positions.
+    coordinate_system : Place
+      Treat camera and model positions relative to this coordinate system.
+      If none, then positions are in scene coordinates.
     '''
     v = session.main_view
+    csys = coordinate_system
     if camera is not None:
-        v.camera.position = camera
+        v.camera.position = camera if csys is None else csys*camera
     if models is not None:
         for m,p in models:
-            m.position = p
+            m.position = p if csys is None else csys*p
 
     if camera is None and models is None:
         report_positions(session)
@@ -76,10 +80,11 @@ class ModelPlacesArg(Annotation):
         return mp, text, rest
 
 def register_command(session):
-    from . import CmdDesc, register, PlaceArg, ModelsArg, Or, NoArg
+    from . import CmdDesc, register, PlaceArg, ModelsArg, Or, NoArg, CoordSysArg
     desc = CmdDesc(
         keyword=[('camera', PlaceArg),
-                 ('models', ModelPlacesArg)],
+                 ('models', ModelPlacesArg),
+                 ('coordinate_system', CoordSysArg)],
         synopsis='set camera and model positions')
     register('position', desc, position)
     desc = CmdDesc(

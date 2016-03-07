@@ -166,6 +166,7 @@ if window_sys == "wx":
             # TODO: Should just mark for redraw so all redraws go through update
             # loop. But this causes bad flicker when resizing the window by hand.
 #           self.view.redraw_needed = True
+            self.set_viewport()	# Make sure redraw uses correct graphics window size.
             self.view.draw()
 
         def on_size(self, event):
@@ -266,7 +267,6 @@ else:
             self.minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
             # of time since start of last drawing
             self.last_redraw_start_time = self.last_redraw_finish_time = 0
-
 
             ui.have_stereo = False
             if hasattr(ui, 'stereo') and ui.stereo:

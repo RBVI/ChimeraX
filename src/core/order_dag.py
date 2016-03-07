@@ -65,7 +65,7 @@ def _postorder_traversal(path, d, node):
             return
         for dnode in depends_on:
             if dnode in path:
-                raise OrderDAGError("cycle detected", path)
+                raise OrderDAGError("cycle detected, reached %s from %s" % (repr(dnode), repr(path)), path)
             path.append(dnode)
             yield from _postorder_traversal(path, d, dnode)
             path.pop()

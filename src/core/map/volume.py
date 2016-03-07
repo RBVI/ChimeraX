@@ -1842,14 +1842,14 @@ class Volume(Model):
     data = {
       'model state': Model.take_snapshot(self, session, flags),
       'volume state': state_from_map(self),
-      'grid data': grid_data_state(self.data, session),
+      'grid data state': grid_data_state(self.data, session),
       'version': CORE_STATE_VERSION,
     }
     return data
 
   @staticmethod
   def restore_snapshot(session, data):
-    grid_data = data['grid data'].grid_data
+    grid_data = data['grid data state'].grid_data
     v = Volume(grid_data, session)
     Model.set_state_from_snapshot(v, session, data['model state'])
     from .session import set_map_state

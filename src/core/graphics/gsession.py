@@ -1,103 +1,98 @@
 # Session save/restore of graphics state
 
-from ..state import State
-
-
-class ViewState(State):
+class ViewState:
 
     version = 1
-    save_attrs = ['center_of_rotation', 'window_size', 'background_color',
+    save_attrs = ['camera', 'lighting', 'material',
+                  'center_of_rotation', 'background_color',
                   'silhouettes', 'silhouette_thickness', 'silhouette_color',
                   'silhouette_depth_jump']
 
-    def __init__(self, view):
-        self.view = view
+    @staticmethod
+    def take_snapshot(view, session, flags):
+        v = view
+        data = {a:getattr(v,a) for a in ViewState.save_attrs}
 
-    def take_snapshot(self, session, flags):
-        v = self.view
-        data = {a:getattr(v,a) for a in self.save_attrs}
-        data['camera_state'] = CameraState(v.camera)
-        data['lighting_state'] = LightingState(v.lighting)
-        data['clip_plane_states'] = [ClipPlaneState(cp) for cp in v.clip_planes.planes()]
-        data['version'] = self.version
+        # TODO: Handle cameras other than MonoCamera
+        c = v.camera
+        from . import MonoCamera
+        if not isinstance(c, MonoCamera):
+            p = c.position
+            c = MonoCamera()
+            c.position = p
+
+        data['window_size'] = v.window_size
+        data['clip_planes'] = v.clip_planes.planes()
+        data['version'] = ViewState.version
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
         # Restores session.main_view
-        vs = ViewState(session.main_view)
-        vs.set_state_from_snapshot(session, data)
-        return vs
+        v = session.main_view
+        ViewState.set_state_from_snapshot(v, session, data)
+        return v
 
-    def set_state_from_snapshot(self, session, data):
-        v = self.view
-        for k in self.save_attrs:
-            if k in data and k != 'window_size' and k != 'version':
+    @staticmethod
+    def set_state_from_snapshot(view, session, data):
+        v = view
+        for k in ViewState.save_attrs:
+            if k in data:
                 setattr(v, k, data[k])
 
-        # Root drawing had redraw callback set to None.  Restore callback.
+        # Root drawing has redraw callback set to None -- fix it.
         v.drawing.set_redraw_callback(v._drawing_manager)
 
-        # Restore camera
-        cs = data['camera_state']
-        v.camera = cs.camera
-
-        # Restore lighting
-        ls = data['lighting_state']
-        v.lighting = ls.lighting
-        v.update_lighting = True
-
         # Restore clip planes
-        v.clip_planes.replace_planes([cps.clip_plane for cps in data['clip_plane_states']])
+        v.clip_planes.replace_planes(data['clip_planes'])
 
         # Restore window size
         from ..commands.windowsize import window_size
         width, height = data['window_size']
         window_size(session, width, height)
 
-    def reset_state(self, session):
+    @staticmethod
+    def reset_state(view, session):
         pass
 
 
-class CameraState(State):
+class CameraState:
 
     version = 1
     save_attrs = ['position', 'field_of_view']
 
-    def __init__(self, camera):
-        self.camera = camera
-
-    def take_snapshot(self, session, flags):
-        c = self.camera
+    @staticmethod
+    def take_snapshot(camera, session, flags):
+        c = camera
         from .camera import MonoCamera
         if isinstance(c, MonoCamera):
-            data = {a:getattr(c,a) for a in self.save_attrs}
+            data = {a:getattr(c,a) for a in CameraState.save_attrs}
         else:
             # TODO: Restore other camera modes.
             session.logger.info('"%s" camera settings not currently saved in sessions' % c.name())
             data = {'position': c.position}
-        data['version'] = self.version
+        data['version'] = CameraState.version
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
         from .camera import MonoCamera
-        cs = CameraState(MonoCamera())
-        cs.set_state_from_snapshot(session, data)
-        return cs
+        c = MonoCamera()
+        CameraState.set_state_from_snapshot(c, session, data)
+        return c
 
-    def set_state_from_snapshot(self, session, data):
-        c = self.camera
-        if data is not None:
-            for k,v in data.items():
-                if k != 'version':
-                    setattr(c, k, v)
+    @staticmethod
+    def set_state_from_snapshot(camera, session, data):
+        for k in CameraState.save_attrs:
+            if k in data:
+                setattr(camera, k, data[k])
 
-    def reset_state(self, session):
+    @staticmethod
+    def reset_state(camera, session):
         pass
 
 
-class LightingState(State):
+class LightingState:
 
     version = 1
     save_attrs = [
@@ -120,33 +115,70 @@ class LightingState(State):
         'multishadow_map_size',
         'multishadow_depth_bias',
         ]
-    def __init__(self, lighting):
-        self.lighting = lighting
 
-    def take_snapshot(self, session, flags):
-        l = self.lighting
-        data = {a:getattr(l,a) for a in self.save_attrs}
-        data['version'] = self.version
+    @staticmethod
+    def take_snapshot(lighting, session, flags):
+        l = lighting
+        data = {a:getattr(l,a) for a in LightingState.save_attrs}
+        data['version'] = LightingState.version
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
         from . import Lighting
-        ls = LightingState(Lighting())
-        ls.set_state_from_snapshot(session, data)
-        return ls
+        l = Lighting()
+        LightingState.set_state_from_snapshot(l, session, data)
+        return l
 
-    def set_state_from_snapshot(self, session, data):
-        l = self.lighting
-        for k,v in data.items():
-            if k != 'version':
-                setattr(l, k, v)
+    @staticmethod
+    def set_state_from_snapshot(lighting, session, data):
+        l = lighting
+        for k in LightingState.save_attrs:
+            if k in data:
+                setattr(l, k, data[k])
 
-    def reset_state(self, session):
+    @staticmethod
+    def reset_state(lighting, session):
         pass
 
 
-class ClipPlaneState(State):
+class MaterialState:
+
+    version = 1
+    save_attrs = [
+        'ambient_reflectivity',
+        'diffuse_reflectivity',
+        'specular_reflectivity',
+        'specular_exponent',
+        ]
+
+    @staticmethod
+    def take_snapshot(material, session, flags):
+        m = material
+        data = {a:getattr(m,a) for a in MaterialState.save_attrs}
+        data['version'] = MaterialState.version
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        from . import Material
+        m = Material()
+        MaterialState.set_state_from_snapshot(m, session, data)
+        return m
+
+    @staticmethod
+    def set_state_from_snapshot(material, session, data):
+        m = material
+        for k in MaterialState.save_attrs:
+            if k in data:
+                setattr(m, k, data[k])
+
+    @staticmethod
+    def reset_state(Material, session):
+        pass
+
+
+class ClipPlaneState:
 
     version = 1
     save_attrs = [
@@ -156,26 +188,25 @@ class ClipPlaneState(State):
         'camera_normal',
     ]
 
-    def __init__(self, clip_plane):
-        self.clip_plane = clip_plane
-
-    def take_snapshot(self, session, flags):
-        cp = self.clip_plane
-        data = {a:getattr(cp,a) for a in self.save_attrs}
-        data['version'] = self.version
+    @staticmethod
+    def take_snapshot(clip_plane, session, flags):
+        cp = clip_plane
+        data = {a:getattr(cp,a) for a in ClipPlaneState.save_attrs}
+        data['version'] = ClipPlaneState.version
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
         from . import ClipPlane
         cp = ClipPlane(data['name'], data['normal'], data['plane_point'], data['camera_normal'])
-        return ClipPlaneState(cp)
+        return cp
 
-    def reset_state(self, session):
+    @staticmethod
+    def reset_state(clip_plane, session):
         pass
 
 
-class DrawingState(State):
+class DrawingState:
 
     version = 1
     save_attrs = ['name', 'vertices', 'triangles', 'normals', 'vertex_colors', 
@@ -184,29 +215,29 @@ class DrawingState(State):
                   'use_lighting', 'positions', 'display_positions', 
                   'selected_positions', 'selected_triangles_mask', 'colors']
 
-    def __init__(self, drawing):
-        self.drawing = drawing
-
-    def take_snapshot(self, session, flags):
-        d = self.drawing
-        data = {a:getattr(d,a) for a in self.save_attrs}
-        data['children'] = [DrawingState(c) for c in d.child_drawings()]
-        data['version'] = self.version
+    @staticmethod
+    def take_snapshot(drawing, session, flags):
+        d = drawing
+        data = {a:getattr(d,a) for a in DrawingState.save_attrs}
+        data['children'] = d.child_drawings()
+        data['version'] = DrawingState.version
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        ds = DrawingState(Drawing(''))
-        ds.set_state_from_stanpshot(session, data)
-        return ds
+        d = Drawing('')
+        DrawingState.set_state_from_stanpshot(d, session, data)
+        return d
 
-    def set_state_from_snapshot(self, session, data):
-        d = self.drawing
-        for k in self.save_attrs:
+    @staticmethod
+    def set_state_from_snapshot(drawing, session, data):
+        d = drawing
+        for k in DrawingState.save_attrs:
             if k in data:
                 setattr(d, k, data[k])
-        for child_state in data['children']:
-            d.add_drawing(child_state.drawing)
+        for c in data['children']:
+            d.add_drawing(c)
 
-    def reset_state(self, session):
+    @staticmethod
+    def reset_state(drawing, session):
         pass

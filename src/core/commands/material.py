@@ -28,7 +28,7 @@ def material(session, preset = None, reflectivity = None,
       Fraction of ambient light reflected. Initial value 0.8.
     '''
     v = session.main_view
-    m = v.material()
+    m = v.material
 
     if len([opt for opt in (preset, reflectivity, specular_reflectivity, exponent,
                             ambient_reflectivity)
@@ -60,8 +60,7 @@ def material(session, preset = None, reflectivity = None,
     if not ambient_reflectivity is None:
         m.ambient_reflectivity = ambient_reflectivity
 
-    v.update_lighting = True
-    v.redraw_needed = True
+    v.material = m	# Let's viewer know the material has been changed.
 
 def register_command(session):
     from .cli import CmdDesc, EnumOf, FloatArg, register

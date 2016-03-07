@@ -698,7 +698,7 @@ class Axis:
             # Camera coords are actually coordinate_system coords if
             # coordinate_system is not None.
             c = self.coords
-            a = coordinate_system.position.apply_without_translation(c)
+            a = coordinate_system.apply_without_translation(c)
         elif camera:
             a = camera.position.apply_without_translation(self.coords)
         else:
@@ -772,11 +772,24 @@ class Center:
         if obj is not None:
             c = obj.bounds().center()
         elif coordinate_system is not None:
-            c = coordinate_system.position * self.coords
+            c = coordinate_system * self.coords
         else:
             c = self.coords
         return c
 
+
+class CoordSysArg(Annotation):
+    """
+    Annotation for coordinate system for AxisArg and CenterArg
+    when specified as tuples of numbers.  Coordinate system is
+    specified as a Model specifier.
+    """
+    name = "coordinate-system"
+
+    @staticmethod
+    def parse(text, session):
+        m, text, rest = ModelArg.parse(text, session)
+        return m.position, text, rest
 
 class PlaceArg(Annotation):
     """
@@ -845,6 +858,20 @@ class PseudobondGroupsArg(Annotation):
         from ..atomic import PseudobondGroup
         pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
         return pbgs, used, rest
+
+
+class SurfacesArg(Annotation):
+    """Parse command surfaces specifier"""
+    name = "surfaces"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import AtomicStructure
+        surfs = [m for m in models if not isinstance(m, AtomicStructure)]
+        return surfs, text, rest
 
 
 class ModelArg(Annotation):

@@ -11,7 +11,7 @@ __copyright__ = (
     "  See http://www.rbvi.ucsf.edu/chimerax/ for license details."
 )
 _class_cache = {}
-# list modules classes are found in
+# list modules classes are found in used by session restore to recreate objects.
 _class_class_init = {
     'Atom': '.atomic',
     'AtomicStructure': '.atomic',
@@ -19,23 +19,26 @@ _class_class_init = {
     'Atoms': '.atomic',
     'Bond': '.atomic',
     'Bonds': '.atomic',
-    'CameraState': '.graphics.gsession',
     'Chain': '.atomic',
     'Chains': '.atomic',
-    'ClipPlaneState': '.graphics.gsession',
+    'ClipPlane': '.graphics',
     'Color': '.colors',
-    'DrawingState': '.graphics.gsession',
+    'Drawing': '.graphics',
     'Generic3DModel': '.generic3d',
     'Graph': '.atomic',
     'GridDataState': '.map.session',
     'LevelOfDetail': '.atomic.structure',
-    'LightingState': '.graphics.gsession',
+    'Lighting': '.graphics',
     'Map_Series': '.map.series',
+    'Material': '.graphics',
     'Model': '.models',
     'Models': '.models',
     'MolecularSurface': '.atomic',
-    'NamedViewState': '.commands.view',
-    'NamedViewsState': '.commands.view',
+    'MonoCamera': '.graphics',
+    'NamedView': '.commands.view',
+    'NamedViews': '.commands.view',
+    'Place': '.geometry',
+    'Places': '.geometry',
     'Pseudobond': '.atomic',
     'PseudobondGroup': '.atomic.pbgroup',
     'PseudobondManager': '.atomic.molobject',
@@ -49,7 +52,7 @@ _class_class_init = {
     'TriangleInfo': '.stl',
     'UserColors': '.colors',
     'UserColormaps': '.colors',
-    'ViewState': '.graphics.gsession',
+    'View': '.graphics',
     'Volume': '.map',
     '_Input': '.ui.nogui',
 }

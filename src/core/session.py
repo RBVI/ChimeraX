@@ -132,7 +132,7 @@ class _UniqueName:
             return "Core's %s" % class_name
         return "Tool %s's %s" % class_name
 
-    def bundle_info_and_class_of(self, session):
+    def class_of(self, session):
         """Return class associated with unique id
 
         The restore process makes sure that the right tools are present,
@@ -141,15 +141,15 @@ class _UniqueName:
         class_name, ordinal = self.uid
         if isinstance(class_name, str):
             from chimerax.core import get_class
-            bundle_info = None
             cls = get_class(class_name)
         else:
             tool_name, class_name = class_name
             bundle_info = session.toolshed.find_bundle(tool_name)
             if bundle_info is None:
-                return None, None
-            cls = bundle_info.get_class(class_name)
-        return bundle_info, cls
+                cls = None
+            else:
+                cls = bundle_info.get_class(class_name)
+        return cls
 
 #    @classmethod
 #    def restore_unique_id(self, obj, uid):
@@ -176,10 +176,11 @@ class _SaveManager:
 
     def discovery(self, containers):
         for key, value in containers.items():
-            if not isinstance(value, State) and len(value) == 0:
+            sm = self.session.snapshot_methods(value)
+            if sm is None and len(value) == 0:
                 continue
             try:
-                if not isinstance(value, State):
+                if sm is None:
                     self.processed[key] = self.process(value)
                     self.graph[key] = self._found_objs
                 else:
@@ -207,11 +208,12 @@ class _SaveManager:
 
     def process(self, obj):
         self._found_objs = []
-        if isinstance(obj, State):
+        sm = self.session.snapshot_methods(obj)
+        if sm:
             # TODO: if data is None or exception, log failure
-            data = obj.take_snapshot(self.session, self.state_flags)
+            data = sm.take_snapshot(obj, self.session, self.state_flags)
             if data is None:
-                raise RuntimeError('missing data to restore %s instance' % obj.__class__.__name__)
+                raise RuntimeError('take_snapshot() for "%s" instance returned None' % obj.__class__.__name__)
         else:
             data = obj
         return copy_state(data, convert=self._add_obj)
@@ -329,8 +331,7 @@ class Session:
         from .graphics.view import View
         self.main_view = View(self.models.drawing, window_size=(256, 256),
                               trigger_set=self.triggers)
-        from .graphics.gsession import ViewState
-        self.add_state_manager('view', ViewState(self.main_view))
+        self.add_state_manager('view', self.main_view)
 
         from . import colors
         self.add_state_manager('user_colors', colors.UserColors())
@@ -373,8 +374,9 @@ class Session:
         self.metadata.clear()
         for tag in self._state_containers:
             container = self._state_containers[tag]
-            if isinstance(container, State):
-                container.reset_state(self)
+            sm = self.snapshot_methods(container)
+            if sm:
+                sm.reset_state(container, self)
             else:
                 container.clear()
 
@@ -391,8 +393,9 @@ class Session:
     def add_state_manager(self, tag, container):
         # if tag in self._state_containers:
         #     return
-        if not isinstance(container, State) and not hasattr(container, 'clear'):
-            raise ValueError('container "%s" of type "%s" does not have State base class and does not have clear method' % (tag, str(type(container))))
+        sm = self.snapshot_methods(container)
+        if sm is None and not hasattr(container, 'clear'):
+            raise ValueError('container "%s" of type "%s" does not have snapshot methods and does not have clear method' % (tag, str(type(container))))
         self._state_containers[tag] = container
 
     def get_state_manager(self, tag):
@@ -402,6 +405,30 @@ class Session:
         """Explictly replace attribute with alternate implementation"""
         object.__setattr__(self, attribute_name, value)
 
+    def snapshot_methods(self, object, instance = True):
+        """Return an object having take_snapshot() and restore_snapshot() methods for the given object.
+        Can return if no save/restore methods are available, for instance for primitive types.
+        """
+        cls = object.__class__ if instance else object
+        if issubclass(cls, State):
+            return cls
+        elif not hasattr(self, '_snapshot_methods'):
+            from .graphics import View, MonoCamera, Lighting, Material, ClipPlane, Drawing, gsession as g
+            from .geometry import Place, Places, psession as p
+            self._snapshot_methods = {
+                View : g.ViewState,
+                MonoCamera : g.CameraState,
+                Lighting : g.LightingState,
+                Material : g.MaterialState,
+                ClipPlane : g.ClipPlaneState,
+                Drawing : g.DrawingState,
+                Place : p.PlaceState,
+                Places : p.PlacesState,
+            }
+
+        methods = self._snapshot_methods.get(cls, None)
+        return methods
+    
     def save(self, stream):
         """Serialize session to stream."""
         from . import serialize
@@ -452,10 +479,13 @@ class Session:
                     self.add_state_manager(name, data)
                 else:
                     # _UniqueName: find class
-                    bundle_info, cls = name.bundle_info_and_class_of(self)
+                    cls = name.class_of(self)
                     if cls is None:
                         continue
-                    obj = cls.restore_snapshot(self, data)
+                    sm = self.snapshot_methods(cls, instance = False)
+                    if sm is None:
+                        print('no snapshot methods for class', cls.__name__)
+                    obj = sm.restore_snapshot(self, data)
                     mgr.add_reference(name, obj)
         except:
             import traceback

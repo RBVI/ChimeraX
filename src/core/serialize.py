@@ -77,8 +77,6 @@ class _RestrictedUnpickler(pickle.Unpickler):
         'numpy.core.multiarray': {'_reconstruct', 'scalar'},
         'PIL.Image': {'Image'},
     }
-    from .geometry import Place, Places
-    supported[Place.__module__] = {Place.__name__, Places.__name__}
     from .session import _UniqueName
     supported[_UniqueName.__module__] = {_UniqueName.__name__}
 
