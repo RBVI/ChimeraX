@@ -13,7 +13,7 @@ def register_core_commands(session):
         'delete', 'echo', 'exit', 'export', 'hide', 'info',
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd', 'rainbow', 'roll', 'run', 'rungs',
-        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'sop', 'split',
+        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'transparency', 'turn',
         'usage', 'view', 'version', 'wait', 'windowsize', 'zoom'
