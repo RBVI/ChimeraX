@@ -63,7 +63,8 @@ class ResidueFit(ToolInstance):
 
         from chimerax.core.models import REMOVE_MODELS
         self._model_close_handler = session.triggers.add_handler(REMOVE_MODELS, self.models_closed_cb)
-        
+
+        map.new_region(ijk_step = (1,1,1), adjust_step = False)
         map.show(representation = 'mesh')
         s.atoms.displays = False
         s.residues.ribbon_displays = False
