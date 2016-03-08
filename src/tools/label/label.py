@@ -136,6 +136,8 @@ def text_image_rgba(text, color, size, typeface, data_dir):
     if f is None:
         return
     pixel_size = f.getsize(text)
+    # Size 0 image gives rgba array that is not 3-dimensional
+    pixel_size = (max(1,pixel_size[0]), max(1,pixel_size[1]))
     i = Image.new('RGBA', pixel_size)
     d = ImageDraw.Draw(i)
     #print('Size of "%s" is %s' % (text, pixel_size))
