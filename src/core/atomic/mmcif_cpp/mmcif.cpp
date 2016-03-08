@@ -311,7 +311,7 @@ ExtractMolecule::find_template_residue(const ResName& name)
 {
     if (my_templates) {
         tmpl::Residue* tr = my_templates->find_residue(name);
-        if (tr)
+        if (tr && tr->atoms_map().size() > 0)
             return tr;
     }
     return mmcif::find_template_residue(name);
