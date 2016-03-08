@@ -38,17 +38,27 @@ else
 	CONFIG_OPTS += -release
 endif
 
+RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(frameworkdir)", "$(bindir)"))')
+
 all:
 
 install: $(SOURCE)
 ifeq ($(OS),Windows)
 	cd $(SOURCE) && ./configure.exe $(CONFIG_OPTS) && nmake && nmake install
 else
-	cd $(SOURCE) && $(ENV) ./configure $(CONFIG_OPTS) && $(MAKE) && $(MAKE) -j1 install
+	#cd $(SOURCE) && $(ENV) ./configure $(CONFIG_OPTS) && $(MAKE) && $(MAKE) -j1 install
 endif
 	rm -f $(build_prefix)/q3porting.xml
 ifdef USE_MAC_FRAMEWORKS
 	$(RSYNC) $(libdir)/Qt*.framework $(frameworkdir)
+	# fix rpaths in shared libs
+	for fw in $(frameworkdir)/Qt*.framework; do \
+		fwlib=$$fw/Versions/Current/`basename -s .framework $$fw`; \
+		for linked in `otool -L $$fwlib | grep Qt | grep framework | grep rpath | awk '{ print $$1 }'`; do \
+			fixed=`echo $$linked | sed 's|@rpath|@executable_path/$(RELPATH)|'`; \
+			install_name_tool -change "$$linked" "$$fixed" "$$fwlib"; \
+		done; \
+	done
 	$(MAKE) include
 
 include:

@@ -18,10 +18,11 @@ RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(framewor
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
+	#cd $(SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
+	$(RSYNC) $(build_prefix)/plugins $(PYSITEDIR)/PyQt5
 ifdef USE_MAC_FRAMEWORKS
+	# Have the PyQt modules look in the right place for Qt frameworks
 	cd $(PYSITEDIR)/PyQt5; for mod in *.$(PYMOD_EXT); do \
-		echo $$mod; \
 		for fw in `otool -L $$mod | grep Qt | grep framework | grep rpath | awk '{ print $$1 }'`; do \
 			fixed=`echo $$fw | sed 's|@rpath|@executable_path/$(RELPATH)|'`; \
 			install_name_tool -change "$$fw" "$$fixed" "$$mod"; \
