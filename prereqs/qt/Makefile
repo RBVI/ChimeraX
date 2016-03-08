@@ -48,6 +48,7 @@ else
 endif
 	rm -f $(build_prefix)/q3porting.xml
 ifdef USE_MAC_FRAMEWORKS
+	$(RSYNC) $(libdir)/Qt*.framework $(frameworkdir)
 	$(MAKE) include
 
 include:
@@ -57,7 +58,10 @@ include:
 	done
 endif
 
-app-install:;
+app-install:
+ifdef USE_MAC_FRAMEWORKS
+	$(RSYNC) $(frameworkdir)/Qt*.framework $(app_frameworkdir)
+endif
 
 $(SOURCE): $(DISTRIBUTION)
 	$(bindir)/7za x -o'$(tmpdir)' $(DISTRIBUTION)
