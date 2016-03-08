@@ -159,16 +159,34 @@ class Logger:
             Log.LEVEL_WARNING: self.warning,
             Log.LEVEL_INFO: self.info
         }
+        # non-exclusively collate any early log messages, so that they
+        # can also be sent to the first "real" log to hit the stack
+        self.add_log(_EarlyCollator())
 
     def add_log(self, log):
         """Add a logger"""
         if not isinstance(log, (HtmlLog, PlainTextLog)):
             raise ValueError("Cannot add log that is not instance of"
                              " HtmlLog or PlainTextLog")
-        if log in self.logs:
+        if isinstance(log, _EarlyCollator):
+            self._early_collation = True
+        elif self._early_collation:
+            # main window only handles status messages, so in that case keep collating...
+            from .ui.gui import MainWindow
+            if not isinstance(log, MainWindow):
+                self._early_collation = None
+                for cur_log in self.logs:
+                    if isinstance(cur_log, _EarlyCollator):
+                        early_collator = cur_log
+                        break
+                self.logs.discard(early_collator)
+        elif log in self.logs:
             # move to top
             self.logs.discard(log)
         self.logs.add(log)
+        if self._early_collation == None:
+            self._early_collation = False
+            early_collator.log_summary(self, "Startup Errors")
 
     def clear(self):
         """clear all loggers"""
@@ -321,7 +339,7 @@ class Logger:
                 args = (level, self._html_to_plain(msg, image, is_html))
             if log.log(*args):
                 # message displayed
-                msg_handled = True
+                msg_handled = not self._early_collation
                 if log.excludes_other_logs:
                     break
 
@@ -470,6 +488,10 @@ class Collator:
         self.logger.remove_log(self.collater)
         if self.log_messages:
             self.collater.log_summary(self.logger, self.summary_title)
+
+class _EarlyCollator(CollatingLog):
+    """Collate any errors that occur before any "real" log hits the log stack."""
+    excludes_other_logs = False
 
 
 def html_to_plain(html):
