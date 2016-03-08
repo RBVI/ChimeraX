@@ -13,10 +13,7 @@ def register_core_commands(session):
         'delete', 'echo', 'exit', 'export', 'hide', 'info',
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd', 'rainbow', 'roll', 'run', 'rungs',
-        'save', 'sasa',
-        #QT disabled
-        #'scolor',
-        'select', 'set', 'show', 'split',
+        'save', 'sasa', 'scolor', 'select', 'set', 'show', 'sop', 'split',
         'stop', 'style', 'surface', 'sym',
         'time', 'transparency', 'turn',
         'usage', 'view', 'version', 'wait', 'windowsize', 'zoom'
