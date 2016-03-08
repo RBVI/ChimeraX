@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 SUBDIRS = cellpack cmd_line contacts exp_cmd file_history help_viewer label \
 	  log map_series_gui model_panel mouse_modes movie remote_control \
-	  shell shortcuts sideview test toolshed
+	  residue_fit shell shortcuts sideview test toolshed
 
 include $(TOP)/mk/subdir.make
 
