@@ -1088,7 +1088,7 @@ def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
     if window_sys == "wx":
         from .. import map, markers
-        from ..map import series
+        from ..map import series, mouselevel, moveplanes
         mode_classes = [
             SelectMouseMode,
             RotateMouseMode,
@@ -1100,8 +1100,8 @@ def standard_mouse_mode_classes():
             ClipMouseMode,
             ClipRotateMouseMode,
             ObjectIdMouseMode,
-            map.ContourLevelMouseMode,
-            map.PlanesMouseMode,
+            mouselevel.ContourLevelMouseMode,
+            moveplanes.PlanesMouseMode,
             markers.MarkerMouseMode,
             markers.MarkCenterMouseMode,
             markers.ConnectMouseMode,
@@ -1110,7 +1110,7 @@ def standard_mouse_mode_classes():
         ]
     else:
         from .. import map, markers
-        from ..map import series
+        from ..map import series, mouselevel, moveplanes
         mode_classes = [
             SelectMouseMode,
             RotateMouseMode,
@@ -1122,8 +1122,8 @@ def standard_mouse_mode_classes():
             ClipMouseMode,
             ClipRotateMouseMode,
             ObjectIdMouseMode,
-            map.ContourLevelMouseMode,
-            map.PlanesMouseMode,
+            mouselevel.ContourLevelMouseMode,
+            moveplanes.PlanesMouseMode,
             markers.MarkerMouseMode,
             markers.MarkCenterMouseMode,
             markers.ConnectMouseMode,
