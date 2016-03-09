@@ -57,7 +57,7 @@ def register_movie_command():
 
 from .movie import RESET_CLEAR
 def movie_record(session, directory = None, pattern = None, format = None,
-                 size = None, supersample = 1, limit = 15000):
+                 size = None, supersample = 1, limit = 90000):
     '''Start recording a movie.
 
     Parameters
