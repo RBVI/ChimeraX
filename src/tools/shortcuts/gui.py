@@ -46,7 +46,6 @@ class ShortcutPanel(ToolInstance):
             tw.manage(placement="right", fixed_size = True)
 
     def create_buttons(self, parent):
-
         from chimerax.core import window_sys
         if window_sys == "wx":
             import wx
