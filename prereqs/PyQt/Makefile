@@ -18,7 +18,7 @@ RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(framewor
 all:
 
 install: $(SOURCE)
-	#cd $(SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
+	cd $(SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
 	$(RSYNC) $(build_prefix)/plugins $(PYSITEDIR)/PyQt5
 ifdef USE_MAC_FRAMEWORKS
 	# Have the PyQt modules look in the right place for Qt frameworks
