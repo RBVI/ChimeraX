@@ -343,7 +343,7 @@ class Tools(State):
         from chimerax.core import window_sys
         if window_sys == "qt":
             #QT disabled
-            settings.autostart = ['molecule_display_shortcuts', 'cmd_line', 'log']
+            settings.autostart = ['molecule_display_shortcuts', 'graphics_shortcuts', 'cmd_line', 'log']
         self.start_tools(settings.autostart)
 
     def start_tools(self, tool_names):

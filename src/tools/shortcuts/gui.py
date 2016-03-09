@@ -64,9 +64,9 @@ class ShortcutPanel(ToolInstance):
             from PyQt5.QtWidgets import QAction, QToolBar
             from PyQt5.QtGui import QIcon
             from PyQt5.QtCore import Qt, QSize
-            tb = QToolBar("Molecule Display Options", parent)
-            tb.setIconSize(QSize(48,48))
-            parent.addToolBar(Qt.LeftToolBarArea, tb)
+            tb = QToolBar(self.display_name, parent)
+            tb.setIconSize(QSize(40,40))
+            parent.addToolBar(Qt.TopToolBarArea, tb)
             for keys, icon_file, descrip in self.shortcuts:
                 from os import path
                 icon_dir = path.join(path.dirname(__file__), 'icons')
@@ -113,11 +113,16 @@ class ShortcutPanel(ToolInstance):
         result = wx.Bitmap(image)
         return result
 
-    def show(self):
-        self.tool_window.shown = True
-
-    def hide(self):
-        self.tool_window.shown = False
+    def display(self, show):
+        from chimerax.core import window_sys
+        if window_sys == "wx":
+            super().display(show)
+        else:
+            if show:
+                f = self.buttons.show
+            else:
+                f = self.buttons.hide
+            self.session.ui.thread_safe(f)
 
     @classmethod
     def get_singleton(cls, session):
