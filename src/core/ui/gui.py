@@ -719,8 +719,6 @@ else:
     qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
     import os.path, PyQt5
     qlib_paths.append(os.path.join(os.path.dirname(PyQt5.__file__), "plugins"))
-    import sys
-    print("Final paths:", qlib_paths, file=sys.__stderr__)
     QCoreApplication.setLibraryPaths(qlib_paths)
 
     from PyQt5.QtWidgets import QApplication

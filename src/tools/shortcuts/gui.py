@@ -15,44 +15,68 @@ class ShortcutPanel(ToolInstance):
         from .shortcuts import keyboard_shortcuts
         self.keyboard_shortcuts = keyboard_shortcuts(session)
 
-        self.icon_size = 48
-        self.max_icon_size = 48
-        self.min_icon_size = 24
-        self.icon_border = 4
+        from chimerax.core import window_sys
+        if window_sys == "wx":
+            self.icon_size = 48
+            self.max_icon_size = 48
+            self.min_icon_size = 24
+            self.icon_border = 4
 
-        columns = 12
-        rows = (len(self.shortcuts) + columns - 1)//columns
-        min_panel_width = self.icon_size
-        panel_height = rows * self.icon_size
-        panel_size = (min_panel_width, panel_height)
+            columns = 12
+            rows = (len(self.shortcuts) + columns - 1)//columns
+            min_panel_width = self.icon_size
+            panel_height = rows * self.icon_size
+            panel_size = (min_panel_width, panel_height)
 
-        from chimerax.core.ui.gui import MainToolWindow
-        class ShortcutWindow(MainToolWindow):
-            close_destroys = False
+            from chimerax.core.ui.gui import MainToolWindow
+            class ShortcutWindow(MainToolWindow):
+                close_destroys = False
 
-        self.tool_window = tw = ShortcutWindow(self, size=panel_size)
-        parent = tw.ui_area
+            self.tool_window = tw = ShortcutWindow(self, size=panel_size)
+            parent = tw.ui_area
+
+            import wx
+            parent.Bind(wx.EVT_SIZE, self.resize_cb)
+        else:
+            parent = session.ui.main_window
 
         self.buttons = self.create_buttons(parent)
 
-        import wx
-        parent.Bind(wx.EVT_SIZE, self.resize_cb)
-
-        tw.manage(placement="right", fixed_size = True)
+        if window_sys == "wx":
+            tw.manage(placement="right", fixed_size = True)
 
     def create_buttons(self, parent):
 
-        import wx
-        buttons = []
-        for i, (keys, icon_file, descrip) in enumerate(self.shortcuts):
-            tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file))
-            tb.icon_file = icon_file
-            def button_press_cb(event, keys=keys, ks=self.keyboard_shortcuts):
-                ks.run_shortcut(keys)
-            parent.Bind(wx.EVT_BUTTON, button_press_cb, id=i+1)
-            tb.SetToolTip(wx.ToolTip(descrip))
-            buttons.append(tb)
-        return buttons
+        from chimerax.core import window_sys
+        if window_sys == "wx":
+            import wx
+            buttons = []
+            for i, (keys, icon_file, descrip) in enumerate(self.shortcuts):
+                tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file))
+                tb.icon_file = icon_file
+                def button_press_cb(event, keys=keys, ks=self.keyboard_shortcuts):
+                    ks.run_shortcut(keys)
+                parent.Bind(wx.EVT_BUTTON, button_press_cb, id=i+1)
+                tb.SetToolTip(wx.ToolTip(descrip))
+                buttons.append(tb)
+            return buttons
+        else:
+            from PyQt5.QtWidgets import QAction, QToolBar
+            from PyQt5.QtGui import QIcon
+            from PyQt5.QtCore import Qt, QSize
+            tb = QToolBar("Molecule Display Options", parent)
+            tb.setIconSize(QSize(48,48))
+            parent.addToolBar(Qt.LeftToolBarArea, tb)
+            for keys, icon_file, descrip in self.shortcuts:
+                from os import path
+                icon_dir = path.join(path.dirname(__file__), 'icons')
+                action = QAction(QIcon(path.join(icon_dir, icon_file)), descrip, tb)
+                def button_press_cb(event, keys=keys, ks=self.keyboard_shortcuts):
+                    ks.run_shortcut(keys)
+                action.triggered.connect(button_press_cb)
+                tb.addAction(action)
+            tb.show()
+            return tb
 
     def resize_cb(self, event):
         size = event.GetSize()
