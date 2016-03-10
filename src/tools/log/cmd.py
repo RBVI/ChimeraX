@@ -8,7 +8,7 @@ def get_singleton(session, create=False):
     return tools.get_singleton(session, Log, 'log', create=create)
 
 def log(session, show = False, hide = False, clear = False, save_path = None,
-        thumbnail = False, width = 100, height = 100,
+        thumbnail = False, text = None, html = None, width = 100, height = 100,
         warning_dialog = None, error_dialog = None):
     '''Operations on the Log window.
 
@@ -49,16 +49,22 @@ def log(session, show = False, hide = False, clear = False, save_path = None,
         if thumbnail:
             im = session.main_view.image(width, height)
             log.log(log.LEVEL_INFO, 'graphics image', (im, True), True)
+        if text:
+            log.log(log.LEVEL_INFO, text, (None, False), False)
+        if html:
+            log.log(log.LEVEL_INFO, text, (None, False), True)
         if not warning_dialog is None:
             log.warning_shows_dialog = warning_dialog
         if not error_dialog is None:
             log.error_shows_dialog = error_dialog
 
-from chimerax.core.commands import CmdDesc, NoArg, BoolArg, IntArg, SaveFileNameArg
+from chimerax.core.commands import CmdDesc, NoArg, BoolArg, IntArg, RestOfLine, SaveFileNameArg
 log_desc = CmdDesc(keyword = [('show', NoArg),
                               ('hide', NoArg),
                               ('clear', NoArg),
                               ('thumbnail', NoArg),
+                              ('text', RestOfLine),
+                              ('html', RestOfLine),
                               ('width', IntArg),
                               ('height', IntArg),
                               ('save_path', SaveFileNameArg),
