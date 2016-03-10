@@ -32,5 +32,6 @@ def get_class(class_name):
 #
 def open_file(session, f, name, filespec=None):
     from . import cmd
-    cmd.help(session, "file:" + filespec)
+    import os.path
+    cmd.help(session, "file:" + os.path.realpath(filespec))
     return [], None
