@@ -52,7 +52,7 @@ def log(session, show = False, hide = False, clear = False, save_path = None,
         if text:
             log.log(log.LEVEL_INFO, text, (None, False), False)
         if html:
-            log.log(log.LEVEL_INFO, text, (None, False), True)
+            log.log(log.LEVEL_INFO, html, (None, False), True)
         if not warning_dialog is None:
             log.warning_shows_dialog = warning_dialog
         if not error_dialog is None:
