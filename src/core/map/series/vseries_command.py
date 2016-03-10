@@ -354,7 +354,7 @@ def vseries_slider(session, series):
     '''Display a graphical user interface slider to play through frames of a map series.'''
     bundle_info = session.toolshed.find_bundle('map_series_gui')
     if bundle_info:
-        from chimera.map_series_gui.gui import MapSeries
+        from chimerax.map_series_gui.gui import MapSeries
         MapSeries(session, bundle_info, series).show()
 
 # -----------------------------------------------------------------------------
