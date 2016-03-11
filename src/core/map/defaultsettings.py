@@ -58,7 +58,7 @@ class Volume_Default_Settings:
         'show_plane': True,
         'voxel_limit_for_plane': 256.0,         # Mvoxels
         'limit_voxel_count': True,
-        'voxel_limit': 1.0,                     # Mvoxels
+        'voxel_limit': 16.0,                    # Mvoxels
         'auto_show_subregion': False,
         'adjust_camera': False,
         'shown_panels': ('Threshold and Color', 'Display style'),
