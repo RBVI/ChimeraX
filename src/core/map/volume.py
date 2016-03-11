@@ -1462,8 +1462,8 @@ class Volume(Model):
       level = min(v.surface_levels) if v.surface_levels else 0
       scale = -minimum_rms_scale(values, m, level)
       log = self.session.logger
-      log.info('Minimum RMS scale factor for "%s" above level %.5g\n'
-               '  subtracted from "%s" is %.5g\n'
+      log.info('Minimum RMS scale factor for "%s" above level %.5g '
+               'subtracted from "%s" is %.5g\n'
                % (v.name_with_id(), level, self.name_with_id(), scale))
     if scale != 1:
       # Copy array only if scaling.
