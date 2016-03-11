@@ -33,14 +33,14 @@ def _element_selector(symbol, models, results):
                 results.add_atoms(atoms)
 
 def _sel_selector(session, models, results):
-    from ..atomic import AtomicStructure
+    from ..atomic import Graph
     for m in models:
         if m.any_part_selected():
             results.add_model(m)
             spos = m.selected_positions
             if spos is not None and spos.sum() > 0:
                 results.add_model_instances(m, spos)
-            if isinstance(m, AtomicStructure):
+            if isinstance(m, Graph):
                 for atoms in m.selected_items('atoms'):
                     results.add_atoms(atoms)
 
