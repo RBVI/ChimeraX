@@ -1665,7 +1665,7 @@ def selected_atoms(session):
     from .molarray import Atoms
     atoms = Atoms()
     for m in session.models.list():
-        if isinstance(m, AtomicStructure):
+        if isinstance(m, Graph):
             for matoms in m.selected_items('atoms'):
                 atoms = atoms | matoms
     return atoms
