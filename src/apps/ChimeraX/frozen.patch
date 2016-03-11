@@ -18,7 +18,7 @@
 +        Py_IsolatedFlag++;
 +        Py_NoUserSiteDirectory++;
 +        Py_IgnoreEnvironmentFlag++;
-+        Py_BytesWarningFlag++;
++        // Py_BytesWarningFlag++;
          PyImport_FrozenModules = _PyImport_FrozenModules;
 +        Py_HashRandomizationFlag = 1;
 +        _PyRandom_Init();
