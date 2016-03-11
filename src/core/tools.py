@@ -341,9 +341,6 @@ class Tools(State):
         """Start tools that should start when applications starts up."""
         from .core_settings import settings
         from chimerax.core import window_sys
-        if window_sys == "qt":
-            #QT disabled
-            settings.autostart = ['molecule_display_shortcuts', 'graphics_shortcuts', 'mouse_modes', 'cmd_line', 'log']
         self.start_tools(settings.autostart)
 
     def start_tools(self, tool_names):
