@@ -506,6 +506,7 @@ def open_data(session, filespec, format=None, name=None, **kw):
         # TODO: Windows might need tf to be closed before reading with
         # a different file descriptor
 
+    kw["filespec"] = filename
     if category(format_name) == SCRIPT:
         with session.in_script:
             models, status = open_func(session, stream, dname, **kw)
