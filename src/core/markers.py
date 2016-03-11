@@ -22,7 +22,8 @@ class MarkerMouseMode(MouseMode):
         if p is None:
             c = None
         elif self.center and hasattr(p, 'triangle_pick'):
-            c = connected_center(p.triangle_pick)
+            c, vol = connected_center(p.triangle_pick)
+            self.session.logger.info('Enclosed volume for marked surface: %.3g' % vol)
         else:
             c = p.position
         log = s.logger
@@ -93,7 +94,8 @@ def connected_center(triangle_pick):
     a = varea.sum()
     c = varea.dot(va)/a
     cscene = d.scene_position * c
-    return cscene
+    vol, holes = surface.enclosed_volume(va, ta)
+    return cscene, vol
 
 class ConnectMouseMode(MouseMode):
     name = 'connect markers'
