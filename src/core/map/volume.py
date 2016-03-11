@@ -2779,12 +2779,11 @@ def set_initial_volume_color(v, session):
 
   ds = default_settings(session)
   if ds['use_initial_colors']:
-    vlist = volume_list(session)
-    n = len(vlist)
-    if v in vlist:
-      n -= 1
+    i = 0 if session.models.empty() else getattr(ds, '_next_color_index', 0)
+    if not hasattr(v.data, 'series_index') or v.data.series_index == 0:
+      ds._next_color_index = i+1
     icolors = ds['initial_colors']
-    rgba = icolors[n%len(icolors)]
+    rgba = icolors[i%len(icolors)]
     v.set_parameters(default_rgba = rgba)
 
 # ---------------------------------------------------------------------------
