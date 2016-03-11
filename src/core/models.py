@@ -179,6 +179,9 @@ class Models(State):
             models = [m for m in models if isinstance(m,type)]
         return models
 
+    def empty(self):
+        return len(self._models) == 0
+    
     def add(self, models, parent=None, _notify=True, _from_session=False):
         start_count = len(self._models)
 
