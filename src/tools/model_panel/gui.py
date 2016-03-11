@@ -96,8 +96,8 @@ class ModelPanel(ToolInstance):
         from chimerax.core import tools
         return tools.get_singleton(session, ModelPanel, 'model panel', create=False)
 
-    def _changes_cb(self, trigger_name, data):
-        reasons = data["Atom"].reasons
+    def _changes_cb(self, trigger_name, changes):
+        reasons = changes.atom_reasons()
         if "color changed" in reasons or 'display changed' in reasons:
             self._initiate_fill_table()
 

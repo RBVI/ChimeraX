@@ -96,6 +96,20 @@ class View:
         vmajor, vminor = self._render.opengl_version_number()
         return vmajor, vminor
 
+    def opengl_vendor(self):
+        '''Return the OpenGL vendor as a string.'''
+        if self._opengl_context is None:
+            return None
+        self._opengl_context.make_current()
+        return self._render.opengl_vendor()
+
+    def opengl_renderer(self):
+        '''Return the OpenGL renderer as a string.'''
+        if self._opengl_context is None:
+            return None
+        self._opengl_context.make_current()
+        return self._render.opengl_renderer()
+
     def _use_opengl(self):
         if self._opengl_context is None:
             raise RuntimeError("running without graphics")
@@ -236,8 +250,7 @@ class View:
         if dm.shape_changed or cp.changed:
             self._update_center_of_rotation = True
 
-        if (self._lighting.multishadow > 0 and
-            ((dm.redraw_needed and dm.shape_changed) or cp.changed)):
+        if (dm.redraw_needed and dm.shape_changed) or cp.changed:
             self._multishadow_update_needed = True
 
         c.redraw_needed = False

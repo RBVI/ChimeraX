@@ -1462,9 +1462,8 @@ class Volume(Model):
       level = min(v.surface_levels) if v.surface_levels else 0
       scale = -minimum_rms_scale(values, m, level)
       log = self.session.logger
-      log.info('Minimum RMS scale factor for "%s" above level %.5g\n'
-               '  subtracted from "%s" is %.5g\n'
-               % (v.name_with_id(), level, self.name_with_id(), scale))
+      log.info('Minimum RMS scale factor for "%s" above level %.5g is %.5g\n'
+               % (v.name_with_id(), level, scale))
     if scale != 1:
       # Copy array only if scaling.
       if const_values:
@@ -2171,7 +2170,7 @@ class Rendering_Options:
     self.outline_box_rgb = (1,1,1)
     self.outline_box_linewidth = 1
     self.limit_voxel_count = True           # auto-adjust step size
-    self.voxel_limit = 1                    # Mvoxels
+    self.voxel_limit = 16                   # Mvoxels
     self.color_modes = (
       'auto4', 'auto8', 'auto12', 'auto16',
       'opaque4', 'opaque8', 'opaque12', 'opaque16',

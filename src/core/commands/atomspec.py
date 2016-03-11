@@ -290,8 +290,8 @@ class _ModelList(list):
         return "".join(str(mr) for mr in self)
 
     def find_matches(self, session, model_list, results):
-        for m in model_list:
-            for model_spec in self:
+        for model_spec in self:
+            for m in model_list:
                 if model_spec.matches(session, m):
                     model_spec.find_sub_parts(session, m, results)
 

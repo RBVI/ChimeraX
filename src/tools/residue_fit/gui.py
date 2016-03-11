@@ -27,6 +27,7 @@ class ResidueFit(ToolInstance):
         self.motion_frames = motion_frames
         self.movie_framerate = movie_framerate
         self._last_shown_resnum = None
+        self._label = None	# Graphics Label showing residue number
         
         self._play_handler = None
         self._recording = False
@@ -62,9 +63,11 @@ class ResidueFit(ToolInstance):
 
         from chimerax.core.models import REMOVE_MODELS
         self._model_close_handler = session.triggers.add_handler(REMOVE_MODELS, self.models_closed_cb)
-        
+
+        map.new_region(ijk_step = (1,1,1), adjust_step = False)
         map.show(representation = 'mesh')
         s.atoms.displays = False
+        s.residues.ribbon_displays = False
         self.update_resnum(rmin)
 
     def show(self):
@@ -108,11 +111,10 @@ class ResidueFit(ToolInstance):
         return zone_res
 
     def update_label(self, res):
-        ses = self.session
-        if not hasattr(ses, '_resfit_label'):
+        if self._label is None:
             from chimerax.label.label import Label
-            ses._resfit_label = Label(ses, 'resfit', xpos = 0.7, ypos = 0.9)
-        l = ses._resfit_label
+            self._label = Label(self.session, 'resfit', xpos = 0.7, ypos = 0.9)
+        l = self._label
         l.text = '%s %d' % (res.name, res.number)
         l.make_drawing()
 
@@ -188,7 +190,7 @@ class ResidueFit(ToolInstance):
             run(ses, 'movie encode ~/Desktop/resfit.mp4 framerate %.1f' % self.movie_framerate)
             
     def models_closed_cb(self, name, models):
-        if self.structure in models:
+        if self.structure in models or self.map in models:
             self.delete()
 
     # Override ToolInstance method
@@ -200,6 +202,13 @@ class ResidueFit(ToolInstance):
             t.delete_handler(self._play_handler)
             self._play_handler = None
         super().delete()
+        self.structure = None
+        self.residues = None
+        self.map = None
+        if self._label is not None:
+            self._label.delete()
+            self._label = None
+            
 
 def show_residue_fit(session, residues, map, range = 2, motion_frames = 20):
     '''Set camera to show first residue in list and display map in zone around given residues.'''

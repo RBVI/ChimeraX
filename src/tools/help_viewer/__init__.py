@@ -26,3 +26,12 @@ def get_class(class_name):
         from . import gui
         return gui.HelpUI
     return None
+
+#
+# 'open_file' is called by session code to open a file
+#
+def open_file(session, f, name, filespec=None):
+    from . import cmd
+    import os.path
+    cmd.help(session, "file:" + os.path.realpath(filespec))
+    return [], None

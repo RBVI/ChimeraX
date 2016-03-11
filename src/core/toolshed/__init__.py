@@ -1157,7 +1157,10 @@ class BundleInfo:
             "display_name": self.display_name,
             "menu_categories": self.menu_categories,
             "command_names": self.command_names,
+            "file_types": self.file_types,
             "synopsis": self._synopsis,
+            "session_versions": self.session_versions,
+            "custom_init": self.custom_init,
             "distribution_name": self._distribution_name,
             "distribution_version": self._distribution_version,
             "module_name": self._module_name,
@@ -1198,14 +1201,10 @@ class BundleInfo:
         """Register file types."""
         from chimerax.core import io
         for args in self.file_types:
-            def cb(s=self, *args):
-                s._open_file(*args)
+            def cb(*args, **kw):
+                return self._get_module().open_file(*args, **kw)
             _debug("register_file_type", args)
             io.register_format(*args, open_func=cb)
-
-    def _open_file(self, *args):
-        """Called when files need to be opened."""
-        self._get_module().open_file(*args)
 
     def deregister_file_types(self):
         """Deregister file types."""

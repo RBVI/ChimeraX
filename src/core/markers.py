@@ -22,7 +22,8 @@ class MarkerMouseMode(MouseMode):
         if p is None:
             c = None
         elif self.center and hasattr(p, 'triangle_pick'):
-            c = connected_center(p.triangle_pick)
+            c, vol = connected_center(p.triangle_pick)
+            self.session.logger.info('Enclosed volume for marked surface: %.3g' % vol)
         else:
             c = p.position
         log = s.logger
@@ -93,7 +94,8 @@ def connected_center(triangle_pick):
     a = varea.sum()
     c = varea.dot(va)/a
     cscene = d.scene_position * c
-    return cscene
+    vol, holes = surface.enclosed_volume(va, tc)
+    return cscene, vol
 
 class ConnectMouseMode(MouseMode):
     name = 'connect markers'
@@ -112,8 +114,11 @@ class ConnectMouseMode(MouseMode):
                 s.logger.status('Cannot connect atoms from different molecules')
             elif not a1.connects_to(a2):
                 m = a1.structure
-                m.new_bond(a1,a2)
-                s.logger.status('Made connection')
+                b = m.new_bond(a1,a2)
+                b.radius = 0.5*min(a1.radius, a2.radius)
+                b.color = (101,156,239,255)	# cornflowerblue
+                b.halfbond = False
+                s.logger.status('Made connection, distance %.3g' % b.length)
 
 def mark_map_center(volume):
     for s in volume.surface_drawings:
