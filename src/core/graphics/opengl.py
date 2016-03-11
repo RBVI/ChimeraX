@@ -476,6 +476,14 @@ class Render:
         vmajor, vminor = [int(v) for v in vs]
         return vmajor, vminor
 
+    def opengl_vendor(self):
+        'String description of the OpenGL vendor for the current context.'
+        return GL.glGetString(GL.GL_VENDOR).decode('utf-8')
+
+    def opengl_renderer(self):
+        'String description of the OpenGL renderer for the current context.'
+        return GL.glGetString(GL.GL_RENDERER).decode('utf-8')
+
     def check_opengl_version(self):
         '''Check if current OpenGL context meets minimum required version.'''
         vmajor, vminor = self.opengl_version_number()

@@ -189,6 +189,13 @@ class Bond:
     visible = c_property('bond_visible', npy_bool, read_only = True)
     '''Whether bond is display and not hidden. Read only.'''
 
+    @property
+    def length(self):
+        '''Distance between bond atoms.'''
+        a1,a2 = self.atoms
+        from ..geometry import distance
+        return distance(a1.scene_coord, a2.scene_coord)
+    
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
