@@ -2847,6 +2847,7 @@ def open_map(session, stream, *args, **kw):
     sx,sy,sz = m0.region[2]
     step = '%d' % sx if sy == sx and sz == sx else '%d,%d,%d' % (sx,sy,sz)
     msg += 'step %s' % step
+    msg += ', values %s' % m0.data.value_type.name
     
     return models, msg
 
