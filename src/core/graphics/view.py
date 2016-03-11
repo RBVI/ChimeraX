@@ -96,6 +96,20 @@ class View:
         vmajor, vminor = self._render.opengl_version_number()
         return vmajor, vminor
 
+    def opengl_vendor(self):
+        '''Return the OpenGL vendor as a string.'''
+        if self._opengl_context is None:
+            return None
+        self._opengl_context.make_current()
+        return self._render.opengl_vendor()
+
+    def opengl_renderer(self):
+        '''Return the OpenGL renderer as a string.'''
+        if self._opengl_context is None:
+            return None
+        self._opengl_context.make_current()
+        return self._render.opengl_renderer()
+
     def _use_opengl(self):
         if self._opengl_context is None:
             raise RuntimeError("running without graphics")
