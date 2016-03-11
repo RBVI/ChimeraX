@@ -16,7 +16,8 @@ class Objects:
     models : readonly list of chimerax.core.models.Model
     """
     def __init__(self, atoms = None, models = None):
-        self._models = set() if models is None else set(models)
+        from .orderedset import OrderedSet
+        self._models = OrderedSet() if models is None else OrderedSet(models)
         self._model_instances = {}
         # Use a list of Atoms collections so many concatenations is fast.
         self._atoms = [] if atoms is None else [atoms]
@@ -49,7 +50,8 @@ class Objects:
     def invert(self, session, models):
         from .atomic import AtomicStructure, Atoms, concatenate
         matoms = []
-        imodels = set()
+        from .orderedset import OrderedSet
+        imodels = OrderedSet()
         for m in models:
             if isinstance(m, AtomicStructure):
                 matoms.append(m.atoms)
@@ -110,7 +112,8 @@ class Objects:
     def displayed(self):
         '''Return Objects containing only displayed atoms and models.'''
 	# Displayed models
-        dmodels = set(m for m in self.models if m.display and m.parents_displayed)
+        from .orderedset import OrderedSet
+        dmodels = OrderedSet(m for m in self.models if m.display and m.parents_displayed)
         d = Objects(self.atoms.shown_atoms, dmodels)
         from numpy import logical_and
         for m, minst in self.model_instances.items():
