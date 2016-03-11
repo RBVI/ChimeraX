@@ -11,7 +11,7 @@ def gaussian_convolve(volume, sdev, step = 1, subregion = None,
                      task = task)
   from .. import volume_from_grid_data
   gv = volume_from_grid_data(gg, session, show_data = False, model_id = modelId)
-  gv.copy_settings_from(volume, copy_region = False)
+  gv.copy_settings_from(volume, copy_region = False, copy_colors = False)
   gv.show()
   
   volume.unshow()          # Hide original map
