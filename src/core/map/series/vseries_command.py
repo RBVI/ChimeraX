@@ -355,7 +355,7 @@ def vseries_slider(session, series):
     bundle_info = session.toolshed.find_bundle('map_series_gui')
     if bundle_info:
         from chimerax.map_series_gui.gui import MapSeries
-        MapSeries(session, bundle_info, series).show()
+        MapSeries(session, bundle_info, series = series).show()
 
 # -----------------------------------------------------------------------------
 #
