@@ -44,7 +44,9 @@ class ModelPanel(ToolInstance):
         self.table.EnableEditing(False)
         self.table.SelectionMode = wx.grid.Grid.GridSelectRows
         self.table.CellHighlightPenWidth = 0
+        self._sort_breadth_first = False
         self._fill_table()
+        self.table.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self._label_click)
         self.table.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK, self._left_click)
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_table)
@@ -90,7 +92,8 @@ class ModelPanel(ToolInstance):
             self.table.DeleteRows(0, nr)
         models = self.session.models.list()
         self.table.AppendRows(len(models))
-        self.models = sorted(models, key=lambda m: m.id)
+        order = (lambda m: (len(m.id),m.id)) if self._sort_breadth_first else (lambda m: m.id)
+        self.models = sorted(models, key=order)
         for i, model in enumerate(self.models):
             self.table.SetCellValue(i, 0, model.id_string())
             self.table.SetCellBackgroundColour(i, 1, self._model_color(model))
@@ -110,6 +113,14 @@ class ModelPanel(ToolInstance):
         if event.Col == 2:
             model = self.models[event.Row]
             model.display = not model.display
+        event.Skip()
+
+    def _label_click(self, event):
+        if event.Col == 0:
+            # ID label clicked.
+            # Toggle sort order.
+            self._sort_breadth_first = not self._sort_breadth_first
+            self._fill_table()
         event.Skip()
 
     def _model_color(self, model):
