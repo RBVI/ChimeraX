@@ -31,6 +31,15 @@ class Map_Series(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def _get_single_color(self):
+    return self.maps[0].single_color if self.maps else None
+  def _set_single_color(self, color):
+    for m in self.maps:
+      m.single_color = color
+  single_color = property(_get_single_color, _set_single_color)
+
+  # ---------------------------------------------------------------------------
+  #
   def volume_closed(self, v):
 
     t = self.maps.index(v)
