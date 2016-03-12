@@ -148,6 +148,7 @@ pl = {
     "CFBundleVersion": '.'.join(str(i) for i in release),
     # Enable full resolution text on retina displays
     "NSHighResolutionCapable": True,
+    "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": True },
     "LSBackgroundOnly": False,
 }
 
