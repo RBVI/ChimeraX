@@ -25,6 +25,12 @@ class Map_Series(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def grid_size(self):
+
+    return self.maps[0].data.size if self.maps else (0,0,0)
+
+  # ---------------------------------------------------------------------------
+  #
   def volume_closed(self, v):
 
     t = self.maps.index(v)

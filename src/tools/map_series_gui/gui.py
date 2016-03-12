@@ -13,7 +13,7 @@ class MapSeries(ToolInstance):
     def __init__(self, session, bundle_info, *, series=[]):
         ToolInstance.__init__(self, session, bundle_info)
 
-        self.series = series
+        self.series = list(series)
         self.playing = False
 
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
@@ -56,12 +56,32 @@ class MapSeries(ToolInstance):
         self.model_close_handler = session.triggers.add_handler(
             REMOVE_MODELS, self.models_closed_cb)
 
+        if hasattr(session, '_map_series_sliders'):
+            session._map_series_sliders.append(self)
+        else:
+            session._map_series_sliders = [self]
+        
     def show(self):
         self.tool_window.shown = True
 
     def hide(self):
         self.tool_window.shown = False
 
+    def add_series(self, series):
+        self.series.append(series)
+        sname = ', '.join(s.name for s in self.series)
+        if len(sname) > 50:
+            sname = sname[:50] + '...'
+        self.display_name = "Map series %s" % sname
+        self.tool_window.set_title(self.display_name)
+        self.update_time(self.slider.GetValue())
+
+    def size(self):
+        if not self.series:
+            return (0, (0,0,0))
+        s0 = self.series[0]
+        return s0.number_of_times(), s0.grid_size()
+    
     def time_changed_cb(self, event):
         self.update_slider_range()
         t = self.time.GetValue()
@@ -156,6 +176,7 @@ class MapSeries(ToolInstance):
         s = self.session
         s.triggers.delete_handler(self.model_close_handler)
         super().delete()
+        s._map_series_sliders.remove(self)
 
 
 def show_slider_on_open(session):
@@ -172,5 +193,11 @@ def models_added_cb(models, session):
     from chimerax.core.map.series.series import Map_Series
     ms = [m for m in models if isinstance(m, Map_Series)]
     if ms:
-        bundle_info = session.toolshed.find_bundle('map_series_gui')
-        MapSeries(session, bundle_info, series = ms).show()
+        msstable = {mss.size():mss for mss in getattr(session, '_map_series_sliders', [])}
+        for m in ms:
+            mss = msstable.get((m.number_of_times(), m.grid_size()), None)
+            if mss:
+                mss.add_series(m)
+            else:
+                bundle_info = session.toolshed.find_bundle('map_series_gui')
+                MapSeries(session, bundle_info, series = [m]).show()
