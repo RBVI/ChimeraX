@@ -15,15 +15,15 @@ class ShortcutPanel(ToolInstance):
         from .shortcuts import keyboard_shortcuts
         self.keyboard_shortcuts = keyboard_shortcuts(session)
 
-        self.icon_size = 48
+        self.icon_size = None
         self.max_icon_size = 48
         self.min_icon_size = 24
         self.icon_border = 4
 
         columns = 12
         rows = (len(self.shortcuts) + columns - 1)//columns
-        min_panel_width = self.icon_size
-        panel_height = rows * self.icon_size
+        min_panel_width = self.max_icon_size
+        panel_height = rows * self.max_icon_size
         panel_size = (min_panel_width, panel_height)
 
         from chimerax.core.ui.gui import MainToolWindow
@@ -45,7 +45,7 @@ class ShortcutPanel(ToolInstance):
         import wx
         buttons = []
         for i, (keys, icon_file, descrip) in enumerate(self.shortcuts):
-            tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file))
+            tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file, self.max_icon_size))
             tb.icon_file = icon_file
             def button_press_cb(event, keys=keys, ks=self.keyboard_shortcuts):
                 ks.run_shortcut(keys)
@@ -73,13 +73,13 @@ class ShortcutPanel(ToolInstance):
     def resize_buttons(self, columns, icon_size):
         self.icon_size = icon_size
         for i,b in enumerate(self.buttons):
-            b.SetBitmap(self.bitmap(b.icon_file))
+            b.SetBitmap(self.bitmap(b.icon_file, icon_size))
             b.SetSize((icon_size,icon_size))
             pos = ((i%columns)*icon_size,(i//columns)*icon_size)
             b.SetPosition(pos)
 
-    def bitmap(self, filename):
-        width = height = self.icon_size - 2*self.icon_border
+    def bitmap(self, filename, icon_size):
+        width = height = icon_size - 2*self.icon_border
         from os import path
         icondir = path.join(path.dirname(__file__), 'icons')
         import wx
@@ -136,7 +136,23 @@ class GraphicsPanel(ShortcutPanel):
     )
     help = "help:user/tools/graphics.html"
 
+class DensityMapPanel(ShortcutPanel):
+    tool_name = 'density_map_shortcuts'
+    shortcuts = (
+        ('sM', 'showmap.png', 'Show map'),
+        ('hM', 'hidemap.png', 'Hide map'),
+        ('fl', 'mapsurf.png', 'Map as surface'),
+        ('me', 'mesh.png', 'Map as mesh'),
+        ('gs', 'mapimage.png', 'Map as image'),
+        ('s1', 'step1.png', 'Map step 1'),
+        ('s2', 'step2.png', 'Map step 2'),
+        ('s4', 'step4.png', 'Map step 4'),
+        ('tt', 'icecube.png', 'Transparent surface'),
+        ('ob', 'cubeoutline.png', 'Show outline box'),
+    )
+
 panel_classes = {
     'molecule_display_shortcuts': MoleculeDisplayPanel,
     'graphics_shortcuts': GraphicsPanel,
+    'density_map_shortcuts': DensityMapPanel,
 }

@@ -89,6 +89,8 @@ def standard_shortcuts(session):
         ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
 
         # Maps
+        ('sM', 'volume selMaps show', 'Show map', mapcat, noarg, mmenu),
+        ('hM', 'volume selMaps hide', 'Hide map', mapcat, noarg, mmenu),
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fs', fit_subtract, 'Fit molecule in map subtracting other molecules', mapcat, sesarg, mmenu),
         ('fr', 'volume selMaps step 1', 'Show map at full resolution', mapcat, noarg, mmenu),
@@ -97,6 +99,10 @@ def standard_shortcuts(session):
         ('fl', 'volume selMaps style surface', 'Show map or surface in filled style', mapcat, noarg, mmenu),
         ('me', 'volume selMaps style mesh', 'Show map or surface as mesh', mapcat, noarg, mmenu),
         ('gs', 'volume selMaps style solid', 'Show map as grayscale', mapcat, noarg, mmenu, sep),
+
+        ('s1', 'volume selMaps step 1', 'Show map at step 1', mapcat, noarg, mmenu, sep),
+        ('s2', 'volume selMaps step 2', 'Show map at step 2', mapcat, noarg, mmenu, sep),
+        ('s4', 'volume selMaps step 4', 'Show map at step 4', mapcat, noarg, mmenu, sep),
 
         ('pl', show_one_plane, 'Show one plane', mapcat, maparg, mmenu),
         ('pa', show_all_planes, 'Show all planes', mapcat, maparg, mmenu),

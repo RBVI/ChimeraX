@@ -69,5 +69,6 @@ setup(
         # ":: Command Line Interface :: command_line :: General"
         "ChimeraX-Bundle :: molecule_display_shortcuts :: chimerax.shortcuts :: Molecule Display :: ks :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
         "ChimeraX-Bundle :: graphics_shortcuts :: chimerax.shortcuts :: Graphics :: :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
+        "ChimeraX-Bundle :: density_map_shortcuts :: chimerax.shortcuts :: Density Maps :: :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
     ],
 )
