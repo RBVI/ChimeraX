@@ -135,7 +135,8 @@ def _debug(*args, **kw):
 
 
 # Default URL of remote toolshed
-_RemoteURL = "http://localhost:8080"
+#_RemoteURL = "http://localhost:8080"
+_RemoteURL = "https://chi2ti-macosx-daily.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
 _Toolshed = "toolshed"
 # Defaults names for installed ChimeraX bundles

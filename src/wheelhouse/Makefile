@@ -1,7 +1,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-PYSRCS = update_metadata.py
+PYSRCS = update_metadata.py cxpi.py
 
 ifdef USE_MAC_FRAMEWORKS
 PYPI_SERVER = ../Library/Frameworks/Python.framework/Versions/Current/bin/pypi-server
