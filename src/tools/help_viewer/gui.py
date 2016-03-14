@@ -28,37 +28,46 @@ class HelpUI(ToolInstance):
         # between lower-then-upper-case characters (therefore "Help UI"
         # in this case), so only override if different name desired
         self.display_name = "%s Help Viewer" % session.app_dirs.appname
-<<<<<<< HEAD
         self.home_page = None
         from chimerax.core import window_sys
         if window_sys == "wx":
             kw = {'size': (500, 500)}
         else:
             kw = {}
-=======
->>>>>>> 0a93452e7676ef71e9a340df80ad98a682e27546
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, **kw)
         parent = self.tool_window.ui_area
         # UI content code
-<<<<<<< HEAD
         if window_sys == "wx":
             import wx
+            from wx import html2
+            self.zoom_factor = html2.WEBVIEW_ZOOM_MEDIUM
             # buttons: back, forward, reload, stop, home, search bar
             self.toolbar = wx.ToolBar(parent, wx.ID_ANY,
                                       style=wx.TB_DEFAULT_STYLE | wx.TB_TEXT)
             bitmap_size = wx.ArtProvider.GetNativeSizeHint(wx.ART_TOOLBAR)
             self.back = self.toolbar.AddTool(
-                wx.ID_ANY, 'Back', _bitmap('back.png', bitmap_size),
+                wx.ID_ANY, 'Back',
+                wx.ArtProvider.GetBitmap(wx.ART_GO_BACK, wx.ART_TOOLBAR, bitmap_size),
                 shortHelp="Go back to previously viewed page")
             self.toolbar.EnableTool(self.back.GetId(), False)
             self.forward = self.toolbar.AddTool(
-                wx.ID_ANY, 'Forward', _bitmap('forward.png', bitmap_size),
+                wx.ID_ANY, 'Forward',
+                wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD, wx.ART_TOOLBAR, bitmap_size),
                 shortHelp="Go forward to previously viewed page")
             self.toolbar.EnableTool(self.forward.GetId(), False)
             self.home = self.toolbar.AddTool(
-                wx.ID_ANY, 'Home', _bitmap('home.png', bitmap_size),
+                wx.ID_ANY, 'Home',
+                wx.ArtProvider.GetBitmap(wx.ART_GO_HOME, wx.ART_TOOLBAR, bitmap_size),
                 shortHelp="Return to first page")
+            self.zoom_in = self.toolbar.AddTool(
+                wx.ID_ANY, 'Zoom In',
+                wx.ArtProvider.GetBitmap(wx.ART_PLUS, wx.ART_TOOLBAR, bitmap_size),
+                shortHelp="magnify document")
+            self.zoom_out = self.toolbar.AddTool(
+                wx.ID_ANY, 'Zoom Out',
+                wx.ArtProvider.GetBitmap(wx.ART_MINUS, wx.ART_TOOLBAR, bitmap_size),
+                shortHelp="minify document")
             self.toolbar.EnableTool(self.home.GetId(), False)
             self.toolbar.AddStretchableSpace()
             f = self.toolbar.GetFont()
@@ -72,7 +81,8 @@ class HelpUI(ToolInstance):
             self.toolbar.Bind(wx.EVT_TOOL, self.on_back, self.back)
             self.toolbar.Bind(wx.EVT_TOOL, self.on_forward, self.forward)
             self.toolbar.Bind(wx.EVT_TOOL, self.on_home, self.home)
-            from wx import html2
+            self.toolbar.Bind(wx.EVT_TOOL, self.on_zoom_in, self.zoom_in)
+            self.toolbar.Bind(wx.EVT_TOOL, self.on_zoom_out, self.zoom_out)
             self.help_window = html2.WebView.New(parent, **kw)
             sizer = wx.BoxSizer(wx.VERTICAL)
             sizer.Add(self.toolbar, 0, wx.EXPAND)
@@ -126,69 +136,6 @@ class HelpUI(ToolInstance):
             self.help_window.titleChanged.connect(self.tool_window.set_title)
 
         self.tool_window.manage(placement=None)
-=======
-        import wx
-        from wx import html2
-        self.home_page = None
-        self.zoom_factor = html2.WEBVIEW_ZOOM_MEDIUM
-        # buttons: back, forward, reload, stop, home, search bar
-        self.toolbar = wx.ToolBar(parent, wx.ID_ANY)
-        bitmap_size = wx.ArtProvider.GetNativeSizeHint(wx.ART_TOOLBAR)
-        self.back = self.toolbar.AddTool(
-            wx.ID_ANY, 'Back',
-            wx.ArtProvider.GetBitmap(wx.ART_GO_BACK, wx.ART_TOOLBAR, bitmap_size),
-            shortHelp="Go back to previously viewed page")
-        self.toolbar.EnableTool(self.back.GetId(), False)
-        self.forward = self.toolbar.AddTool(
-            wx.ID_ANY, 'Forward',
-            wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD, wx.ART_TOOLBAR, bitmap_size),
-            shortHelp="Go forward to previously viewed page")
-        self.toolbar.EnableTool(self.forward.GetId(), False)
-        self.home = self.toolbar.AddTool(
-            wx.ID_ANY, 'Home',
-            wx.ArtProvider.GetBitmap(wx.ART_GO_HOME, wx.ART_TOOLBAR, bitmap_size),
-            shortHelp="Return to first page")
-        self.zoom_in = self.toolbar.AddTool(
-            wx.ID_ANY, 'Zoom In',
-            wx.ArtProvider.GetBitmap(wx.ART_PLUS, wx.ART_TOOLBAR, bitmap_size),
-            shortHelp="magnify document")
-        self.zoom_out = self.toolbar.AddTool(
-            wx.ID_ANY, 'Zoom Out',
-            wx.ArtProvider.GetBitmap(wx.ART_MINUS, wx.ART_TOOLBAR, bitmap_size),
-            shortHelp="minify document")
-        self.toolbar.EnableTool(self.home.GetId(), False)
-        self.toolbar.AddStretchableSpace()
-        f = self.toolbar.GetFont()
-        dc = wx.ScreenDC()
-        dc.SetFont(f)
-        em_width, _ = dc.GetTextExtent("m")
-        search_bar = wx.ComboBox(self.toolbar, size=wx.Size(12 * em_width, -1))
-        self.search = self.toolbar.AddControl(search_bar, "Search:")
-        self.toolbar.EnableTool(self.search.GetId(), False)
-        self.toolbar.Realize()
-        self.toolbar.Bind(wx.EVT_TOOL, self.on_back, self.back)
-        self.toolbar.Bind(wx.EVT_TOOL, self.on_forward, self.forward)
-        self.toolbar.Bind(wx.EVT_TOOL, self.on_home, self.home)
-        self.toolbar.Bind(wx.EVT_TOOL, self.on_zoom_in, self.zoom_in)
-        self.toolbar.Bind(wx.EVT_TOOL, self.on_zoom_out, self.zoom_out)
-        self.help_window = html2.WebView.New(parent, size=self.SIZE)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.toolbar, 0, wx.EXPAND)
-        sizer.Add(self.help_window, 1, wx.EXPAND)
-        parent.SetSizerAndFit(sizer)
-        self.tool_window.manage(placement=None)
-        self.help_window.Bind(wx.EVT_CLOSE, self.on_close)
-        self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATED, self.on_navigated)
-        self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
-                              id=self.help_window.GetId())
-        self.help_window.Bind(html2.EVT_WEBVIEW_NEWWINDOW, self.on_new_window,
-                              id=self.help_window.GetId())
-        self.help_window.Bind(html2.EVT_WEBVIEW_TITLE_CHANGED,
-                              self.on_title_change)
-        self.help_window.EnableContextMenu()
-        if self.help_window.CanSetZoomType(html2.WEBVIEW_ZOOM_TYPE_LAYOUT):
-            self.help_window.SetZoomType(html2.WEBVIEW_ZOOM_TYPE_LAYOUT)
->>>>>>> 0a93452e7676ef71e9a340df80ad98a682e27546
 
     def show(self, url, set_home=True):
         from chimerax.core import window_sys

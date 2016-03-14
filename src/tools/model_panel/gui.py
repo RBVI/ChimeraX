@@ -74,6 +74,7 @@ class ModelPanel(ToolInstance):
             self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
             self.table.setShowGrid(False)
             self.table.itemClicked.connect(self._table_change_cb)
+            self.table.horizontalHeader().sectionClicked.connect(self._header_click_cb)
             buttons_layout = QVBoxLayout()
             layout.addLayout(buttons_layout)
             for model_func in [close, hide, show, view]:
@@ -161,6 +162,13 @@ class ModelPanel(ToolInstance):
         self._frame_drawn_handler = None
         from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
+
+    def _header_click_cb(self, index):
+        if index == 0:
+            # ID label clicked.
+            # Toggle sort order.
+            self._sort_breadth_first = not self._sort_breadth_first
+            self._fill_table()
 
     def _left_click(self, event):
         if event.Col == 2:
