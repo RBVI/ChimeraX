@@ -119,6 +119,16 @@ class HelpUI(ToolInstance):
             self.home.triggered.connect(self.go_home)
             self.home.setEnabled(False)
             tb.addAction(self.home)
+            self.zoom_in = QAction("+", tb)
+            self.zoom_in.triggered.connect(self.page_zoom_in)
+            font = self.zoom_in.font()
+            font.setPointSize(48)
+            self.zoom_in.setFont(font)
+            tb.addAction(self.zoom_in)
+            self.zoom_out = QAction("-", tb)
+            self.zoom_out.setFont(font)
+            self.zoom_out.triggered.connect(self.page_zoom_out)
+            tb.addAction(self.zoom_out)
             from PyQt5.QtWebKitWidgets import QWebView
             class HelpWebView(QWebView):
                 def __init__(self, ses=session, bi=bundle_info):
@@ -185,6 +195,9 @@ class HelpUI(ToolInstance):
             self.toolbar.EnableTool(self.zoom_in.GetId(), False)
             self.toolbar.EnableTool(self.zoom_out.GetId(), True)
 
+    def page_zoom_in(self, checked):
+        self.help_window.setZoomFactor(1.25 * self.help_window.zoomFactor())
+
     def on_zoom_out(self, event):
         from wx import html2
         if self.zoom_factor > html2.WEBVIEW_ZOOM_TINY:
@@ -193,6 +206,9 @@ class HelpUI(ToolInstance):
         else:
             self.toolbar.EnableTool(self.zoom_out.GetId(), False)
             self.toolbar.EnableTool(self.zoom_in.GetId(), True)
+
+    def page_zoom_out(self, checked):
+        self.help_window.setZoomFactor(0.8 * self.help_window.zoomFactor())
 
     def on_close(self, event):
         self.session.logger.remove_log(self)
