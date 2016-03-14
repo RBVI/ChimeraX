@@ -89,14 +89,23 @@ def standard_shortcuts(session):
         ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
 
         # Maps
+        ('sM', 'volume selMaps show', 'Show map', mapcat, noarg, mmenu),
+        ('hM', 'volume selMaps hide', 'Hide map', mapcat, noarg, mmenu),
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
+        ('fT', fit_map_in_map, 'Fit map in map', mapcat, sesarg, mmenu),
         ('fs', fit_subtract, 'Fit molecule in map subtracting other molecules', mapcat, sesarg, mmenu),
+        ('sb', subtract_maps, 'Subtract map from map', mapcat, sesarg, mmenu),
+        ('gf', smooth_map, 'Smooth map', mapcat, sesarg, mmenu),
         ('fr', 'volume selMaps step 1', 'Show map at full resolution', mapcat, noarg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
         ('fl', 'volume selMaps style surface', 'Show map or surface in filled style', mapcat, noarg, mmenu),
         ('me', 'volume selMaps style mesh', 'Show map or surface as mesh', mapcat, noarg, mmenu),
         ('gs', 'volume selMaps style solid', 'Show map as grayscale', mapcat, noarg, mmenu, sep),
+
+        ('s1', 'volume selMaps step 1', 'Show map at step 1', mapcat, noarg, mmenu, sep),
+        ('s2', 'volume selMaps step 2', 'Show map at step 2', mapcat, noarg, mmenu, sep),
+        ('s4', 'volume selMaps step 4', 'Show map at step 4', mapcat, noarg, mmenu, sep),
 
         ('pl', show_one_plane, 'Show one plane', mapcat, maparg, mmenu),
         ('pa', show_all_planes, 'Show all planes', mapcat, maparg, mmenu),
@@ -383,17 +392,25 @@ def _sel_models_selector(session, models, results):
     for m in shortcut_models(session):
         results.add_model(m)
 
-def shortcut_models(session, mclass = None, undisplayed = True):
-    sel = session.selection
-    mlist = [m for m in sel.models() if mclass is None or isinstance(m,mclass)]
+def shortcut_models(session, mclass = None, undisplayed = True, at_least = None):
+    sel = session.selection.models()
+    mlist = [m for m in sel
+             if (mclass is None or isinstance(m,mclass))
+             and (undisplayed or m.display)]
     if len(mlist) == 0:
         mlist = [m for m in session.models.list()
                  if (mclass is None or isinstance(m,mclass)) and (undisplayed or m.display)]
+    elif at_least is not None and len(mlist) < at_least:
+        # Include unselected models too if at_least option given.
+        mlist += [m for m in session.models.list()
+                  if m not in sel and
+                  (mclass is None or isinstance(m,mclass)) and
+                  (undisplayed or m.display)]
     return mlist
 
-def shortcut_maps(session):
+def shortcut_maps(session, undisplayed = True, at_least = None):
     from chimerax.core.map import Volume
-    return shortcut_models(session, Volume)
+    return shortcut_models(session, Volume, undisplayed=undisplayed, at_least=at_least)
 
 def shortcut_molecules(session):
     from chimerax.core.atomic import AtomicStructure
@@ -604,6 +621,43 @@ def fit_subtract(session):
     from chimerax.core.map.fit.fitcmd import fit_sequence
     fit_sequence(mfit, v, msub, resolution = res, sequence = len(mfit), log = log)
     print ('fit seq')
+
+def fit_map_in_map(session):
+    maps = shortcut_maps(session, undisplayed = False, at_least = 2)
+    if len(maps) != 2:
+        log = session.logger
+        log.status('Fit map in map requires two displayed or selected maps (got %d).'
+                   % len(maps))
+        return
+
+    map1, map2 = maps
+    from chimerax.core.commands import run
+    run(session, 'fit #%s in #%s' % (map1.id_string(), map2.id_string()))
+
+def subtract_maps(session):
+    maps = shortcut_maps(session, undisplayed = False, at_least = 2)
+    if len(maps) != 2:
+        log = session.logger
+        log.status('Subtract maps requires two displayed or selected maps (got %d).'
+                   % len(maps))
+        return
+
+    map1, map2 = maps
+    from chimerax.core.commands import run
+    run(session, 'vop subtract #%s #%s minrms' % (map1.id_string(), map2.id_string()))
+
+def smooth_map(session):
+    maps = shortcut_maps(session, undisplayed = False)
+    if len(maps) != 1:
+        log = session.logger
+        log.status('Smooth map requires one displayed or selected map (got %d).'
+                   % len(maps))
+        return
+
+    map = maps[0]
+    sdev = 3*max(map.data.step)
+    from chimerax.core.commands import run
+    run(session, 'vop gaussian #%s sdev %.3g' % (map.id_string(), sdev))
 
 def show_biological_unit(m, session):
 

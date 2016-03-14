@@ -96,13 +96,13 @@ class ShortcutPanel(ToolInstance):
     def resize_buttons(self, columns, icon_size):
         self.icon_size = icon_size
         for i,b in enumerate(self.buttons):
-            b.SetBitmap(self.bitmap(b.icon_file))
+            b.SetBitmap(self.bitmap(b.icon_file, icon_size))
             b.SetSize((icon_size,icon_size))
             pos = ((i%columns)*icon_size,(i//columns)*icon_size)
             b.SetPosition(pos)
 
-    def bitmap(self, filename):
-        width = height = self.icon_size - 2*self.icon_border
+    def bitmap(self, filename, icon_size):
+        width = height = icon_size - 2*self.icon_border
         from os import path
         icondir = path.join(path.dirname(__file__), 'icons')
         import wx
@@ -164,7 +164,26 @@ class GraphicsPanel(ShortcutPanel):
     )
     help = "help:user/tools/graphics.html"
 
+class DensityMapPanel(ShortcutPanel):
+    tool_name = 'density_map_shortcuts'
+    shortcuts = (
+        ('sM', 'showmap.png', 'Show map'),
+        ('hM', 'hidemap.png', 'Hide map'),
+        ('fl', 'mapsurf.png', 'Map as surface'),
+        ('me', 'mesh.png', 'Map as mesh'),
+        ('gs', 'mapimage.png', 'Map as image'),
+        ('s1', 'step1.png', 'Map step 1'),
+        ('s2', 'step2.png', 'Map step 2'),
+#        ('s4', 'step4.png', 'Map step 4'),
+        ('fT', 'fitmap.png', 'Fit map in map'),
+        ('sb', 'diffmap.png', 'Compute difference map'),
+        ('gf', 'smooth.png', 'Smooth map'),
+        ('tt', 'icecube.png', 'Transparent surface'),
+        ('ob', 'outlinebox.png', 'Show outline box'),
+    )
+
 panel_classes = {
     'molecule_display_shortcuts': MoleculeDisplayPanel,
     'graphics_shortcuts': GraphicsPanel,
+    'density_map_shortcuts': DensityMapPanel,
 }

@@ -24,7 +24,7 @@ PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
 
 PYSRCS = $(wildcard *.py)
-DATAFILES = back.png forward.png home.png
+DATAFILES = 
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)

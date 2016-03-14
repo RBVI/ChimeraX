@@ -45,6 +45,7 @@ class ModelPanel(ToolInstance):
             self.table.EnableEditing(False)
             self.table.SelectionMode = wx.grid.Grid.GridSelectRows
             self.table.CellHighlightPenWidth = 0
+            self.table.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self._label_click)
             self.table.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK, self._left_click)
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.table, 1, wx.EXPAND)
@@ -83,6 +84,7 @@ class ModelPanel(ToolInstance):
 
         from chimerax.core.graphics import Drawing
         Drawing.triggers.add_handler('display changed', self._initiate_fill_table)
+        self._sort_breadth_first = False
         self._fill_table()
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_table)
@@ -110,7 +112,8 @@ class ModelPanel(ToolInstance):
 
     def _fill_table(self, *args):
         models = self.session.models.list()
-        sorted_models = sorted(models, key=lambda m: m.id)
+        order = (lambda m: (len(m.id),m.id)) if self._sort_breadth_first else (lambda m: m.id)
+        sorted_models = sorted(models, key=order)
         replace = True if hasattr(self, 'models') and sorted_models == self.models else False
         self.models = sorted_models
         from chimerax.core import window_sys
@@ -155,7 +158,6 @@ class ModelPanel(ToolInstance):
                 self.table.item(i, 3).setText(getattr(model, "name", "(unnamed)"))
             self.table.resizeColumnsToContents()
 
-
         self._frame_drawn_handler = None
         from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
@@ -164,6 +166,14 @@ class ModelPanel(ToolInstance):
         if event.Col == 2:
             model = self.models[event.Row]
             model.display = not model.display
+        event.Skip()
+
+    def _label_click(self, event):
+        if event.Col == 0:
+            # ID label clicked.
+            # Toggle sort order.
+            self._sort_breadth_first = not self._sort_breadth_first
+            self._fill_table()
         event.Skip()
 
     def _model_color(self, model):

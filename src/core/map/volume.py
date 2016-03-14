@@ -2779,12 +2779,11 @@ def set_initial_volume_color(v, session):
 
   ds = default_settings(session)
   if ds['use_initial_colors']:
-    vlist = volume_list(session)
-    n = len(vlist)
-    if v in vlist:
-      n -= 1
+    i = 0 if session.models.empty() else getattr(ds, '_next_color_index', 0)
+    if not hasattr(v.data, 'series_index') or v.data.series_index == 0:
+      ds._next_color_index = i+1
     icolors = ds['initial_colors']
-    rgba = icolors[n%len(icolors)]
+    rgba = icolors[i%len(icolors)]
     v.set_parameters(default_rgba = rgba)
 
 # ---------------------------------------------------------------------------
@@ -2831,11 +2830,26 @@ def open_map(session, stream, *args, **kw):
         name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from .series import Map_Series
         ms = Map_Series(name, maps, session)
-        return [ms], 'Opened map series %s' % name
+        msg = 'Opened map series %s, %d images' % (name, len(maps))
+        models = [ms]
     else:
-      m0 = maps[0]
-      msg = 'Opened %s, grid size (%d,%d,%d)' % ((m0.name,) + m0.data.size)
-      return maps, msg
+      msg = 'Opened %s' % maps[0].name
+      models = maps
+
+    m0 = maps[0]
+    px,py,pz = m0.data.step
+    psize = '%.3g' % px if py == px and pz == px else '%.3g,%.3g,%.3g' % (px,py,pz)
+    msg += (', grid size %d,%d,%d' % tuple(m0.data.size) +
+            ', pixel %s' % psize +
+            ', shown at ')
+    if m0.representation == 'surface':
+      msg += 'level %s, ' % ','.join('%.3g' % l for l in m0.surface_levels)
+    sx,sy,sz = m0.region[2]
+    step = '%d' % sx if sy == sx and sz == sx else '%d,%d,%d' % (sx,sy,sz)
+    msg += 'step %s' % step
+    msg += ', values %s' % m0.data.value_type.name
+    
+    return models, msg
 
 # -----------------------------------------------------------------------------
 #
