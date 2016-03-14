@@ -34,4 +34,4 @@ def open_file(session, f, name, filespec=None):
     from . import cmd
     import os.path
     cmd.help(session, "file:" + os.path.realpath(filespec))
-    return [], None
+    return [], "Opened %s" % name
