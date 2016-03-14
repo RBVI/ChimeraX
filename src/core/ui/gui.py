@@ -1302,23 +1302,8 @@ else:
 
         shown = property(_get_shown, _set_shown)
 
-        #QT disable
-        """
         def set_title(self, title):
-            aui_mgr = self.main_window.aui_mgr
-            shown = self.shown
-            if shown:
-                pane_info = aui_mgr.GetPane(self.ui_area)
-            else:
-                pane_info = self._pane_info
-            self.title = title
-            if pane_info is None:
-                return
-            pane_info.Caption(title)
-            if shown:
-                aui_mgr.RefreshCaptions()
-            aui_mgr.Update()
-        """
+            self.dock_widget.setWindowTitle(title)
 
 def redirect_stdio_to_logger(logger):
     # Redirect stderr to log
