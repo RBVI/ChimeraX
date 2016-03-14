@@ -121,18 +121,18 @@ class HelpUI(ToolInstance):
         if self.zoom_factor < html2.WEBVIEW_ZOOM_LARGEST:
             self.zoom_factor += 1
             self.help_window.SetZoom(self.zoom_factor)
-        else:
+        if self.zoom_factor == html2.WEBVIEW_ZOOM_LARGEST:
             self.toolbar.EnableTool(self.zoom_in.GetId(), False)
-            self.toolbar.EnableTool(self.zoom_out.GetId(), True)
+        self.toolbar.EnableTool(self.zoom_out.GetId(), True)
 
     def on_zoom_out(self, event):
         from wx import html2
         if self.zoom_factor > html2.WEBVIEW_ZOOM_TINY:
             self.zoom_factor -= 1
             self.help_window.SetZoom(self.zoom_factor)
-        else:
+        if self.zoom_factor == html2.WEBVIEW_ZOOM_TINY:
             self.toolbar.EnableTool(self.zoom_out.GetId(), False)
-            self.toolbar.EnableTool(self.zoom_in.GetId(), True)
+        self.toolbar.EnableTool(self.zoom_in.GetId(), True)
 
     def on_close(self, event):
         self.session.logger.remove_log(self)
