@@ -809,6 +809,9 @@ else:
             """
             self._keystroke_sinks.append(sink)
 
+        def remove_tool(self, tool_instance):
+            self.main_window.remove_tool(tool_instance)
+
         def set_tool_shown(self, tool_instance, shown):
             self.main_window.set_tool_shown(tool_instance, shown)
 
@@ -883,7 +886,7 @@ else:
                 close_event.accept()
                 tool_instance.delete()
                 return
-            if tool_window.close_destroys:
+            if close_destroys:
                 close_event.accept()
                 tool_window._destroy()
                 all_windows.remove(tool_window)
