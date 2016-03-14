@@ -146,9 +146,12 @@ class DensityMapPanel(ShortcutPanel):
         ('gs', 'mapimage.png', 'Map as image'),
         ('s1', 'step1.png', 'Map step 1'),
         ('s2', 'step2.png', 'Map step 2'),
-        ('s4', 'step4.png', 'Map step 4'),
+#        ('s4', 'step4.png', 'Map step 4'),
+        ('fT', 'fitmap.png', 'Fit map in map'),
+        ('sb', 'diffmap.png', 'Compute difference map'),
+        ('gf', 'smooth.png', 'Smooth map'),
         ('tt', 'icecube.png', 'Transparent surface'),
-        ('ob', 'cubeoutline.png', 'Show outline box'),
+        ('ob', 'outlinebox.png', 'Show outline box'),
     )
 
 panel_classes = {
