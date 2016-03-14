@@ -13,7 +13,7 @@ def start_tool(session, bundle_info):
     if not session.ui.is_gui:
         return None
     from .gui import SideViewUI
-    #return SideViewUI(session, bundle_info)
+    # return SideViewUI(session, bundle_info)
     s = SideViewUI(session, bundle_info)
     return s
 
