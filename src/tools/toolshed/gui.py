@@ -69,6 +69,7 @@ class ToolshedUI(ToolInstance):
                                                        self._make_page),
                           session.triggers.add_handler(REMOVE_TOOL_INSTANCE,
                                                        self._make_page)]
+        self._make_page()
 
     def _on_navigating(self, event):
         session = self.session

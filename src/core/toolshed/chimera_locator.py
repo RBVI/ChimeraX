@@ -48,7 +48,7 @@ class ChimeraLocator(Locator):
 
 
 def get_distributions(url):
-    full_url = url + "/packages/METADATA.json"
+    full_url = url + "/metadata"
     import json
     try:
         from urllib.request import urlopen
