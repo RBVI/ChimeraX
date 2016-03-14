@@ -1,6 +1,6 @@
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015 Regents of the University of California.
+Copyright (c) 2015-2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  This notice must be embedded in or
@@ -28,6 +28,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 [&nbsp;save &nbsp;<i>pathname</i>&nbsp;] 
 [&nbsp;errorDialog&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;warningDialog&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;text&nbsp;|&nbsp;html&nbsp;<i>character&nbsp;string</i>&nbsp;]
 </h3>
 <p>
 The command <b>log</b> acts on the <a href="../tools/log.html"><b>Log</b></a>
@@ -46,6 +47,17 @@ and a message in the <a href="../tools/log.html"><b>Log</b></a>
 <li><b>warningDialog</b> - whether warnings should elicit both a separate dialog
 and a message in the <a href="../tools/log.html"><b>Log</b></a>
 (default <b>true</b>) instead of just a message
+<li><b>text</b> - echo the rest of the command (up to the next 
+carriage return or semicolon, including any spaces) in the 
+<a href="../tools/log.html"><b>Log</b></a>;
+must be the last option in the command
+<li><b>html</b> - render the rest of the command (up to the next 
+carriage return or semicolon, including any spaces) as HTML in the 
+<a href="../tools/log.html"><b>Log</b></a>;
+must be the last option in the command, for example:
+<blockquote>
+<b>log thumb html &lt;b&gt;Toxin from &lt;i&gt;Bacillus thuringiensis&lt;/i&gt;&lt;/b&gt;</b>
+</blockquote>
 </ul>
 See also:
 <a href="save.html"><b>save</b></a>,
@@ -54,5 +66,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2015</address>
+March 2016</address>
 </body></html>
