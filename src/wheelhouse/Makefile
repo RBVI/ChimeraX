@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PYSRCS = update_metadata.py
 
 ifdef USE_MAC_FRAMEWORKS
-PYPI_SERVER = ../Frameworks/Python.framework/Versions/Current/bin/pypi-server
+PYPI_SERVER = ../Library/Frameworks/Python.framework/Versions/Current/bin/pypi-server
 else
 PYPI_SERVER = ../bin/pypi-server
 endif
