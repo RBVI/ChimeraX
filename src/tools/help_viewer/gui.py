@@ -38,8 +38,7 @@ class HelpUI(ToolInstance):
         self.home_page = None
         self.zoom_factor = html2.WEBVIEW_ZOOM_MEDIUM
         # buttons: back, forward, reload, stop, home, search bar
-        self.toolbar = wx.ToolBar(parent, wx.ID_ANY,
-                                  style=wx.TB_DEFAULT_STYLE | wx.TB_TEXT)
+        self.toolbar = wx.ToolBar(parent, wx.ID_ANY)
         bitmap_size = wx.ArtProvider.GetNativeSizeHint(wx.ART_TOOLBAR)
         self.back = self.toolbar.AddTool(
             wx.ID_ANY, 'Back',
@@ -55,13 +54,13 @@ class HelpUI(ToolInstance):
             wx.ID_ANY, 'Home',
             wx.ArtProvider.GetBitmap(wx.ART_GO_HOME, wx.ART_TOOLBAR, bitmap_size),
             shortHelp="Return to first page")
-        self.zoom_out = self.toolbar.AddTool(
-            wx.ID_ANY, 'Zoom Out',
-            wx.ArtProvider.GetBitmap(wx.ART_MINUS, wx.ART_TOOLBAR, bitmap_size),
-            shortHelp="magnify document")
         self.zoom_in = self.toolbar.AddTool(
             wx.ID_ANY, 'Zoom In',
             wx.ArtProvider.GetBitmap(wx.ART_PLUS, wx.ART_TOOLBAR, bitmap_size),
+            shortHelp="magnify document")
+        self.zoom_out = self.toolbar.AddTool(
+            wx.ID_ANY, 'Zoom Out',
+            wx.ArtProvider.GetBitmap(wx.ART_MINUS, wx.ART_TOOLBAR, bitmap_size),
             shortHelp="minify document")
         self.toolbar.EnableTool(self.home.GetId(), False)
         self.toolbar.AddStretchableSpace()
@@ -93,6 +92,8 @@ class HelpUI(ToolInstance):
         self.help_window.Bind(html2.EVT_WEBVIEW_TITLE_CHANGED,
                               self.on_title_change)
         self.help_window.EnableContextMenu()
+        if self.help_window.CanSetZoomType(html2.WEBVIEW_ZOOM_TYPE_LAYOUT):
+            self.help_window.SetZoomType(html2.WEBVIEW_ZOOM_TYPE_LAYOUT)
 
     def show(self, url, set_home=True):
         self.help_window.Stop()
