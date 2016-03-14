@@ -98,7 +98,7 @@ class HelpUI(ToolInstance):
                                   self.on_title_change)
             self.help_window.EnableContextMenu()
         else: # qt
-            from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction
+            from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit
             from PyQt5.QtGui import QIcon
             self.toolbar = tb = QToolBar()
             layout = QVBoxLayout()
@@ -129,6 +129,10 @@ class HelpUI(ToolInstance):
             self.zoom_out.setFont(font)
             self.zoom_out.triggered.connect(self.page_zoom_out)
             tb.addAction(self.zoom_out)
+            self.search = QLineEdit("search")
+            self.search.selectAll()
+            tb.addWidget(self.search)
+
             from PyQt5.QtWebKitWidgets import QWebView
             class HelpWebView(QWebView):
                 def __init__(self, ses=session, bi=bundle_info):
@@ -144,6 +148,8 @@ class HelpUI(ToolInstance):
             self.help_window.linkClicked.connect(self.link_clicked)
             self.help_window.loadFinished.connect(self.page_loaded)
             self.help_window.titleChanged.connect(self.tool_window.set_title)
+            self.search.returnPressed.connect(lambda s=self.search, hw=self.help_window:
+                hw.findText(s.text(), hw.page().FindWrapsAroundDocument))
 
         self.tool_window.manage(placement=None)
 

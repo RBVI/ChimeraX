@@ -51,7 +51,7 @@ class ShortcutPanel(ToolInstance):
             import wx
             buttons = []
             for i, (keys, icon_file, descrip) in enumerate(self.shortcuts):
-                tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file))
+                tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file, self.max_icon_size))
                 tb.icon_file = icon_file
                 def button_press_cb(event, keys=keys, ks=self.keyboard_shortcuts):
                     ks.run_shortcut(keys)
