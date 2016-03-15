@@ -1,0 +1,90 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<title>Making Movies</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Making Movies</h3>
+<p>
+A simple spin movie can be created using the &ldquo;video recorder&rdquo;
+<a href="tools/graphics.html"><b>Graphics</b></a> icon:
+<img src="tools/shortcut-icons/video.png" width="30px"
+style="vertical-align:-50%">
+</p><p>
+Otherwise, the <a href="commands/movie.html"><b>movie</b></a> command 
+can be used to start recording, stop recording, and encode the saved images 
+as a movie file.  During recording, the scene can be manipulated interactively
+and commands can be entered. However, for reproducibility and smoother results, 
+often a ChimeraX 
+<a href="commands/usageconventions#cxc-files">command file</a> (script) 
+integrating <a href="commands/movie.html"><b>movie</b></a> 
+with other commands will be used instead.
+</p><p>
+<a name="commands"></a>
+Below are some of the commands likely to be used for scripting
+continuous motion and other movie content.
+For general appearance, see also:
+<a href="tools/graphics.html"><b>Graphics</b></a> icons,
+<a href="images.html">making images</a>
+</p>
+<ul>
+<li><a href="commands/2dlabels.html"><b>2dlabels</b></a>
+- static annotation with 2D text and 
+<a href="commands/symbols.html">symbols</a></li>
+<li><a href="commands/clip.html"><b>clip</b></a>
+- control clipping planes</li>
+<li><a href="commands/cofr.html"><b>cofr</b></a>
+- set center of rotation</li> 
+<li><b>crossfade</b></li>
+<li><a href="commands/move.html"><b>move</b></a>
+- translate models</li>
+<li><a href="commands/movie.html"><b>movie</b></a>
+- record image frames and assemble them into a movie file</li>
+<li><b>perframe</b>
+- similar to Chimera
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/perframe.html"
+target="_blank"><b>perframe</b></a></li>
+<li><a href="commands/roll.html"><b>roll</b></a>
+- rotate models continuously</li>
+<li><a href="commands/stop.html"><b>stop</b></a>
+- halt ongoing motions
+<li><a href="commands/turn.html"><b>turn</b></a>
+- rotate models</li>
+<li><a href="commands/view.html"><b>view</b></a>
+- adjust the view to specified items; save/restore named views</li>
+<li><b>vop morph</b>
+- almost the same as Chimera
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/vop.html#morph"
+target="_blank"><b>vop morph</b></a></li>
+<li><b>vseries</b>
+- almost the same as Chimera
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/midas/vseries.html"
+target="_blank"><b>vseries</b></a></li>
+<li><a href="commands/wait.html"><b>wait</b></a>
+- update the display and enforce ordered execution of commands in scripts</li>
+<li><a href="commands/windowsize.html"><b>windowsize</b></a>
+- set pixel width and height of the graphics window</li>
+<li><a href="commands/zoom.html"><b>zoom</b></a>
+- change the apparent size of the view</li>
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+March 2016</address>
+</body></html> 

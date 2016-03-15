@@ -197,9 +197,9 @@ class HelpUI(ToolInstance):
         if self.zoom_factor < html2.WEBVIEW_ZOOM_LARGEST:
             self.zoom_factor += 1
             self.help_window.SetZoom(self.zoom_factor)
-        else:
+        if self.zoom_factor == html2.WEBVIEW_ZOOM_LARGEST:
             self.toolbar.EnableTool(self.zoom_in.GetId(), False)
-            self.toolbar.EnableTool(self.zoom_out.GetId(), True)
+        self.toolbar.EnableTool(self.zoom_out.GetId(), True)
 
     def page_zoom_in(self, checked):
         self.help_window.setZoomFactor(1.25 * self.help_window.zoomFactor())
@@ -209,9 +209,9 @@ class HelpUI(ToolInstance):
         if self.zoom_factor > html2.WEBVIEW_ZOOM_TINY:
             self.zoom_factor -= 1
             self.help_window.SetZoom(self.zoom_factor)
-        else:
+        if self.zoom_factor == html2.WEBVIEW_ZOOM_TINY:
             self.toolbar.EnableTool(self.zoom_out.GetId(), False)
-            self.toolbar.EnableTool(self.zoom_in.GetId(), True)
+        self.toolbar.EnableTool(self.zoom_in.GetId(), True)
 
     def page_zoom_out(self, checked):
         self.help_window.setZoomFactor(0.8 * self.help_window.zoomFactor())
