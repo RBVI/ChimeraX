@@ -1,0 +1,146 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: 2dlabels</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: 2dlabels</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>2dlabels</b>&nbsp;&nbsp;<i>action</i>&nbsp;&nbsp;<i>arguments</i></h3>
+<p>
+</h3>
+<p>
+The <b>2dlabels</b> command allows adding 2D text and
+<a href="symbols.html">symbols</a> to the display. 
+This is useful for annotating images and movies.
+The labels exist in the X,Y plane (the plane of the screen) and do not
+have a &ldquo;depth&rdquo; (Z-coordinate); 
+they appear in front of any graphics displays and do not move
+along with the scene. 
+These static annotations can be of multiple colors and sizes.
+See also:
+<a href="save.html"><b>save</b></a>,
+<a href="movie.html"><b>movie</b></a>,
+<a href="../images.html">making images</a>,
+<a href="../movies.html">making movies</a>
+</p><p>
+** <b>Known bug: resizing the graphics window and changing its aspect ratio
+currently changes the size and aspect ratio of 2D labels</b> **
+</p><p>
+The <b><i>action</i></b> can be one of the following:
+</p>
+<ul>
+<li><a href="#create"><b>create</b></a>
+- create a 2D text/symbol label
+<li><a href="#change"><b>change</b></a>
+- modify a 2D text/symbol label
+<li><a href="#delete"><b>delete</b></a>
+- delete a 2D text/symbol label 
+</ul>
+<p>
+Action and argument keywords (given below) can be truncated.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive options, and
+default values are indicated with <b>bold</b>.
+Synonyms for true: True, 1.  Synonyms for false: False, 0.
+</p>
+Examples:
+<blockquote><b>
+2dlabels create lab1 text 'Green Fluorescent Protein' color light sea green size 26 xpos .03  ypos .92 vis true
+<br>
+2dlabels change lab1 ypos .03 size 40
+<br>
+2dlabels delete lab1
+</b></blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="create"><b>2dlabels create</b></a> <i>name</i>
+  [&nbsp;<b>text</b>&nbsp;<i>label-contents</i>&nbsp;]
+  [&nbsp;<b>color</b>&nbsp;<i>label-color</i>&nbsp;]
+  [&nbsp;<b>size</b>&nbsp;<i>font-size</i>&nbsp;]
+  [&nbsp;<b>typeface</b>&nbsp;<i>font-typeface</i>&nbsp;]
+  [&nbsp;<b>xpos</b>&nbsp;<i>x-position</i>&nbsp;]
+  [&nbsp;<b>ypos</b>&nbsp;<i>y-position</i>&nbsp;]
+  [&nbsp;<b>visibility</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+The <i>name</i> is required and serves as an identifier
+for subsequently modifying or deleting the 2D text/symbol label.
+The <i>label-contents</i> (default nothing) can include 
+letters, numbers, symbols from the keyboard; additional
+<a name="symbols">symbols</a> can be copied (for example, from 
+<a href="http://www.rbvi.ucsf.edu/chimera/docs/ContributedSoftware/2dlabels/symbols.html">here</a>)
+and pasted into the command line, or indicated with
+<a href="http://unicode.org/charts/" target="_blank">unicode</a> 
+character codes or character names.  Unicode examples:
+ <ul style="list-style-type:none">
+ <li><b>text 'the \u03b1 subunit'</b> &nbsp;&nbsp;
+ gives &nbsp;&nbsp; <b>the &alpha; subunit</b>
+ <li><b>text 'reactants \N{RIGHTWARDS ARROW} products'</b> &nbsp;&nbsp;
+ gives &nbsp;&nbsp; <b>reactants &rarr; products</b>
+ </ul>
+Spaces and quote marks can be included by enclosing the 
+entire <i>label-contents</i> in single or double quote marks.
+Carriage returns are indicated with <b>\n</b>. 
+The <i>label-color</i> can be 
+any <a href="colornames.html">color name</a> 
+that specifies a single color (default <b>white</b>). 
+Any transparency in the color is ignored.
+The <i>font-size</i> must be an integer greater than zero 
+(default <b>24</b>). 
+** <b>The typeface option may only work on Mac,</b> **
+where <i>font-typeface</i> must be the name 
+(minus the &ldquo;.ttf&rdquo; suffix)
+of a font file installed in /Library/Fonts/ 
+(default <b>Arial</b>).
+The <i>x-position</i> and <i>y-position</i> are the X and Y
+coordinates of the lower lefthand corner of the label 
+(defaults are <b>0.5</b> and <b>0.5</b>).  The X axis is 
+horizontal and the Y axis is vertical, and both range from
+0 to 1 in the visible portion of the graphics window. It is possible to place
+a label partially or completely outside the visible area, however.
+The <b>visibility</b> option specifies whether the label should be displayed.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="change"><b>2dlabels change</b></a> <i>name</i>
+  [&nbsp;<b>text</b>&nbsp;<i>label-contents</i>&nbsp;]
+  [&nbsp;<b>color</b>&nbsp;<i>label-color</i>&nbsp;]
+  [&nbsp;<b>size</b>&nbsp;<i>font-size</i>&nbsp;]
+  [&nbsp;<b>typeface</b>&nbsp;<i>font-typeface</i>&nbsp;]
+  [&nbsp;<b>xpos</b>&nbsp;<i>x-position</i>&nbsp;]
+  [&nbsp;<b>ypos</b>&nbsp;<i>y-position</i>&nbsp;]
+  [&nbsp;<b>visibility</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+The 2D label to modify is specified by the <i>name</i> it was assigned with
+<a href="#create"><b>create</b></a>.
+All other options are as described above for 
+<a href="#create"><b>create</b></a>, 
+except the defaults are to leave the current label unchanged.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="delete"><b>2dlabels delete</b></a> <i>name</i>
+<blockquote>
+The 2D label to delete is specified by the 
+<i>name</i> it was assigned with <a href="#create"><b>create</b></a>.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2016</address>
+</body></html> 
