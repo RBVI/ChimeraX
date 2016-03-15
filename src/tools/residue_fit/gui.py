@@ -9,8 +9,8 @@ class ResidueFit(ToolInstance):
     SIZE = (-1, -1)
     SESSION_SKIP = True
 
-    def __init__(self, session, bundle_info, residues, map, pause_frames = 50,
-                 motion_frames = 50, movie_framerate = 25):
+    def __init__(self, session, bundle_info, residues, map, residue_range = (-2,1),
+                 pause_frames = 50, motion_frames = 50, movie_framerate = 25):
         ToolInstance.__init__(self, session, bundle_info)
 
         self.residues = {r.number:r for r in residues}
@@ -21,12 +21,13 @@ class ResidueFit(ToolInstance):
         self.chain_id = cid = r0.chain_id
         rnums = residues.numbers
         self.rmin, self.rmax = rmin, rmax = rnums.min(), rnums.max()
-        self.neighbors = (-2,-1,1)
+        self.residue_range = residue_range
         self.pause_frames = pause_frames
         self._pause_count = 0
         self.motion_frames = motion_frames
         self.movie_framerate = movie_framerate
         self._last_shown_resnum = None
+        self._last_pos = None
         self._label = None	# Graphics Label showing residue number
         
         self._play_handler = None
@@ -92,8 +93,10 @@ class ResidueFit(ToolInstance):
             self.structure.atoms.displays = False
             self._last_shown_resnum = rnum
             mf = self.motion_frames if motion else 0
-            show_residue_fit(self.session, self.zone_residues(res), self.map,
-                             motion_frames = mf)
+            lp = show_residue_fit(self.session, self.zone_residues(res), self.map,
+                                  last_pos = self._last_pos, motion_frames = mf)
+            if lp:
+                self._last_pos = lp
             self.update_label(res)
         else:
             log = self.session.logger
@@ -103,7 +106,8 @@ class ResidueFit(ToolInstance):
     def zone_residues(self, res):
         zone_res = [res]
         rnum = res.number
-        for offset in self.neighbors:
+        r0,r1 = self.residue_range
+        for offset in range(r0,r1+1):
             if offset != 0:
                 ro = self.residues.get(rnum+offset,None)
                 if ro:
@@ -210,7 +214,7 @@ class ResidueFit(ToolInstance):
             self._label = None
             
 
-def show_residue_fit(session, residues, map, range = 2, motion_frames = 20):
+def show_residue_fit(session, residues, map, range = 2, last_pos = None, motion_frames = 20):
     '''Set camera to show first residue in list and display map in zone around given residues.'''
     res = residues[0]
     ratoms = res.atoms
@@ -218,7 +222,7 @@ def show_residue_fit(session, residues, map, range = 2, motion_frames = 20):
     try:
         i = [anames.index(aname) for aname in ('N', 'CA', 'C')]
     except ValueError:
-        return False		# Missing backbone atom
+        return None		# Missing backbone atom
     xyz = ratoms.filter(i).scene_coords
 
     from chimerax.core.geometry import align_points, Place
@@ -227,22 +231,27 @@ def show_residue_fit(session, residues, map, range = 2, motion_frames = 20):
     txyz = array([[ 12.83300018,   6.83900023,   6.73799992],
                   [ 12.80800056,   7.87400055,   5.70799971],
                   [ 11.91800022,   9.06700039,   5.9920001 ]])
-    tc = Place(((-0.46696,0.38225,-0.79739,-3.9125),
-                (0.81905,-0.15294,-0.55296,-4.3407),
-                (-0.33332,-0.91132,-0.24166,-1.4889)))
+    c = session.main_view.camera
+    cp = c.position
+    if last_pos is None:
+        tc = Place(((-0.46696,0.38225,-0.79739,-3.9125),
+                    (0.81905,-0.15294,-0.55296,-4.3407),
+                    (-0.33332,-0.91132,-0.24166,-1.4889)))
+    else:
+        # Maintain same relative camera position to backbone.
+        tc = last_pos.inverse() * cp
     p, rms = align_points(txyz, xyz)
 
     # Smooth interpolation
-    c = session.main_view.camera
+    np = p*tc
     if motion_frames > 1:
-        cp, np = c.position, p*tc
         def interpolate_camera(session, f, cp=cp, np=np, center=np.inverse()*xyz[1], frames=motion_frames):
             c = session.main_view.camera
             c.position = cp.interpolate(np, center, frac = (f+1)/frames)
         from chimerax.core.commands import motion
         motion.CallForNFrames(interpolate_camera, motion_frames, session)
     else:
-        c.position = p*tc
+        c.position = np
 
     from numpy import concatenate
     zone_points = concatenate([r.atoms.scene_coords for r in residues])
@@ -252,4 +261,4 @@ def show_residue_fit(session, residues, map, range = 2, motion_frames = 20):
     for r in residues:
         r.atoms.displays = True
     
-    return True
+    return p
