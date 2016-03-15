@@ -1662,13 +1662,24 @@ def structure_atoms(structures):
 #
 def selected_atoms(session):
     '''All selected atoms in all structures as an :class:`.Atoms` collection.'''
-    from .molarray import Atoms
-    atoms = Atoms()
-    for m in session.models.list():
-        if isinstance(m, Graph):
-            for matoms in m.selected_items('atoms'):
-                atoms = atoms | matoms
+    alist = []
+    for m in session.models.list(type = Graph):
+        alist.extend(m.selected_items('atoms'))
+    from .molarray import concatenate, Atoms
+    atoms = concatenate(alist, Atoms)
     return atoms
+
+# -----------------------------------------------------------------------------
+#
+def selected_bonds(session):
+    '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
+    blist = []
+    for m in session.models.list(type = Graph):
+        for a in m.selected_items('atoms'):
+            blist.append(a.inter_bonds)
+    from .molarray import concatenate, Bonds
+    bonds = concatenate(blist, Bonds)
+    return bonds
 
 # -----------------------------------------------------------------------------
 #
