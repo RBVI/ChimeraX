@@ -54,6 +54,8 @@ def clip(session, near=None, far=None, front=None, back=None, slab=None, list=No
             adjust_slab('near', near, 'far', far, pos, None, planes, v, -z)
         elif near is not None:
             adjust_plane('near', near, pos, None, planes, v, -z)
+        elif far == 'off':
+            planes.remove_plane('far')
         elif far is not None:
             adjust_plane('far', -far, pos, None, planes, v, z)
 
@@ -64,6 +66,8 @@ def clip(session, near=None, far=None, front=None, back=None, slab=None, list=No
             adjust_slab('front', front, 'back', back, pos, normal, planes, v)
         elif front is not None:
             adjust_plane('front', front, pos, normal, planes, v)
+        elif back == 'off':
+            planes.remove_plane('back')
         elif back is not None:
             adjust_plane('back', -back, pos, normal, planes, v)
 
