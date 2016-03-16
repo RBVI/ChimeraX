@@ -10,6 +10,7 @@ function button_test() { window.location.href = "toolshed:button_test:arg"; }
 </script>
 <style>
 .refresh { color: blue; font-size: 80%; font-family: monospace; }
+.url { font-size: 80%; }
 .install { color: green; font-family: monospace; }
 .start { color: green; font-family: monospace; }
 .update { color: blue; font-family: monospace; }
@@ -17,29 +18,36 @@ function button_test() { window.location.href = "toolshed:button_test:arg"; }
 .show { color: green; font-family: monospace; }
 .hide { color: blue; font-family: monospace; }
 .kill { color: red; font-family: monospace; }
+.button { padding: 0px 3px 0px 3px; border-radius: 5px; border: solid 1px #000000;
+          text-decoration: none; text-shadow: 0 -1px rgba(0, 0, 0, 0.4);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2); }
+.buttons { width: 25%; text-align: right; }
+.name { font-weight: bold; width: 25%; }
+.synopsis { }
+th { text-align: left; }
+h2 { text-align: center; }
+.empty { text-align: center; }
 </style>
 </head>
 <body>
-<h2>ChimeraX Toolshed
-    <a href="toolshed:_make_page" class="refresh">refresh</a></h2>
-<!-- button onclick="button_test();">Button Test</button> -->
 <h2>Running Tools</h2>
 RUNNING_TOOLS
 <h2>Installed Tools
     <a href="toolshed:refresh_installed" class="refresh">refresh</a></h2>
 INSTALLED_TOOLS
 <h2>Available Tools
+    <span class="url">(from TOOLSHED_URL)</span>
     <a href="toolshed:refresh_available" class="refresh">refresh</a></h2>
 AVAILABLE_TOOLS
 </body>
 </html>"""
-_START_LINK = '<a href="toolshed:_start_tool:%s" class="start">start</a>'
-_UPDATE_LINK = '<a href="toolshed:_update_tool:%s" class="update">update</a>'
-_REMOVE_LINK = '<a href="toolshed:_remove_tool:%s" class="remove">remove</a>'
-_INSTALL_LINK = '<a href="toolshed:_install_tool:%s" class="install">install</a>'
-_SHOW_LINK = '<a href="toolshed:_show_tool:%s" class="show">show</a>'
-_HIDE_LINK = '<a href="toolshed:_hide_tool:%s" class="hide">hide</a>'
-_KILL_LINK = '<a href="toolshed:_kill_tool:%s" class="kill">kill</a>'
+_START_LINK = '<a href="toolshed:_start_tool:%s" class="start button">start</a>'
+_UPDATE_LINK = '<a href="toolshed:_update_tool:%s" class="update button">update</a>'
+_REMOVE_LINK = '<a href="toolshed:_remove_tool:%s" class="remove button">remove</a>'
+_INSTALL_LINK = '<a href="toolshed:_install_tool:%s" class="install button">install</a>'
+_SHOW_LINK = '<a href="toolshed:_show_tool:%s" class="show button">show</a>'
+_HIDE_LINK = '<a href="toolshed:_hide_tool:%s" class="hide button">hide</a>'
+_KILL_LINK = '<a href="toolshed:_kill_tool:%s" class="kill button">kill</a>'
 
 
 class ToolshedUI(ToolInstance):
@@ -93,53 +101,69 @@ class ToolshedUI(ToolInstance):
         # TODO: add "update" link for installed tools
 
         # running
+        def tool_key(t):
+            return t.display_name
         s = StringIO()
-        print("<ul>", file=s)
         tool_list = tools.list()
         if not tool_list:
-            print("<li>No running tools found.</li>", file=s)
+            print('<p class="empty">No running tools found.</p>', file=s)
         else:
-            for t in tool_list:
+            print("<table>", file=s)
+            for t in sorted(tool_list, key=tool_key):
                 show_link = _SHOW_LINK % t.id
                 hide_link = _HIDE_LINK % t.id
                 kill_link = _KILL_LINK % t.id
-                print("<li>%s. %s %s %s</li>"
-                      % (t.display_name, show_link,
-                         hide_link, kill_link), file=s)
-        print("</ul>", file=s)
+                print('<tr>'
+                      '<td class="buttons">%s&nbsp;%s&nbsp;%s</td>'
+                      '<td class="name">%s</td>'
+                      '<td class="synopsis"></td>'
+                      '</tr>'
+                      % (show_link, hide_link, kill_link,
+                         t.display_name), file=s)
+            print("</table>", file=s)
         page = page.replace("RUNNING_TOOLS", s.getvalue())
 
         # installed
+        def bundle_key(bi):
+            return bi.display_name
         s = StringIO()
-        print("<ul>", file=s)
-        bi_list = ts.bundle_info(installed=True, available=False)
-        if not bi_list:
-            print("<li>No installed tools found.</li>", file=s)
+        installed_bi_list = ts.bundle_info(installed=True, available=False)
+        if not installed_bi_list:
+            print('<p class="empty">No installed tools found.</p>', file=s)
         else:
-            for bi in bi_list:
+            print("<table>", file=s)
+            for bi in sorted(installed_bi_list, key=bundle_key):
                 start_link = _START_LINK % bi.name
                 update_link = _UPDATE_LINK % bi.name
                 remove_link = _REMOVE_LINK % bi.name
-                print("<li>%s - %s. %s %s %s</li>"
-                      % (bi.display_name, bi.synopsis, start_link,
-                         update_link, remove_link), file=s)
-        print("</ul>", file=s)
+                print('<tr>'
+                      '<td class="buttons">%s&nbsp;%s&nbsp;%s</td>'
+                      '<td class="name">%s</td>'
+                      '<td class="synopsis">%s</td>'
+                      '</tr>'
+                      % (start_link, update_link, remove_link,
+                         bi.display_name, bi.synopsis), file=s)
+            print("</table>", file=s)
         page = page.replace("INSTALLED_TOOLS", s.getvalue())
 
         # available
         s = StringIO()
-        bi_list = ts.bundle_info(installed=False, available=True)
-        print("<ul>", file=s)
-        print("<li>Remote URL: %s</li>" % ts.remote_url, file=s)
-        if not bi_list:
-            print("<li>No available tools found.</li>", file=s)
+        available_bi_list = ts.bundle_info(installed=False, available=True)
+        if not available_bi_list:
+            print('<p class="empty">No available tools found.</p>', file=s)
         else:
-            for bi in bi_list:
+            print("<table>", file=s)
+            for bi in sorted(available_bi_list, key=bundle_key):
                 link = _INSTALL_LINK % bi.name
-                print("<li>%s - %s. %s</li>"
-                      % (bi.display_name, bi.synopsis, link), file=s)
-        print("</ul>", file=s)
+                print('<tr>'
+                      '<td class="buttons">%s</td>'
+                      '<td class="name">%s</td>'
+                      '<td class="synopsis">%s</td>'
+                      '</tr>'
+                      % (link, bi.display_name, bi.synopsis), file=s)
+            print("</table>", file=s)
         page = page.replace("AVAILABLE_TOOLS", s.getvalue())
+        page = page.replace("TOOLSHED_URL", ts.remote_url)
 
         self.webview.ClearHistory()
         self.webview.SetPage(page, "")
