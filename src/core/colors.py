@@ -28,13 +28,17 @@ class UserColors(SortedDict, State):
 
     def take_snapshot(self, session, flags):
         # only save differences from builtin colors
-        data = {name: color for name, color in self.items()
+        cmap = {name: color for name, color in self.items()
                 if name not in BuiltinColors or color != BuiltinColors[name]}
-        return CORE_STATE_VERSION, data
+        data = {'colors':cmap,
+                'version': CORE_STATE_VERSION}
+        return data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        self.__init__()
-        self.update(data)
+    @staticmethod
+    def restore_snapshot(session, data):
+        c = UserColors()
+        c.update(data['colors'])
+        return c
 
     def reset_state(self, session):
         """Reset state to data-less state"""
@@ -148,11 +152,12 @@ class Color(State):
         return not numpy.array_equal(self.rgba, other.rgba)
 
     def take_snapshot(self, session, flags):
-        data = self.rgba
+        data = {'rgba': self.rgba}
         return CORE_STATE_VERSION, data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        self.__init__(data, limit=False)
+    @staticmethod
+    def restore_snapshot(session, data):
+        return Color(data['rgba'], limit=False)
 
     def reset_state(self, session):
         pass
@@ -188,11 +193,15 @@ class UserColormaps(SortedDict, State):
     """
 
     def take_snapshot(self, session, flags):
-        return CORE_STATE_VERSION, dict(self)
+        data = {'colormaps': dict(self),
+                'version': CORE_STATE_VERSION,}
+        return data
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        self.__init__()
-        self.update(data)
+    @staticmethod
+    def restore_snapshot(session, data):
+        c = UserColormaps()
+        c.update(data['colormaps'])
+        return c
 
     def reset_state(self, session):
         """Reset state to data-less state"""

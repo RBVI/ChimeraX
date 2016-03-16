@@ -1,5 +1,5 @@
 from chimerax.core.errors import UserError as CommandError
-def register_title_command():
+def register_label_command():
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, StringArg, FloatArg, ColorArg
 
@@ -13,11 +13,11 @@ def register_title_command():
              ('ypos', FloatArg),
              ('visibility', BoolArg)]
     create_desc = CmdDesc(required = rargs, keyword = cargs)
-    register('title create', create_desc, title_create)
+    register('2dlabels create', create_desc, label_create)
     change_desc = CmdDesc(required = rargs, keyword = cargs)
-    register('title change', change_desc, title_change)
+    register('2dlabels change', change_desc, label_change)
     delete_desc = CmdDesc(required = rargs)
-    register('title delete', delete_desc, title_delete)
+    register('2dlabels delete', delete_desc, label_delete)
 
 class Label:
     def __init__(self, session, name, text = '', color = None, size = 24, typeface = 'Arial',
@@ -51,7 +51,7 @@ class Label:
         rgba = text_image_rgba(self.text, rgba8, self.size, self.typeface,
                                self.session.app_data_dir)
         if rgba is None:
-            self.session.logger.info("Can't find font for title")
+            self.session.logger.info("Can't find font for label")
             return
         x,y = (-1 + 2*self.xpos, -1 + 2*self.ypos)    # Convert 0-1 position to -1 to 1.
         w,h = v.window_size
@@ -72,7 +72,7 @@ class Label:
         s.main_view.remove_overlays([d])
         del s.labels[self.name]
 
-def title_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
+def label_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
                  xpos = 0.5, ypos = 0.5, visibility = True):
     '''Create a label at a fixed position in the graphics window.
 
@@ -99,7 +99,7 @@ def title_create(session, name, text = '', color = None, size = 24, typeface = '
     '''
     return Label(**locals())
 
-def title_change(session, name, text = None, color = None, size = None, typeface = None,
+def label_change(session, name, text = None, color = None, size = None, typeface = None,
                  xpos = None, ypos = None, visibility = None):
     '''Change label parameters.'''
     l = session.labels[name]
@@ -113,7 +113,7 @@ def title_change(session, name, text = None, color = None, size = None, typeface
     l.make_drawing()
     return l
 
-def title_delete(session, name):
+def label_delete(session, name):
     '''Delete label.'''
     l = session.labels[name]
     l.delete()
@@ -136,6 +136,8 @@ def text_image_rgba(text, color, size, typeface, data_dir):
     if f is None:
         return
     pixel_size = f.getsize(text)
+    # Size 0 image gives rgba array that is not 3-dimensional
+    pixel_size = (max(1,pixel_size[0]), max(1,pixel_size[1]))
     i = Image.new('RGBA', pixel_size)
     d = ImageDraw.Draw(i)
     #print('Size of "%s" is %s' % (text, pixel_size))

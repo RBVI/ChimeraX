@@ -30,7 +30,7 @@ class State(metaclass=abc.ABCMeta):
     bundle_info = None
 
     def take_snapshot(self, session, flags):
-        """Return snapshot of current state, [version, data], of instance.
+        """Return snapshot of current state of instance.
 
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped.
@@ -39,24 +39,21 @@ class State(metaclass=abc.ABCMeta):
         lists/dicts/etc., but shallow copy of named objects).
         Named objects are later converted to unique names. 
         """
-        version = self.bundle_info.state_version
         data = self.vars().copy()
+        data['bundle name'] = self.bundle_info.name
+        data['version'] = self.bundle_info.state_version
         if 'bundle_info' in data:
             del data['bundle_info']
-        return version, data
+        return data
 
     @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        """Restore data snapshot into instance.
-
-        Named instances in data will have been replaced with actual instance.
-        """
-        return cls.__new__(cls)
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
+    def restore_snapshot(cls, session, data):
+        """Create object using snapshot data."""
+        obj = cls()
         obj.__dict__ = data
         if obj.bundle_info is None:
-            obj.bundle_info = bundle_info
+            obj.bundle_info = session.toolshed.find_bundle(data['bundle name'])
+        return obj
 
     @abc.abstractmethod
     def reset_state(self, session):
@@ -86,7 +83,6 @@ def _init_primitives():
     from numpy import ndarray, int32, int64, uint32, uint64, float32, float64
     import datetime
     from PIL import Image
-    from . import geometry
     _final_primitives = (
         type(None), type(Ellipsis),
         bool, bytes, bytearray,
@@ -96,7 +92,6 @@ def _init_primitives():
         collections.Counter,
         datetime.date, datetime.time, datetime.timedelta, datetime.datetime,
         datetime.timezone,
-        geometry.Place, geometry.Places,
         Image.Image,
     )
     _container_primitives = (
@@ -133,23 +128,23 @@ def copy_state(data, convert=None):
     def _copy(data):
         global _final_primitives, _container_primitives
         nonlocal convert, Mapping, ndarray
-        if hasattr(data, 'bundle_info'):
-            return convert(data)
         if isinstance(data, _final_primitives):
             return data
-        if not isinstance(data, _container_primitives):
-            raise ValueError("unable to copy %s.%s objects" % (
-                data.__class__.__module__, data.__class__.__name__))
-        if isinstance(data, Mapping):
-            items = [(_copy(k), _copy(v)) for k, v in data.items()]
-        elif isinstance(data, ndarray):
-            if data.dtype != object:
-                return data.copy()
-            items = [_copy(o) for o in data]
+        if isinstance(data, _container_primitives):
+            if isinstance(data, Mapping):
+                items = [(_copy(k), _copy(v)) for k, v in data.items()]
+            elif isinstance(data, ndarray):
+                if data.dtype != object:
+                    return data.copy()
+                items = [_copy(o) for o in data]
+            else:
+                # must be isinstance(data, (deque, Sequence, Set)):
+                items = [_copy(o) for o in data]
+            return data.__class__(items)
         else:
-            # must be isinstance(data, (deque, Sequence, Set)):
-            items = [_copy(o) for o in data]
-        return data.__class__(items)
+            # Use state methods to convert object to primitives
+            return convert(data)
+
     return _copy(data)
 
 

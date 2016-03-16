@@ -21,9 +21,9 @@ def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite, r
     center : Center
        Specifies the center of rotation. If not specified, then the current
        center of rotation is used.
-    coordinate_system : Model
+    coordinate_system : Place
        The coordinate system for the axis and optional center point.
-       If no model coordinate system is specified then scene coordinates are used.
+       If no coordinate system is specified then scene coordinates are used.
     models : list of Models
        Only these models are moved.  If not specified, then the camera is moved.
     '''
@@ -34,13 +34,13 @@ def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite, r
 
 def register_command(session):
     from .cli import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from .cli import CenterArg, ModelArg, TopModelsArg
+    from .cli import CenterArg, CoordSysArg, TopModelsArg
     desc = CmdDesc(
         optional= [('axis', AxisArg),
                    ('angle', FloatArg),
                    ('frames', PositiveIntArg)],
         keyword = [('center', CenterArg),
-                   ('coordinate_system', ModelArg),
+                   ('coordinate_system', CoordSysArg),
                    ('rock', PositiveIntArg),
                    ('models', TopModelsArg)],
         synopsis='rotate models continuously'

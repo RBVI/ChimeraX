@@ -148,23 +148,23 @@ def grid_data_state(grid_data, session):
 from ..state import State
 class GridDataState(State):
 
-  version = 1
   def __init__(self, grid_data):
     self.grid_data = grid_data
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     data = state_from_grid_data(self.grid_data)
-    return self.version, data
+    return data
 
-  def restore_snapshot_init(self, session, tool_info, version, data):
+  @staticmethod
+  def restore_snapshot(session, data):
     gdcache = {}        # (path, grid_id) -> Grid_Data object
     class FilePaths:
       def find(self, path, ask = False):
         # TODO: If path doesn't exist show file dialog to let user enter new path to file.
         return path
     grids = grid_data_from_state(data, gdcache, session, FilePaths())
-    GridDataState.__init__(self, grids[0])
+    return GridDataState(grids[0])
 
   def reset_state(self, session):
     pass
@@ -177,6 +177,7 @@ def state_from_grid_data(data):
   s = {'path': dt.path,
        'file_type': dt.file_type,
        'name': dt.name,
+       'version': 1,
      }
 
   if hasattr(dt, 'database_fetch'):

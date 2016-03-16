@@ -9,8 +9,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
     via the :class:`.PseudobondGroupData` base class.
     """
 
-    SESSION_SKIP = True		# TODO: Session save not currently supported
-
     def __init__(self, pbg_pointer, *, session=None):
 
         PseudobondGroupData.__init__(self, pbg_pointer)
@@ -19,7 +17,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
         Model.__init__(self, self.category, session)
         self._pbond_drawing = None
         self._dashes = 9
-        self._structure = None		# AtomicStructure if pseudobond group in intra-molecular
 
     def delete(self):
         pbm = self.session.pb_manager
@@ -48,7 +45,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._dashes = n
         pb = self._pbond_drawing
         if pb:
-            owner = self._structure if self._structure else self
+            owner = self.structure if self.structure else self
             owner.remove_drawing(pb)
             self._pbond_drawing = None
             self._gc_shape = True
@@ -62,22 +59,19 @@ class PseudobondGroup(PseudobondGroupData, Model):
             self._update_graphics()
             self.redraw_needed(shape_changed = s, selection_changed = se)
 
-    def _update_graphics(self, *_, structure = None):
-
-        if structure:
-            self._structure = structure
+    def _update_graphics(self):
 
         pbonds = self.pseudobonds
         d = self._pbond_drawing
         if len(pbonds) == 0:
             if d:
-                owner = self._structure if self._structure else self
+                owner = self.structure if self.structure else self
                 owner.remove_drawing(d)
                 self._pbond_drawing = None
             return
 
         if d is None:
-            owner = self._structure
+            owner = self.structure
             d = owner.new_drawing(self.category) if owner else self.new_drawing('pbonds')
             self._pbond_drawing = d
             va, na, ta = _pseudobond_geometry(self._dashes//2)
@@ -86,7 +80,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             d.triangles = ta
 
         ba1, ba2 = bond_atoms = pbonds.atoms
-        if self._structure:
+        if self.structure:
             axyz0, axyz1 = ba1.coords, ba2.coords
         else:
             to_pbg = self.scene_position.inverse()
@@ -106,12 +100,24 @@ class PseudobondGroup(PseudobondGroupData, Model):
         return p
 
     def take_snapshot(self, session, flags):
-        data = {}
+        data = {
+            'version': 1,
+            'mgr': session.pb_manager, # so that the global manager gets restored before we do
+            'category': self.category,
+            'dashes': self._dashes
+        }
         return data
 
-    def restore_snapshot(self, phase, session, version, data):
-        if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
-            raise RestoreError("Unexpected version or data")
+    @staticmethod
+    def restore_snapshot(session, data):
+        if data['version'] != 1:
+            raise RestoreError("Unexpected pb group session version")
+        if data['structure'] is not None:
+            grp = data['structure'].pseudobond_group(data['category'], create_type=None)
+        else:
+            grp = session.pb_manager.get_group(data['category'], create=False)
+        grp._dashes = data['dashes']
+        return grp
 
     def reset_state(self, session):
         pass

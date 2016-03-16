@@ -2,11 +2,7 @@
 
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
-# Since ToolInstance derives from core.session.State, which
-# is an abstract base class, ToolUI classes must implement
-#   "take_snapshot" - return current state for saving
-#   "restore_snapshot_init" - restore from given state
-#   "reset_state" - reset to data-less state
+#
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
@@ -28,7 +24,7 @@ class OrthoCamera(Camera):
         Camera.__init__(self)
         self.position = Place()
 
-        self.view_width = 1
+        self.field_width = 1
 
     def get_position(self, view_num=None):
         return self.position
@@ -46,12 +42,23 @@ class OrthoCamera(Camera):
         near, far = near_far_clip
         ww, wh = window_size
         aspect = wh / ww
-        w = self.view_width
+        w = self.field_width
         h = w * aspect
         left, right, bot, top = -0.5 * w, 0.5 * w, -0.5 * h, 0.5 * h
         from chimerax.core.graphics.camera import ortho
         pm = ortho(left, right, bot, top, near, far)
         return pm
+
+    def view_width(self, center):
+        return self.field_width
+
+
+def project(pt, projection_matrix, modelview_matrix, width, height):
+    """convert 3D coordinate into 2D window coordinate"""
+    from numpy import concatenate
+    xpt = concatenate((pt, [1])) @ modelview_matrix @ projection_matrix
+    win_pt = [(xpt[0] + 1) * width / 2, (xpt[1] + 1) * height / 2]
+    return win_pt
 
 
 class SideViewCanvas(glcanvas.GLCanvas):
@@ -59,6 +66,11 @@ class SideViewCanvas(glcanvas.GLCanvas):
     EyeSize = 4     # half size really
     TOP_SIDE = 1
     RIGHT_SIDE = 2
+
+    ON_NOTHING = 0
+    ON_EYE = 1
+    ON_HITHER = 2
+    ON_YON = 3
 
     def __init__(self, parent, view, session, size, side=RIGHT_SIDE):
         attribs = session.ui.opengl_attribs
@@ -70,6 +82,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.main_view = session.main_view
         self.side = side
         # self.side = self.TOP_SIDE  # DEBUG
+        self.moving = self.ON_NOTHING
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs,
                                    size=size)
 
@@ -152,21 +165,21 @@ class SideViewCanvas(glcanvas.GLCanvas):
             has_string_marker = string_marker.glInitStringMarkerGREMEDY()
             if has_string_marker:
                 text = b"Start SideView"
-                string_marker. glStringMarkerGREMEDY(len(text), text)
+                string_marker.glStringMarkerGREMEDY(len(text), text)
             main_view = self.main_view
             main_camera = main_view.camera
             view_num = None  # TODO: 0, 1 for stereo
             near, far = main_view.near_far_distances(main_camera, view_num)
 
+            camera = self.view.camera
             main_pos = main_camera.get_position(view_num)
             main_axes = main_pos.axes()
-            camera = self.view.camera
             camera_pos = Place()
             camera_axes = camera_pos.axes()
             # fov is sideview's vertical field of view,
             # unlike a camera, where it is the horizontal field of view
+            # TODO: Handle orthographic main_camera which has no "field_of_view" attribute.
             if self.side == self.TOP_SIDE:
-                # TODO: Handle orthographic main_camera which has no "field_of_view" attribute.
                 fov = radians(main_camera.field_of_view) if hasattr(main_camera, 'field_of_view') else 45
                 camera_axes[0] = -main_axes[2]
                 camera_axes[1] = -main_axes[0]
@@ -184,7 +197,8 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 main_view_width = far
             camera_pos.origin()[:] = center + camera_axes[2] * \
                 main_view_width * 5
-            camera.position = camera_pos
+            if not self.moving:
+                camera.position = camera_pos
 
             # figure out how big to make applique
             # eye and lines to far plane must be on screen
@@ -192,8 +206,15 @@ class SideViewCanvas(glcanvas.GLCanvas):
             loc.bottom = .05 * height
             loc.top = .95 * height
             ratio = tan(0.5 * fov)
-            if ratio * width / 1.1 < .45 * height:
-                camera.view_width = 1.1 * far
+            if self.moving:
+                c = self.view.camera
+                n, f = self.view.near_far_distances(c, None)
+                pm = c.projection_matrix((n, f), None, (width, height))
+                mv = camera.position.inverse().opengl_matrix()
+                eye = project(main_pos.origin(), pm, mv, width, height)
+                loc.eye = array(eye + [0])
+            elif ratio * width / 1.1 < .45 * height:
+                camera.field_width = 1.1 * far
                 loc.eye = array([.05 / 1.1 * width, height / 2, 0],
                                 dtype=float32)
                 loc.near = (.05 + near / far) / 1.1 * width
@@ -209,7 +230,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
                                 dtype=float32)
                 loc.near = loc.eye[0] + n
                 loc.far = .5 * width + f / 2
-                camera.view_width = far * width / f
+                camera.field_width = far * width / f
 
             self.applique.color = array([255, 0, 0, 255], dtype=uint8)
             es = self.EyeSize
@@ -237,7 +258,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
             self.view.draw()
             if has_string_marker:
                 text = b"End SideView"
-                string_marker. glStringMarkerGREMEDY(len(text), text)
+                string_marker.glStringMarkerGREMEDY(len(text), text)
         finally:
             opengl_context.make_current = save_make_current
             opengl_context.swap_buffers = save_swap_buffers
@@ -251,31 +272,33 @@ class SideViewCanvas(glcanvas.GLCanvas):
         es = self.EyeSize
         if eye_x - es <= x <= eye_x + es and eye_y - es <= y <= eye_y + es:
             self.x, self.y = x, y
+            self.moving = self.ON_EYE
             self.CaptureMouse()
 
     def on_left_up(self, event):
         if self.HasCapture():
             self.ReleaseMouse()
+        self.moving = self.ON_NOTHING
 
     def on_motion(self, event):
         if not self.HasCapture() or not event.Dragging():
             return
-        x, y = event.GetPosition()
-        v = self.main_view
-        psize = self.main_view.pixel_size()
-        shift = v.camera.position.apply_without_translation(
-            (0, 0, (x - self.x) * psize))
-        v.translate(shift)
-        self.x, self.y = x, y
+        if self.moving == self.ON_EYE:
+            x, y = event.GetPosition()
+            v = self.main_view
+            psize = self.view.pixel_size()
+            shift = v.camera.position.apply_without_translation(
+                (0, 0, (x - self.x) * psize))
+            v.translate(shift)
+            self.x, self.y = x, y
 
 
 class SideViewUI(ToolInstance):
 
     SIZE = (300, 200)
 
-    def __init__(self, session, bundle_info, *, restoring=False):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info):
+        ToolInstance.__init__(self, session, bundle_info)
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
@@ -284,6 +307,7 @@ class SideViewUI(ToolInstance):
         from chimerax.core.graphics.view import View
         self.opengl_context = oc = session.main_view.opengl_context()
         self.view = View(session.models.drawing, window_size=wx.DefaultSize, opengl_context=oc)
+        # TODO: from chimerax.core.graphics.camera import OrthographicCamera
         self.view.camera = OrthoCamera()
         if self.display_name.startswith('Top'):
             side = SideViewCanvas.TOP_SIDE
@@ -300,27 +324,4 @@ class SideViewUI(ToolInstance):
     def OnEnter(self, event):  # noqa
         # session = self._session()  # resolve back reference
         # Handle event
-        pass
-
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        data = {
-            "ti": ToolInstance.take_snapshot(self, session, flags),
-            "shown": self.tool_window.shown
-        }
-        return self.bundle_info.session_write_version, data
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        ti_version, ti_data = data["ti"]
-        ToolInstance.restore_snapshot_init(
-            self, session, bundle_info, ti_version, ti_data)
-        self.__init__(session, bundle_info, restoring=True)
-        self.display(data["shown"])
-
-    def reset_state(self, session):
         pass

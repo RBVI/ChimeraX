@@ -2,7 +2,6 @@
 from .. import io
 from ..models import Model
 from ..state import State
-from ..session import RestoreError
 from .molobject import StructureData
 
 CATEGORY = io.STRUCTURE
@@ -39,24 +38,11 @@ class Graph(Model, StructureData):
             #'_ribbon_selected_residues': Residues(),
         }
 
-        if restore_data:
-            # from session
-            (tool_info, version, as_data) = restore_data
-            model_data, c_data, python_data = as_data
-            #
-            # Model will attempt to restore self.name, which is a property of the C++
-            # layer for an AtomicStructure, so initialize StructureData first...
-            StructureData.restore_snapshot_init(self, session, tool_info, *c_data)
-            for attr_name, default_val in self._session_attrs.items():
-                setattr(self, attr_name, python_data.get(attr_name, default_val))
-            Model.restore_snapshot_init(self, session, tool_info, *model_data)
-            self._smart_initial_display = False
-        else:
-            StructureData.__init__(self, c_pointer)
-            for attr_name, val in self._session_attrs.items():
-                setattr(self, attr_name, val)
-            Model.__init__(self, name, session)
-            self._smart_initial_display = smart_initial_display
+        StructureData.__init__(self, c_pointer)
+        for attr_name, val in self._session_attrs.items():
+            setattr(self, attr_name, val)
+        Model.__init__(self, name, session)
+        self._smart_initial_display = smart_initial_display
 
         # for now, restore attrs to default initial values even for sessions...
         self._deleted = False
@@ -84,18 +70,21 @@ class Graph(Model, StructureData):
         molobject.add_to_object_map(self)
 
         self._ses_handlers = []
+        t = self.session.triggers
         for ses_func, trig_name in [("save_setup", "begin save session"),
                 ("save_teardown", "end save session")]:
-            self._ses_handlers.append(self.session.triggers.add_handler(trig_name,
+            self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
+
         self._make_drawing()
 
     def delete(self):
         '''Delete this structure.'''
         self._deleted = True
         StructureData.delete(self)
+        t = self.session.triggers
         for handler in self._ses_handlers:
-            self.session.triggers.delete_handler(handler)
+            t.delete_handler(handler)
         Model.delete(self)
 
     def deleted(self):
@@ -118,7 +107,7 @@ class Graph(Model, StructureData):
     def added_to_session(self, session):
         if self._smart_initial_display:
             color = self.initial_color(session.main_view.background_color)
-            self.set_color(color.uint8x4())
+            self.set_color(color)
 
             atoms = self.atoms
             if self.num_chains == 0:
@@ -189,15 +178,31 @@ class Graph(Model, StructureData):
         session.triggers.delete_handler(self.handler)
 
     def take_snapshot(self, session, flags):
+        data = {'model state': Model.take_snapshot(self, session, flags),
+                'structure state': StructureData.take_snapshot(self, session, flags)}
+        for attr_name in self._session_attrs.keys():
+            data[attr_name] = getattr(self, attr_name)
         from ..state import CORE_STATE_VERSION
-        return CORE_STATE_VERSION, [
-            Model.take_snapshot(self, session, flags),
-            StructureData.take_snapshot(self, session, flags),
-            { attr_name: getattr(self, attr_name) for attr_name in self._session_attrs.keys() }
-        ]
+        data['version'] = CORE_STATE_VERSION
+        return data
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        self.__class__.__init__(self, session, restore_data=(tool_info, version, data))
+    @staticmethod
+    def restore_snapshot(session, data):
+        s = Graph(session, smart_initial_display = False)
+        s.set_state_from_snapshot(session, data)
+        return s
+
+    def set_state_from_snapshot(self, session, data):
+        # Model restores self.name, which is a property of the C++ StructureData
+        # so initialize StructureData first.
+        StructureData.set_state_from_snapshot(self, session, data['structure state'])
+        Model.set_state_from_snapshot(self, session, data['model state'])
+
+        for attr_name, default_val in self._session_attrs.items():
+            setattr(self, attr_name, data.get(attr_name, default_val))
+
+        self._gc_ribbon = True  # TODO: For some reason ribbon drawing does not update automatically.
+        self._gc_shape = True	# TODO: Also marker atoms do not draw without this.
 
     def reset_state(self, session):
         pass
@@ -217,6 +222,15 @@ class Graph(Model, StructureData):
             avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
             model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
         return model_color
+
+    def set_color(self, color):
+        from ..colors import Color
+        if isinstance(color, Color):
+            rgba = color.uint8x4()
+        else:
+            rgba = color
+        StructureData.set_color(self, rgba)
+        Model.set_color(self, rgba)
 
     def _get_single_color(self):
         residues = self.residues
@@ -239,7 +253,7 @@ class Graph(Model, StructureData):
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
         for pbg in self.pbg_map.values():
-            pbg._update_graphics(structure = self)
+            pbg._update_graphics()
         self._create_ribbon_graphics()
 
     def set_subdivision(self, subdivision):
@@ -280,7 +294,7 @@ class Graph(Model, StructureData):
         self._update_atom_graphics(self.atoms)
         self._update_bond_graphics(self.bonds)
         for pbg in self.pbg_map.values():
-            pbg._update_graphics(structure = self)
+            pbg._update_graphics()
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, atoms):
@@ -358,7 +372,7 @@ class Graph(Model, StructureData):
             t2r = []
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
-            any_display, atoms, coords, guides = rlist.get_polymer_spline()
+            any_display, atoms, coords, guides = rlist.get_polymer_spline(self.ribbon_orientation)
             if not any_display:
                 continue
             residues = atoms.residues
@@ -396,7 +410,7 @@ class Graph(Model, StructureData):
 
             # Generate ribbon
             any_ribbon = True
-            ribbon = Ribbon(coords, guides)
+            ribbon = Ribbon(coords, guides, self.ribbon_orientation)
             v_start = 0         # for tracking starting vertex index for each residue
             t_start = 0         # for tracking starting triangle index for each residue
             vertex_list = []
@@ -457,6 +471,7 @@ class Graph(Model, StructureData):
             # import sys
 
             # First residues
+            from .ribbon import FLIP_MINIMIZE, FLIP_PREVENT, FLIP_FORCE
             if displays[0]:
                 # print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
                 xss_compat = self._xss_compatible(xss[0], xss[1])
@@ -507,7 +522,12 @@ class Graph(Model, StructureData):
                                                                                      spine_xyz2)
                 next_cap = displays[i] != displays[i + 1] or not self._xss_compatible(xss[i], xss[i + 1])
                 seg = next_cap and seg_cap or seg_blend
-                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg)
+                flip_mode = FLIP_MINIMIZE
+                if is_helix[i] and is_helix[i + 1]:
+                    flip_mode = FLIP_PREVENT
+                elif is_sheet[i] and is_sheet[i + 1]:
+                    flip_mode = FLIP_FORCE
+                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, flip_mode=flip_mode)
                 if self.ribbon_show_spine:
                     spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                      back_c, back_n,
@@ -1231,20 +1251,25 @@ class AtomicStructure(Graph):
     The data is managed by the :class:`.StructureData` base class
     which provides access to the C++ structures.
     """
-    pass
+    @staticmethod
+    def restore_snapshot(session, data):
+        s = AtomicStructure(session, smart_initial_display = False)
+        Graph.set_state_from_snapshot(s, session, data)
+        return s
+
 
 # -----------------------------------------------------------------------------
 #
 class LevelOfDetail(State):
 
     def __init__(self, restore_data=None):
-        if restore_data is not None:
-            self.quality = restore_data[0]
-        else:
-            self.quality = 1
+        # if restore_data is not None:
+        #     self.quality = restore_data[0]
+        # else:
+        self.quality = 1
 
         self._atom_min_triangles = 10
-        self._atom_max_triangles = 400
+        self._atom_max_triangles = 2000
         self._atom_max_total_triangles = 10000000
         self._step_factor = 1.2
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
@@ -1257,10 +1282,14 @@ class LevelOfDetail(State):
         self._ribbon_divisions = 20
 
     def take_snapshot(self, session, flags):
-        return 1, [self.quality]
+        return {'quality': self.quality,
+                'version': 1}
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        self.__init__(restore_data=data)
+    @staticmethod
+    def restore_snapshot(session, data):
+        lod = LevelOfDetail()
+        lod.quality = data['quality']
+        return lod
 
     def reset_state(self):
         self.quality = 1
@@ -1633,13 +1662,24 @@ def structure_atoms(structures):
 #
 def selected_atoms(session):
     '''All selected atoms in all structures as an :class:`.Atoms` collection.'''
-    from .molarray import Atoms
-    atoms = Atoms()
-    for m in session.models.list():
-        if isinstance(m, AtomicStructure):
-            for matoms in m.selected_items('atoms'):
-                atoms = atoms | matoms
+    alist = []
+    for m in session.models.list(type = Graph):
+        alist.extend(m.selected_items('atoms'))
+    from .molarray import concatenate, Atoms
+    atoms = concatenate(alist, Atoms)
     return atoms
+
+# -----------------------------------------------------------------------------
+#
+def selected_bonds(session):
+    '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
+    blist = []
+    for m in session.models.list(type = Graph):
+        for a in m.selected_items('atoms'):
+            blist.append(a.inter_bonds)
+    from .molarray import concatenate, Bonds
+    bonds = concatenate(blist, Bonds)
+    return bonds
 
 # -----------------------------------------------------------------------------
 #

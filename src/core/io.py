@@ -506,6 +506,7 @@ def open_data(session, filespec, format=None, name=None, **kw):
         # TODO: Windows might need tf to be closed before reading with
         # a different file descriptor
 
+    kw["filespec"] = filename
     if category(format_name) == SCRIPT:
         with session.in_script:
             models, status = open_func(session, stream, dname, **kw)
@@ -543,18 +544,20 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
             unbatched.append(filespec)
 
     mlist = []
-    status = None
+    status_lines = []
     import os.path
     for format_name, paths in batch.items():
         name = os.path.basename(paths[0]) if name is None else name
         open_func = open_function(format_name)
         models, status = open_func(session, paths, name)
         mlist.extend(models)
+        status_lines.append(status)
     for fspec in unbatched:
         models, status = open_data(session, fspec, format=format, name=name, **kw)
         mlist.extend(models)
+        status_lines.append(status)
 
-    return mlist, status
+    return mlist, '\n'.join(status_lines)
 
 
 def export(session, filename, **kw):

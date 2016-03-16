@@ -34,7 +34,7 @@ from ...errors import UserError as CommandError
 
 def register_vop_command():
 
-    from ...commands import CmdDesc, register, BoolArg, EnumOf, IntArg, Int3Arg
+    from ...commands import CmdDesc, register, BoolArg, NoArg, EnumOf, IntArg, Int3Arg
     from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
@@ -171,7 +171,7 @@ def register_vop_command():
     register('vop scale', scale_desc, vop_scale)
 
     subtract_desc = CmdDesc(required = varg,
-                            keyword = add_kw + [('min_rms', BoolArg)])
+                            keyword = add_kw + [('min_rms', NoArg)])
     register('vop subtract', subtract_desc, vop_subtract)
 
     threshold_desc = CmdDesc(required = varg,
@@ -326,7 +326,7 @@ def combine_operation(volumes, operation, subregion, step,
                                            scale = scale[i])
     rv.data.values_changed()
     if volumes:
-        rv.copy_settings_from(v0, copy_region = False, copy_xform = False)
+        rv.copy_settings_from(v0, copy_region = False, copy_xform = False, copy_colors = False)
         if rv.data.name.endswith('difference'):
             rv.set_parameters(cap_faces = False)
 

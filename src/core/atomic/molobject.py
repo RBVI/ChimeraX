@@ -39,9 +39,11 @@ def _chains(p):
 def _atomic_structure(p):
     if p == 0: return None
     return object_map(p, StructureData)
-def _pseudobond_group_map(pbgc_map):
+def _pseudobond_group(p):
     from .pbgroup import PseudobondGroup
-    pbg_map = dict((name, object_map(pbg,PseudobondGroup)) for name, pbg in pbgc_map.items())
+    return object_map(p, PseudobondGroup)
+def _pseudobond_group_map(pbgc_map):
+    pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
 
 # -----------------------------------------------------------------------------
@@ -140,6 +142,15 @@ class Atom:
         '''
         return self.structure.scene_position * self.coord
 
+    def take_snapshot(self, session, flags):
+        data = {'structure': self.structure,
+                'ses_id': self.structure.session_atom_to_id(self._c_pointer)}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return object_map(data['structure'].session_id_to_atom(data['ses_id']), Atom)
+
 # -----------------------------------------------------------------------------
 #
 class Bond:
@@ -178,11 +189,27 @@ class Bond:
     visible = c_property('bond_visible', npy_bool, read_only = True)
     '''Whether bond is display and not hidden. Read only.'''
 
+    @property
+    def length(self):
+        '''Distance between bond atoms.'''
+        a1,a2 = self.atoms
+        from ..geometry import distance
+        return distance(a1.scene_coord, a2.scene_coord)
+    
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
         a1,a2 = self.atoms
         return a2 if atom is a1 else a1
+
+    def take_snapshot(self, session, flags):
+        data = {'structure': self.structure,
+                'ses_id': self.structure.session_bond_to_id(self._c_pointer)}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return object_map(data['structure'].session_id_to_bond(data['ses_id']), Bond)
 
 # -----------------------------------------------------------------------------
 #
@@ -207,6 +234,8 @@ class Pseudobond:
     Whether to display the bond if both atoms are shown.
     Can be overriden by the hide attribute.
     '''
+    group = c_property('pseudobond_group', cptr, astype = _pseudobond_group, read_only = True)
+    ''':py:class:`.pbgroup.PseudobondGroup` that this pseudobond belongs to'''
     halfbond = c_property('pseudobond_halfbond', npy_bool)
     '''
     Whether to color the each half of the bond nearest an end atom to match that atom
@@ -225,6 +254,19 @@ class Pseudobond:
         from math import sqrt
         return sqrt((v*v).sum())
 
+    _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
+        doc="Used by session save/restore internals")
+
+    def take_snapshot(self, session, flags):
+        return [self.group, self._ses_id]
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        group, id = data
+        f = c_function('pseudobond_group_resolve_session_id',
+            args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
+        return object_map(f(group._c_pointer, id), Pseudobond)
+
 # -----------------------------------------------------------------------------
 #
 class PseudobondGroupData:
@@ -242,18 +284,16 @@ class PseudobondGroupData:
     def __init__(self, pbg_pointer):
         set_c_pointer(self, pbg_pointer)
 
-    category = c_property('pseudobond_group_category', string, read_only = True)
-    '''Name of the pseudobond group.  Read only string.'''
-    num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
-    '''Number of pseudobonds in group. Read only.'''
+    category = c_property('pseudobond_group_category', string, read_only = True,
+        doc = "Name of the pseudobond group.  Read only string.")
+    num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', size_t, read_only = True,
+        doc = "Number of pseudobonds in group. Read only.")
     structure = c_property('pseudobond_group_structure', cptr, astype = _atomic_structure,
-        read_only = True)
-    '''Structure pseudobond group is owned by.  *Bad* things will happen if called
-    on a group that isn't owned (i.e. managed by the global pseudobond manager
-    rather than by a structure's pseudobond manager'''
+        read_only = True, doc ="Structure pseudobond group is owned by.  Returns None if called"
+        "on a group managed by the global pseudobond manager")
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
-                             astype = _pseudobonds, read_only = True)
-    '''Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.'''
+        astype = _pseudobonds, read_only = True,
+        doc = "Group pseudobonds as a :class:`.Pseudobonds` collection. Read only.")
 
     def new_pseudobond(self, atom1, atom2):
         '''Create a new pseudobond between the specified :class:`Atom` objects.'''
@@ -322,30 +362,31 @@ class PseudobondManager(State):
         for ptr, ses_id in ptr_map.items():
             # shouldn't be _creating_ any objects, so pass None as the type
             obj_map[ses_id] = object_map(ptr, None)
-        return version, (retvals, obj_map)
+        data = {'version': version,
+                'mgr data':retvals,
+                'structure mapping': obj_map}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        pbm = session.pb_manager
+        # restore the int->structure mapping the pseudobonds use...
+        ptr_mapping = {}
+        for ses_id, structure in data['structure mapping'].items():
+            ptr_mapping[ses_id] = structure._c_pointer.value
+        f = c_function('pseudobond_global_manager_session_restore_structure_mapping',
+                       args = (ctypes.c_void_p, ctypes.py_object))
+        f(pbm._c_pointer, ptr_mapping)
+        ints, floats, misc = data['mgr data']
+        f = c_function('pseudobond_global_manager_session_restore',
+                args = (ctypes.c_void_p, ctypes.c_int,
+                        ctypes.py_object, ctypes.py_object, ctypes.py_object))
+        f(pbm._c_pointer, data['version'], ints, floats, misc)
+        return pbm
 
     def reset_state(self, session):
         f = c_function('pseudobond_global_manager_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
-
-    @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        return session.pb_manager
-
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        mgr_data, structure_mapping = data
-        # restore the int->structure mapping the pseudobonds use...
-        ptr_mapping = {}
-        for ses_id, structure in structure_mapping.items():
-            ptr_mapping[ses_id] = structure._c_pointer.value
-        f = c_function('pseudobond_global_manager_session_restore_structure_mapping',
-                       args = (ctypes.c_void_p, ctypes.py_object))
-        f(self._c_pointer, ptr_mapping)
-        ints, floats, misc = mgr_data
-        f = c_function('pseudobond_global_manager_session_restore',
-                args = (ctypes.c_void_p, ctypes.c_int,
-                        ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        f(self._c_pointer, version, ints, floats, misc)
 
     def _ses_call(self, func_qual):
         f = c_function('pseudobond_global_manager_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -425,6 +466,15 @@ class Residue:
         f = c_function('residue_add_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
 
+    def take_snapshot(self, session, flags):
+        data = {'structure': self.structure,
+                'ses_id': self.structure.session_residue_to_id(self._c_pointer)}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return object_map(data['structure'].session_id_to_residue(data['ses_id']), Residue)
+
 # -----------------------------------------------------------------------------
 #
 class Sequence:
@@ -462,6 +512,15 @@ class Chain(Sequence):
     num_residues = c_property('chain_num_residues', size_t, read_only = True)
     '''Number of residues belonging to this chain, including those without structure. Read only.'''
 
+    def take_snapshot(self, session, flags):
+        data = {'structure': self.structure,
+                'ses_id': self.structure.session_chain_to_id(self._c_pointer)}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
+
 # -----------------------------------------------------------------------------
 #
 class StructureData:
@@ -470,24 +529,13 @@ class StructureData:
     This base class manages the data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
-    def __init__(self, mol_pointer=None, *, logger=None, restore_data=None):
+    def __init__(self, mol_pointer=None, *, logger=None):
         if mol_pointer is None:
             # Create a new graph
             from .structure import AtomicStructure
             new_func = 'structure_new' if isinstance(self, AtomicStructure) else 'graph_new'
             mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
-
-        if restore_data:
-            '''Restore from session info'''
-            self._ses_call("restore_setup")
-            session, version, data = restore_data
-            ints, floats, misc = data
-            f = c_function('structure_session_restore',
-                    args = (ctypes.c_void_p, ctypes.c_int,
-                            ctypes.py_object, ctypes.py_object, ctypes.py_object))
-            f(self._c_pointer, version, ints, floats, misc)
-            session.triggers.add_handler("end restore session", self._ses_restore_teardown)
 
     def delete(self):
         '''Deletes the C++ data for this atomic structure.'''
@@ -522,13 +570,24 @@ class StructureData:
     '''Ribbon tether thickness scale factor (1.0 = match displayed atom radius, 0=invisible).'''
     ribbon_tether_shape = c_property('structure_ribbon_tether_shape', int32)
     '''Ribbon tether shape. Integer value.'''
+    TETHER_CONE = 0
+    '''Tether is cone with point at ribbon.'''
+    TETHER_REVERSE_CONE = 1
+    '''Tether is cone with point at atom.'''
+    TETHER_CYLINDER = 2
+    '''Tether is cylinder.'''
     ribbon_show_spine = c_property('structure_ribbon_show_spine', npy_bool)
     '''Display ribbon spine. Boolean.'''
+    ribbon_orientation = c_property('structure_ribbon_orientation', int32)
+    '''Ribbon orientation. Integer value.'''
+    RIBBON_ORIENT_GUIDES = 1
+    '''Ribbon orientation from guide atoms.'''
+    RIBBON_ORIENT_ATOMS = 2
+    '''Ribbon orientation from interpolated atoms.'''
+    RIBBON_ORIENT_CURVATURE = 3
+    '''Ribbon orientation perpendicular to ribbon curvature.'''
     ribbon_display_count = c_property('structure_ribbon_display_count', int32, read_only = True)
     '''Return number of residues with ribbon display set. Integer.'''
-    TETHER_CONE = 0
-    TETHER_REVERSE_CONE = 1
-    TETHER_CYLINDER = 2
     ribbon_tether_sides = c_property('structure_ribbon_tether_sides', int32)
     '''Number of sides for ribbon tether. Integer value.'''
     ribbon_tether_opacity = c_property('structure_ribbon_tether_opacity', float32)
@@ -589,13 +648,36 @@ class StructureData:
         from .pbgroup import PseudobondGroup
         return object_map(pbg, PseudobondGroup)
 
-    def restore_snapshot_init(self, session, tool_info, version, data):
-        StructureData.__init__(self, logger=session.logger,
-            restore_data=(session, version, data))
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        g = StructureData(logger=session.logger)
+        g.set_state_from_snapshot(session, data)
+        return g
+
+    def set_state_from_snapshot(self, session, data):
+        '''Restore from session info'''
+        self._ses_call("restore_setup")
+        f = c_function('structure_session_restore',
+                args = (ctypes.c_void_p, ctypes.c_int,
+                        ctypes.py_object, ctypes.py_object, ctypes.py_object))
+        f(self._c_pointer, data['version'], data['ints'], data['floats'], data['misc'])
+        session.triggers.add_handler("end restore session", self._ses_restore_teardown)
 
     def session_atom_to_id(self, ptr):
         '''Map Atom pointer to session ID'''
         f = c_function('structure_session_atom_to_id',
+                    args = (ctypes.c_void_p, ctypes.c_void_p), ret = size_t)
+        return f(self._c_pointer, ptr)
+
+    def session_bond_to_id(self, ptr):
+        '''Map Bond pointer to session ID'''
+        f = c_function('structure_session_bond_to_id',
+                    args = (ctypes.c_void_p, ctypes.c_void_p), ret = size_t)
+        return f(self._c_pointer, ptr)
+
+    def session_chain_to_id(self, ptr):
+        '''Map Chain pointer to session ID'''
+        f = c_function('structure_session_chain_to_id',
                     args = (ctypes.c_void_p, ctypes.c_void_p), ret = size_t)
         return f(self._c_pointer, ptr)
 
@@ -611,6 +693,24 @@ class StructureData:
                     args = (ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.c_void_p)
         return f(self._c_pointer, i)
 
+    def session_id_to_bond(self, i):
+        '''Map sessionID to Bond pointer'''
+        f = c_function('structure_session_id_to_bond',
+                    args = (ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.c_void_p)
+        return f(self._c_pointer, i)
+
+    def session_id_to_chain(self, i):
+        '''Map sessionID to Chain pointer'''
+        f = c_function('structure_session_id_to_chain',
+                    args = (ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.c_void_p)
+        return f(self._c_pointer, i)
+
+    def session_id_to_residue(self, i):
+        '''Map sessionID to Residue pointer'''
+        f = c_function('structure_session_id_to_residue',
+                    args = (ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.c_void_p)
+        return f(self._c_pointer, i)
+
     def set_color(self, rgba):
         '''Set color of atoms, bonds, and residues'''
         f = c_function('set_structure_color',
@@ -619,14 +719,17 @@ class StructureData:
 
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''
+        # the save setup/teardown handled in Graph/AtomicStructure class, so that
+        # the trigger handlers can be deregistered when the object is deleted
         f = c_function('structure_session_info',
                     args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
                         ctypes.py_object),
                     ret = ctypes.c_int)
-        ints = []
-        floats = []
-        misc = []
-        return f(self._c_pointer, ints, floats, misc), (ints, floats, misc)
+        data = {'ints': [],
+                'floats': [],
+                'misc': []}
+        data['version'] = f(self._c_pointer, data['ints'], data['floats'], data['misc'])
+        return data
 
     def _ses_call(self, func_qual):
         f = c_function('structure_session_' + func_qual, args=(ctypes.c_void_p,))
@@ -648,8 +751,6 @@ class StructureData:
     _gc_shape = c_property('structure_gc_shape', npy_bool)
     _gc_ribbon = c_property('structure_gc_ribbon', npy_bool)
 
-# -----------------------------------------------------------------------------
-#
 class ChangeTracker:
     '''Per-session singleton change tracker keeps track of all
     atomic data changes'''

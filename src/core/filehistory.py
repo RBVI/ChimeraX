@@ -29,22 +29,27 @@ class FileHistory:
         flist.sort(key = lambda f: f.access_time)
         return flist
 
-    def remember_file(self, path, format, models, database = None):
+    def remember_file(self, path, format, models, database = None, file_saved = False):
         f = self._files
-        fs = f.get(path, None)
+        from os.path import abspath
+        apath = abspath(path) if database is None else path
+        fs = f.get(apath, None)
         if fs:
             fs.set_access_time()
         else:
-            f[path] = fs = FileSpec(path, format, database = database)
-        if fs.image is None:
-            # Delay capturing thumbnails until after models added to session.
-            # Smart display style for molecules is only done after model added to session.
-            self._need_thumbnails.append((path, models))
-            t = self.session.triggers
-            t.add_handler('frame drawn', self.capture_thumbnails_cb)
+            f[apath] = fs = FileSpec(apath, format, database = database)
+        if fs.image is None or file_saved:
+            self._need_thumbnails.append((apath, models))
+            if file_saved:
+                self.capture_thumbnails_cb()
+            else:
+                # Delay capturing thumbnails until after models added to session.
+                # Smart display style for molecules is only done after model added to session.
+                t = self.session.triggers
+                t.add_handler('frame drawn', lambda *args, s=self: s.capture_thumbnails_cb())
         self._save_files = True
 
-    def capture_thumbnails_cb(self, name, data):
+    def capture_thumbnails_cb(self):
         f = self._files
         ses = self.session
         mset = set(ses.models.list())
@@ -60,6 +65,18 @@ class FileHistory:
         from .triggerset import DEREGISTER
         return DEREGISTER
 
+    def remove_missing_files(self):
+        f = self._files
+        from os.path import isfile
+        from glob import glob
+        remove = [path for path, fspec in f.items()
+                  if fspec.database is None and not isfile(path) and not glob(path)]
+        if remove:
+            for p in remove:
+                del f[p]
+            self._save_files = True
+            self.session.triggers.activate_trigger('file history changed', f)
+            
     def quit_cb(self):
         if self._save_files:
             self.save_history()
@@ -131,11 +148,11 @@ def file_history(session):
         session.file_history = fh = FileHistory(session)
     return fh
 
-def remember_file(session, filename, format, models, database = None):
+def remember_file(session, filename, format, models, database = None, file_saved = False):
     if session.in_script:
         return		# Don't remember files opened by scripts
     h = file_history(session)
-    h.remember_file(filename, format, models, database = database)
+    h.remember_file(filename, format, models, database = database, file_saved = file_saved)
 
 def models_image(session, models, size, format = 'JPEG'):
     v = session.main_view

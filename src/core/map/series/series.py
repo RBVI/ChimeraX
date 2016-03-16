@@ -25,6 +25,21 @@ class Map_Series(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def grid_size(self):
+
+    return self.maps[0].data.size if self.maps else (0,0,0)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _get_single_color(self):
+    return self.maps[0].single_color if self.maps else None
+  def _set_single_color(self, color):
+    for m in self.maps:
+      m.single_color = color
+  single_color = property(_get_single_color, _set_single_color)
+
+  # ---------------------------------------------------------------------------
+  #
   def volume_closed(self, v):
 
     t = self.maps.index(v)
@@ -123,10 +138,28 @@ class Map_Series(Model):
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    pass
+    from ...state import CORE_STATE_VERSION
+    data = {'model state': Model.take_snapshot(self, session, flags),
+            # Can't reference maps directly because it creates cyclic dependency.
+            'map ids': [m.id for m in self.maps],
+            'version': CORE_STATE_VERSION}
+    return data
 
-  def restore_snapshot(self, phase, session, version, data):
-    pass
+  @staticmethod
+  def restore_snapshot(session, data):
+    maps = []
+    s = Map_Series('series', maps, session)
+    Model.set_state_from_snapshot(s, session, data['model state'])
+
+    # Restore child map list after child maps are restored.
+    def restore_maps(trigger_name, session, series = s, map_ids = data['map ids']):
+      idm = {m.id : m for m in s.child_models()}
+      series.maps = [idm[id] for id in map_ids if id in idm]
+      from ...triggerset import DEREGISTER
+      return DEREGISTER
+    session.triggers.add_handler('end restore session', restore_maps)
+    
+    return s
 
   def reset_state(self):
     pass

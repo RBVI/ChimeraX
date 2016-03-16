@@ -1462,9 +1462,8 @@ class Volume(Model):
       level = min(v.surface_levels) if v.surface_levels else 0
       scale = -minimum_rms_scale(values, m, level)
       log = self.session.logger
-      log.info('Minimum RMS scale factor for "%s" above level %.5g\n'
-               '  subtracted from "%s" is %.5g\n'
-               % (v.name_with_id(), level, self.name_with_id(), scale))
+      log.info('Minimum RMS scale factor for "%s" above level %.5g is %.5g\n'
+               % (v.name_with_id(), level, scale))
     if scale != 1:
       # Copy array only if scaling.
       if const_values:
@@ -1842,16 +1841,19 @@ class Volume(Model):
     data = {
       'model state': Model.take_snapshot(self, session, flags),
       'volume state': state_from_map(self),
-      'grid data': grid_data_state(self.data, session)
+      'grid data state': grid_data_state(self.data, session),
+      'version': CORE_STATE_VERSION,
     }
-    return CORE_STATE_VERSION, data
+    return data
 
-  def restore_snapshot_init(self, session, tool_info, version, data):
-    Model.restore_snapshot_init(self, session, tool_info, *data['model state'])
-    grid_data = data['grid data'].grid_data
-    Volume.__init__(self, grid_data, session)
+  @staticmethod
+  def restore_snapshot(session, data):
+    grid_data = data['grid data state'].grid_data
+    v = Volume(grid_data, session)
+    Model.set_state_from_snapshot(v, session, data['model state'])
     from .session import set_map_state
-    set_map_state(data['volume state'], self)
+    set_map_state(data['volume state'], v)
+    return v
 
   def reset_state(self, session):
     pass
@@ -2168,7 +2170,7 @@ class Rendering_Options:
     self.outline_box_rgb = (1,1,1)
     self.outline_box_linewidth = 1
     self.limit_voxel_count = True           # auto-adjust step size
-    self.voxel_limit = 1                    # Mvoxels
+    self.voxel_limit = 16                   # Mvoxels
     self.color_modes = (
       'auto4', 'auto8', 'auto12', 'auto16',
       'opaque4', 'opaque8', 'opaque12', 'opaque16',
@@ -2777,12 +2779,11 @@ def set_initial_volume_color(v, session):
 
   ds = default_settings(session)
   if ds['use_initial_colors']:
-    vlist = volume_list(session)
-    n = len(vlist)
-    if v in vlist:
-      n -= 1
+    i = 0 if session.models.empty() else getattr(ds, '_next_color_index', 0)
+    if not hasattr(v.data, 'series_index') or v.data.series_index == 0:
+      ds._next_color_index = i+1
     icolors = ds['initial_colors']
-    rgba = icolors[n%len(icolors)]
+    rgba = icolors[i%len(icolors)]
     v.set_parameters(default_rgba = rgba)
 
 # ---------------------------------------------------------------------------
@@ -2829,11 +2830,26 @@ def open_map(session, stream, *args, **kw):
         name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from .series import Map_Series
         ms = Map_Series(name, maps, session)
-        return [ms], 'Opened map series %s' % name
+        msg = 'Opened map series %s, %d images' % (name, len(maps))
+        models = [ms]
     else:
-      m0 = maps[0]
-      msg = 'Opened %s, grid size (%d,%d,%d)' % ((m0.name,) + m0.data.size)
-      return maps, msg
+      msg = 'Opened %s' % maps[0].name
+      models = maps
+
+    m0 = maps[0]
+    px,py,pz = m0.data.step
+    psize = '%.3g' % px if py == px and pz == px else '%.3g,%.3g,%.3g' % (px,py,pz)
+    msg += (', grid size %d,%d,%d' % tuple(m0.data.size) +
+            ', pixel %s' % psize +
+            ', shown at ')
+    if m0.representation == 'surface':
+      msg += 'level %s, ' % ','.join('%.3g' % l for l in m0.surface_levels)
+    sx,sy,sz = m0.region[2]
+    step = '%d' % sx if sy == sx and sz == sx else '%d,%d,%d' % (sx,sy,sz)
+    msg += 'step %s' % step
+    msg += ', values %s' % m0.data.value_type.name
+    
+    return models, msg
 
 # -----------------------------------------------------------------------------
 #

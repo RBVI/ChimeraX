@@ -10,9 +10,8 @@ class ShellUI(ToolInstance):
     SESSION_SKIP = True
     SIZE = (500, 500)
 
-    def __init__(self, session, bundle_info, *, restoring=False):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info):
+        ToolInstance.__init__(self, session, bundle_info)
         # 'display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Tool UI"
         # in this case), so only override if different name desired
@@ -36,29 +35,6 @@ class ShellUI(ToolInstance):
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement=None)
         self.shell.setFocus()
-
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        data = {
-            "ti": ToolInstance.take_snapshot(self, session, flags),
-            "shown": self.tool_window.shown
-        }
-        return self.bundle_info.session_write_version, data
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        ti_version, ti_data = data["ti"]
-        ToolInstance.restore_snapshot_init(
-            self, session, bundle_info, ti_version, ti_data)
-        self.__init__(session, bundle_info, restoring=True)
-        self.display(data["shown"])
-
-    def reset_state(self, session):
-        pass
 
     def delete(self):
         self.shell.redirectStdin(False)

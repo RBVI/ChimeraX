@@ -13,7 +13,7 @@ TOOL_NAME = help_viewer
 TOOL_PKG_NAME = chimerax.help_viewer
 TOOL_DISPLAY_NAME = Help Viewer
 TOOL_CATEGORY = General
-TOOL_FILE_TYPES =
+TOOL_FILE_TYPES = HTML:Command Script:.html
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Display ChimeraX Help
@@ -24,7 +24,7 @@ PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
 
 PYSRCS = $(wildcard *.py)
-DATAFILES = back.png forward.png home.png
+DATAFILES = 
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)

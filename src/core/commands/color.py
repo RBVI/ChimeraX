@@ -221,7 +221,7 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor=None):
         residues.ribbon_colors = c
 
 
-def _set_surface_colors(session, atoms, color, opacity, bgcolor):
+def _set_surface_colors(session, atoms, color, opacity, bgcolor=None):
     from .scolor import scolor
     if color in _SpecialColors:
         if color == 'fromatoms':
@@ -264,7 +264,8 @@ def _set_sequential_chain(session, selected, cmap, opacity, target):
             if target is None or 'c' in target:
                 res = atoms.unique_residues
                 _set_ribbon_colors(res, c, opacity)
-
+            if target is None or 's' in target:
+                _set_surface_colors(session, atoms, c, opacity)
 
 # -----------------------------------------------------------------------------
 #

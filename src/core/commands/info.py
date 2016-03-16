@@ -33,15 +33,24 @@ def info(session, models=None):
         spos = m.selected_positions
         if spos is not None and spos.sum() > 0:
             line += ', %d selected instances' % spos.sum()
-        from ..atomic import AtomicStructure
-        if isinstance(m, AtomicStructure):
+        from ..atomic import Graph
+        if isinstance(m, Graph):
             line += ('\n%d atoms, %d bonds, %d residues, %d chains'
                     % (m.num_atoms, m.num_bonds, m.num_residues, m.num_chains))
             pmap = m.pbg_map
             if pmap:
                 line += '\n' + ', '.join('%d %s' % (pbg.num_pseudobonds, name)
                                          for name, pbg in pmap.items())
-                           
+        from ..map import Volume
+        if isinstance(m, Volume):
+            size = 'size %d,%d,%d' % tuple(m.data.size)
+            s0,s1,s2 = m.region[2]
+            step = ('step %d' % s0) if s1 == s0 and s2 == s0 else 'step %d,%d,%d' % (s0,s1,s2)
+            if m.representation == 'surface':
+                level = 'level ' + ', '.join(('%.4g' % l for l in m.surface_levels))
+            else:
+                level = 'level/intensity ' + ', '.join(('%.4g (%.2f)' % tuple(l) for l in m.solid_levels))
+            line += ' %s, %s, %s' % (size, step, level)
         lines.append(line)
     msg = '%d models\n' % len(models) + '\n'.join(lines)
     session.logger.info(msg)

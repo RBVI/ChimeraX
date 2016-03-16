@@ -348,8 +348,8 @@ class Annotation(metaclass=abc.ABCMeta):
         The leading space in text must already be removed.
         It is up to the particular annotation to support abbreviations.
 
-        Empty text should raise an exception (the exceptions being NoArg
-        and EmptyArg).
+        Empty text should raise a ValueError or AnnotationError exception
+        (the exceptions being NoArg and EmptyArg).
         """
         raise NotImplemented
 
@@ -550,6 +550,8 @@ class BoolArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % BoolArg.name)
         token, text, rest = next_token(text)
         token = token.casefold()
         if token == "0" or "false".startswith(token) or token == "off":
@@ -583,6 +585,8 @@ class IntArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % IntArg.name)
         token, text, rest = next_token(text)
         try:
             return int(token), text, rest
@@ -596,6 +600,8 @@ class FloatArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % FloatArg.name)
         token, text, rest = next_token(text)
         try:
             return float(token), text, rest
@@ -609,6 +615,8 @@ class StringArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % StringArg.name)
         token, text, rest = next_token(text)
         return token, text, rest
 
@@ -642,6 +650,8 @@ class AxisArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % AxisArg.name)
         axis = None
 
         # "x" or "y" or "z"
@@ -698,7 +708,7 @@ class Axis:
             # Camera coords are actually coordinate_system coords if
             # coordinate_system is not None.
             c = self.coords
-            a = coordinate_system.position.apply_without_translation(c)
+            a = coordinate_system.apply_without_translation(c)
         elif camera:
             a = camera.position.apply_without_translation(self.coords)
         else:
@@ -719,6 +729,8 @@ class CenterArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % CenterArg.name)
         c = None
 
         # 3 comma-separated numbers
@@ -772,10 +784,24 @@ class Center:
         if obj is not None:
             c = obj.bounds().center()
         elif coordinate_system is not None:
-            c = coordinate_system.position * self.coords
+            c = coordinate_system * self.coords
         else:
             c = self.coords
         return c
+
+
+class CoordSysArg(Annotation):
+    """
+    Annotation for coordinate system for AxisArg and CenterArg
+    when specified as tuples of numbers.  Coordinate system is
+    specified as a Model specifier.
+    """
+    name = "a coordinate-system"
+
+    @staticmethod
+    def parse(text, session):
+        m, text, rest = ModelArg.parse(text, session)
+        return m.position, text, rest
 
 
 class PlaceArg(Annotation):
@@ -785,10 +811,12 @@ class PlaceArg(Annotation):
     3 columns are x,y,z coordinate axes, and the last column
     is the origin.
     """
-    name = "position"
+    name = "a position"
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % PlaceArg.name)
         token, text, rest = next_token(text)
         p = PlaceArg.parse_place(token.split(','))
         return p, text, rest
@@ -845,6 +873,20 @@ class PseudobondGroupsArg(Annotation):
         from ..atomic import PseudobondGroup
         pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
         return pbgs, used, rest
+
+
+class SurfacesArg(Annotation):
+    """Parse command surfaces specifier"""
+    name = "surfaces"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import AtomicStructure
+        surfs = [m for m in models if not isinstance(m, AtomicStructure)]
+        return surfs, text, rest
 
 
 class ModelArg(Annotation):
@@ -994,6 +1036,8 @@ class EnumOf(Annotation):
             self.allow_truncated = abbreviations
 
     def parse(self, text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % self.name)
         token, text, rest = next_token(text)
         folded = token.casefold()
         for i, ident in enumerate(self.ids):
@@ -1046,8 +1090,7 @@ class Or(Annotation):
                     raise
             except ValueError:
                 pass
-        msg = commas([a.name for a in self.annotations])
-        raise AnnotationError("Expected %s" % msg)
+        raise AnnotationError("Expected %s" % self.name)
 
 
 _escape_table = {

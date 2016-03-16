@@ -36,7 +36,8 @@ def sym(session, molecules, assembly = None, copies = False, clear = False,
             for s in m.surfaces():
                 s.position = Place()
         elif assembly is None:
-            ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description) for a in assem)
+            ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description(m))
+                              for a in assem)
             anames = ainfo if assem else "no assemblies"
             session.logger.info('Assemblies for %s:\n%s' % (m.name, anames))
         else:
@@ -233,19 +234,16 @@ class Assembly:
         mols = [mol] + copies
         return mols
 
-    @property
-    def copy_description(self):
-        return ', '.join('%d copies of %d chains' % (len(ops), len(self._author_cids(cids)))
-                         for cids, expr, ops in self.chain_ops)
-
-    def _author_cids(self, mmcif_cids):
-        cids = set()
-        mcids = set(mmcif_cids)
-        cmap = self.chain_map
-        for (cid, rnum), mcid in cmap.items():
-            if mcid in mcids:
-                cids.add(cid)
-        return cids
+    def copy_description(self, mol):
+        atoms = mol.atoms
+        groups = []
+        for cids, expr, ops in self.chain_ops:
+            # Convert mmcif chain ids to author chain ids
+            incl_atoms, excl_atoms = self._partition_atoms(atoms, cids)
+            author_cids = ','.join(incl_atoms.unique_chain_ids)
+            copy = 'copy' if len(ops) == 1 else 'copies'
+            groups.append('%d %s of chains %s' % (len(ops), copy, author_cids))
+        return ', '.join(groups)
 
 def mmcif_chain_ids(atoms, chain_map):
     if len(chain_map) == 0:

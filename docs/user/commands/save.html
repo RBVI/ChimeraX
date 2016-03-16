@@ -25,8 +25,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
 [&nbsp;supersample&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
-[&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
+[[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
 [&nbsp;<b>transparentBackground</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
@@ -42,7 +41,11 @@ See also:
 <a href="open.html"><b>open</b></a>,
 <a href="log.html"><b>log</b></a>,
 <a href="movie.html"><b>movie</b></a>,
-<a href="../tools/graphics.html"><b>Graphics</b></a> icons
+<a href="view.html"><b>view</b></a>,
+<a href="windowsize.html"><b>windowsize</b></a>,
+<a href="../tools/cli.html#history"><b>Command History</b></a>,
+<a href="../tools/graphics.html"><b>Graphics</b></a> icons,
+<a href="../images.html">making images</a>
 </p><p>
 The <b>image</b> or <b>session</b> keyword before the <i>filename</i>
 is optional if the file type is specified with either the <i>filename</i> 
@@ -113,13 +116,24 @@ A value of 1 corresponds to no supersampling.
 The <b>quality</b> setting applies to JPEG format only, with values
 of <i>M</i> in the range 0&ndash;100 (default <b>95</b>).
 </p><p>
-The <b>width</b> and <b>height</b> values can be given in pixels.
-If neither is specified,
+Image pixel dimensions can be specified directly with 
+<b>width</b> and <b>height</b>, or relative to the physical dimensions
+of the view in the window with <b>pixelSize</b>. 
+If none of these are given,
 the image will have the same pixel dimensions as the graphics window.
-If only one dimension is specified, the other will be set according to the
-graphics window aspect ratio; if both are specified but the image aspect
-ratio is not the same as the graphics window aspect ratio, the image
+If only width or height is specified, the other will be set according to the
+window aspect ratio; if both are specified but the image aspect
+ratio is not the same as the window aspect ratio, the image
 contents will differ from what is shown in the window.
+With the <b>pixelSize</b> option, the image contents will be the same as 
+what is shown in the window, but image pixel dimensions will be 
+chosen to give pixels of size <i>p</i> in &Aring;. 
+With <a href="camera.html">perspective</a>, the pixel size varies with depth, 
+but <b>pixelSize</b> sets the value at half-depth
+(the midpoint along the line of sight).
+For example, if at half-depth the graphics window encloses
+a 400-&Aring by 300-&Aring; rectangle,
+<b>pixelSize 0.4</b> specifies image pixel dimensions of 1000 by 750.
 </p><p>
 The <b>transparentBackground</b> option (default <b>false</b>)
 indicates whether to include opacity values (alpha) 
@@ -135,5 +149,5 @@ Synonyms for true: True, 1. Synonyms for false: False, 0.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2016</address>
+March 2016</address>
 </body></html>

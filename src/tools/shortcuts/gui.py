@@ -6,29 +6,24 @@ from chimerax.core.tools import ToolInstance
 #
 class ShortcutPanel(ToolInstance):
 
+    shortcuts = []
     SESSION_ENDURING = True
 
-    def __init__(self, session, bundle_info, *, restoring=False, shortcuts=[]):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info):
+        ToolInstance.__init__(self, session, bundle_info)
 
         from .shortcuts import keyboard_shortcuts
         self.keyboard_shortcuts = keyboard_shortcuts(session)
 
-        self.help = {
-            'molecule_display_shortcuts': "help:user/tools/moldisplay.html",
-            'graphics_shortcuts': "help:user/tools/graphics.html"
-        }.get(bundle_info.name, None)
-
-        self.icon_size = 48
+        self.icon_size = None
         self.max_icon_size = 48
         self.min_icon_size = 24
         self.icon_border = 4
 
         columns = 12
-        rows = (len(shortcuts) + columns - 1)//columns
-        min_panel_width = self.icon_size
-        panel_height = rows * self.icon_size
+        rows = (len(self.shortcuts) + columns - 1)//columns
+        min_panel_width = self.max_icon_size
+        panel_height = rows * self.max_icon_size
         panel_size = (min_panel_width, panel_height)
 
         from chimerax.core.ui.gui import MainToolWindow
@@ -38,19 +33,19 @@ class ShortcutPanel(ToolInstance):
         self.tool_window = tw = ShortcutWindow(self, size=panel_size)
         parent = tw.ui_area
 
-        self.buttons = self.create_buttons(shortcuts, parent)
-
-        tw.manage(placement="right", fixed_size = True)
+        self.buttons = self.create_buttons(parent)
 
         import wx
         parent.Bind(wx.EVT_SIZE, self.resize_cb)
 
-    def create_buttons(self, shortcuts, parent):
+        tw.manage(placement="right", fixed_size = True)
+
+    def create_buttons(self, parent):
 
         import wx
         buttons = []
-        for i, (keys, icon_file, descrip) in enumerate(shortcuts):
-            tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file))
+        for i, (keys, icon_file, descrip) in enumerate(self.shortcuts):
+            tb = wx.BitmapButton(parent, i+1, self.bitmap(icon_file, self.max_icon_size))
             tb.icon_file = icon_file
             def button_press_cb(event, keys=keys, ks=self.keyboard_shortcuts):
                 ks.run_shortcut(keys)
@@ -76,15 +71,15 @@ class ShortcutPanel(ToolInstance):
         # self.tool_window.ui_area.SetSize((w,100))
 
     def resize_buttons(self, columns, icon_size):
+        self.icon_size = icon_size
         for i,b in enumerate(self.buttons):
-            b.SetBitmap(self.bitmap(b.icon_file))
+            b.SetBitmap(self.bitmap(b.icon_file, icon_size))
             b.SetSize((icon_size,icon_size))
             pos = ((i%columns)*icon_size,(i//columns)*icon_size)
             b.SetPosition(pos)
-        self.icon_size = icon_size
 
-    def bitmap(self, filename):
-        width = height = self.icon_size - 2*self.icon_border
+    def bitmap(self, filename, icon_size):
+        width = height = icon_size - 2*self.icon_border
         from os import path
         icondir = path.join(path.dirname(__file__), 'icons')
         import wx
@@ -100,33 +95,14 @@ class ShortcutPanel(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        data = {"shown": self.tool_window.shown}
-        return self.bundle_info.session_write_version, data
-
     @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        return get_singleton(bundle_info.name, session, create=True)
+    def get_singleton(cls, session):
+        from chimerax.core import tools
+        return tools.get_singleton(session, cls, cls.tool_name)
 
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        self.display(data["shown"])
-
-    def reset_state(self, session):
-        pass
-
-def get_singleton(tool_name, session, create=False):
-    from chimerax.core import tools
-    return tools.get_singleton(session, ShortcutPanel, tool_name, create=create,
-                               **{'shortcuts': _shortcuts[tool_name]})
-    
-_shortcuts = {
-    'molecule_display_shortcuts': (
+class MoleculeDisplayPanel(ShortcutPanel):
+    tool_name = 'molecule_display_shortcuts'
+    shortcuts = (
         ('da', 'atomshow.png', 'Show atoms'),
         ('ha', 'atomhide.png', 'Hide atoms'),
         ('rb', 'ribshow.png', 'Show molecule ribbons'),
@@ -139,8 +115,12 @@ _shortcuts = {
         ('ce', 'colorbyelement.png', 'Color atoms by element'),
         ('cc', 'colorbychain.png', 'Color atoms by chain'),
         ('rc', 'colorrandom.png', 'Random atom colors'),
-    ),
-    'graphics_shortcuts': (
+    )
+    help = "help:user/tools/moldisplay.html"
+
+class GraphicsPanel(ShortcutPanel):
+    tool_name = 'graphics_shortcuts'
+    shortcuts = (
         ('wb', 'whitebg.png', 'White background'),
         ('gb', 'graybg.png', 'Gray background'),
         ('bk', 'blackbg.png', 'Black background'),
@@ -153,5 +133,29 @@ _shortcuts = {
         ('dv', 'orient.png', 'Standard orientation'),
         ('sx', 'camera.png', 'Save snapshot to desktop'),
         ('vd', 'video.png', 'Record spin movie'),
-    ),
+    )
+    help = "help:user/tools/graphics.html"
+
+class DensityMapPanel(ShortcutPanel):
+    tool_name = 'density_map_shortcuts'
+    shortcuts = (
+        ('sM', 'showmap.png', 'Show map'),
+        ('hM', 'hidemap.png', 'Hide map'),
+        ('fl', 'mapsurf.png', 'Map as surface'),
+        ('me', 'mesh.png', 'Map as mesh'),
+        ('gs', 'mapimage.png', 'Map as image'),
+        ('s1', 'step1.png', 'Map step 1'),
+        ('s2', 'step2.png', 'Map step 2'),
+#        ('s4', 'step4.png', 'Map step 4'),
+        ('fT', 'fitmap.png', 'Fit map in map'),
+        ('sb', 'diffmap.png', 'Compute difference map'),
+        ('gf', 'smooth.png', 'Smooth map'),
+        ('tt', 'icecube.png', 'Transparent surface'),
+        ('ob', 'outlinebox.png', 'Show outline box'),
+    )
+
+panel_classes = {
+    'molecule_display_shortcuts': MoleculeDisplayPanel,
+    'graphics_shortcuts': GraphicsPanel,
+    'density_map_shortcuts': DensityMapPanel,
 }

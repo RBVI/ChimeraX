@@ -12,9 +12,8 @@ class CommandLine(ToolInstance):
     compact_label = "Remove duplicate consecutive commands"
     help = "help:user/tools/cli.html"
 
-    def __init__(self, session, bundle_info, *, restoring=False):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info):
+        ToolInstance.__init__(self, session, bundle_info)
         from chimerax.core.ui.gui import MainToolWindow
 
         class CmdWindow(MainToolWindow):
@@ -169,26 +168,6 @@ class CommandLine(ToolInstance):
                 event.Skip()
         else:
             event.Skip()
-
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        data = {"shown": self.tool_window.shown}
-        return self.bundle_info.session_write_version, data
-
-    @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        return cls.get_singleton(session)
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        self.display(data["shown"])
-
-    def reset_state(self, session):
-        self.tool_window.shown = True
 
     @classmethod
     def get_singleton(cls, session):

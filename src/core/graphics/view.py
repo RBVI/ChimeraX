@@ -96,6 +96,20 @@ class View:
         vmajor, vminor = self._render.opengl_version_number()
         return vmajor, vminor
 
+    def opengl_vendor(self):
+        '''Return the OpenGL vendor as a string.'''
+        if self._opengl_context is None:
+            return None
+        self._opengl_context.make_current()
+        return self._render.opengl_vendor()
+
+    def opengl_renderer(self):
+        '''Return the OpenGL renderer as a string.'''
+        if self._opengl_context is None:
+            return None
+        self._opengl_context.make_current()
+        return self._render.opengl_renderer()
+
     def _use_opengl(self):
         if self._opengl_context is None:
             raise RuntimeError("running without graphics")
@@ -236,12 +250,10 @@ class View:
         if dm.shape_changed or cp.changed:
             self._update_center_of_rotation = True
 
-        if (self._lighting.multishadow > 0 and
-            ((dm.redraw_needed and dm.shape_changed) or cp.changed)):
+        if (dm.redraw_needed and dm.shape_changed) or cp.changed:
             self._multishadow_update_needed = True
 
         c.redraw_needed = False
-        cp.changed = False
         dm.redraw_needed = False
         dm.shape_changed = False
 
@@ -271,22 +283,33 @@ class View:
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
 
-    def get_lighting(self):
+    def _get_lighting(self):
         return self._lighting
 
-    def set_lighting(self, lighting):
+    def _set_lighting(self, lighting):
         self._lighting = lighting
         r = self._render
         if r:
             r.lighting = lighting
+        self.update_lighting = True
         self.redraw_needed = True
 
-    lighting = property(get_lighting, set_lighting)
+    lighting = property(_get_lighting, _set_lighting)
     '''Lighting parameters.'''
 
-    def material(self):
-        '''Material reflectivity parameters.'''
-        return self._render.material
+    def _get_material(self):
+        return self._material
+
+    def _set_material(self, material):
+        self._material = material
+        r = self._render
+        if r:
+            r.material = material
+        self.update_lighting = True
+        self.redraw_needed = True
+
+    material = property(_get_material, _set_material)
+    '''Material reflectivity parameters.'''
 
     def add_overlay(self, overlay):
         '''
@@ -415,6 +438,7 @@ class View:
             fb = self._render.default_framebuffer()
             fb.width, fb.height = width, height
             fb.viewport = (0, 0, width, height)
+            self.redraw_needed = True
 
     def _window_size_matching_aspect(self, width, height):
         w, h = width, height
@@ -857,7 +881,7 @@ class ClipPlanes:
 
     def replace_planes(self, planes):
         self._clip_planes = planes
-        self._changed = True
+        self.changed = True
 
     def remove_plane(self, name):
         self._clip_planes = [p for p in self._clip_planes if p.name != name]

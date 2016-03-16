@@ -6,6 +6,7 @@ available from the ChimeraX command-line.  Tools define additional commands note
 and their code location is described with the function descriptions.
 
 | `alias`_ - Define aliases for commands
+| `align`_ - Align one set of atoms to another
 | `buriedarea`_ - Compute buried area between atomic structures
 | `camera`_ - Change camera settings
 | `cartoon`_ * - Display atomic structure ribbons or pipes/planks
@@ -49,6 +50,7 @@ and their code location is described with the function descriptions.
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
 | `snav`_ - Enable space navigator input device
+| `sop`_ - Surface operations
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
 | `style`_ - Change atom display style
@@ -70,6 +72,10 @@ and their code location is described with the function descriptions.
 alias
 =====
 .. autofunction:: chimerax.core.commands.alias.alias
+
+align
+=====
+.. autofunction:: chimerax.core.commands.align.align
 
 buriedarea
 ==========
@@ -253,6 +259,11 @@ show
 snav
 ====
 .. autofunction:: chimerax.core.devices.spacenavigator.snav.snav
+
+sop
+===
+.. automodule:: chimerax.core.commands.sop
+  :members:		
 
 split
 =====

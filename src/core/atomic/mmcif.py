@@ -45,7 +45,7 @@ def open_mmcif(session, filename, name, *args, **kw):
 
 def fetch_mmcif(session, pdb_id, ignore_cache=False):
     if len(pdb_id) != 4:
-        raise UserError("PDB identifiers are 4 characters long")
+        raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
     import os
     # check on local system -- TODO: configure location
     lower = pdb_id.lower()

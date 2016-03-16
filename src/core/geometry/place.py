@@ -68,14 +68,6 @@ class Place:
                              and origin is None)
         self._inverse = None    # Cached inverse.
 
-    def __getstate__(self):
-        return self.matrix
-
-    def __setstate__(self, state):
-        self.matrix = state
-        self._is_identity = False
-        self._inverse = None
-
     def __eq__(self, p):
         return (p.matrix == self.matrix).all()
 
@@ -339,14 +331,6 @@ class Places:
         self._opengl_array = opengl_array
         self._shift_and_scale = shift_and_scale
 
-    def __getstate__(self):
-        return [self._place_list, self._place_array, self._shift_and_scale,
-                self._opengl_array]
-
-    def __setstate__(self, state):
-        (self._place_list, self._place_array, self._shift_and_scale,
-         self._opengl_array) = state
-
     def place_list(self):
         pl = self._place_list
         if pl is None:
@@ -442,10 +426,15 @@ class Places:
                 for p2 in places:
                     pp.append(Place(m34.multiply_matrices(p.matrix, p2.matrix)))
             return Places(pp)
+        elif isinstance(places_or_vector, Place):
+            place = places_or_vector
+            return Places([p*place for p in self])
         else:
             v = places_or_vector
             a = self.array()
-            from numpy import array, float32, dot
+            from numpy import array, float32, dot, empty
+            if len(a) == 0:
+                return empty((0,3),float32)
             v4 = array((v[0], v[1], v[2], 1.0), float32)
             return dot(a, v4)
 

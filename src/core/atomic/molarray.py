@@ -49,6 +49,8 @@ def _non_null_atoms(p):
     return Atoms(p[p!=0])
 def _bonds(p):
     return Bonds(p)
+def _pseudobond_groups(p):
+	return PseudobondGroups(p)
 def _pseudobonds(p):
 	return Pseudobonds(p)
 def _elements(p):
@@ -111,11 +113,15 @@ class Collection(State):
         return iter(self._object_list)
     def __getitem__(self, i):
         '''Indexing of collection objects using square brackets, *e.g.* c[i].'''
-        if not isinstance(i,(int,integer)):
+        if isinstance(i,(int,integer)):
+            from .molobject import object_map
+            v = object_map(self._pointers[i], self._object_class)
+        elif isinstance(i, slice):
+            v = self._object_class(self._pointers[i])
+        else:
             raise IndexError('Only integer indices allowed for %s, got %s'
                 % (self.__class__.__name__, str(type(i))))
-        from .molobject import object_map
-        return object_map(self._pointers[i], self._object_class)
+        return v
     def index(self, object):
         '''Find the position of the first occurence of an object in a collection.'''
         f = c_function('pointer_index',
@@ -210,17 +216,21 @@ class Collection(State):
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
 
     STATE_VERSION = 1
+    def take_snapshot(self, session, flags):
+        return {'version': self.STATE_VERSION,
+                'pointers': self.session_save_pointers(session)}
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        if data['version'] > cls.STATE_VERSION:
+            raise ValueError("Don't know how to restore Collections from this session"
+                             " (session version [{}] > code version [{}]);"
+                             " update your ChimeraX".format(data['version'], self.STATE_VERSION))
+        c_pointers = cls.session_restore_pointers(session, data['pointers'])
+        return cls(c_pointers)
     def reset_state(self, session):
         self._pointers = numpy.empty((0,), cptr)
-    def restore_snapshot_init(self, session, bundle_info, version, ptr_data):
-        if version > self.STATE_VERSION:
-            raise ValueError("Don't know how to restore Collections from this session"
-                " (session version [{}] > code version [{}]);"
-                " update your ChimeraX".format(version, self.STATE_VERSION))
-        self.__init__(self.session_restore_pointers(session, ptr_data))
-    def take_snapshot(self, session, flags):
-        return self.STATE_VERSION, self.session_save_pointers(session)
-    def session_restore_pointers(self, session, data):
+    @classmethod
+    def session_restore_pointers(cls, session, data):
         raise NotImplementedError(
             self.__class__.__name__ + " has not implemented session_restore_pointers")
     def session_save_pointers(self, session):
@@ -347,11 +357,7 @@ class Atoms(Collection):
                 [d.positions for d in m.drawing_lineage])
             blist.append(ib)
         return union_bounds(blist)
-    @property
-    def scene_coords(self):
-        '''Atoms' coordinates in the global scene coordinate system.
-        This accounts for the :class:`Drawing` positions for the hierarchy
-        of models each atom belongs to.'''
+    def _get_scene_coords(self):
         n = len(self)
         from numpy import array, empty, float64
         xyz = empty((n,3), float64)
@@ -364,6 +370,23 @@ class Atoms(Collection):
                     ctypes.c_size_t, ctypes.c_void_p, ctypes.c_void_p])
         f(self._c_pointers, n, structs._c_pointers, len(structs), pointer(gtable), pointer(xyz))
         return xyz
+    def _set_scene_coords(self, xyz):
+        n = len(self)
+        if n == 0: return
+        if len(xyz) != n:
+            raise ValueError('Atoms._set_scene_coords: wrong number of coords %d for %d atoms'
+                             % (len(xyz), n))
+        structs = self.unique_structures
+        gtable = array(tuple(s.scene_position.inverse().matrix for s in structs), float64)
+        from .molc import pointer
+        f = c_function('atom_set_scene_coords',
+            args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
+                    ctypes.c_size_t, ctypes.c_void_p, ctypes.c_void_p])
+        f(self._c_pointers, n, structs._c_pointers, len(structs), pointer(gtable), pointer(xyz))
+    scene_coords = property(_get_scene_coords, _set_scene_coords)
+    '''Atoms' coordinates in the global scene coordinate system.
+    This accounts for the :class:`Drawing` positions for the hierarchy
+    of models each atom belongs to.'''
     selected = cvec_property('atom_selected', npy_bool,
         doc="numpy bool array whether each Atom is selected.")
     @property
@@ -385,6 +408,10 @@ class Atoms(Collection):
     def unique_residues(self):
         '''The unique :class:`.Residues` for these atoms.'''
         return _residues(unique(self.residues._pointers))
+    @property
+    def unique_chain_ids(self):
+        '''The unique chain IDs as a numpy array of strings.'''
+        return unique(self.chain_ids)
     @property
     def unique_structures(self):
         "The unique structures as an :class:`.AtomicStructures` collection"
@@ -409,13 +436,14 @@ class Atoms(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
-    def session_restore_pointers(self, session, data):
-        structures, ids = data
-        return array([s.session_id_to_atom(i) for s, i in zip(structures, ids)])
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        structures, atom_ids = data
+        return array([s.session_id_to_atom(i) for s, i in zip(structures, atom_ids)])
     def session_save_pointers(self, session):
         structures = self.structures
-        return [structures, array([s.session_atom_to_id(ptr)
-                                            for s, ptr in zip(structures, self._c_pointers)])]
+        atom_ids = [s.session_atom_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
+        return [structures, array(atom_ids)]
 
 # -----------------------------------------------------------------------------
 #
@@ -488,13 +516,14 @@ class Bonds(Collection):
         f = c_function('bond_half_colors', args = [ctypes.c_void_p, ctypes.c_size_t], ret = ctypes.py_object)
         return f(self._c_pointers, len(self))
 
-    def session_restore_pointers(self, session, data):
-        structures, ids = data
-        return array([s.session_id_to_bond(i) for s, i in zip(structures, ids)])
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        structures, bond_ids = data
+        return array([s.session_id_to_bond(i) for s, i in zip(structures, bond_ids)])
     def session_save_pointers(self, session):
         structures = self.structures
-        return [structures, array([s.session_bond_to_id(ptr)
-                                            for s, ptr in zip(structures, self._c_pointers)])]
+        bond_ids = [s.session_bond_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
+        return [structures, array(bond_ids)]
 
 # -----------------------------------------------------------------------------
 #
@@ -531,7 +560,8 @@ class Elements(Collection):
     valences = cvec_property('element_valence', uint8, read_only = True)
     '''Returns a :mod:`numpy` array of atomic valence numbers (integers). Read only.'''
 
-    def session_restore_pointers(self, session, data):
+    @classmethod
+    def session_restore_pointers(cls, session, data):
         f = c_function('element_number_get_element', args = (ctypes.c_int,), ret = ctypes.c_void_p)
         return [f(en) for en in data]
     def session_save_pointers(self, session):
@@ -571,6 +601,11 @@ class Pseudobonds(Collection):
     single value.  Pseudobonds are shown only if display is
     true, hide is false, and both atoms are shown.
     '''
+    groups = cvec_property('pseudobond_group', cptr, astype = _pseudobond_groups, read_only = True)
+    '''
+    Returns a :py:class:`PseudobondGroups` collection
+    of the pseudobond groups these pseudobonds belong to
+    '''
     halfbonds = cvec_property('pseudobond_halfbond', npy_bool)
     '''
     Controls whether the pseudobonds should be colored in "halfbond"
@@ -600,6 +635,18 @@ class Pseudobonds(Collection):
         '''Return mask of those pseudobonds which have both ends in the given set of atoms.'''
         a1, a2 = self.atoms
         return a1.mask(atoms) & a2.mask(atoms)
+
+    _ses_ids = cvec_property('pseudobond_get_session_id', int32, read_only = True,
+        doc="Used internally to save/restore in sessions")
+    @staticmethod
+    def session_restore_pointers(session, data):
+        groups, ids = data
+        f = c_function('pseudobond_group_resolve_session_id',
+            args = [ctypes.c_void_p, ctypes.c_int], ret = ctypes.c_void_p)
+        ptrs = [f(grp_ptr, id) for grp_ptr, id in zip(groups._c_pointers, ids)]
+        return Pseudobonds(array(ptrs))
+    def session_save_pointers(self, session):
+        return [self.groups, self._ses_ids]
 
 # -----------------------------------------------------------------------------
 #
@@ -705,7 +752,7 @@ class Residues(Collection):
         '''
         return self._pointers
 
-    def get_polymer_spline(self):
+    def get_polymer_spline(self, orient):
         '''Return a tuple of spline center and guide coordinates for a
 	polymer chain.  Residues in the chain that do not have a center
 	atom will have their display bit turned off.  Center coordinates
@@ -713,9 +760,9 @@ class Residues(Collection):
 	if all spline atoms have matching guide atoms; otherwise, None is
 	returned for guide coordinates.'''
         f = c_function('residue_polymer_spline',
-                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int],
                        ret = ctypes.py_object)
-        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self))
+        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self), orient)
         if atom_pointers is None:
             atoms = None
         else:
@@ -752,13 +799,14 @@ class Chains(Collection):
     num_residues = cvec_property('chain_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
 
-    def session_restore_pointers(self, session, data):
-        structures, ids = data
-        return array([s.session_id_to_chain(i) for s, i in zip(structures, ids)])
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        structures, chain_ses_ids = data
+        return array([s.session_id_to_chain(i) for s, i in zip(structures, chain_ses_ids)])
     def session_save_pointers(self, session):
         structures = self.structures
-        return [structures, array([s.session_chain_to_id(ptr)
-                                            for s, ptr in zip(structures, self._c_pointers)])]
+        chain_ses_ids = [s.session_chain_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
+        return [structures, array(chain_ses_ids)]
 
 # -----------------------------------------------------------------------------
 #
@@ -811,6 +859,8 @@ class StructureDatas(Collection):
     '''Returns an array of opacity scale factor for ribbon tethers.'''
     ribbon_show_spines = cvec_property('structure_ribbon_show_spine', npy_bool)
     '''Returns an array of booleans of whether to show ribbon spines.'''
+    ribbon_orientations = cvec_property('structure_ribbon_orientation', int32)
+    '''Returns an array of ribbon orientations.'''
 
 # -----------------------------------------------------------------------------
 #
@@ -824,7 +874,8 @@ class AtomicStructures(StructureDatas):
         from . import structure
         Collection.__init__(self, mol_pointers, structure.AtomicStructure, AtomicStructures)
 
-    def session_restore_pointers(self, session, data):
+    @classmethod
+    def session_restore_pointers(cls, session, data):
         return array([s._c_pointer.value for s in data])
     def session_save_pointers(self, session):
         return [s for s in self]
@@ -860,6 +911,12 @@ class PseudobondGroups(PseudobondGroupDatas):
     def __init__(self, pbg_pointers):
         from . import pbgroup
         Collection.__init__(self, pbg_pointers, pbgroup.PseudobondGroup, PseudobondGroups)
+
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        return array([s._c_pointer.value for s in data])
+    def session_save_pointers(self, session):
+        return [s for s in self]
 
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.

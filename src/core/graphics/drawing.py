@@ -363,10 +363,13 @@ class Drawing:
     position = property(get_position, set_position)
     '''Position and orientation of the surface in space.'''
 
-    @property
-    def scene_position(self):
+    def _get_scene_position(self):
         from ..geometry import product
         return product([d.position for d in self.drawing_lineage])
+    def _set_scene_position(self, pos):
+        self.positions = self.positions * (self.scene_position.inverse() * pos)
+    scene_position = property(_get_scene_position, _set_scene_position)
+    '''Position in scene coordinates.'''
 
     def get_positions(self, displayed_only=False):
         if displayed_only:
@@ -883,6 +886,7 @@ class Drawing:
 
         for b in self._vertex_buffers:
             b.delete_buffer()
+        self._vertex_buffers = []
 
         self.was_deleted = True
 
@@ -1280,6 +1284,23 @@ class _DrawShape:
         self._buffers_need_update.add(b)
         b.up_to_date = False
 
+    def update_buffers(self):
+        bu = self._buffers_need_update
+        if len(bu) == 0:
+            return
+
+        # TODO: This hack makes vertex colors override instance colors.
+        bufs = sorted(bu, key = lambda b: b.buffer_attribute_name)
+
+        bi = self.bindings
+        for b in bufs:
+            if not b.up_to_date:
+                data = getattr(self, b.buffer_attribute_name)
+                b.update_buffer_data(data)
+                b.up_to_date = True
+            bi.bind_shader_variable(b)
+        bu.clear()
+
     def activate_bindings(self):
         bi = self.bindings
         if bi is None:
@@ -1287,15 +1308,7 @@ class _DrawShape:
             self.bindings = bi = opengl.Bindings()
 
         bi.activate()
-
-        bu = self._buffers_need_update
-        for b in bu:
-            if not b.up_to_date:
-                data = getattr(self, b.buffer_attribute_name)
-                b.update_buffer_data(data)
-                b.up_to_date = True
-            bi.bind_shader_variable(b)
-        bu.clear()
+        self.update_buffers()
 
 class Pick:
     '''

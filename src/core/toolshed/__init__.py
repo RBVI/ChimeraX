@@ -136,6 +136,7 @@ def _debug(*args, **kw):
 
 # Default URL of remote toolshed
 _RemoteURL = "http://localhost:8080"
+#_RemoteURL = "https://chi2ti-macosx-daily.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
 _Toolshed = "toolshed"
 # Defaults names for installed ChimeraX bundles
@@ -387,6 +388,14 @@ class Toolshed:
         if bi.installed:
             raise ToolshedInstalledError("bundle \"%s\" already installed"
                                          % bi.name)
+        # Make sure that our install location is on chimerax module.__path__
+        # so that newly installed modules may be found
+        import os.path, importlib
+        cx_dir = os.path.join(self._site_dir, _ChimeraBasePackage)
+        m = importlib.import_module(_ChimeraBasePackage)
+        if cx_dir not in m.__path__:
+            m.__path__.append(cx_dir)
+        # Install bundle and update cache
         self._install_bundle(bi, system, logger)
         self._write_cache(self._installed_bundle_info, logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bi)
@@ -910,18 +919,19 @@ class Toolshed:
                 import time
                 d_mtime = calendar.timegm(time.strptime(t, "%Y-%m-%d %H:%M:%S"))
                 c_mtime = os.path.getmtime(dloc)
-                print("distribution", time.ctime(d_mtime))
-                print("cache", time.ctime(c_mtime))
+                # print("distribution", time.ctime(d_mtime))
+                # print("cache", time.ctime(c_mtime))
                 need_fetch = (d_mtime > c_mtime)
             if need_fetch:
-                print("fetching wheel")
+                # print("fetching wheel")
                 try:
                     fn, headers = urlretrieve(url, dloc)
                 except URLError as e:
                     logger.warning("cannot fetch %s: %s" % (url, str(e)))
                     continue
             else:
-                print("using cached wheel")
+                # print("using cached wheel")
+                pass
             w = Wheel(dloc)
             try:
                 w.verify()
@@ -1157,7 +1167,10 @@ class BundleInfo:
             "display_name": self.display_name,
             "menu_categories": self.menu_categories,
             "command_names": self.command_names,
+            "file_types": self.file_types,
             "synopsis": self._synopsis,
+            "session_versions": self.session_versions,
+            "custom_init": self.custom_init,
             "distribution_name": self._distribution_name,
             "distribution_version": self._distribution_version,
             "module_name": self._module_name,
@@ -1198,14 +1211,10 @@ class BundleInfo:
         """Register file types."""
         from chimerax.core import io
         for args in self.file_types:
-            def cb(s=self, *args):
-                s._open_file(*args)
+            def cb(*args, **kw):
+                return self._get_module().open_file(*args, **kw)
             _debug("register_file_type", args)
             io.register_format(*args, open_func=cb)
-
-    def _open_file(self, *args):
-        """Called when files need to be opened."""
-        self._get_module().open_file(*args)
 
     def deregister_file_types(self):
         """Deregister file types."""

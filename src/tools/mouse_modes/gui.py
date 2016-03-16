@@ -9,9 +9,8 @@ class MouseModePanel(ToolInstance):
     SESSION_ENDURING = True
     help = "help:user/tools/mousemodes.html"
 
-    def __init__(self, session, bundle_info, *, restoring=False):
-        if not restoring:
-            ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info):
+        ToolInstance.__init__(self, session, bundle_info)
 
         self.mouse_modes = session.ui.main_window.graphics_window.mouse_modes
         self.button_to_bind = 'right'
@@ -39,10 +38,10 @@ class MouseModePanel(ToolInstance):
         self.buttons = self.create_buttons(self.modes, self.button_to_bind,
                                            initial_mode, parent, session)
 
-        tw.manage(placement="right", fixed_size = True)
-
         import wx
         parent.Bind(wx.EVT_SIZE, self.resize_cb)
+
+        tw.manage(placement="right", fixed_size = True)
 
     def create_buttons(self, modes, button_to_bind, initial_mode, parent, session):
         import wx
@@ -80,12 +79,12 @@ class MouseModePanel(ToolInstance):
         # self.tool_window.ui_area.SetSize((w,100))
 
     def resize_buttons(self, columns, icon_size):
+        self.icon_size = icon_size
         for i,b in enumerate(self.buttons):
             b.SetBitmap(self.bitmap(self.modes[i].icon_file))
             b.SetSize((icon_size,icon_size))
             pos = ((i%columns)*icon_size,(i//columns)*icon_size)
             b.SetPosition(pos)
-        self.icon_size = icon_size
 
     def unset_other_buttons(self, button):
         for b in self.buttons:
@@ -108,26 +107,6 @@ class MouseModePanel(ToolInstance):
 
     def hide(self):
         self.tool_window.shown = False
-
-    #
-    # Implement session.State methods if deriving from ToolInstance
-    #
-    def take_snapshot(self, session, flags):
-        data = {"shown": self.tool_window.shown}
-        return self.bundle_info.session_write_version, data
-
-    @classmethod
-    def restore_snapshot_new(cls, session, bundle_info, version, data):
-        return cls.get_singleton(session)
-
-    def restore_snapshot_init(self, session, bundle_info, version, data):
-        if version not in bundle_info.session_versions:
-            from chimerax.core.state import RestoreError
-            raise RestoreError("unexpected version")
-        self.display(data["shown"])
-
-    def reset_state(self, session):
-        pass
 
     @classmethod
     def get_singleton(cls, session):
