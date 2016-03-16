@@ -135,8 +135,8 @@ def _debug(*args, **kw):
 
 
 # Default URL of remote toolshed
-#_RemoteURL = "http://localhost:8080"
-_RemoteURL = "https://chi2ti-macosx-daily.rbvi.ucsf.edu"
+_RemoteURL = "http://localhost:8080"
+#_RemoteURL = "https://chi2ti-macosx-daily.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
 _Toolshed = "toolshed"
 # Defaults names for installed ChimeraX bundles
@@ -388,6 +388,14 @@ class Toolshed:
         if bi.installed:
             raise ToolshedInstalledError("bundle \"%s\" already installed"
                                          % bi.name)
+        # Make sure that our install location is on chimerax module.__path__
+        # so that newly installed modules may be found
+        import os.path, importlib
+        cx_dir = os.path.join(self._site_dir, _ChimeraBasePackage)
+        m = importlib.import_module(_ChimeraBasePackage)
+        if cx_dir not in m.__path__:
+            m.__path__.append(cx_dir)
+        # Install bundle and update cache
         self._install_bundle(bi, system, logger)
         self._write_cache(self._installed_bundle_info, logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bi)
@@ -911,18 +919,19 @@ class Toolshed:
                 import time
                 d_mtime = calendar.timegm(time.strptime(t, "%Y-%m-%d %H:%M:%S"))
                 c_mtime = os.path.getmtime(dloc)
-                print("distribution", time.ctime(d_mtime))
-                print("cache", time.ctime(c_mtime))
+                # print("distribution", time.ctime(d_mtime))
+                # print("cache", time.ctime(c_mtime))
                 need_fetch = (d_mtime > c_mtime)
             if need_fetch:
-                print("fetching wheel")
+                # print("fetching wheel")
                 try:
                     fn, headers = urlretrieve(url, dloc)
                 except URLError as e:
                     logger.warning("cannot fetch %s: %s" % (url, str(e)))
                     continue
             else:
-                print("using cached wheel")
+                # print("using cached wheel")
+                pass
             w = Wheel(dloc)
             try:
                 w.verify()

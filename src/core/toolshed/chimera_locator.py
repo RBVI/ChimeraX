@@ -18,7 +18,17 @@ class ChimeraLocator(Locator):
     def get_distribution(self, name):
         cache = self._get_cache()
         return cache.get(name, {})
-    _get_project = get_distribution
+
+    def _get_project(self, name):
+        cache = self._get_cache()
+        urls = {}
+        digests = {}
+        result = {'urls':urls, 'digests':digests}
+        for version, dist in cache.get(name, {}).items():
+            result[version] = dist
+            urls[version] = set([dist.source_url])
+            digests[version] = set([None])
+        return result
 
     def get_distribution_names(self):
         cache = self._get_cache()
