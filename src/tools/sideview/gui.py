@@ -53,14 +53,6 @@ class OrthoCamera(Camera):
         return self.field_width
 
 
-def project(pt, projection_matrix, modelview_matrix, width, height):
-    """convert 3D coordinate into 2D window coordinate"""
-    from numpy import concatenate
-    xpt = concatenate((pt, [1])) @ modelview_matrix @ projection_matrix
-    win_pt = [(xpt[0] + 1) * width / 2, (xpt[1] + 1) * height / 2]
-    return win_pt
-
-
 class SideViewCanvas(glcanvas.GLCanvas):
 
     EyeSize = 4     # half size really
@@ -207,12 +199,9 @@ class SideViewCanvas(glcanvas.GLCanvas):
             loc.top = .95 * height
             ratio = tan(0.5 * fov)
             if self.moving:
-                c = self.view.camera
-                n, f = self.view.near_far_distances(c, None)
-                pm = c.projection_matrix((n, f), None, (width, height))
-                mv = camera.position.inverse().opengl_matrix()
-                eye = project(main_pos.origin(), pm, mv, width, height)
-                loc.eye = array(eye + [0])
+                eye = self.view.win_coord(main_pos.origin())
+                eye[2] = 0
+                loc.eye = eye
             elif ratio * width / 1.1 < .45 * height:
                 camera.field_width = 1.1 * far
                 loc.eye = array([.05 / 1.1 * width, height / 2, 0],
