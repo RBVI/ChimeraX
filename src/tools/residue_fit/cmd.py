@@ -1,6 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
-def resfit(session, atoms, map = None, motion_frames = 50, pause_frames = 50, movie_framerate = 25):
+def resfit(session, atoms, map = None, residue_range = (-2,1),
+           motion_frames = 50, pause_frames = 50, movie_framerate = 25):
     '''Display fit of each residue in a density map.
 
     Parameters
@@ -27,7 +28,7 @@ def resfit(session, atoms, map = None, motion_frames = 50, pause_frames = 50, mo
     
     bundle_info = session.toolshed.find_bundle('residue_fit')
     from . import gui
-    gui.ResidueFit(session, bundle_info, bbres, map,
+    gui.ResidueFit(session, bundle_info, bbres, map, residue_range = residue_range,
                    motion_frames = motion_frames, pause_frames = pause_frames,
                    movie_framerate = movie_framerate)
     
@@ -41,10 +42,11 @@ def residues_with_backbone(residues):
     return residues.filter(rb)
 
 def register_resfit_command():
-    from chimerax.core.commands import CmdDesc, register, AtomsArg, IntArg
+    from chimerax.core.commands import CmdDesc, register, AtomsArg, IntArg, Int2Arg
     from chimerax.core.map import MapArg
     desc = CmdDesc(required = [('atoms', AtomsArg)],
                    keyword = [('map', MapArg),
+                              ('residue_range', Int2Arg),
                               ('motion_frames', IntArg),
                               ('pause_frames', IntArg),
                               ('movie_framerate', IntArg)],

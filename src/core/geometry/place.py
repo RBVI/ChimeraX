@@ -432,7 +432,9 @@ class Places:
         else:
             v = places_or_vector
             a = self.array()
-            from numpy import array, float32, dot
+            from numpy import array, float32, dot, empty
+            if len(a) == 0:
+                return empty((0,3),float32)
             v4 = array((v[0], v[1], v[2], 1.0), float32)
             return dot(a, v4)
 
