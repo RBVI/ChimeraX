@@ -24,6 +24,7 @@ function button_test() { window.location.href = "toolshed:button_test:arg"; }
 .buttons { width: 25%; text-align: right; }
 .name { font-weight: bold; width: 25%; }
 .synopsis { }
+table { width: 100%; }
 th { text-align: left; }
 h2 { text-align: center; }
 .empty { text-align: center; }
@@ -48,6 +49,11 @@ _INSTALL_LINK = '<a href="toolshed:_install_tool:%s" class="install button">inst
 _SHOW_LINK = '<a href="toolshed:_show_tool:%s" class="show button">show</a>'
 _HIDE_LINK = '<a href="toolshed:_hide_tool:%s" class="hide button">hide</a>'
 _KILL_LINK = '<a href="toolshed:_kill_tool:%s" class="kill button">kill</a>'
+_ROW = ('<tr>'
+        '<td class="buttons">%s</td>'
+        '<td class="name">%s</td>'
+        '<td class="synopsis">%s</td>'
+        '</tr>')
 
 
 class ToolshedUI(ToolInstance):
@@ -113,13 +119,8 @@ class ToolshedUI(ToolInstance):
                 show_link = _SHOW_LINK % t.id
                 hide_link = _HIDE_LINK % t.id
                 kill_link = _KILL_LINK % t.id
-                print('<tr>'
-                      '<td class="buttons">%s&nbsp;%s&nbsp;%s</td>'
-                      '<td class="name">%s</td>'
-                      '<td class="synopsis"></td>'
-                      '</tr>'
-                      % (show_link, hide_link, kill_link,
-                         t.display_name), file=s)
+                links = "&nbsp;".join([show_link, hide_link, kill_link])
+                print(_ROW % (links, t.display_name, "&nbsp;"), file=s)
             print("</table>", file=s)
         page = page.replace("RUNNING_TOOLS", s.getvalue())
 
@@ -127,41 +128,45 @@ class ToolshedUI(ToolInstance):
         def bundle_key(bi):
             return bi.display_name
         s = StringIO()
-        installed_bi_list = ts.bundle_info(installed=True, available=False)
-        if not installed_bi_list:
+        bi_list = ts.bundle_info(installed=True, available=False)
+        if not bi_list:
             print('<p class="empty">No installed tools found.</p>', file=s)
         else:
             print("<table>", file=s)
-            for bi in sorted(installed_bi_list, key=bundle_key):
+            for bi in sorted(bi_list, key=bundle_key):
                 start_link = _START_LINK % bi.name
                 update_link = _UPDATE_LINK % bi.name
                 remove_link = _REMOVE_LINK % bi.name
-                print('<tr>'
-                      '<td class="buttons">%s&nbsp;%s&nbsp;%s</td>'
-                      '<td class="name">%s</td>'
-                      '<td class="synopsis">%s</td>'
-                      '</tr>'
-                      % (start_link, update_link, remove_link,
-                         bi.display_name, bi.synopsis), file=s)
+                links = "&nbsp;".join([start_link, update_link, remove_link])
+                print(_ROW % (links, bi.display_name, bi.synopsis), file=s)
             print("</table>", file=s)
         page = page.replace("INSTALLED_TOOLS", s.getvalue())
+        installed_bundles = dict([(bi.name, bi) for bi in bi_list])
 
         # available
         s = StringIO()
-        available_bi_list = ts.bundle_info(installed=False, available=True)
-        if not available_bi_list:
+        bi_list = ts.bundle_info(installed=False, available=True)
+        if not bi_list:
             print('<p class="empty">No available tools found.</p>', file=s)
         else:
-            print("<table>", file=s)
-            for bi in sorted(available_bi_list, key=bundle_key):
+            any_shown = False
+            for bi in sorted(bi_list, key=bundle_key):
+                try:
+                    # If this bundle is already installed, do not display it
+                    installed = installed_bundles[bi.name]
+                    if installed.version == bi.version:
+                        continue
+                except KeyError:
+                    pass
+                if not any_shown:
+                    print("<table>", file=s)
+                    any_shown = True
                 link = _INSTALL_LINK % bi.name
-                print('<tr>'
-                      '<td class="buttons">%s</td>'
-                      '<td class="name">%s</td>'
-                      '<td class="synopsis">%s</td>'
-                      '</tr>'
-                      % (link, bi.display_name, bi.synopsis), file=s)
-            print("</table>", file=s)
+                print(_ROW % (link, bi.display_name, bi.synopsis), file=s)
+            if any_shown:
+                print("</table>", file=s)
+            else:
+                print('<p class="empty">All available tools are installed.</p>', file=s)
         page = page.replace("AVAILABLE_TOOLS", s.getvalue())
         page = page.replace("TOOLSHED_URL", ts.remote_url)
 
