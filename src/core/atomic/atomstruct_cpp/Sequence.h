@@ -13,9 +13,9 @@ namespace atomstruct {
 
 class ATOMSTRUCT_IMEX Sequence {
 public:
-    typedef std::vector<char>  Contents;
+    typedef std::vector<unsigned char>  Contents;
 protected:
-    typedef std::map<ResName, char>  _1Letter_Map;
+    typedef std::map<ResName, unsigned char>  _1Letter_Map;
     static void  _init_rname_map();
     static _1Letter_Map  _nucleic3to1;
     static _1Letter_Map  _protein3to1;
@@ -34,11 +34,11 @@ private:
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
 
 public:
-    static void  assign_rname3to1(const ResName& rname, char let,
+    static void  assign_rname3to1(const ResName& rname, unsigned char let,
         bool protein);
-    static char  nucleic3to1(const ResName& rn);
-    static char  protein3to1(const ResName& rn);
-    static char  rname3to1(const ResName& rn);
+    static unsigned char  nucleic3to1(const ResName& rn);
+    static unsigned char  protein3to1(const ResName& rn);
+    static unsigned char  rname3to1(const ResName& rn);
 
     Sequence() {}
     Sequence(const std::vector<ResName>& res_names);  // 3-letter codes
