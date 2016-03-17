@@ -15,8 +15,10 @@ def start_tool(session, bundle_info):
 def register_command(command_name, bundle_info):
     from . import cmd
     from chimerax.core.commands import register, create_alias
+    if command_name == "echo":
+        create_alias("echo", "log text $*")
+        return
     register(command_name, cmd.log_desc, cmd.log)
-    create_alias("echo", "log text $*")
 
 
 #
