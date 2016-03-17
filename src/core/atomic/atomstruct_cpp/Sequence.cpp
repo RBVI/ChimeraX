@@ -82,7 +82,7 @@ Sequence::Sequence(const std::vector<ResName>& res_names, std::string name):
 }
 
 void
-Sequence::assign_rname3to1(const ResName& rname, unsigned char let, bool protein)
+Sequence::assign_rname3to1(const ResName& rname, char let, bool protein)
 {
     if (protein)
         _protein3to1[rname] = let;
@@ -102,7 +102,7 @@ Sequence::gapped_to_ungapped(unsigned int index) const
     return _cache_g2ug[index];
 }
 
-unsigned char
+char
 Sequence::nucleic3to1(const ResName& rn)
 {
     _1Letter_Map::const_iterator l1i = _nucleic3to1.find(rn);
@@ -120,7 +120,7 @@ Sequence::operator+=(const Sequence& addition)
     return *this;
 }
 
-unsigned char
+char
 Sequence::protein3to1(const ResName& rn)
 {
     _1Letter_Map::const_iterator l1i = _protein3to1.find(rn);
@@ -131,7 +131,7 @@ Sequence::protein3to1(const ResName& rn)
 }
 
 void
-Sequence::push_front(unsigned char c)
+Sequence::push_front(char c)
 {
     _clear_cache();
     Contents pushed(_contents.size()+1);
@@ -140,7 +140,7 @@ Sequence::push_front(unsigned char c)
     pushed.swap(_contents);
 }
 
-unsigned char
+char
 Sequence::rname3to1(const ResName& rn)
 {
     if (_rname3to1.empty())

@@ -59,12 +59,6 @@ inline PyObject* unicode_from_string(const std::string& str)
     return PyUnicode_DecodeUTF8(str.data(), str.size(), "replace");
 }
 
-inline PyObject* unicode_from_string(const unsigned char *data)
-{
-    std::string str((char*)data);
-    return unicode_from_string(str);
-}
-
 template <int len, char... description_chars>
 inline PyObject* unicode_from_string(const chutil::CString<len, description_chars...>& cstr)
 {
@@ -1799,7 +1793,7 @@ extern "C" void sequence_characters(void *seqs, size_t n, pyobject_t *chars)
     try {
         for (size_t i = 0; i != n; ++i) {
             auto& contents = s[i]->contents();
-            unsigned char* str = new unsigned char[contents.size() + 1];
+            char* str = new char[contents.size() + 1];
             auto ptr = str;
             for (auto c: contents)
                 *ptr++ = c;

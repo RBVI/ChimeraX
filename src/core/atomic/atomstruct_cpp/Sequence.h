@@ -13,9 +13,9 @@ namespace atomstruct {
 
 class ATOMSTRUCT_IMEX Sequence {
 public:
-    typedef std::vector<unsigned char>  Contents;
+    typedef std::vector<char>  Contents;
 protected:
-    typedef std::map<ResName, unsigned char>  _1Letter_Map;
+    typedef std::map<ResName, char>  _1Letter_Map;
     static void  _init_rname_map();
     static _1Letter_Map  _nucleic3to1;
     static _1Letter_Map  _protein3to1;
@@ -35,11 +35,11 @@ private:
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
 
 public:
-    static void  assign_rname3to1(const ResName& rname, unsigned char let,
+    static void  assign_rname3to1(const ResName& rname, char let,
         bool protein);
-    static unsigned char  nucleic3to1(const ResName& rn);
-    static unsigned char  protein3to1(const ResName& rn);
-    static unsigned char  rname3to1(const ResName& rn);
+    static char  nucleic3to1(const ResName& rn);
+    static char  protein3to1(const ResName& rn);
+    static char  rname3to1(const ResName& rn);
 
     Sequence(std::string name = "sequence"): _name(name) {}
     Sequence(const Contents& chars, std::string name = "sequence"): _contents(chars), _name(name) {}
@@ -69,8 +69,8 @@ public:
     Sequence&  operator+=(const Sequence&);
     void  pop_back() { _clear_cache(); _contents.pop_back(); }
     void  pop_front() { _clear_cache(); _contents.erase(_contents.begin()); }
-    void  push_back(unsigned char c) { _clear_cache(); _contents.push_back(c); }
-    void  push_front(unsigned char c);
+    void  push_back(char c) { _clear_cache(); _contents.push_back(c); }
+    void  push_front(char c);
     Contents::const_reverse_iterator  rbegin() const
         { return _contents.rbegin(); }
     Contents::const_reverse_iterator  rend() const { return _contents.rend(); }
@@ -80,7 +80,6 @@ public:
     void  session_save(int**, float**) const;
     void  set_name(std::string& name) { _name = name; }
     void  set_name(const char* name) { _name = name; }
-    void  set_name(const unsigned char* name) { _name = (const char*)name; }
     Contents::size_type  size() const { return _contents.size(); }
     void  swap(Contents& x) { _clear_cache(); _contents.swap(x); }
     const Contents&  ungapped() const;
