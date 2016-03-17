@@ -28,6 +28,7 @@ protected:
         { _cache_ungapped.clear();  _cache_g2ug.clear(); _cache_ug2g.clear(); }
     // can't inherit from vector, since we need to clear caches on changes
     Contents  _contents;
+    std::string  _name;
 
 private:
     static int  SESSION_NUM_INTS(int /*version*/=0) { return 3; }
@@ -40,8 +41,9 @@ public:
     static unsigned char  protein3to1(const ResName& rn);
     static unsigned char  rname3to1(const ResName& rn);
 
-    Sequence() {}
-    Sequence(const std::vector<ResName>& res_names);  // 3-letter codes
+    Sequence(std::string name = "sequence"): _name(name) {}
+    Sequence(const Contents& chars, std::string name = "sequence"): _contents(chars), _name(name) {}
+    Sequence(const std::vector<ResName>& res_names, std::string name = "sequence");  // 3-letter codes
     virtual  ~Sequence() {}
 
     template <class InputIterator> void  assign(InputIterator first,
@@ -63,6 +65,7 @@ public:
         Contents::size_type n, Contents::value_type val)
         { _clear_cache(); return _contents.insert(pos, n, val); }
     virtual bool  is_sequence() const { return true; }
+    const std::string&  name() const { return _name; }
     Sequence&  operator+=(const Sequence&);
     void  pop_back() { _clear_cache(); _contents.pop_back(); }
     void  pop_front() { _clear_cache(); _contents.erase(_contents.begin()); }
@@ -75,6 +78,9 @@ public:
     int  session_num_ints(int version=0) const { return SESSION_NUM_INTS(version) + _contents.size(); }
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
+    void  set_name(std::string& name) { _name = name; }
+    void  set_name(const char* name) { _name = name; }
+    void  set_name(const unsigned char* name) { _name = (const char*)name; }
     Contents::size_type  size() const { return _contents.size(); }
     void  swap(Contents& x) { _clear_cache(); _contents.swap(x); }
     const Contents&  ungapped() const;

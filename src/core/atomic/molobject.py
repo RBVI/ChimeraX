@@ -482,8 +482,25 @@ class Sequence:
     A polymeric sequence.  Offers string-like interface.
     '''
 
-    def __init__(self, seq_pointer):
+    def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
+        if seq_pointer:
+            set_c_pointer(self, seq_pointer)
+            return # name/characters already exists; don't set
+        seq_pointer = c_function('sequence_new',
+            args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(name, characters)
         set_c_pointer(self, seq_pointer)
+
+    characters = c_property('sequence_characters', string, doc=
+        "A string representing the contents of the sequence")
+    name = c_property('sequence_name', string, doc="The sequence name")
+
+    def take_snapshot(self, session, flags):
+        data = {'name': self.name, 'characters': self.characters}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return Sequence(name=data['name'], characters=data['characters'])
 
 # -----------------------------------------------------------------------------
 #

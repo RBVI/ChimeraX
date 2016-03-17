@@ -8,13 +8,14 @@
 #include "atomstruct/AtomicStructure.h"
 #include "atomstruct/Bond.h"
 #include "atomstruct/Chain.h"
+#include "atomstruct/ChangeTracker.h"
+#include "atomstruct/destruct.h"     // Use DestructionObserver
 #include "atomstruct/PBGroup.h"
 #include "atomstruct/Pseudobond.h"
 #include "atomstruct/PBGroup.h"
 #include "atomstruct/Residue.h"
 #include "atomstruct/RibbonXSection.h"
-#include "atomstruct/ChangeTracker.h"
-#include "atomstruct/destruct.h"     // Use DestructionObserver
+#include "atomstruct/Sequence.h"
 #include "pythonarray.h"           // Use python_voidp_array()
 
 #include <functional>
@@ -56,6 +57,12 @@ inline PyObject* unicode_from_string(const char *data, size_t size)
 inline PyObject* unicode_from_string(const std::string& str)
 {
     return PyUnicode_DecodeUTF8(str.data(), str.size(), "replace");
+}
+
+inline PyObject* unicode_from_string(const unsigned char *data)
+{
+    std::string str((char*)data);
+    return unicode_from_string(str);
 }
 
 template <int len, char... description_chars>
@@ -1765,6 +1772,77 @@ extern "C" void change_tracker_add_modified(void *vct, int class_num, void *modd
         } else {
             throw std::invalid_argument("Bad class value to ChangeTracker.add_modified()");
         }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+// -------------------------------------------------------------------------
+// sequence functions
+//
+extern "C" void *sequence_new(const char* name, const char* characters)
+{
+    try {
+        Sequence::Contents chars;
+        while (*characters) chars.push_back(*characters++);
+        Sequence *seq = new Sequence(chars, name);
+        return seq;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" void sequence_characters(void *seqs, size_t n, pyobject_t *chars)
+{
+    Sequence **s = static_cast<Sequence **>(seqs);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto& contents = s[i]->contents();
+            unsigned char* str = new unsigned char[contents.size() + 1];
+            auto ptr = str;
+            for (auto c: contents)
+                *ptr++ = c;
+            *ptr = '\0';
+            chars[i] = unicode_from_string(str);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_sequence_characters(void *seqs, size_t n, pyobject_t *chars)
+{
+    Sequence **s = static_cast<Sequence **>(seqs);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            Sequence::Contents contents;
+            auto ptr = PyUnicode_AsUTF8(static_cast<PyObject *>(chars[i]));
+            while (*ptr) contents.push_back(*ptr++);
+            s[i]->swap(contents);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void sequence_name(void *seqs, size_t n, pyobject_t *names)
+{
+    Sequence **s = static_cast<Sequence **>(seqs);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            names[i] = unicode_from_string(s[i]->name().c_str());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_sequence_name(void *seqs, size_t n, pyobject_t *names)
+{
+    Sequence **s = static_cast<Sequence **>(seqs);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            s[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
     } catch (...) {
         molc_error();
     }

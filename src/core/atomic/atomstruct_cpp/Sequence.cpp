@@ -72,7 +72,9 @@ Sequence::_init_rname_map()
     }
 }
 
-Sequence::Sequence(const std::vector<ResName>& res_names) // 3-letter codes
+// 3-letter codes
+Sequence::Sequence(const std::vector<ResName>& res_names, std::string name):
+    _name(name)
 {
     for (auto rn: res_names) {
         this->push_back(rname3to1(rn));
