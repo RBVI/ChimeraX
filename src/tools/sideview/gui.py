@@ -10,7 +10,7 @@ import wx
 from wx import glcanvas
 from chimerax.core.tools import ToolInstance
 from chimerax.core.geometry import Place
-from chimerax.core.graphics import Camera
+from chimerax.core.graphics import View, Camera, OrthographicCamera
 
 
 class _PixelLocations:
@@ -160,8 +160,8 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 string_marker.glStringMarkerGREMEDY(len(text), text)
             main_view = self.main_view
             main_camera = main_view.camera
+            ortho = isinstance(main_camera, OrthographicCamera)
             view_num = None  # TODO: 0, 1 for stereo
-            near, far = main_view.near_far_distances(main_camera, view_num)
 
             camera = self.view.camera
             # fov is sideview's vertical field of view,
@@ -173,6 +173,14 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 fov = (2 * atan(wh / ww * tan(radians(main_camera.field_of_view / 2)))
                        if hasattr(main_camera, 'field_of_view') else 45)
             main_pos = main_camera.get_position(view_num)
+            near, far = main_view.near_far_distances(main_camera, view_num)
+            planes = self.main_view.clip_planes
+            near_plane = planes.find_plane('near')
+            if near_plane:
+                near = near_plane.offset(main_pos.origin())
+            far_plane = planes.find_plane('far')
+            if far_plane:
+                far = -far_plane.offset(main_pos.origin())
             if not self.moving:
                 main_axes = main_pos.axes()
                 camera_pos = Place()
@@ -204,14 +212,11 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 eye = self.view.win_coord(main_pos.origin())
                 eye[2] = 0
                 loc.eye = eye
-                planes = self.main_view.clip_planes
-                p = planes.find_plane('near')
-                if p:
-                    win_pt = self.view.win_coord(p.plane_point)
+                if near_plane:
+                    win_pt = self.view.win_coord(near_plane.plane_point)
                     loc.near = win_pt[0]
-                p = planes.find_plane('far')
-                if p:
-                    win_pt = self.view.win_coord(p.plane_point)
+                if far_plane:
+                    win_pt = self.view.win_coord(far_plane.plane_point)
                     loc.far = win_pt[0]
             elif ratio * width / 1.1 < .45 * height:
                 camera.field_width = 1.1 * far
@@ -232,7 +237,17 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 loc.far = .5 * width + f / 2
                 camera.field_width = far * width / f
 
-            self.applique.color = array([255, 0, 0, 255], dtype=uint8)
+            self.applique.vertex_colors = array([[255, 0, 0, 255]] * 12,
+                                                dtype=uint8)
+            if self.moving == self.ON_EYE:
+                colors = self.applique.vertex_colors
+                colors[0] = colors[1] = colors[2] = colors[3] = [255, 255, 0, 255]
+            elif self.moving == self.ON_NEAR:
+                colors = self.applique.vertex_colors
+                colors[4] = colors[5] = [255, 255, 0, 255]
+            elif self.moving == self.ON_FAR:
+                colors = self.applique.vertex_colors
+                colors[6] = colors[7] = [255, 255, 0, 255]
             es = self.EyeSize
             old_vertices = self.applique.vertices
             self.applique.vertices = array([
@@ -240,21 +255,27 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 loc.eye + [es, es, 0], loc.eye + [es, -es, 0],
                 (loc.near, loc.bottom, 0), (loc.near, loc.top, 0),
                 (loc.far, loc.bottom, 0), (loc.far, loc.top, 0),
-                loc.eye,
-                (0, 0, 0), (0, 0, 0)
+                (0, 0, 0), (0, 0, 0),
+                (0, 0, 0), (0, 0, 0),
             ], dtype=float32)
-            if self.moving and old_vertices is not None:
-                self.applique.vertices[9] = old_vertices[9]
-                self.applique.vertices[10] = old_vertices[10]
+            if ortho:
+                self.applique.vertices[8] = (loc.near, loc.far_top, 0)
+                self.applique.vertices[9] = (loc.near, loc.far_bottom, 0)
             else:
-                self.applique.vertices[9] = (loc.far, loc.far_top, 0)
-                self.applique.vertices[10] = (loc.far, loc.far_bottom, 0)
+                self.applique.vertices[8] = loc.eye
+                self.applique.vertices[9] = loc.eye
+            if self.moving and old_vertices is not None:
+                self.applique.vertices[10] = old_vertices[10]
+                self.applique.vertices[11] = old_vertices[11]
+            else:
+                self.applique.vertices[10] = (loc.far, loc.far_top, 0)
+                self.applique.vertices[11] = (loc.far, loc.far_bottom, 0)
             self.applique.triangles = array([
                 [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
                 [4, 5],    # near plane
                 [6, 7],    # far plane
-                [8, 9],    # left plane
-                [8, 10],   # right plane
+                [8, 10],   # left plane
+                [9, 11],   # right plane
             ], dtype=int32)
             from OpenGL import GL
             GL.glViewport(0, 0, width, height)
@@ -279,21 +300,22 @@ class SideViewCanvas(glcanvas.GLCanvas):
             self.x, self.y = x, y
             self.moving = self.ON_EYE
             self.CaptureMouse()
+            self.Refresh()
         elif near - es <= x <= near + es:
             self.x, self.y = x, y
             self.moving = self.ON_NEAR
             self.CaptureMouse()
+            self.Refresh()
         elif far - es <= x <= far + es:
             self.x, self.y = x, y
             self.moving = self.ON_FAR
             self.CaptureMouse()
+            self.Refresh()
 
     def on_left_up(self, event):
-        if self.HasCapture():
+        if self.moving:
+            self.moving = self.ON_NOTHING
             self.ReleaseMouse()
-        was_on_far = self.moving == self.ON_FAR
-        self.moving = self.ON_NOTHING
-        if was_on_far:
             self.Refresh()
 
     def on_motion(self, event):
@@ -343,7 +365,6 @@ class SideViewUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        from chimerax.core.graphics.view import View
         self.opengl_context = oc = session.main_view.opengl_context()
         self.view = View(session.models.drawing, window_size=wx.DefaultSize, opengl_context=oc)
         # TODO: from chimerax.core.graphics.camera import OrthographicCamera
