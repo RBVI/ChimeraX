@@ -57,6 +57,26 @@ def log(session, show = False, hide = False, clear = False, save_path = None,
             log.warning_shows_dialog = warning_dialog
         if not error_dialog is None:
             log.error_shows_dialog = error_dialog
+    else:
+        log = session.logger
+        if hide:
+            log.warning("no log tool to hide")
+        if show:
+            log.warning("no log tool to show")
+        if clear:
+            log.warning("no log tool to clear")
+        if not save_path is None:
+            log.warning("no log tool to save")
+        if thumbnail:
+            log.warning("no log tool for thumbnail")
+        if text:
+            log.info(text)
+        if html:
+            log.info(html, is_html=True)
+        if not warning_dialog is None:
+            pass
+        if not error_dialog is None:
+            pass
 
 from chimerax.core.commands import CmdDesc, NoArg, BoolArg, IntArg, RestOfLine, SaveFileNameArg
 log_desc = CmdDesc(keyword = [('show', NoArg),
