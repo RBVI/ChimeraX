@@ -1506,6 +1506,9 @@ class CmdDesc:
         ci = copy.copy(self)
         ci._function = None
         return ci
+    
+    def is_alias(self):
+        return isinstance(self.function, Alias)
 
 
 class _Defer:
@@ -2254,16 +2257,17 @@ def usage(name, no_aliases=False, no_subcommands=False):
     :param no_aliases: True if aliases should not be considered.
     :returns: a usage string for the command
     """
+    name = name.strip()
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
-    if cmd.amount_parsed != len(cmd.current_text):
+    if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
 
     syntax = ''
-    arg_syntax = []
     ci = cmd._ci
     if ci:
+        arg_syntax = []
         syntax = cmd.command_name
         for arg_name in ci._required:
             type = ci._required[arg_name].name
@@ -2285,9 +2289,23 @@ def usage(name, no_aliases=False, no_subcommands=False):
             syntax += ' [%s _%s_]' % (arg_name, arg_type.name)
         if ci.synopsis:
             syntax += ' -- %s' % ci.synopsis
-
-    if arg_syntax:
-        syntax += '\n%s' % '\n'.join(arg_syntax)
+        if arg_syntax:
+            syntax += '\n%s' % '\n'.join(arg_syntax)
+        if ci.is_alias():
+            alias = ci.function
+            arg_text = cmd.current_text[cmd.amount_parsed:]
+            args = arg_text.split(maxsplit=alias.num_args)
+            if len(args) > alias.num_args:
+                optional = args[-1]
+                del args[-1]
+            else:
+                optional = ''
+            try:
+                name = alias.expand(*args, optional=optional, partial_ok=True)
+                syntax += '\n' + usage(name)
+            except Exception as e:
+                print(e)
+                pass
 
     if (not no_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
@@ -2311,14 +2329,14 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
-    if cmd.amount_parsed != len(cmd.current_text):
+    if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
     from html import escape
 
     syntax = ''
-    arg_syntax = []
     ci = cmd._ci
     if ci:
+        arg_syntax = []
         if ci.synopsis:
             syntax += "<i>%s</i><br>\n" % escape(ci.synopsis)
         if cmd._ci.url is None:
@@ -2360,9 +2378,22 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
                     type = '<a href="%s">%s</a>' % (arg_type.url, type)
                 type = ' ' + type
             syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(arg_name), type)
-
-    if arg_syntax:
-        syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
+        if arg_syntax:
+            syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
+        if ci.is_alias():
+            alias = ci.function
+            arg_text = cmd.current_text[cmd.amount_parsed:]
+            args = arg_text.split(maxsplit=alias.num_args)
+            if len(args) > alias.num_args:
+                optional = args[-1]
+                del args[-1]
+            else:
+                optional = ''
+            try:
+                name = alias.expand(*args, optional=optional, partial_ok=True)
+                syntax += '<br>' + html_usage(name)
+            except:
+                pass
 
     if (not no_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
@@ -2487,11 +2518,8 @@ class Alias:
         return CmdDesc(required=required, optional=[('optional', RestOfLine)],
                        non_keyword=['optional'], **kw)
 
-    def __call__(self, session, *args, optional='', echo_tag=None,
-                 _used_aliases=None, log=True):
-        # when echo_tag is not None, echo the substitued alias with
-        # the given tag
-        if len(args) < self.num_args:
+    def expand(self, *args, optional='', partial_ok=False):
+        if not partial_ok and len(args) < self.num_args:
             raise UserError("Not enough arguments")
         # substitute args for positional arguments
         text = ''
@@ -2504,6 +2532,13 @@ class Alias:
                 text += optional
             else:
                 text += args[part]
+        return text
+
+    def __call__(self, session, *args, optional='', echo_tag=None,
+                 _used_aliases=None, log=True):
+        # when echo_tag is not None, echo the substitued alias with
+        # the given tag
+        text = self.expand(*args, optional=optional)
         if echo_tag is not None:
             session.logger.info('%s%s' % (echo_tag, text))
         # save Command object so error reporting can give underlying error
@@ -2557,15 +2592,8 @@ def create_alias(name, text, *, user=False, logger=None):
     """
     name = ' '.join(name.split())   # canonicalize
     alias = Alias(text, user=user)
-    cmd = Command(None)
-    cmd.current_text = text
-    cmd._find_command_name()
-    if cmd.word_info is None or cmd._ci:
-        aliasing = cmd.command_name
-    else:
-        aliasing = text[0:text.find('$')].strip()
     try:
-        register(name, alias.cmd_desc(synopsis='alias of "%s"' % aliasing),
+        register(name, alias.cmd_desc(synopsis='alias of %r' % text),
                  alias, logger=logger)
     except:
         raise
