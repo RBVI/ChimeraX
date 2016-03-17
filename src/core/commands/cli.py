@@ -2245,9 +2245,9 @@ def command_url(name, no_aliases=False):
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
-    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
+    if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
-    return cmd._ci.url
+    return cmd._ci.url if cmd._ci else None
 
 
 def usage(name, no_aliases=False, no_subcommands=False):
