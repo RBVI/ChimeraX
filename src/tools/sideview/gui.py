@@ -61,8 +61,8 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
     ON_NOTHING = 0
     ON_EYE = 1
-    ON_HITHER = 2
-    ON_YON = 3
+    ON_NEAR = 2
+    ON_FAR = 3
 
     def __init__(self, parent, view, session, size, side=RIGHT_SIDE):
         attribs = session.ui.opengl_attribs
@@ -164,32 +164,34 @@ class SideViewCanvas(glcanvas.GLCanvas):
             near, far = main_view.near_far_distances(main_camera, view_num)
 
             camera = self.view.camera
-            main_pos = main_camera.get_position(view_num)
-            main_axes = main_pos.axes()
-            camera_pos = Place()
-            camera_axes = camera_pos.axes()
             # fov is sideview's vertical field of view,
             # unlike a camera, where it is the horizontal field of view
             # TODO: Handle orthographic main_camera which has no "field_of_view" attribute.
             if self.side == self.TOP_SIDE:
                 fov = radians(main_camera.field_of_view) if hasattr(main_camera, 'field_of_view') else 45
-                camera_axes[0] = -main_axes[2]
-                camera_axes[1] = -main_axes[0]
-                camera_axes[2] = main_axes[1]
             else:
                 fov = (2 * atan(wh / ww * tan(radians(main_camera.field_of_view / 2)))
                        if hasattr(main_camera, 'field_of_view') else 45)
-                camera_axes[0] = -main_axes[2]
-                camera_axes[1] = main_axes[1]
-                camera_axes[2] = main_axes[0]
-            center = main_pos.origin() + (.5 * far) * \
-                main_camera.view_direction()
-            main_view_width = main_camera.view_width(center)
-            if main_view_width is None:
-                main_view_width = far
-            camera_pos.origin()[:] = center + camera_axes[2] * \
-                main_view_width * 5
+            main_pos = main_camera.get_position(view_num)
             if not self.moving:
+                main_axes = main_pos.axes()
+                camera_pos = Place()
+                camera_axes = camera_pos.axes()
+                if self.side == self.TOP_SIDE:
+                    camera_axes[0] = -main_axes[2]
+                    camera_axes[1] = -main_axes[0]
+                    camera_axes[2] = main_axes[1]
+                else:
+                    camera_axes[0] = -main_axes[2]
+                    camera_axes[1] = main_axes[1]
+                    camera_axes[2] = main_axes[0]
+                center = main_pos.origin() + (.5 * far) * \
+                    main_camera.view_direction()
+                main_view_width = main_camera.view_width(center)
+                if main_view_width is None:
+                    main_view_width = far
+                camera_pos.origin()[:] = center + camera_axes[2] * \
+                    main_view_width * 5
                 camera.position = camera_pos
 
             # figure out how big to make applique
@@ -202,6 +204,15 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 eye = self.view.win_coord(main_pos.origin())
                 eye[2] = 0
                 loc.eye = eye
+                planes = self.main_view.clip_planes
+                p = planes.find_plane('near')
+                if p:
+                    win_pt = self.view.win_coord(p.plane_point)
+                    loc.near = win_pt[0]
+                p = planes.find_plane('far')
+                if p:
+                    win_pt = self.view.win_coord(p.plane_point)
+                    loc.far = win_pt[0]
             elif ratio * width / 1.1 < .45 * height:
                 camera.field_width = 1.1 * far
                 loc.eye = array([.05 / 1.1 * width, height / 2, 0],
@@ -223,24 +234,27 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
             self.applique.color = array([255, 0, 0, 255], dtype=uint8)
             es = self.EyeSize
+            old_vertices = self.applique.vertices
             self.applique.vertices = array([
                 loc.eye + [-es, -es, 0], loc.eye + [-es, es, 0],
                 loc.eye + [es, es, 0], loc.eye + [es, -es, 0],
                 (loc.near, loc.bottom, 0), (loc.near, loc.top, 0),
                 (loc.far, loc.bottom, 0), (loc.far, loc.top, 0),
-                (0, 0, 0), (0, 0, 0),
-                (0, 0, 0), (0, 0, 0),
+                loc.eye,
+                (0, 0, 0), (0, 0, 0)
             ], dtype=float32)
-            self.applique.vertices[8] = loc.eye
-            self.applique.vertices[9] = (loc.far, loc.far_top, 0)
-            self.applique.vertices[10] = loc.eye
-            self.applique.vertices[11] = (loc.far, loc.far_bottom, 0)
+            if self.moving and old_vertices is not None:
+                self.applique.vertices[9] = old_vertices[9]
+                self.applique.vertices[10] = old_vertices[10]
+            else:
+                self.applique.vertices[9] = (loc.far, loc.far_top, 0)
+                self.applique.vertices[10] = (loc.far, loc.far_bottom, 0)
             self.applique.triangles = array([
                 [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
                 [4, 5],    # near plane
                 [6, 7],    # far plane
                 [8, 9],    # left plane
-                [10, 11],  # right plane
+                [8, 10],   # right plane
             ], dtype=int32)
             from OpenGL import GL
             GL.glViewport(0, 0, width, height)
@@ -258,28 +272,64 @@ class SideViewCanvas(glcanvas.GLCanvas):
     def on_left_down(self, event):
         x, y = event.GetPosition()
         eye_x, eye_y = self.locations.eye[0:2]
+        near = self.locations.near
+        far = self.locations.far
         es = self.EyeSize
         if eye_x - es <= x <= eye_x + es and eye_y - es <= y <= eye_y + es:
             self.x, self.y = x, y
             self.moving = self.ON_EYE
             self.CaptureMouse()
+        elif near - es <= x <= near + es:
+            self.x, self.y = x, y
+            self.moving = self.ON_NEAR
+            self.CaptureMouse()
+        elif far - es <= x <= far + es:
+            self.x, self.y = x, y
+            self.moving = self.ON_FAR
+            self.CaptureMouse()
 
     def on_left_up(self, event):
         if self.HasCapture():
             self.ReleaseMouse()
+        was_on_far = self.moving == self.ON_FAR
         self.moving = self.ON_NOTHING
+        if was_on_far:
+            self.Refresh()
 
     def on_motion(self, event):
         if not self.HasCapture() or not event.Dragging():
             return
+        x, y = event.GetPosition()
+        psize = self.view.pixel_size()
+        shift = self.main_view.camera.position.apply_without_translation(
+            (0, 0, (x - self.x) * psize))
+        self.x, self.y = x, y
         if self.moving == self.ON_EYE:
-            x, y = event.GetPosition()
+            self.main_view.translate(shift)
+        elif self.moving == self.ON_NEAR:
             v = self.main_view
-            psize = self.view.pixel_size()
-            shift = v.camera.position.apply_without_translation(
-                (0, 0, (x - self.x) * psize))
-            v.translate(shift)
-            self.x, self.y = x, y
+            planes = v.clip_planes
+            p = planes.find_plane('near')
+            if p:
+                plane_point = p.plane_point
+            else:
+                near, far = v.near_far_distances(v.camera, None)
+                camera_pos = v.camera.position.origin()
+                vd = v.camera.view_direction()
+                plane_point = camera_pos + near * vd
+            planes.set_clip_position('near', plane_point - shift, v.camera)
+        elif self.moving == self.ON_FAR:
+            v = self.main_view
+            planes = v.clip_planes
+            p = planes.find_plane('far')
+            if p:
+                plane_point = p.plane_point
+            else:
+                near, far = v.near_far_distances(v.camera, None)
+                camera_pos = v.camera.position.origin()
+                vd = v.camera.view_direction()
+                plane_point = camera_pos + far * vd
+            planes.set_clip_position('far', plane_point - shift, v.camera)
 
 
 class SideViewUI(ToolInstance):
@@ -304,13 +354,46 @@ class SideViewUI(ToolInstance):
             side = SideViewCanvas.RIGHT_SIDE
         self.opengl_canvas = SideViewCanvas(
             parent, self.view, session, self.SIZE, side=side)
+        # self.auto_clip = wx.CheckBox(parent, label="auto clip")
+        # self.auto_clip.SetValue(True)
+        # parent.Bind(wx.EVT_CHECKBOX, self.on_autoclip, self.auto_clip)
+        self.auto_clip = wx.Button(parent, label="auto clip")
+        parent.Bind(wx.EVT_BUTTON, self.on_autoclip, self.auto_clip)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
+        sizer.Add(self.auto_clip, 0, wx.BOTTOM | wx.LEFT)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
 
-    def OnEnter(self, event):  # noqa
-        # session = self._session()  # resolve back reference
-        # Handle event
-        pass
+    def on_autoclip(self, event):
+        session = self._session()
+        v = session.main_view
+        planes = v.clip_planes
+        # if self.auto_clip.IsChecked():
+        if 1:
+            if planes:
+                planes.clear()
+            return
+
+        b = v.drawing_bounds()
+        if b is None:
+            session.logger.info("Can not turn off automatic clipping since there are no models to clip")
+            self.auto_clip.SetValue(True)
+            return
+        # from chimerax.core.graphics import ClipPlane
+        near, far = v.near_far_distances(v.camera, None)
+        camera_pos = v.camera.position.origin()
+        vd = v.camera.view_direction()
+        p = planes.find_plane('near')
+        if p is None:
+            plane_point = camera_pos + near * vd
+            # p = ClipPlane('near', vd, plane_point)
+            # planes.add_plane(p)
+            planes.set_clip_position('near', plane_point, v.camera)
+        p = planes.find_plane('far')
+        if p is None:
+            plane_point = camera_pos + far * vd
+            # p = ClipPlane('far', -vd, plane_point)
+            # planes.add_plane(p)
+            planes.set_clip_position('far', plane_point, v.camera)
