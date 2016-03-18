@@ -608,8 +608,8 @@ def selected_cages():
 # -----------------------------------------------------------------------------
 #
 def new_marker_set(session, name):
-    from chimerax.core.atomic import Graph
-    m = Graph(session, name = name)
+    from chimerax.core.atomic import Structure
+    m = Structure(session, name = name)
     m.ball_scale = 1.0
     session.models.add([m])
     return m
@@ -646,8 +646,8 @@ def add_link(a1, a2, color, radius):
 # -----------------------------------------------------------------------------
 #
 def cage_marker_sets(session):
-    from chimerax.core.atomic import Graph
-    return [m for m in session.models.list(type = Graph) if m.name == 'Cage']
+    from chimerax.core.atomic import Structure
+    return [m for m in session.models.list(type = Structure) if m.name == 'Cage']
     
 # -----------------------------------------------------------------------------
 #

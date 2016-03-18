@@ -6,7 +6,7 @@ def cage(session, cage, place_model = None, polygon_sides = 6,
 
     Parameters
     ----------
-    cage : AtomicStructure
+    cage : Structure
       Cage model.
     place_model : Model
       Place copies of model on each n-sided polygon of cage.
@@ -34,8 +34,8 @@ def cage(session, cage, place_model = None, polygon_sides = 6,
     pc = make_closest_placement_identity(p, c)
 
     # TODO: Is positioning right if cage is moved?
-    from chimerax.core.atomic import Graph
-    if surface_only and isinstance(place_model, Graph):
+    from chimerax.core.atomic import Structure
+    if surface_only and isinstance(place_model, Structure):
         from chimerax.core.commands.surface import surface
         surfs = surface(session, place_model.atoms, resolution = resolution)
         mpinv = place_model.scene_position.inverse()

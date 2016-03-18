@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-from chimerax.core.atomic import Residue, AtomicStructure
+from chimerax.core.atomic import Residue, Structure
 _StyleMap = {
     "ribbon": Residue.RIBBON,
     "pipe": Residue.PIPE,
@@ -9,14 +9,14 @@ _StyleMap = {
     "pandp": Residue.PIPE,
 }
 _OrientMap = {
-    "guides": AtomicStructure.RIBBON_ORIENT_GUIDES,
-    "atoms": AtomicStructure.RIBBON_ORIENT_ATOMS,
-    "curvature": AtomicStructure.RIBBON_ORIENT_CURVATURE,
+    "guides": Structure.RIBBON_ORIENT_GUIDES,
+    "atoms": Structure.RIBBON_ORIENT_ATOMS,
+    "curvature": Structure.RIBBON_ORIENT_CURVATURE,
 }
 _TetherShapeMap = {
-    "cone": AtomicStructure.TETHER_CONE,
-    "cylinder": AtomicStructure.TETHER_CYLINDER,
-    "steeple": AtomicStructure.TETHER_REVERSE_CONE,
+    "cone": Structure.TETHER_CONE,
+    "cylinder": Structure.TETHER_CYLINDER,
+    "steeple": Structure.TETHER_REVERSE_CONE,
 }
 
 
@@ -111,7 +111,7 @@ def cartoon_tether(session, spec=None, scale=None, shape=None, sides=None, opaci
     if scale is not None:
         models.ribbon_tether_scales = scale
     if shape is not None:
-        ts = _TetherShapeMap.get(shape, AtomicStructure.TETHER_CONE)
+        ts = _TetherShapeMap.get(shape, Structure.TETHER_CONE)
         models.ribbon_tether_shapes = ts
     if sides is not None:
         models.ribbon_tether_sides = sides

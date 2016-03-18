@@ -6,7 +6,7 @@ from .molobject import StructureData
 
 CATEGORY = io.STRUCTURE
 
-class Graph(Model, StructureData):
+class Structure(Model, StructureData):
 
     ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
         "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
@@ -188,7 +188,7 @@ class Graph(Model, StructureData):
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = Graph(session, smart_initial_display = False)
+        s = Structure(session, smart_initial_display = False)
         s.set_state_from_snapshot(session, data)
         return s
 
@@ -1243,9 +1243,9 @@ class Graph(Model, StructureData):
         # print("AtomicStructure._atomspec_filter_atom", selected)
         return selected
 
-class AtomicStructure(Graph):
+class AtomicStructure(Structure):
     """
-    Bases: :class:`.StructureData`, :class:`.Model`, :class:`.Graph`
+    Bases: :class:`.StructureData`, :class:`.Model`, :class:`.Structure`
 
     Molecular model including atomic coordinates.
     The data is managed by the :class:`.StructureData` base class
@@ -1254,7 +1254,7 @@ class AtomicStructure(Graph):
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, smart_initial_display = False)
-        Graph.set_state_from_snapshot(s, session, data)
+        Structure.set_state_from_snapshot(s, session, data)
         return s
 
 
@@ -1663,7 +1663,7 @@ def structure_atoms(structures):
 def selected_atoms(session):
     '''All selected atoms in all structures as an :class:`.Atoms` collection.'''
     alist = []
-    for m in session.models.list(type = Graph):
+    for m in session.models.list(type = Structure):
         alist.extend(m.selected_items('atoms'))
     from .molarray import concatenate, Atoms
     atoms = concatenate(alist, Atoms)
@@ -1674,7 +1674,7 @@ def selected_atoms(session):
 def selected_bonds(session):
     '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
     blist = []
-    for m in session.models.list(type = Graph):
+    for m in session.models.list(type = Structure):
         for a in m.selected_items('atoms'):
             blist.append(a.inter_bonds)
     from .molarray import concatenate, Bonds

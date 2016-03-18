@@ -17,7 +17,7 @@ class Ribbon:
         # ribbon is straight on either end.  Compute the spline
         # coefficients for each axis.  Then throw away the
         # coefficients for the fake ends.
-        from .structure import AtomicStructure
+        from .structure import Structure
         from numpy import empty, zeros
         c = empty((len(coords) + 2, 3), float)
         c[0] = coords[0] + (coords[0] - coords[1])
@@ -27,10 +27,10 @@ class Ribbon:
         for i in range(3):
             self._compute_coefficients(c, i)
         self.flipped = zeros(len(coords), bool)
-        if orient == AtomicStructure.RIBBON_ORIENT_ATOMS:
+        if orient == Structure.RIBBON_ORIENT_ATOMS:
             self.normals = self._compute_normals_from_control_points(coords)
             self.ignore_flip_mode = True
-        elif orient == AtomicStructure.RIBBON_ORIENT_CURVATURE:
+        elif orient == Structure.RIBBON_ORIENT_CURVATURE:
             self.normals = self._compute_normals_from_curvature(coords)
             self.ignore_flip_mode = True
         else:

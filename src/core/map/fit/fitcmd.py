@@ -182,8 +182,8 @@ def atoms_and_map(atoms_or_map, resolution, move_whole_molecules, sequence, each
                 else:
                     raise UserError('Fit sequence requires 2 or more maps to place')
         else:
-            from ...structure import AtomicStructure
-            mlist = [m for m in atoms_or_map.models if isinstance(m, AtomicStructure)]
+            from ...structure import Structure
+            mlist = [m for m in atoms_or_map.models if isinstance(m, Structure)]
             if len(mlist) == 0:
                 raise UserError('No molecules specified for fitting')
             from . import fitmap as F

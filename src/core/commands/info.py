@@ -33,8 +33,8 @@ def info(session, models=None):
         spos = m.selected_positions
         if spos is not None and spos.sum() > 0:
             line += ', %d selected instances' % spos.sum()
-        from ..atomic import Graph
-        if isinstance(m, Graph):
+        from ..atomic import Structure
+        if isinstance(m, Structure):
             line += ('\n%d atoms, %d bonds, %d residues, %d chains'
                     % (m.num_atoms, m.num_bonds, m.num_residues, m.num_chains))
             pmap = m.pbg_map

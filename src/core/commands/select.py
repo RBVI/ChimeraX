@@ -67,8 +67,8 @@ def select_clear(session, objects=None):
 
 def report_selection(session):
     s = session.selection
-    from ..atomic import MolecularSurface, AtomicStructure    
-    mc = len([m for m in s.models() if not isinstance(m, (AtomicStructure, MolecularSurface))])
+    from ..atomic import MolecularSurface, Structure    
+    mc = len([m for m in s.models() if not isinstance(m, (Structure, MolecularSurface))])
     ac = sum([len(atoms) for atoms in s.items('atoms')], 0)
     lines = []
     if mc == 0 and ac == 0:
@@ -94,8 +94,8 @@ def intersect_selection(objects, session):
     from .. import atomic
     selatoms = atomic.selected_atoms(session)
     subatoms = selatoms - atoms
-    from ..atomic import AtomicStructure
-    selmodels = set(m for m in session.selection.models() if not isinstance(m, AtomicStructure))
+    from ..atomic import Structure
+    selmodels = set(m for m in session.selection.models() if not isinstance(m, Structure))
     submodels = selmodels.difference(models)
     for m, matoms in subatoms.by_structure:
         m.select_atoms(matoms, selected = False)
@@ -108,11 +108,11 @@ def _atoms_and_models(objects):
     atoms = objects.atoms
     satoms = []
     models = []
-    from ..atomic import MolecularSurface, AtomicStructure
+    from ..atomic import MolecularSurface, Structure
     for m in objects.models:
         if isinstance(m, MolecularSurface):
             satoms.append(m.atoms)
-        elif not isinstance(m, AtomicStructure):
+        elif not isinstance(m, Structure):
             models.append(m)
     if satoms:
         from ..atomic import molarray

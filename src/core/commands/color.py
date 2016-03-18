@@ -309,8 +309,8 @@ def _set_sequential_structures(session, selected, cmap, opacity, target):
         from .. import colors
         cmap = colors.BuiltinColormaps["rainbow"]
 
-    from ..atomic import AtomicStructure
-    models = list(m for m in selected.models if isinstance(m, AtomicStructure))
+    from ..atomic import Structure
+    models = list(m for m in selected.models if isinstance(m, Structure))
     models.sort(key = lambda m: m.id)
     if len(models) == 0:
         return

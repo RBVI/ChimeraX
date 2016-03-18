@@ -104,7 +104,7 @@ class Changes:
         return self._changes["Residue"].total_deleted
 
     def num_deleted_structures(self):
-        """Not possible to distinguish between AtomicStructures and Graphs"""
+        """Not possible to distinguish between AtomicStructures and Structures"""
         return self._changes["Structure"].total_deleted
     num_deleted_graphs = num_deleted_structures
 

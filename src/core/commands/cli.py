@@ -847,6 +847,19 @@ class AtomsArg(Annotation):
         return atoms, text, rest
 
 
+class StructuresArg(Annotation):
+    """Parse command structures specifier"""
+    name = "atomic structures"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import Structure
+        mols = [m for m in models if isinstance(m, Structure)]
+        return mols, text, rest
+
 class AtomicStructuresArg(Annotation):
     """Parse command atomic structures specifier"""
     name = "atomic structures"
@@ -884,8 +897,8 @@ class SurfacesArg(Annotation):
         from . import atomspec
         aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
         models = aspec.evaluate(session).models
-        from ..atomic import AtomicStructure
-        surfs = [m for m in models if not isinstance(m, AtomicStructure)]
+        from ..atomic import Structure
+        surfs = [m for m in models if not isinstance(m, Structure)]
         return surfs, text, rest
 
 

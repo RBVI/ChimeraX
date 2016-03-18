@@ -324,7 +324,7 @@ def create_centroid_path(xyz, radius, color):
     # TODO: This is obsolete Hydra code.
     n = len(xyz)
     from numpy import zeros, array, float32, arange, empty
-    from ...atomic import atom_dtype, AtomicStructure
+    from ...atomic import atom_dtype, Structure
     atoms = zeros((n,), atom_dtype)
     atoms['atom_name'] = b's'
     atoms['element_number'] = 1
@@ -339,7 +339,7 @@ def create_centroid_path(xyz, radius, color):
     atoms['ribbon_color'] = (255,255,255,255)
     atoms['atom_shown'] = 1
     atoms['ribbon_shown'] = 0
-    m = AtomicStructure('centroids', atoms)
+    m = Structure('centroids', atoms)
     return m
 
 # -----------------------------------------------------------------------------

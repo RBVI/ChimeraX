@@ -2272,7 +2272,7 @@ extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structur
     }
 }
 
-extern "C" void *graph_new(PyObject* logger)
+extern "C" void *structure_new(PyObject* logger)
 {
     try {
         Graph *g = new Graph(logger);
@@ -2283,7 +2283,7 @@ extern "C" void *graph_new(PyObject* logger)
     }
 }
 
-extern "C" void *structure_new(PyObject* logger)
+extern "C" void *atomic_structure_new(PyObject* logger)
 {
     try {
         AtomicStructure *m = new AtomicStructure(logger);

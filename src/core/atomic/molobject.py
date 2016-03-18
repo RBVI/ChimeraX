@@ -525,7 +525,7 @@ class Chain(Sequence):
 #
 class StructureData:
     '''
-    This is a base class of both :class:`.AtomicStructure` and :class:`.Graph`.
+    This is a base class of both :class:`.AtomicStructure` and :class:`.Structure`.
     This base class manages the data while the
     derived class handles the graphical 3-dimensional rendering using OpenGL.
     '''
@@ -533,7 +533,7 @@ class StructureData:
         if mol_pointer is None:
             # Create a new graph
             from .structure import AtomicStructure
-            new_func = 'structure_new' if isinstance(self, AtomicStructure) else 'graph_new'
+            new_func = 'atomic_structure_new' if isinstance(self, AtomicStructure) else 'structure_new'
             mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
 
@@ -719,7 +719,7 @@ class StructureData:
 
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''
-        # the save setup/teardown handled in Graph/AtomicStructure class, so that
+        # the save setup/teardown handled in Structure/AtomicStructure class, so that
         # the trigger handlers can be deregistered when the object is deleted
         f = c_function('structure_session_info',
                     args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object,
@@ -815,6 +815,8 @@ class ChangeTracker:
             return 3
         if klass.__name__ == "Chain":
             return 4
+        if klass.__name__ == "Structure":
+            return 5
         if klass.__name__ == "AtomicStructure":
             return 5
         if klass.__name__ == "PseudobondGroup":
