@@ -815,6 +815,23 @@ class View:
         scene_pts = (origin + f0*direction, origin + f1*direction)
         return scene_pts
 
+    def win_coord(self, pt, camera=None, view_num=None):
+        """Convert world coordinate to window coordinate"""
+        # TODO: extend to handle numpy array of points
+        c = self.camera if camera is None else camera
+        near_far = self.near_far_distances(c, view_num)
+        pm = c.projection_matrix(near_far, view_num, self.window_size)
+        inv_position = c.position.inverse().opengl_matrix()
+        from numpy import array, float32, concatenate
+        xpt = concatenate((pt, [1])) @ inv_position @ pm
+        width, height = self.window_size
+        win_pt = array([
+            (xpt[0] + 1) * width / 2,
+            (xpt[1] + 1) * height / 2,
+            (xpt[2] + 1) / 2
+        ], dtype=float32)
+        return win_pt
+
     def rotate(self, axis, angle, drawings=None):
         '''
         Move camera to simulate a rotation of drawings about current

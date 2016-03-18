@@ -43,6 +43,8 @@ See also:
 ** <b>Known bug: resizing the graphics window and changing its aspect ratio
 currently changes the size and aspect ratio of 2D labels</b> **
 </p><p>
+** <b>Other limitations: not saved in sessions, only works on Mac</b> **
+</p><p>
 The <b><i>action</i></b> can be one of the following:
 </p>
 <ul>
@@ -102,10 +104,9 @@ that specifies a single color (default <b>white</b>).
 Any transparency in the color is ignored.
 The <i>font-size</i> must be an integer greater than zero 
 (default <b>24</b>). 
-** <b>The typeface option may only work on Mac,</b> **
-where <i>font-typeface</i> must be the name 
+The <i>font-typeface</i> must be the name 
 (minus the &ldquo;.ttf&rdquo; suffix)
-of a font file installed in /Library/Fonts/ 
+of a font file installed in the <b>Mac</b> /Library/Fonts/ directory
 (default <b>Arial</b>).
 The <i>x-position</i> and <i>y-position</i> are the X and Y
 coordinates of the lower lefthand corner of the label 
