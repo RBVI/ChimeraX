@@ -64,13 +64,14 @@ class SideViewCanvas(glcanvas.GLCanvas):
     ON_NEAR = 2
     ON_FAR = 3
 
-    def __init__(self, parent, view, session, size, side=RIGHT_SIDE):
+    def __init__(self, parent, view, session, panel, size, side=RIGHT_SIDE):
         attribs = session.ui.opengl_attribs
         if not glcanvas.GLCanvas.IsDisplaySupported(attribs):
             raise AssertionError(
                 "Missing required OpenGL capabilities for Side View")
         self.view = view
         self.session = session
+        self.panel = panel
         self.main_view = session.main_view
         self.side = side
         # self.side = self.TOP_SIDE  # DEBUG
@@ -178,9 +179,11 @@ class SideViewCanvas(glcanvas.GLCanvas):
             near_plane = planes.find_plane('near')
             if near_plane:
                 near = near_plane.offset(main_pos.origin())
+                self.panel.auto_clip_near.SetValue(False)
             far_plane = planes.find_plane('far')
             if far_plane:
                 far = -far_plane.offset(main_pos.origin())
+                self.panel.auto_clip_far.SetValue(False)
             if not self.moving:
                 main_axes = main_pos.axes()
                 camera_pos = Place()
@@ -374,47 +377,61 @@ class SideViewUI(ToolInstance):
         else:
             side = SideViewCanvas.RIGHT_SIDE
         self.opengl_canvas = SideViewCanvas(
-            parent, self.view, session, self.SIZE, side=side)
-        # self.auto_clip = wx.CheckBox(parent, label="auto clip")
-        # self.auto_clip.SetValue(True)
-        # parent.Bind(wx.EVT_CHECKBOX, self.on_autoclip, self.auto_clip)
-        self.auto_clip = wx.Button(parent, label="auto clip")
-        parent.Bind(wx.EVT_BUTTON, self.on_autoclip, self.auto_clip)
+            parent, self.view, session, self, self.SIZE, side=side)
+        auto_clip = wx.StaticText(parent, label="auto clip:")
+        self.auto_clip_near = wx.CheckBox(parent, label="near")
+        self.auto_clip_near.SetValue(True)
+        parent.Bind(wx.EVT_CHECKBOX, self.on_autoclip_near, self.auto_clip_near)
+        self.auto_clip_far = wx.CheckBox(parent, label="far")
+        self.auto_clip_far.SetValue(True)
+        parent.Bind(wx.EVT_CHECKBOX, self.on_autoclip_far, self.auto_clip_far)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(auto_clip, 1, wx.LEFT | wx.ALIGN_CENTER_VERTICAL)
+        button_sizer.Add(self.auto_clip_near, 1, wx.LEFT)
+        button_sizer.Add(self.auto_clip_far, 1, wx.LEFT)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
-        sizer.Add(self.auto_clip, 0, wx.BOTTOM | wx.LEFT)
+        sizer.Add(button_sizer, 0, wx.BOTTOM | wx.LEFT)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
 
-    def on_autoclip(self, event):
+    def on_autoclip_near(self, event):
         session = self._session()
         v = session.main_view
         planes = v.clip_planes
-        # if self.auto_clip.IsChecked():
-        if 1:
-            if planes:
-                planes.clear()
+        if self.auto_clip_near.IsChecked():
+            planes.remove_plane('near')
             return
+        p = planes.find_plane('near')
+        if p:
+            return
+        near, far = v.near_far_distances(v.camera, None)
+        camera_pos = v.camera.position.origin()
+        vd = v.camera.view_direction()
+        plane_point = camera_pos + near * vd
+        planes.set_clip_position('near', plane_point, v.camera)
 
+    def on_autoclip_far(self, event):
+        session = self._session()
+        v = session.main_view
+        planes = v.clip_planes
+        if self.auto_clip_far.IsChecked():
+            planes.remove_plane('far')
+            return
+        p = planes.find_plane('far')
+        if p:
+            return
+        near, far = v.near_far_distances(v.camera, None)
+        camera_pos = v.camera.position.origin()
+        vd = v.camera.view_direction()
+        plane_point = camera_pos + far * vd
+        planes.set_clip_position('far', plane_point, v.camera)
+
+    def on_autoclip(self, event):
         b = v.drawing_bounds()
         if b is None:
             session.logger.info("Can not turn off automatic clipping since there are no models to clip")
             self.auto_clip.SetValue(True)
             return
-        # from chimerax.core.graphics import ClipPlane
-        near, far = v.near_far_distances(v.camera, None)
-        camera_pos = v.camera.position.origin()
-        vd = v.camera.view_direction()
-        p = planes.find_plane('near')
-        if p is None:
-            plane_point = camera_pos + near * vd
-            # p = ClipPlane('near', vd, plane_point)
-            # planes.add_plane(p)
-            planes.set_clip_position('near', plane_point, v.camera)
-        p = planes.find_plane('far')
-        if p is None:
-            plane_point = camera_pos + far * vd
-            # p = ClipPlane('far', -vd, plane_point)
-            # planes.add_plane(p)
-            planes.set_clip_position('far', plane_point, v.camera)
