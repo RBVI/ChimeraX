@@ -478,7 +478,7 @@ class RotateMouseMode(MouseMode):
         cx, cy = x-0.5*w, y-0.5*h
         from math import sqrt
         r = sqrt(cx*cx + cy*cy)
-        fperim = 0.8
+        fperim = 0.9
         self.mouse_perimeter = (r > fperim*0.5*min(w,h))
 
     def mouse_up(self, event):
