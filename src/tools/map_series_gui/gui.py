@@ -33,10 +33,10 @@ class MapSeries(ToolInstance):
         tt.Bind(wx.EVT_SPINCTRL, self.time_changed_cb)
         self.slider = sl = wx.Slider(parent, value=0, minValue=0, maxValue=max(0,n-1))
         sl.Bind(wx.EVT_SLIDER, self.slider_moved_cb)
-        self.play_button = pb = wx.ToggleButton(parent, style=wx.BU_EXACTFIT)
+        self.play_button = pb = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
         self.set_play_button_icon(play=True)
         pb.Bind(wx.EVT_TOGGLEBUTTON, self.play_cb)
-        self.subsample_button = x2 = wx.ToggleButton(parent, style=wx.BU_EXACTFIT)
+        self.subsample_button = x2 = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
         from os.path import dirname, join
         hbm = wx.Bitmap(join(dirname(__file__), 'half.png'))
         x2.SetBitmap(hbm)

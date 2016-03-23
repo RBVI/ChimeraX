@@ -20,7 +20,7 @@ _TetherShapeMap = {
 }
 
 
-def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=None, orient=None,
+def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, orient=None,
             show_spine=False):
     '''Display cartoon for specified residues.
 
@@ -29,7 +29,7 @@ def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=None, ori
     spec : atom specifier
         Show ribbons for the specified residues. If no atom specifier is given then ribbons are shown
         for all residues.  Residues that are already shown as ribbons remain shown as ribbons.
-    adjust : floating point number
+    smooth : floating point number
         Adjustment factor for strand and helix smoothing.  A factor of zero means the
         cartoon will pass through the atom position.  A factor of one means the cartoon
         will pass through the "ideal" position, e.g., center of the cylinder that best
@@ -58,11 +58,11 @@ def cartoon(session, spec=None, adjust=None, style=None, hide_backbone=None, ori
     results = spec.evaluate(session)
     residues = results.atoms.residues
     residues.ribbon_displays = True
-    if adjust is not None:
-        if adjust is "default":
+    if smooth is not None:
+        if smooth is "default":
             # Convert to C++ default value
-            adjust = -1.0
-        residues.ribbon_adjusts = adjust
+            smooth = -1.0
+        residues.ribbon_adjusts = smooth
     if style is not None:
         s = _StyleMap.get(style, Residue.RIBBON)
         residues.ribbon_styles = s
@@ -144,7 +144,7 @@ def initialize(command_name):
     else:
         from chimerax.core.commands import Or, Bounded, FloatArg, EnumOf, BoolArg, IntArg
         desc = CmdDesc(optional=[("spec", AtomSpecArg)],
-                       keyword=[("adjust", Or(Bounded(FloatArg, 0.0, 1.0),
+                       keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
                                               EnumOf(["default"]))),
                                 ("style", EnumOf(list(_StyleMap.keys()))),
                                 ("orient", EnumOf(list(_OrientMap.keys()))),
