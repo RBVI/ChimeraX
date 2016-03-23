@@ -1264,6 +1264,31 @@ class AtomicStructure(Graph):
     def added_to_session(self, session):
         super().added_to_session(session)
         self._set_chain_descriptions(session)
+        self._determine_het_res_descriptions(session)
+
+    def _determine_het_res_descriptions(self, session):
+        # Don't actually set the description in the residue in order to avoid having
+        # to create all the residue objects; just determine the descriptions to
+        # be looked up later on demand
+        hnd = self._hetnam_descriptions = {}
+        recs = self.metadata.get('HETNAM', []) + self.metadata.get('HETSYN', [])
+        alternatives = {}
+        for rec in recs:
+            if rec[8:10].strip():
+                # continuation
+                hnd[het] = hnd[het] + rec[15:].strip()
+            else:
+                het = rec[11:14].strip()
+                if het in hnd:
+                    alternatives[het] = hnd[het]
+                hnd[het] = rec[15:].strip()
+        # use "punchier" description :-)
+        for het, alt in alternatives.items():
+            if len(alt) < len(hnd[het]):
+                hnd[het] = alt
+        from .pdb import process_chem_name
+        for k, v in hnd.items():
+            hnd[k] = process_chem_name(v)
 
     def _set_chain_descriptions(self, session):
         chain_to_desc = {}
@@ -1465,13 +1490,14 @@ from ..graphics import Pick
 class PickedAtom(Pick):
     def __init__(self, atom, distance):
         Pick.__init__(self, distance)
-        self._atom = atom
+        self.atom = atom
     def description(self):
-        return atom_description(self._atom)
+        return atom_description(self.atom)
+    @property
     def residue(self):
-        return self._atom.residue
+        return self.atom.residue
     def select(self, toggle = False):
-        a = self._atom
+        a = self.atom
         a.structure.select_atom(a, toggle)
 
 # -----------------------------------------------------------------------------
@@ -1479,17 +1505,18 @@ class PickedAtom(Pick):
 class PickedAtoms(Pick):
     def __init__(self, atoms):
         Pick.__init__(self)
-        self._atoms = atoms
+        self.atoms = atoms
     def description(self):
-        return '%d atoms' % len(self._atoms)
+        return '%d atoms' % len(self.atoms)
+    @property
     def residue(self):
-        rs = self._atoms.residues
+        rs = self.atoms.residues
         if len(rs) == 1:
             for res in residues:
                 return res
         return None
     def select(self, toggle = False):
-        a = self._atoms
+        a = self.atoms
         if toggle:
             from numpy import logical_not
             a.selected = logical_not(a.selected)
@@ -1531,17 +1558,18 @@ def _bond_intercept(bonds, mxyz1, mxyz2):
 class PickedBond(Pick):
     def __init__(self, bond, distance):
         Pick.__init__(self, distance)
-        self._bond = bond
+        self.bond = bond
     def description(self):
-        return bond_description(self._bond)
+        return bond_description(self.bond)
+    @property
     def residue(self):
-        rs = self._bond.atoms.residues
+        rs = self.bond.atoms.residues
         if len(rs) == 1:
             for res in rs:
                 return res
         return None
     def select(self, toggle = False):
-        for a in self._bond.atoms:
+        for a in self.bond.atoms:
             a.structure.select_atom(a, toggle)
 
 # -----------------------------------------------------------------------------
@@ -1549,17 +1577,18 @@ class PickedBond(Pick):
 class PickedPseudobond(Pick):
     def __init__(self, pbond, distance):
         Pick.__init__(self, distance)
-        self._pbond = pbond
+        self.pbond = pbond
     def description(self):
-        return bond_description(self._pbond)
+        return bond_description(self.pbond)
+    @property
     def residue(self):
-        rs = self._pbond.atoms.residues
+        rs = self.pbond.atoms.residues
         if len(rs) == 1:
             for res in rs:
                 return res
         return None
     def select(self, toggle = False):
-        for a in self._pbond.atoms:
+        for a in self.pbond.atoms:
             a.structure.select_atom(a, toggle)
 
 # -----------------------------------------------------------------------------
@@ -1594,13 +1623,11 @@ from ..graphics import Pick
 class PickedResidue(Pick):
     def __init__(self, residue, distance):
         Pick.__init__(self, distance)
-        self._residue = residue
+        self.residue = residue
     def description(self):
-        return residue_description(self._residue)
-    def residue(self):
-        return self._residue
+        return residue_description(self.residue)
     def select(self, toggle=False):
-        r = self._residue
+        r = self.residue
         r.structure.select_residue(r, toggle)
 
 # -----------------------------------------------------------------------------
@@ -1608,16 +1635,17 @@ class PickedResidue(Pick):
 class PickedResidues(Pick):
     def __init__(self, residues):
         Pick.__init__(self)
-        self._residues = residues
+        self.residues = residues
     def description(self):
-        return '%d residues' % len(self._residues)
+        return '%d residues' % len(self.residues)
+    @property
     def residue(self):
-        if len(self._residues) == 1:
-            for res in self._residues:
+        if len(self.residues) == 1:
+            for res in self.residues:
                 return res
         return None
     def select(self, toggle = False):
-        a = self._residues.atoms
+        a = self.residues.atoms
         if toggle:
             from numpy import logical_not
             a.selected = logical_not(a.selected)

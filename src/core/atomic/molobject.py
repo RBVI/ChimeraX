@@ -19,7 +19,7 @@ def _bonds(p):
     from .molarray import Bonds
     return Bonds(p)
 def _chain(p):
-    if p == 0: return None
+    if not p: return None
     return object_map(p, Chain)
 def _element(p):
     return object_map(p, Element)
@@ -40,7 +40,7 @@ def _chains(p):
     from .molarray import Chains
     return Chains(p)
 def _atomic_structure(p):
-    if p == 0: return None
+    if not p: return None
     return object_map(p, StructureData)
 def _pseudobond_group(p):
     from .pbgroup import PseudobondGroup
@@ -415,6 +415,10 @@ class Residue:
     ''':class:`.Chain` that this residue belongs to, if any. Read only.'''
     chain_id = c_property('residue_chain_id', string, read_only = True)
     '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
+    @property
+    def description(self):
+        '''Description of residue (if available) from HETNAM/HETSYN records or equivalent'''
+        return getattr(self.structure, '_hetnam_descriptions', {}).get(self.name, None)
     PT_NONE = 0
     '''Residue polymer type = none.'''
     PT_AMINO = 1
