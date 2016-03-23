@@ -1229,6 +1229,12 @@ extern "C" void residue_atoms(void *residues, size_t n, pyobject_t *atoms)
     }
 }
 
+extern "C" void residue_chain(void *residues, size_t n, pyobject_t *chainp)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::chain, chainp);
+}
+
 extern "C" void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -2340,6 +2346,54 @@ extern "C" void *structure_new_residue(void *mol, const char *residue_name, cons
     }
 }
 
+extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
+{
+    Graph **m = static_cast<Graph **>(mols);
+    PyObject* header_map = NULL;
+    try {
+        for (size_t i = 0; i < n; ++i) {
+            header_map = PyDict_New();
+            auto& metadata = m[i]->metadata;
+            for (auto& item: metadata) {
+                PyObject* key = unicode_from_string(item.first);
+                auto& headers = item.second;
+                size_t count = headers.size();
+                PyObject* values = PyList_New(count);
+                for (size_t i = 0; i != count; ++i)
+                    PyList_SetItem(values, i, unicode_from_string(headers[i]));
+                PyDict_SetItem(header_map, key, values);
+            }
+            headers[i] = header_map;
+            header_map = NULL;
+        }
+    } catch (...) {
+        Py_XDECREF(header_map);
+        molc_error();
+    }
+}
+
+extern "C" void pdb_version(void *mols, size_t n, int32_t *version)
+{
+    Graph **m = static_cast<Graph **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            version[i] = m[i]->pdb_version;
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_pdb_version(void *mols, size_t n, int32_t *version)
+{
+    Graph **m = static_cast<Graph **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            m[i]->pdb_version = version[i];
+    } catch (...) {
+        molc_error();
+    }
+}
+
 // -------------------------------------------------------------------------
 // element functions
 //
@@ -2988,32 +3042,6 @@ extern "C" void pointer_intersects_each(void *pointer_arrays, size_t na, size_t 
                 }
         }
     } catch (...) {
-        molc_error();
-    }
-}
-
-extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
-{
-    Graph **m = static_cast<Graph **>(mols);
-    PyObject* header_map = NULL;
-    try {
-        for (size_t i = 0; i < n; ++i) {
-            header_map = PyDict_New();
-            auto& metadata = m[i]->metadata;
-            for (auto& item: metadata) {
-                PyObject* key = unicode_from_string(item.first);
-                auto& headers = item.second;
-                size_t count = headers.size();
-                PyObject* values = PyList_New(count);
-                for (size_t i = 0; i != count; ++i)
-                    PyList_SetItem(values, i, unicode_from_string(headers[i]));
-                PyDict_SetItem(header_map, key, values);
-            }
-            headers[i] = header_map;
-            header_map = NULL;
-        }
-    } catch (...) {
-        Py_XDECREF(header_map);
         molc_error();
     }
 }

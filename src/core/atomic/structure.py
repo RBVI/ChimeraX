@@ -78,6 +78,9 @@ class Graph(Model, StructureData):
 
         self._make_drawing()
 
+    def __str__(self):
+        return self.name
+
     def delete(self):
         '''Delete this structure.'''
         self._deleted = True
@@ -1251,11 +1254,94 @@ class AtomicStructure(Graph):
     The data is managed by the :class:`.StructureData` base class
     which provides access to the C++ structures.
     """
+
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, smart_initial_display = False)
         Graph.set_state_from_snapshot(s, session, data)
         return s
+
+    def added_to_session(self, session):
+        super().added_to_session(session)
+        self._set_chain_descriptions(session)
+
+    def _set_chain_descriptions(self, session):
+        chain_to_desc = {}
+        if 'pdbx_poly_seq_scheme' in self.metadata:
+            scheme = self.metatdata.get('pdbx_poly_seq_scheme', [])
+            id_to_index = {}
+            for sch in scheme:
+                id_to_index[sch['pdb_strand_id']] = int(sch['entity_id']) - 1
+            entity = self.metatdata.get('entity', [])
+            entity_name_com = self.metatdata.get('entity_name_com', [])
+            for chain_id, index in id_to_index.items():
+                description = None
+                # try SYNONYM equivalent first
+                if len(entity_name_com) > index:
+                    syn = entity_name_com[index]['name']
+                    if syn != '?':
+                        description = syn
+                        synonym = True
+                if not description and len(entity) > index:
+                    description = entity[index]['pdbx_description']
+                    synonym = False
+                if description:
+                    chain_to_desc[chain_id] = (description, synonym)
+        elif 'COMPND' in self.metadata and self.pdb_version > 1:
+            compnd_recs = self.metadata['COMPND']
+            compnd_chain_ids = None
+            description = ""
+            continued = False
+            for rec in compnd_recs:
+                if continued:
+                    v += " " + rec[10:].strip()
+                else:
+                    try:
+                        k, v = rec[10:].strip().split(": ", 1)
+                    except ValueError:
+                        # bad PDB file
+                        break
+                if v.endswith(';'):
+                    v = v[:-1]
+                    continued = False
+                elif rec == compnd_recs[-1]:
+                    continued = False
+                else:
+                    continued = True
+                    continue
+                if k == "MOL_ID":
+                    if compnd_chain_ids and description:
+                        for chain_id in compnd_chain_ids:
+                            chain_to_desc[chain_id] = (description, synonym)
+                    compnd_chain_ids = None
+                    description = ""
+                elif k == "MOLECULE":
+                    if v.startswith("PROTEIN (") and v.endswith(")"):
+                        description = v[9:-1]
+                    else:
+                        description = v
+                    synonym = False
+                elif k == "SYNONYM":
+                    if ',' not in v:
+                        # not a long list of synonyms
+                        description = v
+                        synonym = True
+                elif k == "CHAIN":
+                    compnd_chain_ids = v.split(", ")
+            if compnd_chain_ids and description:
+                for chain_id in compnd_chain_ids:
+                    chain_to_desc[chain_id] = (description, synonym)
+        if chain_to_desc:
+            from .pdb import process_chem_name
+            for k, v in chain_to_desc.items():
+                description, synonym = v
+                chain_to_desc[k] = process_chem_name(description, probable_abbrs=synonym)
+            chains = sorted(self.chains, key=lambda c: c.chain_id)
+            for chain in chains:
+                chain.description = chain_to_desc.get(chain.chain_id, None)
+                if chain.description:
+                    session.logger.info("%s, chain %s: %s" % (self, chain.chain_id,
+                        chain.description))
 
 
 # -----------------------------------------------------------------------------
@@ -1379,11 +1465,13 @@ from ..graphics import Pick
 class PickedAtom(Pick):
     def __init__(self, atom, distance):
         Pick.__init__(self, distance)
-        self.atom = atom
+        self._atom = atom
     def description(self):
-        return atom_description(self.atom)
+        return atom_description(self._atom)
+    def residue(self):
+        return self._atom.residue
     def select(self, toggle = False):
-        a = self.atom
+        a = self._atom
         a.structure.select_atom(a, toggle)
 
 # -----------------------------------------------------------------------------
@@ -1391,11 +1479,17 @@ class PickedAtom(Pick):
 class PickedAtoms(Pick):
     def __init__(self, atoms):
         Pick.__init__(self)
-        self.atoms = atoms
+        self._atoms = atoms
     def description(self):
-        return '%d atoms' % len(self.atoms)
+        return '%d atoms' % len(self._atoms)
+    def residue(self):
+        rs = self._atoms.residues
+        if len(rs) == 1:
+            for res in residues:
+                return res
+        return None
     def select(self, toggle = False):
-        a = self.atoms
+        a = self._atoms
         if toggle:
             from numpy import logical_not
             a.selected = logical_not(a.selected)
@@ -1437,11 +1531,17 @@ def _bond_intercept(bonds, mxyz1, mxyz2):
 class PickedBond(Pick):
     def __init__(self, bond, distance):
         Pick.__init__(self, distance)
-        self.bond = bond
+        self._bond = bond
     def description(self):
-        return bond_description(self.bond)
+        return bond_description(self._bond)
+    def residue(self):
+        rs = self._bond.atoms.residues
+        if len(rs) == 1:
+            for res in rs:
+                return res
+        return None
     def select(self, toggle = False):
-        for a in self.bond.atoms:
+        for a in self._bond.atoms:
             a.structure.select_atom(a, toggle)
 
 # -----------------------------------------------------------------------------
@@ -1449,11 +1549,17 @@ class PickedBond(Pick):
 class PickedPseudobond(Pick):
     def __init__(self, pbond, distance):
         Pick.__init__(self, distance)
-        self.pbond = pbond
+        self._pbond = pbond
     def description(self):
-        return bond_description(self.pbond)
+        return bond_description(self._pbond)
+    def residue(self):
+        rs = self._pbond.atoms.residues
+        if len(rs) == 1:
+            for res in rs:
+                return res
+        return None
     def select(self, toggle = False):
-        for a in self.pbond.atoms:
+        for a in self._pbond.atoms:
             a.structure.select_atom(a, toggle)
 
 # -----------------------------------------------------------------------------
@@ -1488,11 +1594,13 @@ from ..graphics import Pick
 class PickedResidue(Pick):
     def __init__(self, residue, distance):
         Pick.__init__(self, distance)
-        self.residue = residue
+        self._residue = residue
     def description(self):
-        return residue_description(self.residue)
+        return residue_description(self._residue)
+    def residue(self):
+        return self._residue
     def select(self, toggle=False):
-        r = self.residue
+        r = self._residue
         r.structure.select_residue(r, toggle)
 
 # -----------------------------------------------------------------------------
@@ -1500,11 +1608,16 @@ class PickedResidue(Pick):
 class PickedResidues(Pick):
     def __init__(self, residues):
         Pick.__init__(self)
-        self.residues = residues
+        self._residues = residues
     def description(self):
-        return '%d residues' % len(self.residues)
+        return '%d residues' % len(self._residues)
+    def residue(self):
+        if len(self._residues) == 1:
+            for res in self._residues:
+                return res
+        return None
     def select(self, toggle = False):
-        a = self.residues.atoms
+        a = self._residues.atoms
         if toggle:
             from numpy import logical_not
             a.selected = logical_not(a.selected)

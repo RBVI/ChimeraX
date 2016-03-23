@@ -18,6 +18,9 @@ def _atom_or_none(p):
 def _bonds(p):
     from .molarray import Bonds
     return Bonds(p)
+def _chain(p):
+    if p == 0: return None
+    return object_map(p, Chain)
 def _element(p):
     return object_map(p, Element)
 def _pseudobonds(p):
@@ -408,6 +411,8 @@ class Residue:
 
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
+    chain = c_property('residue_chain', cptr, astype = _chain, read_only = True)
+    ''':class:`.Chain` that this residue belongs to, if any. Read only.'''
     chain_id = c_property('residue_chain_id', string, read_only = True)
     '''Protein Data Bank chain identifier. Limited to 4 characters. Read only string.'''
     PT_NONE = 0
@@ -455,7 +460,7 @@ class Residue:
     form. Read only.
     '''
     structure = c_property('residue_structure', cptr, astype = _atomic_structure, read_only = True)
-    ''':class:`.AtomicStructure` that this residue belongs too. Read only.'''
+    ''':class:`.AtomicStructure` that this residue belongs to. Read only.'''
 
     # TODO: Currently no C++ method to get Chain
 
@@ -497,6 +502,8 @@ class Chain(Sequence):
     '''
     def __init__(self, chain_pointer):
         super().__init__(chain_pointer)
+        # description derived from PDB/mmCIF info and set by AtomicStructure constructor
+        self.description = None
 
     chain_id = c_property('chain_chain_id', string, read_only = True)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
@@ -513,13 +520,18 @@ class Chain(Sequence):
     '''Number of residues belonging to this chain, including those without structure. Read only.'''
 
     def take_snapshot(self, session, flags):
-        data = {'structure': self.structure,
-                'ses_id': self.structure.session_chain_to_id(self._c_pointer)}
+        data = {
+            'description': self.description,
+            'ses_id': self.structure.session_chain_to_id(self._c_pointer),
+            'structure': self.structure
+        }
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
+        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
+        chain.description = data.get('description', None)
+        return chain
 
 # -----------------------------------------------------------------------------
 #
@@ -565,6 +577,8 @@ class StructureData:
     '''Dictionary mapping name to :class:`.PseudobondGroup` for pseudobond groups
     belonging to this structure. Read only.'''
     metadata = c_property('metadata', pyobject, read_only = True)
+    '''Dictionary with metadata. Read only.'''
+    pdb_version = c_property('pdb_version', int32)
     '''Dictionary with metadata. Read only.'''
     ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32)
     '''Ribbon tether thickness scale factor (1.0 = match displayed atom radius, 0=invisible).'''
