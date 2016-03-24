@@ -48,6 +48,8 @@ def _pseudobond_group(p):
 def _pseudobond_group_map(pbgc_map):
     pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
+def _str_or_none(s):
+    return s if s else None
 
 # -----------------------------------------------------------------------------
 #
@@ -114,6 +116,19 @@ class Atom:
     def __init__(self, c_pointer):
         set_c_pointer(self, c_pointer)
 
+    def __str__(self, atom_only = False):
+        from ..core_settings import settings
+        cmd_style = settings.atomspec_contents == "command-line specifier"
+        if cmd_style:
+            atom_str = '@' + self.name
+        else:
+            atom_str = self.name
+        if atom_only:
+            return atom_str
+        if cmd_style:
+            return str(self.residue) + atom_str
+        return str(self.residue) + " " + atom_str
+
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
         f = c_function('atom_connects_to', args = (ctypes.c_void_p, ctypes.c_void_p),
@@ -164,6 +179,19 @@ class Bond:
     '''
     def __init__(self, bond_pointer):
         set_c_pointer(self, bond_pointer)
+
+    def __str__(self):
+        a1, a2 = self.atoms
+        bond_sep = " \N{Left Right Arrow} "
+        if a1.residue == a2.residue:
+            return str(a1) + bond_sep + a2.__str__(atom_only=True)
+        if a1.structure == a2.structure:
+            # tautology for bonds, but this func is conscripted by pseudobonds, so test...
+            res_str = a2.residue.__str__(residue_only=True)
+            atom_str = a2.__str__(atom_only=True)
+            joiner = "" if res_str.startswith(":") else " "
+            return str(a1) + bond_sep + res_str + joiner + atom_str
+        return str(a1) + bond_sep + str(a2)
 
     atoms = c_property('bond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
     '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
@@ -227,6 +255,8 @@ class Pseudobond:
     '''
     def __init__(self, pbond_pointer):
         set_c_pointer(self, pbond_pointer)
+
+    __str__ = Bond.__str__
 
     atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
     '''Two-tuple of :py:class:`Atom` objects that are the bond end points.'''
@@ -409,6 +439,25 @@ class Residue:
     def __init__(self, residue_pointer):
         set_c_pointer(self, residue_pointer)
 
+    def __str__(self, residue_only = False):
+        from ..core_settings import settings
+        cmd_style = settings.atomspec_contents == "command-line specifier"
+        ic = self.insertion_code if self.insertion_code else ""
+        if cmd_style:
+            res_str = ":" + str(self.number) + ic
+        else:
+            res_str = self.name + " " + str(self.number) + ic
+        if residue_only:
+            return res_str
+        chain_str = '/' + self.chain_id
+        from ..core_settings import settings
+        if cmd_style:
+            return str(self.structure) + chain_str + res_str
+        from .structure import Graph
+        if len(self.structure.session.models.list(type=Graph)) > 1:
+            return str(self.structure) + chain_str + " " + res_str
+        return chain_str + " " + res_str
+
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
     chain = c_property('residue_chain', cptr, astype = _chain, read_only = True)
@@ -419,6 +468,12 @@ class Residue:
     def description(self):
         '''Description of residue (if available) from HETNAM/HETSYN records or equivalent'''
         return getattr(self.structure, '_hetnam_descriptions', {}).get(self.name, None)
+    insertion_code = c_property('residue_insertion_code', string, astype = _str_or_none, read_only = True)
+    '''Protein Data Bank residue insertion code. 1 character or None. Read only'''
+    is_helix = c_property('residue_is_helix', npy_bool)
+    '''Whether this residue belongs to a protein alpha helix. Boolean value.'''
+    is_sheet = c_property('residue_is_sheet', npy_bool)
+    '''Whether this residue belongs to a protein beta sheet. Boolean value.'''
     PT_NONE = 0
     '''Residue polymer type = none.'''
     PT_AMINO = 1
@@ -427,12 +482,17 @@ class Residue:
     '''Residue polymer type = nucleotide.'''
     polymer_type = c_property('residue_polymer_type', int32, read_only = True)
     '''Polymer type of residue. Integer value.'''
-    is_helix = c_property('residue_is_helix', npy_bool)
-    '''Whether this residue belongs to a protein alpha helix. Boolean value.'''
-    is_sheet = c_property('residue_is_sheet', npy_bool)
-    '''Whether this residue belongs to a protein beta sheet. Boolean value.'''
-    ss_id = c_property('residue_ss_id', int32)
-    '''Secondary structure id number. Integer value.'''
+    name = c_property('residue_name', string, read_only = True)
+    '''Residue name. Maximum length 4 characters. Read only.'''
+    num_atoms = c_property('residue_num_atoms', size_t, read_only = True)
+    '''Number of atoms belonging to the residue. Read only.'''
+    number = c_property('residue_number', int32, read_only = True)
+    '''Integer sequence position number as defined in the input data file. Read only.'''
+    principal_atom = c_property('residue_principal_atom', cptr, astype = _atom_or_none, read_only=True)
+    '''The 'chain trace' :class:`.Atom`\\ , if any.
+
+    Normally returns the C4' from a nucleic acid since that is always present,
+    but in the case of a P-only trace it returns the P.'''
     ribbon_display = c_property('residue_ribbon_display', npy_bool)
     '''Whether to display the residue as a ribbon/pipe/plank. Boolean value.'''
     ribbon_hide_backbone = c_property('residue_ribbon_hide_backbone', npy_bool)
@@ -447,22 +507,8 @@ class Residue:
     '''Ribbon style = pipe/plank.'''
     ribbon_adjust = c_property('residue_ribbon_adjust', float32)
     '''Smoothness adjustment factor (no adjustment = 0 <= factor <= 1 = idealized).'''
-    name = c_property('residue_name', string, read_only = True)
-    '''Residue name. Maximum length 4 characters. Read only.'''
-    num_atoms = c_property('residue_num_atoms', size_t, read_only = True)
-    '''Number of atoms belonging to the residue. Read only.'''
-    number = c_property('residue_number', int32, read_only = True)
-    '''Integer sequence position number as defined in the input data file. Read only.'''
-    principal_atom = c_property('residue_principal_atom', cptr, astype = _atom_or_none, read_only=True)
-    '''The 'chain trace' :class:`.Atom`\\ , if any.
-
-    Normally returns the C4' from a nucleic acid since that is always present,
-    but in the case of a P-only trace it returns the P.'''
-    str = c_property('residue_str', string, read_only = True)
-    '''
-    String including residue's name, sequence position, and chain ID in a readable
-    form. Read only.
-    '''
+    ss_id = c_property('residue_ss_id', int32)
+    '''Secondary structure id number. Integer value.'''
     structure = c_property('residue_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this residue belongs to. Read only.'''
 
@@ -508,6 +554,15 @@ class Chain(Sequence):
         super().__init__(chain_pointer)
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
         self.description = None
+
+    def __str__(self):
+        base_str = '/' + self.chain_id
+        from .structure import Graph
+        from ..core_settings import settings
+        if settings.atomspec_contents == "command-line specifier" or \
+        len(self.structure.session.models.list(type=Graph)) > 1:
+            return str(self.structure) + base_str
+        return base_str
 
     chain_id = c_property('chain_chain_id', string, read_only = True)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
@@ -848,6 +903,8 @@ class Element:
 
     name = c_property('element_name', string, read_only = True)
     '''Element name, for example C for carbon. Read only.'''
+    names = c_function('element_names', ret = ctypes.py_object)()
+    '''Set of known element names'''
     number = c_property('element_number', uint8, read_only = True)
     '''Element atomic number, for example 6 for carbon. Read only.'''
     mass = c_property('element_mass', float32, read_only = True)

@@ -79,6 +79,9 @@ class Graph(Model, StructureData):
         self._make_drawing()
 
     def __str__(self):
+        from ..core_settings import settings
+        if settings.atomspec_contents == "command-line specifier" or not self.name:
+            return '#' + self.id_string()
         return self.name
 
     def delete(self):
@@ -1492,7 +1495,7 @@ class PickedAtom(Pick):
         Pick.__init__(self, distance)
         self.atom = atom
     def description(self):
-        return atom_description(self.atom)
+        return str(self.atom)
     @property
     def residue(self):
         return self.atom.residue
@@ -1510,7 +1513,7 @@ class PickedAtoms(Pick):
         return '%d atoms' % len(self.atoms)
     @property
     def residue(self):
-        rs = self.atoms.residues
+        rs = self.atoms.unique_residues
         if len(rs) == 1:
             for res in residues:
                 return res
@@ -1522,14 +1525,6 @@ class PickedAtoms(Pick):
             a.selected = logical_not(a.selected)
         else:
             a.selected = True
-
-# -----------------------------------------------------------------------------
-#
-def atom_description(atom):
-    m = atom.structure
-    r = atom.residue
-    d = '%s #%s/%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
-    return d
 
 # -----------------------------------------------------------------------------
 # Handles bonds and pseudobonds.
@@ -1560,13 +1555,12 @@ class PickedBond(Pick):
         Pick.__init__(self, distance)
         self.bond = bond
     def description(self):
-        return bond_description(self.bond)
+        return str(self.bond)
     @property
     def residue(self):
-        rs = self.bond.atoms.residues
-        if len(rs) == 1:
-            for res in rs:
-                return res
+        a1, a2 = self.bond.atoms
+        if a1.residue == a2.residue:
+            return a1.residue
         return None
     def select(self, toggle = False):
         for a in self.bond.atoms:
@@ -1579,43 +1573,16 @@ class PickedPseudobond(Pick):
         Pick.__init__(self, distance)
         self.pbond = pbond
     def description(self):
-        return bond_description(self.pbond)
+        return str(self.pbond)
     @property
     def residue(self):
-        rs = self.pbond.atoms.residues
-        if len(rs) == 1:
-            for res in rs:
-                return res
+        a1, a2 = self.pbond.atoms
+        if a1.residue == a2.residue:
+            return a1.residue
         return None
     def select(self, toggle = False):
         for a in self.pbond.atoms:
             a.structure.select_atom(a, toggle)
-
-# -----------------------------------------------------------------------------
-#
-def bond_description(bond):
-    a1, a2 = bond.atoms
-    m1, m2 = a1.structure, a2.structure
-    mid1, mid2 = m1.id_string(), m2.id_string()
-    r1, r2 = a1.residue, a2.residue
-    from .molobject import Bond
-    t = 'bond' if isinstance(bond, Bond) else 'pseudobond'
-    if r1 == r2:
-        d = '%s %s #%s/%s %s %d %s - %s' % (t, m1.name, mid1, r1.chain_id,
-                                            r1.name, r1.number, a1.name, a2.name)
-    elif r1.chain_id == r2.chain_id:
-        d = '%s %s #%s/%s %s %d %s - %s %d %s' % (t, m1.name, mid1, r1.chain_id,
-                                                  r1.name, r1.number, a1.name,
-                                                  r2.name, r2.number, a2.name)
-    elif m1 == m2:
-        d = '%s %s #%s/%s %s %d %s - /%s %s %d %s' % (t, m1.name, mid1,
-                                                      r1.chain_id, r1.name, r1.number, a1.name,
-                                                      r2.chain_id, r2.name, r2.number, a2.name)
-    else:
-        d = '%s %s #%s/%s %s %d %s - %s #%s/%s %s %d %s' % (t, m1.name, mid1, r1.chain_id, r1.name, r1.number, a1.name,
-                                                            m2.name, mid2, r2.chain_id, r2.name, r2.number, a2.name)
-
-    return d
 
 # -----------------------------------------------------------------------------
 #
@@ -1625,7 +1592,7 @@ class PickedResidue(Pick):
         Pick.__init__(self, distance)
         self.residue = residue
     def description(self):
-        return residue_description(self.residue)
+        return str(self.residue)
     def select(self, toggle=False):
         r = self.residue
         r.structure.select_residue(r, toggle)
@@ -1651,13 +1618,6 @@ class PickedResidues(Pick):
             a.selected = logical_not(a.selected)
         else:
             a.selected = True
-
-# -----------------------------------------------------------------------------
-#
-def residue_description(r):
-    m = r.structure
-    d = '%s #%s.%s %s %d' % (m.name, m.id_string(), r.chain_id, r.name, r.number)
-    return d
 
 # -----------------------------------------------------------------------------
 #
