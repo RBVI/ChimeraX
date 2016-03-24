@@ -177,13 +177,23 @@ class SideViewCanvas(glcanvas.GLCanvas):
             near, far = main_view.near_far_distances(main_camera, view_num)
             planes = self.main_view.clip_planes
             near_plane = planes.find_plane('near')
+            button = self.panel.auto_clip_near
             if near_plane:
                 near = near_plane.offset(main_pos.origin())
-                self.panel.auto_clip_near.SetValue(False)
+                if button.GetValue():
+                    button.SetValue(False)
+            else:
+                if not button.GetValue():
+                    button.SetValue(True)
             far_plane = planes.find_plane('far')
+            button = self.panel.auto_clip_far
             if far_plane:
                 far = -far_plane.offset(main_pos.origin())
-                self.panel.auto_clip_far.SetValue(False)
+                if button.GetValue():
+                    button.SetValue(False)
+            else:
+                if not button.GetValue():
+                    button.SetValue(True)
             if not self.moving:
                 main_axes = main_pos.axes()
                 camera_pos = Place()
@@ -407,6 +417,11 @@ class SideViewUI(ToolInstance):
         p = planes.find_plane('near')
         if p:
             return
+        b = v.drawing_bounds()
+        if b is None:
+            session.logger.info("Can not turn off automatic clipping since there are no models to clip")
+            self.auto_clip_near.SetValue(True)
+            return
         near, far = v.near_far_distances(v.camera, None)
         camera_pos = v.camera.position.origin()
         vd = v.camera.view_direction()
@@ -423,15 +438,13 @@ class SideViewUI(ToolInstance):
         p = planes.find_plane('far')
         if p:
             return
+        b = v.drawing_bounds()
+        if b is None:
+            session.logger.info("Can not turn off automatic clipping since there are no models to clip")
+            self.auto_clip_far.SetValue(True)
+            return
         near, far = v.near_far_distances(v.camera, None)
         camera_pos = v.camera.position.origin()
         vd = v.camera.view_direction()
         plane_point = camera_pos + far * vd
         planes.set_clip_position('far', plane_point, v.camera)
-
-    def on_autoclip(self, event):
-        b = v.drawing_bounds()
-        if b is None:
-            session.logger.info("Can not turn off automatic clipping since there are no models to clip")
-            self.auto_clip.SetValue(True)
-            return
