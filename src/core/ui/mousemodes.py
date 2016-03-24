@@ -651,8 +651,8 @@ class ObjectIdMouseMode(MouseMode):
         pu = self.session.ui.main_window.graphics_window.popup
         if p:
             pu.show_text(p.description(), (x+10,y))
-            res = p.residue if hasattr(p, 'residue') else None
-            if res is not None:
+            res = getattr(p, 'residue', None)
+            if res:
                 chain = res.chain
                 if chain:
                     self.session.logger.status("chain %s: %s" % (chain.chain_id, chain.description))

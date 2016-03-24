@@ -16,6 +16,7 @@
 #include "atomstruct/ChangeTracker.h"
 #include "atomstruct/destruct.h"     // Use DestructionObserver
 #include "pythonarray.h"           // Use python_voidp_array()
+#include "pysupport/convert.h"     // Use cset_of_chars_to_pyset
 
 #include <functional>
 #include <map>
@@ -63,6 +64,14 @@ inline PyObject* unicode_from_string(const chutil::CString<len, description_char
 {
     return PyUnicode_DecodeUTF8(static_cast<const char*>(cstr), cstr.size(),
                             "replace");
+}
+
+inline PyObject* unicode_from_character(char c)
+{
+    char buffer[2];
+    buffer[0] = c;
+    buffer[1] = '\0';
+    return unicode_from_string(buffer, 1);
 }
 
 static void
@@ -1246,6 +1255,17 @@ extern "C" void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
     }
 }
 
+extern "C" void residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            ics[i] = unicode_from_character(r[i]->insertion_code());
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" void residue_principal_atom(void *residues, size_t n, pyobject_t *pas)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -2406,6 +2426,17 @@ extern "C" void element_name(void *elements, size_t n, pyobject_t *names)
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" PyObject* element_names()
+{
+    PyObject* e_names = NULL;
+    try {
+        e_names = pysupport::cset_of_chars_to_pyset(Element::names(), "element names");
+    } catch (...) {
+        molc_error();
+    }
+    return e_names;
 }
 
 extern "C" void element_number(void *elements, size_t n, uint8_t *number)
