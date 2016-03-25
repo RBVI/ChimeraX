@@ -635,6 +635,8 @@ class Graph(Model, StructureData):
                 sp.positions = _tether_placements(spine_xyz1, spine_xyz2, spine_radii, self.TETHER_CYLINDER)
                 sp.colors = spine_colors
         self._gc_shape = True
+        from .molarray import Residues
+        self._ribbon_selected_residues = Residues()
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered, p):
         from numpy import logical_and, logical_not
