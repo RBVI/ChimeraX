@@ -391,7 +391,7 @@ class Graph(Model, StructureData):
             displays = residues.ribbon_displays
             if displays.sum() == 0:
                 continue
-            if len(atoms) < 4:
+            if len(atoms) < 2:
                 continue
             # Perform any smoothing (e.g., strand smoothing
             # to remove lasagna sheets, pipes and planks
