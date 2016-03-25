@@ -48,8 +48,6 @@ def _pseudobond_group(p):
 def _pseudobond_group_map(pbgc_map):
     pbg_map = dict((name, _pseudobond_group(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
-def _str_or_none(s):
-    return s if s else None
 
 # -----------------------------------------------------------------------------
 #
@@ -442,7 +440,7 @@ class Residue:
     def __str__(self, residue_only = False):
         from ..core_settings import settings
         cmd_style = settings.atomspec_contents == "command-line specifier"
-        ic = self.insertion_code if self.insertion_code else ""
+        ic = self.insertion_code
         if cmd_style:
             res_str = ":" + str(self.number) + ic
         else:
@@ -468,8 +466,8 @@ class Residue:
     def description(self):
         '''Description of residue (if available) from HETNAM/HETSYN records or equivalent'''
         return getattr(self.structure, '_hetnam_descriptions', {}).get(self.name, None)
-    insertion_code = c_property('residue_insertion_code', string, astype = _str_or_none, read_only = True)
-    '''Protein Data Bank residue insertion code. 1 character or None. Read only'''
+    insertion_code = c_property('residue_insertion_code', string)
+    '''Protein Data Bank residue insertion code. 1 character or empty string.'''
     is_helix = c_property('residue_is_helix', npy_bool)
     '''Whether this residue belongs to a protein alpha helix. Boolean value.'''
     is_sheet = c_property('residue_is_sheet', npy_bool)

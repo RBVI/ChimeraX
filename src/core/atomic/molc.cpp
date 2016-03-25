@@ -1259,8 +1259,34 @@ extern "C" void residue_insertion_code(void *residues, size_t n, pyobject_t *ics
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
-        for (size_t i = 0; i != n; ++i)
-            ics[i] = unicode_from_character(r[i]->insertion_code());
+        for (size_t i = 0; i != n; ++i) {
+            auto ic = r[i]->insertion_code();
+            if (ic == ' ')
+                ics[i] = unicode_from_string("", 0);
+            else
+                ics[i] = unicode_from_character(r[i]->insertion_code());
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            PyObject* py_ic = static_cast<PyObject*>(ics[i]);
+            auto size = PyUnicode_GET_DATA_SIZE(py_ic);
+            if (size > 1)
+                throw std::invalid_argument("Insertion code must be one character or empty string");
+            char val;
+            if (size == 0)
+                val = ' ';
+            else
+                val = PyUnicode_AS_DATA(py_ic)[0];
+            r[i]->set_insertion_code(val);
+        }
     } catch (...) {
         molc_error();
     }

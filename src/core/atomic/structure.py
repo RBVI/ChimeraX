@@ -374,7 +374,7 @@ class Graph(Model, StructureData):
         from numpy import concatenate, array, zeros
         polymers = self.polymers(False, False)
         for rlist in polymers:
-            rp = p.new_drawing(rlist.strs[0])
+            rp = p.new_drawing(str(self) + " ribbons")
             t2r = []
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
@@ -401,7 +401,7 @@ class Graph(Model, StructureData):
             tethered &= displays
             if False:
                 # Debugging code to display line from control point to guide
-                cp = p.new_drawing(rlist.strs[0] + " control points")
+                cp = p.new_drawing(str(self) + " control points")
                 from .. import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
                 cp.geometry = va, ta
@@ -607,7 +607,7 @@ class Graph(Model, StructureData):
             from numpy import any
             m = residues[0].structure
             if m.ribbon_tether_scale > 0 and any(tethered):
-                tp = p.new_drawing(residues.strs[0] + "_tethers")
+                tp = p.new_drawing(str(self) + " ribbon_tethers")
                 nc = m.ribbon_tether_sides
                 from .. import surface
                 if m.ribbon_tether_shape == self.TETHER_CYLINDER:
@@ -624,7 +624,7 @@ class Graph(Model, StructureData):
 
             # Create spine if necessary
             if self.ribbon_show_spine:
-                sp = p.new_drawing(rlist.strs[0] + " spine")
+                sp = p.new_drawing(str(self) + " spine")
                 from .. import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
                 sp.geometry = va, ta
@@ -668,7 +668,7 @@ class Graph(Model, StructureData):
         cyl_centers = centroid + axis * axis_pos
         if False:
             # Debugging code to display center of secondary structure
-            self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
+            self._ss_display(p, str(self) + " helix " + str(start), cyl_centers)
         # Compute radius of cylinder
         spokes = ss_coords - cyl_centers
         cyl_radius = mean(norm(spokes, axis=1))
@@ -709,7 +709,7 @@ class Graph(Model, StructureData):
         new_coords = ss_coords + offsets
         if False:
             # Debugging code to display center of secondary structure
-            self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
+            self._ss_display(p, str(self) + " helix " + str(start), ideal)
         # Update both control point and guide coordinates
         coords[start:end] = new_coords
         if guides is not None:
@@ -1193,43 +1193,77 @@ class Graph(Model, StructureData):
         import numpy
         res_names = numpy.array(atoms.residues.names)
         res_numbers = atoms.residues.numbers
+        res_ics = atoms.residues.insertion_codes
         selected = numpy.zeros(num_atoms)
         # TODO: account for attrs in addition to parts
         for part in parts:
-            start_number = self._number(part.start)
+            start_number, start_ic = self._res_parse(part.start)
             if part.end is None:
                 end_number = None
 
                 def choose_type(value, v=part.start.lower()):
                     return value.lower() == v
             else:
-                end_number = self._number(part.end)
+                end_number, end_ic = self._res_parse(part.end)
 
                 def choose_type(value, s=part.start.lower(), e=part.end.lower()):
                     v = value.lower()
                     return v >= s and v <= e
             if start_number:
                 if end_number is None:
-                    def choose_number(value, v=start_number):
-                        return value == v
+                    def choose_id(n, ic, test_val=str(start_number)+start_ic):
+                        return str(n)+ic == test_val
                 else:
-                    def choose_number(value, s=start_number, e=end_number):
-                        return value >= s and value <= e
+                    def choose_id(n, ic, sn=start_number, sic=start_ic, en=end_number, eic=end_ic):
+                        if n < start_number or n > end_number:
+                            return False
+                        if n > start_number and n < end_number:
+                            return True
+                        if n == start_number:
+                            if not ic and not sic:
+                                return True
+                            if ic and not sic:
+                                # blank insertion code is before non-blanks
+                                # res has insertion code, but test string doesn't...
+                                return True
+                            if sic and not ic:
+                                # blank insertion code is before non-blanks
+                                # test string has insertion code, but res doesn't...
+                                return False
+                            return sic <= ic
+                        if n == end_number:
+                            if not ic and not eic:
+                                return True
+                            if ic and not eic:
+                                # blank insertion code is before non-blanks
+                                # res has insertion code, but test string doesn't...
+                                return False
+                            if eic and not ic:
+                                # blank insertion code is before non-blanks
+                                # test string has insertion code, but res doesn't...
+                                return True
+                            return eic >= ic
+                        return True
             else:
-                choose_number = None
+                choose_id = None
             s = numpy.vectorize(choose_type)(res_names)
             selected = numpy.logical_or(selected, s)
-            if choose_number:
-                s = numpy.vectorize(choose_number)(res_numbers)
+            if choose_id:
+                s = numpy.vectorize(choose_id)(res_numbers, res_ics)
                 selected = numpy.logical_or(selected, s)
         # print("AtomicStructure._atomspec_filter_residue", selected)
         return selected
 
-    def _number(self, n):
+    def _res_parse(self, n):
         try:
-            return int(n)
+            return int(n), ""
         except ValueError:
-            return None
+            if not n:
+                return None, ""
+            try:
+                return int(n[:-1]), n[-1]
+            except ValueError:
+                return None, ""
 
     def _atomspec_filter_atom(self, atoms, num_atoms, parts, attrs):
         import numpy
