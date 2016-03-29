@@ -46,9 +46,9 @@ class ResidueFit(ToolInstance):
         rn.Bind(wx.EVT_SPINCTRL, self.resnum_changed_cb)
         self.slider = sl = wx.Slider(parent, value=rmin, minValue=rmin, maxValue=rmax)
         sl.Bind(wx.EVT_SLIDER, self.slider_moved_cb)
-        self.play_button = pb = wx.ToggleButton(parent, style=wx.BU_EXACTFIT)
+        self.play_button = pb = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
         pb.Bind(wx.EVT_TOGGLEBUTTON, self.play_cb)
-        self.record_button = rb = wx.ToggleButton(parent, style=wx.BU_EXACTFIT)
+        self.record_button = rb = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
         rb.Bind(wx.EVT_TOGGLEBUTTON, self.record_cb)
         self.set_button_icon(play=True, record=True)
 

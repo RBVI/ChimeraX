@@ -476,8 +476,10 @@ class RotateMouseMode(MouseMode):
         x,y = event.position()
         w,h = self.view.window_size
         cx, cy = x-0.5*w, y-0.5*h
+        from math import sqrt
+        r = sqrt(cx*cx + cy*cy)
         fperim = 0.9
-        self.mouse_perimeter = (abs(cx) > fperim*0.5*w or abs(cy) > fperim*0.5*h)
+        self.mouse_perimeter = (r > fperim*0.5*min(w,h))
 
     def mouse_up(self, event):
         if self.click_to_select:
@@ -649,6 +651,13 @@ class ObjectIdMouseMode(MouseMode):
         pu = self.session.ui.main_window.graphics_window.popup
         if p:
             pu.show_text(p.description(), (x+10,y))
+            res = getattr(p, 'residue', None)
+            if res:
+                chain = res.chain
+                if chain:
+                    self.session.logger.status("chain %s: %s" % (chain.chain_id, chain.description))
+                elif res.description:
+                    self.session.logger.status(res.description)
         else:
             pu.hide()
 

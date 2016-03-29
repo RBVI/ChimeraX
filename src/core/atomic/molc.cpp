@@ -16,6 +16,7 @@
 #include "atomstruct/ChangeTracker.h"
 #include "atomstruct/destruct.h"     // Use DestructionObserver
 #include "pythonarray.h"           // Use python_voidp_array()
+#include "pysupport/convert.h"     // Use cset_of_chars_to_pyset
 
 #include <functional>
 #include <map>
@@ -63,6 +64,14 @@ inline PyObject* unicode_from_string(const chutil::CString<len, description_char
 {
     return PyUnicode_DecodeUTF8(static_cast<const char*>(cstr), cstr.size(),
                             "replace");
+}
+
+inline PyObject* unicode_from_character(char c)
+{
+    char buffer[2];
+    buffer[0] = c;
+    buffer[1] = '\0';
+    return unicode_from_string(buffer, 1);
 }
 
 static void
@@ -1229,12 +1238,55 @@ extern "C" void residue_atoms(void *residues, size_t n, pyobject_t *atoms)
     }
 }
 
+extern "C" void residue_chain(void *residues, size_t n, pyobject_t *chainp)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::chain, chainp);
+}
+
 extern "C" void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
             cids[i] = unicode_from_string(r[i]->chain_id());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto ic = r[i]->insertion_code();
+            if (ic == ' ')
+                ics[i] = unicode_from_string("", 0);
+            else
+                ics[i] = unicode_from_character(r[i]->insertion_code());
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            PyObject* py_ic = static_cast<PyObject*>(ics[i]);
+            auto size = PyUnicode_GET_DATA_SIZE(py_ic);
+            if (size > 1)
+                throw std::invalid_argument("Insertion code must be one character or empty string");
+            char val;
+            if (size == 0)
+                val = ' ';
+            else
+                val = PyUnicode_AS_DATA(py_ic)[0];
+            r[i]->set_insertion_code(val);
+        }
     } catch (...) {
         molc_error();
     }
@@ -2340,6 +2392,54 @@ extern "C" void *structure_new_residue(void *mol, const char *residue_name, cons
     }
 }
 
+extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
+{
+    Graph **m = static_cast<Graph **>(mols);
+    PyObject* header_map = NULL;
+    try {
+        for (size_t i = 0; i < n; ++i) {
+            header_map = PyDict_New();
+            auto& metadata = m[i]->metadata;
+            for (auto& item: metadata) {
+                PyObject* key = unicode_from_string(item.first);
+                auto& headers = item.second;
+                size_t count = headers.size();
+                PyObject* values = PyList_New(count);
+                for (size_t i = 0; i != count; ++i)
+                    PyList_SetItem(values, i, unicode_from_string(headers[i]));
+                PyDict_SetItem(header_map, key, values);
+            }
+            headers[i] = header_map;
+            header_map = NULL;
+        }
+    } catch (...) {
+        Py_XDECREF(header_map);
+        molc_error();
+    }
+}
+
+extern "C" void pdb_version(void *mols, size_t n, int32_t *version)
+{
+    Graph **m = static_cast<Graph **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            version[i] = m[i]->pdb_version;
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_pdb_version(void *mols, size_t n, int32_t *version)
+{
+    Graph **m = static_cast<Graph **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            m[i]->pdb_version = version[i];
+    } catch (...) {
+        molc_error();
+    }
+}
+
 // -------------------------------------------------------------------------
 // element functions
 //
@@ -2352,6 +2452,17 @@ extern "C" void element_name(void *elements, size_t n, pyobject_t *names)
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" PyObject* element_names()
+{
+    PyObject* e_names = NULL;
+    try {
+        e_names = pysupport::cset_of_chars_to_pyset(Element::names(), "element names");
+    } catch (...) {
+        molc_error();
+    }
+    return e_names;
 }
 
 extern "C" void element_number(void *elements, size_t n, uint8_t *number)
@@ -2988,32 +3099,6 @@ extern "C" void pointer_intersects_each(void *pointer_arrays, size_t na, size_t 
                 }
         }
     } catch (...) {
-        molc_error();
-    }
-}
-
-extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
-{
-    Graph **m = static_cast<Graph **>(mols);
-    PyObject* header_map = NULL;
-    try {
-        for (size_t i = 0; i < n; ++i) {
-            header_map = PyDict_New();
-            auto& metadata = m[i]->metadata;
-            for (auto& item: metadata) {
-                PyObject* key = unicode_from_string(item.first);
-                auto& headers = item.second;
-                size_t count = headers.size();
-                PyObject* values = PyList_New(count);
-                for (size_t i = 0; i != count; ++i)
-                    PyList_SetItem(values, i, unicode_from_string(headers[i]));
-                PyDict_SetItem(header_map, key, values);
-            }
-            headers[i] = header_map;
-            header_map = NULL;
-        }
-    } catch (...) {
-        Py_XDECREF(header_map);
         molc_error();
     }
 }

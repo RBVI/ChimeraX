@@ -88,6 +88,7 @@ public:
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set_alt_loc(char alt_loc);
+    void  set_insertion_code(char ic) { _insertion_code = ic; }
     void  set_is_helix(bool ih);
     void  set_is_het(bool ih);
     void  set_is_sheet(bool is);

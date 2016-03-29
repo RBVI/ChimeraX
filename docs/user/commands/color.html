@@ -46,11 +46,12 @@ cartoon and molecular surface representations.
 The absence of an atom or model specifier implies &ldquo;all.&rdquo;
 Bonds and <a href="../pseudobonds.html">pseudobonds</a>
 are considered as specified when both flanking atoms are specified.
-See the <a href="#examples">examples</a> below.
+See <a href="#examples">examples</a> below.
 See also: <a href="transparency.html"><b>transparency</b></a>,
 <b>volume</b>,
+<a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons,
 <a href="colortables.html#autocolors">initial colors</a>,
-<a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons
+<a href="colornames.html">color names</a>
 </p><p>
 Subcommands of <b>color</b>:
 </p>
@@ -282,6 +283,12 @@ the <b>full</b> range is determined separately for each model.
 <p>
 Example <a href="#top"><b>color</b></a> commands:
 </p>
+<blockquote>
+<b>color /d & helix &nbsp;sky blue &nbsp;target c</b>
+<br>&ndash; or &ndash;</br>
+<b>color /d & helix &nbsp;sky blue &nbsp;cartoons</b>
+</blockquote>
+- color chain D helices sky blue, cartoons only (not atoms, <i>etc.</i>)
 <blockquote>
 <b>color /A,B:12,260-275 &nbsp;hot pink &nbsp;target a</b>
 <br>&ndash; or &ndash;</br>
