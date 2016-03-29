@@ -10,21 +10,21 @@
 #include "Bond.h"
 #include "CoordSet.h"
 #include "destruct.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "PBGroup.h"
 #include "Pseudobond.h"
 #include "Residue.h"
 
 namespace atomstruct {
 
-const char*  Graph::PBG_METAL_COORDINATION = "metal coordination bonds";
-const char*  Graph::PBG_MISSING_STRUCTURE = "missing structure";
-const char*  Graph::PBG_HYDROGEN_BONDS = "hydrogen bonds";
+const char*  Structure::PBG_METAL_COORDINATION = "metal coordination bonds";
+const char*  Structure::PBG_MISSING_STRUCTURE = "missing structure";
+const char*  Structure::PBG_HYDROGEN_BONDS = "hydrogen bonds";
 
-Graph::Graph(PyObject* logger):
+Structure::Structure(PyObject* logger):
     _active_coord_set(NULL), _chains(nullptr),
     _change_tracker(DiscardingChangeTracker::discarding_change_tracker()),
-    _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure/Graph"),
+    _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure/Structure"),
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
     _structure_cats_dirty(true),
     asterisks_translated(false), is_traj(false),
@@ -33,7 +33,7 @@ Graph::Graph(PyObject* logger):
     change_tracker()->add_created(this);
 }
 
-Graph::~Graph() {
+Structure::~Structure() {
     // assign to variable so that it lives to end of destructor
     auto du = DestructionUser(this);
     change_tracker()->add_deleted(this);
@@ -56,7 +56,7 @@ Graph::~Graph() {
 }
 
 std::map<Residue *, char>
-Graph::best_alt_locs() const
+Structure::best_alt_locs() const
 {
     // check the common case of all blank alt locs first...
     bool all_blank = true;
@@ -172,13 +172,13 @@ Graph::best_alt_locs() const
 }
 
 void
-Graph::bonded_groups(std::vector<std::vector<Atom*>>* groups,
+Structure::bonded_groups(std::vector<std::vector<Atom*>>* groups,
     bool consider_missing_structure) const
 {
     // find connected atomic structures, considering missing-structure pseudobonds
     std::map<Atom*, std::vector<Atom*>> pb_connections;
     if (consider_missing_structure) {
-        auto pbg = const_cast<Graph*>(this)->_pb_mgr.get_group(PBG_MISSING_STRUCTURE,
+        auto pbg = const_cast<Structure*>(this)->_pb_mgr.get_group(PBG_MISSING_STRUCTURE,
             AS_PBManager::GRP_NONE);
         if (pbg != nullptr) {
             for (auto& pb: pbg->pseudobonds()) {
@@ -215,7 +215,7 @@ Graph::bonded_groups(std::vector<std::vector<Atom*>>* groups,
     }
 }
 
-void Graph::_copy(Graph* g) const
+void Structure::_copy(Structure* g) const
 {
     g->set_name(name());
 
@@ -277,16 +277,16 @@ void Graph::_copy(Graph* g) const
     }
 }
 
-Graph*
-Graph::copy() const
+Structure*
+Structure::copy() const
 {
-    Graph* g = new Graph(_logger);
+    Structure* g = new Structure(_logger);
     _copy(g);
     return g;
 }
 
 void
-Graph::_delete_atom(Atom* a)
+Structure::_delete_atom(Atom* a)
 {
     auto db = DestructionBatcher(this);
     if (a->element().number() == 1)
@@ -301,12 +301,12 @@ Graph::_delete_atom(Atom* a)
 }
 
 void
-Graph::delete_atom(Atom* a)
+Structure::delete_atom(Atom* a)
 {
     if (a->structure() != this) {
         logger::error(_logger, "Atom ", a->residue()->str(), " ", a->name(),
             " does not belong to the structure that it's being deleted from.");
-        throw std::invalid_argument("delete_atom called for Atom not in AtomicStructure/Graph");
+        throw std::invalid_argument("delete_atom called for Atom not in AtomicStructure/Structure");
     }
     if (atoms().size() == 1) {
         delete this;
@@ -321,7 +321,7 @@ Graph::delete_atom(Atom* a)
 }
 
 void
-Graph::_delete_atoms(const std::set<Atom*>& atoms)
+Structure::_delete_atoms(const std::set<Atom*>& atoms)
 {
     if (atoms.size() == _atoms.size()) {
         delete this;
@@ -386,7 +386,7 @@ Graph::_delete_atoms(const std::set<Atom*>& atoms)
 }
 
 void
-Graph::delete_atoms(const std::vector<Atom*>& atoms)
+Structure::delete_atoms(const std::vector<Atom*>& atoms)
 {
     auto db = DestructionBatcher(this);
     // construct set first to ensure uniqueness before tests...
@@ -395,12 +395,12 @@ Graph::delete_atoms(const std::vector<Atom*>& atoms)
 }
 
 void
-Graph::delete_bond(Bond *b)
+Structure::delete_bond(Bond *b)
 {
     typename Bonds::iterator i = std::find_if(_bonds.begin(), _bonds.end(),
         [&b](Bond* ub) { return ub == b; });
     if (i == _bonds.end())
-        throw std::invalid_argument("delete_bond called for Bond not in Graph");
+        throw std::invalid_argument("delete_bond called for Bond not in Structure");
     auto db = DestructionBatcher(this);
     for (auto a: b->atoms())
         a->remove_bond(b);
@@ -411,7 +411,7 @@ Graph::delete_bond(Bond *b)
 }
 
 void
-Graph::_delete_residue(Residue* r, const Graph::Residues::iterator& ri)
+Structure::_delete_residue(Residue* r, const Structure::Residues::iterator& ri)
 {
     auto db = DestructionBatcher(r);
     if (r->chain() != nullptr) {
@@ -426,7 +426,7 @@ Graph::_delete_residue(Residue* r, const Graph::Residues::iterator& ri)
 }
 
 void
-Graph::delete_residue(Residue* r)
+Structure::delete_residue(Residue* r)
 {
     auto ri = std::find(_residues.begin(), _residues.end(), r);
     if (ri == _residues.end()) {
@@ -442,7 +442,7 @@ Graph::delete_residue(Residue* r)
 }
 
 CoordSet *
-Graph::find_coord_set(int id) const
+Structure::find_coord_set(int id) const
 {
     for (auto csi = _coord_sets.begin(); csi != _coord_sets.end(); ++csi) {
         if ((*csi)->id() == id)
@@ -453,7 +453,7 @@ Graph::find_coord_set(int id) const
 }
 
 Residue *
-Graph::find_residue(const ChainID &chain_id, int pos, char insert) const
+Structure::find_residue(const ChainID &chain_id, int pos, char insert) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
         Residue *r = *ri;
@@ -465,7 +465,7 @@ Graph::find_residue(const ChainID &chain_id, int pos, char insert) const
 }
 
 Residue *
-Graph::find_residue(const ChainID& chain_id, int pos, char insert, ResName& name) const
+Structure::find_residue(const ChainID& chain_id, int pos, char insert, ResName& name) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
         Residue *r = *ri;
@@ -477,7 +477,7 @@ Graph::find_residue(const ChainID& chain_id, int pos, char insert, ResName& name
 }
 
 void
-Graph::make_chains() const
+Structure::make_chains() const
 {
     // since Graphs don't have sequences, they don't have chains
     if (_chains != nullptr) {
@@ -490,7 +490,7 @@ Graph::make_chains() const
 }
 
 Atom *
-Graph::new_atom(const char* name, const Element& e)
+Structure::new_atom(const char* name, const Element& e)
 {
     Atom *a = new Atom(this, name, e);
     add_atom(a);
@@ -500,7 +500,7 @@ Graph::new_atom(const char* name, const Element& e)
 }
 
 Bond *
-Graph::new_bond(Atom *a1, Atom *a2)
+Structure::new_bond(Atom *a1, Atom *a2)
 {
     Bond *b = new Bond(this, a1, a2);
     b->finish_construction(); // virtual calls work now
@@ -509,7 +509,7 @@ Graph::new_bond(Atom *a1, Atom *a2)
 }
 
 CoordSet *
-Graph::new_coord_set()
+Structure::new_coord_set()
 {
     if (_coord_sets.empty())
         return new_coord_set(0);
@@ -517,7 +517,7 @@ Graph::new_coord_set()
 }
 
 static void
-_coord_set_insert(Graph::CoordSets &coord_sets, CoordSet* cs, int index)
+_coord_set_insert(Structure::CoordSets &coord_sets, CoordSet* cs, int index)
 {
     if (coord_sets.empty() || coord_sets.back()->id() < index) {
         coord_sets.emplace_back(cs);
@@ -537,7 +537,7 @@ _coord_set_insert(Graph::CoordSets &coord_sets, CoordSet* cs, int index)
 }
 
 CoordSet*
-Graph::new_coord_set(int index)
+Structure::new_coord_set(int index)
 {
     if (!_coord_sets.empty())
         return new_coord_set(index, _coord_sets.back()->coords().size());
@@ -547,7 +547,7 @@ Graph::new_coord_set(int index)
 }
 
 CoordSet*
-Graph::new_coord_set(int index, int size)
+Structure::new_coord_set(int index, int size)
 {
     CoordSet* cs = new CoordSet(this, index, size);
     _coord_set_insert(_coord_sets, cs, index);
@@ -555,7 +555,7 @@ Graph::new_coord_set(int index, int size)
 }
 
 Residue*
-Graph::new_residue(const ResName& name, const ChainID& chain,
+Structure::new_residue(const ResName& name, const ChainID& chain,
     int pos, char insert, Residue *neighbor, bool after)
 {
     if (neighbor == nullptr) {
@@ -573,8 +573,8 @@ Graph::new_residue(const ResName& name, const ChainID& chain,
     return r;
 }
 
-const Graph::Rings&
-Graph::rings(bool cross_residues, unsigned int all_size_threshold,
+const Structure::Rings&
+Structure::rings(bool cross_residues, unsigned int all_size_threshold,
     std::set<const Residue *>* ignore) const
 {
     if (_rings_cached(cross_residues, all_size_threshold, ignore)) {
@@ -609,7 +609,7 @@ Graph::rings(bool cross_residues, unsigned int all_size_threshold,
 }
 
 bool
-Graph::_rings_cached(bool cross_residues, unsigned int all_size_threshold,
+Structure::_rings_cached(bool cross_residues, unsigned int all_size_threshold,
     std::set<const Residue *>* ignore) const
 {
     return !_recompute_rings && cross_residues == _rings_last_cross_residues
@@ -618,11 +618,11 @@ Graph::_rings_cached(bool cross_residues, unsigned int all_size_threshold,
 }
 
 int
-Graph::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
+Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
 {
     // The passed-in args need to be empty lists.  This routine will add one object to each
     // list for each of these classes:
-    //    AtomicStructure/Graph
+    //    AtomicStructure/Structure
     //    Atom
     //    Bond (needs Atoms)
     //    CoordSet (needs Atoms)
@@ -900,7 +900,7 @@ Graph::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
 }
 
 void
-Graph::session_restore(int version, PyObject* ints, PyObject* floats, PyObject* misc)
+Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObject* misc)
 {
     // restore the stuff saved by session_info()
 
@@ -1140,7 +1140,7 @@ Graph::session_restore(int version, PyObject* ints, PyObject* floats, PyObject* 
 }
 
 void
-Graph::session_save_setup() const
+Structure::session_save_setup() const
 {
     size_t index = 0;
 
@@ -1177,7 +1177,7 @@ Graph::session_save_setup() const
 }
 
 void
-Graph::session_save_teardown() const
+Structure::session_save_teardown() const
 {
     delete session_save_atoms;
     delete session_save_bonds;
@@ -1189,7 +1189,7 @@ Graph::session_save_teardown() const
 }
 
 void
-Graph::set_active_coord_set(CoordSet *cs)
+Structure::set_active_coord_set(CoordSet *cs)
 {
     CoordSet *new_active;
     if (cs == nullptr) {
@@ -1211,7 +1211,7 @@ Graph::set_active_coord_set(CoordSet *cs)
 }
 
 void
-Graph::set_color(const Rgba& rgba)
+Structure::set_color(const Rgba& rgba)
 {
     for (auto a: _atoms)
         a->set_color(rgba);
@@ -1222,7 +1222,7 @@ Graph::set_color(const Rgba& rgba)
 }
 
 void
-Graph::use_best_alt_locs()
+Structure::use_best_alt_locs()
 {
     std::map<Residue *, char> alt_loc_map = best_alt_locs();
     for (auto almi = alt_loc_map.begin(); almi != alt_loc_map.end(); ++almi) {

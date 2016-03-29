@@ -9,7 +9,7 @@
 #include "connect.h"
 #include "Coord.h"
 #include "destruct.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "MolResId.h"
 #include "PBGroup.h"
 #include "Residue.h"
@@ -296,7 +296,7 @@ hookup(Atom* a, Residue* res, bool definitely_connect=true)
     return made_connection;
 }
 static std::set<Bond*>
-metal_coordination_bonds(Graph* as)
+metal_coordination_bonds(Structure* as)
 {
     std::set<Bond*> mc_bonds;
     std::set<Atom*> metals;
@@ -380,7 +380,7 @@ metal_coordination_bonds(Graph* as)
 }
 
 void
-find_and_add_metal_coordination_bonds(Graph* as)
+find_and_add_metal_coordination_bonds(Structure* as)
 {
     // make metal-coordination complexes
     auto notifications_off = DestructionNotificationsOff();
@@ -401,7 +401,7 @@ find_and_add_metal_coordination_bonds(Graph* as)
 //    Connect atoms in structure by template if one is found, or by distance.
 //    Adjacent residues are connected if appropriate.
 void
-connect_structure(Graph* as, std::vector<Residue *>* start_residues,
+connect_structure(Structure* as, std::vector<Residue *>* start_residues,
     std::vector<Residue *>* end_residues, std::set<Atom *>* conect_atoms,
     std::set<MolResId>* mod_res)
 {
@@ -413,7 +413,7 @@ connect_structure(Graph* as, std::vector<Residue *>* start_residues,
     // start/end residues much more efficient to search as a map...
     std::set<Residue*> sres_map(start_residues->begin(), start_residues->end());
     std::set<Residue*> eres_map(end_residues->begin(), end_residues->end());
-    for (Graph::Residues::const_iterator ri = as->residues().begin();
+    for (Structure::Residues::const_iterator ri = as->residues().begin();
     ri != as->residues().end(); ++ri) {
         Residue *r = *ri;
 
@@ -539,7 +539,7 @@ connect_structure(Graph* as, std::vector<Residue *>* start_residues,
     // involving at least one non-standard residue
     bool break_long = false;
     if (conect_atoms->empty() && mod_res->empty()) {
-        for (Graph::Residues::const_iterator ri=as->residues().begin()
+        for (Structure::Residues::const_iterator ri=as->residues().begin()
         ; ri != as->residues().end(); ++ri) {
             Residue *r = *ri;
             if (standard_residue(r->name()) || r->name() == "UNK")
@@ -553,7 +553,7 @@ connect_structure(Graph* as, std::vector<Residue *>* start_residues,
     auto notifications_off = DestructionNotificationsOff();
     if (break_long) {
         std::vector<Bond *> break_these;
-        for (Graph::Bonds::const_iterator bi = as->bonds().begin();
+        for (Structure::Bonds::const_iterator bi = as->bonds().begin();
         bi != as->bonds().end(); ++bi) {
             Bond *b = *bi;
             const Bond::Atoms & atoms = b->atoms();

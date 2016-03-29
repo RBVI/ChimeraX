@@ -2,11 +2,11 @@
 #ifndef atomstruct_AtomicStructure
 #define atomstruct_AtomicStructure
 
-#include "Graph.h"
+#include "Structure.h"
 
 namespace atomstruct {
 
-class ATOMSTRUCT_IMEX AtomicStructure: public Graph {
+class ATOMSTRUCT_IMEX AtomicStructure: public Structure {
     friend class Atom; // for IDATM stuff and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
     friend class Chain; // for remove_chain()
@@ -15,7 +15,7 @@ private:
     void  _compute_atom_types();
     void  _compute_structure_cats() const;
 public:
-    AtomicStructure(PyObject* logger = nullptr) : Graph(logger) {}
+    AtomicStructure(PyObject* logger = nullptr) : Structure(logger) {}
 
     AtomicStructure*  copy() const;
     void  make_chains() const;

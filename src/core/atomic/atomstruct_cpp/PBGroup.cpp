@@ -2,7 +2,7 @@
 
 #include "Atom.h"
 #include "destruct.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "PBGroup.h"
 #include "Pseudobond.h"
 

@@ -18,7 +18,7 @@ namespace atomstruct {
 class Atom;
 class Bond;
 class Chain;
-class Graph;
+class Structure;
 
 class ATOMSTRUCT_IMEX Residue {
 public:
@@ -28,8 +28,8 @@ public:
                  RIBBON_PIPE = 1 };
     enum PolymerType { PT_NONE = 0, PT_AMINO = 1, PT_NUCLEIC = 2 };
 private:
-    friend class Graph;
-    Residue(Graph *as, const ResName& name, const ChainID& chain, int pos, char insert);
+    friend class Structure;
+    Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert);
     virtual  ~Residue();
 
     friend class Chain;
@@ -58,7 +58,7 @@ private:
     Rgba  _ribbon_rgba;
     Style  _ribbon_style;
     int  _ss_id;
-    Graph *  _structure;
+    Structure *  _structure;
 public:
     void  add_atom(Atom*);
     const Atoms &  atoms() const { return _atoms; }
@@ -95,7 +95,7 @@ public:
     void  set_ss_id(int ssid);
     int  ss_id() const { return _ss_id; }
     std::string  str() const;
-    Graph*  structure() const { return _structure; }
+    Structure*  structure() const { return _structure; }
     std::vector<Atom*>  template_assign(
         void (Atom::*assign_func)(const char*), const char* app,
         const char* template_dir, const char* extension) const;
@@ -126,7 +126,7 @@ public:
 
 }  // namespace atomstruct
 
-#include "Graph.h"
+#include "Structure.h"
 #include "Chain.h"
 
 namespace atomstruct {

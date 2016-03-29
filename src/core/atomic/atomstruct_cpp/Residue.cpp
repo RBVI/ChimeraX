@@ -28,7 +28,7 @@ const std::set<AtomName> Residue::na_ribbon_backbone_names = {
     "O3'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"};
 const std::set<ResName> Residue::std_solvent_names = { "HOH", "WAT", "DOD" };
 
-Residue::Residue(Graph *as, const ResName& name, const ChainID& chain, int pos, char insert):
+Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
     _is_helix(false), _is_het(false), _is_sheet(false), _name(name), _polymer_type(PT_NONE),
     _position(pos), _ribbon_adjust(-1.0), _ribbon_display(false),
