@@ -451,8 +451,8 @@ class Residue:
         from ..core_settings import settings
         if cmd_style:
             return str(self.structure) + chain_str + res_str
-        from .structure import Graph
-        if len(self.structure.session.models.list(type=Graph)) > 1:
+        from .structure import Structure
+        if len(self.structure.session.models.list(type=Structure)) > 1:
             return str(self.structure) + chain_str + " " + res_str
         return chain_str + " " + res_str
 
@@ -555,10 +555,10 @@ class Chain(Sequence):
 
     def __str__(self):
         base_str = '/' + self.chain_id
-        from .structure import Graph
+        from .structure import Structure
         from ..core_settings import settings
         if settings.atomspec_contents == "command-line specifier" or \
-        len(self.structure.session.models.list(type=Graph)) > 1:
+        len(self.structure.session.models.list(type=Structure)) > 1:
             return str(self.structure) + base_str
         return base_str
 
