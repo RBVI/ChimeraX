@@ -6,7 +6,7 @@ from .molobject import StructureData
 
 CATEGORY = io.STRUCTURE
 
-class Graph(Model, StructureData):
+class Structure(Model, StructureData):
 
     ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
         "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
@@ -77,6 +77,12 @@ class Graph(Model, StructureData):
                     lambda *args, qual=ses_func: self._ses_call(qual)))
 
         self._make_drawing()
+
+    def __str__(self):
+        from ..core_settings import settings
+        if settings.atomspec_contents == "command-line specifier" or not self.name:
+            return '#' + self.id_string()
+        return self.name
 
     def delete(self):
         '''Delete this structure.'''
@@ -188,7 +194,7 @@ class Graph(Model, StructureData):
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = Graph(session, smart_initial_display = False)
+        s = Structure(session, smart_initial_display = False)
         s.set_state_from_snapshot(session, data)
         return s
 
@@ -368,7 +374,7 @@ class Graph(Model, StructureData):
         from numpy import concatenate, array, zeros
         polymers = self.polymers(False, False)
         for rlist in polymers:
-            rp = p.new_drawing(rlist.strs[0])
+            rp = p.new_drawing(str(self) + " ribbons")
             t2r = []
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
@@ -385,7 +391,7 @@ class Graph(Model, StructureData):
             displays = residues.ribbon_displays
             if displays.sum() == 0:
                 continue
-            if len(atoms) < 4:
+            if len(atoms) < 2:
                 continue
             # Perform any smoothing (e.g., strand smoothing
             # to remove lasagna sheets, pipes and planks
@@ -395,7 +401,7 @@ class Graph(Model, StructureData):
             tethered &= displays
             if False:
                 # Debugging code to display line from control point to guide
-                cp = p.new_drawing(rlist.strs[0] + " control points")
+                cp = p.new_drawing(str(self) + " control points")
                 from .. import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
                 cp.geometry = va, ta
@@ -601,7 +607,7 @@ class Graph(Model, StructureData):
             from numpy import any
             m = residues[0].structure
             if m.ribbon_tether_scale > 0 and any(tethered):
-                tp = p.new_drawing(residues.strs[0] + "_tethers")
+                tp = p.new_drawing(str(self) + " ribbon_tethers")
                 nc = m.ribbon_tether_sides
                 from .. import surface
                 if m.ribbon_tether_shape == self.TETHER_CYLINDER:
@@ -618,7 +624,7 @@ class Graph(Model, StructureData):
 
             # Create spine if necessary
             if self.ribbon_show_spine:
-                sp = p.new_drawing(rlist.strs[0] + " spine")
+                sp = p.new_drawing(str(self) + " spine")
                 from .. import surface
                 va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
                 sp.geometry = va, ta
@@ -629,6 +635,8 @@ class Graph(Model, StructureData):
                 sp.positions = _tether_placements(spine_xyz1, spine_xyz2, spine_radii, self.TETHER_CYLINDER)
                 sp.colors = spine_colors
         self._gc_shape = True
+        from .molarray import Residues
+        self._ribbon_selected_residues = Residues()
 
     def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered, p):
         from numpy import logical_and, logical_not
@@ -662,7 +670,7 @@ class Graph(Model, StructureData):
         cyl_centers = centroid + axis * axis_pos
         if False:
             # Debugging code to display center of secondary structure
-            self._ss_display(p, rlist.strs[0] + " helix " + str(start), cyl_centers)
+            self._ss_display(p, str(self) + " helix " + str(start), cyl_centers)
         # Compute radius of cylinder
         spokes = ss_coords - cyl_centers
         cyl_radius = mean(norm(spokes, axis=1))
@@ -703,7 +711,7 @@ class Graph(Model, StructureData):
         new_coords = ss_coords + offsets
         if False:
             # Debugging code to display center of secondary structure
-            self._ss_display(p, rlist.strs[0] + " helix " + str(start), ideal)
+            self._ss_display(p, str(self) + " helix " + str(start), ideal)
         # Update both control point and guide coordinates
         coords[start:end] = new_coords
         if guides is not None:
@@ -1187,43 +1195,77 @@ class Graph(Model, StructureData):
         import numpy
         res_names = numpy.array(atoms.residues.names)
         res_numbers = atoms.residues.numbers
+        res_ics = atoms.residues.insertion_codes
         selected = numpy.zeros(num_atoms)
         # TODO: account for attrs in addition to parts
         for part in parts:
-            start_number = self._number(part.start)
+            start_number, start_ic = self._res_parse(part.start)
             if part.end is None:
                 end_number = None
 
                 def choose_type(value, v=part.start.lower()):
                     return value.lower() == v
             else:
-                end_number = self._number(part.end)
+                end_number, end_ic = self._res_parse(part.end)
 
                 def choose_type(value, s=part.start.lower(), e=part.end.lower()):
                     v = value.lower()
                     return v >= s and v <= e
             if start_number:
                 if end_number is None:
-                    def choose_number(value, v=start_number):
-                        return value == v
+                    def choose_id(n, ic, test_val=str(start_number)+start_ic):
+                        return str(n)+ic == test_val
                 else:
-                    def choose_number(value, s=start_number, e=end_number):
-                        return value >= s and value <= e
+                    def choose_id(n, ic, sn=start_number, sic=start_ic, en=end_number, eic=end_ic):
+                        if n < start_number or n > end_number:
+                            return False
+                        if n > start_number and n < end_number:
+                            return True
+                        if n == start_number:
+                            if not ic and not sic:
+                                return True
+                            if ic and not sic:
+                                # blank insertion code is before non-blanks
+                                # res has insertion code, but test string doesn't...
+                                return True
+                            if sic and not ic:
+                                # blank insertion code is before non-blanks
+                                # test string has insertion code, but res doesn't...
+                                return False
+                            return sic <= ic
+                        if n == end_number:
+                            if not ic and not eic:
+                                return True
+                            if ic and not eic:
+                                # blank insertion code is before non-blanks
+                                # res has insertion code, but test string doesn't...
+                                return False
+                            if eic and not ic:
+                                # blank insertion code is before non-blanks
+                                # test string has insertion code, but res doesn't...
+                                return True
+                            return eic >= ic
+                        return True
             else:
-                choose_number = None
+                choose_id = None
             s = numpy.vectorize(choose_type)(res_names)
             selected = numpy.logical_or(selected, s)
-            if choose_number:
-                s = numpy.vectorize(choose_number)(res_numbers)
+            if choose_id:
+                s = numpy.vectorize(choose_id)(res_numbers, res_ics)
                 selected = numpy.logical_or(selected, s)
         # print("AtomicStructure._atomspec_filter_residue", selected)
         return selected
 
-    def _number(self, n):
+    def _res_parse(self, n):
         try:
-            return int(n)
+            return int(n), ""
         except ValueError:
-            return None
+            if not n:
+                return None, ""
+            try:
+                return int(n[:-1]), n[-1]
+            except ValueError:
+                return None, ""
 
     def _atomspec_filter_atom(self, atoms, num_atoms, parts, attrs):
         import numpy
@@ -1243,19 +1285,127 @@ class Graph(Model, StructureData):
         # print("AtomicStructure._atomspec_filter_atom", selected)
         return selected
 
-class AtomicStructure(Graph):
+class AtomicStructure(Structure):
     """
-    Bases: :class:`.StructureData`, :class:`.Model`, :class:`.Graph`
+    Bases: :class:`.StructureData`, :class:`.Model`, :class:`.Structure`
 
     Molecular model including atomic coordinates.
     The data is managed by the :class:`.StructureData` base class
     which provides access to the C++ structures.
     """
+
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, smart_initial_display = False)
-        Graph.set_state_from_snapshot(s, session, data)
+        Structure.set_state_from_snapshot(s, session, data)
         return s
+
+    def added_to_session(self, session):
+        super().added_to_session(session)
+        self._set_chain_descriptions(session)
+        self._determine_het_res_descriptions(session)
+
+    def _determine_het_res_descriptions(self, session):
+        # Don't actually set the description in the residue in order to avoid having
+        # to create all the residue objects; just determine the descriptions to
+        # be looked up later on demand
+        hnd = self._hetnam_descriptions = {}
+        recs = self.metadata.get('HETNAM', []) + self.metadata.get('HETSYN', [])
+        alternatives = {}
+        for rec in recs:
+            if rec[8:10].strip():
+                # continuation
+                hnd[het] = hnd[het] + rec[15:].strip()
+            else:
+                het = rec[11:14].strip()
+                if het in hnd:
+                    alternatives[het] = hnd[het]
+                hnd[het] = rec[15:].strip()
+        # use "punchier" description :-)
+        for het, alt in alternatives.items():
+            if len(alt) < len(hnd[het]):
+                hnd[het] = alt
+        from .pdb import process_chem_name
+        for k, v in hnd.items():
+            hnd[k] = process_chem_name(v)
+
+    def _set_chain_descriptions(self, session):
+        chain_to_desc = {}
+        if 'pdbx_poly_seq_scheme' in self.metadata:
+            scheme = self.metatdata.get('pdbx_poly_seq_scheme', [])
+            id_to_index = {}
+            for sch in scheme:
+                id_to_index[sch['pdb_strand_id']] = int(sch['entity_id']) - 1
+            entity = self.metatdata.get('entity', [])
+            entity_name_com = self.metatdata.get('entity_name_com', [])
+            for chain_id, index in id_to_index.items():
+                description = None
+                # try SYNONYM equivalent first
+                if len(entity_name_com) > index:
+                    syn = entity_name_com[index]['name']
+                    if syn != '?':
+                        description = syn
+                        synonym = True
+                if not description and len(entity) > index:
+                    description = entity[index]['pdbx_description']
+                    synonym = False
+                if description:
+                    chain_to_desc[chain_id] = (description, synonym)
+        elif 'COMPND' in self.metadata and self.pdb_version > 1:
+            compnd_recs = self.metadata['COMPND']
+            compnd_chain_ids = None
+            description = ""
+            continued = False
+            for rec in compnd_recs:
+                if continued:
+                    v += " " + rec[10:].strip()
+                else:
+                    try:
+                        k, v = rec[10:].strip().split(": ", 1)
+                    except ValueError:
+                        # bad PDB file
+                        break
+                if v.endswith(';'):
+                    v = v[:-1]
+                    continued = False
+                elif rec == compnd_recs[-1]:
+                    continued = False
+                else:
+                    continued = True
+                    continue
+                if k == "MOL_ID":
+                    if compnd_chain_ids and description:
+                        for chain_id in compnd_chain_ids:
+                            chain_to_desc[chain_id] = (description, synonym)
+                    compnd_chain_ids = None
+                    description = ""
+                elif k == "MOLECULE":
+                    if v.startswith("PROTEIN (") and v.endswith(")"):
+                        description = v[9:-1]
+                    else:
+                        description = v
+                    synonym = False
+                elif k == "SYNONYM":
+                    if ',' not in v:
+                        # not a long list of synonyms
+                        description = v
+                        synonym = True
+                elif k == "CHAIN":
+                    compnd_chain_ids = v.split(", ")
+            if compnd_chain_ids and description:
+                for chain_id in compnd_chain_ids:
+                    chain_to_desc[chain_id] = (description, synonym)
+        if chain_to_desc:
+            from .pdb import process_chem_name
+            for k, v in chain_to_desc.items():
+                description, synonym = v
+                chain_to_desc[k] = process_chem_name(description, probable_abbrs=synonym)
+            chains = sorted(self.chains, key=lambda c: c.chain_id)
+            for chain in chains:
+                chain.description = chain_to_desc.get(chain.chain_id, None)
+                if chain.description:
+                    session.logger.info("%s, chain %s: %s" % (self, chain.chain_id,
+                        chain.description))
 
 
 # -----------------------------------------------------------------------------
@@ -1381,7 +1531,10 @@ class PickedAtom(Pick):
         Pick.__init__(self, distance)
         self.atom = atom
     def description(self):
-        return atom_description(self.atom)
+        return str(self.atom)
+    @property
+    def residue(self):
+        return self.atom.residue
     def select(self, toggle = False):
         a = self.atom
         a.structure.select_atom(a, toggle)
@@ -1394,6 +1547,13 @@ class PickedAtoms(Pick):
         self.atoms = atoms
     def description(self):
         return '%d atoms' % len(self.atoms)
+    @property
+    def residue(self):
+        rs = self.atoms.unique_residues
+        if len(rs) == 1:
+            for res in residues:
+                return res
+        return None
     def select(self, toggle = False):
         a = self.atoms
         if toggle:
@@ -1401,14 +1561,6 @@ class PickedAtoms(Pick):
             a.selected = logical_not(a.selected)
         else:
             a.selected = True
-
-# -----------------------------------------------------------------------------
-#
-def atom_description(atom):
-    m = atom.structure
-    r = atom.residue
-    d = '%s #%s/%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
-    return d
 
 # -----------------------------------------------------------------------------
 # Handles bonds and pseudobonds.
@@ -1439,7 +1591,13 @@ class PickedBond(Pick):
         Pick.__init__(self, distance)
         self.bond = bond
     def description(self):
-        return bond_description(self.bond)
+        return str(self.bond)
+    @property
+    def residue(self):
+        a1, a2 = self.bond.atoms
+        if a1.residue == a2.residue:
+            return a1.residue
+        return None
     def select(self, toggle = False):
         for a in self.bond.atoms:
             a.structure.select_atom(a, toggle)
@@ -1451,36 +1609,16 @@ class PickedPseudobond(Pick):
         Pick.__init__(self, distance)
         self.pbond = pbond
     def description(self):
-        return bond_description(self.pbond)
+        return str(self.pbond)
+    @property
+    def residue(self):
+        a1, a2 = self.pbond.atoms
+        if a1.residue == a2.residue:
+            return a1.residue
+        return None
     def select(self, toggle = False):
         for a in self.pbond.atoms:
             a.structure.select_atom(a, toggle)
-
-# -----------------------------------------------------------------------------
-#
-def bond_description(bond):
-    a1, a2 = bond.atoms
-    m1, m2 = a1.structure, a2.structure
-    mid1, mid2 = m1.id_string(), m2.id_string()
-    r1, r2 = a1.residue, a2.residue
-    from .molobject import Bond
-    t = 'bond' if isinstance(bond, Bond) else 'pseudobond'
-    if r1 == r2:
-        d = '%s %s #%s/%s %s %d %s - %s' % (t, m1.name, mid1, r1.chain_id,
-                                            r1.name, r1.number, a1.name, a2.name)
-    elif r1.chain_id == r2.chain_id:
-        d = '%s %s #%s/%s %s %d %s - %s %d %s' % (t, m1.name, mid1, r1.chain_id,
-                                                  r1.name, r1.number, a1.name,
-                                                  r2.name, r2.number, a2.name)
-    elif m1 == m2:
-        d = '%s %s #%s/%s %s %d %s - /%s %s %d %s' % (t, m1.name, mid1,
-                                                      r1.chain_id, r1.name, r1.number, a1.name,
-                                                      r2.chain_id, r2.name, r2.number, a2.name)
-    else:
-        d = '%s %s #%s/%s %s %d %s - %s #%s/%s %s %d %s' % (t, m1.name, mid1, r1.chain_id, r1.name, r1.number, a1.name,
-                                                            m2.name, mid2, r2.chain_id, r2.name, r2.number, a2.name)
-
-    return d
 
 # -----------------------------------------------------------------------------
 #
@@ -1490,7 +1628,7 @@ class PickedResidue(Pick):
         Pick.__init__(self, distance)
         self.residue = residue
     def description(self):
-        return residue_description(self.residue)
+        return str(self.residue)
     def select(self, toggle=False):
         r = self.residue
         r.structure.select_residue(r, toggle)
@@ -1503,6 +1641,12 @@ class PickedResidues(Pick):
         self.residues = residues
     def description(self):
         return '%d residues' % len(self.residues)
+    @property
+    def residue(self):
+        if len(self.residues) == 1:
+            for res in self.residues:
+                return res
+        return None
     def select(self, toggle = False):
         a = self.residues.atoms
         if toggle:
@@ -1510,13 +1654,6 @@ class PickedResidues(Pick):
             a.selected = logical_not(a.selected)
         else:
             a.selected = True
-
-# -----------------------------------------------------------------------------
-#
-def residue_description(r):
-    m = r.structure
-    d = '%s #%s.%s %s %d' % (m.name, m.id_string(), r.chain_id, r.name, r.number)
-    return d
 
 # -----------------------------------------------------------------------------
 #
@@ -1663,7 +1800,7 @@ def structure_atoms(structures):
 def selected_atoms(session):
     '''All selected atoms in all structures as an :class:`.Atoms` collection.'''
     alist = []
-    for m in session.models.list(type = Graph):
+    for m in session.models.list(type = Structure):
         alist.extend(m.selected_items('atoms'))
     from .molarray import concatenate, Atoms
     atoms = concatenate(alist, Atoms)
@@ -1674,7 +1811,7 @@ def selected_atoms(session):
 def selected_bonds(session):
     '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
     blist = []
-    for m in session.models.list(type = Graph):
+    for m in session.models.list(type = Structure):
         for a in m.selected_items('atoms'):
             blist.append(a.inter_bonds)
     from .molarray import concatenate, Bonds

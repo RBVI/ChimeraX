@@ -13,7 +13,7 @@ namespace atomstruct {
 
 class ATOMSTRUCT_IMEX CoordSet {
     friend class Atom;
-    friend class Graph;
+    friend class Structure;
 
 public:
     typedef std::vector<Coord>  Coords;
@@ -23,9 +23,9 @@ private:
     int  _cs_id;
     std::unordered_map<const Atom *, float>  _bfactor_map;
     std::unordered_map<const Atom *, float>  _occupancy_map;
-    Graph*  _structure;
-    CoordSet(Graph* as, int cs_id);
-    CoordSet(Graph* as, int cs_id, int size);
+    Structure*  _structure;
+    CoordSet(Structure* as, int cs_id);
+    CoordSet(Structure* as, int cs_id, int size);
 
 public:
     void  add_coord(const Point &coord) { _coords.push_back(coord); }
@@ -46,7 +46,7 @@ public:
     void  session_save(int** ints, float** floats) const;
     void  set_bfactor(const Atom *, float);
     void  set_occupancy(const Atom *, float);
-    Graph*  structure() const { return _structure; }
+    Structure*  structure() const { return _structure; }
 };
 
 }  // namespace atomstruct

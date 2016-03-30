@@ -24,58 +24,58 @@ def register_core_selectors(session):
     
 
 def _element_selector(symbol, models, results):
-    from ..atomic import AtomicStructure
+    from ..atomic import Structure
     for m in models:
-        if isinstance(m, AtomicStructure):
+        if isinstance(m, Structure):
             atoms = m.atoms.filter(m.atoms.element_names == symbol)
             if len(atoms) > 0:
                 results.add_model(m)
                 results.add_atoms(atoms)
 
 def _sel_selector(session, models, results):
-    from ..atomic import Graph
+    from ..atomic import Structure
     for m in models:
         if m.any_part_selected():
             results.add_model(m)
             spos = m.selected_positions
             if spos is not None and spos.sum() > 0:
                 results.add_model_instances(m, spos)
-            if isinstance(m, Graph):
+            if isinstance(m, Structure):
                 for atoms in m.selected_items('atoms'):
                     results.add_atoms(atoms)
 
 
 def _strands_selector(session, models, results):
-    from ..atomic import AtomicStructure
+    from ..atomic import Structure
     for m in models:
-        if isinstance(m, AtomicStructure):
+        if isinstance(m, Structure):
             strands = m.residues.filter(m.residues.is_sheet)
             if strands:
                 results.add_model(m)
                 results.add_atoms(strands.atoms)
 
 def _structure_category_selector(cat, models, results):
-    from ..atomic import AtomicStructure
+    from ..atomic import Structure
     for m in models:
-        if isinstance(m, AtomicStructure):
+        if isinstance(m, Structure):
             atoms = m.atoms.filter(m.atoms.structure_categories == cat)
             if len(atoms) > 0:
                 results.add_model(m)
                 results.add_atoms(atoms)
 
 def _helices_selector(session, models, results):
-    from ..atomic import AtomicStructure
+    from ..atomic import Structure
     for m in models:
-        if isinstance(m, AtomicStructure):
+        if isinstance(m, Structure):
             helices = m.residues.filter(m.residues.is_helix)
             if helices:
                 results.add_model(m)
                 results.add_atoms(helices.atoms)
 
 def _coil_selector(session, models, results):
-    from ..atomic import AtomicStructure
+    from ..atomic import Structure
     for m in models:
-        if isinstance(m, AtomicStructure):
+        if isinstance(m, Structure):
             from numpy import logical_not, logical_or
             cr = m.chains.existing_residues
             is_coil = logical_not(logical_or(cr.is_sheet, cr.is_helix))
@@ -88,9 +88,9 @@ def _coil_selector(session, models, results):
                 results.add_atoms(coil.atoms)
 
 def _polymer_selector(models, results, protein):
-    from ..atomic import AtomicStructure
+    from ..atomic import Structure
     for m in models:
-        if isinstance(m, AtomicStructure):
+        if isinstance(m, Structure):
             pas = m.residues.existing_principal_atoms
             if protein:
                 residues = pas.residues.filter(pas.names=="CA")
@@ -101,8 +101,8 @@ def _polymer_selector(models, results, protein):
                 results.add_atoms(residues.atoms)
 
 def _pbonds_selector(session, models, results):
-    from ..atomic import AtomicStructure, structure_atoms, interatom_pseudobonds
-    atoms = structure_atoms([m for m in models if isinstance(m, AtomicStructure)])
+    from ..atomic import Structure, structure_atoms, interatom_pseudobonds
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
     pbonds = interatom_pseudobonds(atoms, session)
     a1, a2 = pbonds.atoms
     atoms = a1 | a2
@@ -111,8 +111,8 @@ def _pbonds_selector(session, models, results):
     results.add_atoms(atoms)
 
 def _hbonds_selector(session, models, results):
-    from ..atomic import AtomicStructure, structure_atoms, interatom_pseudobonds
-    atoms = structure_atoms([m for m in models if isinstance(m, AtomicStructure)])
+    from ..atomic import Structure, structure_atoms, interatom_pseudobonds
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
     pbonds = interatom_pseudobonds(atoms, session, group_name = 'hydrogen bonds')
     a1, a2 = pbonds.atoms
     atoms = a1 | a2

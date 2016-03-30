@@ -1,7 +1,7 @@
 // vi: set expandtab ts=4 sw=4:
 
 #include "destruct.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "PBGroup.h"
 
 #include <pysupport/convert.h>
@@ -91,7 +91,7 @@ PBManager::get_group(const std::string& name, int create)
     return grp;
 }
 
-StructureManager::StructureManager(Graph* as):
+StructureManager::StructureManager(Structure* as):
     BaseManager(as->change_tracker()), _structure(as) {}
 
 void

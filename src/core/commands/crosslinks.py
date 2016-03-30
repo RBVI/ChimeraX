@@ -129,7 +129,7 @@ def register_command(session):
     desc = cli.CmdDesc(optional = [('pbgroups', cli.PseudobondGroupsArg)],
                        keyword = [('color', ColorArg),
                                   ('radius', cli.FloatArg),
-                                  ('minimize', cli.AtomicStructuresArg),
+                                  ('minimize', cli.StructuresArg),
                                   ('iterations', cli.IntArg),
                                   ('frames', cli.IntArg),
                               ])

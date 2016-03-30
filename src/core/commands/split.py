@@ -9,7 +9,7 @@ def split(session, molecules = None, chains = None, ligands = False, connected =
 
     Parameters
     ----------
-    molecules : AtomicStructures
+    molecules : Structures
       Structures to split.
     chains : bool
       Split each chain into a separate atomic structure.
@@ -178,8 +178,9 @@ def split_atoms(atoms, asubsets):
 #
 def molecule_from_atoms(m, atoms, name = None):
 
-    from ..atomic import AtomicStructure
-    cm = AtomicStructure(m.session, name = name or m.name, level_of_detail = m._level_of_detail)
+    from ..atomic import AtomicStructure, Structure
+    structure_class = AtomicStructure if isinstance(m, AtomicStructure) else Structure
+    cm = structure_class(m.session, name = name or m.name, level_of_detail = m._level_of_detail)
 #    cm.color = m.color
     cm.display = m.display
 #    cm.lineWidth = m.lineWidth
@@ -282,7 +283,7 @@ def register_command(session):
 
     from . import cli, atomspec, color
     desc = cli.CmdDesc(
-        optional = [('molecules', cli.AtomicStructuresArg)],
+        optional = [('molecules', cli.StructuresArg)],
         keyword = [('chains', cli.NoArg),
                    ('ligands', cli.NoArg),
                    ('connected', cli.NoArg),

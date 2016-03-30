@@ -11,7 +11,7 @@ from .cli import NoArg, BoolArg, StringArg, EmptyArg, EnumOf, DynamicEnum
 from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
 from .cli import FloatArg, Float3Arg, FloatsArg
 from .cli import AxisArg, CenterArg, CoordSysArg, PlaceArg, Bounded
-from .cli import ModelIdArg, AtomsArg, AtomicStructuresArg, SurfacesArg
+from .cli import ModelIdArg, AtomsArg, StructuresArg, AtomicStructuresArg, SurfacesArg
 from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
 from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg
 

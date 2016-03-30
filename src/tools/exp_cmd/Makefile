@@ -12,12 +12,12 @@ PKG_DESCRIPTION = Experimental commands
 TOOL_NAME = exp_cmd
 TOOL_PKG_NAME = chimerax.exp_cmd
 TOOL_DISPLAY_NAME = Experimental Commands
-TOOL_CATEGORY = General
+TOOL_CATEGORY = Hidden
 TOOL_FILE_TYPES =
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Experimental commands that may go away
-COMMAND_NAME = cartoon,~cartoon,ribbon,~ribbon
+COMMAND_NAME = cartoon,~cartoon,ribbon,~ribbon,mlp
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)

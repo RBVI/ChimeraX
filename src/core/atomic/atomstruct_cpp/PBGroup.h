@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 #include "destruct.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "imex.h"
 #include "PBManager.h"
 #include "Rgba.h"
@@ -25,7 +25,7 @@ namespace atomstruct {
 
 class Atom;
 class CoordSet;
-class Graph;
+class Structure;
 class Pseudobond;
 class Proxy_PBGroup;
 
@@ -91,8 +91,8 @@ public:
 protected:
     friend class AS_PBManager;
     void  _check_structure(Atom* a1, Atom* a2);
-    Graph*  _structure;
-    StructurePBGroupBase(const std::string& cat, Graph* as, BaseManager* manager):
+    Structure*  _structure;
+    StructurePBGroupBase(const std::string& cat, Structure* as, BaseManager* manager):
         Group(cat, manager), _structure(as) {}
     virtual  ~StructurePBGroupBase() {}
 public:
@@ -111,7 +111,7 @@ public:
     virtual void  session_save(int** ints, float** floats) const {
         Group::session_save(ints, floats);
     }
-    Graph*  structure() const { return _structure; }
+    Structure*  structure() const { return _structure; }
 };
 
 class StructurePBGroup: public StructurePBGroupBase {
@@ -122,7 +122,7 @@ private:
     friend class Proxy_PBGroup;
     Pseudobonds  _pbonds;
 protected:
-    StructurePBGroup(const std::string& cat, Graph* as, BaseManager* manager):
+    StructurePBGroup(const std::string& cat, Structure* as, BaseManager* manager):
         StructurePBGroupBase(cat, as, manager) {}
     ~StructurePBGroup() { dtor_code(); }
 public:
@@ -147,7 +147,7 @@ private:
     mutable std::unordered_map<const CoordSet*, Pseudobonds>  _pbonds;
     void  remove_cs(const CoordSet* cs) { _pbonds.erase(cs); }
 protected:
-    CS_PBGroup(const std::string& cat, Graph* as, BaseManager* manager):
+    CS_PBGroup(const std::string& cat, Structure* as, BaseManager* manager):
         StructurePBGroupBase(cat, as, manager) {}
     ~CS_PBGroup();
 public:
@@ -178,9 +178,9 @@ private:
 
     Proxy_PBGroup(BaseManager* manager, const std::string& cat):
         StructurePBGroupBase(cat, nullptr, manager) { init(AS_PBManager::GRP_NORMAL); }
-    Proxy_PBGroup(BaseManager* manager, const std::string& cat, Graph* as):
+    Proxy_PBGroup(BaseManager* manager, const std::string& cat, Structure* as):
         StructurePBGroupBase(cat, as, manager) { init(AS_PBManager::GRP_NORMAL); }
-    Proxy_PBGroup(BaseManager* manager, const std::string& cat, Graph* as, int grp_type):
+    Proxy_PBGroup(BaseManager* manager, const std::string& cat, Structure* as, int grp_type):
         StructurePBGroupBase(cat, as, manager) { init(grp_type); }
     ~Proxy_PBGroup() {
         _destruction_relevant = false;
@@ -297,7 +297,7 @@ public:
             static_cast<StructurePBGroup*>(_proxied)->set_default_halfbond(hb);
         static_cast<CS_PBGroup*>(_proxied)->set_default_halfbond(hb);
     }
-    Graph*  structure() const { 
+    Structure*  structure() const { 
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<StructurePBGroup*>(_proxied)->structure();
         return static_cast<CS_PBGroup*>(_proxied)->structure();

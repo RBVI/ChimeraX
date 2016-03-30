@@ -17,6 +17,7 @@
 #include "atomstruct/RibbonXSection.h"
 #include "atomstruct/Sequence.h"
 #include "pythonarray.h"           // Use python_voidp_array()
+#include "pysupport/convert.h"     // Use cset_of_chars_to_pyset
 
 #include <functional>
 #include <map>
@@ -64,6 +65,14 @@ inline PyObject* unicode_from_string(const chutil::CString<len, description_char
 {
     return PyUnicode_DecodeUTF8(static_cast<const char*>(cstr), cstr.size(),
                             "replace");
+}
+
+inline PyObject* unicode_from_character(char c)
+{
+    char buffer[2];
+    buffer[0] = c;
+    buffer[1] = '\0';
+    return unicode_from_string(buffer, 1);
 }
 
 static void
@@ -299,7 +308,7 @@ extern "C" void atom_delete(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
-        std::map<Graph *, std::vector<Atom *> > matoms;
+        std::map<Structure *, std::vector<Atom *> > matoms;
         for (size_t i = 0; i != n; ++i)
             matoms[a[i]->structure()].push_back(a[i]);
 
@@ -474,15 +483,15 @@ extern "C" void atom_residue(void *atoms, size_t n, pyobject_t *resp)
 extern "C" void atom_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    Graph **ma = static_cast<Graph **>(mols);
+    Structure **ma = static_cast<Structure **>(mols);
 
     try {
-        std::map<Graph *, double *> tf;
+        std::map<Structure *, double *> tf;
         for (size_t i = 0; i != m; ++i)
             tf[ma[i]] = mtf + 12*i;
 
         for (size_t i = 0; i != n; ++i) {
-            Graph *s = a[i]->structure();
+            Structure *s = a[i]->structure();
             double *t = tf[s];
             const Coord &c = a[i]->coord();
             double x = c[0], y = c[1], z = c[2];
@@ -499,16 +508,16 @@ extern "C" void atom_scene_coords(void *atoms, size_t n, void *mols, size_t m, f
 extern "C" void atom_set_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
 {
     Atom **a = static_cast<Atom **>(atoms);
-    Graph **ma = static_cast<Graph **>(mols);
+    Structure **ma = static_cast<Structure **>(mols);
 
     try {
-        std::map<Graph *, double *> tf;
+        std::map<Structure *, double *> tf;
         for (size_t i = 0; i != m; ++i)
             tf[ma[i]] = mtf + 12*i;
 
 	Point p;
         for (size_t i = 0; i != n; ++i, xyz += 3) {
-            Graph *s = a[i]->structure();
+            Structure *s = a[i]->structure();
             double *t = tf[s];
             double x = xyz[0], y = xyz[1], z = xyz[2];
             p.set_xyz(t[0]*x + t[1]*y + t[2]*z + t[3],
@@ -1186,7 +1195,7 @@ extern "C" void pseudobond_global_manager_session_restore_structure_mapping(void
         PyObject* ses_id;
         PyObject* ptr;
         while (PyDict_Next(mapping, &index, &ses_id, &ptr)) {
-            (*c_map)[PyLong_AsLong(ses_id)] = static_cast<Graph*>(PyLong_AsVoidPtr(ptr));
+            (*c_map)[PyLong_AsLong(ses_id)] = static_cast<Structure*>(PyLong_AsVoidPtr(ptr));
         }
     } catch (...) {
         molc_error();
@@ -1230,12 +1239,55 @@ extern "C" void residue_atoms(void *residues, size_t n, pyobject_t *atoms)
     }
 }
 
+extern "C" void residue_chain(void *residues, size_t n, pyobject_t *chainp)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::chain, chainp);
+}
+
 extern "C" void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
             cids[i] = unicode_from_string(r[i]->chain_id());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto ic = r[i]->insertion_code();
+            if (ic == ' ')
+                ics[i] = unicode_from_string("", 0);
+            else
+                ics[i] = unicode_from_character(r[i]->insertion_code());
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            PyObject* py_ic = static_cast<PyObject*>(ics[i]);
+            auto size = PyUnicode_GET_DATA_SIZE(py_ic);
+            if (size > 1)
+                throw std::invalid_argument("Insertion code must be one character or empty string");
+            char val;
+            if (size == 0)
+                val = ' ';
+            else
+                val = PyUnicode_AS_DATA(py_ic)[0];
+            r[i]->set_insertion_code(val);
+        }
     } catch (...) {
         molc_error();
     }
@@ -1473,7 +1525,7 @@ extern "C" void set_residue_ribbon_color(void *residues, size_t n, uint8_t *rgba
 extern "C" PyObject* residue_polymer_spline(void *residues, size_t n, int orient)
 {
     bool want_guides = true;
-    if (orient == Graph::RIBBON_ORIENT_ATOMS || orient == Graph::RIBBON_ORIENT_CURVATURE)
+    if (orient == Structure::RIBBON_ORIENT_ATOMS || orient == Structure::RIBBON_ORIENT_CURVATURE)
         want_guides = false;
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1847,7 +1899,7 @@ extern "C" void set_sequence_name(void *seqs, size_t n, pyobject_t *names)
 //
 extern "C" void set_structure_color(void *mol, uint8_t *rgba)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         Rgba c;
         c.r = *rgba++;
@@ -1862,7 +1914,7 @@ extern "C" void set_structure_color(void *mol, uint8_t *rgba)
 
 extern "C" void *structure_copy(void *mol)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         return m->copy();
     } catch (...) {
@@ -1873,55 +1925,55 @@ extern "C" void *structure_copy(void *mol)
 
 extern "C" void structure_gc_color(void *mols, size_t n, npy_bool *color_changed)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get<Graph, bool, npy_bool>(m, n, &Graph::get_gc_color, color_changed);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_color, color_changed);
 }
 
 extern "C" void set_structure_gc_color(void *mols, size_t n, npy_bool *color_changed)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_set<Graph, bool, npy_bool>(m, n, &Graph::set_gc_color, color_changed);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_color, color_changed);
 }
 
 extern "C" void structure_gc_select(void *mols, size_t n, npy_bool *select_changed)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get<Graph, bool, npy_bool>(m, n, &Graph::get_gc_select, select_changed);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_select, select_changed);
 }
 
 extern "C" void set_structure_gc_select(void *mols, size_t n, npy_bool *select_changed)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_set<Graph, bool, npy_bool>(m, n, &Graph::set_gc_select, select_changed);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_select, select_changed);
 }
 
 extern "C" void structure_gc_shape(void *mols, size_t n, npy_bool *shape_changed)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get<Graph, bool, npy_bool>(m, n, &Graph::get_gc_shape, shape_changed);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_shape, shape_changed);
 }
 
 extern "C" void set_structure_gc_shape(void *mols, size_t n, npy_bool *shape_changed)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_set<Graph, bool, npy_bool>(m, n, &Graph::set_gc_shape, shape_changed);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_shape, shape_changed);
 }
 
 extern "C" void structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get<Graph, bool, npy_bool>(m, n, &Graph::get_gc_ribbon, ribbon_changed);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_ribbon, ribbon_changed);
 }
 
 extern "C" void set_structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_set<Graph, bool, npy_bool>(m, n, &Graph::set_gc_ribbon, ribbon_changed);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_ribbon, ribbon_changed);
 }
 
 extern "C" void structure_name(void *mols, size_t n, pyobject_t *names)
 {
-    Graph **m = static_cast<Graph **>(mols);
+    Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i)
             names[i] = unicode_from_string(m[i]->name().c_str());
@@ -1932,7 +1984,7 @@ extern "C" void structure_name(void *mols, size_t n, pyobject_t *names)
 
 extern "C" void set_structure_name(void *mols, size_t n, pyobject_t *names)
 {
-    Graph **m = static_cast<Graph **>(mols);
+    Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i)
             m[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
@@ -1943,7 +1995,7 @@ extern "C" void set_structure_name(void *mols, size_t n, pyobject_t *names)
 
 extern "C" void structure_num_atoms(void *mols, size_t n, size_t *natoms)
 {
-    Graph **m = static_cast<Graph **>(mols);
+    Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i)
             natoms[i] = m[i]->atoms().size();
@@ -1954,10 +2006,10 @@ extern "C" void structure_num_atoms(void *mols, size_t n, size_t *natoms)
 
 extern "C" void structure_atoms(void *mols, size_t n, pyobject_t *atoms)
 {
-    Graph **m = static_cast<Graph **>(mols);
+    Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const Graph::Atoms &a = m[i]->atoms();
+            const Structure::Atoms &a = m[i]->atoms();
             for (size_t j = 0; j != a.size(); ++j)
                 *atoms++ = a[j];
         }
@@ -1968,16 +2020,16 @@ extern "C" void structure_atoms(void *mols, size_t n, pyobject_t *atoms)
 
 extern "C" void structure_num_bonds(void *mols, size_t n, size_t *nbonds)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::num_bonds, nbonds);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::num_bonds, nbonds);
 }
 
 extern "C" void structure_bonds(void *mols, size_t n, pyobject_t *bonds)
 {
-    Graph **m = static_cast<Graph **>(mols);
+    Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const Graph::Bonds &b = m[i]->bonds();
+            const Structure::Bonds &b = m[i]->bonds();
             for (size_t j = 0; j != b.size(); ++j)
                 *bonds++ = b[j];
         }
@@ -1988,16 +2040,16 @@ extern "C" void structure_bonds(void *mols, size_t n, pyobject_t *bonds)
 
 extern "C" void structure_num_residues(void *mols, size_t n, size_t *nres)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::num_residues, nres);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::num_residues, nres);
 }
 
 extern "C" void structure_residues(void *mols, size_t n, pyobject_t *res)
 {
-    Graph **m = static_cast<Graph **>(mols);
+    Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const Graph::Residues &r = m[i]->residues();
+            const Structure::Residues &r = m[i]->residues();
             for (size_t j = 0; j != r.size(); ++j)
                 *res++ = r[j];
         }
@@ -2008,22 +2060,22 @@ extern "C" void structure_residues(void *mols, size_t n, pyobject_t *res)
 
 extern "C" void structure_num_coord_sets(void *mols, size_t n, size_t *ncoord_sets)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::num_coord_sets, ncoord_sets);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::num_coord_sets, ncoord_sets);
 }
 
 extern "C" void structure_num_chains(void *mols, size_t n, size_t *nchains)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::num_chains, nchains);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::num_chains, nchains);
 }
 
 extern "C" void structure_chains(void *mols, size_t n, pyobject_t *chains)
 {
-    Graph **m = static_cast<Graph **>(mols);
+    Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const Graph::Chains &c = m[i]->chains();
+            const Structure::Chains &c = m[i]->chains();
             for (size_t j = 0; j != c.size(); ++j)
                 *chains++ = c[j];
         }
@@ -2034,28 +2086,28 @@ extern "C" void structure_chains(void *mols, size_t n, pyobject_t *chains)
 
 extern "C" void structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::ribbon_tether_scale, ribbon_tether_scale);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ribbon_tether_scale, ribbon_tether_scale);
 }
 
 extern "C" void set_structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_set(m, n, &Graph::set_ribbon_tether_scale, ribbon_tether_scale);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set(m, n, &Structure::set_ribbon_tether_scale, ribbon_tether_scale);
 }
 
 extern "C" void structure_ribbon_tether_shape(void *mols, size_t n, int32_t *ribbon_tether_shape)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::ribbon_tether_shape, ribbon_tether_shape);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ribbon_tether_shape, ribbon_tether_shape);
 }
 
 extern "C" void set_structure_ribbon_tether_shape(void *mols, size_t n, int32_t *ribbon_tether_shape)
 {
-    Graph **m = static_cast<Graph **>(mols);
+    Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i < n; ++i)
-            m[i]->set_ribbon_tether_shape(static_cast<Graph::TetherShape>(ribbon_tether_shape[i]));
+            m[i]->set_ribbon_tether_shape(static_cast<Structure::TetherShape>(ribbon_tether_shape[i]));
     } catch (...) {
         molc_error();
     }
@@ -2063,40 +2115,40 @@ extern "C" void set_structure_ribbon_tether_shape(void *mols, size_t n, int32_t 
 
 extern "C" void structure_ribbon_tether_sides(void *mols, size_t n, int32_t *ribbon_tether_sides)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::ribbon_tether_sides, ribbon_tether_sides);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ribbon_tether_sides, ribbon_tether_sides);
 }
 
 extern "C" void set_structure_ribbon_tether_sides(void *mols, size_t n, int32_t *ribbon_tether_sides)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_set(m, n, &Graph::set_ribbon_tether_sides, ribbon_tether_sides);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set(m, n, &Structure::set_ribbon_tether_sides, ribbon_tether_sides);
 }
 
 extern "C" void structure_ribbon_tether_opacity(void *mols, size_t n, float32_t *ribbon_tether_opacity)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::ribbon_tether_opacity, ribbon_tether_opacity);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ribbon_tether_opacity, ribbon_tether_opacity);
 }
 
 extern "C" void set_structure_ribbon_tether_opacity(void *mols, size_t n, float32_t *ribbon_tether_opacity)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_set(m, n, &Graph::set_ribbon_tether_opacity, ribbon_tether_opacity);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set(m, n, &Structure::set_ribbon_tether_opacity, ribbon_tether_opacity);
 }
 
 extern "C" void structure_ribbon_orientation(void *mols, size_t n, int32_t *ribbon_orientation)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::ribbon_orientation, ribbon_orientation);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ribbon_orientation, ribbon_orientation);
 }
 
 extern "C" void set_structure_ribbon_orientation(void *mols, size_t n, int32_t *ribbon_orientation)
 {
-    Graph **m = static_cast<Graph **>(mols);
+    Structure **m = static_cast<Structure **>(mols);
     try {
         for (size_t i = 0; i < n; ++i)
-            m[i]->set_ribbon_orientation(static_cast<Graph::RibbonOrientation>(ribbon_orientation[i]));
+            m[i]->set_ribbon_orientation(static_cast<Structure::RibbonOrientation>(ribbon_orientation[i]));
     } catch (...) {
         molc_error();
     }
@@ -2104,25 +2156,25 @@ extern "C" void set_structure_ribbon_orientation(void *mols, size_t n, int32_t *
 
 extern "C" void structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::ribbon_show_spine, ribbon_show_spine);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ribbon_show_spine, ribbon_show_spine);
 }
 
 extern "C" void set_structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_set(m, n, &Graph::set_ribbon_show_spine, ribbon_show_spine);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set(m, n, &Structure::set_ribbon_show_spine, ribbon_show_spine);
 }
 
 extern "C" void structure_ribbon_display_count(void *mols, size_t n, int32_t *ribbon_display_count)
 {
-    Graph **m = static_cast<Graph **>(mols);
-    error_wrap_array_get(m, n, &Graph::ribbon_display_count, ribbon_display_count);
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ribbon_display_count, ribbon_display_count);
 }
 
 extern "C" void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
 {
-    Graph **m = static_cast<Graph **>(mols);
+    Structure **m = static_cast<Structure **>(mols);
     PyObject* pbg_map = NULL;
     try {
         for (size_t i = 0; i != n; ++i) {
@@ -2145,7 +2197,7 @@ extern "C" void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
 
 extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name, int create_type)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         Proxy_PBGroup *pbg = m->pb_mgr().get_group(name, create_type);
         return pbg;
@@ -2157,7 +2209,7 @@ extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name
 
 extern "C" size_t structure_session_atom_to_id(void *mol, void* atom)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     Atom *a = static_cast<Atom *>(atom);
     try {
         return (*m->session_save_atoms)[a];
@@ -2169,7 +2221,7 @@ extern "C" size_t structure_session_atom_to_id(void *mol, void* atom)
 
 extern "C" size_t structure_session_bond_to_id(void *mol, void* bond)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     Bond *b = static_cast<Bond *>(bond);
     try {
         return (*m->session_save_bonds)[b];
@@ -2181,7 +2233,7 @@ extern "C" size_t structure_session_bond_to_id(void *mol, void* bond)
 
 extern "C" size_t structure_session_chain_to_id(void *mol, void* chain)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     Chain *c = static_cast<Chain *>(chain);
     try {
         return (*m->session_save_chains)[c];
@@ -2193,7 +2245,7 @@ extern "C" size_t structure_session_chain_to_id(void *mol, void* chain)
 
 extern "C" size_t structure_session_residue_to_id(void *mol, void* res)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     Residue *r = static_cast<Residue *>(res);
     try {
         return (*m->session_save_residues)[r];
@@ -2205,7 +2257,7 @@ extern "C" size_t structure_session_residue_to_id(void *mol, void* res)
 
 extern "C" void* structure_session_id_to_atom(void *mol, size_t i)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         return m->atoms()[i];
     } catch (...) {
@@ -2216,7 +2268,7 @@ extern "C" void* structure_session_id_to_atom(void *mol, size_t i)
 
 extern "C" void* structure_session_id_to_bond(void *mol, size_t i)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         return m->bonds()[i];
     } catch (...) {
@@ -2227,7 +2279,7 @@ extern "C" void* structure_session_id_to_bond(void *mol, size_t i)
 
 extern "C" void* structure_session_id_to_chain(void *mol, size_t i)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         return m->chains()[i];
     } catch (...) {
@@ -2238,7 +2290,7 @@ extern "C" void* structure_session_id_to_chain(void *mol, size_t i)
 
 extern "C" void* structure_session_id_to_residue(void *mol, size_t i)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         return m->residues()[i];
     } catch (...) {
@@ -2249,7 +2301,7 @@ extern "C" void* structure_session_id_to_residue(void *mol, size_t i)
 
 extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *floats, PyObject *misc)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         return m->session_info(ints, floats, misc);
     } catch (...) {
@@ -2261,7 +2313,7 @@ extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *float
 extern "C" void structure_session_restore(void *mol, int version,
     PyObject *ints, PyObject *floats, PyObject *misc)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         m->session_restore(version, ints, floats, misc);
     } catch (...) {
@@ -2271,7 +2323,7 @@ extern "C" void structure_session_restore(void *mol, int version,
 
 extern "C" void structure_session_restore_setup(void *mol)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
             m->session_restore_setup();
     } catch (...) {
@@ -2281,7 +2333,7 @@ extern "C" void structure_session_restore_setup(void *mol)
 
 extern "C" void structure_session_restore_teardown(void *mol)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
             m->session_restore_teardown();
     } catch (...) {
@@ -2291,7 +2343,7 @@ extern "C" void structure_session_restore_teardown(void *mol)
 
 extern "C" void structure_session_save_setup(void *mol)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
             m->session_save_setup();
     } catch (...) {
@@ -2301,7 +2353,7 @@ extern "C" void structure_session_save_setup(void *mol)
 
 extern "C" void structure_session_save_teardown(void *mol)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
             m->session_save_teardown();
     } catch (...) {
@@ -2311,7 +2363,7 @@ extern "C" void structure_session_save_teardown(void *mol)
 
 extern "C" void structure_start_change_tracking(void *mol, void *vct)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     try {
             m->start_change_tracking(ct);
@@ -2322,7 +2374,7 @@ extern "C" void structure_start_change_tracking(void *mol, void *vct)
 
 extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     PyObject *poly = NULL;
     try {
         std::vector<Chain::Residues> polymers = m->polymers(consider_missing_structure, consider_chains_ids);
@@ -2344,10 +2396,10 @@ extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structur
     }
 }
 
-extern "C" void *graph_new(PyObject* logger)
+extern "C" void *structure_new(PyObject* logger)
 {
     try {
-        Graph *g = new Graph(logger);
+        Structure *g = new Structure(logger);
         return g;
     } catch (...) {
         molc_error();
@@ -2355,7 +2407,7 @@ extern "C" void *graph_new(PyObject* logger)
     }
 }
 
-extern "C" void *structure_new(PyObject* logger)
+extern "C" void *atomic_structure_new(PyObject* logger)
 {
     try {
         AtomicStructure *m = new AtomicStructure(logger);
@@ -2368,7 +2420,7 @@ extern "C" void *structure_new(PyObject* logger)
 
 extern "C" void structure_delete(void *mol)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         delete m;
     } catch (...) {
@@ -2378,7 +2430,7 @@ extern "C" void structure_delete(void *mol)
 
 extern "C" void *structure_new_atom(void *mol, const char *atom_name, const char *element_name)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         Atom *a = m->new_atom(atom_name, Element::get_element(element_name));
         return a;
@@ -2390,7 +2442,7 @@ extern "C" void *structure_new_atom(void *mol, const char *atom_name, const char
 
 extern "C" void *structure_new_bond(void *mol, void *atom1, void *atom2)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         Bond *b = m->new_bond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
         return b;
@@ -2402,13 +2454,61 @@ extern "C" void *structure_new_bond(void *mol, void *atom1, void *atom2)
 
 extern "C" void *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos)
 {
-    Graph *m = static_cast<Graph *>(mol);
+    Structure *m = static_cast<Structure *>(mol);
     try {
         Residue *r = m->new_residue(residue_name, chain_id, pos, ' ');
         return r;
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    PyObject* header_map = NULL;
+    try {
+        for (size_t i = 0; i < n; ++i) {
+            header_map = PyDict_New();
+            auto& metadata = m[i]->metadata;
+            for (auto& item: metadata) {
+                PyObject* key = unicode_from_string(item.first);
+                auto& headers = item.second;
+                size_t count = headers.size();
+                PyObject* values = PyList_New(count);
+                for (size_t i = 0; i != count; ++i)
+                    PyList_SetItem(values, i, unicode_from_string(headers[i]));
+                PyDict_SetItem(header_map, key, values);
+            }
+            headers[i] = header_map;
+            header_map = NULL;
+        }
+    } catch (...) {
+        Py_XDECREF(header_map);
+        molc_error();
+    }
+}
+
+extern "C" void pdb_version(void *mols, size_t n, int32_t *version)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            version[i] = m[i]->pdb_version;
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" void set_pdb_version(void *mols, size_t n, int32_t *version)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            m[i]->pdb_version = version[i];
+    } catch (...) {
+        molc_error();
     }
 }
 
@@ -2424,6 +2524,17 @@ extern "C" void element_name(void *elements, size_t n, pyobject_t *names)
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" PyObject* element_names()
+{
+    PyObject* e_names = NULL;
+    try {
+        e_names = pysupport::cset_of_chars_to_pyset(Element::names(), "element names");
+    } catch (...) {
+        molc_error();
+    }
+    return e_names;
 }
 
 extern "C" void element_number(void *elements, size_t n, uint8_t *number)
@@ -3060,32 +3171,6 @@ extern "C" void pointer_intersects_each(void *pointer_arrays, size_t na, size_t 
                 }
         }
     } catch (...) {
-        molc_error();
-    }
-}
-
-extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
-{
-    Graph **m = static_cast<Graph **>(mols);
-    PyObject* header_map = NULL;
-    try {
-        for (size_t i = 0; i < n; ++i) {
-            header_map = PyDict_New();
-            auto& metadata = m[i]->metadata;
-            for (auto& item: metadata) {
-                PyObject* key = unicode_from_string(item.first);
-                auto& headers = item.second;
-                size_t count = headers.size();
-                PyObject* values = PyList_New(count);
-                for (size_t i = 0; i != count; ++i)
-                    PyList_SetItem(values, i, unicode_from_string(headers[i]));
-                PyDict_SetItem(header_map, key, values);
-            }
-            headers[i] = header_map;
-            header_map = NULL;
-        }
-    } catch (...) {
-        Py_XDECREF(header_map);
         molc_error();
     }
 }
