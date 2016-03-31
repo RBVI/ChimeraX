@@ -878,8 +878,8 @@ class ChangeTracker:
         for k, v in data.items():
             created_ptrs, mod_ptrs, reasons, tot_del = v
             temp_ns = {}
-            # can't effectively use locals() as the third argument for some
-            # obscure Python 3 reason
+            # can't effectively use locals() as the third argument as per the
+            # Python 3 documentation for exec() and locals()
             exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
             collection = temp_ns['collection']
             fc_key = k[:-4] if k.endswith("Data") else k
