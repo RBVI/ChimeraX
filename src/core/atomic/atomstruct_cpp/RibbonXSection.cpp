@@ -286,7 +286,8 @@ RibbonXSection::_extrude_smooth(const FArray& centers, const FArray& tangents,
             cp2 = xs_coords2_values + j * 2;
             // Arrow only spans half the residue, with latter half
             // being the same as the second set of coords/normals
-            arrow_length = num_pts_per_spline / 2;
+            // arrow_length = num_pts_per_spline / 2;
+            arrow_length = num_pts_per_spline;
             c_step[0] = (cp2[0] - cp1[0]) / arrow_length;
             c_step[1] = (cp2[1] - cp1[1]) / arrow_length;
         }
@@ -484,7 +485,8 @@ RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
         float c_step[2] = {0,0};
         if (xs_coords2.dimension() != 0) {
             cp2 = xs_coords2_values + j * 2;
-            arrow_length = num_pts_per_spline / 2; 
+            // arrow_length = num_pts_per_spline / 2;
+            arrow_length = num_pts_per_spline;
             c_step[0] = (cp2[0] - cp1[0]) / arrow_length;
             c_step[1] = (cp2[1] - cp1[1]) / arrow_length;
         }

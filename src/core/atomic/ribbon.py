@@ -299,7 +299,8 @@ class Ribbon:
     def normal(self, n):
         return self.normals[n]
 
-    def segment(self, seg, side, divisions, flip_mode=FLIP_MINIMIZE, prev_normal=None, last=False):
+    def segment(self, seg, side, divisions, no_twist,
+                flip_mode=FLIP_MINIMIZE, prev_normal=None, last=False):
         try:
             coords, tangents, normals = self._seg_cache[seg]
         except KeyError:
@@ -315,7 +316,7 @@ class Ribbon:
             if self.ignore_flip_mode:
                 flip_mode = FLIP_MINIMIZE
             normals, flipped = constrained_normals(tangents, ns, ne, flip_mode,
-                                                   self.flipped[seg], self.flipped[seg + 1])
+                                                   self.flipped[seg], self.flipped[seg + 1], no_twist)
             if flipped:
                 self.flipped[seg + 1] = not self.flipped[seg + 1]
                 self.normals[seg + 1] = -ne
@@ -371,7 +372,7 @@ class Ribbon:
         coords, tangents = self._segment_path(coeffs, -0.3, -step, divisions)
         tangents = normalize_vector_array(tangents)
         n = self.normals[0]
-        normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False)
+        normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False, True)
         #normals = curvature_to_normals(curvature, tangents, None)
         return coords, tangents, normals
 
@@ -387,7 +388,7 @@ class Ribbon:
         coords, tangents = self._segment_path(coeffs, 1 + step, 1.3, divisions)
         tangents = normalize_vector_array(tangents)
         n = self.normals[-1]
-        normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False)
+        normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False, True)
         #normals = curvature_to_normals(curvature, tangents, prev_normal)
         return coords, tangents, normals
 
@@ -446,14 +447,14 @@ def get_orthogonal_component(v, ref):
     return v + ref * (-d / ref_len)
 
 
-def constrained_normals(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped):
+def constrained_normals(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped, no_twist):
     from .molc import c_function
     import ctypes
     f = c_function("constrained_normals",
                    args=(ctypes.py_object, ctypes.py_object, ctypes.py_object,
-                         ctypes.c_int, ctypes.c_bool, ctypes.c_bool),
+                         ctypes.c_int, ctypes.c_bool, ctypes.c_bool, ctypes.c_bool),
                    ret = ctypes.py_object)
-    return f(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped)
+    return f(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped, no_twist)
 
 
 def curvature_to_normals(curvature, tangents, prev_normal):

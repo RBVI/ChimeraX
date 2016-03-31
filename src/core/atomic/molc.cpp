@@ -2881,8 +2881,16 @@ inline float delta_to_angle(float twist, float f)
     return (1.0 / (1 + exp(-8.0 * (f - 0.5)))) * twist;
 }
 
+#if DEBUG_CONSTRAINED_NORMALS > 0
+inline float rad2deg(float r)
+{
+    return 180.0 / M_PI * r;
+}
+#endif
+
 extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end,
-                                         int flip_mode, bool start_flipped, bool end_flipped)
+                                         int flip_mode, bool start_flipped, bool end_flipped,
+                                         bool no_twist)
 {
 #if DEBUG_CONSTRAINED_NORMALS > 0
     std::cerr << "constrained_normals\n";
@@ -2926,48 +2934,52 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
     // ribbon end up with the desired ending normal
     float* n = normals + (num_pts - 1) * 3;
     float other_end[3] = { n_end[0], n_end[1], n_end[2] };
-    float twist = acos(inner(n, n_end));
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "initial twist " << twist << " sqlen(n): " << inner(n, n) << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
-#endif
-    if (isnan(twist))
-        twist = 0;
-    // Now we figure out whether to flip the ribbon or not
+    float twist = 0;
     bool need_flip = false;
-    if (flip_mode == FLIP_MINIMIZE) {
-        // If twist is greater than 90 degrees, turn the opposite
-        // direction.  (Assumes that ribbons are symmetric.)
-        if (twist > M_PI / 2)
-            need_flip = true;
-    } else if (flip_mode == FLIP_PREVENT) {
-        // Make end_flip the same as start_flip
-        if (end_flipped != start_flipped)
-            need_flip = true;
-    } else if (flip_mode == FLIP_FORCE) {
-        // Make end_flip the opposite of start_flip
-        if (end_flipped == start_flipped)
-            need_flip = true;
+    if (!no_twist) {
+        twist = acos(inner(n, n_end));
+        if (isnan(twist))
+            twist = 0;
+#if DEBUG_CONSTRAINED_NORMALS > 0
+        std::cerr << "initial twist " << rad2deg(twist) << " degrees, sqlen(n): "
+            << inner(n, n) << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
+#endif
+        // Now we figure out whether to flip the ribbon or not
+        if (flip_mode == FLIP_MINIMIZE) {
+            // If twist is greater than 90 degrees, turn the opposite
+            // direction.  (Assumes that ribbons are symmetric.)
+            if (twist > M_PI / 2)
+                need_flip = true;
+        } else if (flip_mode == FLIP_PREVENT) {
+            // Make end_flip the same as start_flip
+            if (end_flipped != start_flipped)
+                need_flip = true;
+        } else if (flip_mode == FLIP_FORCE) {
+            // Make end_flip the opposite of start_flip
+            if (end_flipped == start_flipped)
+                need_flip = true;
+        }
+#if DEBUG_CONSTRAINED_NORMALS > 0
+        std::cerr << "flip_mode: " << flip_mode << " start_flipped: " << start_flipped
+                  << " end_flipped: " << end_flipped << " need_flip: " << need_flip << '\n';
+#endif
+        if (need_flip) {
+#if DEBUG_CONSTRAINED_NORMALS > 0
+            std::cerr << "flipped twist " << rad2deg(twist) << " degrees, sqlen(n): " << inner(n, n)
+                      << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
+#endif
+            for (int i = 0; i != 3; ++i)
+                other_end[i] = -n_end[i];
+            twist = acos(inner(n, other_end));
+        }
+        // Figure out direction of twist (right-hand rule)
+        float *last_tangent = tangents + (num_pts - 1) * 3;
+        float tmp[3];
+        if (inner(cross(n, other_end, tmp), last_tangent) < 0)
+            twist = -twist;
     }
 #if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "flip_mode: " << flip_mode << " start_flipped: " << start_flipped
-              << " end_flipped: " << end_flipped << " need_flip: " << need_flip << '\n';
-#endif
-    if (need_flip) {
-#if DEBUG_CONSTRAINED_NORMALS > 0
-        std::cerr << "flipped twist " << twist << " sqlen(n): " << inner(n, n)
-                  << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
-#endif
-        for (int i = 0; i != 3; ++i)
-            other_end[i] = -n_end[i];
-        twist = acos(inner(n, other_end));
-    }
-    // Figure out direction of twist (right-hand rule)
-    float *last_tangent = tangents + (num_pts - 1) * 3;
-    float tmp[3];
-    if (inner(cross(n, other_end, tmp), last_tangent) < 0)
-        twist = -twist;
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "final twist " << twist << " need_flip " << need_flip << "\n";
+    std::cerr << "final twist " << rad2deg(twist) << " degrees, need_flip " << need_flip << "\n";
 #endif
     // Compute fraction per step
     float delta = 1.0 / (num_pts - 1);
