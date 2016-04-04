@@ -435,7 +435,9 @@ class XSectionManager:
     _xsRound = None
     _xsPiped = None
 
-    def __init__(self):
+    def __init__(self, structure):
+        import weakref
+        self.structure = weakref.ref(structure)
         self.scale_helix = (0.9, 0.15)
         self.scale_helix_arrow = ((1.8, 0.15), (0.15, 0.15))
         self.scale_sheet = (0.75, 0.15)
@@ -531,53 +533,69 @@ class XSectionManager:
 
     def set_helix_scale(self, x, y):
         """Set scale factors for helix ribbon cross section."""
-        self.scale_helix = (x, y)
-        self._xs_helix = None
+        v = (x, y)
+        if self.scale_helix != v:
+            self.scale_helix = v
+            self._set_gc_ribbon()
 
     def set_helix_arrow_scale(self, x1, y1, x2, y2):
         """Set scale factors for helix arrow ribbon cross section."""
-        self.scale_helix_arrow = ((x1, y1), (x2, y2))
-        self._xs_helix = None
+        v = ((x1, y1), (x2, y2))
+        if self.scale_helix_arrow != v:
+            self.scale_helix_arrow = v
+            self._set_gc_ribbon()
 
     def set_sheet_scale(self, x, y):
         """Set scale factors for sheet ribbon cross section."""
-        self.scale_sheet = (x, y)
-        self._xs_helix = None
+        v = (x, y)
+        if self.scale_sheet != v:
+            self.scale_sheet = v
+            self._set_gc_ribbon()
 
     def set_sheet_arrow_scale(self, x1, y1, x2, y2):
         """Set scale factors for sheet arrow ribbon cross section."""
-        self.scale_sheet_arrow = ((x1, y1), (x2, y2))
-        self._xs_helix = None
+        v = ((x1, y1), (x2, y2))
+        if self.scale_sheet_arrow != v:
+            self.scale_sheet_arrow = v
+            self._set_gc_ribbon()
 
     def set_coil_scale(self, x, y):
         """Set scale factors for coil ribbon cross section."""
-        self.scale_coil = (x, y)
-        self._xs_helix = None
+        v = (x, y)
+        if self.scale_coil != v:
+            self.scale_coil = v
+            self._set_gc_ribbon()
 
     def set_nucleic_scale(self, x, y):
         """Set scale factors for nucleic ribbon cross section."""
-        self.scale_nucleic = (x, y)
-        self._xs_helix = None
+        v = (x, y)
+        if self.scale_nucleic != v:
+            self.scale_nucleic = v
+            self._set_gc_ribbon()
 
     def set_helix_style(self, s):
         """Set style for helix ribbon cross section."""
-        self.style_helix = s
-        self._xs_helix = None
+        if self.style_helix != s:
+            self.style_helix = s
+            self._set_gc_ribbon()
 
     def set_sheet_style(self, s):
         """Set style for sheet ribbon cross section."""
-        self.style_sheet = s
-        self._xs_helix = None
+        if self.style_sheet != s:
+            self.style_sheet = s
+            self._set_gc_ribbon()
 
     def set_coil_style(self, s):
         """Set style for coil ribbon cross section."""
-        self.style_coil = s
-        self._xs_helix = None
+        if self.style_coil != s:
+            self.style_coil = s
+            self._set_gc_ribbon()
 
     def set_nucleic_style(self, s):
         """Set style for helix ribbon cross section."""
-        self.style_nucleic = s
-        self._xs_helix = None
+        if self.style_nucleic != s:
+            self.style_nucleic = s
+            self._set_gc_ribbon()
 
     def set_transition(self, rc0, rc1, rc2, rf, rb):
         """Set transition for ribbon cross section across residue classes.
@@ -591,9 +609,12 @@ class XSectionManager:
         3-tuple key of (rc0, rc1, rc2).  For this method, the values to
         be inserted into the lookup dictionary are the RIBBON_* constants."""
         key = (rc0, rc1, rc2)
-        if key not in self.transition:
+        if key not in self.transitions:
             raise ValueError("transition %d-%d-%d is never used" % key)
-        self.transition[key] = rf, rb
+        v = (rf, rb)
+        if self.transitions[key] != v:
+            self.transitions[key] = v
+            self._set_gc_ribbon()
 
     def _make_xs(self):
         if self._xsSquare is None:
@@ -609,7 +630,7 @@ class XSectionManager:
         from numpy import array
         from math import pi, cos, sin
         from .molobject import RibbonXSection as XSection
-        coords = array(((1.0, 1.0), (1.0, -1.0), (-1.0, -1.0), (1.0, -1.0)))
+        coords = array(((1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)))
         XSectionManager._xsSquare = XSection(coords, faceted=True)
         coords = []
         normals = []
@@ -648,6 +669,13 @@ class XSectionManager:
             return self._xs_sheet_arrow
         else:
             raise ValueError("unknown ribbon ref %d" % r)
+
+    def _set_gc_ribbon(self):
+        # Mark ribbon for rebuild
+        self._xs_helix = None
+        s = self.structure()
+        if s is not None:
+            s._gc_ribbon = True
 
 
 def normalize(v):

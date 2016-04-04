@@ -50,7 +50,7 @@ dump_pyarray_addresses(const char *label, PyObject* o)
 
 RibbonXSection::RibbonXSection(FArray* coords, FArray* coords2,
                                FArray* normals, FArray* normals2,
-                               bool faceted, IArray* tess)
+                               bool faceted, const IArray* tess)
 {
     // We support two kinds of cross sections: plain and arrow
     // For plain cross sections, "coords" is the 2d coordinates for the entire extrusion
@@ -180,7 +180,7 @@ RibbonXSection::scale(float x_scale, float y_scale) const
             nn2[1] = on2[1] * x_scale;
         }
     }
-    return new RibbonXSection(&coords, NULL, &normals, &normals2, is_faceted);
+    return new RibbonXSection(&coords, NULL, &normals, &normals2, is_faceted, &tessellation);
 }
 
 void*
@@ -233,7 +233,7 @@ RibbonXSection::arrow(float x1_scale, float y1_scale, float x2_scale, float y2_s
         }
     }
 // std::cerr << "done!\n";
-    return new RibbonXSection(&coords, &coords2, &normals, &normals2, is_faceted);
+    return new RibbonXSection(&coords, &coords2, &normals, &normals2, is_faceted, &tessellation);
 }
 
 static bool

@@ -55,7 +55,7 @@ class Structure(Model, StructureData):
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
-        self._ribbon_xs_mgr = XSectionManager()
+        self.ribbon_xs_mgr = XSectionManager(self)
         # TODO: move back into _session_attrs when Collection instances
         # handle session saving/restoring
         self._ribbon_selected_residues = Residues()
@@ -524,7 +524,7 @@ class Structure(Model, StructureData):
                     rc2 = res_class[i + 1]
                 except IndexError:
                     rc2 = XSectionManager.RC_COIL
-                f, b = self._ribbon_xs_mgr.assign(rc0, rc1, rc2)
+                f, b = self.ribbon_xs_mgr.assign(rc0, rc1, rc2)
                 xs_front.append(f)
                 xs_back.append(b)
                 need_twist.append(self._need_twist(rc1, rc2))
@@ -540,7 +540,7 @@ class Structure(Model, StructureData):
             from .ribbon import FLIP_MINIMIZE, FLIP_PREVENT, FLIP_FORCE
             if displays[0]:
                 # print(residues[0], file=sys.__stderr__); sys.__stderr__.flush()
-                xs_compat = self._ribbon_xs_mgr.is_compatible(xs_back[0], xs_front[1])
+                xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[0], xs_front[1])
                 capped = displays[0] != displays[1] or not xs_compat
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.lead_segment(seg_cap / 2)
@@ -578,7 +578,7 @@ class Structure(Model, StructureData):
                 if not displays[i]:
                     continue
                 seg = capped and seg_cap or seg_blend
-                mid_cap = not self._ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
+                mid_cap = not self.ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
                 front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, capped, last=mid_cap)
                 if self.ribbon_show_spine:
                     spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
@@ -586,7 +586,7 @@ class Structure(Model, StructureData):
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                xs_compat = self._ribbon_xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
+                xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
                 next_cap = displays[i] != displays[i + 1] or not xs_compat
                 seg = next_cap and seg_cap or seg_blend
                 flip_mode = FLIP_MINIMIZE

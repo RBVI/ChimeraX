@@ -47,7 +47,7 @@ public:
                    FArray* normals = NULL,
                    FArray* normals2 = NULL,
                    bool faceted = false,
-                   IArray* tess = NULL);
+                   const IArray* tess = NULL);
     virtual ~RibbonXSection();
 
     PyObject* extrude(const FArray& centers, const FArray& tangents,
