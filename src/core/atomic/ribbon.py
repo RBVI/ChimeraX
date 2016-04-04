@@ -393,6 +393,263 @@ class Ribbon:
         return coords, tangents, normals
 
 
+class XSectionManager:
+    """XSectionManager keeps track of ribbon cross sections used in an AtomicStructure instance.
+    
+    Constants:
+      Residue classes:
+        RC_NUCLEIC - all nucleotides
+        RC_COIL - coil
+        RC_SHEET_START - first residue in sheet
+        RC_SHEET_MIDDLE - middle residue in sheet
+        RC_SHEET_END - last residue in sheet
+        RC_HELIX_START - first residue in helix
+        RC_HELIX_MIDDLE - middle residue in helix
+        RC_HELIX_END - last residue in helix
+      Cross section styles:
+        STYLE_SQUARE - four-sided cross section with right angle corners and faceted lighting
+        STYLE_ROUND - round cross section with no corners and smooth lighting
+        STYLE_PIPED - not supported yet, treated same as STYLE_SQUARE
+      Ribbon cross sections:
+        RIBBON_NUCLEIC - Use style for nucleotides
+        RIBBON_COIL - Use style for coil
+        RIBBON_SHEET - Use style for sheet
+        RIBBON_SHEET_ARROW - Use style for sheet scaled into an arrow
+        RIBBON_HELIX - Use style for helix
+        RIBBON_HELIX_ARROW - Use style for helix scaled into an arrow
+    """
+
+    # Class constants
+    (RC_NUCLEIC, RC_COIL,
+     RC_SHEET_START, RC_SHEET_MIDDLE, RC_SHEET_END,
+     RC_HELIX_START, RC_HELIX_MIDDLE, RC_HELIX_END) = range(8)
+    RC_ANY_SHEET = set([RC_SHEET_START, RC_SHEET_MIDDLE, RC_SHEET_END])
+    RC_ANY_HELIX = set([RC_HELIX_START, RC_HELIX_MIDDLE, RC_HELIX_END])
+    (STYLE_SQUARE, STYLE_ROUND, STYLE_PIPED) = range(3)
+    (RIBBON_NUCLEIC, RIBBON_SHEET, RIBBON_SHEET_ARROW,
+     RIBBON_HELIX, RIBBON_HELIX_ARROW, RIBBON_COIL) = range(6)
+
+
+    # Class variables
+    _xsSquare = None
+    _xsRound = None
+    _xsPiped = None
+
+    def __init__(self):
+        self.scale_helix = (0.9, 0.15)
+        self.scale_helix_arrow = ((1.8, 0.15), (0.15, 0.15))
+        self.scale_sheet = (0.75, 0.15)
+        self.scale_sheet_arrow = ((1.5, 0.15), (0.15, 0.15))
+        self.scale_coil = (0.15, 0.15)
+        self.scale_nucleic = (0.15, 0.75)
+        self.style_helix = self.STYLE_ROUND
+        self.style_sheet = self.STYLE_SQUARE
+        self.style_coil = self.STYLE_SQUARE
+        self.style_nucleic = self.STYLE_SQUARE
+        self.transitions = {
+            # SHEET_START in the middle
+            (self.RC_COIL, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
+            (self.RC_COIL, self.RC_SHEET_START, self.RC_SHEET_END):
+                (self.RIBBON_COIL, self.RIBBON_SHEET),
+            (self.RC_HELIX_END, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
+                (self.RIBBON_SHEET, self.RIBBON_SHEET),
+            (self.RC_HELIX_END, self.RC_SHEET_START, self.RC_SHEET_END):
+                (self.RIBBON_SHEET, self.RIBBON_SHEET),
+            (self.RC_SHEET_END, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
+                (self.RIBBON_SHEET, self.RIBBON_SHEET),
+            (self.RC_SHEET_END, self.RC_SHEET_START, self.RC_SHEET_END):
+                (self.RIBBON_SHEET, self.RIBBON_SHEET),
+            # SHEET_END in the middle
+            (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_COIL):
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
+            (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_COIL):
+                (self.RIBBON_SHEET_ARROW, self.RIBBON_COIL),
+            (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_HELIX_START):
+                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
+            (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_HELIX_START):
+                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
+            (self.RC_SHEET_START, self.RC_SHEET_END, self.RC_SHEET_START):
+                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
+            (self.RC_SHEET_MIDDLE, self.RC_SHEET_END, self.RC_SHEET_START):
+                (self.RIBBON_SHEET, self.RIBBON_SHEET_ARROW),
+            # HELIX_START in the middle
+            (self.RC_COIL, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
+            (self.RC_COIL, self.RC_HELIX_START, self.RC_HELIX_END):
+                (self.RIBBON_COIL, self.RIBBON_HELIX),
+            (self.RC_HELIX_END, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
+                (self.RIBBON_HELIX, self.RIBBON_HELIX),
+            (self.RC_HELIX_END, self.RC_HELIX_START, self.RC_HELIX_END):
+                (self.RIBBON_HELIX, self.RIBBON_HELIX),
+            (self.RC_SHEET_END, self.RC_HELIX_START, self.RC_HELIX_MIDDLE):
+                (self.RIBBON_HELIX, self.RIBBON_HELIX),
+            (self.RC_SHEET_END, self.RC_HELIX_START, self.RC_HELIX_END):
+                (self.RIBBON_HELIX, self.RIBBON_HELIX),
+            # HELIX_END in the middle
+            (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_COIL):
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
+            (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_COIL):
+                (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
+            (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_HELIX_START):
+                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
+            (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_HELIX_START):
+                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
+            (self.RC_HELIX_START, self.RC_HELIX_END, self.RC_SHEET_START):
+                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
+            (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_SHEET_START):
+                (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
+        }
+        self._xs_helix = None       # marker for needing to create cross sections
+
+    def assign(self, rc0, rc1, rc2):
+        """Return front and back cross sections for the middle residue.
+
+        rc0, rc1 and rc2 are residue classes of three consecutive residues.
+        The return value is a 2-tuple of XSection instances.
+        The first is for the half-segment between rc0 and rc1, ending at rc1.
+        The second is for the half-segment between rc1 and rc2, starting at rc1."""
+        if self._xs_helix is None:
+            self._make_xs()
+        if rc1 is self.RC_NUCLEIC:
+            return self._xs_nucleic, self._xs_nucleic
+        if rc1 is self.RC_SHEET_MIDDLE:
+            return self._xs_sheet, self._xs_sheet
+        if rc1 is self.RC_HELIX_MIDDLE:
+            return self._xs_helix, self._xs_helix
+        if rc1 is self.RC_COIL:
+            return self._xs_coil, self._xs_coil
+        try:
+            r_front, r_back = self.transitions[(rc0, rc1, rc2)]
+            return self._xs_ribbon(r_front), self._xs_ribbon(r_back)
+        except KeyError:
+            raise RuntimeError("unsupported transition %d-%d-%d" % (rc0, rc1, rc2))
+
+    def is_compatible(self, xs0, xs1):
+        """Return if the two cross sections can be blended."""
+        return xs0 is xs1
+
+    def set_helix_scale(self, x, y):
+        """Set scale factors for helix ribbon cross section."""
+        self.scale_helix = (x, y)
+        self._xs_helix = None
+
+    def set_helix_arrow_scale(self, x1, y1, x2, y2):
+        """Set scale factors for helix arrow ribbon cross section."""
+        self.scale_helix_arrow = ((x1, y1), (x2, y2))
+        self._xs_helix = None
+
+    def set_sheet_scale(self, x, y):
+        """Set scale factors for sheet ribbon cross section."""
+        self.scale_sheet = (x, y)
+        self._xs_helix = None
+
+    def set_sheet_arrow_scale(self, x1, y1, x2, y2):
+        """Set scale factors for sheet arrow ribbon cross section."""
+        self.scale_sheet_arrow = ((x1, y1), (x2, y2))
+        self._xs_helix = None
+
+    def set_coil_scale(self, x, y):
+        """Set scale factors for coil ribbon cross section."""
+        self.scale_coil = (x, y)
+        self._xs_helix = None
+
+    def set_nucleic_scale(self, x, y):
+        """Set scale factors for nucleic ribbon cross section."""
+        self.scale_nucleic = (x, y)
+        self._xs_helix = None
+
+    def set_helix_style(self, s):
+        """Set style for helix ribbon cross section."""
+        self.style_helix = s
+        self._xs_helix = None
+
+    def set_sheet_style(self, s):
+        """Set style for sheet ribbon cross section."""
+        self.style_sheet = s
+        self._xs_helix = None
+
+    def set_coil_style(self, s):
+        """Set style for coil ribbon cross section."""
+        self.style_coil = s
+        self._xs_helix = None
+
+    def set_nucleic_style(self, s):
+        """Set style for helix ribbon cross section."""
+        self.style_nucleic = s
+        self._xs_helix = None
+
+    def set_transition(self, rc0, rc1, rc2, rf, rb):
+        """Set transition for ribbon cross section across residue classes.
+        
+        The "assign" method converts residue classes for three consecutive
+        residues into two cross sections.  This method defines the values
+        that are used by "assign" when the residue classes are different.
+        If rc1 is RC_NUCLEIC, RC_COIL, RC_SHEET_MIDDLE, RC_HELIX_MIDDLE,
+        the two returned cross sections are the same and match the residue
+        class.  In all other cases, a lookup dictionary is used with the
+        3-tuple key of (rc0, rc1, rc2).  For this method, the values to
+        be inserted into the lookup dictionary are the RIBBON_* constants."""
+        key = (rc0, rc1, rc2)
+        if key not in self.transition:
+            raise ValueError("transition %d-%d-%d is never used" % key)
+        self.transition[key] = rf, rb
+
+    def _make_xs(self):
+        if self._xsSquare is None:
+            self._make_base_xs()
+        self._xs_helix = self._xs_style(self.style_helix).scale(self.scale_helix)
+        self._xs_helix_arrow = self._xs_style(self.style_helix).arrow(self.scale_helix_arrow)
+        self._xs_sheet = self._xs_style(self.style_sheet).scale(self.scale_sheet)
+        self._xs_sheet_arrow = self._xs_style(self.style_sheet).arrow(self.scale_sheet_arrow)
+        self._xs_coil = self._xs_style(self.style_coil).scale(self.scale_coil)
+        self._xs_nucleic = self._xs_style(self.style_nucleic).scale(self.scale_nucleic)
+
+    def _make_base_xs(self):
+        from numpy import array
+        from math import pi, cos, sin
+        from .molobject import RibbonXSection as XSection
+        coords = array(((1.0, 1.0), (1.0, -1.0), (-1.0, -1.0), (1.0, -1.0)))
+        XSectionManager._xsSquare = XSection(coords, faceted=True)
+        coords = []
+        normals = []
+        for i in range(8):
+            angle = 2.0 * pi * i / 8.0
+            coords.append((cos(angle), sin(angle)))
+            normals.append(coords[-1])
+        coords = array(coords)
+        normals = array(normals)
+        XSectionManager._xsRound = XSection(coords, normals=normals, faceted=False)
+
+    def _xs_style(self, style):
+        if style is self.STYLE_ROUND:
+            return self._xsRound
+        elif style is self.STYLE_SQUARE:
+            return self._xsSquare
+        elif style is self.STYLE_PIPED:
+            # PIPED not implemented yet
+            return self._xsSquare
+        else:
+            # Unknown styles are square
+            return self._xsSquare
+
+    def _xs_ribbon(self, r):
+        if r is self.RIBBON_HELIX:
+            return self._xs_helix
+        elif r is self.RIBBON_SHEET:
+            return self._xs_sheet
+        elif r is self.RIBBON_COIL:
+            return self._xs_coil
+        elif r is self.RIBBON_NUCLEIC:
+            return self._xs_nucleic
+        elif r is self.RIBBON_HELIX_ARROW:
+            return self._xs_helix_arrow
+        elif r is self.RIBBON_SHEET_ARROW:
+            return self._xs_sheet_arrow
+        else:
+            raise ValueError("unknown ribbon ref %d" % r)
+
+
 def normalize(v):
     # normalize a single vector
     from numpy.linalg import norm

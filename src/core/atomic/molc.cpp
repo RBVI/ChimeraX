@@ -2791,6 +2791,31 @@ extern "C" PyObject *rxsection_blend(void *p, PyObject *back_band, PyObject *fro
     }
 }
 
+extern "C" void* rxsection_scale(void *p, float x_scale, float y_scale)
+{
+    auto *xs = static_cast<RibbonXSection *>(p);
+    try {
+        void* r = xs->scale(x_scale, y_scale);
+        return r;
+    } catch (...) {
+        molc_error();
+        return NULL;
+    }
+}
+
+extern "C" void* rxsection_arrow(void *p, float x1_scale, float y1_scale,
+                                     float x2_scale, float y2_scale)
+{
+    auto *xs = static_cast<RibbonXSection *>(p);
+    try {
+        void* r = xs->arrow(x1_scale, y1_scale, x2_scale, y2_scale);
+        return r;
+    } catch (...) {
+        molc_error();
+        return NULL;
+    }
+}
+
 // -------------------------------------------------------------------------
 // ribbon functions
 

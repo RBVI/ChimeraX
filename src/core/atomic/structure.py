@@ -6,12 +6,6 @@ from .molobject import StructureData
 
 CATEGORY = io.STRUCTURE
 
-(_RC_NUCLEIC, _RC_COIL,
- _RC_SHEET_START, _RC_SHEET_MIDDLE, _RC_SHEET_END,
- _RC_HELIX_START, _RC_HELIX_MIDDLE, _RC_HELIX_END) = range(8)
-_RC_SHEET = [_RC_SHEET_START, _RC_SHEET_MIDDLE, _RC_SHEET_END]
-_RC_HELIX = [_RC_HELIX_START, _RC_HELIX_MIDDLE, _RC_HELIX_END]
-
 class Structure(Model, StructureData):
 
     ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
@@ -24,6 +18,7 @@ class Structure(Model, StructureData):
         from .molobject import RibbonXSection as XSection
         from .molarray import Residues
         from numpy import array
+        from .ribbon import XSectionManager
         # from .ribbon import XSection
         xsc_helix = array([( 5, 1),(0, 1.5),(-5, 1),(-6,0),
                            (-5,-1),(0,-1.5),( 5,-1),( 6,0)]) * 0.15
@@ -60,14 +55,7 @@ class Structure(Model, StructureData):
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
-        self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
-        #self._ribbon_xs_helix_start = self._ribbon_xs_helix     # nothing special for helix start
-        self._ribbon_xs_helix_start = XSection(xsc_helix_start, xsc_helix, faceted=False)
-        self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
-        self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
-        self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
-        self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
-        self._ribbon_xs_nuc = XSection(xsc_nuc, faceted=True)
+        self._ribbon_xs_mgr = XSectionManager()
         # TODO: move back into _session_attrs when Collection instances
         # handle session saving/restoring
         self._ribbon_selected_residues = Residues()
@@ -402,6 +390,7 @@ class Structure(Model, StructureData):
 
             # Assign a residue class to each residue and compute the
             # ranges of secondary structures
+            from .ribbon import XSectionManager
             polymer_type = residues.polymer_types
             is_helix = residues.is_helix
             is_sheet = residues.is_sheet
@@ -413,7 +402,7 @@ class Structure(Model, StructureData):
             sheet_ranges = []
             for i in range(len(residues)):
                 if polymer_type[i] == Residue.PT_NUCLEIC:
-                    rc = _RC_NUCLEIC
+                    rc = XSectionManager.RC_NUCLEIC
                     am_sheet = am_helix = False
                 if polymer_type[i] == Residue.PT_AMINO:
                     if is_sheet[i]:
@@ -422,14 +411,14 @@ class Structure(Model, StructureData):
                             # Check if this is the start of another sheet
                             # rather than continuation for the current one
                             if ssids[i] != last_ssid:
-                                res_class[-1] = _RC_SHEET_END
+                                res_class[-1] = XSectionManager.RC_SHEET_END
                                 sheet_ranges[-1][1] = i
-                                rc = _RC_SHEET_START
+                                rc = XSectionManager.RC_SHEET_START
                                 sheet_ranges.append([i, -1])
                             else:
-                                rc = _RC_SHEET_MIDDLE
+                                rc = XSectionManager.RC_SHEET_MIDDLE
                         else:
-                            rc = _RC_SHEET_START
+                            rc = XSectionManager.RC_SHEET_START
                             sheet_ranges.append([i, -1])
                         am_sheet = True
                         am_helix = False
@@ -438,28 +427,28 @@ class Structure(Model, StructureData):
                             # Check if this is the start of another helix
                             # rather than a continuation for the current one
                             if ssids[i] != last_ssid:
-                                res_class[-1] = _RC_HELIX_END
+                                res_class[-1] = XSectionManager.RC_HELIX_END
                                 helix_ranges[-1][1] = i
-                                rc = _RC_HELIX_START
+                                rc = XSectionManager.RC_HELIX_START
                                 helix_ranges.append([i, -1])
                             else:
-                                rc = _RC_HELIX_MIDDLE
+                                rc = XSectionManager.RC_HELIX_MIDDLE
                         else:
-                            rc = _RC_HELIX_START
+                            rc = XSectionManager.RC_HELIX_START
                             helix_ranges.append([i, -1])
                         am_sheet = False
                         am_helix = True
                     else:
-                        rc = _RC_COIL
+                        rc = XSectionManager.RC_COIL
                         am_sheet = am_helix = False
                 else:
-                    rc = _RC_COIL
+                    rc = XSectionManager.RC_COIL
                     am_sheet = am_helix = False
                 if was_sheet and not am_sheet:
-                    res_class[-1] = _RC_SHEET_END
+                    res_class[-1] = XSectionManager.RC_SHEET_END
                     sheet_ranges[-1][1] = i
                 elif was_helix and not am_helix:
-                    res_class[-1] = _RC_HELIX_END
+                    res_class[-1] = XSectionManager.RC_HELIX_END
                     helix_ranges[-1][1] = i
                 res_class.append(rc)
                 was_sheet = am_sheet
@@ -467,11 +456,11 @@ class Structure(Model, StructureData):
                 last_ssid = ssids[i]
             if was_sheet:
                 # 1hxx ends in a strand
-                res_class[-1] = _RC_SHEET_END
+                res_class[-1] = XSectionManager.RC_SHEET_END
                 sheet_ranges[-1][1] = len(residues)
             elif was_helix:
                 # 1hxx ends in a strand
-                res_class[-1] = _RC_HELIX_END
+                res_class[-1] = XSectionManager.RC_HELIX_END
                 helix_ranges[-1][1] = len(residues)
 
             # Perform any smoothing (e.g., strand smoothing
@@ -524,19 +513,20 @@ class Structure(Model, StructureData):
             # The front and back sections meet at the control point atom.
             # Compute cross sections and whether we care about a smooth
             # transition between residues.
-            xss_front = []
-            xss_back = []
+            from .ribbon import XSectionManager
+            xs_front = []
+            xs_back = []
             need_twist = []
-            rc0 = _RC_COIL
+            rc0 = XSectionManager.RC_COIL
             for i in range(len(residues)):
                 rc1 = res_class[i]
                 try:
                     rc2 = res_class[i + 1]
                 except IndexError:
-                    rc2 = _RC_COIL
-                f, b = self._xss_assign(rc0, rc1, rc2)
-                xss_front.append(f)
-                xss_back.append(b)
+                    rc2 = XSectionManager.RC_COIL
+                f, b = self._ribbon_xs_mgr.assign(rc0, rc1, rc2)
+                xs_front.append(f)
+                xs_back.append(b)
                 need_twist.append(self._need_twist(rc1, rc2))
                 rc0 = rc1
             need_twist[-1] = False
@@ -550,8 +540,8 @@ class Structure(Model, StructureData):
             from .ribbon import FLIP_MINIMIZE, FLIP_PREVENT, FLIP_FORCE
             if displays[0]:
                 # print(residues[0], file=sys.__stderr__); sys.__stderr__.flush()
-                xss_compat = self._xss_compatible(xss_back[0], xss_front[1])
-                capped = displays[0] != displays[1] or not xss_compat
+                xs_compat = self._ribbon_xs_mgr.is_compatible(xs_back[0], xs_front[1])
+                capped = displays[0] != displays[1] or not xs_compat
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.lead_segment(seg_cap / 2)
                 back_c, back_t, back_n = ribbon.segment(0, ribbon.FRONT, seg, not need_twist[0])
@@ -564,14 +554,14 @@ class Structure(Model, StructureData):
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                s = xss_back[0].extrude(centers, tangents, normals, colors[0], True, capped, v_start)
+                s = xs_back[0].extrude(centers, tangents, normals, colors[0], True, capped, v_start)
                 v_start += len(s.vertices)
                 t_end = t_start + len(s.triangles)
                 vertex_list.append(s.vertices)
                 normal_list.append(s.normals)
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
-                if displays[1] and xss_compat:
+                if displays[1] and xs_compat:
                     prev_band = s.back_band
                 else:
                     prev_band = None
@@ -588,7 +578,7 @@ class Structure(Model, StructureData):
                 if not displays[i]:
                     continue
                 seg = capped and seg_cap or seg_blend
-                mid_cap = not self._xss_compatible(xss_front[i], xss_back[i])
+                mid_cap = not self._ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
                 front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, capped, last=mid_cap)
                 if self.ribbon_show_spine:
                     spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
@@ -596,8 +586,8 @@ class Structure(Model, StructureData):
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                xss_compat = self._xss_compatible(xss_back[i], xss_front[i + 1])
-                next_cap = displays[i] != displays[i + 1] or not xss_compat
+                xs_compat = self._ribbon_xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
+                next_cap = displays[i] != displays[i + 1] or not xs_compat
                 seg = next_cap and seg_cap or seg_blend
                 flip_mode = FLIP_MINIMIZE
                 if is_helix[i] and is_helix[i + 1]:
@@ -614,10 +604,10 @@ class Structure(Model, StructureData):
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                sf = xss_front[i].extrude(front_c, front_t, front_n, colors[i],
+                sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
                                            capped, mid_cap, v_start)
                 v_start += len(sf.vertices)
-                sb = xss_back[i].extrude(back_c, back_t, back_n, colors[i],
+                sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
                                            mid_cap, next_cap, v_start)
                 v_start += len(sb.vertices)
                 t_end = t_start + len(sf.triangles) + len(sb.triangles)
@@ -630,10 +620,10 @@ class Structure(Model, StructureData):
                 color_list.append(sf.colors)
                 color_list.append(sb.colors)
                 if prev_band is not None:
-                    triangle_list.append(xss_front[i].blend(prev_band, sf.front_band))
+                    triangle_list.append(xs_front[i].blend(prev_band, sf.front_band))
                     t_end += len(triangle_list[-1])
                 if not mid_cap:
-                    triangle_list.append(xss_back[i].blend(sf.back_band, sb.front_band))
+                    triangle_list.append(xs_back[i].blend(sf.back_band, sb.front_band))
                     t_end += len(triangle_list[-1])
                 if next_cap:
                     prev_band = None
@@ -659,7 +649,7 @@ class Structure(Model, StructureData):
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                s = xss_front[-1].extrude(centers, tangents, normals, colors[-1],
+                s = xs_front[-1].extrude(centers, tangents, normals, colors[-1],
                                     capped, True, v_start)
                 v_start += len(s.vertices)
                 t_end = t_start + len(s.triangles)
@@ -668,7 +658,7 @@ class Structure(Model, StructureData):
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
                 if prev_band is not None:
-                    triangle_list.append(xss_front[-1].blend(prev_band, s.front_band))
+                    triangle_list.append(xs_front[-1].blend(prev_band, s.front_band))
                     t_end += len(triangle_list[-1])
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[-1])
                 t2r.append(triangle_range)
@@ -825,93 +815,16 @@ class Structure(Model, StructureData):
         ss_colors[:] = (0,255,0,255)
         ssp.colors = ss_colors
 
-    def _xss_assign(self, rc0, rc1, rc2):
-        # Figure out cross sections for the middle (rc1) of three
-        # consecutive residues.  rc0 = before, rc2 = after.
-        # Take care of the easy ones first
-        if rc1 is _RC_NUCLEIC:
-            return self._ribbon_xs_nuc, self._ribbon_xs_nuc
-        if rc1 is _RC_SHEET_MIDDLE:
-            return self._ribbon_xs_strand, self._ribbon_xs_strand
-        if rc1 is _RC_HELIX_MIDDLE:
-            return self._ribbon_xs_helix, self._ribbon_xs_helix
-        if rc1 is _RC_COIL:
-            return self._ribbon_xs_turn, self._ribbon_xs_turn
-        # Now we deal with transitions by looking at (rc0, rc1)
-        # to determine the front xss, then at (rc1, rc2) for the
-        # back xss.
-        elif rc1 is _RC_SHEET_START:
-            # rc0 can only be sheet end (from two consecutive sheets),
-            # helix end, or coil.
-            if rc0 is _RC_COIL:
-                # XXX This is debatable.  _ribbon_xs_strand is also reasonable.
-                # We use turn because ends of strands tend to be badly defined
-                # and twist badly when we try to transition smoothly.
-                return self._ribbon_xs_turn, self._ribbon_xs_strand
-            elif rc0 is _RC_HELIX_END:
-                return self._ribbon_xs_strand, self._ribbon_xs_strand
-            elif rc0 is _RC_SHEET_END:
-                return self._ribbon_xs_strand, self._ribbon_xs_strand
-            else:
-                raise RuntimeError("unexpected residue xss class before sheet start")
-            return front, back
-        elif rc1 is _RC_SHEET_END:
-            # front is always arrow, regardless of rc0
-            front = self._ribbon_xs_arrow
-            # rc2 can only be sheet start (from two consecutive sheets),
-            # helix start, or coil
-            if rc2 is _RC_COIL:
-                return self._ribbon_xs_arrow, self._ribbon_xs_turn
-            elif rc2 is _RC_HELIX_START:
-                return self._ribbon_xs_strand, self._ribbon_xs_arrow
-            elif rc2 is _RC_SHEET_START:
-                return self._ribbon_xs_strand, self._ribbon_xs_arrow
-            else:
-                raise RuntimeError("unexpected residue xss class after sheet end")
-        elif rc1 is _RC_HELIX_START:
-            # rc0 can only be helix end (from two consecutive helices),
-            # sheet end, or coil
-            if rc0 is _RC_COIL:
-                return self._ribbon_xs_turn, self._ribbon_xs_helix
-            elif rc0 is _RC_HELIX_END:
-                return self._ribbon_xs_helix, self._ribbon_xs_helix
-            elif rc0 is _RC_SHEET_END:
-                return self._ribbon_xs_helix, self._ribbon_xs_helix
-            else:
-                raise RuntimeError("unexpected residue xss class before helix start")
-            return front, back
-        elif rc1 is _RC_HELIX_END:
-            # rc2 can only be helix start (from two consecutive helices),
-            # sheet start, or coil
-            if rc2 is _RC_COIL:
-                return self._ribbon_xs_helix, self._ribbon_xs_turn
-            elif rc2 is _RC_SHEET_START:
-                return self._ribbon_xs_helix, self._ribbon_xs_helix
-            elif rc2 is _RC_HELIX_START:
-                return self._ribbon_xs_helix, self._ribbon_xs_helix
-            else:
-                raise RuntimeError("unexpected residue xss class after helix end")
-        else:
-            raise RuntimeError("unknown residue xss class %d" % rc1)
-
     def _need_twist(self, rc0, rc1):
         # Determine if we need to twist ribbon smoothly from rc0 to rc1
         if rc0 == rc1:
             return True
-        if rc0 in _RC_SHEET and rc1 in _RC_SHEET:
+        from .ribbon import XSectionManager
+        if rc0 in XSectionManager.RC_ANY_SHEET and rc1 in XSectionManager.RC_ANY_SHEET:
             return True
-        if rc0 in _RC_HELIX and rc1 in _RC_HELIX:
+        if rc0 in XSectionManager.RC_ANY_HELIX and rc1 in XSectionManager.RC_ANY_HELIX:
             return True
-        if rc0 is _RC_HELIX_END or rc0 is _RC_SHEET_END:
-            return True
-        return False
-
-    def _xss_compatible(self, xs0, xs1):
-        if xs0 is xs1:
-            return True
-        if xs0 is self._ribbon_xs_strand_start and xs1 is self._ribbon_xs_strand:
-            return True
-        if xs0 is self._ribbon_xs_helix_start and xs1 is self._ribbon_xs_helix:
+        if rc0 is XSectionManager.RC_HELIX_END or rc0 is XSectionManager.RC_SHEET_END:
             return True
         return False
 

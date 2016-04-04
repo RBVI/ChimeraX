@@ -50,7 +50,7 @@ dump_pyarray_addresses(const char *label, PyObject* o)
 
 RibbonXSection::RibbonXSection(FArray* coords, FArray* coords2,
                                FArray* normals, FArray* normals2,
-                               bool faceted, FArray* tess)
+                               bool faceted, IArray* tess)
 {
     // We support two kinds of cross sections: plain and arrow
     // For plain cross sections, "coords" is the 2d coordinates for the entire extrusion
@@ -71,12 +71,19 @@ RibbonXSection::RibbonXSection(FArray* coords, FArray* coords2,
     // they are used completely unrelatedly.
 
     import_array1();
+    if (coords != NULL && coords->dimension() == 0)
+        coords = NULL;
+    if (coords2 != NULL && coords2->dimension() == 0)
+        coords2 = NULL;
+    if (normals != NULL && normals->dimension() == 0)
+        normals = NULL;
+    if (normals2 != NULL && normals2->dimension() == 0)
+        normals2 = NULL;
     if (coords == NULL)
         throw std::invalid_argument("no ribbon cross section coordinates");
     if (coords->dimension() != 2 || coords->size(1) != 2)
         throw std::invalid_argument("bad ribbon cross section dimensions");
 // std::cerr << "RibbonXSection\n";
-// dump_farray("coords", *coords, 2);
     is_arrow = false;
     xs_coords = *coords;
     if (normals) {
@@ -102,7 +109,13 @@ RibbonXSection::RibbonXSection(FArray* coords, FArray* coords2,
         _normalize_normals(xs_normals);
         _normalize_normals(xs_normals2);
     }
+// std::cerr << "is_faceted: " << is_faceted << '\n';
+// dump_farray("xs_coords", xs_coords, 2);
 // dump_farray("xs_normals", xs_normals, 2);
+// if (xs_coords2.dimension() != 0)
+// dump_farray("xs_coords2", xs_coords2, 2);
+// if (xs_normals2.dimension() != 0)
+// dump_farray("xs_normals2", xs_normals2, 2);
     if (tess)
         tessellation = *tess;
     else
@@ -134,6 +147,93 @@ RibbonXSection::blend(const IArray& back_band, const IArray& front_band) const
         return _blend_faceted(back_band, front_band);
     else
         return _blend_smooth(back_band, front_band);
+}
+
+void*
+RibbonXSection::scale(float x_scale, float y_scale) const
+{
+    FArray coords = FArray(xs_coords.dimension(), xs_coords.sizes());
+    FArray normals = FArray(xs_normals.dimension(), xs_normals.sizes());
+    FArray normals2;
+    if (xs_normals2.dimension() != 0)
+        normals2 = FArray(xs_normals2.dimension(), xs_normals.sizes());
+    float* oc_values = xs_coords.values();
+    float* nc_values = coords.values();
+    float* on_values = xs_normals.values();
+    float* nn_values = normals.values();
+    float* on2_values = xs_normals2.values();
+    float* nn2_values = normals2.values();
+    int num_coords = xs_coords.size(0);
+    for (int i = 0; i != num_coords; ++i) {
+        float *oc = oc_values + i * 2;
+        float *nc = nc_values + i * 2;
+        float *on = on_values + i * 2;
+        float *nn = nn_values + i * 2;
+        nc[0] = oc[0] * x_scale;
+        nc[1] = oc[1] * y_scale;
+        nn[0] = on[0] * y_scale;
+        nn[1] = on[1] * x_scale;
+        if (is_faceted) {
+            float *on2 = on2_values + i * 2;
+            float *nn2 = nn2_values + i * 2;
+            nn2[0] = on2[0] * y_scale;
+            nn2[1] = on2[1] * x_scale;
+        }
+    }
+    return new RibbonXSection(&coords, NULL, &normals, &normals2, is_faceted);
+}
+
+void*
+RibbonXSection::arrow(float x1_scale, float y1_scale, float x2_scale, float y2_scale) const
+{
+    FArray coords = FArray(xs_coords.dimension(), xs_coords.sizes());
+    FArray coords2 = FArray(xs_coords.dimension(), xs_coords.sizes());
+    FArray normals = FArray(xs_normals.dimension(), xs_normals.sizes());
+    FArray normals2;
+    if (xs_normals2.dimension() != 0)
+        normals2 = FArray(xs_normals2.dimension(), xs_normals.sizes());
+    float* oc_values = xs_coords.values();
+    float* nc_values = coords.values();
+    float* nc2_values = coords2.values();
+    float* on_values = xs_normals.values();
+    float* nn_values = normals.values();
+    float* on2_values = xs_normals2.values();
+    float* nn2_values = normals2.values();
+    int num_coords = xs_coords.size(0);
+// std::cerr << "is_faceted: " << is_faceted << '\n';
+// std::cerr << "oc_values: " << oc_values << " size " << xs_coords.dimension() << '\n';
+// std::cerr << "nc_values: " << nc_values << " size " << coords.dimension() << '\n';
+// std::cerr << "nc2_values: " << nc2_values << " size " << coords2.dimension() << '\n';
+// std::cerr << "on_values: " << on_values << " size " << xs_normals.dimension() << '\n';
+// std::cerr << "nn_values: " << nn_values << " size " << normals.dimension() << '\n';
+// std::cerr << "on2_values: " << on2_values << " size " << xs_normals2.dimension() << '\n';
+// std::cerr << "nn2_values: " << nn2_values << " size " << normals2.dimension() << '\n';
+    for (int i = 0; i != num_coords; ++i) {
+// std::cerr << "i: " << i << '\n';
+        float *oc = oc_values + i * 2;
+        float *nc = nc_values + i * 2;
+        float *nc2 = nc2_values + i * 2;
+        float *on = on_values + i * 2;
+        float *nn = nn_values + i * 2;
+        nc[0] = oc[0] * x1_scale;
+        nc[1] = oc[1] * y1_scale;
+// std::cerr << "nc: " << nc[0] << ' ' << nc[1] << '\n';
+        nc2[0] = oc[0] * x2_scale;
+        nc2[1] = oc[1] * y2_scale;
+// std::cerr << "nc2: " << nc2[0] << ' ' << nc2[1] << '\n';
+        nn[0] = on[0] * y1_scale;
+        nn[1] = on[1] * x1_scale;
+// std::cerr << "nn: " << nn[0] << ' ' << nn[1] << '\n';
+        if (is_faceted) {
+            float *on2 = on2_values + i * 2;
+            float *nn2 = nn2_values + i * 2;
+            nn2[0] = on2[0] * y1_scale;
+            nn2[1] = on2[1] * x1_scale;
+// std::cerr << "on: " << on[0] << ' ' << on[1] << '\n';
+        }
+    }
+// std::cerr << "done!\n";
+    return new RibbonXSection(&coords, &coords2, &normals, &normals2, is_faceted);
 }
 
 static bool
@@ -222,7 +322,7 @@ RibbonXSection::_extrude_smooth(const FArray& centers, const FArray& tangents,
                                 const FArray& normals, const FArray& color,
                                 bool cap_front, bool cap_back, int offset) const
 {
-// std::cerr << "extrude_smooth\n";
+// std::cerr << "extrude_smooth " << xs_coords2.dimension() << "\n";
 // dump_farray("centers:", centers, 3);
 // dump_farray("tangents:", tangents, 3);
 // dump_farray("normals:", normals, 3);
@@ -421,7 +521,13 @@ RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
                                  const FArray& normals, const FArray& color,
                                  bool cap_front, bool cap_back, int offset) const
 {
-// std::cerr << "extrude_faceted\n";
+// std::cerr << "extrude_faceted " << xs_coords2.dimension() << "\n";
+// dump_farray("xs_coords", xs_coords, 2);
+// dump_farray("xs_normals", xs_normals, 2);
+// if (xs_coords2.dimension() != 0)
+// dump_farray("xs_coords2", xs_coords2, 2);
+// if (xs_normals2.dimension() != 0)
+// dump_farray("xs_normals2", xs_normals2, 2);
 // dump_farray("centers:", centers, 3);
 // dump_farray("tangents:", tangents, 3);
 // dump_farray("normals:", normals, 3);
@@ -492,7 +598,7 @@ RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
         }
         // Compute coordinates for xs point j at extrusion step i
         for (int i = 0; i != num_pts_per_spline; ++i) {
-            float cn, cb, nn, nb;
+            float cn, cb;
             if (arrow_length == 0) {
                 cn = cp1[0];
                 cb = cp1[1];
