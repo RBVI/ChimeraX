@@ -395,7 +395,7 @@ class Ribbon:
 
 class XSectionManager:
     """XSectionManager keeps track of ribbon cross sections used in an AtomicStructure instance.
-    
+
     Constants:
       Residue classes:
         RC_NUCLEIC - all nucleotides
@@ -429,12 +429,6 @@ class XSectionManager:
     (RIBBON_NUCLEIC, RIBBON_SHEET, RIBBON_SHEET_ARROW,
      RIBBON_HELIX, RIBBON_HELIX_ARROW, RIBBON_COIL) = range(6)
 
-
-    # Class variables
-    _xsSquare = None
-    _xsRound = None
-    _xsPiped = None
-
     def __init__(self, structure):
         import weakref
         self.structure = weakref.ref(structure)
@@ -448,6 +442,17 @@ class XSectionManager:
         self.style_sheet = self.STYLE_SQUARE
         self.style_coil = self.STYLE_SQUARE
         self.style_nucleic = self.STYLE_SQUARE
+        self.arrow_helix = False
+        self.arrow_sheet = True
+        self.param_round = {
+            "sides": 12,
+            "faceted": False,
+        }
+        self.param_square = {}
+        self.param_piped = {
+            "sides": 8,
+            "ratio": 0.5,
+        }
         self.transitions = {
             # SHEET_START in the middle
             (self.RC_COIL, self.RC_SHEET_START, self.RC_SHEET_MIDDLE):
@@ -502,7 +507,13 @@ class XSectionManager:
             (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_SHEET_START):
                 (self.RIBBON_HELIX, self.RIBBON_HELIX_ARROW),
         }
-        self._xs_helix = None       # marker for needing to create cross sections
+
+        self._xs_helix = None
+        self._xs_helix_arrow = None
+        self._xs_sheet = None
+        self._xs_sheet_arrow = None
+        self._xs_coil = None
+        self._xs_nucleic = None
 
     def assign(self, rc0, rc1, rc2):
         """Return front and back cross sections for the middle residue.
@@ -511,16 +522,14 @@ class XSectionManager:
         The return value is a 2-tuple of XSection instances.
         The first is for the half-segment between rc0 and rc1, ending at rc1.
         The second is for the half-segment between rc1 and rc2, starting at rc1."""
-        if self._xs_helix is None:
-            self._make_xs()
         if rc1 is self.RC_NUCLEIC:
-            return self._xs_nucleic, self._xs_nucleic
+            return self.xs_nucleic, self.xs_nucleic
         if rc1 is self.RC_SHEET_MIDDLE:
-            return self._xs_sheet, self._xs_sheet
+            return self.xs_sheet, self.xs_sheet
         if rc1 is self.RC_HELIX_MIDDLE:
-            return self._xs_helix, self._xs_helix
+            return self.xs_helix, self.xs_helix
         if rc1 is self.RC_COIL:
-            return self._xs_coil, self._xs_coil
+            return self.xs_coil, self.xs_coil
         try:
             r_front, r_back = self.transitions[(rc0, rc1, rc2)]
             return self._xs_ribbon(r_front), self._xs_ribbon(r_back)
@@ -536,6 +545,7 @@ class XSectionManager:
         v = (x, y)
         if self.scale_helix != v:
             self.scale_helix = v
+            self._xs_helix = None
             self._set_gc_ribbon()
 
     def set_helix_arrow_scale(self, x1, y1, x2, y2):
@@ -543,6 +553,7 @@ class XSectionManager:
         v = ((x1, y1), (x2, y2))
         if self.scale_helix_arrow != v:
             self.scale_helix_arrow = v
+            self._xs_helix_arrow = None
             self._set_gc_ribbon()
 
     def set_sheet_scale(self, x, y):
@@ -550,6 +561,7 @@ class XSectionManager:
         v = (x, y)
         if self.scale_sheet != v:
             self.scale_sheet = v
+            self._xs_sheet = None
             self._set_gc_ribbon()
 
     def set_sheet_arrow_scale(self, x1, y1, x2, y2):
@@ -557,6 +569,7 @@ class XSectionManager:
         v = ((x1, y1), (x2, y2))
         if self.scale_sheet_arrow != v:
             self.scale_sheet_arrow = v
+            self._xs_sheet_arrow = None
             self._set_gc_ribbon()
 
     def set_coil_scale(self, x, y):
@@ -564,6 +577,7 @@ class XSectionManager:
         v = (x, y)
         if self.scale_coil != v:
             self.scale_coil = v
+            self._xs_coil = None
             self._set_gc_ribbon()
 
     def set_nucleic_scale(self, x, y):
@@ -571,35 +585,42 @@ class XSectionManager:
         v = (x, y)
         if self.scale_nucleic != v:
             self.scale_nucleic = v
+            self._xs_nucleic = None
             self._set_gc_ribbon()
 
     def set_helix_style(self, s):
         """Set style for helix ribbon cross section."""
         if self.style_helix != s:
             self.style_helix = s
+            self._xs_helix = None
+            self._xs_helix_arrow = None
             self._set_gc_ribbon()
 
     def set_sheet_style(self, s):
         """Set style for sheet ribbon cross section."""
         if self.style_sheet != s:
             self.style_sheet = s
+            self._xs_sheet = None
+            self._xs_sheet_arrow = None
             self._set_gc_ribbon()
 
     def set_coil_style(self, s):
         """Set style for coil ribbon cross section."""
         if self.style_coil != s:
             self.style_coil = s
+            self._xs_coil = None
             self._set_gc_ribbon()
 
     def set_nucleic_style(self, s):
         """Set style for helix ribbon cross section."""
         if self.style_nucleic != s:
             self.style_nucleic = s
+            self._xs_nucleic = None
             self._set_gc_ribbon()
 
     def set_transition(self, rc0, rc1, rc2, rf, rb):
         """Set transition for ribbon cross section across residue classes.
-        
+
         The "assign" method converts residue classes for three consecutive
         residues into two cross sections.  This method defines the values
         that are used by "assign" when the residue classes are different.
@@ -616,63 +637,141 @@ class XSectionManager:
             self.transitions[key] = v
             self._set_gc_ribbon()
 
-    def _make_xs(self):
-        if self._xsSquare is None:
-            self._make_base_xs()
-        self._xs_helix = self._xs_style(self.style_helix).scale(self.scale_helix)
-        self._xs_helix_arrow = self._xs_style(self.style_helix).arrow(self.scale_helix_arrow)
-        self._xs_sheet = self._xs_style(self.style_sheet).scale(self.scale_sheet)
-        self._xs_sheet_arrow = self._xs_style(self.style_sheet).arrow(self.scale_sheet_arrow)
-        self._xs_coil = self._xs_style(self.style_coil).scale(self.scale_coil)
-        self._xs_nucleic = self._xs_style(self.style_nucleic).scale(self.scale_nucleic)
+    def set_helix_end_arrow(self, b):
+        if self.arrow_helix != b:
+            self.arrow_helix = b
+            self._set_gc_ribbon()
 
-    def _make_base_xs(self):
+    def set_sheet_end_arrow(self, b):
+        if self.arrow_sheet != b:
+            self.arrow_sheet = b
+            self._set_gc_ribbon()
+
+    def set_round_param(self, k, v):
+        self._set_param(self.STYLE_ROUND, self.param_round, k, v)
+
+    def set_square_param(self, k, v):
+        self._set_param(self.STYLE_SQUARE, self.param_square, k, v)
+
+    def set_piped_param(self, k, v):
+        self._set_param(self.STYLE_PIPED, self.param_piped, k, v)
+
+    def _set_param(self, style, param, k, v):
+        if k not in param:
+            raise ValueError("unknown param %s" % k)
+        if param[k] != v:
+            param[k] = v
+            if self.style_helix == style:
+                self._xs_helix = None
+                self._xs_helix_arrow = None
+            if self.style_sheet == style:
+                self._xs_sheet = None
+                self._xs_sheet_arrow = None
+            if self.style_coil == style:
+                self._xs_coil = None
+            if self.style_nucleic == style:
+                self._xs_nucleic = None
+            self._set_gc_ribbon()
+
+    @property
+    def xs_helix(self):
+        if self._xs_helix is None:
+            self._xs_helix = self._make_xs(self.style_helix, self.scale_helix)
+        return self._xs_helix
+
+    @property
+    def xs_helix_arrow(self):
+        if self._xs_helix_arrow is None:
+            base = self._make_xs(self.style_helix, (1.0, 1.0))
+            self._xs_helix_arrow = base.arrow(self.scale_helix_arrow)
+        return self._xs_helix_arrow
+
+    @property
+    def xs_sheet(self):
+        if self._xs_sheet is None:
+            self._xs_sheet = self._make_xs(self.style_sheet, self.scale_sheet)
+        return self._xs_sheet
+
+    @property
+    def xs_sheet_arrow(self):
+        if self._xs_sheet_arrow is None:
+            base = self._make_xs(self.style_sheet, (1.0, 1.0))
+            self._xs_sheet_arrow = base.arrow(self.scale_sheet_arrow)
+        return self._xs_sheet_arrow
+
+    @property
+    def xs_coil(self):
+        if self._xs_coil is None:
+            self._xs_coil = self._make_xs(self.style_coil, self.scale_coil)
+        return self._xs_coil
+
+    @property
+    def xs_nucleic(self):
+        if self._xs_nucleic is None:
+            self._xs_nucleic = self._make_xs(self.style_nucleic, self.scale_nucleic)
+        return self._xs_nucleic
+
+    def _make_xs(self, style, scale):
+        if style is self.STYLE_ROUND:
+            return self._make_xs_round(scale)
+        elif style is self.STYLE_SQUARE:
+            return self._make_xs_square(scale)
+        elif style is self.STYLE_PIPED:
+            # PIPED not supported yet
+            return self._make_xs_square(scale)
+        else:
+            raise ValueError("unknown style %s" % style)
+
+    def _make_xs_round(self, scale):
         from numpy import array
         from math import pi, cos, sin
         from .molobject import RibbonXSection as XSection
-        coords = array(((1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)))
-        XSectionManager._xsSquare = XSection(coords, faceted=True)
         coords = []
         normals = []
-        for i in range(8):
-            angle = 2.0 * pi * i / 8.0
+        sides = self.param_round["sides"]
+        side_angle = 2.0 * pi / sides
+        offset = side_angle / 2
+        for i in range(sides):
+            angle = i * side_angle + offset
             coords.append((cos(angle), sin(angle)))
             normals.append(coords[-1])
-        coords = array(coords)
-        normals = array(normals)
-        XSectionManager._xsRound = XSection(coords, normals=normals, faceted=False)
-
-    def _xs_style(self, style):
-        if style is self.STYLE_ROUND:
-            return self._xsRound
-        elif style is self.STYLE_SQUARE:
-            return self._xsSquare
-        elif style is self.STYLE_PIPED:
-            # PIPED not implemented yet
-            return self._xsSquare
+        coords = array(coords) * array(scale)
+        if self.param_round["faceted"]:
+            return XSection(coords, faceted=True)
         else:
-            # Unknown styles are square
-            return self._xsSquare
+            normals = array(normals)
+            return XSection(coords, normals=normals, faceted=False)
+
+    def _make_xs_square(self, scale):
+        from numpy import array
+        from .molobject import RibbonXSection as XSection
+        coords = array(((1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0))) * array(scale)
+        return XSection(coords, faceted=True)
 
     def _xs_ribbon(self, r):
         if r is self.RIBBON_HELIX:
-            return self._xs_helix
+            return self.xs_helix
         elif r is self.RIBBON_SHEET:
-            return self._xs_sheet
+            return self.xs_sheet
         elif r is self.RIBBON_COIL:
-            return self._xs_coil
+            return self.xs_coil
         elif r is self.RIBBON_NUCLEIC:
-            return self._xs_nucleic
+            return self.xs_nucleic
         elif r is self.RIBBON_HELIX_ARROW:
-            return self._xs_helix_arrow
+            if self.arrow_helix:
+                return self.xs_helix_arrow
+            else:
+                return self.xs_helix
         elif r is self.RIBBON_SHEET_ARROW:
-            return self._xs_sheet_arrow
+            if self.arrow_sheet:
+                return self.xs_sheet_arrow
+            else:
+                return self.xs_sheet
         else:
             raise ValueError("unknown ribbon ref %d" % r)
 
     def _set_gc_ribbon(self):
         # Mark ribbon for rebuild
-        self._xs_helix = None
         s = self.structure()
         if s is not None:
             s._gc_ribbon = True
@@ -715,7 +814,7 @@ def tridiagonal(a, b, c, d):
     nf = len(a)     # number of equations
     for i in range(1, nf):
         mc = a[i] / b[i - 1]
-        b[i] = b[i] - mc * c[i - 1] 
+        b[i] = b[i] - mc * c[i - 1]
         d[i] = d[i] - mc * d[i - 1]
     xc = a
     xc[-1] = d[-1] / b[-1]
@@ -765,9 +864,9 @@ def curvature_to_normals(curvature, tangents, prev_normal):
 
 
 # Code for debugging moving code from Python to C++
-# 
+#
 # DebugCVersion = False
-# 
+#
 def _debug_compare(label, test, ref, verbose=False):
     from sys import __stderr__ as stderr
     if isinstance(ref, list):
