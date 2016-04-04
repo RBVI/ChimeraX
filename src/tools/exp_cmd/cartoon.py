@@ -79,7 +79,8 @@ def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, ori
 
 
 def _get_structures(session, structures):
-    if structures is None:
+    if structures is None or structures is True:
+        # True is the NoArg case
         from chimerax.core.commands import atomspec
         results = atomspec.everything(session).evaluate(session)
         structures = results.atoms.unique_structures
@@ -272,19 +273,6 @@ def cartoon_linker(session, structures, classes, linker):
             transition_list.append(None)
     elif linker == "short":
         if classes[0] == "helix":
-            transition_list = [(RIBBON_HELIX, RIBBON_HELIX_ARROW)]
-        elif classes[0] == "strand":
-            transition_list = [(RIBBON_SHEET, RIBBON_SHEET_ARROW)]
-        else:
-            transition_list = [None]
-        if classes[1] == "helix":
-            transition_list.append((RIBBON_COIL, RIBBON_HELIX))
-        elif classes[1] == "strand":
-            transition_list.append((RIBBON_COIL, RIBBON_SHEET))
-        else:
-            transition_list.append(None)
-    elif linker == "short2":
-        if classes[0] == "helix":
             transition_list = [(RIBBON_HELIX_ARROW, RIBBON_COIL)]
         elif classes[0] == "strand":
             transition_list = [(RIBBON_SHEET_ARROW, RIBBON_COIL)]
@@ -294,6 +282,19 @@ def cartoon_linker(session, structures, classes, linker):
             transition_list.append((RIBBON_HELIX, RIBBON_HELIX))
         elif classes[1] == "strand":
             transition_list.append((RIBBON_SHEET, RIBBON_SHEET))
+        else:
+            transition_list.append(None)
+    elif linker == "short2":
+        if classes[0] == "helix":
+            transition_list = [(RIBBON_HELIX, RIBBON_HELIX_ARROW)]
+        elif classes[0] == "strand":
+            transition_list = [(RIBBON_SHEET, RIBBON_SHEET_ARROW)]
+        else:
+            transition_list = [None]
+        if classes[1] == "helix":
+            transition_list.append((RIBBON_COIL, RIBBON_HELIX))
+        elif classes[1] == "strand":
+            transition_list.append((RIBBON_COIL, RIBBON_SHEET))
         else:
             transition_list.append(None)
     elif linker == "none":
