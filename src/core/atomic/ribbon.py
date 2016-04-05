@@ -408,8 +408,8 @@ class XSectionManager:
         RC_HELIX_END - last residue in helix
       Cross section styles:
         STYLE_SQUARE - four-sided cross section with right angle corners and faceted lighting
-        STYLE_ROUND - round cross section with no corners and smooth lighting
-        STYLE_PIPED - not supported yet, treated same as STYLE_SQUARE
+        STYLE_ROUND - round cross section with no corners
+        STYLE_PIPING - flat cross section with piping on either end
       Ribbon cross sections:
         RIBBON_NUCLEIC - Use style for nucleotides
         RIBBON_COIL - Use style for coil
@@ -425,7 +425,7 @@ class XSectionManager:
      RC_HELIX_START, RC_HELIX_MIDDLE, RC_HELIX_END) = range(8)
     RC_ANY_SHEET = set([RC_SHEET_START, RC_SHEET_MIDDLE, RC_SHEET_END])
     RC_ANY_HELIX = set([RC_HELIX_START, RC_HELIX_MIDDLE, RC_HELIX_END])
-    (STYLE_SQUARE, STYLE_ROUND, STYLE_PIPED) = range(3)
+    (STYLE_SQUARE, STYLE_ROUND, STYLE_PIPING) = range(3)
     (RIBBON_NUCLEIC, RIBBON_SHEET, RIBBON_SHEET_ARROW,
      RIBBON_HELIX, RIBBON_HELIX_ARROW, RIBBON_COIL) = range(6)
 
@@ -444,14 +444,19 @@ class XSectionManager:
         self.style_nucleic = self.STYLE_SQUARE
         self.arrow_helix = False
         self.arrow_sheet = True
-        self.param_round = {
-            "sides": 12,
-            "faceted": False,
-        }
-        self.param_square = {}
-        self.param_piped = {
-            "sides": 8,
-            "ratio": 0.5,
+        self.params = {
+            self.STYLE_ROUND: {
+                "sides": 12,
+                "faceted": False,
+            },
+            self.STYLE_SQUARE: {
+                # No parameters yet for square style
+            },
+            self.STYLE_PIPING: {
+                "sides": 6,
+                "ratio": 0.5,
+                "faceted": False,
+            },
         }
         self.transitions = {
             # SHEET_START in the middle
@@ -647,20 +652,18 @@ class XSectionManager:
             self.arrow_sheet = b
             self._set_gc_ribbon()
 
-    def set_round_param(self, k, v):
-        self._set_param(self.STYLE_ROUND, self.param_round, k, v)
-
-    def set_square_param(self, k, v):
-        self._set_param(self.STYLE_SQUARE, self.param_square, k, v)
-
-    def set_piped_param(self, k, v):
-        self._set_param(self.STYLE_PIPED, self.param_piped, k, v)
-
-    def _set_param(self, style, param, k, v):
-        if k not in param:
-            raise ValueError("unknown param %s" % k)
-        if param[k] != v:
-            param[k] = v
+    def set_params(self, style, **kw):
+        param = self.params[style]
+        for k in kw.keys():
+            if k not in param:
+                raise ValueError("unknown parameter %s" % k)
+        any_changed = False
+        for k, v in kw.items():
+            if param[k] != v:
+                param[k] = v
+                any_changed = True
+                self._set_gc_ribbon()
+        if any_changed:
             if self.style_helix == style:
                 self._xs_helix = None
                 self._xs_helix_arrow = None
@@ -671,7 +674,6 @@ class XSectionManager:
                 self._xs_coil = None
             if self.style_nucleic == style:
                 self._xs_nucleic = None
-            self._set_gc_ribbon()
 
     @property
     def xs_helix(self):
@@ -716,9 +718,8 @@ class XSectionManager:
             return self._make_xs_round(scale)
         elif style is self.STYLE_SQUARE:
             return self._make_xs_square(scale)
-        elif style is self.STYLE_PIPED:
-            # PIPED not supported yet
-            return self._make_xs_square(scale)
+        elif style is self.STYLE_PIPING:
+            return self._make_xs_piping(scale)
         else:
             raise ValueError("unknown style %s" % style)
 
@@ -728,7 +729,8 @@ class XSectionManager:
         from .molobject import RibbonXSection as XSection
         coords = []
         normals = []
-        sides = self.param_round["sides"]
+        param = self.params[self.STYLE_ROUND]
+        sides = param["sides"]
         side_angle = 2.0 * pi / sides
         offset = side_angle / 2
         for i in range(sides):
@@ -736,7 +738,7 @@ class XSectionManager:
             coords.append((cos(angle), sin(angle)))
             normals.append(coords[-1])
         coords = array(coords) * array(scale)
-        if self.param_round["faceted"]:
+        if param["faceted"]:
             return XSection(coords, faceted=True)
         else:
             normals = array(normals)
@@ -747,6 +749,54 @@ class XSectionManager:
         from .molobject import RibbonXSection as XSection
         coords = array(((1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0))) * array(scale)
         return XSection(coords, faceted=True)
+
+    def _make_xs_piping(self, scale):
+        from numpy import array
+        from math import pi, cos, sin, asin
+        from .molobject import RibbonXSection as XSection
+        if scale[0] > scale[1]:
+            flipped = False
+            delta = scale[0] - scale[1]
+            radius = scale[1]
+        else:
+            flipped = True
+            delta = scale[1] - scale[0]
+            radius = scale[0]
+        coords = []
+        normals = []
+        param = self.params[self.STYLE_PIPING]
+        sides = param["sides"]
+        ratio = param["ratio"]
+        theta = asin(ratio)
+        side_angle = 2.0 * (pi - theta) / sides
+        # Generate the vertices for the two piping on either side.
+        # The first and last points are used to connect the two.
+        for start_angle, offset in ((theta - pi, delta), (theta, -delta)):
+            for i in range(sides + 1):
+                angle = start_angle + i * side_angle
+                x = cos(angle) * radius
+                y = sin(angle) * radius
+                if flipped:
+                    normals.append((-y, x))
+                    coords.append((-y, x + offset))
+                else:
+                    normals.append((x, y))
+                    coords.append((x + offset, y))
+        coords = array(coords)
+        tess = ([(0, sides, sides+1),(0, sides+1, 2*sides+1)] +         # connecting rectangle
+                [(0, i, i+1) for i in range(1, sides)] +                # first piping
+                [(sides+1, i, i+1) for i in range(sides+2, 2*sides+1)]) # second piping
+        if param["faceted"]:
+            return XSection(coords, faceted=True, tess=tess)
+        else:
+            if flipped:
+                normals[0] = normals[-1] = (1, 0)
+                normals[sides] = normals[sides + 1] = (-1, 0)
+            else:
+                normals[0] = normals[-1] = (0, -1)
+                normals[sides] = normals[sides + 1] = (0, 1)
+            normals = array(normals)
+            return XSection(coords, normals=normals, faceted=False, tess=tess)
 
     def _xs_ribbon(self, r):
         if r is self.RIBBON_HELIX:

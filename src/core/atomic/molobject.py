@@ -945,16 +945,17 @@ class RibbonXSection:
     required control points, tangents, normals and colors.
     '''
     def __init__(self, coords=None, coords2=None, normals=None, normals2=None,
-                 faceted=False, xs_pointer=None):
+                 faceted=False, tess=None, xs_pointer=None):
         if xs_pointer is None:
             f = c_function('rxsection_new',
                            args = (ctypes.py_object,        # coords
                                    ctypes.py_object,        # coords2
                                    ctypes.py_object,        # normals
                                    ctypes.py_object,        # normals2
-                                   ctypes.c_bool),          # faceted
+                                   ctypes.c_bool,           # faceted
+                                   ctypes.py_object),       # tess
                                    ret = ctypes.c_void_p)   # pointer to C++ instance
-            xs_pointer = f(coords, coords2, normals, normals2, faceted)
+            xs_pointer = f(coords, coords2, normals, normals2, faceted, tess)
         set_c_pointer(self, xs_pointer)
 
     def delete(self):

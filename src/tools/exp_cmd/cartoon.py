@@ -353,15 +353,18 @@ def cartoon_param_round(session, structures=None, faceted=None, sides=None):
     sides : integer
         Set number of sides in cross section.
     '''
-    for m in _get_structures(session, structures):
-        if faceted is not None:
-            m.ribbon_xs_mgr.set_round_param("faceted", faceted)
-        if sides is not None:
-            m.ribbon_xs_mgr.set_round_param("sides", sides)
+    params = {}
+    if faceted is not None:
+        params["faceted"] = faceted
+    if sides is not None:
+        params["sides"] = sides
+    if params:
+        for m in _get_structures(session, structures):
+            m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_ROUND, **params)
 
 
-def cartoon_param_piped(session, structures=None, faceted=None, sides=None, ratio=None):
-    '''Set cartoon piped ribbon parameters for specified structures.
+def cartoon_param_piping(session, structures=None, faceted=None, sides=None, ratio=None):
+    '''Set cartoon piping ribbon parameters for specified structures.
 
     Parameters
     ----------
@@ -374,13 +377,16 @@ def cartoon_param_piped(session, structures=None, faceted=None, sides=None, rati
     ratio : real number
         Set thickness ratio between flat center and piping.
     '''
-    for m in _get_structures(session, structures):
-        if faceted is not None:
-            m.ribbon_xs_mgr.set_piped_param("faceted", faceted)
-        if sides is not None:
-            m.ribbon_xs_mgr.set_piped_param("sides", sides)
-        if ratio is not None:
-            m.ribbon_xs_mgr.set_piped_param("ratio", ratio)
+    params = {}
+    if faceted is not None:
+        params["faceted"] = faceted
+    if sides is not None:
+        params["sides"] = sides
+    if ratio is not None:
+        params["ratio"] = ratio
+    if params:
+        for m in _get_structures(session, structures):
+            m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_PIPING, **params)
 
 
 def uncartoon(session, spec=None):
@@ -427,8 +433,9 @@ def initialize(command_name):
                        synopsis='set cartoon tether options for specified structures')
         register(command_name + " tether", desc, cartoon_tether)
 
-        styles = EnumOf([XSectionManager.STYLE_SQUARE, XSectionManager.STYLE_ROUND],
-                        ["square", "round"])
+        styles = EnumOf([XSectionManager.STYLE_SQUARE, XSectionManager.STYLE_ROUND,
+                         XSectionManager.STYLE_PIPING],
+                        ["square", "round", "piping"])
         desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
                        keyword=[("helix", styles),
                                 ("strand", styles),
@@ -475,7 +482,7 @@ def initialize(command_name):
         desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
                        keyword=[("sides", Bounded(IntArg, 3)),
                                 ("faceted", BoolArg),
-                                ("ratio", Bounded(FloatArg, 0.2, 0.8)),
+                                ("ratio", Bounded(FloatArg, 0.2, 1.0)),
                                 ],
-                       synopsis='set cartoon piped ribbon options for specified structures')
-        register(command_name + " param piped", desc, cartoon_param_piped)
+                       synopsis='set cartoon piping ribbon options for specified structures')
+        register(command_name + " param piping", desc, cartoon_param_piping)

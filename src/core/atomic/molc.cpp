@@ -2726,19 +2726,31 @@ static FArray* _numpy_float3(PyObject *a, FArray *farray)
         return NULL;
     if (parse_float_array(a, farray))
         return farray;
-    throw std::invalid_argument("not an int array");
+    throw std::invalid_argument("not a float array");
+}
+
+static IArray* _numpy_ints3(PyObject *a, IArray *iarray)
+{
+    if (a == Py_None)
+        return NULL;
+    if (parse_int_n3_array(a, iarray))
+        return iarray;
+    throw std::invalid_argument("not an int[3] array");
 }
 
 extern "C" void *rxsection_new(PyObject* coords, PyObject* coords2,
-                               PyObject* normals, PyObject* normals2, bool faceted)
+                               PyObject* normals, PyObject* normals2,
+                               bool faceted, PyObject* tess)
 {
     FArray fa_coords, fa_coords2, fa_normals, fa_normals2;
+    IArray ia_tess;
     try {
         FArray *c = _numpy_floats2(coords, &fa_coords);
         FArray *c2 = _numpy_floats2(coords2, &fa_coords2);
         FArray *n = _numpy_floats2(normals, &fa_normals);
         FArray *n2 = _numpy_floats2(normals2, &fa_normals2);
-        RibbonXSection *xs = new RibbonXSection(c, c2, n, n2, faceted);
+        IArray *t = _numpy_ints3(tess, &ia_tess);
+        RibbonXSection *xs = new RibbonXSection(c, c2, n, n2, faceted, t);
         return xs;
     } catch (...) {
         molc_error();
