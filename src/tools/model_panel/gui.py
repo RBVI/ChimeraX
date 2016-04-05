@@ -81,7 +81,9 @@ class ModelPanel(ToolInstance):
                 button = QPushButton(model_func.__name__.capitalize())
                 buttons_layout.addWidget(button)
                 button.clicked.connect(lambda chk, self=self, mf=model_func, ses=session:
-                    mf([self.models[i.row()] for i in self.table.selectedIndexes()] or self.models, ses))
+                    # Qt returns each row index N times (N == # of columns)...
+                    mf([self.models[row] for row in set([i.row()
+                        for i in self.table.selectedIndexes()])] or self.models, ses))
 
         from chimerax.core.graphics import Drawing
         Drawing.triggers.add_handler('display changed', self._initiate_fill_table)
