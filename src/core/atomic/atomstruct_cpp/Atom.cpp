@@ -9,7 +9,7 @@
 #include "ChangeTracker.h"
 #include "CoordSet.h"
 #include "destruct.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "PBGroup.h"
 #include "Pseudobond.h"
 #include "Residue.h"
@@ -18,7 +18,7 @@
 
 namespace atomstruct {
 
-Atom::Atom(Graph* as, const char* name, const Element& e):
+Atom::Atom(Structure* as, const char* name, const Element& e):
     _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(&e), _name(name),
     _radius(-1.0), // -1 indicates not explicitly set
     _residue(NULL), _serial_number(-1), _structure(as),
@@ -139,7 +139,7 @@ Atom::coordination(int value_if_unknown) const
     if (bonds().size() > 0)
         return bonds().size();
     int num_pb = 0;
-    auto pbg = structure()->pb_mgr().get_group(Graph::PBG_METAL_COORDINATION);
+    auto pbg = structure()->pb_mgr().get_group(Structure::PBG_METAL_COORDINATION);
     if (pbg != nullptr) {
         for (auto pb: pbg->pseudobonds()) {
             for (auto a: pb->atoms()) {

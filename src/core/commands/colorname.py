@@ -8,6 +8,7 @@ def _find_named_color(color_dict, name):
     num_colors = len(color_dict)
     # extract up to 10 words from name
     from . import cli
+    first = True
     text = name
     words = []
     while len(words) < 10:
@@ -18,8 +19,12 @@ def _find_named_color(color_dict, name):
         word, _, rest = cli.next_token(text, no_raise=True)
         if not word or word == ';':
             break
-        words.append(word)
+        if first and ' ' in word:
+            words = [(w, rest) for w in word.split()]
+            break
+        words.append((word, rest))
         text = rest
+        first = False
     real_name = None
     last_real_name = None
     w = 0
@@ -28,7 +33,7 @@ def _find_named_color(color_dict, name):
     while w < len(words):
         if cur_name:
             cur_name += ' '
-        cur_name += words[w]
+        cur_name += words[w][0]
         i = color_dict.bisect_left(cur_name)
         if i >= num_colors:
             break
@@ -47,18 +52,15 @@ def _find_named_color(color_dict, name):
             break
         choices.sort(key=len)
         last_real_name = choices[0]
-        cur_name = cur_name[:-len(words[w])] + multiword_choices[0][0]
+        cur_name = cur_name[:-len(words[w][0])] + multiword_choices[0][0]
         w += 1
     if last_real_name:
         w -= 1
         real_name = last_real_name
+    if first and w + 1 != len(words):
+        return None, None, name
     if real_name:
-        start = 0
-        for i in range(w + 1):
-            start = name.find(words[i], start)
-            start += len(words[i])
-        unused = name[start:]
-        return real_name, color_dict[real_name], unused
+        return real_name, color_dict[real_name], words[w][1]
     return None, None, name
 
 

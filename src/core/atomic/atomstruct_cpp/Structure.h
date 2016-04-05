@@ -1,6 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
-#ifndef atomstruct_Graph
-#define atomstruct_Graph
+#ifndef atomstruct_Structure
+#define atomstruct_Structure
 
 #include <algorithm>
 #include <element/Element.h>
@@ -59,12 +59,12 @@ public:
     virtual void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
 };
 
-// Graph and AtomicStructure have all the methods and typedefs (i.e.
-// AtomicStructure simply inherits everything from Graph and doesn't
+// Structure and AtomicStructure have all the methods and typedefs (i.e.
+// AtomicStructure simply inherits everything from Structure and doesn't
 // add any) so that they can be treated identically in the Python
 // layer.  Some atomic-structure-specific methods will have no-op
-// implementations in Graph and real implementations in AtomicStructure.
-class Graph: public GraphicsContainer {
+// implementations in Structure and real implementations in AtomicStructure.
+class Structure: public GraphicsContainer {
     friend class Atom; // for IDATM stuff and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
     friend class Chain; // for remove_chain()
@@ -130,7 +130,7 @@ protected:
     virtual void  _compute_atom_types() {}
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     virtual void  _compute_structure_cats() const {}
-    void  _copy(Graph*) const;
+    void  _copy(Structure*) const;
     void  _delete_atom(Atom* a);
     void  _delete_atoms(const std::set<Atom*>& atoms);
     void  _delete_residue(Residue* r, const Residues::iterator& ri);
@@ -139,7 +139,7 @@ protected:
             unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
     Chain*  _new_chain(const ChainID& chain_id) const {
-        auto chain = new Chain(chain_id, const_cast<Graph*>(this));
+        auto chain = new Chain(chain_id, const_cast<Structure*>(this));
         _chains->emplace_back(chain);
         return chain;
     }
@@ -154,8 +154,8 @@ protected:
     static int  SESSION_NUM_MISC(int /*version*/=0) { return 4; }
 
 public:
-    Graph(PyObject* logger = nullptr);
-    virtual  ~Graph();
+    Structure(PyObject* logger = nullptr);
+    virtual  ~Structure();
 
     CoordSet*  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
@@ -168,7 +168,7 @@ public:
     const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     ChangeTracker*  change_tracker() { return _change_tracker; }
     const CoordSets&  coord_sets() const { return _coord_sets; }
-    virtual Graph*  copy() const;
+    virtual Structure*  copy() const;
     void  delete_atom(Atom* a);
     void  delete_atoms(const std::set<Atom*>& atoms) { _delete_atoms(atoms); }
     void  delete_atoms(const std::vector<Atom*>& atoms);
@@ -259,7 +259,7 @@ public:
 };
 
 inline void
-Graph::set_ribbon_tether_scale(float s) {
+Structure::set_ribbon_tether_scale(float s) {
     if (s == _ribbon_tether_scale)
         return;
     change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
@@ -268,7 +268,7 @@ Graph::set_ribbon_tether_scale(float s) {
 }
 
 inline void
-Graph::set_ribbon_tether_shape(TetherShape ts) {
+Structure::set_ribbon_tether_shape(TetherShape ts) {
     if (ts == _ribbon_tether_shape)
         return;
     change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
@@ -277,7 +277,7 @@ Graph::set_ribbon_tether_shape(TetherShape ts) {
 }
 
 inline void
-Graph::set_ribbon_tether_sides(int s) {
+Structure::set_ribbon_tether_sides(int s) {
     if (s == _ribbon_tether_sides)
         return;
     change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
@@ -286,7 +286,7 @@ Graph::set_ribbon_tether_sides(int s) {
 }
 
 inline void
-Graph::set_ribbon_tether_opacity(float o) {
+Structure::set_ribbon_tether_opacity(float o) {
     if (o == _ribbon_tether_opacity)
         return;
     change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_TETHER);
@@ -295,7 +295,7 @@ Graph::set_ribbon_tether_opacity(float o) {
 }
 
 inline void
-Graph::set_ribbon_show_spine(bool ss) {
+Structure::set_ribbon_show_spine(bool ss) {
     if (ss == _ribbon_show_spine)
         return;
     change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_STYLE);
@@ -304,7 +304,7 @@ Graph::set_ribbon_show_spine(bool ss) {
 }
 
 inline void
-Graph::set_ribbon_orientation(RibbonOrientation o) {
+Structure::set_ribbon_orientation(RibbonOrientation o) {
     if (o == _ribbon_orientation)
         return;
     change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_ORIENTATION);
@@ -314,4 +314,4 @@ Graph::set_ribbon_orientation(RibbonOrientation o) {
 
 } //  namespace atomstruct
 
-#endif  // atomstruct_Graph
+#endif  // atomstruct_Structure

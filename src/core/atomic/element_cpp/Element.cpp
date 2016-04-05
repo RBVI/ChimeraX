@@ -316,6 +316,19 @@ Element::name() const {
     return symbols[as];
 }
 
+std::set<std::string>  Element::_names;
+
+const std::set<std::string>&
+Element::names()
+{
+    if (_names.empty()) {
+        // insert all real (i.e. non-LP) element names
+        for (int i = 1; i < NUM_SYMBOLS; ++i)
+            _names.insert(symbols[i]);
+    }
+    return _names;   
+}
+
 float
 Element::mass() const {
     if (as >= NUM_MASS)

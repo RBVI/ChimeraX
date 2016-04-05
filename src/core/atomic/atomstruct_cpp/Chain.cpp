@@ -5,13 +5,13 @@
 #include "Chain.h"
 #include "ChangeTracker.h"
 #include "destruct.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "Sequence.h"
 #include "Residue.h"
 
 namespace atomstruct {
 
-Chain::Chain(const ChainID& chain_id, Graph* as): Sequence(),
+Chain::Chain(const ChainID& chain_id, Structure* as): Sequence(),
     _chain_id(chain_id), _from_seqres(false), _structure(as)
 {
     _structure->change_tracker()->add_created(this);

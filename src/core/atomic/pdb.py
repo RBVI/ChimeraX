@@ -66,3 +66,66 @@ def register_pdb_format():
 def register_pdb_fetch(session):
     from .. import fetch
     fetch.register_fetch(session, 'pdb', fetch_pdb, 'pdb', prefixes = [])
+
+def process_chem_name(name, use_greek=True, probable_abbrs=False):
+	text = ""
+	word = ""
+	for c in name.strip().lower():
+		if c.isalpha():
+			word += c
+			continue
+		if word:
+			if c.isdigit() or (text and text[-1].isdigit()):
+				text += _process_chem_word(word, use_greek, probable_abbrs).upper()
+			else:
+				text += _process_chem_word(word, use_greek, probable_abbrs)
+			word = ""
+		text += c
+	if word:
+		if c.isdigit() or (text and text[-1].isdigit()):
+			text += _process_chem_word(word, use_greek, probable_abbrs).upper()
+		else:
+			text += _process_chem_word(word, use_greek, probable_abbrs)
+	return text
+
+greek_letters = {
+	'alpha': u'\N{GREEK SMALL LETTER ALPHA}',
+	'beta': u'\N{GREEK SMALL LETTER BETA}',
+	'gamma': u'\N{GREEK SMALL LETTER GAMMA}',
+	'delta': u'\N{GREEK SMALL LETTER DELTA}',
+	'epsilon': u'\N{GREEK SMALL LETTER EPSILON}',
+	'zeta': u'\N{GREEK SMALL LETTER ZETA}',
+	'eta': u'\N{GREEK SMALL LETTER ETA}',
+	'theta': u'\N{GREEK SMALL LETTER THETA}',
+	'iota': u'\N{GREEK SMALL LETTER IOTA}',
+	'kappa': u'\N{GREEK SMALL LETTER KAPPA}',
+	'lambda': u'\N{GREEK SMALL LETTER LAMDA}',
+	'lamda': u'\N{GREEK SMALL LETTER LAMDA}',
+	'mu': u'\N{GREEK SMALL LETTER MU}',
+	'nu': u'\N{GREEK SMALL LETTER NU}',
+	'xi': u'\N{GREEK SMALL LETTER XI}',
+	'omicron': u'\N{GREEK SMALL LETTER OMICRON}',
+	'pi': u'\N{GREEK SMALL LETTER PI}',
+	'rho': u'\N{GREEK SMALL LETTER RHO}',
+	'sigma': u'\N{GREEK SMALL LETTER SIGMA}',
+	'tau': u'\N{GREEK SMALL LETTER TAU}',
+	'upsilon': u'\N{GREEK SMALL LETTER UPSILON}',
+	'phi': u'\N{GREEK SMALL LETTER PHI}',
+	'chi': u'\N{GREEK SMALL LETTER CHI}',
+	'psi': u'\N{GREEK SMALL LETTER PSI}',
+	'omega': u'\N{GREEK SMALL LETTER OMEGA}',
+}
+def _process_chem_word(word, use_greek, probable_abbrs):
+	if len(word) == 1:
+		return word.upper()
+	from . import Element
+	if len(word) == 2 and word.capitalize() in Element.names:
+		return word.capitalize()
+	if set(list(word)) <= set(["i", "v", "x"]):
+		# Roman numeral
+		return word.upper()
+	if use_greek and word in greek_letters:
+		return greek_letters[word]
+	if probable_abbrs and len(word) < 5 and word != "cell":
+		return word.upper()
+	return word

@@ -48,12 +48,12 @@ class Objects:
         self.add_atoms(other.atoms)
 
     def invert(self, session, models):
-        from .atomic import AtomicStructure, Atoms, concatenate
+        from .atomic import Structure, Atoms, concatenate
         matoms = []
         from .orderedset import OrderedSet
         imodels = OrderedSet()
         for m in models:
-            if isinstance(m, AtomicStructure):
+            if isinstance(m, Structure):
                 matoms.append(m.atoms)
             elif m not in self._models:
                 imodels.add(m)
@@ -121,8 +121,8 @@ class Objects:
         return d
 
     def bounds(self):
-        from .atomic import AtomicStructure
-        bm = [m.bounds() for m in self.models if not isinstance(m, AtomicStructure)]
+        from .atomic import Structure
+        bm = [m.bounds() for m in self.models if not isinstance(m, Structure)]
         from .geometry import union_bounds, copies_bounding_box
         for m, minst in self.model_instances.items():
             b = m.bounds(positions = False)

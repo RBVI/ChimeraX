@@ -136,7 +136,7 @@ Connection::other_atom(Atom *a) const
 } //  namespace atomstruct
 
 #include "Atom.h"
-#include "Graph.h"
+#include "Structure.h"
 
 namespace atomstruct {
 

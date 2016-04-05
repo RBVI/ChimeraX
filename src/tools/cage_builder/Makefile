@@ -1,31 +1,36 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimerax.cellpack
+PKG_NAME = chimerax.cage_builder
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = cellPACK file reader
+PKG_DESCRIPTION = Build polygonal meshes
 
-TOOL_NAME = cellpack
-TOOL_PKG_NAME = $(PKG_NAME)
-TOOL_DISPLAY_NAME = CellPACK
-TOOL_CATEGORY = Hidden
-TOOL_FILE_TYPES = 
-TOOL_SESSION_VERIONS = 1,1
+# For many cases, only a single tool and a single command
+# is provided by a package.  Variables below are designed
+# for this case.  If you have multiple tools or commands,
+# you need manually edit all the files.
+TOOL_NAME = cage_builder
+TOOL_PKG_NAME = chimerax.cage_builder
+TOOL_DISPLAY_NAME = Cage Builder
+TOOL_CATEGORY = General
+TOOL_FILE_TYPES =
+TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
-TOOL_SYNOPSIS = Fetch cellPACK models from web
-COMMAND_NAME =
+TOOL_SYNOPSIS = Build polygonal meshes
+COMMAND_NAME = cage
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
 
 PYSRCS = $(wildcard *.py)
+DATAFILES = 
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
 install: dir
-	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
@@ -36,7 +41,7 @@ app-install: wheel
 
 wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
-	rm -rf $(PKG_NAME).egg-info
+	rm -rf $(TOOL_NAME).egg-info
 
 setup.py: setup.py.in Makefile
 	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
@@ -44,8 +49,6 @@ setup.py: setup.py.in Makefile
 		-e 's,LIB_DIR,$(libdir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
-		-e 's,#$(OS)#,,' \
-		-e 's,#$(OSARCH)#,,' \
 		-e 's,TOOL_NAME,$(TOOL_NAME),' \
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \

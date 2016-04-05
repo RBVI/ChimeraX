@@ -348,8 +348,8 @@ class Annotation(metaclass=abc.ABCMeta):
         The leading space in text must already be removed.
         It is up to the particular annotation to support abbreviations.
 
-        Empty text should raise an exception (the exceptions being NoArg
-        and EmptyArg).
+        Empty text should raise a ValueError or AnnotationError exception
+        (the exceptions being NoArg and EmptyArg).
         """
         raise NotImplemented
 
@@ -550,6 +550,8 @@ class BoolArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % BoolArg.name)
         token, text, rest = next_token(text)
         token = token.casefold()
         if token == "0" or "false".startswith(token) or token == "off":
@@ -583,6 +585,8 @@ class IntArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % IntArg.name)
         token, text, rest = next_token(text)
         try:
             return int(token), text, rest
@@ -596,6 +600,8 @@ class FloatArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % FloatArg.name)
         token, text, rest = next_token(text)
         try:
             return float(token), text, rest
@@ -609,6 +615,8 @@ class StringArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % StringArg.name)
         token, text, rest = next_token(text)
         return token, text, rest
 
@@ -642,6 +650,8 @@ class AxisArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % AxisArg.name)
         axis = None
 
         # "x" or "y" or "z"
@@ -719,6 +729,8 @@ class CenterArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % CenterArg.name)
         c = None
 
         # 3 comma-separated numbers
@@ -784,12 +796,13 @@ class CoordSysArg(Annotation):
     when specified as tuples of numbers.  Coordinate system is
     specified as a Model specifier.
     """
-    name = "coordinate-system"
+    name = "a coordinate-system"
 
     @staticmethod
     def parse(text, session):
         m, text, rest = ModelArg.parse(text, session)
         return m.position, text, rest
+
 
 class PlaceArg(Annotation):
     """
@@ -798,10 +811,12 @@ class PlaceArg(Annotation):
     3 columns are x,y,z coordinate axes, and the last column
     is the origin.
     """
-    name = "position"
+    name = "a position"
 
     @staticmethod
     def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % PlaceArg.name)
         token, text, rest = next_token(text)
         p = PlaceArg.parse_place(token.split(','))
         return p, text, rest
@@ -831,6 +846,19 @@ class AtomsArg(Annotation):
         atoms.spec = str(aspec)
         return atoms, text, rest
 
+
+class StructuresArg(Annotation):
+    """Parse command structures specifier"""
+    name = "atomic structures"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        from ..atomic import Structure
+        mols = [m for m in models if isinstance(m, Structure)]
+        return mols, text, rest
 
 class AtomicStructuresArg(Annotation):
     """Parse command atomic structures specifier"""
@@ -869,8 +897,8 @@ class SurfacesArg(Annotation):
         from . import atomspec
         aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
         models = aspec.evaluate(session).models
-        from ..atomic import AtomicStructure
-        surfs = [m for m in models if not isinstance(m, AtomicStructure)]
+        from ..atomic import Structure
+        surfs = [m for m in models if not isinstance(m, Structure)]
         return surfs, text, rest
 
 
@@ -1021,6 +1049,8 @@ class EnumOf(Annotation):
             self.allow_truncated = abbreviations
 
     def parse(self, text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % self.name)
         token, text, rest = next_token(text)
         folded = token.casefold()
         for i, ident in enumerate(self.ids):
@@ -1073,8 +1103,7 @@ class Or(Annotation):
                     raise
             except ValueError:
                 pass
-        msg = commas([a.name for a in self.annotations])
-        raise AnnotationError("Expected %s" % msg)
+        raise AnnotationError("Expected %s" % self.name)
 
 
 _escape_table = {
@@ -1490,6 +1519,9 @@ class CmdDesc:
         ci = copy.copy(self)
         ci._function = None
         return ci
+    
+    def is_alias(self):
+        return isinstance(self.function, Alias)
 
 
 class _Defer:
@@ -2226,9 +2258,9 @@ def command_url(name, no_aliases=False):
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
-    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
+    if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
-    return cmd._ci.url
+    return cmd._ci.url if cmd._ci else None
 
 
 def usage(name, no_aliases=False, no_subcommands=False):
@@ -2238,16 +2270,17 @@ def usage(name, no_aliases=False, no_subcommands=False):
     :param no_aliases: True if aliases should not be considered.
     :returns: a usage string for the command
     """
+    name = name.strip()
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
-    if cmd.amount_parsed != len(cmd.current_text):
+    if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
 
     syntax = ''
-    arg_syntax = []
     ci = cmd._ci
     if ci:
+        arg_syntax = []
         syntax = cmd.command_name
         for arg_name in ci._required:
             type = ci._required[arg_name].name
@@ -2269,9 +2302,23 @@ def usage(name, no_aliases=False, no_subcommands=False):
             syntax += ' [%s _%s_]' % (arg_name, arg_type.name)
         if ci.synopsis:
             syntax += ' -- %s' % ci.synopsis
-
-    if arg_syntax:
-        syntax += '\n%s' % '\n'.join(arg_syntax)
+        if arg_syntax:
+            syntax += '\n%s' % '\n'.join(arg_syntax)
+        if ci.is_alias():
+            alias = ci.function
+            arg_text = cmd.current_text[cmd.amount_parsed:]
+            args = arg_text.split(maxsplit=alias.num_args)
+            if len(args) > alias.num_args:
+                optional = args[-1]
+                del args[-1]
+            else:
+                optional = ''
+            try:
+                name = alias.expand(*args, optional=optional, partial_ok=True)
+                syntax += '\n' + usage(name)
+            except Exception as e:
+                print(e)
+                pass
 
     if (not no_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
@@ -2295,14 +2342,14 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
-    if cmd.amount_parsed != len(cmd.current_text):
+    if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
     from html import escape
 
     syntax = ''
-    arg_syntax = []
     ci = cmd._ci
     if ci:
+        arg_syntax = []
         if ci.synopsis:
             syntax += "<i>%s</i><br>\n" % escape(ci.synopsis)
         if cmd._ci.url is None:
@@ -2344,9 +2391,22 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
                     type = '<a href="%s">%s</a>' % (arg_type.url, type)
                 type = ' ' + type
             syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(arg_name), type)
-
-    if arg_syntax:
-        syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
+        if arg_syntax:
+            syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
+        if ci.is_alias():
+            alias = ci.function
+            arg_text = cmd.current_text[cmd.amount_parsed:]
+            args = arg_text.split(maxsplit=alias.num_args)
+            if len(args) > alias.num_args:
+                optional = args[-1]
+                del args[-1]
+            else:
+                optional = ''
+            try:
+                name = alias.expand(*args, optional=optional, partial_ok=True)
+                syntax += '<br>' + html_usage(name)
+            except:
+                pass
 
     if (not no_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
@@ -2471,11 +2531,8 @@ class Alias:
         return CmdDesc(required=required, optional=[('optional', RestOfLine)],
                        non_keyword=['optional'], **kw)
 
-    def __call__(self, session, *args, optional='', echo_tag=None,
-                 _used_aliases=None, log=True):
-        # when echo_tag is not None, echo the substitued alias with
-        # the given tag
-        if len(args) < self.num_args:
+    def expand(self, *args, optional='', partial_ok=False):
+        if not partial_ok and len(args) < self.num_args:
             raise UserError("Not enough arguments")
         # substitute args for positional arguments
         text = ''
@@ -2488,6 +2545,13 @@ class Alias:
                 text += optional
             else:
                 text += args[part]
+        return text
+
+    def __call__(self, session, *args, optional='', echo_tag=None,
+                 _used_aliases=None, log=True):
+        # when echo_tag is not None, echo the substitued alias with
+        # the given tag
+        text = self.expand(*args, optional=optional)
         if echo_tag is not None:
             session.logger.info('%s%s' % (echo_tag, text))
         # save Command object so error reporting can give underlying error
@@ -2541,15 +2605,8 @@ def create_alias(name, text, *, user=False, logger=None):
     """
     name = ' '.join(name.split())   # canonicalize
     alias = Alias(text, user=user)
-    cmd = Command(None)
-    cmd.current_text = text
-    cmd._find_command_name()
-    if cmd.word_info is None or cmd._ci:
-        aliasing = cmd.command_name
-    else:
-        aliasing = text[0:text.find('$')].strip()
     try:
-        register(name, alias.cmd_desc(synopsis='alias of "%s"' % aliasing),
+        register(name, alias.cmd_desc(synopsis='alias of %r' % text),
                  alias, logger=logger)
     except:
         raise

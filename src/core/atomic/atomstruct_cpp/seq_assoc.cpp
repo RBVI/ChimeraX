@@ -5,7 +5,7 @@
 #include <cmath>  // std::abs
 
 #include "Chain.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "Residue.h"
 #include "seq_assoc.h"
 
