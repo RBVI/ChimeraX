@@ -10,6 +10,7 @@ networkx==1.10
 Pillow==3.0.0
 pip==7.1.2
 python-dateutil==2.4.2
+qtconsole==4.2.1
 six==1.9.0
 sortedcontainers==0.9.6
 suds-jurko==0.6
