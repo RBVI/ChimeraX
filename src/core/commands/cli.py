@@ -2421,7 +2421,7 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
             cmd._find_command_name(no_aliases=no_aliases)
             if cmd.amount_parsed != len(cmd.current_text):
                 url = None
-            elif cmd._ci.url is None:
+            elif cmd._ci is None or cmd._ci.url is None:
                 url = None
             else:
                 url = cmd._ci.url

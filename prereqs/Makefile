@@ -75,11 +75,6 @@ $(SUBDIR_INSTALL): build-dirs
 build-dirs:
 	make -C $(TOP) build-dirs
 	-mkdir $(tmpdir)
-ifeq ($(OS),Darwin)
-	-mkdir $(includedir)/GL
-	-$(RSYNC) /System/Library/Frameworks/OpenGL.framework/Headers/* \
-	  $(includedir)/GL
-endif
 
 build-app-dirs:
 	make -C $(TOP) build-app-dirs

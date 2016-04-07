@@ -36,7 +36,7 @@ install: all
 	fi
 
 clean:
-	rm -f $(MOD_NAME)
+	rm -f $(MOD_NAME).sh
 
 lint:
 	$(PYLINT) $(MOD_NAME).py
