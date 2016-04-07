@@ -31,23 +31,23 @@ PATCHES += $(wildcard Python-$(PYTHON_PATCH_LEVEL)_debug.patch)
 endif
 
 ifeq ($(OS),Linux)
-LDFLAGS += -Wl,-rpath,"$(libdir)"
 # On linux have to disable IPV6 socket support or _socket doesn't compile.
 CONFIG_OPTIONS += --disable-ipv6 --enable-shared
 endif
 ifeq ($(OS),Darwin)
-# On Darwin, -Wl,-rpath ends up in shared libraries in addition to executables,
-# which we don't want, so we add the rpath later, and set the DYLD_LIBRARY_PATH
-# to compensate while we're building
-export DYLD_LIBRARY_PATH=$(libdir)
 ifndef USE_MAC_FRAMEWORKS
-ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 CONFIG_OPTIONS += --enable-shared
+endif
+endif
+
+ifndef USE_MAC_FRAMEWORKS
+LDFLAGS += -Wl,-rpath,"$(libdir)"
+ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 else
+LDFLAGS += -Wl,-rpath,"$(libdir)"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
 pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
-endif
 endif
 
 ifeq ($(OS),Windows)
@@ -142,12 +142,10 @@ else ifdef USE_MAC_FRAMEWORKS
 		ln -s $(shell python -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 
-	# remove unused libraries
-	rm -rf $(PYTHON_LIBRARY_DIR)/config-*/*.{a,dylib}
-
 	# replace python executable with version that doesn't invoke Python.app
 	cp $(SOURCE)/python.exe $(PYTHON_EXE)
-	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_EXE)
+	install_name_tool -rpath $(libdir) '@executable_path/../lib' \
+		$(PYTHON_EXE)
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
 		$(PYTHON_EXE)
@@ -162,7 +160,7 @@ else ifdef USE_MAC_FRAMEWORKS
 	chmod 444 $(PYTHON_FRAMEWORK)/Python
 
 	# In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
-	install_name_tool -add_rpath \
+	install_name_tool -rpath $(libdir)  \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
 		$(pyappdir)/Python
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
@@ -177,7 +175,7 @@ ifeq ($(OS),Linux)
 	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 endif
 ifeq ($(OS),Darwin)
-	install_name_tool -add_rpath '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
+	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
 	pylib=libpython$(PYTHON_VERSION)$(PYTHON_ABI).dylib ;\
 		chmod 644 $(libdir)/$$pylib ;\
 		install_name_tool -id @rpath/$$pylib $(libdir)/$$pylib ;\
