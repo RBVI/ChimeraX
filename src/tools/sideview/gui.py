@@ -10,7 +10,7 @@ import wx
 from wx import glcanvas
 from chimerax.core.tools import ToolInstance
 from chimerax.core.geometry import Place
-from chimerax.core.graphics import View, Camera, OrthographicCamera
+from chimerax.core.graphics import View, Camera
 
 
 class _PixelLocations:
@@ -161,7 +161,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 string_marker.glStringMarkerGREMEDY(len(text), text)
             main_view = self.main_view
             main_camera = main_view.camera
-            ortho = isinstance(main_camera, OrthographicCamera)
+            ortho = hasattr(main_camera, 'field_width')
             view_num = None  # TODO: 0, 1 for stereo
 
             camera = self.view.camera
@@ -310,20 +310,16 @@ class SideViewCanvas(glcanvas.GLCanvas):
         far = self.locations.far
         es = self.EyeSize
         if eye_x - es <= x <= eye_x + es and eye_y - es <= y <= eye_y + es:
-            self.x, self.y = x, y
             self.moving = self.ON_EYE
-            self.CaptureMouse()
-            self.Refresh()
         elif near - es <= x <= near + es:
-            self.x, self.y = x, y
             self.moving = self.ON_NEAR
-            self.CaptureMouse()
-            self.Refresh()
         elif far - es <= x <= far + es:
-            self.x, self.y = x, y
             self.moving = self.ON_FAR
-            self.CaptureMouse()
-            self.Refresh()
+        else:
+            return
+        self.x, self.y = x, y
+        self.CaptureMouse()
+        self.Refresh()
 
     def on_left_up(self, event):
         if self.moving:
@@ -335,12 +331,23 @@ class SideViewCanvas(glcanvas.GLCanvas):
         if not self.HasCapture() or not event.Dragging():
             return
         x, y = event.GetPosition()
+        diff_x = x - self.x
+        self.x, self.y = x, y
         psize = self.view.pixel_size()
         shift = self.main_view.camera.position.apply_without_translation(
-            (0, 0, (x - self.x) * psize))
-        self.x, self.y = x, y
+            (0, 0, diff_x * psize))
         if self.moving == self.ON_EYE:
-            self.main_view.translate(shift)
+            main_camera = self.main_view.camera
+            ortho = hasattr(main_camera, 'field_width')
+            if ortho:
+                size = min(self.view.window_size)
+                # factor = 1 + diff_x / size
+                factor = 10 ** (diff_x / size)
+                main_camera.field_width /= factor
+                main_camera.redraw_needed = True
+                #self.main_view.redraw_needed = True
+            else:
+                self.main_view.translate(shift)
         elif self.moving == self.ON_NEAR:
             v = self.main_view
             planes = v.clip_planes
