@@ -44,8 +44,12 @@ ifndef USE_MAC_FRAMEWORKS
 LDFLAGS += -Wl,-rpath,"$(libdir)"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 else
+# In order for Python's setup.py to decide that sqlite3 support is available,
+# it needs to find the include file in the SDK, and it finds the SDK location
+# by looking for a '-isysroot' flag in CFLAGS, so provide one...
+SDK_LOC = $(shell echo | gcc -xc -E -v - 2>&1 | grep '\.sdk/usr/include$$' | cut -d . -f 1,2,3,4).sdk
 LDFLAGS += -Wl,-rpath,"$(libdir)"
-ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
+ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)' CFLAGS='$(CFLAGS) -isysroot $(SDK_LOC)'
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
 pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
 endif
