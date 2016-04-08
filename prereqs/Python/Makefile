@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).0
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -31,18 +31,18 @@ PATCHES += $(wildcard Python-$(PYTHON_PATCH_LEVEL)_debug.patch)
 endif
 
 ifeq ($(OS),Linux)
+LDFLAGS += -Wl,-rpath,"$(libdir)"
 # On linux have to disable IPV6 socket support or _socket doesn't compile.
 CONFIG_OPTIONS += --disable-ipv6 --enable-shared
 endif
 ifeq ($(OS),Darwin)
+# On Darwin, -Wl,-rpath ends up in shared libraries in addition to executables,
+# which we don't want, so we add the rpath later, and set the DYLD_LIBRARY_PATH
+# to compensate while we're building
+export DYLD_LIBRARY_PATH=$(libdir)
 ifndef USE_MAC_FRAMEWORKS
-CONFIG_OPTIONS += --enable-shared
-endif
-endif
-
-ifndef USE_MAC_FRAMEWORKS
-LDFLAGS += -Wl,-rpath,"$(libdir)"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
+CONFIG_OPTIONS += --enable-shared
 else
 # In order for Python's setup.py to decide that sqlite3 support is available,
 # it needs to find the include file in the SDK, and it finds the SDK location
@@ -52,6 +52,7 @@ LDFLAGS += -Wl,-rpath,"$(libdir)"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)' CFLAGS='$(CFLAGS) -isysroot $(SDK_LOC)'
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
 pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
+endif
 endif
 
 ifeq ($(OS),Windows)
@@ -146,10 +147,12 @@ else ifdef USE_MAC_FRAMEWORKS
 		ln -s $(shell python -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 
+	# remove unused libraries
+	rm -rf $(PYTHON_LIBRARY_DIR)/config-*/*.{a,dylib}
+
 	# replace python executable with version that doesn't invoke Python.app
 	cp $(SOURCE)/python.exe $(PYTHON_EXE)
-	install_name_tool -rpath $(libdir) '@executable_path/../lib' \
-		$(PYTHON_EXE)
+	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_EXE)
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
 		$(PYTHON_EXE)
@@ -164,7 +167,7 @@ else ifdef USE_MAC_FRAMEWORKS
 	chmod 444 $(PYTHON_FRAMEWORK)/Python
 
 	# In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
-	install_name_tool -rpath $(libdir)  \
+	install_name_tool -add_rpath \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
 		$(pyappdir)/Python
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
@@ -179,7 +182,7 @@ ifeq ($(OS),Linux)
 	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 endif
 ifeq ($(OS),Darwin)
-	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
+	install_name_tool -add_rpath '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
 	pylib=libpython$(PYTHON_VERSION)$(PYTHON_ABI).dylib ;\
 		chmod 644 $(libdir)/$$pylib ;\
 		install_name_tool -id @rpath/$$pylib $(libdir)/$$pylib ;\
