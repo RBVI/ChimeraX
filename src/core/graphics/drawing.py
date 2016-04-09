@@ -1457,6 +1457,17 @@ def rgba_drawing(rgba, pos=(-1, -1), size=(2, 2), drawing=None):
     d = _texture_drawing(t, pos, size, drawing)
     return d
 
+def position_rgba_drawing(drawing, pos, size):
+    '''
+    Use specified position and size for rgba drawing, values in fractional window size.
+    '''
+    x,y = pos
+    sx,sy = size
+    from numpy import array, float32
+    drawing.vertices = array(((x, y, 0),
+                              (x + sx, y, 0),
+                              (x + sx, y + sy, 0),
+                              (x, y + sy, 0)), float32)
 
 def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     '''
