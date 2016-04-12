@@ -24,9 +24,9 @@ endif
 ifdef MAC_USE_FRAMEWORKS
 	CONFIG_OPTS += -framework
 endif
-ifeq ($(OS),Darwin)
-	CONFIG_OPTS += -sdk $(SDK)
-endif
+#ifeq ($(OS),Darwin)
+#	CONFIG_OPTS += -sdk $(SDK)
+#endif
 ifeq ($(OS),Linux)
 	# In 5.0.2, build fails if icu library is not present,
 	# so have configure fail if it is not present
