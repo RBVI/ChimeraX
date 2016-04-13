@@ -239,8 +239,8 @@ class Log(ToolInstance, HtmlLog):
         url = event.GetURL()
         from urllib.parse import unquote
         url = unquote(url)
+        event.Veto()
         if url.startswith("log:"):
-            event.Veto()
             cmd = url.split(':', 1)[1]
             if cmd == 'help':
                 self.display_help()
@@ -263,25 +263,17 @@ class Log(ToolInstance, HtmlLog):
                 from .cmd import log
                 log(self.session, thumbnail=True)
             return
-        elif url.startswith("cxcmd:"):
-            from chimerax.core.commands import run
-            event.Veto()
-            cmd = url.split(':', 1)[1]
-            run(session, cmd)
-            return
         from urllib.parse import urlparse
         parts = urlparse(url)
-        if parts.scheme in ('', 'help', 'file', 'http'):
+        if parts.scheme in ('', 'cxcmd', 'help', 'file', 'http'):
             if parts.path == '/':
                 # Ingore file:/// URL event that Mac generates
                 # for each call to SetPage()
                 return
-            event.Veto()
             from chimerax.core.commands import run
             run(session, "help %s" % url, log=False)
             return
         # unknown scheme
-        event.Veto()
         session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
 
     def clear(self):

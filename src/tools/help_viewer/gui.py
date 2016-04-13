@@ -35,6 +35,7 @@ class HelpUI(ToolInstance):
         # UI content code
         import wx
         from wx import html2
+        self.on_page = None
         self.home_page = None
         self.zoom_factor = html2.WEBVIEW_ZOOM_MEDIUM
         # buttons: back, forward, reload, stop, home, search bar
@@ -97,12 +98,16 @@ class HelpUI(ToolInstance):
 
     def show(self, url, set_home=True):
         self.help_window.Stop()
+        from urllib.parse import urlparse, urlunparse
+        parts = urlparse(url)
+        url = urlunparse(parts)  # canonicalize
         if set_home or not self.home_page:
             self.help_window.ClearHistory()
             self.home_page = url
             self.toolbar.EnableTool(self.home.GetId(), True)
             self.toolbar.EnableTool(self.back.GetId(), False)
             self.toolbar.EnableTool(self.forward.GetId(), False)
+        self.on_page = url
         self.help_window.LoadURL(url)
 
     # wx event handling
@@ -147,27 +152,20 @@ class HelpUI(ToolInstance):
         session = self.session
         # Handle event
         url = event.GetURL()
-        if url.startswith("cxcmd:"):
-            from urllib.parse import unquote
-            from chimerax.core.commands import run
-            event.Veto()
-            cmd = unquote(url.split(':', 1)[1])
-            # Insert command in command-line entry field
-            for ti in session.tools.list():
-                if ti.bundle_info.name == 'cmd_line':
-                    ti.cmd_replace(cmd)
-                    ti.on_enter(None)
-                    break
-            else:
-                # no command line?!?
-                run(session, cmd)
-            return
-        # TODO: check if http url is within ChimeraX docs
-        # TODO: handle missing doc -- redirect to web server
-        from urllib.parse import urlparse
+        from urllib.parse import urlparse, urlunparse, unquote
         parts = urlparse(url)
-        if parts.scheme == 'file':
-            pass
+        url = urlunparse(parts)  # canonicalize
+        if url == self.on_page:
+            # Do not Veto, because it stops page from being shown
+            return
+        url = unquote(url)
+        event.Veto()
+        if parts.scheme in ('cxcmd', 'help', 'file', 'http'):
+            from chimerax.core.commands import run
+            run(session, "help %s" % url, log=False)
+            return
+        # unknown scheme
+        session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
 
     def on_title_change(self, event):
         new_title = self.help_window.CurrentTitle

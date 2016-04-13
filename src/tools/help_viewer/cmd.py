@@ -22,6 +22,20 @@ def help(session, topic=None, *, option=None, is_query=False):
         if is_query:
             return False
         url = topic
+    elif topic.startswith('cxcmd:'):
+        from urllib.parse import unquote
+        from chimerax.core.commands import run
+        cmd = unquote(topic.split(':', 1)[1])
+        # Insert command in command-line entry field
+        for ti in session.tools.list():
+            if ti.bundle_info.name == 'cmd_line':
+                ti.cmd_replace(cmd)
+                ti.on_enter(None)
+                break
+        else:
+            # no command line?!?
+            run(session, cmd)
+        return
     else:
         path = ""
         fragment = ""
@@ -35,6 +49,8 @@ def help(session, topic=None, *, option=None, is_query=False):
             path = os.path.expanduser(path)
             path = os.path.join(base_dir, path)
             if not os.path.exists(path):
+                # TODO: check if http url is within ChimeraX docs
+                # TODO: handle missing doc -- redirect to web server
                 if is_query:
                     return False
                 session.logger.error("No help found for '%s'" % topic)
