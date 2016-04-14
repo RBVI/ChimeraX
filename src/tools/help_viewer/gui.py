@@ -9,7 +9,7 @@
 from chimerax.core.tools import ToolInstance
 import weakref
 
-_instances = weakref.WeakValueDictionary()
+_targets = weakref.WeakValueDictionary()
 
 
 def _bitmap(filename, size):
@@ -144,6 +144,10 @@ class HelpUI(ToolInstance):
         self.toolbar.EnableTool(self.zoom_in.GetId(), True)
 
     def on_close(self, event):
+        try:
+            del _targets[self.target]
+        except:
+            pass
         self.session.logger.remove_log(self)
 
     def on_navigated(self, event):
@@ -195,9 +199,9 @@ class HelpUI(ToolInstance):
     def get_viewer(cls, session, target=None):
         if target is None:
             target = 'help'
-        if target in _instances:
-            return _instances[target]
+        if target in _targets:
+            return _targets[target]
         bundle_info = session.toolshed.find_bundle('help_viewer')
         viewer = HelpUI(session, bundle_info, target)
-        _instances[target] = viewer
+        _targets[target] = viewer
         return viewer
