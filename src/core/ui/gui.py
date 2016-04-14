@@ -375,7 +375,7 @@ class MainWindow(wx.Frame, PlainTextLog):
             item = help_menu.Append(wx.ID_ANY, entry, "Show " + entry)
             def cb(evt, ses=session, t=topic):
                 from chimerax.core.commands import run
-                run(ses, 'help sethome help:%s' % t)
+                run(ses, 'help new_viewer help:%s' % t)
             self.Bind(wx.EVT_MENU, cb, item)
         ad = session.app_dirs
         item = help_menu.Append(wx.ID_ANY, "About %s %s" % (ad.appauthor, ad.appname))

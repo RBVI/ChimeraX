@@ -572,7 +572,7 @@ class NoArg(Annotation):
 
 class EmptyArg(Annotation):
     """Annotation for optionally missing 'required' argument"""
-    name = "an empty string"
+    name = "nothing"
 
     @staticmethod
     def parse(text, session):

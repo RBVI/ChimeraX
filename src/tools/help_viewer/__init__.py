@@ -6,7 +6,7 @@
 #
 def start_tool(session, bundle_info):
     from .gui import HelpUI
-    return HelpUI.get_singleton(session)
+    return HelpUI.get_viewer(session)
 
 
 #
@@ -26,6 +26,7 @@ def get_class(class_name):
         from . import gui
         return gui.HelpUI
     return None
+
 
 #
 # 'open_file' is called by session code to open a file

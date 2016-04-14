@@ -7,6 +7,9 @@
 #   "delete" - called to clean up before instance is deleted
 #
 from chimerax.core.tools import ToolInstance
+import weakref
+
+_instances = weakref.WeakValueDictionary()
 
 
 def _bitmap(filename, size):
@@ -23,12 +26,13 @@ class HelpUI(ToolInstance):
     SESSION_ENDURING = False    # default
     SIZE = (500, 500)
 
-    def __init__(self, session, bundle_info):
+    def __init__(self, session, bundle_info, target):
         ToolInstance.__init__(self, session, bundle_info)
         # 'display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Help UI"
         # in this case), so only override if different name desired
         self.display_name = "%s Help Viewer" % session.app_dirs.appname
+        self.target = target
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, size=self.SIZE)
         parent = self.tool_window.ui_area
@@ -96,7 +100,7 @@ class HelpUI(ToolInstance):
         if self.help_window.CanSetZoomType(html2.WEBVIEW_ZOOM_TYPE_LAYOUT):
             self.help_window.SetZoomType(html2.WEBVIEW_ZOOM_TYPE_LAYOUT)
 
-    def show(self, url, set_home=True):
+    def show(self, url, set_home=False):
         self.help_window.Stop()
         from urllib.parse import urlparse, urlunparse
         parts = urlparse(url)
@@ -161,8 +165,8 @@ class HelpUI(ToolInstance):
         url = unquote(url)
         event.Veto()
         if parts.scheme in ('cxcmd', 'help', 'file', 'http'):
-            from chimerax.core.commands import run
-            run(session, "help %s" % url, log=False)
+            from .cmd import help
+            help(session, topic=url, target=self.target)
             return
         # unknown scheme
         session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
@@ -172,13 +176,28 @@ class HelpUI(ToolInstance):
         self.tool_window.set_title(new_title)
 
     def on_new_window(self, event):
-        # TODO: create new help viewer tab or window
+        session = self.session
         event.Veto()
         url = event.GetURL()
-        import webbrowser
-        webbrowser.open(url)
+        target = event.GetTarget()
+        # TODO: figure out why target is always None
+        if not target:
+            target = url
+        use_help_viewer = url.startswith('help:') or target.startswith('help:')
+        if use_help_viewer:
+            from .cmd import help
+            help(session, topic=url, target=target)
+        else:
+            import webbrowser
+            webbrowser.open(url)
 
     @classmethod
-    def get_singleton(cls, session):
-        from chimerax.core import tools
-        return tools.get_singleton(session, HelpUI, 'help_viewer')
+    def get_viewer(cls, session, target=None):
+        if target is None:
+            target = 'help'
+        if target in _instances:
+            return _instances[target]
+        bundle_info = session.toolshed.find_bundle('help_viewer')
+        viewer = HelpUI(session, bundle_info, target)
+        _instances[target] = viewer
+        return viewer
