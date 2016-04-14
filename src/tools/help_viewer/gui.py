@@ -123,7 +123,7 @@ class HelpUI(ToolInstance):
         self.help_window.GoForward()
 
     def on_home(self, event):
-        self.show(self.home_page, set_home=False)
+        self.show(self.home_page)
 
     def on_zoom_in(self, event):
         from wx import html2
@@ -197,7 +197,9 @@ class HelpUI(ToolInstance):
 
     @classmethod
     def get_viewer(cls, session, target=None):
-        if target is None:
+        # TODO: reenable multiple target windows
+        # if target is None:
+        if 1:
             target = 'help'
         if target in _targets:
             return _targets[target]
