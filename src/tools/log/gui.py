@@ -237,6 +237,11 @@ class Log(ToolInstance, HtmlLog):
         session = self.session
         # Handle event
         url = event.GetURL()
+        if url == 'file:///':
+            # Ingore file:/// URL event that Mac generates
+            # for each call to SetPage().  But don't Veto,
+            # because that would stop the loading of the page.
+            return
         from urllib.parse import unquote
         url = unquote(url)
         event.Veto()
@@ -266,10 +271,6 @@ class Log(ToolInstance, HtmlLog):
         from urllib.parse import urlparse
         parts = urlparse(url)
         if parts.scheme in ('', 'cxcmd', 'help', 'file', 'http'):
-            if parts.path == '/':
-                # Ingore file:/// URL event that Mac generates
-                # for each call to SetPage()
-                return
             from chimerax.core.commands import run
             run(session, "help %s" % url, log=False)
             return
