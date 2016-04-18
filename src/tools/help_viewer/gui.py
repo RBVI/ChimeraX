@@ -41,10 +41,11 @@ class HelpUI(ToolInstance):
         if window_sys == "wx":
             import wx
             from wx import html2
+            self.on_page = None
+            self.home_page = None
             self.zoom_factor = html2.WEBVIEW_ZOOM_MEDIUM
             # buttons: back, forward, reload, stop, home, search bar
-            self.toolbar = wx.ToolBar(parent, wx.ID_ANY,
-                                      style=wx.TB_DEFAULT_STYLE | wx.TB_TEXT)
+            self.toolbar = wx.ToolBar(parent, wx.ID_ANY)
             bitmap_size = wx.ArtProvider.GetNativeSizeHint(wx.ART_TOOLBAR)
             self.back = self.toolbar.AddTool(
                 wx.ID_ANY, 'Back',
@@ -97,6 +98,8 @@ class HelpUI(ToolInstance):
             self.help_window.Bind(html2.EVT_WEBVIEW_TITLE_CHANGED,
                                   self.on_title_change)
             self.help_window.EnableContextMenu()
+            if self.help_window.CanSetZoomType(html2.WEBVIEW_ZOOM_TYPE_LAYOUT):
+                self.help_window.SetZoomType(html2.WEBVIEW_ZOOM_TYPE_LAYOUT)
         else: # qt
             from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit
             from PyQt5.QtGui import QIcon
@@ -154,6 +157,9 @@ class HelpUI(ToolInstance):
         self.tool_window.manage(placement=None)
 
     def show(self, url, set_home=True):
+        from urllib.parse import urlparse, urlunparse
+        parts = urlparse(url)
+        url = urlunparse(parts)  # canonicalize
         from chimerax.core import window_sys
         if window_sys == "wx":
             self.help_window.Stop()
@@ -163,6 +169,7 @@ class HelpUI(ToolInstance):
                 self.toolbar.EnableTool(self.home.GetId(), True)
                 self.toolbar.EnableTool(self.back.GetId(), False)
                 self.toolbar.EnableTool(self.forward.GetId(), False)
+            self.on_page = url
             self.help_window.LoadURL(url)
         else: # qt
             if set_home or not self.home_page:
@@ -189,7 +196,7 @@ class HelpUI(ToolInstance):
         self.help_window.history().forward()
 
     def on_home(self, event):
-        self.show(self.home_page, set_home=False)
+        self.show(self.home_page)
     go_home = on_home
 
     def on_zoom_in(self, event):

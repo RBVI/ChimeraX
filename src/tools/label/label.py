@@ -53,12 +53,11 @@ class Label:
         if rgba is None:
             self.session.logger.info("Can't find font for label")
             return
-        x,y = (-1 + 2*self.xpos, -1 + 2*self.ypos)    # Convert 0-1 position to -1 to 1.
-        w,h = v.window_size
-        uw,uh = 2*rgba.shape[1]/h, 2*rgba.shape[0]/h
-        new = (self.drawing is None)
-        from chimerax.core.graphics.drawing import rgba_drawing
-        self.drawing = d = rgba_drawing(rgba, (x, y), (uw, uh), self.drawing)
+        d = self.drawing
+        new = (d is None)
+        if new:
+            self.drawing = d = LabelDrawing(self)
+        d.set_text_image(rgba)
         d.display = self.visibility
         if new:
             v.add_overlay(d)
@@ -71,6 +70,44 @@ class Label:
         s = self.session
         s.main_view.remove_overlays([d])
         del s.labels[self.name]
+
+from chimerax.core.graphics.drawing import Drawing
+class LabelDrawing(Drawing):
+
+    def __init__(self, label):
+        Drawing.__init__(self, 'label %s' % label.name)
+        self.label = label
+        self.window_size = None
+        self.texture_size = None
+        
+    def set_text_image(self, rgba):
+        l = self.label
+        x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
+        v = l.session.main_view
+        self.window_size = w,h = v.window_size
+        th, tw = rgba.shape[:2]
+        self.texture_size = (tw,th)
+        uw,uh = 2*tw/w, 2*th/h
+        from chimerax.core.graphics.drawing import rgba_drawing
+        rgba_drawing(rgba, (x, y), (uw, uh), self)
+        
+    def draw(self, renderer, place, draw_pass, selected_only=False):
+        self.resize()
+        Drawing.draw(self, renderer, place, draw_pass, selected_only)
+
+    def resize(self):
+        l = self.label
+        v = l.session.main_view
+        if v.window_size != self.window_size:
+            # Window has resized so update texture drawing size
+            self.window_size = w,h = v.window_size
+            print('resizing label', w,h)
+            tw,th = self.texture_size
+            uw,uh = 2*tw/w, 2*th/h
+            x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
+            from chimerax.core.graphics.drawing import position_rgba_drawing
+            position_rgba_drawing(self, (x,y), (uw,uh))
+
 
 def label_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
                  xpos = 0.5, ypos = 0.5, visibility = True):

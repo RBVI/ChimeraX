@@ -19,16 +19,6 @@ class Structure(Model, StructureData):
         from .molarray import Residues
         from numpy import array
         from .ribbon import XSectionManager
-        # from .ribbon import XSection
-        xsc_helix = array([( 5, 1),(0, 1.5),(-5, 1),(-6,0),
-                           (-5,-1),(0,-1.5),( 5,-1),( 6,0)]) * 0.15
-        xsc_helix_start = array([( 1.5, 1),(0, 1.5),(-1.5, 1),(-2,0),
-                                 (-1.5,-1),(0,-1.5),( 1.5,-1),( 2,0)]) * 0.15
-        xsc_strand = array([(5,1),(-5,1),(-5,-1),(5,-1)]) * 0.15
-        xsc_turn = array([(1,1),(-1,1),(-1,-1),(1,-1)]) * 0.15
-        xsc_arrow_head = array([(10,1),(-10,1),(-10,-1),(10,-1)]) * 0.15
-        xsc_arrow_tail = array([(1,1),(-1,1),(-1,-1),(1,-1)]) * 0.15
-        xsc_nuc = array([(1,5),(-1,5),(-1,-5),(1,-5)]) * 0.15
        
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {

@@ -3,68 +3,26 @@
 B64=""
 AMD64=""
 X64=""
-if [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 12.0" ]
+if [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0" ]
 then
-	echo Setting environment for using Microsoft Visual Studio 2013 x86 tools.
-	platform=2013
-	VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio 12.0"
-	if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 12.0/VC/bin/x86_amd64" ]
+	echo Setting environment for using Microsoft Visual Studio 2015
+	platform=2015
+	VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio 14.0"
+	if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64" ]
 	then
+		echo Using native 64 bit tools
 		B64="64"
-		AMD64="x86_amd64"
+		AMD64="amd64"
 		X64="\\x64"
+	else
+		echo Using native 32 bit tools
 	fi
 	VCINSTALLDIR="$VSINSTALLDIR\\VC"
 	FrameworkVersion=v4.0.30319
-	Framework35Version=v3.5
+	FrameworkVersion64=v4.0.30319
+	Framework40Version=v4.0
+	VisualStudioVersion=14.0
 
-elif [ -e "/cygdrive/c/Program Files/Microsoft Visual Studio 10.0" ]
-then
-	echo Setting environment for using Microsoft Visual Studio 2010 x86 tools.
-	platform=2010
-	if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 10.0" ]
-	then
-		VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio 10.0"
-		if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 10.0/VC/bin/amd64" ]
-		then
-			B64="64"
-			AMD64="amd64"
-			X64="\\x64"
-		fi
-	else
-		VSINSTALLDIR="c:\\Program Files\\Microsoft Visual Studio 10.0"
-	fi
-	VCINSTALLDIR="$VSINSTALLDIR\\VC"
-	FrameworkVersion=v4.0.30319
-	Framework35Version=v3.5
-
-elif [ -e "/cygdrive/c/Program Files/Microsoft Visual Studio 9.0" ]
-then
-	echo Setting environment for using Microsoft Visual Studio 2008 x86 tools.
-	platform=2008
-	if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 9.0" ]
-	then
-		VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio 9.0"
-		if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 9.0/VC/bin/amd64" ]
-		then
-			B64="64"
-			AMD64="amd64"
-			X64="\\x64"
-		fi
-	else
-		VSINSTALLDIR="c:\\Program Files\\Microsoft Visual Studio 9.0"
-	fi
-	VCINSTALLDIR="$VSINSTALLDIR\\VC"
-	FrameworkVersion=v2.0.50727
-	Framework35Version=v3.5
-
-elif [ -e "/cygdrive/c/Program Files/Microsoft Visual Studio .NET 2003" ]
-then
-	echo "Setting environment for using Microsoft Visual Studio .NET 2003 tools."
-	platform=2003
-	VSINSTALLDIR="C:\\Program Files\\Microsoft Visual Studio .NET 2003"
-	VCINSTALLDIR="$VSINSTALLDIR\\Vc7"
-	FrameworkVersion=v1.1.4322
 else
 	echo "error: Microsoft compilers not found"
 	exit 1
@@ -73,16 +31,6 @@ fi
 export VSINSTALLDIR
 export VCINSTALLDIR
 export FrameworkDir="c:\\Windows\\Microsoft.NET\\Framework$B64"
-
-if [ $platform == 2003 ]
-then
-	FrameworkSDKDir="$VSINSTALLDIR\\SDK\\v1.1"
-	FSD=`cygpath -u "$FrameworkSDKDir"`
-	export PATH="$FSD/bin:$PATH"
-	export INCLUDE="$FrameworkSDKDir\\include;$INCLUDE"
-	export LIB="$FrameworkSDKDir\\lib;$LIB"
-	unset FSD
-fi
 
 function GetWindowsSdkDir () {
 	GetWindowsSdkDirHelper HKLM > /dev/null 2>&1
@@ -110,14 +58,15 @@ function GetWindowsSdkDirHelper () {
 
 GetWindowsSdkDir
 
-if [ "$WindowsSdkDir" ]
-then
-	WSD=`cygpath -u "$WindowsSdkDir"`
-	export PATH="$WSD/bin:$PATH"
-	export INCLUDE="$WindowsSdkDir\\include;$INCLUDE"
-	export LIB="$WindowsSdkDir\\lib$X64;$LIB"
-	unset WSD
-fi
+# Don't care about .NET tools, libs or includes
+#if [ "$WindowsSdkDir" ]
+#then
+#	WSD=`cygpath -u "$WindowsSdkDir"`
+#	export PATH="$WSD/bin:$PATH"
+#	export INCLUDE="$WindowsSdkDir\\include;$INCLUDE"
+#	export LIB="$WindowsSdkDir\\lib$X64;$LIB"
+#	unset WSD
+#fi
 
 
 #
@@ -125,20 +74,19 @@ fi
 #
 export DevEnvDir="$VSINSTALLDIR\\Common7\\IDE"
 
-# $VCINSTALLDIR\Common7\Tools dir is added only for real setup.
+# $VCINSTALLDIR\Common7\IDE dir is added only for real setup.
 
 DED=`cygpath -u "$DevEnvDir"`
 VSD=`cygpath -u "$VSINSTALLDIR"`
 VCD=`cygpath -u "$VCINSTALLDIR"`
 FD=`cygpath -u "$FrameworkDir"`
 
-export PATH="$VCD/VCPackages:$DED:$VCD/bin:$VSD/Common7/Tools:$VSD/Common7/Tools/bin:$FD/v3.5:$FD/$FrameworkVersion:$PATH"
-export INCLUDE="$VCINSTALLDIR\\atlmfc\\include;$VCINSTALLDIR\\include;$INCLUDE"
-export LIB="$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;$VCINSTALLDIR\\lib\\$AMD64;$LIB"
-export LIBPATH="$FrameworkDir\\v3.5;$FrameworkDir\\$FrameworkVersion;$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;$VCINSTALLDIR\\lib\\$AMD64;$LIBPATH"
-if [ "$B64" ]
-then
-	export PATH="$VCD/bin/$AMD64:$PATH"
-fi
+export PATH="$VCD/bin/$AMD64:$VCD/VCPackages:$VSD/Common7/Tools:$VSD/Team Tools/Performance Tools$X64:$PATH"
+
+export INCLUDE="$VCINSTALLDIR\\include;$VCINSTALLDIR\\atlmfc\\include;$INCLUDE"
+
+export LIB="$VCINSTALLDIR\\lib\\$AMD64;$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;$LIB"
+
+export LIBPATH="$VCINSTALLDIR\\lib\\$AMD64;$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;$LIBPATH"
 
 unset DED VSD VCD FD

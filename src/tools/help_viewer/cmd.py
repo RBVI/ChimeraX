@@ -2,7 +2,7 @@
 from chimerax.core.commands import CmdDesc, Or, EnumOf, EmptyArg, RestOfLine, run, cli
 
 
-def help(session, topic=None, *, option=None, is_query=False):
+def help(session, topic=None, *, option=None, is_query=False, target=None):
     '''Display help
 
     Parameters
@@ -22,6 +22,19 @@ def help(session, topic=None, *, option=None, is_query=False):
         if is_query:
             return False
         url = topic
+    elif topic.startswith('cxcmd:'):
+        from urllib.parse import unquote
+        cmd = unquote(topic.split(':', 1)[1])
+        # Insert command in command-line entry field
+        for ti in session.tools.list():
+            if ti.bundle_info.name == 'cmd_line':
+                ti.cmd_replace(cmd)
+                ti.on_enter(None)
+                break
+        else:
+            # no command line?!?
+            run(session, cmd)
+        return
     else:
         path = ""
         fragment = ""
@@ -35,6 +48,8 @@ def help(session, topic=None, *, option=None, is_query=False):
             path = os.path.expanduser(path)
             path = os.path.join(base_dir, path)
             if not os.path.exists(path):
+                # TODO: check if http url is within ChimeraX docs
+                # TODO: handle missing doc -- redirect to web server
                 if is_query:
                     return False
                 session.logger.error("No help found for '%s'" % topic)
@@ -77,9 +92,12 @@ def help(session, topic=None, *, option=None, is_query=False):
             return
 
     if session.ui.is_gui:
+        new = option == 'new_viewer'
         from .gui import HelpUI
-        help_viewer = HelpUI.get_singleton(session)
-        help_viewer.show(url, set_home=option == 'sethome')
+        if new:
+            target = topic
+        help_viewer = HelpUI.get_viewer(session, target)
+        help_viewer.show(url)
     else:
         import webbrowser
         webbrowser.open(url)
@@ -87,8 +105,9 @@ def help(session, topic=None, *, option=None, is_query=False):
 help_desc = CmdDesc(
     optional=[
         ('option',
-         Or(EnumOf(['sethome'], abbreviations=False), EmptyArg)),
+         Or(EnumOf(['new_viewer'], abbreviations=False), EmptyArg)),
         ('topic', RestOfLine)
     ],
+    non_keyword=('option', 'topic'),
     synopsis='display help'
 )

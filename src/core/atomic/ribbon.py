@@ -432,15 +432,15 @@ class XSectionManager:
     def __init__(self, structure):
         import weakref
         self.structure = weakref.ref(structure)
-        self.scale_helix = (0.9, 0.15)
-        self.scale_helix_arrow = ((1.8, 0.15), (0.15, 0.15))
-        self.scale_sheet = (0.75, 0.15)
-        self.scale_sheet_arrow = ((1.5, 0.15), (0.15, 0.15))
-        self.scale_coil = (0.15, 0.15)
-        self.scale_nucleic = (0.15, 0.75)
+        self.scale_helix = (0.9, 0.2)
+        self.scale_helix_arrow = ((1.8, 0.2), (0.2, 0.2))
+        self.scale_sheet = (0.8, 0.2)
+        self.scale_sheet_arrow = ((1.5, 0.2), (0.2, 0.2))
+        self.scale_coil = (0.2, 0.2)
+        self.scale_nucleic = (0.2, 0.8)
         self.style_helix = self.STYLE_ROUND
         self.style_sheet = self.STYLE_SQUARE
-        self.style_coil = self.STYLE_SQUARE
+        self.style_coil = self.STYLE_ROUND
         self.style_nucleic = self.STYLE_SQUARE
         self.arrow_helix = False
         self.arrow_sheet = True

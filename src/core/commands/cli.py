@@ -572,7 +572,7 @@ class NoArg(Annotation):
 
 class EmptyArg(Annotation):
     """Annotation for optionally missing 'required' argument"""
-    name = "an empty string"
+    name = "nothing"
 
     @staticmethod
     def parse(text, session):
@@ -1570,7 +1570,7 @@ class _WordInfo:
 
     def __init__(self, cmd_desc=None):
         self.cmd_desc = cmd_desc
-        self.subcommands = OrderedDict()
+        self.subcommands = OrderedDict()   # { 'word': _WordInfo() }
         self.parent = None
 
     def has_command(self):
@@ -2323,10 +2323,11 @@ def usage(name, no_aliases=False, no_subcommands=False):
     if (not no_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         name = cmd.command_name
+        sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
         if syntax:
             syntax += '\n'
         syntax += 'Subcommands are:\n' + '\n'.join(
-            '  %s %s' % (name, w) for w in cmd.word_info.subcommands)
+            '  %s %s' % (name, w) for w in sub_cmds)
 
     return syntax
 
@@ -2414,7 +2415,8 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
         if syntax:
             syntax += '<br>\n'
         syntax += 'Subcommands are:\n<ul>'
-        for word in cmd.word_info.subcommands:
+        sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
+        for word in sub_cmds:
             subcmd = '%s %s' % (name, word)
             cmd = Command(None)
             cmd.current_text = subcmd
@@ -2435,29 +2437,35 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
     return syntax
 
 
-def registered_commands(multiword=False):
-    """Return a list of the currently registered commands"""
+def registered_commands(multiword=False, _start=None):
+    """Return a sorted list of the currently registered commands"""
+
+    if _start:
+        parent_info = _start
+    else:
+        parent_info = _commands
+
     if not multiword:
-        return list(_commands.subcommands.keys())
+        words = list(parent_info.subcommands.keys())
+        words.sort(key=lambda x: x[x[0] == '~':])
+        return words
 
     def cmds(parent_info):
-        used_words = set()
-        words = set(parent_info.subcommands.keys())
-        while words:
-            word = words.pop()
-            word_info = parent_info.subcommands[word]
+        for word_info in parent_info.subcommands.values():
             if word_info.is_deferred():
                 word_info.lazy_register()
-                words = set(parent_info.subcommands.keys())
-                words.difference_update(used_words)
+        words = list(parent_info.subcommands.keys())
+        words.sort(key=lambda x: x[x[0] == '~':])
+        for word in words:
+            word_info = parent_info.subcommands[word]
+            if word_info.is_deferred():
                 continue
-            used_words.add(word)
             if word_info.cmd_desc:
                 yield word
             if word_info.has_subcommands():
                 for word2 in cmds(word_info):
                     yield "%s %s" % (word, word2)
-    return list(cmds(_commands))
+    return list(cmds(parent_info))
 
 
 class Alias:

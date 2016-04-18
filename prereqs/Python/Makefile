@@ -32,6 +32,7 @@ endif
 
 ifeq ($(OS),Linux)
 LDFLAGS += -Wl,-rpath,"$(libdir)"
+ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 # On linux have to disable IPV6 socket support or _socket doesn't compile.
 CONFIG_OPTIONS += --disable-ipv6 --enable-shared
 endif
