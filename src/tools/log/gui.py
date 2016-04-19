@@ -348,15 +348,27 @@ class Log(ToolInstance, HtmlLog):
                     page = self.log_window.page()
                     page.triggerAction(page.SelectAll)
             elif cmd == 'save':
-                from chimerax.core.ui.open_save import SaveDialog
-                save_dialog = SaveDialog(
-                    self.log_window, "Save Log", defaultFile="log",
-                    wildcard="HTML files (*.html)|*.html",
-                    add_extension=".html")
-                import wx
-                if save_dialog.ShowModal() == wx.ID_CANCEL:
-                    return
-                filename = save_dialog.GetPath()
+                from chimerax.core.ui.open_save import export_file_filter, SaveDialog
+                from chimerax.core.io import extensions
+                if self.window_sys == "wx":
+                    save_dialog = SaveDialog(
+                        self.log_window, "Save Log", defaultFile="log",
+                        wildcard="HTML files (*.html)|*.html",
+                        add_extension=".html")
+                    import wx
+                    if save_dialog.ShowModal() == wx.ID_CANCEL:
+                        return
+                    filename = save_dialog.GetPath()
+                else:
+                    save_dialog = SaveDialog(self.log_window, "Save Log",
+                        name_filter=export_file_filter(format_name="HTML"),
+                        add_extension=extensions("HTML")[0])
+                    if not save_dialog.exec():
+                        return
+                    filename = save_dialog.selectedFiles()[0]
+                    if not filename:
+                        from chimerax.core.errors import UserError
+                        raise UserError("No file specified for save log contents")
                 self.save(filename)
             elif cmd == 'image':
                 from .cmd import log
