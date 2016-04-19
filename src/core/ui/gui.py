@@ -295,7 +295,6 @@ if window_sys == "wx":
             self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
         def _populate_menus(self, menu_bar, session):
-            import sys
             file_menu = wx.Menu()
             menu_bar.Append(file_menu, "&File")
             item = file_menu.Append(wx.ID_OPEN, "Open...\tCtrl+O", "Open input file")
@@ -1010,7 +1009,7 @@ else:
                 help_action.setStatusTip("Show " + entry)
                 def cb(arg, ses=session, t=topic):
                     from chimerax.core.commands import run
-                    run(ses, 'help sethome help:%s' % t)
+                    run(ses, 'help new_viewer help:%s' % t)
                 help_action.triggered.connect(cb)
                 help_menu.addAction(help_action)
             #QT disabled

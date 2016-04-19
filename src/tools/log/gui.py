@@ -322,12 +322,18 @@ class Log(ToolInstance, HtmlLog):
             # data is wx event
             url = data.GetURL()
             link_handled = data.Veto
+            if url == 'file:///':
+                # Ignore file:/// URL event that Mac generates
+                # for each call to SetPage().  But don't Veto,
+                # because that would stop loading of the page.
+                return
         else:
             # data is QUrl
             url = data.toString()
             link_handled = lambda: False
         from urllib.parse import unquote
         url = unquote(url)
+        link_handled()
         if url.startswith("log:"):
             link_handled()
             cmd = url.split(':', 1)[1]
@@ -335,8 +341,12 @@ class Log(ToolInstance, HtmlLog):
                 self.display_help()
             elif cmd == 'clear':
                 self.clear()
-            elif cmd == 'copy':
-                pass  # TODO
+            elif cmd == 'select-all':
+                if self.window_sys == "wx":
+                    self.log_window.SelectAll()
+                else:
+                    page = self.log_window.page()
+                    page.triggerAction(page.SelectAll)
             elif cmd == 'save':
                 from chimerax.core.ui.open_save import SaveDialog
                 save_dialog = SaveDialog(
@@ -352,25 +362,13 @@ class Log(ToolInstance, HtmlLog):
                 from .cmd import log
                 log(self.session, thumbnail=True)
             return
-        elif url.startswith("cxcmd:"):
-            from chimerax.core.commands import run
-            link_handled()
-            cmd = url.split(':', 1)[1]
-            run(session, cmd)
-            return
         from urllib.parse import urlparse
         parts = urlparse(url)
-        if parts.scheme in ('', 'help', 'file', 'http'):
-            if parts.path == '/':
-                # Ingore file:/// URL event that Mac generates
-                # for each call to SetPage()
-                return
-            link_handled()
+        if parts.scheme in ('', 'cxcmd', 'help', 'file', 'http'):
             from chimerax.core.commands import run
             run(session, "help %s" % url, log=False)
             return
         # unknown scheme
-        link_handled()
         session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
 
     def contextMenu(self):

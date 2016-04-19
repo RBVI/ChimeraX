@@ -7,6 +7,9 @@
 #   "delete" - called to clean up before instance is deleted
 #
 from chimerax.core.tools import ToolInstance
+import weakref
+
+_targets = weakref.WeakValueDictionary()
 
 
 def _bitmap(filename, size):
@@ -22,13 +25,13 @@ class HelpUI(ToolInstance):
 
     SESSION_ENDURING = False    # default
 
-    def __init__(self, session, bundle_info):
-        ToolInstance.__init__(self, session, bundle_info)
+    def __init__(self, session, bundle_info, target):
+        ToolInstance.__init__(self, session, bundle_info, target)
         # 'display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Help UI"
         # in this case), so only override if different name desired
         self.display_name = "%s Help Viewer" % session.app_dirs.appname
-        self.home_page = None
+        self.target = target
         from chimerax.core import window_sys
         if window_sys == "wx":
             kw = {'size': (500, 500)}
@@ -37,12 +40,13 @@ class HelpUI(ToolInstance):
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self, **kw)
         parent = self.tool_window.ui_area
+        self.on_page = None
+        self.home_page = None
         # UI content code
         if window_sys == "wx":
             import wx
             from wx import html2
             self.on_page = None
-            self.home_page = None
             self.zoom_factor = html2.WEBVIEW_ZOOM_MEDIUM
             # buttons: back, forward, reload, stop, home, search bar
             self.toolbar = wx.ToolBar(parent, wx.ID_ANY)
@@ -156,10 +160,11 @@ class HelpUI(ToolInstance):
 
         self.tool_window.manage(placement=None)
 
-    def show(self, url, set_home=True):
+    def show(self, url, set_home=False):
         from urllib.parse import urlparse, urlunparse
         parts = urlparse(url)
         url = urlunparse(parts)  # canonicalize
+        self.on_page = url
         from chimerax.core import window_sys
         if window_sys == "wx":
             self.help_window.Stop()
@@ -169,7 +174,6 @@ class HelpUI(ToolInstance):
                 self.toolbar.EnableTool(self.home.GetId(), True)
                 self.toolbar.EnableTool(self.back.GetId(), False)
                 self.toolbar.EnableTool(self.forward.GetId(), False)
-            self.on_page = url
             self.help_window.LoadURL(url)
         else: # qt
             if set_home or not self.home_page:
@@ -243,56 +247,59 @@ class HelpUI(ToolInstance):
         session = self.session
         # Handle event
         url = event.GetURL()
-        if url.startswith("cxcmd:"):
-            from urllib.parse import unquote
-            from chimerax.core.commands import run
-            event.Veto()
-            cmd = unquote(url.split(':', 1)[1])
-            # Insert command in command-line entry field
-            for ti in session.tools.list():
-                if ti.bundle_info.name == 'cmd_line':
-                    ti.cmd_replace(cmd)
-                    ti.on_enter(None)
-                    break
-            else:
-                # no command line?!?
-                run(session, cmd)
-            return
-        # TODO: check if http url is within ChimeraX docs
-        # TODO: handle missing doc -- redirect to web server
-        from urllib.parse import urlparse
+        from urllib.parse import urlparse, urlunparse, unquote
         parts = urlparse(url)
-        if parts.scheme == 'file':
-            pass
+        url = urlunparse(parts)  # canonicalize
+        if url == self.on_page:
+            # Do not Veto, because it stops page from being shown
+            return
+        url = unquote(url)
+        event.Veto()
+        if parts.scheme in ('cxcmd', 'help', 'file', 'http'):
+            from .cmd import help
+            help(session, topic=url, target=self.target)
+            return
+        # unknown scheme
+        session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
 
     def link_clicked(self, qurl):
-        if qurl.scheme() == "cxcmd":
-            session = self.session
-            cmd = qurl.path()
-            for ti in session.tools.list():
-                if ti.bundle_info.name == 'cmd_line':
-                    ti.cmd_replace(cmd)
-                    ti.on_enter(None)
-                    break
-            else:
-                # no command line?!?
-                from chimerax.core.commands import run
-                run(session, cmd)
-        else:
-            self.help_window.setUrl(qurl)
+        session = self.session
+        if qurl.scheme() in ('cxcmd', 'help', 'file', 'http'):
+            from .cmd import help
+            help(session, topic=qurl.url(), target=self.target)
+            return
+        # unknown scheme
+        session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
 
     def on_title_change(self, event):
         new_title = self.help_window.CurrentTitle
         self.tool_window.set_title(new_title)
 
     def on_new_window(self, event):
-        # TODO: create new help viewer tab or window
+        session = self.session
         event.Veto()
         url = event.GetURL()
-        import webbrowser
-        webbrowser.open(url)
+        target = event.GetTarget()
+        # TODO: figure out why target is always None
+        if not target:
+            target = url
+        use_help_viewer = url.startswith('help:') or target.startswith('help:')
+        if use_help_viewer:
+            from .cmd import help
+            help(session, topic=url, target=target)
+        else:
+            import webbrowser
+            webbrowser.open(url)
 
     @classmethod
-    def get_singleton(cls, session):
-        from chimerax.core import tools
-        return tools.get_singleton(session, HelpUI, 'help_viewer')
+    def get_viewer(cls, session, target=None):
+        # TODO: reenable multiple target windows
+        # if target is None:
+        if 1:
+            target = 'help'
+        if target in _targets:
+            return _targets[target]
+        bundle_info = session.toolshed.find_bundle('help_viewer')
+        viewer = HelpUI(session, bundle_info, target)
+        _targets[target] = viewer
+        return viewer

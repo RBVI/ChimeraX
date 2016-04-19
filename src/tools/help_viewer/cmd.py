@@ -29,7 +29,7 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
         for ti in session.tools.list():
             if ti.bundle_info.name == 'cmd_line':
                 ti.cmd_replace(cmd)
-                ti.on_enter(None)
+                ti.execute()
                 break
         else:
             # no command line?!?
