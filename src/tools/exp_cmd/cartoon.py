@@ -20,6 +20,12 @@ _TetherShapeMap = {
     "cylinder": Structure.TETHER_CYLINDER,
     "steeple": Structure.TETHER_REVERSE_CONE,
 }
+_XSectionMap = {
+    "square": XSectionManager.STYLE_SQUARE,
+    "round": XSectionManager.STYLE_ROUND,
+    "piping": XSectionManager.STYLE_PIPING,
+}
+_XSInverseMap = dict([(v, k) for k, v in _XSectionMap.items()])
 
 
 def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, orient=None,
@@ -125,7 +131,7 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
         structures.ribbon_tether_opacities = opacity
 
 
-def cartoon_style(session, structures=None, helix=None, strand=None, coil=None, nucleic=None):
+def cartoon_xsection(session, structures=None, helix=None, strand=None, coil=None, nucleic=None):
     '''Set cartoon ribbon cross section style for specified structures.
 
     Parameters
@@ -141,15 +147,23 @@ def cartoon_style(session, structures=None, helix=None, strand=None, coil=None, 
     nucleic : style
         Set nucleic cross section to style
     '''
+    if helix is None and strand is None and coil is None and nucleic is None:
+        for m in _get_structures(session, structures):
+            mgr = m.ribbon_xs_mgr
+            print("%s: helix=%s strand=%s coil=%s nucleic=%s" % (m, _XSInverseMap[mgr.style_helix],
+                                                                 _XSInverseMap[mgr.style_sheet],
+                                                                 _XSInverseMap[mgr.style_coil],
+                                                                 _XSInverseMap[mgr.style_nucleic]))
+        return
     for m in _get_structures(session, structures):
         if helix is not None:
-            m.ribbon_xs_mgr.set_helix_style(helix)
+            m.ribbon_xs_mgr.set_helix_style(_XSectionMap[helix])
         if strand is not None:
-            m.ribbon_xs_mgr.set_sheet_style(strand)
+            m.ribbon_xs_mgr.set_sheet_style(_XSectionMap[strand])
         if coil is not None:
-            m.ribbon_xs_mgr.set_coil_style(coil)
+            m.ribbon_xs_mgr.set_coil_style(_XSectionMap[coil])
         if nucleic is not None:
-            m.ribbon_xs_mgr.set_nucleic_style(nucleic)
+            m.ribbon_xs_mgr.set_nucleic_style(_XSectionMap[nucleic])
 
 
 def cartoon_scale(session, structures=None, helix=None, arrow_helix=None,
@@ -173,6 +187,21 @@ def cartoon_scale(session, structures=None, helix=None, arrow_helix=None,
     nucleic : style
         Set nucleic cross section scale to 2-tuple of float
     '''
+    if (helix is None and arrow_helix is None and strand is None and arrow_strand is None
+        and coil is None and nucleic is None):
+        for m in _get_structures(session, structures):
+            mgr = m.ribbon_xs_mgr
+            print("%s:" % m,
+                  "helix=%.2g,%.2g" % mgr.scale_helix,
+                  "arrow_helix=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
+                                                       mgr.scale_helix_arrow[1]),
+                  "strand=%.2g,%.2g" % mgr.scale_sheet,
+                  "arrow_strand=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_sheet_arrow[0] +
+                                                        mgr.scale_sheet_arrow[1]),
+                  "coil=%.2g,%.2g" % mgr.scale_coil,
+                  "nucleic=%.2g,%.2g" % mgr.scale_nucleic)
+                                                          
+        return
     for m in _get_structures(session, structures):
         if helix is not None:
             m.ribbon_xs_mgr.set_helix_scale(*helix)
@@ -334,6 +363,12 @@ def cartoon_arrow(session, structures=None, helix=None, strand=None):
     strand : boolean
         Set strand cross section scale to 2-tuple of float
     '''
+    if helix is None and strand is None:
+        for m in _get_structures(session, structures):
+            mgr = m.ribbon_xs_mgr
+            print("%s: helix arrow=%s strand arrow=%s" % (m, mgr.arrow_helix,
+                                                             mgr.arrow_sheet))
+        return
     for m in _get_structures(session, structures):
         if helix is not None:
             m.ribbon_xs_mgr.set_helix_end_arrow(helix)
@@ -353,6 +388,12 @@ def cartoon_param_round(session, structures=None, faceted=None, sides=None):
     sides : integer
         Set number of sides in cross section.
     '''
+    if faceted is None and sides is None:
+        for m in _get_structures(session, structures):
+            mgr = m.ribbon_xs_mgr
+            param = mgr.params[XSectionManager.STYLE_ROUND]
+            print("%s: %s" % (m, ", ".join("%s: %s" % item for item in param.items())))
+        return
     params = {}
     if faceted is not None:
         params["faceted"] = faceted
@@ -377,6 +418,12 @@ def cartoon_param_piping(session, structures=None, faceted=None, sides=None, rat
     ratio : real number
         Set thickness ratio between flat center and piping.
     '''
+    if faceted is None and sides is None and ratio is None:
+        for m in _get_structures(session, structures):
+            mgr = m.ribbon_xs_mgr
+            param = mgr.params[XSectionManager.STYLE_PIPING]
+            print("%s: %s" % (m, ", ".join("%s: %s" % item for item in param.items())))
+        return
     params = {}
     if faceted is not None:
         params["faceted"] = faceted
@@ -433,17 +480,15 @@ def initialize(command_name):
                        synopsis='set cartoon tether options for specified structures')
         register(command_name + " tether", desc, cartoon_tether)
 
-        styles = EnumOf([XSectionManager.STYLE_SQUARE, XSectionManager.STYLE_ROUND,
-                         XSectionManager.STYLE_PIPING],
-                        ["square", "round", "piping"])
+        xs = EnumOf(_XSectionMap.keys())
         desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
-                       keyword=[("helix", styles),
-                                ("strand", styles),
-                                ("coil", styles),
-                                ("nucleic", styles),
+                       keyword=[("helix", xs),
+                                ("strand", xs),
+                                ("coil", xs),
+                                ("nucleic", xs),
                                 ],
-                       synopsis='set cartoon style options for specified structures')
-        register(command_name + " style", desc, cartoon_style)
+                       synopsis='set cartoon cross section options for specified structures')
+        register(command_name + " xsection", desc, cartoon_xsection)
 
         desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
                        keyword=[("helix", TupleOf(FloatArg, 2)),
