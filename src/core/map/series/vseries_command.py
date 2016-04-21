@@ -216,8 +216,9 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
         m = m.astype(value_type)
 
     if not threshold is None:
-        from numpy import maximum, array
-        maximum(m, array((threshold,),m.dtype), m)
+        from numpy import array, putmask
+        t = array(threshold, m.dtype)
+        putmask(m, m < t, 0)
 
     if zero_mean:
         from numpy import float64

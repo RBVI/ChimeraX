@@ -566,7 +566,7 @@ def save(session, filename, **kw):
     # Remember session in file history
     if isinstance(filename, str):
         from .filehistory import remember_file
-        remember_file(session, fname, 'ses', 'all models', file_saved = True)
+        remember_file(session, filename, 'ses', 'all models', file_saved = True)
 
 def dump(session, session_file, output=None):
     """dump contents of session for debugging"""
