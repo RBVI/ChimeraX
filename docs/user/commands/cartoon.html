@@ -81,16 +81,23 @@ and the appearance of connections to &alpha;-carbons:
 <li><a href="#xsection"><b>cartoon xsection</b></a> 
 - shape perpendicular to the backbone path
 </ul>
+<p>
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive options, and
+default values are indicated with <b>bold</b>.
+Synonyms for true: True, 1.  Synonyms for false: False, 0.
+</p>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="arrow">
 (&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
 <b>arrow</b></a>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>helix</b>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>strand</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
-documentation under construction
-<p>
+Arrowheads can be shown at the C-terminal ends of peptide <b>helix</b>
+(default <b>false</b>) and/or <b>strand</b> (default <b>true</b>).
 Given without options, <b>cartoon arrow</b> reports the current settings.
-</p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -113,8 +120,9 @@ documentation under construction
 [&nbsp;<b>arrowHelix</b>&nbsp;&nbsp;<i>basew</i>,<i>baseh</i>,<i>tipw</i>,<i>tiph</i>&nbsp;]
 [&nbsp;<b>arrowStrand</b>&nbsp;&nbsp;<i>basew</i>,<i>baseh</i>,<i>tipw</i>,<i>tiph</i>&nbsp;]
 <blockquote>
-The scale subcommand sets the dimensions of the cartoon perpendicular to its
-path. The values are actually half-dimensions (half-widths and half-heights)
+The <b>scale</b> subcommand 
+sets the dimensions of the cartoon perpendicular to its path.
+The values are actually half-dimensions (half-widths and half-heights)
 in &Aring;.  Dimensions can be set separately for peptide <b>helix</b> 
 (default <b>0.9,0.21</b>) and the arrow (if any) on its C-terminal end
 (default <b>1.8,0.21,0.21,0.21</b>),
@@ -140,9 +148,7 @@ Given without options, <b>cartoon scale</b> reports the current settings.
 A <b><i>tether</i></b> is drawn between a displayed &alpha;-carbon (CA atom)
 and the corresponding cartoon segment where they are offset 
 (path-smoothing <a href="#top"><i>factor</i></a> &gt; 0).
-Tether parameters apply to an entire atomic model and cannot be different
-for different residues in the same model.
-The <b>shape</b> option has possible values:
+Tether <b>shape</b> can be:
  <ul>
  <li><b>cone</b> (default) 
  - cone with base at the &alpha;-carbon, point at the cartoon
@@ -170,11 +176,8 @@ The tether color tracks the color of the corresponding &alpha;-carbon.
 [&nbsp;<b>nucleic</b>&nbsp;<b>round</b>&nbsp;|&nbsp;square&nbsp;|&nbsp;piping&nbsp;]
 <blockquote>
 The cross-section is the shape of the cartoon perpendicular to its path.
-Cross-section settings apply to an entire atomic model and cannot be different
-for residues in the same secondary structure (<i>e.g.</i>, both
-peptide helix) in the same model, although they can be different for residues
-in different types of secondary structure. The cross-section can be set
-separately for peptide <b>helix</b> (default <b>round</b>), 
+Cross-sections can be set separately for 
+peptide <b>helix</b> (default <b>round</b>), 
 peptide <b>strand</b> (default <b>square</b>), 
 peptide <b>coil</b> (default <b>round</b>), and <b>nucleic</b>
 acids (default <b>round</b>).
