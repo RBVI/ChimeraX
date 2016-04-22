@@ -12,7 +12,7 @@ _CmapRanges = ["full"]
 
 def color(session, objects, color=None, what=None,
           target=None, transparency=None,
-          sequential=None, cmap=None, cmap_range=None, halfbond=None):
+          sequential=None, palette=None, range=None, halfbond=None):
     """Color atoms, ribbons, surfaces, ....
 
     Parameters
@@ -32,10 +32,10 @@ def color(session, objects, color=None, what=None,
       Percent transparency to use.  If not specified current transparency is preserved.
     sequential : "residues", "chains", "molmodels"
       Assigns each object a color from a color map.
-    cmap : :class:`.Colormap`
+    palette : :class:`.Colormap`
       Color map to use with sequential coloring.
-    cmap_range : 2 comma-separated floats or "full"
-      Specifies the range of value used for sampling from a color map.
+    range : 2 comma-separated floats or "full"
+      Specifies the range of values used for sampling from a palette.
     halfbond : bool
       Whether to color each half of a bond to match the connected atoms.
       If halfbond is false the bond is given the single color assigned to the bond.
@@ -78,7 +78,7 @@ def color(session, objects, color=None, what=None,
             raise UserError("sequential \"%s\" not implemented yet"
                             % sequential)
         else:
-            f(session, objects, cmap, opacity, target)
+            f(session, objects, palette, opacity, target)
             return
 
     what = []
@@ -348,8 +348,8 @@ def register_command(session):
                    keyword=[('target', StringArg),
                             ('transparency', FloatArg),
                             ('sequential', EnumOf(_SequentialLevels)),
-                            ('cmap', ColormapArg),
-                            ('cmap_range', Or(TupleOf(FloatArg, 2), EnumOf(_CmapRanges))),
+                            ('palette', ColormapArg),
+                            ('range', Or(TupleOf(FloatArg, 2), EnumOf(_CmapRanges))),
                             ('halfbond', BoolArg)],
                    synopsis="color objects")
     register('color', desc, color)
