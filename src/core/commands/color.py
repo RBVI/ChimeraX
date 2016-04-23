@@ -25,8 +25,8 @@ def color(session, objects, color=None, what=None,
       What to color. Everything is colored if option is not specified.
     target : string
       Alternative to the "what" option for specifying what to color.
-      Characters indicating what to color, a = atoms, c = cartoon, s = surfaces, m = models,
-      n = non-molecule models, l = labels, r = residue labels, b = bonds, p = pseudobonds, d = distances.
+      Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces, m = models,
+      n = non-molecule models, l = labels, b = bonds, p = pseudobonds, d = distances.
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
@@ -49,7 +49,9 @@ def color(session, objects, color=None, what=None,
 
     default_target = (target is None and what is None)
     if default_target:
-        target = 'acsmnlrbd'
+        target = 'acsmnlbd'
+    if 'r' in target:
+        target += 'c'
 
     if what is not None:
         what_target = {'atoms':'a', 'cartoons':'c', 'ribbons':'c',
@@ -109,10 +111,6 @@ def color(session, objects, color=None, what=None,
         residues = atoms.unique_residues
         _set_ribbon_colors(residues, color, opacity, bgcolor)
         what.append('%d residues' % len(residues))
-
-    if 'r' in target:
-        if not default_target:
-            session.logger.warning('Residue label colors not supported yet')
 
     if 'n' in target:
         if not default_target:

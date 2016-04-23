@@ -12,7 +12,6 @@ def hide(session, objects=None, what=None, target=None):
         What to hide.  If None then 'atoms' if any atoms specified otherwise 'models'.
     target : set of "what" values, or None
         Alternative to the "what" option for specifying what to hide.
-        Characters indicating what to show, a = atoms, b = bonds, p = pseudobonds, c = cartoon, m = models.
     '''
     if objects is None:
         from . import atomspec
