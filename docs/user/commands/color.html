@@ -249,18 +249,24 @@ discrete coloring can be achieved by specifying the same color
 for the upper- and lower-bound values of a &ldquo;bin.&rdquo;
 <br><br>
 <li> <i>colourlovers-id</i> 
-- the name or ID number of a palette to be fetched from 
+- the ID number, name, or name+author of a palette to be fetched from 
 <a href="http://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>. 
-Navigating to the page of a specific palette at
+Examples:
+<blockquote>
+<b>palette 92095</b><br>
+<b>palette "Giant Goldfish"</b><br>
+<b>palette "Giant Goldfish by manekineko"</b>
+</blockquote>
+The page of a specific palette at 
 <a href="http://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>
-shows its name, author, ID (in the URL), and any licensing stipulations for 
-its use. Palettes with &ldquo;all rights reserved&rdquo; cannot be fetched.
+shows its name, author, ID number (in the URL), and any licensing stipulations
+for its use. 
 Palette names with spaces must be enclosed in quotation marks.
 Palette names are not necessarily unique, and the most-viewed palette of
-a specified name will be fetched unless <b>by <i>author</i></b> is appended
-(example: <b>palette "Giant Goldfish by manekineko"</b>).
-Author name capitalization is important, 
-whereas some variations of palette name capitalization are allowed. 
+a specified name will be fetched unless <b>by <i>author</i></b> is appended,
+as in the example above.
+Palette and author names must be capitalized as shown on the website.
+Palettes with &ldquo;all rights reserved&rdquo; cannot be fetched.
 In ChimeraX, the palette colors are used in left-to-right order,
 spaced equally along the range of values.
 Web-fetched data are automatically cached locally in subdirectories of
