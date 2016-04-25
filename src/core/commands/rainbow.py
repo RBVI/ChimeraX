@@ -1,12 +1,12 @@
 def rainbow(session, objects, level='residues', target=None, transparency=None,
-            cmap=None, halfbond=None):
+            palette=None, halfbond=None):
     '''
     Color residues or chains by sequence using a color map.
     Arguments are the same as for the color command.
     '''
     from .color import color
     color(session, objects, target=target, transparency=transparency,
-          sequential=level, cmap=cmap, halfbond=halfbond)
+          sequential=level, palette=palette, halfbond=halfbond)
 
 # -----------------------------------------------------------------------------
 #
@@ -18,7 +18,7 @@ def register_command(session):
                    optional=[('level', EnumOf(_SequentialLevels))],
                    keyword=[('target', StringArg),
                             ('transparency', FloatArg),
-                            ('cmap', ColormapArg),
+                            ('palette', ColormapArg),
                             ('halfbond', BoolArg)],
                    url='help:user/commands/color.html#rainbow',
                    synopsis="color residues and chains sequentially")

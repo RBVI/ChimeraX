@@ -201,12 +201,6 @@ class ColormapArg(cli.Annotation):
             from ..colors import Colormap
             return Colormap(values, [c.rgba for c in colors]), text, rest
         else:
-            try:
-                palette_id = int(token)
-            except:
-                palette_id = None
-            if palette_id is not None:
-                return _fetch_colormap(session, palette_id), token, rest
             if session is not None:
                 i = session.user_colormaps.bisect_left(token)
                 if i < len(session.user_colormaps):
@@ -215,12 +209,11 @@ class ColormapArg(cli.Annotation):
                         return session.user_colormaps[name], name, rest
             from ..colors import BuiltinColormaps
             i = BuiltinColormaps.bisect_left(token)
-            if i >= len(BuiltinColormaps):
-                raise ValueError("Invalid colormap name '%s'" % token)
-            name = BuiltinColormaps.iloc[i]
-            if not name.startswith(token):
-                raise ValueError("Invalid colormap name '%s'" % token)
-            return BuiltinColormaps[name], name, rest
+            if i < len(BuiltinColormaps):
+                name = BuiltinColormaps.iloc[i]
+                if name.startswith(token):
+                    return BuiltinColormaps[name], name, rest
+            return _fetch_colormap(session, palette_id=token), token, rest
 
 _color_func = re.compile(r"^(rgb|rgba|hsl|hsla|gray)\s*\(([^)]*)\)")
 _number = re.compile(r"\s*[-+]?([0-9]+(\.[0-9]*)?|\.[0-9]+)")
@@ -228,6 +221,17 @@ _units = re.compile(r"\s*(%|deg|grad|rad|turn|)\s*")
 
 def _fetch_colormap(session, palette_id):
     '''Fetch color map from colourlovers.com'''
+    try:
+        palette_id = int(palette_id)
+    except:
+        pass
+    if isinstance(palette_id, int):
+        cmap = _colourlovers_fetch_by_id(session, palette_id)
+    else:
+        cmap = _colourlovers_fetch_by_name(session, palette_id)
+    return cmap
+
+def _colourlovers_fetch_by_id(session, palette_id):
     url = 'http://www.colourlovers.com/api/palette/%d?format=json' % palette_id
     from ..fetch import fetch_file
     filename = fetch_file(session, url, 'palette %d' % palette_id, '%d.json' % palette_id, 'COLOURlovers')
@@ -239,6 +243,39 @@ def _fetch_colormap(session, palette_id):
         from ..errors import UserError
         raise UserError('No palette %d at COLOURlovers.com' % palette_id)
     hex_colors = j[0]['colors']
+    rgba = [tuple(int(r, base=16)/255 for r in (c[0:2], c[2:4], c[4:6])) + (1.0,)
+            for c in hex_colors]
+    from ..colors import Colormap
+    cmap = Colormap(None, rgba)
+    return cmap
+
+def _colourlovers_fetch_by_name(session, palette_name):
+    bi = palette_name.find(' by ')
+    if bi > 0:
+        name, author = palette_name[:bi], palette_name[bi+4:]
+    else:
+        name, author = palette_name, None
+    from urllib.parse import quote
+    url = 'http://www.colourlovers.com/api/palettes?keywords=%s&format=json&numResults=100' % quote(name)
+    from ..fetch import fetch_file
+    filename = fetch_file(session, url, 'palette %s' % name, '%s.json' % name, 'COLOURlovers')
+    f = open(filename, 'r')
+    import json
+    j = json.load(f)
+    f.close()
+    pals = [p for p in j if (p['title'] == name and author is None or p['userName'] == author)]
+    if len(pals) == 0:
+        from ..errors import UserError
+        raise UserError('Could not find palette %s at COLOURlovers.com using keyword search'
+                        % (name if author is None else '%s author %s' % (name, author)))
+    if len(pals) > 1:
+        pals.sort(key = lambda p: p['numViews'], reverse=True)
+        session.logger.info('Found %d ColourLover palettes with name "%s", '
+                            'using palette id %d by author %s with most views (%d). '
+                            'To choose a different one use "name by author" or id number.'
+                            % (len(pals), name, pals[0]['id'], pals[0]['userName'], pals[0]['numViews']))
+    p = pals[0]
+    hex_colors = p['colors']
     rgba = [tuple(int(r, base=16)/255 for r in (c[0:2], c[2:4], c[4:6])) + (1.0,)
             for c in hex_colors]
     from ..colors import Colormap

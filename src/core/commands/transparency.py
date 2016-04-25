@@ -12,7 +12,7 @@ def transparency(session, atoms, percent, target='s'):
       Percent transparent from 0 completely opaque, to 100 completely transparent.
     target : string
       Characters indicating what to make transparent:
-      a = atoms, b = bonds, p = pseudobonds, c = cartoon, s = surfaces, A = all
+      a = atoms, b = bonds, p = pseudobonds, c = cartoon, r = cartoon, s = surfaces, A = all
     """
     if atoms is None:
         from ..atomic import all_atoms
@@ -73,7 +73,7 @@ def transparency(session, atoms, percent, target='s'):
                 s.vertex_colors = vcolors
         what.append('%d surfaces' % len(surfs))
 
-    if 'c' in target:
+    if 'c' in target or 'r' in target:
         residues = atoms.unique_residues
         c = residues.ribbon_colors
         c[:, 3] = alpha
