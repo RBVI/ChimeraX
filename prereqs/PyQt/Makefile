@@ -2,9 +2,12 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.5.1
-DISTRIBUTION = PyQt-gpl-$(VERSION).tar.gz
-SOURCE = $(tmpdir)/PyQt-gpl-$(VERSION)
+VERSION = 5.6
+DISTRIBUTION = PyQt5_gpl-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/PyQt5_gpl-$(VERSION)
+# versions prior to 5.6...
+#DISTRIBUTION = PyQt-gpl-$(VERSION).tar.gz
+#SOURCE = $(tmpdir)/PyQt-gpl-$(VERSION)
 
 ifeq ($(OS),Darwin)
 SIP_BIN = $(PYTHON_FRAMEWORK)/bin
@@ -32,6 +35,8 @@ endif
 
 app-install:
 	$(RSYNC) $(PYSITEDIR)/PyQt5 $(APP_PYSITEDIR)
+
+source: $(SOURCE)
 
 $(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
