@@ -71,6 +71,7 @@ def parse_arguments(argv):
     opts.line_profile = False
     opts.list_file_types = False
     opts.load_tools = True
+    opts.offscreen = True
     opts.silent = False
     opts.start_tools = []
     opts.status = True
@@ -86,6 +87,7 @@ def parse_arguments(argv):
         "--help",
         "--lineprofile",
         "--listfiletypes",
+        "--nooffscreen",
         "--silent",
         "--nostatus",
         "--start <tool name>",
@@ -106,6 +108,7 @@ def parse_arguments(argv):
         "--nolineprofile",
         "--nosilent",
         "--nousedefaults",
+        "--offscreen",
         "--status",
         "--tools",
     ]
@@ -149,6 +152,8 @@ def parse_arguments(argv):
             opts.line_profile = opt[2] == 'l'
         elif opt == "--listfiletypes":
             opts.list_file_types = True
+        elif opt in ("--offscreen", "--nooffscreen"):
+            opts.offscreen = opt[2] == 'o'
         elif opt in ("--silent", "--nosilent"):
             opts.silent = opt[2] == 's'
         elif opt in ("--status", "--nostatus"):
@@ -212,7 +217,7 @@ def init(argv, event_loop=True):
         from chimerax.core import configinfo
         configinfo.only_use_defaults = True
 
-    if not opts.gui:
+    if not opts.gui and opts.offscreen:
         # Flag to configure off-screen rendering before PyOpenGL imported
         from chimerax import core
         core.offscreen_rendering = True
