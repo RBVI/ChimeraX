@@ -11,12 +11,14 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/tmpl/restmpl.h>
 #include <logger/logger.h>
-#include "pythonarray.h"	// Use python_voidp_array()
+#include <arrays/pythonarray.h>	// Use python_voidp_array()
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/mman.h>
+#endif
 #include <sys/stat.h>
 #include <algorithm>
 #include <unordered_map>

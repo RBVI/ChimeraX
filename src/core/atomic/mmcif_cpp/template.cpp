@@ -11,8 +11,10 @@
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/mman.h>
+#endif
 #include <sys/stat.h>
 #include <algorithm>
 #include <WrapPy3.h>

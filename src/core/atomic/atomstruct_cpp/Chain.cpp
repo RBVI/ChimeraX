@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#define ATOMSTRUCT_EXPORT
 #include "Chain.h"
 #include "ChangeTracker.h"
 #include "destruct.h"

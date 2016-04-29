@@ -21,7 +21,10 @@ COMMAND_NAME = help
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
-APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
+ifdef WIN32
+PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
+shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
+endif
 
 PYSRCS = $(wildcard *.py)
 DATAFILES = 
@@ -46,7 +49,7 @@ wheel: setup.py timestamp
 setup.py: setup.py.in Makefile
 	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
-		-e 's,LIB_DIR,$(libdir),' \
+		-e 's,SHLIB_DIR,$(shlibdir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		-e 's,#$(OS)#,,' \

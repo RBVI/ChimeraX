@@ -3,8 +3,11 @@
 # -----------------------------------------------------------------------------
 #
 def fetch_file(session, url, name, save_name, save_dir, uncompress = False,
-               cache_dir = '~/Downloads/Chimera', ignore_cache = False, check_certificates=True):
-    filename = "%s/%s/%s" % (cache_dir, save_dir, save_name)
+               cache_dir = None, ignore_cache = False, check_certificates=True):
+    import os
+    if cache_dir is None:
+        cache_dir = os.path.join('~', 'Downloads', 'Chimera')
+    filename = os.path.join(cache_dir, save_dir, save_name)
     from os.path import expanduser, exists, dirname
     filename = expanduser(filename)
     if not ignore_cache and exists(filename):

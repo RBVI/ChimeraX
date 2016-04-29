@@ -3,8 +3,8 @@
 #define    templates_CoordSet
 
 #include <vector>
-#include "Coord.h"
 #include "../imex.h"
+#include "Coord.h"
 
 namespace tmpl {
 

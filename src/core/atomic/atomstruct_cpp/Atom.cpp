@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <utility>  // for std::pair
 
+#define ATOMSTRUCT_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "ChangeTracker.h"

@@ -5,8 +5,8 @@
 #include <Python.h>			// use PyObject
 
 #include "distances.h"			// use distances_*()
-#include "pythonarray.h"		// use array_from_python()
-#include "rcarray.h"			// Numeric_Array
+#include <arrays/pythonarray.h>		// use array_from_python()
+#include <arrays/rcarray.h>		// Numeric_Array
 
 using Reference_Counted_Array::Numeric_Array;
 

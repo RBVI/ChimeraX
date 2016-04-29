@@ -3,6 +3,7 @@
 //
 #include <string.h>     // use memcpy()
 
+#define ARRAYS_EXPORT
 #include "rcarray.h"        // use Untyped_Array, Numeric_Array
 
 namespace Reference_Counted_Array

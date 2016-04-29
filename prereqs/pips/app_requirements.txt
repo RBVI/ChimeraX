@@ -8,10 +8,8 @@ line_profiler==1.0
 matplotlib==1.5.1
 networkx==1.10
 Pillow==3.0.0
-pip==7.1.2
 python-dateutil==2.4.2
 six==1.9.0
 sortedcontainers==0.9.6
 suds-jurko==0.6
 webcolors==1.5
-wheel==0.24.0

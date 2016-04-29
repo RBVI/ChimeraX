@@ -47,7 +47,7 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
         path = url2pathname(url_path)
         # make sure path is a relative path
         if sys.platform.startswith('win'):
-            path = os.path.relpath(path, os.path.splitdrive(path))
+            path = os.path.relpath(path, os.path.splitdrive(path)[0])
         else:
             path = os.path.relpath(path, '/')
         path = os.path.join(base_dir, path)

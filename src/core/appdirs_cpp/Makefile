@@ -6,13 +6,16 @@ DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
-OBJS	= $(SRCS:.cpp=.o)
+OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 
 $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
 
 install: $(SHLIB)
 	$(RSYNC) $(SHLIB) $(shlibdir)
+ifdef WIN32
+	$(RSYNC) $(LIBRARY) $(libdir)
+endif
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi

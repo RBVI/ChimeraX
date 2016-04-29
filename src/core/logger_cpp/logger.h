@@ -5,6 +5,8 @@
 #include <sstream>
 #include <string>
 
+#include "imex.h"
+
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
 // http://mail.python.org/pipermail/python-dev/2003-August/037601.html
@@ -17,6 +19,7 @@ namespace logger {
 
 enum class _LogLevel { INFO, WARNING, ERROR };
 
+LOGGER_IMEX
 void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level);
 template<typename T, typename... Args>
 void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level,

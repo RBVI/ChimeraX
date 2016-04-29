@@ -7,7 +7,7 @@
 #include <utility>			// use std::pair
 #include <vector>			// use std::vector
 
-#include "rcarray.h"			// use FArray, IArray
+#include <arrays/rcarray.h>		// use FArray, IArray
 
 namespace Cap_Calculation
 {

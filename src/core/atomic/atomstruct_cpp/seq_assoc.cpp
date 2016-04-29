@@ -4,6 +4,7 @@
 #include <cctype>  // std::islower
 #include <cmath>  // std::abs
 
+#define ATOMSTRUCT_EXPORT
 #include "Chain.h"
 #include "Structure.h"
 #include "Residue.h"

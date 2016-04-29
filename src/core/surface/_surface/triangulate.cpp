@@ -9,14 +9,18 @@
 #ifdef __APPLE__
 #include <OpenGL/glu.h>			// use gluTess*()
 #else
+#ifdef _WIN32
+# define WINDOWS_LEAN_AND_MEAN
+# include <windows.h>
+#endif
 #include <GL/glu.h>			// use gluTess*()
 #endif
 
 #include <Python.h>			// use PyObject
 
 #include "border.h"			// Use Vertices, Triangles, Loops
-#include "pythonarray.h"		// use parse_float_n3_array(), ...
-#include "rcarray.h"			// use Array<float>
+#include <arrays/pythonarray.h>		// use parse_float_n3_array(), ...
+#include <arrays/rcarray.h>		// use Array<float>
 
 // On Mac OS 10.9 and newer gluTess*() calls are deprecated.
 // Suppress warnings about this so it is easy to see more important warnings.

@@ -44,6 +44,26 @@ localized_app_name = {
 }
 
 
+if sys.platform.startswith('win'):
+    # Python on Windows is missing the <sysexits.h> exit codes
+    os.EX_OK =          0       # successful termination
+    os.EX_USAGE =       64      # command line usage error
+    os.EX_DATAERR =     65      # data format error
+    os.EX_NOINPUT =     66      # cannot open input
+    os.EX_NOUSER =      67      # addressee unknown
+    os.EX_NOHOST =      68      # host name unknown
+    os.EX_UNAVAILABLE = 69      # service unavailable
+    os.EX_SOFTWARE =    70      # internal software error
+    os.EX_OSERR =       71      # system error (e.g., can't fork)
+    os.EX_OSFILE =      72      # critical OS file missing
+    os.EX_CANTCREAT =   73      # can't create (user) output file
+    os.EX_IOERR =       74      # input/output error
+    os.EX_TEMPFAIL =    75      # temp failure; user is invited to retry
+    os.EX_PROTOCOL =    76      # remote error in protocol
+    os.EX_NOPERM =      77      # permission denied
+    os.EX_CONFIG =      78      # configuration error
+
+
 def parse_arguments(argv):
     """Initialize ChimeraX application."""
     import getopt

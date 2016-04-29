@@ -5,8 +5,8 @@
 #include <Python.h>			// use PyObject
 #include <vector>			// use std::vector
 
-#include "pythonarray.h"		// use parse_float_n3_array, ...
-#include "rcarray.h"			// use FArray
+#include <arrays/pythonarray.h>		// use parse_float_n3_array, ...
+#include <arrays/rcarray.h>		// use FArray
 
 // -----------------------------------------------------------------------------
 //

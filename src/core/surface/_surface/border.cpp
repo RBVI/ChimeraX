@@ -6,7 +6,7 @@
 #include <vector>			// use std::vector
 
 #include "border.h"			// Use Vertices, Loops
-#include "rcarray.h"			// use FArray, IArray
+#include <arrays/rcarray.h>		// use FArray, IArray
 
 namespace Cap_Calculation
 {

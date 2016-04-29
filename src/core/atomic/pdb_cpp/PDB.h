@@ -3,11 +3,10 @@
 #define pdb_PDB
 
 #include <iostream>
-#include "imex.h"
 
 namespace pdb {
 
-class PDB_IMEX PDB {
+class PDB {
 public:
     static const int BUF_LEN = 82;      // PDB record length (80 + "\n")
     //

@@ -23,8 +23,12 @@ GENHDRS += $(GENSRCS:.cpp=.h)
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT)) $(GENSRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _mmcif
 
-CXXFLAGS += -I$(includedir) $(PYTHON_INCLUDE_DIRS)
-LIBS += -L$(shlibdir) -latomstruct -lelement -ltmpl -lreadcif -lwrappy3 -llogger -larrays
+INCS += $(PYTHON_INCLUDE_DIRS)
+ifeq ($(WIN32),msvc)
+LIBS += libatomstruct.lib libelement.lib libreadcif.lib libwrappy3.lib liblogger.lib libarrays.lib
+else
+LIBS += -latomstruct -lelement -lreadcif -lwrappy3 -llogger -larrays
+endif
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

@@ -12,6 +12,8 @@ endif
 SPHINXOPTS    =
 ifdef USE_MAC_FRAMEWORKS
 SPHINXBUILD   = $(PYTHON_EXE) $(PYTHON_FRAMEWORK)/bin/sphinx-build
+else ifdef WIN32
+SPHINXBUILD   = $(PYTHON_EXE) '$(shell cygpath -m '$(bindir)/Scripts/sphinx-build.exe')'
 else
 SPHINXBUILD   = $(PYTHON_EXE) $(bindir)/sphinx-build
 endif

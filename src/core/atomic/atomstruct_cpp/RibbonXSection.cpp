@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
+#define ATOMSTRUCT_EXPORT
 #include "RibbonXSection.h"
 
 namespace atomstruct {

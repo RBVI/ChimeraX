@@ -9,7 +9,7 @@
 extern "C"
 {
   PyObject *natural_cubic_spline(PyObject *s, PyObject *args, PyObject *keywds);
-  extern const char *natural_cubic_spline_doc;
+  const char *natural_cubic_spline_doc;
 }
 
 #endif

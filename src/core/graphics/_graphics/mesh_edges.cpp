@@ -1,8 +1,8 @@
 // vi: set expandtab shiftwidth=4 softtabstop=4:
 #include <set>				// use std::set
 
-#include "pythonarray.h"		// use array_from_python()
-#include "rcarray.h"			// use Numeric_Array, Array<T>
+#include <arrays/pythonarray.h>		// use array_from_python()
+#include <arrays/rcarray.h>		// use Numeric_Array, Array<T>
 
 #define TRIANGLE_DISPLAY_MASK 8
 #define EDGE0_DISPLAY_MASK 1

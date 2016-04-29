@@ -6,9 +6,13 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core
 
 PYMOD_NAME = _appdirs
 SRCS= $(wildcard *.cpp)
-OBJS= $(SRCS:.cpp=.o)
-INCS += -I$(includedir) $(PYTHON_INCLUDE_DIRS)
-LIBS += -L$(libdir) -lappdirs
+OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
+INCS += $(PYTHON_INCLUDE_DIRS)
+ifeq ($(WIN32),msvc)
+LIBS += libappdirs.lib
+else
+LIBS += -lappdirs
+endif
 
 
 $(PYMOD): $(OBJS)

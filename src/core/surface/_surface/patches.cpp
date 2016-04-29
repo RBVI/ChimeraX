@@ -2,8 +2,8 @@
 #include <iostream>
 #include <math.h>			// use sqrt()
 
-#include "pythonarray.h"		// use python_float_array
-#include "rcarray.h"			// use FArray, IArray
+#include <arrays/pythonarray.h>		// use python_float_array
+#include <arrays/rcarray.h>		// use FArray, IArray
 
 typedef std::vector<float> Vertices;
 typedef std::vector<float> Normals;

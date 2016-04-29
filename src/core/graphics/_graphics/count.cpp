@@ -1,7 +1,7 @@
 // vi: set expandtab shiftwidth=4 softtabstop=4:
 
-#include "pythonarray.h"		// use parse_uint8_n_array()
-#include "rcarray.h"			// use CArray
+#include <arrays/pythonarray.h>		// use parse_uint8_n_array()
+#include <arrays/rcarray.h>		// use CArray
 
 // ----------------------------------------------------------------------------
 //

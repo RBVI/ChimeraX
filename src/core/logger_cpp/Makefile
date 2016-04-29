@@ -6,8 +6,8 @@ DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
-OBJS	= $(SRCS:.cpp=.o)
-INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS)
+OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
+INCS	+= $(PYTHON_INCLUDE_DIRS)
 ifneq ($(OS),Windows)
 CXX	+= -Wno-logical-op-parentheses
 endif
@@ -18,6 +18,9 @@ $(SHLIB): imex.h $(OBJS)
 
 install: $(SHLIB)
 	$(RSYNC) $(SHLIB) $(shlibdir)
+ifdef WIN32
+	$(RSYNC) $(LIBRARY) $(libdir)
+endif
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi

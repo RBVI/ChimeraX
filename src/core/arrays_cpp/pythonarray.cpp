@@ -7,6 +7,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>      // use PyArray_*(), NPY_*
 
+#define ARRAYS_EXPORT
 #include "pythonarray.h"
 #include "rcarray.h"            // use Numeric_Array, Release_Data
 

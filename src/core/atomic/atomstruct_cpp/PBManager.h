@@ -24,7 +24,7 @@ class Structure;
 class Proxy_PBGroup;
 class Pseudobond;
 
-class BaseManager {
+class ATOMSTRUCT_IMEX BaseManager {
 public:
     // so that subclasses can create multiple types of groups...
     static const int GRP_NONE = 0;
@@ -76,7 +76,7 @@ public:
     }
 };
 
-class StructureManager: public BaseManager {
+class ATOMSTRUCT_IMEX StructureManager: public BaseManager {
 protected:
     Structure*  _structure;
 public:
@@ -89,14 +89,14 @@ public:
 // global pseudobond manager
 // Though for C++ purposes it could use PBGroup instead of Proxy_PBGroup,
 // using proxy groups allows them to be treated uniformly on the Python side
-class PBManager: public BaseManager {
+class ATOMSTRUCT_IMEX PBManager: public BaseManager {
 public:
     PBManager(ChangeTracker* ct): BaseManager(ct) {}
 
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
 };
 
-class AS_PBManager: public StructureManager
+class ATOMSTRUCT_IMEX AS_PBManager: public StructureManager
 {
 public:
     static const int  GRP_PER_CS = GRP_NORMAL + 1;

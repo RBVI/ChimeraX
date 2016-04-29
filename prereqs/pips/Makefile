@@ -2,8 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-PIP	= $(PYTHON_EXE) -m pip --log pip.log
-APP_PIP	= $(APP_PYTHON_EXE) -m pip --log pip.log
+include Makefile.pip
 
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8

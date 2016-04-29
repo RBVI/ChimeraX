@@ -7,8 +7,8 @@
 #include <vector>			// use std::vector
 
 #include "interpolate.h"		// use interpolate_volume_data()
-#include "pythonarray.h"		// use array_from_python()
-#include "rcarray.h"			// Numeric_Array
+#include <arrays/pythonarray.h>		// use array_from_python()
+#include <arrays/rcarray.h>		// Numeric_Array
 
 using Reference_Counted_Array::Numeric_Array;
 

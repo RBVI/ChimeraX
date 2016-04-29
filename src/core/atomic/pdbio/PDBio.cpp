@@ -16,7 +16,7 @@
 #include <atomstruct/Sequence.h>
 #include <atomstruct/destruct.h>
 #include <logger/logger.h>
-#include "pythonarray.h"	// Use python_voidp_array()
+#include <arrays/pythonarray.h>	// Use python_voidp_array()
 
 namespace pdb {
 

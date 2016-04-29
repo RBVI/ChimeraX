@@ -44,7 +44,11 @@ endif
 app_bindir = $(app_prefix)/bin
 app_includedir = $(app_prefix)/include
 app_libdir = $(app_prefix)/lib
+ifdef WIN32
+app_shlibdir = $(app_bindir)
+else
 app_shlibdir = $(app_libdir)
+endif
 app_datadir = $(app_prefix)/share
 
 ifndef WIN32

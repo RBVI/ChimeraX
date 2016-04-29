@@ -5,7 +5,7 @@
 #include <numpy/arrayobject.h>
 
 #include "imex.h"
-#include "pythonarray.h"
+#include <arrays/pythonarray.h>
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:

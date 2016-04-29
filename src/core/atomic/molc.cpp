@@ -4,19 +4,19 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>      // use PyArray_*(), NPY_*
 
-#include "atomstruct/Atom.h"
-#include "atomstruct/AtomicStructure.h"
-#include "atomstruct/Bond.h"
-#include "atomstruct/Chain.h"
-#include "atomstruct/PBGroup.h"
-#include "atomstruct/Pseudobond.h"
-#include "atomstruct/PBGroup.h"
-#include "atomstruct/Residue.h"
-#include "atomstruct/RibbonXSection.h"
-#include "atomstruct/ChangeTracker.h"
-#include "atomstruct/destruct.h"     // Use DestructionObserver
-#include "pythonarray.h"           // Use python_voidp_array()
-#include "pysupport/convert.h"     // Use cset_of_chars_to_pyset
+#include <atomstruct/Atom.h>
+#include <atomstruct/AtomicStructure.h>
+#include <atomstruct/Bond.h>
+#include <atomstruct/Chain.h>
+#include <atomstruct/PBGroup.h>
+#include <atomstruct/Pseudobond.h>
+#include <atomstruct/PBGroup.h>
+#include <atomstruct/Residue.h>
+#include <atomstruct/RibbonXSection.h>
+#include <atomstruct/ChangeTracker.h>
+#include <atomstruct/destruct.h>     // Use DestructionObserver
+#include <arrays/pythonarray.h>           // Use python_voidp_array()
+#include <pysupport/convert.h>     // Use cset_of_chars_to_pyset
 
 #include <functional>
 #include <map>
@@ -27,6 +27,17 @@
 #include <string>
 #include <vector>
 #include <cmath>
+
+#ifndef M_PI
+// not defined on Windows
+# define M_PI 3.14159265358979323846
+#endif
+
+#ifdef _WIN32
+# define EXPORT __declspec(dllexport)
+#else
+# define EXPORT _attribute__((__visibility__("default")))
+#endif
 
 // Argument delcaration types:
 //
@@ -175,19 +186,19 @@ using namespace atomstruct;
 // -------------------------------------------------------------------------
 // atom functions
 //
-extern "C" void atom_bfactor(void *atoms, size_t n, float32_t *bfactors)
+extern "C" EXPORT void atom_bfactor(void *atoms, size_t n, float32_t *bfactors)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get(a, n, &Atom::bfactor, bfactors);
 }
 
-extern "C" void set_atom_bfactor(void *atoms, size_t n, float32_t *bfactors)
+extern "C" EXPORT void set_atom_bfactor(void *atoms, size_t n, float32_t *bfactors)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_set(a, n, &Atom::set_bfactor, bfactors);
 }
 
-extern "C" void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
+extern "C" EXPORT void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -201,7 +212,7 @@ extern "C" void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
     }
 }
 
-extern "C" void atom_neighbors(void *atoms, size_t n, pyobject_t *batoms)
+extern "C" EXPORT void atom_neighbors(void *atoms, size_t n, pyobject_t *batoms)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -214,7 +225,7 @@ extern "C" void atom_neighbors(void *atoms, size_t n, pyobject_t *batoms)
     }
 }
 
-extern "C" void atom_chain_id(void *atoms, size_t n, pyobject_t *cids)
+extern "C" EXPORT void atom_chain_id(void *atoms, size_t n, pyobject_t *cids)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -225,7 +236,7 @@ extern "C" void atom_chain_id(void *atoms, size_t n, pyobject_t *cids)
     }
 }
 
-extern "C" void atom_color(void *atoms, size_t n, uint8_t *rgba)
+extern "C" EXPORT void atom_color(void *atoms, size_t n, uint8_t *rgba)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -241,7 +252,7 @@ extern "C" void atom_color(void *atoms, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" void set_atom_color(void *atoms, size_t n, uint8_t *rgba)
+extern "C" EXPORT void set_atom_color(void *atoms, size_t n, uint8_t *rgba)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -258,7 +269,7 @@ extern "C" void set_atom_color(void *atoms, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" bool atom_connects_to(pyobject_t atom1, pyobject_t atom2)
+extern "C" EXPORT bool atom_connects_to(pyobject_t atom1, pyobject_t atom2)
 {
     Atom *a1 = static_cast<Atom *>(atom1), *a2 = static_cast<Atom *>(atom2);
 #if 1
@@ -275,7 +286,7 @@ extern "C" bool atom_connects_to(pyobject_t atom1, pyobject_t atom2)
 #endif
 }
 
-extern "C" void atom_coord(void *atoms, size_t n, float64_t *xyz)
+extern "C" EXPORT void atom_coord(void *atoms, size_t n, float64_t *xyz)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -290,7 +301,7 @@ extern "C" void atom_coord(void *atoms, size_t n, float64_t *xyz)
     }
 }
 
-extern "C" void set_atom_coord(void *atoms, size_t n, float64_t *xyz)
+extern "C" EXPORT void set_atom_coord(void *atoms, size_t n, float64_t *xyz)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -303,7 +314,7 @@ extern "C" void set_atom_coord(void *atoms, size_t n, float64_t *xyz)
     }
 }
 
-extern "C" void atom_delete(void *atoms, size_t n)
+extern "C" EXPORT void atom_delete(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -318,37 +329,37 @@ extern "C" void atom_delete(void *atoms, size_t n)
     }
 }
 
-extern "C" void atom_display(void *atoms, size_t n, npy_bool *disp)
+extern "C" EXPORT void atom_display(void *atoms, size_t n, npy_bool *disp)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::display, disp);
 }
 
-extern "C" void set_atom_display(void *atoms, size_t n, npy_bool *disp)
+extern "C" EXPORT void set_atom_display(void *atoms, size_t n, npy_bool *disp)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_set<Atom, bool, npy_bool>(a, n, &Atom::set_display, disp);
 }
 
-extern "C" void atom_hide(void *atoms, size_t n, int32_t *hide)
+extern "C" EXPORT void atom_hide(void *atoms, size_t n, int32_t *hide)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get<Atom, int, int>(a, n, &Atom::hide, hide);
 }
 
-extern "C" void set_atom_hide(void *atoms, size_t n, int32_t *hide)
+extern "C" EXPORT void set_atom_hide(void *atoms, size_t n, int32_t *hide)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_set<Atom, int, int>(a, n, &Atom::set_hide, hide);
 }
 
-extern "C" void atom_visible(void *atoms, size_t n, npy_bool *visible)
+extern "C" EXPORT void atom_visible(void *atoms, size_t n, npy_bool *visible)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::visible, visible);
 }
 
-extern "C" void atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
+extern "C" EXPORT void atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -359,7 +370,7 @@ extern "C" void atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
     }
 }
 
-extern "C" void set_atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
+extern "C" EXPORT void set_atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -370,7 +381,7 @@ extern "C" void set_atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
     }
 }
 
-extern "C" void atom_element(void *atoms, size_t n, pyobject_t *resp)
+extern "C" EXPORT void atom_element(void *atoms, size_t n, pyobject_t *resp)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -381,7 +392,7 @@ extern "C" void atom_element(void *atoms, size_t n, pyobject_t *resp)
     }
 }
 
-extern "C" void atom_element_name(void *atoms, size_t n, pyobject_t *names)
+extern "C" EXPORT void atom_element_name(void *atoms, size_t n, pyobject_t *names)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -392,7 +403,7 @@ extern "C" void atom_element_name(void *atoms, size_t n, pyobject_t *names)
     }
 }
 
-extern "C" void atom_element_number(void *atoms, size_t n, uint8_t *nums)
+extern "C" EXPORT void atom_element_number(void *atoms, size_t n, uint8_t *nums)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -403,7 +414,7 @@ extern "C" void atom_element_number(void *atoms, size_t n, uint8_t *nums)
     }
 }
 
-extern "C" void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
+extern "C" EXPORT void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -414,20 +425,20 @@ extern "C" void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
     }
 }
 
-extern "C" bool atom_is_backbone(pyobject_t atom, uint8_t extent)
+extern "C" EXPORT bool atom_is_backbone(pyobject_t atom, uint8_t extent)
 {
     Atom *a = static_cast<Atom *>(atom);
     BackboneExtent bbe = static_cast<BackboneExtent>(extent);
     return error_wrap([&] () { return a->is_backbone(bbe); });
 }
 
-extern "C" void atom_structure(void *atoms, size_t n, pyobject_t *molp)
+extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get(a, n, &Atom::structure, molp);
 }
 
-extern "C" void atom_name(void *atoms, size_t n, pyobject_t *names)
+extern "C" EXPORT void atom_name(void *atoms, size_t n, pyobject_t *names)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -438,7 +449,7 @@ extern "C" void atom_name(void *atoms, size_t n, pyobject_t *names)
     }
 }
 
-extern "C" void set_atom_name(void *atoms, size_t n, pyobject_t *names)
+extern "C" EXPORT void set_atom_name(void *atoms, size_t n, pyobject_t *names)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -449,7 +460,7 @@ extern "C" void set_atom_name(void *atoms, size_t n, pyobject_t *names)
     }
 }
 
-extern "C" void atom_num_bonds(void *atoms, size_t n, size_t *nbonds)
+extern "C" EXPORT void atom_num_bonds(void *atoms, size_t n, size_t *nbonds)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -460,26 +471,26 @@ extern "C" void atom_num_bonds(void *atoms, size_t n, size_t *nbonds)
     }
 }
 
-extern "C" void atom_radius(void *atoms, size_t n, float32_t *radii)
+extern "C" EXPORT void atom_radius(void *atoms, size_t n, float32_t *radii)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get(a, n, &Atom::radius, radii);
 }
 
-extern "C" void set_atom_radius(void *atoms, size_t n, float32_t *radii)
+extern "C" EXPORT void set_atom_radius(void *atoms, size_t n, float32_t *radii)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_set(a, n, &Atom::set_radius, radii);
 }
 
-extern "C" void atom_residue(void *atoms, size_t n, pyobject_t *resp)
+extern "C" EXPORT void atom_residue(void *atoms, size_t n, pyobject_t *resp)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get(a, n, &Atom::residue, resp);
 }
 
 // Apply per-structure transform to atom coordinates.
-extern "C" void atom_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
+extern "C" EXPORT void atom_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
 {
     Atom **a = static_cast<Atom **>(atoms);
     Structure **ma = static_cast<Structure **>(mols);
@@ -504,7 +515,7 @@ extern "C" void atom_scene_coords(void *atoms, size_t n, void *mols, size_t m, f
 }
 
 // Set atom coordinates after applying a per-structure transform.
-extern "C" void atom_set_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
+extern "C" EXPORT void atom_set_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
 {
     Atom **a = static_cast<Atom **>(atoms);
     Structure **ma = static_cast<Structure **>(mols);
@@ -529,13 +540,13 @@ extern "C" void atom_set_scene_coords(void *atoms, size_t n, void *mols, size_t 
     }
 }
 
-extern "C" void atom_selected(void *atoms, size_t n, npy_bool *sel)
+extern "C" EXPORT void atom_selected(void *atoms, size_t n, npy_bool *sel)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::selected, sel);
 }
 
-extern "C" void atom_structure_category(void *atoms, size_t n, pyobject_t *names)
+extern "C" EXPORT void atom_structure_category(void *atoms, size_t n, pyobject_t *names)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -559,13 +570,13 @@ extern "C" void atom_structure_category(void *atoms, size_t n, pyobject_t *names
     }
 }
 
-extern "C" void set_atom_selected(void *atoms, size_t n, npy_bool *sel)
+extern "C" EXPORT void set_atom_selected(void *atoms, size_t n, npy_bool *sel)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_set<Atom, bool, npy_bool>(a, n, &Atom::set_selected, sel);
 }
 
-extern "C" size_t atom_num_selected(void *atoms, size_t n)
+extern "C" EXPORT size_t atom_num_selected(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     size_t s = 0;
@@ -580,7 +591,7 @@ extern "C" size_t atom_num_selected(void *atoms, size_t n)
     }
 }
 
-extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
+extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -610,7 +621,7 @@ extern "C" void atom_update_ribbon_visibility(void *atoms, size_t n)
     }
 }
 
-extern "C" PyObject *atom_inter_bonds(void *atoms, size_t n)
+extern "C" EXPORT PyObject *atom_inter_bonds(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     std::set<Atom *> aset;
@@ -644,7 +655,7 @@ extern "C" PyObject *atom_inter_bonds(void *atoms, size_t n)
 // -------------------------------------------------------------------------
 // bond functions
 //
-extern "C" void bond_atoms(void *bonds, size_t n, pyobject_t *atoms)
+extern "C" EXPORT void bond_atoms(void *bonds, size_t n, pyobject_t *atoms)
 {
     Bond **b = static_cast<Bond **>(bonds);
     try {
@@ -658,7 +669,7 @@ extern "C" void bond_atoms(void *bonds, size_t n, pyobject_t *atoms)
     }
 }
 
-extern "C" void bond_color(void *bonds, size_t n, uint8_t *rgba)
+extern "C" EXPORT void bond_color(void *bonds, size_t n, uint8_t *rgba)
 {
     Bond **b = static_cast<Bond **>(bonds);
     try {
@@ -674,7 +685,7 @@ extern "C" void bond_color(void *bonds, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" void set_bond_color(void *bonds, size_t n, uint8_t *rgba)
+extern "C" EXPORT void set_bond_color(void *bonds, size_t n, uint8_t *rgba)
 {
     Bond **b = static_cast<Bond **>(bonds);
     Rgba c;
@@ -691,7 +702,7 @@ extern "C" void set_bond_color(void *bonds, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" PyObject *bond_half_colors(void *bonds, size_t n)
+extern "C" EXPORT PyObject *bond_half_colors(void *bonds, size_t n)
 {
     Bond **b = static_cast<Bond **>(bonds);
     uint8_t *rgba1;
@@ -716,31 +727,31 @@ extern "C" PyObject *bond_half_colors(void *bonds, size_t n)
     return colors;
 }
 
-extern "C" void bond_display(void *bonds, size_t n, npy_bool *disp)
+extern "C" EXPORT void bond_display(void *bonds, size_t n, npy_bool *disp)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::display, disp);
 }
 
-extern "C" void set_bond_display(void *bonds, size_t n, npy_bool *disp)
+extern "C" EXPORT void set_bond_display(void *bonds, size_t n, npy_bool *disp)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_set<Bond, bool, npy_bool>(b, n, &Bond::set_display, disp);
 }
 
-extern "C" void bond_hide(void *bonds, size_t n, int32_t *hide)
+extern "C" EXPORT void bond_hide(void *bonds, size_t n, int32_t *hide)
 {
     Bond **a = static_cast<Bond **>(bonds);
     error_wrap_array_get<Bond, int, int>(a, n, &Bond::hide, hide);
 }
 
-extern "C" void set_bond_hide(void *bonds, size_t n, int32_t *hide)
+extern "C" EXPORT void set_bond_hide(void *bonds, size_t n, int32_t *hide)
 {
     Bond **a = static_cast<Bond **>(bonds);
     error_wrap_array_set<Bond, int, int>(a, n, &Bond::set_hide, hide);
 }
 
-extern "C" void bond_visible(void *bonds, size_t n, uint8_t *visible)
+extern "C" EXPORT void bond_visible(void *bonds, size_t n, uint8_t *visible)
 {
     Bond **b = static_cast<Bond **>(bonds);
     try {
@@ -751,31 +762,31 @@ extern "C" void bond_visible(void *bonds, size_t n, uint8_t *visible)
     }
 }
 
-extern "C" void bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
+extern "C" EXPORT void bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::halfbond, halfb);
 }
 
-extern "C" void set_bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
+extern "C" EXPORT void set_bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_set<Bond, bool, npy_bool>(b, n, &Bond::set_halfbond, halfb);
 }
 
-extern "C" void bond_radius(void *bonds, size_t n, float32_t *radii)
+extern "C" EXPORT void bond_radius(void *bonds, size_t n, float32_t *radii)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_get<Bond, float>(b, n, &Bond::radius, radii);
 }
 
-extern "C" void bond_shown(void *bonds, size_t n, npy_bool *shown)
+extern "C" EXPORT void bond_shown(void *bonds, size_t n, npy_bool *shown)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::shown, shown);
 }
 
-extern "C" int bonds_num_shown(void *bonds, size_t n)
+extern "C" EXPORT int bonds_num_shown(void *bonds, size_t n)
 {
     Bond **b = static_cast<Bond **>(bonds);
     int count = 0;
@@ -789,13 +800,13 @@ extern "C" int bonds_num_shown(void *bonds, size_t n)
     return count;
 }
 
-extern "C" void set_bond_radius(void *bonds, size_t n, float32_t *radii)
+extern "C" EXPORT void set_bond_radius(void *bonds, size_t n, float32_t *radii)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_set<Bond, float>(b, n, &Bond::set_radius, radii);
 }
 
-extern "C" void bond_structure(void *bonds, size_t n, pyobject_t *molp)
+extern "C" EXPORT void bond_structure(void *bonds, size_t n, pyobject_t *molp)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_get(b, n, &Bond::structure, molp);
@@ -804,7 +815,7 @@ extern "C" void bond_structure(void *bonds, size_t n, pyobject_t *molp)
 // -------------------------------------------------------------------------
 // pseudobond functions
 //
-extern "C" void pseudobond_atoms(void *pbonds, size_t n, pyobject_t *atoms)
+extern "C" EXPORT void pseudobond_atoms(void *pbonds, size_t n, pyobject_t *atoms)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     try {
@@ -818,7 +829,7 @@ extern "C" void pseudobond_atoms(void *pbonds, size_t n, pyobject_t *atoms)
     }
 }
 
-extern "C" void pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
+extern "C" EXPORT void pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     try {
@@ -834,7 +845,7 @@ extern "C" void pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
+extern "C" EXPORT void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     Rgba c;
@@ -851,7 +862,7 @@ extern "C" void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" PyObject *pseudobond_group(void *pbonds, size_t n)
+extern "C" EXPORT PyObject *pseudobond_group(void *pbonds, size_t n)
 {
     Pseudobond **pb = static_cast<Pseudobond **>(pbonds);
     void **grps;
@@ -867,7 +878,7 @@ extern "C" PyObject *pseudobond_group(void *pbonds, size_t n)
     return groups;
 }
 
-extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
+extern "C" EXPORT PyObject *pseudobond_half_colors(void *pbonds, size_t n)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     uint8_t *rgba1;
@@ -892,7 +903,7 @@ extern "C" PyObject *pseudobond_half_colors(void *pbonds, size_t n)
     return colors;
 }
 
-extern "C" void pseudobond_get_session_id(void *ptrs, size_t n, int32_t *ses_ids)
+extern "C" EXPORT void pseudobond_get_session_id(void *ptrs, size_t n, int32_t *ses_ids)
 {
     Pseudobond **pbonds = static_cast<Pseudobond **>(ptrs);
     try {
@@ -905,7 +916,7 @@ extern "C" void pseudobond_get_session_id(void *ptrs, size_t n, int32_t *ses_ids
     }
 }
 
-extern "C" void *pseudobond_group_resolve_session_id(void *ptr, int ses_id)
+extern "C" EXPORT void *pseudobond_group_resolve_session_id(void *ptr, int ses_id)
 {
     Proxy_PBGroup *grp = static_cast<Proxy_PBGroup *>(ptr);
     try {
@@ -916,43 +927,43 @@ extern "C" void *pseudobond_group_resolve_session_id(void *ptr, int ses_id)
     }
 }
 
-extern "C" void pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
+extern "C" EXPORT void pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::display, disp);
 }
 
-extern "C" void set_pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
+extern "C" EXPORT void set_pseudobond_display(void *pbonds, size_t n, npy_bool *disp)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     error_wrap_array_set<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::set_display, disp);
 }
 
-extern "C" void pseudobond_halfbond(void *pbonds, size_t n, npy_bool *halfb)
+extern "C" EXPORT void pseudobond_halfbond(void *pbonds, size_t n, npy_bool *halfb)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::halfbond, halfb);
 }
 
-extern "C" void set_pseudobond_halfbond(void *pbonds, size_t n, npy_bool *halfb)
+extern "C" EXPORT void set_pseudobond_halfbond(void *pbonds, size_t n, npy_bool *halfb)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     error_wrap_array_set<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::set_halfbond, halfb);
 }
 
-extern "C" void pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
+extern "C" EXPORT void pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     error_wrap_array_get<Pseudobond, float>(b, n, &Pseudobond::radius, radii);
 }
 
-extern "C" void pseudobond_shown(void *pbonds, size_t n, npy_bool *shown)
+extern "C" EXPORT void pseudobond_shown(void *pbonds, size_t n, npy_bool *shown)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     error_wrap_array_get<Pseudobond, bool, npy_bool>(b, n, &Pseudobond::shown, shown);
 }
 
-extern "C" void set_pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
+extern "C" EXPORT void set_pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
 {
     Pseudobond **b = static_cast<Pseudobond **>(pbonds);
     error_wrap_array_set<Pseudobond, float>(b, n, &Pseudobond::set_radius, radii);
@@ -961,7 +972,7 @@ extern "C" void set_pseudobond_radius(void *pbonds, size_t n, float32_t *radii)
 // -------------------------------------------------------------------------
 // pseudobond group functions
 //
-extern "C" void pseudobond_group_category(void *pbgroups, int n, void **categories)
+extern "C" EXPORT void pseudobond_group_category(void *pbgroups, int n, void **categories)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     try {
@@ -972,43 +983,43 @@ extern "C" void pseudobond_group_category(void *pbgroups, int n, void **categori
     }
 }
 
-extern "C" void pseudobond_group_gc_color(void *pbgroups, size_t n, npy_bool *color_changed)
+extern "C" EXPORT void pseudobond_group_gc_color(void *pbgroups, size_t n, npy_bool *color_changed)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     error_wrap_array_get<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::get_gc_color, color_changed);
 }
 
-extern "C" void set_pseudobond_group_gc_color(void *pbgroups, size_t n, npy_bool *color_changed)
+extern "C" EXPORT void set_pseudobond_group_gc_color(void *pbgroups, size_t n, npy_bool *color_changed)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     error_wrap_array_set<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::set_gc_color, color_changed);
 }
 
-extern "C" void pseudobond_group_gc_select(void *pbgroups, size_t n, npy_bool *select_changed)
+extern "C" EXPORT void pseudobond_group_gc_select(void *pbgroups, size_t n, npy_bool *select_changed)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     error_wrap_array_get<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::get_gc_select, select_changed);
 }
 
-extern "C" void set_pseudobond_group_gc_select(void *pbgroups, size_t n, npy_bool *select_changed)
+extern "C" EXPORT void set_pseudobond_group_gc_select(void *pbgroups, size_t n, npy_bool *select_changed)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     error_wrap_array_set<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::set_gc_select, select_changed);
 }
 
-extern "C" void pseudobond_group_gc_shape(void *pbgroups, size_t n, npy_bool *shape_changed)
+extern "C" EXPORT void pseudobond_group_gc_shape(void *pbgroups, size_t n, npy_bool *shape_changed)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     error_wrap_array_get<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::get_gc_shape, shape_changed);
 }
 
-extern "C" void set_pseudobond_group_gc_shape(void *pbgroups, size_t n, npy_bool *shape_changed)
+extern "C" EXPORT void set_pseudobond_group_gc_shape(void *pbgroups, size_t n, npy_bool *shape_changed)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     error_wrap_array_set<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::set_gc_shape, shape_changed);
 }
 
-extern "C" void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
+extern "C" EXPORT void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
 {
     Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
     try {
@@ -1020,7 +1031,7 @@ extern "C" void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, voi
     }
 }
 
-extern "C" void pseudobond_group_structure(void *pbgroups, size_t n, pyobject_t *resp)
+extern "C" EXPORT void pseudobond_group_structure(void *pbgroups, size_t n, pyobject_t *resp)
 {
     Proxy_PBGroup **pbgs = static_cast<Proxy_PBGroup **>(pbgroups);
     try {
@@ -1031,7 +1042,7 @@ extern "C" void pseudobond_group_structure(void *pbgroups, size_t n, pyobject_t 
     }
 }
 
-extern "C" void pseudobond_group_num_pseudobonds(void *pbgroups, size_t n, size_t *num_pseudobonds)
+extern "C" EXPORT void pseudobond_group_num_pseudobonds(void *pbgroups, size_t n, size_t *num_pseudobonds)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     try {
@@ -1042,7 +1053,7 @@ extern "C" void pseudobond_group_num_pseudobonds(void *pbgroups, size_t n, size_
     }
 }
 
-extern "C" void pseudobond_group_pseudobonds(void *pbgroups, size_t n, pyobject_t *pseudobonds)
+extern "C" EXPORT void pseudobond_group_pseudobonds(void *pbgroups, size_t n, pyobject_t *pseudobonds)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
     try {
@@ -1054,7 +1065,7 @@ extern "C" void pseudobond_group_pseudobonds(void *pbgroups, size_t n, pyobject_
     }
 }
 
-extern "C" void *pseudobond_create_global_manager(void* change_tracker)
+extern "C" EXPORT void *pseudobond_create_global_manager(void* change_tracker)
 {
     try {
         auto pb_manager = new PBManager(static_cast<ChangeTracker*>(change_tracker));
@@ -1065,7 +1076,7 @@ extern "C" void *pseudobond_create_global_manager(void* change_tracker)
     }
 }
 
-extern "C" void pseudobond_global_manager_clear(void *manager)
+extern "C" EXPORT void pseudobond_global_manager_clear(void *manager)
 {
     try {
         PBManager* mgr = static_cast<PBManager*>(manager);
@@ -1075,7 +1086,7 @@ extern "C" void pseudobond_global_manager_clear(void *manager)
     }
 }
 
-extern "C" void* pseudobond_global_manager_get_group(void *manager, const char* name, int create)
+extern "C" EXPORT void* pseudobond_global_manager_get_group(void *manager, const char* name, int create)
 {
     try {
         PBManager* mgr = static_cast<PBManager*>(manager);
@@ -1086,7 +1097,7 @@ extern "C" void* pseudobond_global_manager_get_group(void *manager, const char* 
     }
 }
 
-extern "C" void pseudobond_global_manager_delete_group(void *manager, void *pbgroup)
+extern "C" EXPORT void pseudobond_global_manager_delete_group(void *manager, void *pbgroup)
 {
     try {
         PBManager* mgr = static_cast<PBManager*>(manager);
@@ -1097,7 +1108,7 @@ extern "C" void pseudobond_global_manager_delete_group(void *manager, void *pbgr
     }
 }
 
-extern "C" void pseudobond_global_manager_session_restore_setup(void *manager)
+extern "C" EXPORT void pseudobond_global_manager_session_restore_setup(void *manager)
 {
     try {
         PBManager* mgr = static_cast<PBManager*>(manager);
@@ -1107,7 +1118,7 @@ extern "C" void pseudobond_global_manager_session_restore_setup(void *manager)
     }
 }
 
-extern "C" void pseudobond_global_manager_session_restore_teardown(void *manager)
+extern "C" EXPORT void pseudobond_global_manager_session_restore_teardown(void *manager)
 {
     try {
         PBManager* mgr = static_cast<PBManager*>(manager);
@@ -1117,7 +1128,7 @@ extern "C" void pseudobond_global_manager_session_restore_teardown(void *manager
     }
 }
 
-extern "C" int pseudobond_global_manager_session_info(void *manager, PyObject *retvals)
+extern "C" EXPORT int pseudobond_global_manager_session_info(void *manager, PyObject *retvals)
 {
     PBManager *mgr = static_cast<PBManager *>(manager);
     if (!PyList_Check(retvals)) {
@@ -1139,7 +1150,7 @@ extern "C" int pseudobond_global_manager_session_info(void *manager, PyObject *r
     return -1;
 }
 
-extern "C" void pseudobond_global_manager_session_restore(void *manager, int version,
+extern "C" EXPORT void pseudobond_global_manager_session_restore(void *manager, int version,
     PyObject *ints, PyObject *floats, PyObject *misc)
 {
     PBManager *mgr = static_cast<PBManager *>(manager);
@@ -1160,7 +1171,7 @@ extern "C" void pseudobond_global_manager_session_restore(void *manager, int ver
     }
 }
 
-extern "C" PyObject *pseudobond_global_manager_session_save_structure_mapping(void *manager)
+extern "C" EXPORT PyObject *pseudobond_global_manager_session_save_structure_mapping(void *manager)
 {
     PyObject* mapping = PyDict_New();
     if (mapping == nullptr)
@@ -1182,7 +1193,7 @@ extern "C" PyObject *pseudobond_global_manager_session_save_structure_mapping(vo
     return mapping;
 }
 
-extern "C" void pseudobond_global_manager_session_restore_structure_mapping(void *manager,
+extern "C" EXPORT void pseudobond_global_manager_session_restore_structure_mapping(void *manager,
     PyObject* mapping)
 {
     try {
@@ -1201,7 +1212,7 @@ extern "C" void pseudobond_global_manager_session_restore_structure_mapping(void
     }
 }
 
-extern "C" void pseudobond_global_manager_session_save_setup(void *manager)
+extern "C" EXPORT void pseudobond_global_manager_session_save_setup(void *manager)
 {
     try {
         PBManager* mgr = static_cast<PBManager*>(manager);
@@ -1211,7 +1222,7 @@ extern "C" void pseudobond_global_manager_session_save_setup(void *manager)
     }
 }
 
-extern "C" void pseudobond_global_manager_session_save_teardown(void *manager)
+extern "C" EXPORT void pseudobond_global_manager_session_save_teardown(void *manager)
 {
     try {
         PBManager* mgr = static_cast<PBManager*>(manager);
@@ -1224,7 +1235,7 @@ extern "C" void pseudobond_global_manager_session_save_teardown(void *manager)
 // -------------------------------------------------------------------------
 // residue functions
 //
-extern "C" void residue_atoms(void *residues, size_t n, pyobject_t *atoms)
+extern "C" EXPORT void residue_atoms(void *residues, size_t n, pyobject_t *atoms)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1238,13 +1249,13 @@ extern "C" void residue_atoms(void *residues, size_t n, pyobject_t *atoms)
     }
 }
 
-extern "C" void residue_chain(void *residues, size_t n, pyobject_t *chainp)
+extern "C" EXPORT void residue_chain(void *residues, size_t n, pyobject_t *chainp)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::chain, chainp);
 }
 
-extern "C" void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
+extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1255,7 +1266,7 @@ extern "C" void residue_chain_id(void *residues, size_t n, pyobject_t *cids)
     }
 }
 
-extern "C" void residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
+extern "C" EXPORT void residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1271,7 +1282,7 @@ extern "C" void residue_insertion_code(void *residues, size_t n, pyobject_t *ics
     }
 }
 
-extern "C" void set_residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
+extern "C" EXPORT void set_residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1292,7 +1303,7 @@ extern "C" void set_residue_insertion_code(void *residues, size_t n, pyobject_t 
     }
 }
 
-extern "C" void residue_principal_atom(void *residues, size_t n, pyobject_t *pas)
+extern "C" EXPORT void residue_principal_atom(void *residues, size_t n, pyobject_t *pas)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1303,79 +1314,79 @@ extern "C" void residue_principal_atom(void *residues, size_t n, pyobject_t *pas
     }
 }
 
-extern "C" void residue_polymer_type(void *residues, size_t n, int32_t *polymer_type)
+extern "C" EXPORT void residue_polymer_type(void *residues, size_t n, int32_t *polymer_type)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::polymer_type, polymer_type);
 }
 
-extern "C" void residue_is_helix(void *residues, size_t n, npy_bool *is_helix)
+extern "C" EXPORT void residue_is_helix(void *residues, size_t n, npy_bool *is_helix)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::is_helix, is_helix);
 }
 
-extern "C" void set_residue_is_helix(void *residues, size_t n, npy_bool *is_helix)
+extern "C" EXPORT void set_residue_is_helix(void *residues, size_t n, npy_bool *is_helix)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_helix, is_helix);
 }
 
-extern "C" void residue_is_sheet(void *residues, size_t n, npy_bool *is_sheet)
+extern "C" EXPORT void residue_is_sheet(void *residues, size_t n, npy_bool *is_sheet)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::is_sheet, is_sheet);
 }
 
-extern "C" void set_residue_is_sheet(void *residues, size_t n, npy_bool *is_sheet)
+extern "C" EXPORT void set_residue_is_sheet(void *residues, size_t n, npy_bool *is_sheet)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_sheet, is_sheet);
 }
 
-extern "C" void residue_ss_id(void *residues, size_t n, int32_t *ss_id)
+extern "C" EXPORT void residue_ss_id(void *residues, size_t n, int32_t *ss_id)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::ss_id, ss_id);
 }
 
-extern "C" void set_residue_ss_id(void *residues, size_t n, int32_t *ss_id)
+extern "C" EXPORT void set_residue_ss_id(void *residues, size_t n, int32_t *ss_id)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_ss_id, ss_id);
 }
 
-extern "C" void residue_ribbon_display(void *residues, size_t n, npy_bool *ribbon_display)
+extern "C" EXPORT void residue_ribbon_display(void *residues, size_t n, npy_bool *ribbon_display)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::ribbon_display, ribbon_display);
 }
 
-extern "C" void set_residue_ribbon_display(void *residues, size_t n, npy_bool *ribbon_display)
+extern "C" EXPORT void set_residue_ribbon_display(void *residues, size_t n, npy_bool *ribbon_display)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_ribbon_display, ribbon_display);
 }
 
-extern "C" void residue_ribbon_hide_backbone(void *residues, size_t n, npy_bool *ribbon_hide_backbone)
+extern "C" EXPORT void residue_ribbon_hide_backbone(void *residues, size_t n, npy_bool *ribbon_hide_backbone)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::ribbon_hide_backbone, ribbon_hide_backbone);
 }
 
-extern "C" void set_residue_ribbon_hide_backbone(void *residues, size_t n, npy_bool *ribbon_hide_backbone)
+extern "C" EXPORT void set_residue_ribbon_hide_backbone(void *residues, size_t n, npy_bool *ribbon_hide_backbone)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_ribbon_hide_backbone, ribbon_hide_backbone);
 }
 
-extern "C" void residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
+extern "C" EXPORT void residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::ribbon_style, ribbon_style);
 }
 
-extern "C" void set_residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
+extern "C" EXPORT void set_residue_ribbon_style(void *residues, size_t n, int32_t *ribbon_style)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1386,25 +1397,25 @@ extern "C" void set_residue_ribbon_style(void *residues, size_t n, int32_t *ribb
     }
 }
 
-extern "C" void residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
+extern "C" EXPORT void residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::ribbon_adjust, ribbon_adjust);
 }
 
-extern "C" void set_residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
+extern "C" EXPORT void set_residue_ribbon_adjust(void *residues, size_t n, float32_t *ribbon_adjust)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_ribbon_adjust, ribbon_adjust);
 }
 
-extern "C" void residue_structure(void *residues, size_t n, pyobject_t *molp)
+extern "C" EXPORT void residue_structure(void *residues, size_t n, pyobject_t *molp)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::structure, molp);
 }
 
-extern "C" void residue_name(void *residues, size_t n, pyobject_t *names)
+extern "C" EXPORT void residue_name(void *residues, size_t n, pyobject_t *names)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1415,7 +1426,7 @@ extern "C" void residue_name(void *residues, size_t n, pyobject_t *names)
     }
 }
 
-extern "C" void residue_num_atoms(void *residues, size_t n, size_t *natoms)
+extern "C" EXPORT void residue_num_atoms(void *residues, size_t n, size_t *natoms)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1426,13 +1437,13 @@ extern "C" void residue_num_atoms(void *residues, size_t n, size_t *natoms)
     }
 }
 
-extern "C" void residue_number(void *residues, size_t n, int32_t *nums)
+extern "C" EXPORT void residue_number(void *residues, size_t n, int32_t *nums)
 {
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_get(r, n, &Residue::position, nums);
 }
 
-extern "C" void residue_str(void *residues, size_t n, pyobject_t *strs)
+extern "C" EXPORT void residue_str(void *residues, size_t n, pyobject_t *strs)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1443,7 +1454,7 @@ extern "C" void residue_str(void *residues, size_t n, pyobject_t *strs)
     }
 }
 
-extern "C" void residue_secondary_structure_id(void *residues, size_t n, int32_t *ids)
+extern "C" EXPORT void residue_secondary_structure_id(void *residues, size_t n, int32_t *ids)
 {
     Residue **res = static_cast<Residue **>(residues);
     std::map<const Residue *, int> sid;
@@ -1478,7 +1489,7 @@ extern "C" void residue_secondary_structure_id(void *residues, size_t n, int32_t
     }
 }
 
-extern "C" void residue_add_atom(void *res, void *atom)
+extern "C" EXPORT void residue_add_atom(void *res, void *atom)
 {
     Residue *r = static_cast<Residue *>(res);
     try {
@@ -1488,7 +1499,7 @@ extern "C" void residue_add_atom(void *res, void *atom)
     }
 }
 
-extern "C" void residue_ribbon_color(void *residues, size_t n, uint8_t *rgba)
+extern "C" EXPORT void residue_ribbon_color(void *residues, size_t n, uint8_t *rgba)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1504,7 +1515,7 @@ extern "C" void residue_ribbon_color(void *residues, size_t n, uint8_t *rgba)
     }
 }
 
-extern "C" void set_residue_ribbon_color(void *residues, size_t n, uint8_t *rgba)
+extern "C" EXPORT void set_residue_ribbon_color(void *residues, size_t n, uint8_t *rgba)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1521,7 +1532,7 @@ extern "C" void set_residue_ribbon_color(void *residues, size_t n, uint8_t *rgba
     }
 }
 
-extern "C" PyObject* residue_polymer_spline(void *residues, size_t n, int orient)
+extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int orient)
 {
     bool want_guides = true;
     if (orient == Structure::RIBBON_ORIENT_ATOMS || orient == Structure::RIBBON_ORIENT_CURVATURE)
@@ -1642,7 +1653,7 @@ extern "C" PyObject* residue_polymer_spline(void *residues, size_t n, int orient
     }
 }
 
-extern "C" void residue_ribbon_clear_hide(void *residues, size_t n)
+extern "C" EXPORT void residue_ribbon_clear_hide(void *residues, size_t n)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
@@ -1656,7 +1667,7 @@ extern "C" void residue_ribbon_clear_hide(void *residues, size_t n)
 // -------------------------------------------------------------------------
 // chain functions
 //
-extern "C" void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
+extern "C" EXPORT void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
 {
     Chain **c = static_cast<Chain **>(chains);
     try {
@@ -1667,13 +1678,13 @@ extern "C" void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
     }
 }
 
-extern "C" void chain_structure(void *chains, size_t n, pyobject_t *molp)
+extern "C" EXPORT void chain_structure(void *chains, size_t n, pyobject_t *molp)
 {
     Chain **c = static_cast<Chain **>(chains);
     error_wrap_array_get(c, n, &Chain::structure, molp);
 }
 
-extern "C" void chain_num_residues(void *chains, size_t n, size_t *nres)
+extern "C" EXPORT void chain_num_residues(void *chains, size_t n, size_t *nres)
 {
     Chain **c = static_cast<Chain **>(chains);
     try {
@@ -1684,7 +1695,7 @@ extern "C" void chain_num_residues(void *chains, size_t n, size_t *nres)
     }
 }
 
-extern "C" void chain_num_existing_residues(void *chains, size_t n, size_t *nres)
+extern "C" EXPORT void chain_num_existing_residues(void *chains, size_t n, size_t *nres)
 {
     Chain **c = static_cast<Chain **>(chains);
     try {
@@ -1699,7 +1710,7 @@ extern "C" void chain_num_existing_residues(void *chains, size_t n, size_t *nres
     }
 }
 
-extern "C" void chain_residues(void *chains, size_t n, pyobject_t *res)
+extern "C" EXPORT void chain_residues(void *chains, size_t n, pyobject_t *res)
 {
     Chain **c = static_cast<Chain **>(chains);
     try {
@@ -1716,7 +1727,7 @@ extern "C" void chain_residues(void *chains, size_t n, pyobject_t *res)
 // -------------------------------------------------------------------------
 // change tracker functions
 //
-extern "C" void *change_tracker_create()
+extern "C" EXPORT void *change_tracker_create()
 {
     try {
         auto change_tracker = new ChangeTracker();
@@ -1727,7 +1738,7 @@ extern "C" void *change_tracker_create()
     }
 }
 
-extern "C" npy_bool change_tracker_changed(void *vct)
+extern "C" EXPORT npy_bool change_tracker_changed(void *vct)
 {
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     try {
@@ -1738,7 +1749,7 @@ extern "C" npy_bool change_tracker_changed(void *vct)
     }
 }
 
-extern "C" PyObject* change_tracker_changes(void *vct)
+extern "C" EXPORT PyObject* change_tracker_changes(void *vct)
 {
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     PyObject* changes_data = NULL;
@@ -1785,7 +1796,7 @@ extern "C" PyObject* change_tracker_changes(void *vct)
     return changes_data;
 }
 
-extern "C" void change_tracker_clear(void *vct)
+extern "C" EXPORT void change_tracker_clear(void *vct)
 {
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     try {
@@ -1795,7 +1806,7 @@ extern "C" void change_tracker_clear(void *vct)
     }
 }
 
-extern "C" void change_tracker_add_modified(void *vct, int class_num, void *modded,
+extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, void *modded,
     const char *reason)
 {
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
@@ -1825,7 +1836,7 @@ extern "C" void change_tracker_add_modified(void *vct, int class_num, void *modd
 // -------------------------------------------------------------------------
 // structure functions
 //
-extern "C" void set_structure_color(void *mol, uint8_t *rgba)
+extern "C" EXPORT void set_structure_color(void *mol, uint8_t *rgba)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -1840,7 +1851,7 @@ extern "C" void set_structure_color(void *mol, uint8_t *rgba)
     }
 }
 
-extern "C" void *structure_copy(void *mol)
+extern "C" EXPORT void *structure_copy(void *mol)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -1851,55 +1862,55 @@ extern "C" void *structure_copy(void *mol)
     }
 }
 
-extern "C" void structure_gc_color(void *mols, size_t n, npy_bool *color_changed)
+extern "C" EXPORT void structure_gc_color(void *mols, size_t n, npy_bool *color_changed)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_color, color_changed);
 }
 
-extern "C" void set_structure_gc_color(void *mols, size_t n, npy_bool *color_changed)
+extern "C" EXPORT void set_structure_gc_color(void *mols, size_t n, npy_bool *color_changed)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_color, color_changed);
 }
 
-extern "C" void structure_gc_select(void *mols, size_t n, npy_bool *select_changed)
+extern "C" EXPORT void structure_gc_select(void *mols, size_t n, npy_bool *select_changed)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_select, select_changed);
 }
 
-extern "C" void set_structure_gc_select(void *mols, size_t n, npy_bool *select_changed)
+extern "C" EXPORT void set_structure_gc_select(void *mols, size_t n, npy_bool *select_changed)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_select, select_changed);
 }
 
-extern "C" void structure_gc_shape(void *mols, size_t n, npy_bool *shape_changed)
+extern "C" EXPORT void structure_gc_shape(void *mols, size_t n, npy_bool *shape_changed)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_shape, shape_changed);
 }
 
-extern "C" void set_structure_gc_shape(void *mols, size_t n, npy_bool *shape_changed)
+extern "C" EXPORT void set_structure_gc_shape(void *mols, size_t n, npy_bool *shape_changed)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_shape, shape_changed);
 }
 
-extern "C" void structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
+extern "C" EXPORT void structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_ribbon, ribbon_changed);
 }
 
-extern "C" void set_structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
+extern "C" EXPORT void set_structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_ribbon, ribbon_changed);
 }
 
-extern "C" void structure_name(void *mols, size_t n, pyobject_t *names)
+extern "C" EXPORT void structure_name(void *mols, size_t n, pyobject_t *names)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -1910,7 +1921,7 @@ extern "C" void structure_name(void *mols, size_t n, pyobject_t *names)
     }
 }
 
-extern "C" void set_structure_name(void *mols, size_t n, pyobject_t *names)
+extern "C" EXPORT void set_structure_name(void *mols, size_t n, pyobject_t *names)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -1921,7 +1932,7 @@ extern "C" void set_structure_name(void *mols, size_t n, pyobject_t *names)
     }
 }
 
-extern "C" void structure_num_atoms(void *mols, size_t n, size_t *natoms)
+extern "C" EXPORT void structure_num_atoms(void *mols, size_t n, size_t *natoms)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -1932,7 +1943,7 @@ extern "C" void structure_num_atoms(void *mols, size_t n, size_t *natoms)
     }
 }
 
-extern "C" void structure_atoms(void *mols, size_t n, pyobject_t *atoms)
+extern "C" EXPORT void structure_atoms(void *mols, size_t n, pyobject_t *atoms)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -1946,13 +1957,13 @@ extern "C" void structure_atoms(void *mols, size_t n, pyobject_t *atoms)
     }
 }
 
-extern "C" void structure_num_bonds(void *mols, size_t n, size_t *nbonds)
+extern "C" EXPORT void structure_num_bonds(void *mols, size_t n, size_t *nbonds)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::num_bonds, nbonds);
 }
 
-extern "C" void structure_bonds(void *mols, size_t n, pyobject_t *bonds)
+extern "C" EXPORT void structure_bonds(void *mols, size_t n, pyobject_t *bonds)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -1966,13 +1977,13 @@ extern "C" void structure_bonds(void *mols, size_t n, pyobject_t *bonds)
     }
 }
 
-extern "C" void structure_num_residues(void *mols, size_t n, size_t *nres)
+extern "C" EXPORT void structure_num_residues(void *mols, size_t n, size_t *nres)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::num_residues, nres);
 }
 
-extern "C" void structure_residues(void *mols, size_t n, pyobject_t *res)
+extern "C" EXPORT void structure_residues(void *mols, size_t n, pyobject_t *res)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -1986,19 +1997,19 @@ extern "C" void structure_residues(void *mols, size_t n, pyobject_t *res)
     }
 }
 
-extern "C" void structure_num_coord_sets(void *mols, size_t n, size_t *ncoord_sets)
+extern "C" EXPORT void structure_num_coord_sets(void *mols, size_t n, size_t *ncoord_sets)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::num_coord_sets, ncoord_sets);
 }
 
-extern "C" void structure_num_chains(void *mols, size_t n, size_t *nchains)
+extern "C" EXPORT void structure_num_chains(void *mols, size_t n, size_t *nchains)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::num_chains, nchains);
 }
 
-extern "C" void structure_chains(void *mols, size_t n, pyobject_t *chains)
+extern "C" EXPORT void structure_chains(void *mols, size_t n, pyobject_t *chains)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -2012,25 +2023,25 @@ extern "C" void structure_chains(void *mols, size_t n, pyobject_t *chains)
     }
 }
 
-extern "C" void structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
+extern "C" EXPORT void structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ribbon_tether_scale, ribbon_tether_scale);
 }
 
-extern "C" void set_structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
+extern "C" EXPORT void set_structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set(m, n, &Structure::set_ribbon_tether_scale, ribbon_tether_scale);
 }
 
-extern "C" void structure_ribbon_tether_shape(void *mols, size_t n, int32_t *ribbon_tether_shape)
+extern "C" EXPORT void structure_ribbon_tether_shape(void *mols, size_t n, int32_t *ribbon_tether_shape)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ribbon_tether_shape, ribbon_tether_shape);
 }
 
-extern "C" void set_structure_ribbon_tether_shape(void *mols, size_t n, int32_t *ribbon_tether_shape)
+extern "C" EXPORT void set_structure_ribbon_tether_shape(void *mols, size_t n, int32_t *ribbon_tether_shape)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -2041,37 +2052,37 @@ extern "C" void set_structure_ribbon_tether_shape(void *mols, size_t n, int32_t 
     }
 }
 
-extern "C" void structure_ribbon_tether_sides(void *mols, size_t n, int32_t *ribbon_tether_sides)
+extern "C" EXPORT void structure_ribbon_tether_sides(void *mols, size_t n, int32_t *ribbon_tether_sides)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ribbon_tether_sides, ribbon_tether_sides);
 }
 
-extern "C" void set_structure_ribbon_tether_sides(void *mols, size_t n, int32_t *ribbon_tether_sides)
+extern "C" EXPORT void set_structure_ribbon_tether_sides(void *mols, size_t n, int32_t *ribbon_tether_sides)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set(m, n, &Structure::set_ribbon_tether_sides, ribbon_tether_sides);
 }
 
-extern "C" void structure_ribbon_tether_opacity(void *mols, size_t n, float32_t *ribbon_tether_opacity)
+extern "C" EXPORT void structure_ribbon_tether_opacity(void *mols, size_t n, float32_t *ribbon_tether_opacity)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ribbon_tether_opacity, ribbon_tether_opacity);
 }
 
-extern "C" void set_structure_ribbon_tether_opacity(void *mols, size_t n, float32_t *ribbon_tether_opacity)
+extern "C" EXPORT void set_structure_ribbon_tether_opacity(void *mols, size_t n, float32_t *ribbon_tether_opacity)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set(m, n, &Structure::set_ribbon_tether_opacity, ribbon_tether_opacity);
 }
 
-extern "C" void structure_ribbon_orientation(void *mols, size_t n, int32_t *ribbon_orientation)
+extern "C" EXPORT void structure_ribbon_orientation(void *mols, size_t n, int32_t *ribbon_orientation)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ribbon_orientation, ribbon_orientation);
 }
 
-extern "C" void set_structure_ribbon_orientation(void *mols, size_t n, int32_t *ribbon_orientation)
+extern "C" EXPORT void set_structure_ribbon_orientation(void *mols, size_t n, int32_t *ribbon_orientation)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -2082,25 +2093,25 @@ extern "C" void set_structure_ribbon_orientation(void *mols, size_t n, int32_t *
     }
 }
 
-extern "C" void structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
+extern "C" EXPORT void structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ribbon_show_spine, ribbon_show_spine);
 }
 
-extern "C" void set_structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
+extern "C" EXPORT void set_structure_ribbon_show_spine(void *mols, size_t n, npy_bool *ribbon_show_spine)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set(m, n, &Structure::set_ribbon_show_spine, ribbon_show_spine);
 }
 
-extern "C" void structure_ribbon_display_count(void *mols, size_t n, int32_t *ribbon_display_count)
+extern "C" EXPORT void structure_ribbon_display_count(void *mols, size_t n, int32_t *ribbon_display_count)
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ribbon_display_count, ribbon_display_count);
 }
 
-extern "C" void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
+extern "C" EXPORT void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
 {
     Structure **m = static_cast<Structure **>(mols);
     PyObject* pbg_map = NULL;
@@ -2123,7 +2134,7 @@ extern "C" void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
     }
 }
 
-extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name, int create_type)
+extern "C" EXPORT Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name, int create_type)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2135,7 +2146,7 @@ extern "C" Proxy_PBGroup *structure_pseudobond_group(void *mol, const char *name
     }
 }
 
-extern "C" size_t structure_session_atom_to_id(void *mol, void* atom)
+extern "C" EXPORT size_t structure_session_atom_to_id(void *mol, void* atom)
 {
     Structure *m = static_cast<Structure *>(mol);
     Atom *a = static_cast<Atom *>(atom);
@@ -2147,7 +2158,7 @@ extern "C" size_t structure_session_atom_to_id(void *mol, void* atom)
     }
 }
 
-extern "C" size_t structure_session_bond_to_id(void *mol, void* bond)
+extern "C" EXPORT size_t structure_session_bond_to_id(void *mol, void* bond)
 {
     Structure *m = static_cast<Structure *>(mol);
     Bond *b = static_cast<Bond *>(bond);
@@ -2159,7 +2170,7 @@ extern "C" size_t structure_session_bond_to_id(void *mol, void* bond)
     }
 }
 
-extern "C" size_t structure_session_chain_to_id(void *mol, void* chain)
+extern "C" EXPORT size_t structure_session_chain_to_id(void *mol, void* chain)
 {
     Structure *m = static_cast<Structure *>(mol);
     Chain *c = static_cast<Chain *>(chain);
@@ -2171,7 +2182,7 @@ extern "C" size_t structure_session_chain_to_id(void *mol, void* chain)
     }
 }
 
-extern "C" size_t structure_session_residue_to_id(void *mol, void* res)
+extern "C" EXPORT size_t structure_session_residue_to_id(void *mol, void* res)
 {
     Structure *m = static_cast<Structure *>(mol);
     Residue *r = static_cast<Residue *>(res);
@@ -2183,7 +2194,7 @@ extern "C" size_t structure_session_residue_to_id(void *mol, void* res)
     }
 }
 
-extern "C" void* structure_session_id_to_atom(void *mol, size_t i)
+extern "C" EXPORT void* structure_session_id_to_atom(void *mol, size_t i)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2194,7 +2205,7 @@ extern "C" void* structure_session_id_to_atom(void *mol, size_t i)
     }
 }
 
-extern "C" void* structure_session_id_to_bond(void *mol, size_t i)
+extern "C" EXPORT void* structure_session_id_to_bond(void *mol, size_t i)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2205,7 +2216,7 @@ extern "C" void* structure_session_id_to_bond(void *mol, size_t i)
     }
 }
 
-extern "C" void* structure_session_id_to_chain(void *mol, size_t i)
+extern "C" EXPORT void* structure_session_id_to_chain(void *mol, size_t i)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2216,7 +2227,7 @@ extern "C" void* structure_session_id_to_chain(void *mol, size_t i)
     }
 }
 
-extern "C" void* structure_session_id_to_residue(void *mol, size_t i)
+extern "C" EXPORT void* structure_session_id_to_residue(void *mol, size_t i)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2227,7 +2238,7 @@ extern "C" void* structure_session_id_to_residue(void *mol, size_t i)
     }
 }
 
-extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *floats, PyObject *misc)
+extern "C" EXPORT int structure_session_info(void *mol, PyObject *ints, PyObject *floats, PyObject *misc)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2238,7 +2249,7 @@ extern "C" int structure_session_info(void *mol, PyObject *ints, PyObject *float
     }
 }
 
-extern "C" void structure_session_restore(void *mol, int version,
+extern "C" EXPORT void structure_session_restore(void *mol, int version,
     PyObject *ints, PyObject *floats, PyObject *misc)
 {
     Structure *m = static_cast<Structure *>(mol);
@@ -2249,7 +2260,7 @@ extern "C" void structure_session_restore(void *mol, int version,
     }
 }
 
-extern "C" void structure_session_restore_setup(void *mol)
+extern "C" EXPORT void structure_session_restore_setup(void *mol)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2259,7 +2270,7 @@ extern "C" void structure_session_restore_setup(void *mol)
     }
 }
 
-extern "C" void structure_session_restore_teardown(void *mol)
+extern "C" EXPORT void structure_session_restore_teardown(void *mol)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2269,7 +2280,7 @@ extern "C" void structure_session_restore_teardown(void *mol)
     }
 }
 
-extern "C" void structure_session_save_setup(void *mol)
+extern "C" EXPORT void structure_session_save_setup(void *mol)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2279,7 +2290,7 @@ extern "C" void structure_session_save_setup(void *mol)
     }
 }
 
-extern "C" void structure_session_save_teardown(void *mol)
+extern "C" EXPORT void structure_session_save_teardown(void *mol)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2289,7 +2300,7 @@ extern "C" void structure_session_save_teardown(void *mol)
     }
 }
 
-extern "C" void structure_start_change_tracking(void *mol, void *vct)
+extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)
 {
     Structure *m = static_cast<Structure *>(mol);
     ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
@@ -2300,7 +2311,7 @@ extern "C" void structure_start_change_tracking(void *mol, void *vct)
     }
 }
 
-extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
+extern "C" EXPORT PyObject *structure_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
 {
     Structure *m = static_cast<Structure *>(mol);
     PyObject *poly = NULL;
@@ -2324,7 +2335,7 @@ extern "C" PyObject *structure_polymers(void *mol, int consider_missing_structur
     }
 }
 
-extern "C" void *structure_new(PyObject* logger)
+extern "C" EXPORT void *structure_new(PyObject* logger)
 {
     try {
         Structure *g = new Structure(logger);
@@ -2335,7 +2346,7 @@ extern "C" void *structure_new(PyObject* logger)
     }
 }
 
-extern "C" void *atomic_structure_new(PyObject* logger)
+extern "C" EXPORT void *atomic_structure_new(PyObject* logger)
 {
     try {
         AtomicStructure *m = new AtomicStructure(logger);
@@ -2346,7 +2357,7 @@ extern "C" void *atomic_structure_new(PyObject* logger)
     }
 }
 
-extern "C" void structure_delete(void *mol)
+extern "C" EXPORT void structure_delete(void *mol)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2356,7 +2367,7 @@ extern "C" void structure_delete(void *mol)
     }
 }
 
-extern "C" void *structure_new_atom(void *mol, const char *atom_name, const char *element_name)
+extern "C" EXPORT void *structure_new_atom(void *mol, const char *atom_name, const char *element_name)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2368,7 +2379,7 @@ extern "C" void *structure_new_atom(void *mol, const char *atom_name, const char
     }
 }
 
-extern "C" void *structure_new_bond(void *mol, void *atom1, void *atom2)
+extern "C" EXPORT void *structure_new_bond(void *mol, void *atom1, void *atom2)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2380,7 +2391,7 @@ extern "C" void *structure_new_bond(void *mol, void *atom1, void *atom2)
     }
 }
 
-extern "C" void *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos)
+extern "C" EXPORT void *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
@@ -2392,7 +2403,7 @@ extern "C" void *structure_new_residue(void *mol, const char *residue_name, cons
     }
 }
 
-extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
+extern "C" EXPORT void metadata(void *mols, size_t n, pyobject_t *headers)
 {
     Structure **m = static_cast<Structure **>(mols);
     PyObject* header_map = NULL;
@@ -2418,7 +2429,7 @@ extern "C" void metadata(void *mols, size_t n, pyobject_t *headers)
     }
 }
 
-extern "C" void pdb_version(void *mols, size_t n, int32_t *version)
+extern "C" EXPORT void pdb_version(void *mols, size_t n, int32_t *version)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -2429,7 +2440,7 @@ extern "C" void pdb_version(void *mols, size_t n, int32_t *version)
     }
 }
 
-extern "C" void set_pdb_version(void *mols, size_t n, int32_t *version)
+extern "C" EXPORT void set_pdb_version(void *mols, size_t n, int32_t *version)
 {
     Structure **m = static_cast<Structure **>(mols);
     try {
@@ -2443,7 +2454,7 @@ extern "C" void set_pdb_version(void *mols, size_t n, int32_t *version)
 // -------------------------------------------------------------------------
 // element functions
 //
-extern "C" void element_name(void *elements, size_t n, pyobject_t *names)
+extern "C" EXPORT void element_name(void *elements, size_t n, pyobject_t *names)
 {
     Element **e = static_cast<Element **>(elements);
     try {
@@ -2454,7 +2465,7 @@ extern "C" void element_name(void *elements, size_t n, pyobject_t *names)
     }
 }
 
-extern "C" PyObject* element_names()
+extern "C" EXPORT PyObject* element_names()
 {
     PyObject* e_names = NULL;
     try {
@@ -2465,19 +2476,19 @@ extern "C" PyObject* element_names()
     return e_names;
 }
 
-extern "C" void element_number(void *elements, size_t n, uint8_t *number)
+extern "C" EXPORT void element_number(void *elements, size_t n, uint8_t *number)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::number, number);
 }
 
-extern "C" void element_mass(void *elements, size_t n, float *mass)
+extern "C" EXPORT void element_mass(void *elements, size_t n, float *mass)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::mass, mass);
 }
 
-extern "C" void *element_number_get_element(int en)
+extern "C" EXPORT void *element_number_get_element(int en)
 {
     try {
         return (void*)(&Element::get_element(en));
@@ -2487,7 +2498,7 @@ extern "C" void *element_number_get_element(int en)
     }
 }
 
-extern "C" void *element_name_get_element(const char *en)
+extern "C" EXPORT void *element_name_get_element(const char *en)
 {
     try {
         return (void*)(&Element::get_element(en));
@@ -2497,31 +2508,31 @@ extern "C" void *element_name_get_element(const char *en)
     }
 }
 
-extern "C" void element_is_alkali_metal(void *elements, size_t n, npy_bool *a_metal)
+extern "C" EXPORT void element_is_alkali_metal(void *elements, size_t n, npy_bool *a_metal)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::is_alkali_metal, a_metal);
 }
 
-extern "C" void element_is_halogen(void *elements, size_t n, npy_bool *halogen)
+extern "C" EXPORT void element_is_halogen(void *elements, size_t n, npy_bool *halogen)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::is_halogen, halogen);
 }
 
-extern "C" void element_is_metal(void *elements, size_t n, npy_bool *metal)
+extern "C" EXPORT void element_is_metal(void *elements, size_t n, npy_bool *metal)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::is_metal, metal);
 }
 
-extern "C" void element_is_noble_gas(void *elements, size_t n, npy_bool *ngas)
+extern "C" EXPORT void element_is_noble_gas(void *elements, size_t n, npy_bool *ngas)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::is_noble_gas, ngas);
 }
 
-extern "C" void element_valence(void *elements, size_t n, uint8_t *valence)
+extern "C" EXPORT void element_valence(void *elements, size_t n, uint8_t *valence)
 {
     Element **e = static_cast<Element **>(elements);
     error_wrap_array_get(e, n, &Element::valence, valence);
@@ -2598,7 +2609,7 @@ private:
 
 class Array_Updater *array_updater = NULL;
 
-extern "C" void remove_deleted_c_pointers(PyObject *numpy_array)
+extern "C" EXPORT void remove_deleted_c_pointers(PyObject *numpy_array)
 {
     try {
         if (array_updater == NULL)
@@ -2610,7 +2621,7 @@ extern "C" void remove_deleted_c_pointers(PyObject *numpy_array)
     }
 }
 
-extern "C" void pointer_array_freed(void *numpy_array)
+extern "C" EXPORT void pointer_array_freed(void *numpy_array)
 {
     try {
         if (array_updater) {
@@ -2681,7 +2692,7 @@ private:
     }
 };
 
-extern "C" void *object_map_deletion_handler(void *object_map)
+extern "C" EXPORT void *object_map_deletion_handler(void *object_map)
 {
     try {
 	return new Object_Map_Deletion_Handler(static_cast<PyObject *>(object_map));
@@ -2691,7 +2702,7 @@ extern "C" void *object_map_deletion_handler(void *object_map)
     }
 }
 
-extern "C" void delete_object_map_deletion_handler(void *handler)
+extern "C" EXPORT void delete_object_map_deletion_handler(void *handler)
 {
     try {
         delete static_cast<Object_Map_Deletion_Handler *>(handler);
@@ -2738,7 +2749,7 @@ static IArray* _numpy_ints3(PyObject *a, IArray *iarray)
     throw std::invalid_argument("not an int[3] array");
 }
 
-extern "C" void *rxsection_new(PyObject* coords, PyObject* coords2,
+extern "C" EXPORT void *rxsection_new(PyObject* coords, PyObject* coords2,
                                PyObject* normals, PyObject* normals2,
                                bool faceted, PyObject* tess)
 {
@@ -2758,7 +2769,7 @@ extern "C" void *rxsection_new(PyObject* coords, PyObject* coords2,
     }
 }
 
-extern "C" void rxsection_delete(void *p)
+extern "C" EXPORT void rxsection_delete(void *p)
 {
     auto *xs = static_cast<RibbonXSection *>(p);
     try {
@@ -2768,7 +2779,7 @@ extern "C" void rxsection_delete(void *p)
     }
 }
 
-extern "C" PyObject *rxsection_extrude(void *p, PyObject *centers,
+extern "C" EXPORT PyObject *rxsection_extrude(void *p, PyObject *centers,
                                        PyObject *tangents, PyObject *normals,
                                        PyObject *colors, bool cap_front,
                                        bool cap_back, int offset)
@@ -2788,7 +2799,7 @@ extern "C" PyObject *rxsection_extrude(void *p, PyObject *centers,
     }
 }
 
-extern "C" PyObject *rxsection_blend(void *p, PyObject *back_band, PyObject *front_band)
+extern "C" EXPORT PyObject *rxsection_blend(void *p, PyObject *back_band, PyObject *front_band)
 {
     auto *xs = static_cast<RibbonXSection *>(p);
     IArray back, front;
@@ -2803,7 +2814,7 @@ extern "C" PyObject *rxsection_blend(void *p, PyObject *back_band, PyObject *fro
     }
 }
 
-extern "C" void* rxsection_scale(void *p, float x_scale, float y_scale)
+extern "C" EXPORT void* rxsection_scale(void *p, float x_scale, float y_scale)
 {
     auto *xs = static_cast<RibbonXSection *>(p);
     try {
@@ -2815,7 +2826,7 @@ extern "C" void* rxsection_scale(void *p, float x_scale, float y_scale)
     }
 }
 
-extern "C" void* rxsection_arrow(void *p, float x1_scale, float y1_scale,
+extern "C" EXPORT void* rxsection_arrow(void *p, float x1_scale, float y1_scale,
                                      float x2_scale, float y2_scale)
 {
     auto *xs = static_cast<RibbonXSection *>(p);
@@ -2925,7 +2936,7 @@ inline float rad2deg(float r)
 }
 #endif
 
-extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end,
+extern "C" EXPORT PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end,
                                          int flip_mode, bool start_flipped, bool end_flipped,
                                          bool no_twist)
 {
@@ -3063,7 +3074,7 @@ extern "C" PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_sta
 
 // -------------------------------------------------------------------------
 // pointer array functions
-extern "C" ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
+extern "C" EXPORT ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
 {
     void **pa = static_cast<void **>(pointer_array);
     try {
@@ -3077,7 +3088,7 @@ extern "C" ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
     }
 }
 
-extern "C" void pointer_mask(void *pointer_array, size_t n, void *pointer_array2, size_t n2, unsigned char *mask)
+extern "C" EXPORT void pointer_mask(void *pointer_array, size_t n, void *pointer_array2, size_t n2, unsigned char *mask)
 {
     void **pa = static_cast<void **>(pointer_array);
     void **pa2 = static_cast<void **>(pointer_array2);
@@ -3092,7 +3103,7 @@ extern "C" void pointer_mask(void *pointer_array, size_t n, void *pointer_array2
     }
 }
 
-extern "C" void pointer_indices(void *pointer_array, size_t n, void *pointer_array2, size_t n2, int *indices)
+extern "C" EXPORT void pointer_indices(void *pointer_array, size_t n, void *pointer_array2, size_t n2, int *indices)
 {
     void **pa = static_cast<void **>(pointer_array);
     void **pa2 = static_cast<void **>(pointer_array2);
@@ -3109,7 +3120,7 @@ extern "C" void pointer_indices(void *pointer_array, size_t n, void *pointer_arr
     }
 }
 
-extern "C" bool pointer_intersects(void *pointer_array, size_t n, void *pointer_array2, size_t n2)
+extern "C" EXPORT bool pointer_intersects(void *pointer_array, size_t n, void *pointer_array2, size_t n2)
 {
     void **pa = static_cast<void **>(pointer_array);
     void **pa2 = static_cast<void **>(pointer_array2);
@@ -3127,7 +3138,7 @@ extern "C" bool pointer_intersects(void *pointer_array, size_t n, void *pointer_
     }
 }
 
-extern "C" void pointer_intersects_each(void *pointer_arrays, size_t na, size_t *sizes,
+extern "C" EXPORT void pointer_intersects_each(void *pointer_arrays, size_t na, size_t *sizes,
                                         void *pointer_array, size_t n,
                                         npy_bool *intersects)
 {

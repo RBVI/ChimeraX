@@ -2,7 +2,7 @@
 # Generic wrapper for commands that need different style paths
 # For example: for rsync, name this program rsync.convert
 PROG=`basename "$0" .convert`
-CYGPATH_TYPE=-u
+#CYGPATH_TYPE=-u
 declare -a ARGS
 ARGS=("$@")
 for ((i = 0; i < $#; ++i))

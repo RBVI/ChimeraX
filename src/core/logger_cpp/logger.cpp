@@ -5,6 +5,7 @@
 #include <string>
 
 #include "Python.h"
+#define LOGGER_EXPORT
 #include "logger.h"
 
 namespace {

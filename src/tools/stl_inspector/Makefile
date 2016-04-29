@@ -21,7 +21,6 @@ COMMAND_NAME =
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
-APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
 
 PYSRCS = $(wildcard *.py)
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
@@ -45,7 +44,7 @@ wheel: setup.py timestamp
 setup.py: setup.py.in Makefile
 	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
-		-e 's,LIB_DIR,$(libdir),' \
+		-e 's,SHLIB_DIR,$(shlibdir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		-e 's,#$(OS)#,,' \

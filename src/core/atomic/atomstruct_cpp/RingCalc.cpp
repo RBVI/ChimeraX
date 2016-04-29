@@ -1,6 +1,7 @@
 // vi: set expandtab ts=4 sw=4:
 
 #include <list>
+#include <iterator>
 #include <map>
 #include <set>
 #include <unordered_map>
@@ -8,6 +9,7 @@
 #define MAP map
 #define SET set
 
+#define ATOMSTRUCT_EXPORT
 #include "Bond.h"
 #include "Structure.h"
 #include "Residue.h"

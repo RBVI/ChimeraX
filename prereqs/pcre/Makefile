@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 8.36
+VERSION = 8.38
 LIBPCRE_VER = 1
 LIBPCRECPP_VER = 0
 LIBPCREPOSIX_VER = 0
@@ -27,6 +27,7 @@ endif
 endif # UNIX
 
 ifeq ($(OS),Windows)
+CMAKE =  '/cygdrive/c/Program Files (x86)/CMake/bin/cmake'
 CMAKE_OPTS = -DCMAKE_INSTALL_PREFIX=$(build_prefix) \
 	-DCMAKE_PREFIX_PATH=$(build_prefix) \
 	-DBUILD_SHARED_LIBS=1 \
@@ -38,11 +39,11 @@ CMAKE_OPTS += -DCMAKE_BUILD_TYPE=Release
 endif
 
 ifeq ($(OSARCH),Windows64)
-CMAKE_OPTS += -G 'Visual Studio 9 2008 Win64'
+CMAKE_OPTS += -G 'Visual Studio 14 2015 Win64'
 CONFIG = Release
 PLATFORM = x64
 else
-CMAKE_OPTS += -G 'Visual Studio 9 2008'
+CMAKE_OPTS += -G 'Visual Studio 10 2015'
 CONFIG = Release
 PLATFORM = Win32
 endif
@@ -54,9 +55,9 @@ all:
 
 install: $(SOURCE)
 ifeq ($(OS),Windows)
-	cd $(SOURCE)/build && devenv.com PCRE.sln /build $(CONFIG_PLATFORM) /project pcre
-	cd $(SOURCE)/build && devenv.com PCRE.sln /build $(CONFIG_PLATFORM) /project pcreposix
-	cd $(SOURCE)/build && devenv.com PCRE.sln /build $(CONFIG_PLATFORM) /project pcrecpp
+	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcre
+	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcreposix
+	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcrecpp
 	$(RSYNC) $(SOURCE)/build/Release/*.$(SHLIB_EXT) $(shlibdir)
 	$(RSYNC) $(SOURCE)/build/Release/*.$(LIB_EXT) $(libdir)
 	$(RSYNC) $(SOURCE)/pcre{cpp,posix,_scanner}.h $(includedir)
@@ -92,7 +93,7 @@ ifdef UNIX
 	cd $(SOURCE) && $(ENV_CONFIGURE) ./configure $(CONF_ARGS)
 endif
 ifeq ($(OS),Windows)
-	mkdir $(SOURCE)/build && cd $(SOURCE)/build && cmake $(CMAKE_OPTS) ..
+	mkdir $(SOURCE)/build && cd $(SOURCE)/build && $(CMAKE) $(CMAKE_OPTS) ..
 endif
 
 clean:

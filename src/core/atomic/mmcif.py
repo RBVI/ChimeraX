@@ -78,7 +78,7 @@ def _get_template(name, app_dirs, logger):
     """Get Chemical Component Dictionary (CCD) entry"""
     import os
     # check in local cache
-    filename = "~/Downloads/Chimera/CCD/%s.cif" % name
+    filename = os.path.join('~', 'Downloads', 'Chimera', 'CCD', '%s.cif' % name)
     filename = os.path.expanduser(filename)
 
     if os.path.exists(filename):

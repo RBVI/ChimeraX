@@ -15,7 +15,11 @@ endif
 include $(TOP)/mk/subdir.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax/core
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core
+ifdef WIN32
+PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
+shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
+datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
+endif
 
 GENSRCS = buildinfo.py
 PYSRCS = $(wildcard *.py) $(GENSRCS)
@@ -41,7 +45,7 @@ wheel: setup.py timestamp
 
 setup.py: setup.py.in
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
-		-e 's,LIB_DIR,$(libdir),' \
+		-e 's,SHLIB_DIR,$(shlibdir),' \
 		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
