@@ -12,5 +12,6 @@ install:
 
 
 app-install:;
+	$(RSYNC) $(VC_DIR)/redist/x64/Microsoft.VC140.CRT/*.dll $(app_bindir)
 
 clean:
