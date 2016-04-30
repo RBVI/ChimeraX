@@ -243,14 +243,18 @@ def init(argv, event_loop=True):
         core.offscreen_rendering = True
 
     # figure out the user/system directories for application
-    executable = os.path.abspath(sys.argv[0])
-    bindir = os.path.dirname(executable)
+    # invoked with -m ChimeraX_main, so argv[0] is full path to ChimeraX_main
+    # Windows:
+    # 'C:\\....\\ChimeraX.app\\bin\\lib\\site-packages\\ChimeraX_main.py'
+    # Linux:
+    # '..../ChimeraX.app/lib/python3.5/site-packages/ChimeraX_main.py'
+    # Mac OS X:
+    # '..../ChimeraX.app/Contents/lib/python3.5/site-packages/ChimeraX_main.py'
+    # TODO: more robust way
+    dn = os.path.dirname
+    rootdir = dn(dn(dn(dn(sys.argv[0]))))
     if sys.platform.startswith('linux'):
-        if os.path.basename(bindir) == "bin":
-            configdir = os.path.dirname(bindir)
-        else:
-            configdir = bindir
-        os.environ['XDG_CONFIG_DIRS'] = configdir
+        os.environ['XDG_CONFIG_DIRS'] = rootdir
 
     from distlib.version import NormalizedVersion as Version
     epoch, ver, *_ = Version(version).parse(version)
@@ -282,7 +286,6 @@ def init(argv, event_loop=True):
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
-    rootdir = os.path.dirname(bindir)
     import chimerax
     chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_bin_dir = os.path.join(rootdir, "bin")
