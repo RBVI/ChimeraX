@@ -5,6 +5,8 @@ SUBDIRS	= idatm
 include $(TOP)/mk/subdir.make
 
 #LIBNAME = tmpl
+DIRNAME = $(shell basename `pwd`)
+DIRNAME := atomstruct/$(DIRNAME:_cpp=)
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
@@ -18,6 +20,8 @@ INCS += -I$(includedir)
 all: $(OBJS)
 
 install: all
+	-mkdir -p $(includedir)/$(DIRNAME)
+	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
 
 templates:
 	cd leap-templates ; \
