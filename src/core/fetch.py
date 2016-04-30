@@ -1,20 +1,26 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+
 # -----------------------------------------------------------------------------
 #
-def fetch_file(session, url, name, save_name, save_dir, uncompress = False,
-               cache_dir = None, ignore_cache = False, check_certificates=True):
+def fetch_file(session, url, name, save_name, save_dir, *,
+               uncompress=False, ignore_cache=False, check_certificates=True):
     import os
-    if cache_dir is None:
-        cache_dir = os.path.join('~', 'Downloads', 'Chimera')
-    filename = os.path.join(cache_dir, save_dir, save_name)
-    from os.path import expanduser, exists, dirname
-    filename = expanduser(filename)
-    if not ignore_cache and exists(filename):
-        return filename
+    if len(_cache_dirs) == 0:
+        _cache_dirs.append(session.app_dirs_unversioned)
+        old_cache_dir = os.path.join('~', 'Downloads', 'Chimera')
+        old_cache_dir = os.path.expanduser(old_cache_dir)
+        if os.path.isdir(old_cache_dir):
+            _cache_dirs.append(old_cache_dir)
 
-    dirname = dirname(filename)
-    import os
+    if not ignore_cache:
+        for d in _cache_dirs:
+            filename = os.path.join(d, save_dir, save_name)
+            if os.path.exists(filename):
+                return filename
+
+    dirname = os.path.join(_cache_dirs[0], save_dir)
+    filename = os.path.join(dirname, save_name)
     os.makedirs(dirname, exist_ok=True)
 
     from urllib.request import URLError, Request
@@ -27,6 +33,8 @@ def fetch_file(session, url, name, save_name, save_dir, uncompress = False,
         from .errors import UserError
         raise UserError('Fetching url %s failed:\n%s' % (url, str(e)))
     return filename
+_cache_dirs = []
+
 
 # -----------------------------------------------------------------------------
 #
@@ -75,7 +83,7 @@ def retrieve_cached_url(request, filename, logger=None,
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
-        with urlopen(request, context = ssl_context) as response:
+        with urlopen(request, context=ssl_context) as response:
             compressed = (response.headers['Content-Encoding'] == 'gzip' or uncompress)
             if logger:
                 logger.status('fetching%s %s' % (
@@ -101,6 +109,7 @@ def retrieve_cached_url(request, filename, logger=None,
         if logger:
             logger.status('Error fetching %s' % name, secondary=True, blank_after=15)
         raise
+
 
 # -----------------------------------------------------------------------------
 #
@@ -171,6 +180,7 @@ def html_user_agent(app_dirs):
         user_agent += " (%s)" % comment(system)
     return user_agent
 
+
 # -----------------------------------------------------------------------------
 #
 def _convert_to_timestamp(date):
@@ -180,6 +190,7 @@ def _convert_to_timestamp(date):
         return parsedate_to_datetime(date).timestamp()
     except TypeError:
         return None
+
 
 # -----------------------------------------------------------------------------
 #
@@ -195,6 +206,7 @@ def register_fetch(session, database_name, fetch_function, file_format,
     for p in prefixes:
         df.prefix_format[p] = file_format
 
+
 # -----------------------------------------------------------------------------
 #
 def fetch_databases(session):
@@ -203,10 +215,12 @@ def fetch_databases(session):
         session._database_fetches = d = {}
     return d
 
+
 # -----------------------------------------------------------------------------
 #
 def database_formats(session, from_database):
     return fetch_databases(session)[from_database].fetch_function.keys()
+
 
 # -----------------------------------------------------------------------------
 #
@@ -214,12 +228,13 @@ def fetch_from_database(session, from_database, id, format=None, name=None, igno
     d = fetch_databases(session)
     df = d[from_database]
     from .logger import Collator
-    with Collator(session.logger, "Summary of problems opening %s fetched from %s"  % (id, from_database)):
+    with Collator(session.logger, "Summary of problems opening %s fetched from %s" % (id, from_database)):
         models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache)
     if name is not None:
         for m in models:
             m.name = name
     return models, status
+
 
 # -----------------------------------------------------------------------------
 #
@@ -230,23 +245,28 @@ def fetch_from_prefix(session, prefix):
             return db.database_name, db.prefix_format[prefix]
     return None, None
 
+
 # -----------------------------------------------------------------------------
 #
 def prefixes(session):
     d = fetch_databases(session)
     return sum((tuple(db.prefix_format.keys()) for db in d.values()), ())
 
+
 # -----------------------------------------------------------------------------
 #
 class DatabaseFetch:
+
     def __init__(self, database_name, default_format):
         self.database_name = database_name
         self.default_format = default_format
         self.fetch_function = {}		# Map format to fetch function
         self.prefix_format = {}
+
     def add_format(self, format_name, fetch_function):
         # fetch_function() takes session and database id arguments, returns model list.
         self.fetch_function[format_name] = fetch_function
+
     def fetch(self, session, database_id, format=None, ignore_cache=False):
         f = self.default_format if format is None else format
         fetch = self.fetch_function[f]
