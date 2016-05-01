@@ -46,22 +46,22 @@ localized_app_name = {
 
 if sys.platform.startswith('win'):
     # Python on Windows is missing the <sysexits.h> exit codes
-    os.EX_OK =          0       # successful termination
-    os.EX_USAGE =       64      # command line usage error
-    os.EX_DATAERR =     65      # data format error
-    os.EX_NOINPUT =     66      # cannot open input
-    os.EX_NOUSER =      67      # addressee unknown
-    os.EX_NOHOST =      68      # host name unknown
+    os.EX_OK = 0                # successful termination
+    os.EX_USAGE = 64            # command line usage error
+    os.EX_DATAERR = 65          # data format error
+    os.EX_NOINPUT = 66          # cannot open input
+    os.EX_NOUSER = 67           # addressee unknown
+    os.EX_NOHOST = 68           # host name unknown
     os.EX_UNAVAILABLE = 69      # service unavailable
-    os.EX_SOFTWARE =    70      # internal software error
-    os.EX_OSERR =       71      # system error (e.g., can't fork)
-    os.EX_OSFILE =      72      # critical OS file missing
-    os.EX_CANTCREAT =   73      # can't create (user) output file
-    os.EX_IOERR =       74      # input/output error
-    os.EX_TEMPFAIL =    75      # temp failure; user is invited to retry
-    os.EX_PROTOCOL =    76      # remote error in protocol
-    os.EX_NOPERM =      77      # permission denied
-    os.EX_CONFIG =      78      # configuration error
+    os.EX_SOFTWARE = 70         # internal software error
+    os.EX_OSERR = 71            # system error (e.g., can't fork)
+    os.EX_OSFILE = 72           # critical OS file missing
+    os.EX_CANTCREAT = 73        # can't create (user) output file
+    os.EX_IOERR = 74            # input/output error
+    os.EX_TEMPFAIL = 75         # temp failure; user is invited to retry
+    os.EX_PROTOCOL = 76         # remote error in protocol
+    os.EX_NOPERM = 77           # permission denied
+    os.EX_CONFIG = 78           # configuration error
 
 
 def parse_arguments(argv):
@@ -245,16 +245,27 @@ def init(argv, event_loop=True):
     # figure out the user/system directories for application
     # invoked with -m ChimeraX_main, so argv[0] is full path to ChimeraX_main
     # Windows:
-    # 'C:\\....\\ChimeraX.app\\bin\\lib\\site-packages\\ChimeraX_main.py'
+    # 'C:\\...\\ChimeraX.app\\bin\\lib\\site-packages\\ChimeraX_main.py'
     # Linux:
-    # '..../ChimeraX.app/lib/python3.5/site-packages/ChimeraX_main.py'
+    # '/.../ChimeraX.app/lib/python3.5/site-packages/ChimeraX_main.py'
     # Mac OS X:
-    # '..../ChimeraX.app/Contents/lib/python3.5/site-packages/ChimeraX_main.py'
+    # '/.../ChimeraX.app/Contents/lib/python3.5/site-packages/ChimeraX_main.py'
     # TODO: more robust way
     dn = os.path.dirname
     rootdir = dn(dn(dn(dn(sys.argv[0]))))
     if sys.platform.startswith('linux'):
         os.environ['XDG_CONFIG_DIRS'] = rootdir
+
+    if sys.platform.startswith('win'):
+        import ctypes
+        # getpn = ctypes.pythonapi.Py_GetProgramName
+        # getpn.restype = ctypes.c_wchar_p
+        # pn = getpn()
+        # assert(os.path.dirname(pn) == rootdir)
+        setdlldir = ctypes.windll.kernel32.SetDllDirectoryW
+        setdlldir.argtypes = [ctypes.c_wchar_p]
+        setdlldir.restype = ctypes.c_bool
+        setdlldir(os.path.join(rootdir, 'bin'))
 
     from distlib.version import NormalizedVersion as Version
     epoch, ver, *_ = Version(version).parse(version)
@@ -391,7 +402,7 @@ def init(argv, event_loop=True):
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         sess.tools.start_tools(opts.start_tools)
-        
+
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
                             next(splash_step), num_splash_steps)
@@ -478,8 +489,8 @@ def uninstall(sess):
             return os.EX_SOFTWARE
         from chimerax.core import _xdg
         _xdg.uninstall(sess)
-        #parent = os.path.dirname(exe_dir)
-        #rm_rf_path(parent, sess)
+        # parent = os.path.dirname(exe_dir)
+        # rm_rf_path(parent, sess)
         return os.EX_OK
 
     if sys.platform.startswith('darwin'):

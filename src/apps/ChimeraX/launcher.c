@@ -31,9 +31,6 @@ app_main(int argc, wchar_t** wargv)
 	for (int i = 1; i < argc; ++i)
 		args[i + EXTRA] = wargv[i];
 
-#if 0
-	PySys_SetArgvEx(argc, args + EXTRA, 0);
-#endif
 	int result = Py_Main(argc + EXTRA, args);
 	return result;
 }
