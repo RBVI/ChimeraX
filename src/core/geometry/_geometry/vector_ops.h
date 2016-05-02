@@ -12,7 +12,7 @@ extern "C"
 
 // Computes sum in 64-bit, 1-d arrays only.
 PyObject *inner_product_64(PyObject *s, PyObject *args, PyObject *keywds);
-const char *inner_product_64_doc;
+extern const char *inner_product_64_doc;
 
 }
 
