@@ -300,7 +300,7 @@ def init(argv, event_loop=True):
     import chimerax
     chimerax.app_bin_dir = os.path.join(rootdir, "bin")
     if sys.platform.startswith('win'):
-        chimerax.app_data_dir = os.path.join(chimera.app_bin_dir, "share")
+        chimerax.app_data_dir = os.path.join(chimerax.app_bin_dir, "share")
     else:
         chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_lib_dir = os.path.join(rootdir, "lib")
