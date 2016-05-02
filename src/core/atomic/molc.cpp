@@ -36,7 +36,7 @@
 #ifdef _WIN32
 # define EXPORT __declspec(dllexport)
 #else
-# define EXPORT _attribute__((__visibility__("default")))
+# define EXPORT __attribute__((__visibility__("default")))
 #endif
 
 // Argument delcaration types:
