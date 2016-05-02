@@ -250,9 +250,12 @@ def init(argv, event_loop=True):
     # '/.../ChimeraX.app/lib/python3.5/site-packages/ChimeraX_main.py'
     # Mac OS X:
     # '/.../ChimeraX.app/Contents/lib/python3.5/site-packages/ChimeraX_main.py'
+    # '/.../ChimeraX.app/Contents/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/ChimeraX_main.py'
     # TODO: more robust way
     dn = os.path.dirname
     rootdir = dn(dn(dn(dn(sys.argv[0]))))
+    if sys.platform.startswith('darwin'):
+        rootdir = dn(dn(dn(dn(dn(rootdir)))))
     if sys.platform.startswith('linux'):
         os.environ['XDG_CONFIG_DIRS'] = rootdir
 
