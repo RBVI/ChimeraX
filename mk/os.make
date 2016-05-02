@@ -40,7 +40,7 @@ endif
 
 	OPENGL_LIBS = -L$(libdir) -lGLU -lGL
 	INCS = -I$(includedir)
-	LIBS = -I$(libdir)
+	LIBS = -L$(libdir)
 endif
 
 #### Darwin, a.k.a., Apple Mac OS X
@@ -80,7 +80,7 @@ endif
 
 	OPENGL_LIBS = -framework OpenGL
 	INCS = -I$(includedir)
-	LIBS = -I$(libdir)
+	LIBS = -L$(libdir)
 endif
 
 # Microsoft Windows
