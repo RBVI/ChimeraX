@@ -298,8 +298,11 @@ def init(argv, event_loop=True):
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
     import chimerax
-    chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_bin_dir = os.path.join(rootdir, "bin")
+    if sys.platform.startswith('win'):
+        chimerax.app_data_dir = os.path.join(chimera.app_bin_dir, "share")
+    else:
+        chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_lib_dir = os.path.join(rootdir, "lib")
 
     # inform the C++ layer of the appdirs paths

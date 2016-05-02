@@ -32,6 +32,10 @@ PYVER_NODOT = $(subst .,,$(PYTHON_VERSION))
 
 include $(TOP)/mk/os.make
 
+ifeq ($(OS),Windows)
+datadir = $(bindir)/share
+endif
+
 APP_NAME = ChimeraX
 
 ifeq ($(OS),Darwin)
@@ -49,7 +53,11 @@ app_shlibdir = $(app_bindir)
 else
 app_shlibdir = $(app_libdir)
 endif
+ifeq ($(OS),Windows)
+app_datadir = $(app_bindir)/share
+else
 app_datadir = $(app_prefix)/share
+endif
 
 ifndef WIN32
 RSYNC = rsync -rltWv --executability
