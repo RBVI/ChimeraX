@@ -7,7 +7,7 @@ def fetch_file(session, url, name, save_name, save_dir, *,
                uncompress=False, ignore_cache=False, check_certificates=True):
     import os
     if len(_cache_dirs) == 0:
-        _cache_dirs.append(session.app_dirs_unversioned)
+        _cache_dirs.append(session.app_dirs_unversioned.user_cache_dir)
         old_cache_dir = os.path.join('~', 'Downloads', 'Chimera')
         old_cache_dir = os.path.expanduser(old_cache_dir)
         if os.path.isdir(old_cache_dir):
