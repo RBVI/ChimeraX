@@ -8,7 +8,11 @@ ifeq ($(OS),Darwin)
 LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
 endif
 
+ifdef WIN32
+PROG	= $(APP_NAME).exe
+else
 PROG	= $(APP_NAME)
+endif
 STRIP	=
 BINMODE	= 755
 
