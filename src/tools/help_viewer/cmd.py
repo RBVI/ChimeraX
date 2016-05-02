@@ -46,10 +46,11 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
         url_path = quote(url_path)
         path = url2pathname(url_path)
         # make sure path is a relative path
-        if sys.platform.startswith('win'):
-            path = os.path.relpath(path, os.path.splitdrive(path)[0])
-        else:
-            path = os.path.relpath(path, '/')
+        if os.path.isabs(path):
+            if sys.platform.startswith('win'):
+                path = os.path.relpath(path, os.path.splitdrive(path)[0])
+            else:
+                path = os.path.relpath(path, '/')
         path = os.path.join(base_dir, path)
         if not os.path.exists(path):
             # TODO: check if http url is within ChimeraX docs
