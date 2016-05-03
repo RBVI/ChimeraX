@@ -7,6 +7,7 @@
 
 #include <arrays/pythonarray.h>		// use parse_float_n3_array, ...
 #include <arrays/rcarray.h>		// use FArray
+#include "bounds.h"
 
 // -----------------------------------------------------------------------------
 //

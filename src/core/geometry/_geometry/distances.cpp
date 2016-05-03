@@ -2,6 +2,7 @@
 // ----------------------------------------------------------------------------
 //
 #include <math.h>			// use sqrt()
+#include "distances.h"
 
 namespace Distances
 {

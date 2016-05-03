@@ -6,6 +6,7 @@
 
 #include <arrays/pythonarray.h>		// use array_from_python()
 #include <arrays/rcarray.h>		// use call_template_function()
+#include "transform.h"
 
 // ----------------------------------------------------------------------------
 //

@@ -6,6 +6,7 @@
 
 #include <arrays/pythonarray.h>		// use array_from_python()
 #include <arrays/rcarray.h>		// use Numeric_Array, Array<T>
+#include "vector_ops.h"
 
 // ----------------------------------------------------------------------------
 //

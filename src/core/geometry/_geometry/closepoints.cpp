@@ -10,6 +10,7 @@
 
 #include <arrays/pythonarray.h>		// use float_2d_array_values()
 #include <arrays/rcarray.h>		// use FArray
+#include "closepoints.h"
 
 using std::vector;
 using std::map;

@@ -6,6 +6,7 @@
 
 #include <arrays/pythonarray.h>		// use array_from_python()
 #include <arrays/rcarray.h>		// use FArray, IArray
+#include "spline.h"
 
 static void solve_tridiagonal(double *y, int n, double *temp);
 
