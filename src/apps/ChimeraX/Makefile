@@ -16,7 +16,7 @@ endif
 STRIP	=
 BINMODE	= 755
 
-PY_MAIN = $(PROG)_main.py
+PY_MAIN = $(APP_NAME)_main.py
 
 ICONS	= ChimeraX-icon.svg ChimeraX-icon512.png
 ifeq ($(OS),Linux)
@@ -55,10 +55,10 @@ lint:
 	$(PYLINT) *.py
 
 run:
-	$(PYTHON_EXE) ChimeraX_main.py
+	$(PYTHON_EXE) $(PY_MAIN)
 
 run-nogui:
-	$(PYTHON_EXE) ChimeraX_main.py --nogui
+	$(PYTHON_EXE) $(PY_MAIN) --nogui
 
 $(PROG): $(OBJS)
 	$(PROG_LINK)
