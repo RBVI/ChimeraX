@@ -51,14 +51,6 @@ endif
 	rm -f $(build_prefix)/q3porting.xml
 ifdef USE_MAC_FRAMEWORKS
 	$(RSYNC) $(libdir)/Qt*.framework $(frameworkdir)
-	# fix rpaths in shared libs
-	for fw in $(frameworkdir)/Qt*.framework; do \
-		fwlib=$$fw/Versions/Current/`basename -s .framework $$fw`; \
-		for linked in `otool -L $$fwlib | grep Qt | grep framework | grep rpath | awk '{ print $$1 }'`; do \
-			fixed=`echo $$linked | sed 's|@rpath|@executable_path/$(RELPATH)|'`; \
-			install_name_tool -change "$$linked" "$$fixed" "$$fwlib"; \
-		done; \
-	done
 	$(MAKE) include
 
 include:
@@ -70,7 +62,8 @@ endif
 
 app-install:
 ifdef USE_MAC_FRAMEWORKS
-	$(RSYNC) $(frameworkdir)/Qt*.framework $(app_frameworkdir)
+	$(RSYNC) $(frameworkdir)/Qt*.framework $(app_libdir)
+	$(RSYNC) $(build_prefix)/plugins $(app_libdir)/..
 endif
 
 $(SOURCE): $(DISTRIBUTION)

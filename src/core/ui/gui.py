@@ -716,10 +716,14 @@ else:
     # remove the build tree plugin path, and add install tree plugin path
     from PyQt5.QtCore import QCoreApplication
     qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
-    import os.path, PyQt5
-    qlib_paths.append(os.path.join(os.path.dirname(PyQt5.__file__), "plugins"))
+    import os.path
+    from ... import app_lib_dir
+    qlib_paths.append(os.path.join(os.path.dirname(app_lib_dir), "plugins"))
     QCoreApplication.setLibraryPaths(qlib_paths)
 
+    # for whatever reason, QtWebEngineWidgets has to be imported before a
+    # QtCoreApplication is created...
+    import PyQt5.QtWebEngineWidgets
     from PyQt5.QtWidgets import QApplication
     class UI(QApplication):
         """Main ChimeraX user interface
@@ -734,31 +738,15 @@ else:
             To execute a function in a thread-safe manner
            """
 
+        required_opengl_version = (3, 3)
+        required_opengl_core_profile = True
+
         def __init__(self, session):
             self.is_gui = True
             self.session = session
 
             import sys
             QApplication.__init__(self, [sys.argv[0]])
-
-            self.required_opengl_version = (3, 3)
-            self.required_opengl_core_profile = True
-            from PyQt5.QtGui import QSurfaceFormat
-            sf = QSurfaceFormat()
-            sf.setVersion(*self.required_opengl_version)
-            """
-            sf.setOption(QSurfaceFormat.StereoBuffers)
-            sf.setStereo(True)
-            """
-            sf.setDepthBufferSize(24)
-            sf.setProfile(QSurfaceFormat.CoreProfile)
-            sf.setRenderableType(QSurfaceFormat.OpenGL)
-            desktop = QApplication.desktop()
-            from ..core_settings import settings
-            ppi = QApplication.primaryScreen().logicalDotsPerInch()
-            if ppi < settings.multisample_threshold:
-                sf.setSamples(4)
-            QSurfaceFormat.setDefaultFormat(sf)
 
             # splash screen
             import os.path
@@ -840,6 +828,15 @@ else:
             if self._keystroke_sinks:
                 self._keystroke_sinks[-1].keyPressEvent(*args, **kw)
 
+    # The surface format has to be set before QtGui is initialized
+    from PyQt5.QtGui import QSurfaceFormat
+    sf = QSurfaceFormat()
+    sf.setVersion(*UI.required_opengl_version)
+    sf.setDepthBufferSize(24)
+    if UI.required_opengl_core_profile:
+        sf.setProfile(QSurfaceFormat.CoreProfile)
+    sf.setRenderableType(QSurfaceFormat.OpenGL)
+    QSurfaceFormat.setDefaultFormat(sf)
 
     from PyQt5.QtWidgets import QMainWindow, QStatusBar, QStackedWidget, QLabel, QDesktopWidget
     class MainWindow(QMainWindow, PlainTextLog):

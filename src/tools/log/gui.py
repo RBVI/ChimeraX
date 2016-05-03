@@ -155,8 +155,8 @@ class Log(ToolInstance, HtmlLog):
         else: # qt
             self.tool_window = LogWindow(self)
             parent = self.tool_window.ui_area
-            from PyQt5.QtWebKitWidgets import QWebView, QWebPage
-            class HtmlWindow(QWebView):
+            from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+            class HtmlWindow(QWebEngineView):
                 def sizeHint(self):
                     from PyQt5.QtCore import QSize
                     return QSize(*Log.SIZE)
@@ -180,8 +180,10 @@ class Log(ToolInstance, HtmlLog):
             #self.log_window.customContextMenuRequested.connect(self.contextMenu)
             #import sys
             #print("context menu policy:", self.log_window.contextMenuPolicy(), file=sys.__stderr__)
-            self.log_window.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
-            self.log_window.linkClicked.connect(self.navigate)
+            def link_clicked(qurl, nav_type, is_main_frame):
+                self.navigate(qurl)
+                return False
+            self.log_window.page().acceptNavigationRequest = link_clicked
             #self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
             #                     id=self.log_window.GetId())
             self.log = self._qt_log
