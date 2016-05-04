@@ -51,11 +51,12 @@ def open_python_script(session, filename, name, *args, **kw):
         code = compile(data, name, 'exec')
         import sys
         import types
+        from chimerax import app_dirs
         global _sandbox_count
         _sandbox_count += 1
         sandbox = types.ModuleType(
-            '%s_sandbox_%d' % (session.app_dirs.appname, _sandbox_count),
-            '%s script sandbox' % session.app_dirs.appname)
+            '%s_sandbox_%d' % (app_dirs.appname, _sandbox_count),
+            '%s script sandbox' % app_dirs.appname)
         setattr(sandbox, 'session', session)
         try:
             sys.modules[sandbox.__name__] = sandbox

@@ -377,7 +377,7 @@ class MainWindow(wx.Frame, PlainTextLog):
                 from chimerax.core.commands import run
                 run(ses, 'help new_viewer help:%s' % t)
             self.Bind(wx.EVT_MENU, cb, item)
-        ad = session.app_dirs
+        from chimerax import app_dirs as ad
         item = help_menu.Append(wx.ID_ANY, "About %s %s" % (ad.appauthor, ad.appname))
         self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.about(ses, evt),
                   item)
@@ -387,11 +387,11 @@ class MainWindow(wx.Frame, PlainTextLog):
         from wx.lib.wordwrap import wordwrap
         import os
         from .. import buildinfo
-        ad = session.app_dirs
+        from chimerax import app_dirs as ad
         width = 400
         dc = wx.ClientDC(self)
         info = wx.adv.AboutDialogInfo()
-        icon_path = os.path.join(session.app_data_dir, "%s-icon512.png" % ad.appname)
+        icon_path = os.path.join(ad.app_data_dir, "%s-icon512.png" % ad.appname)
         if os.path.exists(icon_path):
             image = wx.Image(icon_path, wx.BITMAP_TYPE_PNG)
             image.Rescale(128, 128)

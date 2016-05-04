@@ -6,8 +6,9 @@
 def fetch_file(session, url, name, save_name, save_dir, *,
                uncompress=False, ignore_cache=False, check_certificates=True):
     import os
+    from chimerax import app_dirs, app_dirs_unversioned
     if len(_cache_dirs) == 0:
-        _cache_dirs.append(session.app_dirs_unversioned.user_cache_dir)
+        _cache_dirs.append(app_dirs_unversioned.user_cache_dir)
         old_cache_dir = os.path.join('~', 'Downloads', 'Chimera')
         old_cache_dir = os.path.expanduser(old_cache_dir)
         if os.path.isdir(old_cache_dir):
@@ -24,7 +25,7 @@ def fetch_file(session, url, name, save_name, save_dir, *,
     os.makedirs(dirname, exist_ok=True)
 
     from urllib.request import URLError, Request
-    headers = {"User-Agent": html_user_agent(session.app_dirs)}
+    headers = {"User-Agent": html_user_agent(app_dirs)}
     request = Request(url, unverifiable=True, headers=headers)
     try:
         retrieve_cached_url(request, filename, uncompress=uncompress, logger=session.logger,
@@ -118,7 +119,7 @@ def html_user_agent(app_dirs):
 
     Parameters
     ----------
-    app_dirs : a :py:class:`appdirs.AppDirs` instance (session.app_dirs)
+    app_dirs : a :py:class:`appdirs.AppDirs` instance (chimerax.app_dirs)
 
     Notes
     -----
@@ -129,7 +130,7 @@ def html_user_agent(app_dirs):
         from urllib.request import URLError, Request
         from chimerax.core import utils
         request = Request(url, unverifiable=True, headers={
-            "User-Agent": utils.html_user_agent(session.app_dirs),
+            "User-Agent": utils.html_user_agent(chimerax.app_dirs),
         })
         try:
             utils.retrieve_cached_url(request, filename, session.logger)

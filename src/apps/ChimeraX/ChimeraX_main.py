@@ -276,8 +276,9 @@ def init(argv, event_loop=True):
         ver += (0,)
     partial_version = '%s.%s' % (ver[0], ver[1])
 
+    import chimerax
     import appdirs
-    ad = appdirs.AppDirs(app_name, appauthor=app_author,
+    chimerax.app_dirs = ad = appdirs.AppDirs(app_name, appauthor=app_author,
                          version=partial_version)
     # make sure app_dirs.user_* directories exist
     for var, name in (
@@ -295,12 +296,11 @@ def init(argv, event_loop=True):
     # app_dirs_unversioned is primarily for caching data files that will
     # open in any version
     # app_dirs_unversioned.user_* directories are parents of those in app_dirs
-    adu = appdirs.AppDirs(app_name, appauthor=app_author)
+    chimerax.app_dirs_unversioned = adu = appdirs.AppDirs(app_name, appauthor=app_author)
 
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
-    import chimerax
     chimerax.app_bin_dir = os.path.join(rootdir, "bin")
     if sys.platform.startswith('win'):
         chimerax.app_data_dir = os.path.join(chimerax.app_bin_dir, "share")
@@ -317,8 +317,6 @@ def init(argv, event_loop=True):
 
     from chimerax.core import session
     sess = session.Session(app_name, debug=opts.debug)
-    sess.app_dirs = ad
-    sess.app_dirs_unversioned = adu
 
     from chimerax.core import core_settings
     core_settings.init(sess)
@@ -362,7 +360,7 @@ def init(argv, event_loop=True):
             print("Initializing tools", flush=True)
     from chimerax.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
-    sess.toolshed = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
+    sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
     from chimerax.core import tools
     sess.add_state_manager('tools', tools.Tools(sess, first=True))  # access with sess.tools
     from chimerax.core import tasks

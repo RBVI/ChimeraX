@@ -77,10 +77,11 @@ def fetch_mmcif(session, pdb_id, ignore_cache=False):
 def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""
     import os
+    from chimerax import app_dirs, app_dirs_unversioned
     # check in local cache
     if len(_cache_dirs) == 0:
         _cache_dirs.append(os.path.join(
-            session.app_dirs_unversioned.user_cache_dir, 'CCD'))
+            app_dirs_unversioned.user_cache_dir, 'CCD'))
         old_cache_dir = os.path.join('~', 'Downloads', 'Chimera', 'CCD')
         old_cache_dir = os.path.expanduser(old_cache_dir)
         if os.path.isdir(old_cache_dir):
@@ -100,7 +101,7 @@ def _get_template(session, name):
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
     request = Request(url, unverifiable=True, headers={
-        "User-Agent": fetch.html_user_agent(session.app_dirs),
+        "User-Agent": fetch.html_user_agent(app_dirs),
     })
     try:
         return fetch.retrieve_cached_url(request, path, session.logger)
