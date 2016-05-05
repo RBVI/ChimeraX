@@ -238,6 +238,44 @@ class Logger:
         """remove a logger"""
         self.logs.discard(log)
 
+    def report_exception(self, preface=None, error_description=None):
+        """Report the current exception (without changing execution context)
+
+        Parameters
+        ----------
+        preface : text
+            Prepend this text to the report
+        error_description : text
+            Replace any traceback information with this text
+        """
+        from .errors import NotABug, CancelOperation
+        from traceback import format_exception_only, format_exception, format_tb
+        import sys
+        ei = sys.exc_info()
+        if preface:
+            preface = "%s:\n" % preface
+        else:
+            preface = ""
+
+        exception_value = ei[1]
+
+        if isinstance(exception_value, NotABug):
+            self.error("%s%s" % (preface, exception_value))
+        elif isinstance(exception_value, CancelOperation):
+            pass  # Cancelled operations are not reported
+        else:
+            if error_description:
+                tb_msg = error_description
+            else:
+                tb = format_exception(ei[0], ei[1], ei[2])
+                tb_msg = "".join(tb)
+            self.info(tb_msg)
+
+            err = "".join(format_exception_only(ei[0], ei[1]))
+            loc = "".join(format_tb(ei[2])[-1:])
+            self.error("%s%s\n%s" % (preface, err, loc)
+                + "See log for Python traceback.\n")
+
     def status(self, msg, color="black", log=False, secondary=False,
                blank_after=None, follow_with="", follow_time=20,
                follow_log=None):
