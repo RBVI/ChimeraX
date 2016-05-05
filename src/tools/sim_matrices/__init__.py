@@ -28,7 +28,7 @@ def read_matrix_file(file_name, style="protein"):
 					chars.index(char)+1, file_name))
 			if fields[0] != char:
 				raise ValueError("Line %d of %s is %s, expected %s" % (chars.index(char)+1,
-					file_name, fields[0], char)
+					file_name, fields[0], char))
 			for i, c in enumerate(chars):
 				matrix[(fields[0], c)] = float(fields[i+1]) / divisor
 		# assume '?' is an unknown residue...
@@ -69,6 +69,8 @@ def _init(session):
 	import chimerax
 	for parent_dir in [os.path.dirname(__file__), chimerax.app_dirs_unversioned.user_data_dir]:
 		mat_dir = os.path.join(parent_dir, "matrices")
+		import sys
+		print("Looking in", mat_dir, "for matrices", file=sys.__stderr__)
 		if not os.path.exists(mat_dir):
 			continue
 		for matrix_file in os.listdir(mat_dir):
@@ -88,7 +90,8 @@ def _init(session):
 			try:
 				_matrices[name] = read_matrix_file(path, style=ftype)
 			except ValueError:
-				chimera.replyobj.reportException()
-			_matrix_files[name] = path
+				session.logger.report_exception()
+			else:
+				_matrix_files[name] = path
 	if not _matrices:
-		chimerax.logger.warning("No matrices found by sim_matrices module.")
+		session.logger.warning("No matrices found by %s module." % __name__)
