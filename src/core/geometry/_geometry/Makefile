@@ -8,8 +8,12 @@ PYMOD_NAME = _geometry
 SRCS	= bounds.cpp closepoints.cpp distances.cpp distancespy.cpp \
 	  geometry.cpp intercept.cpp spline.cpp transform.cpp vector_ops.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
-LIBS	= -L$(libdir) -larrays $(PYTHON_LIB)
+INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+ifdef WIN32
+LIBS	+= libarrays.lib $(PYTHON_LIB)
+else
+LIBS	+= -larrays $(PYTHON_LIB)
+endif
 
 all: $(PYMOD)
 

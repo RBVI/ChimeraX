@@ -44,6 +44,26 @@ localized_app_name = {
 }
 
 
+if sys.platform.startswith('win'):
+    # Python on Windows is missing the <sysexits.h> exit codes
+    os.EX_OK = 0                # successful termination
+    os.EX_USAGE = 64            # command line usage error
+    os.EX_DATAERR = 65          # data format error
+    os.EX_NOINPUT = 66          # cannot open input
+    os.EX_NOUSER = 67           # addressee unknown
+    os.EX_NOHOST = 68           # host name unknown
+    os.EX_UNAVAILABLE = 69      # service unavailable
+    os.EX_SOFTWARE = 70         # internal software error
+    os.EX_OSERR = 71            # system error (e.g., can't fork)
+    os.EX_OSFILE = 72           # critical OS file missing
+    os.EX_CANTCREAT = 73        # can't create (user) output file
+    os.EX_IOERR = 74            # input/output error
+    os.EX_TEMPFAIL = 75         # temp failure; user is invited to retry
+    os.EX_PROTOCOL = 76         # remote error in protocol
+    os.EX_NOPERM = 77           # permission denied
+    os.EX_CONFIG = 78           # configuration error
+
+
 def parse_arguments(argv):
     """Initialize ChimeraX application."""
     import getopt
@@ -71,6 +91,7 @@ def parse_arguments(argv):
     opts.line_profile = False
     opts.list_file_types = False
     opts.load_tools = True
+    opts.offscreen = True
     opts.silent = False
     opts.start_tools = []
     opts.status = True
@@ -87,6 +108,7 @@ def parse_arguments(argv):
         "--help",
         "--lineprofile",
         "--listfiletypes",
+        "--nooffscreen",
         "--silent",
         "--nostatus",
         "--start <tool name>",
@@ -108,6 +130,8 @@ def parse_arguments(argv):
         "--gui",
         "--nolineprofile",
         "--nosilent",
+        "--nousedefaults",
+        "--offscreen",
         "--status",
         "--tools",
         "--nousedefaults",
@@ -152,6 +176,8 @@ def parse_arguments(argv):
             opts.line_profile = opt[2] == 'l'
         elif opt == "--listfiletypes":
             opts.list_file_types = True
+        elif opt in ("--offscreen", "--nooffscreen"):
+            opts.offscreen = opt[2] == 'o'
         elif opt in ("--silent", "--nosilent"):
             opts.silent = opt[2] == 's'
         elif opt in ("--status", "--nostatus"):
@@ -220,20 +246,38 @@ def init(argv, event_loop=True):
         from chimerax.core import configinfo
         configinfo.only_use_defaults = True
 
-    if not opts.gui:
+    if not opts.gui and opts.offscreen:
         # Flag to configure off-screen rendering before PyOpenGL imported
         from chimerax import core
         core.offscreen_rendering = True
 
     # figure out the user/system directories for application
-    executable = os.path.abspath(sys.argv[0])
-    bindir = os.path.dirname(executable)
+    # invoked with -m ChimeraX_main, so argv[0] is full path to ChimeraX_main
+    # Windows:
+    # 'C:\\...\\ChimeraX.app\\bin\\lib\\site-packages\\ChimeraX_main.py'
+    # Linux:
+    # '/.../ChimeraX.app/lib/python3.5/site-packages/ChimeraX_main.py'
+    # Mac OS X:
+    # '/.../ChimeraX.app/Contents/lib/python3.5/site-packages/ChimeraX_main.py'
+    # '/.../ChimeraX.app/Contents/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/ChimeraX_main.py'
+    # TODO: more robust way
+    dn = os.path.dirname
+    rootdir = dn(dn(dn(dn(sys.argv[0]))))
+    if sys.platform.startswith('darwin'):
+        rootdir = dn(dn(dn(dn(dn(rootdir)))))
     if sys.platform.startswith('linux'):
-        if os.path.basename(bindir) == "bin":
-            configdir = os.path.dirname(bindir)
-        else:
-            configdir = bindir
-        os.environ['XDG_CONFIG_DIRS'] = configdir
+        os.environ['XDG_CONFIG_DIRS'] = rootdir
+
+    if sys.platform.startswith('win'):
+        import ctypes
+        # getpn = ctypes.pythonapi.Py_GetProgramName
+        # getpn.restype = ctypes.c_wchar_p
+        # pn = getpn()
+        # assert(os.path.dirname(pn) == rootdir)
+        setdlldir = ctypes.windll.kernel32.SetDllDirectoryW
+        setdlldir.argtypes = [ctypes.c_wchar_p]
+        setdlldir.restype = ctypes.c_bool
+        setdlldir(os.path.join(rootdir, 'bin'))
 
     from distlib.version import NormalizedVersion as Version
     epoch, ver, *_ = Version(version).parse(version)
@@ -241,8 +285,9 @@ def init(argv, event_loop=True):
         ver += (0,)
     partial_version = '%s.%s' % (ver[0], ver[1])
 
+    import chimerax
     import appdirs
-    ad = appdirs.AppDirs(app_name, appauthor=app_author,
+    chimerax.app_dirs = ad = appdirs.AppDirs(app_name, appauthor=app_author,
                          version=partial_version)
     # make sure app_dirs.user_* directories exist
     for var, name in (
@@ -260,15 +305,16 @@ def init(argv, event_loop=True):
     # app_dirs_unversioned is primarily for caching data files that will
     # open in any version
     # app_dirs_unversioned.user_* directories are parents of those in app_dirs
-    adu = appdirs.AppDirs(app_name, appauthor=app_author)
+    chimerax.app_dirs_unversioned = adu = appdirs.AppDirs(app_name, appauthor=app_author)
 
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
-    rootdir = os.path.dirname(bindir)
-    import chimerax
-    chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_bin_dir = os.path.join(rootdir, "bin")
+    if sys.platform.startswith('win'):
+        chimerax.app_data_dir = os.path.join(chimerax.app_bin_dir, "share")
+    else:
+        chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_lib_dir = os.path.join(rootdir, "lib")
 
     # inform the C++ layer of the appdirs paths
@@ -280,8 +326,6 @@ def init(argv, event_loop=True):
 
     from chimerax.core import session
     sess = session.Session(app_name, debug=opts.debug)
-    sess.app_dirs = ad
-    sess.app_dirs_unversioned = adu
 
     from chimerax.core import core_settings
     core_settings.init(sess)
@@ -327,7 +371,7 @@ def init(argv, event_loop=True):
             print("Initializing tools", flush=True)
     from chimerax.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
-    sess.toolshed = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
+    sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
     from chimerax.core import tools
     sess.add_state_manager('tools', tools.Tools(sess, first=True))  # access with sess.tools
     from chimerax.core import tasks
@@ -373,7 +417,7 @@ def init(argv, event_loop=True):
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         sess.tools.start_tools(opts.start_tools)
-        
+
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
                             next(splash_step), num_splash_steps)
@@ -460,8 +504,8 @@ def uninstall(sess):
             return os.EX_SOFTWARE
         from chimerax.core import _xdg
         _xdg.uninstall(sess)
-        #parent = os.path.dirname(exe_dir)
-        #rm_rf_path(parent, sess)
+        # parent = os.path.dirname(exe_dir)
+        # rm_rf_path(parent, sess)
         return os.EX_OK
 
     if sys.platform.startswith('darwin'):

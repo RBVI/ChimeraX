@@ -2,7 +2,11 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
+ifdef WIN32
+VERSION = 1.8.16
+else
 VERSION = 1.8.14
+endif
 LIBHDF5_VER = 9
 DISTRIBUTION = hdf5-$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/hdf5-$(VERSION)
@@ -13,7 +17,9 @@ CONFIG_OPTS = --prefix='$(build_prefix)' --with-zlib='$(includedir),$(libdir)'
 all:
 
 install: $(SOURCE)
+ifndef WIN32
 	cd $(SOURCE) && $(CONFIG_ENV) ./configure $(CONFIG_OPTS) && $(MAKE) install
+endif
 ifeq ($(OS),Linux)
 	cd $(bindir); for i in *h5*; do \
 		chrpath -r '$$ORIGIN/../lib' $$i; \
@@ -38,7 +44,9 @@ app-install:;
 	$(RSYNC) $(shlibdir)/libhdf5.*$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE):
+ifndef WIN32
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)
+endif
 
 clean:
 	rm -rf $(SOURCE)

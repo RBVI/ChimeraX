@@ -3,8 +3,9 @@
 //
 #include <Python.h>			// use PyObject
 
-#include "pythonarray.h"		// use array_from_python()
-#include "rcarray.h"			// use FArray, IArray
+#include <arrays/pythonarray.h>		// use array_from_python()
+#include <arrays/rcarray.h>		// use FArray, IArray
+#include "intercept.h"
 
 static bool closest_triangle_intercept(const float *varray,
 				       const int *tarray, int nt,

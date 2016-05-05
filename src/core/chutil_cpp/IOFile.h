@@ -4,13 +4,12 @@
 
 # include <string>
 # include <fstream>
-# include "imex.h"
 
 namespace chutil {
 
 bool path_exists(const std::string &path, bool asFile);
 
-class CHUTIL_IMEX InputFile {
+class InputFile {
     InputFile(const InputFile&);        // disable
     InputFile& operator=(const InputFile&); // disable
 public:
@@ -25,7 +24,7 @@ private:
     std::ifstream *ifs_;
 };
 
-class CHUTIL_IMEX OutputFile {
+class OutputFile {
     OutputFile(const OutputFile&);          // disable
     OutputFile& operator=(const OutputFile&);   // disable
 public:

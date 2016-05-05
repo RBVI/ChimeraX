@@ -10,8 +10,8 @@
 #include <utility>			// use std::pair
 #include <vector>			// use std::vector
 
-#include "pythonarray.h"		// use array_from_python()
-#include "rcarray.h"			// use FArray, IArray
+#include <arrays/pythonarray.h>		// use array_from_python()
+#include <arrays/rcarray.h>		// use FArray, IArray
 
 typedef std::pair<int,int> Edge;
 typedef std::set<Edge> Edge_Set;

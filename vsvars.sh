@@ -8,6 +8,8 @@ then
 	echo Setting environment for using Microsoft Visual Studio 2015
 	platform=2015
 	VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio 14.0"
+	WindowsSdkDir="c:\\Program Files (x86)\\Windows Kits\\10\\"
+	MicrosoftSdkDir="c:\Program Files (x86)\Microsoft SDKs\Windows Kits\10"
 	if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64" ]
 	then
 		echo Using native 64 bit tools
@@ -22,6 +24,8 @@ then
 	FrameworkVersion64=v4.0.30319
 	Framework40Version=v4.0
 	VisualStudioVersion=14.0
+	WindowsSDKLibVersion=10.0.10586.0
+	WindowsSDKVersion=10.0.10586.0
 
 else
 	echo "error: Microsoft compilers not found"
@@ -32,39 +36,39 @@ export VSINSTALLDIR
 export VCINSTALLDIR
 export FrameworkDir="c:\\Windows\\Microsoft.NET\\Framework$B64"
 
-function GetWindowsSdkDir () {
-	GetWindowsSdkDirHelper HKLM > /dev/null 2>&1
+function GetMicrosoftSdkDir () {
+	GetMicrosoftSdkDirHelper HKLM > /dev/null 2>&1
 	if [ $? -ne 0 ]
 	then
-		GetWindowsSdkDirHelper HKCU > /dev/null 2>&1
+		GetMicrosoftSdkDirHelper HKCU > /dev/null 2>&1
 		if [ $? -ne 0 ]
 		then
 			# VS2003 location
-			export WindowsSdkDir="$VCINSTALLDIR\\PlatformSDK"
+			export MicrosoftSdkDir="$VCINSTALLDIR\\PlatformSDK"
 		fi
 	fi
 	return 0
 }
 
-function GetWindowsSdkDirHelper () {
+function GetMicrosoftSdkDirHelper () {
 	i=`regtool get "/$1/SOFTWARE/Microsoft/Microsoft SDKs/Windows/CurrentInstallFolder"`
 	if [ "$i" ]
 	then
-		export WindowsSdkDir="$i"
+		export MicrosoftSdkDir="$i"
 		return 0
 	fi
 	return 1
 }
 
-GetWindowsSdkDir
+GetMicrosoftSdkDir
 
 # Don't care about .NET tools, libs or includes
-#if [ "$WindowsSdkDir" ]
+#if [ "$MicrosoftSdkDir" ]
 #then
-#	WSD=`cygpath -u "$WindowsSdkDir"`
+#	WSD=`cygpath -u "$MicrosoftSdkDir"`
 #	export PATH="$WSD/bin:$PATH"
-#	export INCLUDE="$WindowsSdkDir\\include;$INCLUDE"
-#	export LIB="$WindowsSdkDir\\lib$X64;$LIB"
+#	export INCLUDE="$MicrosoftSdkDir\\include;$INCLUDE"
+#	export LIB="$MicrosoftSdkDir\\lib$X64;$LIB"
 #	unset WSD
 #fi
 
@@ -74,19 +78,33 @@ GetWindowsSdkDir
 #
 export DevEnvDir="$VSINSTALLDIR\\Common7\\IDE"
 
-# $VCINSTALLDIR\Common7\IDE dir is added only for real setup.
-
 DED=`cygpath -u "$DevEnvDir"`
 VSD=`cygpath -u "$VSINSTALLDIR"`
 VCD=`cygpath -u "$VCINSTALLDIR"`
 FD=`cygpath -u "$FrameworkDir"`
 
-export PATH="$VCD/bin/$AMD64:$VCD/VCPackages:$VSD/Common7/Tools:$VSD/Team Tools/Performance Tools$X64:$PATH"
+export PATH="$VCD/bin/$AMD64:$VCD/VCPackages:$VSD/Common7/IDE:$VSD/Common7/Tools:$VSD/Team Tools/Performance Tools$X64:$PATH"
 
-export INCLUDE="$VCINSTALLDIR\\include;$VCINSTALLDIR\\atlmfc\\include;$INCLUDE"
+export INCLUDE="$VCINSTALLDIR\\include;\
+$VCINSTALLDIR\\atlmfc\\include;\
+$WindowsSdkDir\\include\\$WindowsSDKVersion\\ucrt;\
+$WindowsSdkDir\\include\\$WindowsSDKVersion\\shared;\
+$WindowsSdkDir\\include\\$WindowsSDKVersion\\um;\
+$WindowsSdkDir\\include\\$WindowsSDKVersion\\winrt;\
+$INCLUDE"
+#$UniversalCRTSdkDir\\include\\$UCRTVersion\\ucrt
 
-export LIB="$VCINSTALLDIR\\lib\\$AMD64;$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;$LIB"
+export LIB="$VCINSTALLDIR\\lib\\$AMD64;\
+$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;\
+$WindowsSdkDir\\lib\\$WindowsSDKLibVersion\\ucrt$X64;\
+$WindowsSdkDir\\lib\\$WindowsSDKLibVersion\\um$X64;\
+$LIB"
 
-export LIBPATH="$VCINSTALLDIR\\lib\\$AMD64;$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;$LIBPATH"
+export LIBPATH="$VCINSTALLDIR\\lib\\$AMD64;\
+$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;\
+$WindowsSdkDir\\UnionMetadata;\
+$WindowsSdkDir\\References;\
+$MicrosoftSdkDir\\ExtensionSDKs\\Microsoft.VCLibs\\$VisualStudioVersion\\References\\CommonConfiguration\neutral;\
+$LIBPATH"
 
 unset DED VSD VCD FD

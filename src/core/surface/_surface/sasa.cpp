@@ -6,8 +6,13 @@
 #include <iostream>		// use std::cerr for debugging
 #include <vector>		// use std::vector
 
-#include "pythonarray.h"	// use parse_double_n3_array, ...
-#include "rcarray.h"		// use DArray
+#include <arrays/pythonarray.h>	// use parse_double_n3_array, ...
+#include <arrays/rcarray.h>	// use DArray
+
+#ifndef M_PI
+// not defined on Windows
+# define M_PI 3.14159265358979323846
+#endif
 
 // Circle on a unit sphere specified by center point on sphere and angular radius.
 class Circle

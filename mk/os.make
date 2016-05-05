@@ -39,6 +39,8 @@ endif
 	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 
 	OPENGL_LIBS = -L$(libdir) -lGLU -lGL
+	INCS = -I$(includedir)
+	LIBS = -L$(libdir)
 endif
 
 #### Darwin, a.k.a., Apple Mac OS X
@@ -78,13 +80,14 @@ endif
 	PYMOD_LINK = $(LOADER) $(LDFLAGS) -bundle -bundle_loader $(bindir)/python3 -o $(PYMOD) $(OBJS) $(LIBS) $(PYTHON_LIB)
 
 	OPENGL_LIBS = -framework OpenGL
+	INCS = -I$(includedir)
+	LIBS = -L$(libdir)
 endif
 
 # Microsoft Windows
 
 ifeq ($(OS),Windows)
 	shlibdir = $(bindir)
-	app_shlibdir = $(app_bindir)
 
 	OBJ_EXT = obj
 	LIB_EXT = lib
@@ -109,6 +112,8 @@ endif
 	PYMOD_LINK = $(CXX) $(LDFLAGS) /LD /Fe$(PYMOD) $(OBJS) $(LIBS); if [ -e $(PYMOD).manifest ]; then mt -nologo -manifest $(PYMOD).manifest -outputresource:$(PYMOD)\;2 ; fi
 
 	OPENGL_LIBS = glu32.lib opengl32.lib
+	INCS = -I'$(shell cygpath -m '$(includedir)')'
+	LIBS = /link /LIBPATH:'$(shell cygpath -m '$(libdir)')'
 
 .SUFFIXES: .obj
 
@@ -132,7 +137,7 @@ UPLIBNAME = $(shell echo $(LIBNAME) | tr "[:lower:]" "[:upper:]" | tr '-' '_')
 imex.h:
 	sed -e 's/LIBNAME/$(UPLIBNAME)/' < $(includedir)/imex.i > imex.h
 
-NUMPY_INC += -I"$(shell $(bindir)/python$(PYTHON_VERSION) -c "import numpy; print(numpy.get_include())")"
+NUMPY_INC += -I"$(shell $(PYTHON_EXE) -c "import numpy; print(numpy.get_include())")"
 
 PYOBJS = $(addprefix __pycache__/,$(addsuffix .cpython-$(PYVER_NODOT).pyc,$(basename $(PYSRCS))))
 
@@ -155,6 +160,9 @@ __pycache__/%.cpython-$(PYVER_NODOT).pyc : %.py
 endif
 
 ifdef WIN32
+__pycache__/%.cpython-$(PYVER_NODOT).pyc : %.py
+	$(bindir)/python -t -m py_compile '$(shell cygpath -m $<)'
+
 .py.pyc:
 	@rm -f $@
 	python3 -t -m py_compile '$(shell cygpath -m $<)'

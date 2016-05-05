@@ -3,11 +3,18 @@
 # distutils.core.DEBUG = True
 from setuptools import setup
 from glob import glob
+import os
+import sys
 
-lib_dir = "LIB_DIR"
+shlib_dir = "SHLIB_DIR"
 pkg_dir = "PKG_DIR"
 data_dir = "DATA_DIR"
-import os.path
+if sys.platform.startswith('win'):
+    # data files are relative to bindir
+    rel_inst_shlib_dir = ""  # shlib_dir == bindir
+else:
+    # data files are relative to rootdir
+    rel_inst_shlib_dir = os.path.basename(shlib_dir)
 
 setup(
     name="chimerax.core",
@@ -57,16 +64,15 @@ setup(
     },
     data_files=[
         ("", ["timestamp"]),
-        ("lib", [
-            os.path.join(lib_dir, "libappdirs.SHLIB_EXT"),
-            os.path.join(lib_dir, "libarrays.SHLIB_EXT"),
-            os.path.join(lib_dir, "liblogger.SHLIB_EXT"),
-            os.path.join(lib_dir, "libtmpl.SHLIB_EXT"),
-            os.path.join(lib_dir, "libatomstruct.SHLIB_EXT"),
-            os.path.join(lib_dir, "libelement.SHLIB_EXT"),
+        (rel_inst_shlib_dir, [
+            os.path.join(shlib_dir, "libappdirs.SHLIB_EXT"),
+            os.path.join(shlib_dir, "libarrays.SHLIB_EXT"),
+            os.path.join(shlib_dir, "liblogger.SHLIB_EXT"),
+            os.path.join(shlib_dir, "libatomstruct.SHLIB_EXT"),
+            os.path.join(shlib_dir, "libelement.SHLIB_EXT"),
         ]),
-        (os.path.join("share", "idatm", "templates"),
-			glob(os.path.join(data_dir, "idatm", "templates", "*"))),
+        (os.path.join(os.path.basename(data_dir), "idatm", "templates"),
+         glob(os.path.join(data_dir, "idatm", "templates", "*"))),
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

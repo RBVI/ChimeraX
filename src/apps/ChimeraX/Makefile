@@ -1,10 +1,5 @@
-# Use this make file to make a frozen verson of ChimeraX for debugging
-
 TOP	= ../../..
 include $(TOP)/mk/config.make
-
-# Freeze source was copied from tmp/Python-*/Tools/freeze
-FREEZE_SOURCE = $(datadir)/freeze
 
 ifeq ($(OS),Linux)
 LDFLAGS	+= -Wl,-rpath,'$$ORIGIN/../lib'
@@ -13,19 +8,23 @@ ifeq ($(OS),Darwin)
 LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
 endif
 
+ifdef WIN32
+PROG	= $(APP_NAME).exe
+else
 PROG	= $(APP_NAME)
+endif
 STRIP	=
 BINMODE	= 755
 
-PY_MAIN = $(PROG)_main.py
+PY_MAIN = $(APP_NAME)_main.py
 
 ICONS	= ChimeraX-icon.svg ChimeraX-icon512.png
 ifeq ($(OS),Linux)
 LINUX_ICONS = ChimeraX-icon128.png ChimeraX-icon64.png ChimeraX-icon32.png ChimeraX-icon16.png
 ICONS	+= $(LINUX_ICONS)
 endif
-GEN_SRCS= frozen.c M___main__.c
-OBJS	= $(GEN_SRCS:.c=.o)
+SRCS	= launcher.c
+OBJS	= $(SRCS:.c=.$(OBJ_EXT))
 INCS	+= $(PYTHON_INCLUDE_DIRS)
 LIBS	+= $(PYTHON_LIB)
 
@@ -50,30 +49,19 @@ ifeq ($(OS),Darwin)
 endif
 
 clean:
-	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig frozen.c~ __main__.py \
-		gensrcs Info.plist chimerax-icon.icns $(LINUX_ICONS)
+	rm -f $(PROG) $(OBJS) Info.plist chimerax-icon.icns $(LINUX_ICONS)
 
 lint:
 	$(PYLINT) *.py
 
 run:
-	$(PYTHON_EXE) ChimeraX_main.py
+	$(PYTHON_EXE) $(PY_MAIN)
 
 run-nogui:
-	$(PYTHON_EXE) ChimeraX_main.py --nogui
+	$(PYTHON_EXE) $(PY_MAIN) --nogui
 
 $(PROG): $(OBJS)
 	$(PROG_LINK)
-
-__main__.py: $(PY_MAIN)
-	$(PYTHON_EXE) mk__main__.py $<
-
-frozen.c M___main__.c: gensrcs
-
-gensrcs: __main__.py
-	$(PYTHON_EXE) mkfrozen.py $(FREEZE_SOURCE) $<
-	patch -b -V simple < frozen.patch
-	touch gensrcs
 
 ChimeraX-icon512.png: ChimeraX-icon.svg
 	inkscape --export-png=ChimeraX-icon512.png --export-width=512 --export-background-opacity=0 --without-gui ChimeraX-icon.svg

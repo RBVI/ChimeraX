@@ -2,6 +2,7 @@
 #ifndef templates_resDescrip
 #define templates_resDescrip
 
+#include "../imex.h"
 #include "../string_types.h"
 
 namespace tmpl {
@@ -11,7 +12,7 @@ typedef struct resDescrip {
     const char  *descrip;
 } ResDescript;
 
-ResDescript res_descripts[] = {
+ATOMSTRUCT_IMEX ResDescript res_descripts[] = {
     { "ALA", "alanine" },
     { "ARG", "arginine" },
     { "ASH", "protonated aspartic acid" },

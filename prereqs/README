@@ -3,6 +3,10 @@ Source packages and why they are in the repository
 Note this list is incomplete, since we use pip to install packages,
 and those packages may depend on packages not listed.
 
+Prebuilt wheels for Windows are from Christoph Gohlke's "Unofficial Windows
+Binaries for Python Extension Packages" at
+http://www.lfd.uci.edu/~gohlke/pythonlibs/.
+
 PyOpenGL/
 	Python OpenGL, needed for graphics
 PyQt/

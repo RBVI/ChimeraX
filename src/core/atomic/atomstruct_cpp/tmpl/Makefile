@@ -4,23 +4,24 @@ include $(TOP)/mk/config.make
 SUBDIRS	= idatm
 include $(TOP)/mk/subdir.make
 
-LIBNAME = tmpl
+#LIBNAME = tmpl
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := atomstruct/$(DIRNAME:_cpp=)
 
 SRCS= $(wildcard *.cpp)
-OBJS= $(SRCS:.cpp=.o)
+OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
 INCS += -I$(includedir)
-LIBS += -L$(libdir) -lelement -lioutil -lchutil -lappdirs
+#ifeq ($(WIN32),msvc)
+#LIBS += libelement.lib libioutil.lib libchutil.lib libappdirs.lib
+#else
+#LIBS += -lelement -lioutil -lchutil -lappdirs
+#endif
 
-$(SHLIB): $(OBJS)
-	$(SHLIB_LINK)
+all: $(OBJS)
 
-install: $(SHLIB)
+install: all
 	-mkdir -p $(includedir)/$(DIRNAME)
 	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
-	$(RSYNC) $(SHLIB) $(shlibdir)
-	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 templates:
 	cd leap-templates ; \

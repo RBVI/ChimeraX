@@ -21,7 +21,7 @@
 import os
 import sys
 import plistlib
-from chimerax.core import io, session, logger, configfile, core_settings, __copyright__ as copyright
+from chimerax.core import io, session, configfile, core_settings, __copyright__ as copyright
 
 configfile.only_use_defaults = True
 
@@ -148,7 +148,7 @@ pl = {
     "CFBundleVersion": '.'.join(str(i) for i in release),
     # Enable full resolution text on retina displays
     "NSHighResolutionCapable": True,
-    "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": True },
+    "NSAppTransportSecurity": {"NSAllowsArbitraryLoads": True},
     "LSBackgroundOnly": False,
 }
 

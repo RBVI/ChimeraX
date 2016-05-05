@@ -6,8 +6,8 @@
 #include <Python.h>			// Use PyObject
 
 #include "border.h"			// Use Vertices, Loops
-#include "pythonarray.h"		// use parse_float_n3_array(), ...
-#include "rcarray.h"			// use FArray, IArray
+#include <arrays/pythonarray.h>		// use parse_float_n3_array(), ...
+#include <arrays/rcarray.h>		// use FArray, IArray
 #include "triangulate.h"		// use triangulate_polygon()
 
 namespace Cap_Calculation

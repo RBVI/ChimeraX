@@ -9,7 +9,7 @@ def version(session, format=None):
     format : one of 'verbose', ''bundles', or 'packages'
     '''
     from .. import buildinfo
-    ad = session.app_dirs
+    from chimerax import app_dirs as ad
     if format is None:
         session.logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, ad.version, buildinfo.date.split()[0]))
         return

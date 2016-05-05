@@ -1,4 +1,5 @@
 // vi: set expandtab ts=4 sw=4:
+#define ATOMSTRUCT_EXPORT
 #include "Atom.h"
 #include "AtomicStructure.h"
 #include "Bond.h"
@@ -11,9 +12,10 @@
 
 #include <logger/logger.h>
 #include <pysupport/convert.h>
-#include <pythonarray.h>
+#include <arrays/pythonarray.h>
 
 #include <algorithm>  // for std::find, std::sort, std::remove_if, std::min
+#include <iterator>
 #include <map>
 #include "Python.h"
 #include <stdexcept>

@@ -30,7 +30,8 @@ class HelpUI(ToolInstance):
         # 'display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Help UI"
         # in this case), so only override if different name desired
-        self.display_name = "%s Help Viewer" % session.app_dirs.appname
+        from chimerax import app_dirs
+        self.display_name = "%s Help Viewer" % app_dirs.appname
         self.target = target
         from chimerax.core import window_sys
         if window_sys == "wx":

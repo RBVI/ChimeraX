@@ -6,10 +6,20 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
+ifdef WIN32
+VERSION = 3.0.3.dev1949+eedda34
+else
 VERSION = 3.0.3.dev1839+4ecd949
+endif
 SHLIB_VER = 3.0.0.3.0
 DISTRIBUTION = wxPython_Phoenix-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)
+
+ifdef WIN32
+include ../pips/Makefile.pip
+WHEEL = wxPython_Phoenix-$(VERSION)-cp35-cp35m-win_amd64.whl
+endif
+
 BUILD_OPTS =
 INSTALL_OPTS =
 ifdef DEBUG
@@ -33,8 +43,8 @@ RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(PYSITEDI
 all:
 
 install:	$(SOURCE)
-ifeq ($(OS),Windows)
-	echo "wxPython on Windows not supported yet" && exit 1
+ifdef WIN32
+	$(PIP) install -U $(WHEEL)
 else
 	rm -f $(PYSITEDIR)/wx/libwx_*
 	cd $(SOURCE) && \
@@ -55,6 +65,9 @@ endif
 endif
 
 app-install:
+ifdef WIN32
+	$(APP_PIP) install $(WHEEL)
+else
 	$(RSYNC) $(PYSITEDIR)/wxPython_Phoenix-$(VERSION)-py$(PYTHON_VERSION).egg-info \
 		$(PYSITEDIR)/wx $(APP_PYSITEDIR)
 ifndef USE_MAC_FRAMEWORKS
@@ -67,8 +80,10 @@ endif
 endif
 	# wx leaves some files only readable by owner
 	chmod -R +r $(APP_PYSITEDIR)/wx*
+endif
 
 $(SOURCE) source:
+ifndef WIN32
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for f in $(PATCHES) ; do \
@@ -91,6 +106,7 @@ ifneq (,$(PATCHES)$(PATCHINES))
 		$(PYTHON_EXE) build.py touch && \
 		$(PYTHON_EXE) build.py etg --nodoc && \
 		$(PYTHON_EXE) build.py sip
+endif
 endif
 
 clean:

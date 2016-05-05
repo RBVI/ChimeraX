@@ -26,8 +26,8 @@
 #include <vector>			// use std::vector
 
 #include <Python.h>			// Use PyObject
-#include "pythonarray.h"		// use array_from_python()
-#include "rcarray.h"			// use FArray, IArray
+#include <arrays/pythonarray.h>		// use array_from_python()
+#include <arrays/rcarray.h>		// use FArray, IArray
 
 namespace Cap_Calculation {
 

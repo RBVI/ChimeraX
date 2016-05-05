@@ -189,7 +189,7 @@ class Toolshed:
         Where to register handlers for toolshed triggers
     """
 
-    def __init__(self, logger, appdirs,
+    def __init__(self, logger,
                  rebuild_cache=False, check_remote=False, remote_url=None):
         """Initialize Toolshed instance.
 
@@ -197,8 +197,6 @@ class Toolshed:
         ----------
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             A logging object where warning and error messages are sent.
-        appdirs : :py:class:`~chimerax.core.appdirs.AppDirs` instance
-            Location information about ChimeraX data and code directories.
         rebuild_cache : boolean
             True to ignore local cache of installed bundle information and
             rebuild it by scanning Python directories; False otherwise.
@@ -211,7 +209,7 @@ class Toolshed:
             If set to None, a default URL is used.
         """
         # Initialize with defaults
-        _debug("__init__", appdirs, rebuild_cache, check_remote, remote_url)
+        _debug("__init__", rebuild_cache, check_remote, remote_url)
         if remote_url is None:
             self.remote_url = _RemoteURL
         else:
@@ -224,9 +222,10 @@ class Toolshed:
 
         # Compute base directories
         import os.path
-        self._cache_dir = os.path.join(appdirs.user_cache_dir, _Toolshed)
+        from chimerax import app_dirs
+        self._cache_dir = os.path.join(app_dirs.user_cache_dir, _Toolshed)
         _debug("cache dir: %s" % self._cache_dir)
-        self._data_dir = os.path.join(appdirs.user_data_dir, _Toolshed)
+        self._data_dir = os.path.join(app_dirs.user_data_dir, _Toolshed)
         _debug("data dir: %s" % self._data_dir)
 
         # Add directories to sys.path

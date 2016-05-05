@@ -5,6 +5,8 @@
 *.lib
 *.dll
 *.dylib
+*.pyd
+*.exe
 # patch generated
 *.orig
 *.rej
@@ -16,6 +18,7 @@
 .DS_Store?
 .Trashes
 Thumbs.db
+*.exp
 # vim
 *.swp
 errs*
@@ -31,6 +34,7 @@ dist
 *~
 *.out
 _build
+src/apps/structcomp/structcomp.sh
 src/core/buildinfo.py
 src/core/commands/_atomspec.py
 src/wheelhouse/Makefile.wheelhouse

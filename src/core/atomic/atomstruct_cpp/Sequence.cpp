@@ -1,5 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
 #include <cctype>
+#define ATOMSTRUCT_EXPORT
 #include "Sequence.h"
 
 namespace atomstruct {

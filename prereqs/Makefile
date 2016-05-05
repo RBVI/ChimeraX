@@ -14,16 +14,6 @@ all:
 	@echo "'make install' to build everything" \
 	&& echo "or 'make SUBIDR.install' to install that"
 
-## do we need Mesa? TODO: want tesselator from libGLU
-#ifdef WIN32
-## use prebuilt Python
-#NEED_MESA=1
-#else
-#ifneq ($(OS),Darwin)
-#NEED_MESA=1
-#endif
-#endif
-
 #
 # Set your various NEEDs above.
 #
@@ -32,19 +22,39 @@ SUBDIRS += win32
 endif
 
 ifeq ($(OS),Darwin)
+NEED_EXPAT=1
+NEED_HDF5=1
 NEED_OPENSSL=1
+NEED_P7ZIP=1
+NEED_ZLIB=1
 #SUBDIRS += leapmotion
 SUBDIRS += oculus
+SUBDIRS += ffmpeg
 endif
 
 ifeq ($(OS),Linux)
+NEED_EXPAT=1
+NEED_HDF5=1
 NEED_OPENSSL=1
+NEED_P7ZIP=1
+NEED_ZLIB=1
 SUBDIRS += llvm mesa pkgconfig xdg-utils
+SUBDIRS += ffmpeg
 endif
 
-#ifdef UNIX
-#SUBDIRS += unix
-#endif
+ifdef NEED_EXPAT
+SUBDIRS += expat
+else
+expat.install:
+expat.app-install:
+endif
+
+ifdef NEED_HDF5
+SUBDIRS += hdf5
+else
+hdf5.install:
+hdf5.app-install:
+endif
 
 ifdef NEED_OPENSSL
 SUBDIRS += openssl
@@ -53,19 +63,34 @@ openssl.install:
 openssl.app-install:
 endif
 
-ifdef HYDRA
-SUBDIRS += qt sip PyQt
+ifdef NEED_P7ZIP
+SUBDIRS += p7zip
+else
+p7zip.install:
+p7zip.app-install:
+endif
+
+ifdef NEED_ZLIB
+SUBDIRS += zlib
+else
+zlib.install:
+zlib.app-install:
+endif
+
+ifeq ($(OS),Linux)
+NEED_OPENSSL=1
+SUBDIRS += llvm mesa pkgconfig xdg-utils
 endif
 
 # Python egg installation has a race condition updating easy-install.pth
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= expat ffmpeg fonts \
-	   glew hdf5 imex jpeg numexpr numpy \
-	   p7zip pcre pips pycollada \
-	   PyOpenGL PyQt pytables pythomnic3k Python \
-	   qt setuptools sip wrappy3 wx zlib
+SUBDIRS	+= fonts \
+	   imex numexpr numpy \
+	   pcre pips pycollada \
+	   PyOpenGL PyQt pytables Python \
+	   qt setuptools wrappy3 wx
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

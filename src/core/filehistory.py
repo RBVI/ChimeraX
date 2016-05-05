@@ -15,7 +15,7 @@ class FileHistory:
         self._thumbnail_size = (128,128)
 
         from .history import ObjectCache
-        self._file_cache = ObjectCache(session, 'file_history')
+        self._file_cache = ObjectCache('file_history')
         self._files = self.load_history()	# Map file path to FileSpec
         
         session.triggers.add_trigger('file history changed')

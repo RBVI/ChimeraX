@@ -1,6 +1,7 @@
 // vi: set expandtab ts=4 sw=4:
 #include <stdexcept>
 
+#define APPDIRS_EXPORT
 #include "AppDirs.h"
 
 namespace appdirs {

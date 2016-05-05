@@ -74,6 +74,9 @@ class UI:
             session.logger.info('Offscreen rendering not available')
 
     def initialize_offscreen_rendering(self, view):
+        from chimerax import core
+        if not hasattr(core, 'offscreen_rendering'):
+            return False
         from .. import graphics
         try:
             c = graphics.OffScreenRenderingContext()
@@ -81,7 +84,7 @@ class UI:
             c = None             # OSMesa library was not found
         if c:
             view.initialize_context(c)
-        return not c is None
+        return c is not None
 
     def splash_info(self, message, splash_step, num_splash_steps):
         import sys

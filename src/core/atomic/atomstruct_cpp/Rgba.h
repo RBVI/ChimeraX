@@ -4,7 +4,7 @@
 
 namespace atomstruct {
     
-class Rgba {
+class ATOMSTRUCT_IMEX Rgba {
 public:
     typedef unsigned char  Channel;
     Channel  r, g, b, a;

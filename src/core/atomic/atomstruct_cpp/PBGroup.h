@@ -7,9 +7,9 @@
 #include <string>
 #include <unordered_map>
 
+#include "imex.h"
 #include "destruct.h"
 #include "Structure.h"
-#include "imex.h"
 #include "PBManager.h"
 #include "Rgba.h"
 
@@ -29,7 +29,7 @@ class Structure;
 class Pseudobond;
 class Proxy_PBGroup;
 
-class Group: public DestructionObserver, public GraphicsContainer {
+class ATOMSTRUCT_IMEX Group: public DestructionObserver, public GraphicsContainer {
 public:
     typedef std::set<Pseudobond*>  Pseudobonds;
 
@@ -84,7 +84,7 @@ public:
 
 // in per-AtomicStructure groups there are per-CoordSet groups
 // and overall groups...
-class StructurePBGroupBase: public Group {
+class ATOMSTRUCT_IMEX StructurePBGroupBase: public Group {
 public:
     static int  SESSION_NUM_INTS(int /*version*/=0) { return 0; }
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
@@ -114,7 +114,7 @@ public:
     Structure*  structure() const { return _structure; }
 };
 
-class StructurePBGroup: public StructurePBGroupBase {
+class ATOMSTRUCT_IMEX StructurePBGroup: public StructurePBGroupBase {
 public:
     static int  SESSION_NUM_INTS(int /*version*/=0) { return 1; }
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
@@ -137,7 +137,7 @@ public:
     mutable std::unordered_map<const Pseudobond*, size_t>  *session_save_pbs;
 };
 
-class CS_PBGroup: public StructurePBGroupBase
+class ATOMSTRUCT_IMEX CS_PBGroup: public StructurePBGroupBase
 {
 public:
     static int  SESSION_NUM_INTS(int /*version*/=0) { return 1; }
@@ -166,7 +166,7 @@ public:
 
 // Need a proxy class that can be contained/returned by the pseudobond
 // manager and that will dispatch calls to the appropriate contained class
-class Proxy_PBGroup: public StructurePBGroupBase
+class ATOMSTRUCT_IMEX Proxy_PBGroup: public StructurePBGroupBase
 {
 private:
     friend class AS_PBManager;

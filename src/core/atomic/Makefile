@@ -15,13 +15,20 @@ LIBNAME = molc
 SRCS	= molc.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 HDRS 	= 
-INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
-LIBS	= -L$(libdir) -latomstruct -lelement -larrays $(PYTHON_LIB)
+INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+ifeq ($(WIN32),msvc)
+LIBS	+= libatomstruct.lib libelement.lib libarrays.lib $(PYTHON_LIB)
+else
+LIBS	+= -latomstruct -lelement -larrays $(PYTHON_LIB)
+endif
 
 all: $(PYOBJS) $(SHLIB)
 
 install: all dir
 	$(RSYNC) $(PYSRCS) $(SHLIB) $(PKG_DIR)
+ifdef WIN32
+	$(RSYNC) $(LIBRARY) $(libdir)
+endif
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)
@@ -35,7 +42,7 @@ clean:
 lint:
 	$(PYLINT) $(PYSRCS)
 
-molc.o: $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/AtomicStructure.h \
+molc.$(OBJ_EXT): $(includedir)/atomstruct/Atom.h $(includedir)/atomstruct/AtomicStructure.h \
 	$(includedir)/atomstruct/Bond.h $(includedir)/atomstruct/Chain.h \
 	$(includedir)/atomstruct/ChangeTracker.h $(includedir)/atomstruct/destruct.h \
 	$(includedir)/atomstruct/PBGroup.h $(includedir)/atomstruct/Pseudobond.h \

@@ -2,6 +2,7 @@
 #ifndef templates_restmpl
 #define    templates_restmpl
 
+#include "../imex.h"
 #include "Atom.h"
 #include "Bond.h"
 #include "Coord.h"

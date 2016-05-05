@@ -350,7 +350,7 @@ if window_sys == "wx":
                     from chimerax.core.commands import run
                     run(ses, 'help new_viewer help:%s' % t)
                 self.Bind(wx.EVT_MENU, cb, item)
-            ad = session.app_dirs
+            from chimerax import app_dirs as ad
             item = help_menu.Append(wx.ID_ANY, "About %s %s" % (ad.appauthor, ad.appname))
             self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.about(ses, evt),
                       item)
@@ -360,11 +360,11 @@ if window_sys == "wx":
             from wx.lib.wordwrap import wordwrap
             import os
             from .. import buildinfo
-            ad = session.app_dirs
+            from chimerax import app_dirs as ad
             width = 400
             dc = wx.ClientDC(self)
             info = wx.adv.AboutDialogInfo()
-            icon_path = os.path.join(session.app_data_dir, "%s-icon512.png" % ad.appname)
+            icon_path = os.path.join(ad.app_data_dir, "%s-icon512.png" % ad.appname)
             if os.path.exists(icon_path):
                 image = wx.Image(icon_path, wx.BITMAP_TYPE_PNG)
                 image.Rescale(128, 128)
@@ -721,6 +721,17 @@ else:
     qlib_paths.append(os.path.join(os.path.dirname(app_lib_dir), "plugins"))
     QCoreApplication.setLibraryPaths(qlib_paths)
 
+    from PyQt5.QtGui import QDesktopServices
+    def handle_schema(qurl):
+        import sys
+        print("Handling URL", qurl.toString(), file=sys.__stderr__)
+    QDesktopServices.setUrlHandler("cxcmd", handle_schema)
+    QDesktopServices.setUrlHandler("cxcmd:", handle_schema)
+    from PyQt5.QtCore import QUrl
+    QDesktopServices.openUrl(QUrl("cxcmd:test"))
+    QDesktopServices.openUrl(QUrl("cxcmd:open%202bbv"))
+    QDesktopServices.openUrl(QUrl("help:help_topic"))
+
     # for whatever reason, QtWebEngineWidgets has to be imported before a
     # QtCoreApplication is created...
     import PyQt5.QtWebEngineWidgets
@@ -1011,7 +1022,7 @@ else:
                 help_menu.addAction(help_action)
             #QT disabled
             """
-            ad = session.app_dirs
+            from chimerax import app_dirs as ad
             item = help_menu.Append(wx.ID_ANY, "About %s %s" % (ad.appauthor, ad.appname))
             self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.about(ses, evt),
                       item)
@@ -1021,11 +1032,11 @@ else:
             from wx.lib.wordwrap import wordwrap
             import os
             from .. import buildinfo
-            ad = session.app_dirs
+            from chimerax import app_dirs as ad
             width = 400
             dc = wx.ClientDC(self)
             info = wx.adv.AboutDialogInfo()
-            icon_path = os.path.join(session.app_data_dir, "%s-icon512.png" % ad.appname)
+            icon_path = os.path.join(ad.app_data_dir, "%s-icon512.png" % ad.appname)
             if os.path.exists(icon_path):
                 image = wx.Image(icon_path, wx.BITMAP_TYPE_PNG)
                 image.Rescale(128, 128)

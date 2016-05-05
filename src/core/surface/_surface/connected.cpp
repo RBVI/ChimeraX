@@ -9,8 +9,8 @@
 
 #include <Python.h>		// use PyObject
 
-#include "pythonarray.h"	// use array_from_python()
-#include "rcarray.h"		// use IArray
+#include <arrays/pythonarray.h>	// use array_from_python()
+#include <arrays/rcarray.h>	// use IArray
 
 static void connected_triangles(const IArray &tarray, int tindex,
 				std::vector<int> &tlist);

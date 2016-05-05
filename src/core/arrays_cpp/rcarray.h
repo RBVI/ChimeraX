@@ -28,6 +28,8 @@
 #ifndef RCARRAY_HEADER_INCLUDED
 #define RCARRAY_HEADER_INCLUDED
 
+#include "imex.h"
+
 #include "refcount.h"       // use Reference_Count
 #include <stdexcept>        // for std::invalid_argument in rcarrayt.cpp
 
@@ -37,7 +39,7 @@ namespace Reference_Counted_Array
 // ----------------------------------------------------------------------------
 // Used by Array.
 //
-class Release_Data
+class ARRAYS_IMEX Release_Data
 {
 public:
   virtual ~Release_Data() {}
@@ -58,7 +60,7 @@ private:
 // ----------------------------------------------------------------------------
 // Multi-dimensional reference counted array with unspecified value type.
 //
-class Untyped_Array
+class ARRAYS_IMEX Untyped_Array
 {
 public:
   Untyped_Array();
@@ -150,7 +152,7 @@ public:
 // ----------------------------------------------------------------------------
 // Multi-dimensional reference counted array with numeric value type.
 //
-class Numeric_Array : public Untyped_Array
+class ARRAYS_IMEX Numeric_Array : public Untyped_Array
 {
  public:
   enum Value_Type { Char, Signed_Char, Unsigned_Char,

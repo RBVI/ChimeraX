@@ -1,7 +1,13 @@
 // vi: set expandtab ts=4 sw=4:
+#define ATOMSTRUCT_EXPORT
 #include "Point.h"
 #include <sstream>
 #include <cmath>
+
+#ifndef M_PI
+// not defined on Windows
+# define M_PI 3.14159265358979323846
+#endif
 
 namespace atomstruct {
     

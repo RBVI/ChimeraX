@@ -1,4 +1,5 @@
 // vi: set expandtab ts=4 sw=4:
+#define ATOMSTRUCT_EXPORT
 #include "restmpl.h"
 
 #include <algorithm> // for std::find

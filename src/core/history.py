@@ -14,22 +14,22 @@ application will still work.
 from .orderedset import OrderedSet
 
 
-def filename(session, tag, unversioned=True):
+def filename(tag, unversioned=True):
     """Return appropriate filename for cache file.
 
     Parameters
     ----------
-    session : :py:class:`~chimerax.core.session.Session` instance
     tag : str, a unique tag to identify the history
     unversioned : bool, optional
 
         If *unversioned* is True, then the history is kept
         for all versions of the application.
     """
+    from chimerax import app_dirs, app_dirs_unversioned
     if unversioned:
-        cache_dir = session.app_dirs_unversioned.user_cache_dir
+        cache_dir = app_dirs_unversioned.user_cache_dir
     else:
-        cache_dir = session.app_dirs.user_cache_dir
+        cache_dir = app_dirs.user_cache_dir
     import os
     return os.path.join(cache_dir, tag)
 
@@ -48,8 +48,8 @@ class ObjectCache:
     Uses JSON to serialize and deserialize history object.
     """
 
-    def __init__(self, session, tag, unversioned=True):
-        self.filename = filename(session, tag, unversioned)
+    def __init__(self, tag, unversioned=True):
+        self.filename = filename(tag, unversioned)
 
     def load(self):
         """Return deserialized object from history file."""
@@ -100,7 +100,7 @@ class FIFOHistory:
                  auto_save=True):
         self._capacity = capacity
         self._auto_save = auto_save
-        self._history = ObjectCache(session, tag, unversioned)
+        self._history = ObjectCache(tag, unversioned)
         obj = self._history.load()
         if obj is None:
             obj = []
@@ -212,7 +212,7 @@ class LRUSetHistory(OrderedSet):
                  auto_save=True):
         self._capacity = capacity
         self._auto_save = auto_save
-        self._history = ObjectCache(session, tag, unversioned)
+        self._history = ObjectCache(tag, unversioned)
         obj = self._history.load()
         if obj is None:
             obj = []
@@ -259,7 +259,7 @@ if __name__ == '__main__':
 
     print('test LRU history file', flush=True)
     history = LRUSetHistory(128, session, 'test_history')
-    testfile = filename(session, 'test_history')
+    testfile = filename('test_history')
 
     if os.path.exists(testfile):
         print('testfile:', testfile, 'already exists')
@@ -280,7 +280,7 @@ if __name__ == '__main__':
 
     print('test FIFO history file', flush=True)
     history = FIFOHistory(3, session, 'test_history')
-    testfile = filename(session, 'test_history')
+    testfile = filename('test_history')
 
     if os.path.exists(testfile):
         print('testfile:', testfile, 'already exists')

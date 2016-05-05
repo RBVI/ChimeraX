@@ -32,6 +32,13 @@
 
 namespace element {
 
+#if 0
+class Element;
+extern template class ELEMENT_IMEX std::map<int, const Element*>;
+extern template class ELEMENT_IMEX std::set<std::string>;
+extern template class ELEMENT_IMEX std::set<int>;
+#endif
+
 class ELEMENT_IMEX Element {
 public:
     // Atomic Symbols:

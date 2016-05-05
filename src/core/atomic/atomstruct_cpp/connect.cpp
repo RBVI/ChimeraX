@@ -4,6 +4,7 @@
 #include <map>
 #include <stdlib.h>
 
+#define ATOMSTRUCT_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "connect.h"
