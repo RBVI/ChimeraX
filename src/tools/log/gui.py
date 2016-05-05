@@ -312,7 +312,7 @@ class Log(ToolInstance, HtmlLog):
         if self.window_sys == "wx":
             javascript = self.log_window.RunScript
         else:
-            javascript = self.log_window.page().mainFrame().evaluateJavaScript
+            javascript = self.log_window.page().runJavaScript
         javascript("window.scrollTo(0, document.body.scrollHeight);")
         # setup context menu
         javascript(context_menu_script)

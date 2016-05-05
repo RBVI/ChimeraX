@@ -140,19 +140,31 @@ class HelpUI(ToolInstance):
             self.search.selectAll()
             tb.addWidget(self.search)
 
-            from PyQt5.QtWebKitWidgets import QWebView
-            class HelpWebView(QWebView):
+            from PyQt5.QtWebEngineWidgets import QWebEngineView
+            class HelpWebView(QWebEngineView):
                 def __init__(self, ses=session, bi=bundle_info):
                     self.session = ses
                     self.bundle_info = bi
-                    QWebView.__init__(self)
+                    QWebEngineView.__init__(self)
 
                 def createWindow(self, win_type):
                     help_ui = HelpUI(self.session, self.bundle_info)
                     return help_ui.help_window
             self.help_window = HelpWebView()
             layout.addWidget(self.help_window)
-            self.help_window.linkClicked.connect(self.link_clicked)
+            def link_clicked(qurl, nav_type, is_main_frame):
+                self.link_clicked(qurl)
+                return False
+            self.help_window.page().acceptNavigationRequest = link_clicked
+            """
+            from PyQt5.QtGui import QDesktopServices
+            def t(*args):
+                import sys
+                print("url handler args", args, file=sys.__stderr__)
+            #QDesktopServices.setUrlHandler("cxcmd", t)
+            #QDesktopServices.setUrlHandler("cxcmd", self.link_clicked)
+            QDesktopServices.setUrlHandler("cxcmd", self, "link_clicked")
+            """
             self.help_window.loadFinished.connect(self.page_loaded)
             self.help_window.titleChanged.connect(self.tool_window.set_title)
             self.search.returnPressed.connect(lambda s=self.search, hw=self.help_window:
@@ -238,7 +250,6 @@ class HelpUI(ToolInstance):
 
     def page_loaded(self, okay):
         page = self.help_window.page()
-        page.setLinkDelegationPolicy(page.DelegateAllLinks)
         history = self.help_window.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
@@ -262,7 +273,10 @@ class HelpUI(ToolInstance):
         # unknown scheme
         session.logger.error("Unknown URL scheme: '%s'" % parts.scheme)
 
-    def link_clicked(self, qurl):
+    def link_clicked(self, qurl, *args):
+        import sys
+        print("link_clicked!", file=sys.__stderr__)
+        print("link_clicked:", repr(qurl), args, file=sys.__stderr__)
         session = self.session
         if qurl.scheme() in ('cxcmd', 'help', 'file', 'http'):
             from .cmd import help
