@@ -387,11 +387,11 @@ class MainWindow(wx.Frame, PlainTextLog):
         from wx.lib.wordwrap import wordwrap
         import os
         from .. import buildinfo
-        from chimerax import app_dirs as ad
+        from chimerax import app_dirs as ad, app_data_dir
         width = 400
         dc = wx.ClientDC(self)
         info = wx.adv.AboutDialogInfo()
-        icon_path = os.path.join(ad.app_data_dir, "%s-icon512.png" % ad.appname)
+        icon_path = os.path.join(app_data_dir, "%s-icon512.png" % ad.appname)
         if os.path.exists(icon_path):
             image = wx.Image(icon_path, wx.BITMAP_TYPE_PNG)
             image.Rescale(128, 128)

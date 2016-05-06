@@ -374,10 +374,11 @@ def install(session, localized_app_name, reinstall=False, info=None):
     if not info.already_generated or reinstall:
         make_desktop(info, localized_app_name)
         make_mime_file(info.mime_file)
-    old_path = add_xdg_utils_to_path(session.app_data_dir)
+    from chimerax import app_data_dir
+    old_path = add_xdg_utils_to_path(app_data_dir)
     if not info.already_generated or reinstall:
         install_mime_file(info.mime_file)
-        install_icons(info, session.app_data_dir)
+        install_icons(info, app_data_dir)
         install_desktop_menu(info.desktop)
         install_desktop_icon(info.desktop)
     os.environ["PATH"] = old_path
@@ -385,7 +386,8 @@ def install(session, localized_app_name, reinstall=False, info=None):
 
 def uninstall(session):
     info = get_info(session)
-    old_path = add_xdg_utils_to_path(session.app_data_dir)
+    from chimerax import app_data_dir
+    old_path = add_xdg_utils_to_path(app_data_dir)
     if info.already_generated:
         uninstall_desktop_icon(info.desktop)
         uninstall_desktop_menu(info.desktop)
