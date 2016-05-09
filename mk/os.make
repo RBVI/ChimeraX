@@ -103,8 +103,8 @@ ifdef DEBUG
 else
 	OPT = /Ox /W2
 endif
-	CC = cl /nologo /Zc:forScope /EHa /GR /GF /MD
-	CXX = $(CC)
+	CC = cl /nologo /EHa /GR /GF /MD
+	CXX = $(CC) /Zc:inline,rvalueCast,strictStrings
 
 	PYDEF =
 	PYTHON_LIB = python$(PYVER_NODOT).$(LIB_EXT)
