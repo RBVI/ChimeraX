@@ -94,7 +94,6 @@ class HelpUI(ToolInstance):
             sizer.Add(self.toolbar, 0, wx.EXPAND)
             sizer.Add(self.help_window, 1, wx.EXPAND)
             parent.SetSizerAndFit(sizer)
-            self.help_window.Bind(wx.EVT_CLOSE, self.on_close)
             self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATED, self.on_navigated)
             self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
                                   id=self.help_window.GetId())
@@ -240,8 +239,13 @@ class HelpUI(ToolInstance):
     def page_zoom_out(self, checked):
         self.help_window.setZoomFactor(0.8 * self.help_window.zoomFactor())
 
-    def on_close(self, event):
-        self.session.logger.remove_log(self)
+    def delete(self):
+        ToolInstance.delete(self)
+        try:
+            del _targets[self.target]
+        except:
+            pass
+
 
     def on_navigated(self, event):
         self.toolbar.EnableTool(self.back.GetId(),
