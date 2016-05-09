@@ -65,16 +65,11 @@ else
 endif
 	CC = clang
 	CXX = clang++ -std=c++11 -stdlib=libc++
-<<<<<<< HEAD
-	EXTRA_CFLAGS = -fPIC
-	EXTRA_CXXFLAGS = -fPIC -fvisibility-ms-compat
 	SDK_PATH = $(shell echo | gcc -xc -E -v - 2>&1 | grep '\.sdk/usr/include$$' | cut -d . -f 1,2,3,4).sdk
-=======
 ifndef PREREQ_MAKE
 	CC += -fvisibility=hidden
 	CXX += -fvisibility-ms-compat
 endif
->>>>>>> 7cfe74b9321765081a622dd4c3c5e3829aab153b
 
 	PYDEF = -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
 ifdef USE_MAC_FRAMEWORKS
