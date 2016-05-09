@@ -48,8 +48,8 @@ class Label:
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
             rgba8 = tuple(self.color.uint8x4())
-        rgba = text_image_rgba(self.text, rgba8, self.size, self.typeface,
-                               self.session.app_data_dir)
+        from chimerax import app_data_dir
+        rgba = text_image_rgba(self.text, rgba8, self.size, self.typeface, app_data_dir)
         if rgba is None:
             self.session.logger.info("Can't find font for label")
             return

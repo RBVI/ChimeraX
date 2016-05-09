@@ -2,7 +2,7 @@
 #
 #	http://qt-project.org/wiki/Building_Qt_5_from_Git
 
-FOREIGN_MAKE = 1
+PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 

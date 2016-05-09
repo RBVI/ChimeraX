@@ -7,6 +7,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/atomic
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = pdbio
+DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS)
 ifdef WIN32
 LIBS += libatomstruct.lib libelement.lib liblogger.lib libpdb.lib libarrays.lib $(PYTHON_LIB)
