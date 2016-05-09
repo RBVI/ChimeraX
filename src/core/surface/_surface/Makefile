@@ -9,6 +9,7 @@ SRCS	= border.cpp capper.cpp connected.cpp measure.cpp normals.cpp parse_stl.cpp
 	  patches.cpp refinemesh.cpp sasa.cpp subdivide.cpp surface.cpp \
 	  triangulate.cpp tube.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
+DEFS	+= $(PYDEF)
 INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 ifdef WIN32
 LIBS	+= libarrays.lib $(PYTHON_LIB) $(OPENGL_LIBS)

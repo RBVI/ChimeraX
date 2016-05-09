@@ -8,9 +8,9 @@ ifeq ($(OS),Linux)
 	LIB_LINK = ar rc $(LIBRARY) $(OBJS)
 	RANLIB = ranlib
 	SHLIB_EXT = so
-	SHLIB_LINK = $(LOADER) $(LDFLAGS) -shared -o $(SHLIB) $(OBJS) $(LIBS)
+	SHLIB_LINK = $(LOADER) -fuse-ld=gold -Wl,--no-allow-shlib-undefined $(LDFLAGS) -shared -o $(SHLIB) $(OBJS) $(LIBS)
 	PROG_EXT =
-	PROG_LINK = $(LOADER) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
+	PROG_LINK = $(LOADER) -Wl,--no-undefined $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
 
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
@@ -26,16 +26,16 @@ ifneq (,$(shell echo $(GCC_VER) | sed -e 's/^[1-3]\..*//' -e 's/^4\.[0-6]\..*//'
 else
 	ERROR := $(error "gcc $(GCC_VER) is too old")
 endif
-#TODO
-#ifndef PREREQ_MAKE
-#	# require explicit exporting in all code we write
-#	CC += -fvisibility-ms-compat
-#	CXX += -fvisibility-ms-compat
-#endif
 
-	PYDEF = -fvisibility-ms-compat -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
+ifndef PREREQ_MAKE
+	# require explicit exporting in all code we write
+	CC += -fvisibility=hidden
+	CXX += -fvisibility-ms-compat
+endif
+
+	PYDEF = -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
 	PYMOD_EXT = so
-	PYMOD_LINK = $(LOADER) $(LDFLAGS) -shared -o $(PYMOD) $(OBJS) $(LIBS)
+	PYMOD_LINK = $(LOADER) -fuse-ld=gold $(LDFLAGS) -shared -Wl,--no-allow-shlib-undefined -o $(PYMOD) $(OBJS) $(LIBS)
 	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 
 	OPENGL_LIBS = -L$(libdir) -lGLU -lGL
@@ -65,8 +65,10 @@ else
 endif
 	CC = clang
 	CXX = clang++ -std=c++11 -stdlib=libc++
-	EXTRA_CFLAGS = -fPIC
-	EXTRA_CXXFLAGS = -fPIC -fvisibility-ms-compat
+ifndef PREREQ_MAKE
+	CC += -fvisibility=hidden
+	CXX += -fvisibility-ms-compat
+endif
 
 	PYDEF = -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
 ifdef USE_MAC_FRAMEWORKS
