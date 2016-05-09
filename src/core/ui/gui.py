@@ -727,6 +727,8 @@ else:
         print("Handling URL", qurl.toString(), file=sys.__stderr__)
     QDesktopServices.setUrlHandler("cxcmd", handle_schema)
     QDesktopServices.setUrlHandler("cxcmd:", handle_schema)
+    QDesktopServices.setUrlHandler("help", handle_schema)
+    QDesktopServices.setUrlHandler("help:", handle_schema)
     from PyQt5.QtCore import QUrl
     QDesktopServices.openUrl(QUrl("cxcmd:test"))
     QDesktopServices.openUrl(QUrl("cxcmd:open%202bbv"))
