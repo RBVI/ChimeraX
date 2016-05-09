@@ -15,7 +15,7 @@ TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Sequence alignment similarity matrices
 COMMAND_NAME = 
 
-PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
+PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 ifdef WIN32
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
