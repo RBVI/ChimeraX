@@ -83,7 +83,7 @@ SUBDIRS += llvm mesa pkgconfig xdg-utils
 endif
 
 ifdef ENABLE_QT
-SUBDIRS += PyQt qt
+SUBDIRS += PyQt qt sip
 endif
 
 # Python egg installation has a race condition updating easy-install.pth
