@@ -721,22 +721,6 @@ else:
     qlib_paths.append(os.path.join(os.path.dirname(app_lib_dir), "plugins"))
     QCoreApplication.setLibraryPaths(qlib_paths)
 
-    from PyQt5.QtGui import QDesktopServices
-    def handle_schema(qurl):
-        import sys
-        print("Handling URL", qurl.toString(), file=sys.__stderr__)
-    QDesktopServices.setUrlHandler("cxcmd", handle_schema)
-    QDesktopServices.setUrlHandler("cxcmd:", handle_schema)
-    QDesktopServices.setUrlHandler("help", handle_schema)
-    QDesktopServices.setUrlHandler("help:", handle_schema)
-    from PyQt5.QtCore import QUrl
-    QDesktopServices.openUrl(QUrl("cxcmd:test"))
-    QDesktopServices.openUrl(QUrl("cxcmd:open%202bbv"))
-    QDesktopServices.openUrl(QUrl("help:help_topic"))
-
-    # for whatever reason, QtWebEngineWidgets has to be imported before a
-    # QtCoreApplication is created...
-    import PyQt5.QtWebEngineWidgets
     from PyQt5.QtWidgets import QApplication
     class UI(QApplication):
         """Main ChimeraX user interface
@@ -757,6 +741,26 @@ else:
         def __init__(self, session):
             self.is_gui = True
             self.session = session
+
+            from PyQt5.QtCore import QObject, pyqtSlot
+            class CxUrlHandler(QObject):
+                def __init__(self, session):
+                    QObject.__init__(self)
+                    self.session = session
+
+                @pyqtSlot("QUrl")
+                def handle_schema(self, qurl):
+                    from ..commands import run
+                    run(self.session, "help %s" % qurl.toString(), log=False)
+
+            self.cxUrlHandler = CxUrlHandler(session)
+            from PyQt5.QtGui import QDesktopServices
+            QDesktopServices.setUrlHandler("cxcmd", self.cxUrlHandler.handle_schema)
+            QDesktopServices.setUrlHandler("help", self.cxUrlHandler.handle_schema)
+
+            # for whatever reason, QtWebEngineWidgets has to be imported before a
+            # QtCoreApplication is created...
+            import PyQt5.QtWebEngineWidgets
 
             import sys
             QApplication.__init__(self, [sys.argv[0]])
