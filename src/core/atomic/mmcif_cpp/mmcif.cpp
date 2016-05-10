@@ -940,7 +940,7 @@ ExtractMolecule::parse_atom_site()
             }
         }
 
-        if (isnan(x) || isnan(y) || isnan(z)) {
+        if (std::isnan(x) || std::isnan(y) || std::isnan(z)) {
             logger::warning(_logger, "Skipping atom \"", atom_name,
                             "\" near line ", line_number(),
                             ": missing coordinates");

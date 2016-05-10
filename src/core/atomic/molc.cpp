@@ -2893,14 +2893,14 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
         float *ti = ti1 + 3;
         cross(ti1, ti, b);
         float b_len = sqrtf(inner(b, b));
-        if (!isnan(b_len)) {
+        if (!std::isnan(b_len)) {
             b_hat[0] = b[0] / b_len;
             b_hat[1] = b[1] / b_len;
             b_hat[2] = b[2] / b_len;
             float c = inner(ti1, ti);
-            if (!isnan(c)) {
+            if (!std::isnan(c)) {
                 float s = sqrtf(1 - c*c);
-                if (!isnan(s))
+                if (!std::isnan(s))
                     _rotate_around(b_hat, c, s, n);
             }
         }
@@ -2986,7 +2986,7 @@ extern "C" EXPORT PyObject *constrained_normals(PyObject* py_tangents, PyObject*
     bool need_flip = false;
     if (!no_twist) {
         twist = acos(inner(n, n_end));
-        if (isnan(twist))
+        if (std::isnan(twist))
             twist = 0;
 #if DEBUG_CONSTRAINED_NORMALS > 0
         std::cerr << "initial twist " << rad2deg(twist) << " degrees, sqlen(n): "
