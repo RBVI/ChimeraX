@@ -117,13 +117,16 @@ endif
 	INCS = -I'$(shell cygpath -m '$(includedir)')'
 	LIBS = /link /LIBPATH:'$(shell cygpath -m '$(libdir)')'
 
-.SUFFIXES: .obj
+.SUFFIXES: .obj .rc
 
 .cpp.obj:
 	$(CXX) $(CXXFLAGS) /c $<
 
 .c.obj:
 	$(CC) $(CFLAGS) /c $<
+
+.rc.obj:
+	rc $(DEFS) /i . /Fo$@ $<
 endif
 
 CFLAGS = $(OPT) $(INCS) $(DEFS)
