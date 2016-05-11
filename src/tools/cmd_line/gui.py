@@ -313,7 +313,7 @@ class _HistoryDialog:
     def qt_add(self, item):
         self.listbox.addItem(item)
         while self.listbox.count() > self.NUM_REMEMBERED:
-            self.listbox.removeItemWidget(self.listbox.item(0))
+            self.listbox.takeItem(0)
         self.history.enqueue(item)
         self.listbox.clearSelection()
         self.listbox.setCurrentRow(len(self.history) - 1)
