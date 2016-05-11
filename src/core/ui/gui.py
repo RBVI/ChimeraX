@@ -873,6 +873,7 @@ else:
             self._stack = GraphicsArea(self)
             from .graphics import GraphicsWindow
             self.graphics_window = g = GraphicsWindow(self._stack, ui)
+            self.setFocusProxy(g.widget)
             self._stack.addWidget(g.widget)
             self._stack.setCurrentWidget(g.widget)
             self.setCentralWidget(self._stack)

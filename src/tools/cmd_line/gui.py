@@ -193,6 +193,8 @@ class CommandLine(ToolInstance):
             self.text.SetValue(cmd_text)
             self.text.SelectAll()
         else:
+            from PyQt5.QtCore import Qt
+            self.text.lineEdit().setFocus(Qt.OtherFocusReason)
             self.text.lineEdit().setText(cmd_text)
             self.text.lineEdit().selectAll()
 

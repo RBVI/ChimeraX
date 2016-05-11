@@ -229,6 +229,8 @@ class Log(ToolInstance, HtmlLog):
 
             self.page_source += msg
         self.show_page_source()
+        from PyQt5.QtCore import Qt
+        self.session.ui.main_window.setFocus(Qt.OtherFocusReason)
         return True
 
     #
