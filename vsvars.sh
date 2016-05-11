@@ -83,7 +83,13 @@ VSD=`cygpath -u "$VSINSTALLDIR"`
 VCD=`cygpath -u "$VCINSTALLDIR"`
 FD=`cygpath -u "$FrameworkDir"`
 
-export PATH="$VCD/bin/$AMD64:$VCD/VCPackages:$VSD/Common7/IDE:$VSD/Common7/Tools:$VSD/Team Tools/Performance Tools$X64:$PATH"
+export PATH="$VCD/bin/$AMD64:\
+$WindowsSdkDir/bin/x64:\
+$VCD/VCPackages:\
+$VSD/Common7/IDE:\
+$VSD/Common7/Tools:\
+$VSD/Team Tools/Performance Tools$X64:\
+$PATH"
 
 export INCLUDE="$VCINSTALLDIR\\include;\
 $VCINSTALLDIR\\atlmfc\\include;\
