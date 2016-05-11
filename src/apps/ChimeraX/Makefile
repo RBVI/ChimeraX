@@ -23,8 +23,15 @@ ifeq ($(OS),Linux)
 LINUX_ICONS = ChimeraX-icon128.png ChimeraX-icon64.png ChimeraX-icon32.png ChimeraX-icon16.png
 ICONS	+= $(LINUX_ICONS)
 endif
+ifdef WIN32
+ICONS	+= $(APP_NAME).ico
+endif
 SRCS	= launcher.c
 OBJS	= $(SRCS:.c=.$(OBJ_EXT))
+ifdef WIN32
+RCSRCS	= icon.rc
+OBJS	+= $(RCSRCS:.rc=.$(OBJ_EXT))
+endif
 INCS	+= $(PYTHON_INCLUDE_DIRS)
 LIBS	+= $(PYTHON_LIB)
 
@@ -50,6 +57,9 @@ endif
 
 clean:
 	rm -f $(PROG) $(OBJS) Info.plist chimerax-icon.icns $(LINUX_ICONS)
+ifdef WIN32
+	rm -f $(APP_NAME).ico icon.rc $(PROG).manifest
+endif
 
 lint:
 	$(PYLINT) *.py
@@ -105,3 +115,22 @@ ChimeraX-icon32.png:
 
 ChimeraX-icon16.png:
 	convert ChimeraX-icon512.png -geometry 16x16 ChimeraX-icon16.png
+
+#
+# For Windows
+#
+YEAR = $(shell $(PYTHON_EXE) geticoninfo.py -y)
+VER = $(shell $(PYTHON_EXE) geticoninfo.py -v)
+PRODVER = $(shell $(PYTHON_EXE) geticoninfo.py -p)
+FLAGS = $(shell git show --summary > /dev/null && echo VS_FF_PRERELEASE || echo 0)
+
+$(APP_NAME).ico: $(APP_NAME)-icon512.png
+	convert $(APP_NAME)-icon512.png -resize 256x256 \
+		-alpha Background -compress zip \
+		-define icon:auto-resize=256,128,96,64,48,32,24,16 \
+		$(APP_NAME).ico
+
+icon.$(OBJ_EXT): $(APP_NAME).ico
+
+icon.rc: icon.rc.in
+	sed -e 's/YEAR/$(YEAR)/' -e 's/CHIMERAX_VERSION/$(VER)/' -e 's/CHIMERAX_PRODUCT/$(PRODVER)/' -e 's/CHIMERAX_FLAGS/$(FLAGS)/' < icon.rc.in > icon.rc
