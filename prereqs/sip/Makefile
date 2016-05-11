@@ -6,6 +6,10 @@ VERSION = 4.18
 DISTRIBUTION = sip-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/sip-$(VERSION)
 
+ifdef WIN32
+MAKE = nmake
+endif
+
 all:
 
 install: $(SOURCE)
