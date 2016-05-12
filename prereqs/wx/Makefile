@@ -110,4 +110,4 @@ endif
 endif
 
 clean:
-	rm -rf $(SOURCE)
+	rm -rf $(SOURCE) pip.log
