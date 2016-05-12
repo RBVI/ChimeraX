@@ -91,7 +91,7 @@ def parse_arguments(argv):
     opts.line_profile = False
     opts.list_file_types = False
     opts.load_tools = True
-    opts.offscreen = True
+    opts.offscreen = False
     opts.silent = False
     opts.start_tools = []
     opts.status = True
@@ -108,7 +108,7 @@ def parse_arguments(argv):
         "--help",
         "--lineprofile",
         "--listfiletypes",
-        "--nooffscreen",
+        "--offscreen",
         "--silent",
         "--nostatus",
         "--start <tool name>",
@@ -131,7 +131,7 @@ def parse_arguments(argv):
         "--nolineprofile",
         "--nosilent",
         "--nousedefaults",
-        "--offscreen",
+        "--nooffscreen",
         "--status",
         "--tools",
         "--nousedefaults",
