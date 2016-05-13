@@ -22,29 +22,66 @@ class ModelPanel(ToolInstance):
         now = self.settings.last_use = time()
         short_titles = last != None and now - last < 777700 # about 3 months
 
-        self.tool_window = ModelPanelWindow(self)
+        from chimerax.core import window_sys
+        kw = {'size': (200, 250) } if window_sys == "wx" else {}
+        self.tool_window = ModelPanelWindow(self, **kw)
         parent = self.tool_window.ui_area
-        from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
-            QFrame, QPushButton
-        self.tree = QTreeWidget()
-        layout = QHBoxLayout()
-        layout.addWidget(self.tree)
-        layout.setStretchFactor(self.tree, 1)
-        parent.setLayout(layout)
-        title = "S" if short_titles else "Shown"
-        self.tree.setHeaderLabels(["ID", " ", title, "Name"])
-        self.tree.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.tree.itemClicked.connect(self._tree_change_cb)
-        buttons_layout = QVBoxLayout()
-        layout.addLayout(buttons_layout)
-        for model_func in [close, hide, show, view]:
-            button = QPushButton(model_func.__name__.capitalize())
-            buttons_layout.addWidget(button)
-            button.clicked.connect(lambda chk, self=self, mf=model_func, ses=session:
-                mf([self.models[row] for row in [self._items.index(i)
-                    for i in self.tree.selectedItems()]] or self.models, ses))
+        if window_sys == "wx":
+            self._fill_tree = self.wx_fill_table
+            import wx
+            import wx.grid
+            self.table = wx.grid.Grid(parent, size=(200, 150))
+            self.table.CreateGrid(5, 4)
+            self.table.SetColLabelValue(0, "ID")
+            self.table.SetColSize(0, 25)
+            self.table.SetColLabelValue(1, " ")
+            self.table.SetColSize(1, -1)
+            title = "S" if short_titles else "Shown"
+            self.table.SetColLabelValue(2, title)
+            self.table.SetColSize(2, -1)
+            self.table.SetColFormatBool(2)
+            self.table.SetColLabelValue(3, "Name")
+            self.table.HideRowLabels()
+            self.table.SetDefaultCellAlignment(wx.ALIGN_CENTRE, wx.ALIGN_BOTTOM)
+            self.table.EnableEditing(False)
+            self.table.SelectionMode = wx.grid.Grid.GridSelectRows
+            self.table.CellHighlightPenWidth = 0
+            self.table.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self._label_click)
+            self.table.Bind(wx.grid.EVT_GRID_CELL_LEFT_CLICK, self._left_click)
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer.Add(self.table, 1, wx.EXPAND)
+            button_sizer = wx.BoxSizer(wx.VERTICAL)
+            for model_func in [close, hide, show, view]:
+                button = wx.Button(parent, label=model_func.__name__.capitalize())
+                button.Bind(wx.EVT_BUTTON, lambda e, self=self, mf=model_func, ses=session:
+                    mf([self.models[i] for i in self.table.SelectedRows] or self.models, ses))
+                button_sizer.Add(button, 0, wx.EXPAND)
+            sizer.Add(button_sizer, 0, wx.ALIGN_CENTER_VERTICAL)
+            parent.SetSizerAndFit(sizer)
+            self._sort_breadth_first = False
+        else:
+            self._fill_tree = self.qt_fill_tree
+            from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
+                QFrame, QPushButton
+            self.tree = QTreeWidget()
+            layout = QHBoxLayout()
+            layout.addWidget(self.tree)
+            layout.setStretchFactor(self.tree, 1)
+            parent.setLayout(layout)
+            title = "S" if short_titles else "Shown"
+            self.tree.setHeaderLabels(["ID", " ", title, "Name"])
+            self.tree.setSelectionBehavior(QAbstractItemView.SelectRows)
+            self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
+            self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
+            self.tree.itemClicked.connect(self._tree_change_cb)
+            buttons_layout = QVBoxLayout()
+            layout.addLayout(buttons_layout)
+            for model_func in [close, hide, show, view]:
+                button = QPushButton(model_func.__name__.capitalize())
+                buttons_layout.addWidget(button)
+                button.clicked.connect(lambda chk, self=self, mf=model_func, ses=session:
+                    mf([self.models[row] for row in [self._items.index(i)
+                        for i in self.tree.selectedItems()]] or self.models, ses))
 
         from chimerax.core.graphics import Drawing
         Drawing.triggers.add_handler('display changed', self._initiate_fill_tree)
@@ -73,7 +110,7 @@ class ModelPanel(ToolInstance):
             self._frame_drawn_handler = self.session.triggers.add_handler(
                 "frame drawn", self._fill_tree)
 
-    def _fill_tree(self, *args):
+    def qt_fill_tree(self, *args):
         update = self._process_models()
         if not update:
             self.tree.clear()
@@ -116,6 +153,54 @@ class ModelPanel(ToolInstance):
         self._frame_drawn_handler = None
         from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
+
+    def wx_fill_table(self, *args):
+        models = self.session.models.list()
+        order = (lambda m: (len(m.id),m.id)) if self._sort_breadth_first else (lambda m: m.id)
+        sorted_models = sorted(models, key=order)
+        replace = True if hasattr(self, 'models') and sorted_models == self.models else False
+        self.models = sorted_models
+        import wx
+        # prevent repaints untill the end of this method...
+        locker = wx.grid.GridUpdateLocker(self.table)
+        if not replace:
+            nr = self.table.NumberRows
+            if nr:
+                self.table.DeleteRows(0, nr)
+            self.table.AppendRows(len(models))
+        for i, model in enumerate(self.models):
+            if not replace:
+                self.table.SetCellValue(i, 0, model.id_string())
+            self.table.SetCellBackgroundColour(i, 1, self._model_color(model))
+            self.table.SetCellValue(i, 2, "1" if model.display else "")
+            self.table.SetCellValue(i, 3, getattr(model, "name", "(unnamed)"))
+        self.table.AutoSizeColumns()
+        del locker
+
+        self._frame_drawn_handler = None
+        from chimerax.core.triggerset import DEREGISTER
+        return DEREGISTER
+
+    def _header_click_cb(self, index):
+        if index == 0:
+            # ID label clicked.
+            # Toggle sort order.
+            self._sort_breadth_first = not self._sort_breadth_first
+            self._fill_tree()
+
+    def _left_click(self, event):
+        if event.Col == 2:
+            model = self.models[event.Row]
+            model.display = not model.display
+        event.Skip()
+
+    def _label_click(self, event):
+        if event.Col == 0:
+            # ID label clicked.
+            # Toggle sort order.
+            self._sort_breadth_first = not self._sort_breadth_first
+            self._fill_tree()
+        event.Skip()
 
     def _model_color(self, model):
         return model.single_color
