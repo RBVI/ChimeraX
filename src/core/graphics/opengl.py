@@ -1267,8 +1267,13 @@ class Bindings:
         self.bound_attr_ids = {}        # Maps buffer to list of ids
 
     def __del__(self):
+        self.delete_bindings()
+
+    def delete_bindings(self):
         'Delete the OpenGL vertex array object.'
-        GL.glDeleteVertexArrays(1, (self.vao_id,))
+        if self.vao_id is not None:
+            GL.glDeleteVertexArrays(1, (self.vao_id,))
+            self.vao_id = None
 
     def activate(self):
         'Activate the bindings by binding the OpenGL vertex array object.'
@@ -1704,8 +1709,13 @@ class Texture:
         GL.glBindTexture(gl_target, 0)
 
     def __del__(self):
+        self.delete_texture()
+
+    def delete_texture(self):
         'Delete the OpenGL texture.'
-        GL.glDeleteTextures((self.id,))
+        if self.id is not None:
+            GL.glDeleteTextures((self.id,))
+            self.id = None
 
     def bind_texture(self, tex_unit=None):
         'Bind the OpenGL texture.'

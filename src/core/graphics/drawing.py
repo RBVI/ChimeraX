@@ -881,7 +881,9 @@ class Drawing:
         self.normals = None
         self._edge_mask = None
         self._triangle_mask = None
-        self.texture = None
+        if self.texture:
+            self.texture.delete_texture()
+            self.texture = None
         self.texture_coordinates = None
 
         for b in self._vertex_buffers:
@@ -1153,6 +1155,7 @@ class _DrawShape:
             for b in self.instance_buffers:
                 b.delete_buffer()
 
+        self.bindings.delete_bindings()
         self.bindings = None
 
     def draw(self, display_style):
