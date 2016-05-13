@@ -687,7 +687,6 @@ def _register_core_database_fetch(session):
     pdb.register_pdb_fetch(s)
     from .atomic import mmcif
     mmcif.register_mmcif_fetch(s)
-    #QT disabled
-    #from . import map
-    #map.register_eds_fetch(s)
-    #map.register_emdb_fetch(s)
+    from . import map
+    map.register_eds_fetch(s)
+    map.register_emdb_fetch(s)

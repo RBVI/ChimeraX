@@ -340,7 +340,6 @@ class Tools(State):
     def autostart(self):
         """Start tools that should start when applications starts up."""
         from .core_settings import settings
-        from chimerax.core import window_sys
         self.start_tools(settings.autostart)
 
     def start_tools(self, tool_names):
