@@ -120,24 +120,24 @@ class ModelPanel(ToolInstance):
         from PyQt5.QtGui import QColor
         item_stack = [self.tree.invisibleRootItem()]
         for model in self.models:
+            model_id, model_id_string, bg_color, display, name = self._get_info(model)
+            len_id = len(model_id)
             if update:
-                if len(model.id) == len(item_stack):
+                if len_id == len(item_stack):
                     # first child
                     item = item_stack[-1].child(0)
                     item_stack.append(item)
                 else:
                     # sibling
-                    len_id = len(model.id)
                     parent, previous_child = item_stack[len_id-1:len_id+1]
                     item = parent.child(parent.indexOfChild(previous_child)+1)
-                    item_stack[len(model.id):] = [item]
+                    item_stack[len_id:] = [item]
             else:
-                parent = item_stack[len(model.id)-1]
+                parent = item_stack[len_id-1]
                 item = QTreeWidgetItem(parent)
-                item_stack[len(model.id):] = [item]
+                item_stack[len_id:] = [item]
                 self._items.append(item)
-            item.setText(0, model.id_string())
-            bg_color = self._model_color(model)
+            item.setText(0, model_id_string)
             bg = item.background(1)
             if bg_color is None:
                 bg.setStyle(Qt.NoBrush)
@@ -145,8 +145,9 @@ class ModelPanel(ToolInstance):
                 bg.setStyle(Qt.SolidPattern)
                 bg.setColor(QColor(*bg_color))
             item.setBackground(1, bg)
-            item.setCheckState(2, Qt.Checked if model.display else Qt.Unchecked)
-            item.setText(3, getattr(model, "name", "(unnamed)"))
+            if display is not None:
+                item.setCheckState(2, Qt.Checked if display else Qt.Unchecked)
+            item.setText(3, name)
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)
 
@@ -181,6 +182,23 @@ class ModelPanel(ToolInstance):
         from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
 
+    def _get_info(self, obj):
+        from chimerax.core.atomic import Chain
+        if isinstance(obj, Chain):
+            chain_string = '/%s' % obj.chain_id
+            model_id = obj.structure.id + (chain_string,)
+            model_id_string = obj.structure.id_string() + chain_string
+            bg_color = None
+            display = None
+            name = obj.description or "chain %s" % obj.chain_id
+        else:
+            model_id = obj.id
+            model_id_string = obj.id_string()
+            bg_color = self._model_color(obj)
+            display = obj.display
+            name = getattr(obj, "name", "(unnamed)")
+        return model_id, model_id_string, bg_color, display, name
+
     def _header_click_cb(self, index):
         if index == 0:
             # ID label clicked.
@@ -210,8 +228,14 @@ class ModelPanel(ToolInstance):
         tree_models = []
         chains = []
         sorted_models = sorted(models, key=lambda m: m.id)
-        update = True if hasattr(self, 'models') and sorted_models == self.models else False
-        self.models = sorted_models
+        from chimerax.core.atomic import AtomicStructure
+        final_models = []
+        for model in sorted_models:
+            final_models.append(model)
+            if isinstance(model, AtomicStructure):
+                final_models.extend([c for c in model.chains])
+        update = True if hasattr(self, 'models') and final_models == self.models else False
+        self.models = final_models
         return update
 
     def _tree_change_cb(self, item, column):
@@ -228,7 +252,8 @@ class ModelPanelSettings(Settings):
     }
 
 def close(models, session):
-    session.models.close(models)
+    from chimerax.core.models import Model
+    session.models.close([m for m in models if isinstance(m, Model)])
 
 def hide(models, session):
     for m in models:
@@ -245,12 +270,18 @@ def show(models, session):
     for m in models:
         m.display = True
 
-def view(models, session):
+def view(objs, session):
+    from chimerax.core.models import Model
+    models = [o for o in objs if isinstance(o, Model)]
     from chimerax.core.objects import Objects
     view_objects = Objects(models=models)
     for model in models:
         if getattr(model, 'atoms', None):
             view_objects.add_atoms(model.atoms)
+    from chimerax.core.atomic import Chain
+    for o in objs:
+        if isinstance(o, Chain):
+            view_objects.add_atoms(o.existing_residues.atoms)
     from chimerax.core.commands.view import view
     view(session, view_objects)
 
