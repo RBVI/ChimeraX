@@ -73,6 +73,7 @@ class ModelPanel(ToolInstance):
             self.tree.setSelectionBehavior(QAbstractItemView.SelectRows)
             self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
             self.tree.setAnimated(True)
+            self.tree.setUniformRowHeights(True)
             self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
             self.tree.itemClicked.connect(self._tree_change_cb)
             buttons_layout = QVBoxLayout()
