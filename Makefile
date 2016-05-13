@@ -25,7 +25,9 @@ docs.install:
 build-dirs:
 	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
 		$(webdir) $(wheelhouse)
+ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
+endif
 ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
 endif

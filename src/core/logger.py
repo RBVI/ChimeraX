@@ -172,8 +172,13 @@ class Logger:
             self._early_collation = True
         elif self._early_collation:
             # main window only handles status messages, so in that case keep collating...
-            from .ui.gui import MainWindow
-            if not isinstance(log, MainWindow):
+            try:
+                from .ui.gui import MainWindow
+            except ImportError:
+                log_is_main_window = False
+            else:
+                log_is_main_window = isinstance(log, MainWindow)
+            if not log_is_main_window:
                 self._early_collation = None
                 for cur_log in self.logs:
                     if isinstance(cur_log, _EarlyCollator):
