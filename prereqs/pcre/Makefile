@@ -57,13 +57,9 @@ all:
 
 install: $(SOURCE)
 ifeq ($(OS),Windows)
-#	-- devenv requires signing in to Visual Studio before using --
-#	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcre
-#	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcreposix
-#	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcrecpp
 	cd $(SOURCE)/build && nmake && nmake install
-	$(RSYNC) $(SOURCE)/build/Release/*.$(SHLIB_EXT) $(shlibdir)
-	$(RSYNC) $(SOURCE)/build/Release/*.$(LIB_EXT) $(libdir)
+	$(RSYNC) $(SOURCE)/build/*.$(SHLIB_EXT) $(shlibdir)
+	$(RSYNC) $(SOURCE)/build/*.$(LIB_EXT) $(libdir)
 	$(RSYNC) $(SOURCE)/pcre{cpp,posix,_scanner}.h $(includedir)
 	$(RSYNC) $(SOURCE)/build/pcre{,cpparg,_stringpiece}.h $(includedir)
 else
