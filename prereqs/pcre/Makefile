@@ -39,11 +39,13 @@ CMAKE_OPTS += -DCMAKE_BUILD_TYPE=Release
 endif
 
 ifeq ($(OSARCH),Windows64)
-CMAKE_OPTS += -G 'Visual Studio 14 2015 Win64'
+#CMAKE_OPTS += -G 'Visual Studio 14 2015 Win64'
+CMAKE_OPTS += -G 'NMake Makefiles'
 CONFIG = Release
 PLATFORM = x64
 else
-CMAKE_OPTS += -G 'Visual Studio 10 2015'
+#CMAKE_OPTS += -G 'Visual Studio 10 2015'
+CMAKE_OPTS += -G 'NMake Makefiles'
 CONFIG = Release
 PLATFORM = Win32
 endif
@@ -55,9 +57,11 @@ all:
 
 install: $(SOURCE)
 ifeq ($(OS),Windows)
-	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcre
-	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcreposix
-	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcrecpp
+#	-- devenv requires signing in to Visual Studio before using --
+#	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcre
+#	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcreposix
+#	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcrecpp
+	cd $(SOURCE)/build && nmake && nmake install
 	$(RSYNC) $(SOURCE)/build/Release/*.$(SHLIB_EXT) $(shlibdir)
 	$(RSYNC) $(SOURCE)/build/Release/*.$(LIB_EXT) $(libdir)
 	$(RSYNC) $(SOURCE)/pcre{cpp,posix,_scanner}.h $(includedir)
