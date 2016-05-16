@@ -714,12 +714,14 @@ if window_sys == "wx":
             aui_mgr.Update()
 else:
     # remove the build tree plugin path, and add install tree plugin path
-    from PyQt5.QtCore import QCoreApplication
-    qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
-    import os.path
-    from ... import app_lib_dir
-    qlib_paths.append(os.path.join(os.path.dirname(app_lib_dir), "plugins"))
-    QCoreApplication.setLibraryPaths(qlib_paths)
+    import sys
+    if not sys.platform.startswith('win'):
+        from PyQt5.QtCore import QCoreApplication
+        qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
+        import os.path
+        from ... import app_lib_dir
+        qlib_paths.append(os.path.join(os.path.dirname(app_lib_dir), "plugins"))
+        QCoreApplication.setLibraryPaths(qlib_paths)
 
     from PyQt5.QtWidgets import QApplication
     class UI(QApplication):
