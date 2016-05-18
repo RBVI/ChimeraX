@@ -64,6 +64,8 @@ class ShortcutPanel(ToolInstance):
             from PyQt5.QtGui import QIcon
             from PyQt5.QtCore import Qt, QSize
             tb = QToolBar(self.display_name, parent)
+            tb.setStyleSheet('QToolBar{spacing:0px;}\n'
+                             'QToolButton{padding:0px; margin:0px; background-color:white; border:none;}')
             tb.setIconSize(QSize(40,40))
             parent.addToolBar(Qt.TopToolBarArea, tb)
             for keys, icon_file, descrip in self.shortcuts:
