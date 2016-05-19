@@ -767,6 +767,22 @@ else:
             import sys
             QApplication.__init__(self, [sys.argv[0]])
 
+            # redirect Qt log messages to our logger
+            from ..logger import Log
+            from PyQt5.QtCore import QtDebugMsg, QtInfoMsg, QtWarningMsg, QtCriticalMsg, QtFatalMsg
+            qt_to_cx_log_level_map = {
+                QtDebugMsg: Log.LEVEL_INFO,
+                QtInfoMsg: Log.LEVEL_INFO,
+                QtWarningMsg: Log.LEVEL_WARNING,
+                QtCriticalMsg: Log.LEVEL_ERROR,
+                QtFatalMsg: Log.LEVEL_ERROR,
+            }
+            from PyQt5.QtCore import qInstallMessageHandler
+            def cx_qt_msg_handler(msg_type, msg_log_context, msg_string):
+                log_level = qt_to_cx_log_level_map[int(msg_type)]
+                self.session.logger.method_map[log_level](msg_string)
+            qInstallMessageHandler(cx_qt_msg_handler)
+
             # splash screen
             import os.path
             splash_pic_path = os.path.join(os.path.dirname(__file__),
@@ -1342,8 +1358,12 @@ def redirect_stdio_to_logger(logger):
     #       is written to stderr with a separate call to the write() method
     #       for each line, making it hard to aggregate the lines into one
     #       error dialog.
+    #
+    # Qt's error logging looks at the encoding of sys.stderr...
+    stderr_encoding = sys.stderr.encoding
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
+    sys.stderr.encoding = stderr_encoding
 
 
 # can't import these directly from __init__ since 'window_sys' may not be set yet
