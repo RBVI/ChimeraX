@@ -46,7 +46,7 @@ ifeq ($(PYQT_LICENSE),commercial)
 endif
 ifneq (,$(PATCHES))
 	for f in $(PATCHES) ; do \
-		( cd $(SOURCE) && patch -p1 ) < $$f ; \
+		( cd $(SOURCE) && patch -p0 ) < $$f ; \
 	done
 endif
 
