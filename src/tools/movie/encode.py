@@ -97,7 +97,7 @@ class ffmpeg_encoder:
             raise MovieError('Output directory does not exist: %s' % d)
         arg_list.append(path)
 
-		from chimerax import app_bin_dir
+        from chimerax import app_bin_dir
         ffmpeg_exe = join(app_bin_dir, self.ffmpeg_cmd)
         arg_list.insert(0, ffmpeg_exe)
 
