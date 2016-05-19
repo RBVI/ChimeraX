@@ -73,6 +73,8 @@ class MouseModePanel(ToolInstance):
             from PyQt5.QtGui import QIcon
             from PyQt5.QtCore import Qt, QSize
             tb = QToolBar(self.display_name, parent)
+            tb.setStyleSheet('QToolBar{spacing:0px;}\n'
+                             'QToolButton{padding:0px; margin:0px; border:none;}')
             tb.setIconSize(QSize(40,40))
             parent.addToolBar(Qt.RightToolBarArea, tb)
             group = QActionGroup(tb)
