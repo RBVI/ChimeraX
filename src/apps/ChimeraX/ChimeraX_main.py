@@ -378,7 +378,7 @@ def init(argv, event_loop=True):
     sess.add_state_manager('tasks', tasks.Tasks(sess, first=True))  # access with sess.tasks
 
     if opts.version >= 0:
-        format = ['terse', 'bundles', 'packages'][opts.version]
+        format = [None, 'verbose', 'bundles', 'packages'][opts.version]
         from chimerax.core.commands import command_function
         version_cmd = command_function("version")
         version_cmd(sess, format)

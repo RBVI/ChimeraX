@@ -875,6 +875,7 @@ else:
 
     from PyQt5.QtWidgets import QMainWindow, QStatusBar, QStackedWidget, QLabel, QDesktopWidget
     class MainWindow(QMainWindow, PlainTextLog):
+
         def __init__(self, ui, session):
             QMainWindow.__init__(self)
             self.setWindowTitle("ChimeraX")
@@ -1343,11 +1344,17 @@ else:
 def redirect_stdio_to_logger(logger):
     # Redirect stderr to log
     class LogStdout:
+
+        # Qt's error logging looks at the encoding of sys.stderr...
+        encoding = 'utf-8'
+
         def __init__(self, logger):
             self.logger = logger
             self.closed = False
+
         def write(self, s):
             self.logger.info(s, add_newline = False)
+
         def flush(self):
             return
     LogStderr = LogStdout
@@ -1358,12 +1365,8 @@ def redirect_stdio_to_logger(logger):
     #       is written to stderr with a separate call to the write() method
     #       for each line, making it hard to aggregate the lines into one
     #       error dialog.
-    #
-    # Qt's error logging looks at the encoding of sys.stderr...
-    stderr_encoding = sys.stderr.encoding
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
-    sys.stderr.encoding = stderr_encoding
 
 
 # can't import these directly from __init__ since 'window_sys' may not be set yet
