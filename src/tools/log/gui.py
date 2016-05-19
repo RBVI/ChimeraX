@@ -167,6 +167,7 @@ class Log(ToolInstance, HtmlLog):
             from PyQt5.QtWidgets import QGridLayout, QErrorMessage
             self.error_dialog = QErrorMessage(parent)
             layout = QGridLayout(parent)
+            layout.setContentsMargins(0,0,0,0)
             layout.addWidget(self.log_window, 0, 0)
             parent.setLayout(layout)
             #self.log_window.EnableHistory(False)
