@@ -2,12 +2,11 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
+PYQT_LICENSE = commercial
+
 VERSION = 5.6
-DISTRIBUTION = PyQt5_gpl-$(VERSION).tar.gz
-SOURCE = $(tmpdir)/PyQt5_gpl-$(VERSION)
-# versions prior to 5.6...
-#DISTRIBUTION = PyQt-gpl-$(VERSION).tar.gz
-#SOURCE = $(tmpdir)/PyQt-gpl-$(VERSION)
+DISTRIBUTION = PyQt5_$(PYQT_LICENSE)-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/PyQt5_$(PYQT_LICENSE)-$(VERSION)
 
 ifeq ($(OS),Darwin)
 SIP_BIN = $(PYTHON_FRAMEWORK)/bin
@@ -33,10 +32,18 @@ install: $(SOURCE)
 app-install:
 	$(RSYNC) $(PYSITEDIR)/PyQt5 $(APP_PYSITEDIR)
 
-source: $(SOURCE)
+distribution: $(DISTRIBUTION)
+
+$(DISTRIBUTION):
+ifeq ($(PYQT_LICENSE),commercial)
+	rsync -a plato.cgl.ucsf.edu:/usr/local/src/PyQt5/*commercial* .
+endif
 
 $(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+ifeq ($(PYQT_LICENSE),commercial)
+	cp pyqt-commercial.sip $(SOURCE)/sip/
+endif
 ifneq (,$(PATCHES))
 	for f in $(PATCHES) ; do \
 		( cd $(SOURCE) && patch -p1 ) < $$f ; \
@@ -45,3 +52,6 @@ endif
 
 clean:
 	rm -rf $(SOURCE)
+
+distclean: clean
+	rm -f *commercial*
