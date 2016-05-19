@@ -51,13 +51,15 @@ PLATFORM = Win32
 endif
 CONFIG_PLATFORM = '$(CONFIG)|$(PLATFORM)'
 
+NMAKE = env -u MAKEFLAGS -u MAKE nmake
+
 endif # OS == Windows
 
 all:
 
 install: $(SOURCE)
 ifeq ($(OS),Windows)
-	cd $(SOURCE)/build && nmake && nmake install
+	cd $(SOURCE)/build && $(NMAKE) && $(NMAKE) install
 	$(RSYNC) $(SOURCE)/build/*.$(SHLIB_EXT) $(shlibdir)
 	$(RSYNC) $(SOURCE)/build/*.$(LIB_EXT) $(libdir)
 	$(RSYNC) $(SOURCE)/pcre{cpp,posix,_scanner}.h $(includedir)
