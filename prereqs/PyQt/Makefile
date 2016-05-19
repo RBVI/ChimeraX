@@ -11,10 +11,15 @@ SOURCE = $(tmpdir)/PyQt5_gpl-$(VERSION)
 
 ifeq ($(OS),Darwin)
 SIP_BIN = $(PYTHON_FRAMEWORK)/bin
+QT_BIN = $(bindir)
+else ifdef WIN32
+SIP_BIN = $(shell cygpath -m '$(bindir)')
+QT_BIN = c:/Qt/Qt5.6.0/5.6/msvc2015_64/bin
 else
 SIP_BIN = $(bindir)
+QT_BIN = $(bindir)
 endif
-CONFIG_ARGS = --confirm-license --verbose --sip $(SIP_BIN)/sip --qmake $(bindir)/qmake
+CONFIG_ARGS = --confirm-license --verbose --sip $(SIP_BIN)/sip$(PROG_EXT) --qmake $(QT_BIN)/qmake$(PROG_EXT)
 
 PATCHES = $(wildcard PyQt-*.patch)
 
