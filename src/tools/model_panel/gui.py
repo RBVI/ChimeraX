@@ -65,6 +65,8 @@ class ModelPanel(ToolInstance):
                 QFrame, QPushButton
             self.tree = QTreeWidget()
             layout = QHBoxLayout()
+            layout.setContentsMargins(0,0,0,0)
+            layout.setSpacing(0)
             layout.addWidget(self.tree)
             layout.setStretchFactor(self.tree, 1)
             parent.setLayout(layout)
