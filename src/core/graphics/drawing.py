@@ -890,6 +890,12 @@ class Drawing:
             b.delete_buffer()
         self._vertex_buffers = []
 
+        for ds in (self._draw_shape, self._draw_selection):
+            if ds:
+                ds.delete()
+        self._draw_shape = None
+        self._draw_selection = None
+        
         self.was_deleted = True
 
     def _create_vertex_buffers(self):
@@ -1144,6 +1150,9 @@ class _DrawShape:
         self.element_buffer = None
         self.instance_buffers = []
 
+    def __del__(self):
+        self.delete()
+            
     def delete(self):
 
         self.masked_edges = None
@@ -1152,11 +1161,14 @@ class _DrawShape:
         self.instance_colors = None
         if self.element_buffer:
             self.element_buffer.delete_buffer()
+            self.element_buffer = None
             for b in self.instance_buffers:
                 b.delete_buffer()
+            self.instance_buffers = []
 
-        self.bindings.delete_bindings()
-        self.bindings = None
+        if self.bindings:
+            self.bindings.delete_bindings()
+            self.bindings = None
 
     def draw(self, display_style):
 
