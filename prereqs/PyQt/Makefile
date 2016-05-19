@@ -16,6 +16,8 @@ SIP_BIN = $(bindir)
 endif
 CONFIG_ARGS = --confirm-license --verbose --sip $(SIP_BIN)/sip --qmake $(bindir)/qmake
 
+PATCHES = $(wildcard PyQt-*.patch)
+
 RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(frameworkdir)", "$(bindir)"))')
 
 all:
@@ -30,6 +32,11 @@ source: $(SOURCE)
 
 $(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+ifneq (,$(PATCHES))
+	for f in $(PATCHES) ; do \
+		( cd $(SOURCE) && patch -p1 ) < $$f ; \
+	done
+endif
 
 clean:
 	rm -rf $(SOURCE)
