@@ -1346,6 +1346,7 @@ else:
 
 def redirect_stdio_to_logger(logger):
     # Redirect stderr to log
+    return
     class LogStdout:
 
         # Qt's error logging looks at the encoding of sys.stderr...
