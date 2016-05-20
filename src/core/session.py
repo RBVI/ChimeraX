@@ -674,8 +674,8 @@ def _register_core_file_formats():
     from . import scripting
     scripting.register()
     #QT disabled
-    #from . import map
-    #map.register_map_file_readers()
+    from . import map
+    map.register_map_file_readers()
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
     from .surface import collada
