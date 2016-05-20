@@ -159,6 +159,13 @@ class Logger:
             Log.LEVEL_WARNING: self.warning,
             Log.LEVEL_INFO: self.info
         }
+        import sys
+        # only put in an excepthook if we're the first session:
+        if sys.excepthook == sys.__excepthook__:
+            def ehook(*args):
+                from traceback import format_exception
+                self.error("".join(format_exception(*args)))
+            sys.excepthook = ehook
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
         self.add_log(_EarlyCollator())
