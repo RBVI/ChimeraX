@@ -547,18 +547,7 @@ else:
             from PyQt5.QtCore import Qt
             b = event.button() | event.buttons()
             if b & Qt.LeftButton:
-                import sys
-                mac = (sys.platform == 'darwin')
-                if mac and 'command' in modifiers and not self._have_mode('left','command'):
-                    # Emulate right mouse on Mac
-                    button = 'right'
-                    modifiers.remove('command')
-                elif mac and 'alt' in modifiers and not self._have_mode('left','alt'):
-                    # Emulate middle mouse on Mac
-                    button = 'middle'
-                    modifiers.remove('alt')
-                else:
-                    button = 'left'
+                button = 'left'
             elif b & Qt.MiddleButton:
                 button = 'middle'
             elif b & Qt.RightButton:

@@ -780,6 +780,9 @@ else:
             from PyQt5.QtCore import qInstallMessageHandler
             def cx_qt_msg_handler(msg_type, msg_log_context, msg_string):
                 log_level = qt_to_cx_log_level_map[int(msg_type)]
+                if msg_string.strip().endswith(" null"):
+                    # downgrade Javascript errors
+                    log_level = Log.LEVEL_INFO
                 self.session.logger.method_map[log_level](msg_string)
             qInstallMessageHandler(cx_qt_msg_handler)
 
