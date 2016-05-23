@@ -27,7 +27,10 @@ all: $(PYOBJS) $(SHLIB)
 install: all dir
 	$(RSYNC) $(PYSRCS) $(SHLIB) $(PKG_DIR)
 ifdef WIN32
-	$(RSYNC) $(LIBRARY) $(libdir)
+	#$(RSYNC) $(LIBRARY) $(libdir)
+ifdef DEBUG
+	$(RSYNC) lib$(LIBNAME).pdb $(PKG_DIR)
+endif
 endif
 
 $(SHLIB): $(OBJS)

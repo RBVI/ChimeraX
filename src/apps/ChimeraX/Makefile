@@ -46,6 +46,14 @@ install: $(PROG)
 		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
+ifdef WIN32
+ifdef DEBUG
+	$(RSYNC) *.pdb $(bindir)
+	-if [ -d "$(app_prefix)" ]; then \
+		$(RSYNC) *.pdb $(app_bindir); \
+	fi
+endif
+endif
 ifeq ($(OS),Darwin)
 	# Must use hard link for code signing to work
 	-if [ -d "$(app_prefix)" ]; then \
