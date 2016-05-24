@@ -85,8 +85,10 @@ class FilePanel(ToolInstance):
                 if f.image is None or fi > max_images:
                     line = '<a href="cxcmd:%s">%s</a>' % (cmd, name)
                 else:
-                    img = '<img src="data:image/png;base64,%s" width=%d height=%d>' % (image_jpeg_to_png(f.image), w, h)
-#                    img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d>' % (f.image, w, h)
+                    if self.window_sys == 'qt':
+                        img = '<img src="data:image/png;base64,%s" width=%d height=%d>' % (image_jpeg_to_png(f.image), w, h)
+                    else:  # wx
+                        img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d>' % (f.image, w, h)
                     line = ('<table>'
                             '<tr><td><a href="cxcmd:%s">%s</a>'
                             '<tr><td align=center><a href="cxcmd:%s">%s</a>'
@@ -121,22 +123,21 @@ class FilePanel(ToolInstance):
     def on_navigating(self, event):
 
         url = event.GetURL()
+        if url == 'file:///':
+            # show_page_source() causes this in wx
+            return
+        event.Veto()
         self.navigate(url)
 
     def navigate(self, url):
         from urllib.parse import unquote
         url = unquote(url)
         if url.startswith("cxcmd:"):
-            event.Veto()
             cmd = url.split(':', 1)[1]
             from chimerax.core.commands import run
             run(self.session, cmd)
-        elif url == 'file:///':
-            # show_page_source() causes this
-            pass
         else:
             # unknown scheme
-            event.Veto()
             self.session.logger.error("Unknown URL scheme: '%s'" % url)
 
 def image_jpeg_to_png(image_jpeg_base64):
