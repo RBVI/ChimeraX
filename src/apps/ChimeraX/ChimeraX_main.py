@@ -285,6 +285,10 @@ def init(argv, event_loop=True):
         ver += (0,)
     partial_version = '%s.%s' % (ver[0], ver[1])
 
+    if opts.gui:
+        import chimerax.core
+        chimerax.core.window_sys = opts.window_sys
+
     import chimerax
     import appdirs
     chimerax.app_dirs = ad = appdirs.AppDirs(app_name, appauthor=app_author,
@@ -337,8 +341,6 @@ def init(argv, event_loop=True):
 
     # initialize the user interface
     if opts.gui:
-        import chimerax.core
-        chimerax.core.window_sys = opts.window_sys
         from chimerax.core.ui import gui
         ui_class = gui.UI
     else:
