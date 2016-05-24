@@ -49,8 +49,26 @@ def largest_blobs_triangle_mask(vertices, triangles, triangle_mask, blob_count =
     b = Blob_Masker(vertices, triangles, triangle_mask)
     tmask = b.triangle_mask(metric = rank_metric, limit = blob_count)
     return tmask
+
+# -----------------------------------------------------------------------------
+#
+def show_only_largest_blobs(surface, visible_only = False, blob_count = 1,
+                            rank_metric = 'size rank'):
+    s = surface
+    # Handle surfaces with duplicate vertices, such as molecular
+    # surfaces with sharp edges between atoms.
+    if hasattr(s, 'clip_cap') and s.clip_cap == 'duplicate vertices':
+        from . import unique_vertex_map
+        vmap = unique_vertex_map(s.vertices)
+        t = vmap[s.triangles]
+    else:
+        t = s.triangles
+    tmask = s.triangle_mask if visible_only else None
+    b = Blob_Masker(s.vertices, t, tmask)
+    tmask = b.triangle_mask(metric = rank_metric, limit = blob_count)
+    s.triangle_mask = tmask
 #    import Surface
-#    Surface.set_visibility_method('hide dust', surf , None)
+#    Surface.set_visibility_method('hide dust', p.model , None)
         
 # -----------------------------------------------------------------------------
 # Stop updating dust hiding.
