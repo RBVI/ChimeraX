@@ -1129,6 +1129,3 @@ def standard_mouse_mode_classes():
             NullMouseMode,
         ]
     return mode_classes
-
-import chimerax.core.ui
-chimerax.core.ui.MouseMode = MouseMode
