@@ -715,7 +715,8 @@ if window_sys == "wx":
 else:
     # remove the build tree plugin path, and add install tree plugin path
     import sys
-    if not sys.platform.startswith('win'):
+    mac = (sys.platform == 'darwin')
+    if mac:
         from PyQt5.QtCore import QCoreApplication
         qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
         import os.path

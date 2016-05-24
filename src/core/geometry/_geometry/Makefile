@@ -20,7 +20,11 @@ all: $(PYMOD)
 
 install: all
 	$(RSYNC) $(PYMOD) $(PKG_DIR)
-	#if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
+ifdef WIN32
+ifdef DEBUG
+	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
+endif
+endif
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

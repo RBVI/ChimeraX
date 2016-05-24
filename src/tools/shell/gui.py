@@ -1,5 +1,4 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-import wx
 from chimerax.core.tools import ToolInstance
 
 
@@ -26,6 +25,7 @@ class ShellUI(ToolInstance):
         parent = self.tool_window.ui_area
         # UI content code
         if window_sys == "wx":
+            import wx
             from wx.py.shell import Shell
             self.shell = Shell(
                 parent, -1, size=self.SIZE, locals={
