@@ -9,7 +9,7 @@ img.clLeft {float: left; clear: left; margin: 4px}
 img.outline {border: 1px solid black}
 img.outlineCR {border: 1px solid black; margin: 4px; float:right; clear:right}
 img.outlineCL {border: 1px solid black; margin: 4px; float:left; clear:left}
-img.iconbar {width:20px; margin: 1px -1px; vertical-align:middle}
+img.iconbar {height:20px; margin: 1px -1px; vertical-align:middle}
 
 table.clRight {float:right; clear:right; margin: 4px}
 table.clLeft {float:left; clear:left; margin: 4px}
