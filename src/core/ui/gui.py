@@ -983,6 +983,8 @@ else:
 
         def _build_status(self):
             sb = QStatusBar(self)
+            from PyQt5.QtWidgets import QSizePolicy
+            sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
             self._primary_status_label = QLabel(sb)
             self._secondary_status_label = QLabel(sb)
             sb.addWidget(self._primary_status_label)
