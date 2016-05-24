@@ -41,12 +41,6 @@ def register_command(session):
                       (('spacing', float_arg),
                        ('inPlace', bool_arg),
                        ('modelId', model_id_arg))),
-        'hideDust': (hide_dust_op,
-                     (('surfaces', surfaces_arg),),
-                     (),
-                     (('metric', string_arg),
-                      ('size', float_arg),
-                      ('update', bool_arg))),
         'hidePieces': (hide_pieces_op,
                        (('pieces', surface_pieces_arg),), (), ()),
         'invertShown': (invert_shown_op,
@@ -78,7 +72,16 @@ def register_command(session):
         }
     """
 
-    from . import CmdDesc, register, SurfacesArg, AtomsArg, FloatArg, IntArg, BoolArg
+    from . import CmdDesc, register, SurfacesArg, AtomsArg, FloatArg, IntArg, BoolArg, EnumOf
+
+    from ..surface.dust import metrics
+    dust_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                        keyword = [('metric', EnumOf(metrics)),
+                                   ('size', FloatArg),
+                                   ('update', BoolArg)],
+                        synopsis = 'hide small connected surface patches')
+    register('sop dust', dust_desc, sop_dust)
+
     zone_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                         keyword = [('near_atoms', AtomsArg),
                                    ('range', FloatArg),
@@ -238,21 +241,28 @@ def new_surface(name, align_to, model_id):
 
 # -----------------------------------------------------------------------------
 #
-def hide_dust_op(surfaces, metric = 'size', size = None, update = True):
+def sop_dust(session, surfaces, metric = 'size', size = None, update = False):
+    '''
+    Hide connected surface patchs smaller than a specified size.
+
+    Parameters
+    ----------
+    surfaces : Models list
+      Surface models to act on.
+    metric : One of 'size', 'area', 'volume', 'size rank', 'area rank', 'volume rank'
+      Use this size metric.  Rank metrics hide patches smaller than the N largest.
+    size : float
+      Hide patches smaller than this size.
+    update : bool
+      Whether to update dust hiding when surface shape changes.
+      Not implemented.
+    '''
 
     if len(surfaces) == 0:
-        raise CommandError('No surfaces specified')
+        raise UserError('No surfaces specified')
     if size is None:
-        raise CommandError('Must specify dust size')
-    metric = {'rank': 'size rank',
-              'sizerank':'size rank',
-              'arearank':'area rank',
-              'volumerank':'volume rank'}.get(metric.lower(), metric)
-    from HideDust import dust
-    if not metric in dust.metrics:
-        mlist = [m.replace(' ','') for m in dust.metrics]
-        raise CommandError('Hide dust metric must be one of %s (got %s)' %
-                           (', '.join(mlist), metric))
+        raise UserError('Must specify dust size')
+    from ..surface import dust
     for s in surfaces:
         dust.hide_dust(s, metric, size, update)
 
