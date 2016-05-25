@@ -172,6 +172,7 @@ class Log(ToolInstance, HtmlLog):
             parent.setLayout(layout)
             #self.log_window.EnableHistory(False)
             self.page_source = ""
+            self._num_loads = 0
             self.tool_window.manage(placement="right")
             session.logger.add_log(self)
             self.log_window.loadFinished.connect(self.on_load)
@@ -311,6 +312,11 @@ class Log(ToolInstance, HtmlLog):
         self.session.logger.remove_log(self)
 
     def on_load(self, event):
+        # kludge:
+        # the javascript vars aren't setup during the first few loads
+        if self._num_loads < 4:
+            self._num_loads += 1
+            return
         # scroll to bottom
         if self.window_sys == "wx":
             javascript = self.log_window.RunScript
