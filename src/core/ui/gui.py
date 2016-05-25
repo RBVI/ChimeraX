@@ -802,6 +802,12 @@ else:
 
             self._keystroke_sinks = []
 
+            def focus_change(old, new):
+                import sys
+                print("Focus changed from", old.__class__.__name__, "to", new.__class__.__name__,
+                    file=sys.__stderr__)
+            self.focusChanged.connect(focus_change)
+
         def close_splash(self):
             pass
 
@@ -827,6 +833,23 @@ else:
             redirect_stdio_to_logger(self.session.logger)
             self.exec_()
             self.session.logger.clear()
+
+        def forward_keystroke(self, event):
+            """forward keystroke from graphics window to most recent
+               caller of 'register_for_keystrokes'
+
+               up/down arrow keystrokes are not forwarded and instead
+               promote/demote the graphics window selection
+            """
+            from PyQt5.QtCore import Qt
+            from sys import __stderr__
+            print("forwarding:", event.key(), file=sys.__stderr__)
+            if event.key() == Qt.Key_Up:
+                self.session.selection.promote()
+            elif event.key() == Qt.Key_Down:
+                self.session.selection.demote()
+            elif self._keystroke_sinks:
+                self._keystroke_sinks[-1].forwarded_keystroke(event)
 
         def register_for_keystrokes(self, sink):
             """'sink' is interested in receiving keystrokes from the main
@@ -896,7 +919,6 @@ else:
             self._stack = GraphicsArea(self)
             from .graphics import GraphicsWindow
             self.graphics_window = g = GraphicsWindow(self._stack, ui)
-            self.setFocusProxy(g.widget)
             self._stack.addWidget(g.widget)
             self._stack.setCurrentWidget(g.widget)
             self.setCentralWidget(self._stack)
