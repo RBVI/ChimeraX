@@ -66,7 +66,8 @@ context_menu_html = """
 """
 
 context_menu_script = """
-(function() {
+<script>
+function init_menus() {
     "use strict";
 
     var context_menu = document.querySelector(".context-menu");
@@ -109,10 +110,12 @@ context_menu_script = """
         });
 
         context_menu.addEventListener("mouseleave", hide_context_menu);
+        window.scrollTo(0, document.body.scrollHeight);
     }
 
     init();
-})();
+}
+</script>
 """
 
 
@@ -148,7 +151,6 @@ class Log(ToolInstance, HtmlLog):
             self.tool_window.manage(placement="right")
             session.logger.add_log(self)
             self.log_window.Bind(wx.EVT_CLOSE, self.on_close)
-            self.log_window.Bind(html2.EVT_WEBVIEW_LOADED, self.on_load)
             self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.navigate,
                                  id=self.log_window.GetId())
             self.log = self._wx_log
@@ -172,10 +174,8 @@ class Log(ToolInstance, HtmlLog):
             parent.setLayout(layout)
             #self.log_window.EnableHistory(False)
             self.page_source = ""
-            self._num_loads = 0
             self.tool_window.manage(placement="right")
             session.logger.add_log(self)
-            self.log_window.loadFinished.connect(self.on_load)
             #self.log_window.contextMenuEvent = self.contextMenuEvent
             #from PyQt5.QtCore import Qt
             #self.log_window.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -300,7 +300,8 @@ class Log(ToolInstance, HtmlLog):
 
     def show_page_source(self):
         css = context_menu_css + cxcmd_css
-        html = "<style>%s</style>%s\n%s" % (css, context_menu_html, self.page_source)
+        html = "<style>%s</style>%s%s\n<body onload=\"init_menus()\">%s</body>" % (
+                css, context_menu_script, context_menu_html, self.page_source)
         if self.window_sys == "wx":
             self.log_window.SetPage(html, "")
         else:
@@ -310,21 +311,6 @@ class Log(ToolInstance, HtmlLog):
 
     def on_close(self, event):
         self.session.logger.remove_log(self)
-
-    def on_load(self, event):
-        # kludge:
-        # the javascript vars aren't setup during the first few loads
-        if self._num_loads < 4:
-            self._num_loads += 1
-            return
-        # scroll to bottom
-        if self.window_sys == "wx":
-            javascript = self.log_window.RunScript
-        else:
-            javascript = self.log_window.page().runJavaScript
-        javascript("window.scrollTo(0, document.body.scrollHeight);")
-        # setup context menu
-        javascript(context_menu_script)
 
     def navigate(self, data):
         session = self.session
