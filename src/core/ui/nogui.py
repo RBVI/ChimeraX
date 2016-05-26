@@ -83,7 +83,7 @@ class UI:
         except:
             c = None             # OSMesa library was not found
         if c:
-            view.initialize_context(c)
+            view.initialize_rendering(c)
         return c is not None
 
     def splash_info(self, message, splash_step, num_splash_steps):

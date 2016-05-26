@@ -130,7 +130,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
             pass
 
     def make_current(self):
-        self.SetCurrent(self.view.opengl_context())
+        self.SetCurrent(self.view.render.opengl_context)
 
     def swap_buffers(self):
         self.SwapBuffers()
@@ -148,7 +148,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
             self.main_view._render.shader_programs
         self.view._render.current_shader_program = None
         # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
-        opengl_context = self.view.opengl_context()
+        opengl_context = self.view.render.opengl_context
         save_make_current = opengl_context.make_current
         save_swap_buffers = opengl_context.swap_buffers
         opengl_context.make_current = self.make_current
@@ -385,7 +385,7 @@ class SideViewUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        self.opengl_context = oc = session.main_view.opengl_context()
+        self.opengl_context = oc = session.main_view.render.opengl_context
         self.view = View(session.models.drawing, window_size=wx.DefaultSize, opengl_context=oc)
         # TODO: from chimerax.core.graphics.camera import OrthographicCamera
         self.view.camera = OrthoCamera()

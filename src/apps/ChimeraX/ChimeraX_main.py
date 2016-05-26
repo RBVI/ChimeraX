@@ -431,9 +431,11 @@ def init(argv, event_loop=True):
     import chimerax.core.commands.version as vercmd
     vercmd.version(sess)  # report version in log
     if opts.gui:
-        sess.logger.info('OpenGL version: ' + sess.main_view.opengl_version())
-        sess.logger.info('OpenGL renderer: ' + sess.main_view.opengl_renderer())
-        sess.logger.info('OpenGL vendor: ' + sess.main_view.opengl_vendor())
+        r = sess.main_view.render
+        r.make_current()
+        sess.logger.info('OpenGL version: ' + r.opengl_version())
+        sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
+        sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
 
     if opts.module:
         import runpy
