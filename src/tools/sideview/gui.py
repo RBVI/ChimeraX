@@ -386,7 +386,7 @@ class SideViewUI(ToolInstance):
 
         # UI content code
         self.view = v = View(session.models.drawing, window_size=wx.DefaultSize)
-        v.initialize_rendering(session.render.opengl_context)
+        v.initialize_rendering(session.main_view.render.opengl_context)
         # TODO: from chimerax.core.graphics.camera import OrthographicCamera
         v.camera = OrthoCamera()
         if self.display_name.startswith('Top'):
