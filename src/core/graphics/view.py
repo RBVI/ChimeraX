@@ -10,21 +10,16 @@ class View:
     A View is the graphics windows that shows 3-dimensional drawings.
     It manages the camera and renders the drawing when needed.
     '''
-    def __init__(self, drawing, *, window_size = (256,256), opengl_context = None,
-                 trigger_set = None):
+    def __init__(self, drawing, *, window_size = (256,256), trigger_set = None):
 
         self.triggers = trigger_set
         self.drawing = drawing
         self.window_size = window_size		# pixels
-        self._opengl_context = None
         self._render = None
         self._opengl_initialized = False
         from .opengl import Lighting, Material
         self._lighting = Lighting()
         self._material = Material()
-
-        if opengl_context:
-            self.initialize_rendering(opengl_context)
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 0)
@@ -75,7 +70,8 @@ class View:
         return self._render
     
     def initialize_rendering(self, opengl_context):
-        if self._render:
+        r = self._render
+        if r:
             raise ValueError("OpenGL context is already set")
         from .opengl import Render
         self._render = r = Render(opengl_context)
