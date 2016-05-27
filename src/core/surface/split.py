@@ -19,7 +19,7 @@ def split_surfaces(plist, session, in_place = False):
     name = '%s split' % plist[0].surface.name if plist else 'split surface'
     from ..graphics import Drawing
     surf = Drawing(name)
-    session.add_model(surf)
+    session.models.add_models([surf])
 
   pplist = []
   for p in plist:
