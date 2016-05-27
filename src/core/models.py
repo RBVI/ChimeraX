@@ -268,10 +268,6 @@ class Models(State):
 
     def close(self, models):
         self.remove(models)
-        # TODO: This is the wrong place to make the OpenGL context current,
-        #       necessary so opengl buffer deletes happen in correct context.
-        #       This is a temporary fix so Qt GUI context is not clobbered.
-        self._session().main_view._use_opengl()
         for m in models:
             m.delete()
 

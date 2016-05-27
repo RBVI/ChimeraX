@@ -578,6 +578,8 @@ class Drawing:
         if self.vertices is None:
             return
 
+        self._opengl_context = renderer.opengl_context
+        
         if len(self._vertex_buffers) == 0:
             self._create_vertex_buffers()
 
@@ -869,6 +871,9 @@ class Drawing:
         '''
         Delete drawing and all child drawings.
         '''
+        c = self._opengl_context
+        if c:
+            c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
         self._delete_geometry()
         self.remove_all_drawings()
 
@@ -897,6 +902,8 @@ class Drawing:
                 ds.delete()
         self._draw_shape = None
         self._draw_selection = None
+
+        self._opengl_context = None
         
         self.was_deleted = True
 
