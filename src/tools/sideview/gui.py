@@ -385,16 +385,16 @@ class SideViewUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        self.opengl_context = oc = session.main_view.render.opengl_context
-        self.view = View(session.models.drawing, window_size=wx.DefaultSize, opengl_context=oc)
+        self.view = v = View(session.models.drawing, window_size=wx.DefaultSize)
+        v.initialize_rendering(session.render.opengl_context)
         # TODO: from chimerax.core.graphics.camera import OrthographicCamera
-        self.view.camera = OrthoCamera()
+        v.camera = OrthoCamera()
         if self.display_name.startswith('Top'):
             side = SideViewCanvas.TOP_SIDE
         else:
             side = SideViewCanvas.RIGHT_SIDE
         self.opengl_canvas = SideViewCanvas(
-            parent, self.view, session, self, self.SIZE, side=side)
+            parent, v, session, self, self.SIZE, side=side)
         auto_clip = wx.StaticText(parent, label="auto clip:")
         self.auto_clip_near = wx.CheckBox(parent, label="near")
         self.auto_clip_near.SetValue(True)
