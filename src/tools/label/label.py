@@ -89,7 +89,7 @@ class LabelDrawing(Drawing):
         self.texture_size = (tw,th)
         uw,uh = 2*tw/w, 2*th/h
         from chimerax.core.graphics.drawing import rgba_drawing
-        rgba_drawing(rgba, (x, y), (uw, uh), self)
+        rgba_drawing(self, rgba, (x, y), (uw, uh))
         
     def draw(self, renderer, place, draw_pass, selected_only=False):
         self.resize()
