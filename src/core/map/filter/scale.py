@@ -2,7 +2,7 @@
 # Scale, shift, and change value type of volume values.
 #
 def scaled_volume(v = None, scale = 1, sd = None, rms = None, shift = 0, type = None,
-                 step = None, subregion = None, model_id = None):
+                 step = None, subregion = None, model_id = None, session = None):
 
   if v is None:
     from VolumeViewer import active_volume
@@ -21,9 +21,13 @@ def scaled_volume(v = None, scale = 1, sd = None, rms = None, shift = 0, type = 
       scale = (1.0 if scale is None else scale) * sd / sdev
     
   sg = scaled_grid(v, scale, shift, type, subregion, step)
-  import VolumeViewer
-  sv = VolumeViewer.volume_from_grid_data(sg, model_id = model_id)
+  from .. import volume_from_grid_data
+  sv = volume_from_grid_data(sg, session, show_data = False, model_id = model_id)
   sv.copy_settings_from(v, copy_thresholds = False)
+  sv.initialize_thresholds()
+  sv.show()
+
+  v.unshow()          # Hide original map
 
   return sv
 
@@ -41,7 +45,7 @@ def scaled_grid(v, scale, shift, type, subregion = None, step = 1,
 
 # -----------------------------------------------------------------------------
 #
-from VolumeData import Grid_Data
+from ..data import Grid_Data
 class Scaled_Grid(Grid_Data):
   
   def __init__(self, grid_data, scale, shift, value_type):
