@@ -117,7 +117,7 @@ if window_sys == "wx":
             finally:
                 del self.session
             fmt = self.current_format()
-            filename = self.file_dialog.get_path()
+            filename = self.file_dialog.GetPath()
             fmt.save(session, filename)
 
         def current_format(self):
