@@ -285,9 +285,9 @@ def init(argv, event_loop=True):
         ver += (0,)
     partial_version = '%s.%s' % (ver[0], ver[1])
 
-    if opts.gui:
-        import chimerax.core
-        chimerax.core.window_sys = opts.window_sys
+    
+    import chimerax.core
+    chimerax.core.window_sys = opts.window_sys if opts.gui else None
 
     import chimerax
     import appdirs
