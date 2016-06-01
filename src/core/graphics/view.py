@@ -146,6 +146,7 @@ class View:
         if self.update_lighting:
             self.update_lighting = False
             r.set_lighting_shader_capabilities()
+            r.set_shader_lighting_parameters()
 
         if drawings is None:
             any_selected = self.any_drawing_selected()
