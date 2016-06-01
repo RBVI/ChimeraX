@@ -68,11 +68,11 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     ms_map_size : int
       Size of one 2-dimensional texture holding all the ambient shadow maps.
       Small values give coarser shadows that give a smoother appearance
-      when many shadows ar rendered. Initial value 128.
+      when many shadows ar rendered. Initial value 1024.
     ms_depth_bias : float
       Depth bias to avoid surface self shadowing for ambient shadows as a fraction
       of the scene diameter. Because small shadow map sizes are typically used a
-      larger bias is needed than for directional shadows.  Initial value 0.05.
+      larger bias is needed than for directional shadows.  Initial value 0.01.
     '''
     v = session.main_view
     lp = v.lighting
@@ -116,12 +116,24 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.key_light_intensity = 0.7
         lp.fill_light_intensity = 0.3
         lp.ambient_light_intensity = 1
+        lp.multishadow_depth_bias = 0.01
+        lp.multishadow_map_size = 1024
     elif preset == 'soft':
         lp.shadows = False
         lp.multishadow = 64
         lp.key_light_intensity = 0
         lp.fill_light_intensity = 0
         lp.ambient_light_intensity = 1.5
+        lp.multishadow_depth_bias = 0.01
+        lp.multishadow_map_size = 1024
+    elif preset == 'gentle':
+        lp.shadows = False
+        lp.multishadow = 64
+        lp.key_light_intensity = 0
+        lp.fill_light_intensity = 0
+        lp.ambient_light_intensity = 1.5
+        lp.multishadow_depth_bias = 0.05
+        lp.multishadow_map_size = 128
     elif preset == 'flat':
         lp.shadows = False
         lp.multishadow = 0
@@ -185,7 +197,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
 def register_command(session):
     from . import CmdDesc, register, BoolArg, IntArg, FloatArg, Float3Arg, StringArg, EnumOf, ColorArg
     _lighting_desc = CmdDesc(
-        optional = [('preset', EnumOf(('default', 'full', 'soft', 'simple', 'flat')))],
+        optional = [('preset', EnumOf(('default', 'full', 'soft', 'gentle', 'simple', 'flat')))],
         keyword = [
             ('direction', Float3Arg),
             ('intensity', FloatArg),

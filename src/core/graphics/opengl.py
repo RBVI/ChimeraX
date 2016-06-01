@@ -1236,11 +1236,11 @@ class Lighting:
         This is GPU intensive, each shadow requiring a texture lookup.
         '''
 
-        self.multishadow_map_size = 128
+        self.multishadow_map_size = 1024
         '''Size of 2D opengl texture used for casting ambient shadows.
         This texture is tiled to hold shadow maps for all directions.'''
         
-        self.multishadow_depth_bias = 0.05
+        self.multishadow_depth_bias = 0.01
         "Offset as fraction of scene depth for avoiding surface ambient self-shadowing."
 
 class Material:
