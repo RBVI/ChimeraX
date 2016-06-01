@@ -399,7 +399,7 @@ if window_sys == "wx":
             One click is typically 15 degrees of wheel rotation.
             '''
             return self._event.GetWheelRotation()/120.0   # Usually one wheel click is delta of 120
-else:
+elif window_sys == 'qt':
     class MouseModes:
         '''
         Keep the list of available mouse modes and also which mode is bound
@@ -623,6 +623,11 @@ else:
                 delta = min(deltas.x(), deltas.y())
             return delta/120.0   # Usually one wheel click is delta of 120
 
+elif window_sys is None:
+    class MouseMode:
+        pass
+    
+                
 class SelectMouseMode(MouseMode):
     '''Mouse mode to select objects by clicking on them.'''
     name = 'select'
