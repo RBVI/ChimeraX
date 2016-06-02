@@ -15,7 +15,8 @@ class MapSeries(ToolInstance):
 
         self.series = list(series)
         self.playing = False
-
+        self._block_time_update = False
+        
         self.display_name = "Map series %s" % ', '.join(s.name for s in series)
         from chimerax.core.ui.gui import MainToolWindow
 
@@ -127,10 +128,10 @@ class MapSeries(ToolInstance):
         if window_sys == 'wx':
             t = self.time.GetValue()
             self.slider.SetValue(t)
+            self.update_time(t)
         elif window_sys == 'qt':
             t = self.time.value()
             self.slider.setValue(t)
-        self.update_time(t)
 
     def slider_moved_cb(self, event):
         self.update_slider_range()
@@ -174,8 +175,9 @@ class MapSeries(ToolInstance):
                 self.slider.SetValue(t)
                 self.time.SetValue(t)
             elif window_sys == 'qt':
+                self._block_time_update = True
                 self.slider.setValue(t)
-                self.time.setValue(t)
+                self._block_time_update = False
 
         p.time_step_cb = update_slider
         self.playing = True
