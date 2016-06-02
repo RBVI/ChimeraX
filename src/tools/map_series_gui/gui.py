@@ -22,35 +22,74 @@ class MapSeries(ToolInstance):
         class MapSeriesWindow(MainToolWindow):
             close_destroys = False
 
-        tw = MapSeriesWindow(self, size=self.SIZE)
+        from chimerax.core import window_sys
+        kw = {'size': self.SIZE} if window_sys == 'wx' else {}
+        tw = MapSeriesWindow(self, **kw)
         self.tool_window = tw
         parent = tw.ui_area
 
-        import wx
-        label = wx.StaticText(parent, label="Time")
         self._slider_max = n = max((ser.number_of_times() for ser in series), default = 0)
-        self.time = tt = wx.SpinCtrl(parent, max=max(0,n-1), size=(50, -1))
-        tt.Bind(wx.EVT_SPINCTRL, self.time_changed_cb)
-        self.slider = sl = wx.Slider(parent, value=0, minValue=0, maxValue=max(0,n-1))
-        sl.Bind(wx.EVT_SLIDER, self.slider_moved_cb)
-        self.play_button = pb = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
-        self.set_play_button_icon(play=True)
-        pb.Bind(wx.EVT_TOGGLEBUTTON, self.play_cb)
-        self.subsample_button = x2 = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
         from os.path import dirname, join
-        hbm = wx.Bitmap(join(dirname(__file__), 'half.png'))
-        x2.SetBitmap(hbm)
-        x2.Bind(wx.EVT_TOGGLEBUTTON, self.subsample_cb)
+        if window_sys == 'wx':
+            import wx
+            label = wx.StaticText(parent, label="Time")
+            self.time = tt = wx.SpinCtrl(parent, max=max(0,n-1), size=(50, -1))
+            tt.Bind(wx.EVT_SPINCTRL, self.time_changed_cb)
+            self.slider = sl = wx.Slider(parent, value=0, minValue=0, maxValue=max(0,n-1))
+            sl.Bind(wx.EVT_SLIDER, self.slider_moved_cb)
+            self.play_button = pb = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
+            self.set_play_button_icon(play=True)
+            pb.Bind(wx.EVT_TOGGLEBUTTON, self.play_cb)
+            self.subsample_button = x2 = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
+            hbm = wx.Bitmap(join(dirname(__file__), 'half.png'))
+            x2.SetBitmap(hbm)
+            x2.Bind(wx.EVT_TOGGLEBUTTON, self.subsample_cb)
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(label, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        sizer.Add(tt, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        sizer.Add(sl, 1, wx.EXPAND)
-        sizer.Add(pb, 0, wx.FIXED_MINSIZE)
-        sizer.Add(x2, 0, wx.FIXED_MINSIZE)
-        parent.SetSizerAndFit(sizer)
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer.Add(label, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
+            sizer.Add(tt, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
+            sizer.Add(sl, 1, wx.EXPAND)
+            sizer.Add(pb, 0, wx.FIXED_MINSIZE)
+            sizer.Add(x2, 0, wx.FIXED_MINSIZE)
+            parent.SetSizerAndFit(sizer)
+        elif window_sys == 'qt':
+            from PyQt5.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton
+            from PyQt5.QtGui import QPixmap, QIcon
+            from PyQt5.QtCore import Qt
+            layout = QHBoxLayout()
+            layout.setContentsMargins(0,0,0,0)
+            layout.setSpacing(4)
+            tl = QLabel('Time')
+            layout.addWidget(tl)
+            self.time = tv = QSpinBox()
+            tv.setMaximum(n-1)
+            tv.valueChanged.connect(self.time_changed_cb)
+            layout.addWidget(tv)
+            self.slider = ts = QSlider(Qt.Horizontal)
+            ts.setRange(0,n-1)
+            ts.valueChanged.connect(self.slider_moved_cb)
+            layout.addWidget(ts)
+            self.play_button = pb = QPushButton()
+# The QPushButton and QSpinBox add extra vertical space (about 5 pixels above and below)
+# on Mac OS 10.11.5 with Qt 5.6.  Didn't find any way to reduce that space.  Some of the
+# space is taken by the QFocusFrame around that spin box that highlights when it gets focus.
+# The space around the push buttons can be made smaller with an uglier non-native button.
+#            pb.setStyleSheet('max-width: 20px; max-height: 20px')
+            self.set_play_button_icon(play=True)
+            pb.setCheckable(True)
+            pb.clicked.connect(self.play_cb)
+            layout.addWidget(pb)
+            self.subsample_button = x2 = QPushButton()
+            x2.setCheckable(True)
+            x2icon = join(dirname(__file__), 'half.png')
+            x2pix = QPixmap(x2icon)
+            x2i = QIcon(x2pix)
+            x2.setIcon(x2i)
+            x2.clicked.connect(self.subsample_cb)
+            layout.addWidget(x2)
+            parent.setLayout(layout)
 
-        tw.manage(placement="top")
+        tw.manage(placement="right")
 
         from chimerax.core.models import REMOVE_MODELS
         self.model_close_handler = session.triggers.add_handler(
@@ -84,14 +123,24 @@ class MapSeries(ToolInstance):
     
     def time_changed_cb(self, event):
         self.update_slider_range()
-        t = self.time.GetValue()
-        self.slider.SetValue(t)
+        from chimerax.core import window_sys
+        if window_sys == 'wx':
+            t = self.time.GetValue()
+            self.slider.SetValue(t)
+        elif window_sys == 'qt':
+            t = self.time.value()
+            self.slider.setValue(t)
         self.update_time(t)
 
     def slider_moved_cb(self, event):
         self.update_slider_range()
-        t = self.slider.GetValue()
-        self.time.SetValue(t)
+        from chimerax.core import window_sys
+        if window_sys == 'wx':
+            t = self.slider.GetValue()
+            self.time.SetValue(t)
+        elif window_sys == 'qt':
+            t = self.slider.value()
+            self.time.setValue(t)
         self.update_time(t)
 
     def update_time(self, t):
@@ -120,8 +169,14 @@ class MapSeries(ToolInstance):
 
         def update_slider(t, self=self):
             self.update_slider_range()
-            self.slider.SetValue(t)
-            self.time.SetValue(t)
+            from chimerax.core import window_sys
+            if window_sys == 'wx':
+                self.slider.SetValue(t)
+                self.time.SetValue(t)
+            elif window_sys == 'qt':
+                self.slider.setValue(t)
+                self.time.setValue(t)
+
         p.time_step_cb = update_slider
         self.playing = True
         self.set_play_button_icon(play=False)
@@ -138,12 +193,24 @@ class MapSeries(ToolInstance):
         from os.path import dirname, join
         bitmap_path = (join(dirname(__file__),
                        'play.png' if play else 'pause.png'))
-        import wx
-        pbm = wx.Bitmap(bitmap_path)
-        self.play_button.SetBitmap(pbm)
+        pb = self.play_button
+        from chimerax.core import window_sys
+        if window_sys == 'wx':
+            import wx
+            pbm = wx.Bitmap(bitmap_path)
+            pb.SetBitmap(pbm)
+        elif window_sys == 'qt':
+            from PyQt5.QtGui import QPixmap, QIcon
+            ppix = QPixmap(bitmap_path)
+            pi = QIcon(ppix)
+            pb.setIcon(pi)
 
     def subsample_cb(self, event):
-        subsamp = self.subsample_button.GetValue()
+        from chimerax.core import window_sys
+        if window_sys == 'wx':
+            subsamp = self.subsample_button.GetValue()
+        elif window_sys == 'qt':
+            subsamp = self.subsample_button.isChecked()
         step = (2, 2, 2) if subsamp else (1, 1, 1)
         for s in self.series:
             lt = s.last_shown_time
@@ -168,8 +235,13 @@ class MapSeries(ToolInstance):
             return
         self._slider_max = n
         maxt = max(0,n-1)
-        self.time.SetRange(0, maxt)
-        self.slider.SetMax(maxt)
+        from chimerax.core import window_sys
+        if window_sys == 'wx':
+            self.time.SetRange(0, maxt)
+            self.slider.SetMax(maxt)
+        elif window_sys == 'qt':
+            self.time.setRange(0, maxt)
+            self.slider.setMaximum(maxt)
 
     # Override ToolInstance method
     def delete(self):
