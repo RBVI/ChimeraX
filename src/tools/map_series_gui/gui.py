@@ -145,6 +145,8 @@ class MapSeries(ToolInstance):
         self.update_time(t)
 
     def update_time(self, t):
+        if self._block_time_update:
+            return
         for s in self.series:
             lt = s.last_shown_time
             if lt is not None and lt != t:
