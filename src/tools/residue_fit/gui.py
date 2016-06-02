@@ -158,17 +158,12 @@ class ResidueFit(ToolInstance):
         return zone_res
 
     def update_label(self, res):
-        from chimerax.core import window_sys
-        if window_sys == 'qt':
-            # Fix label code to not update opengl until draw routine called.
-            return	
-        
         if self._label is None:
             from chimerax.label.label import Label
             self._label = Label(self.session, 'resfit', xpos = 0.7, ypos = 0.9)
         l = self._label
         l.text = '%s %d' % (res.name, res.number)
-        l.make_drawing()
+        l.update_drawing()
 
     def play_cb(self, event):
         if self._recording:
