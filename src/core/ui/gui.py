@@ -1261,6 +1261,7 @@ else:
             from PyQt5.QtWidgets import QDockWidget, QWidget
             self.dock_widget = QDockWidget(title, mw)
             self.dock_widget.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
+            self.dock_widget.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
             self.ui_area = QWidget(self.dock_widget)
             self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e.globalPos())
             self.dock_widget.setWidget(self.ui_area)
