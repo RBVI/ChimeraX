@@ -2677,14 +2677,7 @@ def default_settings(session):
 #
 def volume_from_grid_data(grid_data, session, representation = None,
                           open_model = True, model_id = None,
-                          show_data = True, show_dialog = False):
-
-#  if show_dialog:
-  if False:
-    import chimera
-    if not chimera.nogui:
-      from .volumedialog import show_volume_dialog
-      show_volume_dialog()
+                          show_data = True, show_dialog = True):
 
   # Set display style
   if representation is None:
@@ -2731,6 +2724,10 @@ def volume_from_grid_data(grid_data, session, representation = None,
 
   if open_model:
     session.models.add([v])
+
+  if show_dialog:
+    # TODO: Currently dialog automatically shown when model is opened.
+    pass
 
   return v
 
