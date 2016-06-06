@@ -99,7 +99,11 @@ def parse_arguments(argv):
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
-    opts.window_sys = "wx"
+    if sys.platform.startswith('win'):
+        # wx doesn't work for us on Windows
+        opts.window_sys = "qt"
+    else:
+        opts.window_sys = "wx"
 
     # Will build usage string from list of arguments
     arguments = [
