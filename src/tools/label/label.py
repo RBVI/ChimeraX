@@ -144,6 +144,10 @@ def label_create(session, name, text = '', color = None, size = 24, typeface = '
 def label_change(session, name, text = None, color = None, size = None, typeface = None,
                  xpos = None, ypos = None, visibility = None):
     '''Change label parameters.'''
+    if name == 'all':
+        for n in session.labels.keys():
+            label_change(session, n, text, color, size, typeface, xpos, ypos, visibility)
+        return
     l = session.labels[name]
     if not text is None: l.text = text
     if not color is None: l.color = color
@@ -157,6 +161,10 @@ def label_change(session, name, text = None, color = None, size = None, typeface
 
 def label_delete(session, name):
     '''Delete label.'''
+    if name == 'all':
+        for l in tuple(session.labels.values()):
+            l.delete()
+        return
     l = session.labels[name]
     l.delete()
 
