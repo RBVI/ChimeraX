@@ -723,6 +723,12 @@ else:
         from ... import app_lib_dir
         qlib_paths.append(os.path.join(os.path.dirname(app_lib_dir), "plugins"))
         QCoreApplication.setLibraryPaths(qlib_paths)
+        import os
+        fw_path = os.environ.get("DYLD_FRAMEWORK_PATH", None)
+        if fw_path:
+            os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
+        else:
+            os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
 
     from PyQt5.QtWidgets import QApplication
     class UI(QApplication):
