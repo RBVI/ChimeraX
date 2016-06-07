@@ -551,7 +551,14 @@ elif window_sys == 'qt':
             elif b & Qt.MiddleButton:
                 button = 'middle'
             elif b & Qt.RightButton:
-                button = 'right'
+                # On the Mac, a control left-click comes back as a right-click
+                # with the Meta key held down, change it back...
+                import sys
+                if sys.platform == "darwin" and (event.modifiers() & Qt.MetaModifier):
+                    button = 'left'
+                    modifiers.append('control')
+                else:
+                    button = 'right'
             else:
                 button = None
 
