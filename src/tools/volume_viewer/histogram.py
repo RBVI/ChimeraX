@@ -1,0 +1,408 @@
+# -----------------------------------------------------------------------------
+# Histogram widget and interactive canvas ramp display.
+#
+
+# -----------------------------------------------------------------------------
+#
+class Histogram:
+
+  def __init__(self, canvas, scene):
+
+    self.canvas = canvas
+    self.scene = scene
+
+  # ---------------------------------------------------------------------------
+  # Use QGraphicsScene coordinate ranges 0 to 1 in x and y.
+  def show_data(self, heights):
+
+    s = self.scene
+    sr = s.sceneRect()
+    sz = sr.size()
+    w, h = sz.width(), sz.height()
+    s.clear()
+#    c.delete('bar')
+    bins = len(heights)
+    max_height = max(heights)
+    if max_height == 0:
+      return            # No data was binned.
+    for b in range(bins):
+      x = w * (b / bins)
+      y = h * (heights[b] / max_height)
+      s.addLine(x, h, x, h-y)
+#      id = c.create_line(x, bottom, x, bottom-h, tags = ('bar',))
+#      c.tag_lower(id)                           # keep bars below marker lines
+
+    self.canvas.fitInView(sr)
+
+# -----------------------------------------------------------------------------
+# Draw a set of movable markers on a canvas.  The markers can be moved with
+# the mouse.  They can be drawn as vertical lines ('line' type) or as small
+# boxes ('box' type).  Each marker has a color.  Markers can be added or
+# deleted with ctrl-button-1.  A callback is invoked with no arguments when
+# user mouse interaction selects, moves, adds or removes a marker.
+#
+# This was designed for display and control of theshold levels shown on a
+# histogram.
+#
+class Markers:
+
+  def __init__(self, canvas, scene, marker_type, new_marker_color,
+               connect_markers, callback):
+
+    self.canvas = canvas
+    sr = scene.sceneRect()
+    self.canvas_box = (0,0,sr.width(),sr.height())
+    self.scene = scene
+    self.marker_type = marker_type        # 'line' or 'box'
+    self.box_size = 2
+    self.new_marker_color = new_marker_color
+
+    self.connect_markers = connect_markers
+    self.connect_color = 'yellow'
+    self.connect_graphics_items = []
+
+    self.callback = callback
+
+    self.markers = []
+
+    self.user_x_range = (0, 1)
+    self.user_y_range = (0, 1)
+
+    self.drag_marker_index = None
+    self.last_mouse_xy = None
+
+    self.shown = False
+    self.show(True)
+
+    canvas.click_callbacks.append(self.select_marker_cb)
+    canvas.drag_callbacks.append(self.move_marker_cb)
+    
+#    canvas.bind("<Control-ButtonPress-1>", self.add_or_delete_marker_cb, add = 1)
+
+  # ---------------------------------------------------------------------------
+  #
+  def show(self, show):
+
+    if show and not self.shown:
+      self.shown = show
+      self.update_plot()
+    elif not show and self.shown:
+      self.unplot_markers()
+      self.shown = show
+    
+  # ---------------------------------------------------------------------------
+  #
+  def plot_markers(self):
+
+    s = self.scene
+    bs = self.box_size
+    x0, y1, x1, y0 = self.canvas_box
+
+    from PyQt5.QtGui import QPen, QColor, QBrush
+    from PyQt5.QtCore import Qt
+    p = QPen(QColor('black'))
+    b = QBrush()
+
+    for m in self.markers:
+      if m.graphics_item is None:
+        x, y = self.user_xy_to_canvas_xy(m.xy)
+        color = hex_color_name(m.rgba[:3])
+        c = QColor(color)
+        b.setColor(c)
+        b.setStyle(Qt.SolidPattern)
+        if self.marker_type == 'line':
+          m.graphics_item = s.addRect(x, y0+bs, 2*bs, y1-y0-bs, pen = p, brush = b)
+        elif self.marker_type == 'box':
+          m.graphics_item = s.addRect(x-bs, y-bs, 2*bs, 2*bs, pen = p, brush = b)
+
+  # ---------------------------------------------------------------------------
+  #
+  def unplot_markers(self):
+
+    s = self.scene
+    for m in self.markers:
+      m.unplot(s)
+
+    for i in self.connect_graphics_items:
+      s.removeItem(i)
+    self.connect_graphics_items = []
+    
+  # ---------------------------------------------------------------------------
+  # canvas_box = (xmin, ymin, xmax, ymax)
+  # The xmin and xmax values should give the positions corresponding to the
+  # values passed to set_user_x_range().
+  #
+  def set_canvas_box(self, canvas_box):
+
+    if canvas_box != self.canvas_box:
+      self.canvas_box = canvas_box
+      self.update_plot()
+    
+  # ---------------------------------------------------------------------------
+  #
+  def set_user_x_range(self, xmin, xmax):
+
+    self.user_x_range = (xmin, xmax)
+    self.update_plot()
+    
+  # ---------------------------------------------------------------------------
+  #
+  def canvas_xy_to_user_xy(self, cxy):
+
+    xmin, ymin, xmax, ymax = self.canvas_box
+    fx = float(cxy[0] - xmin) / (xmax - xmin)
+    uxmin, uxmax = self.user_x_range
+    ux = (1-fx) * uxmin + fx * uxmax
+    fy = float(cxy[1] - ymin) / (ymax - ymin)
+    uymin, uymax = self.user_y_range
+    uy = (1-fy) * uymax + fy * uymin
+    return ux, uy
+
+  # ---------------------------------------------------------------------------
+  #
+  def user_xy_to_canvas_xy(self, uxy):
+
+    xmin, ymin, xmax, ymax = self.canvas_box
+
+    uxmin, uxmax = self.user_x_range
+    fx = (uxy[0] - uxmin) / (uxmax - uxmin)
+    cx = (1-fx) * xmin + fx * xmax
+
+    uymin, uymax = self.user_y_range
+    fy = (uxy[1] - uymin) / (uymax - uymin)
+    cy = (1-fy) * ymax + fy * ymin
+
+    return cx, cy
+  
+  # ---------------------------------------------------------------------------
+  #
+  def set_markers(self, markers):
+
+    for m in self.markers:
+      m.unplot(self.scene)
+
+    self.markers = markers
+    self.update_plot()
+  
+  # ---------------------------------------------------------------------------
+  #
+  def clamp_canvas_xy(self, xy):
+    
+    x, y = xy
+    xmin, ymin, xmax, ymax = self.canvas_box
+
+    if x < xmin:      x = xmin
+    elif x > xmax:    x = xmax
+    
+    if y < ymin:      y = ymin
+    elif y > ymax:    y = ymax
+
+    return [x, y]
+  
+  # ---------------------------------------------------------------------------
+  #
+  def update_plot(self):
+
+    if not self.shown:
+      return
+
+    self.plot_markers()
+
+    self.update_marker_coordinates()
+
+    if self.connect_markers:
+      self.update_connections()
+  
+  # ---------------------------------------------------------------------------
+  #
+  def update_marker_coordinates(self):
+
+    x0, y0, x1, y1 = self.canvas_box
+    bs = self.box_size
+
+    from PyQt5.QtCore import QRectF
+    for m in self.markers:
+      cxy = self.user_xy_to_canvas_xy(m.xy)
+      x, y = self.clamp_canvas_xy(cxy)
+      if self.marker_type == 'line':
+        m.graphics_item.setRect(QRectF(x, y0+bs, 2*bs, y1-y0-2*bs))
+      elif self.marker_type == 'box':
+        m.graphics_item.setRect(QRectF(x-bs, y-bs, 2*bs, 2*bs))
+  
+  # ---------------------------------------------------------------------------
+  #
+  def update_connections(self):
+
+    xy_list = [m.xy for m in self.markers]
+    cxy_list = [self.user_xy_to_canvas_xy(xy) for xy in xy_list]
+    cxy_list.sort()
+    cxy_list = [self.clamp_canvas_xy(xy) for xy in cxy_list]
+
+    s = self.scene
+    from PyQt5.QtGui import QPen, QColor
+    p = QPen(QColor(self.connect_color))
+
+    graphics_items = []
+    for k in range(len(cxy_list) - 1):
+      x0, y0 = cxy_list[k]
+      x1, y1 = cxy_list[k+1]
+      gi = s.addLine(x0, y0, x1, y1, pen = p)
+      graphics_items.append(gi)
+
+    for gi in self.connect_graphics_items:
+      s.removeItem(gi)
+
+    self.connect_graphics_items = graphics_items
+
+#    for m in self.markers:
+#      c.tag_raise(m.id)
+
+  # ---------------------------------------------------------------------------
+  #
+  def add_or_delete_marker_cb(self, event):
+
+    if not self.shown:
+      return
+
+    range = 3
+    i = self.closest_marker_index(event.x, event.y, range)
+
+    if i == None:
+      cxy = self.clamp_canvas_xy((event.x, event.y))
+      xy = self.canvas_xy_to_user_xy(cxy)
+      sm = self.selected_marker()
+      if sm:
+        color = sm.rgba
+      else:
+        color = self.new_marker_color
+      m = Marker(xy, color)
+      self.markers.append(m)
+      self.last_mouse_xy = xy
+      self.drag_marker_index = len(self.markers) - 1
+    else:
+      self.drag_marker_index = None
+      self.markers[i].unplot(self.scene)
+      del self.markers[i]
+
+    self.update_plot()
+
+    if self.callback:
+      self.callback()
+
+  # ---------------------------------------------------------------------------
+  #
+  def select_marker_cb(self, event):
+
+    if not self.shown:
+      return
+
+    range = 3
+    i = self.closest_marker_index(event.x(), event.y(), range)
+    self.drag_marker_index = i
+
+    if i == None:
+      return
+
+    p = self.canvas.mapToScene(event.x(), event.y())
+    self.last_mouse_xy = self.canvas_xy_to_user_xy((p.x(), p.y()))
+
+    if self.callback:
+      self.callback()
+
+  # ---------------------------------------------------------------------------
+  #
+  def closest_marker_index(self, x, y, range):
+
+    items = {m.graphics_item:mi for mi,m in enumerate(self.markers)}
+    c = self.canvas
+    for i in c.items(x, y, 2*range, 2*range):
+      if i in items:
+        return items[i]
+
+    return None
+
+  # ---------------------------------------------------------------------------
+  #
+  def move_marker_cb(self, event):
+
+    if (not self.shown or
+        self.last_mouse_xy == None or
+        self.drag_marker_index == None or
+        self.drag_marker_index >= len(self.markers)):
+      return
+
+    p = self.canvas.mapToScene(event.x(), event.y())
+    mouse_xy = self.canvas_xy_to_user_xy((p.x(),p.y()))
+    dx = mouse_xy[0] - self.last_mouse_xy[0]
+    dy = mouse_xy[1] - self.last_mouse_xy[1]
+    self.last_mouse_xy = mouse_xy
+
+    from PyQt5.QtCore import Qt
+    if event.modifiers() & Qt.ShiftModifier:
+      dx = .1 * dx
+      dy = .1 * dy
+
+    #
+    # Don't allow dragging out of the canvas box.
+    #
+    m = self.markers[self.drag_marker_index]
+    xy = (m.xy[0] + dx, m.xy[1] + dy)
+    cxy = self.user_xy_to_canvas_xy(xy)
+    cxy = self.clamp_canvas_xy(cxy)
+    xy = self.canvas_xy_to_user_xy(cxy)
+    m.xy = xy
+
+    self.update_plot()
+
+    if self.callback:
+      self.callback()
+    
+  # ---------------------------------------------------------------------------
+  #
+  def selected_marker(self):
+
+    if (self.drag_marker_index == None or
+        self.drag_marker_index >= len(self.markers)):
+      if len(self.markers) > 0:
+        return self.markers[0]
+      else:
+        return None
+    return self.markers[self.drag_marker_index]
+    
+# -----------------------------------------------------------------------------
+#
+class Marker:
+
+  def __init__(self, xy, color):
+
+    self.xy = xy
+    self.rgba = color
+    self.graphics_item = None
+  
+  # ---------------------------------------------------------------------------
+  #
+  def set_color(self, rgba, canvas):
+
+    if rgba == self.rgba:
+      return
+
+    self.rgba = rgba
+    if self.id != None:
+      color = hex_color_name(rgba[:3])
+      canvas.itemconfigure(self.id, fill = color)
+  
+  # ---------------------------------------------------------------------------
+  #
+  def unplot(self, scene):
+
+    gi = self.graphics_item
+    if gi:
+      scene.removeItem(gi)
+      self.graphics_item = None
+    
+# -----------------------------------------------------------------------------
+#
+def hex_color_name(rgb):
+
+  rgb8 = tuple(min(255, max(0,int(256 * c))) for c in rgb)
+  return '#%02x%02x%02x' % rgb8

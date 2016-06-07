@@ -27,7 +27,7 @@ shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
 PYSRCS = $(wildcard *.py)
-DATAFILES = 
+DATAFILES = close.png hidden.png shown.png
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)

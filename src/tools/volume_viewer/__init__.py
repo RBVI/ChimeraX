@@ -9,6 +9,9 @@ def start_tool(session, bundle_info):
     global _initialized
     if not session.ui.is_gui:
         return None
+    from . import gui
+    return gui.show_volume_dialog(session)
+
     # GUI actually starts when data is opened, so this is for
     # restoring sessions
     from . import gui
