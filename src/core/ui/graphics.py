@@ -28,7 +28,7 @@ if window_sys == "wx":
             oc = self.opengl_context = GLContext(self.opengl_canvas)
             oc.make_current = self.make_context_current
             oc.swap_buffers = self.swap_buffers
-            self.view.initialize_context(oc)
+            self.view.initialize_rendering(oc)
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
             self.SetSizerAndFit(sizer)
@@ -270,7 +270,7 @@ else:
             if ui.have_stereo:
                 from ..graphics import StereoCamera
                 self.view.camera = StereoCamera()
-            self.view.initialize_context(self.opengl_context)
+            self.view.initialize_rendering(self.opengl_context)
 
             self.popup = Popup(self)        # For display of atom spec balloons
 

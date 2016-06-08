@@ -32,33 +32,64 @@ class ResidueFit(ToolInstance):
         
         self._play_handler = None
         self._recording = False
+        self._block_update = False
 
         self.display_name = 'Residue fit %s chain %s %d-%d' % (s.name, cid, rmin, rmax)
 
+        from chimerax.core import window_sys
+        kw = {'size': self.SIZE} if window_sys == 'wx' else {}
         from chimerax.core.ui.gui import MainToolWindow
-        tw = MainToolWindow(self, size=self.SIZE)
+        tw = MainToolWindow(self, **kw)
         self.tool_window = tw
         parent = tw.ui_area
 
-        import wx
-        label = wx.StaticText(parent, label="Residue")
-        self.resnum = rn = wx.SpinCtrl(parent, value=str(rmin), min=rmin, max=rmax, size=(50, -1))
-        rn.Bind(wx.EVT_SPINCTRL, self.resnum_changed_cb)
-        self.slider = sl = wx.Slider(parent, value=rmin, minValue=rmin, maxValue=rmax)
-        sl.Bind(wx.EVT_SLIDER, self.slider_moved_cb)
-        self.play_button = pb = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
-        pb.Bind(wx.EVT_TOGGLEBUTTON, self.play_cb)
-        self.record_button = rb = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
-        rb.Bind(wx.EVT_TOGGLEBUTTON, self.record_cb)
-        self.set_button_icon(play=True, record=True)
+        if window_sys == 'wx':
+            import wx
+            label = wx.StaticText(parent, label="Residue")
+            self.resnum = rn = wx.SpinCtrl(parent, value=str(rmin), min=rmin, max=rmax, size=(50, -1))
+            rn.Bind(wx.EVT_SPINCTRL, self.resnum_changed_cb)
+            self.slider = sl = wx.Slider(parent, value=rmin, minValue=rmin, maxValue=rmax)
+            sl.Bind(wx.EVT_SLIDER, self.slider_moved_cb)
+            self.play_button = pb = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
+            pb.Bind(wx.EVT_TOGGLEBUTTON, self.play_cb)
+            self.record_button = rb = wx.ToggleButton(parent, label=' ', style=wx.BU_EXACTFIT)
+            rb.Bind(wx.EVT_TOGGLEBUTTON, self.record_cb)
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(label, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        sizer.Add(rn, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        sizer.Add(sl, 1, wx.EXPAND)
-        sizer.Add(pb, 0, wx.FIXED_MINSIZE)
-        sizer.Add(rb, 0, wx.FIXED_MINSIZE)
-        parent.SetSizerAndFit(sizer)
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer.Add(label, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
+            sizer.Add(rn, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
+            sizer.Add(sl, 1, wx.EXPAND)
+            sizer.Add(pb, 0, wx.FIXED_MINSIZE)
+            sizer.Add(rb, 0, wx.FIXED_MINSIZE)
+            parent.SetSizerAndFit(sizer)
+        elif window_sys == 'qt':
+            from PyQt5.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton
+            from PyQt5.QtGui import QPixmap, QIcon
+            from PyQt5.QtCore import Qt
+            layout = QHBoxLayout()
+            layout.setContentsMargins(0,0,0,0)
+            layout.setSpacing(4)
+            rl = QLabel('Residue')
+            layout.addWidget(rl)
+            self.resnum = rn = QSpinBox()
+            rn.setRange(rmin, rmax)
+            rn.valueChanged.connect(self.resnum_changed_cb)
+            layout.addWidget(rn)
+            self.slider = rs = QSlider(Qt.Horizontal)
+            rs.setRange(rmin,rmax)
+            rs.valueChanged.connect(self.slider_moved_cb)
+            layout.addWidget(rs)
+            self.play_button = pb = QPushButton()
+            pb.setCheckable(True)
+            pb.clicked.connect(self.play_cb)
+            layout.addWidget(pb)
+            self.record_button = rb = QPushButton()
+            rb.setCheckable(True)
+            rb.clicked.connect(self.record_cb)
+            layout.addWidget(rb)
+            parent.setLayout(layout)
+
+        self.set_button_icon(play=True, record=True)
 
         tw.manage(placement="top")
 
@@ -78,16 +109,28 @@ class ResidueFit(ToolInstance):
         self.tool_window.shown = False
 
     def resnum_changed_cb(self, event):
-        rn = self.resnum.GetValue()
-        self.slider.SetValue(rn)
-        self.update_resnum(rn)
+        from chimerax.core import window_sys
+        if window_sys == 'wx':
+            rn = self.resnum.GetValue()
+            self.slider.SetValue(rn)
+            self.update_resnum(rn)
+        elif window_sys == 'qt':
+            rn = self.resnum.value()
+            self.slider.setValue(rn)
 
     def slider_moved_cb(self, event):
-        rn = self.slider.GetValue()
-        self.resnum.SetValue(rn)
+        from chimerax.core import window_sys
+        if window_sys == 'wx':
+            rn = self.slider.GetValue()
+            self.resnum.SetValue(rn)
+        elif window_sys == 'qt':
+            rn = self.slider.value()
+            self.resnum.setValue(rn)
         self.update_resnum(rn)
 
     def update_resnum(self, rnum, motion = False):
+        if self._block_update:
+            return
         res =  self.residues.get(rnum, None)
         if res is not None:
             self.structure.atoms.displays = False
@@ -120,7 +163,7 @@ class ResidueFit(ToolInstance):
             self._label = Label(self.session, 'resfit', xpos = 0.7, ypos = 0.9)
         l = self._label
         l.text = '%s %d' % (res.name, res.number)
-        l.make_drawing()
+        l.update_drawing()
 
     def play_cb(self, event):
         if self._recording:
@@ -162,22 +205,46 @@ class ResidueFit(ToolInstance):
             rn += 1
         while rn not in self.residues:
             rn += 1
-        self.resnum.SetValue(rn)
-        self.slider.SetValue(rn)
+                    
+        from chimerax.core import window_sys
+        if window_sys == 'wx':
+            self.resnum.SetValue(rn)
+        elif window_sys == 'qt':
+            self._block_update = True # Don't update display when slider changes
+            self.resnum.setValue(rn)
+            self._block_update = False
         self.update_resnum(rn, motion = True)
 
     def set_button_icon(self, play = None, record = None):
-        import wx
         from os.path import dirname, join
         dir = dirname(__file__)
         if play is not None:
             bitmap_path = (join(dir, 'play.png' if play else 'pause.png'))
-            pbm = wx.Bitmap(bitmap_path)
-            self.play_button.SetBitmap(pbm)
+            pb = self.play_button
+            from chimerax.core import window_sys
+            if window_sys == 'wx':
+                import wx
+                pbm = wx.Bitmap(bitmap_path)
+                pb.SetBitmap(pbm)
+            elif window_sys == 'qt':
+                from PyQt5.QtGui import QPixmap, QIcon
+                ppix = QPixmap(bitmap_path)
+                pi = QIcon(ppix)
+                pb.setIcon(pi)
+                
         if record is not None:
             bitmap_path = (join(dir, 'record.png' if record else 'stop.png'))
-            pbm = wx.Bitmap(bitmap_path)
-            self.record_button.SetBitmap(pbm)
+            rb = self.record_button
+            from chimerax.core import window_sys
+            if window_sys == 'wx':
+                import wx
+                pbm = wx.Bitmap(bitmap_path)
+                rb.SetBitmap(pbm)
+            elif window_sys == 'qt':
+                from PyQt5.QtGui import QPixmap, QIcon
+                ppix = QPixmap(bitmap_path)
+                pi = QIcon(ppix)
+                rb.setIcon(pi)
 
     def record_cb(self, event=None):
         from chimerax.core.commands import run

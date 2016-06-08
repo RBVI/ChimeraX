@@ -154,7 +154,7 @@ class Structure(Model, StructureData):
                 solvent_atoms.draw_modes = Atom.BALL_STYLE
                 solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
             else:
-                lighting = "shadows true"
+                lighting = "soft multiShadow 16"
             from ..commands import Command
             if len([m for m in session.models.list()
                     if isinstance(m, self.__class__)]) == 1:

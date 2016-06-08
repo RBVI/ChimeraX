@@ -18,6 +18,6 @@ from .camera360 import Mono360Camera, Stereo360Camera
 
 from .crossfade import CrossFade, MotionBlur
 
-from .opengl import Texture, Lighting, Material, OffScreenRenderingContext, OpenGLVersionError
+from .opengl import Texture, Lighting, Material, OffScreenRenderingContext, OpenGLVersionError, OpenGLContext
 
-from .view import View, OpenGLContext, ClipPlane
+from .view import View, ClipPlane

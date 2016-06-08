@@ -22,8 +22,6 @@ def register_core_commands(session):
         m = import_module(".%s" % mod, __package__)
         m.register_command(session)
 
-    #QT disabled
-    return
     from .. import map
     map.register_volume_command()
     map.register_molmap_command()

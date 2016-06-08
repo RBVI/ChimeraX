@@ -43,16 +43,22 @@ app-install: wheel
 wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
 
-setup.py: setup.py.in
-	sed -e 's,PKG_DIR,$(PKG_DIR),' \
+SETUP_SED_ARGS = -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,SHLIB_DIR,$(shlibdir),' \
 		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
-		-e 's,#$(OS)#,,' \
-		-e 's,#$(OSARCH)#,,' \
-		-e 's,CORE_VERSION,$(CORE_VERSION),' \
-		< setup.py.in > setup.py
+		-e 's,\#$(OS)\#,,' \
+		-e 's,\#$(OSARCH)\#,,' \
+		-e 's,CORE_VERSION,$(CORE_VERSION),'
+ifdef WIN32
+ifdef DEBUG
+SETUP_SED_ARGS += -e 's,\#WINDEBUG,,'
+endif
+endif
+
+setup.py: setup.py.in
+	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
 
 timestamp:
 	echo "chimerax.core" > timestamp

@@ -47,12 +47,27 @@ stencil8_needed = False
 class OpenGLVersionError(RuntimeError):
     pass
 
+class OpenGLContext:
+    '''
+    OpenGL context used by View for drawing.  This should be subclassed
+    to provide window system specific opengl context methods.
+    '''
+    def make_current(self):
+        '''Make the OpenGL context active.'''
+        pass
+
+    def swap_buffers(self):
+        '''Swap back and front OpenGL buffers.'''
+        pass
+
 class Render:
     '''
     Manage shaders, viewing matrices and lighting parameters to render a scene.
     '''
-    def __init__(self):
+    def __init__(self, opengl_context):
 
+        self._opengl_context = opengl_context
+        
         self.shader_programs = {}
         self.current_shader_program = None
 
@@ -103,6 +118,16 @@ class Render:
 
 	# Camera origin, y, and xshift for SHADER_STEREO_360 mode
         self._stereo_360_params = ((0,0,0),(0,1,0),0)
+
+    @property
+    def opengl_context(self):
+        return self._opengl_context
+
+    def make_current(self):
+        self._opengl_context.make_current()
+
+    def swap_buffers(self):
+        self._opengl_context.swap_buffers()
 
     def default_framebuffer(self):
         if self._default_framebuffer is None:
@@ -484,10 +509,10 @@ class Render:
         'String description of the OpenGL renderer for the current context.'
         return GL.glGetString(GL.GL_RENDERER).decode('utf-8')
 
-    def check_opengl_version(self):
+    def check_opengl_version(self, major = 3, minor = 3):
         '''Check if current OpenGL context meets minimum required version.'''
         vmajor, vminor = self.opengl_version_number()
-        if vmajor < 3 or (vmajor == 3 and vminor < 3):
+        if vmajor < major or (vmajor == major and vminor < minor):
             raise OpenGLVersionError('ChimeraX requires OpenGL graphics version 3.3.\n'
                                      'Your computer graphics driver provided version %d.%d.\n'
                                      % (vmajor, vminor))
@@ -1211,11 +1236,11 @@ class Lighting:
         This is GPU intensive, each shadow requiring a texture lookup.
         '''
 
-        self.multishadow_map_size = 128
+        self.multishadow_map_size = 1024
         '''Size of 2D opengl texture used for casting ambient shadows.
         This texture is tiled to hold shadow maps for all directions.'''
         
-        self.multishadow_depth_bias = 0.05
+        self.multishadow_depth_bias = 0.01
         "Offset as fraction of scene depth for avoiding surface ambient self-shadowing."
 
 class Material:

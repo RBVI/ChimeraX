@@ -399,7 +399,7 @@ if window_sys == "wx":
             One click is typically 15 degrees of wheel rotation.
             '''
             return self._event.GetWheelRotation()/120.0   # Usually one wheel click is delta of 120
-else:
+elif window_sys == 'qt':
     class MouseModes:
         '''
         Keep the list of available mouse modes and also which mode is bound
@@ -417,8 +417,11 @@ else:
             self._bindings = []  # List of MouseBinding instances
 
             from PyQt5.QtCore import Qt
+            # Qt maps control to meta on Mac...
+            import sys
+            control_mod = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
             self._modifier_bits = [(Qt.AltModifier, 'alt'),
-                            (Qt.ControlModifier, 'control'),
+                            (control_mod, 'control'),
                             (Qt.ShiftModifier, 'shift')]
 
             # Mouse pause parameters
@@ -551,10 +554,19 @@ else:
             elif b & Qt.MiddleButton:
                 button = 'middle'
             elif b & Qt.RightButton:
-                button = 'right'
+                # On the Mac, a control left-click comes back as a right-click
+                # so map control-right to control-left.  We lose use of control-right,
+                # but more important to have control-left!
+                import sys
+                if sys.platform == "darwin" and 'control' in modifiers:
+                    button = 'left'
+                else:
+                    button = 'right'
             else:
                 button = None
 
+            import sys
+            print(button, modifiers, "meta?", bool(event.modifiers() & Qt.MetaModifier), file=sys.__stderr__)
             return button, modifiers
 
         def _have_mode(self, button, modifier):
@@ -623,6 +635,11 @@ else:
                 delta = min(deltas.x(), deltas.y())
             return delta/120.0   # Usually one wheel click is delta of 120
 
+elif window_sys is None:
+    class MouseMode:
+        pass
+    
+                
 class SelectMouseMode(MouseMode):
     '''Mouse mode to select objects by clicking on them.'''
     name = 'select'
@@ -1129,6 +1146,3 @@ def standard_mouse_mode_classes():
             NullMouseMode,
         ]
     return mode_classes
-
-import chimerax.core.ui
-chimerax.core.ui.MouseMode = MouseMode

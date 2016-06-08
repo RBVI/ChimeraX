@@ -99,7 +99,11 @@ def parse_arguments(argv):
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
-    opts.window_sys = "wx"
+    if sys.platform.startswith('win'):
+        # wx doesn't work for us on Windows
+        opts.window_sys = "qt"
+    else:
+        opts.window_sys = "wx"
 
     # Will build usage string from list of arguments
     arguments = [
@@ -285,6 +289,10 @@ def init(argv, event_loop=True):
         ver += (0,)
     partial_version = '%s.%s' % (ver[0], ver[1])
 
+    
+    import chimerax.core
+    chimerax.core.window_sys = opts.window_sys if opts.gui else None
+
     import chimerax
     import appdirs
     chimerax.app_dirs = ad = appdirs.AppDirs(app_name, appauthor=app_author,
@@ -337,8 +345,6 @@ def init(argv, event_loop=True):
 
     # initialize the user interface
     if opts.gui:
-        import chimerax.core
-        chimerax.core.window_sys = opts.window_sys
         from chimerax.core.ui import gui
         ui_class = gui.UI
     else:
@@ -429,9 +435,11 @@ def init(argv, event_loop=True):
     import chimerax.core.commands.version as vercmd
     vercmd.version(sess)  # report version in log
     if opts.gui:
-        sess.logger.info('OpenGL version: ' + sess.main_view.opengl_version())
-        sess.logger.info('OpenGL renderer: ' + sess.main_view.opengl_renderer())
-        sess.logger.info('OpenGL vendor: ' + sess.main_view.opengl_vendor())
+        r = sess.main_view.render
+        r.make_current()
+        sess.logger.info('OpenGL version: ' + r.opengl_version())
+        sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
+        sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
 
     if opts.module:
         import runpy

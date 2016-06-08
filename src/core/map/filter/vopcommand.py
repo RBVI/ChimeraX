@@ -632,7 +632,8 @@ def vop_scale(session, volumes, shift = 0, factor = 1, sd = None, rms = None,
 
     from .scale import scaled_volume
     for v in volumes:
-        scaled_volume(v, factor, sd, rms, shift, value_type, step, subregion, model_id)
+        scaled_volume(v, factor, sd, rms, shift, value_type, step, subregion, model_id,
+                      session = session)
 
 # -----------------------------------------------------------------------------
 #

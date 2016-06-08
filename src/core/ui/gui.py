@@ -723,6 +723,12 @@ else:
         from ... import app_lib_dir
         qlib_paths.append(os.path.join(os.path.dirname(app_lib_dir), "plugins"))
         QCoreApplication.setLibraryPaths(qlib_paths)
+        import os
+        fw_path = os.environ.get("DYLD_FRAMEWORK_PATH", None)
+        if fw_path:
+            os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
+        else:
+            os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
 
     from PyQt5.QtWidgets import QApplication
     class UI(QApplication):
@@ -1005,6 +1011,8 @@ else:
 
         def _build_status(self):
             sb = QStatusBar(self)
+            from PyQt5.QtWidgets import QSizePolicy
+            sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
             self._primary_status_label = QLabel(sb)
             self._secondary_status_label = QLabel(sb)
             sb.addWidget(self._primary_status_label)
@@ -1279,9 +1287,10 @@ else:
                 raise RuntimeError("No main window or main window dead")
 
             from PyQt5.QtWidgets import QDockWidget, QWidget
-            self.dock_widget = QDockWidget(title, mw)
-            self.dock_widget.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
-            self.ui_area = QWidget(self.dock_widget)
+            self.dock_widget = dw = QDockWidget(title, mw)
+            dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
+            dw.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
+            self.ui_area = QWidget(dw)
             self.ui_area.contextMenuEvent = lambda e, self=self: self.show_context_menu(e.globalPos())
             self.dock_widget.setWidget(self.ui_area)
 
