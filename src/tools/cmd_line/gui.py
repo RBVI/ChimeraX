@@ -37,6 +37,7 @@ class CommandLine(ToolInstance):
             self.text.lineEdit().returnPressed.connect(self.execute)
             self.text.lineEdit().editingFinished.connect(self.text.lineEdit().selectAll)
             self.text.currentTextChanged.connect(self.text_changed)
+            self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e)
             session.ui.register_for_keystrokes(self.text)
         else:
             import wx

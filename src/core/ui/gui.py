@@ -808,18 +808,12 @@ else:
 
             self._keystroke_sinks = []
 
-            def focus_change(old, new):
-                import sys
-                print("Focus changed from", old.__class__.__name__, "to", new.__class__.__name__,
-                    file=sys.__stderr__)
-            self.focusChanged.connect(focus_change)
-
         def close_splash(self):
             pass
 
         def build(self):
             self.main_window = MainWindow(self, self.session)
-            self.main_window.graphics_window.keyPressEvent = self._forwardKeyPress
+            self.main_window.graphics_window.keyPressEvent = self.forward_keystroke
             self.main_window.show()
             self.splash.finish(self.main_window)
 
@@ -848,8 +842,6 @@ else:
                promote/demote the graphics window selection
             """
             from PyQt5.QtCore import Qt
-            from sys import __stderr__
-            print("forwarding:", event.key(), file=sys.__stderr__)
             if event.key() == Qt.Key_Up:
                 self.session.selection.promote()
             elif event.key() == Qt.Key_Down:
@@ -891,10 +883,6 @@ else:
                     QEvent.__init__(self, self.EVENT_TYPE)
                     self.func_info = (func, args, kw)
             self.postEvent(self.main_window, ThreadSafeGuiFuncEvent(func, args, kw))
-
-        def _forwardKeyPress(self, *args, **kw):
-            if self._keystroke_sinks:
-                self._keystroke_sinks[-1].keyPressEvent(*args, **kw)
 
     # The surface format has to be set before QtGui is initialized
     from PyQt5.QtGui import QSurfaceFormat

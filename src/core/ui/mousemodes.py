@@ -565,8 +565,6 @@ elif window_sys == 'qt':
             else:
                 button = None
 
-            import sys
-            print(button, modifiers, "meta?", bool(event.modifiers() & Qt.MetaModifier), file=sys.__stderr__)
             return button, modifiers
 
         def _have_mode(self, button, modifier):
