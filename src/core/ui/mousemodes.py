@@ -419,9 +419,13 @@ elif window_sys == 'qt':
             from PyQt5.QtCore import Qt
             # Qt maps control to meta on Mac...
             import sys
-            control_mod = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
+            if sys.platform == "darwin":
+                control_mod, command_mod = Qt.MetaModifier, Qt.ControlModifier
+            else:
+                control_mod, command_mod =  Qt.ControlModifier, Qt.MetaModifier
             self._modifier_bits = [(Qt.AltModifier, 'alt'),
                             (control_mod, 'control'),
+                            (command_mod, 'command'),
                             (Qt.ShiftModifier, 'shift')]
 
             # Mouse pause parameters
@@ -554,17 +558,27 @@ elif window_sys == 'qt':
             elif b & Qt.MiddleButton:
                 button = 'middle'
             elif b & Qt.RightButton:
-                # On the Mac, a control left-click comes back as a right-click
-                # so map control-right to control-left.  We lose use of control-right,
-                # but more important to have control-left!
-                import sys
-                if sys.platform == "darwin" and 'control' in modifiers:
-                    button = 'left'
-                else:
-                    button = 'right'
+                button = 'right'
             else:
                 button = None
 
+            # Mac-specific remappings...
+            import sys
+            if sys.platform == "darwin":
+                if button == 'left':
+                    # Emulate additional buttons for one-button mice/trackpads
+                    if 'command' in modifiers and not self._have_mode('left','command'):
+                        button = 'right'
+                        modifiers.remove('command')
+                    elif 'alt' in modifiers and not self._have_mode('left','alt'):
+                        button = 'middle'
+                        modifiers.remove('alt')
+                elif button == 'right':
+                    # On the Mac, a control left-click comes back as a right-click
+                    # so map control-right to control-left.  We lose use of control-right,
+                    # but more important to have control-left!
+                    if 'control' in modifiers:
+                        button = 'left'
             return button, modifiers
 
         def _have_mode(self, button, modifier):
