@@ -417,8 +417,11 @@ elif window_sys == 'qt':
             self._bindings = []  # List of MouseBinding instances
 
             from PyQt5.QtCore import Qt
+            # Qt maps control to meta on Mac...
+            import sys
+            control_mod = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
             self._modifier_bits = [(Qt.AltModifier, 'alt'),
-                            (Qt.ControlModifier, 'control'),
+                            (control_mod, 'control'),
                             (Qt.ShiftModifier, 'shift')]
 
             # Mouse pause parameters
@@ -552,16 +555,18 @@ elif window_sys == 'qt':
                 button = 'middle'
             elif b & Qt.RightButton:
                 # On the Mac, a control left-click comes back as a right-click
-                # with the Meta key held down, change it back...
+                # so map control-right to control-left.  We lose use of control-right,
+                # but more important to have control-left!
                 import sys
-                if sys.platform == "darwin" and (event.modifiers() & Qt.MetaModifier):
+                if sys.platform == "darwin" and 'control' in modifiers:
                     button = 'left'
-                    modifiers.append('control')
                 else:
                     button = 'right'
             else:
                 button = None
 
+            import sys
+            print(button, modifiers, "meta?", bool(event.modifiers() & Qt.MetaModifier), file=sys.__stderr__)
             return button, modifiers
 
         def _have_mode(self, button, modifier):
