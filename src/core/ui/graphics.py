@@ -251,11 +251,6 @@ else:
             self.session = ui.session
             self.view = ui.session.main_view
 
-            # NoFocus is the default;
-            # may need a different policy to get keyboard forwarding to work...
-            from PyQt5.QtCore import Qt
-            self.widget.setFocusPolicy(Qt.NoFocus)
-
             self.context_created = False
             self.opengl_context = oc = OpenGLContext(self)
             oc.make_current = self.make_context_current
