@@ -824,6 +824,8 @@ class View:
     def translate(self, shift, drawings=None):
         '''Move camera to simulate a translation of drawings.  Translation
         is in scene coordinates.'''
+        if shift[0] == 0 and shift[1] == 0 and shift[2] == 0:
+            return
         if self._center_of_rotation_method == 'front center':
             self._update_center_of_rotation = True
         from ..geometry import place
@@ -844,7 +846,10 @@ class View:
     def pixel_size(self, p=None):
         "Return the pixel size in scene length units at point p in the scene."
         if p is None:
-            p = self.center_of_rotation
+            # Don't recompute center of rotation as that can be slow.
+            p = self._center_of_rotation
+            if p is None:
+                p = self.center_of_rotation	# Compute center of rotation
         return self.camera.view_width(p) / self.window_size[0]
 
 
