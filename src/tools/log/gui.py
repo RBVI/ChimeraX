@@ -54,8 +54,12 @@ context_menu_html = """
         <li class="context-menu-item">
             <a href="log:clear" class="context-menu-link"> Clear </a>
         </li>
+        <li>
         <li class="context-menu-item">
-            <a href="log:select-all" class="context-menu-link"> Select All </a>
+            <a href="log:copy" class="context-menu-link"> Copy selection </a>
+        </li>
+        <li class="context-menu-item">
+            <a href="log:select-all" class="context-menu-link"> Select all </a>
         </li>
         <hr style="margin:0;">
         <li class="context-menu-item">
@@ -159,13 +163,47 @@ class Log(ToolInstance, HtmlLog):
             parent = self.tool_window.ui_area
             from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
             class HtmlWindow(QWebEngineView):
+                def __init__(self, parent, log):
+                    super().__init__(parent)
+                    self.log = log
+
                 def sizeHint(self):
                     from PyQt5.QtCore import QSize
                     return QSize(*Log.SIZE)
-                #def contextMenuEvent(self, event):
-                #    import sys
-                #    print("Inherited context menu event", file=sys.__stderr__)
-            self.log_window = HtmlWindow(parent)
+
+                def contextMenuEvent(self, event):
+                    event.accept()
+                    cm = getattr(self, 'context_menu', None)
+                    if cm is None:
+                        from PyQt5.QtWidgets import QMenu
+                        cm = self.context_menu = QMenu()
+                        def save_image(self=self):
+                            from .cmd import log
+                            log(self.log.session, thumbnail=True)
+                        cm.addAction("Insert image", save_image)
+                        cm.addAction("Save", self.cm_save)
+                        cm.addAction("Clear", self.log.clear)
+                        cm.addAction("Copy selection",
+                            lambda: self.page().triggerAction(self.page().Copy))
+                        cm.addAction("Select all",
+                            lambda: self.page().triggerAction(self.page().SelectAll))
+                        cm.addAction("Help", self.log.display_help)
+                    cm.popup(event.globalPos())
+
+                def cm_save(self):
+                    from chimerax.core.ui.open_save import export_file_filter, SaveDialog
+                    from chimerax.core.io import extensions
+                    save_dialog = SaveDialog(self, "Save Log",
+                        name_filter=export_file_filter(format_name="HTML"),
+                        add_extension=extensions("HTML")[0])
+                    if not save_dialog.exec():
+                        return
+                    filename = save_dialog.selectedFiles()[0]
+                    if not filename:
+                        from chimerax.core.errors import UserError
+                        raise UserError("No file specified for save log contents")
+                    self.log.save(filename)
+            self.log_window = HtmlWindow(parent, self)
             from PyQt5.QtWidgets import QGridLayout, QErrorMessage
             self.error_dialog = QErrorMessage(parent)
             layout = QGridLayout(parent)
@@ -299,12 +337,14 @@ class Log(ToolInstance, HtmlLog):
         return True
 
     def show_page_source(self):
-        css = context_menu_css + cxcmd_css
-        html = "<style>%s</style>%s%s\n<body onload=\"init_menus()\">%s</body>" % (
-                css, context_menu_script, context_menu_html, self.page_source)
         if self.window_sys == "wx":
+            css = context_menu_css + cxcmd_css
+            html = "<style>%s</style>%s%s\n<body onload=\"init_menus()\">%s</body>" % (
+                    css, context_menu_script, context_menu_html, self.page_source)
             self.log_window.SetPage(html, "")
         else:
+            css = context_menu_css + cxcmd_css
+            html = "<style>%s</style>\n<body onload=\"window.scrollTo(0, document.body.scrollHeight);\">%s</body>" % (cxcmd_css, self.page_source)
             self.log_window.setHtml(html)
 
     # wx event handling
@@ -338,6 +378,12 @@ class Log(ToolInstance, HtmlLog):
                 self.display_help()
             elif cmd == 'clear':
                 self.clear()
+            elif cmd == 'copy':
+                if self.window_sys == "wx":
+                    self.log_window.Copy()
+                else:
+                    page = self.log_window.page()
+                    page.triggerAction(page.Copy)
             elif cmd == 'select-all':
                 if self.window_sys == "wx":
                     self.log_window.SelectAll()
