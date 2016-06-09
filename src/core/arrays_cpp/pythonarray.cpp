@@ -1248,6 +1248,19 @@ PyObject *python_tuple(PyObject *o1, PyObject *o2, PyObject *o3, PyObject *o4)
 
 // ----------------------------------------------------------------------------
 //
+PyObject *python_tuple(PyObject *o1, PyObject *o2, PyObject *o3, PyObject *o4, PyObject *o5)
+{
+  PyObject *t = PyTuple_New(5);
+  PyTuple_SetItem(t, 0, o1);
+  PyTuple_SetItem(t, 1, o2);
+  PyTuple_SetItem(t, 2, o3);
+  PyTuple_SetItem(t, 3, o4);
+  PyTuple_SetItem(t, 4, o5);
+  return t;
+}
+
+// ----------------------------------------------------------------------------
+//
 PyObject *python_none()
 {
   Py_INCREF(Py_None);

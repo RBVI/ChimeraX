@@ -133,5 +133,6 @@ ARRAYS_IMEX PyObject *python_bool(bool b);
 ARRAYS_IMEX PyObject *python_tuple(PyObject *o1, PyObject *o2);
 ARRAYS_IMEX PyObject *python_tuple(PyObject *o1, PyObject *o2, PyObject *o3);
 ARRAYS_IMEX PyObject *python_tuple(PyObject *o1, PyObject *o2, PyObject *o3, PyObject *a4);
+ARRAYS_IMEX PyObject *python_tuple(PyObject *o1, PyObject *o2, PyObject *o3, PyObject *a4, PyObject *a5);
 
 #endif
