@@ -74,7 +74,7 @@ class MolecularSurface(Model):
         self._vertex_to_atom = None
         self._max_radius = None
         self._atom_colors = None
-        self.clip_cap = 'duplicate vertices'
+        self.clip_cap = True
 
     def new_parameters(self, show_atoms, probe_radius, grid_spacing,
                        resolution, level, visible_patches, sharp_boundaries,
@@ -141,7 +141,8 @@ class MolecularSurface(Model):
             if self.resolution is None:
                 kw['atom_radii'] = atoms.radii
             from ..surface import sharp_edge_patches
-            va, na, ta, v2a = sharp_edge_patches(va, na, ta, v2a, xyz, **kw)
+            va, na, ta, tj, v2a = sharp_edge_patches(va, na, ta, v2a, xyz, **kw)
+            self.joined_triangles = tj	# With non-duplicate vertices for clip cap calculation
             self._vertex_to_atom = v2a
 
         self.vertices = va

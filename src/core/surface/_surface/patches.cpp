@@ -8,7 +8,8 @@
 typedef std::vector<float> Vertices;
 typedef std::vector<float> Normals;
 typedef std::vector<int> Triangles;
-typedef std::vector<int> Atoms;
+typedef std::vector<int> Atoms;		// Atom index for each vertex.
+typedef std::vector<int> VertexMap;	// Unique vertex index for each vertex
 typedef std::pair<int,int> Edge;
 typedef std::map<Edge,int> Edge_Map;
 
@@ -134,12 +135,13 @@ inline void split_point(int v0, int v1, int a0, int a1,
 
 inline int split_edge(int v0, int v1, int a0, int a1,
 		      float *aa, int as0, int as1, float *ra, int rs0,
-		      Vertices &v, Normals &n, Atoms &va)
+		      Vertices &v, Normals &n, Atoms &va, VertexMap &vm)
 {
   float x, y, z, f1;
   split_point(v0, v1, a0, a1, aa, as0, as1, ra, rs0, v, true, &x, &y, &z, &f1);
 
   // Make vertex at split position
+  vm.push_back(v.size()/3);
   add_vertex(v, x, y, z);
 
   // Make normal at split position
@@ -160,16 +162,17 @@ inline int split_edge(int v0, int v1, int a0, int a1,
 
 inline void add_split_point(int v0, int v1, int a0, int a1,
 			    float *aa, int as0, int as1, float *ra, int rs0,
-			    Vertices &v, Normals &n, Atoms &va, Edge_Map &edge_splits)
+			    Vertices &v, Normals &n, Atoms &va, VertexMap &vm,
+			    Edge_Map &edge_splits)
 {
   int vmin = min(v0,v1), vmax = max(v0,v1);
   int amin = (v0 < v1 ? a0 : a1), amax = (v0 < v1 ? a1 : a0);
   Edge e(vmin,vmax);
   if (edge_splits.find(e) == edge_splits.end())
-    edge_splits[e] = split_edge(vmin, vmax, amin, amax, aa, as0, as1, ra, rs0, v, n, va);
+    edge_splits[e] = split_edge(vmin, vmax, amin, amax, aa, as0, as1, ra, rs0, v, n, va, vm);
 }
 
-static void compute_edge_split_points(Vertices &v, Normals &n, Atoms &va, const Triangles &t,
+static void compute_edge_split_points(Vertices &v, Normals &n, Atoms &va, VertexMap &vm, const Triangles &t,
 				      const FArray &a, const FArray &r, Edge_Map &edge_splits)
 {
   int nt = t.size()/3;
@@ -183,11 +186,11 @@ static void compute_edge_split_points(Vertices &v, Normals &n, Atoms &va, const 
       int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
       int a0 = va[v0], a1 = va[v1], a2 = va[v2];
       if (a0 != a1)
-	add_split_point(v0, v1, a0, a1, aa, as0, as1, ra, rs0, v, n, va, edge_splits);
+	add_split_point(v0, v1, a0, a1, aa, as0, as1, ra, rs0, v, n, va, vm, edge_splits);
       if (a1 != a2)
-	add_split_point(v1, v2, a1, a2, aa, as0, as1, ra, rs0, v, n, va, edge_splits);
+	add_split_point(v1, v2, a1, a2, aa, as0, as1, ra, rs0, v, n, va, vm, edge_splits);
       if (a2 != a0)
-	add_split_point(v2, v0, a2, a0, aa, as0, as1, ra, rs0, v, n, va, edge_splits);
+	add_split_point(v2, v0, a2, a0, aa, as0, as1, ra, rs0, v, n, va, vm, edge_splits);
     }
 }
 
@@ -268,13 +271,15 @@ inline void compute_triple_point(int v0, int v1, int v2, int a0, int a1, int a2,
 
 inline void cut_to_vertex(int v0, int v1, int v2, int a1, int a2,
 			  int v10, int v12, int v21, int v20,
-			  Vertices &v, Normals &n, Atoms &va, Triangles &t)
+			  Vertices &v, Normals &n, Atoms &va, VertexMap &vm, Triangles &t)
 {
   // Copy edge point.
   int v012 = v.size()/3, v021 = v012 + 1;
   float x0 = v[3*v0], y0 = v[3*v0+1], z0 = v[3*v0+2];
   add_vertex(v, x0, y0, z0);
   add_vertex(v, x0, y0, z0);
+  vm.push_back(v0);
+  vm.push_back(v0);
   float nx0 = n[3*v0], ny0 = n[3*v0+1], nz0 = n[3*v0+2];
   add_normal(n, nx0, ny0, nz0);
   add_normal(n, nx0, ny0, nz0);
@@ -289,11 +294,12 @@ inline void cut_to_vertex(int v0, int v1, int v2, int a1, int a2,
 
 inline void cut_to_edge(int v0, int v1, int v2, int a2,
 			int v01, int v10, int v12, int v21, int v20, int v02,
-			Vertices &v, Normals &n, Atoms &va, Triangles &t)
+			Vertices &v, Normals &n, Atoms &va, VertexMap &vm, Triangles &t)
 {
   // Copy edge point.
   int v012 = v.size()/3;
   add_vertex(v, v[3*v01], v[3*v01+1], v[3*v01+2]);
+  vm.push_back(v01);
   add_normal(n, n[3*v01],  n[3*v01+1], n[3*v01+2]);
   va.push_back(a2);
 
@@ -306,7 +312,7 @@ inline void cut_to_edge(int v0, int v1, int v2, int a2,
 inline void cut_to_middle(float x, float y, float z, float nx, float ny, float nz,
 			  int v0, int v1, int v2, int a0, int a1, int a2,
 			  int v01, int v10, int v12, int v21, int v20, int v02,
-			  Vertices &v, Normals &n, Atoms &va, Triangles &t)
+			  Vertices &v, Normals &n, Atoms &va, VertexMap &vm, Triangles &t)
 {
   // Add 3 copies of point and normal to middle of triangle.
   int vn = v.size()/3;
@@ -314,6 +320,7 @@ inline void cut_to_middle(float x, float y, float z, float nx, float ny, float n
   for (int c = 0 ; c < 3 ; ++c, ++vn)
     {
       add_vertex(v, x, y, z);
+      vm.push_back(vc0);
       add_normal(n, nx, ny, nz);
     }
   va.push_back(a0);
@@ -335,7 +342,7 @@ inline void cut_to_middle(float x, float y, float z, float nx, float ny, float n
 // by double_cut_triangle().
 inline void cut_triangle_3_lines(int v0, int v1, int v2, int a0, int a1, int a2,
 				 float *aa, int as0, int as1,
-				 Vertices &v, Normals &n, Atoms &va, Triangles &t,
+				 Vertices &v, Normals &n, Atoms &va, VertexMap &vm, Triangles &t,
 				 const Edge_Map &edge_splits)
 {
   // All 3 edges split
@@ -357,7 +364,7 @@ inline void cut_triangle_3_lines(int v0, int v1, int v2, int a0, int a1, int a2,
     {
       // Point inside triangle.  Divide into 6 new triangles.
       cut_to_middle(x, y, z, nx, ny, nz, v0, v1, v2, a0, a1, a2,
-		    v01, v10, v12, v21, v20, v02, v, n, va, t);
+		    v01, v10, v12, v21, v20, v02, v, n, va, vm, t);
     }
   else
     {
@@ -367,21 +374,21 @@ inline void cut_triangle_3_lines(int v0, int v1, int v2, int a0, int a1, int a2,
 	{
 	  // Project point to triangle edge.
 	  if (f1 <= 0)
-	    cut_to_edge(v2, v0, v1, a1, v20, v02, v01, v10, v12, v21, v, n, va, t);
+	    cut_to_edge(v2, v0, v1, a1, v20, v02, v01, v10, v12, v21, v, n, va, vm, t);
 	  else if (f2 <= 0)
-	    cut_to_edge(v0, v1, v2, a2, v01, v10, v12, v21, v20, v02, v, n, va, t);
+	    cut_to_edge(v0, v1, v2, a2, v01, v10, v12, v21, v20, v02, v, n, va, vm, t);
 	  else
-	    cut_to_edge(v1, v2, v0, a0, v12, v21, v20, v02, v01, v10, v, n, va, t);
+	    cut_to_edge(v1, v2, v0, a0, v12, v21, v20, v02, v01, v10, v, n, va, vm, t);
 	}
       else if (nout == 2)
 	{
 	  // Project point to triangle vertex.
 	  if (f1 > 0)
-	    cut_to_vertex(v1, v2, v0, a2, a0, v21, v20, v02, v01, v, n, va, t);
+	    cut_to_vertex(v1, v2, v0, a2, a0, v21, v20, v02, v01, v, n, va, vm, t);
 	  else if (f2 > 0)
-	    cut_to_vertex(v2, v0, v1, a0, a1, v02, v01, v10, v12, v, n, va, t);
+	    cut_to_vertex(v2, v0, v1, a0, a1, v02, v01, v10, v12, v, n, va, vm, t);
 	  else
-	    cut_to_vertex(v0, v1, v2, a1, a2, v10, v12, v21, v20, v, n, va, t);
+	    cut_to_vertex(v0, v1, v2, a1, a2, v10, v12, v21, v20, v, n, va, vm, t);
 	}
     }
 }
@@ -569,9 +576,8 @@ static void split_3_patch_triangles(const Triangles &t, const Atoms &va, const E
     }
 }
 
-static int refine_3_patch_triangles(Vertices &v, Normals &n, Triangles &t,
-				    Atoms &va, const FArray &a, const FArray &r,
-				    Edge_Map &edge_splits)
+static int refine_3_patch_triangles(Vertices &v, Normals &n, Triangles &t, Atoms &va, VertexMap &vm,
+				    const FArray &a, const FArray &r, Edge_Map &edge_splits)
 {
   Edge_Map edge_3p;
   find_3_patch_edges(v, t, va, a, r, edge_splits, edge_3p);
@@ -596,9 +602,9 @@ static int refine_3_patch_triangles(Vertices &v, Normals &n, Triangles &t,
       //      std::cerr << "Fixed " << change << " atom assignments\n";
     }
 
-  compute_edge_split_points(v, n, va, tsplit, a, r, edge_splits);
+  compute_edge_split_points(v, n, va, vm, tsplit, a, r, edge_splits);
   // The unsplit can also have edges that need split because vertex was assigned a new atom.
-  compute_edge_split_points(v, n, va, tunsplit, a, r, edge_splits);
+  compute_edge_split_points(v, n, va, vm, tunsplit, a, r, edge_splits);
 
   t.clear();
   t.insert(t.end(), tunsplit.begin(), tunsplit.end());
@@ -607,7 +613,7 @@ static int refine_3_patch_triangles(Vertices &v, Normals &n, Triangles &t,
   return tsplit.size()/3;
 }
 
-static void duplicate_edge_vertices(Vertices &v, Normals &n, Atoms &va, Edge_Map &edge_splits)
+static void duplicate_edge_vertices(Vertices &v, Normals &n, Atoms &va, VertexMap &vm, Edge_Map &edge_splits)
 {
   // Duplicate split points.
   Edge_Map edup;
@@ -618,6 +624,7 @@ static void duplicate_edge_vertices(Vertices &v, Normals &n, Atoms &va, Edge_Map
       int ev = ei->second;
       edup[Edge(e.second,e.first)] = vn;
       add_vertex(v, v[3*ev], v[3*ev+1], v[3*ev+2]);
+      vm.push_back(ev);
       add_normal(n, n[3*ev], n[3*ev+1], n[3*ev+2]);
       va.push_back(va[e.second]);
       va[ev] = va[e.first];		// Update atom assignment changed in case vertex 1 assignment changed.
@@ -626,11 +633,10 @@ static void duplicate_edge_vertices(Vertices &v, Normals &n, Atoms &va, Edge_Map
   edge_splits.insert(edup.begin(), edup.end());
 }
 
-static void divide_triangles(Vertices &v, Normals &n, Triangles &t,
-			     Atoms &va, const FArray &a,
-			     Edge_Map &edge_splits)
+static void divide_triangles(Vertices &v, Normals &n, Triangles &t, Atoms &va, VertexMap &vm,
+			     const FArray &a, Edge_Map &edge_splits)
 {
-  duplicate_edge_vertices(v, n, va, edge_splits);
+  duplicate_edge_vertices(v, n, va, vm, edge_splits);
 
   int nt = t.size()/3;
   float *aa = a.values();
@@ -644,7 +650,7 @@ static void divide_triangles(Vertices &v, Normals &n, Triangles &t,
 	add_triangle(td, v0, v1, v2);  // copy triangle, no subdivision
       else if (a0 != a1 && a1 != a2 && a2 != a0)
 	cut_triangle_3_lines(v0, v1, v2, a0, a1, a2, aa, as0, as1,
-			     v, n, va, td, edge_splits);
+			     v, n, va, vm, td, edge_splits);
       else
 	// Cut triangle along one line.
 	cut_triangle_1_line(v0, v1, v2, a0, a1, a2, td, edge_splits);
@@ -655,7 +661,7 @@ static void divide_triangles(Vertices &v, Normals &n, Triangles &t,
 
 static void convert_arrays_to_vectors(const FArray &vs, const FArray &ns,
 				      const IArray &vas, const IArray &ts,
-				      Vertices &v, Normals &n, Atoms &va, Triangles &t)
+				      Vertices &v, Normals &n, Atoms &va, VertexMap &vm, Triangles &t)
 {
   // Get pointers and strides for arrays.
   float *vsa = vs.values(), *nsa = ns.values();
@@ -669,6 +675,7 @@ static void convert_arrays_to_vectors(const FArray &vs, const FArray &ns,
   for (int i = 0 ; i < nv ; ++i)
     {
       add_vertex(v, vsa[i*vs0], vsa[i*vs0+vs1], vsa[i*vs0+2*vs1]);
+      vm.push_back(i);
       add_normal(n, nsa[i*ns0], nsa[i*ns0+ns1], nsa[i*ns0+2*ns1]);
       va.push_back(vasa[i*vas0]);
     }
@@ -681,21 +688,21 @@ static void convert_arrays_to_vectors(const FArray &vs, const FArray &ns,
     add_triangle(t, tsa[ts0*i], tsa[ts0*i+ts1], tsa[ts0*i+2*ts1]);
 }
 
-static void sharp_patches(Vertices &v, Normals &n, Triangles &t, Atoms &va,
+static void sharp_patches(Vertices &v, Normals &n, Triangles &t, Atoms &va, VertexMap &vm,
 			  const FArray &a, const FArray &r, int refinement_steps)
 {
   // Make vertices for split edges.
   Edge_Map edge_splits;
-  compute_edge_split_points(v, n, va, t, a, r, edge_splits);
+  compute_edge_split_points(v, n, va, vm, t, a, r, edge_splits);
 
   // Split edges that span three atom zones for better boundaries
   // for narrow strip atom zones.
   for (int i = 0 ; i < refinement_steps ; ++i)
-    if (refine_3_patch_triangles(v, n, t, va, a, r, edge_splits) == 0)
+    if (refine_3_patch_triangles(v, n, t, va, vm, a, r, edge_splits) == 0)
       break;
 
   // Make subdivided triangles along atom zone boundaries.
-  divide_triangles(v, n, t, va, a, edge_splits);
+  divide_triangles(v, n, t, va, vm, a, edge_splits);
 }
 			  
 // ----------------------------------------------------------------------------
@@ -737,9 +744,10 @@ extern "C" PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *ke
   Normals n;
   Triangles t;
   Atoms va;
+  VertexMap vm;
   Py_BEGIN_ALLOW_THREADS
-    convert_arrays_to_vectors(vertices, normals, vertex_atoms, triangles, v, n, va, t);
-    sharp_patches(v, n, t, va, axyz, radii, refinement_steps);
+    convert_arrays_to_vectors(vertices, normals, vertex_atoms, triangles, v, n, va, vm, t);
+    sharp_patches(v, n, t, va, vm, axyz, radii, refinement_steps);
   Py_END_ALLOW_THREADS
 
   int nv = v.size()/3, nt = t.size()/3;
@@ -747,7 +755,17 @@ extern "C" PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *ke
   PyObject *np = c_array_to_python(n, nv, 3);
   PyObject *tp = c_array_to_python(t, nt, 3);
   PyObject *vap = c_array_to_python(va);
-  PyObject *r = python_tuple(vp, np, tp, vap);
+
+  // Compute triangles without duplicated vertices for surface calculations requiring no boundary.
+  for (int i = 0 ; i < nv ; ++i)
+    if (vm[i] != i && vm[vm[i]] != vm[i])
+      vm[i] = vm[vm[i]];  // Map vertices duplicated two times.
+  int *tja, nt3 = 3*nt;
+  PyObject *tj = python_int_array(nt, 3, &tja);
+  for (int i = 0 ; i < nt3 ; ++i)
+    tja[i] = vm[t[i]];
+
+  PyObject *r = python_tuple(vp, np, tp, tj, vap);
 
   for (long ti = 0 ; ti < nt ; ++ti)
     {
@@ -772,6 +790,8 @@ private:
 };
 
 // ----------------------------------------------------------------------------
+// This code is slow, 8 seconds for 16 million vertices, late 2012 iMac.
+// stl::unordered_map is twice as fast in tests, but that is still slow.
 //
 static void unique_vertices(const FArray &vertices, int *vmap)
 {
