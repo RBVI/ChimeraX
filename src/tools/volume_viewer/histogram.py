@@ -10,6 +10,7 @@ class Histogram:
 
     self.canvas = canvas
     self.scene = scene
+    self.graphics_items = []
 
   # ---------------------------------------------------------------------------
   # Use QGraphicsScene coordinate ranges 0 to 1 in x and y.
@@ -19,17 +20,21 @@ class Histogram:
     sr = s.sceneRect()
     sz = sr.size()
     w, h = sz.width(), sz.height()
-    s.clear()
-#    c.delete('bar')
+
+    for gi in self.graphics_items:
+      s.removeItem(gi)
+    self.graphics_items.clear()
+
     bins = len(heights)
     max_height = max(heights)
     if max_height == 0:
       return            # No data was binned.
+    self.graphics_items = items = []
     for b in range(bins):
       x = w * (b / bins)
       y = h * (heights[b] / max_height)
-      s.addLine(x, h, x, h-y)
-#      id = c.create_line(x, bottom, x, bottom-h, tags = ('bar',))
+      item = s.addLine(x, h, x, h-y)
+      items.append(item)
 #      c.tag_lower(id)                           # keep bars below marker lines
 
     self.canvas.fitInView(sr)

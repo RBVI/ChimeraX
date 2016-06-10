@@ -1432,6 +1432,8 @@ class Display_Style_Panel(PopupPanel):
           style = 'solid'
       return style
   def set_repr(self, repr):
+      if repr == 'solid':
+          repr = 'image'
       self.buttons[repr].setChecked(True)
   representation = property(get_repr, set_repr)
   
@@ -2279,6 +2281,10 @@ class Histogram_Pane:
     self.frame.setParent(None)
     self.frame.destroy()
     self.frame = None
+
+    self.canvas = None
+    self.scene = None
+    self.histogram = None
 
 # -----------------------------------------------------------------------------
 # User interface for adjusting brightness and transparency.
