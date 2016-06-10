@@ -29,6 +29,7 @@ class VolumeViewer(ToolInstance):
         from PyQt5.QtWidgets import QVBoxLayout
         self.panel_layout = pl = QVBoxLayout(parent)
         pl.setContentsMargins(0,0,0,0)
+        pl.setSpacing(0)
 
         from . import defaultsettings
         default_settings = defaultsettings.VolumeViewerDefaultSettings()
@@ -113,7 +114,7 @@ class VolumeViewer(ToolInstance):
         #                  Display_Options_Panel, Solid_Options_Panel,
         #                  Surface_Options_Panel)
 
-        panel_classes = [Thresholds_Panel]
+        panel_classes = [Thresholds_Panel, Display_Style_Panel]
 
         self.gui_panels = panels = [pc(self, parent) for pc in panel_classes]
         #p.frame.grid(row = row, column = 0, sticky = 'news')
@@ -224,9 +225,9 @@ class VolumeViewer(ToolInstance):
 
         elif type == 'representation changed':
           tp.update_panel_widgets(v, activate = False)
-          # if v is self.active_volume:
-          #   dsp = self.display_style_panel
-          #   dsp.update_panel_widgets(v)
+          if v is self.active_volume:
+            dsp = self.display_style_panel
+            dsp.update_panel_widgets(v)
 
         elif type == 'region changed':
           if tp.histogram_shown(v):
@@ -264,6 +265,16 @@ class VolumeViewer(ToolInstance):
         #     for p in (self.display_options_panel, self.surface_options_panel,
         #               self.solid_options_panel, self.orthoplane_panel):
         #       p.update_panel_widgets(v)
+      
+    # ---------------------------------------------------------------------------
+    # Notify all panels that representation changed so they can update gui if
+    # it depends on the representation.
+    #
+    def representation_changed(self, representation):
+
+      for p in self.gui_panels:
+        if hasattr(p, 'representation_changed'):
+          p.representation_changed(representation)
 
     # ---------------------------------------------------------------------------
     # Update display if immediate redisplay mode is on.
@@ -529,16 +540,6 @@ class Volume_Dialog:
     vol = [v for v in self.menu_volumes if id(v) == vol_id][0]
     self.display_volume_info(vol)
     self.redisplay_needed_cb()
-      
-  # ---------------------------------------------------------------------------
-  # Notify all panels that representation changed so they can update gui if
-  # it depends on the representation.
-  #
-  def representation_changed(self, representation):
-
-    for p in self.gui_panels:
-      if hasattr(p, 'representation_changed'):
-        p.representation_changed(representation)
 
   # ---------------------------------------------------------------------------
   #
@@ -567,7 +568,7 @@ class Volume_Dialog:
       else:
         # Set display style of data regions if needed.
         if dr.representation == None:
-          dr.representation = self.display_style_panel.representation.get()
+          dr.representation = self.display_style_panel.representation
           
         # Set initial thresholds if there are currently no thresholds.
         dr.initialize_thresholds(first_time_only = False)
@@ -578,8 +579,7 @@ class Volume_Dialog:
   def show_region(self, data_region, representation):
 
     self.display_volume_info(data_region)
-    self.display_style_panel.representation.set(representation,
-                                                invoke_callbacks = 0)
+    self.display_style_panel.representation = representation
     self.show_using_dialog_settings(data_region)
 
   # ---------------------------------------------------------------------------
@@ -1404,43 +1404,59 @@ class Display_Style_Panel(PopupPanel):
     PopupPanel.__init__(self, parent)
     
     frame = self.frame
-    frame.columnconfigure(1, weight = 1)
-    row = 0
 
-    tm = Hybrid.Radiobutton_Row(frame, 'Style ',
-                                ('surface', 'mesh', 'solid'),
-                                self.dialog.redisplay_needed_cb)
-    tm.frame.grid(row = row, column = 0, sticky = 'nw')
-    self.representation = tm.variable
-    Hybrid.trace_tk_variable(self.representation.tk_variable,
-                             self.representation_changed_cb)
-    self.representation.add_callback(self.dialog.redisplay_needed_cb)
-    self.representation.set('surface', invoke_callbacks = 0)
+    from PyQt5.QtWidgets import QHBoxLayout, QLabel, QRadioButton, QButtonGroup
+    layout = QHBoxLayout(frame)
+    layout.setContentsMargins(0,0,0,0)
     
-    b = self.make_close_button(frame)
-    b.grid(row = row, column = 1, sticky = 'e')
-    row += 1
+    sl = QLabel('Style', frame)
+    layout.addWidget(sl)
 
+    self.button_group = bg = QButtonGroup(frame)
+    bg.buttonClicked.connect(self.representation_changed_cb)
+    
+    initial_style = 'surface'
+    self.buttons = bt = {}
+    for style in ('surface', 'mesh', 'image'):
+        bt[style] = b = QRadioButton(style, frame)
+        b.setChecked(style == initial_style)
+        layout.addWidget(b)
+        bg.addButton(b)
+
+    layout.addStretch(1)
+
+  def get_repr(self):
+      cb = self.button_group.checkedButton()
+      style = cb.text()
+      if style == 'image':
+          style = 'solid'
+      return style
+  def set_repr(self, repr):
+      self.buttons[repr].setChecked(True)
+  representation = property(get_repr, set_repr)
+  
   # ---------------------------------------------------------------------------
   # Notify all panels that representation changed so they can update gui if
   # it depends on the representation.
   #
   def representation_changed_cb(self):
 
-    self.dialog.representation_changed(self.representation.get())
+      d = self.dialog
+      d.representation_changed(self.representation)
+      d.redisplay_needed_cb()
   
   # ---------------------------------------------------------------------------
   #
   def update_panel_widgets(self, data_region):
 
     if data_region and data_region.representation:
-      self.representation.set(data_region.representation, invoke_callbacks = 0)
+      self.representation = data_region.representation
     
   # ---------------------------------------------------------------------------
   #
   def use_gui_settings(self, data_region):
 
-    data_region.representation = self.representation.get()
+    data_region.representation = self.representation
 
 # -----------------------------------------------------------------------------
 # User interface for adjusting thresholds and colors.
@@ -1721,11 +1737,13 @@ class Thresholds_Panel(PopupPanel):
   def show_color_chooser(self):
       from PyQt5.QtWidgets import QColorDialog
       from PyQt5.QtGui import QColor, QPalette
+      from PyQt5.QtCore import Qt
       cd = QColorDialog(self.frame)
       cd.setOptions(QColorDialog.ShowAlphaChannel)
       bg_color = self.color.palette().color(QPalette.Window)
       cd.setCurrentColor(bg_color)
-      cd.open(lambda cd=cd: self.color_changed_cb(cd.currentColor()))
+      cd.colorSelected.connect(self.color_changed_cb)
+      cd.show()
       
   # ---------------------------------------------------------------------------
   #
@@ -2111,7 +2129,7 @@ class Histogram_Pane:
     self.plot_solid_levels()
     rep = self.data_region.representation
     if rep is None:
-      rep = self.dialog.display_style_panel.representation.get()
+      rep = self.dialog.display_style_panel.representation
     self.solid_mode(rep == 'solid')
     
   # ---------------------------------------------------------------------------
