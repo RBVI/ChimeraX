@@ -1632,7 +1632,7 @@ class Thresholds_Panel(PopupPanel):
 
     if not hasattr(self.dialog, 'display_options_panel'):
         # return 1
-        return 3
+        return 5
     dop = self.dialog.display_options_panel
     h = max(1, integer_variable_value(dop.max_histograms, 1))
     return h
