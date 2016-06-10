@@ -64,11 +64,11 @@ Examples:
 <br>
 2dlabels change lab1 ypos .03 size 40
 <br>
-2dlabels delete lab1
+2dlabels delete all
 </b></blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="create"><b>2dlabels create</b></a> <i>name</i>
+<a name="create"><b>2dlabels create</b></a> &nbsp;<i>name</i>
   [&nbsp;<b>text</b>&nbsp;<i>label-contents</i>&nbsp;]
   [&nbsp;<b>color</b>&nbsp;<i>label-color</i>&nbsp;]
   [&nbsp;<b>size</b>&nbsp;<i>font-size</i>&nbsp;]
@@ -115,7 +115,7 @@ The <b>visibility</b> option specifies whether the label should be displayed.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="change"><b>2dlabels change</b></a> <i>name</i>
+<a name="change"><b>2dlabels change</b></a> &nbsp;<i>name</i>
   [&nbsp;<b>text</b>&nbsp;<i>label-contents</i>&nbsp;]
   [&nbsp;<b>color</b>&nbsp;<i>label-color</i>&nbsp;]
   [&nbsp;<b>size</b>&nbsp;<i>font-size</i>&nbsp;]
@@ -125,20 +125,24 @@ The <b>visibility</b> option specifies whether the label should be displayed.
   [&nbsp;<b>visibility</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
 The 2D label to modify is specified by the <i>name</i> it was assigned with
-<a href="#create"><b>create</b></a>.
+<a href="#create"><b>create</b></a>, or
+all 2D labels collectively can be specified with <b>all</b>
+instead of <i>name</i>.
 All other options are as described above for 
 <a href="#create"><b>create</b></a>, 
 except the defaults are to leave the current label unchanged.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="delete"><b>2dlabels delete</b></a> <i>name</i>
+<a name="delete"><b>2dlabels delete</b></a> &nbsp;<i>name</i>
 <blockquote>
 The 2D label to delete is specified by the 
-<i>name</i> it was assigned with <a href="#create"><b>create</b></a>.
+<i>name</i> it was assigned with <a href="#create"><b>create</b></a>, or
+all 2D labels collectively can be specified with <b>all</b>
+instead of <i>name</i>.
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2016</address>
+June 2016</address>
 </body></html> 
