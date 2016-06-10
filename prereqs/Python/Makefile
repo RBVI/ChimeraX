@@ -209,8 +209,7 @@ endif
 	# Since pip comes with Python 3.5, update it now so installs on
 	# Windows will work.  Wheel is needed so bdist_wheel will work.
 	$(PYTHON_EXE) -m ensurepip --upgrade
-	# ignore errors upgrading pip to workaround remote Windows building bug
-	-$(PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
+	$(PYTHON_EXE) -m pip install --upgrade pip
 	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
 
 	# double check that _ssl was successfully made
