@@ -42,37 +42,6 @@ class VolumeViewer(ToolInstance):
 
         add_volume_opened_callback(session, self.volume_opened_cb)
         add_volume_closed_callback(session, self.volume_closed_cb)
-
-    def old_qt_layout(self, parent):
-        
-        from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QMenu, QLineEdit
-        layout = QHBoxLayout(parent)
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(6)
-
-        d = volume.data
-        sx,sy,sz = d.size
-        size = '%d<sup>3</sup>' % (sx,) if sx == sy and sy == sz else '%d,%d,%d' % (sx,sy,sz)
-        vname = volume.name_with_id()
-        sl = QLabel('%s %s' % (vname, size))
-        layout.addWidget(sl)
-        st = QLabel('step')
-        layout.addWidget(st)
-        stx,sty,stz = volume.region[2]
-        step = '%d'%stx if stx == sty and sty == stz else '%d,%d,%d' % (stx,sty,stz)
-        self.step = sb = QPushButton(step)
-        sm = QMenu()
-        for step in (1,2,4,8,16):
-            sm.addAction('%d' % step, lambda s=step: self.set_step_cb(s))
-        sb.setMenu(sm)
-        layout.addWidget(sb)
-        ll = QLabel('level')
-        layout.addWidget(ll)
-        self.level = lev = QLineEdit('%.3g' % volume.surface_levels[0])
-        lev.setMaximumWidth(30)
-        lev.returnPressed.connect(self.set_level_cb)
-        layout.addWidget(lev)
-        layout.addStretch(1)	# Extra space at end of button row.
         
     def show(self):
         self.tool_window.shown = True
@@ -275,6 +244,7 @@ class VolumeViewer(ToolInstance):
           tp.update_panel_widgets(v, activate = False)
 
         elif type == 'colors changed':
+          print('got color changed', v.name)
           tp.update_panel_widgets(v, activate = False)
           # if v is self.active_volume:
           #   btp = self.brightness_transparency_panel
@@ -1495,7 +1465,7 @@ class Thresholds_Panel(PopupPanel):
 
     frame = self.frame
 
-    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QHBoxLayout, QLabel, QLineEdit
+    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton
     from PyQt5.QtCore import Qt
 
     layout = QVBoxLayout(frame)
@@ -1528,23 +1498,24 @@ class Thresholds_Panel(PopupPanel):
     
     lh = QLabel('Level', rcf)
     rclayout.addWidget(lh)
+    rclayout.addSpacing(-5)	# Reduce padding to following entry field
 
     self.threshold = le = QLineEdit('', rcf)
-    le.setMaximumWidth(30)
+    le.setMaximumWidth(40)
     le.returnPressed.connect(self.threshold_entry_enter_cb)
     rclayout.addWidget(le)
 
     ch = QLabel(rcf, text = 'Color')
     rclayout.addWidget(ch)
+    rclayout.addSpacing(-10)	# Reduce padding to following color button
+    
+    self.color = cl = QPushButton(rcf)
+    cl.setMaximumSize(16,16)
+    cl.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+    cl.clicked.connect(self.show_color_chooser)
+    rclayout.addWidget(cl)    
 
     rclayout.addStretch(1)
-    
-#    from CGLtk.color import ColorWell
-#    c = ColorWell.ColorWell(rcf, width = 25, height = 25,
-#                            callback = self.color_changed_cb)
-#    c.grid(row = 0, column = col, padx = 5)
-#    self.color = c
-
 
     # Configure widgets for surface representation.
     self.representation_changed('surface')
@@ -1747,7 +1718,18 @@ class Thresholds_Panel(PopupPanel):
 
   # ---------------------------------------------------------------------------
   #
-  def color_changed_cb(self, rgba):
+  def show_color_chooser(self):
+      from PyQt5.QtWidgets import QColorDialog
+      from PyQt5.QtGui import QColor, QPalette
+      cd = QColorDialog(self.frame)
+      cd.setOptions(QColorDialog.ShowAlphaChannel)
+      bg_color = self.color.palette().color(QPalette.Window)
+      cd.setCurrentColor(bg_color)
+      cd.open(lambda cd=cd: self.color_changed_cb(cd.currentColor()))
+      
+  # ---------------------------------------------------------------------------
+  #
+  def color_changed_cb(self, color):
 
     hp = self.active_histogram()
     if hp is None:
@@ -1755,7 +1737,10 @@ class Thresholds_Panel(PopupPanel):
     
     markers, m = hp.selected_histogram_marker()
     if m:
-      m.set_color(rgba, markers.canvas)
+      rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
+      m.set_color(rgba, markers.canvas)	# Set histogram marker color
+      from .histogram import hex_color_name
+      self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
     self.dialog.redisplay_needed_cb()
 
   # ---------------------------------------------------------------------------
@@ -1770,7 +1755,8 @@ class Thresholds_Panel(PopupPanel):
       threshold = m.xy[0]
       t_str = float_format(threshold, 3)
       self.threshold.setText(t_str)
-    #   self.color.showColor(m.rgba, doCallback = False)
+      from .histogram import hex_color_name
+      self.color.setStyleSheet('background-color: %s' % hex_color_name(m.rgba[:3]))
 
   # ---------------------------------------------------------------------------
   #

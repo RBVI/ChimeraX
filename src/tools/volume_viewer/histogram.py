@@ -387,9 +387,11 @@ class Marker:
       return
 
     self.rgba = rgba
-    if self.id != None:
+    gi = self.graphics_item
+    if gi:
       color = hex_color_name(rgba[:3])
-      canvas.itemconfigure(self.id, fill = color)
+      from PyQt5.QtGui import QColor, QBrush
+      gi.setBrush(QBrush(QColor(color)))
   
   # ---------------------------------------------------------------------------
   #
