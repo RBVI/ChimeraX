@@ -196,11 +196,11 @@ if window_sys == "wx":
             self.opengl_canvas = OpenGLCanvas(self, View())
 
             from wx.glcanvas import GLContext
-            oc = self.opengl_context = GLContext(self.opengl_canvas, view._opengl_context)
+            oc = self.opengl_context = GLContext(self.opengl_canvas, view.render._opengl_context)
             oc.make_current = self.make_context_current
             oc.swap_buffers = self.swap_buffers
             self.opengl_context = oc
-            self.primary_opengl_context = view._opengl_context
+            self.primary_opengl_context = view.render._opengl_context
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
