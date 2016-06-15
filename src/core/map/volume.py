@@ -2726,8 +2726,11 @@ def volume_from_grid_data(grid_data, session, representation = None,
     session.models.add([v])
 
   if show_dialog:
-    # TODO: Currently dialog automatically shown when model is opened.
-    pass
+    try:
+      from chimerax.volume_viewer.gui import show_volume_dialog
+      show_volume_dialog(session)
+    except ImportError:
+      pass	# Volume viewer tool not available.
 
   return v
 
