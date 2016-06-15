@@ -926,6 +926,13 @@ else:
             self._build_status()
             self._populate_menus(session)
 
+            # set icon for About dialog
+            from chimerax import app_dirs as ad, app_data_dir
+            icon_path = os.path.join(app_data_dir, "%s-icon512.png" % ad.appname)
+            if os.path.exists(icon_path):
+                from PyQt5.QtGui import QIcon
+                self.setWindowIcon(QIcon(icon_path))
+            
             session.logger.add_log(self)
 
             self.show()
@@ -1068,36 +1075,20 @@ else:
                     run(ses, 'help new_viewer help:%s' % t)
                 help_action.triggered.connect(cb)
                 help_menu.addAction(help_action)
-            #QT disabled
-            """
             from chimerax import app_dirs as ad
-            item = help_menu.Append(wx.ID_ANY, "About %s %s" % (ad.appauthor, ad.appname))
-            self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.about(ses, evt),
-                      item)
+            about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
+            about_action.triggered.connect(self.about)
+            help_menu.addAction(about_action)
 
-        def about(self, session, event):
-            import wx.adv
-            from wx.lib.wordwrap import wordwrap
-            import os
+        def about(self, arg):
+            from PyQt5.QtWidgets import QMessageBox
+            from chimerax import app_dirs as ad
             from .. import buildinfo
-            from chimerax import app_dirs as ad
-            width = 400
-            dc = wx.ClientDC(self)
-            info = wx.adv.AboutDialogInfo()
-            icon_path = os.path.join(ad.app_data_dir, "%s-icon512.png" % ad.appname)
-            if os.path.exists(icon_path):
-                image = wx.Image(icon_path, wx.BITMAP_TYPE_PNG)
-                image.Rescale(128, 128)
-                info.SetIcon(wx.Icon(wx.Bitmap(image)))
-            info.SetName("%s %s" % (ad.appauthor, ad.appname))
-            info.SetVersion("%s (%s)" % (ad.version, buildinfo.date.split()[0]))
-            info.Description = wordwrap(buildinfo.synopsis, width, dc)
-            info.Copyright = wordwrap(buildinfo.copyright, width, dc)
-            info.SetWebSite(buildinfo.web_site)
-            info.SetLicense(wordwrap(buildinfo.license, width, dc))
-
-            wx.adv.AboutBox(info)
-            """
+            title = "About %s %s" % (ad.appauthor, ad.appname)
+            text = "%s %s version %s (%s)\n\n%s\n\n%s\n\n%s\n\n%s" % (ad.appauthor, ad.appname,
+                ad.version, buildinfo.date.split()[0], buildinfo.synopsis, buildinfo.web_site,
+                buildinfo.copyright, buildinfo.license)
+            QMessageBox.about(self, title, text)
 
         def _tool_window_destroy(self, tool_window):
             tool_instance = tool_window.tool_instance
