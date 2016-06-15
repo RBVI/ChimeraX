@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 21.0
+VERSION = 23.0
 
 # Need to install from source, so don't put in pips
 

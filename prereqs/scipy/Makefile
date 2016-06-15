@@ -3,10 +3,10 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
-VERSION = 1.11.0
+VERSION = 0.17.1
 
 ifdef WIN32
-WHEEL = numpy-$(VERSION)+mkl-cp35-cp35m-win_amd64.whl
+WHEEL = scipy-$(VERSION)-cp35-cp35m-win_amd64.whl
 endif
 
 all:
@@ -15,14 +15,14 @@ install:
 ifdef WIN32
 	$(PIP) install -U $(WHEEL)
 else
-	$(PIP) install -U numpy==$(VERSION)
+	$(PIP) install -U scipy==$(VERSION)
 endif
 
 app-install: install
 ifdef WIN32
 	$(APP_PIP) install $(WHEEL)
 else
-	$(APP_PIP) install -U numpy==$(VERSION)
+	$(APP_PIP) install -U scipy==$(VERSION)
 endif
 
 clean:

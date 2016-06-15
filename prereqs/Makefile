@@ -91,7 +91,7 @@ endif
 
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= fonts \
-	   imex numexpr numpy \
+	   imex numexpr numpy scipy \
 	   pcre pips pycollada \
 	   PyOpenGL pytables Python \
 	   setuptools wrappy3 wx
@@ -194,6 +194,8 @@ qt.install: p7zip.install openssl.install zlib.install
 qt.app-install: p7zip.app-install openssl.app-install zlib.app-install
 # qt.install: png.install jpeg.install
 # qt.app-install: png.app-install jpeg.app-install
+scipy.install: numpy.install pips.install
+scipy.app-install: numpy.app-install pips.app-install
 setuptools.install: Python.install
 setuptools.app-install: Python.app-install
 sip.install: setuptools.install
