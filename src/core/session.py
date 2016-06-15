@@ -673,7 +673,6 @@ def _register_core_file_formats():
     mmcif.register_mmcif_format()
     from . import scripting
     scripting.register()
-    #QT disabled
     from . import map
     map.register_map_file_readers()
     from .atomic import readpbonds
