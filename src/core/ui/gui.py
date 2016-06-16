@@ -928,6 +928,7 @@ else:
 
             # set icon for About dialog
             from chimerax import app_dirs as ad, app_data_dir
+            import os.path
             icon_path = os.path.join(app_data_dir, "%s-icon512.png" % ad.appname)
             if os.path.exists(icon_path):
                 from PyQt5.QtGui import QIcon
