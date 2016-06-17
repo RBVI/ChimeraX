@@ -239,10 +239,13 @@ def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = []):
 def add_balls(grid, xyz, radii, sdev, cutoff_range, transforms = []):
 
     if len(transforms) == 0:
+        from ..geometry import identity
         transforms = [identity()]
-    from ._map import sum_of_balls
+    from numpy import empty, float32
     ijk = empty(xyz.shape, float32)
     r = (radii - sdev) / grid.step[0]
+    matrix = grid.matrix()
+    from ._map import sum_of_balls
     for tf in transforms:
         ijk[:] = xyz
         (grid.xyz_to_ijk_transform * tf).move(ijk)
