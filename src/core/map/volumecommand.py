@@ -408,15 +408,15 @@ def apply_volume_options(v, doptions, roptions, session):
 
     if 'symmetry' in doptions:
         sym, c, a = doptions['symmetry'], doptions['center'], doptions['axis']
-        csys = doptions.get('coordinate_system', v.open_state)
+        csys = doptions.get('coordinate_system', v)
         if 'center_index' in doptions:
             c = v.data.ijk_to_xyz(doptions['center_index'])
-            if csys != v.openState:
+            if csys != v:
                 c = csys.position.inverse() * (v.position * c)
-        from ..SymmetryCopies import symcmd
-        tflist, csys = symcmd.parse_symmetry(sym, c, a, csys, v, 'volume')
-        if csys != v.openState:
-            tflist = symcmd.transform_coordinates(tflist, csys, v.openState)
+        from ..commands import parse_symmetry
+        tflist, csys = parse_symmetry(sym, c, a, csys, v, 'volume')
+        if csys != v:
+            tflist = tflist.transform_coordinates(csys.position, v.position)
         d.symmetries = tflist
 
     if 'show' in doptions:
