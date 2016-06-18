@@ -7,6 +7,7 @@
 def register_molmap_command():
 
     from ..commands import CmdDesc, register, AtomsArg, BoolArg, FloatArg
+    from ..commands import CenterArg, AxisArg, SymmetryArg, CoordSysArg
     from ..map import MapArg
     molmap_desc = CmdDesc(
         required = [
@@ -20,10 +21,10 @@ def register_molmap_command():
             ('cutoff_range', FloatArg),
             ('sigma_factor', FloatArg),
             ('balls', BoolArg),
-#            ('symmetry', StringArg),
-#            ('center', StringArg),   # Can be a 3 floats or atom spec
-#            ('axis', StringArg),     # Can be a 3 floats or atom spec
-#            ('coordinate_system', openstate_arg),
+            ('symmetry', SymmetryArg),
+            ('center', CenterArg),   # Can be a 3 floats or atom spec
+            ('axis', AxisArg),     # Can be a 3 floats or atom spec
+            ('coordinate_system', CoordSysArg),
             ('display_threshold', FloatArg),
 #            ('modelId', model_id_arg),
             ('replace', BoolArg),
@@ -45,8 +46,8 @@ def molmap(session,
            sigma_factor = 1/(pi*sqrt(2)), # standard deviation / resolution
            balls = False,         # Use balls instead of Gaussians
            symmetry = None,       # Equivalent to sym group option.
-           center = (0,0,0),      # Center of symmetry.
-           axis = (0,0,1),        # Axis of symmetry.
+           center = None,         # Center of symmetry.
+           axis = None,           # Axis of symmetry.
            coordinate_system = None,       # Coordinate system of symmetry.
            display_threshold = 0.95, # fraction of total density
            model_id = None, # integer
@@ -70,13 +71,13 @@ def molmap(session,
       Scale factor equal to standard deviation / resolution, default 1/(pi*sqrt(2)).
     balls : bool
       Use balls instead of Gaussians
-    symmetry : not supported
+    symmetry : Symmetry object or None.
       Apply symmetry operations to atoms
-    center : 3 floats or atom spec
+    center : Center object or None
       Center of symmetry.
-    axis : 3 floats
+    axis : Axis object or None
       Axis of symmetry.
-    coordinate_system : model spec
+    coordinate_system : Place
       Coordinate system of symmetry.
     display_threshold : float
       Initial contour level as fraction of total density, default 0.95.
@@ -100,23 +101,18 @@ def molmap(session,
     pad = 3*resolution if edge_padding is None else edge_padding
     step = (1./3) * resolution if grid_spacing is None else grid_spacing
 
-    csys = None
     if symmetry is None:
-        transforms = []
+        transforms = None
     else:
-        from ..commands.parse import openstate_arg
-        if coordinate_system:
-            csys = openstate_arg(coordinate_system)
-        from .SymmetryCopies.symcmd import parse_symmetry
-        transforms, csys = parse_symmetry(symmetry, center, axis, csys,
-                                          atoms[0].structure, 'molmap')
+        transforms = symmetry.positions(center, axis, coordinate_system,
+                                        atoms[0].structure)
 
     if not model_id is None:
         from ..commands.parse import parse_model_id
         model_id = parse_model_id(model_id)
 
     v = make_molecule_map(atoms, resolution, step, pad, on_grid,
-                          cutoff_range, sigma_factor, balls, transforms, csys,
+                          cutoff_range, sigma_factor, balls, transforms,
                           display_threshold, model_id, replace, show_dialog, name, session)
 
     return v
@@ -126,13 +122,13 @@ molecule_map = molmap
 # -----------------------------------------------------------------------------
 #
 def make_molecule_map(atoms, resolution, step, pad, on_grid, cutoff_range,
-                      sigma_factor, balls, transforms, csys,
+                      sigma_factor, balls, transforms,
                       display_threshold, model_id,
                       replace, show_dialog, name, session):
 
     grid = molecule_grid_data(atoms, resolution, step, pad, on_grid,
                               cutoff_range, sigma_factor, balls,
-                              transforms, csys, name)
+                              transforms, name)
 
     if replace:
         from .volume import volume_list
@@ -158,10 +154,11 @@ def make_molecule_map(atoms, resolution, step, pad, on_grid, cutoff_range,
 #
 def molecule_grid_data(atoms, resolution, step, pad, on_grid,
                        cutoff_range, sigma_factor, balls = False,
-                       transforms = [], csys = None, name = 'molmap'):
+                       transforms = None, name = 'molmap'):
 
     if len(atoms.unique_structures) == 1 and not on_grid:
         xyz = atoms.coords
+        tf = atoms[0].structure.position
     else:
         # Transform coordinates to local coordinates of the molecule containing
         # the first atom.  This handles multiple unaligned molecules.
@@ -170,28 +167,24 @@ def molecule_grid_data(atoms, resolution, step, pad, on_grid,
         tf = on_grid.position if on_grid else atoms[0].structure.position
         tf.inverse().move(xyz)
 
-# TODO: Adjust transforms to correct coordinate system
-#    if csys:
-#        tf = csys.inverse() * tf
-#    tfinv = tf.inverse()
-#    tflist = [(tfinv * t * tf) for t in transforms]
-
-    tflist = transforms
+    if transforms:
+        # Adjust transforms to correct coordinate system
+        transforms = transforms.transform_coordinates(tf)
 
     if on_grid:
         from numpy import float32
         grid = on_grid.region_grid(on_grid.region, float32)
     else:
-        grid = bounding_grid(xyz, step, pad, tflist)
+        grid = bounding_grid(xyz, step, pad, transforms)
     grid.name = name
 
     sdev = resolution * sigma_factor
     if balls:
         radii = atoms.radii
-        add_balls(grid, xyz, radii, sdev, cutoff_range, tflist)
+        add_balls(grid, xyz, radii, sdev, cutoff_range, transforms)
     else:
         weights = atoms.element_numbers
-        add_gaussians(grid, xyz, weights, sdev, cutoff_range, tflist)
+        add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms)
 
     return grid
 
@@ -212,16 +205,16 @@ def bounding_grid(xyz, step, pad, transforms):
 
 # -----------------------------------------------------------------------------
 #
-def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = []):
+def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = None):
 
     from numpy import zeros, float32, empty
     sdevs = zeros((len(xyz),3), float32)
     for a in (0,1,2):
         sdevs[:,a] = sdev / grid.step[a]
 
-    if len(transforms) == 0:
-        from ..geometry import identity
-        transforms = [identity()]
+    if transforms is None:
+        from ..geometry import Places
+        transforms = Places()
     from ._map import sum_of_gaussians
     ijk = empty(xyz.shape, float32)
     matrix = grid.matrix()
@@ -236,11 +229,11 @@ def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = []):
 
 # -----------------------------------------------------------------------------
 #
-def add_balls(grid, xyz, radii, sdev, cutoff_range, transforms = []):
+def add_balls(grid, xyz, radii, sdev, cutoff_range, transforms = None):
 
     if len(transforms) == 0:
-        from ..geometry import identity
-        transforms = [identity()]
+        from ..geometry import Places
+        transforms = Places()
     from numpy import empty, float32
     ijk = empty(xyz.shape, float32)
     r = (radii - sdev) / grid.step[0]

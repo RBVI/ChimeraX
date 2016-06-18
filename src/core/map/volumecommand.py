@@ -5,7 +5,7 @@
 def register_volume_command():
 
     from ..commands import CmdDesc, register
-    from ..commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg
+    from ..commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, SymmetryArg
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
 
     from .data.fileformats import file_writers
@@ -34,11 +34,11 @@ def register_volume_command():
                ('voxel_size', Float1or3Arg),
                ('planes', PlanesArg),
 # Symmetry assignment.
-               ('symmetry', StringArg),
-               ('center', StringArg),
+               ('symmetry', SymmetryArg),
+               ('center', CenterArg),
                ('center_index', Float1or3Arg),
-               ('axis', StringArg),
-#               ('coordinateSystem', openstate_arg),
+               ('axis', AxisArg),
+               ('coordinate_system', CoordSysArg),
 # File saving options.
                ('save', StringArg),
                ('save_format', EnumOf(stypes)),
@@ -86,7 +86,7 @@ def register_volume_command():
                ('position_planes', Int3Arg),
         ])
     register('volume', volume_desc, volume)
-    
+
 # -----------------------------------------------------------------------------
 #
 def volume(session,
@@ -110,9 +110,9 @@ def volume(session,
            planes = None,
 # Symmetry assignment.
            symmetry = None,
-           center = (0,0,0),
+           center = None,
            center_index = None,
-           axis = (0,0,1),
+           axis = None,
            coordinate_system = None,
 # File saving options.
            save = None,
@@ -407,17 +407,17 @@ def apply_volume_options(v, doptions, roptions, session):
         d.set_step(vsize)
 
     if 'symmetry' in doptions:
-        sym, c, a = doptions['symmetry'], doptions['center'], doptions['axis']
-        csys = doptions.get('coordinate_system', v)
+        csys = doptions.get('coordinate_system', v.position)
         if 'center_index' in doptions:
             c = v.data.ijk_to_xyz(doptions['center_index'])
-            if csys != v:
-                c = csys.position.inverse() * (v.position * c)
-        from ..commands import parse_symmetry
-        tflist, csys = parse_symmetry(sym, c, a, csys, v, 'volume')
-        if csys != v:
-            tflist = tflist.transform_coordinates(csys.position, v.position)
-        d.symmetries = tflist
+            if 'coordinate_system' in doptions:
+                c = csys.inverse() * (v.position * c)
+            from ..commands import Center
+            center = Center(c)
+        else:
+            center = doptions.get('center')
+        ops = doptions['symmetry'].positions(center, doptions.get('axis'), csys)
+        d.symmetries = ops.transform_coordinates(v.position)
 
     if 'show' in doptions:
         v.initialize_thresholds()
