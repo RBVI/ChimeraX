@@ -11,3 +11,12 @@ from ._geometry import find_close_points, find_closest_points
 from ._geometry import closest_sphere_intercept, closest_cylinder_intercept, closest_triangle_intercept
 from ._geometry import segment_intercepts_spheres, points_within_planes
 from .align import align_points
+from .symmetry import cyclic_symmetry_matrices
+from .symmetry import dihedral_symmetry_matrices
+from .symmetry import tetrahedral_symmetry_matrices, tetrahedral_orientations
+from .symmetry import octahedral_symmetry_matrices
+from .symmetry import helical_symmetry_matrices, helical_symmetry_matrix
+from .symmetry import translation_symmetry_matrices
+from .symmetry import recenter_symmetries
+from .icosahedron import icosahedral_symmetry_matrices
+from .icosahedron import coordinate_system_names as icosahedral_orientations

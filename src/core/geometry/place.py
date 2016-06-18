@@ -441,9 +441,9 @@ class Places:
     def is_identity(self):
         return len(self) == 1 and self[0].is_identity()
 
-    def transform_coordinates(self, from_csys, to_csys):
-        if to_csys == from_csys:
+    def transform_coordinates(self, csys):
+        "csys maps new coordinates to old coordinates."
+        if csys.is_identity():
             return self
-        import .matrix as M
-        tflist = M.coordinate_transform_list(self.place_list(), from_csys.inverse() * to_csys)
-        return Places(tflist)
+        csys_inv = csys.inverse()
+        return Places([csys_inv*p*csys for p in self])
