@@ -233,7 +233,7 @@ def split_by_model(sel, resolution, session):
 #
 def remove_atoms_with_volumes(aom, res, session):
 
-    maps = set(v for v,a in aom)
+    maps = set(v for a,v in aom if v is not None)
     from .fitmap import find_simulated_map
     faom = [(atoms,v) for atoms,v in aom
             if atoms is None or not find_simulated_map(atoms, res, session) in maps]
