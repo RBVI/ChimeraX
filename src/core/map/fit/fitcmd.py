@@ -124,9 +124,9 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
                                    shift, rotate, mwm, atoms,
                                    max_steps, grid_step_min, grid_step_max, log)]
 
-        if list_fits:
+        if list_fits or search > 0:
             show_first = search > 0
-            list_fits(fits, show_first, session)
+            show_fit_list(fits, show_first, session)
         flist.extend(fits)
 
     return flist
@@ -241,7 +241,11 @@ def remove_atoms_with_volumes(aom, res, session):
 
 # -----------------------------------------------------------------------------
 #
-def list_fits(flist, show, session):
+def show_fit_list(flist, show, session):
+    session.logger.info('Found %d fits. List window not yet implemented.' % len(flist))
+    if show and flist:
+        flist[0].place_models(session)
+    return
     from . import fitlist
     d = fitlist.show_fit_list_dialog(session)
     d.add_fits(flist)
