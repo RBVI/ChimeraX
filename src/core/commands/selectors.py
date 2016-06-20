@@ -4,6 +4,7 @@ def register_core_selectors(session):
     # Selectors
     from .atomspec import register_selector as reg
     reg(None, "sel", _sel_selector)
+    reg(None, "all", _all_selector)
     reg(None, "ions", lambda s, m, r: _structure_category_selector("ions", m, r))
     reg(None, "ligand", lambda s, m, r: _structure_category_selector("ligand", m, r))
     reg(None, "main", lambda s, m, r: _structure_category_selector("main", m, r))
@@ -44,6 +45,12 @@ def _sel_selector(session, models, results):
                 for atoms in m.selected_items('atoms'):
                     results.add_atoms(atoms)
 
+def _all_selector(session, models, results):
+    from ..atomic import Structure
+    for m in models:
+        results.add_model(m)
+        if isinstance(m, Structure):
+            results.add_atoms(m.atoms)
 
 def _strands_selector(session, models, results):
     from ..atomic import Structure
