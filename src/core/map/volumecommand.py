@@ -21,6 +21,8 @@ def register_volume_command():
                ('hide', NoArg),
                ('toggle', NoArg),
                ('level', RepeatOf(FloatsArg)),
+               ('rms_level', RepeatOf(FloatsArg)),
+               ('sd_level', RepeatOf(FloatsArg)),
                ('enclose_volume', FloatsArg),
                ('fast_enclose_volume', FloatsArg),
                ('color', RepeatOf(ColorArg)),
@@ -97,6 +99,8 @@ def volume(session,
            hide = None,
            toggle = None,
            level = None,
+           rms_level = None,
+           sd_level = None,
            enclose_volume = None,
            fast_enclose_volume = None,
            color = None,
@@ -303,7 +307,8 @@ def volume(session,
                             (' by "%s"' % volumes if volumes else ''))
 
     # Apply volume settings.
-    dopt = ('style', 'show', 'hide', 'toggle', 'level', 'enclose_volume', 'fast_enclose_volume',
+    dopt = ('style', 'show', 'hide', 'toggle', 'level', 'rms_level', 'sd_level',
+            'enclose_volume', 'fast_enclose_volume',
             'color', 'brightness', 'transparency',
             'step', 'region', 'name_region', 'expand_single_plane', 'origin',
             'origin_index', 'voxel_size', 'planes',
@@ -495,6 +500,19 @@ def level_and_color_settings(v, options):
     kw = {}
 
     levels = options.get('level', [])
+    rms_levels = options.get('rms_level', [])
+    sd_levels = options.get('sd_level', [])
+    if rms_levels or sd_levels:
+        mean, sd, rms = v.mean_sd_rms()
+        if rms_levels:
+            for lvl in rms_levels:
+                lvl[0] *= rms
+            levels.extend(rms_levels)
+        if sd_levels:
+            for lvl in sd_levels:
+                lvl[0] *= sd
+            levels.extend(sd_levels)
+
     colors = options.get('color', [])
 
     # Allow 0 or 1 colors and 0 or more levels, or number colors matching

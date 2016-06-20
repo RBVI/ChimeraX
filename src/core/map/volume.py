@@ -1517,6 +1517,18 @@ class Volume(Model):
 
     return values, same
 
+  # -----------------------------------------------------------------------------
+  #
+  def mean_sd_rms(self):
+
+    m = self.matrix()
+    from numpy import float64
+    mean = m.mean(dtype=float64)
+    sd = m.std(dtype=float64)
+    from math import sqrt
+    rms = sqrt(sd*sd + mean*mean)
+    return mean, sd, rms
+
   # ---------------------------------------------------------------------------
   # Return xyz coordinates of grid points of volume data transformed to a
   # local coordinate system.
