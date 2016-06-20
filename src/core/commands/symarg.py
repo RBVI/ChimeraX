@@ -10,13 +10,14 @@ class SymmetryArg(Annotation):
     def parse(text, session):
         from . import next_token
         group, atext, rest = next_token(text)
-        return Symmetry(group), atext, rest
+        return Symmetry(group, session), atext, rest
 
 # -----------------------------------------------------------------------------
 #
 class Symmetry:
-    def __init__(self, group):
+    def __init__(self, group, session):
         self.group = group
+        self.session = session
     def positions(self, center = None, axis = None, coord_sys = None,
                   molecule = None):
         '''
@@ -40,17 +41,17 @@ class Symmetry:
             a = coord_sys.z_axis()
         else:
             a = None
-        return parse_symmetry(self.group, c, a, molecule)
+        return parse_symmetry(self.session, self.group, c, a, molecule)
 
 # Molecule arg is used for biomt symmetry.
-def parse_symmetry(group, center = None, axis = None, molecule = None):
+def parse_symmetry(session, group, center = None, axis = None, molecule = None):
 
     # Handle products of symmetry groups.
     groups = group.split('*')
     from ..geometry import Places
     ops = Places()
     for g in groups:
-        ops = ops * group_symmetries(g, molecule)
+        ops = ops * group_symmetries(session, g, molecule)
 
     # Apply center and axis transformation.
     if center is not None or axis is not None:
@@ -66,7 +67,7 @@ def parse_symmetry(group, center = None, axis = None, molecule = None):
 
 # -----------------------------------------------------------------------------
 #
-def group_symmetries(group, molecule):
+def group_symmetries(session, group, molecule):
 
     from .. import geometry
     from ..errors import UserError
@@ -156,21 +157,21 @@ def group_symmetries(group, molecule):
         if len(tflist) == 0:
             raise UserError('Molecule %s has no biological unit info' % molecule.name)
         if len(tflist) == 1 and tflist[0].is_identity():
-            log = molecule.session.logger
+            log = session.logger
             log.status('Molecule %s is the biological unit' % molecule.name)
         tflist = tflist.transform_coordinates(molecule.position.inverse())
         recenter = False
     elif g0 == '#':
-        from . import ModelsAarg
+        from . import ModelsArg
         if nf == 1:
             models = ModelsArg.parse(group, session)[0]
-            mlist = [m for m in models if model_symmetry(models)]
-            if len(mlist) == 0:
+            mslist = [model_symmetry(m) for m in models]
+            mslist = [ms for ms in mslist if ms is not None]
+            if len(mslist) == 0:
                 raise UserError('No symmetry for "%s"' % group)
-            elif len(mlist) > 1:
+            elif len(mslist) > 1:
                 raise UserError('Multiple models "%s"' % group)
-            m = mlist[0]
-            tflist = model_symmetry(m)
+            tflist = mslist[0]
             recenter = False
         elif nf == 2:
             gf0, gf1 = gfields
