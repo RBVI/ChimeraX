@@ -245,7 +245,6 @@ class VolumeViewer(ToolInstance):
           tp.update_panel_widgets(v, activate = False)
 
         elif type == 'colors changed':
-          print('got color changed', v.name)
           tp.update_panel_widgets(v, activate = False)
           # if v is self.active_volume:
           #   btp = self.brightness_transparency_panel
