@@ -42,7 +42,7 @@ class VolumeViewer(ToolInstance):
         self.volume_opened_cb(volume_list(session))
 
         add_volume_opened_callback(session, self.volume_opened_cb)
-        add_volume_closed_callback(session, self.volume_closed_cb)
+        self.model_close_handler = add_volume_closed_callback(session, self.volume_closed_cb)
         
     def show(self):
         self.tool_window.shown = True
@@ -100,6 +100,9 @@ class VolumeViewer(ToolInstance):
     def delete(self):
         s = self.session
         s.triggers.delete_handler(self.model_close_handler)
+        from chimerax.core.map import Volume
+        for v in s.models.list(type = Volume):
+            v.remove_volume_change_callback(self.data_region_changed)
         super().delete()
       
     def make_panels(self, parent):
