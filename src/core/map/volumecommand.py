@@ -5,7 +5,7 @@
 def register_volume_command():
 
     from ..commands import CmdDesc, register
-    from ..commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, SymmetryArg
+    from ..commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, SymmetryArg, RepeatOf
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
 
     from .data.fileformats import file_writers
@@ -19,10 +19,10 @@ def register_volume_command():
                ('style', EnumOf(('surface', 'mesh', 'solid'))),
                ('show', NoArg),
                ('hide', NoArg),
-               ('level', FloatsArg),
+               ('level', RepeatOf(FloatsArg)),
                ('enclose_volume', FloatsArg),
                ('fast_enclose_volume', FloatsArg),
-               ('color', ListOf(ColorArg)),
+               ('color', RepeatOf(ColorArg)),
                ('brightness', FloatArg),
                ('transparency', FloatArg),
                ('step', MapStepArg),
@@ -500,14 +500,17 @@ def level_and_color_settings(v, options):
     if style in ('mesh', None):
         style = 'surface'
 
-    if style == 'solid':
-        if len(levels) % 2:
-            from .. import errors
-            raise errors.UserError('Solid level must be <data-value,brightness-level>')
-        if levels and len(levels) < 4:
-            from .. import errors
-            raise errors.UserError('Must specify 2 or more levels for solid style')
-        levels = tuple(zip(levels[::2], levels[1::2]))
+    if style in ('surface', 'mesh'):
+        for l in levels:
+            if len(l) != 1:
+                from ..errors import UserError
+                raise UserError('Surface level must be a single value')
+        levels = [l[0] for l in levels]
+    elif style == 'solid':
+        for l in levels:
+            if len(l) != 2:
+                from ..errors import UserError
+                raise UserError('Solid level must be <data-value,brightness-level>')
 
     if levels:
         kw[style+'_levels'] = levels
