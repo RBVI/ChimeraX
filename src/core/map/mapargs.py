@@ -18,7 +18,7 @@ class MapArg(Annotation):
     @staticmethod
     def parse(text, session):
         from ..commands import ModelsArg
-        models, used, rest = Models.parse(text, session)
+        models, used, rest = ModelsArg.parse(text, session)
         from .volume import Volume
         maps = [m for m in models if isinstance(m, Volume)]
         if len(maps) != 1:
