@@ -7,9 +7,8 @@ class MapsArg(Annotation):
     name = 'density maps'
     @staticmethod
     def parse(text, session):
-        from ..commands import AtomSpecArg
-        value, used, rest = AtomSpecArg.parse(text, session)
-        models = value.evaluate(session).models
+        from ..commands import ModelsArg
+        models, used, rest = ModelsArg.parse(text, session)
         from .volume import Volume
         maps = [m for m in models if isinstance(m, Volume)]
         return maps, used, rest
@@ -18,9 +17,8 @@ class MapArg(Annotation):
     name = 'density map'
     @staticmethod
     def parse(text, session):
-        from ..commands import AtomSpecArg
-        value, used, rest = AtomSpecArg.parse(text, session)
-        models = value.evaluate(session).models
+        from ..commands import ModelsArg
+        models, used, rest = Models.parse(text, session)
         from .volume import Volume
         maps = [m for m in models if isinstance(m, Volume)]
         if len(maps) != 1:
