@@ -4,7 +4,7 @@ from .run import run
 
 from .cli import CmdDesc, register, Command, create_alias, command_function
 from .cli import commas, plural_form, plural_of, discard_article
-from .cli import ListOf, SetOf, TupleOf, Or
+from .cli import ListOf, SetOf, TupleOf, Or, RepeatOf
 
 from .cli import Annotation, next_token, AnnotationError
 from .cli import NoArg, BoolArg, StringArg, EmptyArg, EnumOf, DynamicEnum

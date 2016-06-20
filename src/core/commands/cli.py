@@ -519,7 +519,6 @@ class TupleOf(Aggregate):
     def add_to(self, container, value):
         return container + (value,)
 
-
 class DottedTupleOf(Aggregate):
     """Annotation for dot-separated lists of a single type
 
@@ -543,6 +542,17 @@ class DottedTupleOf(Aggregate):
     def add_to(self, container, value):
         return container + (value,)
 
+class RepeatOf(Annotation):
+    '''
+    Annotation for keyword options that can occur multiple times.
+
+    RepeatOf(annotation) -> annotation
+
+    Option values are put in list even if option occurs only once.
+    '''
+    allow_repeat = True
+    def __init__(self, annotation):
+        self.parse = annotation.parse
 
 class BoolArg(Annotation):
     """Annotation for boolean literals"""
@@ -2009,10 +2019,8 @@ class Command:
                         return last_anno, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
-                if is_python_keyword(kw_name):
-                    self._kw_args['%s_' % kw_name] = value
-                else:
-                    self._kw_args[kw_name] = value
+                kwn = '%s_' % kw_name if is_python_keyword(kw_name) else kw_name
+                self._kw_args[kwn] = value
                 self._error = ""
                 last_anno = anno
             except ValueError as err:
@@ -2096,10 +2104,17 @@ class Command:
             self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
-                if is_python_keyword(kw_name):
-                    self._kw_args['%s_' % kw_name] = value
+                kwn = '%s_' % kw_name if is_python_keyword(kw_name) else kw_name
+                if hasattr(anno, 'allow_repeat') and anno.allow_repeat:
+                    if kwn in self._kw_args:
+                        self._kw_args[kwn].append(value)
+                    else:
+                        self._kw_args[kwn] = [value]
                 else:
-                    self._kw_args[kw_name] = value
+                    if kwn in self._kw_args:
+                        self._error = 'Repeated keyword argument "%s"' % _user_kw(kw_name)
+                        return
+                    self._kw_args[kwn] = value
                 prev_annos = (anno, None)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
