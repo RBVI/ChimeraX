@@ -202,7 +202,8 @@ def volume(session,
       Parsed as 3 comma-separated floats, or an atom specifier
     center_index : sequence of 3 floats
     axis : sequence of 3 floats
-    coordinate_system : not supported, model specifier
+    coordinate_system : Place
+      Coordinate system for axis and center symmetry options
 
     ------------------------------------------------------------------------------------------------
     File saving options
