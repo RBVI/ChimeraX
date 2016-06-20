@@ -231,7 +231,7 @@ def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = None):
 #
 def add_balls(grid, xyz, radii, sdev, cutoff_range, transforms = None):
 
-    if len(transforms) == 0:
+    if transforms is None or len(transforms) == 0:
         from ..geometry import Places
         transforms = Places()
     from numpy import empty, float32
