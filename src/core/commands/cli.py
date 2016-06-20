@@ -958,6 +958,7 @@ class ObjectsArg(Annotation):
         from .atomspec import AtomSpecArg
         aspec, text, rest = AtomSpecArg.parse(text, session)
         objects = aspec.evaluate(session)
+        objects.spec = str(aspec)
         return objects, text, rest
 
 
