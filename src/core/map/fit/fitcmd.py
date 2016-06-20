@@ -312,7 +312,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     me = fitting_metric(metric)
     points, point_weights = map_fitting_points(volume, envelope,
                                                local_coords = True)
-    refpt = F.volume_center_point(v, volume.place)
+    refpt = F.volume_center_point(v, volume.position)
     symmetries = volume.data.symmetries
     indices = F.asymmetric_unit_points(points, refpt, symmetries)
     apoints = points[indices]
@@ -321,19 +321,21 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     data_array, xyz_to_ijk_transform = \
       v.matrix_and_transform(volume.position, subregion = None, step = 1)
 
-    from chimera import tasks, CancelOperation
-    task = tasks.Task("Symmetric fit", modal=True)
-    def stop_cb(msg, task = task):
-        return request_stop_cb(msg, task)
-    stats = None
-    try:
-        move_tf, stats = F.locate_maximum(apoints, apoint_weights,
+#    from chimera import tasks, CancelOperation
+#    task = tasks.Task("Symmetric fit", modal=True)
+#    def stop_cb(msg, task = task):
+#        return request_stop_cb(msg, task)
+#    stats = None
+#    try:
+    def stop_cb(msg):
+        return False
+    move_tf, stats = F.locate_maximum(apoints, apoint_weights,
                                           data_array, xyz_to_ijk_transform,
                                           max_steps, grid_step_min, grid_step_max,
                                           shift, rotate, me, refpt, symmetries,
                                           stop_cb)
-    finally:
-        task.finished()
+#    finally:
+#        task.finished()
 
     if stats is None:
         return          # Fit cancelled
@@ -370,7 +372,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
         point_weights = None
     else:
         points, point_weights = map_fitting_points(v, envelope)
-        points = volume.place.inverse()*points
+        points = volume.position.inverse()*points
     from . import search as FS
     rotations = 'r' in placement
     shifts = 's' in placement
