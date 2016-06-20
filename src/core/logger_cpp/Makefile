@@ -20,6 +20,9 @@ install: $(SHLIB)
 	$(RSYNC) $(SHLIB) $(shlibdir)
 ifdef WIN32
 	$(RSYNC) $(LIBRARY) $(libdir)
+ifdef DEBUG
+	$(RSYNC) lib$(LIBNAME).pdb $(shlibdir)
+endif
 endif
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)

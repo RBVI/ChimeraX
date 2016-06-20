@@ -424,53 +424,6 @@ def print_file_types():
     #                               for c in _compression.keys())
 
 
-def wx_export_file_filter(category=None, all=False):
-    """Return file name filter suitable for Export File dialog for WX"""
-
-    result = []
-    for t, info in _file_formats.items():
-        if not info.export_func:
-            continue
-        if category and info.category != category:
-            continue
-        exts = ', '.join(info.extensions)
-        fmts = ';'.join('*%s' % ext for ext in info.extensions)
-        result.append("%s files (%s)|%s" % (t, exts, fmts))
-    if all:
-        result.append("All files (*.*)|*.*")
-    if not result:
-        if not category:
-            files = "any"
-        else:
-            files = "\"%s\"" % category
-        raise ValueError("No filters for %s files" % files)
-    result.sort(key=str.casefold)
-    return '|'.join(result)
-
-
-def wx_open_file_filter(all=False):
-    """Return file name filter suitable for Open File dialog for WX"""
-
-    combine = {}
-    for t, info in _file_formats.items():
-        if not info.open_func:
-            continue
-        exts = combine.setdefault(info.category, [])
-        exts.extend(info.extensions)
-    result = []
-    for k in combine:
-        exts = ', '.join(combine[k])
-        fmts = ';'.join('*%s' % ext for ext in combine[k])
-        if _compression:
-            for ext in combine[k]:
-                fmts += ';' + ';'.join('*%s%s' % (ext, c)
-                                       for c in _compression.keys())
-        result.append("%s files (%s)|%s" % (k, exts, fmts))
-    result.sort(key=str.casefold)
-    if all:
-        result.insert(0, "All files (*.*)|*.*")
-    return '|'.join(result)
-
 
 
 def open_data(session, filespec, format=None, name=None, **kw):

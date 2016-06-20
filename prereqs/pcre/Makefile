@@ -1,4 +1,4 @@
-FOREIGN_MAKE = 1
+PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
@@ -39,15 +39,19 @@ CMAKE_OPTS += -DCMAKE_BUILD_TYPE=Release
 endif
 
 ifeq ($(OSARCH),Windows64)
-CMAKE_OPTS += -G 'Visual Studio 14 2015 Win64'
+#CMAKE_OPTS += -G 'Visual Studio 14 2015 Win64'
+CMAKE_OPTS += -G 'NMake Makefiles'
 CONFIG = Release
 PLATFORM = x64
 else
-CMAKE_OPTS += -G 'Visual Studio 10 2015'
+#CMAKE_OPTS += -G 'Visual Studio 10 2015'
+CMAKE_OPTS += -G 'NMake Makefiles'
 CONFIG = Release
 PLATFORM = Win32
 endif
 CONFIG_PLATFORM = '$(CONFIG)|$(PLATFORM)'
+
+NMAKE = env -u MAKEFLAGS -u MAKE nmake
 
 endif # OS == Windows
 
@@ -55,11 +59,9 @@ all:
 
 install: $(SOURCE)
 ifeq ($(OS),Windows)
-	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcre
-	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcreposix
-	cd $(SOURCE)/build && devenv PCRE.sln /build $(CONFIG_PLATFORM) /project pcrecpp
-	$(RSYNC) $(SOURCE)/build/Release/*.$(SHLIB_EXT) $(shlibdir)
-	$(RSYNC) $(SOURCE)/build/Release/*.$(LIB_EXT) $(libdir)
+	cd $(SOURCE)/build && $(NMAKE) && $(NMAKE) install
+	$(RSYNC) $(SOURCE)/build/*.$(SHLIB_EXT) $(shlibdir)
+	$(RSYNC) $(SOURCE)/build/*.$(LIB_EXT) $(libdir)
 	$(RSYNC) $(SOURCE)/pcre{cpp,posix,_scanner}.h $(includedir)
 	$(RSYNC) $(SOURCE)/build/pcre{,cpparg,_stringpiece}.h $(includedir)
 else

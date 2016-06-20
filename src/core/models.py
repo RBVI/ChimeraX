@@ -231,7 +231,13 @@ class Models(State):
         id = parent.id + (nid,)
         return id
 
-    def add_group(self, models, name='group'):
+    def add_group(self, models, name=None):
+        if name is None:
+            names = set([m.name for m in models])
+            if len(names) == 1:
+                name = names.pop() + " group"
+            else:
+                name = "group"
         parent = Model(name, self._session())
         parent.add(models)
         m_all = self.add([parent])

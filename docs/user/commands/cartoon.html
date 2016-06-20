@@ -104,8 +104,46 @@ Given without options, <b>cartoon arrow</b> reports the current settings.
 <a name="linker">
 (&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
 <b>linker</b></a>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
+(&nbsp;none&nbsp;|&nbsp;short&nbsp;|&nbsp;short2&nbsp;|&nbsp;long&nbsp;)
+&nbsp;<i>type,type</i>
 <blockquote>
-documentation under construction
+Linkers are the connections between helix, strand, and coil segments 
+along a peptide chain. 
+The options specify the length and register of coil-like segments
+between the last residue of one segment and first residue of the next:
+<ul>
+<li><b>none</b>
+- no extra (other than for coil residues) coil-like linker;
+boundary occurs at peptide bond
+<li><b>short</b> - extra coil-like linker from the C&alpha; of the
+last residue in a segment to the peptide bond
+<li><b>short2</b> - extra coil-like linker from the peptide bond
+to the C&alpha; of the first residue of the next segment
+<li><b>long</b> - extra coil-like segment from the C&alpha; of the last
+residue in a segment to the C&alpha; of the first residue in
+the next segment (like <b>short</b> + <b>short2</b>)
+</ul>
+Segment <i>type</i> values <b>helix</b>, <b>strand</b>, and <b>coil</b>
+can be given as single letters, for example:
+<blockquote>
+<b>cartoon link long h,s; cartoon link long s,h</b>
+</blockquote>
+In the following example images,
+a strand immediately precedes a helix, and &alpha;-carbons are shown as balls.
+<table cellpadding="0px" cellspacing="0px">
+<tr>
+<th align="center">none</th>
+<th align="center">short</th>
+<th align="center">short2</th>
+<th align="center">long</th>
+</tr><tr>
+<td><img class="outline" width="120px" src="carlink-none.png"></td>
+<td><img class="outline" width="120px" src="carlink-short.png"></td>
+<td><img class="outline" width="120px" src="carlink-short2.png"></td>
+<td><img class="outline" width="120px" src="carlink-long.png"></td>
+</tr>
+</table>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -175,8 +213,9 @@ The tether color tracks the color of the corresponding &alpha;-carbon.
 [&nbsp;<b>coil</b>&nbsp;<b>round</b>&nbsp;|&nbsp;square&nbsp;|&nbsp;piping&nbsp;]
 [&nbsp;<b>nucleic</b>&nbsp;<b>round</b>&nbsp;|&nbsp;square&nbsp;|&nbsp;piping&nbsp;]
 <blockquote>
-The cross-section is the shape of the cartoon perpendicular to its path.
-Cross-sections can be set separately for 
+The cross-section is the shape of the cartoon perpendicular to its path, with
+edges smoothly rounded, squared-off, or piped (edges rounded but thicker than
+the middle).  Cross-sections can be set separately for 
 peptide <b>helix</b> (default <b>round</b>), 
 peptide <b>strand</b> (default <b>square</b>), 
 peptide <b>coil</b> (default <b>round</b>), and <b>nucleic</b>
@@ -188,5 +227,5 @@ Given without options, <b>cartoon xsection</b> reports the current settings.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2016</address>
+May 2016</address>
 </body></html>

@@ -10,21 +10,16 @@ class View:
     A View is the graphics windows that shows 3-dimensional drawings.
     It manages the camera and renders the drawing when needed.
     '''
-    def __init__(self, drawing, *, window_size = (256,256), opengl_context = None,
-                 trigger_set = None):
+    def __init__(self, drawing, *, window_size = (256,256), trigger_set = None):
 
         self.triggers = trigger_set
         self.drawing = drawing
         self.window_size = window_size		# pixels
-        self._opengl_context = None
         self._render = None
+        self._opengl_initialized = False
         from .opengl import Lighting, Material
         self._lighting = Lighting()
         self._material = Material()
-
-        if opengl_context:
-            self.initialize_context(opengl_context)
-        self._opengl_initialized = False
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 0)
@@ -70,58 +65,32 @@ class View:
         if trigger_set:
             self.drawing.set_redraw_callback(dm)
 
-    def initialize_context(self, oc):
-        if self._opengl_context is not None:
-            raise ValueError("OpenGL context is alread set")
-        self._opengl_context = oc
+    @property
+    def render(self):
+        return self._render
+    
+    def initialize_rendering(self, opengl_context):
+        r = self._render
+        if r:
+            raise ValueError("OpenGL context is already set")
         from .opengl import Render
-        self._render = r = Render()
+        self._render = r = Render(opengl_context)
         r.lighting = self._lighting
         r.material = self._material
 
-    def opengl_context(self):
-        return self._opengl_context
-
-    def opengl_version(self):
-        '''Return the OpenGL version as a string.'''
-        if self._opengl_context is None:
-            return None
-        self._opengl_context.make_current()
-        return self._render.opengl_version()
-
-    def opengl_version_number(self):
-        if self._opengl_context is None:
-            return None
-        self._opengl_context.make_current()
-        vmajor, vminor = self._render.opengl_version_number()
-        return vmajor, vminor
-
-    def opengl_vendor(self):
-        '''Return the OpenGL vendor as a string.'''
-        if self._opengl_context is None:
-            return None
-        self._opengl_context.make_current()
-        return self._render.opengl_vendor()
-
-    def opengl_renderer(self):
-        '''Return the OpenGL renderer as a string.'''
-        if self._opengl_context is None:
-            return None
-        self._opengl_context.make_current()
-        return self._render.opengl_renderer()
-
     def _use_opengl(self):
-        if self._opengl_context is None:
+        if self._render is None:
             raise RuntimeError("running without graphics")
-        self._opengl_context.make_current()
+        self._render.make_current()
         self._initialize_opengl()
 
     def _initialize_opengl(self):
 
+        # Delay making OpenGL calls until drawing is attempted.
         if self._opengl_initialized:
             return
         self._opengl_initialized = True
-
+        
         r = self._render
         r.check_opengl_version()
         r.set_background_color(self.background_color)
@@ -177,6 +146,7 @@ class View:
         if self.update_lighting:
             self.update_lighting = False
             r.set_lighting_shader_capabilities()
+            r.set_shader_lighting_parameters()
 
         if drawings is None:
             any_selected = self.any_drawing_selected()
@@ -228,7 +198,7 @@ class View:
 
         if swap_buffers:
             if self.camera.do_swap_buffers():
-                self._opengl_context.swap_buffers()
+                self._render.swap_buffers()
             self.redraw_needed = False
 
     def check_for_drawing_change(self):
@@ -431,11 +401,12 @@ class View:
         window size.
         '''
         new_size = (width, height)
-        if self.window_size == new_size and self._opengl_initialized:
+        if self.window_size == new_size:
             return
         self.window_size = new_size
-        if self._opengl_initialized:
-            fb = self._render.default_framebuffer()
+        r = self._render
+        if r:
+            fb = r.default_framebuffer()
             fb.width, fb.height = width, height
             fb.viewport = (0, 0, width, height)
             self.redraw_needed = True
@@ -853,6 +824,8 @@ class View:
     def translate(self, shift, drawings=None):
         '''Move camera to simulate a translation of drawings.  Translation
         is in scene coordinates.'''
+        if shift[0] == 0 and shift[1] == 0 and shift[2] == 0:
+            return
         if self._center_of_rotation_method == 'front center':
             self._update_center_of_rotation = True
         from ..geometry import place
@@ -873,7 +846,10 @@ class View:
     def pixel_size(self, p=None):
         "Return the pixel size in scene length units at point p in the scene."
         if p is None:
-            p = self.center_of_rotation
+            # Don't recompute center of rotation as that can be slow.
+            p = self._center_of_rotation
+            if p is None:
+                p = self.center_of_rotation	# Compute center of rotation
         return self.camera.view_width(p) / self.window_size[0]
 
 
@@ -998,20 +974,6 @@ class ClipPlane:
             self.normal = vd
         from ..geometry import inner_product
         self._last_distance = inner_product(p - cp, vd)
-
-class OpenGLContext:
-    '''
-    OpenGL context used by View for drawing.  This should be subclassed
-    to provide window system specific opengl context methods.
-    '''
-    def make_current(self):
-        '''Make the OpenGL context active.'''
-        pass
-
-    def swap_buffers(self):
-        '''Swap back and front OpenGL buffers.'''
-        pass
-
 
 class _RedrawNeeded:
 

@@ -159,6 +159,13 @@ class Logger:
             Log.LEVEL_WARNING: self.warning,
             Log.LEVEL_INFO: self.info
         }
+        import sys
+        # only put in an excepthook if we're the first session:
+        if sys.excepthook == sys.__excepthook__:
+            def ehook(*args):
+                from traceback import format_exception
+                self.error("".join(format_exception(*args)))
+            sys.excepthook = ehook
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
         self.add_log(_EarlyCollator())
@@ -172,8 +179,13 @@ class Logger:
             self._early_collation = True
         elif self._early_collation:
             # main window only handles status messages, so in that case keep collating...
-            from .ui.gui import MainWindow
-            if not isinstance(log, MainWindow):
+            try:
+                from .ui.gui import MainWindow
+            except ImportError:
+                log_is_main_window = False
+            else:
+                log_is_main_window = isinstance(log, MainWindow)
+            if not log_is_main_window:
                 self._early_collation = None
                 for cur_log in self.logs:
                     if isinstance(cur_log, _EarlyCollator):

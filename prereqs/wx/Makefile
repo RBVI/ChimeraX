@@ -2,7 +2,7 @@
 # source fetched from http://wxpython.org/Phoenix/snapshot-builds/
 #
 
-FOREIGN_MAKE = 1
+PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
@@ -110,4 +110,4 @@ endif
 endif
 
 clean:
-	rm -rf $(SOURCE)
+	rm -rf $(SOURCE) pip.log

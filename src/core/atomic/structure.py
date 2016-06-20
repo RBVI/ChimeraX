@@ -154,7 +154,7 @@ class Structure(Model, StructureData):
                 solvent_atoms.draw_modes = Atom.BALL_STYLE
                 solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
             else:
-                lighting = "shadows true"
+                lighting = "soft multiShadow 16"
             from ..commands import Command
             if len([m for m in session.models.list()
                     if isinstance(m, self.__class__)]) == 1:
@@ -533,7 +533,7 @@ class Structure(Model, StructureData):
                 xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[0], xs_front[1])
                 capped = displays[0] != displays[1] or not xs_compat
                 seg = capped and seg_cap or seg_blend
-                front_c, front_t, front_n = ribbon.lead_segment(seg_cap / 2)
+                front_c, front_t, front_n = ribbon.lead_segment(seg_cap // 2)
                 back_c, back_t, back_n = ribbon.segment(0, ribbon.FRONT, seg, not need_twist[0])
                 centers = concatenate((front_c, back_c))
                 tangents = concatenate((front_t, back_t))
@@ -629,7 +629,7 @@ class Structure(Model, StructureData):
                 # print(residues[-1], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, True)
-                back_c, back_t, back_n = ribbon.trail_segment(seg_cap / 2)
+                back_c, back_t, back_n = ribbon.trail_segment(seg_cap // 2)
                 centers = concatenate((front_c, back_c))
                 tangents = concatenate((front_t, back_t))
                 normals = concatenate((front_n, back_n))

@@ -453,8 +453,8 @@ class Residue:
             return str(self.structure) + chain_str + res_str
         from .structure import Structure
         if len(self.structure.session.models.list(type=Structure)) > 1:
-            return str(self.structure) + chain_str + " " + res_str
-        return chain_str + " " + res_str
+            return str(self.structure) + " " + res_str + chain_str
+        return res_str + chain_str
 
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the residue.'''

@@ -440,3 +440,10 @@ class Places:
 
     def is_identity(self):
         return len(self) == 1 and self[0].is_identity()
+
+    def transform_coordinates(self, csys):
+        "csys maps new coordinates to old coordinates."
+        if csys.is_identity():
+            return self
+        csys_inv = csys.inverse()
+        return Places([csys_inv*p*csys for p in self])

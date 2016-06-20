@@ -1,0 +1,88 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: mlp</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: mlp</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>mlp</b> 
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
+[&nbsp;dx &nbsp;<i>pathname</i>&nbsp;] 
+[&nbsp;spacing&nbsp;<i>s</i>&nbsp;]
+[&nbsp;method&nbsp;dubost&nbsp;|&nbsp;fauchere&nbsp;|&nbsp;brasseur&nbsp;|&nbsp;buckingham&nbsp;[&nbsp;nexp&nbsp;<i>n</i>&nbsp;]|&nbsp;type5&nbsp;]
+</h3>
+<p>
+The command <b>mlp</b> generates molecular lipophilicity potential (MLP) 
+maps for protein structures using the program
+<a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</b></a>:
+</p>
+<blockquote>
+Molecular structures: Perception, autocorrelation descriptor and SAR studies.
+System of atomic contributions for the calculation of the 
+<i>n</i>-octanol/water partition coefficients. 
+Broto P, Moreau G, Vandycke C.
+<i>Eur J Med Chem.</i> 1984;19(1):71-78.
+<br><br>
+<a href="http://onlinelibrary.wiley.com/doi/10.1111/j.2042-7158.1997.tb00257.x/abstract" target="_blank">
+MLPP: A program for the calculation of molecular lipophilicity potential 
+in proteins.</a>
+Laguerre M, Saux M, Dubost JP, Carpy A.
+<i>Pharm. Sci.</i> 1997;3(5-6):217-22.
+</blockquote>
+<p>
+The 
+<a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</b></a>
+code includes lookup values for nonhydrogen atoms in the 20 standard 
+amino acids plus HYP (hydroxyproline) and PCA (pyroglutamic acid). 
+Any other residue types are ignored.
+Positive potentials correspond to more lipophilic (more hydrophobic) areas,
+negative to less lipophilic (more hydrophilic) areas.
+</p><p>
+See also: <a href="open.html"><b>open</b></a>,
+<b>volume</b>
+</p><p>
+The output potential map will be opened automatically. 
+The <b>dx</b> option specifies a name and location (<i>pathname</i>) 
+for the output map in DX format;
+otherwise, a temporary name and location will be used.
+</p><p>
+The <b>spacing</b> <i>s</i> of the map grid in &Aring; can be
+specified in the range 0.1&ndash;10.0 (default <b>1.0</b>).
+</p><p>
+The <b>method</b> indicates how atomic values propagate through space,
+with multiplicative factors based on the distance <i>d</i> from the atom.
+The potential at each grid point is a sum over the atomic contributions.
+<ul>
+<font size="+1">
+<li><b>dubost</b>: (1+<i>d</i>)<sup>&ndash;1</sup>
+<li><b>fauchere</b> (default): <i>e</i><sup>&ndash;<i>d</i></sup>
+<li><b>brasseur</b>: <i>e</i><sup>&ndash;<i>d</i>/3.1</sup>
+<li><b>buckingham</b>: <i>d</i><sup>&nbsp;&ndash;<i>n</i></sup>
+</font>
+<br>... <i>n</i> given with the <b>nexp</b> option (default <b>3.0</b>)
+<font size="+1">
+<li><b>type5</b>: <i>e</i><sup>&ndash;<i>d</i><sup>&nbsp;&frac12;</sup></sup>
+</font>
+</ul>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2016</address>
+</body></html>

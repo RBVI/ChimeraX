@@ -8,7 +8,7 @@ then
 	echo Setting environment for using Microsoft Visual Studio 2015
 	platform=2015
 	VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio 14.0"
-	WindowsSdkDir="c:\\Program Files (x86)\\Windows Kits\\10\\"
+	WindowsSdkDir="c:\\Program Files (x86)\\Windows Kits\\10"
 	MicrosoftSdkDir="c:\Program Files (x86)\Microsoft SDKs\Windows Kits\10"
 	if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64" ]
 	then
@@ -82,8 +82,15 @@ DED=`cygpath -u "$DevEnvDir"`
 VSD=`cygpath -u "$VSINSTALLDIR"`
 VCD=`cygpath -u "$VCINSTALLDIR"`
 FD=`cygpath -u "$FrameworkDir"`
+WSD=`cygpath -u "$WindowsSdkDir"`
 
-export PATH="$VCD/bin/$AMD64:$VCD/VCPackages:$VSD/Common7/IDE:$VSD/Common7/Tools:$VSD/Team Tools/Performance Tools$X64:$PATH"
+export PATH="$VCD/bin/$AMD64:\
+$WSD/bin/x64:\
+$VCD/VCPackages:\
+$VSD/Common7/IDE:\
+$VSD/Common7/Tools:\
+$VSD/Team Tools/Performance Tools/x64:\
+$PATH"
 
 export INCLUDE="$VCINSTALLDIR\\include;\
 $VCINSTALLDIR\\atlmfc\\include;\
@@ -107,4 +114,4 @@ $WindowsSdkDir\\References;\
 $MicrosoftSdkDir\\ExtensionSDKs\\Microsoft.VCLibs\\$VisualStudioVersion\\References\\CommonConfiguration\neutral;\
 $LIBPATH"
 
-unset DED VSD VCD FD
+unset DED VSD VCD FD WSD

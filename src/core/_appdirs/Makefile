@@ -7,6 +7,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core
 PYMOD_NAME = _appdirs
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
+DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS)
 ifeq ($(WIN32),msvc)
 LIBS += libappdirs.lib
@@ -20,7 +21,11 @@ $(PYMOD): $(OBJS)
 
 install: $(PYMOD)
 	$(RSYNC) $(PYMOD) $(PKG_DIR)
-	#if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
+ifdef WIN32
+ifdef DEBUG
+	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
+endif
+endif
 
 clean:
 	/bin/rm -f $(OBJS) $(PYMOD)

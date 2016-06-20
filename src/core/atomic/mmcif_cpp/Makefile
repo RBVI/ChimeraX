@@ -23,6 +23,7 @@ GENHDRS += $(GENSRCS:.cpp=.h)
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT)) $(GENSRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _mmcif
 
+DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS)
 ifeq ($(WIN32),msvc)
 LIBS += libatomstruct.lib libelement.lib libreadcif.lib libwrappy3.lib liblogger.lib libarrays.lib
@@ -35,7 +36,11 @@ $(PYMOD): $(OBJS)
 
 install: $(PYMOD)
 	$(RSYNC) $(PYMOD) $(PKG_DIR)
-	#if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
+ifdef WIN32
+ifdef DEBUG
+	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
+endif
+endif
 
 clean:
 	/bin/rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej

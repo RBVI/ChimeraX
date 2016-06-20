@@ -18,42 +18,65 @@ class CageBuilder(ToolInstance):
 
         self.display_name = 'Cage Builder'
 
+        from chimerax.core import window_sys
+        kw = {'size': self.SIZE} if window_sys == 'wx' else {}
         from chimerax.core.ui.gui import MainToolWindow
-        tw = MainToolWindow(self, size=self.SIZE)
+        tw = MainToolWindow(self, **kw)
         self.tool_window = tw
         parent = tw.ui_area
 
-        import wx
-        bl = wx.StaticText(parent, label="Create polygon")
+        if window_sys == 'wx':
+            import wx
+            bl = wx.StaticText(parent, label="Create polygon")
 
-        b5 = wx.Button(parent, label='5', style=wx.BU_EXACTFIT)
-        b5.Bind(wx.EVT_BUTTON, lambda e: self.attach_polygons(5))
-        b6 = wx.Button(parent, label='6', style=wx.BU_EXACTFIT)
-        b6.Bind(wx.EVT_BUTTON, lambda e: self.attach_polygons(6))
-        bm = wx.Button(parent, label='Minimize', style=wx.BU_EXACTFIT)
-        bm.Bind(wx.EVT_BUTTON, self.minimize_cb)
-        bel = wx.StaticText(parent, label="Edge length")
-        self.edge_length = be = wx.TextCtrl(parent, value = '50', size = (30,-1))
+            b5 = wx.Button(parent, label='5', style=wx.BU_EXACTFIT)
+            b5.Bind(wx.EVT_BUTTON, lambda e: self.attach_polygons(5))
+            b6 = wx.Button(parent, label='6', style=wx.BU_EXACTFIT)
+            b6.Bind(wx.EVT_BUTTON, lambda e: self.attach_polygons(6))
+            bm = wx.Button(parent, label='Minimize', style=wx.BU_EXACTFIT)
+            bm.Bind(wx.EVT_BUTTON, self.minimize_cb)
+            bel = wx.StaticText(parent, label="Edge length")
+            self.edge_length = be = wx.TextCtrl(parent, value = '50', size = (30,-1))
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(bl, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        sizer.Add(b5, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        sizer.Add(b6, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        sizer.Add(bm, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        sizer.Add(bel, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        sizer.Add(be, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        parent.SetSizerAndFit(sizer)
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer.Add(bl, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
+            sizer.Add(b5, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
+            sizer.Add(b6, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
+            sizer.Add(bm, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
+            sizer.Add(bel, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
+            sizer.Add(be, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
+            parent.SetSizerAndFit(sizer)
+        elif window_sys == 'qt':
+            from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QLineEdit
+            layout = QHBoxLayout()
+            layout.setContentsMargins(0,0,0,0)
+            layout.setSpacing(0)
+            cp = QLabel('Create polygon')
+            layout.addWidget(cp)
+            b5 = QPushButton('5')
+            b5.clicked.connect(lambda e: self.attach_polygons(5))
+            layout.addWidget(b5)
+            b6 = QPushButton('6')
+            b6.clicked.connect(lambda e: self.attach_polygons(6))
+            layout.addWidget(b6)
+            mn = QPushButton('Minimize')
+            mn.clicked.connect(self.minimize_cb)
+            layout.addWidget(mn)
+            ell = QLabel(' Edge length')
+            layout.addWidget(ell)
+            self.edge_length = el = QLineEdit('50')
+            el.setMaximumWidth(30)
+            layout.addWidget(el)
+            layout.addStretch(1)	# Extra space at end of button row.
+            parent.setLayout(layout)
 
-        tw.manage(placement="top")
+        tw.manage(placement="right")
 
     def show(self):
         self.tool_window.shown = True
 
     def hide(self):
         self.tool_window.shown = False
-
-    def minimize_cb(self, n):
-        pass
 
     def attach_polygons(self, n):
         d = self.vertex_degree()
@@ -63,7 +86,13 @@ class CageBuilder(ToolInstance):
                              vertex_degree = d)
 
     def edge_size(self):
-        e = float(self.edge_length.GetValue())
+        el = self.edge_length
+        from chimerax.core import window_sys
+        if window_sys == 'wx':
+            elen = el.GetValue()
+        elif window_sys == 'qt':
+            elen = el.text()
+        e = float(elen)
         et = self.edge_thickness*e	# Edge thickness
         ei = 0.5*et	# Edge inset
         return e, et, ei

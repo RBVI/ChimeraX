@@ -30,7 +30,7 @@ class ffmpeg_encoder:
         self.ffmpeg_cmd = ffmpeg_cmd
 
         self.arg_list = self._buildArgList(output_file, output_format, output_size, video_codec, pixel_format,
-                                           size_restriction, framerate, bit_rate, quality, session)
+                                           size_restriction, framerate, bit_rate, quality)
 
         if round_trip:
             self.copy_frames_backwards()
@@ -41,7 +41,7 @@ class ffmpeg_encoder:
         self.exit_status = (None, None, None)
 
     def _buildArgList(self, output_file, output_format, output_size, video_codec, pixel_format,
-                      size_restriction, framerate, bit_rate, quality, session):
+                      size_restriction, framerate, bit_rate, quality):
 
         arg_list = []
 
@@ -97,7 +97,8 @@ class ffmpeg_encoder:
             raise MovieError('Output directory does not exist: %s' % d)
         arg_list.append(path)
 
-        ffmpeg_exe = join(session.app_bin_dir, self.ffmpeg_cmd)
+        from chimerax import app_bin_dir
+        ffmpeg_exe = join(app_bin_dir, self.ffmpeg_cmd)
         arg_list.insert(0, ffmpeg_exe)
 
         return arg_list

@@ -1,11 +1,11 @@
-FOREIGN_MAKE = 1
+PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
 ifdef WIN32
 VERSION = 2.5.2
 else
-VERSION = 2.4.4
+VERSION = 2.4.6
 endif
 DISTRIBUTION = numexpr-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/numexpr-$(VERSION)

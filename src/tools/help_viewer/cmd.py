@@ -29,7 +29,7 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
         for ti in session.tools.list():
             if ti.bundle_info.name == 'cmd_line':
                 ti.cmd_replace(cmd)
-                ti.on_enter(None)
+                ti.execute()
                 break
         else:
             # no command line?!?
@@ -39,7 +39,8 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
         # Help URLs are rooted at base_dir
         import os
         import sys
-        base_dir = os.path.join(session.app_data_dir, 'docs')
+        from chimerax import app_data_dir
+        base_dir = os.path.join(app_data_dir, 'docs')
         from urllib.parse import urlparse, urlunparse, quote, unquote
         from urllib.request import url2pathname, pathname2url
         (_, _, url_path, _, _, fragment) = urlparse(topic)

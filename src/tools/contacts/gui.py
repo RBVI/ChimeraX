@@ -10,21 +10,32 @@ class Plot(ToolInstance):
     def __init__(self, session, bundle_info, *, title='Plot'):
         ToolInstance.__init__(self, session, bundle_info)
 
+        from chimerax.core import window_sys
+        kw = {'size': self.SIZE} if window_sys == 'wx' else {}
         from chimerax.core.ui.gui import MainToolWindow
-        tw = MainToolWindow(self, size=self.SIZE)
+        tw = MainToolWindow(self, **kw)
         self.tool_window = tw
         parent = tw.ui_area
 
         from matplotlib import figure
         self.figure = f = figure.Figure(dpi=100, figsize=(2,2))
-        from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as Canvas
-        self.canvas = Canvas(parent, -1, f)
 
-        import wx
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.canvas,1,wx.EXPAND)
-        parent.SetSizerAndFit(sizer)
-
+        if window_sys == 'wx':
+            from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as Canvas
+            self.canvas = Canvas(parent, -1, f)
+            import wx
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            sizer.Add(self.canvas,1,wx.EXPAND)
+            parent.SetSizerAndFit(sizer)
+        elif window_sys == 'qt':
+            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
+            self.canvas = c = Canvas(f)
+            c.setParent(parent)
+            from PyQt5.QtWidgets import QHBoxLayout
+            layout = QHBoxLayout()
+            layout.setContentsMargins(0,0,0,0)
+            layout.addWidget(c)
+            parent.setLayout(layout)
         tw.manage(placement="right")
 
         self.axes = axes = f.gca()

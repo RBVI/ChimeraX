@@ -149,6 +149,7 @@ class Drawing:
         self._draw_selection = None
         self._shader_opt = None                 # Cached shader options
         self._vertex_buffers = []               # Buffers used by both drawing and selection
+        self._opengl_context = None		# For deleting buffers, to make context current
 
         self.pickable = True	# Whether first_intercept() and planes_pick() will consider this drawing
         self.was_deleted = False
@@ -577,6 +578,8 @@ class Drawing:
         if self.vertices is None:
             return
 
+        self._opengl_context = renderer.opengl_context
+        
         if len(self._vertex_buffers) == 0:
             self._create_vertex_buffers()
 
@@ -587,12 +590,13 @@ class Drawing:
         ds.activate_bindings()
 
         sopt = self._shader_options(transparent_only, opaque_only)
-        shader = renderer.shader(sopt)
-        renderer.use_shader(shader)
+        r = renderer
+        shader = r.shader(sopt)
+        r.use_shader(shader)
 
         # Set color
         if self.vertex_colors is None and len(self._colors) == 1:
-            renderer.set_single_color([c / 255.0 for c in self._colors[0]])
+            r.set_single_color([c / 255.0 for c in self._colors[0]])
 
         t = self.texture
         if t is not None:
@@ -601,7 +605,7 @@ class Drawing:
         at = self.ambient_texture
         if at is not None:
             at.bind_texture()
-            renderer.set_ambient_texture_transform(self.ambient_texture_transform)
+            r.set_ambient_texture_transform(self.ambient_texture_transform)
 
         # Draw triangles
         ds.draw(self.display_style)
@@ -867,6 +871,9 @@ class Drawing:
         '''
         Delete drawing and all child drawings.
         '''
+        c = self._opengl_context
+        if c:
+            c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
         self._delete_geometry()
         self.remove_all_drawings()
 
@@ -881,13 +888,23 @@ class Drawing:
         self.normals = None
         self._edge_mask = None
         self._triangle_mask = None
-        self.texture = None
+        if self.texture:
+            self.texture.delete_texture()
+            self.texture = None
         self.texture_coordinates = None
 
         for b in self._vertex_buffers:
             b.delete_buffer()
         self._vertex_buffers = []
 
+        for ds in (self._draw_shape, self._draw_selection):
+            if ds:
+                ds.delete()
+        self._draw_shape = None
+        self._draw_selection = None
+
+        self._opengl_context = None
+        
         self.was_deleted = True
 
     def _create_vertex_buffers(self):
@@ -983,16 +1000,14 @@ def draw_drawings(renderer, cvinv, drawings, opaque_only = False):
     _draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
     if not opaque_only and _any_transparent_drawings(drawings):
         r.draw_transparent(
-            lambda: _draw_multiple(drawings, r, p,
-                                   Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
-            lambda: _draw_multiple(drawings, r, p,
-                                   Drawing.TRANSPARENT_DRAW_PASS))
+            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
+            lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
 
 
-def _draw_multiple(drawings, r, place, draw_pass):
+def _draw_multiple(drawings, renderer, place, draw_pass):
     selected_only = (draw_pass == Drawing.SELECTION_DRAW_PASS)
     for d in drawings:
-        d.draw(r, place, draw_pass, selected_only)
+        d.draw(renderer, place, draw_pass, selected_only)
 
 
 def _any_transparent_drawings(drawings):
@@ -1142,6 +1157,9 @@ class _DrawShape:
         self.element_buffer = None
         self.instance_buffers = []
 
+    def __del__(self):
+        self.delete()
+            
     def delete(self):
 
         self.masked_edges = None
@@ -1150,10 +1168,14 @@ class _DrawShape:
         self.instance_colors = None
         if self.element_buffer:
             self.element_buffer.delete_buffer()
+            self.element_buffer = None
             for b in self.instance_buffers:
                 b.delete_buffer()
+            self.instance_buffers = []
 
-        self.bindings = None
+        if self.bindings:
+            self.bindings.delete_bindings()
+            self.bindings = None
 
     def draw(self, display_style):
 
@@ -1447,7 +1469,7 @@ class InstancePick(Pick):
         d.selected_positions = pmask
 
 
-def rgba_drawing(rgba, pos=(-1, -1), size=(2, 2), drawing=None):
+def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2)):
     '''
     Make a drawing that is a single rectangle with a texture to show an
     RGBA image on it.

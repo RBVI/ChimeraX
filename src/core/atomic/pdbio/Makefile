@@ -7,6 +7,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/atomic
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = pdbio
+DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS)
 ifdef WIN32
 LIBS += libatomstruct.lib libelement.lib liblogger.lib libpdb.lib libarrays.lib $(PYTHON_LIB)
@@ -19,7 +20,11 @@ $(PYMOD): $(OBJS)
 
 install: $(PYMOD)
 	$(RSYNC) $(PYMOD) $(PKG_DIR)
-	#if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
+ifdef WIN32
+ifdef DEBUG
+	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
+endif
+endif
 
 clean:
 	/bin/rm -f $(OBJS) $(PYMOD)

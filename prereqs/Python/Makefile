@@ -1,4 +1,4 @@
-FOREIGN_MAKE = 1
+PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
@@ -7,8 +7,8 @@ PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
-PIP_VERSION = 8.1.1
-WHEEL_VERSION = 0.26.0
+PIP_VERSION = 8.1.2
+WHEEL_VERSION = 0.29.0
 
 ifdef WIN32
 DYNLOAD_DIR = $(bindir)/DLLs
@@ -48,8 +48,20 @@ ifndef USE_MAC_FRAMEWORKS
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 CONFIG_OPTIONS += --enable-shared
 else
-ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
+LDFLAGS += -Wl,-rpath,"$(libdir)"
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
+ifeq ($(PYTHON_VERSION).1,3.5.1)
+# until 3.5.2 is available, to get Python to find the SQL libs on the Mac
+# you have to *not* specify -isysroot (so it doesn't get confused by the new
+# .tbd library stubs in the SDK) and you have to install the headers to /usr/include
+# with "xcode-select --install"
+ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
+else
+# In order for Python's setup.py to decide that sqlite3 support is available,
+# it needs to find the include file in the SDK, and it finds the SDK location
+# by looking for a '-isysroot' flag in CFLAGS, so provide one...
+ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)' CFLAGS='$(CFLAGS) -isysroot $(SDK_PATH)'
+endif
 pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
 endif
 endif
@@ -197,9 +209,8 @@ endif
 	# Since pip comes with Python 3.5, update it now so installs on
 	# Windows will work.  Wheel is needed so bdist_wheel will work.
 	$(PYTHON_EXE) -m ensurepip --upgrade
-	$(PYTHON_EXE) -m pip install --upgrade \
-		pip==$(PIP_VERSION) \
-		wheel==$(WHEEL_VERSION)
+	$(PYTHON_EXE) -m pip install --upgrade pip
+	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
 
 	# double check that _ssl was successfully made
 	test -f $(DYNLOAD_DIR)/_ssl.*$(PYMOD_EXT)

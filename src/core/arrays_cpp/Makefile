@@ -19,6 +19,9 @@ install: all
 	$(RSYNC) $(SHLIB) $(shlibdir)
 ifdef WIN32
 	$(RSYNC) $(LIBRARY) $(libdir)
+ifdef DEBUG
+	$(RSYNC) lib$(LIBNAME).pdb $(shlibdir)
+endif
 endif
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) imex.h $(HDRS) $(includedir)/$(DIRNAME)

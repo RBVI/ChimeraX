@@ -1,5 +1,5 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-# Copyright © 2014 Regents of the University of California.
+# Copyright © 2015-2016 Regents of the University of California.
 # All Rights Reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  This notice must be embedded in or
@@ -91,7 +91,7 @@ def parse_arguments(argv):
     opts.line_profile = False
     opts.list_file_types = False
     opts.load_tools = True
-    opts.offscreen = True
+    opts.offscreen = False
     opts.silent = False
     opts.start_tools = []
     opts.status = True
@@ -99,6 +99,11 @@ def parse_arguments(argv):
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
+    if sys.platform.startswith('win'):
+        # wx doesn't work for us on Windows
+        opts.window_sys = "qt"
+    else:
+        opts.window_sys = "wx"
 
     # Will build usage string from list of arguments
     arguments = [
@@ -107,15 +112,17 @@ def parse_arguments(argv):
         "--help",
         "--lineprofile",
         "--listfiletypes",
-        "--nooffscreen",
+        "--offscreen",
         "--silent",
         "--nostatus",
         "--start <tool name>",
         "--notools",
         "--stereo",
+        "--notools",
         "--uninstall",
         "--usedefaults",
         "--version",
+        "--windowsys <qt|wx>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -128,9 +135,10 @@ def parse_arguments(argv):
         "--nolineprofile",
         "--nosilent",
         "--nousedefaults",
-        "--offscreen",
+        "--nooffscreen",
         "--status",
         "--tools",
+        "--nousedefaults",
     ]
     if len(sys.argv) > 2 and sys.argv[1] == '-m':
         # treat like Python's -m argument
@@ -190,6 +198,11 @@ def parse_arguments(argv):
             opts.load_tools = opt[2] == 'u'
         elif opt == "--version":
             opts.version += 1
+        elif opt == "--windowsys":
+            if optarg not in ("wx", "qt"):
+                print("--windowsys argument must be either wx or qt", file=sys.stderr)
+                raise SystemExit(os.EX_USAGE)
+            opts.window_sys = optarg
     if help:
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
@@ -275,6 +288,10 @@ def init(argv, event_loop=True):
     if len(ver) == 1:
         ver += (0,)
     partial_version = '%s.%s' % (ver[0], ver[1])
+
+    
+    import chimerax.core
+    chimerax.core.window_sys = opts.window_sys if opts.gui else None
 
     import chimerax
     import appdirs
@@ -367,7 +384,7 @@ def init(argv, event_loop=True):
     sess.add_state_manager('tasks', tasks.Tasks(sess, first=True))  # access with sess.tasks
 
     if opts.version >= 0:
-        format = ['terse', 'bundles', 'packages'][opts.version]
+        format = [None, 'verbose', 'bundles', 'packages'][opts.version]
         from chimerax.core.commands import command_function
         version_cmd = command_function("version")
         version_cmd(sess, format)
@@ -418,9 +435,11 @@ def init(argv, event_loop=True):
     import chimerax.core.commands.version as vercmd
     vercmd.version(sess)  # report version in log
     if opts.gui:
-        sess.logger.info('OpenGL version: ' + sess.main_view.opengl_version())
-        sess.logger.info('OpenGL renderer: ' + sess.main_view.opengl_renderer())
-        sess.logger.info('OpenGL vendor: ' + sess.main_view.opengl_vendor())
+        r = sess.main_view.render
+        r.make_current()
+        sess.logger.info('OpenGL version: ' + r.opengl_version())
+        sess.logger.info('OpenGL renderer: ' + r.opengl_renderer())
+        sess.logger.info('OpenGL vendor: ' + r.opengl_vendor())
 
     if opts.module:
         import runpy
