@@ -19,6 +19,7 @@ def register_volume_command():
                ('style', EnumOf(('surface', 'mesh', 'solid'))),
                ('show', NoArg),
                ('hide', NoArg),
+               ('toggle', NoArg),
                ('level', RepeatOf(FloatsArg)),
                ('enclose_volume', FloatsArg),
                ('fast_enclose_volume', FloatsArg),
@@ -94,6 +95,7 @@ def volume(session,
            style = None,
            show = None,
            hide = None,
+           toggle = None,
            level = None,
            enclose_volume = None,
            fast_enclose_volume = None,
@@ -169,6 +171,7 @@ def volume(session,
     style : "surface", "mesh", or "solid"
     show : bool
     hide : bool
+    toggle : bool
     level : sequence of 1 or 2 floats
       In solid style 2 floats are used the first being a density level and second 0-1 brightness value.
     enclose_volume : float
@@ -300,7 +303,7 @@ def volume(session,
                             (' by "%s"' % volumes if volumes else ''))
 
     # Apply volume settings.
-    dopt = ('style', 'show', 'hide', 'level', 'enclose_volume', 'fast_enclose_volume',
+    dopt = ('style', 'show', 'hide', 'toggle', 'level', 'enclose_volume', 'fast_enclose_volume',
             'color', 'brightness', 'transparency',
             'step', 'region', 'name_region', 'expand_single_plane', 'origin',
             'origin_index', 'voxel_size', 'planes',
@@ -424,6 +427,11 @@ def apply_volume_options(v, doptions, roptions, session):
         v.show()
     elif 'hide' in doptions:
         v.unshow()
+    elif 'toggle' in doptions:
+        if v.shown():
+            v.unshow()
+        else:
+            v.show()
     elif v.shown():
         v.show()
 # TODO: If it has a surface but it is undisplayed, do I need to recalculate it?
