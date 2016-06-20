@@ -67,10 +67,10 @@ def _init(session):
 
 	import os
 	import chimerax
+	searched = []
 	for parent_dir in [os.path.dirname(__file__), chimerax.app_dirs_unversioned.user_data_dir]:
 		mat_dir = os.path.join(parent_dir, "matrices")
-		import sys
-		print("Looking in", mat_dir, "for matrices", file=sys.__stderr__)
+		searched.append(mat_dir)
 		if not os.path.exists(mat_dir):
 			continue
 		for matrix_file in os.listdir(mat_dir):
@@ -94,4 +94,5 @@ def _init(session):
 			else:
 				_matrix_files[name] = path
 	if not _matrices:
-		session.logger.warning("No matrices found by %s module." % __name__)
+		session.logger.warning("No matrices found by %s module. (Looked in: %s)"
+			% (__name__, ", ".join(searched)))
