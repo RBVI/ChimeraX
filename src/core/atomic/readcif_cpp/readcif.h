@@ -143,6 +143,9 @@ public:
             ParseCategory callback, 
             const StringVector& dependencies = StringVector());
 
+    // Set callback function for unregistered categories
+    void set_unregistered_callback(ParseCategory callback);
+
     // The parsing functions
     void parse_file(const char* filename);  // open file and parse it
     void parse(const char* buffer); // null-terminated whole file
@@ -239,6 +242,7 @@ private:
     typedef std::unordered_map<std::string, CategoryInfo> Categories;
     Categories  categories;
     StringVector    categoryOrder;  // order categories were registered in
+    ParseCategory   unregistered;
 
     // parsing state
     bool        parsing;
@@ -322,6 +326,12 @@ inline bool
 CIFFile::multiple_rows() const
 {
     return in_loop;
+}
+
+inline void
+CIFFile::set_unregistered_callback(ParseCategory callback)
+{
+    unregistered = callback;
 }
 
 } // namespace readcif
