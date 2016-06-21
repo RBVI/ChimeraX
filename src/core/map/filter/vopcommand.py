@@ -64,9 +64,11 @@ def register_vop_command():
     )
     register('vop bin', bin_desc, vop_bin)
 
-    boxes_desc = CmdDesc(required = varg + [('markers', AtomsArg)],
-                         keyword = [('size', FloatArg),
-                                    ('use_marker_size', BoolArg)] + ssm_kw)
+    boxes_desc = CmdDesc(required = varg,
+                         keyword = [('centers', AtomsArg),
+                                    ('size', FloatArg),
+                                    ('use_marker_size', BoolArg)] + ssm_kw,
+                         required_arguments = ['centers'])
     register('vop boxes', boxes_desc, vop_boxes)
 
     cover_desc = CmdDesc(required = varg,
@@ -396,7 +398,7 @@ def vop_bin(session, volumes, subregion = 'all', step = 1,
 
 # -----------------------------------------------------------------------------
 #
-def vop_boxes(session, volumes, markers, size = 0, use_marker_size = False,
+def vop_boxes(session, volumes, centers, size = 0, use_marker_size = False,
              subregion = 'all', step = 1, model_id = None):
     '''Extract boxes centered at marker positions.'''
     if size <= 0 and not use_marker_size:
@@ -404,7 +406,7 @@ def vop_boxes(session, volumes, markers, size = 0, use_marker_size = False,
 
     from .boxes import boxes
     for v in volumes:
-        boxes(v, markers, size, use_marker_size, step, subregion, model_id)
+        boxes(session, v, centers, size, use_marker_size, step, subregion, model_id)
 
 # -----------------------------------------------------------------------------
 #
