@@ -34,9 +34,9 @@ from ...errors import UserError as CommandError
 
 def register_vop_command():
 
-    from ...commands import CmdDesc, register, BoolArg, NoArg, EnumOf, IntArg, Int3Arg
+    from ...commands import CmdDesc, register, BoolArg, NoArg, StringArg, EnumOf, IntArg, Int3Arg
     from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
-    from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Float1or3Arg, ValueTypeArg
+    from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
 
     varg = [('volumes', MapsArg)]
@@ -141,6 +141,16 @@ def register_vop_command():
 
     multiply_desc = CmdDesc(required = varg, keyword = add_kw)
     register('vop multiply', multiply_desc, vop_multiply)
+
+    new_opt = [('name', StringArg),]
+    new_kw = [('size', Int1or3Arg),
+              ('grid_spacing', Float1or3Arg),
+              ('origin', Float3Arg),
+              ('cell_angles', Float1or3Arg),
+              ('value_type', ValueTypeArg),
+              ('model_id', ModelIdArg)]
+    new_desc = CmdDesc(optional = new_opt, keyword = new_kw)
+    register('vop new', new_desc, vop_new)
 
     oct_kw = [('center', Float3Arg),
               ('i_center', Int3Arg),
@@ -562,6 +572,27 @@ def vop_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
     morph_maps(volumes, frames, start, play_step, play_direction, prange,
                add_mode, constant_volume, sfactors,
                hide_original_maps, interpolate_colors, subregion, step, model_id)
+
+# -----------------------------------------------------------------------------
+#
+def vop_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,1.0,1.0),
+            origin = (0.0,0.0,0.0), cell_angles = (90,90,90),
+            value_type = None, model_id = None):
+
+    from numpy import zeros
+    shape = list(size)
+    shape.reverse()
+    if value_type is None:
+        from numpy import float32
+        value_type = float32
+    a = zeros(shape, dtype = value_type)
+    from ..data import Array_Grid_Data
+    grid = Array_Grid_Data(a, origin = origin, step = grid_spacing,
+                           cell_angles = cell_angles, name = name)
+    from .. import volume_from_grid_data
+    v = volume_from_grid_data(grid, session, model_id = model_id)
+    v.show()
+    return v
         
 # -----------------------------------------------------------------------------
 #
