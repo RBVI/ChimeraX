@@ -499,7 +499,9 @@ CIFFile::internal_parse(bool one_table)
 				}
 			}
 			save_values = cii != categories.end();
-			if (save_values && !one_table) {
+			if (!save_values && unregistered)
+				save_values = true;
+			else if (save_values && !one_table) {
 				for (auto d: cii->second.dependencies) {
 					if (seen.find(d) != seen.end())
 						continue;
@@ -531,7 +533,7 @@ CIFFile::internal_parse(bool one_table)
 				seen.insert(current_category);
 				first_row = true;
 				in_loop = true;
-				ParseCategory& pf = cii->second.func;
+				ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 				pf();
 				first_row = false;
 				fixed_columns = false;
@@ -618,7 +620,7 @@ CIFFile::internal_parse(bool one_table)
 						seen.insert(current_category);
 						first_row = true;
 						in_loop = false;
-						ParseCategory& pf = cii->second.func;
+						ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 						pf();
 						first_row = false;
 						fixed_columns = false;
@@ -635,7 +637,9 @@ CIFFile::internal_parse(bool one_table)
 					current_category = category;
 					cii = categories.find(current_category);
 					save_values = cii != categories.end();
-					if (save_values && !one_table) {
+					if (!save_values && unregistered)
+						save_values = true;
+					else if (save_values && !one_table) {
 						for (auto d: cii->second.dependencies) {
 							if (seen.find(d) != seen.end())
 								continue;
@@ -671,7 +675,7 @@ CIFFile::internal_parse(bool one_table)
 				seen.insert(current_category);
 				first_row = true;
 				in_loop = false;
-				ParseCategory& pf = cii->second.func;
+				ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 				pf();
 				first_row = false;
 				fixed_columns = false;
