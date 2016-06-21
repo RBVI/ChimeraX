@@ -457,9 +457,17 @@ def save_volumes(vlist, doptions, session):
     
     path = doptions['save']
     format = doptions.get('save_format', None)
-    from .data import fileformats
-    if fileformats.file_writer(path, format) is None: 
-        format = 'mrc' 
+    from .data.fileformats import file_writer, file_writers
+    if file_writer(path, format) is None:
+        from ..errors import UserError
+        if format is None:
+            msg = ('Unknown file suffix for "%s", known suffixes %s'
+                   % (path, ', '.join(fw[2] for fw in file_writers)))
+        else:
+            msg = ('Unknown file format "%s", known formats %s'
+                   % (format, ', '.join(fw[1] for fw in file_writers)))
+        raise UserError(msg)
+        
     options = {}
     if 'chunk_shapes' in doptions:
         options['chunk_shapes'] = doptions['chunk_shapes']
