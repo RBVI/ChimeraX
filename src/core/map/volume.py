@@ -2450,10 +2450,10 @@ def full_region(size, ijk_step = [1,1,1]):
 def is_empty_region(ijk_region):
 
   ijk_min, ijk_max, ijk_step = ijk_region
-  ijk_size = [a - b + 1 for a,b in zip(ijk_max, ijk_min)]
-  if filter(lambda size: size <= 0, ijk_size):
-    return 1
-  return 0
+  for a,b in zip(ijk_max, ijk_min):
+    if a - b + 1 <= 0:
+      return True
+  return False
 
 # ---------------------------------------------------------------------------
 # Adjust volume region to include a zone.  If current volume region is
