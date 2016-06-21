@@ -167,11 +167,13 @@ class GrayScaleDrawing(Drawing):
     max_proj = dtransp and self.maximum_intensity_projection
     if max_proj:
       r.blend_max(True)
-    r.write_depth(False)
+    if dtransp:
+      r.write_depth(False)
 
     Drawing.draw(self, r, place, draw_pass, selected_only)
 
-    r.write_depth(True)
+    if dtransp:
+      r.write_depth(True)
     if max_proj:
       r.blend_max(False)
 
