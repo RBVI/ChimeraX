@@ -1914,7 +1914,7 @@ class Outline_Box:
                  any(corners != self.corners) or
                  rgb != self.rgb or
                  linewidth != self.linewidth or
-                 any(center != self.center) or
+                 (center is not None and any(center != self.center)) or
                  planes != self.planes or
                  crosshair_width != self.crosshair_width)
       if changed:
