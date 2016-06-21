@@ -118,6 +118,9 @@ def register_vop_command():
     maximum_desc = CmdDesc(required = varg, keyword = add_kw)
     register('vop maximum', maximum_desc, vop_maximum)
 
+    minimum_desc = CmdDesc(required = varg, keyword = add_kw)
+    register('vop minimum', minimum_desc, vop_minimum)
+
     median_desc = CmdDesc(required = varg,
                           keyword = [('bin_size', MapStepArg),
                                      ('iterations', IntArg)] + ssm_kw)
@@ -244,6 +247,16 @@ def vop_maximum(session, volumes, on_grid = None, bounding_grid = None,
 
 # -----------------------------------------------------------------------------
 #
+def vop_minimum(session, volumes, on_grid = None, bounding_grid = None,
+                subregion = 'all', step = 1,
+                grid_subregion = 'all', grid_step = 1, value_type = None,
+                in_place = False, scale_factors = None, model_id = None):
+    '''Pointwise minimum of maps.'''
+    combine_op(volumes, 'minimum', on_grid, bounding_grid, subregion, step,
+               grid_subregion, grid_step, value_type, in_place, scale_factors, model_id, session)
+
+# -----------------------------------------------------------------------------
+#
 def vop_multiply(session, volumes, on_grid = None, bounding_grid = None,
                  subregion = 'all', step = 1,
                  grid_subregion = 'all', grid_step = 1, value_type = None,
@@ -316,6 +329,8 @@ def combine_operation(volumes, operation, subregion, step,
             rg.polar_values = True
         elif operation == 'maximum':
             rg.name = 'volume maximum'
+        elif operation == 'minimum':
+            rg.name = 'volume minimum'
         else:
             rg.name = 'volume sum'
         from .. import volume_from_grid_data

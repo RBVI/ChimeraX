@@ -1478,6 +1478,9 @@ class Volume(Model):
     elif operation == 'maximum':
       from numpy import maximum
       maximum(m, values, m)
+    elif operation == 'minimum':
+      from numpy import minimum
+      minimum(m, values, m)
     elif operation == 'multiply':
       m[:,:,:] *= values
     d.values_changed()
