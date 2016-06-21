@@ -102,7 +102,7 @@ def register_vop_command():
     register('vop fourier', fourier_desc, vop_fourier)
 
     gaussian_desc = CmdDesc(required = varg,
-        keyword = [('s_dev', Float1or3Arg), ('value_type', ValueTypeArg)] + ssm_kw
+        keyword = [('s_dev', Float1or3Arg), ('value_type', ValueTypeArg), ('invert', NoArg)] + ssm_kw
     )
     register('vop gaussian', gaussian_desc, vop_gaussian)
 
@@ -472,11 +472,12 @@ def vop_fourier(session, volumes, subregion = 'all', step = 1, model_id = None, 
 # -----------------------------------------------------------------------------
 #
 def vop_gaussian(session, volumes, s_dev = (1.0,1.0,1.0),
-                subregion = 'all', step = 1, value_type = None, model_id = None):
+                 subregion = 'all', step = 1, value_type = None, invert = False,
+                 model_id = None):
     '''Smooth maps by Gaussian convolution.'''
     from .gaussian import gaussian_convolve
     for v in volumes:
-        gaussian_convolve(v, s_dev, step, subregion, value_type, model_id, session = session)
+        gaussian_convolve(v, s_dev, step, subregion, value_type, invert, model_id, session = session)
 
 # -----------------------------------------------------------------------------
 #

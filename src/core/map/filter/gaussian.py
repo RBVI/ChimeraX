@@ -5,10 +5,11 @@
 # The standard deviation is specified in xyz units.
 #
 def gaussian_convolve(volume, sdev, step = 1, subregion = None,
-                      value_type = None, modelId = None, task = None, session = None):
+                      value_type = None, invert = False,
+                      modelId = None, task = None, session = None):
 
   gg = gaussian_grid(volume, sdev, step, subregion, value_type = value_type,
-                     task = task)
+                     invert = invert, task = task)
   from .. import volume_from_grid_data
   gv = volume_from_grid_data(gg, session, show_data = False, model_id = modelId)
   gv.copy_settings_from(volume, copy_region = False, copy_colors = False, copy_thresholds = False)
@@ -22,7 +23,7 @@ def gaussian_convolve(volume, sdev, step = 1, subregion = None,
 # -----------------------------------------------------------------------------
 #
 def gaussian_grid(volume, sdev, step = 1, subregion = None, region = None,
-                  value_type = None, task = None):
+                  value_type = None, invert = False, task = None):
 
   v = volume
   if region is None:
@@ -34,7 +35,8 @@ def gaussian_grid(volume, sdev, step = 1, subregion = None, region = None,
   ijk_sdev = [float(sd)/s for sd,s in zip(sdev3,step)]
 
   m = v.region_matrix(region)
-  gm = gaussian_convolution(m, ijk_sdev, value_type = value_type, task = task)
+  gm = gaussian_convolution(m, ijk_sdev, value_type = value_type,
+                            invert = invert, task = task)
 
   from ..data import Array_Grid_Data
   d = v.data
@@ -48,12 +50,12 @@ def gaussian_grid(volume, sdev, step = 1, subregion = None, region = None,
 # Compute with zero padding in real-space to avoid cyclic-convolution.
 #
 def gaussian_convolution(data, ijk_sdev, value_type = None,
-                         cyclic = False, cutoff = 5, task = None):
+                         cyclic = False, cutoff = 5, invert = False, task = None):
 
   if value_type is None:
     value_type = data.dtype
 
-  from numpy import array, float32, float64, multiply, swapaxes
+  from numpy import array, float32, float64, multiply, divide, swapaxes
   vt = value_type if value_type == float32 or value_type == float64 else float32
   c = array(data, vt)
 
@@ -80,7 +82,10 @@ def gaussian_convolution(data, ijk_sdev, value_type = None,
         ft = rfft(cp, n=len(g))   # Complex128 result, size n/2+1
       except ValueError as e:
         raise MemoryError(e)      # Array dimensions too large.
-      multiply(ft, fg, ft)
+      if invert:
+        divide(ft, fg, ft)
+      else:
+        multiply(ft, fg, ft)
       cp[:,:] = irfft(ft)[:,:size] # Float64 result
       if task:
         pct = 100.0 * (axis + float(p)/s0) / 3.0
