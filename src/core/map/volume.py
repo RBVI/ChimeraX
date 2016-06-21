@@ -1128,14 +1128,24 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   # Points must be in volume local coordinates.
   #
-  def bounding_region(self, points, padding = 0, step = None, clamp = True):
+  def bounding_region(self, points, padding = 0, step = None, clamp = True, cubify = False):
 
     d = self.data
     from .data import points_ijk_bounds
-    ijk_min, ijk_max = points_ijk_bounds(points, padding, d)
+    ijk_fmin, ijk_fmax = points_ijk_bounds(points, padding, d)
+    r = self.integer_region(ijk_fmin, ijk_fmax, step)
+    if cubify:
+      ijk_min, ijk_max = r[:2]
+      s = max(a-b+1 for a, b in zip(ijk_max, ijk_min)) if isinstance(cubify,bool) else cubify
+      for a in (0,1,2):
+        sa = ijk_max[a] - ijk_min[a] + 1
+        if sa < s:
+          ds = s-sa
+          o = (ds+1)/2 if ijk_fmax[a] - ijk_max[a] > ijk_min[a] - ijk_fmin[a] else ds/2
+          ijk_max[a] += o
+          ijk_min[a] -= ds - o
     if clamp:
-      ijk_min, ijk_max = clamp_region((ijk_min, ijk_max, None), d.size)[:2]
-    r = self.integer_region(ijk_min, ijk_max, step)
+      r = clamp_region(r, d.size)
     return r
 
   # ---------------------------------------------------------------------------

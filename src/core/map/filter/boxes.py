@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 # Make separate volumes of a specified size around markers.
 #
-def boxes(session, volume, atoms, size = 0, use_atom_size = False,
+def boxes(session, volume, atoms, size = 0, isize = None, use_atom_size = False,
           step = None, subregion = None, base_model_id = None):
 
     vlist = []
@@ -12,7 +12,8 @@ def boxes(session, volume, atoms, size = 0, use_atom_size = False,
         r = 0.5*size
         if use_atom_size:
             r += a.radius
-        ijk_min, ijk_max, ijk_step = volume.bounding_region([center], r, step)
+        cubify = True if isize is None else isize
+        ijk_min, ijk_max, ijk_step = volume.bounding_region([center], r, step, cubify = cubify)
         ijk_min = [max(s,t) for s,t in zip(ijk_min, ijk_rmin)]
         ijk_max = [min(s,t) for s,t in zip(ijk_max, ijk_rmax)]
         region = (ijk_min, ijk_max, ijk_step)
