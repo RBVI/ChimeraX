@@ -12,8 +12,8 @@
 
 namespace atomstruct {
 
-Chain::Chain(const ChainID& chain_id, Structure* as): Sequence(),
-    _chain_id(chain_id), _from_seqres(false), _structure(as)
+Chain::Chain(const ChainID& chain_id, Structure* s): Sequence(std::string("chain ") += chain_id),
+    _chain_id(chain_id), _from_seqres(false), _structure(s)
 {
     _structure->change_tracker()->add_created(this);
 }
