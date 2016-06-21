@@ -1837,7 +1837,7 @@ extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, voi
 // -------------------------------------------------------------------------
 // sequence functions
 //
-extern "C" void *sequence_new(const char* name, const char* characters)
+extern "C" EXPORT void *sequence_new(const char* name, const char* characters)
 {
     try {
         Sequence::Contents chars;
@@ -1850,7 +1850,7 @@ extern "C" void *sequence_new(const char* name, const char* characters)
     }
 }
 
-extern "C" void sequence_characters(void *seqs, size_t n, pyobject_t *chars)
+extern "C" EXPORT void sequence_characters(void *seqs, size_t n, pyobject_t *chars)
 {
     Sequence **s = static_cast<Sequence **>(seqs);
     try {
@@ -1868,7 +1868,7 @@ extern "C" void sequence_characters(void *seqs, size_t n, pyobject_t *chars)
     }
 }
 
-extern "C" void set_sequence_characters(void *seqs, size_t n, pyobject_t *chars)
+extern "C" EXPORT void set_sequence_characters(void *seqs, size_t n, pyobject_t *chars)
 {
     Sequence **s = static_cast<Sequence **>(seqs);
     try {
@@ -1883,7 +1883,7 @@ extern "C" void set_sequence_characters(void *seqs, size_t n, pyobject_t *chars)
     }
 }
 
-extern "C" void sequence_name(void *seqs, size_t n, pyobject_t *names)
+extern "C" EXPORT void sequence_name(void *seqs, size_t n, pyobject_t *names)
 {
     Sequence **s = static_cast<Sequence **>(seqs);
     try {
@@ -1894,7 +1894,7 @@ extern "C" void sequence_name(void *seqs, size_t n, pyobject_t *names)
     }
 }
 
-extern "C" void set_sequence_name(void *seqs, size_t n, pyobject_t *names)
+extern "C" EXPORT void set_sequence_name(void *seqs, size_t n, pyobject_t *names)
 {
     Sequence **s = static_cast<Sequence **>(seqs);
     try {
