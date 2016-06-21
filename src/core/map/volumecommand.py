@@ -295,7 +295,6 @@ def volume(session,
             loc[opt] = value
 
     # Adjust global settings.
-    loc = locals()
     gopt = ('data_cache_size', 'show_on_open', 'voxel_limit_for_open',
             'show_plane', 'voxel_limit_for_plane')
     gsettings = dict((n,loc[n]) for n in gopt if not loc[n] is None)
