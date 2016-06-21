@@ -216,8 +216,9 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
         m = m.astype(value_type)
 
     if not threshold is None:
-        from numpy import maximum, array
-        maximum(m, array((threshold,),m.dtype), m)
+        from numpy import array, putmask
+        t = array(threshold, m.dtype)
+        putmask(m, m < t, 0)
 
     if zero_mean:
         from numpy import float64
@@ -324,7 +325,7 @@ def create_centroid_path(xyz, radius, color):
     # TODO: This is obsolete Hydra code.
     n = len(xyz)
     from numpy import zeros, array, float32, arange, empty
-    from ...atomic import atom_dtype, AtomicStructure
+    from ...atomic import atom_dtype, Structure
     atoms = zeros((n,), atom_dtype)
     atoms['atom_name'] = b's'
     atoms['element_number'] = 1
@@ -339,7 +340,7 @@ def create_centroid_path(xyz, radius, color):
     atoms['ribbon_color'] = (255,255,255,255)
     atoms['atom_shown'] = 1
     atoms['ribbon_shown'] = 0
-    m = AtomicStructure('centroids', atoms)
+    m = Structure('centroids', atoms)
     return m
 
 # -----------------------------------------------------------------------------

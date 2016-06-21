@@ -4,9 +4,10 @@
 //
 #include <Python.h>			// use PyObject
 
+#include <arrays/pythonarray.h>		// use array_from_python()
+#include <arrays/rcarray.h>		// Numeric_Array
 #include "distances.h"			// use distances_*()
-#include "pythonarray.h"		// use array_from_python()
-#include "rcarray.h"			// Numeric_Array
+#include "distancespy.h"
 
 using Reference_Counted_Array::Numeric_Array;
 

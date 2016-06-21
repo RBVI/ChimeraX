@@ -54,6 +54,10 @@ _ROW = ('<tr>'
         '<td class="name">%s</td>'
         '<td class="synopsis">%s</td>'
         '</tr>')
+_RUNNING_ROW = ('<tr>'
+        '<td class="buttons">%s</td>'
+        '<td class="name", colspan="0">%s</td>'
+        '</tr>')
 
 
 class ToolshedUI(ToolInstance):
@@ -66,31 +70,50 @@ class ToolshedUI(ToolInstance):
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
-        from wx import html2
-        import wx
-        self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
-        self.webview.EnableContextMenu(False)
-        # self.webview.EnableHistory(False)
-        self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING,
-                          self._on_navigating,
-                          id=self.webview.GetId())
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.webview, 1, wx.EXPAND)
-        parent.SetSizerAndFit(sizer)
+        from chimerax.core import window_sys
+        self.window_sys = window_sys
+        if self.window_sys == "wx":
+            from wx import html2
+            import wx
+            self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
+            self.webview.EnableContextMenu(False)
+            # self.webview.EnableHistory(False)
+            self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.navigate, id=self.webview.GetId())
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            sizer.Add(self.webview, 1, wx.EXPAND)
+            parent.SetSizerAndFit(sizer)
+        else: # qt
+            from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+            class HtmlWindow(QWebView):
+                def sizeHint(self):
+                    from PyQt5.QtCore import QSize
+                    return QSize(*ToolshedUI.SIZE)
+            self.webview = HtmlWindow(parent)
+            from PyQt5.QtWidgets import QGridLayout
+            layout = QGridLayout(parent)
+            layout.addWidget(self.webview, 0, 0)
+            parent.setLayout(layout)
+            self.webview.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
+            self.webview.linkClicked.connect(self.navigate)
         self.tool_window.manage(placement="right")
         from chimerax.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
-        self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE,
-                                                       self._make_page),
-                          session.triggers.add_handler(REMOVE_TOOL_INSTANCE,
-                                                       self._make_page)]
+        self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE, self._make_page),
+                          session.triggers.add_handler(REMOVE_TOOL_INSTANCE, self._make_page)]
         self._make_page()
 
-    def _on_navigating(self, event):
+    def navigate(self, data):
         session = self.session
         # Handle event
-        url = event.GetURL()
+        if self.window_sys == "wx":
+            # data is wx event
+            url = data.GetURL()
+            link_handled = data.Veto
+        else:
+            # data is QUrl
+            url = data.toString()
+            link_handled = lambda: False
         if url.startswith("toolshed:"):
-            event.Veto()
+            link_handled()
             parts = url.split(':')
             method = getattr(self, parts[1])
             args = parts[2:]
@@ -120,7 +143,7 @@ class ToolshedUI(ToolInstance):
                 hide_link = _HIDE_LINK % t.id
                 kill_link = _KILL_LINK % t.id
                 links = "&nbsp;".join([show_link, hide_link, kill_link])
-                print(_ROW % (links, t.display_name, "&nbsp;"), file=s)
+                print(_RUNNING_ROW % (links, t.display_name), file=s)
             print("</table>", file=s)
         page = page.replace("RUNNING_TOOLS", s.getvalue())
 
@@ -170,8 +193,12 @@ class ToolshedUI(ToolInstance):
         page = page.replace("AVAILABLE_TOOLS", s.getvalue())
         page = page.replace("TOOLSHED_URL", ts.remote_url)
 
-        self.webview.ClearHistory()
-        self.webview.SetPage(page, "")
+        if self.window_sys == "wx":
+            self.webview.ClearHistory()
+            self.webview.SetPage(page, "")
+        else:
+            self.webview.history().clear()
+            self.webview.setHtml(page)
 
     def refresh_installed(self, session):
         # refresh list of installed tools

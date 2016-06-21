@@ -8,7 +8,7 @@
 #define INTERPOLATE_HEADER_INCLUDED
 
 #include <vector>			// use std::vector<>
-#include "rcarray.h"			// use Numeric_Array
+#include <arrays/rcarray.h>		// use Numeric_Array
 
 namespace Interpolate
 {

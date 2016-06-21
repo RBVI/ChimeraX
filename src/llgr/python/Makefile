@@ -18,6 +18,7 @@ else
 LIBS = -L$(libdir) -lllgr -lwrappy3 $(OPENGL_LIBS)
 endif
 
+DEFS += $(PYDEF)
 ifdef WIN32
 CXXFLAGS += -I'$(shell cygpath -m '$(includedir)')'
 else

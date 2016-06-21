@@ -12,7 +12,7 @@ _CmapRanges = ["full"]
 
 def color(session, objects, color=None, what=None,
           target=None, transparency=None,
-          sequential=None, cmap=None, cmap_range=None, halfbond=None):
+          sequential=None, palette=None, range=None, halfbond=None):
     """Color atoms, ribbons, surfaces, ....
 
     Parameters
@@ -25,17 +25,17 @@ def color(session, objects, color=None, what=None,
       What to color. Everything is colored if option is not specified.
     target : string
       Alternative to the "what" option for specifying what to color.
-      Characters indicating what to color, a = atoms, c = cartoon, s = surfaces, m = models,
-      n = non-molecule models, l = labels, r = residue labels, b = bonds, p = pseudobonds, d = distances.
+      Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces, m = models,
+      n = non-molecule models, l = labels, b = bonds, p = pseudobonds, d = distances.
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
     sequential : "residues", "chains", "molmodels"
       Assigns each object a color from a color map.
-    cmap : :class:`.Colormap`
+    palette : :class:`.Colormap`
       Color map to use with sequential coloring.
-    cmap_range : 2 comma-separated floats or "full"
-      Specifies the range of value used for sampling from a color map.
+    range : 2 comma-separated floats or "full"
+      Specifies the range of values used for sampling from a palette.
     halfbond : bool
       Whether to color each half of a bond to match the connected atoms.
       If halfbond is false the bond is given the single color assigned to the bond.
@@ -49,7 +49,9 @@ def color(session, objects, color=None, what=None,
 
     default_target = (target is None and what is None)
     if default_target:
-        target = 'acsmnlrbd'
+        target = 'acsmnlbd'
+    if 'r' in target:
+        target += 'c'
 
     if what is not None:
         what_target = {'atoms':'a', 'cartoons':'c', 'ribbons':'c',
@@ -78,7 +80,7 @@ def color(session, objects, color=None, what=None,
             raise UserError("sequential \"%s\" not implemented yet"
                             % sequential)
         else:
-            f(session, objects, cmap, opacity, target)
+            f(session, objects, palette, opacity, target)
             return
 
     what = []
@@ -109,10 +111,6 @@ def color(session, objects, color=None, what=None,
         residues = atoms.unique_residues
         _set_ribbon_colors(residues, color, opacity, bgcolor)
         what.append('%d residues' % len(residues))
-
-    if 'r' in target:
-        if not default_target:
-            session.logger.warning('Residue label colors not supported yet')
 
     if 'n' in target:
         if not default_target:
@@ -309,8 +307,8 @@ def _set_sequential_structures(session, selected, cmap, opacity, target):
         from .. import colors
         cmap = colors.BuiltinColormaps["rainbow"]
 
-    from ..atomic import AtomicStructure
-    models = list(m for m in selected.models if isinstance(m, AtomicStructure))
+    from ..atomic import Structure
+    models = list(m for m in selected.models if isinstance(m, Structure))
     models.sort(key = lambda m: m.id)
     if len(models) == 0:
         return
@@ -348,8 +346,8 @@ def register_command(session):
                    keyword=[('target', StringArg),
                             ('transparency', FloatArg),
                             ('sequential', EnumOf(_SequentialLevels)),
-                            ('cmap', ColormapArg),
-                            ('cmap_range', Or(TupleOf(FloatArg, 2), EnumOf(_CmapRanges))),
+                            ('palette', ColormapArg),
+                            ('range', Or(TupleOf(FloatArg, 2), EnumOf(_CmapRanges))),
                             ('halfbond', BoolArg)],
                    synopsis="color objects")
     register('color', desc, color)

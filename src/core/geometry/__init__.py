@@ -2,7 +2,7 @@
 from .place import Place, Places, identity, rotation, vector_rotation, translation, scale
 from .place import product, orthonormal_frame, interpolate_rotation
 from .vector import interpolate_points, inner_product, normalize_vector, ray_segment
-from .vector import planes_as_4_vectors, distance, cross_product
+from .vector import planes_as_4_vectors, distance, cross_product, norm
 from .bounds import sphere_bounds, union_bounds, Bounds, point_bounds
 from .bounds import copies_bounding_box, copy_tree_bounds, clip_bounds
 from ._geometry import natural_cubic_spline
@@ -11,3 +11,12 @@ from ._geometry import find_close_points, find_closest_points
 from ._geometry import closest_sphere_intercept, closest_cylinder_intercept, closest_triangle_intercept
 from ._geometry import segment_intercepts_spheres, points_within_planes
 from .align import align_points
+from .symmetry import cyclic_symmetry_matrices
+from .symmetry import dihedral_symmetry_matrices
+from .symmetry import tetrahedral_symmetry_matrices, tetrahedral_orientations
+from .symmetry import octahedral_symmetry_matrices
+from .symmetry import helical_symmetry_matrices, helical_symmetry_matrix
+from .symmetry import translation_symmetry_matrices
+from .symmetry import recenter_symmetries
+from .icosahedron import icosahedral_symmetry_matrices
+from .icosahedron import coordinate_system_names as icosahedral_orientations

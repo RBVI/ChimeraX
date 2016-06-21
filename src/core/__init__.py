@@ -25,8 +25,8 @@ _class_class_init = {
     'Color': '.colors',
     'Drawing': '.graphics',
     'Generic3DModel': '.generic3d',
-    'Graph': '.atomic',
     'GridDataState': '.map.session',
+    'Job': '.tasks',
     'LevelOfDetail': '.atomic.structure',
     'Lighting': '.graphics',
     'Map_Series': '.map.series',
@@ -47,7 +47,7 @@ _class_class_init = {
     'Residues': '.atomic',
     'Sequence': '.atomic',
     'STLModel': '.stl',
-    'Job': '.tasks',
+    'Structure': '.atomic',
     'Tasks': '.tasks',
     'Tools': '.tools',
     'TriangleInfo': '.stl',
@@ -57,7 +57,6 @@ _class_class_init = {
     'Volume': '.map',
     '_Input': '.ui.nogui',
 }
-
 
 def get_class(class_name):
     """Return chimerax.core class for instance in a session

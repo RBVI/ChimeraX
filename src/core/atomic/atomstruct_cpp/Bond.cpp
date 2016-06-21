@@ -1,15 +1,16 @@
 // vi: set expandtab ts=4 sw=4:
+#define ATOMSTRUCT_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "Chain.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "Residue.h"
 #include "Sequence.h"
 #include <stdexcept>
 
 namespace atomstruct {
 
-Bond::Bond(Graph* as, Atom* a1, Atom* a2): UniqueConnection(a1, a2)
+Bond::Bond(Structure* as, Atom* a1, Atom* a2): UniqueConnection(a1, a2)
 {
     if (a1->structure() != as || a2->structure() != as)
         throw std::invalid_argument("Cannot bond atoms in different molecules");

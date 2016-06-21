@@ -40,6 +40,8 @@ The command <b>open</b> reads <a href="#local">local files</a> and
 fetches <a href="#fetch">data from the Web</a>.
 Input files may contain 3D data to be displayed, 
 or commands or code to be executed.
+Local files can also be browsed/opened with <b>File... Open</b> in the menu,
+in which case the proper filename <a href="#local">suffix</a> is required.
 See also: 
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
@@ -114,7 +116,8 @@ target="_blank"><b>APBS</b></a> interface in
 target="_blank"><b>UCSF Chimera</b></a>)</td>
 <td align="center"><b>.dx</b></td>
 <td align="center"><b>apbs</b></td>
-<td align="center">electrostatic potential map</td>
+<td align="center">electrostatic potential map
+<br>(also used for lipophilic potential from <b>mlp</b>)</td>
 </tr><tr>
 <td align="center">BRIX or DSN6 (used by O)</td>
 <td align="center"><b>.brix<br>.omap</b></td>
@@ -186,6 +189,12 @@ in ChimeraX to connect with pseudobonds</td>
 <td align="center"><b>.py<br>.pyc<br>.pyo</b></td>
 <td align="center"><b>py</b></td>
 <td align="center">Python code</td>
+</tr><tr>
+<td align="center">HTML</td>
+<td align="center"><b>.html</b></td>
+<td align="center"></td>
+<td align="center">HTML 
+<br>(to show in the ChimeraX built-in browser)</td>
 </tr></table>
 
 <a name="fetch"></a>
@@ -249,5 +258,5 @@ with <b>ignoreCache true</b>, although the new data will still be cached.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2016</address>
+March 2016</address>
 </body></html>

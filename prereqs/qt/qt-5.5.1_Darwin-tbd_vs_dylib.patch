@@ -1,0 +1,18 @@
+--- qtwebengine/src/3rdparty/chromium/tools/gyp/pylib/gyp/xcode_emulation.py.orig	2015-10-18 21:54:12.000000000 +0200
++++ qtwebengine/src/3rdparty/chromium/tools/gyp/pylib/gyp/xcode_emulation.py	2015-10-18 21:55:54.000000000 +0200
+@@ -984,7 +984,14 @@
+     sdk_root = self._SdkPath(config_name)
+     if not sdk_root:
+       sdk_root = ''
+-    return l.replace('$(SDKROOT)', sdk_root)
++    library = l.replace('$(SDKROOT)', sdk_root)
++    if l.startswith('$(SDKROOT)'):
++      basename, ext = os.path.splitext(library)
++      if ext == '.dylib' and not os.path.exists(library):
++        tbd_library = basename + '.tbd'
++        if os.path.exists(tbd_library):
++          library = tbd_library
++    return library
+ 
+   def AdjustLibraries(self, libraries, config_name=None):
+     """Transforms entries like 'Cocoa.framework' in libraries into entries like

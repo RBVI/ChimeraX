@@ -12,7 +12,7 @@ namespace atomstruct {
 
 class Atom;
 class Bond;
-class Graph;
+class Structure;
 class Pseudobond;
 class Residue;
 class Chain;
@@ -23,7 +23,7 @@ class Proxy_PBGroup;
 
 namespace atomstruct {
 
-class Changes {
+class ATOMSTRUCT_IMEX Changes {
 public:
     // plain "set" (rather than "unordered_set") empirically faster to add_created() and clear()
     std::set<const void*>  created; // use set so that deletions can be easily found
@@ -218,7 +218,7 @@ ChangeTracker::_ptr_to_type(const atomstruct::Chain*) { return 4; }
 
 template <>
 inline int
-ChangeTracker::_ptr_to_type(atomstruct::Graph*) { return 5; }
+ChangeTracker::_ptr_to_type(atomstruct::Structure*) { return 5; }
 template <>
 inline int
 ChangeTracker::_ptr_to_type(atomstruct::AtomicStructure*) { return 5; }

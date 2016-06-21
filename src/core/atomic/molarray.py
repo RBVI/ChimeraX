@@ -662,70 +662,72 @@ class Residues(Collection):
             residue_pointers = array([r._c_pointer.value for r in residues], cptr)
         Collection.__init__(self, residue_pointers, molobject.Residue, Residues)
 
-    atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False)
-    '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.'''
-    chain_ids = cvec_property('residue_chain_id', string, read_only = True)
-    '''Returns a numpy array of chain IDs. Read only.'''
-    polymer_types = cvec_property('residue_polymer_type', int32, read_only = True)
-    '''Returns a numpy int array of residue types. Read only.'''
-    is_helix = cvec_property('residue_is_helix', npy_bool)
-    '''Returns a numpy bool array whether each residue is in a protein helix. Read only.'''
-    is_sheet = cvec_property('residue_is_sheet', npy_bool)
-    '''Returns a numpy bool array whether each residue is in a protein sheet. Read only.'''
-    structures = cvec_property('residue_structure', cptr, astype = _atomic_structures, read_only = True)
-    '''Returns :class:`.StructureDatas` collection containing structures for each residue.'''
-    names = cvec_property('residue_name', string, read_only = True)
-    '''Returns a numpy array of residue names. Read only.'''
-    num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True)
-    '''Returns a numpy integer array of the number of atoms in each residue. Read only.'''
-    numbers = cvec_property('residue_number', int32, read_only = True)
+    atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False, doc =
+    '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.''')
+    chain_ids = cvec_property('residue_chain_id', string, read_only = True, doc =
+    '''Returns a numpy array of chain IDs. Read only.''')
+    insertion_codes = cvec_property('residue_insertion_code', string, doc =
+    '''Returns a numpy array of insertion codes.  An empty string indicates no insertion code.''')
+    is_helix = cvec_property('residue_is_helix', npy_bool, doc =
+    '''Returns a numpy bool array whether each residue is in a protein helix''')
+    is_sheet = cvec_property('residue_is_sheet', npy_bool, doc =
+    '''Returns a numpy bool array whether each residue is in a protein sheet''')
+    names = cvec_property('residue_name', string, read_only = True, doc =
+    '''Returns a numpy array of residue names. Read only.''')
+    num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =
+    '''Returns a numpy integer array of the number of atoms in each residue. Read only.''')
+    numbers = cvec_property('residue_number', int32, read_only = True, doc =
     '''
     Returns a :mod:`numpy` array of residue sequence numbers, as provided by
     whatever data source the structure came from, so not necessarily consecutive,
     or starting from 1, *etc.* Read only.
-    '''
-    principal_atoms = cvec_property('residue_principal_atom', cptr, astype = _atoms_or_nones, read_only = True)
+    ''')
+    polymer_types = cvec_property('residue_polymer_type', int32, read_only = True, doc =
+    '''Returns a numpy int array of residue types. Read only.''')
+    principal_atoms = cvec_property('residue_principal_atom', cptr, astype = _atoms_or_nones,
+        read_only = True, doc =
     '''List of the 'chain trace' :class:`.Atom`\\ s or None (for residues without such an atom).
 
     Normally returns the C4' from a nucleic acid since that is always present,
-    but in the case of a P-only trace it returns the P.'''
-    existing_principal_atoms = cvec_property('residue_principal_atom', cptr, astype = _non_null_atoms, read_only = True)
-    '''Like the principal_atoms property, but returns a :class:`.Residues` collection omitting Nones'''
-    ss_ids = cvec_property('residue_ss_id', int32)
-    '''
-    A :mod:`numpy` array of integer secondary structure IDs.
-    '''
-    strs = cvec_property('residue_str', string, read_only = True)
-    '''
-    Returns a numpy array of strings that encapsulates each
-    residue's name, sequence position, and chain ID in a readable
-    form. Read only.
-    '''
-    ribbon_displays = cvec_property('residue_ribbon_display', npy_bool)
-    '''A numpy bool array whether to display each residue in ribbon style.'''
-    ribbon_colors = cvec_property('residue_ribbon_color', uint8, 4)
+    but in the case of a P-only trace it returns the P.''')
+    existing_principal_atoms = cvec_property('residue_principal_atom', cptr, astype = _non_null_atoms, read_only = True, doc =
+    '''Like the principal_atoms property, but returns a :class:`.Residues` collection omitting Nones''')
+    ribbon_displays = cvec_property('residue_ribbon_display', npy_bool, doc =
+    '''A numpy bool array whether to display each residue in ribbon style.''')
+    ribbon_colors = cvec_property('residue_ribbon_color', uint8, 4, doc =
     '''
     A :mod:`numpy` Nx4 array of uint8 RGBA values.  Can be
     set with such an array (or equivalent sequence), or with a single
     RGBA value.
-    '''
-    ribbon_styles = cvec_property('residue_ribbon_style', int32)
-    '''A numpy int array of cartoon styles.  See constants in :class:Ribbon.'''
-    ribbon_adjusts = cvec_property('residue_ribbon_adjust', float32)
+    ''')
+    ribbon_styles = cvec_property('residue_ribbon_style', int32, doc =
+    '''A numpy int array of cartoon styles.  See constants in :class:Ribbon.''')
+    ribbon_adjusts = cvec_property('residue_ribbon_adjust', float32, doc =
     '''A numpy float array of adjustment factors for the position of ribbon
     control points.  Factors range from zero to one, with zero being using the
     actual atomic coordinates as control point, and one being using the idealized
     secondary structure position as control point.  A negative value means to
-    use the default of zero for turns and helices and 0.7 for strands.'''
-    ribbon_hide_backbones = cvec_property('residue_ribbon_hide_backbone', npy_bool)
+    use the default of zero for turns and helices and 0.7 for strands.''')
+    ribbon_hide_backbones = cvec_property('residue_ribbon_hide_backbone', npy_bool, doc =
     '''A :mod:`numpy` array of booleans. Whether a ribbon automatically hides
-    the residue backbone atoms.'''
-    secondary_structure_ids = cvec_property('residue_secondary_structure_id', int32, read_only = True)
+    the residue backbone atoms.''')
+    secondary_structure_ids = cvec_property('residue_secondary_structure_id', int32,
+        read_only = True, doc =
     '''
     A :mod:`numpy` array of integer secondary structure ids.  Every helix, sheet, coil
-    has a unique integer id.  The ids depend on the collection of residues and are
+    has a unique integer id.  The ids depend on the collection of residues on the fly and are
     not persistent. Read only.
+    ''')
+    ss_ids = cvec_property('residue_ss_id', int32, doc =
     '''
+    A :mod:`numpy` array of integer secondary structure IDs, determined by the input file.
+    For a PDB file, for helices, the ID is the same as in the HELIX record; for strands,
+    it starts as 1 for the strand nearest the N terminus, and increments for each strand
+    out to the C terminus.
+    ''')
+    structures = cvec_property('residue_structure', cptr, astype = _atomic_structures,
+        read_only = True, doc =
+    '''Returns :class:`.StructureDatas` collection containing structures for each residue.''')
 
     @property
     def unique_structures(self):

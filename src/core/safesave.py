@@ -81,7 +81,7 @@ class SaveFile:
             return
 
         try:
-            os.rename(self._tmp_filename, self.name)
+            os.replace(self._tmp_filename, self.name)
         except Exception:
             os.remove(self._tmp_filename)
             raise

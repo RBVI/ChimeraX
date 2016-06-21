@@ -10,6 +10,7 @@ PYSRCS = __init__.py oculuscmd.py track.py
 
 OCSDK = $(libdir)/LibOVR
 OCINC = -I$(OCSDK)/Include
+DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS) $(OCINC)
 
 #LIBS	+= $(PYTHON_LIB) $(OCSDK)/Lib/Mac/Release/libovr.a

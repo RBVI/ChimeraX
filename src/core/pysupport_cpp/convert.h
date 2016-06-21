@@ -35,6 +35,12 @@ public:
         PySupportError(_make_msg({"Can't allocate Python list of ", item_description})) {}
 };
 
+class ErrSetCreate : public PySupportError {
+public:
+    ErrSetCreate(const char* item_description) :
+        PySupportError(_make_msg({"Can't allocate Python set of ", item_description})) {}
+};
+
 class ErrDictCreate : public PySupportError {
 public:
     ErrDictCreate(const char* key_description, const char* val_description) :
@@ -72,6 +78,16 @@ PyObject* cvec_of_char_to_pylist(std::vector<Str>& vec, const char* item_descrip
         PyList_SET_ITEM(pylist, i++, cchar_to_pystring(c_item, item_description));
     }
     return pylist;
+}
+
+template <class Set>
+PyObject* cset_of_chars_to_pyset(Set& cset, const char* item_description) {
+    PyObject* pyset = PySet_New(nullptr);
+    if (pyset == nullptr)
+        throw ErrSetCreate(item_description);
+    for (auto& c_item: cset)
+        PySet_Add(pyset, cchar_to_pystring(c_item, item_description));
+    return pyset;
 }
 
 template <class Map>

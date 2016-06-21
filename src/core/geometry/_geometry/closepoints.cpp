@@ -8,8 +8,9 @@
 
 #include <math.h>			// use floor()
 
-#include "pythonarray.h"		// use float_2d_array_values()
-#include "rcarray.h"			// use FArray
+#include <arrays/pythonarray.h>		// use float_2d_array_values()
+#include <arrays/rcarray.h>		// use FArray
+#include "closepoints.h"
 
 using std::vector;
 using std::map;
@@ -1345,7 +1346,7 @@ extern "C" PyObject *find_closest_points(PyObject *, PyObject *args, PyObject *k
 				   parse_float_n_array, &scale2))
     return NULL;
 
-  if (scale2.dimension() == 1 and scale2.size(0) != xyz2.size(0))
+  if (scale2.dimension() == 1 && scale2.size(0) != xyz2.size(0))
     {
       PyErr_SetString(PyExc_TypeError,
 		      "Scales array size does not match points array size");

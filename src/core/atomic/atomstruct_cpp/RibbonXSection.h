@@ -5,7 +5,7 @@
 #include <numpy/arrayobject.h>
 
 #include "imex.h"
-#include "pythonarray.h"
+#include <arrays/pythonarray.h>
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -47,13 +47,15 @@ public:
                    FArray* normals = NULL,
                    FArray* normals2 = NULL,
                    bool faceted = false,
-                   FArray* tess = NULL);
+                   const IArray* tess = NULL);
     virtual ~RibbonXSection();
 
     PyObject* extrude(const FArray& centers, const FArray& tangents,
                       const FArray& normals, const FArray& color,
                       bool cap_front, bool cap_back, int offset) const;
     PyObject* blend(const IArray& back_band, const IArray& front_band) const;
+    void* scale(float x_scale, float y_scale) const;
+    void* arrow(float x1_scale, float y1_scale, float x2_scale, float y2_scale) const;
 };
 
 }  // namespace atomstruct

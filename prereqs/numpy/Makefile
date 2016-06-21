@@ -1,47 +1,29 @@
-FOREIGN_MAKE = 1
+PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
+include ../pips/Makefile.pip
 
-VERSION = 1.10.1
-DISTRIBUTION = numpy-$(VERSION).tar.gz
-SOURCE = $(tmpdir)/numpy-$(VERSION)
+VERSION = 1.11.0
 
-SETUP_BUILD = build --fcompiler=none
-ifdef DEBUG
-ifndef WIN32
-SETUP_BUILD += --debug
-endif
-endif
-
-VER	:= $(shell expr $(VERSION) : '\(.*\..*\..*\)\.')
-ifeq ($(VER),)
-VER	= $(VERSION)
-endif
-
-PATCHES = $(wildcard numpy-$(VER)-fcompiler.patch)
-
-ifeq ($(OSARCH),Linux64)
-PATCHES += $(wildcard numpy-$(VER)-linux64-syslibs.patch)
+ifdef WIN32
+WHEEL = numpy-$(VERSION)+mkl-cp35-cp35m-win_amd64.whl
 endif
 
 all:
 
-install: $(SOURCE)
-	cd $(SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
+install:
+ifdef WIN32
+	$(PIP) install -U $(WHEEL)
+else
+	$(PIP) install -U numpy==$(VERSION)
+endif
 
 app-install: install
-	# TODO: figure out way to make below work, so we don't depend on SOURCE
-	#$(RSYNC) $(PYSITEDIR)/numpy-$(VERSION)-py$(PYTHON_VERSION).egg-info \
-	#	$(PYSITEDIR)/numpy $(APP_PYSITEDIR)
-	cd $(SOURCE) && $(APP_PYTHON_EXE) setup.py build $(SETUP_BUILD) install
-
-$(SOURCE):
-	tar zxf $(DISTRIBUTION) -C $(tmpdir)
-ifneq ($(PATCHES),)
-	for p in $(PATCHES); do \
-		(cd $(SOURCE) && patch -f -p0) < $$p ; \
-	done
+ifdef WIN32
+	$(APP_PIP) install $(WHEEL)
+else
+	$(APP_PIP) install -U numpy==$(VERSION)
 endif
 
 clean:
-	rm -rf $(SOURCE)
+	rm -rf pip.log

@@ -7,8 +7,8 @@
 // #include <iostream>			// use std:cerr for debugging
 
 #include "contour.h"			// use surface()
-#include "pythonarray.h"		// use array_from_python()
-#include "rcarray.h"			// use call_template_function()
+#include <arrays/pythonarray.h>		// use array_from_python()
+#include <arrays/rcarray.h>		// use call_template_function()
 
 using namespace Contour_Calculation;
 

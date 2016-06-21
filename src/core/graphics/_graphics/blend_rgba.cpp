@@ -5,8 +5,8 @@
 #include <Python.h>			// use PyObject
 #include <math.h>			// use ceil, floor
 
-#include "pythonarray.h"		// use array_from_python()
-#include "rcarray.h"			// use Numeric_Array, Array<T>
+#include <arrays/pythonarray.h>		// use array_from_python()
+#include <arrays/rcarray.h>		// use Numeric_Array, Array<T>
 
 // ----------------------------------------------------------------------------
 //

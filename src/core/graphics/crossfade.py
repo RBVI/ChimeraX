@@ -28,7 +28,7 @@ class CrossFade(Drawing):
 
         # Make textured square surface piece
         from .drawing import rgba_drawing
-        rgba_drawing(self.rgba, (-1, -1), (2, 2), self)
+        rgba_drawing(self, self.rgba, (-1, -1), (2, 2))
 
         v.add_overlay(self)
         session.triggers.add_handler('new frame', lambda *_, v=v: self.next_frame(v))
@@ -92,13 +92,13 @@ class MotionBlur(Drawing):
             self.rgba = rgba
             # Make textured square surface piece
             from .drawing import rgba_drawing
-            self.piece = rgba_drawing(rgba, (-1, -1), (2, 2), self)
+            rgba_drawing(self, rgba, (-1, -1), (2, 2))
             v.add_overlay(self)
         elif self.rgba.shape != (h, w, 4):
             # Resize texture and motion blur image
             self.remove_drawing(self.piece)
             from .drawing import rgba_drawing
-            self.piece = rgba_drawing(rgba, (-1, -1), (2, 2), self)
+            rgba_drawing(self, rgba, (-1, -1), (2, 2))
             self.rgba = rgba
         else:
             from numpy import array
@@ -110,7 +110,7 @@ class MotionBlur(Drawing):
                                   bgcolor, alpha, self.rgba)
             if c == 0:
                 return False    # No change
-            self.piece.texture.reload_texture(self.rgba)
+            self.texture.reload_texture(self.rgba)
         self.redraw_needed()
         return True
 

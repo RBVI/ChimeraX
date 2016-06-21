@@ -720,7 +720,7 @@ def map_fit_message(moved_map, fixed_map, stats):
 
 # -----------------------------------------------------------------------------
 #
-def transformation_matrix_message(model, map):
+def transformation_matrix_message(model, map, transform = None):
     
     m = model
     mname = '%s (#%s)' % (m.name, m.id_string())
@@ -730,7 +730,7 @@ def transformation_matrix_message(model, map):
     fname = '%s (#%s)' % (f.name, f.id_string())
     ftf = f.position
     
-    rtf = ftf.inverse() * mtf
+    rtf = ftf.inverse() * mtf if transform is None else transform
     message = ('Position of %s relative to %s coordinates:\n'
                % (mname, fname))
     message += rtf.description()

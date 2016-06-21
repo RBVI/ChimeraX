@@ -1,6 +1,7 @@
 // vi: set expandtab ts=4 sw=4:
 
 #include <list>
+#include <iterator>
 #include <map>
 #include <set>
 #include <unordered_map>
@@ -8,8 +9,9 @@
 #define MAP map
 #define SET set
 
+#define ATOMSTRUCT_EXPORT
 #include "Bond.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "Residue.h"
 
 namespace atomstruct {
@@ -25,7 +27,7 @@ static Ring::Bonds::iterator contains_exactly_one(
 //      _all_ rings of at least the given size [ and no rings
 //      greater than that size, even if minimal ]
 void
-Graph::_calculate_rings(bool cross_residue,
+Structure::_calculate_rings(bool cross_residue,
     unsigned int all_size_threshold,
     std::set<const Residue *>* ignore) const
 {

@@ -20,18 +20,18 @@ namespace atomstruct {
 
 class ChangeTracker;
 class CoordSet;
-class Graph;
+class Structure;
 class Proxy_PBGroup;
 class Pseudobond;
 
-class BaseManager {
+class ATOMSTRUCT_IMEX BaseManager {
 public:
     // so that subclasses can create multiple types of groups...
     static const int GRP_NONE = 0;
     static const int GRP_NORMAL = GRP_NONE + 1;
     typedef std::map<std::string, Proxy_PBGroup*>  GroupMap;
-    typedef std::map<Graph*, int>  SessionStructureToIDMap;
-    typedef std::map<int, Graph*>  SessionIDToStructureMap;
+    typedef std::map<Structure*, int>  SessionStructureToIDMap;
+    typedef std::map<int, Structure*>  SessionIDToStructureMap;
 protected:
     ChangeTracker*  _change_tracker;
     GroupMap  _groups;
@@ -76,34 +76,34 @@ public:
     }
 };
 
-class StructureManager: public BaseManager {
+class ATOMSTRUCT_IMEX StructureManager: public BaseManager {
 protected:
-    Graph*  _structure;
+    Structure*  _structure;
 public:
-    StructureManager(Graph* structure);
+    StructureManager(Structure* structure);
     virtual  ~StructureManager() {}
 
-    Graph*  structure() const { return _structure; }
+    Structure*  structure() const { return _structure; }
 };
 
 // global pseudobond manager
 // Though for C++ purposes it could use PBGroup instead of Proxy_PBGroup,
 // using proxy groups allows them to be treated uniformly on the Python side
-class PBManager: public BaseManager {
+class ATOMSTRUCT_IMEX PBManager: public BaseManager {
 public:
     PBManager(ChangeTracker* ct): BaseManager(ct) {}
 
     Proxy_PBGroup*  get_group(const std::string& name, int create = GRP_NONE);
 };
 
-class AS_PBManager: public StructureManager
+class ATOMSTRUCT_IMEX AS_PBManager: public StructureManager
 {
 public:
     static const int  GRP_PER_CS = GRP_NORMAL + 1;
 private:
-    friend class Graph;
+    friend class Structure;
     friend class CoordSet;
-    AS_PBManager(Graph* as): StructureManager(as) {}
+    AS_PBManager(Structure* as): StructureManager(as) {}
 
     void  remove_cs(const CoordSet* cs);
 public:

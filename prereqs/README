@@ -3,6 +3,10 @@ Source packages and why they are in the repository
 Note this list is incomplete, since we use pip to install packages,
 and those packages may depend on packages not listed.
 
+Prebuilt wheels for Windows are from Christoph Gohlke's "Unofficial Windows
+Binaries for Python Extension Packages" at
+http://www.lfd.uci.edu/~gohlke/pythonlibs/.
+
 PyOpenGL/
 	Python OpenGL, needed for graphics
 PyQt/
@@ -102,7 +106,9 @@ pythomnic3k/
 python-dateutil==2.4.2
 	extends Python's datetime module, used by numpy/pycollada/matplotlib
 qt/
-	Qt window toolkit C++ library, NOT CURRENTLY USED
+	Qt window toolkit C++ library
+qtconsole==4.2.1
+	Python shell widget
 setuptools/
 	installation tools, needed for toolshed
 sip/

@@ -7,7 +7,7 @@ print(metadata.METADATA_FILENAME)
 metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup
 
-lib_dir = "LIB_DIR"
+shlib_dir = "SHLIB_DIR"
 pkg_dir = "PKG_DIR"
 
 setup(
@@ -67,8 +67,8 @@ setup(
         # Example:
         # "ChimeraX-Bundle :: cmd_line :: chimerax.cmd_line "
         # ":: Command Line Interface :: command_line :: General"
-        "ChimeraX-Bundle :: molecule_display_shortcuts :: chimerax.shortcuts :: Molecule Display :: ks :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
-        "ChimeraX-Bundle :: graphics_shortcuts :: chimerax.shortcuts :: Graphics :: :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
-        "ChimeraX-Bundle :: density_map_shortcuts :: chimerax.shortcuts :: Density Maps :: :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
+        "ChimeraX-Bundle :: molecule_display_shortcuts :: chimerax.shortcuts :: Molecule Display Toolbar :: ks :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
+        "ChimeraX-Bundle :: graphics_shortcuts :: chimerax.shortcuts :: Graphics Toolbar :: :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
+        "ChimeraX-Bundle :: density_map_shortcuts :: chimerax.shortcuts :: Density Map Toolbar :: :: General :: :: :: :: Buttons and keyboard shortcuts for common commands",
     ],
 )

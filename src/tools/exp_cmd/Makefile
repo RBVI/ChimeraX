@@ -12,16 +12,19 @@ PKG_DESCRIPTION = Experimental commands
 TOOL_NAME = exp_cmd
 TOOL_PKG_NAME = chimerax.exp_cmd
 TOOL_DISPLAY_NAME = Experimental Commands
-TOOL_CATEGORY = General
+TOOL_CATEGORY = Hidden
 TOOL_FILE_TYPES =
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Experimental commands that may go away
-COMMAND_NAME = cartoon,~cartoon,ribbon,~ribbon
+COMMAND_NAME = cartoon,~cartoon,ribbon,~ribbon,mlp
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
-APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
+ifdef WIN32
+PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
+shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
+endif
 
 PYSRCS = $(wildcard *.py)
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
@@ -45,7 +48,7 @@ wheel: setup.py timestamp
 setup.py: setup.py.in Makefile
 	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
-		-e 's,LIB_DIR,$(libdir),' \
+		-e 's,SHLIB_DIR,$(shlibdir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		-e 's,#$(OS)#,,' \

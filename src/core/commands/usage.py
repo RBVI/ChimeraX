@@ -20,7 +20,6 @@ def usage(session, command_name=None):
         info("Use 'help <command>' to learn more about a command.")
         cmds = cli.registered_commands(multiword=True)
         if len(cmds) > 0:
-            cmds.sort(key=lambda x: x[x[0] == '~':])
             text = cli.commas(cmds, ' and')
             noun = cli.plural_form(cmds, 'command')
             verb = cli.plural_form(cmds, 'is', 'are')
@@ -29,7 +28,6 @@ def usage(session, command_name=None):
     elif command_name == 'all':
         info("Syntax for all commands:")
         cmds = cli.registered_commands(multiword=True)
-        cmds.sort(key=lambda x: x[x[0] == '~':])
         if not session.ui.is_gui:
             for name in cmds:
                 try:
@@ -60,5 +58,6 @@ def usage(session, command_name=None):
 def register_command(session):
     from . import cli
     desc = cli.CmdDesc(optional=[('command_name', cli.RestOfLine)],
+                       non_keyword=['command_name'],
                        synopsis='show command usage')
     cli.register('usage', desc, usage)

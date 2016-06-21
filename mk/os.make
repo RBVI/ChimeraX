@@ -8,9 +8,9 @@ ifeq ($(OS),Linux)
 	LIB_LINK = ar rc $(LIBRARY) $(OBJS)
 	RANLIB = ranlib
 	SHLIB_EXT = so
-	SHLIB_LINK = $(LOADER) $(LDFLAGS) -shared -o $(SHLIB) $(OBJS) $(LIBS)
+	SHLIB_LINK = $(LOADER) -fuse-ld=gold -Wl,--no-allow-shlib-undefined $(LDFLAGS) -shared -o $(SHLIB) $(OBJS) $(LIBS)
 	PROG_EXT =
-	PROG_LINK = $(LOADER) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
+	PROG_LINK = $(LOADER) -Wl,--no-undefined $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
 
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
@@ -26,19 +26,21 @@ ifneq (,$(shell echo $(GCC_VER) | sed -e 's/^[1-3]\..*//' -e 's/^4\.[0-6]\..*//'
 else
 	ERROR := $(error "gcc $(GCC_VER) is too old")
 endif
-#TODO
-#ifndef PREREQ_MAKE
-#	# require explicit exporting in all code we write
-#	CC += -fvisibility-ms-compat
-#	CXX += -fvisibility-ms-compat
-#endif
 
-	PYDEF = -fvisibility-ms-compat -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
+ifndef PREREQ_MAKE
+	# require explicit exporting in all code we write
+	CC += -fvisibility=hidden
+	CXX += -fvisibility-ms-compat
+endif
+
+	PYDEF = -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
 	PYMOD_EXT = so
-	PYMOD_LINK = $(LOADER) $(LDFLAGS) -shared -o $(PYMOD) $(OBJS) $(LIBS)
+	PYMOD_LINK = $(LOADER) -fuse-ld=gold $(LDFLAGS) -shared -Wl,--no-allow-shlib-undefined -o $(PYMOD) $(OBJS) $(LIBS)
 	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 
 	OPENGL_LIBS = -L$(libdir) -lGLU -lGL
+	INCS = -I$(includedir)
+	LIBS = -L$(libdir)
 endif
 
 #### Darwin, a.k.a., Apple Mac OS X
@@ -63,8 +65,11 @@ else
 endif
 	CC = clang
 	CXX = clang++ -std=c++11 -stdlib=libc++
-	EXTRA_CFLAGS = -fPIC
-	EXTRA_CXXFLAGS = -fPIC -fvisibility-ms-compat
+	SDK_PATH = $(shell echo | gcc -xc -E -v - 2>&1 | grep '\.sdk/usr/include$$' | cut -d . -f 1,2,3,4).sdk
+ifndef PREREQ_MAKE
+	CC += -fvisibility=hidden
+	CXX += -fvisibility-ms-compat
+endif
 
 	PYDEF = -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
 ifdef USE_MAC_FRAMEWORKS
@@ -77,13 +82,14 @@ endif
 	PYMOD_LINK = $(LOADER) $(LDFLAGS) -bundle -bundle_loader $(bindir)/python3 -o $(PYMOD) $(OBJS) $(LIBS) $(PYTHON_LIB)
 
 	OPENGL_LIBS = -framework OpenGL
+	INCS = -I$(includedir)
+	LIBS = -L$(libdir)
 endif
 
 # Microsoft Windows
 
 ifeq ($(OS),Windows)
 	shlibdir = $(bindir)
-	app_shlibdir = $(app_bindir)
 
 	OBJ_EXT = obj
 	LIB_EXT = lib
@@ -100,22 +106,27 @@ ifdef DEBUG
 else
 	OPT = /Ox /W2
 endif
-	CC = cl /nologo /Zc:forScope /EHa /GR /GF /MD
-	CXX = $(CC)
+	CC = cl /nologo /EHa /GR /GF /MD
+	CXX = $(CC) /Zc:inline,rvalueCast,strictStrings
 
 	PYDEF =
 	PYTHON_LIB = python$(PYVER_NODOT).$(LIB_EXT)
 	PYMOD_LINK = $(CXX) $(LDFLAGS) /LD /Fe$(PYMOD) $(OBJS) $(LIBS); if [ -e $(PYMOD).manifest ]; then mt -nologo -manifest $(PYMOD).manifest -outputresource:$(PYMOD)\;2 ; fi
 
 	OPENGL_LIBS = glu32.lib opengl32.lib
+	INCS = -I'$(shell cygpath -m '$(includedir)')'
+	LIBS = /link /LIBPATH:'$(shell cygpath -m '$(libdir)')'
 
-.SUFFIXES: .obj
+.SUFFIXES: .obj .rc
 
 .cpp.obj:
 	$(CXX) $(CXXFLAGS) /c $<
 
 .c.obj:
 	$(CC) $(CFLAGS) /c $<
+
+.rc.obj:
+	rc $(DEFS) /i . /Fo$@ $<
 endif
 
 CFLAGS = $(OPT) $(INCS) $(DEFS)
@@ -131,7 +142,7 @@ UPLIBNAME = $(shell echo $(LIBNAME) | tr "[:lower:]" "[:upper:]" | tr '-' '_')
 imex.h:
 	sed -e 's/LIBNAME/$(UPLIBNAME)/' < $(includedir)/imex.i > imex.h
 
-NUMPY_INC += -I"$(shell $(bindir)/python$(PYTHON_VERSION) -c "import numpy; print(numpy.get_include())")"
+NUMPY_INC += -I"$(shell $(PYTHON_EXE) -c "import numpy; print(numpy.get_include())")"
 
 PYOBJS = $(addprefix __pycache__/,$(addsuffix .cpython-$(PYVER_NODOT).pyc,$(basename $(PYSRCS))))
 
@@ -154,6 +165,9 @@ __pycache__/%.cpython-$(PYVER_NODOT).pyc : %.py
 endif
 
 ifdef WIN32
+__pycache__/%.cpython-$(PYVER_NODOT).pyc : %.py
+	$(bindir)/python -t -m py_compile '$(shell cygpath -m $<)'
+
 .py.pyc:
 	@rm -f $@
 	python3 -t -m py_compile '$(shell cygpath -m $<)'

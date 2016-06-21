@@ -10,15 +10,12 @@ LIBNAME	= wrappy3
 SRCS	= WrapPy.cpp WrapPyModule.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 INCS	+= $(PYTHON_INCLUDE_DIRS)
-LIBS	= $(PYTHON_LIB)
+LIBS	+= $(PYTHON_LIB)
 
 DEFS += $(PYDEF)
 
 ifdef WIN32
 	DEFS	+= -DWRAPPY_DLL=1
-ifeq ($(WIN32),msvc)
-	LIBS	:= /link $(LIBS) msvcrt.lib
-endif
 endif
 
 all: $(SHLIB)

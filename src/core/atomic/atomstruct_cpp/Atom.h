@@ -13,7 +13,7 @@
 #include "backbone.h"
 #include "ChangeTracker.h"
 #include "Coord.h"
-#include "Graph.h"
+#include "Structure.h"
 #include "imex.h"
 #include "Point.h"
 #include "Rgba.h"
@@ -33,14 +33,14 @@ namespace atomstruct {
 
 class Bond;
 class CoordSet;
-class Graph;
+class Structure;
 class Residue;
 class Ring;
 
 class ATOMSTRUCT_IMEX Atom {
     friend class AtomicStructure;
     friend class UniqueConnection;
-    friend class Graph;
+    friend class Structure;
     friend class Residue;
 public:
     // HIDE_ constants are masks for hide bits
@@ -66,7 +66,7 @@ public:
     static int  SESSION_ALTLOC_FLOATS(int /*version*/=0) { return 5; };
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
-    Atom(Graph *as, const char* name, const Element& e);
+    Atom(Structure *as, const char* name, const Element& e);
     virtual ~Atom();
 
     char  _alt_loc;
@@ -100,7 +100,7 @@ private:
     bool  _selected = false;
     int  _serial_number;
     void  _set_structure_category(Atom::StructCat sc) const;
-    Graph*  _structure;
+    Structure*  _structure;
     mutable StructCat  _structure_category;
 public:
     // so that I/O routines can cheaply "change their minds" about element
@@ -166,7 +166,7 @@ public:
     void  set_radius(float);
     void  set_serial_number(int);
     std::string  str() const;
-    Graph*  structure() const { return _structure; }
+    Structure*  structure() const { return _structure; }
     StructCat  structure_category() const;
 
     // change tracking
@@ -191,7 +191,7 @@ public:
 
 }  // namespace atomstruct
 
-#include "Graph.h"
+#include "Structure.h"
 
 namespace atomstruct {
 

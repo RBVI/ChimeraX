@@ -5,7 +5,7 @@
 #include <vector>			// use std::vector
 
 #include "interpolate.h"
-#include "rcarray.h"			// use Array<T>, Numeric_Array
+#include <arrays/rcarray.h>		// use Array<T>, Numeric_Array
 
 namespace Interpolate
 {

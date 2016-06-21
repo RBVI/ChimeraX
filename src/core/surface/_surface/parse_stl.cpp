@@ -5,7 +5,7 @@
 #include <Python.h>			// use PyObject
 #include <stdlib.h>			// use strncpy()
 
-#include "pythonarray.h"		// use python_int_array
+#include <arrays/pythonarray.h>		// use python_int_array
 
 class Point
 {

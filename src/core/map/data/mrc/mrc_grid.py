@@ -19,6 +19,7 @@ class MRC_Grid(Grid_Data):
                        path = path, file_type = file_type)
 
     self.unit_cell_size = d.unit_cell_size
+    self.file_header = d.header
 
     # Crystal symmetry operators.
 #    syms = d.symmetry_matrices()

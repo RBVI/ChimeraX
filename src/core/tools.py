@@ -125,8 +125,8 @@ class ToolInstance(State):
         This method should be overridden to clean up
         tool data structures.  This base method should be
         called as the last step of tool deletion.
-
         """
+
         if self.session.ui.is_gui:
             self.session.ui.remove_tool(self)
         self.session.tools.remove([self])

@@ -50,6 +50,7 @@ def register_vop_command():
         ('bounding_grid', BoolArg),
         ('grid_subregion', MapRegionArg),
         ('grid_step', MapStepArg),
+        ('value_type', ValueTypeArg),
     ] + ssm_kw
     add_kw = resample_kw + [
         ('in_place', BoolArg),
@@ -224,38 +225,38 @@ def register_vop_command():
 # -----------------------------------------------------------------------------
 #
 def vop_add(session, volumes, on_grid = None, bounding_grid = None,
-           subregion = 'all', step = 1,
-           grid_subregion = 'all', grid_step = 1,
-           in_place = False, scale_factors = None, model_id = None):
+            subregion = 'all', step = 1,
+            grid_subregion = 'all', grid_step = 1, value_type = None,
+            in_place = False, scale_factors = None, model_id = None):
     '''Add maps.'''
     combine_op(volumes, 'add', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, in_place, scale_factors, model_id, session)
+               grid_subregion, grid_step, value_type, in_place, scale_factors, model_id, session)
 
 # -----------------------------------------------------------------------------
 #
 def vop_maximum(session, volumes, on_grid = None, bounding_grid = None,
-               subregion = 'all', step = 1,
-               grid_subregion = 'all', grid_step = 1,
-               in_place = False, scale_factors = None, model_id = None):
+                subregion = 'all', step = 1,
+                grid_subregion = 'all', grid_step = 1, value_type = None,
+                in_place = False, scale_factors = None, model_id = None):
     '''Pointwise maximum of maps.'''
     combine_op(volumes, 'maximum', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, in_place, scale_factors, model_id, session)
+               grid_subregion, grid_step, value_type, in_place, scale_factors, model_id, session)
 
 # -----------------------------------------------------------------------------
 #
 def vop_multiply(session, volumes, on_grid = None, bounding_grid = None,
-                subregion = 'all', step = 1,
-                grid_subregion = 'all', grid_step = 1,
-                in_place = False, scale_factors = None, model_id = None):
+                 subregion = 'all', step = 1,
+                 grid_subregion = 'all', grid_step = 1, value_type = None,
+                 in_place = False, scale_factors = None, model_id = None):
     '''Pointwise multiply maps.'''
     combine_op(volumes, 'multiply', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, in_place, scale_factors, model_id, session)
+               grid_subregion, grid_step, value_type, in_place, scale_factors, model_id, session)
 
 # -----------------------------------------------------------------------------
 #
 def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
                subregion = 'all', step = 1,
-               grid_subregion = 'all', grid_step = 1,
+               grid_subregion = 'all', grid_step = 1, value_type = None,
                in_place = False, scale_factors = None, model_id = None, session = None):
 
     if bounding_grid is None and not in_place:
@@ -274,13 +275,13 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
         raise CommandError('Number of scale factors does not match number of volumes')
     for gv in on_grid:
         combine_operation(volumes, operation, subregion, step,
-                          gv, grid_subregion, grid_step,
+                          gv, grid_subregion, grid_step, value_type,
                           bounding_grid, in_place, scale_factors, model_id, session)
 
 # -----------------------------------------------------------------------------
 #
 def combine_operation(volumes, operation, subregion, step,
-                      gv, grid_subregion, grid_step,
+                      gv, grid_subregion, grid_step, value_type,
                       bounding_grid, in_place, scale, model_id, session):
 
     if scale is None:
@@ -305,7 +306,8 @@ def combine_operation(volumes, operation, subregion, step,
         else:
             r = gr
         v0 = volumes[0] if volumes else None
-        value_type = v0.data.value_type if volumes else gv.data.value_type
+        if value_type is None:
+            value_type = v0.data.value_type if volumes else gv.data.value_type
         rg = gv.region_grid(r, value_type)
         if len(volumes) == 1:
             rg.name = v0.name + ' resampled'
@@ -598,16 +600,16 @@ def vop_permute_axes(session, volumes, axis_order = 'xyz',
 # -----------------------------------------------------------------------------
 #
 def vop_resample(session, volumes, on_grid = None, bounding_grid = False,
-                subregion = 'all', step = 1,
-                grid_subregion = 'all', grid_step = 1,
-                model_id = None):
+                 subregion = 'all', step = 1,
+                 grid_subregion = 'all', grid_step = 1, value_type = None,
+                 model_id = None):
     '''Interoplate a map on a new grid.'''
     if on_grid is None:
         raise CommandError('Resample operation must specify onGrid option')
     for v in volumes:
         for gv in on_grid:
             combine_operation([v], 'add', subregion, step,
-                              gv, grid_subregion, grid_step,
+                              gv, grid_subregion, grid_step, value_type,
                               bounding_grid, False, None, model_id, session)
 
 # -----------------------------------------------------------------------------
@@ -630,15 +632,16 @@ def vop_scale(session, volumes, shift = 0, factor = 1, sd = None, rms = None,
 
     from .scale import scaled_volume
     for v in volumes:
-        scaled_volume(v, factor, sd, rms, shift, value_type, step, subregion, model_id)
+        scaled_volume(v, factor, sd, rms, shift, value_type, step, subregion, model_id,
+                      session = session)
 
 # -----------------------------------------------------------------------------
 #
 def vop_subtract(session, volumes, on_grid = None, bounding_grid = False,
-                subregion = 'all', step = 1,
-                grid_subregion = 'all', grid_step = 1,
-                in_place = False, scale_factors = None, min_rms = False,
-                model_id = None):
+                 subregion = 'all', step = 1,
+                 grid_subregion = 'all', grid_step = 1, value_type = None,
+                 in_place = False, scale_factors = None, min_rms = False,
+                 model_id = None):
     '''Subtract two maps.'''
     if len(volumes) != 2:
         raise CommandError('vop subtract operation requires exactly two volumes')
@@ -647,7 +650,7 @@ def vop_subtract(session, volumes, on_grid = None, bounding_grid = False,
     mult = (1,'minrms') if min_rms else scale_factors
 
     combine_op(volumes, 'subtract', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, in_place, mult, model_id, session)
+               grid_subregion, grid_step, value_type, in_place, mult, model_id, session)
 
 # -----------------------------------------------------------------------------
 #

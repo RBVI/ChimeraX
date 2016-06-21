@@ -1517,6 +1517,18 @@ class Volume(Model):
 
     return values, same
 
+  # -----------------------------------------------------------------------------
+  #
+  def mean_sd_rms(self):
+
+    m = self.matrix()
+    from numpy import float64
+    mean = m.mean(dtype=float64)
+    sd = m.std(dtype=float64)
+    from math import sqrt
+    rms = sqrt(sd*sd + mean*mean)
+    return mean, sd, rms
+
   # ---------------------------------------------------------------------------
   # Return xyz coordinates of grid points of volume data transformed to a
   # local coordinate system.
@@ -1902,7 +1914,7 @@ class Outline_Box:
                  any(corners != self.corners) or
                  rgb != self.rgb or
                  linewidth != self.linewidth or
-                 any(center != self.center) or
+                 (center is not None and any(center != self.center)) or
                  planes != self.planes or
                  crosshair_width != self.crosshair_width)
       if changed:
@@ -2677,14 +2689,7 @@ def default_settings(session):
 #
 def volume_from_grid_data(grid_data, session, representation = None,
                           open_model = True, model_id = None,
-                          show_data = True, show_dialog = False):
-
-#  if show_dialog:
-  if False:
-    import chimera
-    if not chimera.nogui:
-      from .volumedialog import show_volume_dialog
-      show_volume_dialog()
+                          show_data = True, show_dialog = True):
 
   # Set display style
   if representation is None:
@@ -2731,6 +2736,13 @@ def volume_from_grid_data(grid_data, session, representation = None,
 
   if open_model:
     session.models.add([v])
+
+  if show_dialog:
+    try:
+      from chimerax.volume_viewer.gui import show_volume_dialog
+      show_volume_dialog(session)
+    except ImportError:
+      pass	# Volume viewer tool not available.
 
   return v
 

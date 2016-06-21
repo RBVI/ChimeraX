@@ -6,8 +6,8 @@
 #include <algorithm>			// use std::min
 // #include <iostream>			// use std::cerr for debugging
 
-#include "pythonarray.h"		// use parse_uint8_n4_array(), ...
-#include "rcarray.h"			// use CArray
+#include <arrays/pythonarray.h>		// use parse_uint8_n4_array(), ...
+#include <arrays/rcarray.h>		// use CArray
 
 namespace Map_Cpp
 {

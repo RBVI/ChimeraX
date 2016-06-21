@@ -12,7 +12,7 @@
 
 namespace atomstruct {
 
-class Graph;
+class Structure;
 class Residue;
 
 class ATOMSTRUCT_IMEX Chain: public Sequence {
@@ -23,7 +23,7 @@ private:
     friend class Residue;
     void  remove_residue(Residue* r);
 
-    friend class Graph;
+    friend class Structure;
     void  clear_residues();
 
     ChainID  _chain_id;
@@ -31,7 +31,7 @@ private:
     typedef std::map<Residue*, SeqPos>  ResMap;
     ResMap  _res_map;
     Residues  _residues;
-    Graph*  _structure;
+    Structure*  _structure;
 
     static int  SESSION_NUM_INTS(int /*version*/=0) { return 3; }
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
@@ -45,7 +45,7 @@ private:
     }
 
 public:
-    Chain(const ChainID& chain_id, Graph* as);
+    Chain(const ChainID& chain_id, Structure* as);
     virtual ~Chain();
 
     const ChainID&  chain_id() const { return _chain_id; }
@@ -70,7 +70,7 @@ public:
     void  session_save(int**, float**) const;
     void  set(unsigned i, Residue* r, char character = -1);
     void  set_from_seqres(bool fs);
-    Graph*  structure() const { return _structure; }
+    Structure*  structure() const { return _structure; }
     void  bulk_set(const Residues& residues,
             const Sequence::Contents* chars = nullptr);
 };

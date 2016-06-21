@@ -33,8 +33,8 @@ def info(session, models=None):
         spos = m.selected_positions
         if spos is not None and spos.sum() > 0:
             line += ', %d selected instances' % spos.sum()
-        from ..atomic import Graph
-        if isinstance(m, Graph):
+        from ..atomic import Structure
+        if isinstance(m, Structure):
             line += ('\n%d atoms, %d bonds, %d residues, %d chains'
                     % (m.num_atoms, m.num_bonds, m.num_residues, m.num_chains))
             pmap = m.pbg_map
@@ -51,6 +51,9 @@ def info(session, models=None):
             else:
                 level = 'level/intensity ' + ', '.join(('%.4g (%.2f)' % tuple(l) for l in m.solid_levels))
             line += ' %s, %s, %s' % (size, step, level)
+            ms = m.matrix_value_statistics()
+            line += ', value range %.5g - %.5g' % (ms.minimum, ms.maximum)
+            line += ', value type %s' % str(m.data.value_type)
         lines.append(line)
     msg = '%d models\n' % len(models) + '\n'.join(lines)
     session.logger.info(msg)

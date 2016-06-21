@@ -26,8 +26,8 @@ def surface_zone(model, points, distance, auto_update = False, max_components = 
 
     if not max_components is None:
         # TODO: port hide dust
-        import HideDust
-        HideDust.show_only_largest_blobs(model, True, max_components)
+        from . import dust
+        dust.show_only_largest_blobs(model, True, max_components)
 
     if auto_update:
         # TODO: port zone updating

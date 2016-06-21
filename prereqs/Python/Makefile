@@ -1,11 +1,14 @@
-FOREIGN_MAKE = 1
+PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).0
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
+
+PIP_VERSION = 8.1.2
+WHEEL_VERSION = 0.29.0
 
 ifdef WIN32
 DYNLOAD_DIR = $(bindir)/DLLs
@@ -31,23 +34,36 @@ PATCHES += $(wildcard Python-$(PYTHON_PATCH_LEVEL)_debug.patch)
 endif
 
 ifeq ($(OS),Linux)
+LDFLAGS += -Wl,-rpath,"$(libdir)"
+ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 # On linux have to disable IPV6 socket support or _socket doesn't compile.
 CONFIG_OPTIONS += --disable-ipv6 --enable-shared
 endif
 ifeq ($(OS),Darwin)
+# On Darwin, -Wl,-rpath ends up in shared libraries in addition to executables,
+# which we don't want, so we add the rpath later, and set the DYLD_LIBRARY_PATH
+# to compensate while we're building
+export DYLD_LIBRARY_PATH=$(libdir)
 ifndef USE_MAC_FRAMEWORKS
-CONFIG_OPTIONS += --enable-shared
-endif
-endif
-
-ifndef USE_MAC_FRAMEWORKS
-LDFLAGS += -Wl,-rpath,"$(libdir)"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
+CONFIG_OPTIONS += --enable-shared
 else
 LDFLAGS += -Wl,-rpath,"$(libdir)"
-ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
+ifeq ($(PYTHON_VERSION).1,3.5.1)
+# until 3.5.2 is available, to get Python to find the SQL libs on the Mac
+# you have to *not* specify -isysroot (so it doesn't get confused by the new
+# .tbd library stubs in the SDK) and you have to install the headers to /usr/include
+# with "xcode-select --install"
+ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
+else
+# In order for Python's setup.py to decide that sqlite3 support is available,
+# it needs to find the include file in the SDK, and it finds the SDK location
+# by looking for a '-isysroot' flag in CFLAGS, so provide one...
+ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)' CFLAGS='$(CFLAGS) -isysroot $(SDK_PATH)'
+endif
 pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
+endif
 endif
 
 ifeq ($(OS),Windows)
@@ -89,20 +105,25 @@ CONFIG_OPTIONS += --with-cxx-main
 all:
 
 install: $(SOURCE)
-	$(RSYNC) $(SOURCE)/Tools/freeze $(datadir)
-
 ifeq ($(OS),Windows)
 	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
 	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
 	test -n '$(PYDIR)'
-	$(RSYNC) --include=*.exe --exclude='site-packages/*' --exclude=__pycache__ \
-	  $(PYDIR)/DLLs \
-	  $(PYDIR)/Lib \
-	  $(PYDIR)/include \
-	  $(PYDIR)/libs \
-	  $(PYDIR)/python.exe \
-	  $(PYDIR)/pythonw.exe \
-	  $(bindir)
+	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
+	  '$(PYDIR)'/DLLs \
+	  '$(PYDIR)'/Lib \
+	  '$(PYDIR)'/include \
+	  '$(PYDIR)'/libs \
+	  '$(PYDIR)'/python.exe \
+	  '$(PYDIR)'/pythonw.exe \
+	  '$(PYDIR)'/*.dll \
+	  '$(bindir)'
+	# Leave include and libs in bindir so pip/setuptools will work.
+	# Also copy include and lib directories to common locations for
+	# our source code.
+	$(RSYNC) --delete '$(PYDIR)'/include/* \
+		$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
+	$(RSYNC) '$(PYDIR)'/libs/* $(libdir)
 
 else ifdef USE_MAC_FRAMEWORKS
 	rm -rf $(frameworkdir)/Python.framework
@@ -142,10 +163,12 @@ else ifdef USE_MAC_FRAMEWORKS
 		ln -s $(shell python -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 
+	# remove unused libraries
+	rm -rf $(PYTHON_LIBRARY_DIR)/config-*/*.{a,dylib}
+
 	# replace python executable with version that doesn't invoke Python.app
 	cp $(SOURCE)/python.exe $(PYTHON_EXE)
-	install_name_tool -rpath $(libdir) '@executable_path/../lib' \
-		$(PYTHON_EXE)
+	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_EXE)
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
 		$(PYTHON_EXE)
@@ -160,7 +183,7 @@ else ifdef USE_MAC_FRAMEWORKS
 	chmod 444 $(PYTHON_FRAMEWORK)/Python
 
 	# In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
-	install_name_tool -rpath $(libdir)  \
+	install_name_tool -add_rpath \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
 		$(pyappdir)/Python
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
@@ -175,7 +198,7 @@ ifeq ($(OS),Linux)
 	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 endif
 ifeq ($(OS),Darwin)
-	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
+	install_name_tool -add_rpath '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
 	pylib=libpython$(PYTHON_VERSION)$(PYTHON_ABI).dylib ;\
 		chmod 644 $(libdir)/$$pylib ;\
 		install_name_tool -id @rpath/$$pylib $(libdir)/$$pylib ;\
@@ -183,6 +206,11 @@ ifeq ($(OS),Darwin)
 endif
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 endif
+	# Since pip comes with Python 3.5, update it now so installs on
+	# Windows will work.  Wheel is needed so bdist_wheel will work.
+	$(PYTHON_EXE) -m ensurepip --upgrade
+	$(PYTHON_EXE) -m pip install --upgrade pip
+	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
 
 	# double check that _ssl was successfully made
 	test -f $(DYNLOAD_DIR)/_ssl.*$(PYMOD_EXT)
@@ -192,9 +220,13 @@ endif
 app-install:
 	$(RSYNC) $(PYTHON_EXE) $(app_bindir)
 ifeq ($(OS),Windows)
-	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
-	  $(bindir)/DLLs \
-	  $(bindir)/Lib \
+	# need include and libs so pip install will work
+	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
+	  '$(PYDIR)'/DLLs \
+	  '$(PYDIR)'/Lib \
+	  '$(PYDIR)'/include \
+	  '$(PYDIR)'/libs \
+	  '$(PYDIR)'/*.dll \
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
 	# next line breaks code signing 1/22/16
@@ -212,6 +244,9 @@ else
 	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
 endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
+	$(APP_PYTHON_EXE) -m pip install --upgrade \
+		pip==$(PIP_VERSION) \
+		wheel==$(WHEEL_VERSION)
 
 $(SOURCE):
 ifneq ($(OS),Windows)

@@ -1,0 +1,39 @@
+#include "winver.h"
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+APPICON                 ICON    DISCARDABLE     "ChimeraX.ico"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION CHIMERAX_PRODUCT
+PRODUCTVERSION CHIMERAX_PRODUCT
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE VFT2_UNKNOWN
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS CHIMERAX_FLAGS
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "000004B0"	// neutral-unicode
+		BEGIN
+		VALUE "CompanyName", "University of California, San Francisco\0"
+		VALUE "FileDescription", "UCSF ChimeraX molecular visualization application\0"
+		VALUE "FileVersion", "CHIMERAX_VERSION\0"
+		VALUE "InternalName", "ChimeraX\0"
+		VALUE "OriginalFilename", "ChimeraX.exe\0"
+		VALUE "LegalCopyright", "Copyright\xA9 YEAR by the Regents of the University of California.  All rights reserved.\0"
+		VALUE "ProductName", "UCSF ChimeraX\0"
+		VALUE "ProductVersion", "CHIMERAX_VERSION\0"
+#ifdef SPECIAL_BUILD
+		VALUE "SpecialBuild", SPECIAL_BUILD
+#endif
+		// our additions
+		VALUE "Contact e-mail", "chimera@cgl.ucsf.edu"
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x0, 0x4B0
+	END
+END

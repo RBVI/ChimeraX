@@ -26,10 +26,18 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <string>
 
 #include "imex.h"
 
 namespace element {
+
+#if 0
+class Element;
+extern template class ELEMENT_IMEX std::map<int, const Element*>;
+extern template class ELEMENT_IMEX std::set<std::string>;
+extern template class ELEMENT_IMEX std::set<int>;
+#endif
 
 class ELEMENT_IMEX Element {
 public:
@@ -61,6 +69,7 @@ private:
     static std::set<int>  _alkali_metals;
     static std::map<int, const Element*>  _elements;
     static std::set<int>  _halogens;
+    static std::set<std::string>  _names;
     static std::set<int>  _noble_gases;
 
     static AS    atomic_number(const char *name);
@@ -81,6 +90,7 @@ public:
         { return _noble_gases.find(number()) != _noble_gases.end(); }
     float  mass() const;        // standard atomic weight
     const char*  name() const;
+    static const std::set<std::string>&  names();
     int  number() const { return int(as); }
     int  valence() const;
 

@@ -7,12 +7,12 @@
 #include <vector>
 #include <string>
 
+#include "../imex.h"
 #include "TAexcept.h"
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"
 #include "Residue.h"
-#include "../imex.h"
 #include "../string_types.h"
 
 namespace tmpl {

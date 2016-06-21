@@ -5,8 +5,7 @@ DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
-OBJS	= $(SRCS:.cpp=.o)
-INCS	+= -I$(includedir)
+OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 
 install:
 	-mkdir $(includedir)/$(DIRNAME)

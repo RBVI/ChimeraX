@@ -11,12 +11,14 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/tmpl/restmpl.h>
 #include <logger/logger.h>
-#include "pythonarray.h"	// Use python_voidp_array()
+#include <arrays/pythonarray.h>	// Use python_voidp_array()
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/mman.h>
+#endif
 #include <sys/stat.h>
 #include <algorithm>
 #include <unordered_map>
@@ -36,7 +38,7 @@ using std::unordered_map;
 using std::vector;
 
 using atomstruct::AtomicStructure;
-using atomstruct::Graph;
+using atomstruct::Structure;
 using atomstruct::Residue;
 using atomstruct::Bond;
 using atomstruct::Atom;
@@ -361,7 +363,7 @@ ExtractMolecule::connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, b
 }
 
 void
-copy_nmr_info(Graph* from, Graph* to, PyObject* _logger)
+copy_nmr_info(Structure* from, Structure* to, PyObject* _logger)
 {
     if (from->num_atoms() != to->num_atoms())
         logger::warning(_logger, "Mismatched number of atoms (",
@@ -938,7 +940,7 @@ ExtractMolecule::parse_atom_site()
             }
         }
 
-        if (isnan(x) || isnan(y) || isnan(z)) {
+        if (std::isnan(x) || std::isnan(y) || std::isnan(z)) {
             logger::warning(_logger, "Skipping atom \"", atom_name,
                             "\" near line ", line_number(),
                             ": missing coordinates");

@@ -23,7 +23,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;adjust &nbsp;default&nbsp;|&nbsp;<i>factor</i>&nbsp;]
+[&nbsp;smooth&nbsp;&nbsp;<i>factor</i>&nbsp;|&nbsp;default&nbsp;]
 [&nbsp;hideBackbone&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
@@ -33,59 +33,160 @@ class="clRight" alt="ChimeraX logo"/></a>
 <p>
 The <b>cartoon</b> or <b>ribbon</b> command shows a simplified backbone 
 representation of the <a href="atomspec.html">specified</a> biopolymer 
-residues, with additional settings for path smoothing
-and whether a residue's backbone atoms can be shown at the same time
-as its cartoon segment. Settings can be different for different residues.
+residues, with additional settings for smoothing and whether a 
+residue's backbone atoms can be shown at the same time as its cartoon segment.
+These settings can be different for different residues.
 Changes in settings apply only to the atomic models already present, 
 not subsequently opened models. 
 </p><p>
-The command <b>~cartoon</b> or <b>~ribbon</b> hides cartoon
+The command <b>~cartoon</b> (or <b>~ribbon</b>) hides cartoon
 for the <a href="atomspec.html">specified</a> residues.
 The commands <a href="show.html"><b>hide</b></a> and 
 <a href="show.html"><b>show</b></a> can also be used to control cartoon display.
 See also:
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons
 </p><p>
-The <b>adjust</b> <i>factor</i> sets the balance between smoothing
-the cartoon path for peptide helix or strand residues to ideality (1.0)
-versus following the exact positions of the &alpha;-carbons (0.0).
+Protein helix and strand assignments are taken from the input structure file.
+The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
+and C5' in nucleic acids. The orientation is guided by CA&rarr;O (carbonyl
+oxygen) vectors in peptides and C5'&rarr;C1' vectors in nucleic acids.
+The <b>smooth</b> <i>factor</i> sets the balance between smoothing peptide 
+strands versus following the exact positions of the &alpha;-carbons (0.0 
+unsmoothed, default <b>1.0</b> maximally smoothed).
+Specifying <b>default</b> instead of a numerical value sets the value to 1.0. 
+Smoothing applies only to peptide &beta;-strands,
+not &alpha;-helices, coil, or nucleic acids.
 Each residue can have a different value of <i>factor</i>,
 and lower values are recommended where sidechains are displayed,
 to preclude showing <a href="#tether">tethers</a>.
-Specifying <b>default</b> instead of a numerical value
-restores the default of <b>0.0</b> for amino acid residues in helices 
-and <b>1.0</b> for those in strands.
-Smoothing is not applied to peptide coil or to nucleic acids.
-The path-guiding atom in nucleic acids is C5'.
 </p><p>
 By default, showing the cartoon for a residue suppresses the display of
 its backbone atoms. Simultaneous display can be enabled with 
 <b>hideBackbone false</b>; otherwise,
 the backbone atoms hidden by cartoons are N, C, and O in amino acids
 and the phosphate moieties including  O5' in nucleic acids.
+</p><p>
+Subcommands control per-model settings for cartoon shape, size, 
+and the appearance of connections to &alpha;-carbons:
+</p>
+<ul>
+<li><a href="#arrow"><b>cartoon arrow</b></a> 
+- arrows showing peptide N &rarr; C directionality
+<li><a href="#linker"><b>cartoon linker</b></a> 
+- connections between peptide helices and/or strands
+<li><a href="#scale"><b>cartoon scale</b></a> 
+- width and thickness perpendicular to the backbone path 
+<li><a href="#tether"><b>cartoon tether</b></a>
+- connections to peptide &alpha;-carbons
+<li><a href="#xsection"><b>cartoon xsection</b></a> 
+- shape perpendicular to the backbone path
+</ul>
+<p>
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive options, and
+default values are indicated with <b>bold</b>.
+Synonyms for true: True, 1.  Synonyms for false: False, 0.
 </p>
 
-<a name="tether"></a>
-<p class="nav">
-[<a href="#top">back to top</a>]
-</p>
-<h3><a href="usageconventions.html">Usage</a>:
-<BR>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;) tether
+<a href="#top" class="nounder">&bull;</a>
+<a name="arrow">
+(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+<b>arrow</b></a>
 &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
-[&nbsp;shape&nbsp;cone&nbsp;|&nbsp;steeple&nbsp;|&nbsp;cylinder&nbsp;]
-[&nbsp;sides&nbsp;&nbsp<i>N</i>&nbsp;]
-[&nbsp;scale&nbsp;&nbsp<i>scale</i>&nbsp;]
-[&nbsp;opacity&nbsp;&nbsp<i>opacity</i>&nbsp;]
-</h3>
+[&nbsp;<b>helix</b>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>strand</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Arrowheads can be shown at the C-terminal ends of peptide <b>helix</b>
+(default <b>false</b>) and/or <b>strand</b> (default <b>true</b>).
+Given without options, <b>cartoon arrow</b> reports the current settings.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="linker">
+(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+<b>linker</b></a>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
+(&nbsp;none&nbsp;|&nbsp;short&nbsp;|&nbsp;short2&nbsp;|&nbsp;long&nbsp;)
+&nbsp;<i>type,type</i>
+<blockquote>
+Linkers are the connections between helix, strand, and coil segments 
+along a peptide chain. 
+The options specify the length and register of coil-like segments
+between the last residue of one segment and first residue of the next:
+<ul>
+<li><b>none</b>
+- no extra (other than for coil residues) coil-like linker;
+boundary occurs at peptide bond
+<li><b>short</b> - extra coil-like linker from the C&alpha; of the
+last residue in a segment to the peptide bond
+<li><b>short2</b> - extra coil-like linker from the peptide bond
+to the C&alpha; of the first residue of the next segment
+<li><b>long</b> - extra coil-like segment from the C&alpha; of the last
+residue in a segment to the C&alpha; of the first residue in
+the next segment (like <b>short</b> + <b>short2</b>)
+</ul>
+Segment <i>type</i> values <b>helix</b>, <b>strand</b>, and <b>coil</b>
+can be given as single letters, for example:
+<blockquote>
+<b>cartoon link long h,s; cartoon link long s,h</b>
+</blockquote>
+In the following example images,
+a strand immediately precedes a helix, and &alpha;-carbons are shown as balls.
+<table cellpadding="0px" cellspacing="0px">
+<tr>
+<th align="center">none</th>
+<th align="center">short</th>
+<th align="center">short2</th>
+<th align="center">long</th>
+</tr><tr>
+<td><img class="outline" width="120px" src="carlink-none.png"></td>
+<td><img class="outline" width="120px" src="carlink-short.png"></td>
+<td><img class="outline" width="120px" src="carlink-short2.png"></td>
+<td><img class="outline" width="120px" src="carlink-long.png"></td>
+</tr>
+</table>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="scale">
+(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+<b>scale</b></a>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>helix</b>&nbsp;&nbsp;<i>w</i>,<i>h</i>]
+[&nbsp;<b>strand</b>&nbsp;&nbsp;<i>w</i>,<i>h</i>]
+[&nbsp;<b>coil</b>&nbsp;&nbsp;<i>w</i>,<i>h</i>]
+[&nbsp;<b>nucleic</b>&nbsp;&nbsp;<i>h</i>,<i>w</i>]
+[&nbsp;<b>arrowHelix</b>&nbsp;&nbsp;<i>basew</i>,<i>baseh</i>,<i>tipw</i>,<i>tiph</i>&nbsp;]
+[&nbsp;<b>arrowStrand</b>&nbsp;&nbsp;<i>basew</i>,<i>baseh</i>,<i>tipw</i>,<i>tiph</i>&nbsp;]
+<blockquote>
+The <b>scale</b> subcommand 
+sets the dimensions of the cartoon perpendicular to its path.
+The values are actually half-dimensions (half-widths and half-heights)
+in &Aring;.  Dimensions can be set separately for peptide <b>helix</b> 
+(default <b>0.9,0.21</b>) and the arrow (if any) on its C-terminal end
+(default <b>1.8,0.21,0.21,0.21</b>),
+peptide <b>strand</b>
+(default <b>0.8,0.21</b>) and the arrow (if any) on its C-terminal end
+(default <b>1.5,0.21,0.21,0.21</b>),
+ peptide <b>coil</b> (default <b>0.21,0.21</b>), and <b>nucleic</b>
+acids (default <b>0.21,0.8</b>).
+<p>
+Given without options, <b>cartoon scale</b> reports the current settings.
+</p>
+</blockquote>
+<a href="#top" class="nounder">&bull;</a>
+<a name="tether">
+(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+<b>tether</b></a> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>shape</b>&nbsp;<b>cone</b>&nbsp;|&nbsp;steeple&nbsp;|&nbsp;cylinder&nbsp;]
+[&nbsp;<b>sides</b>&nbsp;&nbsp<i>N</i>&nbsp;]
+[&nbsp;<b>scale</b>&nbsp;&nbsp<i>scale</i>&nbsp;]
+[&nbsp;<b>opacity</b>&nbsp;&nbsp<i>opacity</i>&nbsp;]
+<blockquote>
 <p>
 A <b><i>tether</i></b> is drawn between a displayed &alpha;-carbon (CA atom)
 and the corresponding cartoon segment where they are offset 
-(<a href="#top"><i>factor</i></a> &gt; 0).
-The command <b>cartoon tether</b> controls tether appearance.
-Tether parameters apply to an entire atomic model and cannot be different
-for different residues in the same model.
-</p><p>
-The tether <b>shape</b> can be:
+(path-smoothing <a href="#top"><i>factor</i></a> &gt; 0).
+Tether <b>shape</b> can be:
  <ul>
  <li><b>cone</b> (default) 
  - cone with base at the &alpha;-carbon, point at the cartoon
@@ -93,19 +194,38 @@ The tether <b>shape</b> can be:
  - cone with base at the cartoon, point at the &alpha;-carbon
  <li><b>cylinder</b>
  </ul>
-</p><p>
 The <b>sides</b> option controls the number of planar facets used to draw
 a tether (range 3-10, default <b>4</b>).
-</p><p>
 The <b>scale</b> option sets tether base radius relative to the display radius 
 of the corresponding &alpha;-carbon (range 0.0-1.0, default <b>1.0</b>).
-</p><p>
 The tether <b>opacity</b> value (1 &ndash; transparency) can range from 0.0
 (completely transparent) to 1.0 (completely opaque) and defaults to <b>0.5</b>.
 The tether color tracks the color of the corresponding &alpha;-carbon.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="xsection">
+(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+<b>xsection</b></a>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>helix</b>&nbsp;<b>round</b>&nbsp;|&nbsp;square&nbsp;|&nbsp;piping&nbsp;]
+[&nbsp;<b>strand</b>&nbsp;round&nbsp;|&nbsp;<b>square</b>&nbsp;|&nbsp;piping&nbsp;]
+[&nbsp;<b>coil</b>&nbsp;<b>round</b>&nbsp;|&nbsp;square&nbsp;|&nbsp;piping&nbsp;]
+[&nbsp;<b>nucleic</b>&nbsp;<b>round</b>&nbsp;|&nbsp;square&nbsp;|&nbsp;piping&nbsp;]
+<blockquote>
+The cross-section is the shape of the cartoon perpendicular to its path, with
+edges smoothly rounded, squared-off, or piped (edges rounded but thicker than
+the middle).  Cross-sections can be set separately for 
+peptide <b>helix</b> (default <b>round</b>), 
+peptide <b>strand</b> (default <b>square</b>), 
+peptide <b>coil</b> (default <b>round</b>), and <b>nucleic</b>
+acids (default <b>round</b>).
+<p>
+Given without options, <b>cartoon xsection</b> reports the current settings.
 </p>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2016</address>
+May 2016</address>
 </body></html>

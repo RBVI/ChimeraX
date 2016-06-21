@@ -13,11 +13,11 @@ _builtin_open = open
 _initialized = False
 
 _additional_categories = (
-#    'pdbx_struct_assembly',
-#    'pdbx_struct_assembly_gen',
-#    'pdbx_struct_oper_list',
-#    'pdbx_poly_seq_scheme',
-#    'pdbx_nonpoly_scheme'
+    #    'pdbx_struct_assembly',
+    #    'pdbx_struct_assembly_gen',
+    #    'pdbx_struct_oper_list',
+    #    'pdbx_poly_seq_scheme',
+    #    'pdbx_nonpoly_scheme'
 )
 
 
@@ -29,12 +29,12 @@ def open_mmcif(session, filename, name, *args, **kw):
 
     from . import _mmcif
     _mmcif.set_Python_locate_function(
-        lambda name: _get_template(name, session.app_dirs, session.logger))
+        lambda name, session=session: _get_template(session, name))
     pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, session.logger)
 
     lod = session.atomic_level_of_detail
-    models = [structure.AtomicStructure(session, name = name, c_pointer = p, level_of_detail = lod)
-        for p in pointers]
+    models = [structure.AtomicStructure(session, name=name, c_pointer=p, level_of_detail=lod)
+              for p in pointers]
     for m in models:
         m.filename = filename
 
@@ -70,22 +70,31 @@ def fetch_mmcif(session, pdb_id, ignore_cache=False):
             raise UserError("Invalid mmCIF identifier")
 
     from .. import io
-    models, status = io.open_data(session, filename, format = 'mmcif', name = pdb_id)
+    models, status = io.open_data(session, filename, format='mmcif', name=pdb_id)
     return models, status
 
 
-def _get_template(name, app_dirs, logger):
+def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""
     import os
+    from chimerax import app_dirs, app_dirs_unversioned
     # check in local cache
-    filename = "~/Downloads/Chimera/CCD/%s.cif" % name
-    filename = os.path.expanduser(filename)
+    if len(_cache_dirs) == 0:
+        _cache_dirs.append(os.path.join(
+            app_dirs_unversioned.user_cache_dir, 'CCD'))
+        old_cache_dir = os.path.join('~', 'Downloads', 'Chimera', 'CCD')
+        old_cache_dir = os.path.expanduser(old_cache_dir)
+        if os.path.isdir(old_cache_dir):
+            _cache_dirs.append(old_cache_dir)
 
-    if os.path.exists(filename):
-        return filename  # TODO: check if cache needs updating
+    filename = '%s.cif' % name
+    for d in _cache_dirs:
+        path = os.path.join(d, filename)
+        if os.path.exists(path):
+            return path  # TODO: check if cache needs updating
 
-    dirname = os.path.dirname(filename)
-    os.makedirs(dirname, exist_ok=True)
+    path = os.path.join(_cache_dirs[0], filename)
+    os.makedirs(_cache_dirs[0], exist_ok=True)
 
     from urllib.request import URLError, Request
     from .. import fetch
@@ -95,12 +104,12 @@ def _get_template(name, app_dirs, logger):
         "User-Agent": fetch.html_user_agent(app_dirs),
     })
     try:
-        return fetch.retrieve_cached_url(request, filename, logger)
+        return fetch.retrieve_cached_url(request, path, session.logger)
     except URLError:
-        if logger:
-            logger.warning(
-                "Unable to fetch template for '%s': might be missing bonds"
-                % name)
+        session.logger.warning(
+            "Unable to fetch template for '%s': might be missing bonds"
+            % name)
+_cache_dirs = []
 
 
 def register_mmcif_format():
@@ -121,10 +130,11 @@ def register_mmcif_format():
         reference="http://mmcif.wwpdb.org/",
         requires_filename=True, open_func=open_mmcif)
 
+
 def register_mmcif_fetch(session):
     from .. import fetch
     fetch.register_fetch(session, 'pdb', fetch_mmcif, 'mmcif',
-                         prefixes = ['pdb'], default_format = True)
+                         prefixes=['pdb'], default_format=True)
 
 
 def get_mmcif_tables(model, table_names):
@@ -141,6 +151,7 @@ def get_mmcif_tables(model, table_names):
             values_2d = list(zip(*slices))
             tlist.append(MMCIFTable(name, tags, values_2d))
     return tlist
+
 
 def get_mmcif_tables_from_metadata(model, table_names):
     raw_tables = model.metadata

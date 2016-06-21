@@ -31,8 +31,8 @@ class Label:
         self.xpos = xpos
         self.ypos = ypos
         self.visibility = visibility
-        self.drawing = None
-        self.make_drawing()
+        self.drawing = d = LabelDrawing(self)
+        session.main_view.add_overlay(d)
 
         lmap = getattr(session, 'labels', None)
         if lmap is None:
@@ -41,29 +41,11 @@ class Label:
             lmap[name].delete()
         lmap[name] = self
 
-    def make_drawing(self):
-        v = self.session.main_view
-        if self.color is None:
-            light_bg = (sum(v.background_color[:3]) > 1.5)
-            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
-        else:
-            rgba8 = tuple(self.color.uint8x4())
-        rgba = text_image_rgba(self.text, rgba8, self.size, self.typeface,
-                               self.session.app_data_dir)
-        if rgba is None:
-            self.session.logger.info("Can't find font for label")
-            return
-        x,y = (-1 + 2*self.xpos, -1 + 2*self.ypos)    # Convert 0-1 position to -1 to 1.
-        w,h = v.window_size
-        uw,uh = 2*rgba.shape[1]/h, 2*rgba.shape[0]/h
-        new = (self.drawing is None)
-        from chimerax.core.graphics.drawing import rgba_drawing
-        self.drawing = d = rgba_drawing(rgba, (x, y), (uw, uh), self.drawing)
-        d.display = self.visibility
-        if new:
-            v.add_overlay(d)
-        return d
-
+    def update_drawing(self):
+        d = self.drawing
+        d.needs_update = True
+        d.redraw_needed()
+        
     def delete(self):
         d = self.drawing
         if d is None:
@@ -71,6 +53,66 @@ class Label:
         s = self.session
         s.main_view.remove_overlays([d])
         del s.labels[self.name]
+
+from chimerax.core.graphics.drawing import Drawing
+class LabelDrawing(Drawing):
+
+    def __init__(self, label):
+        Drawing.__init__(self, 'label %s' % label.name)
+        self.label = label
+        self.window_size = None
+        self.texture_size = None
+        self.needs_update = True
+        
+    def draw(self, renderer, place, draw_pass, selected_only=False):
+        if not self.update_drawing():
+            self.resize()
+        Drawing.draw(self, renderer, place, draw_pass, selected_only)
+
+    def update_drawing(self):
+        if not self.needs_update:
+            return False
+        self.needs_update = False
+        l = self.label
+        v = l.session.main_view
+        if l.color is None:
+            light_bg = (sum(v.background_color[:3]) > 1.5)
+            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
+        else:
+            rgba8 = tuple(l.color.uint8x4())
+        from chimerax import app_data_dir
+        rgba = text_image_rgba(l.text, rgba8, l.size, l.typeface, app_data_dir)
+        if rgba is None:
+            l.session.logger.info("Can't find font for label")
+            return True
+        self.set_text_image(rgba)
+        self.display = l.visibility
+        return True
+        
+    def set_text_image(self, rgba):
+        l = self.label
+        x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
+        v = l.session.main_view
+        self.window_size = w,h = v.window_size
+        th, tw = rgba.shape[:2]
+        self.texture_size = (tw,th)
+        uw,uh = 2*tw/w, 2*th/h
+        from chimerax.core.graphics.drawing import rgba_drawing
+        rgba_drawing(self, rgba, (x, y), (uw, uh))
+
+    def resize(self):
+        l = self.label
+        v = l.session.main_view
+        if v.window_size != self.window_size:
+            # Window has resized so update texture drawing size
+            self.window_size = w,h = v.window_size
+            print('resizing label', w,h)
+            tw,th = self.texture_size
+            uw,uh = 2*tw/w, 2*th/h
+            x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
+            from chimerax.core.graphics.drawing import position_rgba_drawing
+            position_rgba_drawing(self, (x,y), (uw,uh))
+
 
 def label_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
                  xpos = 0.5, ypos = 0.5, visibility = True):
@@ -102,6 +144,10 @@ def label_create(session, name, text = '', color = None, size = 24, typeface = '
 def label_change(session, name, text = None, color = None, size = None, typeface = None,
                  xpos = None, ypos = None, visibility = None):
     '''Change label parameters.'''
+    if name == 'all':
+        for n in session.labels.keys():
+            label_change(session, n, text, color, size, typeface, xpos, ypos, visibility)
+        return
     l = session.labels[name]
     if not text is None: l.text = text
     if not color is None: l.color = color
@@ -110,11 +156,15 @@ def label_change(session, name, text = None, color = None, size = None, typeface
     if not xpos is None: l.xpos = xpos
     if not ypos is None: l.ypos = ypos
     if not visibility is None: l.visibility = visibility
-    l.make_drawing()
+    l.update_drawing()
     return l
 
 def label_delete(session, name):
     '''Delete label.'''
+    if name == 'all':
+        for l in tuple(session.labels.values()):
+            l.delete()
+        return
     l = session.labels[name]
     l.delete()
 

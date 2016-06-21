@@ -3,8 +3,8 @@
 //
 #include <math.h>			// use sqrt()
 
-#include "pythonarray.h"		// use c_array_to_python()
-#include "rcarray.h"			// use FArray, IArray
+#include <arrays/pythonarray.h>		// use c_array_to_python()
+#include <arrays/rcarray.h>		// use FArray, IArray
 
 // ----------------------------------------------------------------------------
 // Calculate vertex normals by adding normals for each triangle that uses

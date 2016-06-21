@@ -1,9 +1,9 @@
 WHEELS = $(wildcard *.whl)
 
 all:	METADATA.json
-	../bin/python3 cxpi.py --disable-fallback `pwd`
+	PYTHON_EXE cxpi.py --disable-fallback `pwd`
 
 METADATA.json:	update_metadata.py $(WHEELS)
-	../bin/python3 update_metadata.py
+	PYTHON_EXE update_metadata.py
 
 update:	METADATA.json
