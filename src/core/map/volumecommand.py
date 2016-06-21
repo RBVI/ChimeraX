@@ -36,6 +36,7 @@ def register_volume_command():
                ('origin_index', Float1or3Arg),
                ('voxel_size', Float1or3Arg),
                ('planes', PlanesArg),
+               ('dump_header', NoArg),
 # Symmetry assignment.
                ('symmetry', SymmetryArg),
                ('center', CenterArg),
@@ -114,6 +115,7 @@ def volume(session,
            origin_index = None,
            voxel_size = None,
            planes = None,
+           dump_header = None,
 # Symmetry assignment.
            symmetry = None,
            center = None,
@@ -312,7 +314,7 @@ def volume(session,
             'color', 'brightness', 'transparency',
             'step', 'region', 'name_region', 'expand_single_plane', 'origin',
             'origin_index', 'voxel_size', 'planes',
-            'symmetry', 'center', 'center_index', 'axis', 'coordinate_system')
+            'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header')
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
     ropt = (
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
@@ -442,6 +444,10 @@ def apply_volume_options(v, doptions, roptions, session):
 # TODO: If it has a surface but it is undisplayed, do I need to recalculate it?
 #    else:
 #        v.update_display()
+
+    if 'dump_header' in doptions and doptions['dump_header']:
+        show_file_header(v.data, session.logger)
+
 
 # TODO:
 #  Allow quoted color names.
@@ -626,3 +632,17 @@ class PlanesArg(Annotation):
             raise AnnotationError('Planes arguments after axis must be integers')
         result = tuple([fields[0]] + values)
         return result, text, rest
+    
+# -----------------------------------------------------------------------------
+#
+def show_file_header(d, log):
+    if hasattr(d, 'file_header') and isinstance(d.file_header, dict):
+        h = d.file_header
+        klist = list(h.keys())
+        klist.sort()
+        msg = ('File header for %s\n' % d.path +
+               '\n'.join(('%s = %s' % (k, str(h[k]))) for k in klist))
+    else:
+        msg = 'No header info for %s' % d.name
+        log.status(msg)
+    log.info(msg + '\n')
