@@ -7,7 +7,7 @@ print(metadata.METADATA_FILENAME)
 metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup
 
-lib_dir = "LIB_DIR"
+shlib_dir = "SHLIB_DIR"
 pkg_dir = "PKG_DIR"
 
 setup(

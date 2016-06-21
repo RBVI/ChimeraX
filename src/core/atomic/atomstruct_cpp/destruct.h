@@ -4,9 +4,11 @@
 
 #include <set>
 
+#include "imex.h"
+
 namespace atomstruct {
 
-class DestructionObserver {
+class ATOMSTRUCT_IMEX DestructionObserver {
 // Base class for classes that are interested in getting only one
 // notification once a releted set of destructors have executed
 public:
@@ -15,7 +17,7 @@ public:
     virtual void  destructors_done(const std::set<void*>& destroyed) = 0;
 };
 
-class DestructionCoordinator {
+class ATOMSTRUCT_IMEX DestructionCoordinator {
 // Keeps track of what object starts a possible chain of destructor
 // calls; when the parent destructor finishes, make callbacks to
 // registered functions
@@ -70,7 +72,7 @@ public:
     }
 };
 
-class DestructionBatcher {
+class ATOMSTRUCT_IMEX DestructionBatcher {
 // Used when an object will be initiating a chain of sub-object destructions,
 // but the object itself is not being destroyed
     void*  _instance;
@@ -83,7 +85,7 @@ public:
     }
 };
 
-class DestructionUser {
+class ATOMSTRUCT_IMEX DestructionUser {
 // Used in each class destructor to possibly set the instance as the
 // "parent" of a chain of destructors (and clear that when the destructor
 // scope exits); adds itself to the list of things that got destroyed
@@ -107,7 +109,7 @@ inline DestructionObserver::~DestructionObserver()
     DestructionCoordinator::deregister_observer(this);
 }
 
-class DestructionNotificationsOff {
+class ATOMSTRUCT_IMEX DestructionNotificationsOff {
 // Used in routines where destruction notifications are not useful,
 // such as in code that reads structures and makes temporary items
 // that are destroyed before the final structures are delivered

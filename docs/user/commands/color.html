@@ -31,13 +31,13 @@ class="clRight" alt="ChimeraX logo"/></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 &nbsp;<b>sequential</b>
 &nbsp;<a href="#level"><i>level</i></a>&nbsp;
-[&nbsp;cmap&nbsp;&nbsp;<a href="#cmap-options"><i>colormap</i></a>&nbsp;]
+[&nbsp;palette&nbsp;&nbsp;<a href="#palette-options"><i>palette</i></a>&nbsp;]
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>rainbow</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 [&nbsp;<a href="#level"><i>level</i></a>&nbsp;]
-[&nbsp;cmap&nbsp;&nbsp;<a href="#cmap-options"><i>colormap</i></a>&nbsp;]
+[&nbsp;palette&nbsp;&nbsp;<a href="#palette-options"><i>palette</i></a>&nbsp;]
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 </h3>
 <p>
@@ -92,7 +92,7 @@ atomic representations and per-atom patches of molecular surfaces
 <a name="level"></a>
 The <b>sequential</b> coloring method 
 (synonym <b>rainbow</b>, see <a href="#examples">examples</a>)
-applies a <a href="#cmap-options">series of colors</a>
+applies a <a href="#palette-options">series of colors</a>
 at the specified <i>level</i>:
 <ul>
 <li><b>residues</b> - a different color for each residue in a biopolymer chain
@@ -135,7 +135,8 @@ without commas or spaces:
 -->
   <li><b>b</b> - bonds-only
   (coloring shown for bonds not in <a href="#halfbond">halfbond mode</a>)
-  <li><b>c</b> - cartoons (divisible to per-residue segments)
+  <li><b>c</b> &nbsp;or&nbsp; <b>r</b>
+  - cartoons (ribbons) (divisible to per-residue segments)
   <li><b>s</b> - surfaces
   (molecular surfaces divisible to per-atom patches)
   <li><b>p</b> - pseudobonds-only
@@ -165,6 +166,7 @@ can be specified with a keyword immediately following the
 <li><b>atoms</b> - equivalent to <b>target a</b>
 <li><b>bonds</b> - equivalent to <b>target b</b>
 <li><b>cartoons</b> or <b>ribbons</b> - equivalent to <b>target c</b>
+or <b>target r</b>
 <li><b>surfaces</b> - equivalent to <b>target s</b>
 <li><b>pseudobonds</b> - equivalent to <b>target p</b>
 </ul>
@@ -196,14 +198,14 @@ can be used to set transparency apart from color.
 <p class="nav">
 [<a href="#top">back to top</a>]
 </p>
-<a name="cmap-options"></a>
-<h3>Colormap Options</h3>
+<a name="palette-options"></a>
+<h3>Palette Options</h3>
 <p>
-A <b><i>colormap</i></b> is an ordered list of colors or color-value pairs.
+A <b><i>palette</i></b> is an ordered list of colors or color-value pairs.
 <blockquote>
-<a name="cmap"><b>cmap</b></a>&nbsp;&nbsp;<i>colormap</i>
+<a name="palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>
 <br>
-Specify a <i>colormap</i> for <b>sequential</b> coloring
+Specify a <i>palette</i> for <b>sequential</b> coloring
 (synonym <b>rainbow</b>) as one of the following:
 <ul>
 <li>the name of a pre-defined palette (colors listed in ascending value order):
@@ -219,8 +221,8 @@ Specify a <i>colormap</i> for <b>sequential</b> coloring
 a series of colon-separated
 <a href="colornames.html">color specifications</i></a>, collectively
 enclosed in quotation marks if it contains any spaces
-(example: <b>cmap cornflowerblue:red:gold</b> or
-<b>cmap "cornflower&nbsp;blue:red:gold"</b>).
+(example: <b>palette cornflowerblue:red:gold</b> or
+<b>palette "cornflower&nbsp;blue:red:gold"</b>).
 The colors are placed evenly in ascending value order along the range,
 with the first and last colors at the extremes.
 Colors for intermediate values are interpolated.
@@ -229,16 +231,16 @@ Colors for intermediate values are interpolated.
 a series of colon-separated
 <i>value</i>,<a href="colornames.html"><i>color-spec</i></a> pairs,
 collectively enclosed in quotation marks if it contains any spaces
-(example: <b>cmap "0,cornflower&nbsp;blue:1,gold:0.7,red"</b>).
+(example: <b>palette "0,cornflower&nbsp;blue:1,gold:0.7,red"</b>).
 For <b>sequential</b> coloring,
 an entire range (such as the residues in each chain 
 or the chains in each model) is mapped to fractional values 0.0-1.0.
 <!-- 
 For numerical data,
 the values can be expressed directly on the scale of the data
-(<a href="#cmapRange"><b>cmapRange</b></a> not used)
+(<a href="#range"><b>range</b></a> not used)
 or as fractional values 0.0-1.0 across a range of data
-specified with <a href="#cmapRange"><b>cmapRange</b></a>.
+specified with <a href="#range"><b>range</b></a>.
 -->
 Values below the lowest given will map to the same color as the lowest,
 and values above the highest will map to the same color as the highest.
@@ -247,11 +249,23 @@ discrete coloring can be achieved by specifying the same color
 for the upper- and lower-bound values of a &ldquo;bin.&rdquo;
 <br><br>
 <li> <i>colourlovers-id</i> 
-- the ID number of a palette to be fetched from 
+- the ID number, name, or name+author of a palette to be fetched from 
 <a href="http://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>. 
-Navigating to the page of a specific palette at
+Examples:
+<blockquote>
+<b>palette 92095</b><br>
+<b>palette "Giant Goldfish"</b><br>
+<b>palette "Giant Goldfish by manekineko"</b>
+</blockquote>
+The page of a specific palette at 
 <a href="http://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>
-shows its ID (in the URL) as well as any licensing stipulations for its use. 
+shows its name, author, ID number (in the URL), and any licensing stipulations
+for its use. 
+Palette names with spaces must be enclosed in quotation marks.
+Palette names are not necessarily unique, and the most-viewed palette of
+a specified name will be fetched unless <b>by <i>author</i></b> is appended,
+as in the example above.
+Palette and author names must be capitalized as shown on the website.
 Palettes with &ldquo;all rights reserved&rdquo; cannot be fetched.
 In ChimeraX, the palette colors are used in left-to-right order,
 spaced equally along the range of values.
@@ -261,12 +275,12 @@ Web-fetched data are automatically cached locally in subdirectories of
 </blockquote>
 <!-- 
 <blockquote>
-<a name="cmapRange">
-<b>cmapRange</b> &nbsp<i>low</i>,<i>high</i>&nbsp;|&nbsp;full</a>
+<a name="range">
+<b>range</b> &nbsp<i>low</i>,<i>high</i>&nbsp;|&nbsp;full</a>
 <br>
 For numerical data, what values should map to the extremes of the 
-<a href="#cmap"><b>cmap</b></a> <i>palette</i>, or to values 0.0 and 1.0
-when <a href="#cmap"><b>cmap</b></a> <i>value,color</i></a> pairs are used.
+<a href="#palette"><b>palette</b></a> <i>palette</i>, or to values 0.0 and 1.0
+when <a href="#palette"><b>palette</b></a> <i>value,color</i></a> pairs are used.
 The <i>low</i> and <i>high</i> values should be separated by a comma only
 (no spaces).
 The <b>full</b> keyword indicates using the minimum and maximum values.
@@ -313,17 +327,17 @@ Example <a href="#top"><b>color</b></a> commands:
 </blockquote>
 - rainbow-color residues blue &rarr; red along each biopolymer chain
 <blockquote>
-<b>color #3 seq chain &nbsp;cmap cyan</b>
+<b>color #3 seq chain &nbsp;palette cyan</b>
 <br>&ndash; or &ndash;<br>
-<b>rainbow #3 chain &nbsp;cmap cyan</b>
+<b>rainbow #3 chain &nbsp;palette cyan</b>
 </blockquote>
 - color the chains in model 3 from a medium cyan through white to dark maroon
 <blockquote>
 <b>color seq chain &nbsp;targ c
-&nbsp;cmap cornflowerblue:red:gold</b>
+&nbsp;palette cornflowerblue:red:gold</b>
 <br>&ndash; or &ndash;<br>
 <b>rainbow chain &nbsp;targ c
-&nbsp;cmap cornflowerblue:red:gold</b>
+&nbsp;palette cornflowerblue:red:gold</b>
 </blockquote>
 - color the chains in each atomic model, cartoons only,
 along the range cornflower blue &rarr; red &rarr; gold
@@ -334,13 +348,13 @@ along the range cornflower blue &rarr; red &rarr; gold
 - rainbow-color chain A atoms by atomic <b>bfactor</b>, 
 cartoon segments by maximum atomic <b>bfactor</b> per residue
 <blockquote>
-<b>color #0 &nbsp;volume #1 &nbsp;cmap redblue &nbsp;cmapRange -10,10
+<b>color #0 &nbsp;volume #1 &nbsp;palette redblue &nbsp;range -10,10
 &nbsp;newAttr esp</b>
 </blockquote>
 - color model #0 by values in map #1; if #0 includes atoms (as opposed to
 surface-only), create new atom attribute named <b>esp</b>
 <blockquote>
-<b>color #0 &nbsp;volume #1 &nbsp;cmap -10,red:0,white:10,medium blue
+<b>color #0 &nbsp;volume #1 &nbsp;palette -10,red:0,white:10,medium blue
 &nbsp;newAttr esp</b>
 </blockquote>
 - same as previous except use <b>medium blue</b> instead of <b>blue</b>
@@ -402,5 +416,5 @@ named <i>cname</i>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2016</address>
+April 2016</address>
 </body></html>

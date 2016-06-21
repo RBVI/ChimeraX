@@ -89,8 +89,8 @@ class Bins:
             if b in self.bins:
                 for c, o in self.bins[b]:
                     if self.are_coordinates_close(c, coords, range):
-                        cobjects[o] = 1
-        clist = cobjects.keys()
+                        cobjects[id(o)] = o
+        clist = list(cobjects.values())
         return clist
 
     # -------------------------------------------------------------------------

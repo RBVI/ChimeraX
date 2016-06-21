@@ -2,11 +2,11 @@
 #ifndef templates_residues
 #define templates_residues
 
+#include "../imex.h"
 #include "restmpl.h"
 #include <vector>
 #include <string>
 
-#include "../imex.h"
 #include "../string_types.h"
 
 namespace tmpl {

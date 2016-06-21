@@ -14,7 +14,7 @@ using atomstruct::AtomName;
 using atomstruct::AtomType;
 using atomstruct::ResName;
     
-class CondInfo {
+class ATOMSTRUCT_IMEX CondInfo {
 public:
     std::string op, operand;
     AtomType result;
@@ -22,7 +22,7 @@ public:
                     op(o1), operand(o2), result(res) {}
 };
 
-class ConditionalTemplate {
+class ATOMSTRUCT_IMEX ConditionalTemplate {
 public:
     std::vector<CondInfo> conditions;
     void add_condition(const char *cond, const AtomType& type);

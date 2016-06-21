@@ -4,8 +4,8 @@
 #include <Python.h>			// use PyObject
 #include <math.h>			// use sqrt()
 
-#include "pythonarray.h"		// use array_from_python()
-#include "rcarray.h"			// use FArray, IArray
+#include <arrays/pythonarray.h>		// use array_from_python()
+#include <arrays/rcarray.h>		// use FArray, IArray
 
 static void vector_rotation(float *v1, float *v2, float *r);
 static void transform(float *points, int m, float *rot, float *offset, float *result);

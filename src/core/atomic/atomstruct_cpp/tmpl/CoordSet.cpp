@@ -1,5 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
 #include <algorithm>        // use std::find()
+#define ATOMSTRUCT_EXPORT
 #include "restmpl.h"
 
 namespace tmpl {

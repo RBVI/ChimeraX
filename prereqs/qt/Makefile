@@ -2,11 +2,11 @@
 #
 #	http://qt-project.org/wiki/Building_Qt_5_from_Git
 
-FOREIGN_MAKE = 1
+PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.2.1
+VERSION = 5.6.0
 DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).7z
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(VERSION)
 
@@ -24,9 +24,9 @@ endif
 ifdef MAC_USE_FRAMEWORKS
 	CONFIG_OPTS += -framework
 endif
-ifeq ($(OS),Darwin)
-	CONFIG_OPTS += -sdk $(SDK)
-endif
+#ifeq ($(OS),Darwin)
+#	CONFIG_OPTS += -sdk $(SDK)
+#endif
 ifeq ($(OS),Linux)
 	# In 5.0.2, build fails if icu library is not present,
 	# so have configure fail if it is not present
@@ -38,6 +38,8 @@ else
 	CONFIG_OPTS += -release
 endif
 
+RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(frameworkdir)", "$(bindir)"))')
+
 all:
 
 install: $(SOURCE)
@@ -48,15 +50,20 @@ else
 endif
 	rm -f $(build_prefix)/q3porting.xml
 ifdef USE_MAC_FRAMEWORKS
+	$(RSYNC) $(libdir)/Qt*.framework $(frameworkdir)
 	$(MAKE) include
-
-app-install:;
 
 include:
 	cd $(libdir) && for i in *.framework; do \
 		f=`basename $$i .framework`; \
 		(cd ../include && ln -nfs ../lib/$$i/Headers $$f); \
 	done
+endif
+
+app-install:
+ifdef USE_MAC_FRAMEWORKS
+	$(RSYNC) $(frameworkdir)/Qt*.framework $(app_libdir)
+	$(RSYNC) $(build_prefix)/plugins $(app_libdir)/..
 endif
 
 $(SOURCE): $(DISTRIBUTION)

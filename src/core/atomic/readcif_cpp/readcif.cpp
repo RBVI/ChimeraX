@@ -277,19 +277,27 @@ CIFFile::register_category(const string& category, ParseCategory callback,
 
 #ifdef _WIN32
 void
-throw_windows_error(DWORD errno, const char* where)
+throw_windows_error(DWORD err_num, const char* where)
 {
-	TSTR message_buffer;
-	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER
+	wchar_t *message_buffer;
+	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER
 			| FORMAT_MESSAGE_FROM_SYSTEM
 			| FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL, errno,
+		NULL, err_num,
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		&message_buffer, 0, NULL);
+		(wchar_t*) &message_buffer, 0, NULL);
+	int len = WideCharToMultiByte(CP_UTF8, 0, message_buffer, -1,
+					NULL, 0, 0, 0);
+	std::string message;
+	message.resize(len);
+	(void) WideCharToMultiByte(CP_UTF8, 0, message_buffer, -1,
+				&message[0], len, 0, 0);
+
 	std::ostringstream err_msg;
 	if (where)
 		err_msg << where << ": ";
-	err_msg << message_buffer;
+	err_msg << message;
+	HeapFree(GetProcessHeap(), 0, message_buffer);
 	throw std::runtime_error(err_msg.str());
 }
 #endif
@@ -299,34 +307,36 @@ CIFFile::parse_file(const char* filename)
 {
 	std::ostringstream err_msg;
 #ifdef _WIN32
-	// TODO: Not tested
-	HANDLE file = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL,
+	size_t len = strlen(filename);
+	std::vector<wchar_t> wfilename(len + 1);
+	MultiByteToWideChar(CP_UTF8, 0, filename, len, &wfilename[0], len + 1);
+	HANDLE file = CreateFileW(&wfilename[0], GENERIC_READ, FILE_SHARE_READ, NULL,
 			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (file == INVALID_HANDLE_VALUE) {
-		DWORD errno = GetLastError();
-		throw_windows_error(errno, "opening file for reading");
+		DWORD err_num = GetLastError();
+		throw_windows_error(err_num, "opening file for reading");
 	}
 	LARGE_INTEGER size;
 	if (!GetFileSizeEx(file, &size)) {
-		DWORD errno = GetLastError();
+		DWORD err_num = GetLastError();
 		CloseHandle(file);
-		throw_windows_error(errno, "getting file size");
+		throw_windows_error(err_num, "getting file size");
 	}
 	HANDLE mapping = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
 	if (mapping == INVALID_HANDLE_VALUE) {
-		DWORD errno = GetLastError();
+		DWORD err_num = GetLastError();
 		CloseHandle(file);
-		throw_windows_error(errno, "creating file mapping");
+		throw_windows_error(err_num, "creating file mapping");
 	}
-	void *buffer = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, size + 1);
+	void *buffer = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, size.QuadPart /*+ 1*/);
 	if (buffer == NULL) {
-		DWORD errno = GetLastError();
+		DWORD err_num = GetLastError();
 		CloseHandle(file);
 		CloseHandle(mapping);
-		throw_windows_error(errno, "creating file view");
+		throw_windows_error(err_num, "creating file view");
 	}
 	try {
-		parse(buffer);
+		parse(reinterpret_cast<char*>(buffer));
 	} catch (...) {
 		UnmapViewOfFile(buffer);
 		CloseHandle(mapping);
@@ -489,7 +499,9 @@ CIFFile::internal_parse(bool one_table)
 				}
 			}
 			save_values = cii != categories.end();
-			if (save_values && !one_table) {
+			if (!save_values && unregistered)
+				save_values = true;
+			else if (save_values && !one_table) {
 				for (auto d: cii->second.dependencies) {
 					if (seen.find(d) != seen.end())
 						continue;
@@ -521,7 +533,7 @@ CIFFile::internal_parse(bool one_table)
 				seen.insert(current_category);
 				first_row = true;
 				in_loop = true;
-				ParseCategory& pf = cii->second.func;
+				ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 				pf();
 				first_row = false;
 				fixed_columns = false;
@@ -608,7 +620,7 @@ CIFFile::internal_parse(bool one_table)
 						seen.insert(current_category);
 						first_row = true;
 						in_loop = false;
-						ParseCategory& pf = cii->second.func;
+						ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 						pf();
 						first_row = false;
 						fixed_columns = false;
@@ -625,7 +637,9 @@ CIFFile::internal_parse(bool one_table)
 					current_category = category;
 					cii = categories.find(current_category);
 					save_values = cii != categories.end();
-					if (save_values && !one_table) {
+					if (!save_values && unregistered)
+						save_values = true;
+					else if (save_values && !one_table) {
 						for (auto d: cii->second.dependencies) {
 							if (seen.find(d) != seen.end())
 								continue;
@@ -661,7 +675,7 @@ CIFFile::internal_parse(bool one_table)
 				seen.insert(current_category);
 				first_row = true;
 				in_loop = false;
-				ParseCategory& pf = cii->second.func;
+				ParseCategory& pf = (cii != categories.end()) ? cii->second.func : unregistered;
 				pf();
 				first_row = false;
 				fixed_columns = false;

@@ -4,8 +4,9 @@
 
 #include <logger/logger.h>
 #include <pysupport/convert.h>
-#include <pythonarray.h>
+#include <arrays/pythonarray.h>
 
+#define ATOMSTRUCT_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"
@@ -1084,7 +1085,7 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
 
     // residues
     PyObject* res_misc = PyList_GET_ITEM(misc, 5);
-    if (!PyList_Check(res_misc) or PyList_GET_SIZE(res_misc) != 2)
+    if (!PyList_Check(res_misc) || PyList_GET_SIZE(res_misc) != 2)
         throw std::invalid_argument("residue misc info is not a two-item list");
     std::vector<ResName> res_names;
     pylist_of_string_to_cvec(PyList_GET_ITEM(res_misc, 0), res_names, "residue name");
@@ -1112,7 +1113,7 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
 
     // chains
     PyObject* chain_misc = PyList_GET_ITEM(misc, 6);
-    if (!PyList_Check(chain_misc) or PyList_GET_SIZE(chain_misc) != 1)
+    if (!PyList_Check(chain_misc) || PyList_GET_SIZE(chain_misc) != 1)
         throw std::invalid_argument("chain misc info is not a one-item list");
     std::vector<ChainID> chain_chain_ids;
     pylist_of_string_to_cvec(PyList_GET_ITEM(chain_misc, 0), chain_chain_ids, "chain ID");

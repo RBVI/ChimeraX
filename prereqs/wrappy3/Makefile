@@ -1,4 +1,5 @@
-TOP = ../..
+PREREQ_MAKE = 1
+TOP	= ../..
 include $(TOP)/mk/config.make
 
 ifndef NO_SUBDIR
@@ -11,10 +12,11 @@ endif
 .txt.html:
 	docutils-html -tg --no-footnote-backlinks $*.txt $*.html
 
+PROGNAME= wrappy3
 ifdef WIN32
-PROG	= wrappy3.exe
+PROG	= $(PROGNAME).exe
 else
-PROG	= wrappy3
+PROG	= $(PROGNAME)
 endif
 DOCDIR	= $(OTFDOC)/bin/wrappy
 SRCS	= wrappy.cpp common.cpp compute.cpp method.cpp module.cpp \
@@ -22,7 +24,7 @@ SRCS	= wrappy.cpp common.cpp compute.cpp method.cpp module.cpp \
 	GetOpt.cpp Symbol.cpp Reg.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 ifeq ($(WIN32),msvc)
-LIBS	= /LINK LIBPATH:$(libdir) -lpcreposix -lpcre
+LIBS	= /link /LIBPATH:'$(shell cygpath -m '$(libdir)')' pcreposix.lib pcre.lib
 else
 LIBS	= -L$(libdir) -lpcreposix -lpcre -lm
 ifeq ($(OS),Linux)
@@ -33,7 +35,11 @@ LDFLAGS += -Wl,-rpath,'@loader_path/../lib'
 endif
 endif
 DOCS	= minidoc.txt
+ifeq ($(WIN32),msvc)
+INCS	+= -I$(shell cygpath -m '$(includedir)')
+else
 INCS	+= -I$(includedir)
+endif
 
 ifeq ($(OS),Linux)
 ## for compiling on Red Hat 7.1 with gcc 3.3.2
@@ -49,7 +55,7 @@ install: $(PROG)
 	cp -fp $(PROG) $(bindir)/
 
 app-install: lib.install
-	$(RSYNC) $(shlibdir)/lib$(PROG).*$(SHLIB_EXT)* $(app_shlibdir)
+	$(RSYNC) $(shlibdir)/lib$(PROGNAME).*$(SHLIB_EXT)* $(app_shlibdir)
 
 docinstall:
 	-mkdir $(DOCDIR)

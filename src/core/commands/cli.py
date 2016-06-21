@@ -519,7 +519,6 @@ class TupleOf(Aggregate):
     def add_to(self, container, value):
         return container + (value,)
 
-
 class DottedTupleOf(Aggregate):
     """Annotation for dot-separated lists of a single type
 
@@ -543,6 +542,17 @@ class DottedTupleOf(Aggregate):
     def add_to(self, container, value):
         return container + (value,)
 
+class RepeatOf(Annotation):
+    '''
+    Annotation for keyword options that can occur multiple times.
+
+    RepeatOf(annotation) -> annotation
+
+    Option values are put in list even if option occurs only once.
+    '''
+    allow_repeat = True
+    def __init__(self, annotation):
+        self.parse = annotation.parse
 
 class BoolArg(Annotation):
     """Annotation for boolean literals"""
@@ -572,7 +582,7 @@ class NoArg(Annotation):
 
 class EmptyArg(Annotation):
     """Annotation for optionally missing 'required' argument"""
-    name = "an empty string"
+    name = "nothing"
 
     @staticmethod
     def parse(text, session):
@@ -958,6 +968,7 @@ class ObjectsArg(Annotation):
         from .atomspec import AtomSpecArg
         aspec, text, rest = AtomSpecArg.parse(text, session)
         objects = aspec.evaluate(session)
+        objects.spec = str(aspec)
         return objects, text, rest
 
 
@@ -1570,7 +1581,7 @@ class _WordInfo:
 
     def __init__(self, cmd_desc=None):
         self.cmd_desc = cmd_desc
-        self.subcommands = OrderedDict()
+        self.subcommands = OrderedDict()   # { 'word': _WordInfo() }
         self.parent = None
 
     def has_command(self):
@@ -2008,10 +2019,8 @@ class Command:
                         return last_anno, None
             try:
                 value, text = self._parse_arg(anno, text, session, False)
-                if is_python_keyword(kw_name):
-                    self._kw_args['%s_' % kw_name] = value
-                else:
-                    self._kw_args[kw_name] = value
+                kwn = '%s_' % kw_name if is_python_keyword(kw_name) else kw_name
+                self._kw_args[kwn] = value
                 self._error = ""
                 last_anno = anno
             except ValueError as err:
@@ -2095,10 +2104,17 @@ class Command:
             self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
-                if is_python_keyword(kw_name):
-                    self._kw_args['%s_' % kw_name] = value
+                kwn = '%s_' % kw_name if is_python_keyword(kw_name) else kw_name
+                if hasattr(anno, 'allow_repeat') and anno.allow_repeat:
+                    if kwn in self._kw_args:
+                        self._kw_args[kwn].append(value)
+                    else:
+                        self._kw_args[kwn] = [value]
                 else:
-                    self._kw_args[kw_name] = value
+                    if kwn in self._kw_args:
+                        self._error = 'Repeated keyword argument "%s"' % _user_kw(kw_name)
+                        return
+                    self._kw_args[kwn] = value
                 prev_annos = (anno, None)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
@@ -2323,10 +2339,11 @@ def usage(name, no_aliases=False, no_subcommands=False):
     if (not no_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         name = cmd.command_name
+        sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
         if syntax:
             syntax += '\n'
         syntax += 'Subcommands are:\n' + '\n'.join(
-            '  %s %s' % (name, w) for w in cmd.word_info.subcommands)
+            '  %s %s' % (name, w) for w in sub_cmds)
 
     return syntax
 
@@ -2414,14 +2431,15 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
         if syntax:
             syntax += '<br>\n'
         syntax += 'Subcommands are:\n<ul>'
-        for word in cmd.word_info.subcommands:
+        sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
+        for word in sub_cmds:
             subcmd = '%s %s' % (name, word)
             cmd = Command(None)
             cmd.current_text = subcmd
             cmd._find_command_name(no_aliases=no_aliases)
             if cmd.amount_parsed != len(cmd.current_text):
                 url = None
-            elif cmd._ci.url is None:
+            elif cmd._ci is None or cmd._ci.url is None:
                 url = None
             else:
                 url = cmd._ci.url
@@ -2435,29 +2453,35 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
     return syntax
 
 
-def registered_commands(multiword=False):
-    """Return a list of the currently registered commands"""
+def registered_commands(multiword=False, _start=None):
+    """Return a sorted list of the currently registered commands"""
+
+    if _start:
+        parent_info = _start
+    else:
+        parent_info = _commands
+
     if not multiword:
-        return list(_commands.subcommands.keys())
+        words = list(parent_info.subcommands.keys())
+        words.sort(key=lambda x: x[x[0] == '~':])
+        return words
 
     def cmds(parent_info):
-        used_words = set()
-        words = set(parent_info.subcommands.keys())
-        while words:
-            word = words.pop()
-            word_info = parent_info.subcommands[word]
+        for word_info in parent_info.subcommands.values():
             if word_info.is_deferred():
                 word_info.lazy_register()
-                words = set(parent_info.subcommands.keys())
-                words.difference_update(used_words)
+        words = list(parent_info.subcommands.keys())
+        words.sort(key=lambda x: x[x[0] == '~':])
+        for word in words:
+            word_info = parent_info.subcommands[word]
+            if word_info.is_deferred():
                 continue
-            used_words.add(word)
             if word_info.cmd_desc:
                 yield word
             if word_info.has_subcommands():
                 for word2 in cmds(word_info):
                     yield "%s %s" % (word, word2)
-    return list(cmds(_commands))
+    return list(cmds(parent_info))
 
 
 class Alias:

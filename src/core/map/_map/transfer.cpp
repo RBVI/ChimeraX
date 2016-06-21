@@ -5,8 +5,8 @@
 
 // #include <iostream>			// use std::cerr for debugging
 
-#include "pythonarray.h"		// use array_from_python(), ...
-#include "rcarray.h"			// use Array<T>, Numeric_Array
+#include <arrays/pythonarray.h>		// use array_from_python(), ...
+#include <arrays/rcarray.h>		// use Array<T>, Numeric_Array
 using Reference_Counted_Array::Numeric_Array;
 
 namespace Map_Cpp

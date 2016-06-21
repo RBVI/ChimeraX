@@ -5,18 +5,26 @@ PKG_DIR = $(PYSITEDIR)/chimerax/core/atomic
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/atomic
 
 SRCS= $(wildcard *.cpp)
-OBJS= $(SRCS:.cpp=.o)
-LIBNAME = pdbio
-PYMOD= $(LIBNAME).so
-INCS += -I$(includedir) $(PYTHON_INCLUDE_DIRS)
-LIBS += -L$(libdir) -latomstruct -lelement -ltmpl -llogger -lpdb -larrays $(PYTHON_LIB)
+OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
+PYMOD_NAME = pdbio
+DEFS += $(PYDEF)
+INCS += $(PYTHON_INCLUDE_DIRS)
+ifdef WIN32
+LIBS += libatomstruct.lib libelement.lib liblogger.lib libpdb.lib libarrays.lib $(PYTHON_LIB)
+else
+LIBS += -latomstruct -lelement -llogger -lpdb -larrays $(PYTHON_LIB)
+endif
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
 
 install: $(PYMOD)
 	$(RSYNC) $(PYMOD) $(PKG_DIR)
-	#if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
+ifdef WIN32
+ifdef DEBUG
+	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
+endif
+endif
 
 clean:
 	/bin/rm -f $(OBJS) $(PYMOD)

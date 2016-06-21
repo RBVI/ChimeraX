@@ -23,15 +23,24 @@ GENHDRS += $(GENSRCS:.cpp=.h)
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT)) $(GENSRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _mmcif
 
-CXXFLAGS += -I$(includedir) $(PYTHON_INCLUDE_DIRS)
-LIBS += -L$(shlibdir) -latomstruct -lelement -ltmpl -lreadcif -lwrappy3 -llogger -larrays
+DEFS += $(PYDEF)
+INCS += $(PYTHON_INCLUDE_DIRS)
+ifeq ($(WIN32),msvc)
+LIBS += libatomstruct.lib libelement.lib libreadcif.lib libwrappy3.lib liblogger.lib libarrays.lib
+else
+LIBS += -latomstruct -lelement -lreadcif -lwrappy3 -llogger -larrays
+endif
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
 
 install: $(PYMOD)
 	$(RSYNC) $(PYMOD) $(PKG_DIR)
-	#if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
+ifdef WIN32
+ifdef DEBUG
+	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
+endif
+endif
 
 clean:
 	/bin/rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej

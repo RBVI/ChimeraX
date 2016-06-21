@@ -55,18 +55,35 @@ The <a name="preset"><i>preset</i></a> can be:
 <ul>
 <li><b>default</b> or <b>simple</b>
 - all three kinds of light, but no shadows
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/simplelight.png"></a>
 <li><b>full</b>
 - all three kinds of light, shadows from key light,
 ambient shadowing from 64 directions
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/fulllight.png"></a>
 <li><b>soft</b> - ambient lighting only,
 ambient shadowing from 64 directions
-<li><b>flat</b> - ambient lighting only, no shadows, silhouettes on 
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/softlight.png"></a>
+<li><b>gentle</b> - ambient lighting only,
+ambient shadowing from 64 directions tuned to emphasize larger indentations
+<li><b>flat</b> - ambient lighting only, no shadows, silhouettes on
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/flat.png"></a>
 <br>
-(for silhouettes off, use
-<a href="set.html#silhouettes"><b>set silhouettes false</b></a> 
-or the <a href="../tools/graphics.html"><b>Graphics</b></a> icon
-<img border=1 src="../tools/shortcut-icons/silhouette.png" width="18px">)
+... for silhouettes off, use
+<a href="set.html#silhouettes"><b>set silhouettes false</b></a> or the 
+<a href="../tools/graphics.html"><b>Graphics</b></a> icon 
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
 </ul>
+<p>
+Although there is a preset named <b>default</b>, different settings
+may be applied automatically. Lighting parameters are adjusted
+automatically based on the size of the first atomic model opened at a time.
+<!-- whenever an atomic model is opened and no others are already present -->
+</p>
 
 <p class="nav">
 [<a href="#top">back to top</a>]
@@ -191,14 +208,14 @@ How many directions should be used to generate ambient shadows
 <b>msMapSize</b> &nbsp;<i>M<sub>a</sub></i>
 <br>
 Set the size of the depth map
-for rendering ambient shadows (integer-valued, default <b>128</b>).
+for rendering ambient shadows (integer-valued, default <b>1024</b>).
 </blockquote>
 <blockquote>
 <b>msDepthBias</b> &nbsp;<i>b<sub>a</sub></i>
 <br>
 Set the bias distance for ambient shadows,
 used to avoid a surface shadowing itself due to rounding errors
-(default <b>0.05</b> of the scene diameter).
+(default <b>0.01</b> of the scene diameter).
 A larger bias is needed for ambient shadows than for directional shadows 
 because a smaller depth map is typically used.
 </blockquote>
@@ -213,5 +230,5 @@ or to the <a href="view.html#scenecoords">scene coordinate system</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2016</address>
+June 2016</address>
 </body></html>

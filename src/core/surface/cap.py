@@ -39,10 +39,8 @@ def compute_cap(drawing, plane, offset):
 
     # Handle surfaces with duplicate vertices, such as molecular
     # surfaces with sharp edges between atoms.
-    if d.clip_cap == 'duplicate vertices':
-        from . import unique_vertex_map
-        vmap = unique_vertex_map(d.vertices)
-        t = vmap[d.triangles]
+    if hasattr(d, 'joined_triangles'):
+        t = d.joined_triangles
     else:
         t = d.triangles
 

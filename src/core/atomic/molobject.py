@@ -453,8 +453,8 @@ class Residue:
             return str(self.structure) + chain_str + res_str
         from .structure import Structure
         if len(self.structure.session.models.list(type=Structure)) > 1:
-            return str(self.structure) + chain_str + " " + res_str
-        return chain_str + " " + res_str
+            return str(self.structure) + " " + res_str + chain_str
+        return res_str + chain_str
 
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
@@ -961,16 +961,18 @@ class RibbonXSection:
     A cross section that can extrude ribbons when given the
     required control points, tangents, normals and colors.
     '''
-    def __init__(self, coords, coords2=None,
-                 normals=None, normals2=None, faceted=False):
-        f = c_function('rxsection_new',
-                       args = (ctypes.py_object,        # coords
-                               ctypes.py_object,        # coords2
-                               ctypes.py_object,        # normals
-                               ctypes.py_object,        # normals2
-                               ctypes.c_bool),          # faceted
-                               ret = ctypes.c_void_p)   # pointer to C++ instance
-        xs_pointer = f(coords, coords2, normals, normals2, faceted)
+    def __init__(self, coords=None, coords2=None, normals=None, normals2=None,
+                 faceted=False, tess=None, xs_pointer=None):
+        if xs_pointer is None:
+            f = c_function('rxsection_new',
+                           args = (ctypes.py_object,        # coords
+                                   ctypes.py_object,        # coords2
+                                   ctypes.py_object,        # normals
+                                   ctypes.py_object,        # normals2
+                                   ctypes.c_bool,           # faceted
+                                   ctypes.py_object),       # tess
+                                   ret = ctypes.c_void_p)   # pointer to C++ instance
+            xs_pointer = f(coords, coords2, normals, normals2, faceted, tess)
         set_c_pointer(self, xs_pointer)
 
     def delete(self):
@@ -1005,6 +1007,28 @@ class RibbonXSection:
                        ret = ctypes.py_object)      # tuple
         t = f(self._c_pointer, back_band, front_band)
         return t
+
+    def scale(self, scale):
+        '''Return new cross section scaled by 2-tuple scale.'''
+        f = c_function('rxsection_scale',
+                       args = (ctypes.c_void_p,     # self
+                               ctypes.c_float,      # x scale
+                               ctypes.c_float),     # y scale
+                       ret = ctypes.c_void_p)       # pointer to C++ instance
+        p = f(self._c_pointer, scale[0], scale[1])
+        return RibbonXSection(xs_pointer=p)
+
+    def arrow(self, scales):
+        '''Return new arrow cross section scaled by 2x2-tuple scale.'''
+        f = c_function('rxsection_arrow',
+                       args = (ctypes.c_void_p,     # self
+                               ctypes.c_float,      # wide x scale
+                               ctypes.c_float,      # wide y scale
+                               ctypes.c_float,      # narrow x scale
+                               ctypes.c_float),     # narrow y scale
+                       ret = ctypes.c_void_p)       # pointer to C++ instance
+        p = f(self._c_pointer, scales[0][0], scales[0][1], scales[1][0], scales[1][1])
+        return RibbonXSection(xs_pointer=p)
 
 
 # -----------------------------------------------------------------------------

@@ -25,7 +25,9 @@ docs.install:
 build-dirs:
 	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
 		$(webdir) $(wheelhouse)
+ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
+endif
 ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
 endif
@@ -44,6 +46,7 @@ endif
 
 distclean: clean
 	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
+	$(MAKE) -C prereqs/PyQt distclean
 
 build-from-scratch:
 	$(MAKE) distclean

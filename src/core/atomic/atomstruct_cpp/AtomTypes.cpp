@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
+#define ATOMSTRUCT_EXPORT
 #include "AtomicStructure.h"
 #include "Bond.h"
 #include "Coord.h"

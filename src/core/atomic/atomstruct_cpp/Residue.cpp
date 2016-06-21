@@ -5,6 +5,7 @@
 #include <sstream>
 #include <utility>  // for pair
 
+#define ATOMSTRUCT_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "destruct.h"

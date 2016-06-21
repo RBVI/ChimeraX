@@ -12,8 +12,6 @@ def show(session, objects=None, what=None, target=None, only=False):
         What to show.  If None then 'atoms' if any atoms specified otherwise 'models'.
     target : set of "what" values, or None
         Alternative to the "what" option for specifying what to show.
-        Characters indicating what to show, a = atoms, b = bonds, p = pseudobonds, c = cartoon,
-        s = surfaces, m = models.
     only : bool
         Show only the specified atoms/bonds/residues in each specified molecule.
         If what is models then only show then hide models that are not specified.
@@ -142,7 +140,7 @@ WhatArg = EnumOf(('atoms', 'bonds', 'pseudobonds', 'pbonds', 'cartoons', 'ribbon
 class TargetArg(Annotation):
     '''
     Character string indicating what to show or hide,
-    a = atoms, b = bonds, p = pseudobonds, c = cartoon, s = surfaces, m = models.
+    a = atoms, b = bonds, p = pseudobonds, c = cartoons, r = cartoons, s = surfaces, m = models.
     '''
     name = 'object type'
     
@@ -150,7 +148,7 @@ class TargetArg(Annotation):
     def parse(text, session):
         from . import StringArg
         token, text, rest = StringArg.parse(text, session)
-        target_chars = {'a':'atoms', 'b':'bonds', 'p':'pseudobonds', 'c':'cartoons',
+        target_chars = {'a':'atoms', 'b':'bonds', 'p':'pseudobonds', 'c':'cartoons', 'r':'cartoons',
                         's':'surfaces', 'm':'models'}
         for c in token:
             if c not in target_chars:

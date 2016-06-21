@@ -10,6 +10,7 @@ PYSRCS = __init__.py snav.py snavmac.py
 
 SNFW = /Library/Frameworks/3DconnexionClient.framework
 SNINC = -I$(SNFW)/Versions/Current/Headers
+DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS) $(SNINC)
 
 LIBS	+= $(PYTHON_LIB) -F/Library/Frameworks -framework 3DconnexionClient

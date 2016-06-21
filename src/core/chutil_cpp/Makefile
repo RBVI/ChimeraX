@@ -6,15 +6,15 @@ DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
-OBJS	= $(SRCS:.cpp=.o)
+OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 
-$(LIBRARY): imex.h $(OBJS)
+$(LIBRARY): $(OBJS)
 	$(LIB_LINK)
 
 install: $(LIBRARY)
 	$(RSYNC) $(LIBRARY) $(libdir)
 	-mkdir $(includedir)/$(DIRNAME)
-	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)
+	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
 
 clean:
-	/bin/rm -f $(OBJS) $(LIBRARY) imex.h
+	/bin/rm -f $(OBJS) $(LIBRARY)

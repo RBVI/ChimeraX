@@ -1,0 +1,2 @@
+PIP	= $(PYTHON_EXE) -m pip --log pip.log
+APP_PIP	= $(APP_PYTHON_EXE) -m pip --log pip.log

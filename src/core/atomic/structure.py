@@ -18,16 +18,7 @@ class Structure(Model, StructureData):
         from .molobject import RibbonXSection as XSection
         from .molarray import Residues
         from numpy import array
-        # from .ribbon import XSection
-        xsc_helix = array([( 5, 1),(0, 1.5),(-5, 1),(-6,0),
-                           (-5,-1),(0,-1.5),( 5,-1),( 6,0)]) * 0.15
-        xsc_helix_start = array([( 1.5, 1),(0, 1.5),(-1.5, 1),(-2,0),
-                                 (-1.5,-1),(0,-1.5),( 1.5,-1),( 2,0)]) * 0.15
-        xsc_strand = array([(5,1),(-5,1),(-5,-1),(5,-1)]) * 0.15
-        xsc_turn = array([(1,1),(-1,1),(-1,-1),(1,-1)]) * 0.15
-        xsc_arrow_head = array([(10,1),(-10,1),(-10,-1),(10,-1)]) * 0.15
-        xsc_arrow_tail = array([(1,1),(-1,1),(-1,-1),(1,-1)]) * 0.15
-        xsc_nuc = array([(1,5),(-1,5),(-1,-5),(1,-5)]) * 0.15
+        from .ribbon import XSectionManager
        
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
@@ -54,14 +45,7 @@ class Structure(Model, StructureData):
         self._ribbon_t2r = {}         # ribbon triangles-to-residue map
         self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         self._ribbon_tether = []      # ribbon tethers from ribbon to floating atoms
-        self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
-        #self._ribbon_xs_helix_start = self._ribbon_xs_helix     # nothing special for helix start
-        self._ribbon_xs_helix_start = XSection(xsc_helix_start, xsc_helix, faceted=False)
-        self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
-        self._ribbon_xs_strand_start = XSection(xsc_turn, xsc_strand, faceted=True)
-        self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
-        self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
-        self._ribbon_xs_nuc = XSection(xsc_nuc, faceted=True)
+        self.ribbon_xs_mgr = XSectionManager(self)
         # TODO: move back into _session_attrs when Collection instances
         # handle session saving/restoring
         self._ribbon_selected_residues = Residues()
@@ -170,7 +154,7 @@ class Structure(Model, StructureData):
                 solvent_atoms.draw_modes = Atom.BALL_STYLE
                 solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
             else:
-                lighting = "shadows true"
+                lighting = "soft multiShadow 16"
             from ..commands import Command
             if len([m for m in session.models.list()
                     if isinstance(m, self.__class__)]) == 1:
@@ -393,11 +377,87 @@ class Structure(Model, StructureData):
                 continue
             if len(atoms) < 2:
                 continue
+
+            # Assign a residue class to each residue and compute the
+            # ranges of secondary structures
+            from .ribbon import XSectionManager
+            polymer_type = residues.polymer_types
+            is_helix = residues.is_helix
+            is_sheet = residues.is_sheet
+            ssids = residues.secondary_structure_ids
+            res_class = []
+            was_sheet = was_helix = False
+            last_ssid = None
+            helix_ranges = []
+            sheet_ranges = []
+            for i in range(len(residues)):
+                if polymer_type[i] == Residue.PT_NUCLEIC:
+                    rc = XSectionManager.RC_NUCLEIC
+                    am_sheet = am_helix = False
+                if polymer_type[i] == Residue.PT_AMINO:
+                    if is_sheet[i]:
+                        # Define sheet SS as having higher priority over helix SS
+                        if was_sheet:
+                            # Check if this is the start of another sheet
+                            # rather than continuation for the current one
+                            if ssids[i] != last_ssid:
+                                res_class[-1] = XSectionManager.RC_SHEET_END
+                                sheet_ranges[-1][1] = i
+                                rc = XSectionManager.RC_SHEET_START
+                                sheet_ranges.append([i, -1])
+                            else:
+                                rc = XSectionManager.RC_SHEET_MIDDLE
+                        else:
+                            rc = XSectionManager.RC_SHEET_START
+                            sheet_ranges.append([i, -1])
+                        am_sheet = True
+                        am_helix = False
+                    elif is_helix[i]:
+                        if was_helix:
+                            # Check if this is the start of another helix
+                            # rather than a continuation for the current one
+                            if ssids[i] != last_ssid:
+                                res_class[-1] = XSectionManager.RC_HELIX_END
+                                helix_ranges[-1][1] = i
+                                rc = XSectionManager.RC_HELIX_START
+                                helix_ranges.append([i, -1])
+                            else:
+                                rc = XSectionManager.RC_HELIX_MIDDLE
+                        else:
+                            rc = XSectionManager.RC_HELIX_START
+                            helix_ranges.append([i, -1])
+                        am_sheet = False
+                        am_helix = True
+                    else:
+                        rc = XSectionManager.RC_COIL
+                        am_sheet = am_helix = False
+                else:
+                    rc = XSectionManager.RC_COIL
+                    am_sheet = am_helix = False
+                if was_sheet and not am_sheet:
+                    res_class[-1] = XSectionManager.RC_SHEET_END
+                    sheet_ranges[-1][1] = i
+                elif was_helix and not am_helix:
+                    res_class[-1] = XSectionManager.RC_HELIX_END
+                    helix_ranges[-1][1] = i
+                res_class.append(rc)
+                was_sheet = am_sheet
+                was_helix = am_helix
+                last_ssid = ssids[i]
+            if was_sheet:
+                # 1hxx ends in a strand
+                res_class[-1] = XSectionManager.RC_SHEET_END
+                sheet_ranges[-1][1] = len(residues)
+            elif was_helix:
+                # 1hxx ends in a strand
+                res_class[-1] = XSectionManager.RC_HELIX_END
+                helix_ranges[-1][1] = len(residues)
+
             # Perform any smoothing (e.g., strand smoothing
             # to remove lasagna sheets, pipes and planks
             # display as cylinders and planes, etc.)
             tethered = zeros(len(atoms), bool)
-            self._smooth_ribbon(residues, coords, guides, atoms, tethered, p)
+            self._smooth_ribbon(residues, coords, guides, atoms, tethered, p, helix_ranges, sheet_ranges)
             tethered &= displays
             if False:
                 # Debugging code to display line from control point to guide
@@ -436,55 +496,45 @@ class Structure(Model, StructureData):
             else:
                 seg_cap = rd
                 seg_blend = seg_cap + 1
-            # Assign cross sections
-            is_helix = residues.is_helix
-            is_sheet = residues.is_sheet
-            polymer_type = residues.polymer_types
-            xss = []
-            was_strand = False
-            was_helix = False
+
+            # Assign front and back cross sections for each residue.
+            # The "front" section is between this residue and the previous.
+            # The "back" section is between this residue and the next.
+            # The front and back sections meet at the control point atom.
+            # Compute cross sections and whether we care about a smooth
+            # transition between residues.
+            from .ribbon import XSectionManager
+            xs_front = []
+            xs_back = []
+            need_twist = []
+            rc0 = XSectionManager.RC_COIL
             for i in range(len(residues)):
-                if polymer_type[i] == Residue.PT_NUCLEIC:
-                    xss.append(self._ribbon_xs_nuc)
-                elif is_sheet[i]:
-                    if was_strand:
-                        xss.append(self._ribbon_xs_strand)
-                    else:
-                        xss.append(self._ribbon_xs_strand_start)
-                        was_strand = True
-                    was_helix = False
-                else:
-                    if was_strand:
-                        xss[-1] = self._ribbon_xs_arrow
-                        was_strand = False
-                    if is_helix[i]:
-                        if was_helix:
-                            xss.append(self._ribbon_xs_helix)
-                        else:
-                            xss.append(self._ribbon_xs_helix_start)
-                            was_helix = True
-                    else:
-                        xss.append(self._ribbon_xs_turn)
-                        was_helix = False
-            if was_strand:
-                # 1hxx ends in a strand
-                xss[-1] = self._ribbon_xs_arrow
+                rc1 = res_class[i]
+                try:
+                    rc2 = res_class[i + 1]
+                except IndexError:
+                    rc2 = XSectionManager.RC_COIL
+                f, b = self.ribbon_xs_mgr.assign(rc0, rc1, rc2)
+                xs_front.append(f)
+                xs_back.append(b)
+                need_twist.append(self._need_twist(rc1, rc2))
+                rc0 = rc1
+            need_twist[-1] = False
 
             # Draw first and last residue differently because they
             # are each only a single half segment, while the middle
             # residues are each two half segments.
-            # strs = residues.strs
-            # import sys
+            import sys
 
             # First residues
             from .ribbon import FLIP_MINIMIZE, FLIP_PREVENT, FLIP_FORCE
             if displays[0]:
-                # print(strs[0], file=sys.__stderr__); sys.__stderr__.flush()
-                xss_compat = self._xss_compatible(xss[0], xss[1])
-                capped = displays[0] != displays[1] or not xss_compat
+                # print(residues[0], file=sys.__stderr__); sys.__stderr__.flush()
+                xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[0], xs_front[1])
+                capped = displays[0] != displays[1] or not xs_compat
                 seg = capped and seg_cap or seg_blend
-                front_c, front_t, front_n = ribbon.lead_segment(seg_cap / 2)
-                back_c, back_t, back_n = ribbon.segment(0, ribbon.FRONT, seg)
+                front_c, front_t, front_n = ribbon.lead_segment(seg_cap // 2)
+                back_c, back_t, back_n = ribbon.segment(0, ribbon.FRONT, seg, not need_twist[0])
                 centers = concatenate((front_c, back_c))
                 tangents = concatenate((front_t, back_t))
                 normals = concatenate((front_n, back_n))
@@ -494,15 +544,14 @@ class Structure(Model, StructureData):
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                s = xss[0].extrude(centers, tangents, normals, colors[0],
-                                   True, capped, v_start)
+                s = xs_back[0].extrude(centers, tangents, normals, colors[0], True, capped, v_start)
                 v_start += len(s.vertices)
                 t_end = t_start + len(s.triangles)
                 vertex_list.append(s.vertices)
                 normal_list.append(s.normals)
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
-                if displays[1] and xss_compat:
+                if displays[1] and xs_compat:
                     prev_band = s.back_band
                 else:
                     prev_band = None
@@ -515,49 +564,61 @@ class Structure(Model, StructureData):
                 prev_band = None
             # Middle residues
             for i in range(1, len(residues) - 1):
-                # print(strs[i], file=sys.__stderr__); sys.__stderr__.flush()
+                # print(residues[i], file=sys.__stderr__); sys.__stderr__.flush()
                 if not displays[i]:
                     continue
                 seg = capped and seg_cap or seg_blend
-                front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg)
+                mid_cap = not self.ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
+                front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, capped, last=mid_cap)
                 if self.ribbon_show_spine:
                     spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                      front_c, front_n,
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                next_cap = displays[i] != displays[i + 1] or not self._xss_compatible(xss[i], xss[i + 1])
+                xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
+                next_cap = displays[i] != displays[i + 1] or not xs_compat
                 seg = next_cap and seg_cap or seg_blend
                 flip_mode = FLIP_MINIMIZE
                 if is_helix[i] and is_helix[i + 1]:
                     flip_mode = FLIP_PREVENT
-                elif is_sheet[i] and is_sheet[i + 1]:
-                    flip_mode = FLIP_FORCE
-                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, flip_mode=flip_mode)
+                # strands generally flip normals at every residue but
+                # beta bulges violate this rule so we cannot always flip
+                # elif is_sheet[i] and is_sheet[i + 1]:
+                #     flip_mode = FLIP_FORCE
+                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, not need_twist[i],
+                                                        flip_mode=flip_mode)
                 if self.ribbon_show_spine:
                     spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                      back_c, back_n,
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                centers = concatenate((front_c, back_c))
-                tangents = concatenate((front_t, back_t))
-                normals = concatenate((front_n, back_n))
-                s = xss[i].extrude(centers, tangents, normals, colors[i],
-                                   capped, next_cap, v_start)
-                v_start += len(s.vertices)
-                t_end = t_start + len(s.triangles)
-                vertex_list.append(s.vertices)
-                normal_list.append(s.normals)
-                triangle_list.append(s.triangles)
-                color_list.append(s.colors)
+                sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
+                                           capped, mid_cap, v_start)
+                v_start += len(sf.vertices)
+                sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
+                                           mid_cap, next_cap, v_start)
+                v_start += len(sb.vertices)
+                t_end = t_start + len(sf.triangles) + len(sb.triangles)
+                vertex_list.append(sf.vertices)
+                vertex_list.append(sb.vertices)
+                normal_list.append(sf.normals)
+                normal_list.append(sb.normals)
+                triangle_list.append(sf.triangles)
+                triangle_list.append(sb.triangles)
+                color_list.append(sf.colors)
+                color_list.append(sb.colors)
                 if prev_band is not None:
-                    triangle_list.append(xss[i].blend(prev_band, s.front_band))
+                    triangle_list.append(xs_front[i].blend(prev_band, sf.front_band))
+                    t_end += len(triangle_list[-1])
+                if not mid_cap:
+                    triangle_list.append(xs_back[i].blend(sf.back_band, sb.front_band))
                     t_end += len(triangle_list[-1])
                 if next_cap:
                     prev_band = None
                 else:
-                    prev_band = s.back_band
+                    prev_band = sb.back_band
                 capped = next_cap
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[i])
                 t2r.append(triangle_range)
@@ -565,10 +626,10 @@ class Structure(Model, StructureData):
                 t_start = t_end
             # Last residue
             if displays[-1]:
-                # print(strs[-1], file=sys.__stderr__); sys.__stderr__.flush()
+                # print(residues[-1], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
-                front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg)
-                back_c, back_t, back_n = ribbon.trail_segment(seg_cap / 2)
+                front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, True)
+                back_c, back_t, back_n = ribbon.trail_segment(seg_cap // 2)
                 centers = concatenate((front_c, back_c))
                 tangents = concatenate((front_t, back_t))
                 normals = concatenate((front_n, back_n))
@@ -578,7 +639,7 @@ class Structure(Model, StructureData):
                                                                                      spine_colors,
                                                                                      spine_xyz1,
                                                                                      spine_xyz2)
-                s = xss[-1].extrude(centers, tangents, normals, colors[-1],
+                s = xs_front[-1].extrude(centers, tangents, normals, colors[-1],
                                     capped, True, v_start)
                 v_start += len(s.vertices)
                 t_end = t_start + len(s.triangles)
@@ -587,7 +648,7 @@ class Structure(Model, StructureData):
                 triangle_list.append(s.triangles)
                 color_list.append(s.colors)
                 if prev_band is not None:
-                    triangle_list.append(xss[-1].blend(prev_band, s.front_band))
+                    triangle_list.append(xs_front[-1].blend(prev_band, s.front_band))
                     t_end += len(triangle_list[-1])
                 triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[-1])
                 t2r.append(triangle_range)
@@ -638,19 +699,14 @@ class Structure(Model, StructureData):
         from .molarray import Residues
         self._ribbon_selected_residues = Residues()
 
-    def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered, p):
-        from numpy import logical_and, logical_not
+    def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered, p, helix_ranges, sheet_ranges):
         ribbon_adjusts = rlist.ribbon_adjusts
+        # XXX: Skip helix smoothing for now since it does not work well for bent helices
         # Smooth helices
-        ss_ids = rlist.ss_ids
-        helices = rlist.is_helix
-        # Skip helix smoothing for now since it does not work well
-        # for bent helices
-        # for start, end in self._ss_ranges(helices, ss_ids, 8):
+        # for start, end in helix_ranges:
         #     self._smooth_helix(coords, guides, tethered, ribbon_adjusts, start, end)
         # Smooth strands
-        strands = logical_and(rlist.is_sheet, logical_not(helices))
-        for start, end in self._ss_ranges(strands, ss_ids, 4):
+        for start, end in sheet_ranges:
             self._smooth_strand(coords, guides, tethered, ribbon_adjusts, start, end)
 
     def _smooth_helix(self, coords, guides, tethered, ribbon_adjusts, start, end):
@@ -695,7 +751,7 @@ class Structure(Model, StructureData):
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
     def _smooth_strand(self, coords, guides, tethered, ribbon_adjusts, start, end):
-        if (end - start + 1) <= 4:
+        if (end - start + 1) <= 2:
             # Short strands do not need smoothing
             return
         from numpy import empty, dot, newaxis
@@ -704,9 +760,14 @@ class Structure(Model, StructureData):
         ss_coords = coords[start:end]
         adjusts = ribbon_adjusts[start:end][:, newaxis]
         ideal = empty(ss_coords.shape, dtype=float)
-        ideal[0] = ss_coords[0]
-        ideal[1:-1] = (ss_coords[1:-1] * 2 + ss_coords[:-2] + ss_coords[2:]) / 4
-        ideal[-1] = ss_coords[-1]
+        if len(ideal) == 2:
+            # Two-residue strand, no smoothing
+            ideal[0] = ss_coords[0]
+            ideal[-1] = ss_coords[-1]
+        else:
+            ideal[1:-1] = (ss_coords[1:-1] * 2 + ss_coords[:-2] + ss_coords[2:]) / 4
+            ideal[0] = ss_coords[0] - (ideal[1] - ss_coords[1])
+            ideal[-1] = ss_coords[-1] - (ideal[-2] - ss_coords[-2])
         offsets = adjusts * (ideal - ss_coords)
         new_coords = ss_coords + offsets
         if False:
@@ -720,30 +781,6 @@ class Structure(Model, StructureData):
             guides[start:end] = new_coords + delta_guides
         # Update the tethered array
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
-
-    def _ss_ranges(self, ba, ss_ids, min_length):
-        # Return ranges of True in boolean array "ba"
-        ranges = []
-        start = -1
-        start_id = None
-        for n, bn in enumerate(ba):
-            if bn:
-                if start < 0:
-                    start_id = ss_ids[n]
-                    start = n
-                elif ss_ids[n] != start_id:
-                    if n - start >= min_length:
-                        ranges.append((start, n))
-                    start_id = ss_ids[n]
-                    start = n
-            else:
-                if start >= 0:
-                    if n - start >= min_length:
-                        ranges.append((start, n))
-                    start = -1
-        if start >= 0 and len(ba) - start >= min_length:
-            ranges.append((start, len(ba)))
-        return ranges
 
     def _ss_axes(self, ss_coords):
         from numpy import mean, argmax
@@ -768,12 +805,16 @@ class Structure(Model, StructureData):
         ss_colors[:] = (0,255,0,255)
         ssp.colors = ss_colors
 
-    def _xss_compatible(self, xs0, xs1):
-        if xs0 is xs1:
+    def _need_twist(self, rc0, rc1):
+        # Determine if we need to twist ribbon smoothly from rc0 to rc1
+        if rc0 == rc1:
             return True
-        if xs0 is self._ribbon_xs_strand_start and xs1 is self._ribbon_xs_strand:
+        from .ribbon import XSectionManager
+        if rc0 in XSectionManager.RC_ANY_SHEET and rc1 in XSectionManager.RC_ANY_SHEET:
             return True
-        if xs0 is self._ribbon_xs_helix_start and xs1 is self._ribbon_xs_helix:
+        if rc0 in XSectionManager.RC_ANY_HELIX and rc1 in XSectionManager.RC_ANY_HELIX:
+            return True
+        if rc0 is XSectionManager.RC_HELIX_END or rc0 is XSectionManager.RC_SHEET_END:
             return True
         return False
 

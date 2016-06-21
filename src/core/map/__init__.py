@@ -22,8 +22,8 @@ from ._map import interpolate_colormap, set_outside_volume_colors
 # -----------------------------------------------------------------------------
 # Mouse modes for moving planes and changing contour level
 #
-from .moveplanes import PlanesMouseMode
-from .mouselevel import ContourLevelMouseMode
+#from .moveplanes import PlanesMouseMode
+#from .mouselevel import ContourLevelMouseMode
 
 # -----------------------------------------------------------------------------
 # Routines to register map file formats, database fetch, and volume command.

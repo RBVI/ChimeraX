@@ -154,7 +154,7 @@ outputStream(const string &filename)
 		// TODO: use "sinkstream" instead of ostringstream below
 		os_ptr = new std::ostringstream();
 	else
-		os_ptr = new std::ofstream(filename.c_str());
+		os_ptr = new std::ofstream(filename.c_str(), std::ios::binary);
 	return std::unique_ptr<std::ostream>(os_ptr);
 }
 

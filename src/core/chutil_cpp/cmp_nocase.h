@@ -3,11 +3,10 @@
 # define util_cmp_nocase
 
 # include <string>
-# include "imex.h"
 
 namespace chutil {
 
-CHUTIL_IMEX extern int cmp_nocase(const std::string &s, const std::string &s2);
+extern int cmp_nocase(const std::string &s, const std::string &s2);
 
 }  // namespace chutil
 

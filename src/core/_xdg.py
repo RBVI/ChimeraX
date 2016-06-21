@@ -374,10 +374,11 @@ def install(session, localized_app_name, reinstall=False, info=None):
     if not info.already_generated or reinstall:
         make_desktop(info, localized_app_name)
         make_mime_file(info.mime_file)
-    old_path = add_xdg_utils_to_path(session.app_data_dir)
+    from chimerax import app_data_dir
+    old_path = add_xdg_utils_to_path(app_data_dir)
     if not info.already_generated or reinstall:
         install_mime_file(info.mime_file)
-        install_icons(info, session.app_data_dir)
+        install_icons(info, app_data_dir)
         install_desktop_menu(info.desktop)
         install_desktop_icon(info.desktop)
     os.environ["PATH"] = old_path
@@ -385,7 +386,8 @@ def install(session, localized_app_name, reinstall=False, info=None):
 
 def uninstall(session):
     info = get_info(session)
-    old_path = add_xdg_utils_to_path(session.app_data_dir)
+    from chimerax import app_data_dir
+    old_path = add_xdg_utils_to_path(app_data_dir)
     if info.already_generated:
         uninstall_desktop_icon(info.desktop)
         uninstall_desktop_menu(info.desktop)
@@ -421,8 +423,9 @@ def get_info(session, command=None):
     class Info:
         pass
     info = Info()
-    info.app_name = session.app_dirs.appname
-    info.app_author = session.app_dirs.appauthor
+    from chimerax import app_dirs
+    info.app_name = app_dirs.appname
+    info.app_author = app_dirs.appauthor
     info.name = '%s-%s' % (info.app_author, info.app_name)
     version = None
     import pip
@@ -435,9 +438,9 @@ def get_info(session, command=None):
         version = 'unknown'
     info.version = version
     info.desktop = '%s/%s-%s.desktop' % (
-        session.app_dirs.user_config_dir, info.name, info.version)
+        app_dirs.user_config_dir, info.name, info.version)
     info.mime_file = '%s/%s-%s.mime.types' % (
-        session.app_dirs.user_config_dir, info.name, info.version)
+        app_dirs.user_config_dir, info.name, info.version)
     info.already_generated = (os.path.exists(info.desktop) and
                               os.path.exists(info.mime_file))
     return info

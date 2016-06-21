@@ -5,7 +5,7 @@
 def register_volume_command():
 
     from ..commands import CmdDesc, register
-    from ..commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg
+    from ..commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, SymmetryArg, RepeatOf
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
 
     from .data.fileformats import file_writers
@@ -19,10 +19,13 @@ def register_volume_command():
                ('style', EnumOf(('surface', 'mesh', 'solid'))),
                ('show', NoArg),
                ('hide', NoArg),
-               ('level', FloatsArg),
+               ('toggle', NoArg),
+               ('level', RepeatOf(FloatsArg)),
+               ('rms_level', RepeatOf(FloatsArg)),
+               ('sd_level', RepeatOf(FloatsArg)),
                ('enclose_volume', FloatsArg),
                ('fast_enclose_volume', FloatsArg),
-               ('color', ListOf(ColorArg)),
+               ('color', RepeatOf(ColorArg)),
                ('brightness', FloatArg),
                ('transparency', FloatArg),
                ('step', MapStepArg),
@@ -33,12 +36,13 @@ def register_volume_command():
                ('origin_index', Float1or3Arg),
                ('voxel_size', Float1or3Arg),
                ('planes', PlanesArg),
+               ('dump_header', NoArg),
 # Symmetry assignment.
-               ('symmetry', StringArg),
-               ('center', StringArg),
+               ('symmetry', SymmetryArg),
+               ('center', CenterArg),
                ('center_index', Float1or3Arg),
-               ('axis', StringArg),
-#               ('coordinateSystem', openstate_arg),
+               ('axis', AxisArg),
+               ('coordinate_system', CoordSysArg),
 # File saving options.
                ('save', StringArg),
                ('save_format', EnumOf(stypes)),
@@ -86,7 +90,7 @@ def register_volume_command():
                ('position_planes', Int3Arg),
         ])
     register('volume', volume_desc, volume)
-    
+
 # -----------------------------------------------------------------------------
 #
 def volume(session,
@@ -94,7 +98,10 @@ def volume(session,
            style = None,
            show = None,
            hide = None,
+           toggle = None,
            level = None,
+           rms_level = None,
+           sd_level = None,
            enclose_volume = None,
            fast_enclose_volume = None,
            color = None,
@@ -108,11 +115,12 @@ def volume(session,
            origin_index = None,
            voxel_size = None,
            planes = None,
+           dump_header = None,
 # Symmetry assignment.
            symmetry = None,
-           center = (0,0,0),
+           center = None,
            center_index = None,
-           axis = (0,0,1),
+           axis = None,
            coordinate_system = None,
 # File saving options.
            save = None,
@@ -169,6 +177,7 @@ def volume(session,
     style : "surface", "mesh", or "solid"
     show : bool
     hide : bool
+    toggle : bool
     level : sequence of 1 or 2 floats
       In solid style 2 floats are used the first being a density level and second 0-1 brightness value.
     enclose_volume : float
@@ -195,7 +204,8 @@ def volume(session,
       Parsed as 3 comma-separated floats, or an atom specifier
     center_index : sequence of 3 floats
     axis : sequence of 3 floats
-    coordinate_system : not supported, model specifier
+    coordinate_system : Place
+      Coordinate system for axis and center symmetry options
 
     ------------------------------------------------------------------------------------------------
     File saving options
@@ -287,7 +297,6 @@ def volume(session,
             loc[opt] = value
 
     # Adjust global settings.
-    loc = locals()
     gopt = ('data_cache_size', 'show_on_open', 'voxel_limit_for_open',
             'show_plane', 'voxel_limit_for_plane')
     gsettings = dict((n,loc[n]) for n in gopt if not loc[n] is None)
@@ -300,11 +309,12 @@ def volume(session,
                             (' by "%s"' % volumes if volumes else ''))
 
     # Apply volume settings.
-    dopt = ('style', 'show', 'hide', 'level', 'enclose_volume', 'fast_enclose_volume',
+    dopt = ('style', 'show', 'hide', 'toggle', 'level', 'rms_level', 'sd_level',
+            'enclose_volume', 'fast_enclose_volume',
             'color', 'brightness', 'transparency',
             'step', 'region', 'name_region', 'expand_single_plane', 'origin',
             'origin_index', 'voxel_size', 'planes',
-            'symmetry', 'center', 'center_index', 'axis', 'coordinate_system')
+            'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header')
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
     ropt = (
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
@@ -407,28 +417,37 @@ def apply_volume_options(v, doptions, roptions, session):
         d.set_step(vsize)
 
     if 'symmetry' in doptions:
-        sym, c, a = doptions['symmetry'], doptions['center'], doptions['axis']
-        csys = doptions.get('coordinate_system', v.open_state)
+        csys = doptions.get('coordinate_system', v.position)
         if 'center_index' in doptions:
             c = v.data.ijk_to_xyz(doptions['center_index'])
-            if csys != v.openState:
-                c = csys.position.inverse() * (v.position * c)
-        from ..SymmetryCopies import symcmd
-        tflist, csys = symcmd.parse_symmetry(sym, c, a, csys, v, 'volume')
-        if csys != v.openState:
-            tflist = symcmd.transform_coordinates(tflist, csys, v.openState)
-        d.symmetries = tflist
+            if 'coordinate_system' in doptions:
+                c = csys.inverse() * (v.position * c)
+            from ..commands import Center
+            center = Center(c)
+        else:
+            center = doptions.get('center')
+        ops = doptions['symmetry'].positions(center, doptions.get('axis'), csys)
+        d.symmetries = ops.transform_coordinates(v.position)
 
     if 'show' in doptions:
         v.initialize_thresholds()
         v.show()
     elif 'hide' in doptions:
         v.unshow()
+    elif 'toggle' in doptions:
+        if v.shown():
+            v.unshow()
+        else:
+            v.show()
     elif v.shown():
         v.show()
 # TODO: If it has a surface but it is undisplayed, do I need to recalculate it?
 #    else:
 #        v.update_display()
+
+    if 'dump_header' in doptions and doptions['dump_header']:
+        show_file_header(v.data, session.logger)
+
 
 # TODO:
 #  Allow quoted color names.
@@ -444,9 +463,17 @@ def save_volumes(vlist, doptions, session):
     
     path = doptions['save']
     format = doptions.get('save_format', None)
-    from .data import fileformats
-    if fileformats.file_writer(path, format) is None: 
-        format = 'mrc' 
+    from .data.fileformats import file_writer, file_writers
+    if file_writer(path, format) is None:
+        from ..errors import UserError
+        if format is None:
+            msg = ('Unknown file suffix for "%s", known suffixes %s'
+                   % (path, ', '.join(fw[2] for fw in file_writers)))
+        else:
+            msg = ('Unknown file format "%s", known formats %s'
+                   % (format, ', '.join(fw[1] for fw in file_writers)))
+        raise UserError(msg)
+        
     options = {}
     if 'chunk_shapes' in doptions:
         options['chunk_shapes'] = doptions['chunk_shapes']
@@ -487,6 +514,19 @@ def level_and_color_settings(v, options):
     kw = {}
 
     levels = options.get('level', [])
+    rms_levels = options.get('rms_level', [])
+    sd_levels = options.get('sd_level', [])
+    if rms_levels or sd_levels:
+        mean, sd, rms = v.mean_sd_rms()
+        if rms_levels:
+            for lvl in rms_levels:
+                lvl[0] *= rms
+            levels.extend(rms_levels)
+        if sd_levels:
+            for lvl in sd_levels:
+                lvl[0] *= sd
+            levels.extend(sd_levels)
+
     colors = options.get('color', [])
 
     # Allow 0 or 1 colors and 0 or more levels, or number colors matching
@@ -500,14 +540,17 @@ def level_and_color_settings(v, options):
     if style in ('mesh', None):
         style = 'surface'
 
-    if style == 'solid':
-        if len(levels) % 2:
-            from .. import errors
-            raise errors.UserError('Solid level must be <data-value,brightness-level>')
-        if levels and len(levels) < 4:
-            from .. import errors
-            raise errors.UserError('Must specify 2 or more levels for solid style')
-        levels = tuple(zip(levels[::2], levels[1::2]))
+    if style in ('surface', 'mesh'):
+        for l in levels:
+            if len(l) != 1:
+                from ..errors import UserError
+                raise UserError('Surface level must be a single value')
+        levels = [l[0] for l in levels]
+    elif style == 'solid':
+        for l in levels:
+            if len(l) != 2:
+                from ..errors import UserError
+                raise UserError('Solid level must be <data-value,brightness-level>')
 
     if levels:
         kw[style+'_levels'] = levels
@@ -589,3 +632,17 @@ class PlanesArg(Annotation):
             raise AnnotationError('Planes arguments after axis must be integers')
         result = tuple([fields[0]] + values)
         return result, text, rest
+    
+# -----------------------------------------------------------------------------
+#
+def show_file_header(d, log):
+    if hasattr(d, 'file_header') and isinstance(d.file_header, dict):
+        h = d.file_header
+        klist = list(h.keys())
+        klist.sort()
+        msg = ('File header for %s\n' % d.path +
+               '\n'.join(('%s = %s' % (k, str(h[k]))) for k in klist))
+    else:
+        msg = 'No header info for %s' % d.name
+        log.status(msg)
+    log.info(msg + '\n')

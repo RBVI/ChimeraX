@@ -2,6 +2,7 @@
 
 #include <math.h>
 
+#define ATOMSTRUCT_EXPORT
 #include "Atom.h"
 #include "Bond.h"
 #include "Coord.h"

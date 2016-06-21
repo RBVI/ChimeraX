@@ -2,11 +2,12 @@
 #ifndef templates_Atom
 #define    templates_Atom
 
+#include "../imex.h"
+
 #include <vector>
 #include "Bond.h"
 #include "CoordSet.h"
 #include <element/Element.h>
-#include "../imex.h"
 #include "../string_types.h"
 
 namespace tmpl {

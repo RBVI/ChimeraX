@@ -9,18 +9,29 @@ DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
-OBJS	= $(SRCS:.cpp=.o)
-INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
+INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 ifeq ($(OS),Darwin)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
-LIBS	+= -L$(libdir) -lelement -ltmpl -llogger -larrays $(PYTHON_LIB)
+LIBS	+= tmpl/*.$(OBJ_EXT)
+ifeq ($(WIN32),msvc)
+LIBS	+= libelement.lib libioutil.lib libchutil.lib libappdirs.lib liblogger.lib libarrays.lib $(PYTHON_LIB)
+else
+LIBS	+= -lelement -lioutil -lchutil -lappdirs -llogger -larrays $(PYTHON_LIB)
+endif
 
 $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
 	$(SHLIB_LINK)
 
 install: $(SHLIB)
 	$(RSYNC) $(SHLIB) $(shlibdir)
+ifdef WIN32
+	$(RSYNC) $(LIBRARY) $(libdir)
+ifdef DEBUG
+	$(RSYNC) lib$(LIBNAME).pdb $(shlibdir)
+endif
+endif
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi

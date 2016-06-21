@@ -2,6 +2,7 @@
 
 #include <utility>  // for pair
 
+#define ATOMSTRUCT_EXPORT
 #include "Atom.h"
 #include "CoordSet.h"
 #include "destruct.h"

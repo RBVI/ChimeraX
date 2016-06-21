@@ -23,7 +23,7 @@ class Proxy_PBGroup;
 
 namespace atomstruct {
 
-class Changes {
+class ATOMSTRUCT_IMEX Changes {
 public:
     // plain "set" (rather than "unordered_set") empirically faster to add_created() and clear()
     std::set<const void*>  created; // use set so that deletions can be easily found

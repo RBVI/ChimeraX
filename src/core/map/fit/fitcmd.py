@@ -24,8 +24,8 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
       Atoms or map that will be moved.
     in_map : Volume
       Target density map to fit into.
-    subtract_maps : Atoms
-      Subtract map for these atoms from the target map before fitting.
+    subtract_maps : Objects
+      Subtract these maps or maps for these atoms from the target map before fitting.
 
     ----------------------------------------------------------------------------
     Mode
@@ -87,15 +87,12 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
     list_fits : bool
       Show the fits in a dialog.
     '''
-    spec = str(atoms_or_map)
-    atoms_or_map = atoms_or_map.evaluate(session)
-    atoms_or_map.spec = spec
     volume = in_map
     if metric is None:
         metric = 'correlation' if symmetric else 'overlap'
     mwm = move_whole_molecules
-    if subtract_maps:
-        smaps = subtraction_maps(subtract_maps.evaluate(session), resolution, session)
+    if sequence > 0 or subtract_maps:
+        smaps = subtraction_maps(subtract_maps, resolution, session)
         if sequence == 0:
             sequence = 1
 
@@ -127,9 +124,9 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
                                    shift, rotate, mwm, atoms,
                                    max_steps, grid_step_min, grid_step_max, log)]
 
-        if list_fits:
+        if list_fits or search > 0:
             show_first = search > 0
-            list_fits(fits, show_first, session)
+            show_fit_list(fits, show_first, session)
         flist.extend(fits)
 
     return flist
@@ -182,7 +179,7 @@ def atoms_and_map(atoms_or_map, resolution, move_whole_molecules, sequence, each
                 else:
                     raise UserError('Fit sequence requires 2 or more maps to place')
         else:
-            from ...structure import Structure
+            from ...atomic import Structure
             mlist = [m for m in atoms_or_map.models if isinstance(m, Structure)]
             if len(mlist) == 0:
                 raise UserError('No molecules specified for fitting')
@@ -203,9 +200,11 @@ def atoms_and_map(atoms_or_map, resolution, move_whole_molecules, sequence, each
 
 # -----------------------------------------------------------------------------
 #
-def subtraction_maps(spec, resolution, session):
+def subtraction_maps(objects, resolution, session):
     vlist = []
-    atoms = spec.atoms
+    if objects is None:
+        return vlist
+    atoms = objects.atoms
     if len(atoms) > 0:
         if resolution is None:
             raise UserError('Require resolution keyword for atomic models used '
@@ -214,7 +213,7 @@ def subtraction_maps(spec, resolution, session):
             from .fitmap import simulated_map
             vlist.append(simulated_map(matoms, resolution, session))
     from .. import Volume
-    vlist.extend([v for v in spec.models if isinstance(v, Volume)])
+    vlist.extend([v for v in objects.models if isinstance(v, Volume)])
     return vlist
     
 # -----------------------------------------------------------------------------
@@ -234,7 +233,7 @@ def split_by_model(sel, resolution, session):
 #
 def remove_atoms_with_volumes(aom, res, session):
 
-    maps = set(v for v,a in aom)
+    maps = set(v for a,v in aom if v is not None)
     from .fitmap import find_simulated_map
     faom = [(atoms,v) for atoms,v in aom
             if atoms is None or not find_simulated_map(atoms, res, session) in maps]
@@ -242,7 +241,11 @@ def remove_atoms_with_volumes(aom, res, session):
 
 # -----------------------------------------------------------------------------
 #
-def list_fits(flist, show, session):
+def show_fit_list(flist, show, session):
+    session.logger.info('Found %d fits. List window not yet implemented.' % len(flist))
+    if show and flist:
+        flist[0].place_models(session)
+    return
     from . import fitlist
     d = fitlist.show_fit_list_dialog(session)
     d.add_fits(flist)
@@ -312,7 +315,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     me = fitting_metric(metric)
     points, point_weights = map_fitting_points(volume, envelope,
                                                local_coords = True)
-    refpt = F.volume_center_point(v, volume.place)
+    refpt = F.volume_center_point(v, volume.position)
     symmetries = volume.data.symmetries
     indices = F.asymmetric_unit_points(points, refpt, symmetries)
     apoints = points[indices]
@@ -321,19 +324,21 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     data_array, xyz_to_ijk_transform = \
       v.matrix_and_transform(volume.position, subregion = None, step = 1)
 
-    from chimera import tasks, CancelOperation
-    task = tasks.Task("Symmetric fit", modal=True)
-    def stop_cb(msg, task = task):
-        return request_stop_cb(msg, task)
-    stats = None
-    try:
-        move_tf, stats = F.locate_maximum(apoints, apoint_weights,
+#    from chimera import tasks, CancelOperation
+#    task = tasks.Task("Symmetric fit", modal=True)
+#    def stop_cb(msg, task = task):
+#        return request_stop_cb(msg, task)
+#    stats = None
+#    try:
+    def stop_cb(msg):
+        return False
+    move_tf, stats = F.locate_maximum(apoints, apoint_weights,
                                           data_array, xyz_to_ijk_transform,
                                           max_steps, grid_step_min, grid_step_max,
                                           shift, rotate, me, refpt, symmetries,
                                           stop_cb)
-    finally:
-        task.finished()
+#    finally:
+#        task.finished()
 
     if stats is None:
         return          # Fit cancelled
@@ -370,7 +375,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
         point_weights = None
     else:
         points, point_weights = map_fitting_points(v, envelope)
-        points = volume.place.inverse()*points
+        points = volume.position.inverse()*points
     from . import search as FS
     rotations = 'r' in placement
     shifts = 's' in placement
@@ -516,16 +521,16 @@ def report_status(log):
 #
 def register_fitmap_command():
 
-    from ...commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, AtomSpecArg
+    from ...commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, AtomsArg, ObjectsArg
     from ..mapargs import MapArg
 
     fitmap_desc = CmdDesc(
         required = [
-            ('atoms_or_map', AtomSpecArg),
+            ('atoms_or_map', ObjectsArg),
         ],
         keyword = [
             ('in_map', MapArg),	# Require keyword to avoid two consecutive atom specs.
-            ('subtract_maps', AtomSpecArg),
+            ('subtract_maps', ObjectsArg),
 
 # Four modes, default is single fit mode (no option)
             ('each_model', BoolArg),

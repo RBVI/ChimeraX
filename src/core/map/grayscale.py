@@ -50,7 +50,7 @@ class GrayScaleDrawing(Drawing):
     self._show_box_faces = False
 
     self._show_ortho_planes = 0  # bits 0,1,2 correspond to axes x,y,z.
-    self.ortho_planes_position = (0,0,0)
+    self._ortho_planes_position = (0,0,0)
 
   def delete(self):
     b = self._blend_manager
@@ -76,6 +76,14 @@ class GrayScaleDrawing(Drawing):
       self._show_ortho_planes = s
       self.remove_planes()
   show_ortho_planes = property(shown_orthoplanes, set_shown_orthoplanes)
+
+  def orthoplanes_position(self):
+    return self._ortho_planes_position
+  def set_orthoplanes_position(self, p):
+    if tuple(p) != self._ortho_planes_position:
+      self._ortho_planes_position = tuple(p)
+      self.remove_planes()	# TODO: Reuse current planes moving to new position.
+  ortho_planes_position = property(orthoplanes_position, set_orthoplanes_position)
 
   def showing_box_faces(self):
     return self._show_box_faces
@@ -151,20 +159,23 @@ class GrayScaleDrawing(Drawing):
 
     # Compare stack z axis to view direction to decide whether to reverse plane drawing order.
     zaxis = self.ijk_to_xyz.z_axis()
-    cv = renderer.current_view_matrix
+    r = renderer
+    cv = r.current_view_matrix
     czaxis = cv.apply_without_translation(zaxis) # z axis in camera coords
     self.reverse_order_children = (czaxis[2] < 0)
 
     max_proj = dtransp and self.maximum_intensity_projection
     if max_proj:
-      renderer.blend_max(True)
-    renderer.write_depth(False)
+      r.blend_max(True)
+    if dtransp:
+      r.write_depth(False)
 
-    Drawing.draw(self, renderer, place, draw_pass, selected_only)
+    Drawing.draw(self, r, place, draw_pass, selected_only)
 
-    renderer.write_depth(True)
+    if dtransp:
+      r.write_depth(True)
     if max_proj:
-      renderer.blend_max(False)
+      r.blend_max(False)
 
   def remove_planes(self):
 

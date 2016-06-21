@@ -16,11 +16,13 @@ def fit_search(models, points, point_weights, volume, n,
                ijk_step_size_min = 0.01, ijk_step_size_max = 0.5,
                request_stop_cb = None):
 
-    b = volume.bounds(positions = False)
-    xyz_min, xyz_max = b if not b is None else volume.xyz_bounds(step = 1)
+    bounds = volume.bounds(positions = False)
+    if bounds is None:
+        bounds = volume.xyz_bounds(step = 1)
+
     asym_center_f = (.75,.55,.55)
     asym_center = tuple(x0 + (x1-x0)*f
-                        for x0, x1, f in zip(xyz_min, xyz_max, asym_center_f)) 
+                        for x0, x1, f in zip(bounds.xyz_min, bounds.xyz_max, asym_center_f)) 
 
     from ...geometry import translation, identity
     center = points.mean(axis=0)
@@ -41,7 +43,7 @@ def fit_search(models, points, point_weights, volume, n,
     for i in range(n):
         if request_stop_cb and request_stop_cb('Fit %d of %d' % (i+1,n)):
             break
-        shift = ((random_translation(xyz_min, xyz_max) if radius is None
+        shift = ((random_translation(bounds) if radius is None
                   else random_translation_step(center, radius)) if shifts
                   else translation(center))
         rot = random_rotation() if rotations else identity()
@@ -146,7 +148,7 @@ class Fit:
             move_models(self.models, self.transforms, self.volume, frames, session)
         else:
             for m, tf in self.model_transforms():
-                m.set_place(tf)
+                m.position = tf
 
     # -------------------------------------------------------------------------
     #
@@ -239,11 +241,11 @@ class Fit:
         mmap = self.fit_map()
         if mmap:
             message = (FM.map_fit_message(mmap, v, self.stats) +
-                       FM.transformation_matrix_message(mmap, v))
+                       FM.transformation_matrix_message(mmap, v, self.fit_transform(mmap)))
         else:
             mols = self.fit_molecules()
             message = FM.atom_fit_message(mols, v, self.stats)
-            message += '\n'.join([FM.transformation_matrix_message(m,v)
+            message += '\n'.join([FM.transformation_matrix_message(m,v,self.fit_transform(m))
                                   for m in mols])
 
         return message
@@ -264,6 +266,15 @@ class Fit:
         from ...atomic import Structure
         mols = [m for m in self.models if isinstance(m, Structure)]
         return mols
+
+    # -------------------------------------------------------------------------
+    #
+    def fit_transform(self, model):
+
+        for m, tf in zip(self.models, self.transforms):
+            if m is model:
+                return tf
+        return None
     
 # -----------------------------------------------------------------------------
 #
@@ -330,10 +341,10 @@ def random_translation_step(center, radius):
 
 # -----------------------------------------------------------------------------
 #
-def random_translation(xyz_min, xyz_max):
+def random_translation(bounds):
 
     from random import random
-    shift = [x0+random()*(x1-x0) for x0,x1 in zip(xyz_min, xyz_max)]
+    shift = [x0+random()*(x1-x0) for x0,x1 in zip(bounds.xyz_min, bounds.xyz_max)]
     from ...geometry import translation
     tf = translation(shift)
     return tf

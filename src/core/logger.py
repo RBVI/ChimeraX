@@ -159,6 +159,13 @@ class Logger:
             Log.LEVEL_WARNING: self.warning,
             Log.LEVEL_INFO: self.info
         }
+        import sys
+        # only put in an excepthook if we're the first session:
+        if sys.excepthook == sys.__excepthook__:
+            def ehook(*args):
+                from traceback import format_exception
+                self.error("".join(format_exception(*args)))
+            sys.excepthook = ehook
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
         self.add_log(_EarlyCollator())
@@ -172,8 +179,13 @@ class Logger:
             self._early_collation = True
         elif self._early_collation:
             # main window only handles status messages, so in that case keep collating...
-            from .ui.gui import MainWindow
-            if not isinstance(log, MainWindow):
+            try:
+                from .ui.gui import MainWindow
+            except ImportError:
+                log_is_main_window = False
+            else:
+                log_is_main_window = isinstance(log, MainWindow)
+            if not log_is_main_window:
                 self._early_collation = None
                 for cur_log in self.logs:
                     if isinstance(cur_log, _EarlyCollator):
@@ -237,6 +249,44 @@ class Logger:
     def remove_log(self, log):
         """remove a logger"""
         self.logs.discard(log)
+
+    def report_exception(self, preface=None, error_description=None):
+        """Report the current exception (without changing execution context)
+
+        Parameters
+        ----------
+        preface : text
+            Prepend this text to the report
+        error_description : text
+            Replace any traceback information with this text
+        """
+        from .errors import NotABug, CancelOperation
+        from traceback import format_exception_only, format_exception, format_tb
+        import sys
+        ei = sys.exc_info()
+        if preface:
+            preface = "%s:\n" % preface
+        else:
+            preface = ""
+
+        exception_value = ei[1]
+
+        if isinstance(exception_value, NotABug):
+            self.error("%s%s" % (preface, exception_value))
+        elif isinstance(exception_value, CancelOperation):
+            pass  # Cancelled operations are not reported
+        else:
+            if error_description:
+                tb_msg = error_description
+            else:
+                tb = format_exception(ei[0], ei[1], ei[2])
+                tb_msg = "".join(tb)
+            self.info(tb_msg)
+
+            err = "".join(format_exception_only(ei[0], ei[1]))
+            loc = "".join(format_tb(ei[2])[-1:])
+            self.error("%s%s\n%s" % (preface, err, loc)
+                + "See log for Python traceback.\n")
 
     def status(self, msg, color="black", log=False, secondary=False,
                blank_after=None, follow_with="", follow_time=20,

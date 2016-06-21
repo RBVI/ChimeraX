@@ -15,7 +15,11 @@ endif
 include $(TOP)/mk/subdir.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax/core
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core
+ifdef WIN32
+PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
+shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
+datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
+endif
 
 GENSRCS = buildinfo.py
 PYSRCS = $(wildcard *.py) $(GENSRCS)
@@ -39,16 +43,22 @@ app-install: wheel
 wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
 
-setup.py: setup.py.in
-	sed -e 's,PKG_DIR,$(PKG_DIR),' \
-		-e 's,LIB_DIR,$(libdir),' \
+SETUP_SED_ARGS = -e 's,PKG_DIR,$(PKG_DIR),' \
+		-e 's,SHLIB_DIR,$(shlibdir),' \
 		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
-		-e 's,#$(OS)#,,' \
-		-e 's,#$(OSARCH)#,,' \
-		-e 's,CORE_VERSION,$(CORE_VERSION),' \
-		< setup.py.in > setup.py
+		-e 's,\#$(OS)\#,,' \
+		-e 's,\#$(OSARCH)\#,,' \
+		-e 's,CORE_VERSION,$(CORE_VERSION),'
+ifdef WIN32
+ifdef DEBUG
+SETUP_SED_ARGS += -e 's,\#WINDEBUG,,'
+endif
+endif
+
+setup.py: setup.py.in
+	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
 
 timestamp:
 	echo "chimerax.core" > timestamp

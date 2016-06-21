@@ -229,7 +229,7 @@ class ConfigFile:
     Parameters
     ----------
     session : :py:class:`~chimerax.core.session.Session`
-        (for ``app_dirs`` and ``logger``)
+        (for ``logger``)
     tool_name : the name of the tool
     version : configuration file version, optional
         Only the major version part of the version is used.
@@ -264,8 +264,8 @@ class ConfigFile:
                 self.PROPERTY_INFO[name] = Value(value)
         if only_use_defaults:
             return
-        self._filename = os.path.join(
-            session.app_dirs.user_config_dir,
+        from chimerax import app_dirs
+        self._filename = os.path.join(app_dirs.user_config_dir,
             '%s-%s' % (tool_name, major_version) if version else tool_name)
         self._config = configparser.ConfigParser(
             comment_prefixes=(),

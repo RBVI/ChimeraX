@@ -292,12 +292,6 @@ class Session:
 
     Attributes
     ----------
-    app_bin_dir : string
-        Application executable binaries directory
-    app_data_dir : string
-        Application data directory
-    app_lib_dir : string
-        Application shared code library directory
     logger : An instance of :py:class:`~chimerax.core.logger.Logger`
         Use to log information, warning, errors.
     metadata : dict
@@ -319,11 +313,6 @@ class Session:
         self.in_script = InScriptFlag()
         if minimal:
             return
-
-        import chimerax
-        self.app_data_dir = chimerax.app_data_dir
-        self.app_bin_dir = chimerax.app_bin_dir
-        self.app_lib_dir = chimerax.app_lib_dir
 
         # initialize state managers for various properties
         from . import models
@@ -566,7 +555,7 @@ def save(session, filename, **kw):
     # Remember session in file history
     if isinstance(filename, str):
         from .filehistory import remember_file
-        remember_file(session, fname, 'ses', 'all models', file_saved = True)
+        remember_file(session, filename, 'ses', 'all models', file_saved = True)
 
 def dump(session, session_file, output=None):
     """dump contents of session for debugging"""

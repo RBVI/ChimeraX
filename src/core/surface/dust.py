@@ -6,31 +6,36 @@ metrics = ('size', 'area', 'volume', 'size rank', 'area rank', 'volume rank')
 
 # -----------------------------------------------------------------------------
 #
-def hide_dust(model, metric, limit, auto_update, use_cached_geometry = False):
+def hide_dust(surface, metric, limit, auto_update = False, use_cached_geometry = False):
 
-    plist = model.surfacePieces
-    for p in plist:
-        hide_dust_piece(p, metric, limit, use_cached_geometry)
-    if auto_update:
-        dust_updater.auto_dust(model, metric, limit)
+    # Hide dust for this model and all children.
+    for s in surface.all_drawings():
+        hide_surface_dust(s, metric, limit, auto_update, use_cached_geometry)
 
 # -----------------------------------------------------------------------------
 #
-def hide_dust_piece(p, metric, limit, use_cached_geometry = False):
+def hide_surface_dust(surface, metric, limit, auto_update = False, use_cached_geometry = False):
 
     # Don't hide surface cap on a visible blob.
-    import SurfaceCap
-    if SurfaceCap.is_surface_cap(p):
-        return
+#    import SurfaceCap
+#    if SurfaceCap.is_surface_cap(p):
+#        return
 
-    b = getattr(p, 'blobs', None) if use_cached_geometry else None
-    if b is None or p.vertexCount != b.vertex_count:
-        p.blobs = b = Blob_Masker(p)
-    import Surface
-    if Surface.visibility_method(p.model) != 'hide dust':
-        Surface.set_visibility_method('hide dust', p.model , None)
+    s = surface
+    if s.vertices is None:
+        return
+    
+    b = getattr(s, 'blobs', None) if use_cached_geometry else None
+    if b is None or len(s.vertices) != b.vertex_count:
+        s.blobs = b = Blob_Masker(s.vertices, s.triangles)
+#    import Surface
+#    if Surface.visibility_method(p.model) != 'hide dust':
+#        Surface.set_visibility_method('hide dust', p.model , None)
     m = b.triangle_mask(metric, limit)
-    Surface.set_triangle_mask(p, m)
+    s.triangle_mask = m
+
+    if auto_update:
+        dust_updater.auto_dust(s, metric, limit)
 
 # -----------------------------------------------------------------------------
 #
@@ -44,8 +49,26 @@ def largest_blobs_triangle_mask(vertices, triangles, triangle_mask, blob_count =
     b = Blob_Masker(vertices, triangles, triangle_mask)
     tmask = b.triangle_mask(metric = rank_metric, limit = blob_count)
     return tmask
+
+# -----------------------------------------------------------------------------
+#
+def show_only_largest_blobs(surface, visible_only = False, blob_count = 1,
+                            rank_metric = 'size rank'):
+    s = surface
+    # Handle surfaces with duplicate vertices, such as molecular
+    # surfaces with sharp edges between atoms.
+    if hasattr(s, 'clip_cap') and s.clip_cap == 'duplicate vertices':
+        from . import unique_vertex_map
+        vmap = unique_vertex_map(s.vertices)
+        t = vmap[s.triangles]
+    else:
+        t = s.triangles
+    tmask = s.triangle_mask if visible_only else None
+    b = Blob_Masker(s.vertices, t, tmask)
+    tmask = b.triangle_mask(metric = rank_metric, limit = blob_count)
+    s.triangle_mask = tmask
 #    import Surface
-#    Surface.set_visibility_method('hide dust', surf , None)
+#    Surface.set_visibility_method('hide dust', p.model , None)
         
 # -----------------------------------------------------------------------------
 # Stop updating dust hiding.
@@ -237,7 +260,7 @@ class Dust_Updater:
 
         m = p.model
         (metric, limit) = self.models[m]
-        hide_dust_piece(p, metric, limit)
+        hide_surface_dust(p, metric, limit)
             
     # -------------------------------------------------------------------------
     #

@@ -4,7 +4,9 @@
 #ifndef REFCOUNT_HEADER_INCLUDED
 #define REFCOUNT_HEADER_INCLUDED
 
-class Reference_Count
+#include "imex.h"
+
+class ARRAYS_IMEX Reference_Count
 {
 public:
   Reference_Count();

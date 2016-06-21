@@ -7,3 +7,4 @@ from .structure import structure_atoms, structure_residues
 from .molsurf import buried_area, MolecularSurface, surfaces_with_atoms
 from .pbgroup import PseudobondGroup, all_pseudobond_groups, interatom_pseudobonds
 from .changes import check_for_changes
+from .pdbmatrices import biological_unit_matrices

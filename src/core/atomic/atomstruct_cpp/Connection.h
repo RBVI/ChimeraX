@@ -23,7 +23,7 @@ namespace atomstruct {
 class Atom;
 class GraphicsContainer;
 
-class Connection {
+class ATOMSTRUCT_IMEX Connection {
 public:
     typedef Atom*  Atoms[2];
 

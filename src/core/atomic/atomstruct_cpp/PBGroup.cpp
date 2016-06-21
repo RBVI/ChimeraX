@@ -1,5 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
 
+#define ATOMSTRUCT_EXPORT
 #include "Atom.h"
 #include "destruct.h"
 #include "Structure.h"
@@ -7,7 +8,7 @@
 #include "Pseudobond.h"
 
 #include <Python.h>
-#include <pythonarray.h>
+#include <arrays/pythonarray.h>
 
 namespace atomstruct {
 
