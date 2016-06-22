@@ -7,13 +7,13 @@ def map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, symmetries, step):
   if ijk_cell_size == d.size and len(symmetries) == 0:
     # Full unit cell and no symmetries to average.
     g = v.grid_data(subregion = 'all', step = step, mask_zone = False)
-    from VolumeViewer import volume
+    from .. import volume
     cg = volume.map_from_periodic_map(g, ijk_min, ijk_max)
     return cg
 
   out_ijk_size = tuple(a-b+1 for a,b in zip(ijk_max, ijk_min))
-  import Matrix
-  out_ijk_to_vijk_transform = Matrix.translation_matrix(ijk_min)
+  from ...geometry import translation
+  out_ijk_to_vijk_transform = translation(ijk_min)
 
   ijk_symmetries = ijk_symmetry_matrices(d, symmetries)
 
@@ -21,12 +21,12 @@ def map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, symmetries, step):
   shape = list(reversed(out_ijk_size))
   m = empty(shape, float32)
 
-  from _volume import extend_crystal_map
-  nnc, dmax = extend_crystal_map(v.full_matrix(), ijk_cell_size,
-                                 ijk_symmetries, m, out_ijk_to_vijk_transform)
+  from .. import extend_crystal_map
+  nnc, dmax = extend_crystal_map(v.full_matrix(), ijk_cell_size, ijk_symmetries.array(),
+                                 m, out_ijk_to_vijk_transform.matrix)
 
-  from chimera import replyobj as ro
-  ro.info('Extended map %s to box of size (%d, %d, %d),\n'
+  log = v.session.logger
+  log.info('Extended map %s to box of size (%d, %d, %d),\n'
           % ((v.name,) + out_ijk_size) +
           '  cell size (%d, %d, %d) grid points, %d symmetry operations,\n'
           % (tuple(ijk_cell_size) + (len(ijk_symmetries),)) +
@@ -34,10 +34,10 @@ def map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, symmetries, step):
           '  maximum value difference where symmetric map copies overlap = %.5g\n'
           % dmax)
   if nnc > 0:
-    ro.status('%d grid points not covered' % nnc)
+    log.status('%d grid points not covered' % nnc)
 
   origin = d.ijk_to_xyz(ijk_min)
-  from VolumeData import Array_Grid_Data
+  from ..data import Array_Grid_Data
   g = Array_Grid_Data(m, origin, d.step, d.cell_angles, name = v.name + ' extended')
 
   return g
@@ -50,21 +50,21 @@ def extend_crystal_map(volarray, ijk_cell_size, ijk_symmetries,
 
   ksz, jsz, isz = out_array.shape
   otf = out_ijk_to_vol_ijk_transform
-  from Matrix import identity_matrix, apply_matrix
-  itf = identity_matrix()
+  from ...geometry import identity
+  itf = identity()
   nsym = len(ijk_symmetries)
   from numpy import empty, float32, delete as delete_array_elements
   values = empty((nsym,), float32)
   nnc = 0       # Number of grid points not covered by symmetry
   dmax = None   # Maximum value discrepancy for multiple overlaps
-  from _interpolate import interpolate_volume_data
+  from ..data import interpolate_volume_data
   for k in range(ksz):
     for j in range(jsz):
       for i in range(isz):
-        vijk = apply_matrix(otf, (i,j,k))
+        vijk = otf * (i,j,k)
         vlist = []
         for sym in ijk_symmetries:
-          svijk = apply_matrix(sym, vijk)
+          svijk = sym * vijk
           scijk = [p % s for p,s in zip(svijk, ijk_cell_size)] # Wrap to unit cell.
           vlist.append(scijk)
         values[:] = 0
@@ -88,14 +88,11 @@ def extend_crystal_map(volarray, ijk_cell_size, ijk_symmetries,
 #
 def ijk_symmetry_matrices(data, symmetries):
 
-  import Matrix
-
   if len(symmetries) == 0:
-    return [Matrix.identity_matrix()]
+    from ...geometry import Places
+    return Places()
 
-  x2i = data.xyz_to_ijk_transform
-  i2x = data.ijk_to_xyz_transform
-  isyms = [Matrix.multiply_matrices(x2i, x2x, i2x) for x2x in symmetries]
+  isyms = symmetries.transform_coordinates(data.ijk_to_xyz_transform)
 
   return isyms
 
@@ -105,7 +102,7 @@ def cover_box_bounds(volume, step, atoms, pad, box, fBox, iBox):
 
     grid = volume.data
     if atoms:
-        from VolumeViewer.volume import atom_bounds
+        from ..volume import atom_bounds
         ijk_min, ijk_max = atom_bounds(atoms, pad, volume)
     elif box:
         origin, gstep = grid.origin, grid.step
@@ -129,7 +126,7 @@ def cover_box_bounds(volume, step, atoms, pad, box, fBox, iBox):
     ijk_max = [int(ceil(i)) for i in ijk_max]
 
     # Handle step size > 1.
-    ijk_min = [i/s for i,s in zip(ijk_min,step)]
-    ijk_max = [i/s for i,s in zip(ijk_max,step)]
+    ijk_min = [i//s for i,s in zip(ijk_min,step)]
+    ijk_max = [i//s for i,s in zip(ijk_max,step)]
 
     return ijk_min, ijk_max

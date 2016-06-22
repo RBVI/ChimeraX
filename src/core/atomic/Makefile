@@ -62,6 +62,7 @@ $(includedir)/atomstruct/PBGroup.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Pseudobond.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Residue.h: atomstruct_cpp.install
 $(includedir)/atomstruct/RibbonXSection.h: atomstruct_cpp.install
+$(includedir)/atomstruct/Sequence.h: atomstruct_cpp.install
 
 atomstruct_cpp.install: element_cpp.install
 mmcif_cpp.install: readcif_cpp.install atomstruct_cpp.install

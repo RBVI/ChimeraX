@@ -5,6 +5,7 @@
 #include "colors.h"			// use blend_la_to_rgba, ...
 #include "combine.h"			// use linear_combination
 #include "contourpy.h"			// use surface_py, ...
+#include "extendmap.h"			// use extend_crystal_map
 #include "fittingpy.h"			// use py_correlation_gradient, ...
 #include "distgrid.h"			// use py_sphere_surface_distance
 #include "gaussian.h"			// use py_sum_of_gaussians
@@ -41,6 +42,10 @@ static struct PyMethodDef map_cpp_methods[] =
 
   /* distgrid.h */
   {const_cast<char*>("sphere_surface_distance"), (PyCFunction)py_sphere_surface_distance,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* extendmap.h */
+  {const_cast<char*>("extend_crystal_map"), (PyCFunction)extend_crystal_map,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* fittingpy.h */

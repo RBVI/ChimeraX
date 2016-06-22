@@ -34,9 +34,9 @@ from ...errors import UserError as CommandError
 
 def register_vop_command():
 
-    from ...commands import CmdDesc, register, BoolArg, NoArg, EnumOf, IntArg, Int3Arg
+    from ...commands import CmdDesc, register, BoolArg, NoArg, StringArg, EnumOf, IntArg, Int3Arg
     from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
-    from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Float1or3Arg, ValueTypeArg
+    from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
 
     varg = [('volumes', MapsArg)]
@@ -64,9 +64,12 @@ def register_vop_command():
     )
     register('vop bin', bin_desc, vop_bin)
 
-    boxes_desc = CmdDesc(required = varg + [('markers', AtomsArg)],
-                         keyword = [('size', FloatArg),
-                                    ('use_marker_size', BoolArg)] + ssm_kw)
+    boxes_desc = CmdDesc(required = varg,
+                         keyword = [('centers', AtomsArg),
+                                    ('size', FloatArg),
+                                    ('isize', IntArg),
+                                    ('use_marker_size', BoolArg)] + ssm_kw,
+                         required_arguments = ['centers'])
     register('vop boxes', boxes_desc, vop_boxes)
 
     cover_desc = CmdDesc(required = varg,
@@ -102,7 +105,7 @@ def register_vop_command():
     register('vop fourier', fourier_desc, vop_fourier)
 
     gaussian_desc = CmdDesc(required = varg,
-        keyword = [('s_dev', Float1or3Arg), ('value_type', ValueTypeArg)] + ssm_kw
+        keyword = [('s_dev', Float1or3Arg), ('value_type', ValueTypeArg), ('invert', NoArg)] + ssm_kw
     )
     register('vop gaussian', gaussian_desc, vop_gaussian)
 
@@ -117,6 +120,9 @@ def register_vop_command():
 
     maximum_desc = CmdDesc(required = varg, keyword = add_kw)
     register('vop maximum', maximum_desc, vop_maximum)
+
+    minimum_desc = CmdDesc(required = varg, keyword = add_kw)
+    register('vop minimum', minimum_desc, vop_minimum)
 
     median_desc = CmdDesc(required = varg,
                           keyword = [('bin_size', MapStepArg),
@@ -138,6 +144,16 @@ def register_vop_command():
 
     multiply_desc = CmdDesc(required = varg, keyword = add_kw)
     register('vop multiply', multiply_desc, vop_multiply)
+
+    new_opt = [('name', StringArg),]
+    new_kw = [('size', Int1or3Arg),
+              ('grid_spacing', Float1or3Arg),
+              ('origin', Float3Arg),
+              ('cell_angles', Float1or3Arg),
+              ('value_type', ValueTypeArg),
+              ('model_id', ModelIdArg)]
+    new_desc = CmdDesc(optional = new_opt, keyword = new_kw)
+    register('vop new', new_desc, vop_new)
 
     oct_kw = [('center', Float3Arg),
               ('i_center', Int3Arg),
@@ -244,6 +260,16 @@ def vop_maximum(session, volumes, on_grid = None, bounding_grid = None,
 
 # -----------------------------------------------------------------------------
 #
+def vop_minimum(session, volumes, on_grid = None, bounding_grid = None,
+                subregion = 'all', step = 1,
+                grid_subregion = 'all', grid_step = 1, value_type = None,
+                in_place = False, scale_factors = None, model_id = None):
+    '''Pointwise minimum of maps.'''
+    combine_op(volumes, 'minimum', on_grid, bounding_grid, subregion, step,
+               grid_subregion, grid_step, value_type, in_place, scale_factors, model_id, session)
+
+# -----------------------------------------------------------------------------
+#
 def vop_multiply(session, volumes, on_grid = None, bounding_grid = None,
                  subregion = 'all', step = 1,
                  grid_subregion = 'all', grid_step = 1, value_type = None,
@@ -316,6 +342,8 @@ def combine_operation(volumes, operation, subregion, step,
             rg.polar_values = True
         elif operation == 'maximum':
             rg.name = 'volume maximum'
+        elif operation == 'minimum':
+            rg.name = 'volume minimum'
         else:
             rg.name = 'volume sum'
         from .. import volume_from_grid_data
@@ -371,15 +399,15 @@ def vop_bin(session, volumes, subregion = 'all', step = 1,
 
 # -----------------------------------------------------------------------------
 #
-def vop_boxes(session, volumes, markers, size = 0, use_marker_size = False,
+def vop_boxes(session, volumes, centers, size = 0, isize = None, use_marker_size = False,
              subregion = 'all', step = 1, model_id = None):
     '''Extract boxes centered at marker positions.'''
-    if size <= 0 and not use_marker_size:
-        raise CommandError('Must specify size or enable use_marker_size')
+    if size <= 0 and isize is None and not use_marker_size:
+        raise CommandError('Must specify size or isize or enable use_marker_size')
 
     from .boxes import boxes
     for v in volumes:
-        boxes(v, markers, size, use_marker_size, step, subregion, model_id)
+        boxes(session, v, centers, size, isize, use_marker_size, step, subregion, model_id)
 
 # -----------------------------------------------------------------------------
 #
@@ -388,7 +416,7 @@ def vop_cover(session, volumes, atom_box = None, pad = 5.0,
              f_box = None, fx = None, fy = None, fz = None,
              i_box = None, ix = None, iy = None, iz = None,
              use_symmetry = True, cell_size = None,
-             step = 1, model_id = None):
+             step = (1,1,1), model_id = None):
     '''Extend a map using symmetry to cover a specified region.'''
     if not atom_box is None and len(atom_box) == 0:
         raise CommandError('No atoms specified')
@@ -472,11 +500,12 @@ def vop_fourier(session, volumes, subregion = 'all', step = 1, model_id = None, 
 # -----------------------------------------------------------------------------
 #
 def vop_gaussian(session, volumes, s_dev = (1.0,1.0,1.0),
-                subregion = 'all', step = 1, value_type = None, model_id = None):
+                 subregion = 'all', step = 1, value_type = None, invert = False,
+                 model_id = None):
     '''Smooth maps by Gaussian convolution.'''
     from .gaussian import gaussian_convolve
     for v in volumes:
-        gaussian_convolve(v, s_dev, step, subregion, value_type, model_id, session = session)
+        gaussian_convolve(v, s_dev, step, subregion, value_type, invert, model_id, session = session)
 
 # -----------------------------------------------------------------------------
 #
@@ -546,6 +575,27 @@ def vop_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
     morph_maps(volumes, frames, start, play_step, play_direction, prange,
                add_mode, constant_volume, sfactors,
                hide_original_maps, interpolate_colors, subregion, step, model_id)
+
+# -----------------------------------------------------------------------------
+#
+def vop_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,1.0,1.0),
+            origin = (0.0,0.0,0.0), cell_angles = (90,90,90),
+            value_type = None, model_id = None):
+
+    from numpy import zeros
+    shape = list(size)
+    shape.reverse()
+    if value_type is None:
+        from numpy import float32
+        value_type = float32
+    a = zeros(shape, dtype = value_type)
+    from ..data import Array_Grid_Data
+    grid = Array_Grid_Data(a, origin = origin, step = grid_spacing,
+                           cell_angles = cell_angles, name = name)
+    from .. import volume_from_grid_data
+    v = volume_from_grid_data(grid, session, model_id = model_id)
+    v.show()
+    return v
         
 # -----------------------------------------------------------------------------
 #

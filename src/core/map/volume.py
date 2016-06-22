@@ -1128,14 +1128,24 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   # Points must be in volume local coordinates.
   #
-  def bounding_region(self, points, padding = 0, step = None, clamp = True):
+  def bounding_region(self, points, padding = 0, step = None, clamp = True, cubify = False):
 
     d = self.data
     from .data import points_ijk_bounds
-    ijk_min, ijk_max = points_ijk_bounds(points, padding, d)
+    ijk_fmin, ijk_fmax = points_ijk_bounds(points, padding, d)
+    r = self.integer_region(ijk_fmin, ijk_fmax, step)
+    if cubify:
+      ijk_min, ijk_max = r[:2]
+      s = max(a-b+1 for a, b in zip(ijk_max, ijk_min)) if isinstance(cubify,bool) else cubify
+      for a in (0,1,2):
+        sa = ijk_max[a] - ijk_min[a] + 1
+        if sa < s:
+          ds = s-sa
+          o = (ds+1)/2 if ijk_fmax[a] - ijk_max[a] > ijk_min[a] - ijk_fmin[a] else ds/2
+          ijk_max[a] += o
+          ijk_min[a] -= ds - o
     if clamp:
-      ijk_min, ijk_max = clamp_region((ijk_min, ijk_max, None), d.size)[:2]
-    r = self.integer_region(ijk_min, ijk_max, step)
+      r = clamp_region(r, d.size)
     return r
 
   # ---------------------------------------------------------------------------
@@ -1478,6 +1488,9 @@ class Volume(Model):
     elif operation == 'maximum':
       from numpy import maximum
       maximum(m, values, m)
+    elif operation == 'minimum':
+      from numpy import minimum
+      minimum(m, values, m)
     elif operation == 'multiply':
       m[:,:,:] *= values
     d.values_changed()
@@ -2447,10 +2460,10 @@ def full_region(size, ijk_step = [1,1,1]):
 def is_empty_region(ijk_region):
 
   ijk_min, ijk_max, ijk_step = ijk_region
-  ijk_size = [a - b + 1 for a,b in zip(ijk_max, ijk_min)]
-  if filter(lambda size: size <= 0, ijk_size):
-    return 1
-  return 0
+  for a,b in zip(ijk_max, ijk_min):
+    if a - b + 1 <= 0:
+      return True
+  return False
 
 # ---------------------------------------------------------------------------
 # Adjust volume region to include a zone.  If current volume region is
@@ -2593,11 +2606,10 @@ def map_covering_atoms(atoms, pad, volume):
 def atom_bounds(atoms, pad, volume):
 
     # Get atom positions.
-    from _multiscale import get_atom_coordinates
-    xyz = get_atom_coordinates(atoms, transformed = True)
+    xyz = atoms.scene_coords
 
     # Transform atom coordinates to volume ijk indices.
-    tf = volume.data.xyz_to_ijk_transform * volume.model_transform().inverse()
+    tf = volume.data.xyz_to_ijk_transform * volume.position.inverse()
     tf.move(xyz)
     ijk = xyz
 
