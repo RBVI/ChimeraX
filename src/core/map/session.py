@@ -119,6 +119,8 @@ def absolute_path(path, file_paths, ask = False):
   if isinstance(path, (tuple, list)):
     apath = tuple(file_paths.find(p,ask) for p in path)
     apath = tuple(abspath(p) for p in apath if p)
+  elif path == '':
+    return path
   else:
     apath = file_paths.find(path,ask)
     if not apath is None:
@@ -164,7 +166,7 @@ class GridDataState(State):
         # TODO: If path doesn't exist show file dialog to let user enter new path to file.
         return path
     grids = grid_data_from_state(data, gdcache, session, FilePaths())
-    return GridDataState(grids[0])
+    return GridDataState(grids[0] if grids else None)
 
   def reset_state(self, session):
     pass
@@ -210,7 +212,7 @@ def grid_data_from_state(s, gdcache, session, file_paths):
 
   dbfetch = s.get('database_fetch')
   path = absolute_path(s['path'], file_paths, ask = (dbfetch is None))
-  if path is None and dbfetch is None:
+  if (path is None or path == '') and dbfetch is None:
     return None
 
   gid = s.get('grid_id','')
@@ -273,7 +275,7 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
     grids, error_message = opendialog.open_grid_files(paths_and_types,
                                                       stack_images = False)
     if error_message:
-      print ('Error opening map', error_message)
+      print ('Error opening map "%s":' % path, error_message)
       msg = error_message + '\nPlease select replacement file.'
 # TODO: Show file dialog to locate map file.
 #      from chimera import tkgui
