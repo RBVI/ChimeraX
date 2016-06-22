@@ -223,6 +223,18 @@ if window_sys == "wx":
         def on_save(self, event, ses):
             self.save_dialog.display(self, ses)
 
+        def adjust_size(self, delta_width, delta_height):
+            cs = self.GetSize()
+            cww, cwh = cs.GetWidth(), cs.GetHeight()
+            ww = cww + delta_width
+            wh = cwh + delta_height
+            self.SetSize(ww, wh)
+            # To make the windowsize take effect before
+            # subsequent commands in a script, need to let
+            # wx process events.
+            import wx
+            wx.SafeYield()
+
         def remove_tool(self, tool_instance):
             tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
             if tool_windows:
@@ -979,6 +991,13 @@ else:
 
         def file_quit_cb(self, session):
             session.ui.quit()
+
+        def adjust_size(self, delta_width, delta_height):
+            cs = self.size()
+            cww, cwh = cs.width(), cs.height()
+            ww = cww + delta_width
+            wh = cwh + delta_height
+            self.resize(ww, wh)
 
         def remove_tool(self, tool_instance):
             tool_windows = self.tool_instance_to_windows.get(tool_instance, None)

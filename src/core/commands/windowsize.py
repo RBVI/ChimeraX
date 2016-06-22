@@ -19,18 +19,7 @@ def window_size(session, width=None, height=None):
         if not session.ui.is_gui:
             v.window_size = width, height
         else:
-            win = session.ui.main_window
-            cs = win.GetSize()
-            cww, cwh = cs.GetWidth(), cs.GetHeight()
-            ww = cww + (width - w)
-            wh = cwh + (height - h)
-            win.SetSize(ww, wh)
-            # To make the windowsize take effect before
-            # subsequent commands in a script, need to let
-            # wx process events.
-            import wx
-            wx.SafeYield()
-
+            session.ui.main_window.adjust_size(width-w, height-h)
 
 def register_command(session):
     from . import CmdDesc, register, PositiveIntArg
