@@ -224,11 +224,6 @@ def register_vop_command():
                                      ('center', Float3Arg)] + ssm_kw)
     register('vop unroll', unroll_desc, vop_unroll)
 
-    zflip_desc = CmdDesc(required = varg,
-                         keyword = [('axis', EnumOf(('x','y','z','xy', 'yz','xyz'))),
-                                    ('in_place', BoolArg)] + ssm_kw)
-    register('vop zFlip', zflip_desc, vop_flip)
-
     zone_desc = CmdDesc(required = varg,
                         keyword = [('atoms', AtomsArg),
                                    ('radius', FloatArg),
@@ -821,7 +816,7 @@ def flip_operation(v, axes, subregion, step, in_place, model_id):
     else:
         fg = flip.Flip_Grid(g, axes)
         from .. import volume_from_grid_data
-        fv = volume_from_grid_data(fg, session, model_id = model_id)
+        fv = volume_from_grid_data(fg, v.session, model_id = model_id)
         fv.copy_settings_from(v, copy_region = False)
         fv.show()
         v.unshow()
