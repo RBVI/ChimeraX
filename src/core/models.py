@@ -231,7 +231,7 @@ class Models(State):
         id = parent.id + (nid,)
         return id
 
-    def add_group(self, models, name=None):
+    def add_group(self, models, name=None, id=None):
         if name is None:
             names = set([m.name for m in models])
             if len(names) == 1:
@@ -239,6 +239,8 @@ class Models(State):
             else:
                 name = "group"
         parent = Model(name, self._session())
+        if id is not None:
+            parent.id = id
         parent.add(models)
         m_all = self.add([parent])
         return [parent] + m_all
