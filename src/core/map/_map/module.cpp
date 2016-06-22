@@ -11,6 +11,7 @@
 #include "gaussian.h"			// use py_sum_of_gaussians
 #include "histogram.h"			// use bin_counts_py, ...
 #include "interpolatepy.h"		// use interpolate_volume_data, ...
+#include "localcorr.h"			// use local_correlation
 #include "moments.h"			// use moments_py, affine_scale_py
 #include "occupancy.h"			// use fill_occupancy_map
 #include "squaremesh.h"			// use principle_plane_edges
@@ -77,6 +78,9 @@ static struct PyMethodDef map_cpp_methods[] =
   {const_cast<char*>("interpolate_volume_gradient"), interpolate_volume_gradient, METH_VARARGS, NULL},
   {const_cast<char*>("interpolate_colormap"), interpolate_colormap, METH_VARARGS, NULL},
   {const_cast<char*>("set_outside_volume_colors"), set_outside_volume_colors, METH_VARARGS, NULL},
+
+  /* moments.h */
+  {const_cast<char*>("local_correlation"), (PyCFunction)local_correlation, METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* moments.h */
   {const_cast<char*>("moments"), (PyCFunction)moments_py, METH_VARARGS|METH_KEYWORDS, NULL},

@@ -18,13 +18,13 @@ def local_correlation(map1, map2, window_size, subtract_mean, model_id = None):
 
     hs = 0.5*(window_size-1)
     origin = tuple(o+hs*s for o,s in zip(d1.origin, d1.step))
-    from VolumeData import Array_Grid_Data
+    from ..data import Array_Grid_Data
     g = Array_Grid_Data(mc, origin, d1.step, d1.cell_angles, d2.rotation,
                         name = 'local correlation')
 
-    from VolumeViewer import volume_from_grid_data
-    mapc = volume_from_grid_data(g, model_id = model_id)
-    mapc.openState.xform = map1.openState.xform
+    from .. import volume_from_grid_data
+    mapc = volume_from_grid_data(g, map1.session, model_id = model_id)
+    mapc.position = map1.position
 
     return mapc
 
@@ -42,8 +42,8 @@ def local_correlation_matrix(m1, m2, window_size, subtract_mean):
         m1 = m1.astype(float32)
         m2 = m2.astype(float32)
 
-    import _volume
-    _volume.local_correlation(m1, m2, window_size, subtract_mean, mc)
+    from .. import local_correlation
+    local_correlation(m1, m2, window_size, subtract_mean, mc)
     return mc
 
 # -----------------------------------------------------------------------------

@@ -116,7 +116,7 @@ def register_vop_command():
                              keyword = [('window_size', IntArg),
                                         ('subtract_mean', BoolArg),
                                         ('model_id', ModelIdArg)])
-    register('vop local_correlation', localcorr_desc, vop_local_correlation)
+    register('vop localCorrelation', localcorr_desc, vop_local_correlation)
 
     maximum_desc = CmdDesc(required = varg, keyword = add_kw)
     register('vop maximum', maximum_desc, vop_maximum)
@@ -523,7 +523,7 @@ def vop_local_correlation(session, volumes, window_size = 5, subtract_mean = Fal
     if window_size < 2:
         raise CommandError('vop local_correlation window_size must be '
                            'an integer >= 2')
-    if windowSize > min(v1.data.size):
+    if window_size > min(v1.data.size):
         raise CommandError('vop local_correlation window_size must be '
                            'smaller than map size')
 

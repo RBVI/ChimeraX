@@ -20,6 +20,7 @@ from ._map import contour_surface, sphere_surface_distance
 from ._map import interpolate_colormap, set_outside_volume_colors
 from ._map import extend_crystal_map
 from ._map import moments, affine_scale
+from ._map import local_correlation
 
 # -----------------------------------------------------------------------------
 # Mouse modes for moving planes and changing contour level
