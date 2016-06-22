@@ -416,7 +416,7 @@ def vop_cover(session, volumes, atom_box = None, pad = 5.0,
              f_box = None, fx = None, fy = None, fz = None,
              i_box = None, ix = None, iy = None, iz = None,
              use_symmetry = True, cell_size = None,
-             step = 1, model_id = None):
+             step = (1,1,1), model_id = None):
     '''Extend a map using symmetry to cover a specified region.'''
     if not atom_box is None and len(atom_box) == 0:
         raise CommandError('No atoms specified')

@@ -2606,11 +2606,10 @@ def map_covering_atoms(atoms, pad, volume):
 def atom_bounds(atoms, pad, volume):
 
     # Get atom positions.
-    from _multiscale import get_atom_coordinates
-    xyz = get_atom_coordinates(atoms, transformed = True)
+    xyz = atoms.scene_coords
 
     # Transform atom coordinates to volume ijk indices.
-    tf = volume.data.xyz_to_ijk_transform * volume.model_transform().inverse()
+    tf = volume.data.xyz_to_ijk_transform * volume.position.inverse()
     tf.move(xyz)
     ijk = xyz
 
