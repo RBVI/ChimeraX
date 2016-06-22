@@ -2066,7 +2066,7 @@ def minimum_rms_scale(v, u, level):
 #
 def same_grid(v1, region1, v2, region2):
 
-  same = (region1 == region2 and
+  same = ([tuple(i) for i in region1] == [tuple(i) for i in region2] and
           v1.data.ijk_to_xyz_transform.same(v2.data.ijk_to_xyz_transform) and
           v1.model_transform().same(v2.model_transform()))
   return same
