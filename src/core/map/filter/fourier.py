@@ -2,14 +2,8 @@
 # Performs a Fourier transform on current Volume Viewer data set producing
 # a new data set that is shown in Volume Viewer.
 #
-def fourier_transform(v = None, step = None, subregion = None, model_id = None,
+def fourier_transform(v, step = None, subregion = None, model_id = None,
                       phase = False):
-
-  if v is None:
-    from VolumeViewer import active_volume
-    v = active_volume()
-    if v is None:
-      return
 
   m = v.matrix(step = step, subregion = subregion)
   from numpy.fft import fftn
@@ -38,19 +32,19 @@ def fourier_transform(v = None, step = None, subregion = None, model_id = None,
     ijk_step = (step,step,step)
   else:
     ijk_step = step
-  xyz_size = map(lambda a,b: a-b, xyz_max, xyz_min)
+  xyz_size = [a-b for a,b in zip(xyz_max, xyz_min)]
   vol = xyz_size[0]*xyz_size[1]*xyz_size[2]
-  cell_size = map(lambda a,b: a*b, v.data.step, ijk_step)
+  cell_size = [a*b for a,b in zip(v.data.step, ijk_step)]
   cell_vol = cell_size[0]*cell_size[1]*cell_size[2]
   scale = pow(vol*cell_vol, 1.0/3)
-  step = map(lambda a: scale/a, xyz_size)
-  origin = map(lambda c,s,z: c-0.5*s*z, xyz_center, step, ijk_size)
+  step = [scale/a for a in xyz_size]
+  origin = [c-0.5*s*z for c,s,z in zip(xyz_center, step, ijk_size)]
 
-  from VolumeData import Array_Grid_Data
+  from ..data import Array_Grid_Data
   ftd = Array_Grid_Data(ftm, origin, step)
   ftd.name = v.name + (' FT phase' if phase else ' FT')
-  from VolumeViewer import volume_from_grid_data
-  ftr = volume_from_grid_data(ftd, show_data = False, model_id = model_id)
+  from .. import volume_from_grid_data
+  ftr = volume_from_grid_data(ftd, v.session, show_data = False, model_id = model_id)
   ftr.copy_settings_from(v, copy_thresholds = False,  copy_colors = False,
                          copy_region = False)
   ftr.initialize_thresholds()
@@ -72,8 +66,8 @@ def fftshift(m):
   k,j,i = m.shape
   from numpy import empty
   sm = empty(m.shape, m.dtype)
-  for ko1, ko2 in ((0,k/2), (k/2,k)):
-    for jo1, jo2 in ((0,j/2), (j/2,j)):
-      for io1, io2 in ((0,i/2), (i/2,i)):
+  for ko1, ko2 in ((0,k//2), (k//2,k)):
+    for jo1, jo2 in ((0,j//2), (j//2,j)):
+      for io1, io2 in ((0,i//2), (i//2,i)):
         sm[k-ko2:k-ko1,j-jo2:j-jo1,i-io2:i-io1] = m[ko1:ko2,jo1:jo2,io1:io2]
   return sm
