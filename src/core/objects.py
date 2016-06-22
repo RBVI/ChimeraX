@@ -126,5 +126,5 @@ class Objects:
         from .geometry import union_bounds, copies_bounding_box
         for m, minst in self.model_instances.items():
             b = m.bounds(positions = False)
-            bm.append(copies_bounding_box(b, m.positions.mask(minst)))
+            bm.append(copies_bounding_box(b, m.positions.masked(minst)))
         return union_bounds(bm + [self.atoms.scene_bounds])
