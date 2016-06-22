@@ -5,7 +5,7 @@ PKG_DIR = $(PYSITEDIR)/chimerax/core/map
 
 PYMOD_NAME = _map
 SRCS	= colors.cpp combine.cpp contourdata.cpp contourpy.cpp \
-	  distgrid.cpp fitting.cpp fittingpy.cpp  \
+	  distgrid.cpp extendmap.cpp fitting.cpp fittingpy.cpp  \
 	  gaussian.cpp  histogram.cpp interpolate.cpp interpolatepy.cpp \
 	  module.cpp occupancy.cpp squaremesh.cpp transfer.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
