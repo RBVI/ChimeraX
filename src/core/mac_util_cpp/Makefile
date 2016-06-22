@@ -7,6 +7,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core
 PYMOD_NAME = _mac_util
 SRCS	= module.cpp setfileicon.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT)) setfileicon_mac.o
+DEFS	+= $(PYDEF)
 INCS	+= $(PYTHON_INCLUDE_DIRS)
 LIBS	+= $(PYTHON_LIB)
 LIBS	+= -framework AppKit
