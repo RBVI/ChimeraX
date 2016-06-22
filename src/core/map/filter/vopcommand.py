@@ -485,6 +485,8 @@ def vop_flatten(session, volumes, method = 'multiplyLinear',
     if fitregion is None:
         fitregion = subregion
 
+    method = {'multiplyLinear': 'multiply linear',
+              'divideLinear': 'divide linear'}[method]
     from .flatten import flatten
     for v in volumes:
         flatten(v, method, step, subregion, fitregion, model_id)

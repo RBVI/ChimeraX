@@ -12,8 +12,8 @@ def flatten(volume, method = 'multiply linear',
 
   fg = flattened_grid(volume, method, step, subregion,
                       fitregion = fitregion, task = task)
-  from VolumeViewer import volume_from_grid_data
-  fv = volume_from_grid_data(fg, show_data = False, model_id = modelId)
+  from .. import volume_from_grid_data
+  fv = volume_from_grid_data(fg, volume.session, show_data = False, model_id = modelId)
   fv.copy_settings_from(volume, copy_region = False)
   fv.show()
   
@@ -41,7 +41,7 @@ def flattened_grid(volume, method = 'multiply linear',
     moffset = (0,0,0)
   flatten_matrix(m, method, mfit, moffset, task = task)
 
-  from VolumeData import Array_Grid_Data
+  from ..data import Array_Grid_Data
   d = v.data
   if v.name.endswith('flat'): name = v.name
   else:                       name = '%s flat' % v.name
@@ -60,7 +60,7 @@ def flatten_matrix(m, method = 'multiply linear',
     
   if task:
     task.updateStatus('computing moments')
-  from _filter import moments, affine_scale
+  from .. import moments, affine_scale
   v2, v1, v0 = moments(mfit)
 
   if method == 'multiply linear':
