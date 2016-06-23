@@ -791,7 +791,7 @@ def vop_unbend(session, volumes, path, yaxis = None, xsize = None, ysize = None,
 #
 def vop_unroll(session, volumes, inner_radius = None, outer_radius = None, length = None,
               grid_spacing = None, axis = (0,0,1), center = (0,0,0),
-              subregion = 'all', step = 1, model_id = None):
+              subregion = 'all', step = (1,1,1), model_id = None):
     '''Flatten a cylindrical shell within a map.'''
     for v in volumes:
         r0, r1, h = parse_cylinder_size(inner_radius, outer_radius, length,
@@ -832,7 +832,7 @@ def parse_cylinder_size(inner_radius, outer_radius, length, center, axis,
 
 # -----------------------------------------------------------------------------
 #
-def parse_grid_spacing(gridSpacing, v, step):
+def parse_grid_spacing(grid_spacing, v, step):
 
     if grid_spacing is None:
         gsz = min([s*st for s, st in zip(v.data.step, step)])
