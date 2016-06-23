@@ -5,16 +5,10 @@
 # Allowed fill orders are strings like ulhr = upper-left-horizontal-reverse.
 #   (u|l)(l|r)(h|v)[r] means (upper|lower)(left|right)(horz|vert)[reverse]
 #
-def tile_planes(v = None, axis = 'z', pstep = 1, trim = 0,
+def tile_planes(v, axis = 'z', pstep = 1, trim = 0,
                 rows = None, columns = None, fill_order = 'ulh',
                 step = None, subregion = None, model_id = None,
                 open = True):
-
-  if v is None:
-    from VolumeViewer import active_volume
-    v = active_volume()
-    if v is None:
-      return
 
   vreg = v.subregion(step = step, subregion = subregion)
   reg = [list(ijk) for ijk in vreg]
@@ -35,11 +29,11 @@ def tile_planes(v = None, axis = 'z', pstep = 1, trim = 0,
     w,h = m.shape[2-ac]*dstep[ac], m.shape[2-ar]*dstep[ar]
     from math import sqrt, ceil
     columns = min(tcount, int(ceil(sqrt(tcount*float(h)/w))))
-    rows = (tcount - 1 + columns) / columns
+    rows = (tcount - 1 + columns) // columns
   elif rows is None:
-    rows = (tcount - 1 + columns) / columns
+    rows = (tcount - 1 + columns) // columns
   elif columns is None:
-    columns = (tcount - 1 + rows) / rows
+    columns = (tcount - 1 + rows) // rows
 
   s0, s1, s2 = m.shape
   if axis == 'z': tshape = (1,rows*s1,columns*s2)
@@ -58,11 +52,11 @@ def tile_planes(v = None, axis = 'z', pstep = 1, trim = 0,
     elif axis == 'x':
       ta[r*s0:(r+1)*s0,c*s1:(c+1)*s1,0] = m[:,:,p]
 
-  from VolumeData import Array_Grid_Data
+  from ..data import Array_Grid_Data
   td = Array_Grid_Data(ta, dorigin, dstep)
   td.name = v.name + ' tiled %s' % axis
-  from VolumeViewer import volume_from_grid_data
-  tv = volume_from_grid_data(td, show_data = False, model_id = model_id,
+  from .. import volume_from_grid_data
+  tv = volume_from_grid_data(td, v.session, show_data = False, model_id = model_id,
                              open_model = open, show_dialog = open)
   tv.copy_settings_from(v, copy_region = False, copy_active = False,
                         copy_xform = open)
@@ -81,9 +75,9 @@ def tile_position(i, rows, columns, tcount, fill_order):
   else:
     p = i
   if fill_order[2] == 'h':
-    c,r = i % columns, i / columns
+    c,r = i % columns, i // columns
   else:
-    c,r = i / rows, i % rows
+    c,r = i // rows, i % rows
   if fill_order[0] == 'u':
     r = rows - 1 - r
   if fill_order[1] == 'r':
