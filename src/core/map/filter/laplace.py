@@ -7,13 +7,7 @@
 # is approaximated with "-1 2 -1" kernel in each dimension.  Resulting volume
 # is same size with edge voxels set to zero.
 #
-def laplacian(v = None, step = None, subregion = None, model_id = None):
-
-  if v is None:
-    from VolumeViewer import active_volume
-    v = active_volume()
-    if v is None:
-      return None
+def laplacian(v, step = None, subregion = None, model_id = None):
 
   m = v.matrix(step = step, subregion = subregion)
 
@@ -36,12 +30,12 @@ def laplacian(v = None, step = None, subregion = None, model_id = None):
 
   origin, step = v.data_origin_and_step(subregion = subregion, step = step)
   d = v.data
-  from VolumeData import Array_Grid_Data
+  from ..data import Array_Grid_Data
   ld = Array_Grid_Data(lm, origin, step, d.cell_angles, d.rotation,
                        name = v.name + ' Laplacian')
   ld.polar_values = True
-  from VolumeViewer import volume_from_grid_data
-  lv = volume_from_grid_data(ld, show_data = False, model_id = model_id)
+  from .. import volume_from_grid_data
+  lv = volume_from_grid_data(ld, v.session, show_data = False, model_id = model_id)
   lv.copy_settings_from(v, copy_thresholds = False, copy_colors = False)
   lv.set_parameters(cap_faces = False)
   lv.initialize_thresholds()

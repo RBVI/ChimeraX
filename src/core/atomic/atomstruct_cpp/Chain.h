@@ -15,7 +15,7 @@ namespace atomstruct {
 class Structure;
 class Residue;
 
-class ATOMSTRUCT_IMEX Chain: public Sequence {
+class ATOMSTRUCT_IMEX Chain: private Sequence {
 public:
     typedef std::vector<unsigned char>::size_type  SeqPos;
     typedef std::vector<Residue *>  Residues;
@@ -48,9 +48,13 @@ public:
     Chain(const ChainID& chain_id, Structure* as);
     virtual ~Chain();
 
+    Contents::const_reference  back() const { return Sequence::back(); }
+    Contents::const_iterator  begin() const { return Sequence::begin(); }
     const ChainID&  chain_id() const { return _chain_id; }
+    Contents::const_iterator  end() const { return Sequence::end(); }
     // is character sequence derived from SEQRES records (or equivalent)?
     bool  from_seqres() const { return _from_seqres; }
+    Contents::const_reference  front() const { return Sequence::front(); }
     const Residues&  residues() const { return _residues; }
     Residue*  get(unsigned i) const { return _residues[i]; }
     bool  is_sequence() const { return _structure == nullptr; }
@@ -70,6 +74,7 @@ public:
     void  session_save(int**, float**) const;
     void  set(unsigned i, Residue* r, char character = -1);
     void  set_from_seqres(bool fs);
+    Contents::size_type  size() const { return Sequence::size(); }
     Structure*  structure() const { return _structure; }
     void  bulk_set(const Residues& residues,
             const Sequence::Contents* chars = nullptr);

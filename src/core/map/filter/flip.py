@@ -5,7 +5,7 @@
 # This is not the same as inverting the z axis if cell angles are not
 # 90 degrees.  Does not change rotation or symmetries.
 #
-from VolumeData import Grid_Data
+from ..data import Grid_Data
 class Flip_Grid(Grid_Data):
 
     def __init__(self, grid_data, axes = 'z'):

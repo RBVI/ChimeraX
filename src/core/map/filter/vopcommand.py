@@ -35,7 +35,7 @@ from ...errors import UserError as CommandError
 def register_vop_command():
 
     from ...commands import CmdDesc, register, BoolArg, NoArg, StringArg, EnumOf, IntArg, Int3Arg
-    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
+    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg, AxisArg
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
 
@@ -116,7 +116,7 @@ def register_vop_command():
                              keyword = [('window_size', IntArg),
                                         ('subtract_mean', BoolArg),
                                         ('model_id', ModelIdArg)])
-    register('vop local_correlation', localcorr_desc, vop_local_correlation)
+    register('vop localCorrelation', localcorr_desc, vop_local_correlation)
 
     maximum_desc = CmdDesc(required = varg, keyword = add_kw)
     register('vop maximum', maximum_desc, vop_maximum)
@@ -184,7 +184,7 @@ def register_vop_command():
                                     ('sd', FloatArg),
                                     ('rms', FloatArg),
                                     ('value_type', ValueTypeArg),
-                                    ('type', ValueTypeArg)] + ssm_kw)
+                                    ] + ssm_kw)
     register('vop scale', scale_desc, vop_scale)
 
     subtract_desc = CmdDesc(required = varg,
@@ -208,11 +208,14 @@ def register_vop_command():
                                    ('fill_order', EnumOf(orders))] + ssm_kw)
     register('vop tile', tile_desc, vop_tile)
 
-    unbend_desc = CmdDesc(required = varg + [('path', AtomsArg),
-                                             ('yaxis', Float3Arg),
-                                             ('xsize', FloatArg),
-                                             ('ysize', FloatArg)],
-                          keyword = [('grid_spacing', FloatArg)] + ssm_kw)
+    unbend_desc = CmdDesc(required = varg,
+                          keyword = [('path', AtomsArg),
+                                     ('yaxis', AxisArg),
+                                     ('xsize', FloatArg),
+                                     ('ysize', FloatArg),
+                                     ('grid_spacing', FloatArg)] + ssm_kw,
+                          required_arguments = ['path']
+    )
     register('vop unbend', unbend_desc, vop_unbend)
 
     unroll_desc = CmdDesc(required = varg,
@@ -223,11 +226,6 @@ def register_vop_command():
                                      ('axis', Float3Arg),
                                      ('center', Float3Arg)] + ssm_kw)
     register('vop unroll', unroll_desc, vop_unroll)
-
-    zflip_desc = CmdDesc(required = varg,
-                         keyword = [('axis', EnumOf(('x','y','z','xy', 'yz','xyz'))),
-                                    ('in_place', BoolArg)] + ssm_kw)
-    register('vop zFlip', zflip_desc, vop_flip)
 
     zone_desc = CmdDesc(required = varg,
                         keyword = [('atoms', AtomsArg),
@@ -344,6 +342,8 @@ def combine_operation(volumes, operation, subregion, step,
             rg.name = 'volume maximum'
         elif operation == 'minimum':
             rg.name = 'volume minimum'
+        elif operation == 'multiply':
+            rg.name = 'volume product'
         else:
             rg.name = 'volume sum'
         from .. import volume_from_grid_data
@@ -485,6 +485,8 @@ def vop_flatten(session, volumes, method = 'multiplyLinear',
     if fitregion is None:
         fitregion = subregion
 
+    method = {'multiplyLinear': 'multiply linear',
+              'divideLinear': 'divide linear'}[method]
     from .flatten import flatten
     for v in volumes:
         flatten(v, method, step, subregion, fitregion, model_id)
@@ -526,7 +528,7 @@ def vop_local_correlation(session, volumes, window_size = 5, subtract_mean = Fal
     if window_size < 2:
         raise CommandError('vop local_correlation window_size must be '
                            'an integer >= 2')
-    if windowSize > min(v1.data.size):
+    if window_size > min(v1.data.size):
         raise CommandError('vop local_correlation window_size must be '
                            'smaller than map size')
 
@@ -536,7 +538,7 @@ def vop_local_correlation(session, volumes, window_size = 5, subtract_mean = Fal
 
 # -----------------------------------------------------------------------------
 #
-def vop_median(session, volumes, bin_size = 3, iterations = 1,
+def vop_median(session, volumes, bin_size = (3,3,3), iterations = 1,
               subregion = 'all', step = 1, model_id = None):
     '''Replace map values with median of neighboring values.'''
     for b in bin_size:
@@ -571,9 +573,9 @@ def vop_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
     if len(set(vs)) > 1:
         sizes = ' and '.join([str(s) for s in vs])
         raise CommandError("Volume grid sizes don't match: %s" % sizes)
-    from MorphMap import morph_maps
+    from .morph import morph_maps
     morph_maps(volumes, frames, start, play_step, play_direction, prange,
-               add_mode, constant_volume, sfactors,
+               add_mode, constant_volume, scale_factors,
                hide_original_maps, interpolate_colors, subregion, step, model_id)
 
 # -----------------------------------------------------------------------------
@@ -596,6 +598,17 @@ def vop_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,1.0
     v = volume_from_grid_data(grid, session, model_id = model_id)
     v.show()
     return v
+
+# -----------------------------------------------------------------------------
+#
+def check_in_place(in_place, volumes):
+
+    if not in_place:
+        return
+    nwv = [v for v in volumes if not v.data.writable]
+    if nwv:
+        names = ', '.join([v.name for v in nwv])
+        raise CommandError("Can't modify volume in place: %s" % names)
         
 # -----------------------------------------------------------------------------
 #
@@ -631,10 +644,41 @@ def octant_operation(v, outside, center, i_center,
                          model_id = model_id, show = False)
     ic = submatrix_center(v, center, i_center, subregion, step)
     ijk_max = [i-1 for i in vc.data.size]
-    from VolumeEraser import set_box_value
     set_box_value(vc.data, fill_value, ic, ijk_max, outside)
     vc.data.values_changed()
     vc.show()
+
+# -----------------------------------------------------------------------------
+#
+def set_box_value(data, value, ijk_min, ijk_max, outside = False):
+
+    if outside:
+        set_value_outside_box(data, value, ijk_min, ijk_max)
+        return
+
+    from math import floor, ceil
+    ijk_origin = [max(0, int(floor(i))) for i in ijk_min]
+    ijk_last = [min(s-1, int(ceil(i))) for i,s in zip(ijk_max, data.size)]
+    ijk_size = [b-a+1 for a,b in zip(ijk_origin, ijk_last)]
+    if len([i for i in ijk_size if i > 0]) < 3:
+        return
+
+    m = data.matrix(ijk_origin, ijk_size)
+    m[:,:,:] = value
+    
+# -----------------------------------------------------------------------------
+#
+def set_value_outside_box(data, value, ijk_min, ijk_max):
+
+    i0,j0,k0 = [i-1 for i in ijk_min]
+    i1,j1,k1 = [i+1 for i in ijk_max]
+    im,jm,km = [s-1 for s in data.size]
+    set_box_value(data, value, (0,0,0), (im,jm,k0))
+    set_box_value(data, value, (0,0,k1), (im,jm,km))
+    set_box_value(data, value, (0,0,k0), (i0,jm,k1))
+    set_box_value(data, value, (i1,0,k0), (im,jm,k1))
+    set_box_value(data, value, (i0,0,k0), (i1,j0,k1))
+    set_box_value(data, value, (i0,j1,k0), (i1,jm,k1))
 
 # -----------------------------------------------------------------------------
 #
@@ -673,12 +717,10 @@ def vop_ridges(session, volumes, level = None, subregion = 'all', step = 1, mode
 # -----------------------------------------------------------------------------
 #
 def vop_scale(session, volumes, shift = 0, factor = 1, sd = None, rms = None,
-             value_type = None, type = None,
-             subregion = 'all', step = 1, model_id = None):
+             value_type = None, subregion = 'all', step = 1, model_id = None):
     '''Scale, shift and convert number type of map values.'''
     if not sd is None and not rms is None:
         raise CommandError('vop scale: Cannot specify both sd and rms options')
-    value_type = type if value_type is None else value_type
 
     from .scale import scaled_volume
     for v in volumes:
@@ -728,25 +770,28 @@ def vop_tile(session, volumes, axis = 'z', pstep = 1, trim = 0,
 
 # -----------------------------------------------------------------------------
 #
-def vop_unbend(session, volumes, path, yaxis, xsize, ysize, grid_spacing = None,
+def vop_unbend(session, volumes, path, yaxis = None, xsize = None, ysize = None, grid_spacing = None,
               subregion = 'all', step = 1, model_id = None):
     '''Unbend a map near a smooth splined path.'''
     if len(path) < 2:
         raise CommandError('vop unbend path must have 2 or more nodes')
-
-    from . import unbend
-    p = unbend.atom_path(path)
+    if yaxis is None:
+        from ...commands import Axis
+        yaxis = Axis((0,1,0))
+    from .unbend import atom_path, unbend_volume
+    p = atom_path(path)
     for v in volumes:
         gs = min(v.data.step) if grid_spacing is None else grid_spacing
-        yax = v.place * yaxis
-        unbend.unbend_volume(v, p, yax, xsize, ysize, gs,
-                             subregion, step, model_id)
+        yax = yaxis.scene_coordinates(v.position)
+        xs = 10*gs if xsize is None else xsize
+        ys = 10*gs if ysize is None else ysize
+        unbend_volume(v, p, yax, xs, ys, gs, subregion, step, model_id)
 
 # -----------------------------------------------------------------------------
 #
 def vop_unroll(session, volumes, inner_radius = None, outer_radius = None, length = None,
               grid_spacing = None, axis = (0,0,1), center = (0,0,0),
-              subregion = 'all', step = 1, model_id = None):
+              subregion = 'all', step = (1,1,1), model_id = None):
     '''Flatten a cylindrical shell within a map.'''
     for v in volumes:
         r0, r1, h = parse_cylinder_size(inner_radius, outer_radius, length,
@@ -787,7 +832,7 @@ def parse_cylinder_size(inner_radius, outer_radius, length, center, axis,
 
 # -----------------------------------------------------------------------------
 #
-def parse_grid_spacing(gridSpacing, v, step):
+def parse_grid_spacing(grid_spacing, v, step):
 
     if grid_spacing is None:
         gsz = min([s*st for s, st in zip(v.data.step, step)])
@@ -819,7 +864,7 @@ def flip_operation(v, axes, subregion, step, in_place, model_id):
     else:
         fg = flip.Flip_Grid(g, axes)
         from .. import volume_from_grid_data
-        fv = volume_from_grid_data(fg, session, model_id = model_id)
+        fv = volume_from_grid_data(fg, v.session, model_id = model_id)
         fv.copy_settings_from(v, copy_region = False)
         fv.show()
         v.unshow()
@@ -864,15 +909,14 @@ def zone_operation(v, atoms, radius, bond_point_spacing = None,
                    minimal_bounds = False, invert = False,
                    subregion = 'all', step = 1, model_id = None):
 
-# TODO: Need method to get bonds between atoms.
-#    from ... import molecule as M
-#    bonds = M.interatom_bonds(atoms) if bond_point_spacing else []
-
-#    import SurfaceZone as SZ
-#    points = SZ.path_points(atoms, bonds, v.place.inverse(),
-#                            bond_point_spacing)
-
     points = atoms.scene_coords
+    if bond_point_spacing is not None:
+        bonds = atoms.inter_bonds
+        from ...atomic.path import bond_points
+        bpoints = bond_points(bonds, bond_point_spacing)
+        from numpy import concatenate
+        points = concatenate((points, bpoints))
+
     v.position.inverse().move(points)   # Convert points to map coordinates.
 
     vz = zone_volume(v, points, radius, minimal_bounds, invert,

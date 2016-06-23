@@ -59,9 +59,9 @@ public:
     const Contents&  contents() const { return _contents; }
     void  extend(const char* s) { extend(std::string(s)); }
     void  extend(const std::string& s) { _clear_cache(); for (auto c: s) _contents.push_back(c); }
+    Contents::const_iterator  end() const { return _contents.end(); }
     Contents::reference  front() { _clear_cache(); return _contents.front(); }
     Contents::const_reference  front() const { return _contents.front(); }
-    Contents::const_iterator  end() const { return _contents.end(); }
     unsigned int  gapped_to_ungapped(unsigned int index) const;
     Contents::iterator  insert(Contents::const_iterator pos,
         Contents::size_type n, Contents::value_type val)

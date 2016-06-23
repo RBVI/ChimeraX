@@ -368,7 +368,7 @@ def deduce_format(filename, has_format=None):
     compression = None
     if has_format:
         # Allow has_format to be a file type prefix.
-        if not has_format in _file_formats:
+        if has_format not in _file_formats:
             for t, info in _file_formats.items():
                 if has_format in info.prefixes:
                     has_format = t
@@ -393,8 +393,8 @@ def deduce_format(filename, has_format=None):
     return format_name, filename, compression
 
 
-def print_file_types():
-    """Return file name filter suitable for Open File dialog for WX"""
+def print_file_suffixes():
+    """Print user-friendly list of supported files suffixes"""
 
     combine = {}
     for format_name, info in _file_formats.items():
@@ -402,7 +402,7 @@ def print_file_types():
         names.append(format_name)
     categories = list(combine)
     categories.sort(key=str.casefold)
-    print('Supported file types:')
+    print('Supported file suffixes:')
     print('  o = open, s = save')
     for k in categories:
         print("\n%s:" % k)
@@ -422,8 +422,6 @@ def print_file_types():
     #    for ext in combine[k]:
     #        fmts += ';' + ';'.join('*%s%s' % (ext, c)
     #                               for c in _compression.keys())
-
-
 
 
 def open_data(session, filespec, format=None, name=None, **kw):
@@ -522,7 +520,9 @@ def export(session, filename, **kw):
             return func(session, stream, **kw)
     else:
         stream_type = _compression[compression]
-        open_compressed = lambda filename: stream_type(filename, 'wb')
+
+        def open_compressed(filename):
+            return stream_type(filename, 'wb')
         with SaveFile(filename, open=open_compressed) as stream:
             return func(session, stream, **kw)
 
@@ -541,6 +541,7 @@ def determine_compression(filename):
         stripped = filename
         compression = None
     return stripped, compression
+
 
 def _compressed_open(filename, compression, *args, **kw):
     import os.path
@@ -562,6 +563,7 @@ def _compressed_open(filename, compression, *args, **kw):
             raise UserError(e)
 
     return filename, name, stream
+
 
 def open_filename(filename, *args, **kw):
     """Open a file/URL with or without compression
@@ -598,6 +600,7 @@ def open_filename(filename, *args, **kw):
     stripped, compression = determine_compression(filename)
     path, fname, stream = _compressed_open(filename, compression, *args, **kw)
     return stream
+
 
 def gunzip(gzpath, path, remove_gz=True):
 

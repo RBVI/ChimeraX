@@ -1,19 +1,13 @@
 # -----------------------------------------------------------------------------
 # Permute volume axes.
 #
-def permute_axes(v = None, axis_order = (0,1,2),
+def permute_axes(v, axis_order = (0,1,2),
                  step = None, subregion = None, model_id = None):
-
-  if v is None:
-    from VolumeViewer import active_volume
-    v = active_volume()
-    if v is None:
-      return
 
   d = v.grid_data(subregion, step, mask_zone = False)
   pd = Permuted_Grid(d, axis_order)
-  import VolumeViewer
-  pv = VolumeViewer.volume_from_grid_data(pd, model_id = model_id)
+  from .. import volume_from_grid_data
+  pv = volume_from_grid_data(pd, v.session, model_id = model_id)
   return pv
 
 # -----------------------------------------------------------------------------

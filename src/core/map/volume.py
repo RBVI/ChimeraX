@@ -1533,14 +1533,7 @@ class Volume(Model):
   # -----------------------------------------------------------------------------
   #
   def mean_sd_rms(self):
-
-    m = self.matrix()
-    from numpy import float64
-    mean = m.mean(dtype=float64)
-    sd = m.std(dtype=float64)
-    from math import sqrt
-    rms = sqrt(sd*sd + mean*mean)
-    return mean, sd, rms
+    return mean_sd_rms(self.matrix())
 
   # ---------------------------------------------------------------------------
   # Return xyz coordinates of grid points of volume data transformed to a
@@ -1861,6 +1854,8 @@ class Volume(Model):
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
+    if not self.data.path:
+      session.logger.info('Map %s not saved in session because it has no file.' % self.name)
     from ..state import CORE_STATE_VERSION
     from .session import state_from_map, grid_data_state
     data = {
@@ -1874,6 +1869,8 @@ class Volume(Model):
   @staticmethod
   def restore_snapshot(session, data):
     grid_data = data['grid data state'].grid_data
+    if grid_data is None:
+      return None	# Map file not available.
     v = Volume(grid_data, session)
     Model.set_state_from_snapshot(v, session, data['model state'])
     from .session import set_map_state
@@ -2062,7 +2059,7 @@ def minimum_rms_scale(v, u, level):
 #
 def same_grid(v1, region1, v2, region2):
 
-  same = (region1 == region2 and
+  same = ([tuple(i) for i in region1] == [tuple(i) for i in region2] and
           v1.data.ijk_to_xyz_transform.same(v2.data.ijk_to_xyz_transform) and
           v1.model_transform().same(v2.model_transform()))
   return same
@@ -2553,6 +2550,17 @@ def maximum_data_diagonal_length(data):
             distance(ijk_to_xyz((0,jmax,0)), ijk_to_xyz((imax,0,kmax))),
             distance(ijk_to_xyz((0,jmax,kmax)), ijk_to_xyz((imax,0,0))))
     return d
+
+# -----------------------------------------------------------------------------
+#
+def mean_sd_rms(m):
+
+    from numpy import float64
+    mean = m.mean(dtype=float64)
+    sd = m.std(dtype=float64)
+    from math import sqrt
+    rms = sqrt(sd*sd + mean*mean)
+    return mean, sd, rms
 
 # -----------------------------------------------------------------------------
 #
