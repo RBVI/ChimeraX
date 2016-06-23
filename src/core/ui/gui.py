@@ -112,6 +112,9 @@ if window_sys == "wx":
             """
             self._keystroke_sinks.append(sink)
 
+        def shift_key_down(self):
+            return False	# Not implemented
+
         def remove_tool(self, tool_instance):
             self.main_window.remove_tool(tool_instance)
 
@@ -868,6 +871,11 @@ else:
                method will be called with the keystroke event as the argument.
             """
             self._keystroke_sinks.append(sink)
+
+        def shift_key_down(self):
+            modifiers = self.keyboardModifiers()
+            from PyQt5.QtCore import Qt
+            return modifiers & Qt.ShiftModifier
 
         def remove_tool(self, tool_instance):
             self.main_window.remove_tool(tool_instance)
