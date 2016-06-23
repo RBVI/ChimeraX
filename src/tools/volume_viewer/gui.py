@@ -2046,13 +2046,24 @@ class Histogram_Pane:
   #
   def show_cb(self):
 
-    dr = self.data_region
-    if dr is None:
+    v = self.data_region
+    if v is None:
       return
 
+    s = self.dialog.session
+    if s.ui.shift_key_down():
+        # Hide other maps when shift key held down during icon click.
+        from chimerax.core.map import Volume
+        for m in s.models.list(type = Volume):
+            if m != v:
+                m.display = False
+        b = self.shown
+        if not b.isChecked():
+            # Shift click on shown map leaves the map shown.
+            b.setChecked(True)
+            
     show = self.shown.isChecked()
-    for m in self.data_region.models():
-      m.display = show
+    v.display = show
 
     self.update_shown_icon()
 
