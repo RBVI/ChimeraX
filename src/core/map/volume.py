@@ -22,6 +22,8 @@ class Volume(Model):
     if not model_id is None:
       self.id = model_id
 
+    self.change_callbacks = []
+
     self.data = data
     data.add_change_callback(self.data_changed_cb)
     self.path = data.path
@@ -68,8 +70,6 @@ class Volume(Model):
     self.solid_brightness_factor = 1
 
     self.default_rgba = data.rgba if data.rgba else (.7,.7,.7,1)
-
-    self.change_callbacks = []
 
     if open_model:
       self.open_model(model_id)
@@ -504,6 +504,13 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def _set_display(self, display):
+    Model._set_display(self, display)
+    self.call_change_callbacks('displayed')
+  display = Model.display.setter(_set_display)
+
+  # ---------------------------------------------------------------------------
+  #
   def show(self, representation = None, rendering_options = None, show = True):
     '''
     Display the volume using the current parameters.
@@ -533,9 +540,6 @@ class Volume(Model):
       self.show_solid(show, self.rendering_options)
 
     self.display = show
-
-    if show:
-      self.call_change_callbacks('displayed')
       
   # ---------------------------------------------------------------------------
   #

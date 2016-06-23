@@ -221,7 +221,7 @@ class VolumeViewer(ToolInstance):
             tp.update_histograms(v)
 
         elif type == 'displayed':
-          if not tp.histogram_shown(v):
+          if tp.histogram_shown(v):
             # Histogram, data range, and initial thresholds are only displayed
             #  after data is shown to avoid reading data file for undisplayed data.
             tp.update_panel_widgets(v, activate = False)
