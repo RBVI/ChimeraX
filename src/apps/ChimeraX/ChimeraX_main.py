@@ -89,7 +89,7 @@ def parse_arguments(argv):
     opts.gui = True
     opts.module = None
     opts.line_profile = False
-    opts.list_file_types = False
+    opts.list_io_formats = False
     opts.load_tools = True
     opts.offscreen = False
     opts.silent = False
@@ -111,7 +111,7 @@ def parse_arguments(argv):
         "--nogui",
         "--help",
         "--lineprofile",
-        "--listfiletypes",
+        "--listioformats",
         "--offscreen",
         "--silent",
         "--nostatus",
@@ -178,8 +178,8 @@ def parse_arguments(argv):
             opts.gui = opt[2] == 'g'
         elif opt in ("--lineprofile", "--nolineprofile"):
             opts.line_profile = opt[2] == 'l'
-        elif opt == "--listfiletypes":
-            opts.list_file_types = True
+        elif opt == "--listioformats":
+            opts.list_io_formats = True
         elif opt in ("--offscreen", "--nooffscreen"):
             opts.offscreen = opt[2] == 'o'
         elif opt in ("--silent", "--nosilent"):
@@ -206,7 +206,7 @@ def parse_arguments(argv):
     if help:
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
-    if opts.version >= 0 or opts.list_file_types:
+    if opts.version >= 0 or opts.list_io_formats:
         opts.gui = False
         opts.silent = True
     return opts, args
@@ -390,9 +390,12 @@ def init(argv, event_loop=True):
         version_cmd(sess, format)
         return os.EX_OK
 
-    if opts.list_file_types:
+    if opts.list_io_formats:
         from chimerax.core import io
-        io.print_file_types()
+        io.print_file_suffixes()
+        # TODO: show database formats
+        # TODO: show mime types?
+        # TODO: show compression suffixes?
         raise SystemExit(0)
 
     if sys.platform.startswith('linux'):

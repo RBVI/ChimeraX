@@ -33,7 +33,7 @@ In particular, the follow command line arguments are useful:
 ``--lineprofile``
     Turn on line profiling.  See `Line Profiling`_ for details.
 
-``--listfiletypes``
+``--list_io_formats``
     Show all recognized file suffixes and if they can be opened or
     exported.
 
