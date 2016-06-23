@@ -1533,14 +1533,7 @@ class Volume(Model):
   # -----------------------------------------------------------------------------
   #
   def mean_sd_rms(self):
-
-    m = self.matrix()
-    from numpy import float64
-    mean = m.mean(dtype=float64)
-    sd = m.std(dtype=float64)
-    from math import sqrt
-    rms = sqrt(sd*sd + mean*mean)
-    return mean, sd, rms
+    return mean_sd_rms(self.matrix())
 
   # ---------------------------------------------------------------------------
   # Return xyz coordinates of grid points of volume data transformed to a
@@ -2557,6 +2550,17 @@ def maximum_data_diagonal_length(data):
             distance(ijk_to_xyz((0,jmax,0)), ijk_to_xyz((imax,0,kmax))),
             distance(ijk_to_xyz((0,jmax,kmax)), ijk_to_xyz((imax,0,0))))
     return d
+
+# -----------------------------------------------------------------------------
+#
+def mean_sd_rms(m):
+
+    from numpy import float64
+    mean = m.mean(dtype=float64)
+    sd = m.std(dtype=float64)
+    from math import sqrt
+    rms = sqrt(sd*sd + mean*mean)
+    return mean, sd, rms
 
 # -----------------------------------------------------------------------------
 #

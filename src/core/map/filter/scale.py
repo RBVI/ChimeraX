@@ -1,18 +1,12 @@
 # -----------------------------------------------------------------------------
 # Scale, shift, and change value type of volume values.
 #
-def scaled_volume(v = None, scale = 1, sd = None, rms = None, shift = 0, type = None,
+def scaled_volume(v, scale = 1, sd = None, rms = None, shift = 0, type = None,
                  step = None, subregion = None, model_id = None, session = None):
-
-  if v is None:
-    from VolumeViewer import active_volume
-    v = active_volume()
-    if v is None:
-      return
 
   if not sd is None or not rms is None:
     m = v.full_matrix()
-    from VolumeStatistics import mean_sd_rms
+    from ..volume import mean_sd_rms
     mean, sdev, rmsv = mean_sd_rms(m)
     if not rms is None and rmsv > 0:
       scale = (1.0 if scale is None else scale) * rms / rmsv
@@ -38,7 +32,7 @@ def scaled_grid(v, scale, shift, type, subregion = None, step = 1,
   if region is None:
     d = v.grid_data(subregion, step, mask_zone = False)
   else:
-    from VolumeData import Grid_Subregion
+    from ..data import Grid_Subregion
     d = Grid_Subregion(v.data, *region)
   sd = Scaled_Grid(d, scale, shift, type)
   return sd

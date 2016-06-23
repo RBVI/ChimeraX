@@ -184,7 +184,7 @@ def register_vop_command():
                                     ('sd', FloatArg),
                                     ('rms', FloatArg),
                                     ('value_type', ValueTypeArg),
-                                    ('type', ValueTypeArg)] + ssm_kw)
+                                    ] + ssm_kw)
     register('vop scale', scale_desc, vop_scale)
 
     subtract_desc = CmdDesc(required = varg,
@@ -714,12 +714,10 @@ def vop_ridges(session, volumes, level = None, subregion = 'all', step = 1, mode
 # -----------------------------------------------------------------------------
 #
 def vop_scale(session, volumes, shift = 0, factor = 1, sd = None, rms = None,
-             value_type = None, type = None,
-             subregion = 'all', step = 1, model_id = None):
+             value_type = None, subregion = 'all', step = 1, model_id = None):
     '''Scale, shift and convert number type of map values.'''
     if not sd is None and not rms is None:
         raise CommandError('vop scale: Cannot specify both sd and rms options')
-    value_type = type if value_type is None else value_type
 
     from .scale import scaled_volume
     for v in volumes:
