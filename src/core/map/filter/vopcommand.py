@@ -35,7 +35,7 @@ from ...errors import UserError as CommandError
 def register_vop_command():
 
     from ...commands import CmdDesc, register, BoolArg, NoArg, StringArg, EnumOf, IntArg, Int3Arg
-    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
+    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg, AxisArg
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
 
@@ -208,11 +208,14 @@ def register_vop_command():
                                    ('fill_order', EnumOf(orders))] + ssm_kw)
     register('vop tile', tile_desc, vop_tile)
 
-    unbend_desc = CmdDesc(required = varg + [('path', AtomsArg),
-                                             ('yaxis', Float3Arg),
-                                             ('xsize', FloatArg),
-                                             ('ysize', FloatArg)],
-                          keyword = [('grid_spacing', FloatArg)] + ssm_kw)
+    unbend_desc = CmdDesc(required = varg,
+                          keyword = [('path', AtomsArg),
+                                     ('yaxis', AxisArg),
+                                     ('xsize', FloatArg),
+                                     ('ysize', FloatArg),
+                                     ('grid_spacing', FloatArg)] + ssm_kw,
+                          required_arguments = ['path']
+    )
     register('vop unbend', unbend_desc, vop_unbend)
 
     unroll_desc = CmdDesc(required = varg,
@@ -767,19 +770,22 @@ def vop_tile(session, volumes, axis = 'z', pstep = 1, trim = 0,
 
 # -----------------------------------------------------------------------------
 #
-def vop_unbend(session, volumes, path, yaxis, xsize, ysize, grid_spacing = None,
+def vop_unbend(session, volumes, path, yaxis = None, xsize = None, ysize = None, grid_spacing = None,
               subregion = 'all', step = 1, model_id = None):
     '''Unbend a map near a smooth splined path.'''
     if len(path) < 2:
         raise CommandError('vop unbend path must have 2 or more nodes')
-
-    from . import unbend
-    p = unbend.atom_path(path)
+    if yaxis is None:
+        from ...commands import Axis
+        yaxis = Axis((0,1,0))
+    from .unbend import atom_path, unbend_volume
+    p = atom_path(path)
     for v in volumes:
         gs = min(v.data.step) if grid_spacing is None else grid_spacing
-        yax = v.place * yaxis
-        unbend.unbend_volume(v, p, yax, xsize, ysize, gs,
-                             subregion, step, model_id)
+        yax = yaxis.scene_coordinates(v.position)
+        xs = 10*gs if xsize is None else xsize
+        ys = 10*gs if ysize is None else ysize
+        unbend_volume(v, p, yax, xs, ys, gs, subregion, step, model_id)
 
 # -----------------------------------------------------------------------------
 #
