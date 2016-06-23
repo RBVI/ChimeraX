@@ -548,6 +548,8 @@ class Sequence:
         "A string representing the contents of the sequence")
     name = c_property('sequence_name', string, doc="The sequence name")
 
+    # Some Sequence methods may have to be overridden/disallowed in Chain...
+
     def extend(self, chars):
         """Extend the sequence with the given string"""
         f = c_function('sequence_extend', args = (ctypes.c_void_p, ctypes.c_char_p))
@@ -574,7 +576,6 @@ class Chain(Sequence):
     A chain has a sequence associated with it.  A chain may have breaks.
     Chain objects are not always equivalent to Protein Databank chains.
 
-    TODO: C++ sequence object is currently not available in Python.
     '''
     def __init__(self, chain_pointer):
         super().__init__(chain_pointer)
@@ -603,6 +604,10 @@ class Chain(Sequence):
     '''List containing the residues of this chain in order. Residues with no structure will be None. Read only.'''
     num_residues = c_property('chain_num_residues', size_t, read_only = True)
     '''Number of residues belonging to this chain, including those without structure. Read only.'''
+
+    def extend(self, *args, **kw):
+        # for now, disallow Sequence.extend
+        raise AssertionError("Sequence.extend called on Chain object")
 
     def take_snapshot(self, session, flags):
         data = {
