@@ -69,3 +69,27 @@ def trace_chain(atom, bond, atom_bonds):
     bonds.append(b)
     
   return (atoms, bonds)
+
+# -----------------------------------------------------------------------------
+# Interpolate points along bonds.  The spacing is relative to bond radius.
+#
+def bond_points(bonds, bond_point_spacing):
+
+    xyz_list = []
+    for b in bonds:
+        c = int(b.length / bond_point_spacing)
+        if c > 0:
+            xyz1, xyz2 = [a.scene_coord for a in b.atoms]
+            for k in range(c):
+                fb = float(k+1) / (c+1)
+                fa = 1-fb
+                xyz = [fa*a + fb*b for a,b in zip(xyz1, xyz2)]
+                xyz_list.append(xyz)
+
+    from numpy import array, single as floatc, zeros
+    if len(xyz_list) > 0:
+        points = array(xyz_list, floatc)
+    else:
+        points = zeros((0,3), floatc)
+    
+    return points

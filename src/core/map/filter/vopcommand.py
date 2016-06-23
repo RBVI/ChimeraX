@@ -909,15 +909,14 @@ def zone_operation(v, atoms, radius, bond_point_spacing = None,
                    minimal_bounds = False, invert = False,
                    subregion = 'all', step = 1, model_id = None):
 
-# TODO: Need method to get bonds between atoms.
-#    from ... import molecule as M
-#    bonds = M.interatom_bonds(atoms) if bond_point_spacing else []
-
-#    import SurfaceZone as SZ
-#    points = SZ.path_points(atoms, bonds, v.place.inverse(),
-#                            bond_point_spacing)
-
     points = atoms.scene_coords
+    if bond_point_spacing is not None:
+        bonds = atoms.inter_bonds
+        from ...atomic.path import bond_points
+        bpoints = bond_points(bonds, bond_point_spacing)
+        from numpy import concatenate
+        points = concatenate((points, bpoints))
+
     v.position.inverse().move(points)   # Convert points to map coordinates.
 
     vz = zone_volume(v, points, radius, minimal_bounds, invert,
