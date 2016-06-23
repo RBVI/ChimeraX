@@ -216,10 +216,10 @@ def zone_masked_grid_data(grid_data, zone_points, zone_radius,
                           zone_point_mask_values = None):
 
   if minimal_bounds:
-    from regions import points_ijk_bounds, clamp_region, integer_region
+    from .regions import points_ijk_bounds, clamp_region, integer_region
     r = points_ijk_bounds(zone_points, zone_radius, grid_data)
     r = clamp_region(integer_region(r), grid_data.size)
-    from griddata import Grid_Subregion
+    from .griddata import Grid_Subregion
     grid_data = Grid_Subregion(grid_data, r[0], r[1])
 
   mask = zone_mask(grid_data, zone_points, zone_radius,
