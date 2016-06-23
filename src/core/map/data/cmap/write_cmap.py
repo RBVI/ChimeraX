@@ -106,8 +106,8 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
 
     g._v_attrs.chimera_map_version = 1
 
-    from .... import release
-    g._v_attrs.chimera_version = release        # string
+    from chimerax import app_dirs
+    g._v_attrs.chimera_version = '%s %s' % (app_dirs.appname, app_dirs.version)        # string
 
     if grid_data.name:
         g._v_attrs.name = data_name(grid_data)
@@ -126,7 +126,7 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
         g._v_attrs.rotation_axis = array(axis, float32)
         g._v_attrs.rotation_angle = array(angle, float32)
     if len(grid_data.symmetries) > 0:
-        g._v_attrs.symmetries = array(grid_data.symmetries, float32)
+        g._v_attrs.symmetries = array(grid_data.symmetries.array(), float32)
 
     # Determine data type.
     import tables
