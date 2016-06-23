@@ -339,6 +339,8 @@ def combine_operation(volumes, operation, subregion, step,
             rg.name = 'volume maximum'
         elif operation == 'minimum':
             rg.name = 'volume minimum'
+        elif operation == 'multiply':
+            rg.name = 'volume product'
         else:
             rg.name = 'volume sum'
         from .. import volume_from_grid_data
