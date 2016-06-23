@@ -86,9 +86,8 @@ class ModelPanel(ToolInstance):
                 button.clicked.connect(lambda chk, self=self, mf=model_func, ses=session:
                     mf([self.models[row] for row in [self._items.index(i)
                         for i in self.tree.selectedItems()]] or self.models, ses))
-
-        from chimerax.core.graphics import Drawing
-        Drawing.triggers.add_handler('display changed', self._initiate_fill_tree)
+        from chimerax.core.models import MODEL_DISPLAY_CHANGED
+        session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._initiate_fill_tree)
         self._fill_tree()
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_tree)
