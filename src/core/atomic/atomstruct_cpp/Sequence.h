@@ -57,9 +57,9 @@ public:
     Contents::const_iterator  begin() const { return _contents.begin(); }
     void  clear() { _clear_cache(); _contents.clear(); }
     const Contents&  contents() const { return _contents; }
+    Contents::const_iterator  end() const { return _contents.end(); }
     Contents::reference  front() { _clear_cache(); return _contents.front(); }
     Contents::const_reference  front() const { return _contents.front(); }
-    Contents::const_iterator  end() const { return _contents.end(); }
     unsigned int  gapped_to_ungapped(unsigned int index) const;
     Contents::iterator  insert(Contents::const_iterator pos,
         Contents::size_type n, Contents::value_type val)
