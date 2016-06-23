@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/chimerax/core/map/filter
 
 PYSRCS = __init__.py bin.py boxes.py cover.py falloff.py flatten.py flip.py fourier.py \
-	gaussian.py laplace.py localcorr.py median.py permute.py ridges.py scale.py \
+	gaussian.py laplace.py localcorr.py median.py morph.py permute.py ridges.py scale.py \
 	square.py stack.py threshold.py tile.py unbend.py unroll.py vopcommand.py
 
 all: $(PYOBJS)

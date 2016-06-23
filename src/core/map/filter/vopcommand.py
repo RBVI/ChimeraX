@@ -568,9 +568,9 @@ def vop_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
     if len(set(vs)) > 1:
         sizes = ' and '.join([str(s) for s in vs])
         raise CommandError("Volume grid sizes don't match: %s" % sizes)
-    from MorphMap import morph_maps
+    from .morph import morph_maps
     morph_maps(volumes, frames, start, play_step, play_direction, prange,
-               add_mode, constant_volume, sfactors,
+               add_mode, constant_volume, scale_factors,
                hide_original_maps, interpolate_colors, subregion, step, model_id)
 
 # -----------------------------------------------------------------------------
