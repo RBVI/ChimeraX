@@ -533,7 +533,7 @@ def vop_local_correlation(session, volumes, window_size = 5, subtract_mean = Fal
 
 # -----------------------------------------------------------------------------
 #
-def vop_median(session, volumes, bin_size = 3, iterations = 1,
+def vop_median(session, volumes, bin_size = (3,3,3), iterations = 1,
               subregion = 'all', step = 1, model_id = None):
     '''Replace map values with median of neighboring values.'''
     for b in bin_size:
