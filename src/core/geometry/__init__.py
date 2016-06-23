@@ -21,3 +21,4 @@ from .symmetry import translation_symmetry_matrices
 from .symmetry import recenter_symmetries
 from .icosahedron import icosahedral_symmetry_matrices
 from .icosahedron import coordinate_system_names as icosahedral_orientations
+from .spline import arc_lengths
