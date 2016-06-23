@@ -6,8 +6,8 @@ def ridges(volume, level = None, step = 1, subregion = None, modelId = None):
     if level is None:
         level = min(volume.surface_levels)
     rg = ridge_grid(volume, level, step, subregion)
-    from VolumeViewer import volume_from_grid_data
-    rv = volume_from_grid_data(rg, model_id = modelId)
+    from .. import volume_from_grid_data
+    rv = volume_from_grid_data(rg, volume.session, model_id = modelId)
     rv.set_parameters(surface_levels = [0.5])
     rv.show()
     volume.unshow()          # Hide original map
@@ -24,7 +24,7 @@ def ridge_grid(volume, level = None, step = 1, subregion = None):
   m = v.region_matrix(region)
   rm = ridge_matrix(m, level)
 
-  from VolumeData import Array_Grid_Data
+  from ..data import Array_Grid_Data
   d = v.data
   name = '%s ridges' % v.name
   origin, step = v.region_origin_and_step(region)
