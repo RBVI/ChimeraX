@@ -2066,7 +2066,7 @@ class Command:
                 self.completion_prefix = word
                 self.completions = [x for x in self._ci._keyword_map
                                     if x.startswith(arg_name) or
-                                    x.casefold().startswith(arg_name)]
+                                    x.casefold().startswith(arg_name.casefold())]
                 if (final or len(text) > len(chars)) and self.completions:
                     # If final version of text, or if there
                     # is following text, make best guess,
