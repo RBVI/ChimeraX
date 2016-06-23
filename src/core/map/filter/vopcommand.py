@@ -595,6 +595,17 @@ def vop_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,1.0
     v = volume_from_grid_data(grid, session, model_id = model_id)
     v.show()
     return v
+
+# -----------------------------------------------------------------------------
+#
+def check_in_place(in_place, volumes):
+
+    if not in_place:
+        return
+    nwv = [v for v in volumes if not v.data.writable]
+    if nwv:
+        names = ', '.join([v.name for v in nwv])
+        raise CommandError("Can't modify volume in place: %s" % names)
         
 # -----------------------------------------------------------------------------
 #
@@ -630,10 +641,41 @@ def octant_operation(v, outside, center, i_center,
                          model_id = model_id, show = False)
     ic = submatrix_center(v, center, i_center, subregion, step)
     ijk_max = [i-1 for i in vc.data.size]
-    from VolumeEraser import set_box_value
     set_box_value(vc.data, fill_value, ic, ijk_max, outside)
     vc.data.values_changed()
     vc.show()
+
+# -----------------------------------------------------------------------------
+#
+def set_box_value(data, value, ijk_min, ijk_max, outside = False):
+
+    if outside:
+        set_value_outside_box(data, value, ijk_min, ijk_max)
+        return
+
+    from math import floor, ceil
+    ijk_origin = [max(0, int(floor(i))) for i in ijk_min]
+    ijk_last = [min(s-1, int(ceil(i))) for i,s in zip(ijk_max, data.size)]
+    ijk_size = [b-a+1 for a,b in zip(ijk_origin, ijk_last)]
+    if len([i for i in ijk_size if i > 0]) < 3:
+        return
+
+    m = data.matrix(ijk_origin, ijk_size)
+    m[:,:,:] = value
+    
+# -----------------------------------------------------------------------------
+#
+def set_value_outside_box(data, value, ijk_min, ijk_max):
+
+    i0,j0,k0 = [i-1 for i in ijk_min]
+    i1,j1,k1 = [i+1 for i in ijk_max]
+    im,jm,km = [s-1 for s in data.size]
+    set_box_value(data, value, (0,0,0), (im,jm,k0))
+    set_box_value(data, value, (0,0,k1), (im,jm,km))
+    set_box_value(data, value, (0,0,k0), (i0,jm,k1))
+    set_box_value(data, value, (i1,0,k0), (im,jm,k1))
+    set_box_value(data, value, (i0,0,k0), (i1,j0,k1))
+    set_box_value(data, value, (i0,j1,k0), (i1,jm,k1))
 
 # -----------------------------------------------------------------------------
 #
