@@ -552,6 +552,7 @@ class RepeatOf(Annotation):
     '''
     allow_repeat = True
     def __init__(self, annotation):
+        self.name = annotation.name + ', repeatable'
         self.parse = annotation.parse
 
 class BoolArg(Annotation):
