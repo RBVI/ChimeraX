@@ -540,12 +540,23 @@ class Sequence:
             set_c_pointer(self, seq_pointer)
             return # name/characters already exists; don't set
         seq_pointer = c_function('sequence_new',
-            args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(name, characters)
+            args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
+                name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
 
     characters = c_property('sequence_characters', string, doc=
         "A string representing the contents of the sequence")
     name = c_property('sequence_name', string, doc="The sequence name")
+
+    def extend(self, chars):
+        """Extend the sequence with the given string"""
+        f = c_function('sequence_extend', args = (ctypes.c_void_p, ctypes.c_char_p))
+        f(self._c_pointer, chars.encode('utf-8'))
+
+    def __len__(self):
+        """Sequence length"""
+        f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)
+        return f(self._c_pointer)
 
     def take_snapshot(self, session, flags):
         data = {'name': self.name, 'characters': self.characters}

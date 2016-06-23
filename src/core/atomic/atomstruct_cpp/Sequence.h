@@ -57,6 +57,8 @@ public:
     Contents::const_iterator  begin() const { return _contents.begin(); }
     void  clear() { _clear_cache(); _contents.clear(); }
     const Contents&  contents() const { return _contents; }
+    void  extend(const char* s) { extend(std::string(s)); }
+    void  extend(const std::string& s) { _clear_cache(); for (auto c: s) _contents.push_back(c); }
     Contents::reference  front() { _clear_cache(); return _contents.front(); }
     Contents::const_reference  front() const { return _contents.front(); }
     Contents::const_iterator  end() const { return _contents.end(); }

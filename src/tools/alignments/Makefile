@@ -1,6 +1,10 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
+SUBDIRS = io
+
+include $(TOP)/mk/subdir.make
+
 PKG_NAME = chimerax.seqalign
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = Sequence Alignments
@@ -13,7 +17,7 @@ TOOL_NAME = alignments
 TOOL_PKG_NAME = chimerax.seqalign
 TOOL_DISPLAY_NAME = Sequence Alignments
 TOOL_CATEGORY = Hidden
-TOOL_FILE_TYPES = Aligned FASTA:Sequence alignment:.fasta
+TOOL_FILE_TYPES = FASTA:Sequence alignment:.fasta
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Sequence alignment support

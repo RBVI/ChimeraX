@@ -2,4 +2,4 @@
 
 from .alignment import Alignment
 from .parse import open_file
-from .manager import mgr
+#from .manager import mgr

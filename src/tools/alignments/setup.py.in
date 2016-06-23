@@ -25,6 +25,7 @@ setup(
         # Add subpackage names here
     ],
     package_data={
+        "PKG_NAME": ["io/*.py"]
     },
     data_files=[
         ("", ["timestamp"]),
