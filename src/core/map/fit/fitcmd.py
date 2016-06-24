@@ -101,7 +101,7 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
 
     flist = []
     log = session.logger
-    amlist = atoms_and_map(atoms_or_map, resolution, mwm, sequence, each_model, session)
+    amlist = atoms_and_map(atoms_or_map, resolution, mwm, sequence, symmetric, each_model, session)
     for atoms, v in amlist:
         if sequence > 0 or subtract_maps:
             fits = fit_sequence(v, volume, smaps, metric, envelope, resolution,
@@ -112,13 +112,13 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
                               mwm, search, placement, radius,
                               cluster_angle, cluster_shift, asymmetric_unit, level_inside,
                               max_steps, grid_step_min, grid_step_max, log)
-        elif v is None:
-            fits = [fit_atoms_in_map(atoms, volume, shift, rotate, mwm,
-                                     max_steps, grid_step_min, grid_step_max, log)]
         elif symmetric:
             fits = [fit_map_in_symmetric_map(v, volume, metric, envelope,
                                              shift, rotate, mwm,
                                              atoms, max_steps, grid_step_min, grid_step_max, log)]
+        elif v is None:
+            fits = [fit_atoms_in_map(atoms, volume, shift, rotate, mwm,
+                                     max_steps, grid_step_min, grid_step_max, log)]
         else:
             fits = [fit_map_in_map(v, volume, metric, envelope,
                                    shift, rotate, mwm, atoms,
@@ -163,10 +163,11 @@ def check_fit_options(atoms_or_map, volume, metric, resolution,
 
 # -----------------------------------------------------------------------------
 #
-def atoms_and_map(atoms_or_map, resolution, move_whole_molecules, sequence, each_model, session):
+def atoms_and_map(atoms_or_map, resolution, move_whole_molecules,
+                  sequence, symmetric, each_model, session):
 
     if each_model and sequence == 0:
-        return split_by_model(atoms_or_map, resolution, session)
+        return split_by_model(atoms_or_map, resolution, symmetric, session)
 
     if sequence > 0:
         if resolution is None:
@@ -218,13 +219,16 @@ def subtraction_maps(objects, resolution, session):
     
 # -----------------------------------------------------------------------------
 #
-def split_by_model(sel, resolution, session):
-
+def split_by_model(sel, resolution, symmetric, session):
     aom = [(atoms, None) for m,atoms in sel.atoms.by_structure]
     from .. import Volume
     aom.extend([(None, v) for v in sel.models if isinstance(v, Volume)])
     if not resolution is None:
         aom = remove_atoms_with_volumes(aom, resolution, session)
+    if symmetric:
+        from .fitmap import simulated_map
+        aom = [(a, (simulated_map(a, resolution, session) if v is None else v))
+               for a,v in aom]
     return aom
 
 # -----------------------------------------------------------------------------
