@@ -27,7 +27,7 @@ class Python_Decref : public Release_Data
 {
 public:
   Python_Decref(PyObject *object) { this->object = object; }
-  virtual ~Python_Decref() { Py_DECREF(this->object); object = (PyObject *) 0; }
+  virtual ~Python_Decref() { PyObject *tmp = object; object = NULL; Py_DECREF(tmp); }
   PyObject *python_object() const { return object; }
 private:
   PyObject *object;
