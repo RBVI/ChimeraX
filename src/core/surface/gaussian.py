@@ -15,9 +15,10 @@ def gaussian_surface(xyz, weights, resolution, level = None, grid_spacing = None
     cutoff_range = 5
     from math import pi, sqrt, pow
     sigma_factor = 1 / (pi*sqrt(2))
-    from ..map import molmap
-    grid = molmap.gaussian_grid_data(xyz, weights, resolution, grid_spacing,
-                                     pad, cutoff_range, sigma_factor)
+    sdev = resolution*sigma_factor
+    from ..map.molmap import bounding_grid, add_gaussians
+    grid = bounding_grid(xyz, grid_spacing, pad)
+    add_gaussians(grid, xyz, weights, sdev, cutoff_range)
 
     m = grid.full_matrix()
 
