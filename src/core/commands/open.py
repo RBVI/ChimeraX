@@ -21,7 +21,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     '''
 
     if ':' in filename:
-        prefix, fname = filename.split(':',maxsplit=1)
+        prefix, fname = filename.split(':', maxsplit=1)
         from .. import fetch
         from_database, default_format = fetch.fetch_from_prefix(session, prefix)
         if from_database is None:
@@ -55,8 +55,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             session.models.add_group(models)
         else:
             session.models.add(models)
-        remember_file(session, filename, format, models, database = from_database)
-        session.logger.status(status, log = True)
+        remember_file(session, filename, format, models, database=from_database)
+        session.logger.status(status, log=True)
         return models
 
     if format is not None:
@@ -83,59 +83,79 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
 
     return models
 
+
 def format_from_prefix(prefix):
     from .. import io
     formats = [f for f in io.formats() if prefix in io.prefixes(f)]
     return formats[0]
 
+
 def open_formats(session):
     '''Report file formats, suffixes and databases that the open command knows about.'''
-    lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Suffixes']
+    if session.ui.is_gui:
+        lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Suffixes']
+    else:
+        session.logger.info('File format, Suffixes:')
     from .. import io
     formats = list(io.formats())
-    formats.sort(key = lambda f: tuple(io.prefixes(f)))
+    formats.sort(key=lambda f: tuple(io.prefixes(f)))
     for f in formats:
-        lines.append('<tr><td>%s<td>%s' % (' or '.join(io.prefixes(f)), ', '.join(io.extensions(f))))
-    lines.append('</table>')
-    lines.append('<p></p>')
+        if session.ui.is_gui:
+            lines.append('<tr><td>%s<td>%s' % (' or '.join(io.prefixes(f)), ', '.join(io.extensions(f))))
+        else:
+            session.logger.info('    %s: %s' % (' or '.join(io.prefixes(f)), ', '.join(io.extensions(f))))
+    if session.ui.is_gui:
+        lines.append('</table>')
+        lines.append('<p></p>')
 
-    lines.extend(['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>Database<th>Formats'])
+    if session.ui.is_gui:
+        lines.extend(['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>Database<th>Formats'])
+    else:
+        session.logger.info('\nDatabase, Formats:')
     from ..fetch import fetch_databases
     databases = list(fetch_databases(session).values())
-    databases.sort(key = lambda k: k.database_name)
+    databases.sort(key=lambda k: k.database_name)
     for db in databases:
         formats = list(db.fetch_function.keys())
         formats.sort()
         formats.remove(db.default_format)
         formats.insert(0, db.default_format)
+        if not session.ui.is_gui:
+            session.logger.info('    %s: %s' % (db.database_name, ', '.join(formats)))
+            continue
         line = '<tr><td>%s<td>%s' % (db.database_name, ', '.join(formats))
-        pf = [(p,f) for p,f in db.prefix_format.items()
+        pf = [(p, f) for p, f in db.prefix_format.items()
               if p != db.database_name]
         if pf:
-            line += '<td>' + ', '.join('prefix %s fetches format %s' % (p,f) for p,f in pf)
+            line += '<td>' + ', '.join('prefix %s fetches format %s' % (p, f) for p, f in pf)
         lines.append(line)
-    lines.append('</table>')
+    if session.ui.is_gui:
+        lines.append('</table>')
+        msg = '\n'.join(lines)
+        session.logger.info(msg, is_html=True)
 
-    msg = '\n'.join(lines)
-    session.logger.info(msg, is_html = True)
 
 def register_command(session):
-    from . import CmdDesc, register, DynamicEnum, StringArg, ModelIdArg, BoolArg, OpenFileNameArg
+    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg
+
     def formats():
         from .. import io
         prefixes = sum((tuple(io.prefixes(f)) for f in io.formats()), ())
         return prefixes
+
     def db_formats():
         from .. import fetch
         return [f.database_name for f in fetch.fetch_databases(session).values()]
-    desc = CmdDesc(required=[('filename', OpenFileNameArg)],
-                   keyword=[('format', DynamicEnum(formats)),
-                            ('name', StringArg),
-                            ('from_database', DynamicEnum(db_formats)),
-                            ('ignore_cache', BoolArg),
-                            #('id', ModelIdArg),
-                        ],
-                   synopsis='read and display data')
+    desc = CmdDesc(
+        required=[('filename', OpenFileNameArg)],
+        keyword=[
+            ('format', DynamicEnum(formats)),
+            ('name', StringArg),
+            ('from_database', DynamicEnum(db_formats)),
+            ('ignore_cache', BoolArg),
+            # ('id', ModelIdArg),
+        ],
+        synopsis='read and display data')
     register('open', desc, open)
     of_desc = CmdDesc(synopsis='report formats that can be opened')
     register('open formats', of_desc, open_formats)
