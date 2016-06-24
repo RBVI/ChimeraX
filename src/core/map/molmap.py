@@ -190,7 +190,7 @@ def molecule_grid_data(atoms, resolution, step, pad, on_grid,
 
 # -----------------------------------------------------------------------------
 #
-def bounding_grid(xyz, step, pad, transforms):
+def bounding_grid(xyz, step, pad, transforms = None):
     from ..geometry import bounds
     b = bounds.point_bounds(xyz, transforms)
     origin = [x-pad for x in b.xyz_min]
