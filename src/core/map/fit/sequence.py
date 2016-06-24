@@ -57,7 +57,7 @@ def fit_sequence(models, volume, steps, subtract_maps = [],
         v.position = move_tf * v.position
         fits[v] = Fit([v], None, volume, stats)
         if log:
-            log.info(F.map_fit_message(m, volume, stats))
+            log.info(F.map_fit_message(v, volume, stats))
 
 
     h.record_position(models, Atoms(), volume)

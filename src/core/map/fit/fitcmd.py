@@ -446,7 +446,7 @@ def fit_sequence(vlist, volume, subtract_maps = [], metric = 'overlap', envelope
 
     me = fitting_metric(metric)
 
-    from . import sequence as S
+    from .sequence import fit_sequence
 #    from chimera import tasks
 #    task = tasks.Task("Fit sequence", modal=True)
 #    def stop_cb(msg, task = task):
@@ -454,8 +454,8 @@ def fit_sequence(vlist, volume, subtract_maps = [], metric = 'overlap', envelope
     stop_cb = None
     flist = []
 #    try:
-    flist = S.fit_sequence(vlist, volume, sequence, subtract_maps, envelope, me, shift, rotate,
-                           max_steps, grid_step_min, grid_step_max, stop_cb, log)
+    flist = fit_sequence(vlist, volume, sequence, subtract_maps, envelope, me, shift, rotate,
+                         max_steps, grid_step_min, grid_step_max, stop_cb, log)
 #    finally:
 #        task.finished()
 
