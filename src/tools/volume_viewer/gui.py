@@ -1791,11 +1791,11 @@ class Thresholds_Panel(PopupPanel):
   def set_active_data(self, hp):
 
     a = self.active_hist
-#    if a and a.frame:
-#      a.data_name['background'] = self.frame['background']
+    if a and a.frame:
+      a.data_name.setStyleSheet("QLabel { background-color : none }")
     self.active_hist = hp
     if hp and hp.frame:
-#      hp.data_name['background'] = self.active_color
+      hp.data_name.setStyleSheet("QLabel { background-color : lightblue }")
       ao = self.active_order
       if hp in ao:
         ao.remove(hp)
@@ -1849,11 +1849,11 @@ class Histogram_Pane:
 
     self.data_name = nm = QLabel(df)
     layout.addWidget(nm)
-#    nm.bind("<ButtonPress>", self.select_data_cb)
+    nm.mousePressEvent = self.select_data_cb
 
     self.size = sz = QLabel(df)
     layout.addWidget(sz)
-#    sz.bind("<ButtonPress>", self.select_data_cb)
+    sz.mousePressEvent = self.select_data_cb
 
     sl = QLabel('step', df)
     layout.addWidget(sl)
@@ -1984,6 +1984,7 @@ class Histogram_Pane:
     sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1, self.select_marker_cb)
     self.solid_thresholds = sdt
 
+    gv.mousePressEvent = self.select_data_cb
 #    c.bind('<Configure>', self.canvas_resize_cb)
 #    c.bind("<ButtonPress>", self.select_data_cb, add = True)
 #    c.bind("<ButtonPress-1>", self.select_data_cb, add = True)
@@ -2004,11 +2005,11 @@ class Histogram_Pane:
   #
   def select_data_cb(self, event = None):
 
-    dr = self.data_region
-    if dr:
+    v = self.data_region
+    if v:
       d = self.dialog
-      if dr != d.active_volume:
-        d.display_volume_info(dr)
+      if v != d.active_volume:
+        d.display_volume_info(v)
       d.redisplay_needed_cb()
 
   # ---------------------------------------------------------------------------
