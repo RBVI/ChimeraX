@@ -12,4 +12,4 @@ install:
 	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
 
 clean:
-	/bin/rm -f $(OBJS)
+	rm -f $(OBJS)

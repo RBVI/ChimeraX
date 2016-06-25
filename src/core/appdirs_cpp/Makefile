@@ -24,4 +24,7 @@ endif
 	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 clean:
-	/bin/rm -f $(OBJS) $(SHLIB) imex.h
+	rm -f $(OBJS) $(SHLIB) imex.h
+ifdef WIN32
+	rm -f lib$(LIBNAME).pdb vc*.pdb
+endif

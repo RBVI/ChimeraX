@@ -66,7 +66,7 @@ endif
 clean:
 	rm -f $(PROG) $(OBJS) Info.plist chimerax-icon.icns $(LINUX_ICONS)
 ifdef WIN32
-	rm -f $(APP_NAME).ico icon.rc $(PROG).manifest
+	rm -f $(APP_NAME).ico icon.rc $(PROG).manifest $(APP_NAME).pdb vc*.pdb
 endif
 
 lint:

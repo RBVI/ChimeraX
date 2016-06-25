@@ -17,4 +17,7 @@ install: $(LIBRARY)
 	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
 
 clean:
-	/bin/rm -f $(OBJS) $(LIBRARY)
+	rm -f $(OBJS) $(LIBRARY)
+ifdef WIN32
+	rm -f lib$(LIBNAME).pdb vc*.pdb
+endif

@@ -42,5 +42,5 @@ $(SHLIB): $(OBJS)
 clean:
 	rm -f $(LIBRARY) $(SHLIB) $(OBJS)
 ifeq ($(WIN32),msvc)
-	rm -f $(SHLIB).manifest lib$(LIBNAME).{exp,pdb,ilk} vc90.pdb
+	rm -f $(SHLIB).manifest lib$(LIBNAME).{exp,pdb,ilk} vc*.pdb
 endif

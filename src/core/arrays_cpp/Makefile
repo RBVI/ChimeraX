@@ -32,3 +32,6 @@ $(SHLIB): imex.h $(OBJS)
 
 clean:
 	rm -f $(SHLIB) $(OBJS)
+ifdef WIN32
+	rm -f lib$(LIBNAME).pdb vc*.pdb
+endif
