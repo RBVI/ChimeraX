@@ -21,6 +21,7 @@
 import os
 import sys
 import plistlib
+from distlib.version import NormalizedVersion as Version
 from chimerax.core import io, session, configfile, core_settings, __copyright__ as copyright
 
 configfile.only_use_defaults = True
@@ -122,7 +123,6 @@ else:
     raise SystemExit(1)
 
 version = line.split()[2]
-from distlib.version import NormalizedVersion as Version
 epoch, release, *_ = Version(version).parse(version)
 if len(release) == 1:
     release += (0,)
