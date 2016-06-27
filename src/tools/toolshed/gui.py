@@ -49,15 +49,17 @@ _INSTALL_LINK = '<a href="toolshed:_install_tool:%s" class="install button">inst
 _SHOW_LINK = '<a href="toolshed:_show_tool:%s" class="show button">show</a>'
 _HIDE_LINK = '<a href="toolshed:_hide_tool:%s" class="hide button">hide</a>'
 _KILL_LINK = '<a href="toolshed:_kill_tool:%s" class="kill button">kill</a>'
-_ROW = ('<tr>'
-        '<td class="buttons">%s</td>'
-        '<td class="name">%s</td>'
-        '<td class="synopsis">%s</td>'
-        '</tr>')
-_RUNNING_ROW = ('<tr>'
-        '<td class="buttons">%s</td>'
-        '<td class="name", colspan="0">%s</td>'
-        '</tr>')
+_ROW = (
+    '<tr>'
+    '<td class="buttons">%s</td>'
+    '<td class="name">%s</td>'
+    '<td class="synopsis">%s</td>'
+    '</tr>')
+_RUNNING_ROW = (
+    '<tr>'
+    '<td class="buttons">%s</td>'
+    '<td class="name", colspan="0">%s</td>'
+    '</tr>')
 
 
 class ToolshedUI(ToolInstance):
@@ -82,12 +84,15 @@ class ToolshedUI(ToolInstance):
             sizer = wx.BoxSizer(wx.VERTICAL)
             sizer.Add(self.webview, 1, wx.EXPAND)
             parent.SetSizerAndFit(sizer)
-        else: # qt
+        else:  # qt
             from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+
             class HtmlWindow(QWebView):
-                def sizeHint(self):
+
+                def sizeHint(self):   # NOQA
                     from PyQt5.QtCore import QSize
                     return QSize(*ToolshedUI.SIZE)
+
             self.webview = HtmlWindow(parent)
             from PyQt5.QtWidgets import QGridLayout
             layout = QGridLayout(parent)
@@ -111,7 +116,9 @@ class ToolshedUI(ToolInstance):
         else:
             # data is QUrl
             url = data.toString()
-            link_handled = lambda: False
+
+            def link_handled():
+                return False
         if url.startswith("toolshed:"):
             link_handled()
             parts = url.split(':')

@@ -118,7 +118,6 @@ def parse_arguments(argv):
         "--start <tool name>",
         "--notools",
         "--stereo",
-        "--notools",
         "--uninstall",
         "--usedefaults",
         "--version",
@@ -289,14 +288,13 @@ def init(argv, event_loop=True):
         ver += (0,)
     partial_version = '%s.%s' % (ver[0], ver[1])
 
-    
     import chimerax.core
     chimerax.core.window_sys = opts.window_sys if opts.gui else None
 
     import chimerax
     import appdirs
     chimerax.app_dirs = ad = appdirs.AppDirs(app_name, appauthor=app_author,
-                         version=partial_version)
+                                             version=partial_version)
     # make sure app_dirs.user_* directories exist
     for var, name in (
             ('user_data_dir', "user's data"),
@@ -371,13 +369,14 @@ def init(argv, event_loop=True):
             print("Initializing core", flush=True)
 
     if not opts.silent:
-        sess.ui.splash_info("Initializing tools",
+        sess.ui.splash_info("Initializing bundles",
                             next(splash_step), num_splash_steps)
         if sess.ui.is_gui and opts.debug:
-            print("Initializing tools", flush=True)
+            print("Initializing bundles", flush=True)
     from chimerax.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
     sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
+    sess.toolshed.bootstrap_bundles(session)
     from chimerax.core import tools
     sess.add_state_manager('tools', tools.Tools(sess, first=True))  # access with sess.tools
     from chimerax.core import tasks

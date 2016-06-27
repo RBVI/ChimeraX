@@ -1,5 +1,9 @@
 # vim: set expandtab ts=4 sw=4:
 
+import wx
+import sys
+from wx import html2
+
 InitialPage = """<html>
 <head>
 <title>ChimeraX Help Test</title>
@@ -36,14 +40,10 @@ HelpPrefix = "/chimerax/help/"
 def noprint(*args, **kw):
     return
 
-import wx
-import sys
-from wx import html2
-
 
 class MyApp(wx.App):
 
-    def OnInit(self):
+    def OnInit(self):   # NOQA
         fr = HelpFrame("WxWidgets Benchmark")
         fr.Show(True)
         return True
@@ -192,7 +192,7 @@ class HelpFrame(wx.Frame):
         if self.usingIE:
             if not self.handling_error and self.document_missing:
                 self.handling_error = True
-                self._processMissing(self.document_missing)
+                self._process_missing(self.document_missing)
                 self.handling_error = False
             self.document_missing = False
 
@@ -212,13 +212,13 @@ class HelpFrame(wx.Frame):
             # a "navigated" event; updating the displayed page
             # here does nothing; so we save the problematic URL
             # and let the "navigated" event handler deal with it.
-            badURL = evt.GetURL()
+            bad_url = evt.GetURL()
             if not self.usingIE:
-                self._processMissing(badURL)
+                self._process_missing(bad_url)
             else:
-                self.document_missing = badURL
+                self.document_missing = bad_url
 
-    def _processMissing(self, url):
+    def _process_missing(self, url):
         # We handle the case where a file: URL refers
         # to a missing file.  If the URL does not
         # contain the known ChimeraX prefix, then
@@ -248,8 +248,8 @@ class HelpFrame(wx.Frame):
         helpdir = cache.get_help_dir(pkg)
         if helpdir is None:
             # TODO: convert to HTTP url if possible
-            newURL = "%s%s%s" % (HostPrefix, HelpPrefix, parts[1])
-            msg = "using http path <b>%s</b> (%s)" % (newURL, url)
+            new_url = "%s%s%s" % (HostPrefix, HelpPrefix, parts[1])
+            msg = "using http path <b>%s</b> (%s)" % (new_url, url)
             self._show_error(ErrorPage % msg, ErrorURL)
         else:
             import os.path

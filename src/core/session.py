@@ -135,7 +135,7 @@ class _UniqueName:
     def class_of(self, session):
         """Return class associated with unique id
 
-        The restore process makes sure that the right tools are present,
+        The restore process makes sure that the right bundles are present,
         so if there is an error, return None.
         """
         class_name, ordinal = self.uid
@@ -247,23 +247,23 @@ class _RestoreManager:
         _UniqueName.reset()
         self.bundle_infos = {}
 
-    def check_tools(self, session, bundle_infos):
-        missing_tools = []
-        out_of_date_tools = []
+    def check_bundles(self, session, bundle_infos):
+        missing_bundles = []
+        out_of_date_bundles = []
         for tool_name, (tool_version, tool_state_version) in bundle_infos.items():
             t = session.toolshed.find_bundle(tool_name)
             if t is None:
-                missing_tools.append(tool_name)
+                missing_bundles.append(tool_name)
                 continue
-            # check if installed tools can restore data
+            # check if installed bundles can restore data
             if tool_state_version not in t.session_versions:
-                out_of_date_tools.append(t)
-        if missing_tools or out_of_date_tools:
+                out_of_date_bundles.append(t)
+        if missing_bundles or out_of_date_bundles:
             msg = "Unable to restore session"
-            if missing_tools:
-                msg += "; missing tools: " + commas(missing_tools, ' and')
-            if out_of_date_tools:
-                msg += "; out of date tools: " + commas(out_of_date_tools, ' and')
+            if missing_bundles:
+                msg += "; missing bundles: " + commas(missing_bundles, ' and')
+            if out_of_date_bundles:
+                msg += "; out of date bundles: " + commas(out_of_date_bundles, ' and')
             raise RestoreError(msg)
         self.bundle_infos = bundle_infos
 
@@ -281,7 +281,7 @@ class Session:
     The metadata attribute should be a dictionary with information about
     the session, e.g., a thumbnail, a description, the author, etc.
 
-    To preemptively detect problems where different tools want to use the same
+    To preemptively detect problems where different bundles want to use the same
     session attribute, session attributes may only be assigned to once,
     and may not be deleted.
     Attributes that support the State API are included
@@ -325,7 +325,7 @@ class Session:
         from . import colors
         self.add_state_manager('user_colors', colors.UserColors())
         self.add_state_manager('user_colormaps', colors.UserColormaps())
-        # tasks and tools are initialized later
+        # tasks and bundles are initialized later
         # TODO: scenes need more work
         # from .scenes import Scenes
         # sess.add_state_manager('scenes', Scenes(sess))
@@ -424,7 +424,7 @@ class Session:
         self.triggers.activate_trigger("begin save session", self)
         serialize.serialize(stream, CORE_SESSION_VERSION)
         serialize.serialize(stream, self.metadata)
-        # guarantee that tools are serialized first, so on restoration,
+        # guarantee that bundles are serialized first, so on restoration,
         # all of the related code will be loaded before the rest of the
         # session is restored
         mgr = _SaveManager(self, State.SESSION)
@@ -451,7 +451,7 @@ class Session:
             metadata = None
         mgr = _RestoreManager()
         bundle_infos = serialize.deserialize(stream)
-        mgr.check_tools(self, bundle_infos)
+        mgr.check_bundles(self, bundle_infos)
 
         self.triggers.activate_trigger("begin restore session", self)
         try:

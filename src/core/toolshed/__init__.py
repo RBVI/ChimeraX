@@ -69,10 +69,11 @@ Depending on the values of metadata fields, modules may need to define:
     Called to open a file.
     Arguments and return values are as described for open functions in in core.io.
 
-  ``initialize(bi)``
-  ``finish(bi)``
-    Called to initialize and deinitialize a bundle.
+  ``initialize(bi, session)``
+  ``finish(bi, session)``
+    Called to initialize and deinitialize a bundle in a session.
     ``bi`` is a :py:class:`BundleInfo` instance.
+    ``session`` is a :py:class:`~chimerax.core.session.Session` instance.
     Must be defined if the ``custom_init`` metadata field is set to 'true'.
     ``initialize`` is called when the bundle is first loaded and
     ``finish`` is called when the bundle is unloaded.
@@ -136,7 +137,7 @@ def _debug(*args, **kw):
 
 # Default URL of remote toolshed
 _RemoteURL = "http://localhost:8080"
-#_RemoteURL = "https://chi2ti-macosx-daily.rbvi.ucsf.edu"
+# _RemoteURL = "https://chi2ti-macosx-daily.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
 _Toolshed = "toolshed"
 # Defaults names for installed ChimeraX bundles
@@ -275,7 +276,7 @@ class Toolshed:
             _debug("added remote distribution:", d)
         return ti_list
 
-    def reload(self, logger, rebuild_cache=False, check_remote=False):
+    def reload(self, logger, *, session=None, rebuild_cache=False, check_remote=False):
         """Discard and reread bundle info.
 
         Parameters
@@ -293,16 +294,18 @@ class Toolshed:
 
         _debug("reload", rebuild_cache, check_remote)
         for bi in self._installed_bundle_info:
+            if session is not None:
+                bi.finish(session)
             bi.deregister_commands()
             bi.deregister_file_types()
-            bi.finish()
         self._installed_bundle_info = []
         inst_bi_list = self._load_bundle_info(logger, rebuild_cache=rebuild_cache)
         for bi in inst_bi_list:
             self.add_bundle_info(bi)
-            bi.initialize()
             bi.register_commands()
             bi.register_file_types()
+            if session is not None:
+                bi.initialize(session)
         if check_remote:
             self._available_bundle_info = []
             self._repo_locator = None
@@ -361,7 +364,7 @@ class Toolshed:
         container.append(bi)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_ADDED, bi)
 
-    def install_bundle(self, bi, logger, system=False):
+    def install_bundle(self, bi, logger, *, system=False, session=None):
         """Install the bundle by retrieving it from the remote shed.
 
         Parameters
@@ -389,17 +392,18 @@ class Toolshed:
                                          % bi.name)
         # Make sure that our install location is on chimerax module.__path__
         # so that newly installed modules may be found
-        import os.path, importlib
+        import importlib
+        import os.path
         cx_dir = os.path.join(self._site_dir, _ChimeraBasePackage)
         m = importlib.import_module(_ChimeraBasePackage)
         if cx_dir not in m.__path__:
             m.__path__.append(cx_dir)
         # Install bundle and update cache
-        self._install_bundle(bi, system, logger)
+        self._install_bundle(bi, system, logger, session)
         self._write_cache(self._installed_bundle_info, logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bi)
 
-    def uninstall_bundle(self, bi, logger):
+    def uninstall_bundle(self, bi, logger, *, session=None):
         """Uninstall bundle by removing the corresponding Python distribution.
 
         Parameters
@@ -419,7 +423,7 @@ class Toolshed:
         A :py:const:`TOOLSHED_BUNDLE_UNINSTALLED` trigger is fired after package removal.
         """
         _debug("uninstall_bundle", bi)
-        self._uninstall_bundle(bi, logger)
+        self._uninstall_bundle(bi, logger, session)
         self._write_cache(self._installed_bundle_info, logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bi)
 
@@ -460,6 +464,18 @@ class Toolshed:
                         best_bi = bi
                         best_version = v
         return best_bi
+
+    def bootstrap_bundles(self, session):
+        """Do custom initialization for installed bundles
+
+        After adding the :py:class:`Toolshed` singleton to a session,
+        allow bundles need to install themselves into the session,
+        (For symmetry, there should be a way to uninstall all bundles
+        before a session is discarded, but we don't do that yet.)
+        """
+        _debug("initialize_bundles")
+        for bi in self._installed_bundle_info:
+            bi.initialize(session)
 
     #
     # End public API
@@ -676,7 +692,7 @@ class Toolshed:
     # Following methods are used for installing and removing
     # distributions
 
-    def _install_bundle(self, bundle_info, system, logger):
+    def _install_bundle(self, bundle_info, system, logger, session):
         # Install a bundle.  This entails:
         #  - finding all distributions that this one depends on
         #  - making sure things will be compatible if installed
@@ -707,9 +723,10 @@ class Toolshed:
         for bi in newly_installed:
             bi.installed = True
             self.add_bundle_info(bi)
-            bi.initialize()
             bi.register_commands()
             bi.register_file_types()
+            if session is not None:
+                bi.initialize(session)
 
     def _install_dist_core(self, want, logger):
         # Add ChimeraX core distribution to update list
@@ -1016,7 +1033,7 @@ class Toolshed:
                 pass
         return basedir
 
-    def _uninstall_bundle(self, bundle_info, logger):
+    def _uninstall_bundle(self, bundle_info, logger, session):
         _debug("_uninstall", bundle_info)
         dv = bundle_info.distribution()
         name, version = dv
@@ -1032,7 +1049,8 @@ class Toolshed:
             else:
                 bi.deregister_commands()
                 bi.deregister_file_types()
-                bi.finish()
+                if session is not None:
+                    bi.finish(session)
         self._installed_bundle_info = keep
         self._remove_distribution(d, logger)
 
@@ -1071,7 +1089,7 @@ class BundleInfo:
         Short description of this bundle.
     version : readonly str
         Bundle version (which is actually the same as the distribution version,
-        so all tools from the same distribution share the same version).
+        so all bundles from the same distribution share the same version).
     """
 
     def __init__(self, name, installed,
@@ -1220,7 +1238,7 @@ class BundleInfo:
         # TODO: implement
         pass
 
-    def initialize(self):
+    def initialize(self, session):
         """Initialize bundle by calling custom initialization code if needed."""
         if self.custom_init:
             try:
@@ -1228,9 +1246,9 @@ class BundleInfo:
             except (ImportError, AttributeError, TypeError, SyntaxError):
                 raise ToolshedError("no initialize function found for bundle \"%s\""
                                     % self.name)
-            f(self)
+            f(self, session)
 
-    def finish(self):
+    def finish(self, session):
         """Deinitialize bundle by calling custom finish code if needed."""
         if self.custom_init:
             try:
@@ -1238,7 +1256,7 @@ class BundleInfo:
             except (ImportError, AttributeError, TypeError, SyntaxError):
                 raise ToolshedError("no finish function found for bundle \"%s\""
                                     % self.name)
-            f(self)
+            f(self, session)
 
     def get_class(self, class_name):
         """Return bundle's class with given name."""

@@ -52,11 +52,11 @@ def ts_refresh(session, bundle_type="installed"):
     ts = session.toolshed
     logger = session.logger
     if bundle_type == "installed":
-        ts.reload(logger, rebuild_cache=True, check_remote=False)
+        ts.reload(logger, session=session, rebuild_cache=True, check_remote=False)
     elif bundle_type == "available":
-        ts.reload(logger, rebuild_cache=False, check_remote=True)
+        ts.reload(logger, session=session, rebuild_cache=False, check_remote=True)
     elif bundle_type == "all":
-        ts.reload(logger, rebuild_cache=True, check_remote=True)
+        ts.reload(logger, session=session, rebuild_cache=True, check_remote=True)
 ts_refresh_desc = CmdDesc(optional=[("bundle_type", _bundle_types)])
 
 
@@ -89,7 +89,7 @@ def ts_install(session, bundle_name, user_only=True, version=None):
         logger.error("\"%s\" does not match any bundles"
                      % _bundle_string(bundle_name, version))
         return
-    ts.install_bundle(bi, logger, not user_only)
+    ts.install_bundle(bi, logger, not user_only, session=session)
 ts_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                           optional=[("user_only", BoolArg),
                                     ("version", StringArg)])
@@ -109,7 +109,7 @@ def ts_remove(session, bundle_name):
     if bi is None:
         logger.error("\"%s\" does not match any bundles" % bundle_name)
         return
-    ts.uninstall_bundle(bi, logger)
+    ts.uninstall_bundle(bi, logger, session=session)
 ts_remove_desc = CmdDesc(required=[("bundle_name", StringArg)])
 
 
