@@ -552,6 +552,7 @@ class RepeatOf(Annotation):
     '''
     allow_repeat = True
     def __init__(self, annotation):
+        self.name = annotation.name + ', repeatable'
         self.parse = annotation.parse
 
 class BoolArg(Annotation):
@@ -2311,11 +2312,14 @@ def usage(name, no_aliases=False, no_subcommands=False):
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
             arg_type = ci._keyword[arg_name]
-            arg_name = _user_kw(arg_name)
+            uarg_name = _user_kw(arg_name)
             if arg_type is NoArg:
-                syntax += ' [%s]' % arg_name
+                syntax += ' [%s]' % uarg_name
                 continue
-            syntax += ' [%s _%s_]' % (arg_name, arg_type.name)
+            if arg_name in ci._required_arguments:
+                syntax += ' %s _%s_' % (uarg_name, arg_type.name)
+            else:
+                syntax += ' [%s _%s_]' % (uarg_name, arg_type.name)
         if ci.synopsis:
             syntax += ' -- %s' % ci.synopsis
         if arg_syntax:
@@ -2399,7 +2403,7 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
         syntax += ']' * num_opt
         for arg_name in ci._keyword:
             arg_type = ci._keyword[arg_name]
-            arg_name = _user_kw(arg_name)
+            uarg_name = _user_kw(arg_name)
             if arg_type is NoArg:
                 type = ""
             else:
@@ -2407,7 +2411,10 @@ def html_usage(name, no_aliases=False, no_subcommands=False):
                 if arg_type.url is not None:
                     type = '<a href="%s">%s</a>' % (arg_type.url, type)
                 type = ' ' + type
-            syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(arg_name), type)
+            if arg_name in ci._required_arguments:
+                syntax += ' <nobr><b>%s</b>%s</nobr>' % (escape(uarg_name), type)
+            else:
+                syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (escape(uarg_name), type)
         if arg_syntax:
             syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
         if ci.is_alias():

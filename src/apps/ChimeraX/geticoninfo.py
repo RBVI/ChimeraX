@@ -7,7 +7,7 @@ from chimerax.core import buildinfo
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "vpy")
-except getot.GetOptError as e:
+except getopt.GetOptError as e:
     print(e, file=sys.stderr)
     raise SystemExit(1)
 

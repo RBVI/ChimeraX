@@ -107,8 +107,8 @@ def _scan(top, bundle_info, help_info):
     import json
     for dirpath, dirnames, filenames in os.walk(top):
         # convert path into package reference
-        tool_name = (NAMESPACE_PACKAGE
-                     + dirpath.replace(top, "").replace(os.sep, '.'))
+        tool_name = (NAMESPACE_PACKAGE +
+                     dirpath.replace(top, "").replace(os.sep, '.'))
         if TOOLINFO_FILENAME in filenames:
             ti_name = os.path.join(dirpath, TOOLINFO_FILENAME)
             with open(ti_name) as f:

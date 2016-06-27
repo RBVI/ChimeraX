@@ -27,7 +27,10 @@ endif
 endif
 
 clean:
-	/bin/rm -f $(OBJS) $(PYMOD)
+	rm -f $(OBJS) $(PYMOD)
+ifdef WIN32
+	rm -f $(PYMOD_NAME).{exp,lib,pdb} vc*.pdb
+endif
 
 PDBio.o: $(includedir)/pdb/PDB.h $(includedir)/atomstruct/Atom.h \
 	$(includedir)/atomstruct/AtomicStructure.h $(includedir)/atomstruct/Bond.h \

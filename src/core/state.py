@@ -14,7 +14,7 @@ class State(metaclass=abc.ABCMeta):
 
     Session state consists only of "simple" types, i.e.,
     those that are supported by the :py:mod:`.serialize` module
-    and instances from known classes in tools.
+    and instances from known classes in bundles.
 
     TODO: confirm:
     Since scenes are snapshots of the current session state,
@@ -102,7 +102,7 @@ def _init_primitives():
 
 
 def copy_state(data, convert=None):
-    """Return a deep copy of primitives, but keep instances from tools.
+    """Return a deep copy of primitives, but keep instances from bundles.
 
     Parameters
     ----------

@@ -213,7 +213,8 @@ class Chimera_HDF_Image:
 
         va = group._v_attrs
         if 'symmetries' in va:
-            sym = va.symmetries
+            from ....geometry import Places
+            sym = Places(place_array = va.symmetries)
         else:
             sym = None
         return sym

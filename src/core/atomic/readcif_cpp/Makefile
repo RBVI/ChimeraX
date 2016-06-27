@@ -34,6 +34,9 @@ $(SHLIB): $(OBJS)
 
 clean:
 	rm -f $(LIBRARY) $(OBJS)
+ifdef WIN32
+	rm -f lib$(LIBNAME).pdb vc*.pdb
+endif
 
 cifgrep.install: $(LIBRARY)
 	$(MAKE) -C cifgrep install

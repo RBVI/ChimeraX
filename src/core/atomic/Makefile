@@ -41,6 +41,9 @@ dir:
 
 clean:
 	rm -rf __pycache__ $(OBJS) $(SHLIB)
+ifdef WIN32
+	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
+endif
 
 lint:
 	$(PYLINT) $(PYSRCS)

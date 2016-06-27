@@ -354,8 +354,8 @@ def random_translation(bounds):
 def random_rotation():
 
     y, z = random_direction(), random_direction()
-    from ...geometry import place
-    f = place.orthonormal_frame(z, y)
+    from ...geometry import orthonormal_frame
+    f = orthonormal_frame(z, y)
     return f
 
 # -----------------------------------------------------------------------------
@@ -385,7 +385,7 @@ def unique_symmetry_position(tf, center, ref_point, sym_list):
     if len(sym_list) == 0:
         return tf
 
-    from ...geometry.place import distance
+    from ...geometry import distance
     import numpy as n
     i = n.argmin([distance(sym*tf*center, ref_point) for sym in sym_list])
     if sym_list[i].is_identity():

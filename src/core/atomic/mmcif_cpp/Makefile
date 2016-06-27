@@ -43,9 +43,9 @@ endif
 endif
 
 clean:
-	/bin/rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej
+	rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej
 ifeq ($(WIN32),msvc)
-	rm -f $(PYMOD).manifest $(PYMOD_NAME).{lib,exp,ilk,pdb} vc90.pdb
+	rm -f $(PYMOD).manifest $(PYMOD_NAME).{lib,exp,ilk,pdb} vc*.pdb
 endif
 
 $(GENSRCS) $(OBJS): wrappy

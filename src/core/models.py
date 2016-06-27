@@ -10,6 +10,7 @@ from .graphics.drawing import Drawing
 from .state import State, CORE_STATE_VERSION
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
+MODEL_DISPLAY_CHANGED = 'model display changed'
 # TODO: register Model as data event type
 
 
@@ -81,6 +82,11 @@ class Model(State, Drawing):
                 dlist.extend(d.all_models())
         return dlist
 
+    def _set_display(self, display):
+        Drawing.set_display(self, display)
+        self.session.triggers.activate_trigger(MODEL_DISPLAY_CHANGED, self)
+    display = Drawing.display.setter(_set_display)
+
     def take_snapshot(self, session, flags):
         p = getattr(self, 'parent', None)
         if p is session.models.drawing:
@@ -133,8 +139,10 @@ class Models(State):
 
     def __init__(self, session):
         self._session = weakref.ref(session)
-        session.triggers.add_trigger(ADD_MODELS)
-        session.triggers.add_trigger(REMOVE_MODELS)
+        t = session.triggers
+        t.add_trigger(ADD_MODELS)
+        t.add_trigger(REMOVE_MODELS)
+        t.add_trigger(MODEL_DISPLAY_CHANGED)
         self._models = {}
         from .graphics.drawing import Drawing
         self.drawing = r = Model("root", session)

@@ -24,6 +24,7 @@ class CrossFade(Drawing):
 
         # Capture current image
         v = session.main_view
+        v.render.make_current()
         self.rgba = v.frame_buffer_rgba()
 
         # Make textured square surface piece
@@ -46,6 +47,7 @@ class CrossFade(Drawing):
         self.frame = f
         alpha = int(255 * (n - f) / n)
         self.rgba[:, :, 3] = alpha
+        view.render.make_current()
         self.texture.reload_texture(self.rgba)
         self.redraw_needed()
 
@@ -86,6 +88,7 @@ class MotionBlur(Drawing):
         # Capture current image
         v = self.viewer
         w, h = v.window_size
+        v.render.make_current()
         rgba = v.frame_buffer_rgba()
 
         if self.rgba is None:

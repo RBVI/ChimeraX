@@ -221,7 +221,7 @@ class VolumeViewer(ToolInstance):
             tp.update_histograms(v)
 
         elif type == 'displayed':
-          if not tp.histogram_shown(v):
+          if tp.histogram_shown(v):
             # Histogram, data range, and initial thresholds are only displayed
             #  after data is shown to avoid reading data file for undisplayed data.
             tp.update_panel_widgets(v, activate = False)
@@ -1791,11 +1791,11 @@ class Thresholds_Panel(PopupPanel):
   def set_active_data(self, hp):
 
     a = self.active_hist
-#    if a and a.frame:
-#      a.data_name['background'] = self.frame['background']
+    if a and a.frame:
+      a.data_name.setStyleSheet("QLabel { background-color : none }")
     self.active_hist = hp
     if hp and hp.frame:
-#      hp.data_name['background'] = self.active_color
+      hp.data_name.setStyleSheet("QLabel { background-color : lightblue }")
       ao = self.active_order
       if hp in ao:
         ao.remove(hp)
@@ -1849,11 +1849,11 @@ class Histogram_Pane:
 
     self.data_name = nm = QLabel(df)
     layout.addWidget(nm)
-#    nm.bind("<ButtonPress>", self.select_data_cb)
+    nm.mousePressEvent = self.select_data_cb
 
     self.size = sz = QLabel(df)
     layout.addWidget(sz)
-#    sz.bind("<ButtonPress>", self.select_data_cb)
+    sz.mousePressEvent = self.select_data_cb
 
     sl = QLabel('step', df)
     layout.addWidget(sl)
@@ -1984,6 +1984,7 @@ class Histogram_Pane:
     sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1, self.select_marker_cb)
     self.solid_thresholds = sdt
 
+    gv.mousePressEvent = self.select_data_cb
 #    c.bind('<Configure>', self.canvas_resize_cb)
 #    c.bind("<ButtonPress>", self.select_data_cb, add = True)
 #    c.bind("<ButtonPress-1>", self.select_data_cb, add = True)
@@ -2004,11 +2005,11 @@ class Histogram_Pane:
   #
   def select_data_cb(self, event = None):
 
-    dr = self.data_region
-    if dr:
+    v = self.data_region
+    if v:
       d = self.dialog
-      if dr != d.active_volume:
-        d.display_volume_info(dr)
+      if v != d.active_volume:
+        d.display_volume_info(v)
       d.redisplay_needed_cb()
 
   # ---------------------------------------------------------------------------
@@ -2046,13 +2047,24 @@ class Histogram_Pane:
   #
   def show_cb(self):
 
-    dr = self.data_region
-    if dr is None:
+    v = self.data_region
+    if v is None:
       return
 
+    s = self.dialog.session
+    if s.ui.shift_key_down():
+        # Hide other maps when shift key held down during icon click.
+        from chimerax.core.map import Volume
+        for m in s.models.list(type = Volume):
+            if m != v:
+                m.display = False
+        b = self.shown
+        if not b.isChecked():
+            # Shift click on shown map leaves the map shown.
+            b.setChecked(True)
+            
     show = self.shown.isChecked()
-    for m in self.data_region.models():
-      m.display = show
+    v.display = show
 
     self.update_shown_icon()
 

@@ -23,7 +23,7 @@ class ChimeraLocator(Locator):
         cache = self._get_cache()
         urls = {}
         digests = {}
-        result = {'urls':urls, 'digests':digests}
+        result = {'urls': urls, 'digests': digests}
         for version, dist in cache.get(name, {}).items():
             result[version] = dist
             urls[version] = set([dist.source_url])

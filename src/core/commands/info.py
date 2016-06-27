@@ -54,6 +54,7 @@ def info(session, models=None):
             ms = m.matrix_value_statistics()
             line += ', value range %.5g - %.5g' % (ms.minimum, ms.maximum)
             line += ', value type %s' % str(m.data.value_type)
+            line += ', %d symmetry operators' % len(m.data.symmetries)
         lines.append(line)
     msg = '%d models\n' % len(models) + '\n'.join(lines)
     session.logger.info(msg)

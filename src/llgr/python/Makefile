@@ -64,6 +64,6 @@ lint:
 clean:
 	rm -rf $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej __pycache__
 ifeq ($(WIN32),msvc)
-	rm -f $(PYMOD).manifest $(PYMOD_NAME).{lib,exp,ilk,pdb} vc90.pdb
+	rm -f $(PYMOD).manifest $(PYMOD_NAME).{lib,exp,ilk,pdb} vc*.pdb
 
 endif

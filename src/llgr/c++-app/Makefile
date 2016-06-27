@@ -23,7 +23,7 @@ data.cpp: webgl2c++.py one_webgl.json
 clean:
 	rm -f $(PROG)$(PROG_EXT) $(OBJS) data.cpp
 ifeq ($(WIN32),msvc)
-	rm -f $(PROG).pdb $(PROG).ilk vc90.pdb
+	rm -f $(PROG).{exp,pdb,ilk} vc*.pdb
 endif
 
 run:

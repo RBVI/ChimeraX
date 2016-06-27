@@ -28,4 +28,7 @@ endif
 endif
 
 clean:
-	/bin/rm -f $(OBJS) $(PYMOD)
+	rm -f $(OBJS) $(PYMOD)
+ifdef WIN32
+	rm -f $(PYMOD_NAME).pdb vc*.pdb
+endif

@@ -32,4 +32,7 @@ templates:
 	done
 
 clean:
-	/bin/rm -f $(OBJS) $(SHLIB)
+	rm -f $(OBJS) $(SHLIB)
+ifdef WIN32
+	rm -f vc*.pdb
+endif
