@@ -116,10 +116,12 @@ class Markers:
         b.setColor(c)
         b.setStyle(Qt.SolidPattern)
         if self.marker_type == 'line':
-          m.graphics_item = s.addRect(x, y0+bs, 2*bs, y1-y0-bs, pen = p, brush = b)
+          m.graphics_item = gi = s.addRect(x, y0+bs, 2*bs, y1-y0-bs, pen = p, brush = b)
+          gi.setZValue(1.0)	# Show on top of histogram
         elif self.marker_type == 'box':
-          m.graphics_item = s.addRect(x-bs, y-bs, 2*bs, 2*bs, pen = p, brush = b)
-
+          m.graphics_item = gi = s.addRect(x-bs, y-bs, 2*bs, 2*bs, pen = p, brush = b)
+          gi.setZValue(1.0)	# Show on top of histogram
+          
   # ---------------------------------------------------------------------------
   #
   def unplot_markers(self):
@@ -183,11 +185,13 @@ class Markers:
   #
   def set_markers(self, markers):
 
-    for m in self.markers:
-      m.unplot(self.scene)
-
-    self.markers = markers
-    self.update_plot()
+    changed = (len(markers) != len(self.markers) or
+               [m1 for m1, m2 in zip(markers, self.markers) if m1.xy != m2.xy or m1.rgba != m2.rgba])
+    if changed:
+      for m in self.markers:
+        m.unplot(self.scene)
+      self.markers = markers
+      self.update_plot()
   
   # ---------------------------------------------------------------------------
   #
@@ -252,6 +256,7 @@ class Markers:
       x0, y0 = cxy_list[k]
       x1, y1 = cxy_list[k+1]
       gi = s.addLine(x0, y0, x1, y1, pen = p)
+      gi.setZValue(1.0)	# Show on top of histogram
       graphics_items.append(gi)
 
     for gi in self.connect_graphics_items:
