@@ -1988,7 +1988,7 @@ class Histogram_Pane:
     sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1, self.select_marker_cb)
     self.solid_thresholds = sdt
 
-    gv.mousePressEvent = self.select_data_cb
+    gv.click_callbacks.append(self.select_data_cb)
 #    c.bind('<Configure>', self.canvas_resize_cb)
 #    c.bind("<ButtonPress>", self.select_data_cb, add = True)
 #    c.bind("<ButtonPress-1>", self.select_data_cb, add = True)
@@ -2104,13 +2104,14 @@ class Histogram_Pane:
       return
 
     shown = v.shown()
-#    if shown == self.shown.isChecked():
-#        return
     fname = 'shown.png' if shown else 'hidden.png'
+    s = self.shown
+    if fname == getattr(s, 'file_name', None):
+        return
+    s.file_name = fname
     from os.path import join, dirname
     from PyQt5.QtGui import QPixmap, QIcon
     shpix = QPixmap(join(dirname(__file__), fname))
-    s = self.shown
     s.setIcon(QIcon(shpix))
     s.setChecked(shown)
       
@@ -2167,14 +2168,17 @@ class Histogram_Pane:
 
     ijk_min, ijk_max, ijk_step = region
     size = [a-b+1 for a,b in zip(ijk_max, ijk_min)]
-    self.size.setText(size_text(size))
+    stext = size_text(size)
+    if stext != self.size.text():
+        self.size.setText(stext)
 
     step = step_text(ijk_step)
     ds = self.data_step
 #    if not step in ds.values:
 #      ds.add_entry(step)
     # TODO: Block step change callback.
-    ds.setText(step)
+    if step != ds.text():
+        ds.setText(step)
     
   # ---------------------------------------------------------------------------
   #
