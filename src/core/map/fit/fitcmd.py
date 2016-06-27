@@ -563,6 +563,7 @@ def register_fitmap_command():
 # Output options
             ('move_whole_molecules', BoolArg),
             ('list_fits', BoolArg),
-        ]
+        ],
+        required_arguments = ['in_map']
     )
     register('fitmap', fitmap_desc, fitmap)
