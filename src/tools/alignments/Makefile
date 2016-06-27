@@ -19,7 +19,7 @@ TOOL_DISPLAY_NAME = Sequence Alignments
 TOOL_CATEGORY = Hidden
 TOOL_FILE_TYPES = FASTA:Sequence alignment:.fasta
 TOOL_SESSION_VERSIONS = 1,1
-TOOL_CUSTOM_INIT = false
+TOOL_CUSTOM_INIT = true
 TOOL_SYNOPSIS = Sequence alignment support
 COMMAND_NAME = 
 

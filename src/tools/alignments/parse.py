@@ -32,7 +32,6 @@ def open_file(session, stream, fname, file_type="FASTA", return_seqs=False,
                 s.circular = True
     if return_seqs:
         return seqs
-    #from . import mgr
     from chimerax.core.errors import UserError
     if one_alignment:
         if not uniform_length:
@@ -40,11 +39,12 @@ def open_file(session, stream, fname, file_type="FASTA", return_seqs=False,
                 " it is therefore impossible to open these sequences as an alignment.  If"
                 " you want to open the sequences individually, specify 'false' as the value"
                 " of the 'oneAlignment' keyword in the 'open' command.")
-        #mgr.new_alignment(seqs, identify_as if identify_as is not None else fname,
-        #    align_attrs=file_attrs, align_markups=file_markups)
+        session.alignments.new_alignment(seqs, identify_as if identify_as is not None else fname,
+            align_attrs=file_attrs, align_markups=file_markups)
     else:
         for seq in seqs:
-            mgr.new_alignment([seq], identify_as if identify_as is not None else fname)
+            session.alignments.new_alignment([seq],
+                identify_as if identify_as is not None else fname)
     return [], "Opened %d sequences from %s" % (len(seqs), fname)
 
 def make_readable(seq_name):
