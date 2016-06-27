@@ -390,6 +390,9 @@ class Session:
     def get_state_manager(self, tag):
         return self._state_containers[tag]
 
+    def delete_state_manager(self, tag):
+        del self._state_containers[tag]
+
     def replace_attribute(self, attribute_name, value):
         """Explictly replace attribute with alternate implementation"""
         object.__setattr__(self, attribute_name, value)
