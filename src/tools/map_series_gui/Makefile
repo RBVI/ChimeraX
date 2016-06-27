@@ -19,7 +19,7 @@ TOOL_DISPLAY_NAME = Map Series
 TOOL_CATEGORY = Hidden
 TOOL_FILE_TYPES =
 TOOL_SESSION_VERSIONS = 1,1
-TOOL_CUSTOM_INIT = false
+TOOL_CUSTOM_INIT = true
 TOOL_SYNOPSIS = Play through density map time series
 COMMAND_NAME = 
 

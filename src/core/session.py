@@ -394,6 +394,10 @@ class Session:
         """Explictly replace attribute with alternate implementation"""
         object.__setattr__(self, attribute_name, value)
 
+    def delete_attribute(self, attribute_name):
+        """Explictly delete attribute"""
+        object.__delattr__(self, attribute_name)
+
     def snapshot_methods(self, object, instance = True):
         """Return an object having take_snapshot() and restore_snapshot() methods for the given object.
         Can return if no save/restore methods are available, for instance for primitive types.
