@@ -186,7 +186,8 @@ class Markers:
   def set_markers(self, markers):
 
     changed = (len(markers) != len(self.markers) or
-               [m1 for m1, m2 in zip(markers, self.markers) if m1.xy != m2.xy or m1.rgba != m2.rgba])
+               [m1 for m1, m2 in zip(markers, self.markers)
+                if tuple(m1.xy) != tuple(m2.xy) or tuple(m1.rgba) != tuple(m2.rgba)])
     if changed:
       for m in self.markers:
         m.unplot(self.scene)
@@ -393,7 +394,7 @@ class Marker:
   #
   def set_color(self, rgba, canvas):
 
-    if rgba == self.rgba:
+    if tuple(rgba) == tuple(self.rgba):
       return
 
     self.rgba = rgba
