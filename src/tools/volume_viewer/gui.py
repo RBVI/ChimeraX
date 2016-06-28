@@ -311,6 +311,23 @@ class VolumeViewer(ToolInstance):
         self.redisplay_in_progress = False
     
     # ---------------------------------------------------------------------------
+    # Update display even if immediate redisplay mode is off.
+    # This is used when the pressing return in entry fields.
+    #
+    def redisplay_cb(self, event = None):
+
+      #
+      # TODO: probably want to avoid recursive shows just like in
+      #  redisplay_needed_cb().  The purpose of avoiding recursive
+      #  redisplay is to accumulate many (eg threshold) changes made
+      #  when system is responding slowly, so each one does not require
+      #  a separate redisplay.
+      #
+      if self.active_volume:
+        self.show_using_dialog_settings(self.active_volume,
+                                        recreate_thresholds = True)
+    
+    # ---------------------------------------------------------------------------
     #
     def show_using_dialog_settings(self, data_region, recreate_thresholds = False):
 
@@ -606,23 +623,6 @@ class Volume_Dialog:
     sop = self.surface_options_panel
     sop.rendering_options_from_gui(ro)
     return ro
-    
-  # ---------------------------------------------------------------------------
-  # Update display even if immediate redisplay mode is off.
-  # This is used when the pressing return in entry fields.
-  #
-  def redisplay_cb(self, event = None):
-
-    #
-    # TODO: probably want to avoid recursive shows just like in
-    #  redisplay_needed_cb().  The purpose of avoiding recursive
-    #  redisplay is to accumulate many (eg threshold) changes made
-    #  when system is responding slowly, so each one does not require
-    #  a separate redisplay.
-    #
-    if self.active_volume:
-      self.show_using_dialog_settings(self.active_volume,
-                                      recreate_thresholds = True)
 
   # ---------------------------------------------------------------------------
   #
@@ -1485,7 +1485,7 @@ class Thresholds_Panel(PopupPanel):
 
     frame = self.frame
 
-    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton
+    from PyQt5.QtWidgets import QVBoxLayout, QFrame
     from PyQt5.QtCore import Qt
 
     layout = QVBoxLayout(frame)
@@ -1502,40 +1502,6 @@ class Thresholds_Panel(PopupPanel):
     
 #    b = self.make_close_button(frame)
 #    b.grid(row = row, column = 1, sticky = 'e')
-
-    # Range and color line.
-    rcf = QFrame(frame)
-    layout.addWidget(rcf)
-    rclayout = QHBoxLayout(rcf)
-    rclayout.setContentsMargins(0,0,0,0)
-    
-    self.range_label = rh = QLabel('Range', rcf)
-    rclayout.addWidget(rh)
-    
-    self.data_range = rn = QLabel('? - ?', rcf)
-    rclayout.addWidget(rn)
-#    rn['font'] = non_bold_font(frame)    # Use bold only on headings.
-    
-    lh = QLabel('Level', rcf)
-    rclayout.addWidget(lh)
-    rclayout.addSpacing(-5)	# Reduce padding to following entry field
-
-    self.threshold = le = QLineEdit('', rcf)
-    le.setMaximumWidth(40)
-    le.returnPressed.connect(self.threshold_entry_enter_cb)
-    rclayout.addWidget(le)
-
-    ch = QLabel(rcf, text = 'Color')
-    rclayout.addWidget(ch)
-    rclayout.addSpacing(-10)	# Reduce padding to following color button
-    
-    self.color = cl = QPushButton(rcf)
-    cl.setMaximumSize(16,16)
-    cl.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-    cl.clicked.connect(self.show_color_chooser)
-    rclayout.addWidget(cl)    
-
-    rclayout.addStretch(1)
 
     # Configure widgets for surface representation.
     self.representation_changed('surface')
@@ -1568,9 +1534,7 @@ class Thresholds_Panel(PopupPanel):
       del hptable[hp.data_region]
     else:
       # Make new histogram
-      hp = Histogram_Pane(self.dialog, self.histograms_frame,
-                          self.histogram_height,
-                          self.set_threshold_and_color_widgets)
+      hp = Histogram_Pane(self.dialog, self.histograms_frame, self.histogram_height)
       self.histograms_layout.addWidget(hp.frame)
       self.histogram_panes.append(hp)
 
@@ -1655,12 +1619,10 @@ class Thresholds_Panel(PopupPanel):
       return
 
 #    hp.update_threshold_gui(self.dialog.message)
-    hp.update_threshold_gui(None)
+    hp.update_threshold_gui(message_cb = None)
 
     if activate or hp.data_region is self.dialog.active_volume:
       self.set_active_data(hp)
-      self.set_threshold_and_color_widgets(hp)
-      self.update_data_range(volume)
 
   # ---------------------------------------------------------------------------
   #
@@ -1669,44 +1631,6 @@ class Thresholds_Panel(PopupPanel):
     hp = self.histogram_table.get(data_region, None)
     if hp:
       hp.update_histogram(read_matrix, self.dialog.message)
-      if data_region is active_volume(self.dialog.session):
-        self.update_data_range(data_region)
-
-  # ---------------------------------------------------------------------------
-  #
-  def update_data_range(self, volume = None, delay = 0.5):
-
-    # Delay data range update so graphics window update is not slowed when
-    # flipping through data planes.
-    if delay > 0:
-      timer = self.update_timer
-      if not timer is None:
-          timer.stop()
-          self.update_timer = None
-      def update_cb(v=volume, s=self):
-        s.update_timer = None
-        s.update_data_range(v, delay = 0)
-      from PyQt5.QtCore import QTimer
-      self.update_timer = timer = QTimer(self.frame)
-      timer.setSingleShot(True)
-      timer.timeout.connect(update_cb)
-      timer.start(int(delay*1000))
-      return
-
-    if volume is None:
-      volume = active_volume()
-      if volume is None:
-        return
-
-    s = volume.matrix_value_statistics(read_matrix = False)
-    if s is None or s.minimum is None or s.maximum is None:
-      min_text = max_text = '?'
-    else:
-      min_text = float_format(s.minimum, 3)
-      max_text = float_format(s.maximum, 3)
-    self.data_range.setText('%s - %s' % (min_text, max_text))
-
-    self.range_label.setToolTip('value type %s' % str(volume.data.value_type))
 
   # ---------------------------------------------------------------------------
   #
@@ -1715,74 +1639,6 @@ class Thresholds_Panel(PopupPanel):
     hp = self.active_histogram()
     if hp:
       hp.update_size_and_step((ijk_min, ijk_max, ijk_step))
-
-  # ---------------------------------------------------------------------------
-  #
-  def threshold_entry_enter_cb(self):
-
-    hp = self.active_histogram()
-    if hp is None:
-      return
-
-    markers, m = hp.selected_histogram_marker()
-    if m == None:
-      return
-
-    threshold = m.xy[0]
-    te = self.threshold.text()
-    if float_format(threshold, 3) != te:
-      try:
-        t = float(te)
-      except ValueError:
-        return
-      m.xy = (t, m.xy[1])
-      markers.update_plot()
-
-      self.dialog.redisplay_cb()
-
-  # ---------------------------------------------------------------------------
-  #
-  def show_color_chooser(self):
-      from PyQt5.QtWidgets import QColorDialog
-      from PyQt5.QtGui import QColor, QPalette
-      from PyQt5.QtCore import Qt
-      cd = QColorDialog(self.frame)
-      cd.setOptions(QColorDialog.ShowAlphaChannel)
-      bg_color = self.color.palette().color(QPalette.Window)
-      cd.setCurrentColor(bg_color)
-      cd.colorSelected.connect(self.color_changed_cb)
-      cd.show()
-      
-  # ---------------------------------------------------------------------------
-  #
-  def color_changed_cb(self, color):
-
-    hp = self.active_histogram()
-    if hp is None:
-      return
-    
-    markers, m = hp.selected_histogram_marker()
-    if m:
-      rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
-      m.set_color(rgba, markers.canvas)	# Set histogram marker color
-      from .histogram import hex_color_name
-      self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
-    self.dialog.redisplay_needed_cb()
-
-  # ---------------------------------------------------------------------------
-  #
-  def set_threshold_and_color_widgets(self, hp):
-
-    if hp != self.active_histogram():
-      return
-    
-    markers, m = hp.selected_histogram_marker()
-    if m:
-      threshold = m.xy[0]
-      t_str = float_format(threshold, 3)
-      self.threshold.setText(t_str)
-      from .histogram import hex_color_name
-      self.color.setStyleSheet('background-color: %s' % hex_color_name(m.rgba[:3]))
 
   # ---------------------------------------------------------------------------
   #
@@ -1826,17 +1682,15 @@ class Thresholds_Panel(PopupPanel):
 #
 class Histogram_Pane:
 
-  def __init__(self, dialog, parent, histogram_height,
-               show_threshold_and_color_cb):
+  def __init__(self, dialog, parent, histogram_height):
 
     self.dialog = dialog
     self.data_region = None
-    self.show_threshold_and_color_cb = show_threshold_and_color_cb
     self.histogram_data = None
     self.histogram_size = None
     self.update_timer = None
 
-    from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu
+    from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtCore import Qt, QSize
 
@@ -1873,6 +1727,7 @@ class Histogram_Pane:
     dsm.setMenu(sm)
     layout.addWidget(dsm)
 
+    # Display / hide map button
     self.shown = sh = QPushButton(df)
     sh.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sh.setMaximumSize(20,20)
@@ -1888,8 +1743,29 @@ class Histogram_Pane:
     sh.setToolTip('Display or undisplay data')
     self.shown_handlers = []
 
+    # Color button
+    self.color = cl = QPushButton(df)
+    cl.setMaximumSize(16,16)
+    cl.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+    cl.clicked.connect(self.show_color_chooser)
+    layout.addWidget(cl)    
+
+    # Threshold level entry
+    lh = QLabel('Level', df)
+    layout.addWidget(lh)
+    layout.addSpacing(-5)	# Reduce padding to following entry field
+
+    self.threshold = le = QLineEdit('', df)
+    le.setMaximumWidth(40)
+    le.returnPressed.connect(self.threshold_entry_enter_cb)
+    layout.addWidget(le)
+
+    self.data_range = rn = QLabel('? - ?', df)
+    layout.addWidget(rn)
+
     layout.addStretch(1)
 
+    # Close map button
     cb = QPushButton(df)
     cb.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     cb.setMaximumSize(20,20)
@@ -2021,7 +1897,7 @@ class Histogram_Pane:
   def select_marker_cb(self):
 
     self.select_data_cb()
-    self.show_threshold_and_color_cb(self)
+    self.set_threshold_and_color_widgets()
 
   # ---------------------------------------------------------------------------
   #
@@ -2124,7 +2000,7 @@ class Histogram_Pane:
       if changed:
           sol.show(solid)
           surf.show(not solid)
-          self.show_threshold_and_color_cb(self)
+          self.set_threshold_and_color_widgets()
 
   # ---------------------------------------------------------------------------
   #
@@ -2141,6 +2017,81 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
+  def show_color_chooser(self):
+      from PyQt5.QtWidgets import QColorDialog
+      from PyQt5.QtGui import QColor, QPalette
+      from PyQt5.QtCore import Qt
+      cd = QColorDialog(self.frame)
+      cd.setOptions(QColorDialog.ShowAlphaChannel)
+      bg_color = self.color.palette().color(QPalette.Window)
+      cd.setCurrentColor(bg_color)
+      cd.colorSelected.connect(self.color_changed_cb)
+      cd.show()
+      
+  # ---------------------------------------------------------------------------
+  #
+  def color_changed_cb(self, color):
+
+    markers, m = self.selected_histogram_marker()
+    if m:
+      rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
+      m.set_color(rgba, markers.canvas)	# Set histogram marker color
+      from .histogram import hex_color_name
+      self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
+    self.dialog.redisplay_needed_cb()
+
+  # ---------------------------------------------------------------------------
+  #
+  def threshold_entry_enter_cb(self):
+
+    markers, m = self.selected_histogram_marker()
+    if m is None:
+      return
+
+    threshold = m.xy[0]
+    te = self.threshold.text()
+    if float_format(threshold, 3) != te:
+      try:
+        t = float(te)
+      except ValueError:
+        return
+      m.xy = (t, m.xy[1])
+      markers.update_plot()
+
+      self.dialog.redisplay_cb()
+
+  # ---------------------------------------------------------------------------
+  #
+  def update_data_range(self, delay = 0.5):
+
+    volume = self.data_region
+    if volume is None:
+        return
+
+    s = volume.matrix_value_statistics(read_matrix = False)
+    if s is None or s.minimum is None or s.maximum is None:
+      min_text = max_text = '?'
+    else:
+      min_text = float_format(s.minimum, 3)
+      max_text = float_format(s.maximum, 3)
+    dr = self.data_range
+    dr.setText('%s - %s' % (min_text, max_text))
+    dr.setToolTip('value type %s' % str(volume.data.value_type))
+
+  # ---------------------------------------------------------------------------
+  #
+  def set_threshold_and_color_widgets(self):
+
+    markers, m = self.selected_histogram_marker()
+    if m:
+      threshold = m.xy[0]
+      t_str = float_format(threshold, 3)
+      self.threshold.setText(t_str)
+      from .histogram import hex_color_name
+      self.color.setStyleSheet('background-color: %s' % hex_color_name(m.rgba[:3]))
+
+  # ---------------------------------------------------------------------------
+  #
   def update_threshold_gui(self, message_cb):
 
     read_matrix = False
@@ -2148,6 +2099,7 @@ class Histogram_Pane:
 
     self.update_size_and_step()
     self.update_shown_icon()
+    self.set_threshold_and_color_widgets()
 
     self.plot_surface_levels()
     self.plot_solid_levels()
@@ -2255,6 +2207,8 @@ class Histogram_Pane:
     first_bin_center, last_bin_center, bin_size = s.bin_range(bins)
     self.solid_thresholds.set_user_x_range(first_bin_center, last_bin_center)
     self.surface_thresholds.set_user_x_range(first_bin_center, last_bin_center)
+
+    self.update_data_range()
   
   # ---------------------------------------------------------------------------
   #
