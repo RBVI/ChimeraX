@@ -60,6 +60,13 @@ class PlanesMouseMode(MouseMode):
             move_plane(v, self.axis, self.side, int(istep))
 #            self.frame_number = _frameNumber
 
+    def wheel(self, event):
+        self.mouse_down(event)
+        v = self.map
+        if v:
+            d = event.wheel_value()
+            move_plane(v, self.axis, self.side, d)
+
     def mouse_up(self, event):
         self.map = None
         self.ijk = None
