@@ -117,7 +117,7 @@ class VolumeViewer(ToolInstance):
         #                  Display_Options_Panel, Solid_Options_Panel,
         #                  Surface_Options_Panel)
 
-        panel_classes = [Thresholds_Panel, Display_Style_Panel]
+        panel_classes = [Thresholds_Panel]
 
         self.gui_panels = panels = [pc(self, parent) for pc in panel_classes]
         #p.frame.grid(row = row, column = 0, sticky = 'news')
@@ -228,9 +228,9 @@ class VolumeViewer(ToolInstance):
 
         elif type == 'representation changed':
           tp.update_panel_widgets(v, activate = False)
-          if v is self.active_volume:
-            dsp = self.display_style_panel
-            dsp.update_panel_widgets(v)
+#          if v is self.active_volume:
+#            dsp = self.display_style_panel
+#            dsp.update_panel_widgets(v)
 
         elif type == 'region changed':
           if tp.histogram_shown(v):
@@ -1670,11 +1670,13 @@ class Thresholds_Panel(PopupPanel):
     
   # ---------------------------------------------------------------------------
   #
-  def use_gui_settings(self, data_region):
+  def use_gui_settings(self, volume):
 
-    hp = self.histogram_table.get(data_region, None)
-    if hp and hp.histogram_shown:
-      hp.set_threshold_parameters_from_gui()
+    hp = self.histogram_table.get(volume, None)
+    if hp:
+        if hp.histogram_shown:
+            hp.set_threshold_parameters_from_gui()
+        volume.set_representation(hp.representation)
   
 # -----------------------------------------------------------------------------
 # Manages histogram and heading with data name, step size, shown indicator,
@@ -1713,6 +1715,7 @@ class Histogram_Pane:
     layout.addWidget(sz)
     sz.mousePressEvent = self.select_data_cb
 
+    # Subsampling step menu
     sl = QLabel('step', df)
     layout.addWidget(sl)
     layout.addSpacing(-7)
@@ -1762,6 +1765,18 @@ class Histogram_Pane:
 
     self.data_range = rn = QLabel('? - ?', df)
     layout.addWidget(rn)
+
+    # Display style menu
+    self.style = stm = QPushButton(df)
+    stm.setStyleSheet('padding-left: 4px; padding-right: 0px;')
+    stm.setMaximumSize(90,20)
+    # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
+    stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+    sm = QMenu()
+    for style in ('surface', 'mesh', 'image'):
+        sm.addAction(style, lambda s=style: self.representation_changed_cb(s))
+    stm.setMenu(sm)
+    layout.addWidget(stm)
 
     layout.addStretch(1)
 
@@ -1990,6 +2005,29 @@ class Histogram_Pane:
     shpix = QPixmap(join(dirname(__file__), fname))
     s.setIcon(QIcon(shpix))
     s.setChecked(shown)
+
+  def get_repr(self):
+      style = self.style.text()
+      if style == 'image':
+          style = 'solid'
+      return style
+  def set_repr(self, repr):
+      if repr == 'solid':
+          repr = 'image'
+      self.style.setText(repr)
+  representation = property(get_repr, set_repr)
+  
+  # ---------------------------------------------------------------------------
+  # Notify all panels that representation changed so they can update gui if
+  # it depends on the representation.
+  #
+  def representation_changed_cb(self, style):
+
+      print ('repr changed', style)
+      self.style.setText(style)
+      d = self.dialog
+      d.representation_changed(style)
+      d.redisplay_needed_cb()
       
   # ---------------------------------------------------------------------------
   #
@@ -2103,9 +2141,7 @@ class Histogram_Pane:
 
     self.plot_surface_levels()
     self.plot_solid_levels()
-    rep = self.data_region.representation
-    if rep is None:
-      rep = self.dialog.display_style_panel.representation
+    self.representation = rep = self.data_region.representation
     self.solid_mode(rep == 'solid')
     
   # ---------------------------------------------------------------------------
