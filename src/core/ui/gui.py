@@ -1021,6 +1021,7 @@ else:
             # subsequent calls
             self._hide_tools = ht
             if ht == True:
+                icon = self._contract_icon
                 self._hide_tools_shown_states = states = {}
                 for tool_windows in self.tool_instance_to_windows.values():
                     for tw in tool_windows:
@@ -1029,10 +1030,13 @@ else:
                         if state:
                             tw._mw_set_shown(False)
             else:
+                icon = self._expand_icon
                 for tw, state in self._hide_tools_shown_states.items():
                     if state:
                         tw.shown = True
                 self._hide_tools_shown_states.clear()
+
+            self._global_hide_button.setIcon(icon)
 
 
         hide_tools = property(_get_hide_tools, _set_hide_tools)
@@ -1081,23 +1085,22 @@ else:
             sb.addWidget(self._primary_status_label)
             sb.addPermanentWidget(self._secondary_status_label)
             self._global_hide_button = ghb = QToolButton(sb)
-            from PyQt5.QtCore import Qt
-            ghb.setArrowType(Qt.UpArrow)
+            from PyQt5.QtGui import QIcon
+            import os.path
+            cur_dir = os.path.dirname(__file__)
+            self._expand_icon = QIcon(os.path.join(cur_dir, "expand1.png"))
+            self._contract_icon = QIcon(os.path.join(cur_dir, "contract1.png"))
+            ghb.setIcon(self._expand_icon)
             ghb.setCheckable(True)
             from PyQt5.QtWidgets import QAction
             but_action = QAction(ghb)
             but_action.setCheckable(True)
-            but_action.toggled.connect(self._hide_toggle)
+            but_action.toggled.connect(lambda checked: setattr(self, 'hide_tools', checked))
+            but_action.setIcon(self._expand_icon)
             ghb.setDefaultAction(but_action)
             sb.addPermanentWidget(ghb)
             sb.showMessage("Welcome to Chimera X")
             self.setStatusBar(sb)
-
-        def _hide_toggle(self, checked):
-            self.hide_tools = checked
-            from PyQt5.QtCore import Qt
-            arrow = Qt.DownArrow if checked else Qt.UpArrow
-            self._global_hide_button.setArrowType(arrow)
 
         def _new_tool_window(self, tw):
             if self.hide_tools:

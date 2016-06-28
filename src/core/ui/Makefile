@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PYSRCS= $(wildcard *.py)
 PKG_DIR= $(PYSITEDIR)/chimerax/core/ui
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/ui
-DATA = splash.jpg
+DATA = splash.jpg contract*.png expand*.png
 
 all: $(PYOBJS)
 
