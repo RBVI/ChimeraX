@@ -15,10 +15,10 @@ _prefs = None
 class _CoreSettings(Settings):
 
     EXPLICIT_SAVE = {
-        # autostart map_series_gui until alternate means of installing
-        # trigger is found
-        'autostart': ['molecule_display_shortcuts', 'log', 'model panel',
-                      'mouse_modes', 'graphics_shortcuts', 'cmd_line', 'map_series_gui', 'cellpack'],
+        'autostart': [
+            'molecule_display_shortcuts', 'log', 'model panel',
+            'mouse_modes', 'graphics_shortcuts', 'cmd_line', 'cellpack'
+        ],
         'atomspec_contents': 'simple', # choices: simple, command-line specifier, serial number
         'bg_color': configfile.Value(
             Color('#000'), commands.ColorArg, Color.hex_with_alpha),

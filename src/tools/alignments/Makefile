@@ -1,26 +1,26 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimerax.map_series_gui
+SUBDIRS = io
+
+include $(TOP)/mk/subdir.make
+
+PKG_NAME = chimerax.seqalign
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = User interface for density map series
-# Example:
-# PKG_NAME = chimerax.cmd_line
-# PKG_VERSION = 1.0
-# PKG_DESCRIPTION = ChimeraX command line interface
+PKG_DESCRIPTION = Sequence Alignments
 
 # For many cases, only a single tool and a single command
 # is provided by a package.  Variables below are designed
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
-TOOL_NAME = map_series_gui
-TOOL_PKG_NAME = chimerax.map_series_gui
-TOOL_DISPLAY_NAME = Map Series
+TOOL_NAME = alignments
+TOOL_PKG_NAME = chimerax.seqalign
+TOOL_DISPLAY_NAME = Sequence Alignments
 TOOL_CATEGORY = Hidden
-TOOL_FILE_TYPES =
+TOOL_FILE_TYPES = FASTA:Sequence alignment:.fasta
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = true
-TOOL_SYNOPSIS = Play through density map time series
+TOOL_SYNOPSIS = Sequence alignment support
 COMMAND_NAME = 
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
@@ -31,7 +31,7 @@ shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
 PYSRCS = $(wildcard *.py)
-DATAFILES = half.png play.png pause.png
+DATAFILES = 
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
@@ -48,7 +48,7 @@ app-install: wheel
 
 wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
-	rm -rf $(TOOL_NAME).egg-info
+	rm -rf $(PKG_NAME).egg-info
 
 setup.py: setup.py.in Makefile
 	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
@@ -56,6 +56,8 @@ setup.py: setup.py.in Makefile
 		-e 's,SHLIB_DIR,$(shlibdir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
+		-e 's,#$(OS)#,,' \
+		-e 's,#$(OSARCH)#,,' \
 		-e 's,TOOL_NAME,$(TOOL_NAME),' \
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \

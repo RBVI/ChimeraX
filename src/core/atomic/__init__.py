@@ -1,4 +1,4 @@
-from .molobject import Atom, Bond, Chain, Element, Pseudobond, Residue, \
+from .molobject import Atom, Bond, Chain, Element, Pseudobond, Residue, Sequence, \
 	add_to_object_map, PseudobondManager, ChangeTracker
 from .molarray import Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, Residues, concatenate
 from .structure import AtomicStructure, Structure, LevelOfDetail

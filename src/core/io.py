@@ -23,7 +23,7 @@ __all__ = [
     'formats',
     'open_data',
     'open_multiple_data',
-    'prefixes',
+    'short_names',
     'extensions',
     'open_function',
     'export_function',
@@ -100,17 +100,21 @@ class _FileFormatInfo:
         Sequence of filename extensions in lowercase
         starting with period (or empty)
 
-    ..attribute:: prefixes
+    ..attribute:: short_names
 
-        sequence of URL-style prefixes (or empty)
+        Short names for format.
 
     ..attribute:: mime_types
 
-        sequence of associated MIME types (or empty)
+        Sequence of associated MIME types (or empty)
 
     ..attribute:: reference
 
         URL reference to specification
+
+    ..attribute:: encoding
+
+        None if a binary format (default), otherwise text encoding, *e.g.*, **utf-8**
 
     ..attribute:: dangerous
 
@@ -122,7 +126,7 @@ class _FileFormatInfo:
 
     ..attribute:: open_func
 
-        function that opens files: func(session, stream/filename, name=None)
+        Function that opens files: func(session, stream/filename, name=None)
 
     ..attribute:: requires_filename
 
@@ -130,22 +134,23 @@ class _FileFormatInfo:
 
     ..attribute:: export_func
 
-        function that exports files: func(stream)
+        Function that exports files: func(stream)
 
     ..attribute:: export_notes
 
-        additional information to show in export dialogs
+        Additional information to show in export dialogs
     """
 
-    def __init__(self, category, extensions, prefixes, mime, reference,
-                 dangerous, icon):
+    def __init__(self, category, extensions, short_names, mime, reference,
+                 dangerous, icon, encoding):
         self.category = category
         self.extensions = extensions
-        self.prefixes = prefixes
+        self.short_names = short_names
         self.mime_types = mime
         self.reference = reference
         self.dangerous = dangerous
         self.icon = icon
+        self.encoding = encoding
 
         self.open_func = None
         self.requires_filename = False
@@ -156,8 +161,9 @@ class _FileFormatInfo:
 _file_formats = {}
 
 
-def register_format(format_name, category, extensions, prefixes=(), mime=(),
-                    reference=None, dangerous=None, icon=None, **kw):
+def register_format(format_name, category, extensions, short_names=None,
+                    *, mime=(), reference=None, dangerous=None, icon=None,
+                    encoding=None, **kw):
     """Register file format's I/O functions and meta-data
 
     :param format_name: format's name
@@ -165,8 +171,8 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
     :param extensions: is a sequence of filename suffixes starting
        with a period.  If the format doesn't open from a filename
        (*e.g.*, PDB ID code), then extensions should be an empty sequence.
-    :param prefixes: is a sequence of filename prefixes (no ':'),
-       possibily empty.
+    :param short_names: abbreviated names for the format.  If not given,
+       it defaults to a lowercase version of the format name.
     :param mime: is a sequence of mime types, possibly empty.
     :param reference: a URL link to the specification.
     :param dangerous: should be True for formats that can write/delete
@@ -184,21 +190,23 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
         exts = [s.lower() for s in extensions]
     else:
         exts = ()
-    if prefixes is None:
-        prefixes = ()
-    elif isinstance(prefixes, str):
-        prefixes = [prefixes]
+    if short_names is None:
+        short_names = (format_name.casefold(),)
+    elif isinstance(short_names, str):
+        short_names = [short_names]
     if mime is None:
         mime = ()
     elif isinstance(mime, str):
         mime = [mime]
-    ff = _file_formats[format_name] = _FileFormatInfo(category, exts, prefixes,
-                                                      mime, reference,
-                                                      dangerous, icon)
-    for attr in ['open_func', 'requires_filename',
-                 'export_func', 'export_notes', 'batch']:
-        if attr in kw:
+    ff = _file_formats[format_name] = _FileFormatInfo(
+        category, exts, short_names, mime, reference, dangerous, icon, encoding)
+    other_kws = set(['open_func', 'requires_filename',
+                     'export_func', 'export_notes', 'batch'])
+    for attr in kw:
+        if attr in other_kws:
             setattr(ff, attr, kw[attr])
+        else:
+            raise TypeError('Unexpected keyword argument %r' % attr)
 
 
 def formats():
@@ -206,13 +214,13 @@ def formats():
     return list(_file_formats.keys())
 
 
-def prefixes(format_name):
-    """Return filename prefixes for named format.
+def short_names(format_name):
+    """Return short names for named format.
 
-    prefixes(format_name) -> [filename-prefix(es)]
+    short_names(format_name) -> short versions of name
     """
     try:
-        return _file_formats[format_name].prefixes
+        return _file_formats[format_name].short_names
     except KeyError:
         return ()
 
@@ -316,6 +324,17 @@ def icon(format_name):
         return None
 
 
+def encoding(format_name):
+    """Return named format's encoding
+
+    Returns None if binary.
+    """
+    try:
+        return _file_formats[format_name].encoding
+    except KeyError:
+        return None
+
+
 def category(format_name):
     """Return category of named format"""
     try:
@@ -370,7 +389,7 @@ def deduce_format(filename, has_format=None):
         # Allow has_format to be a file type prefix.
         if has_format not in _file_formats:
             for t, info in _file_formats.items():
-                if has_format in info.prefixes:
+                if has_format in info.short_names:
                     has_format = t
                     break
         format_name = has_format
@@ -440,7 +459,12 @@ def open_data(session, filespec, format=None, name=None, **kw):
     open_func = open_function(format_name)
     if open_func is None:
         raise UserError("unable to open %s files" % format_name)
-    filename, dname, stream = _compressed_open(filename, compression, 'rb')
+    enc = encoding(format_name)
+    if enc is None:
+        mode = 'rb'
+    else:
+        mode = 'rt'
+    filename, dname, stream = _compressed_open(filename, compression, mode, encoding=enc)
     if requires_filename(format_name) and not filename:
         # copy compressed file to real file
         import tempfile
@@ -512,17 +536,27 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
 
 
 def export(session, filename, **kw):
-    from .safesave import SaveBinaryFile, SaveFile
+    from .safesave import SaveBinaryFile, SaveTextFile, SaveFile
     format_name, filename, compression = deduce_format(filename)
     func = export_function(format_name)
+    enc = encoding(format_name)
     if not compression:
-        with SaveBinaryFile(filename) as stream:
-            return func(session, stream, **kw)
+        if enc is None:
+            with SaveBinaryFile(filename) as stream:
+                return func(session, stream, **kw)
+        else:
+            with SaveTextFile(filename) as stream:
+                return func(session, stream, encoding=enc, **kw)
     else:
         stream_type = _compression[compression]
 
+        if enc is None:
+            mode = 'wb'
+        else:
+            mode = 'wt'
+
         def open_compressed(filename):
-            return stream_type(filename, 'wb')
+            return stream_type(filename, mode=mode, encoding=enc)
         with SaveFile(filename, open=open_compressed) as stream:
             return func(session, stream, **kw)
 

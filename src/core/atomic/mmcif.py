@@ -121,7 +121,7 @@ def register_mmcif_format():
     # mmCIF uses same file suffix as CIF
     # PDB uses chemical/x-cif when serving CCD files
     # io.register_format(
-    #     "CIF", structure.CATEGORY, (), ("cif", "cifID"),
+    #     "CIF", structure.CATEGORY, (), ("cif",),
     #     mime=("chemical/x-cif"),
     #    reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
     io.register_format(

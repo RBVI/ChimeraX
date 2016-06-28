@@ -1883,6 +1883,27 @@ extern "C" EXPORT void set_sequence_characters(void *seqs, size_t n, pyobject_t 
     }
 }
 
+extern "C" EXPORT void sequence_extend(void *seq, const char *chars)
+{
+    Sequence *s = static_cast<Sequence *>(seq);
+    try {
+        s->extend(chars);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT size_t sequence_len(void *seq)
+{
+    Sequence *s = static_cast<Sequence *>(seq);
+    try {
+        return s->size();
+    } catch (...) {
+        molc_error();
+        return 0;
+    }
+}
+
 extern "C" EXPORT void sequence_name(void *seqs, size_t n, pyobject_t *names)
 {
     Sequence **s = static_cast<Sequence **>(seqs);

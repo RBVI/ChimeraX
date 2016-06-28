@@ -257,11 +257,20 @@ class MapSeries(ToolInstance):
 
 def show_slider_on_open(session):
     # Register callback to show slider when a map series is opened
-    if not hasattr(session, '_registered_map_series_slider'):
-        session._registered_map_series_slider = True
-        from chimerax.core.models import ADD_MODELS
-        session.triggers.add_handler(
-            ADD_MODELS, lambda name, m, s=session: models_added_cb(m, s))
+    if hasattr(session, '_map_series_slider_handler'):
+        return
+    from chimerax.core.models import ADD_MODELS
+    session._map_series_slider_handler = session.triggers.add_handler(
+        ADD_MODELS, lambda name, m, s=session: models_added_cb(m, s))
+
+
+def remove_slider_on_open(session):
+    # Remove callback to show slider when a map series is opened
+    if not hasattr(session, '_map_series_slider_handler'):
+        return
+    handler = session._map_series_slider_handler
+    session.delete_attribute('_map_series_slider_handler')
+    session.triggers.delete_handler(handler)
 
 
 def models_added_cb(models, session):

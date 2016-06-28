@@ -376,7 +376,7 @@ def init(argv, event_loop=True):
     from chimerax.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
     sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
-    sess.toolshed.bootstrap_bundles(session)
+    sess.toolshed.bootstrap_bundles(sess)
     from chimerax.core import tools
     sess.add_state_manager('tools', tools.Tools(sess, first=True))  # access with sess.tools
     from chimerax.core import tasks

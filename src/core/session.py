@@ -390,9 +390,16 @@ class Session:
     def get_state_manager(self, tag):
         return self._state_containers[tag]
 
+    def delete_state_manager(self, tag):
+        del self._state_containers[tag]
+
     def replace_attribute(self, attribute_name, value):
         """Explictly replace attribute with alternate implementation"""
         object.__setattr__(self, attribute_name, value)
+
+    def delete_attribute(self, attribute_name):
+        """Explictly delete attribute"""
+        object.__delattr__(self, attribute_name)
 
     def snapshot_methods(self, object, instance = True):
         """Return an object having take_snapshot() and restore_snapshot() methods for the given object.
@@ -615,8 +622,7 @@ def open(session, stream, *args, **kw):
 def _initialize():
     from . import io
     io.register_format(
-        "ChimeraX session", io.SESSION, SESSION_SUFFIX,
-        prefixes="ses",
+        "ChimeraX session", io.SESSION, SESSION_SUFFIX, ("ses",),
         mime="application/x-chimerax-session",
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)

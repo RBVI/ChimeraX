@@ -812,12 +812,9 @@ class Toolshed:
         graph = make_graph(all.values())
         if graph.missing:
             _debug("graph.missing", graph.missing)
+            from ..commands import commas
             for d, req_list in graph.missing.items():
-                if len(req_list) == 1:
-                    s = repr(req_list[0])
-                else:
-                    s = " and ".join(", ".join([repr(r) for r in req_list[:-1]]),
-                                     repr(req_list[-1]))
+                s = commas([repr(r) for r in req_list], " and ")
                 logger.warning("\"%s\" needs %s" % (d.name, s))
             return True
         else:

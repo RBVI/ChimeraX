@@ -122,12 +122,12 @@ def open_command_script(session, filename, name, *args, **kw):
 def register():
     from . import io
     io.register_format(
-        "Python", io.SCRIPT, (".py", ".pyc", ".pyo"), ("py",),
+        "Python code", io.SCRIPT, (".py", ".pyc", ".pyo"), ("py",),
         mime=('text/x-python', 'application/x-python-code'),
         reference="http://www.python.org/",
         open_func=open_python_script)
     io.register_format(
-        "ChimeraX", io.SCRIPT, (".cxc",), ("cmd",),
+        "ChimeraX commands", io.SCRIPT, (".cxc",), ("cmd",),
         mime=('text/x-chimerax', 'application/x-chimerax-code'),
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open_command_script)

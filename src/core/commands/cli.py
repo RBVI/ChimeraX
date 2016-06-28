@@ -1455,7 +1455,6 @@ class CmdDesc:
     :param non_keyword: sequence of optional arguments that cannot be keywords
     :param url: URL to help page
     :param synopsis: one line description
-    :param official: True if officially supported command
 
     .. data: function
 
@@ -1473,12 +1472,12 @@ class CmdDesc:
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
         '_required_arguments', '_postconditions', '_function',
-        'url', 'synopsis', 'official'
+        'url', 'synopsis'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
                  postconditions=(), required_arguments=(),
-                 non_keyword=(), url=None, synopsis=None, official=False):
+                 non_keyword=(), url=None, synopsis=None):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = OrderedDict(keyword)
@@ -1491,7 +1490,6 @@ class CmdDesc:
         self._required_arguments = required_arguments
         self.url = url
         self.synopsis = synopsis
-        self.official = official
         self._function = None
 
     @property
@@ -1696,11 +1694,6 @@ def register(name, cmd_desc=(), function=None, logger=None):
 
     if isinstance(cmd_desc, tuple):
         cmd_desc = CmdDesc(*cmd_desc)
-
-    # TODO:
-    # if production_release and not cmd_desc.official:
-    #    # don't have unoffical commands in official releases
-    #    return
 
     words = name.split()
     name = ' '.join(words)  # canonicalize

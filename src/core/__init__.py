@@ -45,6 +45,7 @@ _class_class_init = {
     'Pseudobonds': '.atomic',
     'Residue': '.atomic',
     'Residues': '.atomic',
+    'Sequence': '.atomic',
     'STLModel': '.stl',
     'Structure': '.atomic',
     'Tasks': '.tasks',
