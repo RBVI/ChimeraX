@@ -622,8 +622,7 @@ def open(session, stream, *args, **kw):
 def _initialize():
     from . import io
     io.register_format(
-        "ChimeraX session", io.SESSION, SESSION_SUFFIX,
-        prefixes="ses",
+        "ChimeraX session", io.SESSION, SESSION_SUFFIX, ("ses",),
         mime="application/x-chimerax-session",
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)
