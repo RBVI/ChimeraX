@@ -18,7 +18,6 @@ def boxes(session, volume, atoms, size = 0, isize = None, use_atom_size = False,
         ijk_max = [min(s,t) for s,t in zip(ijk_max, ijk_rmax)]
         region = (ijk_min, ijk_max, ijk_step)
         from ..volume import is_empty_region
-        print ('box region', region, is_empty_region(region))
         if is_empty_region(region):
             continue
         from ..data import Grid_Subregion
