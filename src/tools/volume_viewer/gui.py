@@ -1481,7 +1481,7 @@ class Thresholds_Panel(PopupPanel):
     self.active_hist = None             # Histogram_Pane
     self.active_order = []              # Histogram_Panes
     self.active_color = 'white'
-    self.delayed_update = None
+    self.update_timer = None
 
     frame = self.frame
 
@@ -1646,10 +1646,10 @@ class Thresholds_Panel(PopupPanel):
     if activate:
       if volume or len(self.histogram_table) == 0:
         self.add_histogram_pane(volume)
-    
+
     if volume is None:
       return
-    
+
     hp = self.histogram_table.get(volume, None)
     if hp is None:
       return
@@ -1678,15 +1678,19 @@ class Thresholds_Panel(PopupPanel):
 
     # Delay data range update so graphics window update is not slowed when
     # flipping through data planes.
-    delay = 0
     if delay > 0:
-      f = self.frame
-      if not self.delayed_update is None:
-        f.after_cancel(self.delayed_update)
-      def update_cb(s=self):
-        s.delayed_update = None
-        s.update_data_range(delay = 0)
-      self.delayed_update = f.after(int(delay*1000), update_cb)
+      timer = self.update_timer
+      if not timer is None:
+          timer.stop()
+          self.update_timer = None
+      def update_cb(v=volume, s=self):
+        s.update_timer = None
+        s.update_data_range(v, delay = 0)
+      from PyQt5.QtCore import QTimer
+      self.update_timer = timer = QTimer(self.frame)
+      timer.setSingleShot(True)
+      timer.timeout.connect(update_cb)
+      timer.start(int(delay*1000))
       return
 
     if volume is None:
@@ -1830,7 +1834,7 @@ class Histogram_Pane:
     self.show_threshold_and_color_cb = show_threshold_and_color_cb
     self.histogram_data = None
     self.histogram_size = None
-    self.delayed_update = None
+    self.update_timer = None
 
     from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu
     from PyQt5.QtGui import QPixmap, QIcon
@@ -1984,7 +1988,7 @@ class Histogram_Pane:
     sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1, self.select_marker_cb)
     self.solid_thresholds = sdt
 
-    gv.mousePressEvent = self.select_data_cb
+    gv.click_callbacks.append(self.select_data_cb)
 #    c.bind('<Configure>', self.canvas_resize_cb)
 #    c.bind("<ButtonPress>", self.select_data_cb, add = True)
 #    c.bind("<ButtonPress-1>", self.select_data_cb, add = True)
@@ -2100,23 +2104,27 @@ class Histogram_Pane:
       return
 
     shown = v.shown()
-#    if shown == self.shown.isChecked():
-#        return
     fname = 'shown.png' if shown else 'hidden.png'
+    s = self.shown
+    if fname == getattr(s, 'file_name', None):
+        return
+    s.file_name = fname
     from os.path import join, dirname
     from PyQt5.QtGui import QPixmap, QIcon
     shpix = QPixmap(join(dirname(__file__), fname))
-    s = self.shown
     s.setIcon(QIcon(shpix))
     s.setChecked(shown)
       
   # ---------------------------------------------------------------------------
   #
   def solid_mode(self, solid):
-
-    self.solid_thresholds.show(solid)
-    self.surface_thresholds.show(not solid)
-    self.show_threshold_and_color_cb(self)
+      sol = self.solid_thresholds
+      surf = self.surface_thresholds
+      changed = (solid != sol.shown or (not solid) != surf.shown)
+      if changed:
+          sol.show(solid)
+          surf.show(not solid)
+          self.show_threshold_and_color_cb(self)
 
   # ---------------------------------------------------------------------------
   #
@@ -2160,14 +2168,17 @@ class Histogram_Pane:
 
     ijk_min, ijk_max, ijk_step = region
     size = [a-b+1 for a,b in zip(ijk_max, ijk_min)]
-    self.size.setText(size_text(size))
+    stext = size_text(size)
+    if stext != self.size.text():
+        self.size.setText(stext)
 
     step = step_text(ijk_step)
     ds = self.data_step
 #    if not step in ds.values:
 #      ds.add_entry(step)
     # TODO: Block step change callback.
-    ds.setText(step)
+    if step != ds.text():
+        ds.setText(step)
     
   # ---------------------------------------------------------------------------
   #
@@ -2204,15 +2215,19 @@ class Histogram_Pane:
 
     # Delay histogram update so graphics window update is not slowed when
     # flipping through data planes.
-    delay = 0
     if delay > 0:
-      f = self.frame
-      if not self.delayed_update is None:
-        f.after_cancel(self.delayed_update)
+      timer = self.update_timer
+      if not timer is None:
+          timer.stop()
+          self.update_timer = None
       def update_cb(s=self, rm=read_matrix, m=message_cb, rz=resize):
-        s.delayed_update = None
+        s.update_timer = None
         s.update_histogram(rm, m, rz, delay = 0)
-      self.delayed_update = f.after(int(delay*1000), update_cb)
+      from PyQt5.QtCore import QTimer, Qt
+      self.update_timer = timer = QTimer(self.frame)
+      timer.setSingleShot(True)
+      timer.timeout.connect(update_cb)
+      timer.start(int(delay*1000))
       return
 
     s = v.matrix_value_statistics(read_matrix)

@@ -7,17 +7,21 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     Parameters
     ----------
     filename : string
-        A path to a file (relative to the current directory), or a database id code to
-        fetch prefixed by the database name, for example, pdb:1a0m, mmcif:1jj2, emdb:1080.
-        A 4-letter id that is not a local file is interpreted as an mmCIF fetch.
+        A path to a file (relative to the current directory), or a database id
+        code to fetch prefixed by the database name, for example, pdb:1a0m,
+        mmcif:1jj2, emdb:1080.  A 4-letter id that is not a local file is
+        interpreted as an mmCIF fetch.
     format : string
-        Read the file using this format, instead of using the file suffix to infer the format.
+        Read the file using this format, instead of using the file suffix to
+        infer the format.
     name : string
         Name to use for data set.  If none specified then filename is used.
     from_database : string
-        Database to fetch from. The filename is treated as a database identifier.
+        Database to fetch from. The filename is treated as a database
+        identifier.
     ignore_cache : bool
-        Whether to fetch files from cache.  Fetched files are always written to cache.
+        Whether to fetch files from cache.  Fetched files are always written
+        to cache.
     '''
 
     if ':' in filename:
@@ -60,7 +64,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         return models
 
     if format is not None:
-        format = format_from_prefix(format)
+        format = format_from_short_name(format)
 
     from os.path import exists
     if exists(filename):
@@ -84,26 +88,31 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     return models
 
 
-def format_from_prefix(prefix):
+def format_from_short_name(name):
     from .. import io
-    formats = [f for f in io.formats() if prefix in io.prefixes(f)]
-    return formats[0]
+    formats = [f for f in io.formats() if name in io.short_names(f)]
+    if formats:
+        return formats[0]
+    return None
 
 
 def open_formats(session):
     '''Report file formats, suffixes and databases that the open command knows about.'''
     if session.ui.is_gui:
-        lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Suffixes']
+        lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Short name(s)<th>Suffixes']
     else:
-        session.logger.info('File format, Suffixes:')
+        session.logger.info('File format, Short name(s), Suffixes:')
     from .. import io
+    from . import commas
     formats = list(io.formats())
-    formats.sort(key=lambda f: tuple(io.prefixes(f)))
+    formats.sort()
     for f in formats:
         if session.ui.is_gui:
-            lines.append('<tr><td>%s<td>%s' % (' or '.join(io.prefixes(f)), ', '.join(io.extensions(f))))
+            lines.append('<tr><td>%s<td>%s<td>%s' % (f,
+                commas(io.short_names(f)), ', '.join(io.extensions(f))))
         else:
-            session.logger.info('    %s: %s' % (' or '.join(io.prefixes(f)), ', '.join(io.extensions(f))))
+            session.logger.info('    %s: %s: %s' % (f,
+                commas(io.short_names(f)), ', '.join(io.extensions(f))))
     if session.ui.is_gui:
         lines.append('</table>')
         lines.append('<p></p>')
@@ -140,8 +149,8 @@ def register_command(session):
 
     def formats():
         from .. import io
-        prefixes = sum((tuple(io.prefixes(f)) for f in io.formats()), ())
-        return prefixes
+        names = sum((tuple(io.short_names(f)) for f in io.formats()), ())
+        return names
 
     def db_formats():
         from .. import fetch

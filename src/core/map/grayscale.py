@@ -128,6 +128,11 @@ class GrayScaleDrawing(Drawing):
     self.set_grid_size(grid_size)
     self.update_colors = True
 
+  def set_color_mode(self, color_mode):
+    if color_mode != self.color_mode:
+      self.color_mode = color_mode
+      self.remove_planes()
+      
   def set_grid_size(self, grid_size):
     if grid_size != self.grid_size:
       self.remove_planes()

@@ -266,7 +266,7 @@ def show_slider_on_open(session):
 
 def remove_slider_on_open(session):
     # Remove callback to show slider when a map series is opened
-    if not hasattr(session, '_map_series_slider_handler', None):
+    if not hasattr(session, '_map_series_slider_handler'):
         return
     handler = session._map_series_slider_handler
     session.delete_attribute('_map_series_slider_handler')

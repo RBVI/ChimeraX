@@ -1145,7 +1145,7 @@ class Volume(Model):
         sa = ijk_max[a] - ijk_min[a] + 1
         if sa < s:
           ds = s-sa
-          o = (ds+1)/2 if ijk_fmax[a] - ijk_max[a] > ijk_min[a] - ijk_fmin[a] else ds/2
+          o = (ds+1)//2 if ijk_fmax[a] - ijk_max[a] > ijk_min[a] - ijk_fmin[a] else ds//2
           ijk_max[a] += o
           ijk_min[a] -= ds - o
     if clamp:
@@ -2892,6 +2892,6 @@ def open_map(session, stream, *args, **kw):
 def register_map_file_readers():
     from .. import io
     from .data.fileformats import file_types
-    for d,t,prefixes,suffixes,batch in file_types:
+    for d,t,short_names,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
-      io.register_format(d, io.VOLUME, suf, prefixes=prefixes, open_func=open_map, batch=batch)
+      io.register_format(d, io.VOLUME, suf, short_names=short_names, open_func=open_map, batch=batch)

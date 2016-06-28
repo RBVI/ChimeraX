@@ -213,7 +213,9 @@ class Solid:
       def get_color_plane(axis, plane,
                           self = self, cmap = cmap, cmap_range = cmap_range):
         return self.color_values(axis, plane, cmap, cmap_range)
-      self.drawing.set_color_plane_callback(self.size, get_color_plane)
+      d = self.drawing
+      d.set_color_plane_callback(self.size, get_color_plane)
+      d.set_color_mode(self.color_mode)
     else:
       colors = self.color_values()
       self.drawing.set_volume_colors(colors)

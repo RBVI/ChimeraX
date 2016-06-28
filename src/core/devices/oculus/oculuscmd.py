@@ -16,10 +16,6 @@ def oculus(session, enable, pan_speed = None):
     pan_speed : float
       Controls how far the camera moves in response to tranlation head motion.  Default 5.
     '''
-    from chimerax.core import window_sys
-    if window_sys == 'qt':
-        session.logger.info('Oculus Rift not currently supported on Qt.')
-        return
     
     if enable:
         start_oculus(session)
