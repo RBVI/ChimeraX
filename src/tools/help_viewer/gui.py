@@ -166,7 +166,7 @@ class HelpUI(ToolInstance):
             QDesktopServices.setUrlHandler("cxcmd", self, "link_clicked")
             """
             self.help_window.loadFinished.connect(self.page_loaded)
-            self.help_window.titleChanged.connect(self.tool_window.set_title)
+            self.help_window.titleChanged.connect(lambda title: setattr(self.tool_window, title))
             self.search.returnPressed.connect(lambda s=self.search, hw=self.help_window:
                 hw.findText(s.text(), hw.page().FindWrapsAroundDocument))
 

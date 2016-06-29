@@ -113,7 +113,7 @@ class MapSeries(ToolInstance):
         if len(sname) > 50:
             sname = sname[:50] + '...'
         self.display_name = "Map series %s" % sname
-        self.tool_window.set_title(self.display_name)
+        self.tool_window.title = self.display_name
         self.update_time(self.slider.GetValue())
 
     def size(self):

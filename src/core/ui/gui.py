@@ -915,7 +915,8 @@ else:
     sf.setRenderableType(QSurfaceFormat.OpenGL)
     QSurfaceFormat.setDefaultFormat(sf)
 
-    from PyQt5.QtWidgets import QMainWindow, QStatusBar, QStackedWidget, QLabel, QDesktopWidget
+    from PyQt5.QtWidgets import QMainWindow, QStatusBar, QStackedWidget, QLabel, QDesktopWidget, \
+        QToolButton
     class MainWindow(QMainWindow, PlainTextLog):
 
         def __init__(self, ui, session):
@@ -942,6 +943,7 @@ else:
             self.save_dialog = MainSaveDialog(self)
             ImageSaver(self.save_dialog).register()
 
+            self._hide_tools = False
             self.tool_instance_to_windows = {}
 
             self._build_status()
@@ -958,6 +960,13 @@ else:
             session.logger.add_log(self)
 
             self.show()
+
+        def adjust_size(self, delta_width, delta_height):
+            cs = self.size()
+            cww, cwh = cs.width(), cs.height()
+            ww = cww + delta_width
+            wh = cwh + delta_height
+            self.resize(ww, wh)
 
         def close_request(self, tool_window, close_event):
             tool_instance = tool_window.tool_instance
@@ -1001,12 +1010,39 @@ else:
         def file_quit_cb(self, session):
             session.ui.quit()
 
-        def adjust_size(self, delta_width, delta_height):
-            cs = self.size()
-            cww, cwh = cs.width(), cs.height()
-            ww = cww + delta_width
-            wh = cwh + delta_height
-            self.resize(ww, wh)
+        def _get_hide_tools(self):
+            return self._hide_tools
+
+        def _set_hide_tools(self, ht):
+            if ht == self._hide_tools:
+                return
+
+            # need to set _hide_tools attr first, since it will be checked in 
+            # subsequent calls
+            self._hide_tools = ht
+            if ht == True:
+                icon = self._contract_icon
+                self._hide_tools_shown_states = states = {}
+                for tool_windows in self.tool_instance_to_windows.values():
+                    for tw in tool_windows:
+                        state = tw.shown
+                        states[tw] = state
+                        if state:
+                            tw._mw_set_shown(False)
+            else:
+                icon = self._expand_icon
+                for tw, state in self._hide_tools_shown_states.items():
+                    if state:
+                        tw.shown = True
+                self._hide_tools_shown_states.clear()
+
+            self._global_hide_button.setIcon(icon)
+
+
+        hide_tools = property(_get_hide_tools, _set_hide_tools)
+
+        def log(self, *args, **kw):
+            return False
 
         def remove_tool(self, tool_instance):
             tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
@@ -1015,9 +1051,6 @@ else:
                     tw._mw_set_shown(False)
                     tw._destroy()
                 del self.tool_instance_to_windows[tool_instance]
-
-        def log(self, *args, **kw):
-            return False
 
         def set_tool_shown(self, tool_instance, shown):
             tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
@@ -1033,6 +1066,16 @@ else:
             label.setText("<font color='" + color + "'>" + msg + "</font>")
             label.show()
 
+        def _about(self, arg):
+            from PyQt5.QtWidgets import QMessageBox
+            from chimerax import app_dirs as ad
+            from .. import buildinfo
+            title = "About %s %s" % (ad.appauthor, ad.appname)
+            text = "%s %s version %s (%s)\n\n%s\n\n%s\n\n%s\n\n%s" % (ad.appauthor, ad.appname,
+                ad.version, buildinfo.date.split()[0], buildinfo.synopsis, buildinfo.web_site,
+                buildinfo.copyright, buildinfo.license)
+            QMessageBox.about(self, title, text)
+
         def _build_status(self):
             sb = QStatusBar(self)
             from PyQt5.QtWidgets import QSizePolicy
@@ -1041,10 +1084,30 @@ else:
             self._secondary_status_label = QLabel(sb)
             sb.addWidget(self._primary_status_label)
             sb.addPermanentWidget(self._secondary_status_label)
+            self._global_hide_button = ghb = QToolButton(sb)
+            from PyQt5.QtGui import QIcon
+            import os.path
+            cur_dir = os.path.dirname(__file__)
+            self._expand_icon = QIcon(os.path.join(cur_dir, "expand1.png"))
+            self._contract_icon = QIcon(os.path.join(cur_dir, "contract1.png"))
+            ghb.setIcon(self._expand_icon)
+            ghb.setCheckable(True)
+            from PyQt5.QtWidgets import QAction
+            but_action = QAction(ghb)
+            but_action.setCheckable(True)
+            but_action.toggled.connect(lambda checked: setattr(self, 'hide_tools', checked))
+            but_action.setIcon(self._expand_icon)
+            ghb.setDefaultAction(but_action)
+            sb.addPermanentWidget(ghb)
             sb.showMessage("Welcome to Chimera X")
             self.setStatusBar(sb)
 
         def _new_tool_window(self, tw):
+            if self.hide_tools:
+                self._hide_tools_shown_states[tw] = True
+                tw._mw_set_shown(False)
+                tw.tool_instance.session.logger.status("Tool display currently suppressed",
+                    color="red", blank_after=7)
             self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
         def _populate_menus(self, session):
@@ -1106,18 +1169,8 @@ else:
                 help_menu.addAction(help_action)
             from chimerax import app_dirs as ad
             about_action = QAction("About %s %s" % (ad.appauthor, ad.appname), self)
-            about_action.triggered.connect(self.about)
+            about_action.triggered.connect(self._about)
             help_menu.addAction(about_action)
-
-        def about(self, arg):
-            from PyQt5.QtWidgets import QMessageBox
-            from chimerax import app_dirs as ad
-            from .. import buildinfo
-            title = "About %s %s" % (ad.appauthor, ad.appname)
-            text = "%s %s version %s (%s)\n\n%s\n\n%s\n\n%s\n\n%s" % (ad.appauthor, ad.appname,
-                ad.version, buildinfo.date.split()[0], buildinfo.synopsis, buildinfo.web_site,
-                buildinfo.copyright, buildinfo.license)
-            QMessageBox.about(self, title, text)
 
         def _tool_window_destroy(self, tool_window):
             tool_instance = tool_window.tool_instance
@@ -1130,10 +1183,15 @@ else:
             all_windows.remove(tool_window)
 
         def _tool_window_request_shown(self, tool_window, shown):
+            if self.hide_tools:
+                def set_shown(win, show):
+                    self._hide_tools_shown_states[win] = show
+            else:
+                set_shown = lambda win, show: win._mw_set_shown(show)
             tool_instance = tool_window.tool_instance
             all_windows = self.tool_instance_to_windows[tool_instance]
             is_main_window = tool_window is all_windows[0]
-            tool_window._mw_set_shown(shown)
+            set_shown(tool_window, shown)
             if is_main_window:
                 for window in all_windows[1:]:
                     if shown:
@@ -1142,10 +1200,10 @@ else:
                         # show it and forget the _prev_shown attrs
                         if hasattr(window, '_prev_shown'):
                             if window._prev_shown:
-                                window._mw_set_shown(True)
+                                set_shown(window, True)
                             delattr(window, '_prev_shown')
                     else:
-                        window._mw_set_shown(False)
+                        set_shown(window, False)
 
     class ToolWindow:
         """An area that a tool can populate with widgets.
@@ -1223,10 +1281,17 @@ else:
             is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
             pass
 
-        def set_title(self, title):
+        def _get_title(self):
+            if self.__toolkit is None:
+                return ""
+            return self.__toolkit.title
+
+        def _set_title(self, title):
             if self.__toolkit is None:
                 return
             self.__toolkit.set_title(title)
+
+        title = property(_get_title, _set_title)
 
         def _destroy(self):
             self.cleanup()
