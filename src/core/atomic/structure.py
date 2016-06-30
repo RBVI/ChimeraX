@@ -394,7 +394,7 @@ class Structure(Model, StructureData):
                 if polymer_type[i] == Residue.PT_NUCLEIC:
                     rc = XSectionManager.RC_NUCLEIC
                     am_sheet = am_helix = False
-                if polymer_type[i] == Residue.PT_AMINO:
+                elif polymer_type[i] == Residue.PT_AMINO:
                     if is_sheet[i]:
                         # Define sheet SS as having higher priority over helix SS
                         if was_sheet:
