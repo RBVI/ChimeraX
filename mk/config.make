@@ -36,6 +36,24 @@ ifeq ($(OS),Windows)
 datadir = $(bindir)/share
 endif
 
+ifeq ($(OS),Linux)
+# need root CAs for https in our Python
+ifneq (,$(wildcard /etc/ssl/certs/ca-certificates.crt))
+	# Debian/Ubuntu/Gentoo etc.
+	export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+else ifneq (,$(wildcard /etc/pki/tls/certs/ca-bundle.crt))
+	# Fedora/RHEL
+	export SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt
+else ifneq (,$(wildcard /etc/ssl/ca-bundle.pem))
+	# OpenSUSE
+	export SSL_CERT_FILE=/etc/ssl/ca-bundle.pem
+else ifneq (,$(wildcard /etc/pki/tls/cacert.pem))
+	# OpenELEC
+	export SSL_CERT_FILE=/etc/pki/tls/cacert.pem
+endif
+endif
+
+
 APP_NAME = ChimeraX
 
 ifeq ($(OS),Darwin)
