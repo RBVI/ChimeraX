@@ -35,7 +35,8 @@ from ...errors import UserError as CommandError
 def register_vop_command():
 
     from ...commands import CmdDesc, register, BoolArg, NoArg, StringArg, EnumOf, IntArg, Int3Arg
-    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg, AxisArg
+    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
+    from ...commands import AxisArg, CenterArg, CoordSysArg
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
 
@@ -225,8 +226,9 @@ def register_vop_command():
                                      ('outer_radius', FloatArg),
                                      ('length', FloatArg),
                                      ('grid_spacing', FloatArg),
-                                     ('axis', Float3Arg),
-                                     ('center', Float3Arg)] + ssm_kw)
+                                     ('axis', AxisArg),
+                                     ('center', CenterArg),
+                                     ('coordinate_system', CoordSysArg)] + ssm_kw)
     register('vop unroll', unroll_desc, vop_unroll)
 
     zone_desc = CmdDesc(required = varg,
@@ -790,16 +792,30 @@ def vop_unbend(session, volumes, path, yaxis = None, xsize = None, ysize = None,
 # -----------------------------------------------------------------------------
 #
 def vop_unroll(session, volumes, inner_radius = None, outer_radius = None, length = None,
-              grid_spacing = None, axis = (0,0,1), center = (0,0,0),
+              grid_spacing = None, axis = None, center = None, coordinate_system = None,
               subregion = 'all', step = (1,1,1), model_id = None):
     '''Flatten a cylindrical shell within a map.'''
     for v in volumes:
+        a, c = axis_and_center(axis, center, coordinate_system, v.position)
         r0, r1, h = parse_cylinder_size(inner_radius, outer_radius, length,
-                                        center, axis, v, subregion, step)
+                                        c, a, v, subregion, step)
         gsp = parse_grid_spacing(grid_spacing, v, step)
         from . import unroll
-        unroll.unroll_operation(v, r0, r1, h, center, axis, gsp,
+        unroll.unroll_operation(v, r0, r1, h, c, a, gsp,
                                 subregion, step, model_id)
+
+# -----------------------------------------------------------------------------
+#
+def axis_and_center(axis, center, coordinate_system, to_coords):
+    a = (0,0,1)
+    c = (0,0,0)
+    if axis:
+        asc = axis.scene_coordinates(coordinate_system or to_coords)
+        a = to_coords.inverse().apply_without_translation(asc)
+    if center:
+        csc = center.scene_coordinates(coordinate_system or to_coords)
+        c = to_coords.position.inverse() * csc
+    return a, c
 
 # -----------------------------------------------------------------------------
 #
