@@ -700,8 +700,6 @@ def vop_resample(session, volumes, on_grid = None, bounding_grid = False,
                  grid_subregion = 'all', grid_step = 1, value_type = None,
                  model_id = None):
     '''Interoplate a map on a new grid.'''
-    if on_grid is None:
-        raise CommandError('Resample operation must specify onGrid option')
     for v in volumes:
         for gv in on_grid:
             combine_operation([v], 'add', subregion, step,
