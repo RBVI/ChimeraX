@@ -114,7 +114,7 @@ def register_vop_command():
 
     localcorr_desc = CmdDesc(required = varg,
                              keyword = [('window_size', IntArg),
-                                        ('subtract_mean', BoolArg),
+                                        ('subtract_mean', NoArg),
                                         ('model_id', ModelIdArg)])
     register('vop localCorrelation', localcorr_desc, vop_local_correlation)
 
@@ -169,7 +169,7 @@ def register_vop_command():
 
     permuteaxes_desc = CmdDesc(required = varg,
                                keyword = [('axis_order', EnumOf(('xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx')))] + ssm_kw)
-    register('vop permuteaxes', permuteaxes_desc, vop_permute_axes)
+    register('vop permuteAxes', permuteaxes_desc, vop_permute_axes)
 
     resample_desc = CmdDesc(required = varg, keyword = resample_kw)
     register('vop resample', resample_desc, vop_resample)
