@@ -2044,7 +2044,6 @@ class Histogram_Pane:
       self.style.setText(style)
       v = self.data_region
       v.show(representation = self.representation, show = v.shown())
-      self.dialog.representation_changed(self.representation)
       
   # ---------------------------------------------------------------------------
   #
