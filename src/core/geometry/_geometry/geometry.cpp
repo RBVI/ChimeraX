@@ -4,6 +4,7 @@
 
 #include "bounds.h"			// use sphere_bounds, ...
 #include "closepoints.h"		// use find_close_points, ...
+#include "cylinderrot.h"		// use cylinder_rotations
 #include "distancespy.h"		// use py_distances_from_origin, ...
 #include "intercept.h"			// use closest_geometry_intercept
 #include "spline.h"			// use natural_cubic_spline
@@ -32,6 +33,10 @@ static struct PyMethodDef geometry_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, find_closest_points_doc},
   {const_cast<char*>("find_close_points_sets"), (PyCFunction)find_close_points_sets,
    METH_VARARGS|METH_KEYWORDS, find_close_points_sets_doc},
+
+  /* cylinderrot.h */
+  {const_cast<char*>("cylinder_rotations"), (PyCFunction)cylinder_rotations,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* distancepy.h */
   {const_cast<char*>("distances_from_origin"), py_distances_from_origin, METH_VARARGS, NULL},

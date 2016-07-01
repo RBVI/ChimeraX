@@ -1715,73 +1715,40 @@ class RibbonTriangleRange:
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking one prototype cylinder to each bond location.
 #
-def _bond_cylinder_placements(axyz0, axyz1, radius):
+def _bond_cylinder_placements(axyz0, axyz1, radii):
 
   n = len(axyz0)
-  from numpy import empty, float32, transpose, sqrt, array
+  from numpy import empty, float32
   p = empty((n,4,4), float32)
-  
-  p[:,3,:] = (0,0,0,1)
-  p[:,:3,3] = 0.5*(axyz0 + axyz1)
 
-  v = axyz1 - axyz0
-  d = sqrt((v*v).sum(axis = 1))
-  for a in (0,1,2):
-    v[:,a] /= d
+  from ..geometry import cylinder_rotations
+  cylinder_rotations(axyz0, axyz1, radii, p)
 
-  c = v[:,2]
-  # TODO: Handle degenerate -z axis case
-#  if c <= -1:
-#    return ((1,0,0),(0,-1,0),(0,0,-1))      # Rotation by 180 about x
-  wx, wy = -v[:,1],v[:,0]
-  c1 = 1.0/(1+c)
-  cx,cy = c1*wx, c1*wy
-  r = radius
-  h = d
-  rs = array(((r*(cx*wx + c), r*cx*wy,  h*wy),
-              (r*cy*wx, r*(cy*wy + c), -h*wx),
-              (-r*wy, r*wx, h*c)), float32).transpose((2,0,1))
-  p[:,:3,:3] = rs
-  pt = transpose(p,(0,2,1))
+  p[:,3,:3] = 0.5*(axyz0 + axyz1)
+
   from ..geometry import Places
-  pl = Places(opengl_array = pt)
+  pl = Places(opengl_array = p)
   return pl
 
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking two prototype cylinders to each bond location.
 #
-def _halfbond_cylinder_placements(axyz0, axyz1, radius):
+def _halfbond_cylinder_placements(axyz0, axyz1, radii):
 
   n = len(axyz0)
-  from numpy import empty, float32, transpose, sqrt, array
+  from numpy import empty, float32
   p = empty((2*n,4,4), float32)
   
-  p[:,3,:] = (0,0,0,1)
-  p[:n,:3,3] = 0.75*axyz0 + 0.25*axyz1
-  p[n:,:3,3] = 0.25*axyz0 + 0.75*axyz1
+  from ..geometry import cylinder_rotations
+  cylinder_rotations(axyz0, axyz1, radii, p[:n,:,:])
+  p[n:,:,:] = p[:n,:,:]
 
-  v = axyz1 - axyz0
-  d = sqrt((v*v).sum(axis = 1))
-  for a in (0,1,2):
-    v[:,a] /= d
+  # Translations
+  p[:n,3,:3] = 0.75*axyz0 + 0.25*axyz1
+  p[n:,3,:3] = 0.25*axyz0 + 0.75*axyz1
 
-  c = v[:,2]
-  # TODO: Handle degenerate -z axis case
-#  if c <= -1:
-#    return ((1,0,0),(0,-1,0),(0,0,-1))      # Rotation by 180 about x
-  wx, wy = -v[:,1],v[:,0]
-  c1 = 1.0/(1+c)
-  cx,cy = c1*wx, c1*wy
-  r = radius
-  h = 0.5*d
-  rs = array(((r*(cx*wx + c), r*cx*wy,  h*wy),
-              (r*cy*wx, r*(cy*wy + c), -h*wx),
-              (-r*wy, r*wx, h*c)), float32).transpose((2,0,1))
-  p[:n,:3,:3] = rs
-  p[n:,:3,:3] = rs
-  pt = transpose(p,(0,2,1))
   from ..geometry import Places
-  pl = Places(opengl_array = pt)
+  pl = Places(opengl_array = p)
   return pl
 
 # -----------------------------------------------------------------------------
