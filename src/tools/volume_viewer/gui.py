@@ -763,11 +763,11 @@ class Volume_Dialog:
 #
 class PopupPanel:
 
-  def __init__(self, parent, resize_dialog = True):
+  def __init__(self, parent, resize_dialog = True, scrollable = False):
 
-    from PyQt5.QtWidgets import QFrame
+    from PyQt5.QtWidgets import QFrame, QScrollArea
 
-    self.frame = QFrame(parent)
+    self.frame = QScrollArea(parent) if scrollable else QFrame(parent)
 
 #        v = BooleanVariable(parent)
 #        self.panel_shown_variable = v
@@ -1473,7 +1473,7 @@ class Thresholds_Panel(PopupPanel):
 
     self.dialog = dialog
 
-    PopupPanel.__init__(self, parent)
+    PopupPanel.__init__(self, parent, scrollable = True)
 
     self.histogram_height = 64
     self.histogram_panes = []
@@ -1485,20 +1485,26 @@ class Thresholds_Panel(PopupPanel):
 
     frame = self.frame
 
-    from PyQt5.QtWidgets import QVBoxLayout, QFrame
+    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QLabel
     from PyQt5.QtCore import Qt
 
-    layout = QVBoxLayout(frame)
-    layout.setContentsMargins(0,0,0,0)
-    layout.setSpacing(0)
+#    layout = QVBoxLayout(frame)
+#    layout.setContentsMargins(0,0,0,0)
+#    layout.setSpacing(0)
     
     # Histograms frame
     self.histograms_frame = hf = QFrame(frame)
-    layout.addWidget(hf, stretch=1)
+#    layout.addWidget(hf, stretch=1)
     self.histograms_layout = hl = QVBoxLayout(hf)
+#    hl.setSizeConstraint(QVBoxLayout.SetFixedSize)
+    hl.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
     hl.setContentsMargins(0,0,0,0)
     hl.setSpacing(0)
     hl.addStretch(1)
+#    frame.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    frame.setWidget(hf)	# Set scrollable child.
+    frame.setWidgetResizable(True)	# Resize child to fit in scroll area -- really only want width resized.
+    hf.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     
 #    b = self.make_close_button(frame)
 #    b.grid(row = row, column = 1, sticky = 'e')
@@ -1536,6 +1542,7 @@ class Thresholds_Panel(PopupPanel):
       # Make new histogram
       hp = Histogram_Pane(self.dialog, self.histograms_frame, self.histogram_height)
       self.histograms_layout.addWidget(hp.frame)
+#      self.histograms_frame.adjustSize()	# Need this for scrolled area to update
       self.histogram_panes.append(hp)
 
     hp.set_data_region(dr)
@@ -1692,16 +1699,19 @@ class Histogram_Pane:
     self.histogram_size = None
     self.update_timer = None
 
-    from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit
+    from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit, QSizePolicy
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtCore import Qt, QSize
 
     self.frame = f = QFrame(parent)
+    f.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
     flayout = QVBoxLayout(f)
     flayout.setContentsMargins(0,0,0,0)
     flayout.setSpacing(0)
     
     df = QFrame(f)
+    df.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+#    df.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Minimum)
     flayout.addWidget(df)
     layout = QHBoxLayout(df)
     layout.setContentsMargins(0,0,0,0)
@@ -1838,7 +1848,7 @@ class Histogram_Pane:
     #
     # set highlight thickness = 0 so line in column 0 is visible.
     #
-    from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene
+    from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QSizePolicy
     from PyQt5.QtCore import Qt
 
     class Canvas(QGraphicsView):
@@ -1860,8 +1870,16 @@ class Histogram_Pane:
     self.canvas = gv = Canvas(frame)
     gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    gv.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+#    gv.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+#    gv.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+
+    gv.setMinimumHeight(50)
+#    gv.setMinimumWidth(550)
     self.scene = gs = QGraphicsScene(gv)
-    gs.setSceneRect(0, 0, 500, 100)
+#    gs.setSceneRect(0, 0, 500, 100)
+    gs.setSceneRect(0, 0, 550, 50)
+#    gs.setSceneRect(0, 0, 750, 50)
     gv.setScene(gs)
     
 #    c = Tkinter.Canvas(frame, height = histogram_height,
