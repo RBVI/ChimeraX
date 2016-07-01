@@ -221,10 +221,9 @@ class VolumeViewer(ToolInstance):
             tp.update_histograms(v)
 
         elif type == 'displayed':
-          if tp.histogram_shown(v):
-            # Histogram, data range, and initial thresholds are only displayed
-            #  after data is shown to avoid reading data file for undisplayed data.
-            tp.update_panel_widgets(v, activate = False)
+          # Histogram, data range, and initial thresholds are only displayed
+          #  after data is shown to avoid reading data file for undisplayed data.
+          tp.update_panel_widgets(v, activate = False)
 
         elif type == 'representation changed':
           tp.update_panel_widgets(v, activate = False)
@@ -1807,13 +1806,16 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def set_data_region(self, data_region):
+  def set_data_region(self, volume):
 
-    self.data_region = data_region
+    if volume == self.data_region:
+        return
+
+    self.data_region = volume
     self.histogram_shown = False
     self.histogram_data = None
     self.show_data_name()
-    # if data_region:
+    # if volume:
     #   if not self.shown_handlers:
     #     from chimera import triggers, openModels as om
     #     h = [(tset, tname, tset.addHandler(tname, self.check_shown_cb, None))
@@ -1821,9 +1823,10 @@ class Histogram_Pane:
     #                              (om.triggers, om.ADDMODEL))]
     #     self.shown_handlers = h
 
-    new_marker_color = data_region.default_rgba if data_region else (1,1,1,1)
+    new_marker_color = volume.default_rgba if volume else (1,1,1,1)
     self.surface_thresholds.new_marker_color = new_marker_color
     self.solid_thresholds.new_marker_color = saturate_rgba(new_marker_color)
+    self.update_threshold_gui()
 
   # ---------------------------------------------------------------------------
   #
@@ -2145,19 +2148,19 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def update_threshold_gui(self, message_cb):
+  def update_threshold_gui(self, message_cb = None):
 
     read_matrix = False
     self.update_histogram(read_matrix, message_cb)
 
     self.update_size_and_step()
     self.update_shown_icon()
-    self.set_threshold_and_color_widgets()
 
     self.plot_surface_levels()
     self.plot_solid_levels()
     self.representation = rep = self.data_region.representation
     self.solid_mode(rep == 'solid')
+    self.set_threshold_and_color_widgets()
     
   # ---------------------------------------------------------------------------
   #
