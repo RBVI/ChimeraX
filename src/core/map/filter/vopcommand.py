@@ -172,7 +172,8 @@ def register_vop_command():
                                keyword = ssm_kw)
     register('vop permuteAxes', permuteaxes_desc, vop_permute_axes)
 
-    resample_desc = CmdDesc(required = varg, keyword = resample_kw)
+    resample_desc = CmdDesc(required = varg, keyword = resample_kw,
+                            required_arguments = ['on_grid'])
     register('vop resample', resample_desc, vop_resample)
 
     ridges_desc = CmdDesc(required = varg,
