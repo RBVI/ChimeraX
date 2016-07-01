@@ -167,8 +167,9 @@ def register_vop_command():
                             keyword = oct_kw + ssm_kw)
     register('vop ~octant', unoctant_desc, vop_octant_complement)
 
-    permuteaxes_desc = CmdDesc(required = varg,
-                               keyword = [('axis_order', EnumOf(('xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx')))] + ssm_kw)
+    aoarg = [('axis_order', EnumOf(('xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx')))]
+    permuteaxes_desc = CmdDesc(required = varg + aoarg,
+                               keyword = ssm_kw)
     register('vop permuteAxes', permuteaxes_desc, vop_permute_axes)
 
     resample_desc = CmdDesc(required = varg, keyword = resample_kw)
