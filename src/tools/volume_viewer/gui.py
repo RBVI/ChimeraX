@@ -2041,11 +2041,10 @@ class Histogram_Pane:
   #
   def representation_changed_cb(self, style):
 
-      print ('repr changed', style)
       self.style.setText(style)
-      d = self.dialog
-      d.representation_changed(style)
-      d.redisplay_needed_cb()
+      v = self.data_region
+      v.show(representation = self.representation, show = v.shown())
+      self.dialog.representation_changed(self.representation)
       
   # ---------------------------------------------------------------------------
   #
@@ -2094,7 +2093,7 @@ class Histogram_Pane:
       m.set_color(rgba, markers.canvas)	# Set histogram marker color
       from .histogram import hex_color_name
       self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
-    self.dialog.redisplay_needed_cb()
+      self.set_threshold_parameters_from_gui(show = True)
 
   # ---------------------------------------------------------------------------
   #
@@ -2113,8 +2112,7 @@ class Histogram_Pane:
         return
       m.xy = (t, m.xy[1])
       markers.update_plot()
-
-      self.dialog.redisplay_cb()
+      self.set_threshold_parameters_from_gui(show = True)
 
   # ---------------------------------------------------------------------------
   #
@@ -2288,7 +2286,7 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def set_threshold_parameters_from_gui(self):
+  def set_threshold_parameters_from_gui(self, show = False):
 
     v = self.data_region
     if v is None:
@@ -2300,6 +2298,8 @@ class Histogram_Pane:
     markers = self.solid_thresholds.markers
     v.solid_levels = [m.xy for m in markers]
     v.solid_colors = [m.rgba for m in markers]
+    if show and v.shown():
+        v.show()
 
   # ---------------------------------------------------------------------------
   # Delete widgets and references to other objects.
