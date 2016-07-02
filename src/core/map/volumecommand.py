@@ -332,6 +332,8 @@ def volume(session,
                                          'z' in orthoplanes)
     if not position_planes is None:
         rsettings['orthoplane_positions'] = position_planes
+    if outline_box_rgb:
+        rsettings['outline_box_rgb'] = tuple(outline_box_rgb.rgba[:3])
 
     for v in vlist:
         apply_volume_options(v, dsettings, rsettings, session)

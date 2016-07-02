@@ -805,7 +805,7 @@ class Volume(Model):
     '''
     Show an outline box enclosing the displayed subregion of the volume.
     '''
-    if show and rgb:
+    if show and rgb is not None:
       from .data import box_corners
       ijk_corners = box_corners(*self.ijk_bounds())
       corners = self.data.ijk_to_xyz_transform * ijk_corners
@@ -1922,7 +1922,7 @@ class Outline_Box:
   def show(self, corners, rgb, linewidth,
            center = None, planes = None, crosshair_width = None):
 
-    if not corners is None and rgb:
+    if not corners is None and not rgb is None:
       from numpy import any
       changed = (self.corners is None or
                  any(corners != self.corners) or
