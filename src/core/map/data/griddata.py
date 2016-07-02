@@ -74,8 +74,7 @@ class Grid_Data:
 
     self.rgba = default_color            # preferred color for displaying data
 
-    global data_cache
-    self.data_cache = data_cache
+    self.data_cache = None
 
     self.writable = False
     self.change_callbacks = []
@@ -466,9 +465,3 @@ def norm(v):
   from math import sqrt
   d = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
   return d
-
-# -----------------------------------------------------------------------------
-# Default data cache.
-#
-from . import datacache
-data_cache = datacache.Data_Cache(size = 0)

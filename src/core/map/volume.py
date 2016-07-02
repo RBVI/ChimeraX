@@ -2707,13 +2707,30 @@ def default_settings(session):
     from . import defaultsettings
     session.volume_defaults = defaultsettings.Volume_Default_Settings()
   return session.volume_defaults
-  
+
+# -----------------------------------------------------------------------------
+#
+def set_data_cache(grid_data, session):
+  if not grid_data.path:
+    return	# No caching for in-memory maps
+
+  dc = getattr(session, '_volume_data_cache', None)
+  if dc is None:
+    ds = default_settings(session)
+    size = ds['data_cache_size'] * (2**20)
+    from .data import datacache
+    session._volume_data_cache = dc = datacache.Data_Cache(size = size)
+
+  grid_data.data_cache = dc
+
 # -----------------------------------------------------------------------------
 # Open and display a map using Volume Viewer.
 #
 def volume_from_grid_data(grid_data, session, representation = None,
                           open_model = True, model_id = None,
                           show_data = True, show_dialog = True):
+
+  set_data_cache(grid_data, session)
 
   # Set display style
   if representation is None:
