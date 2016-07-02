@@ -232,12 +232,12 @@ def register_vop_command():
     register('vop unroll', unroll_desc, vop_unroll)
 
     zone_desc = CmdDesc(required = varg,
-                        keyword = [('atoms', AtomsArg),
-                                   ('radius', FloatArg),
+                        keyword = [('near_atoms', AtomsArg),
+                                   ('range', FloatArg),
                                    ('bond_point_spacing', FloatArg),
-                                   ('minimal_bounds', BoolArg),
-                                   ('invert', BoolArg)] + ssm_kw,
-                        required_arguments=('atoms', 'radius'))
+                                   ('minimal_bounds', NoArg),
+                                   ('invert', NoArg)] + ssm_kw,
+                        required_arguments=('near_atoms', 'range'))
     register('vop zone', zone_desc, vop_zone)
 
 # -----------------------------------------------------------------------------
@@ -905,18 +905,18 @@ def submatrix_center(v, xyz_center, index_center, subregion, step):
 
 # -----------------------------------------------------------------------------
 #
-def vop_zone(session, volumes, atoms = None, radius = None, bond_point_spacing = None,
+def vop_zone(session, volumes, near_atoms = None, range = None, bond_point_spacing = None,
             minimal_bounds = False, invert = False,
             subregion = 'all', step = 1, model_id = None):
 
 # TODO: atoms and radius args are required, but cli.py requires default values since they are keywords params
 
     '''Mask a map keeping only parts close to specified atoms.'''
-    if len(atoms) == 0:
+    if len(near_atoms) == 0:
         raise CommandError('no atoms specified for zone')
 
     for v in volumes:
-        zone_operation(v, atoms, radius, bond_point_spacing,
+        zone_operation(v, near_atoms, range, bond_point_spacing,
                        minimal_bounds, invert, subregion, step, model_id)
 
 # -----------------------------------------------------------------------------
