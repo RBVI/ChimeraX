@@ -215,7 +215,7 @@ def zone_masked_grid_data(grid_data, zone_points, zone_radius,
                           invert_mask = False, minimal_bounds = False,
                           zone_point_mask_values = None):
 
-  if minimal_bounds:
+  if minimal_bounds and not invert_mask:
     from .regions import points_ijk_bounds, clamp_region, integer_region
     r = points_ijk_bounds(zone_points, zone_radius, grid_data)
     r = clamp_region(integer_region(r), grid_data.size)
