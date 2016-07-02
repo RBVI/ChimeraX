@@ -51,7 +51,7 @@ def register_volume_command():
                ('mask_zone', BoolArg),
                ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
                ('append', BoolArg),
-               ('compress', BoolArg),
+               ('compress', NoArg),
                ('base_index', IntArg),
 # Global options.
                ('data_cache_size', FloatArg),
