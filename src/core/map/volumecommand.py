@@ -441,9 +441,9 @@ def apply_volume_options(v, doptions, roptions, session):
             v.show()
     elif v.shown():
         v.show()
-# TODO: If it has a surface but it is undisplayed, do I need to recalculate it?
-#    else:
-#        v.update_display()
+    else:
+        # Update the model even if it is hidden.
+        v.update_display()
 
     if 'dump_header' in doptions and doptions['dump_header']:
         show_file_header(v.data, session.logger)
