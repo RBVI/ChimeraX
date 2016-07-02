@@ -88,6 +88,7 @@ def register_command(session):
                                    ('bond_point_spacing', FloatArg),
                                    ('max_components', IntArg),
                                    ('update', BoolArg)],
+                        required_arguments = ['near_atoms'],
                         synopsis = 'show surface near atoms')
     register('sop zone', zone_desc, sop_zone)
 
@@ -382,8 +383,6 @@ def sop_zone(session, surfaces, near_atoms = None, range = 2,
     if len(surfaces) == 0:
         raise UserError('No surfaces specified')
     atoms = near_atoms
-    if atoms is None:
-        raise UserError('Must specify "near" option: sop zone #1 near #2')
     if len(atoms) == 0:
         raise UserError('No atoms specified')
 
