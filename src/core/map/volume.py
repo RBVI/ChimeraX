@@ -1923,12 +1923,12 @@ class Outline_Box:
            center = None, planes = None, crosshair_width = None):
 
     if not corners is None and not rgb is None:
-      from numpy import any
+      from numpy import array_equal
       changed = (self.corners is None or
-                 any(corners != self.corners) or
+                 not array_equal(corners, self.corners) or
                  rgb != self.rgb or
                  linewidth != self.linewidth or
-                 (center is not None and any(center != self.center)) or
+                 not array_equal(center, self.center) or
                  planes != self.planes or
                  crosshair_width != self.crosshair_width)
       if changed:
