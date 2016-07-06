@@ -872,11 +872,21 @@ def show_triangle_count(session):
     from chimerax.core.atomic import AtomicStructure
     mols = [m for m in models if isinstance(m, AtomicStructure)]
 
-    na = sum(sum(m.atoms.displays) for m in mols if m.display)
-    nt = sum(sum(m.atoms.displays) * len(m._atoms_drawing.triangles)
-             for m in mols if m.display and m._atoms_drawing)
+    na = nt = 0
+    for m in mols:
+        ad = m._atoms_drawing
+        if m.display and ad:
+            dp = ad.display_positions
+            if dp is not None:
+                nma = dp.sum()
+                na += nma
+                if ad:
+                    nt += nma * len(ad.triangles)
+
     n = len(models)
-    msg = '%d models, %d atoms, %d atom triangles' % (n, na, nt)
+    nat = sum([m.number_of_triangles(displayed_only = True) for m in mols])
+
+    msg = '%d models, %d atoms, %d atom triangles, all triangles %d' % (n, na, nt, nat)
     log = session.logger
     log.status(msg)
     log.info(msg)
