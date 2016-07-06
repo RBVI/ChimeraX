@@ -50,7 +50,7 @@ def color(session, objects, color=None, what=None,
     default_target = (target is None and what is None)
     if default_target:
         target = 'acsmnlbd'
-    if 'r' in target:
+    if target and 'r' in target:
         target += 'c'
 
     if what is not None:
