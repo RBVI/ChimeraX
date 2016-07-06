@@ -29,8 +29,8 @@ class="clRight" alt="ChimeraX logo"/></a>
 The <b>sop</b> command performs operations on surface models.
 See also: <a href="surface.html"><b>surface</b></a>,
 <a href="show.html"><b>show</b></a>,
-<b>volume</b>,
-<b>vop</b>
+<a href="volume.html"><b>volume</b></a>,
+<a href="vop.html"><b>vop</b></a>
 </p><p>
 The <i>operation</i> can be:
 </p>
@@ -79,18 +79,14 @@ and blobs at or above the cutoff size will be displayed completely
   <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
   [&nbsp;<b>range</b>&nbsp;<i>radius</i>&nbsp;]
   [&nbsp;<b>maxComponents</b>&nbsp;<i>N</i>&nbsp;]
-<!--
   [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
--->
 <blockquote>
 Show only parts of the surface(s) within <i>radius</i> 
 (default <b>2.0</b> &Aring;) of
 any atom in <a href="atomspec.html"><i>atom-spec</i></a>.
-<!--
-If <b>bondPointSpacing</b> is specified, use points along bonds 
-(spaced <i>s</i> &times; bond radius apart)
+If <b>bondPointSpacing</b> is specified, use points 
+spaced <i>s</i> &Aring; apart along bonds
 in addition to the atoms to define the zone.
--->
 The <b>maxComponents</b> option indicates hiding all but
 the <i>N</i> largest connected surface patches in the zone; 
 by removing the visual clutter of small patches,

@@ -65,17 +65,17 @@ def register_compression(suffix, stream_type):
 def _init_compression():
     try:
         import gzip
-        register_compression('.gz', gzip.GzipFile)
+        register_compression('.gz', gzip.open)
     except ImportError:
         pass
     try:
         import bz2
-        register_compression('.bz2', bz2.BZ2File)
+        register_compression('.bz2', bz2.open)
     except ImportError:
         pass
     try:
         import lzma
-        register_compression('.xz', lzma.LZMAFile)
+        register_compression('.xz', lzma.open)
     except ImportError:
         pass
 _init_compression()
