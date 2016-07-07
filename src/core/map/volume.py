@@ -2714,14 +2714,18 @@ def set_data_cache(grid_data, session):
   if not grid_data.path:
     return	# No caching for in-memory maps
 
+  grid_data.data_cache = data_cache(session)
+
+# -----------------------------------------------------------------------------
+#
+def data_cache(session):
   dc = getattr(session, '_volume_data_cache', None)
   if dc is None:
     ds = default_settings(session)
     size = ds['data_cache_size'] * (2**20)
     from .data import datacache
     session._volume_data_cache = dc = datacache.Data_Cache(size = size)
-
-  grid_data.data_cache = dc
+  return dc
 
 # -----------------------------------------------------------------------------
 # Open and display a map using Volume Viewer.

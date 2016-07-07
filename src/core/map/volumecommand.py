@@ -301,7 +301,7 @@ def volume(session,
             'show_plane', 'voxel_limit_for_plane')
     gsettings = dict((n,loc[n]) for n in gopt if not loc[n] is None)
     if gsettings:
-        apply_global_settings(gsettings)
+        apply_global_settings(session, gsettings)
 
     if len(gsettings) == 0 and len(vlist) == 0:
         from .. import errors
@@ -346,14 +346,15 @@ def volume(session,
     
 # -----------------------------------------------------------------------------
 #
-def apply_global_settings(gsettings):
+def apply_global_settings(session, gsettings):
 
 # TODO: Unused settings part of gui in Chimera.
 #    from .volume import default_settings
 #    default_settings.update(gsettings)
     if 'data_cache_size' in gsettings:
-        from .data import data_cache
-        data_cache.resize(gsettings['data_cache_size'] * (2**20))
+        from .volume import data_cache
+        dc = data_cache(session)
+        dc.resize(gsettings['data_cache_size'] * (2**20))
     
 # -----------------------------------------------------------------------------
 #
