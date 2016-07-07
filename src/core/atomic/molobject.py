@@ -335,9 +335,11 @@ class PseudobondGroupData:
         return object_map(pb, Pseudobond)
 
     # Graphics changed flags used by rendering code.  Private.
-    _gc_color = c_property('pseudobond_group_gc_color', npy_bool)
-    _gc_select = c_property('pseudobond_group_gc_select', npy_bool)
-    _gc_shape = c_property('pseudobond_group_gc_shape', npy_bool)
+    _SHAPE_CHANGE = 0x1
+    _COLOR_CHANGE = 0x2
+    _SELECT_CHANGE = 0x4
+    _RIBBON_CHANGE = 0x8
+    _graphics_changed = c_property('pseudobond_group_graphics_change', int32)
 
 
 # -----------------------------------------------------------------------------
@@ -850,10 +852,11 @@ class StructureData:
         f(self._c_pointer, change_tracker._c_pointer)
 
     # Graphics changed flags used by rendering code.  Private.
-    _gc_color = c_property('structure_gc_color', npy_bool)
-    _gc_select = c_property('structure_gc_select', npy_bool)
-    _gc_shape = c_property('structure_gc_shape', npy_bool)
-    _gc_ribbon = c_property('structure_gc_ribbon', npy_bool)
+    _SHAPE_CHANGE = 0x1
+    _COLOR_CHANGE = 0x2
+    _SELECT_CHANGE = 0x4
+    _RIBBON_CHANGE = 0x8
+    _graphics_changed = c_property('structure_graphics_change', int32)
 
 class ChangeTracker:
     '''Per-session singleton change tracker keeps track of all

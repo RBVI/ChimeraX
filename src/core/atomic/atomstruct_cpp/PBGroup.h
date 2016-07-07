@@ -323,20 +323,20 @@ public:
             return static_cast<StructurePBGroup*>(_proxied)->get_gc_shape();
         return static_cast<CS_PBGroup*>(_proxied)->get_gc_shape();
     }
-    void  set_gc_color(bool gc = true) {
+    void  set_gc_color() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            static_cast<StructurePBGroup*>(_proxied)->set_gc_color(gc);
-        static_cast<CS_PBGroup*>(_proxied)->set_gc_color(gc);
+            static_cast<StructurePBGroup*>(_proxied)->set_gc_color();
+        static_cast<CS_PBGroup*>(_proxied)->set_gc_color();
     }
-    void  set_gc_select(bool gc = true) {
+    void  set_gc_select() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            static_cast<StructurePBGroup*>(_proxied)->set_gc_select(gc);
-        static_cast<CS_PBGroup*>(_proxied)->set_gc_select(gc);
+            static_cast<StructurePBGroup*>(_proxied)->set_gc_select();
+        static_cast<CS_PBGroup*>(_proxied)->set_gc_select();
     }
-    void  set_gc_shape(bool gc = true) {
+    void  set_gc_shape() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            static_cast<StructurePBGroup*>(_proxied)->set_gc_shape(gc);
-        static_cast<CS_PBGroup*>(_proxied)->set_gc_shape(gc);
+            static_cast<StructurePBGroup*>(_proxied)->set_gc_shape();
+        static_cast<CS_PBGroup*>(_proxied)->set_gc_shape();
     }
 
 };

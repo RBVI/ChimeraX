@@ -191,8 +191,9 @@ class Structure(Model, StructureData):
         for attr_name, default_val in self._session_attrs.items():
             setattr(self, attr_name, data.get(attr_name, default_val))
 
-        self._gc_ribbon = True  # TODO: For some reason ribbon drawing does not update automatically.
-        self._gc_shape = True	# TODO: Also marker atoms do not draw without this.
+        # TODO: For some reason ribbon drawing does not update automatically.
+        # TODO: Also marker atoms do not draw without this.
+        self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE)
 
     def reset_state(self, session):
         pass
@@ -255,28 +256,26 @@ class Structure(Model, StructureData):
         self._atom_bounds_needs_update = True
 
     def _update_graphics_if_needed(self, *_):
-        if self._gc_ribbon:
+        gc = self._graphics_changed         # Molecule changes
+        if gc & self._RIBBON_CHANGE:
             # Do this before fetching bits because ribbon creation changes some
             # display and hide bits
-            try:
-                self._create_ribbon_graphics()
-            finally:
-                self._gc_ribbon = False
-        # Molecule changes
-        c, s, se = self._gc_color, self._gc_shape, self._gc_select
+            self._create_ribbon_graphics()
+
         # Check for pseudobond changes
         for pbg in self.pbg_map.values():
-            c |= pbg._gc_color
-            s |= pbg._gc_shape
-            se |= pbg._gc_select
-            pbg._gc_color = pbg._gc_shape = pbg._gc_select = False
+            gc |= pbg._graphics_changed
+            pbg._graphics_changed = 0
+
         # Update graphics
-        if c or s or se:
-            self._gc_color = self._gc_shape = self._gc_select = False
-            if c or s:
+        if gc:
+            self._graphics_changed = 0
+            s = (gc & self._SHAPE_CHANGE)
+            if gc & self._COLOR_CHANGE or s:
                 self._update_ribbon_tethers()
             self._update_graphics()
-            self.redraw_needed(shape_changed = s, selection_changed = se)
+            self.redraw_needed(shape_changed = s,
+                               selection_changed = (gc & self._SELECT_CHANGE))
             if s:
                 self._atom_bounds_needs_update = True
 
@@ -695,7 +694,7 @@ class Structure(Model, StructureData):
                 spine_radii.fill(0.3)
                 sp.positions = _tether_placements(spine_xyz1, spine_xyz2, spine_radii, self.TETHER_CYLINDER)
                 sp.colors = spine_colors
-        self._gc_shape = True
+        self._graphics_changed |= self._SHAPE_CHANGE
         from .molarray import Residues
         self._ribbon_selected_residues = Residues()
 
@@ -1797,10 +1796,8 @@ def all_atoms(session):
 #
 def structure_atoms(structures):
     '''Return all atoms in specified atomic structures as an :class:`.Atoms` collection.'''
-    from .molarray import Atoms
-    atoms = Atoms()
-    for m in structures:
-        atoms = atoms | m.atoms
+    from .molarray import concatenate, Atoms
+    atoms = concatenate([m.atoms for m in structures], Atoms)
     return atoms
 
 # -----------------------------------------------------------------------------
