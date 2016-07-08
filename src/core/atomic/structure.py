@@ -168,7 +168,6 @@ class Structure(Model, StructureData):
         gu.add_structure(self)
 
     def removed_from_session(self, session):
-        session.triggers.delete_handler(self.handler)
         gu = structure_graphics_updater(session)
         gu.remove_structure(self)
 
@@ -293,15 +292,13 @@ class Structure(Model, StructureData):
 
     def _update_atom_graphics(self, atoms):
         avis = atoms.visibles
-        ndisp = avis.sum()
         p = self._atoms_drawing
         if p is None:
-            if ndisp == 0:
+            if avis.sum() == 0:
                 return
             self._atoms_drawing = p = self.new_drawing('atoms')
-
-        # Update level of detail of spheres
-        self._level_of_detail.set_atom_sphere_geometry(ndisp, p)
+            # Update level of detail of spheres
+            self._level_of_detail.set_atom_sphere_geometry(p)
 
         # Set instanced sphere center position and radius
         n = len(atoms)
@@ -329,21 +326,28 @@ class Structure(Model, StructureData):
         return r
 
     def _update_bond_graphics(self, bonds):
-        nshown = bonds.num_shown
         p = self._bonds_drawing
         if p is None:
-            if nshown == 0:
+            if bonds.num_shown == 0:
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
-
-        # Update level of detail of spheres
-        self._level_of_detail.set_bond_cylinder_geometry(nshown, p)
+            # Update level of detail of spheres
+            self._level_of_detail.set_bond_cylinder_geometry(p)
 
         ba1, ba2 = bond_atoms = bonds.atoms
         p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, bonds.radii)
         p.display_positions = _shown_bond_cylinders(bonds)
         p.colors = c = bonds.half_colors
         p.selected_positions = _selected_bond_cylinders(bond_atoms)
+
+    def _update_level_of_detail(self, total_atoms):
+        lod = self._level_of_detail
+        bd = self._bonds_drawing
+        if bd:
+            lod.set_bond_cylinder_geometry(bd, total_atoms)
+        ad = self._atoms_drawing
+        if ad:
+            lod.set_atom_sphere_geometry(ad, total_atoms)
 
     def _create_ribbon_graphics(self):
         if self._ribbon_drawing is None:
@@ -1466,6 +1470,7 @@ class StructureGraphicsChangeManager:
                                                      self._update_graphics_if_needed)
         self._structures = set()
         self._structures_array = None		# StructureDatas object
+        self.num_atoms_shown = 0
         
     def __del__(self):
         self.session.triggers.delete_handler(self._handler)
@@ -1484,6 +1489,14 @@ class StructureGraphicsChangeManager:
         if gc.any():
             for i in gc.nonzero()[0]:
                 s[i]._update_graphics_if_needed()
+
+            # Update level of detail
+            n = sum(tuple(m.num_atoms_visible for m in s if m.display))
+            if n != self.num_atoms_shown:
+                self.num_atoms_shown = n
+                for m in s:
+                    if m.display:
+                        m._update_level_of_detail(n)
 
     def _array(self):
         sa = self._structures_array
@@ -1536,7 +1549,7 @@ class LevelOfDetail(State):
     def reset_state(self):
         self.quality = 1
 
-    def set_atom_sphere_geometry(self, natoms, drawing):
+    def set_atom_sphere_geometry(self, drawing, natoms = None):
         if natoms == 0:
             return
         ntri = self.atom_sphere_triangles(natoms)
@@ -1559,6 +1572,8 @@ class LevelOfDetail(State):
         return sg[ntri]
 
     def atom_sphere_triangles(self, natoms):
+        if natoms is None:
+            return self._atom_min_triangles
         ntri = self.quality * self._atom_max_total_triangles // natoms
         nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
         ntri = self.clamp_geometric(ntri, nmin, nmax)
@@ -1573,7 +1588,7 @@ class LevelOfDetail(State):
         n3 = max(n2, nmin)
         return n3
 
-    def set_bond_cylinder_geometry(self, nbonds, drawing):
+    def set_bond_cylinder_geometry(self, drawing, nbonds = None):
         if nbonds == 0:
             return
         ntri = self.bond_cylinder_triangles(nbonds)
@@ -1595,6 +1610,8 @@ class LevelOfDetail(State):
         return cg[div]
 
     def bond_cylinder_triangles(self, nbonds):
+        if nbonds is None:
+            return self._bond_min_triangles
         ntri = self.quality * self._bond_max_total_triangles // nbonds
         nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
         ntri = self.clamp_geometric(ntri, nmin, nmax)

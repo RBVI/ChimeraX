@@ -655,6 +655,8 @@ class StructureData:
     '''Structure name, a string.'''
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True)
     '''Number of atoms in structure. Read only.'''
+    num_atoms_visible = c_property('structure_num_atoms_visible', size_t, read_only = True)
+    '''Number of visible atoms in structure. Read only.'''
     num_bonds = c_property('structure_num_bonds', size_t, read_only = True)
     '''Number of bonds in structure. Read only.'''
     num_coord_sets = c_property('structure_num_coord_sets', size_t, read_only = True)

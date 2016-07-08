@@ -1976,6 +1976,24 @@ extern "C" EXPORT void structure_num_atoms(void *mols, size_t n, size_t *natoms)
     }
 }
 
+extern "C" EXPORT void structure_num_atoms_visible(void *mols, size_t n, size_t *natoms)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  {
+	    const Structure::Atoms &atoms = m[i]->atoms();
+	    int c = 0;
+	    for (auto a: atoms)
+	      if (a->visible())
+		c += 1;
+            natoms[i] = c;
+	  }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_atoms(void *mols, size_t n, pyobject_t *atoms)
 {
     Structure **m = static_cast<Structure **>(mols);
