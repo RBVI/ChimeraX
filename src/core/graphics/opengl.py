@@ -39,6 +39,16 @@ def configure_offscreen_rendering():
 # Set environment variables set before importing PyOpenGL.
 configure_offscreen_rendering()
 
+log_opengl_calls = False
+if log_opengl_calls:
+    # Log all OpenGL calls
+    import logging
+    from os.path import expanduser
+    logging.basicConfig(level=logging.DEBUG, filename=expanduser('~/Desktop/cx.log'))
+    logging.info('started logging')
+    import OpenGL
+    OpenGL.FULL_LOGGING = True
+    
 from OpenGL import GL
 
 # OpenGL workarounds:
