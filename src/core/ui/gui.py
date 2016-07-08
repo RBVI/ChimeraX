@@ -1290,6 +1290,7 @@ else:
             if self.__toolkit is None:
                 return
             self.__toolkit.set_title(title)
+        set_title = _set_title
 
         title = property(_get_title, _set_title)
 
