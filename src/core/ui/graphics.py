@@ -391,7 +391,7 @@ else:
 
         def close(self):
             self.opengl_context = None
-            self.delete()
+            self.destroy()	# Destroy QWindow
 
         def full_screen(self, width, height):
             from PyQt5.QtGui import QGuiApplication
