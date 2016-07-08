@@ -392,11 +392,11 @@ class Atoms(Collection):
     @property
     def shown_atoms(self):
         '''
-        Subset of Atoms including atoms that are displayed or "hidden"
-        because ribbon is displayed with displayed structure and displayed parents.
+        Subset of Atoms including atoms that are displayed or have ribbon displayed
+        and have displayed structure and displayed parent models.
         '''
         from .molobject import Atom
-        da = self.filter(self.displays | (self.hides == Atom.HIDE_RIBBON))
+        da = self.filter(self.displays | self.residues.ribbon_displays)
         datoms = concatenate([a for m, a in da.by_structure
                               if m.display and m.parents_displayed], Atoms)
         return datoms
