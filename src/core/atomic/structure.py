@@ -162,10 +162,15 @@ class Structure(Model, StructureData):
                 cmd.run("lighting " + lighting, log=False)
 
         self._start_change_tracking(session.change_tracker)
-        self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
+
+        # Setup handler to manage C++ data changes that require graphics updates.
+        gu = structure_graphics_updater(session)
+        gu.add_structure(self)
 
     def removed_from_session(self, session):
         session.triggers.delete_handler(self.handler)
+        gu = structure_graphics_updater(session)
+        gu.remove_structure(self)
 
     def take_snapshot(self, session, flags):
         data = {'model state': Model.take_snapshot(self, session, flags),
@@ -1447,6 +1452,53 @@ class AtomicStructure(Structure):
                     session.logger.info("%s, chain %s: %s" % (self, chain.chain_id,
                         chain.description))
 
+
+# -----------------------------------------------------------------------------
+# Before each redraw this singleton object gets a graphics update trigger and
+# checks the C++ graphics changed flags for all structures, updating the graphics
+# drawings for those structures if needed.  Also it updates the level of detail
+# for atom spheres and bond cylinders.
+# 
+class StructureGraphicsChangeManager:
+    def __init__(self, session):
+        self.session = session
+        self._handler = session.triggers.add_handler('graphics update',
+                                                     self._update_graphics_if_needed)
+        self._structures = set()
+        self._structures_array = None		# StructureDatas object
+        
+    def __del__(self):
+        self.session.triggers.delete_handler(self._handler)
+
+    def add_structure(self, s):
+        self._structures.add(s)
+        self._structures_array = None
+
+    def remove_structure(self, s):
+        self._structures.remove(s)
+        self._structures_array = None
+        
+    def _update_graphics_if_needed(self, *_):
+        s = self._array()
+        gc = s._graphics_changeds
+        if gc.any():
+            for i in gc.nonzero()[0]:
+                s[i]._update_graphics_if_needed()
+
+    def _array(self):
+        sa = self._structures_array
+        if sa is None:
+            from .molarray import StructureDatas, object_pointers
+            self._structures_array = sa = StructureDatas(object_pointers(self._structures))
+        return sa
+
+# -----------------------------------------------------------------------------
+#
+def structure_graphics_updater(session):
+    gu = getattr(session, '_structure_graphics_updater', None)
+    if gu is None:
+        session._structure_graphics_updater = gu = StructureGraphicsChangeManager(session)
+    return gu
 
 # -----------------------------------------------------------------------------
 #

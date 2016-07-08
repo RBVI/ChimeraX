@@ -864,6 +864,9 @@ class StructureDatas(Collection):
     ribbon_orientations = cvec_property('structure_ribbon_orientation', int32)
     '''Returns an array of ribbon orientations.'''
 
+    # Graphics changed flags used by rendering code.  Private.
+    _graphics_changeds = cvec_property('structure_graphics_change', int32)
+    
 # -----------------------------------------------------------------------------
 #
 class AtomicStructures(StructureDatas):
@@ -919,6 +922,13 @@ class PseudobondGroups(PseudobondGroupDatas):
         return array([s._c_pointer.value for s in data])
     def session_save_pointers(self, session):
         return [s for s in self]
+
+# -----------------------------------------------------------------------------
+# For making collections from lists of objects.
+#
+def object_pointers(objects):
+    pointers = array(tuple(o._c_pointer.value for o in objects), dtype = cptr,)
+    return pointers
 
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.
