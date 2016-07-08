@@ -6,34 +6,32 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-from . import structure
-from ..errors import UserError
-
-_builtin_open = open
-
-
 def open_pdb(session, filename, name, *args, **kw):
 
     if hasattr(filename, 'read'):
         # it's really a fetched stream
         input = filename
     else:
-        input = _builtin_open(filename, 'rb')
+        input = open(filename, 'rb')
 
     from . import pdbio
     pointers = pdbio.read_pdb_file(input, log=session.logger)
     if input != filename:
         input.close()
 
-    models = [structure.AtomicStructure(session, name = name, c_pointer = p) for p in pointers]
+    smid = kw.get('smart_initial_display', True)
+    
+    from .structure import AtomicStructure
+    models = [AtomicStructure(session, name = name, c_pointer = p, smart_initial_display = smid) for p in pointers]
 
     return models, ("Opened PDB data containing %d atoms and %d bonds"
                     % (sum(m.num_atoms for m in models),
                        sum(m.num_bonds for m in models)))
 
 
-def fetch_pdb(session, pdb_id, ignore_cache=False):
+def fetch_pdb(session, pdb_id, ignore_cache=False, **kw):
     if len(pdb_id) != 4:
+        from ..errors import UserError
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
     import os
     # check on local system -- TODO: configure location
@@ -50,11 +48,12 @@ def fetch_pdb(session, pdb_id, ignore_cache=False):
                           ignore_cache=ignore_cache)
 
     from .. import io
-    models, status = io.open_data(session, filename, format = 'pdb', name = pdb_id)
+    models, status = io.open_data(session, filename, format = 'pdb', name = pdb_id, **kw)
     return models, status
 
 def register_pdb_format():
     from .. import io
+    from . import structure
     io.register_format(
         "PDB", structure.CATEGORY, (".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
         mime=("chemical/x-pdb", "chemical/x-spdbv"),

@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 #
-def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False):
+def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False, **kw):
   '''
   Fetch crystallographic density maps from the Upsalla Electron Density Server.
   
@@ -28,7 +28,7 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False):
                         ignore_cache=ignore_cache)
 
   from .. import io
-  models, status = io.open_data(session, filename, format = 'dsn6', name = id)
+  models, status = io.open_data(session, filename, format = 'dsn6', name = id, **kw)
   return models, status
 
 # -----------------------------------------------------------------------------
