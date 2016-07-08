@@ -20,7 +20,16 @@ class Subsampled_Grid(Grid_Data):
                        pg.cell_angles, pg.rotation, pg.symmetries,
                        name = pg.name, path = pg.path, file_type = pg.file_type,
                        grid_id = pg.grid_id, default_color = pg.rgba)
-    self.data_cache = None      # Caching done by underlying grid objects.
+
+  # ---------------------------------------------------------------------------
+  #
+  def _get_data_cache(self):
+    return self.data_cache
+  def _set_data_cache(self, dc):
+    self.__dict__['data_cache'] = dc
+    for g in self.available_subsamplings.values():
+      g.data_cache = dc
+  data_cache = property(_get_data_cache, _set_data_cache)
 
   # ---------------------------------------------------------------------------
   # It is the caller's responsibility to verify that the passed in subsampled
