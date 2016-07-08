@@ -48,17 +48,18 @@ def set(session, bg_color=None,
     if subdivision is not None:
         had_arg = True
         from .. import atomic
-        for m in atomic.all_atomic_structures(session):
-            m.set_subdivision(subdivision)
+        atomic.structure_graphics_updater(session).set_subdivision(subdivision)
 
     if not had_arg:
+        from .. import atomic
+        lod = atomic.level_of_detail(session)
         msg = '\n'.join(('Current settings:',
                          '  Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3]),
                          '  Silhouettes: ' + str(view.silhouettes),
                          '  Silhouette width: %.3g' % view.silhouette_thickness,
                          '  Silhouette color: %d,%d,%d' % tuple(100*r for r in view.silhouette_color[:3]),
                          '  Silhouette depth jump: %.3g' % view.silhouette_depth_jump,
-                         '  Subdivision: %.3g'  % session.atomic_level_of_detail.quality))
+                         '  Subdivision: %.3g'  % lod.quality))
         session.logger.info(msg)
 
 

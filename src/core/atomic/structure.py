@@ -12,7 +12,7 @@ class Structure(Model, StructureData):
         "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
-                 level_of_detail = None, smart_initial_display = True):
+                 smart_initial_display = True):
         # Cross section coordinates are 2D and counterclockwise
         # Use C++ version of XSection instead of Python version
         from .molobject import RibbonXSection as XSection
@@ -25,7 +25,6 @@ class Structure(Model, StructureData):
             'ball_scale': 0.3,		# Scales sphere radius in ball and stick style
             'bond_radius': 0.2,
             'pseudobond_radius': 0.05,
-            '_level_of_detail': LevelOfDetail() if level_of_detail is None else level_of_detail,
             #'_ribbon_selected_residues': Residues(),
         }
 
@@ -90,7 +89,7 @@ class Structure(Model, StructureData):
         if name is None:
             name = self.name
         m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
-                        level_of_detail = self._level_of_detail, smart_initial_display = False)
+                           smart_initial_display = False)
         m.positions = self.positions
         return m
 
@@ -251,9 +250,10 @@ class Structure(Model, StructureData):
             pbg._update_graphics()
         self._create_ribbon_graphics()
 
-    def set_subdivision(self, subdivision):
-        self._level_of_detail.quality = subdivision
-        self._update_graphics()
+    @property
+    def _level_of_detail(self):
+        gu = structure_graphics_updater(self.session)
+        return gu.level_of_detail
 
     def new_atoms(self):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
@@ -1471,6 +1471,7 @@ class StructureGraphicsChangeManager:
         self._structures = set()
         self._structures_array = None		# StructureDatas object
         self.num_atoms_shown = 0
+        self.level_of_detail = LevelOfDetail()
         
     def __del__(self):
         self.session.triggers.delete_handler(self._handler)
@@ -1494,9 +1495,13 @@ class StructureGraphicsChangeManager:
             n = sum(tuple(m.num_atoms_visible for m in s if m.display))
             if n != self.num_atoms_shown:
                 self.num_atoms_shown = n
-                for m in s:
-                    if m.display:
-                        m._update_level_of_detail(n)
+                self._update_level_of_detail()
+
+    def _update_level_of_detail(self):
+        n = self.num_atoms_shown
+        for m in self._structures:
+            if m.display:
+                m._update_level_of_detail(n)
 
     def _array(self):
         sa = self._structures_array
@@ -1505,6 +1510,10 @@ class StructureGraphicsChangeManager:
             self._structures_array = sa = StructureDatas(object_pointers(self._structures))
         return sa
 
+    def set_subdivision(self, subdivision):
+        self.level_of_detail.quality = subdivision
+        self._update_level_of_detail()
+
 # -----------------------------------------------------------------------------
 #
 def structure_graphics_updater(session):
@@ -1512,6 +1521,12 @@ def structure_graphics_updater(session):
     if gu is None:
         session._structure_graphics_updater = gu = StructureGraphicsChangeManager(session)
     return gu
+
+# -----------------------------------------------------------------------------
+#
+def level_of_detail(session):
+    gu = structure_graphics_updater(session)
+    return gu.level_of_detail
 
 # -----------------------------------------------------------------------------
 #
