@@ -1479,6 +1479,7 @@ class StructureGraphicsChangeManager:
     def add_structure(self, s):
         self._structures.add(s)
         self._structures_array = None
+        self.num_atoms_shown = 0	# Make sure new structure gets a level of detail update
 
     def remove_structure(self, s):
         self._structures.remove(s)
