@@ -1381,17 +1381,20 @@ class AtomicStructure(Structure):
     def _set_chain_descriptions(self, session):
         chain_to_desc = {}
         if 'pdbx_poly_seq_scheme' in self.metadata:
-            scheme = self.metatdata.get('pdbx_poly_seq_scheme', [])
+            scheme = self.metadata.get('pdbx_poly_seq_scheme', [])
             id_to_index = {}
             for sch in scheme:
                 id_to_index[sch['pdb_strand_id']] = int(sch['entity_id']) - 1
-            entity = self.metatdata.get('entity', [])
-            entity_name_com = self.metatdata.get('entity_name_com', [])
+            entity = self.metadata.get('entity', [])
+            entity_name_com = self.metadata.get('entity_name_com', [])
+            name_com_lookup = {}
+            for enc in entity_name_com:
+                name_com_lookup[int(enc['entity_id'])-1] = enc['name']
             for chain_id, index in id_to_index.items():
                 description = None
                 # try SYNONYM equivalent first
-                if len(entity_name_com) > index:
-                    syn = entity_name_com[index]['name']
+                if index in name_com_lookup:
+                    syn = name_com_lookup[index]
                     if syn != '?':
                         description = syn
                         synonym = True
