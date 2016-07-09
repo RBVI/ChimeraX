@@ -159,9 +159,9 @@ class VolumeViewer(ToolInstance):
 
             # Add data values changed callback.
             v.add_volume_change_callback(self.data_region_changed)
-
+            
             if hasattr(v.data, 'series_index') and v.data.series_index > 0:
-                return
+                continue
 
             # Show data parameters.
             self.display_volume_info(v)
@@ -1540,13 +1540,34 @@ class Thresholds_Panel(PopupPanel):
     else:
       # Make new histogram
       hp = Histogram_Pane(self.dialog, self.histograms_frame, self.histogram_height)
-      self.histograms_layout.addWidget(hp.frame)
-#      self.histograms_frame.adjustSize()	# Need this for scrolled area to update
+      hl = self.histograms_layout
+      hl.insertWidget(hl.count()-1, hp.frame)
       self.histogram_panes.append(hp)
 
     hp.set_data_region(dr)
     hptable[dr] = hp
     self.set_active_data(hp)
+
+    self.resize_panel()
+
+  # ---------------------------------------------------------------------------
+  # Resize thresholds panel to fit up to 3 histograms before scrolling.
+  #
+  def resize_panel(self, nhist = 3):
+
+    hpanes = self.histogram_panes
+    n = len(hpanes)
+    if n == 0 or n > nhist:
+        return
+
+    hf = hpanes[0].frame
+    hf.adjustSize()		# Get correct size for histogram pane
+    f = self.frame
+    f.setMinimumHeight(n*hf.height())	# Resize to exactly fit n histograms
+
+    # Allow resizing panel smaller with mouse
+    from PyQt5.QtCore import QTimer
+    QTimer.singleShot(1, lambda f=f: f.setMinimumHeight(50))
 
   # ---------------------------------------------------------------------------
   # Switch histogram threshold markers between vertical
@@ -1874,15 +1895,9 @@ class Histogram_Pane:
     gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-#    gv.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
-#    gv.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
 
-    gv.setMinimumHeight(50)
-#    gv.setMinimumWidth(550)
     self.scene = gs = QGraphicsScene(gv)
-#    gs.setSceneRect(0, 0, 500, 100)
-    gs.setSceneRect(0, 0, 550, 50)
-#    gs.setSceneRect(0, 0, 750, 50)
+    gs.setSceneRect(0, 0, 500, 50)
     gv.setScene(gs)
     
 #    c = Tkinter.Canvas(frame, height = histogram_height,
