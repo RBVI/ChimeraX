@@ -1,10 +1,10 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-from .. import io
+from .. import toolshed
 from ..models import Model
 from ..state import State
 from .molobject import StructureData
 
-CATEGORY = io.STRUCTURE
+CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
 

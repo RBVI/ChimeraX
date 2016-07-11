@@ -15,7 +15,7 @@ MODEL_DISPLAY_CHANGED = 'model display changed'
 
 
 class Model(State, Drawing):
-    """A Model is a :class:`.Drawing` together with an id number 
+    """A Model is a :class:`.Drawing` together with an id number
     that allows it to be referenced in a typed command.
 
     Model subclasses can be saved session files.
@@ -57,6 +57,7 @@ class Model(State, Drawing):
 
     def _get_single_color(self):
         return None
+
     def _set_single_color(self, color):
         return
     single_color = property(_get_single_color, _set_single_color)
@@ -90,12 +91,13 @@ class Model(State, Drawing):
     def take_snapshot(self, session, flags):
         p = getattr(self, 'parent', None)
         if p is session.models.drawing:
-            p = None	# Don't include root as a parent since root is not saved.
-        data = {'name':self.name,
-                'id':self.id,
-                'parent':p,
-                'positions':self.positions.array(),
-                'version': CORE_STATE_VERSION,
+            p = None    # Don't include root as a parent since root is not saved.
+        data = {
+            'name': self.name,
+            'id': self.id,
+            'parent': p,
+            'positions': self.positions.array(),
+            'version': CORE_STATE_VERSION,
         }
         return data
 
@@ -116,7 +118,7 @@ class Model(State, Drawing):
         if p:
             p.add([self])
         from .geometry import Places
-        self.positions = Places(place_array = data['positions'])
+        self.positions = Places(place_array=data['positions'])
 
     def reset_state(self, session):
         pass
@@ -135,6 +137,7 @@ class Model(State, Drawing):
         # Return True if there are atoms in this model
         return False
 
+
 class Models(State):
 
     def __init__(self, session):
@@ -144,7 +147,6 @@ class Models(State):
         t.add_trigger(REMOVE_MODELS)
         t.add_trigger(MODEL_DISPLAY_CHANGED)
         self._models = {}
-        from .graphics.drawing import Drawing
         self.drawing = r = Model("root", session)
         r.id = ()
 
@@ -183,13 +185,13 @@ class Models(State):
             # sort so submodels are removed before parent models
             model_ids.sort(key=len, reverse=True)
             models = [self._models[x] for x in model_ids]
-        if not type is None:
-            models = [m for m in models if isinstance(m,type)]
+        if type is not None:
+            models = [m for m in models if isinstance(m, type)]
         return models
 
     def empty(self):
         return len(self._models) == 0
-    
+
     def add(self, models, parent=None, _notify=True, _from_session=False):
         start_count = len(self._models)
 
@@ -216,7 +218,7 @@ class Models(State):
             if not _from_session and start_count == 0 and len(self._models) > 0:
                 v = session.main_view
                 v.initial_camera_view()
-                v.clip_planes.clear()	# Turn off clipping
+                v.clip_planes.clear()   # Turn off clipping
 
         return m_all
 
@@ -228,14 +230,14 @@ class Models(State):
         nid = getattr(parent, '_next_unused_id', None)
         if nid is None:
             # Find next unused id.
-            cids = set(m.id[-1] for m in parent.child_models() if not m.id is None)
-            for nid in range(1,len(cids)+2):
-                if not nid in cids:
+            cids = set(m.id[-1] for m in parent.child_models() if m.id is not None)
+            for nid in range(1, len(cids) + 2):
+                if nid not in cids:
                     break
-            if nid == len(cids)+1:
-                parent._next_unused_id = nid + 1	# No gaps in ids
+            if nid == len(cids) + 1:
+                parent._next_unused_id = nid + 1        # No gaps in ids
         else:
-            parent._next_unused_id = nid + 1		# No gaps in ids
+            parent._next_unused_id = nid + 1            # No gaps in ids
         id = parent.id + (nid,)
         return id
 
@@ -269,7 +271,7 @@ class Models(State):
                     parent = self.drawing
                 else:
                     parent = self._models[model_id[:-1]]
-                parent.remove_drawing(model, delete = False)
+                parent.remove_drawing(model, delete=False)
                 parent._next_unused_id = None
 
         # it's nice to have an accurate list of current models
@@ -282,7 +284,7 @@ class Models(State):
             m.delete()
 
     def open(self, filenames, id=None, format=None, name=None, **kw):
-        from . import io
+        from . import io, toolshed
         session = self._session()  # resolve back reference
         collation_okay = True
         if isinstance(filenames, str):
@@ -290,19 +292,20 @@ class Models(State):
         else:
             fns = filenames
         for fn in fns:
-            if io.category(io.deduce_format(fn, has_format=format)[0]) == io.SCRIPT:
+            if io.category(io.deduce_format(fn, has_format=format)[0]) == toolshed.SCRIPT:
                 collation_okay = False
                 break
         if collation_okay:
             from .logger import Collator
             descript = "files" if len(fns) > 1 else fns[0]
-            with Collator(session.logger, "Summary of problems opening " + descript,
-                                                    kw.pop('log_errors', True)):
-                models, status = io.open_multiple_data(session, filenames,
-                format=format, name=name, **kw)
+            with Collator(session.logger,
+                          "Summary of problems opening " + descript,
+                          kw.pop('log_errors', True)):
+                models, status = io.open_multiple_data(
+                    session, filenames, format=format, name=name, **kw)
         else:
-            models, status = io.open_multiple_data(session, filenames,
-                format=format, name=name, **kw)
+            models, status = io.open_multiple_data(
+                session, filenames, format=format, name=name, **kw)
         if status:
             log = session.logger
             log.status(status, log=True)
@@ -319,6 +322,7 @@ def descendant_models(models):
     for m in models:
         mset.update(m.all_models())
     return list(mset)
+
 
 def ancestor_models(models):
     '''Return set of ancestors of models that are not in specified models.'''

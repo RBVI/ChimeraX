@@ -52,8 +52,8 @@ class MainSaveDialogBase:
 
 def _session_wildcard():
     from .open_save import export_file_filter
-    from .. import io
-    return export_file_filter(io.SESSION)
+    from .. import toolshed
+    return export_file_filter(toolshed.SESSION)
 
 
 def _session_save(session, filename):
@@ -101,6 +101,7 @@ class ImageSaverBase:
 from .. import window_sys
 if window_sys == "wx":
     import wx
+
     class MainSaveDialog(MainSaveDialogBase):
         def display(self, parent, session):
             if self.file_dialog is None:
@@ -319,7 +320,6 @@ else:
 
         def _customize_file_dialog(self):
             from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel, QFrame
-            from PyQt5.QtCore import Qt
             self._options_panel = options_panel = self.file_dialog.custom_area
             self._format_selector = selector = QComboBox(options_panel)
             selector.currentIndexChanged.connect(self._select_format)
