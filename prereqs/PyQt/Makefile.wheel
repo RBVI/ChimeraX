@@ -14,7 +14,7 @@ WHEEL = PyQt5_$(PYQT_LICENSE)-$(VERSION)-$(WHEEL_PLATFORM).whl
 
 ifeq ($(OS),Darwin)
 PLATFORM = osx
-WHEEL_PLATFORM = cp35m-cp35-macosx_10_6_intel
+WHEEL_PLATFORM = cp35-cp35m-macosx_10_6_intel
 QTDIR = $(build_prefix)
 else ifeq ($(OS),Linux)
 PLATFORM = linux
@@ -41,12 +41,13 @@ install: $(WHEEL)
 app-install: $(WHEEL)
 	$(APP_PIP) install $(WHEEL)
 
+$(WHEEL):
+	rsync -a $(REMOTE_DIR)/$(WHEEL) .
+
 pyqt-commercial.sip:
 	rsync -a $(REMOTE_DIR)/{pyqt-commercial.sip,PyQt5_commercial-$(VERSION)-*$(PLATFORM)*.whl-unlicensed,pyqtlicense-$(PLATFORM)*} .
 
-wheel: $(WHEEL)
-
-$(WHEEL): pyqt-commercial.sip
+wheel: pyqt-commercial.sip
 	./pyqtlicense-$(PLATFORM) $(LICENSE_ARGS) *.whl-unlicensed
 
 clean:
