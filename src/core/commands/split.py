@@ -180,7 +180,7 @@ def molecule_from_atoms(m, atoms, name = None):
 
     from ..atomic import AtomicStructure, Structure
     structure_class = AtomicStructure if isinstance(m, AtomicStructure) else Structure
-    cm = structure_class(m.session, name = name or m.name, level_of_detail = m._level_of_detail)
+    cm = structure_class(m.session, name = name or m.name)
 #    cm.color = m.color
     cm.display = m.display
 #    cm.lineWidth = m.lineWidth
