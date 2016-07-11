@@ -144,6 +144,13 @@ class Render:
             self._default_framebuffer = Framebuffer(color=False, depth=False)
         return self._default_framebuffer
 
+    def set_default_framebuffer_size(self, width, height):
+        s = self._opengl_context.pixel_scale()
+        w, h = int(s*width), int(s*height)
+        fb = self.default_framebuffer()
+        fb.width, fb.height = w, h
+        fb.viewport = (0, 0, w, h)
+
     def render_size(self):
         fb = self.current_framebuffer()
         x, y, w, h = fb.viewport
@@ -566,9 +573,11 @@ class Render:
         vao = GL.glGenVertexArrays(1)
         GL.glBindVertexArray(vao)
 
+        s = self._opengl_context.pixel_scale()
+        w, h = int(s*width), int(s*height)
         fb = self.default_framebuffer()
-        fb.width, fb.height = width, height
-        self.set_viewport(0, 0, width, height)
+        fb.width, fb.height = w, h
+        self.set_viewport(0, 0, w, h)
 
         # Detect OpenGL workarounds
         vendor = GL.glGetString(GL.GL_VENDOR)

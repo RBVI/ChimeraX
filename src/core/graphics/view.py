@@ -406,9 +406,7 @@ class View:
         self.window_size = new_size
         r = self._render
         if r:
-            fb = r.default_framebuffer()
-            fb.width, fb.height = width, height
-            fb.viewport = (0, 0, width, height)
+            r.set_default_framebuffer_size(width, height)
             self.redraw_needed = True
 
     def _window_size_matching_aspect(self, width, height):
