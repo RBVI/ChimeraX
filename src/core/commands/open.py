@@ -1,7 +1,8 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False):
+def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
+         smart_initial_display = True):
     '''Open a file.
 
     Parameters
@@ -22,6 +23,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     ignore_cache : bool
         Whether to fetch files from cache.  Fetched files are always written
         to cache.
+    smart_initial_display : bool
+        Whether to display molecules with rich styles and colors.
     '''
 
     if ':' in filename:
@@ -44,6 +47,8 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             if format is None:
                 format = 'mmcif'
 
+    kw = {'smart_initial_display': smart_initial_display}
+
     from ..filehistory import remember_file
     if from_database is not None:
         from .. import fetch
@@ -54,7 +59,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
                 raise UserError('Only formats %s can be fetched from database %s'
                                 % (', '.join(db_formats), from_database))
         models, status = fetch.fetch_from_database(session, from_database, filename,
-                                                   format=format, name=name, ignore_cache=ignore_cache)
+                                                   format=format, name=name, ignore_cache=ignore_cache, **kw)
         if len(models) > 1:
             session.models.add_group(models)
         else:
@@ -77,7 +82,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             raise UserError('File not found: %s' % filename)
 
     try:
-        models = session.models.open(paths, format=format, name=name)
+        models = session.models.open(paths, format=format, name=name, **kw)
     except OSError as e:
         from ..errors import UserError
         raise UserError(e)
@@ -162,6 +167,7 @@ def register_command(session):
             ('name', StringArg),
             ('from_database', DynamicEnum(db_formats)),
             ('ignore_cache', BoolArg),
+            ('smart_initial_display', BoolArg),
             # ('id', ModelIdArg),
         ],
         synopsis='read and display data')

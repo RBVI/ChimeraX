@@ -35,7 +35,8 @@ from ...errors import UserError as CommandError
 def register_vop_command():
 
     from ...commands import CmdDesc, register, BoolArg, NoArg, StringArg, EnumOf, IntArg, Int3Arg
-    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg, AxisArg
+    from ...commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg, AtomsArg
+    from ...commands import AxisArg, CenterArg, CoordSysArg
     from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
     from ..mapargs import BoxArg, Float2Arg
 
@@ -114,7 +115,7 @@ def register_vop_command():
 
     localcorr_desc = CmdDesc(required = varg,
                              keyword = [('window_size', IntArg),
-                                        ('subtract_mean', BoolArg),
+                                        ('subtract_mean', NoArg),
                                         ('model_id', ModelIdArg)])
     register('vop localCorrelation', localcorr_desc, vop_local_correlation)
 
@@ -167,11 +168,13 @@ def register_vop_command():
                             keyword = oct_kw + ssm_kw)
     register('vop ~octant', unoctant_desc, vop_octant_complement)
 
-    permuteaxes_desc = CmdDesc(required = varg,
-                               keyword = [('axis_order', EnumOf(('xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx')))] + ssm_kw)
-    register('vop permuteaxes', permuteaxes_desc, vop_permute_axes)
+    aoarg = [('axis_order', EnumOf(('xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx')))]
+    permuteaxes_desc = CmdDesc(required = varg + aoarg,
+                               keyword = ssm_kw)
+    register('vop permuteAxes', permuteaxes_desc, vop_permute_axes)
 
-    resample_desc = CmdDesc(required = varg, keyword = resample_kw)
+    resample_desc = CmdDesc(required = varg, keyword = resample_kw,
+                            required_arguments = ['on_grid'])
     register('vop resample', resample_desc, vop_resample)
 
     ridges_desc = CmdDesc(required = varg,
@@ -223,17 +226,18 @@ def register_vop_command():
                                      ('outer_radius', FloatArg),
                                      ('length', FloatArg),
                                      ('grid_spacing', FloatArg),
-                                     ('axis', Float3Arg),
-                                     ('center', Float3Arg)] + ssm_kw)
+                                     ('axis', AxisArg),
+                                     ('center', CenterArg),
+                                     ('coordinate_system', CoordSysArg)] + ssm_kw)
     register('vop unroll', unroll_desc, vop_unroll)
 
     zone_desc = CmdDesc(required = varg,
-                        keyword = [('atoms', AtomsArg),
-                                   ('radius', FloatArg),
+                        keyword = [('near_atoms', AtomsArg),
+                                   ('range', FloatArg),
                                    ('bond_point_spacing', FloatArg),
-                                   ('minimal_bounds', BoolArg),
-                                   ('invert', BoolArg)] + ssm_kw,
-                        required_arguments=('atoms', 'radius'))
+                                   ('minimal_bounds', NoArg),
+                                   ('invert', NoArg)] + ssm_kw,
+                        required_arguments=('near_atoms', 'range'))
     register('vop zone', zone_desc, vop_zone)
 
 # -----------------------------------------------------------------------------
@@ -698,8 +702,6 @@ def vop_resample(session, volumes, on_grid = None, bounding_grid = False,
                  grid_subregion = 'all', grid_step = 1, value_type = None,
                  model_id = None):
     '''Interoplate a map on a new grid.'''
-    if on_grid is None:
-        raise CommandError('Resample operation must specify onGrid option')
     for v in volumes:
         for gv in on_grid:
             combine_operation([v], 'add', subregion, step,
@@ -790,16 +792,30 @@ def vop_unbend(session, volumes, path, yaxis = None, xsize = None, ysize = None,
 # -----------------------------------------------------------------------------
 #
 def vop_unroll(session, volumes, inner_radius = None, outer_radius = None, length = None,
-              grid_spacing = None, axis = (0,0,1), center = (0,0,0),
+              grid_spacing = None, axis = None, center = None, coordinate_system = None,
               subregion = 'all', step = (1,1,1), model_id = None):
     '''Flatten a cylindrical shell within a map.'''
     for v in volumes:
+        a, c = axis_and_center(axis, center, coordinate_system, v.position)
         r0, r1, h = parse_cylinder_size(inner_radius, outer_radius, length,
-                                        center, axis, v, subregion, step)
+                                        c, a, v, subregion, step)
         gsp = parse_grid_spacing(grid_spacing, v, step)
         from . import unroll
-        unroll.unroll_operation(v, r0, r1, h, center, axis, gsp,
+        unroll.unroll_operation(v, r0, r1, h, c, a, gsp,
                                 subregion, step, model_id)
+
+# -----------------------------------------------------------------------------
+#
+def axis_and_center(axis, center, coordinate_system, to_coords):
+    a = (0,0,1)
+    c = (0,0,0)
+    if axis:
+        asc = axis.scene_coordinates(coordinate_system or to_coords)
+        a = to_coords.inverse().apply_without_translation(asc)
+    if center:
+        csc = center.scene_coordinates(coordinate_system or to_coords)
+        c = to_coords.position.inverse() * csc
+    return a, c
 
 # -----------------------------------------------------------------------------
 #
@@ -889,18 +905,18 @@ def submatrix_center(v, xyz_center, index_center, subregion, step):
 
 # -----------------------------------------------------------------------------
 #
-def vop_zone(session, volumes, atoms = None, radius = None, bond_point_spacing = None,
+def vop_zone(session, volumes, near_atoms = None, range = None, bond_point_spacing = None,
             minimal_bounds = False, invert = False,
             subregion = 'all', step = 1, model_id = None):
 
 # TODO: atoms and radius args are required, but cli.py requires default values since they are keywords params
 
     '''Mask a map keeping only parts close to specified atoms.'''
-    if len(atoms) == 0:
+    if len(near_atoms) == 0:
         raise CommandError('no atoms specified for zone')
 
     for v in volumes:
-        zone_operation(v, atoms, radius, bond_point_spacing,
+        zone_operation(v, near_atoms, range, bond_point_spacing,
                        minimal_bounds, invert, subregion, step, model_id)
 
 # -----------------------------------------------------------------------------

@@ -39,6 +39,16 @@ def configure_offscreen_rendering():
 # Set environment variables set before importing PyOpenGL.
 configure_offscreen_rendering()
 
+log_opengl_calls = False
+if log_opengl_calls:
+    # Log all OpenGL calls
+    import logging
+    from os.path import expanduser
+    logging.basicConfig(level=logging.DEBUG, filename=expanduser('~/Desktop/cx.log'))
+    logging.info('started logging')
+    import OpenGL
+    OpenGL.FULL_LOGGING = True
+    
 from OpenGL import GL
 
 # OpenGL workarounds:
@@ -133,6 +143,13 @@ class Render:
         if self._default_framebuffer is None:
             self._default_framebuffer = Framebuffer(color=False, depth=False)
         return self._default_framebuffer
+
+    def set_default_framebuffer_size(self, width, height):
+        s = self._opengl_context.pixel_scale()
+        w, h = int(s*width), int(s*height)
+        fb = self.default_framebuffer()
+        fb.width, fb.height = w, h
+        fb.viewport = (0, 0, w, h)
 
     def render_size(self):
         fb = self.current_framebuffer()
@@ -556,9 +573,11 @@ class Render:
         vao = GL.glGenVertexArrays(1)
         GL.glBindVertexArray(vao)
 
+        s = self._opengl_context.pixel_scale()
+        w, h = int(s*width), int(s*height)
         fb = self.default_framebuffer()
-        fb.width, fb.height = width, height
-        self.set_viewport(0, 0, width, height)
+        fb.width, fb.height = w, h
+        self.set_viewport(0, 0, w, h)
 
         # Detect OpenGL workarounds
         vendor = GL.glGetString(GL.GL_VENDOR)

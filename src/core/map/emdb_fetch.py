@@ -5,7 +5,7 @@
 #       ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-5582/map/emd_5582.map.gz
 #       ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-5680/map/emd_5680.map.gz
 #
-def fetch_emdb(session, emdb_id, ignore_cache=False):
+def fetch_emdb(session, emdb_id, ignore_cache=False, **kw):
     from ..errors import UserError
     if len(emdb_id) != 4:
         raise UserError("EMDB identifiers are 4 characters long")
@@ -23,7 +23,7 @@ def fetch_emdb(session, emdb_id, ignore_cache=False):
                           uncompress = True, ignore_cache=ignore_cache)
 
     from .. import io
-    models, status = io.open_data(session, filename, format = 'ccp4', name = emdb_id)
+    models, status = io.open_data(session, filename, format = 'ccp4', name = emdb_id, **kw)
     return models, status
 
 # -----------------------------------------------------------------------------

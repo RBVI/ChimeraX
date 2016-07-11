@@ -99,11 +99,7 @@ def parse_arguments(argv):
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
-    if sys.platform.startswith('win'):
-        # wx doesn't work for us on Windows
-        opts.window_sys = "qt"
-    else:
-        opts.window_sys = "wx"
+    opts.window_sys = None
 
     # Will build usage string from list of arguments
     arguments = [
@@ -289,6 +285,18 @@ def init(argv, event_loop=True):
     partial_version = '%s.%s' % (ver[0], ver[1])
 
     import chimerax.core
+    if opts.gui:
+        if opts.window_sys is None:
+            try:
+                import PyQt5
+                opts.window_sys = "qt"
+            except ImportError:
+                try:
+                    import wx
+                    opts.window_sys = "wx"
+                except ImportError:
+                    print("ERROR: neither Qt nor wx toolkit is installed.")
+                    raise SystemExit(1)
     chimerax.core.window_sys = opts.window_sys if opts.gui else None
 
     import chimerax

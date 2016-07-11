@@ -805,7 +805,7 @@ class Volume(Model):
     '''
     Show an outline box enclosing the displayed subregion of the volume.
     '''
-    if show and rgb:
+    if show and rgb is not None:
       from .data import box_corners
       ijk_corners = box_corners(*self.ijk_bounds())
       corners = self.data.ijk_to_xyz_transform * ijk_corners
@@ -1922,13 +1922,13 @@ class Outline_Box:
   def show(self, corners, rgb, linewidth,
            center = None, planes = None, crosshair_width = None):
 
-    if not corners is None and rgb:
-      from numpy import any
+    if not corners is None and not rgb is None:
+      from numpy import array_equal
       changed = (self.corners is None or
-                 any(corners != self.corners) or
+                 not array_equal(corners, self.corners) or
                  rgb != self.rgb or
                  linewidth != self.linewidth or
-                 (center is not None and any(center != self.center)) or
+                 not array_equal(center, self.center) or
                  planes != self.planes or
                  crosshair_width != self.crosshair_width)
       if changed:
@@ -2707,13 +2707,34 @@ def default_settings(session):
     from . import defaultsettings
     session.volume_defaults = defaultsettings.Volume_Default_Settings()
   return session.volume_defaults
-  
+
+# -----------------------------------------------------------------------------
+#
+def set_data_cache(grid_data, session):
+  if not grid_data.path:
+    return	# No caching for in-memory maps
+
+  grid_data.data_cache = data_cache(session)
+
+# -----------------------------------------------------------------------------
+#
+def data_cache(session):
+  dc = getattr(session, '_volume_data_cache', None)
+  if dc is None:
+    ds = default_settings(session)
+    size = ds['data_cache_size'] * (2**20)
+    from .data import datacache
+    session._volume_data_cache = dc = datacache.Data_Cache(size = size)
+  return dc
+
 # -----------------------------------------------------------------------------
 # Open and display a map using Volume Viewer.
 #
 def volume_from_grid_data(grid_data, session, representation = None,
                           open_model = True, model_id = None,
                           show_data = True, show_dialog = True):
+
+  set_data_cache(grid_data, session)
 
   # Set display style
   if representation is None:

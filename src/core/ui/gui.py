@@ -732,18 +732,25 @@ else:
     import sys
     mac = (sys.platform == 'darwin')
     if mac:
-        from PyQt5.QtCore import QCoreApplication
-        qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
+        # The "plugins" directory can be in one of two places on Mac:
+        # - if we built Qt and PyQt from source: Contents/lib/plugins
+        # - if we used a wheel built using standard Qt: C/l/python3.5/site-packages/PyQt5/Qt/plugins
+        # If the former, we need to set some environment variables so
+        # that Qt can find itself.  If the latter, it "just works".
         import os.path
         from ... import app_lib_dir
-        qlib_paths.append(os.path.join(os.path.dirname(app_lib_dir), "plugins"))
-        QCoreApplication.setLibraryPaths(qlib_paths)
-        import os
-        fw_path = os.environ.get("DYLD_FRAMEWORK_PATH", None)
-        if fw_path:
-            os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
-        else:
-            os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
+        plugins = os.path.join(os.path.dirname(app_lib_dir), "plugins")
+        if os.path.exists(plugins):
+            from PyQt5.QtCore import QCoreApplication
+            qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
+            qlib_paths.append(os.path.join(os.path.dirname(app_lib_dir), "plugins"))
+            QCoreApplication.setLibraryPaths(qlib_paths)
+            import os
+            fw_path = os.environ.get("DYLD_FRAMEWORK_PATH", None)
+            if fw_path:
+                os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
+            else:
+                os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
 
     from PyQt5.QtWidgets import QApplication
     class UI(QApplication):
@@ -1290,6 +1297,7 @@ else:
             if self.__toolkit is None:
                 return
             self.__toolkit.set_title(title)
+        set_title = _set_title
 
         title = property(_get_title, _set_title)
 

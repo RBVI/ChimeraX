@@ -12,7 +12,7 @@ class Structure(Model, StructureData):
         "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
-                 level_of_detail = None, smart_initial_display = True):
+                 smart_initial_display = True):
         # Cross section coordinates are 2D and counterclockwise
         # Use C++ version of XSection instead of Python version
         from .molobject import RibbonXSection as XSection
@@ -25,7 +25,6 @@ class Structure(Model, StructureData):
             'ball_scale': 0.3,		# Scales sphere radius in ball and stick style
             'bond_radius': 0.2,
             'pseudobond_radius': 0.05,
-            '_level_of_detail': LevelOfDetail() if level_of_detail is None else level_of_detail,
             #'_ribbon_selected_residues': Residues(),
         }
 
@@ -90,7 +89,7 @@ class Structure(Model, StructureData):
         if name is None:
             name = self.name
         m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
-                        level_of_detail = self._level_of_detail, smart_initial_display = False)
+                           smart_initial_display = False)
         m.positions = self.positions
         return m
 
@@ -162,10 +161,14 @@ class Structure(Model, StructureData):
                 cmd.run("lighting " + lighting, log=False)
 
         self._start_change_tracking(session.change_tracker)
-        self.handler = session.triggers.add_handler('graphics update', self._update_graphics_if_needed)
+
+        # Setup handler to manage C++ data changes that require graphics updates.
+        gu = structure_graphics_updater(session)
+        gu.add_structure(self)
 
     def removed_from_session(self, session):
-        session.triggers.delete_handler(self.handler)
+        gu = structure_graphics_updater(session)
+        gu.remove_structure(self)
 
     def take_snapshot(self, session, flags):
         data = {'model state': Model.take_snapshot(self, session, flags),
@@ -191,8 +194,9 @@ class Structure(Model, StructureData):
         for attr_name, default_val in self._session_attrs.items():
             setattr(self, attr_name, data.get(attr_name, default_val))
 
-        self._gc_ribbon = True  # TODO: For some reason ribbon drawing does not update automatically.
-        self._gc_shape = True	# TODO: Also marker atoms do not draw without this.
+        # TODO: For some reason ribbon drawing does not update automatically.
+        # TODO: Also marker atoms do not draw without this.
+        self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE)
 
     def reset_state(self, session):
         pass
@@ -246,37 +250,36 @@ class Structure(Model, StructureData):
             pbg._update_graphics()
         self._create_ribbon_graphics()
 
-    def set_subdivision(self, subdivision):
-        self._level_of_detail.quality = subdivision
-        self._update_graphics()
+    @property
+    def _level_of_detail(self):
+        gu = structure_graphics_updater(self.session)
+        return gu.level_of_detail
 
     def new_atoms(self):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
         self._atom_bounds_needs_update = True
 
     def _update_graphics_if_needed(self, *_):
-        if self._gc_ribbon:
+        gc = self._graphics_changed         # Molecule changes
+        if gc & self._RIBBON_CHANGE:
             # Do this before fetching bits because ribbon creation changes some
             # display and hide bits
-            try:
-                self._create_ribbon_graphics()
-            finally:
-                self._gc_ribbon = False
-        # Molecule changes
-        c, s, se = self._gc_color, self._gc_shape, self._gc_select
+            self._create_ribbon_graphics()
+
         # Check for pseudobond changes
         for pbg in self.pbg_map.values():
-            c |= pbg._gc_color
-            s |= pbg._gc_shape
-            se |= pbg._gc_select
-            pbg._gc_color = pbg._gc_shape = pbg._gc_select = False
+            gc |= pbg._graphics_changed
+            pbg._graphics_changed = 0
+
         # Update graphics
-        if c or s or se:
-            self._gc_color = self._gc_shape = self._gc_select = False
-            if c or s:
+        if gc:
+            self._graphics_changed = 0
+            s = (gc & self._SHAPE_CHANGE)
+            if gc & self._COLOR_CHANGE or s:
                 self._update_ribbon_tethers()
             self._update_graphics()
-            self.redraw_needed(shape_changed = s, selection_changed = se)
+            self.redraw_needed(shape_changed = s,
+                               selection_changed = (gc & self._SELECT_CHANGE))
             if s:
                 self._atom_bounds_needs_update = True
 
@@ -289,15 +292,13 @@ class Structure(Model, StructureData):
 
     def _update_atom_graphics(self, atoms):
         avis = atoms.visibles
-        ndisp = avis.sum()
         p = self._atoms_drawing
         if p is None:
-            if ndisp == 0:
+            if avis.sum() == 0:
                 return
             self._atoms_drawing = p = self.new_drawing('atoms')
-
-        # Update level of detail of spheres
-        self._level_of_detail.set_atom_sphere_geometry(ndisp, p)
+            # Update level of detail of spheres
+            self._level_of_detail.set_atom_sphere_geometry(p)
 
         # Set instanced sphere center position and radius
         n = len(atoms)
@@ -325,21 +326,28 @@ class Structure(Model, StructureData):
         return r
 
     def _update_bond_graphics(self, bonds):
-        nshown = bonds.num_shown
         p = self._bonds_drawing
         if p is None:
-            if nshown == 0:
+            if bonds.num_shown == 0:
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
-
-        # Update level of detail of spheres
-        self._level_of_detail.set_bond_cylinder_geometry(nshown, p)
+            # Update level of detail of spheres
+            self._level_of_detail.set_bond_cylinder_geometry(p)
 
         ba1, ba2 = bond_atoms = bonds.atoms
         p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, bonds.radii)
         p.display_positions = _shown_bond_cylinders(bonds)
         p.colors = c = bonds.half_colors
         p.selected_positions = _selected_bond_cylinders(bond_atoms)
+
+    def _update_level_of_detail(self, total_atoms):
+        lod = self._level_of_detail
+        bd = self._bonds_drawing
+        if bd:
+            lod.set_bond_cylinder_geometry(bd, total_atoms)
+        ad = self._atoms_drawing
+        if ad:
+            lod.set_atom_sphere_geometry(ad, total_atoms)
 
     def _create_ribbon_graphics(self):
         if self._ribbon_drawing is None:
@@ -394,7 +402,7 @@ class Structure(Model, StructureData):
                 if polymer_type[i] == Residue.PT_NUCLEIC:
                     rc = XSectionManager.RC_NUCLEIC
                     am_sheet = am_helix = False
-                if polymer_type[i] == Residue.PT_AMINO:
+                elif polymer_type[i] == Residue.PT_AMINO:
                     if is_sheet[i]:
                         # Define sheet SS as having higher priority over helix SS
                         if was_sheet:
@@ -695,7 +703,7 @@ class Structure(Model, StructureData):
                 spine_radii.fill(0.3)
                 sp.positions = _tether_placements(spine_xyz1, spine_xyz2, spine_radii, self.TETHER_CYLINDER)
                 sp.colors = spine_colors
-        self._gc_shape = True
+        self._graphics_changed |= self._SHAPE_CHANGE
         from .molarray import Residues
         self._ribbon_selected_residues = Residues()
 
@@ -1373,17 +1381,20 @@ class AtomicStructure(Structure):
     def _set_chain_descriptions(self, session):
         chain_to_desc = {}
         if 'pdbx_poly_seq_scheme' in self.metadata:
-            scheme = self.metatdata.get('pdbx_poly_seq_scheme', [])
+            scheme = self.metadata.get('pdbx_poly_seq_scheme', [])
             id_to_index = {}
             for sch in scheme:
                 id_to_index[sch['pdb_strand_id']] = int(sch['entity_id']) - 1
-            entity = self.metatdata.get('entity', [])
-            entity_name_com = self.metatdata.get('entity_name_com', [])
+            entity = self.metadata.get('entity', [])
+            entity_name_com = self.metadata.get('entity_name_com', [])
+            name_com_lookup = {}
+            for enc in entity_name_com:
+                name_com_lookup[int(enc['entity_id'])-1] = enc['name']
             for chain_id, index in id_to_index.items():
                 description = None
                 # try SYNONYM equivalent first
-                if len(entity_name_com) > index:
-                    syn = entity_name_com[index]['name']
+                if index in name_com_lookup:
+                    syn = name_com_lookup[index]
                     if syn != '?':
                         description = syn
                         synonym = True
@@ -1450,6 +1461,78 @@ class AtomicStructure(Structure):
 
 
 # -----------------------------------------------------------------------------
+# Before each redraw this singleton object gets a graphics update trigger and
+# checks the C++ graphics changed flags for all structures, updating the graphics
+# drawings for those structures if needed.  Also it updates the level of detail
+# for atom spheres and bond cylinders.
+# 
+class StructureGraphicsChangeManager:
+    def __init__(self, session):
+        self.session = session
+        self._handler = session.triggers.add_handler('graphics update',
+                                                     self._update_graphics_if_needed)
+        self._structures = set()
+        self._structures_array = None		# StructureDatas object
+        self.num_atoms_shown = 0
+        self.level_of_detail = LevelOfDetail()
+        
+    def __del__(self):
+        self.session.triggers.delete_handler(self._handler)
+
+    def add_structure(self, s):
+        self._structures.add(s)
+        self._structures_array = None
+        self.num_atoms_shown = 0	# Make sure new structure gets a level of detail update
+
+    def remove_structure(self, s):
+        self._structures.remove(s)
+        self._structures_array = None
+        
+    def _update_graphics_if_needed(self, *_):
+        s = self._array()
+        gc = s._graphics_changeds
+        if gc.any():
+            for i in gc.nonzero()[0]:
+                s[i]._update_graphics_if_needed()
+
+            # Update level of detail
+            n = sum(tuple(m.num_atoms_visible for m in s if m.display))
+            if n != self.num_atoms_shown:
+                self.num_atoms_shown = n
+                self._update_level_of_detail()
+
+    def _update_level_of_detail(self):
+        n = self.num_atoms_shown
+        for m in self._structures:
+            if m.display:
+                m._update_level_of_detail(n)
+
+    def _array(self):
+        sa = self._structures_array
+        if sa is None:
+            from .molarray import StructureDatas, object_pointers
+            self._structures_array = sa = StructureDatas(object_pointers(self._structures))
+        return sa
+
+    def set_subdivision(self, subdivision):
+        self.level_of_detail.quality = subdivision
+        self._update_level_of_detail()
+
+# -----------------------------------------------------------------------------
+#
+def structure_graphics_updater(session):
+    gu = getattr(session, '_structure_graphics_updater', None)
+    if gu is None:
+        session._structure_graphics_updater = gu = StructureGraphicsChangeManager(session)
+    return gu
+
+# -----------------------------------------------------------------------------
+#
+def level_of_detail(session):
+    gu = structure_graphics_updater(session)
+    return gu.level_of_detail
+
+# -----------------------------------------------------------------------------
 #
 class LevelOfDetail(State):
 
@@ -1485,7 +1568,7 @@ class LevelOfDetail(State):
     def reset_state(self):
         self.quality = 1
 
-    def set_atom_sphere_geometry(self, natoms, drawing):
+    def set_atom_sphere_geometry(self, drawing, natoms = None):
         if natoms == 0:
             return
         ntri = self.atom_sphere_triangles(natoms)
@@ -1508,6 +1591,8 @@ class LevelOfDetail(State):
         return sg[ntri]
 
     def atom_sphere_triangles(self, natoms):
+        if natoms is None:
+            return self._atom_min_triangles
         ntri = self.quality * self._atom_max_total_triangles // natoms
         nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
         ntri = self.clamp_geometric(ntri, nmin, nmax)
@@ -1522,7 +1607,7 @@ class LevelOfDetail(State):
         n3 = max(n2, nmin)
         return n3
 
-    def set_bond_cylinder_geometry(self, nbonds, drawing):
+    def set_bond_cylinder_geometry(self, drawing, nbonds = None):
         if nbonds == 0:
             return
         ntri = self.bond_cylinder_triangles(nbonds)
@@ -1544,6 +1629,8 @@ class LevelOfDetail(State):
         return cg[div]
 
     def bond_cylinder_triangles(self, nbonds):
+        if nbonds is None:
+            return self._bond_min_triangles
         ntri = self.quality * self._bond_max_total_triangles // nbonds
         nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
         ntri = self.clamp_geometric(ntri, nmin, nmax)
@@ -1715,73 +1802,40 @@ class RibbonTriangleRange:
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking one prototype cylinder to each bond location.
 #
-def _bond_cylinder_placements(axyz0, axyz1, radius):
+def _bond_cylinder_placements(axyz0, axyz1, radii):
 
   n = len(axyz0)
-  from numpy import empty, float32, transpose, sqrt, array
+  from numpy import empty, float32
   p = empty((n,4,4), float32)
-  
-  p[:,3,:] = (0,0,0,1)
-  p[:,:3,3] = 0.5*(axyz0 + axyz1)
 
-  v = axyz1 - axyz0
-  d = sqrt((v*v).sum(axis = 1))
-  for a in (0,1,2):
-    v[:,a] /= d
+  from ..geometry import cylinder_rotations
+  cylinder_rotations(axyz0, axyz1, radii, p)
 
-  c = v[:,2]
-  # TODO: Handle degenerate -z axis case
-#  if c <= -1:
-#    return ((1,0,0),(0,-1,0),(0,0,-1))      # Rotation by 180 about x
-  wx, wy = -v[:,1],v[:,0]
-  c1 = 1.0/(1+c)
-  cx,cy = c1*wx, c1*wy
-  r = radius
-  h = d
-  rs = array(((r*(cx*wx + c), r*cx*wy,  h*wy),
-              (r*cy*wx, r*(cy*wy + c), -h*wx),
-              (-r*wy, r*wx, h*c)), float32).transpose((2,0,1))
-  p[:,:3,:3] = rs
-  pt = transpose(p,(0,2,1))
+  p[:,3,:3] = 0.5*(axyz0 + axyz1)
+
   from ..geometry import Places
-  pl = Places(opengl_array = pt)
+  pl = Places(opengl_array = p)
   return pl
 
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking two prototype cylinders to each bond location.
 #
-def _halfbond_cylinder_placements(axyz0, axyz1, radius):
+def _halfbond_cylinder_placements(axyz0, axyz1, radii):
 
   n = len(axyz0)
-  from numpy import empty, float32, transpose, sqrt, array
+  from numpy import empty, float32
   p = empty((2*n,4,4), float32)
   
-  p[:,3,:] = (0,0,0,1)
-  p[:n,:3,3] = 0.75*axyz0 + 0.25*axyz1
-  p[n:,:3,3] = 0.25*axyz0 + 0.75*axyz1
+  from ..geometry import cylinder_rotations
+  cylinder_rotations(axyz0, axyz1, radii, p[:n,:,:])
+  p[n:,:,:] = p[:n,:,:]
 
-  v = axyz1 - axyz0
-  d = sqrt((v*v).sum(axis = 1))
-  for a in (0,1,2):
-    v[:,a] /= d
+  # Translations
+  p[:n,3,:3] = 0.75*axyz0 + 0.25*axyz1
+  p[n:,3,:3] = 0.25*axyz0 + 0.75*axyz1
 
-  c = v[:,2]
-  # TODO: Handle degenerate -z axis case
-#  if c <= -1:
-#    return ((1,0,0),(0,-1,0),(0,0,-1))      # Rotation by 180 about x
-  wx, wy = -v[:,1],v[:,0]
-  c1 = 1.0/(1+c)
-  cx,cy = c1*wx, c1*wy
-  r = radius
-  h = 0.5*d
-  rs = array(((r*(cx*wx + c), r*cx*wy,  h*wy),
-              (r*cy*wx, r*(cy*wy + c), -h*wx),
-              (-r*wy, r*wx, h*c)), float32).transpose((2,0,1))
-  p[:n,:3,:3] = rs
-  p[n:,:3,:3] = rs
-  pt = transpose(p,(0,2,1))
   from ..geometry import Places
-  pl = Places(opengl_array = pt)
+  pl = Places(opengl_array = p)
   return pl
 
 # -----------------------------------------------------------------------------
@@ -1830,10 +1884,8 @@ def all_atoms(session):
 #
 def structure_atoms(structures):
     '''Return all atoms in specified atomic structures as an :class:`.Atoms` collection.'''
-    from .molarray import Atoms
-    atoms = Atoms()
-    for m in structures:
-        atoms = atoms | m.atoms
+    from .molarray import concatenate, Atoms
+    atoms = concatenate([m.atoms for m in structures], Atoms)
     return atoms
 
 # -----------------------------------------------------------------------------

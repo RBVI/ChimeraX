@@ -3,7 +3,7 @@
 # Python readers for array file formats.
 #
 
-from .griddata import Grid_Data, Grid_Subregion, data_cache
+from .griddata import Grid_Data, Grid_Subregion
 from .arraygrid import Array_Grid_Data
 from .subsample import Subsampled_Grid
 from .fileformats import file_types, electrostatics_types

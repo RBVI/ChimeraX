@@ -392,11 +392,11 @@ class Atoms(Collection):
     @property
     def shown_atoms(self):
         '''
-        Subset of Atoms including atoms that are displayed or "hidden"
-        because ribbon is displayed with displayed structure and displayed parents.
+        Subset of Atoms including atoms that are displayed or have ribbon displayed
+        and have displayed structure and displayed parent models.
         '''
         from .molobject import Atom
-        da = self.filter(self.displays | (self.hides == Atom.HIDE_RIBBON))
+        da = self.filter(self.displays | self.residues.ribbon_displays)
         datoms = concatenate([a for m, a in da.by_structure
                               if m.display and m.parents_displayed], Atoms)
         return datoms
@@ -864,6 +864,9 @@ class StructureDatas(Collection):
     ribbon_orientations = cvec_property('structure_ribbon_orientation', int32)
     '''Returns an array of ribbon orientations.'''
 
+    # Graphics changed flags used by rendering code.  Private.
+    _graphics_changeds = cvec_property('structure_graphics_change', int32)
+    
 # -----------------------------------------------------------------------------
 #
 class AtomicStructures(StructureDatas):
@@ -919,6 +922,13 @@ class PseudobondGroups(PseudobondGroupDatas):
         return array([s._c_pointer.value for s in data])
     def session_save_pointers(self, session):
         return [s for s in self]
+
+# -----------------------------------------------------------------------------
+# For making collections from lists of objects.
+#
+def object_pointers(objects):
+    pointers = array(tuple(o._c_pointer.value for o in objects), dtype = cptr,)
+    return pointers
 
 # -----------------------------------------------------------------------------
 # When C++ object is deleted, delete it from the specified pointer array.

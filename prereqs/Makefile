@@ -94,7 +94,11 @@ SUBDIRS	+= fonts \
 	   imex numexpr numpy scipy \
 	   pcre pips pycollada \
 	   PyOpenGL pytables Python \
-	   setuptools wrappy3 wx
+	   setuptools wrappy3
+
+ifndef WIN32
+SUBDIRS += wx
+endif
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

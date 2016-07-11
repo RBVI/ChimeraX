@@ -87,7 +87,7 @@ def path_point_axes(points, yaxis):
 
   zaxes = path_tangents(points)
   from ...geometry import orthonormal_frame
-  axes = [orthonormal_frame(za) for za in zaxes]
+  axes = [orthonormal_frame(za, ydir=yaxis) for za in zaxes]
   return axes
   
 # -----------------------------------------------------------------------------

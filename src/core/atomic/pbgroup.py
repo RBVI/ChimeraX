@@ -48,16 +48,17 @@ class PseudobondGroup(PseudobondGroupData, Model):
             owner = self.structure if self.structure else self
             owner.remove_drawing(pb)
             self._pbond_drawing = None
-            self._gc_shape = True
+            self._graphics_changed |= self._SHAPE_CHANGE
             owner.redraw_needed(shape_changed = True)
     dashes = property(_get_dashes, _set_dashes)
 
     def _update_graphics_if_needed(self, *_):
-        c, s, se = self._gc_color, self._gc_shape, self._gc_select
-        if c or s or se:
-            self._gc_color = self._gc_shape = self._gc_select = False
+        gc = self._graphics_changed
+        if gc:
+            self._graphics_changed = 0
             self._update_graphics()
-            self.redraw_needed(shape_changed = s, selection_changed = se)
+            self.redraw_needed(shape_changed = (gc & self._SHAPE_CHANGE),
+                               selection_changed = (gc & self._SELECT_CHANGE))
 
     def _update_graphics(self):
 

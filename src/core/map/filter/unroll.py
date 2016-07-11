@@ -32,7 +32,7 @@ def unroll_operation(v, r0, r1, h, center, axis, gsp, subregion, step, modelId):
     g = Array_Grid_Data(values, gorigin, gstep, name = 'unrolled %s' % v.name)
     from .. import volume_from_grid_data
     vu = volume_from_grid_data(g, v.session, model_id = modelId)
-    vu.copy_settings_from(v, copy_region = False, copy_active = False)
+    vu.copy_settings_from(v, copy_region = False, copy_active = False, copy_colors = False)
     vu.show()
 
     if axis[0] != 0 or axis[1] != 0:

@@ -41,22 +41,31 @@ class Rgba;
     
 class ATOMSTRUCT_IMEX GraphicsContainer {
 private:
-    bool  _gc_color:1;
-    bool  _gc_select:1;
-    bool  _gc_shape:1;
+    int _gc_changes;
     
 public:
-    GraphicsContainer(): _gc_color(false), _gc_select(false),
-        _gc_shape(false) {}
+    enum ChangeType {
+      SHAPE_CHANGE = (1 << 0),
+      COLOR_CHANGE = (1 << 1),
+      SELECT_CHANGE = (1 << 2),
+      RIBBON_CHANGE = (1 << 3),
+    };
+
+    GraphicsContainer(): _gc_changes(0) {}
     virtual  ~GraphicsContainer() {}
-    virtual void  gc_clear()
-        { _gc_color = false; _gc_select = false; _gc_shape = false; }
-    virtual bool  get_gc_color() const { return _gc_color; }
-    virtual bool  get_gc_select() const { return _gc_select; }
-    virtual bool  get_gc_shape() const { return _gc_shape; }
-    virtual void  set_gc_color(bool gc = true) { _gc_color = gc; }
-    virtual void  set_gc_select(bool gc = true) { _gc_select = gc; }
-    virtual void  set_gc_shape(bool gc = true) { _gc_shape = gc; }
+    virtual void  gc_clear() { _gc_changes = 0; }
+    virtual bool  get_gc_color() const { return _gc_changes & COLOR_CHANGE; }
+    virtual bool  get_gc_select() const { return _gc_changes & SELECT_CHANGE; }
+    virtual bool  get_gc_shape() const { return _gc_changes & SHAPE_CHANGE; }
+    virtual bool  get_gc_ribbon() const { return _gc_changes & RIBBON_CHANGE; }
+    virtual int   get_graphics_changes() const { return _gc_changes; }
+    virtual void  set_gc_color() { set_graphics_change(COLOR_CHANGE); }
+    virtual void  set_gc_select() { set_graphics_change(SELECT_CHANGE); }
+    virtual void  set_gc_shape() { set_graphics_change(SHAPE_CHANGE); }
+    virtual void  set_gc_ribbon() { set_graphics_change(RIBBON_CHANGE); }
+    virtual void  set_graphics_changes(int change) { _gc_changes = change; }
+    virtual void  set_graphics_change(ChangeType type) { _gc_changes |= type; }
+    virtual void  clear_graphics_change(ChangeType type) { _gc_changes &= ~type; }
 };
 
 // Structure and AtomicStructure have all the methods and typedefs (i.e.
@@ -100,7 +109,6 @@ protected:
     ChangeTracker*  _change_tracker;
     CoordSets  _coord_sets;
     bool  _display = true;
-    bool  _gc_ribbon = false;
     bool  _idatm_valid;
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
@@ -241,8 +249,6 @@ public:
     void  use_best_alt_locs();
 
     // ribbon stuff
-    bool  get_gc_ribbon() const { return _gc_ribbon; }
-    void  set_gc_ribbon(bool gc = true) { _gc_ribbon = gc; }
     float  ribbon_tether_scale() const { return _ribbon_tether_scale; }
     TetherShape  ribbon_tether_shape() const { return _ribbon_tether_shape; }
     int  ribbon_tether_sides() const { return _ribbon_tether_sides; }

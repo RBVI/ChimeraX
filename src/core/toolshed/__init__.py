@@ -1297,9 +1297,11 @@ class BundleInfo:
                                            % self.name)
         try:
             f = self._get_module().start_tool
-        except (ImportError, AttributeError, TypeError, SyntaxError):
+        except AttributeError:
             raise ToolshedError("no start_tool function found for tool \"%s\""
                                 % self.name)
+        except (ImportError, TypeError, SyntaxError) as e:
+            raise ToolshedError("Error importing tool \"%s\": %s" % (self.name, str(e)))
         ti = f(session, self, *args, **kw)
         if ti is not None:
             ti.display(True)  # in case the instance is a singleton not currently shown

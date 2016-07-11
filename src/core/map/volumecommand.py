@@ -51,7 +51,7 @@ def register_volume_command():
                ('mask_zone', BoolArg),
                ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
                ('append', BoolArg),
-               ('compress', BoolArg),
+               ('compress', NoArg),
                ('base_index', IntArg),
 # Global options.
                ('data_cache_size', FloatArg),
@@ -301,7 +301,7 @@ def volume(session,
             'show_plane', 'voxel_limit_for_plane')
     gsettings = dict((n,loc[n]) for n in gopt if not loc[n] is None)
     if gsettings:
-        apply_global_settings(gsettings)
+        apply_global_settings(session, gsettings)
 
     if len(gsettings) == 0 and len(vlist) == 0:
         from .. import errors
@@ -332,6 +332,8 @@ def volume(session,
                                          'z' in orthoplanes)
     if not position_planes is None:
         rsettings['orthoplane_positions'] = position_planes
+    if outline_box_rgb:
+        rsettings['outline_box_rgb'] = tuple(outline_box_rgb.rgba[:3])
 
     for v in vlist:
         apply_volume_options(v, dsettings, rsettings, session)
@@ -344,14 +346,15 @@ def volume(session,
     
 # -----------------------------------------------------------------------------
 #
-def apply_global_settings(gsettings):
+def apply_global_settings(session, gsettings):
 
 # TODO: Unused settings part of gui in Chimera.
 #    from .volume import default_settings
 #    default_settings.update(gsettings)
     if 'data_cache_size' in gsettings:
-        from .data import data_cache
-        data_cache.resize(gsettings['data_cache_size'] * (2**20))
+        from .volume import data_cache
+        dc = data_cache(session)
+        dc.resize(gsettings['data_cache_size'] * (2**20))
     
 # -----------------------------------------------------------------------------
 #
@@ -441,9 +444,9 @@ def apply_volume_options(v, doptions, roptions, session):
             v.show()
     elif v.shown():
         v.show()
-# TODO: If it has a surface but it is undisplayed, do I need to recalculate it?
-#    else:
-#        v.update_display()
+    else:
+        # Update the model even if it is hidden.
+        v.update_display()
 
     if 'dump_header' in doptions and doptions['dump_header']:
         show_file_header(v.data, session.logger)

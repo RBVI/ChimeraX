@@ -16,6 +16,7 @@ include $(TOP)/mk/subdir.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax/core
 ifdef WIN32
+TOP := $(shell cygpath -m '$(TOP)' | sed 's,/,\\\\\\\\,g')
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')

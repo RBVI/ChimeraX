@@ -68,7 +68,7 @@ and as an axis of rotation (a unit vector), point on the axis,
 degrees of rotation, and shift parallel to the axis.
 </p><p>
 See also:
-<b>volume</b>,
+<a href="volume.html"><b>volume</b></a>,
 <a href="molmap.html"><b>molmap</b></a>,
 <a href="position.html"><b>position</b></a>,
 <b>align</b>
@@ -360,26 +360,30 @@ of the current position.
   <a name="clusterAngle"><b>clusterAngle</b> &nbsp;<i>angle</i></a>
   <br>
 The <i>angle</i> (default <b>6</b>&deg;) is the rotational difference
-required for a fit to be considered unique.  Only unique fits are included
-in the list of results.
+required for a fit to be considered unique.
+<!--
+Only unique fits are included in the list of results.
+-->
 </blockquote>
 <blockquote>
   <a name="clusterShift"><b>clusterShift</b> &nbsp;<i>shift</i></a>
   <br>
 The <i>shift</i> (default <b>3</b> &Aring;) is the translational difference
-required for a fit to be considered unique.  Only unique fits are included
-in the list of results.
+required for a fit to be considered unique.
+<!--
+Only unique fits are included in the list of results.
+-->
 </blockquote>
 <blockquote>
   <a name="asymmetricUnit"><b>asymmetricUnit</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>
   <br>
 If the reference map has symmetry information,
-whether to list only the fits from one asymmetric unit.
+whether to keep only the fits from one asymmetric unit.
 In other words, whether to exclude symmetry-equivalent fits 
 from being considered unique. Of a symmetry-equivalent set of fits,
 the one that places the fit structure geometric center closest to
 volume box fractional coordinates (0.75,0.55,0.55) in the reference map 
-is included in the list of results.
+is kept as the representative.
 </blockquote>
 <blockquote>
   <a name="levelInside"><b>levelInside</b> &nbsp;<i>fraction</i></a>

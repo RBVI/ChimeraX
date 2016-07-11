@@ -225,12 +225,12 @@ def database_formats(session, from_database):
 
 # -----------------------------------------------------------------------------
 #
-def fetch_from_database(session, from_database, id, format=None, name=None, ignore_cache=False):
+def fetch_from_database(session, from_database, id, format=None, name=None, ignore_cache=False, **kw):
     d = fetch_databases(session)
     df = d[from_database]
     from .logger import Collator
     with Collator(session.logger, "Summary of problems opening %s fetched from %s" % (id, from_database)):
-        models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache)
+        models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache, **kw)
     if name is not None:
         for m in models:
             m.name = name
@@ -268,7 +268,7 @@ class DatabaseFetch:
         # fetch_function() takes session and database id arguments, returns model list.
         self.fetch_function[format_name] = fetch_function
 
-    def fetch(self, session, database_id, format=None, ignore_cache=False):
+    def fetch(self, session, database_id, format=None, ignore_cache=False, **kw):
         f = self.default_format if format is None else format
         fetch = self.fetch_function[f]
-        return fetch(session, database_id, ignore_cache=ignore_cache)
+        return fetch(session, database_id, ignore_cache=ignore_cache, **kw)

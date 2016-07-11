@@ -35,14 +35,14 @@ def read_array(path, byte_offset, ijk_origin, ijk_size, ijk_step,
     from numpy import fromstring
     for k in range(ko, ko+ksize, kstep):
       if progress:
-        progress.plane((k-ko)/kstep)
+        progress.plane((k-ko)//kstep)
       kbase = byte_offset + k * kbytes
       for j in range(jo, jo+jsize, jstep):
         offset = kbase + j * jbytes + ioffset
         file.seek(offset)
         data = file.read(ibytes)
         slice = fromstring(data, type)
-        matrix[(k-ko)/kstep,(j-jo)/jstep,:] = slice[::istep]
+        matrix[(k-ko)//kstep,(j-jo)//jstep,:] = slice[::istep]
 
     file.close()
 

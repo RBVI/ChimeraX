@@ -28,6 +28,7 @@ if window_sys == "wx":
             oc = self.opengl_context = GLContext(self.opengl_canvas)
             oc.make_current = self.make_context_current
             oc.swap_buffers = self.swap_buffers
+            oc.pixel_scale = self.pixel_scale
             self.view.initialize_rendering(oc)
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
@@ -54,6 +55,9 @@ if window_sys == "wx":
 
         def swap_buffers(self):
             self.opengl_canvas.SwapBuffers()
+
+        def pixel_scale(self):
+            return 1
 
         def _redraw_timer_callback(self, event):
             # apparently we're in a thread, so use CallAfter since the
@@ -255,6 +259,7 @@ else:
             self.opengl_context = oc = OpenGLContext(self)
             oc.make_current = self.make_context_current
             oc.swap_buffers = self.swap_buffers
+            oc.pixel_scale = self.pixel_scale
 
             self.redraw_interval = 16  # milliseconds
             #   perhaps redraw interval should be 10 to reduce
@@ -322,6 +327,10 @@ else:
 
         def swap_buffers(self):
             self.opengl_context.swapBuffers(self)
+
+        def pixel_scale(self):
+            # Ratio Qt pixel size to OpenGL pixel size.  Usually 1, but 2 for Mac retina displays.
+            return self.devicePixelRatio()
 
         def _redraw_timer_callback(self):
             import time
@@ -391,7 +400,7 @@ else:
 
         def close(self):
             self.opengl_context = None
-            self.delete()
+            self.destroy()	# Destroy QWindow
 
         def full_screen(self, width, height):
             from PyQt5.QtGui import QGuiApplication

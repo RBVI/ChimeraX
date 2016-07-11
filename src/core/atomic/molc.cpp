@@ -984,40 +984,16 @@ extern "C" EXPORT void pseudobond_group_category(void *pbgroups, int n, void **c
     }
 }
 
-extern "C" EXPORT void pseudobond_group_gc_color(void *pbgroups, size_t n, npy_bool *color_changed)
+extern "C" EXPORT void pseudobond_group_graphics_change(void *pbgroups, size_t n, int *changed)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-    error_wrap_array_get<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::get_gc_color, color_changed);
+    error_wrap_array_get<Proxy_PBGroup, int, int>(pbg, n, &Proxy_PBGroup::get_graphics_changes, changed);
 }
 
-extern "C" EXPORT void set_pseudobond_group_gc_color(void *pbgroups, size_t n, npy_bool *color_changed)
+extern "C" EXPORT void set_pseudobond_group_graphics_change(void *pbgroups, size_t n, int *changed)
 {
     Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-    error_wrap_array_set<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::set_gc_color, color_changed);
-}
-
-extern "C" EXPORT void pseudobond_group_gc_select(void *pbgroups, size_t n, npy_bool *select_changed)
-{
-    Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-    error_wrap_array_get<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::get_gc_select, select_changed);
-}
-
-extern "C" EXPORT void set_pseudobond_group_gc_select(void *pbgroups, size_t n, npy_bool *select_changed)
-{
-    Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-    error_wrap_array_set<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::set_gc_select, select_changed);
-}
-
-extern "C" EXPORT void pseudobond_group_gc_shape(void *pbgroups, size_t n, npy_bool *shape_changed)
-{
-    Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-    error_wrap_array_get<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::get_gc_shape, shape_changed);
-}
-
-extern "C" EXPORT void set_pseudobond_group_gc_shape(void *pbgroups, size_t n, npy_bool *shape_changed)
-{
-    Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
-    error_wrap_array_set<Proxy_PBGroup, bool, npy_bool>(pbg, n, &Proxy_PBGroup::set_gc_shape, shape_changed);
+    error_wrap_array_set<Proxy_PBGroup, int, int>(pbg, n, &Proxy_PBGroup::set_graphics_changes, changed);
 }
 
 extern "C" EXPORT void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
@@ -1955,52 +1931,16 @@ extern "C" EXPORT void *structure_copy(void *mol)
     }
 }
 
-extern "C" EXPORT void structure_gc_color(void *mols, size_t n, npy_bool *color_changed)
+extern "C" EXPORT void structure_graphics_change(void *mols, size_t n, int *changed)
 {
     Structure **m = static_cast<Structure **>(mols);
-    error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_color, color_changed);
+    error_wrap_array_get<Structure, int, int>(m, n, &Structure::get_graphics_changes, changed);
 }
 
-extern "C" EXPORT void set_structure_gc_color(void *mols, size_t n, npy_bool *color_changed)
+extern "C" EXPORT void set_structure_graphics_change(void *mols, size_t n, int *changed)
 {
     Structure **m = static_cast<Structure **>(mols);
-    error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_color, color_changed);
-}
-
-extern "C" EXPORT void structure_gc_select(void *mols, size_t n, npy_bool *select_changed)
-{
-    Structure **m = static_cast<Structure **>(mols);
-    error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_select, select_changed);
-}
-
-extern "C" EXPORT void set_structure_gc_select(void *mols, size_t n, npy_bool *select_changed)
-{
-    Structure **m = static_cast<Structure **>(mols);
-    error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_select, select_changed);
-}
-
-extern "C" EXPORT void structure_gc_shape(void *mols, size_t n, npy_bool *shape_changed)
-{
-    Structure **m = static_cast<Structure **>(mols);
-    error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_shape, shape_changed);
-}
-
-extern "C" EXPORT void set_structure_gc_shape(void *mols, size_t n, npy_bool *shape_changed)
-{
-    Structure **m = static_cast<Structure **>(mols);
-    error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_shape, shape_changed);
-}
-
-extern "C" EXPORT void structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
-{
-    Structure **m = static_cast<Structure **>(mols);
-    error_wrap_array_get<Structure, bool, npy_bool>(m, n, &Structure::get_gc_ribbon, ribbon_changed);
-}
-
-extern "C" EXPORT void set_structure_gc_ribbon(void *mols, size_t n, npy_bool *ribbon_changed)
-{
-    Structure **m = static_cast<Structure **>(mols);
-    error_wrap_array_set<Structure, bool, npy_bool>(m, n, &Structure::set_gc_ribbon, ribbon_changed);
+    error_wrap_array_set<Structure, int, int>(m, n, &Structure::set_graphics_changes, changed);
 }
 
 extern "C" EXPORT void structure_name(void *mols, size_t n, pyobject_t *names)
@@ -2031,6 +1971,24 @@ extern "C" EXPORT void structure_num_atoms(void *mols, size_t n, size_t *natoms)
     try {
         for (size_t i = 0; i != n; ++i)
             natoms[i] = m[i]->atoms().size();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_num_atoms_visible(void *mols, size_t n, size_t *natoms)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  {
+	    const Structure::Atoms &atoms = m[i]->atoms();
+	    int c = 0;
+	    for (auto a: atoms)
+	      if (a->visible())
+		c += 1;
+            natoms[i] = c;
+	  }
     } catch (...) {
         molc_error();
     }

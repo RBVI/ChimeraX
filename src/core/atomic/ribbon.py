@@ -827,7 +827,7 @@ class XSectionManager:
         # Mark ribbon for rebuild
         s = self.structure()
         if s is not None:
-            s._gc_ribbon = True
+            s._graphics_changed |= self._RIBBON_CHANGE
 
 
 def normalize(v):

@@ -209,8 +209,8 @@ class Interpolated_Map:
     ms = v.matrix_value_statistics()
 
     sflev = [ms.rank_data_value(r) for r in self.surface_level_ranks]
-    solev = zip([ms.rank_data_value(r) for r in self.solid_level_ranks],
-                [b for lev,b in v.solid_levels])
+    solev = list(zip([ms.rank_data_value(r) for r in self.solid_level_ranks],
+                     [b for lev,b in v.solid_levels]))
     v.set_parameters(surface_levels = sflev, solid_levels = solev)
 
 # -----------------------------------------------------------------------------

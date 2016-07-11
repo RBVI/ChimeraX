@@ -159,9 +159,9 @@ class VolumeViewer(ToolInstance):
 
             # Add data values changed callback.
             v.add_volume_change_callback(self.data_region_changed)
-
+            
             if hasattr(v.data, 'series_index') and v.data.series_index > 0:
-                return
+                continue
 
             # Show data parameters.
             self.display_volume_info(v)
@@ -221,10 +221,9 @@ class VolumeViewer(ToolInstance):
             tp.update_histograms(v)
 
         elif type == 'displayed':
-          if tp.histogram_shown(v):
-            # Histogram, data range, and initial thresholds are only displayed
-            #  after data is shown to avoid reading data file for undisplayed data.
-            tp.update_panel_widgets(v, activate = False)
+          # Histogram, data range, and initial thresholds are only displayed
+          #  after data is shown to avoid reading data file for undisplayed data.
+          tp.update_panel_widgets(v, activate = False)
 
         elif type == 'representation changed':
           tp.update_panel_widgets(v, activate = False)
@@ -763,11 +762,11 @@ class Volume_Dialog:
 #
 class PopupPanel:
 
-  def __init__(self, parent, resize_dialog = True):
+  def __init__(self, parent, resize_dialog = True, scrollable = False):
 
-    from PyQt5.QtWidgets import QFrame
+    from PyQt5.QtWidgets import QFrame, QScrollArea
 
-    self.frame = QFrame(parent)
+    self.frame = QScrollArea(parent) if scrollable else QFrame(parent)
 
 #        v = BooleanVariable(parent)
 #        self.panel_shown_variable = v
@@ -1473,7 +1472,7 @@ class Thresholds_Panel(PopupPanel):
 
     self.dialog = dialog
 
-    PopupPanel.__init__(self, parent)
+    PopupPanel.__init__(self, parent, scrollable = True)
 
     self.histogram_height = 64
     self.histogram_panes = []
@@ -1485,20 +1484,26 @@ class Thresholds_Panel(PopupPanel):
 
     frame = self.frame
 
-    from PyQt5.QtWidgets import QVBoxLayout, QFrame
+    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QLabel
     from PyQt5.QtCore import Qt
 
-    layout = QVBoxLayout(frame)
-    layout.setContentsMargins(0,0,0,0)
-    layout.setSpacing(0)
+#    layout = QVBoxLayout(frame)
+#    layout.setContentsMargins(0,0,0,0)
+#    layout.setSpacing(0)
     
     # Histograms frame
     self.histograms_frame = hf = QFrame(frame)
-    layout.addWidget(hf, stretch=1)
+#    layout.addWidget(hf, stretch=1)
     self.histograms_layout = hl = QVBoxLayout(hf)
+#    hl.setSizeConstraint(QVBoxLayout.SetFixedSize)
+    hl.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
     hl.setContentsMargins(0,0,0,0)
     hl.setSpacing(0)
     hl.addStretch(1)
+#    frame.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    frame.setWidget(hf)	# Set scrollable child.
+    frame.setWidgetResizable(True)	# Resize child to fit in scroll area -- really only want width resized.
+    hf.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     
 #    b = self.make_close_button(frame)
 #    b.grid(row = row, column = 1, sticky = 'e')
@@ -1535,12 +1540,34 @@ class Thresholds_Panel(PopupPanel):
     else:
       # Make new histogram
       hp = Histogram_Pane(self.dialog, self.histograms_frame, self.histogram_height)
-      self.histograms_layout.addWidget(hp.frame)
+      hl = self.histograms_layout
+      hl.insertWidget(hl.count()-1, hp.frame)
       self.histogram_panes.append(hp)
 
     hp.set_data_region(dr)
     hptable[dr] = hp
     self.set_active_data(hp)
+
+    self.resize_panel()
+
+  # ---------------------------------------------------------------------------
+  # Resize thresholds panel to fit up to 3 histograms before scrolling.
+  #
+  def resize_panel(self, nhist = 3):
+
+    hpanes = self.histogram_panes
+    n = len(hpanes)
+    if n == 0 or n > nhist:
+        return
+
+    hf = hpanes[0].frame
+    hf.adjustSize()		# Get correct size for histogram pane
+    f = self.frame
+    f.setMinimumHeight(n*hf.height())	# Resize to exactly fit n histograms
+
+    # Allow resizing panel smaller with mouse
+    from PyQt5.QtCore import QTimer
+    QTimer.singleShot(1, lambda f=f: f.setMinimumHeight(50))
 
   # ---------------------------------------------------------------------------
   # Switch histogram threshold markers between vertical
@@ -1692,16 +1719,19 @@ class Histogram_Pane:
     self.histogram_size = None
     self.update_timer = None
 
-    from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit
+    from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit, QSizePolicy
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtCore import Qt, QSize
 
     self.frame = f = QFrame(parent)
+    f.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
     flayout = QVBoxLayout(f)
     flayout.setContentsMargins(0,0,0,0)
     flayout.setSpacing(0)
     
     df = QFrame(f)
+    df.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+#    df.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Minimum)
     flayout.addWidget(df)
     layout = QHBoxLayout(df)
     layout.setContentsMargins(0,0,0,0)
@@ -1797,13 +1827,16 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def set_data_region(self, data_region):
+  def set_data_region(self, volume):
 
-    self.data_region = data_region
+    if volume == self.data_region:
+        return
+
+    self.data_region = volume
     self.histogram_shown = False
     self.histogram_data = None
     self.show_data_name()
-    # if data_region:
+    # if volume:
     #   if not self.shown_handlers:
     #     from chimera import triggers, openModels as om
     #     h = [(tset, tname, tset.addHandler(tname, self.check_shown_cb, None))
@@ -1811,9 +1844,10 @@ class Histogram_Pane:
     #                              (om.triggers, om.ADDMODEL))]
     #     self.shown_handlers = h
 
-    new_marker_color = data_region.default_rgba if data_region else (1,1,1,1)
+    new_marker_color = volume.default_rgba if volume else (1,1,1,1)
     self.surface_thresholds.new_marker_color = new_marker_color
     self.solid_thresholds.new_marker_color = saturate_rgba(new_marker_color)
+    self.update_threshold_gui()
 
   # ---------------------------------------------------------------------------
   #
@@ -1838,7 +1872,7 @@ class Histogram_Pane:
     #
     # set highlight thickness = 0 so line in column 0 is visible.
     #
-    from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene
+    from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QSizePolicy
     from PyQt5.QtCore import Qt
 
     class Canvas(QGraphicsView):
@@ -1860,8 +1894,10 @@ class Histogram_Pane:
     self.canvas = gv = Canvas(frame)
     gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    gv.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
     self.scene = gs = QGraphicsScene(gv)
-    gs.setSceneRect(0, 0, 500, 100)
+    gs.setSceneRect(0, 0, 500, 50)
     gv.setScene(gs)
     
 #    c = Tkinter.Canvas(frame, height = histogram_height,
@@ -2023,11 +2059,9 @@ class Histogram_Pane:
   #
   def representation_changed_cb(self, style):
 
-      print ('repr changed', style)
       self.style.setText(style)
-      d = self.dialog
-      d.representation_changed(style)
-      d.redisplay_needed_cb()
+      v = self.data_region
+      v.show(representation = self.representation, show = v.shown())
       
   # ---------------------------------------------------------------------------
   #
@@ -2076,7 +2110,7 @@ class Histogram_Pane:
       m.set_color(rgba, markers.canvas)	# Set histogram marker color
       from .histogram import hex_color_name
       self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
-    self.dialog.redisplay_needed_cb()
+      self.set_threshold_parameters_from_gui(show = True)
 
   # ---------------------------------------------------------------------------
   #
@@ -2095,8 +2129,7 @@ class Histogram_Pane:
         return
       m.xy = (t, m.xy[1])
       markers.update_plot()
-
-      self.dialog.redisplay_cb()
+      self.set_threshold_parameters_from_gui(show = True)
 
   # ---------------------------------------------------------------------------
   #
@@ -2130,19 +2163,19 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def update_threshold_gui(self, message_cb):
+  def update_threshold_gui(self, message_cb = None):
 
     read_matrix = False
     self.update_histogram(read_matrix, message_cb)
 
     self.update_size_and_step()
     self.update_shown_icon()
-    self.set_threshold_and_color_widgets()
 
     self.plot_surface_levels()
     self.plot_solid_levels()
     self.representation = rep = self.data_region.representation
     self.solid_mode(rep == 'solid')
+    self.set_threshold_and_color_widgets()
     
   # ---------------------------------------------------------------------------
   #
@@ -2270,7 +2303,7 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def set_threshold_parameters_from_gui(self):
+  def set_threshold_parameters_from_gui(self, show = False):
 
     v = self.data_region
     if v is None:
@@ -2282,6 +2315,8 @@ class Histogram_Pane:
     markers = self.solid_thresholds.markers
     v.solid_levels = [m.xy for m in markers]
     v.solid_colors = [m.rgba for m in markers]
+    if show and v.shown():
+        v.show()
 
   # ---------------------------------------------------------------------------
   # Delete widgets and references to other objects.

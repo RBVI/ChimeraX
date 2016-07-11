@@ -647,13 +647,12 @@ def common_startup(sess):
     from .updateloop import UpdateLoop
     sess.update_loop = UpdateLoop()
 
-    from .atomic import ChangeTracker, LevelOfDetail
+    from .atomic import ChangeTracker
     sess.change_tracker = ChangeTracker()
     # change_tracker needs to exist before global pseudobond manager
     # can be created
     from .atomic import PseudobondManager
     sess.add_state_manager('pb_manager', PseudobondManager(sess))
-    sess.atomic_level_of_detail = LevelOfDetail()
 
     from . import commands
     commands.register_core_commands(sess)

@@ -6,7 +6,6 @@ mmcif: mmCIF format support
 Read mmCIF files.
 """
 
-from . import structure
 from ..errors import UserError
 
 _builtin_open = open
@@ -32,9 +31,10 @@ def open_mmcif(session, filename, name, *args, **kw):
         lambda name, session=session: _get_template(session, name))
     pointers = _mmcif.parse_mmCIF_file(filename, _additional_categories, session.logger)
 
-    lod = session.atomic_level_of_detail
-    models = [structure.AtomicStructure(session, name=name, c_pointer=p, level_of_detail=lod)
-              for p in pointers]
+    smid = kw.get('smart_initial_display', True)
+
+    from .structure import AtomicStructure
+    models = [AtomicStructure(session, name = name, c_pointer = p, smart_initial_display = smid) for p in pointers]
     for m in models:
         m.filename = filename
 
@@ -43,7 +43,7 @@ def open_mmcif(session, filename, name, *args, **kw):
                        sum(m.num_bonds for m in models)))
 
 
-def fetch_mmcif(session, pdb_id, ignore_cache=False):
+def fetch_mmcif(session, pdb_id, ignore_cache=False, **kw):
     if len(pdb_id) != 4:
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
     import os
@@ -70,7 +70,7 @@ def fetch_mmcif(session, pdb_id, ignore_cache=False):
             raise UserError("Invalid mmCIF identifier")
 
     from .. import io
-    models, status = io.open_data(session, filename, format='mmcif', name=pdb_id)
+    models, status = io.open_data(session, filename, format='mmcif', name=pdb_id, **kw)
     return models, status
 
 
@@ -118,6 +118,8 @@ def register_mmcif_format():
         return
 
     from .. import io
+    from . import structure
+    
     # mmCIF uses same file suffix as CIF
     # PDB uses chemical/x-cif when serving CCD files
     # io.register_format(
