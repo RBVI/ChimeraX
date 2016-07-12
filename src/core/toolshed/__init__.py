@@ -105,6 +105,26 @@ TOOLSHED_BUNDLE_INFO_ADDED = "bundle info added"
 TOOLSHED_BUNDLE_INSTALLED = "bundle installed"
 TOOLSHED_BUNDLE_UNINSTALLED = "bundle uninstalled"
 
+# Known bundle catagories
+DYNAMICS = "Molecular trajectory"
+GENERIC3D = "Generic 3D objects"
+SCRIPT = "Command script"
+SEQUENCE = "Sequence alignment"
+SESSION = "Session data"
+STRUCTURE = "Molecular structure"
+SURFACE = "Molecular surface"
+VOLUME = "Volume data"
+Categories = [
+    DYNAMICS,
+    GENERIC3D,
+    SCRIPT,
+    SEQUENCE,
+    SESSION,
+    STRUCTURE,
+    SURFACE,
+    VOLUME,
+]
+
 
 def _hack_distlib(f):
     def hacked_f(*args, **kw):
