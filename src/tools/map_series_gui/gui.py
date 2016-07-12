@@ -269,7 +269,7 @@ def remove_slider_on_open(session):
     if not hasattr(session, '_map_series_slider_handler'):
         return
     handler = session._map_series_slider_handler
-    session.delete_attribute('_map_series_slider_handler')
+    del session._map_series_slider_handler
     session.triggers.delete_handler(handler)
 
 

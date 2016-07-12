@@ -315,7 +315,7 @@ class Movie:
         if clearFrames:
             self.clearFrames()
 
-        self.session.replace_attribute('movie', None)
+		del session.movie
 
         if status:
             msg = ' - frames have been '

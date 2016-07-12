@@ -17,11 +17,11 @@ def remote_control(session, enable, address = '127.0.0.1', port = 42184, timeout
         s = getattr(session, '_xmlrpc_server', None)
         if s is None:
             s = ChimeraxXMLRPCServer(session, address, port, timeout)
-            session.replace_attribute('_xmlrpc_server', s)
+            session._xmlrpc_server = s
     else:
         s = getattr(session, '_xmlrpc_server', None)
         if s:
-            session.replace_attribute('_xmlrpc_server', None)
+            del session._xmlrpc_server
             s.close()
 
 
