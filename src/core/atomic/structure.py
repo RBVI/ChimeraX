@@ -577,7 +577,7 @@ class Structure(Model, StructureData):
                     continue
                 seg = capped and seg_cap or seg_blend
                 mid_cap = not self.ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
-                front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, capped, last=mid_cap)
+                front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, mid_cap, last=mid_cap)
                 if self.ribbon_show_spine:
                     spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
                                                                                      front_c, front_n,
