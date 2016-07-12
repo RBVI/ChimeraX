@@ -1,8 +1,8 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 from .models import Model
 
-from . import io
-CATEGORY = io.GENERIC3D
+from . import toolshed
+CATEGORY = toolshed.GENERIC3D
 
 
 class Generic3DModel(Model):

@@ -401,7 +401,7 @@ class Session:
         """Explictly delete attribute"""
         object.__delattr__(self, attribute_name)
 
-    def snapshot_methods(self, object, instance = True):
+    def snapshot_methods(self, object, instance=True):
         """Return an object having take_snapshot() and restore_snapshot() methods for the given object.
         Can return if no save/restore methods are available, for instance for primitive types.
         """
@@ -412,19 +412,19 @@ class Session:
             from .graphics import View, MonoCamera, Lighting, Material, ClipPlane, Drawing, gsession as g
             from .geometry import Place, Places, psession as p
             self._snapshot_methods = {
-                View : g.ViewState,
-                MonoCamera : g.CameraState,
-                Lighting : g.LightingState,
-                Material : g.MaterialState,
-                ClipPlane : g.ClipPlaneState,
-                Drawing : g.DrawingState,
-                Place : p.PlaceState,
-                Places : p.PlacesState,
+                View: g.ViewState,
+                MonoCamera: g.CameraState,
+                Lighting: g.LightingState,
+                Material: g.MaterialState,
+                ClipPlane: g.ClipPlaneState,
+                Drawing: g.DrawingState,
+                Place: p.PlaceState,
+                Places: p.PlacesState,
             }
 
         methods = self._snapshot_methods.get(cls, None)
         return methods
-    
+
     def save(self, stream):
         """Serialize session to stream."""
         from . import serialize
@@ -478,7 +478,7 @@ class Session:
                     cls = name.class_of(self)
                     if cls is None:
                         continue
-                    sm = self.snapshot_methods(cls, instance = False)
+                    sm = self.snapshot_methods(cls, instance=False)
                     if sm is None:
                         print('no snapshot methods for class', cls.__name__)
                     obj = sm.restore_snapshot(self, data)
@@ -501,15 +501,21 @@ class Session:
             return metadata
         return version, metadata
 
+
 class InScriptFlag:
+
     def __init__(self):
         self._level = 0
+
     def __enter__(self):
         self._level += 1
+
     def __exit__(self, *_):
         self._level -= 1
+
     def __bool__(self):
         return self._level > 0
+
 
 def save(session, filename, **kw):
     """command line version of saving a session"""
@@ -562,7 +568,8 @@ def save(session, filename, **kw):
     # Remember session in file history
     if isinstance(filename, str):
         from .filehistory import remember_file
-        remember_file(session, filename, 'ses', 'all models', file_saved = True)
+        remember_file(session, filename, 'ses', 'all models', file_saved=True)
+
 
 def dump(session, session_file, output=None):
     """dump contents of session for debugging"""
@@ -620,9 +627,9 @@ def open(session, stream, *args, **kw):
 
 
 def _initialize():
-    from . import io
+    from . import io, toolshed
     io.register_format(
-        "ChimeraX session", io.SESSION, SESSION_SUFFIX, ("ses",),
+        "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("ses",),
         mime="application/x-chimerax-session",
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)
@@ -669,6 +676,7 @@ def common_startup(sess):
     _register_core_file_formats()
     _register_core_database_fetch(sess)
 
+
 def _register_core_file_formats():
     from . import stl
     stl.register()
@@ -684,6 +692,7 @@ def _register_core_file_formats():
     readpbonds.register_pbonds_format()
     from .surface import collada
     collada.register_collada_format()
+
 
 def _register_core_database_fetch(session):
     s = session

@@ -2911,8 +2911,8 @@ def open_map(session, stream, *args, **kw):
 # -----------------------------------------------------------------------------
 #
 def register_map_file_readers():
-    from .. import io
+    from .. import io, toolshed
     from .data.fileformats import file_types
     for d,t,short_names,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
-      io.register_format(d, io.VOLUME, suf, short_names=short_names, open_func=open_map, batch=batch)
+      io.register_format(d, toolshed.VOLUME, suf, short_names=short_names, open_func=open_map, batch=batch)

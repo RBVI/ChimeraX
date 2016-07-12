@@ -19,7 +19,6 @@ __all__ = [
     'register_open',
     'register_export',
     'register_compression',
-    'SCRIPT',
     'formats',
     'open_data',
     'open_multiple_data',
@@ -35,25 +34,7 @@ __all__ = [
     'categorized_formats',
     'deduce_format',
     'compression_suffixes',
-    'DYNAMICS',
-    'GENERIC3D',
-    'SCRIPT',
-    'SEQUENCE',
-    'SESSION',
-    'STRUCTURE',
-    'SURFACE',
-    'VOLUME',
 ]
-
-# Known I/O format catagories
-DYNAMICS = "Molecular trajectory"
-GENERIC3D = "Generic 3D objects"
-SCRIPT = "Command script"
-SEQUENCE = "Sequence alignment"
-SESSION = "Session data"
-STRUCTURE = "Molecular structure"
-SURFACE = "Molecular surface"
-VOLUME = "Volume data"
 
 _compression = {}
 

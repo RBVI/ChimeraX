@@ -33,7 +33,7 @@ def open_python_script(session, filename, name, *args, **kw):
     with **.py**, **.pyc**, or **.pyo**.  Each script is opened in an uniquely
     named importable sandbox (see timeit example above).  And the current
     ChimeraX session is available as a global variable named **session**.
-    
+
     Parameters
     ----------
     session : a ChimeraX :py:class:`~chimerax.core.session.Session`
@@ -79,13 +79,12 @@ def open_command_script(session, filename, name, *args, **kw):
     This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
     :py:func:`~chimerax.core.io.open_data` API for files whose names end
     with **.cxc**.
-    
+
     Parameters
     ----------
     session : a ChimeraX :py:class:`~chimerax.core.session.Session`
     filename : path to file to open
     name : how to identify the file
-    
     """
     if hasattr(filename, 'read'):
         # it's really a fetched stream
@@ -108,7 +107,7 @@ def open_command_script(session, filename, name, *args, **kw):
     try:
         for line in input.readlines():
             text = line.strip().decode('utf-8', errors='replace')
-            cmd = run(session, text)
+            run(session, text)
     finally:
         if input != filename:
             input.close()
@@ -120,14 +119,14 @@ def open_command_script(session, filename, name, *args, **kw):
 
 
 def register():
-    from . import io
+    from . import io, toolshed
     io.register_format(
-        "Python code", io.SCRIPT, (".py", ".pyc", ".pyo"), ("py",),
+        "Python code", toolshed.SCRIPT, (".py", ".pyc", ".pyo"), ("py",),
         mime=('text/x-python', 'application/x-python-code'),
         reference="http://www.python.org/",
         open_func=open_python_script)
     io.register_format(
-        "ChimeraX commands", io.SCRIPT, (".cxc",), ("cmd",),
+        "ChimeraX commands", toolshed.SCRIPT, (".cxc",), ("cmd",),
         mime=('text/x-chimerax', 'application/x-chimerax-code'),
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open_command_script)

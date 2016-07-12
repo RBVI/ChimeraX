@@ -23,6 +23,6 @@ def read_pseudobond_file(session, file, name, radius = 0.5, color = (255,255,0,2
     return [g], 'Opened Pseudobonds %s, %d bonds' % (name, len(lines))
 
 def register_pbonds_format():
-    from .. import io
-    io.register_format("Pseudobonds", io.GENERIC3D, (".pb",), ("pseudobonds",),
-                       open_func = read_pseudobond_file)
+    from .. import io, toolshed
+    io.register_format("Pseudobonds", toolshed.GENERIC3D, (".pb",),
+                       ("pseudobonds",), open_func = read_pseudobond_file)
