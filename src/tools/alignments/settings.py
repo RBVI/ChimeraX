@@ -5,7 +5,7 @@ from chimerax.core.settings import Settings
 class _AlignmentsSettings(Settings):
 
     EXPLICIT_SAVE = {
-        'viewer': 'mav'
+        'viewer': 'Multalign Viewer'
     }
 
 settings = None
