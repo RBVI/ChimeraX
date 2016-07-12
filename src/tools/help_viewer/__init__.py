@@ -31,7 +31,7 @@ def get_class(class_name):
 #
 # 'open_file' is called by session code to open a file
 #
-def open_file(session, f, name, filespec=None):
+def open_file(session, f, name, filespec=None, **kw):
     from . import cmd
     import os.path
     cmd.help(session, "file:" + os.path.realpath(filespec))
