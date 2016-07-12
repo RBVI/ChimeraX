@@ -275,7 +275,7 @@ class Structure(Model, StructureData):
         if gc:
             self._graphics_changed = 0
             s = (gc & self._SHAPE_CHANGE)
-            if gc & self._COLOR_CHANGE or s:
+            if gc & (self._COLOR_CHANGE | self._RIBBON_CHANGE) or s:
                 self._update_ribbon_tethers()
             self._update_graphics()
             self.redraw_needed(shape_changed = s,
