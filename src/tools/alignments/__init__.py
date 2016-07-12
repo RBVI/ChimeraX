@@ -12,5 +12,8 @@ def initialize(bundle_info, session):
     session.add_state_manager('alignments', am)
     session.alignments = am
 
+    from . import settings
+    settings.init(session)
+
 
 from .parse import open_file

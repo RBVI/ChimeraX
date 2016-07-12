@@ -7,7 +7,7 @@ class AlignmentsManager(State):
         self.alignments = {}
         self.session = session
 
-    def new_alignment(self, seqs, identify_as, align_attrs=None, align_markups=None):
+    def new_alignment(self, seqs, identify_as, align_attrs=None, align_markups=None, **kw):
         from .alignment import Alignment
         i = 1
         disambig = ""
@@ -15,7 +15,8 @@ class AlignmentsManager(State):
             i += 1
             disambig = "[%d]" % i
         final_identify_as = identify_as+disambig
-        alignment = Alignment(self.session, seqs, final_identify_as, align_attrs, align_markups)
+        alignment = Alignment(self.session, seqs, final_identify_as,
+            align_attrs, align_markups, **kw)
         self.alignments[final_identify_as] = alignment
         return alignment
 
