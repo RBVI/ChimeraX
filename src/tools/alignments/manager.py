@@ -8,6 +8,10 @@ class AlignmentsManager(State):
         self.session = session
         self.viewer_info = {}
 
+    def delete_alignment(self, alignment):
+        del self.alignments[alignment.name]
+        alignment._close()
+
     def new_alignment(self, seqs, identify_as, align_attrs=None, align_markups=None, **kw):
         from .alignment import Alignment
         i = 1
@@ -40,6 +44,11 @@ class AlignmentsManager(State):
            in commands.  Example:  ['mav', 'multalign']
         """
         self.viewer_info[standard_name] = (import_info, synonyms)
+
+    def reset_state(self):
+        for alignment in self.alignments.values():
+            alignment._close()
+        self.alignments.clear()
 
     @staticmethod
     def restore_snapshot(session, data):

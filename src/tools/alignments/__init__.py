@@ -6,7 +6,6 @@ def finish(bundle_info, session):
 
 def initialize(bundle_info, session):
     """Install alignments manager into existing session"""
-    print("alignments bundle info:", type(bundle_info), bundle_info.__class__.__name__)
     from . import settings
     settings.init(session)
 

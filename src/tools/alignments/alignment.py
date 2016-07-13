@@ -20,3 +20,7 @@ class Alignment(State):
     @staticmethod
     def restore_snapshot(session, data):
         return Alignment(data['seqs'], data['name'], data['file_attrs'], data['file_markups'])
+
+    def _close(self):
+        """Called by alignments manager so alignment can clean up (notify viewers, etc.)"""
+        pass
