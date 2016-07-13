@@ -36,14 +36,24 @@ def _element_selector(symbol, models, results):
 def _sel_selector(session, models, results):
     from ..atomic import Structure
     for m in models:
-        if m.any_part_selected():
+        if m.selected:
             results.add_model(m)
             spos = m.selected_positions
             if spos is not None and spos.sum() > 0:
                 results.add_model_instances(m, spos)
-            if isinstance(m, Structure):
-                for atoms in m.selected_items('atoms'):
-                    results.add_atoms(atoms)
+        elif _nonmodel_child_selected(m):
+            results.add_model(m)
+        if isinstance(m, Structure):
+            for atoms in m.selected_items('atoms'):
+                results.add_atoms(atoms)
+
+def _nonmodel_child_selected(m):
+    from ..models import Model
+    for d in m.child_drawings():
+        if not isinstance(d, Model):
+            if d.selected or _nonmodel_child_selected(d):
+                return True
+    return False
 
 def _all_selector(session, models, results):
     from ..atomic import Structure
