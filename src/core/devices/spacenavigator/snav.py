@@ -44,7 +44,7 @@ class Space_Navigator:
     def stop_event_processing(self):
 
         if self.processing_events:
-            self.ses_triggers.delete_handler(self.handler)
+            self.ses_triggers.remove_handler(self.handler)
             self.processing_events = False
 
     def check_space_navigator(self, *_):

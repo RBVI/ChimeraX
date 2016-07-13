@@ -30,7 +30,7 @@ class CallForNFrames:
 
     def done(self):
         s = self.session
-        s.triggers.delete_handler(self.handler)
+        s.triggers.remove_handler(self.handler)
         getattr(s, self.Attribute).remove(self)
 
 

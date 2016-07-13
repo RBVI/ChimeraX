@@ -386,9 +386,9 @@ def init(argv, event_loop=True):
     sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
     sess.toolshed.bootstrap_bundles(sess)
     from chimerax.core import tools
-    sess.add_state_manager('tools', tools.Tools(sess, first=True))  # access with sess.tools
+    sess.tools = tools.Tools(sess, first=True)
     from chimerax.core import tasks
-    sess.add_state_manager('tasks', tasks.Tasks(sess, first=True))  # access with sess.tasks
+    sess.tasks = tasks.Tasks(sess, first=True)
 
     if opts.version >= 0:
         format = [None, 'verbose', 'bundles', 'packages'][opts.version]

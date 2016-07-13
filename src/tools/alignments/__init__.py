@@ -2,18 +2,14 @@
 
 def finish(bundle_info, session):
    """De-install alignments manager from existing session"""
-   session.remove_state_manager(session.alignments)
-   session.delete_attribute('alignments')
+    del session.alignments
 
 def initialize(bundle_info, session):
    """Install alignments manager into existing session"""
-    from .manager import AlignmentsManager
-    am = AlignmentsManager(session)
-    session.add_state_manager('alignments', am)
-    session.alignments = am
-
     from . import settings
     settings.init(session)
 
+    from .manager import AlignmentsManager
+    session.alignments = AlignmentsManager(session)
 
 from .parse import open_file

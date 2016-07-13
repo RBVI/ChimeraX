@@ -281,14 +281,12 @@ class Session:
     The metadata attribute should be a dictionary with information about
     the session, e.g., a thumbnail, a description, the author, etc.
 
-    To preemptively detect problems where different bundles want to use the same
-    session attribute, session attributes may only be assigned to once,
-    and may not be deleted.
-    Attributes that support the State API are included
-    Consequently, each attribute is an instance that supports the State API.
-
-    Each session attribute, that should be archived,
-    must implement the State API, and is then automatically archived.
+    Attributes that support the :py:class:`State` API are automatically added as state managers
+    (e.g. the session's add_state_manager method is called with the 'tag' argument
+    the same as the attribute name).
+    Conversely, deleting the attribute will call remove_state_manager.
+    If a session attribute is not desired, the add/remove_state_manager methods can
+    be called directly.
 
     Attributes
     ----------
@@ -316,47 +314,26 @@ class Session:
 
         # initialize state managers for various properties
         from . import models
-        self.add_state_manager('models', models.Models(self))
+        self.models = models.Models(self)
         from .graphics.view import View
         self.main_view = View(self.models.drawing, window_size=(256, 256),
                               trigger_set=self.triggers)
-        self.add_state_manager('view', self.main_view)
 
         from . import colors
-        self.add_state_manager('user_colors', colors.UserColors())
-        self.add_state_manager('user_colormaps', colors.UserColormaps())
+        self.user_colors = colors.UserColors()
+        self.user_colormaps = colors.UserColormaps()
         # tasks and bundles are initialized later
         # TODO: scenes need more work
         # from .scenes import Scenes
         # sess.add_state_manager('scenes', Scenes(sess))
 
     @property
-    def models(self):
-        return self._state_containers['models']
-
-    @property
-    def pb_manager(self):
-        return self._state_containers['pb_manager']
+    def view(self):
+        return self._state_containers['main_view']
 
     @property
     def scenes(self):
         return self._state_containers['scenes']
-
-    @property
-    def tools(self):
-        return self._state_containers['tools']
-
-    @property
-    def tasks(self):
-        return self._state_containers['tasks']
-
-    @property
-    def user_colors(self):
-        return self._state_containers['user_colors']
-
-    @property
-    def user_colormaps(self):
-        return self._state_containers['user_colormaps']
 
     def reset(self):
         """Reset session to data-less state"""
@@ -370,18 +347,18 @@ class Session:
                 container.clear()
 
     def __setattr__(self, name, value):
-        if hasattr(self, name):
-            # preemptive debugging for third party packages
-            raise AttributeError("attribute already set")
+        # need to actually set attr first,
+        # since add_state_manager will check if the attr exists
         object.__setattr__(self, name, value)
+        if self.snapshot_methods(value) != None:
+            self.add_state_manager(name, value)
 
     def __delattr__(self, name):
-        # preemptive debugging for third party packages
-        raise AttributeError("can not remove attributes")
+        if name in self._state_containers:
+            self.remove_state_manager(name)
+        object.__delattr__(self, name)
 
     def add_state_manager(self, tag, container):
-        # if tag in self._state_containers:
-        #     return
         sm = self.snapshot_methods(container)
         if sm is None and not hasattr(container, 'clear'):
             raise ValueError('container "%s" of type "%s" does not have snapshot methods and does not have clear method' % (tag, str(type(container))))
@@ -390,16 +367,8 @@ class Session:
     def get_state_manager(self, tag):
         return self._state_containers[tag]
 
-    def delete_state_manager(self, tag):
+    def remove_state_manager(self, tag):
         del self._state_containers[tag]
-
-    def replace_attribute(self, attribute_name, value):
-        """Explictly replace attribute with alternate implementation"""
-        object.__setattr__(self, attribute_name, value)
-
-    def delete_attribute(self, attribute_name):
-        """Explictly delete attribute"""
-        object.__delattr__(self, attribute_name)
 
     def snapshot_methods(self, object, instance=True):
         """Return an object having take_snapshot() and restore_snapshot() methods for the given object.
@@ -430,6 +399,11 @@ class Session:
         from . import serialize
         self.triggers.activate_trigger("begin save session", self)
         serialize.serialize(stream, CORE_SESSION_VERSION)
+        # stash attribute info into metadata...
+        attr_info = {}
+        for tag, container in self._state_containers.items():
+            attr_info[tag] = getattr(self, tag, None) == container
+        self.metadata['attr_info'] = attr_info
         serialize.serialize(stream, self.metadata)
         # guarantee that bundles are serialized first, so on restoration,
         # all of the related code will be loaded before the rest of the
@@ -465,6 +439,7 @@ class Session:
             self.reset()
             if metadata is not None:
                 self.metadata.update(metadata)
+            attr_info = self.metadata.pop('attr_info', {})
             while True:
                 name = serialize.deserialize(stream)
                 if name is None:
@@ -472,7 +447,10 @@ class Session:
                 data = serialize.deserialize(stream)
                 data = mgr.resolve_references(data)
                 if isinstance(name, str):
-                    self.add_state_manager(name, data)
+                    if attr_info.get(name, False):
+                        setattr(self, name, data)
+                    else:
+                        self.add_state_manager(name, data)
                 else:
                     # _UniqueName: find class
                     cls = name.class_of(self)
@@ -659,7 +637,7 @@ def common_startup(sess):
     # change_tracker needs to exist before global pseudobond manager
     # can be created
     from .atomic import PseudobondManager
-    sess.add_state_manager('pb_manager', PseudobondManager(sess))
+    sess.pb_manager = PseudobondManager(sess)
 
     from . import commands
     commands.register_core_commands(sess)

@@ -28,6 +28,7 @@ class CommandLine(ToolInstance):
             label.setText("Command:")
             self.text = QComboBox(parent)
             self.text.setEditable(True)
+            self.text.setCompleter(None)
             layout = QHBoxLayout(parent)
             layout.setSpacing(1)
             layout.setContentsMargins(2, 0, 0, 0)

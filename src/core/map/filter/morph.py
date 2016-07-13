@@ -111,7 +111,7 @@ class Interpolated_Map:
   #
   def stop_playing(self):
 
-    self.session.triggers.delete_handler(self.play_handler)
+    self.session.triggers.remove_handler(self.play_handler)
     self.play_handler = None
     if self.recording:
       self.finish_recording()

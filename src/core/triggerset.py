@@ -39,7 +39,7 @@ arguments; the second reports its arguments and then deregisters itself.
             print('  handler =', self.handler)
             print('  trigger_data =', trigger_data)
             if self.triggerset and self.handler:
-                self.triggerset.delete_handler(self.handler)
+                self.triggerset.remove_handler(self.handler)
                 self.handler = None
 
     h1 = ts.add_handler('conrad', first)
@@ -343,7 +343,7 @@ class TriggerSet:
         triggerset.add_handler(name, func) => handler
 
         If no trigger corresponds to name, an exception is raised.
-        add_handler returns a handler for use with delete_handler.
+        add_handler returns a handler for use with remove_handler.
         """
         if name not in self._triggers:
             raise KeyError("No trigger named '%s'" % name)
@@ -351,10 +351,10 @@ class TriggerSet:
         self._triggers[name].add(handler)
         return handler
 
-    def delete_handler(self, handler):
+    def remove_handler(self, handler):
         """Deregister a handler.
 
-        triggerset.delete_handler(handler) => None
+        triggerset.remove_handler(handler) => None
 
         The handler should be the return value from a previous call
         to add_handler.  If the given handler is invalid, an
@@ -518,7 +518,7 @@ if __name__ == "__main__":
         def trigger_handler(self, trigger, trigger_data):
             self.data = trigger_data
             if self.triggerset and self.handler:
-                self.triggerset.delete_handler(self.handler)
+                self.triggerset.remove_handler(self.handler)
                 self.handler = None
 
     def bad_handler(trigger, trigger_data):

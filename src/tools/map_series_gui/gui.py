@@ -250,7 +250,7 @@ class MapSeries(ToolInstance):
     # Override ToolInstance method
     def delete(self):
         s = self.session
-        s.triggers.delete_handler(self.model_close_handler)
+        s.triggers.remove_handler(self.model_close_handler)
         super().delete()
         s._map_series_sliders.remove(self)
 
@@ -269,8 +269,8 @@ def remove_slider_on_open(session):
     if not hasattr(session, '_map_series_slider_handler'):
         return
     handler = session._map_series_slider_handler
-    session.delete_attribute('_map_series_slider_handler')
-    session.triggers.delete_handler(handler)
+    del session._map_series_slider_handler
+    session.triggers.remove_handler(handler)
 
 
 def models_added_cb(models, session):
