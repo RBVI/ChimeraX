@@ -83,7 +83,7 @@ class Movie:
         if self.postprocess_frames:
             self.capture_image()        # Finish crossfade if one is in progress.
         t = self.session.triggers
-        t.delete_handler(self._image_capture_handler)
+        t.remove_handler(self._image_capture_handler)
         self.recording = False
 #        self.task.finished()
         self.task = None

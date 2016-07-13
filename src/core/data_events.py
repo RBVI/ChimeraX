@@ -126,8 +126,8 @@ class Tracker:
                 return func(changes)
         return self._ts.add_handler(data_type, wrapper)
 
-    def delete_handler(self, handler):
-        self._ts.delete_handler(handler)
+    def remove_handler(self, handler):
+        self._ts.remove_handler(handler)
 
     def block(self):
         self._blocked += 1

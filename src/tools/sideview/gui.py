@@ -104,7 +104,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
 
     def on_destroy(self, event):
-        self.session.triggers.delete_handler(self.handler)
+        self.session.triggers.remove_handler(self.handler)
 
     def _redraw(self, *_):
         # wx.CallAfter(self.draw)

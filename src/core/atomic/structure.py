@@ -73,7 +73,7 @@ class Structure(Model, StructureData):
         StructureData.delete(self)
         t = self.session.triggers
         for handler in self._ses_handlers:
-            t.delete_handler(handler)
+            t.remove_handler(handler)
         Model.delete(self)
 
     def deleted(self):
@@ -1477,7 +1477,7 @@ class StructureGraphicsChangeManager:
         self.level_of_detail = LevelOfDetail()
         
     def __del__(self):
-        self.session.triggers.delete_handler(self._handler)
+        self.session.triggers.remove_handler(self._handler)
 
     def add_structure(self, s):
         self._structures.add(s)

@@ -45,7 +45,7 @@ class ChimeraxXMLRPCServer(SimpleXMLRPCServer):
       self._handler = session.triggers.add_handler('new frame', self.process_requests)
 
   def close(self):
-      self.session.triggers.delete_handler(self._handler)
+      self.session.triggers.remove_handler(self._handler)
       self._handler = None
       self.socket.close()
 # Hangs

@@ -21,7 +21,7 @@ All running tools may be found via `session.tools`.
 
 The triggers are also session-specific.  To add and remove
 'ToolInstance' handlers, use `session.trigger.add_handler`
-and `session.trigger.delete_handler`.
+and `session.trigger.remove_handler`.
 """
 
 

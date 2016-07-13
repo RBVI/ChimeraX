@@ -130,7 +130,7 @@ def stop_perframe_callbacks(session, handlers = None):
     if handlers is None:
         handlers = tuple(pfh)
     for h in handlers:
-        session.triggers.delete_handler(h)
+        session.triggers.remove_handler(h)
         pfh.remove(h)
 
 # -----------------------------------------------------------------------------
