@@ -19,7 +19,6 @@ def close(session, models=None):
     hc = have_all_child_models(models)
     cmodels = [m for m in models if m in hc]
 
-    print ('close', ', '.join(m.id_string() for m in cmodels))
     m.close(cmodels)
 
 def have_all_child_models(models):
