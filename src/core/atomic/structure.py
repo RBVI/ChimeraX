@@ -265,12 +265,7 @@ class Structure(Model, StructureData):
             # Do this before fetching bits because ribbon creation changes some
             # display and hide bits
             self._create_ribbon_graphics()
-
-        # Check for pseudobond changes
-        for pbg in self.pbg_map.values():
-            gc |= pbg._graphics_changed
-            pbg._graphics_changed = 0
-
+        
         # Update graphics
         if gc:
             self._graphics_changed = 0
@@ -1498,7 +1493,7 @@ class StructureGraphicsChangeManager:
         
     def _update_graphics_if_needed(self, *_):
         s = self._array()
-        gc = s._graphics_changeds
+        gc = s._graphics_changeds	# Includes pseudobond group changes.
         if gc.any():
             for i in gc.nonzero()[0]:
                 s[i]._update_graphics_if_needed()

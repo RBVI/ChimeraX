@@ -863,11 +863,9 @@ extern "C" EXPORT void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgb
     }
 }
 
-extern "C" EXPORT PyObject *pseudobond_group(void *pbonds, size_t n)
+extern "C" EXPORT void pseudobond_group(void *pbonds, size_t n, pyobject_t *grps)
 {
     Pseudobond **pb = static_cast<Pseudobond **>(pbonds);
-    void **grps;
-    PyObject *groups = python_voidp_array(n, &grps);
     try {
         for (size_t i = 0; i != n; ++i) {
             Proxy_PBGroup* grp = pb[i]->group()->proxy();
@@ -876,7 +874,6 @@ extern "C" EXPORT PyObject *pseudobond_group(void *pbonds, size_t n)
     } catch (...) {
         molc_error();
     }
-    return groups;
 }
 
 extern "C" EXPORT PyObject *pseudobond_half_colors(void *pbonds, size_t n)
@@ -1934,13 +1931,13 @@ extern "C" EXPORT void *structure_copy(void *mol)
 extern "C" EXPORT void structure_graphics_change(void *mols, size_t n, int *changed)
 {
     Structure **m = static_cast<Structure **>(mols);
-    error_wrap_array_get<Structure, int, int>(m, n, &Structure::get_graphics_changes, changed);
+    error_wrap_array_get<Structure, int, int>(m, n, &Structure::get_all_graphics_changes, changed);
 }
 
 extern "C" EXPORT void set_structure_graphics_change(void *mols, size_t n, int *changed)
 {
     Structure **m = static_cast<Structure **>(mols);
-    error_wrap_array_set<Structure, int, int>(m, n, &Structure::set_graphics_changes, changed);
+    error_wrap_array_set<Structure, int, int>(m, n, &Structure::set_all_graphics_changes, changed);
 }
 
 extern "C" EXPORT void structure_name(void *mols, size_t n, pyobject_t *names)

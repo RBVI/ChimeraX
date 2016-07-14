@@ -212,6 +212,7 @@ public:
     size_t  num_chains() const { return chains().size(); }
     size_t  num_coord_sets() const { return coord_sets().size(); }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
+    const AS_PBManager&  pb_mgr() const { return _pb_mgr; }
     int  pdb_version;
     virtual std::vector<Chain::Residues>  polymers(
         bool /*consider_missing_structure*/ = true,
@@ -262,6 +263,10 @@ public:
     void  set_ribbon_tether_opacity(float o);
     void  set_ribbon_show_spine(bool ss);
     void  set_ribbon_orientation(RibbonOrientation o);
+
+    // graphics changes including pseudobond group changes.
+    int   get_all_graphics_changes() const;
+    void  set_all_graphics_changes(int changes);
 };
 
 inline void
