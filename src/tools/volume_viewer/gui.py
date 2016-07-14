@@ -99,7 +99,7 @@ class VolumeViewer(ToolInstance):
     # Override ToolInstance method
     def delete(self):
         s = self.session
-        s.triggers.delete_handler(self.model_close_handler)
+        s.triggers.remove_handler(self.model_close_handler)
         from chimerax.core.map import Volume
         for v in s.models.list(type = Volume):
             v.remove_volume_change_callback(self.data_region_changed)

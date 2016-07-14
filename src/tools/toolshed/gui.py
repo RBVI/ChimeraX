@@ -275,7 +275,7 @@ class ToolshedUI(ToolInstance):
     def delete(self):
         session = self.session
         for h in self._handlers:
-            session.triggers.delete_handler(h)
+            session.triggers.remove_handler(h)
         self._handlers = []
         self.tool_window = None
         super().delete()

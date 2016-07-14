@@ -54,7 +54,7 @@ class Oculus_Rift:
     def stop_event_processing(self):
 
         if self.frame_cb:
-            self.ses_triggers.delete_handler(self.handler)
+            self.ses_triggers.remove_handler(self.handler)
             self.frame_cb = None
             if self.connected:
                 from . import _oculus

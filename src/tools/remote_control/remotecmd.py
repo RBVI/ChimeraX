@@ -17,11 +17,11 @@ def remote_control(session, enable, address = '127.0.0.1', port = 42184, timeout
         s = getattr(session, '_xmlrpc_server', None)
         if s is None:
             s = ChimeraxXMLRPCServer(session, address, port, timeout)
-            session.replace_attribute('_xmlrpc_server', s)
+            session._xmlrpc_server = s
     else:
         s = getattr(session, '_xmlrpc_server', None)
         if s:
-            session.replace_attribute('_xmlrpc_server', None)
+            del session._xmlrpc_server
             s.close()
 
 
@@ -45,7 +45,7 @@ class ChimeraxXMLRPCServer(SimpleXMLRPCServer):
       self._handler = session.triggers.add_handler('new frame', self.process_requests)
 
   def close(self):
-      self.session.triggers.delete_handler(self._handler)
+      self.session.triggers.remove_handler(self._handler)
       self._handler = None
       self.socket.close()
 # Hangs

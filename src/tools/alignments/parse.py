@@ -40,11 +40,11 @@ def open_file(session, stream, fname, file_type="FASTA", return_seqs=False,
                 " you want to open the sequences individually, specify 'false' as the value"
                 " of the 'oneAlignment' keyword in the 'open' command.")
         session.alignments.new_alignment(seqs, identify_as if identify_as is not None else fname,
-            align_attrs=file_attrs, align_markups=file_markups)
+            align_attrs=file_attrs, align_markups=file_markups, **kw)
     else:
         for seq in seqs:
             session.alignments.new_alignment([seq],
-                identify_as if identify_as is not None else fname)
+                identify_as if identify_as is not None else fname, **kw)
     return [], "Opened %d sequences from %s" % (len(seqs), fname)
 
 def make_readable(seq_name):

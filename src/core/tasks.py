@@ -34,7 +34,7 @@ instantiated and deregistered when terminated.
 Session-specific triggers are fired when tasks
 are registered and deregistered.  To add and remove
 :py:class:`Task` handlers, use ``session.trigger.add_handler``
-and ``session.trigger.delete_handler``.
+and ``session.trigger.remove_handler``.
 """
 
 import abc

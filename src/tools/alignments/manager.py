@@ -6,8 +6,16 @@ class AlignmentsManager(State):
     def __init__(self, session):
         self.alignments = {}
         self.session = session
+        self.viewer_synonyms = {}
 
-    def new_alignment(self, seqs, identify_as, align_attrs=None, align_markups=None):
+    def delete_alignment(self, alignment):
+        del self.alignments[alignment.name]
+        alignment._close()
+
+    def deregister_viewer(self, bundle_info):
+        del self.viewer_synonyms[bundle_info]
+
+    def new_alignment(self, seqs, identify_as, align_attrs=None, align_markups=None, **kw):
         from .alignment import Alignment
         i = 1
         disambig = ""
@@ -15,20 +23,48 @@ class AlignmentsManager(State):
             i += 1
             disambig = "[%d]" % i
         final_identify_as = identify_as+disambig
-        alignment = Alignment(self.session, seqs, final_identify_as, align_attrs, align_markups)
+        alignment = Alignment(self.session, seqs, final_identify_as,
+            align_attrs, align_markups, **kw)
         self.alignments[final_identify_as] = alignment
         return alignment
 
-    def ses_restore(self, data):
-        for am in self.alignments.values():
-            am.close()
-        self.alignments = data['alignments']
+    def register_viewer(self, bundle_info, synonyms=[]):
+        """Register an alignment viewer for possible use by the user.
 
-    def take_snapshot(self, session, flags):
-        return { 'version': 1, 'alignments': self.alignments }
+        Parameters
+        ----------
+        bundle_info : BundleInfo
+            The toolshed BundleInfo for your tool.
+        synonyms : list of str
+           Shorthands that the user could type instead of standard_name to refer to your tool
+           in commands.  Example:  ['mav', 'multalign']
+        """
+        self.viewer_synonyms[bundle_info] = synonyms
+
+    @property
+    def registered_viewers(self):
+        return self.viewer_synonyms
+
+    def reset_state(self):
+        for alignment in self.alignments.values():
+            alignment._close()
+        self.alignments.clear()
 
     @staticmethod
     def restore_snapshot(session, data):
         mgr = session.alignments
-        mgr.ses_restore(data)
+        mgr._ses_restore(data)
         return mgr
+
+    def take_snapshot(self, session, flags):
+        # viewer_synonyms are "session independent"
+        return {
+            'version': 1,
+
+            'alignments': self.alignments,
+        }
+
+    def _ses_restore(self, data):
+        for am in self.alignments.values():
+            am.close()
+        self.alignments = data['alignments']

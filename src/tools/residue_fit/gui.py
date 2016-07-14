@@ -183,7 +183,7 @@ class ResidueFit(ToolInstance):
     def stop(self):
         if self._play_handler:
             t = self.session.triggers
-            t.delete_handler(self._play_handler)
+            t.remove_handler(self._play_handler)
             self._play_handler = None
             if self._recording:
                 self.record_cb()
@@ -267,10 +267,10 @@ class ResidueFit(ToolInstance):
     # Override ToolInstance method
     def delete(self):
         t = self.session.triggers
-        t.delete_handler(self._model_close_handler)
+        t.remove_handler(self._model_close_handler)
         self._model_close_handler = None
         if self._play_handler:
-            t.delete_handler(self._play_handler)
+            t.remove_handler(self._play_handler)
             self._play_handler = None
         super().delete()
         self.structure = None

@@ -70,7 +70,7 @@ class Play_Series:
 
     h = self.play_handler
     if h:
-      self.session.triggers.delete_handler(self.handler)
+      self.session.triggers.remove_handler(self.handler)
       self.play_handler = None
 
   # ---------------------------------------------------------------------------

@@ -36,7 +36,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def removed_from_session(self, session):
         t = session.triggers
         while self.handlers:
-            t.delete_handler(self.handlers.pop())
+            t.remove_handler(self.handlers.pop())
         self.handlers = []
 
     def _get_dashes(self):
