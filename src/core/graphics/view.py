@@ -496,8 +496,8 @@ class View:
         # Compute light view and scene to shadow map transforms
         bias = lp.shadow_depth_bias
         lvinv, stf = r.shadow_transforms(light_direction, center, radius, bias)
-        from .drawing import draw_drawings
-        draw_drawings(r, lvinv, bdrawings)
+        from .drawing import draw_depth
+        draw_depth(r, lvinv, bdrawings)
 
         shadow_map = r.finish_rendering_shadowmap()     # Depth texture
 
@@ -537,11 +537,9 @@ class View:
         r.start_rendering_multishadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
-        # TODO: Don't run multishadow fragment shader when computing shadow map
-        #    -- very expensive.
         mstf = []
         nl = len(light_directions)
-        from .drawing import draw_drawings
+        from .drawing import draw_depth
         from math import ceil, sqrt
         d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
         s = size // d               # Subtexture size.
@@ -551,7 +549,7 @@ class View:
             r.set_viewport(x * s, y * s, s, s)
             lvinv, tf = r.shadow_transforms(light_directions[l], center, radius, bias)
             mstf.append(tf)
-            draw_drawings(r, lvinv, bdrawings)
+            draw_depth(r, lvinv, bdrawings)
 
         shadow_map = r.finish_rendering_multishadowmap()     # Depth texture
 

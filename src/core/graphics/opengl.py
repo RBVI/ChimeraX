@@ -457,8 +457,10 @@ class Render:
         # Transform from camera coordinates to shadow map texture coordinates.
         self._shadow_transform = m = stf.opengl_matrix()
         p = self.current_shader_program
-        if p is not None and self.SHADER_SHADOWS & p.capabilities:
-            p.set_matrix("shadow_transform", m)
+        if p is not None:
+            c = p.capabilities
+            if self.SHADER_SHADOWS & c and self.SHADER_LIGHTING & c:
+                p.set_matrix("shadow_transform", m)
 
     def set_multishadow_transforms(self, stf, ctf, shadow_depth):
         # Transform from camera coordinates to shadow map texture coordinates.
