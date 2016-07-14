@@ -23,6 +23,9 @@ class="clRight" alt="ChimeraX logo"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<!--
+[&nbsp;orient&nbsp;guides&nbsp;|&nbsp;atoms&nbsp;|&nbsp;curvature&nbsp;]
+-->
 [&nbsp;smooth&nbsp;&nbsp;<i>factor</i>&nbsp;|&nbsp;default&nbsp;]
 [&nbsp;hideBackbone&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
@@ -50,6 +53,18 @@ Protein helix and strand assignments are taken from the input structure file.
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
 and C5' in nucleic acids. The orientation is guided by CA&rarr;O (carbonyl
 oxygen) vectors in peptides and C5'&rarr;C1' vectors in nucleic acids.
+<!-- 
+guides method, default;
+curvature method slightly improves twists at helix ends, e.g. 2gbp 58, but
+some other helix ends may be a bit worse, e.g. 2gbp 95, and it definitely
+gives very bad strand orientation and increases strand ripples, with
+twists at 2gbp 206, 254;
+atoms method improves twists at helix ends, e.g. 2gbp 58, but some other
+helix ends may be a bit worse, e.g. 2gbp 95, and it increases strand
+ripples and twists (2gbp 173, 253) compared to the guides method, bad
+orientation especially for short strands, e.g. 2gbp 296-298;
+"orient" should be in a subcommand, not the main command, as it's per-model
+-->
 The <b>smooth</b> <i>factor</i> sets the balance between smoothing peptide 
 strands versus following the exact positions of the &alpha;-carbons (0.0 
 unsmoothed, default <b>1.0</b> maximally smoothed).
@@ -84,8 +99,9 @@ and the appearance of connections to &alpha;-carbons:
 - additional parameters related to cross-section
 </ul>
 <p>
-A vertical bar &ldquo;|&rdquo; designates mutually exclusive options.
-Synonyms for true: True, 1.  Synonyms for false: False, 0.
+Option keywords and Boolean (truth) values can be truncated, with
+synonyms for true: True, 1, and synonyms for false: False, 0.
+a vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 </p>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -190,6 +206,10 @@ can be given as single letters, for example:
 <blockquote>
 <b>cartoon link long h,s; cartoon link long s,h</b>
 </blockquote>
+<!--
+** Note: <b>none</b> and <b>short</b> are not recommended 
+for coil &rarr; helix/strand transitions (c,h or c,s) **
+-->
 In the following example images,
 a strand immediately precedes a helix, and &alpha;-carbons are shown as balls.
 <table cellpadding="0px" cellspacing="0px">
