@@ -42,6 +42,7 @@ protected:
     bool  _default_halfbond = false;
     bool  _destruction_relevant;
     BaseManager*  _manager;
+    friend class Proxy_PBGroup;
     Proxy_PBGroup* _proxy; // the proxy for this group
 
     // the manager will need to be declared as a friend...
@@ -198,6 +199,7 @@ private:
         else
             _proxied = new CS_PBGroup(_category, _structure, _manager);
         _proxy = this;
+	static_cast<Group*>(_proxied)->_proxy = this;
     }
     void  remove_cs(const CoordSet* cs) {
         if (_group_type == AS_PBManager::GRP_PER_CS)
