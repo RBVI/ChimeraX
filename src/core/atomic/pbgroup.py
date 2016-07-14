@@ -56,11 +56,11 @@ class PseudobondGroup(PseudobondGroupData, Model):
         gc = self._graphics_changed
         if gc:
             self._graphics_changed = 0
-            self._update_graphics()
+            self._update_graphics(gc)
             self.redraw_needed(shape_changed = (gc & self._SHAPE_CHANGE),
                                selection_changed = (gc & self._SELECT_CHANGE))
 
-    def _update_graphics(self):
+    def _update_graphics(self, changes = PseudobondGroupData._ALL_CHANGE):
 
         pbonds = self.pseudobonds
         d = self._pbond_drawing
@@ -80,17 +80,23 @@ class PseudobondGroup(PseudobondGroupData, Model):
             d.normals = na
             d.triangles = ta
 
-        ba1, ba2 = bond_atoms = pbonds.atoms
-        if self.structure:
-            axyz0, axyz1 = ba1.coords, ba2.coords
-        else:
-            to_pbg = self.scene_position.inverse()
-            axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
-        from . import structure as s
-        d.positions = s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
-        d.display_positions = s._shown_bond_cylinders(pbonds)
-        d.colors = pbonds.half_colors
-        d.selected_positions = s._selected_bond_cylinders(bond_atoms)
+        if changes & (self._SHAPE_CHANGE | self._SELECT_CHANGE):
+            bond_atoms = pbonds.atoms
+        if changes & self._SHAPE_CHANGE:
+            ba1, ba2 = bond_atoms
+            if self.structure:
+                axyz0, axyz1 = ba1.coords, ba2.coords
+            else:
+                to_pbg = self.scene_position.inverse()
+                axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
+            from . import structure as s
+            d.positions = s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
+            d.display_positions = s._shown_bond_cylinders(pbonds)
+        if changes & (self._COLOR_CHANGE | self._SHAPE_CHANGE):
+            d.colors = pbonds.half_colors
+        if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
+            from . import structure as s
+            d.selected_positions = s._selected_bond_cylinders(bond_atoms)
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and hasattr(self, exclude)):
@@ -133,17 +139,11 @@ def interatom_pseudobonds(atoms, session, group_name = None):
     for m in atoms.unique_structures:
         pbgs.extend(m.pbg_map.values())
     # Collect bonds
-    ipbonds = []
-    for pbg in pbgs:
-        if group_name is not None and pbg.category != group_name:
-            continue
-        pbonds = pbg.pseudobonds
-        ipb = pbonds.filter(pbonds.between_atoms(atoms))
-        print ('%s pbonds got %d' % (pbg.category, len(ipb)))
-        if ipb:
-            ipbonds.append(ipb)
+    pbonds = [pbg.pseudobonds for pbg in pbgs
+              if group_name is None or pbg.category == group_name]
     from . import Pseudobonds, concatenate
-    ipb = concatenate(ipbonds, Pseudobonds)
+    pb = concatenate(pbonds, Pseudobonds)
+    ipb = pb.filter(pb.between_atoms(atoms))
     return ipb
 
 # -----------------------------------------------------------------------------

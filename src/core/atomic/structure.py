@@ -277,20 +277,20 @@ class Structure(Model, StructureData):
             s = (gc & self._SHAPE_CHANGE)
             if gc & (self._COLOR_CHANGE | self._RIBBON_CHANGE) or s:
                 self._update_ribbon_tethers()
-            self._update_graphics()
+            self._update_graphics(gc)
             self.redraw_needed(shape_changed = s,
                                selection_changed = (gc & self._SELECT_CHANGE))
             if s:
                 self._atom_bounds_needs_update = True
 
-    def _update_graphics(self):
-        self._update_atom_graphics(self.atoms)
-        self._update_bond_graphics(self.bonds)
+    def _update_graphics(self, changes = StructureData._ALL_CHANGE):
+        self._update_atom_graphics(self.atoms, changes)
+        self._update_bond_graphics(self.bonds, changes)
         for pbg in self.pbg_map.values():
-            pbg._update_graphics()
+            pbg._update_graphics(changes)
         self._update_ribbon_graphics()
 
-    def _update_atom_graphics(self, atoms):
+    def _update_atom_graphics(self, atoms, changes = StructureData._ALL_CHANGE):
         avis = atoms.visibles
         p = self._atoms_drawing
         if p is None:
@@ -300,22 +300,25 @@ class Structure(Model, StructureData):
             # Update level of detail of spheres
             self._level_of_detail.set_atom_sphere_geometry(p)
 
-        # Set instanced sphere center position and radius
-        n = len(atoms)
-        from numpy import empty, float32, multiply
-        xyzr = empty((n, 4), float32)
-        xyzr[:, :3] = atoms.coords
-        xyzr[:, 3] = self._atom_display_radii(atoms)
+        if changes & self._SHAPE_CHANGE:
+            # Set instanced sphere center position and radius
+            n = len(atoms)
+            from numpy import empty, float32, multiply
+            xyzr = empty((n, 4), float32)
+            xyzr[:, :3] = atoms.coords
+            xyzr[:, 3] = self._atom_display_radii(atoms)
 
-        from ..geometry import Places
-        p.positions = Places(shift_and_scale=xyzr)
-        p.display_positions = avis
+            from ..geometry import Places
+            p.positions = Places(shift_and_scale=xyzr)
+            p.display_positions = avis
 
-        # Set atom colors
-        p.colors = atoms.colors
+        if changes & (self._COLOR_CHANGE | self._SHAPE_CHANGE):
+            # Set atom colors
+            p.colors = atoms.colors
 
-        # Set selected
-        p.selected_positions = atoms.selected if atoms.num_selected > 0 else None
+        if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
+            # Set selected
+            p.selected_positions = atoms.selected if atoms.num_selected > 0 else None
 
     def _atom_display_radii(self, atoms):
         r = atoms.radii.copy()
@@ -325,7 +328,7 @@ class Structure(Model, StructureData):
         r[dm == Atom.STICK_STYLE] = self.bond_radius
         return r
 
-    def _update_bond_graphics(self, bonds):
+    def _update_bond_graphics(self, bonds, changes = StructureData._ALL_CHANGE):
         p = self._bonds_drawing
         if p is None:
             if bonds.num_shown == 0:
@@ -334,11 +337,16 @@ class Structure(Model, StructureData):
             # Update level of detail of spheres
             self._level_of_detail.set_bond_cylinder_geometry(p)
 
-        ba1, ba2 = bond_atoms = bonds.atoms
-        p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, bonds.radii)
-        p.display_positions = _shown_bond_cylinders(bonds)
-        p.colors = c = bonds.half_colors
-        p.selected_positions = _selected_bond_cylinders(bond_atoms)
+        if changes & (self._SHAPE_CHANGE | self._SELECT_CHANGE):
+            bond_atoms = bonds.atoms
+        if changes & self._SHAPE_CHANGE:
+            ba1, ba2 = bond_atoms
+            p.positions = _halfbond_cylinder_placements(ba1.coords, ba2.coords, bonds.radii)
+            p.display_positions = _shown_bond_cylinders(bonds)
+        if changes & (self._COLOR_CHANGE | self._SHAPE_CHANGE):
+            p.colors = c = bonds.half_colors
+        if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
+            p.selected_positions = _selected_bond_cylinders(bond_atoms)
 
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail

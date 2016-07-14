@@ -339,6 +339,7 @@ class PseudobondGroupData:
     _COLOR_CHANGE = 0x2
     _SELECT_CHANGE = 0x4
     _RIBBON_CHANGE = 0x8
+    _ALL_CHANGE = 0xf
     _graphics_changed = c_property('pseudobond_group_graphics_change', int32)
 
 
@@ -858,6 +859,7 @@ class StructureData:
     _COLOR_CHANGE = 0x2
     _SELECT_CHANGE = 0x4
     _RIBBON_CHANGE = 0x8
+    _ALL_CHANGE = 0xf
     _graphics_changed = c_property('structure_graphics_change', int32)
 
 class ChangeTracker:
