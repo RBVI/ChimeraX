@@ -42,7 +42,7 @@ setup(name="PKG_NAME",
           "Programming Language :: Python :: 3",
           "Topic :: Scientific/Engineering :: Visualization",
           "Topic :: Scientific/Engineering :: Chemistry",
-          "Topic :: Scientific/Engineering :: Vio-Informatics",
+          "Topic :: Scientific/Engineering :: Bio-Informatics",
           # Each tool should have a single line with up to seven fields:
           # 'ChimeraX-Bundle' :: tool_name :: module_name
           # :: display_name :: commands :: categories
