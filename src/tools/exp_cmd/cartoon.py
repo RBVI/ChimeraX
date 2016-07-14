@@ -21,6 +21,10 @@ _TetherShapeMap = {
     "steeple": Structure.TETHER_REVERSE_CONE,
 }
 _XSectionMap = {
+    "rectangle": XSectionManager.STYLE_SQUARE,
+    "oval": XSectionManager.STYLE_ROUND,
+    "barbell": XSectionManager.STYLE_PIPING,
+    # Old names (to be removed)
     "square": XSectionManager.STYLE_SQUARE,
     "round": XSectionManager.STYLE_ROUND,
     "piping": XSectionManager.STYLE_PIPING,
@@ -129,6 +133,262 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
         structures.ribbon_tether_sides = sides
     if opacity is not None:
         structures.ribbon_tether_opacities = opacity
+
+
+def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, arrows_helix=None,
+                  arrow_scale=None, xsection=None, bar_scale=None, bar_sides=None, ss_ends=None):
+    '''Set cartoon style options for secondary structures in specified structures.
+
+    Parameters
+    ----------
+    spec : atom specifier
+        Set style for all secondary structure types that include the specified residues.
+        If no atom specifier is given then style is set for all secondary structure types.
+    width : floating point number
+        Width of ribbons in angstroms.
+    thickness : floating point number
+        Thickness of ribbons in angstroms.
+    arrows : boolean
+        Whether to show arrow at ends of strands.
+    arrows_helix : boolean
+        Whether to show arrow at ends of helices.
+    arrow_scale : floating point number
+        Scale factor of arrow base width relative to strand or helix width.
+    xsection : string
+        Cross section type, one of "rectangle", "oval" or "barbell".
+    bar_sides : integer
+        Number of sides for barbell circular silhouette.
+    bar_scale : floating point number
+        Scale factor of barbell connector to ends.
+    ss_ends : string
+        Length of helix/strand representation relative to backbone atoms.
+        One of "default", "short" or "long".
+    '''
+    if spec is None:
+        from chimerax.core.commands import atomspec
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+    structures = results.atoms.unique_structures
+    residues = results.atoms.residues
+    is_helix = residues.is_helix
+    is_sheet = residues.is_sheet
+    polymer_types = residues.polymer_types
+    coil_scale_changed = {}
+    # Code uses half-width/thickness but command uses full width/thickness,
+    # so we divide by two now so we will not need to do it multiple times
+    if width is not None:
+        width /= 2
+    if thickness is not None:
+        thickness /= 2
+    if not (is_helix | is_sheet).all():
+        # set coil parameters
+        for m in structures:
+            mgr = m.ribbon_xs_mgr
+            if thickness is not None:
+                coil_scale_changed[m] = True
+                mgr.set_coil_scale(thickness, thickness)
+            if xsection is not None:
+                m.ribbon_xs_mgr.set_coil_style(_XSectionMap[xsection])
+    if is_helix.any():
+        # set helix parameters
+        for m in structures:
+            mgr = m.ribbon_xs_mgr
+            old_arrow_scale = None
+            if width is not None or thickness is not None:
+                w, h = mgr.scale_helix
+                if width is not None:
+                    w = width
+                if thickness is not None:
+                    h = thickness
+                mgr.set_helix_scale(w, h)
+                aw, ah = mgr.scale_helix_arrow[0]
+                old_arrow_scale = aw / w
+            if arrow_scale is not None or old_arrow_scale is not None:
+                w, h = mgr.scale_helix
+                if arrow_scale is not None:
+                    aw = w * arrow_scale
+                else:
+                    aw = w * old_arrow_scale
+                ah = h
+                cw, ch = mgr.scale_coil
+                mgr.set_helix_arrow_scale(aw, ah, cw, ch)
+            elif coil_scale_changed.get(m, False):
+                aw, ah = mgr.scale_helix_arrow[0]
+                cw, ch = mgr.scale_coil
+                mgr.set_helix_arrow_scale(aw, ah, cw, ch)
+            if arrows_helix is not None:
+                mgr.set_helix_end_arrow(arrows_helix)
+            if ss_ends is not None:
+                # These are the cases we deal with:
+                # 1. coil->helix_start. (c_hs below)
+                #    The default is coil/helix (use coil for front and helix for back).
+                #    We do not change from the default because the twist from the
+                #    coil does not match the twist from the helix and we must use coil/helix
+                #    to look reasonable.
+                # 2. helix_end->helix_start. (he_hs)
+                #    Default is helix/helix.
+                #    For "short", we use coil/helix.
+                #    For "long" we leave it helix/helix.
+                # 3. sheet_end->helix_start. (se_hs)
+                #    Default is helix/helix.
+                #    For "short", we use coil/helix.
+                #    For "long" we use helix/helix.
+                # 4. helix_end->coil. (he_c)
+                #    Default is arrow/coil.
+                #    For "short", we use arrow/coil.
+                #    For "long", we use helix/arrow.
+                # 5. helix_end->helix_start. (he_hs)
+                #    Default is helix/arrow.
+                #    For "short", we use arrow/coil.
+                #    For "long", we use helix/arrow.
+                # 6. helix_end->sheet_start. (he_ss)
+                #    Default is helix/arrow.
+                #    For "short", use it arrow/coil.
+                #    For "long", we use helix/arrow.
+                # (Defaults are defined in XSectionManager class in ribbon.py.)
+                if ss_ends == "default":
+                    # c_hs = (mgr.RIBBON_COIL, mgr.RIBBON_HELIX)
+                    he_hs = (mgr.RIBBON_HELIX, mgr.RIBBON_HELIX)
+                    se_hs = (mgr.RIBBON_HELIX, mgr.RIBBON_HELIX)
+                    he_c = (mgr.RIBBON_HELIX_ARROW, mgr.RIBBON_COIL)
+                    he_hs = (mgr.RIBBON_HELIX, mgr.RIBBON_HELIX_ARROW)
+                    he_ss = (mgr.RIBBON_HELIX, mgr.RIBBON_HELIX_ARROW)
+                elif ss_ends == "short":
+                    # c_hs = (mgr.RIBBON_COIL, mgr.RIBBON_HELIX)
+                    he_hs = (mgr.RIBBON_COIL, mgr.RIBBON_HELIX)
+                    se_hs = (mgr.RIBBON_COIL, mgr.RIBBON_HELIX)
+                    he_c = (mgr.RIBBON_HELIX_ARROW, mgr.RIBBON_COIL)
+                    he_hs = (mgr.RIBBON_HELIX_ARROW, mgr.RIBBON_COIL)
+                    he_ss = (mgr.RIBBON_HELIX_ARROW, mgr.RIBBON_COIL)
+                elif ss_ends == "long":
+                    # c_hs = (mgr.RIBBON_COIL, mgr.RIBBON_HELIX)
+                    he_hs = (mgr.RIBBON_HELIX, mgr.RIBBON_HELIX)
+                    se_hs = (mgr.RIBBON_HELIX, mgr.RIBBON_HELIX)
+                    he_c = (mgr.RIBBON_HELIX, mgr.RIBBON_HELIX_ARROW)
+                    he_hs = (mgr.RIBBON_HELIX, mgr.RIBBON_HELIX_ARROW)
+                    he_ss = (mgr.RIBBON_HELIX, mgr.RIBBON_HELIX_ARROW)
+                else:
+                    raise ValueError("unexpected ss_ends value: %s" % ss_ends)
+                # coil->helix_start->helix
+                # mgr.set_transition(mgr.RC_COIL, mgr.RC_HELIX_START, mgr.RC_HELIX_MIDDLE, *c_hs)
+                # mgr.set_transition(mgr.RC_COIL, mgr.RC_HELIX_START, mgr.RC_HELIX_END, *c_hs)
+                # helix->helix_start->helix
+                mgr.set_transition(mgr.RC_HELIX_END, mgr.RC_HELIX_START, mgr.RC_HELIX_MIDDLE, *he_hs)
+                mgr.set_transition(mgr.RC_HELIX_END, mgr.RC_HELIX_START, mgr.RC_HELIX_END, *he_hs)
+                # strand->helix_start->helix
+                mgr.set_transition(mgr.RC_SHEET_END, mgr.RC_HELIX_START, mgr.RC_HELIX_MIDDLE, *se_hs)
+                mgr.set_transition(mgr.RC_SHEET_END, mgr.RC_HELIX_START, mgr.RC_HELIX_END, *se_hs)
+                # helix->helix_end->coil
+                mgr.set_transition(mgr.RC_HELIX_START, mgr.RC_HELIX_END, mgr.RC_COIL, *he_c)
+                mgr.set_transition(mgr.RC_HELIX_MIDDLE, mgr.RC_HELIX_END, mgr.RC_COIL, *he_c)
+                # helix->helix_end->helix
+                mgr.set_transition(mgr.RC_HELIX_START, mgr.RC_HELIX_END, mgr.RC_HELIX_START, *he_hs)
+                mgr.set_transition(mgr.RC_HELIX_MIDDLE, mgr.RC_HELIX_END, mgr.RC_HELIX_START, *he_hs)
+                # helix->helix_end->sheet
+                mgr.set_transition(mgr.RC_HELIX_START, mgr.RC_HELIX_END, mgr.RC_SHEET_START, *he_ss)
+                mgr.set_transition(mgr.RC_HELIX_MIDDLE, mgr.RC_HELIX_END, mgr.RC_SHEET_START, *he_ss)
+            if xsection is not None:
+                m.ribbon_xs_mgr.set_helix_style(_XSectionMap[xsection])
+    if is_sheet.any():
+        # set strand/sheet parameters
+        for m in structures:
+            mgr = m.ribbon_xs_mgr
+            old_arrow_scale = None
+            if width is not None or thickness is not None:
+                w, h = mgr.scale_sheet
+                if width is not None:
+                    w = width
+                if thickness is not None:
+                    h = thickness
+                mgr.set_sheet_scale(w, h)
+                aw, ah = mgr.scale_sheet_arrow[0]
+                old_arrow_scale = aw / w
+            if arrow_scale is not None or old_arrow_scale is not None:
+                w, h = mgr.scale_sheet
+                if arrow_scale is not None:
+                    aw = w * arrow_scale
+                else:
+                    aw = w * old_arrow_scale
+                ah = h
+                cw, ch = mgr.scale_coil
+                mgr.set_sheet_arrow_scale(aw, ah, cw, ch)
+            elif coil_scale_changed.get(m, False):
+                aw, ah = mgr.scale_sheet_arrow[0]
+                cw, ch = mgr.scale_coil
+                mgr.set_sheet_arrow_scale(aw, ah, cw, ch)
+            if arrows is not None:
+                mgr.set_sheet_end_arrow(arrows)
+            if ss_ends is not None:
+                if ss_ends == "default":
+                    # c_ss = (mgr.RIBBON_COIL, mgr.RIBBON_SHEET)
+                    he_ss = (mgr.RIBBON_SHEET, mgr.RIBBON_SHEET)
+                    se_ss = (mgr.RIBBON_SHEET, mgr.RIBBON_SHEET)
+                    se_c = (mgr.RIBBON_SHEET_ARROW, mgr.RIBBON_COIL)
+                    se_hs = (mgr.RIBBON_SHEET, mgr.RIBBON_SHEET_ARROW)
+                    se_ss = (mgr.RIBBON_SHEET, mgr.RIBBON_SHEET_ARROW)
+                elif ss_ends == "short":
+                    # c_ss = (mgr.RIBBON_COIL, mgr.RIBBON_SHEET)
+                    he_ss = (mgr.RIBBON_COIL, mgr.RIBBON_SHEET)
+                    se_ss = (mgr.RIBBON_COIL, mgr.RIBBON_SHEET)
+                    se_c = (mgr.RIBBON_SHEET_ARROW, mgr.RIBBON_COIL)
+                    se_hs = (mgr.RIBBON_SHEET_ARROW, mgr.RIBBON_COIL)
+                    se_ss = (mgr.RIBBON_SHEET_ARROW, mgr.RIBBON_COIL)
+                elif ss_ends == "long":
+                    # c_ss = (mgr.RIBBON_COIL, mgr.RIBBON_SHEET)
+                    he_ss = (mgr.RIBBON_SHEET, mgr.RIBBON_SHEET)
+                    se_ss = (mgr.RIBBON_SHEET, mgr.RIBBON_SHEET)
+                    se_c = (mgr.RIBBON_SHEET, mgr.RIBBON_SHEET_ARROW)
+                    se_hs = (mgr.RIBBON_SHEET, mgr.RIBBON_SHEET_ARROW)
+                    se_ss = (mgr.RIBBON_SHEET, mgr.RIBBON_SHEET_ARROW)
+                else:
+                    raise ValueError("unexpected ss_ends value: %s" % ss_ends)
+                # coil->sheet_start->helix
+                # mgr.set_transition(mgr.RC_COIL, mgr.RC_SHEET_START, mgr.RC_SHEET_MIDDLE, *c_ss)
+                # mgr.set_transition(mgr.RC_COIL, mgr.RC_SHEET_START, mgr.RC_SHEET_END, *c_ss)
+                # sheet->sheet_start->helix
+                mgr.set_transition(mgr.RC_HELIX_END, mgr.RC_SHEET_START, mgr.RC_SHEET_MIDDLE, *he_ss)
+                mgr.set_transition(mgr.RC_HELIX_END, mgr.RC_SHEET_START, mgr.RC_SHEET_END, *he_ss)
+                # sheet->sheet_start->helix
+                mgr.set_transition(mgr.RC_SHEET_END, mgr.RC_SHEET_START, mgr.RC_SHEET_MIDDLE, *se_ss)
+                mgr.set_transition(mgr.RC_SHEET_END, mgr.RC_SHEET_START, mgr.RC_SHEET_END, *se_ss)
+                # sheet->sheet_end->coil
+                mgr.set_transition(mgr.RC_SHEET_START, mgr.RC_SHEET_END, mgr.RC_COIL, *se_c)
+                mgr.set_transition(mgr.RC_SHEET_MIDDLE, mgr.RC_SHEET_END, mgr.RC_COIL, *se_c)
+                # sheet->sheet_end->helix
+                mgr.set_transition(mgr.RC_SHEET_START, mgr.RC_SHEET_END, mgr.RC_HELIX_START, *se_hs)
+                mgr.set_transition(mgr.RC_SHEET_MIDDLE, mgr.RC_SHEET_END, mgr.RC_HELIX_START, *se_hs)
+                # sheet->sheet_end->sheet
+                mgr.set_transition(mgr.RC_SHEET_START, mgr.RC_SHEET_END, mgr.RC_SHEET_START, *se_ss)
+                mgr.set_transition(mgr.RC_SHEET_MIDDLE, mgr.RC_SHEET_END, mgr.RC_SHEET_START, *se_ss)
+            if xsection is not None:
+                m.ribbon_xs_mgr.set_sheet_style(_XSectionMap[xsection])
+    if (polymer_types == Residue.PT_NUCLEIC).any():
+        # set nucleic parameters
+        for m in structures:
+            mgr = m.ribbon_xs_mgr
+            if width is not None or thickness is not None:
+                w, h = mgr.scale_nucleic
+                # Invert width and thickness since nucleic cross section
+                # is perpendicular to protein cross section
+                if width is not None:
+                    h = width
+                if thickness is not None:
+                    w = thickness
+                mgr.set_nucleic_scale(w, h)
+            if xsection is not None:
+                m.ribbon_xs_mgr.set_nucleic_style(_XSectionMap[xsection])
+    # process bar_sides and bar_scale
+    params = {}
+    if bar_sides is not None:
+        params["sides"] = bar_sides
+    if bar_scale is not None:
+        params["ratio"] = bar_scale
+    if params:
+        for m in structures:
+            m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_PIPING, **params)
+
+
+# Other command functions (to be removed)
 
 
 def cartoon_xsection(session, structures=None, helix=None, strand=None, coil=None, nucleic=None):
@@ -479,6 +739,23 @@ def initialize(command_name):
                                 ],
                        synopsis='set cartoon tether options for specified structures')
         register(command_name + " tether", desc, cartoon_tether)
+
+        desc = CmdDesc(optional=[("spec", AtomSpecArg)],
+                       keyword=[("width", FloatArg),
+                                ("thickness", FloatArg),
+                                ("arrows", BoolArg),
+                                ("arrows_helix", BoolArg),
+                                ("arrow_scale", Bounded(FloatArg, 1.0, 3.0)),
+                                ("xsection", EnumOf(_XSectionMap.keys())),
+                                ("bar_scale", FloatArg),
+                                ("sides", Bounded(IntArg, 3, 10)),
+                                ("ss_ends", EnumOf(["default", "short", "long"])),
+                                # ("cylinders", BoolArg),
+                                ],
+                       synopsis='set cartoon style for secondary structures in specified models')
+        register(command_name + " style", desc, cartoon_style)
+
+        # Other command registrations (to be removed)
 
         xs = EnumOf(_XSectionMap.keys())
         desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
