@@ -145,7 +145,6 @@ def interatom_pseudobonds(atoms, session, group_name = None):
             continue
         pbonds = pbg.pseudobonds
         ipb = pbonds.filter(pbonds.between_atoms(atoms))
-        print ('%s pbonds got %d' % (pbg.category, len(ipb)))
         if ipb:
             ipbonds.append(ipb)
     from . import Pseudobonds, concatenate
