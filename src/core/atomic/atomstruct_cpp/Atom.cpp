@@ -1144,7 +1144,7 @@ Atom::set_selected(bool s)
 {
     if (s == _selected)
         return;
-    graphics_container()->set_gc_shape();
+    graphics_container()->set_gc_select();
     change_tracker()->add_modified(this, ChangeTracker::REASON_SELECTED);
     _selected = s;
 }
