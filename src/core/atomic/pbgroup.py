@@ -139,16 +139,11 @@ def interatom_pseudobonds(atoms, session, group_name = None):
     for m in atoms.unique_structures:
         pbgs.extend(m.pbg_map.values())
     # Collect bonds
-    ipbonds = []
-    for pbg in pbgs:
-        if group_name is not None and pbg.category != group_name:
-            continue
-        pbonds = pbg.pseudobonds
-        ipb = pbonds.filter(pbonds.between_atoms(atoms))
-        if ipb:
-            ipbonds.append(ipb)
+    pbonds = [pbg.pseudobonds for pbg in pbgs
+              if group_name is None or pbg.category == group_name]
     from . import Pseudobonds, concatenate
-    ipb = concatenate(ipbonds, Pseudobonds)
+    pb = concatenate(pbonds, Pseudobonds)
+    ipb = pb.filter(pb.between_atoms(atoms))
     return ipb
 
 # -----------------------------------------------------------------------------
