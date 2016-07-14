@@ -6,11 +6,14 @@ class AlignmentsManager(State):
     def __init__(self, session):
         self.alignments = {}
         self.session = session
-        self.viewer_info = {}
+        self.viewer_synonyms = {}
 
     def delete_alignment(self, alignment):
         del self.alignments[alignment.name]
         alignment._close()
+
+    def deregister_viewer(self, bundle_info):
+        del self.viewer_synonyms[bundle_info]
 
     def new_alignment(self, seqs, identify_as, align_attrs=None, align_markups=None, **kw):
         from .alignment import Alignment
@@ -25,25 +28,22 @@ class AlignmentsManager(State):
         self.alignments[final_identify_as] = alignment
         return alignment
 
-    def register_viewer(self, standard_name, import_info, synonyms=[]):
+    def register_viewer(self, bundle_info, synonyms=[]):
         """Register an alignment viewer for possible use by the user.
-
 
         Parameters
         ----------
-        standard_name : str
-            The toolshed / tools-menu name of your tool, i.e. name used in interfaces.
-            Example:  "Multalign Viewer"
-        import_info : str
-           How to import your viewer class.  Namely the 'X' in "from X import Viewer".
-           If the user requests to view an alignment using your tool, then after executing
-           the quoted import statement, "Viewer(alignment)" will be called.
-           Example:  "MultalignViewer.viewer"
+        bundle_info : BundleInfo
+            The toolshed BundleInfo for your tool.
         synonyms : list of str
            Shorthands that the user could type instead of standard_name to refer to your tool
            in commands.  Example:  ['mav', 'multalign']
         """
-        self.viewer_info[standard_name] = (import_info, synonyms)
+        self.viewer_synonyms[bundle_info] = synonyms
+
+    @property
+    def registered_viewers(self):
+        return self.viewer_synonyms
 
     def reset_state(self):
         for alignment in self.alignments.values():
@@ -57,7 +57,12 @@ class AlignmentsManager(State):
         return mgr
 
     def take_snapshot(self, session, flags):
-        return { 'version': 1, 'alignments': self.alignments }
+        # viewer_synonyms are "session independent"
+        return {
+            'version': 1,
+
+            'alignments': self.alignments,
+        }
 
     def _ses_restore(self, data):
         for am in self.alignments.values():
