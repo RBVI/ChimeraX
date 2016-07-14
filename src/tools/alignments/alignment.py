@@ -2,8 +2,11 @@
 
 from chimerax.core.state import State
 class Alignment(State):
-    """A sequence alignment"""
-    def __init__(self, session, seqs, name, file_attrs=None, file_markups=None):
+    """A sequence alignment,
+    
+    Should only be created through new_alignment method of the alignment manager
+    """
+    def __init__(self, session, seqs, name, file_attrs, file_markups, autodestroy):
         self.seqs = seqs
         self.name = name
         self.file_attrs = file_attrs
