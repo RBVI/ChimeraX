@@ -1298,6 +1298,8 @@ class Material:
         the reflected light and the view direction. A typical value for
         e is 30.'''
 
+        self.transparent_cast_shadows = False
+        "Do transparent objects cast shadows."
 
 class Bindings:
     '''
