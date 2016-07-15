@@ -935,7 +935,7 @@ class ObjectIdMouseMode(MouseMode):
             res = getattr(p, 'residue', None)
             if res:
                 chain = res.chain
-                if chain:
+                if chain and chain.description:
                     self.session.logger.status("chain %s: %s" % (chain.chain_id, chain.description))
                 elif res.description:
                     self.session.logger.status(res.description)
