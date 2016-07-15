@@ -12,6 +12,7 @@ from chimerax.core.tools import ToolInstance
 class VolumeViewer(ToolInstance):
 
     SESSION_SKIP = True
+    SESSION_ENDURING = True
 
     def __init__(self, session, bundle_info):
         ToolInstance.__init__(self, session, bundle_info)
