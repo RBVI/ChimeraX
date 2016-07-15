@@ -780,14 +780,21 @@ else:
                     self.session = session
 
                 @pyqtSlot("QUrl")
-                def handle_schema(self, qurl):
+                def handle_help_schema(self, qurl):
                     from ..commands import run
                     run(self.session, "help %s" % qurl.toString(), log=False)
 
+                @pyqtSlot("QUrl")
+                def handle_cxcmd_schema(self, qurl):
+                    from ..commands import run
+                    from PyQt5.QtCore import QUrl
+                    cmd = qurl.toString(QUrl.RemoveScheme)
+                    run(self.session, cmd, log=False)
+
             self.cxUrlHandler = CxUrlHandler(session)
             from PyQt5.QtGui import QDesktopServices
-            QDesktopServices.setUrlHandler("cxcmd", self.cxUrlHandler.handle_schema)
-            QDesktopServices.setUrlHandler("help", self.cxUrlHandler.handle_schema)
+            QDesktopServices.setUrlHandler("cxcmd", self.cxUrlHandler.handle_cxcmd_schema)
+            QDesktopServices.setUrlHandler("help", self.cxUrlHandler.handle_help_schema)
 
             # for whatever reason, QtWebEngineWidgets has to be imported before a
             # QtCoreApplication is created...
