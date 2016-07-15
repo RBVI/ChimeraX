@@ -211,6 +211,7 @@ class Drawing:
     def remove_drawing(self, d, delete=True):
         '''Remove a specified child drawing.'''
         self._child_drawings.remove(d)
+        delattr(d, 'parent')
         if delete:
             d.delete()
         self.redraw_needed(shape_changed=True, selection_changed=True)
