@@ -1231,4 +1231,21 @@ Structure::use_best_alt_locs()
     }
 }
 
+int
+Structure::get_all_graphics_changes() const
+{
+  int gc = get_graphics_changes();
+  for (auto g: pb_mgr().group_map())
+    gc |= g.second->get_graphics_changes();
+  return gc;
+}
+
+void
+Structure::set_all_graphics_changes(int changes)
+{
+  set_graphics_changes(changes);
+  for (auto g: pb_mgr().group_map())
+    g.second->set_graphics_changes(changes);
+}
+
 } //  namespace atomstruct

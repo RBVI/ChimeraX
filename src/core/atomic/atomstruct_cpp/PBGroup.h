@@ -42,6 +42,7 @@ protected:
     bool  _default_halfbond = false;
     bool  _destruction_relevant;
     BaseManager*  _manager;
+    friend class Proxy_PBGroup;
     Proxy_PBGroup* _proxy; // the proxy for this group
 
     // the manager will need to be declared as a friend...
@@ -198,6 +199,7 @@ private:
         else
             _proxied = new CS_PBGroup(_category, _structure, _manager);
         _proxy = this;
+	static_cast<Group*>(_proxied)->_proxy = this;
     }
     void  remove_cs(const CoordSet* cs) {
         if (_group_type == AS_PBManager::GRP_PER_CS)
@@ -288,14 +290,16 @@ public:
     void  set_default_color(const Rgba& rgba) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_default_color(rgba);
-        static_cast<CS_PBGroup*>(_proxied)->set_default_color(rgba);
+	else
+	    static_cast<CS_PBGroup*>(_proxied)->set_default_color(rgba);
     }
     void  set_default_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a = 255) { set_default_color(Rgba(r,g,b,a)); }
     void  set_default_halfbond(bool hb) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_default_halfbond(hb);
-        static_cast<CS_PBGroup*>(_proxied)->set_default_halfbond(hb);
+	else
+	    static_cast<CS_PBGroup*>(_proxied)->set_default_halfbond(hb);
     }
     Structure*  structure() const { 
         if (_group_type == AS_PBManager::GRP_NORMAL)
@@ -306,7 +310,8 @@ public:
     void  gc_clear() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->gc_clear();
-        static_cast<CS_PBGroup*>(_proxied)->gc_clear();
+	else
+	    static_cast<CS_PBGroup*>(_proxied)->gc_clear();
     }
     bool  get_gc_color() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
@@ -323,22 +328,58 @@ public:
             return static_cast<StructurePBGroup*>(_proxied)->get_gc_shape();
         return static_cast<CS_PBGroup*>(_proxied)->get_gc_shape();
     }
+    bool  get_gc_ribbon() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->get_gc_ribbon();
+        return static_cast<CS_PBGroup*>(_proxied)->get_gc_ribbon();
+    }
+    int   get_graphics_changes() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->get_graphics_changes();
+        return static_cast<CS_PBGroup*>(_proxied)->get_graphics_changes();
+    }
     void  set_gc_color() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_gc_color();
-        static_cast<CS_PBGroup*>(_proxied)->set_gc_color();
+	else
+	    static_cast<CS_PBGroup*>(_proxied)->set_gc_color();
     }
     void  set_gc_select() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_gc_select();
-        static_cast<CS_PBGroup*>(_proxied)->set_gc_select();
+	else
+	    static_cast<CS_PBGroup*>(_proxied)->set_gc_select();
     }
     void  set_gc_shape() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->set_gc_shape();
-        static_cast<CS_PBGroup*>(_proxied)->set_gc_shape();
+	else
+	    static_cast<CS_PBGroup*>(_proxied)->set_gc_shape();
     }
-
+    void  set_gc_ribbon() {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<StructurePBGroup*>(_proxied)->set_gc_ribbon();
+	else
+	    static_cast<CS_PBGroup*>(_proxied)->set_gc_ribbon();
+    }
+    void  set_graphics_changes(int change) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<StructurePBGroup*>(_proxied)->set_graphics_changes(change);
+	else
+	    static_cast<CS_PBGroup*>(_proxied)->set_graphics_changes(change);
+    }
+    void  set_graphics_change(ChangeType type) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<StructurePBGroup*>(_proxied)->set_graphics_change(type);
+	else
+	    static_cast<CS_PBGroup*>(_proxied)->set_graphics_change(type);
+    }
+    void  clear_graphics_change(ChangeType type) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<StructurePBGroup*>(_proxied)->clear_graphics_change(type);
+	else
+	    static_cast<CS_PBGroup*>(_proxied)->clear_graphics_change(type);
+    }
 };
 
 }  // namespace atomstruct

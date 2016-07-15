@@ -1,7 +1,8 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def sym(session, molecules, assembly = None, copies = False, clear = False,
-        surface_only = False, resolution = None):
+def sym(session, molecules,
+        symmetry = None, center = None, axis = None, coordinate_system = None, assembly = None,
+        copies = False, clear = False, surface_only = False, resolution = None):
     '''
     Show molecular assemblies of molecular models defined in mmCIF files.
     These can be subassemblies or symmetrical copies with individual chains 
@@ -11,6 +12,14 @@ def sym(session, molecules, assembly = None, copies = False, clear = False,
     ----------
     molecules : list of AtomicStructure
       List of molecules to show as assemblies.
+    symmetry : cli.Symmetry
+      Desired symmetry to display
+    center : cli.Center
+      Center of symmetry.  Default 0,0,0.
+    axis : Axis
+      Axis of symmetry.  Default z.
+    coordinate_system : Place
+      Transform mapping coordinates for center and axis arguments to scene coordinates.
     assembly : string
       The name of assembly in the mmCIF file. If this parameter is None
       then the names of available assemblies are printed in log.
@@ -28,6 +37,21 @@ def sym(session, molecules, assembly = None, copies = False, clear = False,
     resolution : float
       Resolution for computing surfaces when surface_only is true.
     '''
+    if len(molecules) == 0:
+        from ..errors import UserError
+        raise UserError('No molecules specified.')
+
+    if symmetry is not None:
+        if assembly is not None:
+            from ..errors import UserError
+            raise UserError('Cannot specify explicit symmetry and the assembly option.')
+        if clear is not None:
+            from ..errors import UserError
+            raise UserError('Cannot specify explicit symmetry and the clear option.')
+        transforms = symmetry.positions(center, axis, coordinate_system, molecules[0])
+        show_symmetry(molecules, transforms, copies, surface_only, resolution, session)
+        return
+            
     for m in molecules:
         assem = pdb_assemblies(m)
         if clear:
@@ -56,15 +80,44 @@ def sym(session, molecules, assembly = None, copies = False, clear = False,
 
 def register_command(session):
     from . import CmdDesc, register, AtomicStructuresArg, StringArg, NoArg, FloatArg
+    from . import CenterArg, AxisArg, SymmetryArg, CoordSysArg
     _sym_desc = CmdDesc(
         required = [('molecules', AtomicStructuresArg)],
-        keyword = [('assembly', StringArg),
+        optional = [('symmetry', SymmetryArg)],
+        keyword = [('center', CenterArg),
+                   ('axis', AxisArg),
+                   ('coordinate_system', CoordSysArg),
+                   ('assembly', StringArg),
                    ('copies', NoArg),
                    ('clear', NoArg),
                    ('surface_only', NoArg),
                    ('resolution', FloatArg)],
         synopsis = 'create model copies')
     register('sym', _sym_desc, sym)
+
+def show_symmetry(molecules, transforms, copies, surface_only, resolution, session):
+    n = len(transforms)
+    mnew = []
+    for m in molecules:
+        # Transforms are in scene coordinates, so convert to molecule coordinates
+        spos = m.scene_position
+        symops = transforms if spos.is_identity() else transforms.transform_coordinates(spos)
+        if copies:
+            mcopies = [m.copy('%s %d' % (m.name,i+2)) for i in range(n-1)]
+            mnew.extend(mcopies)
+            m._sym_copies = mcopies
+            for mc, tf in zip([m] + mcopies, symops):
+                mc.position = mc.position * tf
+        elif surface_only:
+            from .surface import surface
+            surfs = surface(session, m.atoms, resolution = resolution)
+            for s in surfs:
+                s.positions =  s.positions * symops
+        else:
+            m.positions = m.positions * symops
+
+    if copies and mnew:
+        session.models.add(mnew)
 
 def pdb_assemblies(m):
     if not hasattr(m, 'filename') or not m.filename.endswith('.cif'):
