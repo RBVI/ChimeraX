@@ -70,6 +70,10 @@ class State(metaclass=abc.ABCMeta):
     #    #   look at several scenes
     #    pass
 
+class FinalizedState:
+    """Used for efficiency if state data is known to be nothing but Python simple primitives"""
+    def __init__(self, data):
+        self.data = data
 
 # Would like to use set's, but isinstance requires a tuple
 _final_primitives = ()
@@ -130,6 +134,8 @@ def copy_state(data, convert=None):
         nonlocal convert, Mapping, ndarray
         if isinstance(data, _final_primitives):
             return data
+        if isinstance(data, FinalizedState):
+            return data.data
         if isinstance(data, _container_primitives):
             if isinstance(data, Mapping):
                 items = [(_copy(k), _copy(v)) for k, v in data.items()]

@@ -838,7 +838,9 @@ class StructureData:
                 'floats': [],
                 'misc': []}
         data['version'] = f(self._c_pointer, data['ints'], data['floats'], data['misc'])
-        return data
+        # data is all simple Python primitives, let session saving know that...
+        from ..state import FinalizedState
+        return FinalizedState(data)
 
     def _ses_call(self, func_qual):
         f = c_function('structure_session_' + func_qual, args=(ctypes.c_void_p,))
