@@ -3,8 +3,10 @@
 from chimerax.core.state import State
 class AlignmentsManager(State):
     """Manager for sequence alignments"""
-    def __init__(self, session):
+    def __init__(self, session, bundle_info):
         self.alignments = {}
+        # bundle_info needed for session save
+        self.bundle_info = bundle_info
         self.session = session
         self.viewer_synonyms = {}
 
@@ -78,7 +80,7 @@ class AlignmentsManager(State):
     def registered_viewers(self):
         return self.viewer_synonyms
 
-    def reset_state(self):
+    def reset_state(self, session):
         for alignment in self.alignments.values():
             alignment._close()
         self.alignments.clear()
