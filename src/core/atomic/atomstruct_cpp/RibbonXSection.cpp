@@ -593,7 +593,7 @@ RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
         if (xs_coords2.dimension() != 0) {
             cp2 = xs_coords2_values + j * 2;
             // arrow_length = num_pts_per_spline / 2;
-            arrow_length = num_pts_per_spline;
+            arrow_length = num_pts_per_spline - 1;
             c_step[0] = (cp2[0] - cp1[0]) / arrow_length;
             c_step[1] = (cp2[1] - cp1[1]) / arrow_length;
         }

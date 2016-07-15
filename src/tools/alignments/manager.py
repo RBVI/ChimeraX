@@ -3,8 +3,10 @@
 from chimerax.core.state import State
 class AlignmentsManager(State):
     """Manager for sequence alignments"""
-    def __init__(self, session):
+    def __init__(self, session, bundle_info):
         self.alignments = {}
+        # bundle_info needed for session save
+        self.bundle_info = bundle_info
         self.session = session
         self.viewer_synonyms = {}
 
@@ -15,7 +17,38 @@ class AlignmentsManager(State):
     def deregister_viewer(self, bundle_info):
         del self.viewer_synonyms[bundle_info]
 
-    def new_alignment(self, seqs, identify_as, align_attrs=None, align_markups=None, **kw):
+    def new_alignment(self, seqs, identify_as, align_attrs=None, align_markups=None,
+            autodestroy=None, viewer=None, **kw):
+        """Create new alignment from 'seqs'
+
+        Parameters
+        ----------
+        seqs : list of :py:class:`~chimerax.core.atomic.Sequence` instances
+            Contents of alignment
+        autodestroy : boolean or None
+            Whether to automatically destroy the alignment when the last viewer for it
+            is closed.  If None, then treated as False if the value of the 'viewer' keyword
+            results in no viewer being launched, else True.
+        viewer : str, False or None
+           What alignment viewer to launch.  If False, do not launch a viewer.  If None,
+           use the current preference setting for the user.  The string must either be
+           the viewer's tool display_name or a synonym registered by the viewer (during
+           its register_viewer call).
+        """
+        if viewer is None:
+            from .settings import settings
+            viewer = settings.viewer
+        if viewer:
+            for bundle_info, syms in self.viewer_synonyms.items():
+                if bundle_info.display_name == viewer:
+                    break
+                if viewer in syms:
+                    break
+            else:
+                self.session.logger.warning("No registered alignment viewer corresponds to '%s'"
+                    % viewer)
+                viewer = False
+
         from .alignment import Alignment
         i = 1
         disambig = ""
@@ -24,8 +57,10 @@ class AlignmentsManager(State):
             disambig = "[%d]" % i
         final_identify_as = identify_as+disambig
         alignment = Alignment(self.session, seqs, final_identify_as,
-            align_attrs, align_markups, **kw)
+            align_attrs, align_markups, autodestroy)
         self.alignments[final_identify_as] = alignment
+        if viewer:
+            bundle_info.start(alignment, **kw)
         return alignment
 
     def register_viewer(self, bundle_info, synonyms=[]):
@@ -45,7 +80,7 @@ class AlignmentsManager(State):
     def registered_viewers(self):
         return self.viewer_synonyms
 
-    def reset_state(self):
+    def reset_state(self, session):
         for alignment in self.alignments.values():
             alignment._close()
         self.alignments.clear()

@@ -2,12 +2,11 @@
 
 from chimerax.core.state import State
 class Alignment(State):
-    """A sequence alignment"""
-    def __init__(self, session, seqs, name, file_attrs=None, file_markups=None, viewer=None):
-        """'viewer' is the viewer to use:  None means use preference;
-           False means no graphical viewer (accessible by command only).  If a graphical
-           viewer is used, then when the last viewer goes away the alignment is automatically
-           destroyed.  Otherwise, it must be explicitly destroyed."""
+    """A sequence alignment,
+    
+    Should only be created through new_alignment method of the alignment manager
+    """
+    def __init__(self, session, seqs, name, file_attrs, file_markups, autodestroy):
         self.seqs = seqs
         self.name = name
         self.file_attrs = file_attrs

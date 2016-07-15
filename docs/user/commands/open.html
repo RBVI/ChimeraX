@@ -24,6 +24,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 <BR><b>open</b> &nbsp;<i>filename</i> 
 [&nbsp;format&nbsp;&nbsp;<a href="#local"><i>file-format</i></a>&nbsp;]
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+[&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>open</b> 
@@ -32,6 +33,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 [&nbsp;format&nbsp;&nbsp;<a href="#fetch"><i>file-format</i></a>&nbsp;]
 [&nbsp;ignoreCache&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+[&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>: <BR><b>open formats</b>
 </h3>
@@ -53,8 +55,13 @@ Any resulting model in ChimeraX is automatically assigned a model ID number,
 starting with #1. The name of the model (shown in the <b>Model Panel</b>)
 will be generated from the <i>filename</i> or database <i>identifier</i>
 unless another name is given with the <b>name</b> option.
-If <i>model-name</i> contains spaces, it should be
-enclosed in quotation marks.
+If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
+</p><p>
+Setting <b>smartInitialDisplay</b> to false bypasses chemical perception
+and rule-based changes in lighting, coloring, and representation, instead
+always showing atomic models as white spheres; it may be useful in 
+rare cases where generating the initial representation is slow
+(<i>e.g.</i>, drawing cartoons for very large numbers of atomic models).
 </p><p>
 The <b>open formats</b> command lists the possible formats and databases
 in the <a href="../tools/log.html"><b>Log</b></a>.
@@ -258,5 +265,5 @@ with <b>ignoreCache true</b>, although the new data will still be cached.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2016</address>
+July 2016</address>
 </body></html>
