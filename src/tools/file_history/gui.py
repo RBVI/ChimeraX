@@ -54,6 +54,8 @@ class FilePanel(ToolInstance):
             parent.setLayout(layout)
             self.tool_window.manage(placement="right")
 
+            # TODO: The following link click binding is not working in Qt 5.6.
+            # Instead the link dispatching is going through core/ui/gui.py handling href="cxcmd:<command>".
             def link_clicked(qurl, nav_type, is_main_frame):
                 self.navigate(qurl.toString())
                 return False
