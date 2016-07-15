@@ -6,6 +6,7 @@ from chimerax.core.tools import ToolInstance
 #
 class MouseModePanel(ToolInstance):
 
+    SESSION_SKIP = True
     SESSION_ENDURING = True
     help = "help:user/tools/mousemodes.html"
 
