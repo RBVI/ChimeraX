@@ -63,9 +63,10 @@ class Structure(Model, StructureData):
 
     def __str__(self):
         from ..core_settings import settings
+        id = '#' + self.id_string()
         if settings.atomspec_contents == "command-line specifier" or not self.name:
-            return '#' + self.id_string()
-        return self.name
+            return id
+        return '%s %s' % (self.name, id)
 
     def delete(self):
         '''Delete this structure.'''

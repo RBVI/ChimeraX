@@ -124,8 +124,8 @@ class Atom:
         if atom_only:
             return atom_str
         if cmd_style:
-            return str(self.residue) + atom_str
-        return str(self.residue) + " " + atom_str
+            return '%s%s' % (str(self.residue), atom_str)
+        return '%s %s' % (str(self.residue), atom_str)
 
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
@@ -454,10 +454,7 @@ class Residue:
         from ..core_settings import settings
         if cmd_style:
             return str(self.structure) + chain_str + res_str
-        from .structure import Structure
-        if len(self.structure.session.models.list(type=Structure)) > 1:
-            return str(self.structure) + " " + res_str + chain_str
-        return res_str + chain_str
+        return '%s%s %s' % (str(self.structure), chain_str, res_str)
 
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
