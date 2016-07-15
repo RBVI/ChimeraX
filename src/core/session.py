@@ -327,9 +327,11 @@ class Session:
         # from .scenes import Scenes
         # sess.add_state_manager('scenes', Scenes(sess))
 
-    @property
-    def view(self):
+    def _get_view(self):
         return self._state_containers['main_view']
+    def _set_view(self, view):
+        self._state_containers['main_view'] = view
+    view = property(_get_view, _set_view)
 
     @property
     def scenes(self):
