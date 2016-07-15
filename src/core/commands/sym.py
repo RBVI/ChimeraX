@@ -45,7 +45,7 @@ def sym(session, molecules,
         if assembly is not None:
             from ..errors import UserError
             raise UserError('Cannot specify explicit symmetry and the assembly option.')
-        if clear is not None:
+        if clear:
             from ..errors import UserError
             raise UserError('Cannot specify explicit symmetry and the clear option.')
         transforms = symmetry.positions(center, axis, coordinate_system, molecules[0])
