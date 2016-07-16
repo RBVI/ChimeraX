@@ -40,6 +40,7 @@ and their code location is described with the function descriptions.
 | `position`_ - Set camera and model positions
 | `pwd`_ - Present working directory
 | `rainbow`_ - Color residues and chains
+| `rename`_ - Rename models
 | `roll`_ - Rotate models
 | `run`_ - Run a user command string
 | `rungs`_ - Display nucleotides as cylinders
