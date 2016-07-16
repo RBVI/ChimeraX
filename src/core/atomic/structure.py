@@ -370,7 +370,7 @@ class Structure(Model, StructureData):
         from numpy import concatenate, array, zeros
         polymers = self.polymers(False, False)
         for rlist in polymers:
-            rp = p.new_drawing(str(self) + " ribbons")
+            rp = p.new_drawing(self.name + " ribbons")
             t2r = []
             # Always call get_polymer_spline to make sure hide bits are
             # properly set when ribbons are completely undisplayed
