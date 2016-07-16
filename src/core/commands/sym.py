@@ -96,28 +96,38 @@ def register_command(session):
     register('sym', _sym_desc, sym)
 
 def show_symmetry(molecules, transforms, copies, surface_only, resolution, session):
-    n = len(transforms)
-    mnew = []
-    for m in molecules:
-        # Transforms are in scene coordinates, so convert to molecule coordinates
-        spos = m.scene_position
-        symops = transforms if spos.is_identity() else transforms.transform_coordinates(spos)
-        if copies:
-            mcopies = [m.copy('%s %d' % (m.name,i+2)) for i in range(n-1)]
-            mnew.extend(mcopies)
-            m._sym_copies = mcopies
-            for mc, tf in zip([m] + mcopies, symops):
-                mc.position = mc.position * tf
-        elif surface_only:
-            from .surface import surface
-            surfs = surface(session, m.atoms, resolution = resolution)
-            for s in surfs:
-                s.positions =  s.positions * symops
-        else:
-            m.positions = m.positions * symops
-
-    if copies and mnew:
-        session.models.add(mnew)
+    if copies:
+        from ..models import Model
+        g = Model('%d copies' % len(transforms), session)
+        for i, tf in enumerate(transforms):
+            if len(molecules) > 1:
+                # Add grouping model if more the one model is being copied
+                ci = Model('copy %d' % (i+1), session)
+                ci.position = tf
+                g.add([ci])
+                copies = [m.copy() for m in molecules]
+                for c,m in zip(copies, molecules):
+                    c.position = m.scene_position
+                ci.add(copies)
+            else:
+                m0 = molecules[0]
+                c = m0.copy()
+                c.position = tf * m0.scene_position
+                g.add([c])
+        session.models.add([g])
+    else:
+        # Instancing    
+        for m in molecules:
+            # Transforms are in scene coordinates, so convert to molecule coordinates
+            spos = m.scene_position
+            symops = transforms if spos.is_identity() else transforms.transform_coordinates(spos)
+            if surface_only:
+                from .surface import surface
+                surfs = surface(session, m.atoms, resolution = resolution)
+                for s in surfs:
+                    s.positions =  s.positions * symops
+            else:
+                m.positions = m.positions * symops
 
 def pdb_assemblies(m):
     if not hasattr(m, 'filename') or not m.filename.endswith('.cif'):
