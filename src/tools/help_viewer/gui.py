@@ -169,7 +169,7 @@ class HelpUI(ToolInstance):
             self.help_window.titleChanged.connect(
                 lambda title: setattr(self.tool_window, 'title', title))
             self.search.returnPressed.connect(lambda s=self.search, hw=self.help_window:
-                hw.findText(s.text(), hw.page().FindWrapsAroundDocument))
+                hw.findText(s.text()))
 
         self.tool_window.manage(placement=None)
 
