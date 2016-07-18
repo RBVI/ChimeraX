@@ -672,6 +672,8 @@ def _register_core_file_formats():
     readpbonds.register_pbonds_format()
     from .surface import collada
     collada.register_collada_format()
+    from . import image
+    image.register_image_save()
 
 
 def _register_core_database_fetch(session):

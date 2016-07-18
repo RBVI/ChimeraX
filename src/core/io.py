@@ -358,7 +358,7 @@ def categorized_formats(open=True, export=False):
     return result
 
 
-def deduce_format(filename, has_format=None):
+def deduce_format(filename, has_format=None, savable=False):
     """Figure out named format associated with filename
 
     Return tuple of deduced format name, the unmangled filename,
@@ -370,7 +370,7 @@ def deduce_format(filename, has_format=None):
         # Allow has_format to be a file type prefix.
         if has_format not in _file_formats:
             for t, info in _file_formats.items():
-                if has_format in info.short_names:
+                if has_format in info.short_names and (not savable or info.export_func):
                     has_format = t
                     break
         format_name = has_format
@@ -384,12 +384,12 @@ def deduce_format(filename, has_format=None):
             raise UserError("Missing filename suffix")
         ext = ext.casefold()
         for t, info in _file_formats.items():
-            if ext in info.extensions:
+            if ext in info.extensions and (not savable or info.export_func):
                 format_name = t
                 break
         if format_name is None:
             from .errors import UserError
-            raise UserError("Unrecognized filename suffix")
+            raise UserError("Unrecognized file suffix '%s'" % ext)
     return format_name, filename, compression
 
 
