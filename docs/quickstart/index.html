@@ -160,7 +160,7 @@ Your browser does not support the video tag.
 information in the <b>Log</b> from the previous command.</i>
 <td width=256 valign=top><i>Bring all models into view.</i>
 <td width=256 valign=top><i>Set background color to white,
-show thin black outlines.</i>
+show thin black outlines. Save PNG image file to Desktop.</i>
 <td width=256 valign=top><i>Movie saved on Desktop as movie.mp4.</i>
 </table>
 
@@ -170,14 +170,14 @@ show thin black outlines.</i>
 <tr>
 <td width=256 align=center><a href="cxcmd:buriedarea /a with /b; sasa #1 & ~solvent">buriedarea /a with /b<br>sasa #1 & ~solvent</a>
 <td width=256 align=center><a href="cxcmd:contacts #1">contacts #1</a>
-<td width=256 align=center><a href="cxcmd:close">close</a>
+<td width=256 align=center><a href="cxcmd:close; set bg black; set silhouettes false">close<br>set bg black<br>set silhouettes false</a>
 <tr>
 <td>
 <pre>
 Buried area between /a and /b = 1900.4
 area /a = 15385, area /b = 14989, area both = 26573
 
-Solvent accessible area for #1 & ~:HOH = 34093
+Solvent accessible area for #1 & ~solvent = 34093
 </pre>
 <td><img src="images/contacts.png">
 <pre>
@@ -189,7 +189,8 @@ Solvent accessible area for #1 & ~:HOH = 34093
 <td width=256 valign=top><i>Compute solvent accessible buried surface area between chains A and B.
 Also compute total solvent accessible area excluding waters.</i>
 <td width=256 valign=top><i>Display contact graph between all chains.</i>
-<td width=256 valign=top align="center"><i>Close all 3D data.</i>
+<td width=256 valign=top align="center"><i>Close all 3D data. 
+Go back to black background, no outlines.</i>
 </table>
 
 <h2>
