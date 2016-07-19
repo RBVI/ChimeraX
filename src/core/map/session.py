@@ -285,7 +285,9 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
 #      for data in grids:
 #        gdcache[(path, gid)] = data # Cache using old path.
 
+    from .volume import set_data_cache
     for data in grids:
+      set_data_cache(data, session)
       gdcache[(data.path, data.grid_id)] = data
   else:
     dbid, dbn = dbfetch
