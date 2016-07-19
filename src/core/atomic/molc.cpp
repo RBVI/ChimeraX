@@ -199,6 +199,19 @@ extern "C" EXPORT void set_atom_bfactor(void *atoms, size_t n, float32_t *bfacto
     error_wrap_array_set(a, n, &Atom::set_bfactor, bfactors);
 }
 
+extern "C" EXPORT void atom_occupancy(void *atoms, size_t n, float32_t *occupancies)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get(a, n, &Atom::occupancy, occupancies);
+}
+
+extern "C" EXPORT void set_atom_occupancy(void *atoms, size_t n, float32_t *occupancies)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_set(a, n, &Atom::set_occupancy, occupancies);
+}
+
+
 extern "C" EXPORT void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -2439,11 +2452,11 @@ extern "C" EXPORT void *structure_new_bond(void *mol, void *atom1, void *atom2)
     }
 }
 
-extern "C" EXPORT void *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos)
+extern "C" EXPORT void *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos, char insert)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
-        Residue *r = m->new_residue(residue_name, chain_id, pos, ' ');
+        Residue *r = m->new_residue(residue_name, chain_id, pos, insert);
         return r;
     } catch (...) {
         molc_error();

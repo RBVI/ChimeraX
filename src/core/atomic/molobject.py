@@ -100,6 +100,7 @@ class Atom:
         doc=":class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
     num_bonds = c_property("atom_num_bonds", size_t, read_only=True,
         doc="Number of bonds connected to this atom. Read only.")
+    occupancy = c_property('atom_occupancy', float32, doc = "Occupancy, floating point value.")
     radius = c_property('atom_radius', float32, doc="Radius of atom.")
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
         doc = ":class:`Residue` the atom belongs to.")
@@ -721,12 +722,12 @@ class StructureData:
         bp = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
         return object_map(bp, Bond)
 
-    def new_residue(self, residue_name, chain_id, pos):
+    def new_residue(self, residue_name, chain_id, pos, insert=' '):
         '''Create a new :class:`.Residue`.'''
         f = c_function('structure_new_residue',
-                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int),
+                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
                        ret = ctypes.c_void_p)
-        rp = f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos)
+        rp = f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
         return object_map(rp, Residue)
 
     def polymers(self, consider_missing_structure = True, consider_chains_ids = True):
