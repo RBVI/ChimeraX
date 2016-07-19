@@ -69,7 +69,9 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         return models
 
     if format is not None:
-        format = format_from_short_name(format)
+        fmt = format_from_short_name(format)
+        if fmt:
+            format = fmt.name
 
     from os.path import exists
     if exists(filename):
@@ -95,7 +97,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
 
 def format_from_short_name(name):
     from .. import io
-    formats = [f for f in io.formats() if name in io.short_names(f)]
+    formats = [f for f in io.formats() if name in f.short_names]
     if formats:
         return formats[0]
     return None
@@ -110,14 +112,14 @@ def open_formats(session):
     from .. import io
     from . import commas
     formats = list(io.formats())
-    formats.sort()
+    formats.sort(key = lambda f: f.name)
     for f in formats:
         if session.ui.is_gui:
-            lines.append('<tr><td>%s<td>%s<td>%s' % (f,
-                commas(io.short_names(f)), ', '.join(io.extensions(f))))
+            lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
+                commas(f.short_names), ', '.join(f.extensions)))
         else:
-            session.logger.info('    %s: %s: %s' % (f,
-                commas(io.short_names(f)), ', '.join(io.extensions(f))))
+            session.logger.info('    %s: %s: %s' % (f.name,
+                commas(f.short_names), ', '.join(f.extensions)))
     if session.ui.is_gui:
         lines.append('</table>')
         lines.append('<p></p>')
@@ -154,7 +156,7 @@ def register_command(session):
 
     def formats():
         from .. import io
-        names = sum((tuple(io.short_names(f)) for f in io.formats()), ())
+        names = sum((tuple(f.short_names) for f in io.formats()), ())
         return names
 
     def db_formats():

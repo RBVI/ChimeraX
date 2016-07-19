@@ -36,22 +36,16 @@ if window_sys == "wx":
     def export_file_filter(category=None, format_name=None, all=False):
         """Return file name filter suitable for Export File dialog for WX"""
 
-        if format_name:
-            # since it seems we will be doing the exporting, don't filter
-            # formats with no registered export function
-            export_kw_val = False
-        else:
-            export_kw_val = True
         result = []
         from .. import io
-        for fmt_name in io.format_names(open=False, export=export_kw_val):
-            if format_name and fmt_name != format_name:
+        for fmt in io.formats(open = (format_name is not None)):
+            if format_name and fmt.name != format_name:
                 continue
-            if category and io.category(fmt_name) != category:
+            if category and fmt.category != category:
                 continue
-            exts = ', '.join(io.extensions(fmt_name))
-            fmts = ';'.join('*%s' % ext for ext in io.extensions(fmt_name))
-            result.append("%s files (%s)|%s" % (fmt_name, exts, fmts))
+            exts = ', '.join(fmt.extensions)
+            fmts = ';'.join('*%s' % ext for ext in fmt.extensions)
+            result.append("%s files (%s)|%s" % (fmt.name, exts, fmts))
         if all:
             result.append("All files (*.*)|*.*")
         if not result:
@@ -68,9 +62,9 @@ if window_sys == "wx":
 
         combine = {}
         from .. import io
-        for fmt_name in io.format_names():
-            exts = combine.setdefault(io.category(fmt_name), [])
-            exts.extend(io.extensions(fmt_name))
+        for fmt in io.formats(export = False):
+            exts = combine.setdefault(fmt.category, [])
+            exts.extend(fmt.extensions)
         result = []
         for k in combine:
             exts = ', '.join(combine[k])
@@ -122,21 +116,15 @@ else:
     def export_file_filter(category=None, format_name=None, all=False):
         """Return file name filter suitable for Export File dialog for Qt"""
 
-        if format_name:
-            # since it seems we will be doing the exporting, don't filter
-            # formats with no registered export function
-            export_kw_val = False
-        else:
-            export_kw_val = True
         result = []
         from .. import io
-        for fmt_name in io.format_names(open=False, export=export_kw_val):
-            if format_name and fmt_name != format_name:
+        for fmt in io.formats(open = (format_name is not None)):
+            if format_name and fmt.name != format_name:
                 continue
-            if category and io.category(fmt_name) != category:
+            if category and fmt.category != category:
                 continue
-            exts = '*' + ' *'.join(io.extensions(fmt_name))
-            result.append("%s files (%s)" % (fmt_name, exts))
+            exts = '*' + ' *'.join(fmt.extensions)
+            result.append("%s files (%s)" % (fmt.name, exts))
         if all:
             result.append("All files (*)")
         if not result:
@@ -153,9 +141,9 @@ else:
 
         combine = {}
         from .. import io
-        for fmt_name in io.format_names():
-            exts = combine.setdefault(io.category(fmt_name), [])
-            exts.extend(io.extensions(fmt_name))
+        for fmt in io.formats(export=False):
+            exts = combine.setdefault(fmt.category, [])
+            exts.extend(fmt.extensions)
         result = []
         for k in combine:
             exts = '*' + ' *'.join(combine[k])

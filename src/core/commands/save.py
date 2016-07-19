@@ -39,28 +39,28 @@ def save(session, filename, width=None, height=None, supersample=3,
 
     if format is None:
         from .. import io
-        format_name, fname, compress = io.deduce_format(filename, savable = True)
+        fmt, fname, compress = io.deduce_format(filename, savable = True)
     else:
         format = format.casefold()
-        format_name = format_from_short_name(format)
+        fmt = format_from_short_name(format)
         if format_name is None:
-            fnames = sum([tuple(io.short_names(f)) for f in io.formats()], ())
+            fnames = sum([tuple(f.short_names) for f in io.formats()], ())
             from ..errors import UserError
             raise UserError("Unrecognized format '%s', must be one of %s" %
                             (format, ', '.join(fnames)))
-        if io.export_function(format_name) is None:
+        if fmt.export_func is None:
             from ..errors import UserError
             raise UserError("Format '%s' cannot be saved." % format)
     
     from os.path import splitext
     suffix = splitext(filename)[1][1:].casefold()
-    if not suffix and format_name:
-        suffix = io.extensions(format_name)[0]
+    if not suffix and fmt:
+        suffix = fmt.extensions[0]
         filename += suffix
 
-    save_func = io.export_function(format_name)
+    save_func = fmt.export_func
     if save_func is None:
-        suffixes = ', '.join(sum([io.extensions(f) for f in io.formats() if io.export_function(f)], []))
+        suffixes = ', '.join(sum([f.extensions for f in io.formats() if f.export_func], []))
         from ..errors import UserError
         if not suffix:
             msg = 'Missing file suffix, require one of %s' % suffixes
@@ -88,7 +88,7 @@ def register_command(session):
 
     def save_formats():
         from .. import io
-        names = sum((tuple(io.short_names(f)) for f in io.formats() if io.export_function()), ())
+        names = sum((tuple(f.short_names) for f in io.formats() if f.export_func), ())
         return names
 
     quality_arg = Bounded(IntArg, min=0, max=100)

@@ -202,10 +202,12 @@ class Log(ToolInstance, HtmlLog):
 
                 def cm_save(self):
                     from chimerax.core.ui.open_save import export_file_filter, SaveDialog
-                    from chimerax.core.io import extensions
+                    from chimerax.core.io import format_from_name
+                    fmt = format_from_name("HTML")
+                    ext = fmt.extensions[0]
                     save_dialog = SaveDialog(self, "Save Log",
-                        name_filter=export_file_filter(format_name="HTML"),
-                        add_extension=extensions("HTML")[0])
+                                             name_filter=export_file_filter(format_name="HTML"),
+                                             add_extension=ext)
                     if not save_dialog.exec():
                         return
                     filename = save_dialog.selectedFiles()[0]
@@ -402,7 +404,7 @@ class Log(ToolInstance, HtmlLog):
                     page.triggerAction(page.SelectAll)
             elif cmd == 'save':
                 from chimerax.core.ui.open_save import export_file_filter, SaveDialog
-                from chimerax.core.io import extensions
+                from chimerax.core.io import format_from_name
                 if self.window_sys == "wx":
                     save_dialog = SaveDialog(
                         self.log_window, "Save Log", defaultFile="log",
@@ -413,9 +415,11 @@ class Log(ToolInstance, HtmlLog):
                         return
                     filename = save_dialog.GetPath()
                 else:
+                    fmt = format_from_name("HTML")
+                    ext = fmt.extensions[0]
                     save_dialog = SaveDialog(self.log_window, "Save Log",
-                        name_filter=export_file_filter(format_name="HTML"),
-                        add_extension=extensions("HTML")[0])
+                                             name_filter=export_file_filter(format_name="HTML"),
+                                             add_extension=ext)
                     if not save_dialog.exec():
                         return
                     filename = save_dialog.selectedFiles()[0]

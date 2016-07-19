@@ -60,7 +60,8 @@ def _session_save(session, filename):
     import os.path
     ext = os.path.splitext(filename)[1]
     from .. import io
-    exts = io.extensions("ChimeraX session")
+    fmt = io.format_from_name("ChimeraX session")
+    exts = fmt.extensions
     if exts and ext not in exts:
         filename += exts[0]
     # TODO: generate text command instead of calling function directly

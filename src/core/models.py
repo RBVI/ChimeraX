@@ -292,7 +292,8 @@ class Models(State):
         else:
             fns = filenames
         for fn in fns:
-            if io.category(io.deduce_format(fn, has_format=format)[0]) == toolshed.SCRIPT:
+            fmt = io.deduce_format(fn, has_format=format)[0]
+            if fmt and fmt.category == toolshed.SCRIPT:
                 collation_okay = False
                 break
         if collation_okay:

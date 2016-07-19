@@ -74,16 +74,16 @@ def utid(f):
 
 
 def format_name(f):
-    category = io.category(f)
+    category = f.category
     if category == 'Miscellaneous':
-        return f
+        return f.name
     else:
-        return '%s %s' % (f, category)
+        return '%s %s' % (f.name, category)
 
 
 def dump_format(f):
     """output Apple Universal Type information for ChimeraX file format"""
-    id = utid(f)
+    id = utid(f.name)
     if id is None:
         print("skipping", f, file=sys.stderr)
         return
@@ -92,8 +92,8 @@ def dump_format(f):
         "UTTypeDescription": format_name(f),
         "UTConformsTo": [more_info[f].get("ConformsTo", "public.data")]
     }
-    extensions = io.extensions(f)
-    mime_types = io.mime_types(f)
+    extensions = f.extensions
+    mime_types = f.mime_types
     if extensions or mime_types:
         d2 = d["UTTypeTagSpecification"] = {}
         if extensions:
@@ -106,7 +106,7 @@ sess = session.Session("unknown", minimal=True)
 core_settings.init(sess)
 session._register_core_file_formats()
 
-chimera_types = [f for f in io.formats() if f.startswith('Chimera')]
+chimera_types = [f.name for f in io.formats() if f.name.startswith('Chimera')]
 
 # create Info.plist
 
@@ -163,15 +163,15 @@ useLSItemContent_types = False
 
 pl["CFBundleDocumentTypes"] = []
 formats = io.formats()
-formats.sort()  # get consistent order
+formats.sort(key = lambda f: f.name)  # get consistent order
 for f in formats:
     if useLSItemContent_types:
-        id = utid(f)
+        id = utid(f.name)
         if not id:
             continue
     else:
-        extensions = io.extensions(f)
-        mime_types = io.mime_types(f)
+        extensions = f.extensions
+        mime_types = f.mime_types
         if not extensions and not mime_types:
             continue
     d = {
@@ -203,7 +203,7 @@ for f in formats:
 
         type_info = []
         for f in io.formats():
-            if f in chimera_types:
+            if f.name in chimera_types:
                 continue
             d = dump_format(f)
             if d:
