@@ -1879,6 +1879,7 @@ class Volume(Model):
     Model.set_state_from_snapshot(v, session, data['model state'])
     from .session import set_map_state
     set_map_state(data['volume state'], v)
+    show_volume_dialog(session)
     return v
 
   def reset_state(self, session):
@@ -2783,13 +2784,16 @@ def volume_from_grid_data(grid_data, session, representation = None,
     session.models.add([v])
 
   if show_dialog:
-    try:
-      from chimerax.volume_viewer.gui import show_volume_dialog
-      show_volume_dialog(session)
-    except ImportError:
-      pass	# Volume viewer tool not available.
+    show_volume_dialog(session)
 
   return v
+
+def show_volume_dialog(session):
+  try:
+    from chimerax.volume_viewer.gui import show_volume_dialog
+    show_volume_dialog(session)
+  except ImportError:
+    pass	# Volume viewer tool not available.
 
 # -----------------------------------------------------------------------------
 #
