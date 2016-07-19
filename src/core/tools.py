@@ -248,7 +248,8 @@ class Tools(State):
         # Session save can put a None tool instance into file if tool instance
         # has no take_snapshot method and does not use SESSION_SKIP.
         # Filter these None tool instances out.
-        tools = {id:ti for id, ti in data['tools'].items() if ti is not None}
+        tools = {id:ti for id, ti in data['tools'].items()
+                 if ti is not None and not ti.SESSION_ENDURING}
         t._tool_instances.update(tools)
         import itertools
         t._id_counter = itertools.count(data['next id'])
