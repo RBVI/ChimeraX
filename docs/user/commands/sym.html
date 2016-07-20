@@ -81,25 +81,27 @@ The <i>sym-type</i> can be:
   - use &ldquo;biological assembly&rdquo; information from the atomic
   model containing the specified atoms
   <br>(currently this information is only read from PDB format, not mmCIF)
-  <li>symmetry of model <b>#<i>N</i></b>
+  <li><b>symmetry #<i>N</i></b>
   - use the biological assembly information from another atomic model or the
-  symmetry assignment of a volume model
+  symmetry assignment of a volume model, where <i>N</i> is the model number
 <!--
   <a href="volume.html#symmetry">symmetry assignment</a> of a volume model
 -->
     <ul type="none">
-    <li>Example: <b>#4</b>
+    <li>Example: <b>symmetry #4</b>
     </ul>
 
-   <li>cage model (from <b>Cage Builder</b>) polygon symmetry
-  <b>#<i>N</i>,p<i>M</i></b> or <b>#<i>N</i>,pn<i>M</i></b>
-  - place copies at equivalent positions relative to each M-sided polygon
-  in the cage model with ID number <b>N</b>. The <b>p<i>M</i></b> form places
-  one copy per M-sided polygon, whereas <b>pn<i>M</i></b> places M copies per
-  M-sided polygon using C<font size=-1><i>M</i></font> symmetry about the center
+   <li>
+  <b>symmetry #<i>N</i>,p<i>M</i></b> or <b>symmetry #<i>N</i>,pn<i>M</i></b>
+  - use cage model (from <b>Cage Builder</b>) polygon symmetry;
+  place copies at equivalent positions relative to each M-sided polygon
+  in the cage with model number <i>N</i>.
+  The <b>p<i>M</i></b> form places one copy per M-sided polygon, 
+  whereas <b>pn<i>M</i></b> places M copies per M-sided polygon using 
+  C<font size=-1><i>M</i></font> symmetry about the center
   of the M-sided polygon nearest the original copy.
     <ul type="none">
-    <li>Examples: <b>#2,p6</b> or <b>#2,pn5</b>
+    <li>Examples: <b>symmetry #2,p6</b> or <b>symmetry #2,pn5</b>
     </ul>
 
   <li>cyclic symmetry <b>C<i>n</i></b>
