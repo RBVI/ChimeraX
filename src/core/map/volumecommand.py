@@ -8,8 +8,6 @@ def register_volume_command():
     from ..commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, SymmetryArg, RepeatOf
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
 
-    from .data.fileformats import file_writers
-    stypes = [fw[1] for fw in file_writers]
     from .volume import Rendering_Options
     ro = Rendering_Options()
 

@@ -2938,7 +2938,7 @@ def save_map(session, filename, format = None, models = None, region = None, ste
         from ..errors import UserError
         if format is None:
             msg = ('Unknown file suffix for "%s", known suffixes %s'
-                   % (filename, ', '.join(fw[2] for fw in file_writers)))
+                   % (filename, ', '.join(sum([fw[2] for fw in file_writers], []))))
         else:
             msg = ('Unknown file format "%s", known formats %s'
                    % (format, ', '.join(fw[1] for fw in file_writers)))
