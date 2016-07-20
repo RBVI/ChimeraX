@@ -66,8 +66,8 @@ def _session_save(session, filename):
         filename += exts[0]
     # TODO: generate text command instead of calling function directly
     # so that command logging happens automatically
-    from ..commands import export
-    export.export(session, filename)
+    from ..commands import save
+    save.save(session, filename)
     session.logger.info("File \"%s\" saved." % filename)
 
 

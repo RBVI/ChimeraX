@@ -20,7 +20,6 @@ and their code location is described with the function descriptions.
 | `delete`_ - Delete models
 | `echo`_ - Write message to log
 | `exit`_ - Quit
-| `export`_ - Export files
 | `fitmap`_ - fit atomic structures in density maps
 | `help`_ - Show documentation
 | `hide`_ - Hide atoms, ribbons, models
@@ -132,10 +131,6 @@ echo
 exit
 ====
 .. autofunction:: chimerax.core.commands.exit.exit
-
-export
-======
-.. autofunction:: chimerax.core.commands.export.export
 
 fitmap
 ======
