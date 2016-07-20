@@ -243,7 +243,7 @@ def save_grid_data(grids, path, session, format = None, options = {}):
   if not ('append' in options):
     if matching_grid_path(glist, path):
       from tempfile import mkstemp
-      f, tpath = mkstemp(suffix)
+      f, tpath = mkstemp(suffix[0])
       from os import close, remove
       close(f)
       remove(tpath)  # Want new file to have normal, not secure, permissions.
