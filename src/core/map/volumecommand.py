@@ -43,16 +43,6 @@ def register_volume_command():
                ('center_index', Float1or3Arg),
                ('axis', AxisArg),
                ('coordinate_system', CoordSysArg),
-# File saving options.
-               ('save', StringArg),
-               ('save_format', EnumOf(stypes)),
-               ('save_region', MapRegionArg),
-               ('save_step', Int1or3Arg),
-               ('mask_zone', BoolArg),
-               ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
-               ('append', BoolArg),
-               ('compress', NoArg),
-               ('base_index', IntArg),
 # Global options.
                ('data_cache_size', FloatArg),
                ('show_on_open', BoolArg),
@@ -122,16 +112,6 @@ def volume(session,
            center_index = None,
            axis = None,
            coordinate_system = None,
-# File saving options.
-           save = None,
-           save_format = None,
-           save_region = None,
-           save_step = None,
-           mask_zone = True,
-           chunk_shapes = None,
-           append = None,
-           compress = None,
-           base_index = 1,
 # Global options.
            data_cache_size = None,
            show_on_open = None,
@@ -206,21 +186,6 @@ def volume(session,
     axis : sequence of 3 floats
     coordinate_system : Place
       Coordinate system for axis and center symmetry options
-
-    ------------------------------------------------------------------------------------------------
-    File saving options
-    ------------------------------------------------------------------------------------------------
-
-    save : string
-      File name
-    save_format : string
-    save_region : sequence of 6 integers
-    save_step : sequence of 3 integers
-    mask_zone : bool
-    chunk_shapes : list of "zyx", "zxy", "yxz", "yzx", "xzy", "xyz"
-    append : bool
-    compress : bool
-    base_index : integer
 
     ------------------------------------------------------------------------------------------------
     Global options
@@ -338,11 +303,6 @@ def volume(session,
     for v in vlist:
         apply_volume_options(v, dsettings, rsettings, session)
 
-    # Save files.
-    fopt = ('save', 'save_format', 'save_region', 'save_step', 'mask_zone',
-            'chunk_shapes', 'append', 'compress', 'base_index')
-    fsettings = dict((n,loc[n]) for n in fopt if not loc[n] is None)
-    save_volumes(vlist, fsettings, session)
     
 # -----------------------------------------------------------------------------
 #
@@ -456,59 +416,6 @@ def apply_volume_options(v, doptions, roptions, session):
 #  Allow quoted color names.
 #  Could allow region name "full" or "back".
 #  Could allow voxel_size or origin to be "original".
-
-# -----------------------------------------------------------------------------
-#
-def save_volumes(vlist, doptions, session):
-
-    if not 'save' in doptions:
-        return
-    
-    path = doptions['save']
-    format = doptions.get('save_format', None)
-    from .data.fileformats import file_writer, file_writers
-    if file_writer(path, format) is None:
-        from ..errors import UserError
-        if format is None:
-            msg = ('Unknown file suffix for "%s", known suffixes %s'
-                   % (path, ', '.join(fw[2] for fw in file_writers)))
-        else:
-            msg = ('Unknown file format "%s", known formats %s'
-                   % (format, ', '.join(fw[1] for fw in file_writers)))
-        raise UserError(msg)
-        
-    options = {}
-    if 'chunk_shapes' in doptions:
-        options['chunk_shapes'] = doptions['chunk_shapes']
-    if 'append' in doptions and doptions['append']:
-        options['append'] = True
-    if 'compress' in doptions and doptions['compress']:
-        options['compress'] = True
-    if path in ('browse', 'browser'):
-        from .data import select_save_path
-        path, format = select_save_path()
-    if path:
-        subregion = doptions.get('save_region', None)
-        step = doptions.get('save_step', (1,1,1))
-        mask_zone = doptions.get('mask_zone', True)
-        base_index = doptions.get('base_index', 1)
-        grids = [v.grid_data(subregion, step, mask_zone) for v in vlist]
-        from .data import save_grid_data
-        if is_multifile_save(path):
-            for i,g in enumerate(grids):
-                save_grid_data(g, path % (i + base_index), session, format, options)
-        else:
-            save_grid_data(grids, path, session, format, options)
-   
-# -----------------------------------------------------------------------------
-# Check if file name contains %d type format specification.
-#
-def is_multifile_save(path):
-    try:
-        path % 0
-    except:
-        return False
-    return True
    
 # -----------------------------------------------------------------------------
 #
