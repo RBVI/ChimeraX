@@ -2914,9 +2914,73 @@ def open_map(session, stream, *args, **kw):
 
 # -----------------------------------------------------------------------------
 #
-def register_map_file_readers():
+def save_map(session, filename, format = None, models = None, region = None, step = (1,1,1),
+             mask_zone = True, chunk_shapes = None, append = None, compress = None,
+             base_index = 1, **kw):
+    '''
+    Save a density map file having any of the known density map formats.
+    '''
+    if models is None:
+        vlist = session.models.list(type = Volume)
+        if len(vlist) != 1:
+            from ..errors import UserError
+            raise UserError('No model specified for saving map')
+    else:
+        vlist = [m for m in models if isinstance(m, Volume)]
+        if len(vlist) == 0:
+          mstring = ' (#%s)' % ','.join(model.id_string() for m in models) if models else ''
+          from ..errors import UserError
+          raise UserError('Specified models are not volumes' + mstring)
+
+      
+    from .data.fileformats import file_writer, file_writers
+    if file_writer(filename, format) is None:
+        from ..errors import UserError
+        if format is None:
+            msg = ('Unknown file suffix for "%s", known suffixes %s'
+                   % (filename, ', '.join(fw[2] for fw in file_writers)))
+        else:
+            msg = ('Unknown file format "%s", known formats %s'
+                   % (format, ', '.join(fw[1] for fw in file_writers)))
+        raise UserError(msg)
+        
+    options = {}
+    if chunk_shapes is not None:
+        options['chunk_shapes'] = chunk_shapes
+    if append:
+        options['append'] = True
+    if compress:
+        options['compress'] = True
+    if filename in ('browse', 'browser'):
+        from .data import select_save_path
+        filename, format = select_save_path()
+    if filename:
+        grids = [v.grid_data(region, step, mask_zone) for v in vlist]
+        from .data import save_grid_data
+        if is_multifile_save(filename):
+            for i,g in enumerate(grids):
+                save_grid_data(g, filename % (i + base_index), session, format, options)
+        else:
+            save_grid_data(grids, filename, session, format, options)
+   
+# -----------------------------------------------------------------------------
+# Check if file name contains %d type format specification.
+#
+def is_multifile_save(path):
+    try:
+        path % 0
+    except:
+        return False
+    return True
+
+# -----------------------------------------------------------------------------
+#
+def register_map_file_formats():
     from .. import io, toolshed
-    from .data.fileformats import file_types
+    from .data.fileformats import file_types, file_writers
+    fwriters = set(fw[0] for fw in file_writers)
     for d,t,short_names,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
-      io.register_format(d, toolshed.VOLUME, suf, short_names=short_names, open_func=open_map, batch=batch)
+      save_func = save_map if d in fwriters else None
+      io.register_format(d, toolshed.VOLUME, suf, short_names=short_names,
+                         open_func=open_map, batch=batch, export_func=save_func)

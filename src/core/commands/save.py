@@ -1,17 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def save(session, filename, width=None, height=None, supersample=3,
-         pixel_size=None, transparent_background=False, quality=95, format=None):
+def save(session, models, filename, format=None,
+         width=None, height=None, supersample=3,
+         pixel_size=None, transparent_background=False, quality=95,
+         region = None, step = (1,1,1), mask_zone = True, chunk_shapes = None,
+         append = None, compress = None, base_index = 1):
     '''Save data, sessions, images.
 
     Parameters
     ----------
+    models : list of Model or None
+        Models to save
     filename : string
         File to save.
         File suffix determines what type of file is saved unless the format option is given.
         For sessions the suffix is .cxs.
         Image files can be saved with .png, .jpg, .tif, .ppm, .gif suffixes.
+    format : string
+        Recognized formats are session, or for saving images png, jpeg, tiff, gif, ppm, bmp.
+        If not specified, then the filename suffix is used to identify the format.
     width : integer
         Width of image in pixels for saving image files.
         If width is not specified the current graphics window width is used.
@@ -31,9 +39,13 @@ def save(session, filename, width=None, height=None, supersample=3,
         with little improvement for larger values.
     transparent_background : bool
         Save image with transparent background.
-    format : string
-        Recognized formats are session, or for saving images png, jpeg, tiff, gif, ppm, bmp.
-        If not specified, then the filename suffix is used to identify the format.
+    region = None
+    step = (1,1,1)
+    mask_zone = True
+    chunk_shapes = None,
+    append = None
+    compress = None
+    base_index = 1
     '''
     from .. import io
 
@@ -69,6 +81,7 @@ def save(session, filename, width=None, height=None, supersample=3,
         raise UserError(msg)
 
     kw = {
+        'models': models,
         'format': format,
         'width': width,
         'height': height,
@@ -76,6 +89,13 @@ def save(session, filename, width=None, height=None, supersample=3,
         'pixel_size': pixel_size,
         'transparent_background': transparent_background,
         'quality': quality,
+        'region': region,
+        'step': step,
+        'mask_zone': mask_zone,
+        'chunk_shapes': chunk_shapes,
+        'append': append,
+        'compress': compress,
+        'base_index': base_index,
     }
     
     save_func(session, filename, **kw)
@@ -83,51 +103,62 @@ def save(session, filename, width=None, height=None, supersample=3,
 
 def register_command(session):
     from . import CmdDesc, register, EnumOf, SaveFileNameArg, DynamicEnum
-    from . import IntArg, BoolArg, PositiveIntArg, Bounded, FloatArg
-    from .. import session as ses
+    from . import IntArg, BoolArg, PositiveIntArg, Bounded, FloatArg, NoArg
+    from . import ModelsArg, EmptyArg, Or, ListOf
+    from ..map.mapargs import MapRegionArg, Int1or3Arg
 
+    models_arg = [('models', Or(ModelsArg, EmptyArg))]
+    file_arg = [('filename', SaveFileNameArg)]
+    
     def save_formats():
         from .. import io
         names = sum((tuple(f.short_names) for f in io.formats() if f.export_func), ())
         return names
+    format_args = [
+        ('format', DynamicEnum(save_formats))]
 
-    quality_arg = Bounded(IntArg, min=0, max=100)
+    image_args = [
+        ('width', PositiveIntArg),
+        ('height', PositiveIntArg),
+        ('supersample', PositiveIntArg),
+        ('pixel_size', FloatArg),
+        ('transparent_background', BoolArg),
+        ('quality', Bounded(IntArg, min=0, max=100))]
+
+    map_args = [
+        ('region', MapRegionArg),
+        ('step', Int1or3Arg),
+        ('mask_zone', BoolArg),
+        ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
+        ('append', BoolArg),
+        ('compress', NoArg),
+        ('base_index', IntArg)]
+
     desc = CmdDesc(
-        required=[('filename', SaveFileNameArg), ],
-        keyword=[
-            ('width', PositiveIntArg),
-            ('height', PositiveIntArg),
-            ('supersample', PositiveIntArg),
-            ('pixel_size', FloatArg),
-            ('transparent_background', BoolArg),
-            ('quality', quality_arg),
-            ('format', DynamicEnum(save_formats)),
-        ],
+        required=models_arg + file_arg,
+        keyword=format_args + image_args + map_args,
         synopsis='save session or image'
     )
     register('save', desc, save)
 
     desc = CmdDesc(
-        required=[('filename', SaveFileNameArg), ],
-        # synopsis='save session'
+        required=file_arg,
+        synopsis='save session'
     )
-    from .. import session as ses
-    register('save session', desc, ses.save)
+    def save_no_model(session, filename, **kw):
+        save(session, None, filename, **kw)
+    register('save session', desc, save_no_model)
 
-    from ..image import image_formats
-    img_fmts = EnumOf([f.name for f in image_formats])
     desc = CmdDesc(
-        required=[('filename', SaveFileNameArg), ],
-        keyword=[
-            ('width', PositiveIntArg),
-            ('height', PositiveIntArg),
-            ('supersample', PositiveIntArg),
-            ('pixel_size', FloatArg),
-            ('transparent_background', BoolArg),
-            ('quality', quality_arg),
-            ('format', img_fmts),
-        ],
-        # synopsis='save image'
+        required=file_arg,
+        keyword=format_args + image_args,
+        synopsis='save image'
     )
-    from ..image import save_image
-    register('save image', desc, save_image)
+    register('save image', desc, save_no_model)
+
+    desc = CmdDesc(
+        required=models_arg + file_arg,
+        keyword=format_args + map_args,
+        synopsis='save map'
+    )
+    register('save map', desc, save)

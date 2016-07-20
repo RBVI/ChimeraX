@@ -42,7 +42,7 @@ file_writers = (
 #  ('NetCDF generic array', 'netcdf', '.nc', netcdf.write_grid_as_netcdf, ()),
   ('Chimera map', 'cmap', '.cmap', cmap.write_grid_as_chimera_map,
    ('chunk_shapes', 'append', 'compress', 'multigrid')),
-  ('BRIX map', 'dsn6', '.brix', dsn6.write_brix, ()),
+  ('BRIX or DSN6 density map', 'dsn6', '.brix', dsn6.write_brix, ()),
   )
   
 # -----------------------------------------------------------------------------
@@ -232,7 +232,8 @@ def save_grid_data(grids, path, session, format = None, options = {}):
     glist = grids
 
   if len(glist) > 1 and not ('multigrid' in allowed_options):
-    raise ValueError('Cannot write multiple volumes using format %s' % format)
+    from ...errors import UserError
+    raise UserError('Cannot write multiple volumes using format %s' % format)
 
   # Use a temporary file if a source file is being overwritten.
   tpath = path

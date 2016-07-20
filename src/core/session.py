@@ -674,7 +674,7 @@ def _register_core_file_formats():
     from . import scripting
     scripting.register()
     from . import map
-    map.register_map_file_readers()
+    map.register_map_file_formats()
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
     from .surface import collada
