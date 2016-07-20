@@ -131,8 +131,9 @@ def group_symmetries(session, group, molecule):
             param.append(0.0)
         rise, angle, n, offset = param
         n = int(n)
-        tflist = [geometry.helical_symmetry_matrix(rise, angle, n = i+offset)
-                  for i in range(n)]
+        from ..geometry import Places
+        tflist = Places([geometry.helical_symmetry_matrix(rise, angle, n = i+offset)
+                         for i in range(n)])
     elif gfields[0].lower() == 'shift' or (g0 == 't' and nf >= 3):
         # Translation symmetry: t,<n>,<distance> or t,<n>,<dx>,<dy>,<dz>
         if nf != 3 and nf != 5:

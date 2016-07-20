@@ -16,22 +16,11 @@ All data I/O is in binary.
 
 __all__ = [
     'register_format',
-    'register_open',
-    'register_export',
     'register_compression',
-    'formats',
     'open_data',
     'open_multiple_data',
-    'short_names',
-    'extensions',
-    'open_function',
-    'export_function',
-    'mime_types',
-    'requires_filename',
-    'dangerous',
-    'category',
-    'format_names',
-    'categorized_formats',
+    'formats',
+    'format_from_name',
     'deduce_format',
     'compression_suffixes',
 ]
@@ -69,7 +58,7 @@ def compression_suffixes():
 SCRIPT = "Command script"
 
 
-class _FileFormatInfo:
+class FileFormat:
     """Keep tract of information about various data sources
 
     ..attribute:: category
@@ -122,8 +111,9 @@ class _FileFormatInfo:
         Additional information to show in export dialogs
     """
 
-    def __init__(self, category, extensions, short_names, mime, reference,
+    def __init__(self, format_name, category, extensions, short_names, mime, reference,
                  dangerous, icon, encoding):
+        self.name = format_name
         self.category = category
         self.extensions = extensions
         self.short_names = short_names
@@ -179,7 +169,7 @@ def register_format(format_name, category, extensions, short_names=None,
         mime = ()
     elif isinstance(mime, str):
         mime = [mime]
-    ff = _file_formats[format_name] = _FileFormatInfo(
+    ff = _file_formats[format_name] = FileFormat(format_name,
         category, exts, short_names, mime, reference, dangerous, icon, encoding)
     other_kws = set(['open_func', 'requires_filename',
                      'export_func', 'export_notes', 'batch'])
@@ -189,191 +179,43 @@ def register_format(format_name, category, extensions, short_names=None,
         else:
             raise TypeError('Unexpected keyword argument %r' % attr)
 
-
-def formats():
-    """Return all known format names"""
-    return list(_file_formats.keys())
+    return ff
 
 
-def short_names(format_name):
-    """Return short names for named format.
-
-    short_names(format_name) -> short versions of name
-    """
-    try:
-        return _file_formats[format_name].short_names
-    except KeyError:
-        return ()
-
-
-def register_open(format_name, open_function, requires_filename=False):
-    """register a function that reads data from a stream
-
-    :param open_function: function taking an I/O stream or filename and
-        returns a 2-tuple with a list of models and a status message
-    :param requires_filename: True if first argument must be a filename
-    """
-    try:
-        fi = _file_formats[format_name]
-    except KeyError:
-        raise ValueError("Unknown data type")
-    fi.open_func = open_function
-    fi.requires_filename = requires_filename
-
-
-def register_export(format_name, export_function, export_notes=''):
-    try:
-        fi = _file_formats[format_name]
-    except KeyError:
-        raise ValueError("Unknown data type")
-    fi.export_func = export_function
-    fi.export_notes = export_notes
-
-
-def extensions(format_name):
-    """Return filename extensions for named format.
-
-    extensions(format_name) -> [filename-extension(s)]
-    """
-    try:
-        exts = _file_formats[format_name].extensions
-    except KeyError:
-        return ()
-    return exts
-
-
-def open_function(format_name):
-    """Return open callback for named format.
-
-    open_function(format_name) -> function
-    """
-    try:
-        return _file_formats[format_name].open_func
-    except KeyError:
-        return None
-
-
-def export_function(format_name):
-    """Return export callback for named format.
-
-    export_function(format_name) -> function
-    """
-    try:
-        return _file_formats[format_name].export_func
-    except KeyError:
-        return None
-
-
-def mime_types(format_name):
-    """Return mime types for named format."""
-    try:
-        return _file_formats[format_name].mime_types
-    except KeyError:
-        return None
-
-
-def requires_filename(format_name):
-    """Return whether named format can needs a seekable file"""
-    try:
-        return _file_formats[format_name].requires_filename
-    except KeyError:
-        return False
-
-
-def batched_format(format_name):
-    """Return whether format reader opens wants all paths as a group,
-    such as reading image stacks as volumes."""
-    try:
-        return _file_formats[format_name].batch
-    except KeyError:
-        return False
-
-
-def dangerous(format_name):
-    """Return whether named format can write to files"""
-    try:
-        return _file_formats[format_name].dangerous
-    except KeyError:
-        return False
-
-
-def icon(format_name):
-    """Return pathname of icon for named format or None"""
-    try:
-        return _file_formats[format_name].icon
-    except KeyError:
-        return None
-
-
-def encoding(format_name):
-    """Return named format's encoding
-
-    Returns None if binary.
-    """
-    try:
-        return _file_formats[format_name].encoding
-    except KeyError:
-        return None
-
-
-def category(format_name):
-    """Return category of named format"""
-    try:
-        return _file_formats[format_name].category
-    except KeyError:
-        return "Unknown"
-
-
-def format_names(open=True, export=False, source_is_file=False):
-    """Returns list of known format names.
-
-    formats() -> [format-name(s)]
-
-    By default only returns the names of openable formats.
-    """
-    names = []
-    for t, info in _file_formats.items():
-        if open and not info.open_func:
+def formats(open=True, export=True, source_is_file=False):
+    """Returns list of known formats."""
+    fmts = []
+    for f in _file_formats.values():
+        if source_is_file and not f.extensions:
             continue
-        if export and not info.export_func:
-            continue
-        if not source_is_file or info.extensions:
-            names.append(t)
-    return names
+        if (open and f.open_func) or (export and f.export_func):
+            fmts.append(f)
+    return fmts
 
 
-def categorized_formats(open=True, export=False):
-    """Return known formats by category
-
-    categorized_formats() -> { category: formats() }
-    """
-    result = {}
-    for format_name, info in _file_formats.items():
-        if open and not info.open_func:
-            continue
-        if export and not info.export_func:
-            continue
-        names = result.setdefault(info.category, [])
-        names.append(format_name)
-    return result
+def format_from_name(name):
+    for f in _file_formats.values():
+        if f.name == name:
+            return f
+    return None
 
 
-def deduce_format(filename, has_format=None):
+def deduce_format(filename, has_format=None, savable=False):
     """Figure out named format associated with filename
 
-    Return tuple of deduced format name, the unmangled filename,
+    Return tuple of deduced format, the unmangled filename,
     and the compression format (if present).
     """
     format_name = None
     compression = None
     if has_format:
         # Allow has_format to be a file type prefix.
-        if has_format not in _file_formats:
-            for t, info in _file_formats.items():
-                if has_format in info.short_names:
-                    has_format = t
+        fmt = _file_formats.get(has_format, None)
+        if fmt is None:
+            for f in _file_formats.values():
+                if has_format in f.short_names and (not savable or f.export_func):
+                    fmt = f
                     break
-        format_name = has_format
         stripped, compression = determine_compression(filename)
     elif format_name is None:
         stripped, compression = determine_compression(filename)
@@ -383,14 +225,14 @@ def deduce_format(filename, has_format=None):
             from .errors import UserError
             raise UserError("Missing filename suffix")
         ext = ext.casefold()
-        for t, info in _file_formats.items():
-            if ext in info.extensions:
-                format_name = t
+        for f in _file_formats.values():
+            if ext in f.extensions and (not savable or f.export_func):
+                fmt = f
                 break
-        if format_name is None:
+        if fmt is None:
             from .errors import UserError
-            raise UserError("Unrecognized filename suffix")
-    return format_name, filename, compression
+            raise UserError("Unrecognized file suffix '%s'" % ext)
+    return fmt, filename, compression
 
 
 def print_file_suffixes():
@@ -436,20 +278,20 @@ def open_data(session, filespec, format=None, name=None, **kw):
     """
 
     from .errors import UserError
-    format_name, filename, compression = deduce_format(filespec, has_format=format)
-    open_func = open_function(format_name)
+    fmt, filename, compression = deduce_format(filespec, has_format=format)
+    open_func = fmt.open_func
     if open_func is None:
-        raise UserError("unable to open %s files" % format_name)
-    enc = encoding(format_name)
+        raise UserError("unable to open %s files" % fmt.name)
+    enc = fmt.encoding
     if enc is None:
         mode = 'rb'
     else:
         mode = 'rt'
     filename, dname, stream = _compressed_open(filename, compression, mode, encoding=enc)
-    if requires_filename(format_name) and not filename:
+    if fmt.requires_filename and not filename:
         # copy compressed file to real file
         import tempfile
-        exts = extensions(format_name)
+        exts = fmt.extensions
         suffix = exts[0] if exts else ''
         tf = tempfile.NamedTemporaryFile(prefix='chtmp', suffix=suffix)
         while 1:
@@ -463,7 +305,7 @@ def open_data(session, filespec, format=None, name=None, **kw):
         # a different file descriptor
 
     kw["filespec"] = filename
-    if category(format_name) == SCRIPT:
+    if fmt.category == SCRIPT:
         with session.in_script:
             models, status = open_func(session, stream, dname, **kw)
     else:
@@ -490,21 +332,21 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
     batch = {}
     unbatched = []
     for filespec in filespecs:
-        format_name, filename, compression = deduce_format(filespec, has_format=format)
-        if format_name is not None and batched_format(format_name):
-            if format_name in batch:
-                batch[format_name].append(filespec)
+        fmt, filename, compression = deduce_format(filespec, has_format=format)
+        if fmt is not None and fmt.batch:
+            if fmt in batch:
+                batch[fmt].append(filespec)
             else:
-                batch[format_name] = [filespec]
+                batch[fmt] = [filespec]
         else:
             unbatched.append(filespec)
 
     mlist = []
     status_lines = []
     import os.path
-    for format_name, paths in batch.items():
+    for fmt, paths in batch.items():
         name = os.path.basename(paths[0]) if name is None else name
-        open_func = open_function(format_name)
+        open_func = fmt.open_func
         models, status = open_func(session, paths, name)
         mlist.extend(models)
         status_lines.append(status)
@@ -518,9 +360,9 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
 
 def export(session, filename, **kw):
     from .safesave import SaveBinaryFile, SaveTextFile, SaveFile
-    format_name, filename, compression = deduce_format(filename)
-    func = export_function(format_name)
-    enc = encoding(format_name)
+    fmt, filename, compression = deduce_format(filename)
+    func = fmt.export_func
+    enc = fmt.encoding
     if not compression:
         if enc is None:
             with SaveBinaryFile(filename) as stream:

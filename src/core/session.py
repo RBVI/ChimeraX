@@ -508,19 +508,12 @@ def save(session, filename, **kw):
         filename = expanduser(filename)         # Tilde expansion
         if not filename.endswith(SESSION_SUFFIX):
             filename += SESSION_SUFFIX
-        from .safesave import SaveBinaryFile, SaveFile
-        my_open = SaveBinaryFile
-        try:
-            # default to saving compressed files
+        # Save compressed files
+        def my_open(filename):
             import gzip
-            filename += ".gz"
-
-            def my_open(filename):
-                return SaveFile(
-                    filename,
-                    open=lambda filename: gzip.GzipFile(filename, 'wb'))
-        except ImportError:
-            pass
+            from .safesave import SaveFile
+            f = SaveFile(filename, open=lambda filename: gzip.GzipFile(filename, 'wb'))
+            return f
         try:
             output = my_open(filename)
         except IOError as e:
@@ -594,16 +587,30 @@ def dump(session, session_file, output=None):
             pprint(data, stream=output)
 
 
-def open(session, stream, *args, **kw):
-    if hasattr(stream, 'read'):
-        input = stream
+def open(session, filename, *args, **kw):
+    if hasattr(filename, 'read'):
+        # Given a stream instead of a file name.
+        fname = filename.name
+        filename.close()
     else:
-        # it's really a filename
-        input = _builtin_open(stream, 'rb')
+        fname = filename
+
+    if is_gzip_file(fname):
+        import gzip
+        input = gzip.open(fname, 'rb')
+    else:
+        input = _builtin_open(fname, 'rb')
     # TODO: active trigger to allow user to stop overwritting
     # current session
     session.restore(input)
     return [], "opened ChimeraX session"
+
+
+def is_gzip_file(filename):
+    f = _builtin_open(filename, 'rb')
+    magic = f.read(2) + b'00'
+    f.close()
+    return (magic[0] == 0x1f and magic[1] == 0x8b)
 
 
 def _initialize():
@@ -667,11 +674,13 @@ def _register_core_file_formats():
     from . import scripting
     scripting.register()
     from . import map
-    map.register_map_file_readers()
+    map.register_map_file_formats()
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
     from .surface import collada
     collada.register_collada_format()
+    from . import image
+    image.register_image_save()
 
 
 def _register_core_database_fetch(session):

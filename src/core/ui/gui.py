@@ -789,7 +789,7 @@ else:
                     from ..commands import run
                     from PyQt5.QtCore import QUrl
                     cmd = qurl.toString(QUrl.RemoveScheme)
-                    run(self.session, cmd, log=False)
+                    run(self.session, cmd, log=True)
 
             self.cxUrlHandler = CxUrlHandler(session)
             from PyQt5.QtGui import QDesktopServices

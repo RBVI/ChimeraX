@@ -60,19 +60,20 @@ def _session_save(session, filename):
     import os.path
     ext = os.path.splitext(filename)[1]
     from .. import io
-    exts = io.extensions("ChimeraX session")
+    fmt = io.format_from_name("ChimeraX session")
+    exts = fmt.extensions
     if exts and ext not in exts:
         filename += exts[0]
     # TODO: generate text command instead of calling function directly
     # so that command logging happens automatically
-    from ..commands import export
-    export.export(session, filename)
+    from ..commands import save
+    save.save(session, filename)
     session.logger.info("File \"%s\" saved." % filename)
 
 
 class ImageSaverBase:
 
-    DEFAULT_FORMAT = "PNG"
+    DEFAULT_FORMAT = "png"
     DEFAULT_EXT = "png"
     SUPERSAMPLE_OPTIONS = (("None", None),
                            ("2x2", 2),
@@ -200,11 +201,11 @@ if window_sys == "wx":
     class ImageSaver(ImageSaverBase):
         def make_ui(self, parent):
             import wx
-            from ..commands import save
             w = wx.Window(parent, style=wx.BORDER_SIMPLE)
             s = wx.FlexGridSizer(rows=3, cols=2, hgap=2, vgap=2)
 
-            selector = wx.Choice(w, choices=list(save.pil_image_formats.values()),
+            from .. import image_formats
+            selector = wx.Choice(w, choices=list(f.name for f in image_formats),
                                  style=wx.CB_READONLY)
             selector.Bind(wx.EVT_CHOICE, self._select_format)
             selector.SetSelection(selector.Items.index(self.DEFAULT_FORMAT))
@@ -251,8 +252,8 @@ if window_sys == "wx":
             ss = self.SUPERSAMPLE_OPTIONS[self._supersample.GetSelection()][1]
             # TODO: generate text command instead of calling function directly
             # so that command logging happens automatically
-            from ..commands import save
-            save.save_image(session, filename, width=w, height=h, supersample=ss)
+            from ..image import save_image
+            save_image(session, filename, width=w, height=h, supersample=ss)
 
         def update(self, session, save_dialog):
             gw = session.ui.main_window.graphics_window
@@ -261,8 +262,8 @@ if window_sys == "wx":
             self._height.SetValue(str(h))
 
         def wildcard(self):
-            from ..commands import save
-            exts = list(save.pil_image_formats.keys())
+            from ..image import image_formats
+            exts = list(f.suffix for f in image_formats)
             exts.remove(self.DEFAULT_EXT)
             exts.insert(0, self.DEFAULT_EXT)
             fmts = ';'.join("*.%s" % e for e in exts)
@@ -281,10 +282,10 @@ if window_sys == "wx":
 
         def _get_current_extension(self):
             format_name = self._format_selector.GetString(self._format_selector.Selection)
-            from ..commands import save
-            for e, n in save.pil_image_formats.items():
-                if n == format_name:
-                    return e
+            from ..image import image_formats
+            for f in image_formats:
+                if f.name == format_name:
+                    return f.suffix
             else:
                 raise RuntimeError("unsupported graphics format: %s" % format_name)
 else:
@@ -368,9 +369,9 @@ else:
             layout = QGridLayout(container)
             layout.setContentsMargins(2, 0, 0, 0)
 
-            from ..commands import save
+            from ..image import image_formats
             selector = QComboBox(container)
-            selector.addItems(list(save.pil_image_formats.values()))
+            selector.addItems(list(f.name for f in image_formats))
             selector.currentIndexChanged.connect(self._select_format)
             selector.setCurrentIndex(selector.findText(self.DEFAULT_FORMAT))
             format_label = QLabel(container)
@@ -428,8 +429,8 @@ else:
             ss = self.SUPERSAMPLE_OPTIONS[self._supersample.currentIndex()][1]
             # TODO: generate text command instead of calling function directly
             # so that command logging happens automatically
-            from ..commands import save
-            save.save_image(session, filename, width=w, height=h, supersample=ss)
+            from ..image import save_image
+            save_image(session, filename, width=w, height=h, supersample=ss)
 
         def update(self, session, save_dialog):
             gw = session.ui.main_window.graphics_window
@@ -438,8 +439,8 @@ else:
             self._height.setText(str(h))
 
         def wildcard(self):
-            from ..commands import save
-            exts = list(save.pil_image_formats.keys())
+            from ..image import image_formats
+            exts = list(f.suffix for f in image_formats)
             exts.remove(self.DEFAULT_EXT)
             exts.insert(0, self.DEFAULT_EXT)
             fmts = ' '.join("*.%s" % e for e in exts)
@@ -448,9 +449,9 @@ else:
 
         def _get_current_extension(self):
             format_name = self._format_selector.currentText()
-            from ..commands import save
-            for e, n in save.pil_image_formats.items():
-                if n == format_name:
-                    return e
+            from ..image import image_formats
+            for f in image_formats:
+                if f.name == format_name:
+                    return f.suffix
             else:
                 raise RuntimeError("unsupported graphics format: %s" % format_name)

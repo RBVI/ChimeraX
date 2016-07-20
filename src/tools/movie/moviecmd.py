@@ -109,7 +109,7 @@ def movie_record(session, directory = None, pattern = None, format = None,
     if movie is None:
         from .movie import Movie
         movie = Movie(format, directory, pattern, size, supersample, limit, False, session)
-		session.movie = movie
+        session.movie = movie
     elif movie.is_recording():
         raise CommandError("Already recording a movie")
     else:
@@ -263,7 +263,7 @@ def movie_ignore(session, ignore = True):
     '''Ignore subsequent movie commands except for the movie ignore command.
     This can be used to run a movie recording script without recording
     the movie.'''
-	session.ignore_movie_commands = ignore
+    session.ignore_movie_commands = ignore
 
 def ignore_movie_commands(session):
     ignore = getattr(session, 'ignore_movie_commands', False)

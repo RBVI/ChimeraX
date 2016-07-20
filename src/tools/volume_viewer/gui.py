@@ -12,7 +12,6 @@ from chimerax.core.tools import ToolInstance
 class VolumeViewer(ToolInstance):
 
     SESSION_SKIP = True
-    SESSION_ENDURING = True
 
     def __init__(self, session, bundle_info):
         ToolInstance.__init__(self, session, bundle_info)
@@ -42,9 +41,9 @@ class VolumeViewer(ToolInstance):
         # Add any data sets opened prior to volume dialog being created.
         self.volume_opened_cb(volume_list(session))
 
-        add_volume_opened_callback(session, self.volume_opened_cb)
-        self.model_close_handler = add_volume_closed_callback(session, self.volume_closed_cb)
-        
+        self._volume_open_handler = add_volume_opened_callback(session, self.volume_opened_cb)
+        self._volume_close_handler = add_volume_closed_callback(session, self.volume_closed_cb)
+
     def show(self):
         self.tool_window.shown = True
 
@@ -93,14 +92,19 @@ class VolumeViewer(ToolInstance):
         v.set_parameters(surface_levels = [level])
         v.show()
 
-    def models_closed_cb(self, name, models):
-        if self.volume in models:
-            self.delete()
+    @classmethod
+    def get_singleton(self, session, create=True):
+        from chimerax.core import tools
+        return tools.get_singleton(session, VolumeViewer, 'volume_viewer', create=create)
 
     # Override ToolInstance method
     def delete(self):
         s = self.session
-        s.triggers.remove_handler(self.model_close_handler)
+        remove_volume_opened_callback(s, self._volume_open_handler)
+        delattr(self, '_volume_open_handler')
+        remove_volume_closed_callback(s, self._volume_close_handler)
+        delattr(self, '_volume_close_handler')
+        self.thresholds_panel.delete()	# Remove volume close callback
         from chimerax.core.map import Volume
         for v in s.models.list(type = Volume):
             v.remove_volume_change_callback(self.data_region_changed)
@@ -1514,7 +1518,13 @@ class Thresholds_Panel(PopupPanel):
 
     self.update_panel_widgets(None)
     
-    add_volume_closed_callback(self.dialog.session, self.data_closed_cb)
+    self._volume_close_handler = add_volume_closed_callback(self.dialog.session, self.data_closed_cb)
+
+  # ---------------------------------------------------------------------------
+  #
+  def delete(self):
+      remove_volume_closed_callback(self.dialog.session, self._volume_close_handler)
+      self._volume_close_handler = None
 
   # ---------------------------------------------------------------------------
   # Create histogram for data region if needed.
@@ -2228,8 +2238,7 @@ class Histogram_Pane:
     
   # ---------------------------------------------------------------------------
   #
-  def update_histogram(self, read_matrix, message_cb, resize = False,
-                       delay = 0.5):
+  def update_histogram(self, read_matrix, message_cb, resize = False, delay = 0.5):
 
     v = self.data_region
     if v is None:
@@ -4497,6 +4506,11 @@ def add_volume_opened_callback(session, volume_opened_cb):
 
 # -----------------------------------------------------------------------------
 #
+def remove_volume_opened_callback(session, h):
+    session.triggers.remove_handler(h)
+
+# -----------------------------------------------------------------------------
+#
 def add_volume_closed_callback(session, volume_closed_cb):
     def models_closed(name, models, cb = volume_closed_cb):
         from chimerax.core.map import Volume
@@ -4506,6 +4520,11 @@ def add_volume_closed_callback(session, volume_closed_cb):
     from chimerax.core.models import REMOVE_MODELS
     h = session.triggers.add_handler(REMOVE_MODELS, models_closed)
     return h
+
+# -----------------------------------------------------------------------------
+#
+def remove_volume_closed_callback(session, h):
+    session.triggers.remove_handler(h)
 
 # -----------------------------------------------------------------------------
 #
@@ -4529,11 +4548,7 @@ def set_active_volume(session, v):
 # -----------------------------------------------------------------------------
 #
 def volume_dialog(session, create=False):
-    vv = getattr(session, '_volume_viewer', None)
-    if vv is None and create:
-        bundle_info = session.toolshed.find_bundle('volume_viewer')
-        session._volume_viewer = vv = VolumeViewer(session, bundle_info)
-    return vv
+    return VolumeViewer.get_singleton(session, create)
 
 # -----------------------------------------------------------------------------
 #

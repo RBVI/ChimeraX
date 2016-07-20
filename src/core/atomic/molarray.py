@@ -334,6 +334,7 @@ class Atoms(Collection):
         "integer value.")
     in_chains = cvec_property('atom_in_chain', npy_bool, read_only = True,
         doc="Whether each atom belong to a polymer. Returns numpy bool array. Read only.")
+    occupancy = cvec_property('atom_occupancy', float32)
     @property
     def inter_bonds(self):
         ":class:`Bonds` object where both endpoint atoms are in this collection"

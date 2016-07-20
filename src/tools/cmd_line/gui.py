@@ -327,15 +327,15 @@ class _HistoryDialog:
         label = event.GetEventObject().GetLabelText()
         import wx
         if label == self.record_label:
-            from chimerax.core.io import extensions
-            ext = extensions("ChimeraX")[0]
+            from chimerax.core import io
+            fmt = io.format_from_name("ChimeraX commands")
+            ext = fmt.extensions[0]
             wc = "ChimeraX commands (*{})|*{}".format(ext, ext)
             from chimerax.core.ui.open_save import SaveDialog
-            from chimerax.core.io import open_filename, extensions
             if self._record_dialog is None:
                 self._record_dialog = dlg = SaveDialog(
                     self.window.ui_area, "Record Commands",
-                    wildcard=wc, add_extension=extensions("ChimeraX")[0])
+                    wildcard=wc, add_extension=ext)
                 dlg.SetExtraControlCreator(self._record_customize_cb)
             else:
                 dlg = self._record_dialog
@@ -353,7 +353,7 @@ class _HistoryDialog:
                 mode = 'a'
             else:
                 mode = 'w'
-            f = open_filename(path, mode)
+            f = io.open_filename(path, mode)
             for cmd in cmds:
                 print(cmd, file=f)
             f.close()
@@ -388,11 +388,13 @@ class _HistoryDialog:
     def button_clicked(self, label):
         if label == self.record_label:
             from chimerax.core.ui.open_save import export_file_filter, SaveDialog
-            from chimerax.core.io import open_filename, extensions
+            from chimerax.core.io import open_filename, format_from_name
             if self._record_dialog is None:
+                fmt = format_from_name("ChimeraX commands")
+                ext = fmt.extensions[0]
                 self._record_dialog = dlg = SaveDialog(self.window.ui_area,
-                    "Record Commands", name_filter=export_file_filter(format_name="ChimeraX"),
-                    add_extension=extensions("ChimeraX")[0])
+                    "Record Commands", name_filter=export_file_filter(format_name="ChimeraX commands"),
+                                                       add_extension=ext)
                 from PyQt5.QtWidgets import QFrame, QLabel, QHBoxLayout, QVBoxLayout, QComboBox
                 from PyQt5.QtWidgets import QCheckBox
                 from PyQt5.QtCore import Qt
