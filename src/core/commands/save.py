@@ -101,6 +101,29 @@ def save(session, models, filename, format=None,
     save_func(session, filename, **kw)
 
 
+def save_formats(session):
+    '''Report file formats and suffixes that the save command knows about.'''
+    if session.ui.is_gui:
+        lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Short name(s)<th>Suffixes']
+    else:
+        session.logger.info('File format, Short name(s), Suffixes:')
+    from .. import io
+    from . import commas
+    formats = list(f for f in io.formats() if f.export_func)
+    formats.sort(key = lambda f: f.name)
+    for f in formats:
+        if session.ui.is_gui:
+            lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
+                commas(f.short_names), ', '.join(f.extensions)))
+        else:
+            session.logger.info('    %s: %s: %s' % (f.name,
+                commas(f.short_names), ', '.join(f.extensions)))
+    if session.ui.is_gui:
+        lines.append('</table>')
+        msg = '\n'.join(lines)
+        session.logger.info(msg, is_html=True)
+
+
 def register_command(session):
     from . import CmdDesc, register, EnumOf, SaveFileNameArg, DynamicEnum
     from . import IntArg, BoolArg, PositiveIntArg, Bounded, FloatArg, NoArg
@@ -110,12 +133,12 @@ def register_command(session):
     models_arg = [('models', Or(ModelsArg, EmptyArg))]
     file_arg = [('filename', SaveFileNameArg)]
     
-    def save_formats():
+    def formats():
         from .. import io
         names = sum((tuple(f.short_names) for f in io.formats() if f.export_func), ())
         return names
     format_args = [
-        ('format', DynamicEnum(save_formats))]
+        ('format', DynamicEnum(formats))]
 
     image_args = [
         ('width', PositiveIntArg),
@@ -162,3 +185,6 @@ def register_command(session):
         synopsis='save map'
     )
     register('save map', desc, save)
+
+    sf_desc = CmdDesc(synopsis='report formats that can be saved')
+    register('save formats', sf_desc, save_formats)
