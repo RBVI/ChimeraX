@@ -126,11 +126,12 @@ def register_mmcif_format():
     #     "CIF", structure.CATEGORY, (), ("cif",),
     #     mime=("chemical/x-cif"),
     #    reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
+    from .mmcif_write import write_mmcif
     io.register_format(
         "mmCIF", structure.CATEGORY, (".cif",), ("mmcif",),
         mime=("chemical/x-mmcif",),
         reference="http://mmcif.wwpdb.org/",
-        requires_filename=True, open_func=open_mmcif)
+        requires_filename=True, open_func=open_mmcif, export_func=write_mmcif)
 
 
 def register_mmcif_fetch(session):
