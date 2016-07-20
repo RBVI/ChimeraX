@@ -16,7 +16,7 @@ class FileHistory:
 
         from .history import ObjectCache
         self._file_cache = ObjectCache('file_history')
-        self._files = self.load_history()	# Map file path to FileSpec
+        self._files = self.load_history()	# Map (file path, database) to FileSpec
         
         session.triggers.add_trigger('file history changed')
 
@@ -33,13 +33,13 @@ class FileHistory:
         f = self._files
         from os.path import abspath
         apath = abspath(path) if database is None else path
-        fs = f.get(apath, None)
+        fs = f.get((apath,database))
         if fs:
             fs.set_access_time()
         else:
-            f[apath] = fs = FileSpec(apath, format, database = database)
+            f[(apath,database)] = fs = FileSpec(apath, format, database = database)
         if fs.image is None or file_saved:
-            self._need_thumbnails.append((apath, models))
+            self._need_thumbnails.append((fs, models))
             if file_saved:
                 self.capture_thumbnails_cb()
             else:
@@ -50,18 +50,16 @@ class FileHistory:
         self._save_files = True
 
     def capture_thumbnails_cb(self):
-        f = self._files
         ses = self.session
         mset = set(ses.models.list())
-        pmlist = self._need_thumbnails
+        fsmlist = self._need_thumbnails
         self._need_thumbnails = []
-        for path, models in pmlist:
-            if path in f:
-                if models != 'all models':
-                    models = [m for m in models if m in mset]
-                if models:
-                    f[path].capture_image(models, ses)
-        ses.triggers.activate_trigger('file history changed', f)
+        for fs, models in fsmlist:
+            if models != 'all models':
+                models = [m for m in models if m in mset]
+            if models:
+                fs.capture_image(models, ses)
+        ses.triggers.activate_trigger('file history changed', self._files)
         from .triggerset import DEREGISTER
         return DEREGISTER
 
@@ -69,11 +67,11 @@ class FileHistory:
         f = self._files
         from os.path import isfile
         from glob import glob
-        remove = [path for path, fspec in f.items()
-                  if fspec.database is None and not isfile(path) and not glob(path)]
+        remove = [fspec for fspec in f.values()
+                  if fspec.database is None and not isfile(fspec.path) and not glob(fspec.path)]
         if remove:
-            for p in remove:
-                del f[p]
+            for fspec in remove:
+                del f[(fspec.path,fspec.database)]
             self._save_files = True
             self.session.triggers.activate_trigger('file history changed', f)
             
@@ -87,7 +85,7 @@ class FileHistory:
         if fc is not None:
             for f in fc['files']:
                 fs = FileSpec.from_state(f)
-                fmap[fs.path] = fs
+                fmap[(fs.path,fs.database)] = fs
         return fmap
 
     def save_history(self):
