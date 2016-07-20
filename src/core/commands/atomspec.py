@@ -141,13 +141,16 @@ class AtomSpecArg(Annotation):
         except FailedParse as e:
             from .cli import AnnotationError
             raise AnnotationError(str(e), offset=e.pos)
-        else:
-            end = ast.parseinfo.endpos
-            if end == 0:
-                from .cli import AnnotationError
-                raise AnnotationError("not an atom specifier")
-            # Consume what we used and return the remainder
-            return ast, text[:end], text[end:]
+
+        end = ast.parseinfo.endpos
+        if end == 0:
+            from .cli import AnnotationError
+            raise AnnotationError("not an atom specifier")
+        if end < len(text) and not text[end].isspace():
+            from .cli import AnnotationError
+            raise AnnotationError('only initial part "%s" of atom specifier valid' % text[:end])
+        # Consume what we used and return the remainder
+        return ast, text[:end], text[end:]
 
 
 #
