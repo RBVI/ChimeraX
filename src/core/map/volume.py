@@ -2925,9 +2925,12 @@ def save_map(session, filename, format = None, models = None, region = None, ste
         if len(vlist) != 1:
             from ..errors import UserError
             raise UserError('No model specified for saving map')
+    elif len(models) == 0:
+        from ..errors import UserError
+        raise UserError('No volumes specified')
     else:
-        vlist = [m for m in models if isinstance(m, Volume)]
-        if len(vlist) == 0:
+      vlist = [m for m in models if isinstance(m, Volume)]
+      if len(vlist) == 0:
           mstring = ' (#%s)' % ','.join(model.id_string() for m in models) if models else ''
           from ..errors import UserError
           raise UserError('Specified models are not volumes' + mstring)
