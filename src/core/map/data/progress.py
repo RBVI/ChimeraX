@@ -100,7 +100,7 @@ class Progress_Reporter:
       isz, jsz, ksz = ijk_size
       self.ksize = ksz
       if not element_size is None:
-        bytes = isz * jsz * ksz * element_size
+        bytes = float(isz) * jsz * ksz * element_size
         self.format = self.message_format(bytes)
 
   # ---------------------------------------------------------------------------
