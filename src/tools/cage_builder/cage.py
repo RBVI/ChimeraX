@@ -140,8 +140,8 @@ class Polygon:
             # copies on cage polygons.
             mset = self.marker_set
             if not hasattr(mset, 'placements'):
-                p = lambda n,mset=mset: placements(n, marker_set=mset)
-                mset.cage_placements = p
+                p = lambda n,mset=mset: parse_placements(n, marker_set=mset)
+                mset.placements = p
 
     # -------------------------------------------------------------------------
     #
@@ -743,6 +743,30 @@ def make_polygon_mesh(plist, color, edge_thickness):
                 et[(m1,m2)] = et[(m2,m1)] = Link(m1, m2, color, r)
 
     return mset
+
+# -----------------------------------------------------------------------------
+# Return list of transforms from origin to each polygon standard reference
+# frame for polygons with n sides for placing molecule copies on cage.
+#
+def parse_placements(name, marker_set):
+
+    if name.startswith('pn'):
+        ns = name[2:]
+        each_edge = True
+    elif name.startswith('p'):
+        ns = name[1:]
+        each_edge = False
+    else:
+        from chimerax.core.errors import UserError
+        raise UserError('Symmetry placement must start with "p" or "pn", got "%s"' % name)
+
+    try:
+        n = int(ns)
+    except:
+        from chimerax.core.errors import UserError
+        raise UserError('Symmetry placement must be "p" or "pn" followed by an integer, got "%s"' % name)
+
+    return placements(n, marker_set, each_edge)
 
 # -----------------------------------------------------------------------------
 # Return list of transforms from origin to each polygon standard reference
