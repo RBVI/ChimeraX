@@ -55,10 +55,10 @@ def sym(session, molecules,
     for m in molecules:
         assem = pdb_assemblies(m)
         if clear:
-            from ..geometry import Place
-            m.position = Place()
+            from ..geometry import Places
+            m.positions = Places([m.position])	# Keep only first position.
             for s in m.surfaces():
-                s.position = Place()
+                s.position = Places([s.position])
         elif assembly is None:
             ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description(m))
                               for a in assem)
