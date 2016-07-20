@@ -223,7 +223,7 @@ def deduce_format(filename, has_format=None, savable=False):
         base, ext = os.path.splitext(stripped)
         if not ext:
             from .errors import UserError
-            raise UserError("Missing filename suffix")
+            raise UserError("Missing filename suffix %s" % filename)
         ext = ext.casefold()
         for f in _file_formats.values():
             if ext in f.extensions and (not savable or f.export_func):
