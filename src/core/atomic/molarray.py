@@ -62,6 +62,8 @@ def _non_null_residues(p):
     return Residues(p[p!=0])
 def _chains(p):
     return Chains(p)
+def _non_null_chains(p):
+    return Chains(p[p!=0])
 def _atomic_structures(p):
     return AtomicStructures(p)
 def structure_datas(p):
@@ -665,6 +667,8 @@ class Residues(Collection):
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False, doc =
     '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.''')
+    chains = cvec_property('residue_chain', cptr, astype = _non_null_chains, read_only = True, doc =
+    '''Return :class:`.Chains` for residues. Residues with no chain are omitted. Read only.''')
     chain_ids = cvec_property('residue_chain_id', string, read_only = True, doc =
     '''Returns a numpy array of chain IDs. Read only.''')
     insertion_codes = cvec_property('residue_insertion_code', string, doc =
