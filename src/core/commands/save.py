@@ -54,7 +54,7 @@ def save(session, models, filename, format=None,
         fmt, fname, compress = io.deduce_format(filename, savable = True)
     else:
         format = format.casefold()
-        fmt = format_from_short_name(format)
+        fmt = format_from_short_name(format, save=True, open=False)
         if format_name is None:
             fnames = sum([tuple(f.short_names) for f in io.formats()], ())
             from ..errors import UserError

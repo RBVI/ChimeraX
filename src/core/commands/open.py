@@ -95,9 +95,11 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     return models
 
 
-def format_from_short_name(name):
+def format_from_short_name(name, open=True, save=False):
     from .. import io
-    formats = [f for f in io.formats() if name in f.short_names]
+    formats = [f for f in io.formats()
+               if name in f.short_names and
+               ((open and f.open_func) or (save and f.export_func))]
     if formats:
         return formats[0]
     return None
