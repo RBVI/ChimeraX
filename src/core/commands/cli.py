@@ -880,9 +880,9 @@ class AtomicStructuresArg(Annotation):
         from . import atomspec
         aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
         models = aspec.evaluate(session).models
-        from ..atomic import AtomicStructure
+        from ..atomic import AtomicStructure, AtomicStructures
         mols = [m for m in models if isinstance(m, AtomicStructure)]
-        return mols, text, rest
+        return AtomicStructures(mols), text, rest
 
 
 class PseudobondGroupsArg(Annotation):

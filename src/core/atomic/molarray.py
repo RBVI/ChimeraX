@@ -881,8 +881,13 @@ class AtomicStructures(StructureDatas):
     Collection of Python atomic structure objects.
     '''
     def __init__(self, mol_pointers):
-        from . import structure
-        Collection.__init__(self, mol_pointers, structure.AtomicStructure, AtomicStructures)
+        from .structure import AtomicStructure
+        if len(mol_pointers) > 0 and isinstance(mol_pointers[0], AtomicStructure):
+            # Converting from seq of AtomicStructure instances to AtomicStructures
+            # Used by command.cli.AtomicStructuresArg
+            import numpy
+            mol_pointers = numpy.array([s._c_pointer.value for s in mol_pointers])
+        Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
 
     @classmethod
     def session_restore_pointers(cls, session, data):
