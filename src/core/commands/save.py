@@ -100,6 +100,11 @@ def save(session, models, filename, format=None,
     
     save_func(session, filename, **kw)
 
+    if fmt.open_func and not fmt.name.endswith('image'):
+        # Remember in file history
+        from ..filehistory import remember_file
+        remember_file(session, filename, fmt.name, models or 'all models', file_saved = True)
+
 
 def save_formats(session):
     '''Report file formats and suffixes that the save command knows about.'''
