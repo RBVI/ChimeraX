@@ -148,7 +148,7 @@ class Solid:
     v = self.drawing
     v.display = True
     v.set_array_coordinates(self.transform)
-    v.color_mode = self.c_mode
+    v.set_color_mode(self.c_mode)
     v.set_modulation_rgba(self.luminance_color())
     v.projection_mode = self.p_mode
     if self.dim_transparent_voxels:
@@ -215,7 +215,7 @@ class Solid:
         return self.color_values(axis, plane, cmap, cmap_range)
       d = self.drawing
       d.set_color_plane_callback(self.size, get_color_plane)
-      d.set_color_mode(self.color_mode)
+      d.set_color_mode(self.c_mode)
     else:
       colors = self.color_values()
       self.drawing.set_volume_colors(colors)
