@@ -104,35 +104,40 @@ AtomicStructure::_compute_structure_cats() const
             
     }
     // possibly expand ion to remainder of residue (coordination complex)
-    std::set<Residue*> checked_residues;
-    auto ions_copy = ions;
-    for (auto root: ions_copy) {
-        if (group_lookup[root]->size() == root->residue()->atoms().size())
-            continue;
-        if (checked_residues.find(root->residue()) != checked_residues.end())
-            continue;
-        checked_residues.insert(root->residue());
-        std::set<Atom*> seen_roots = { root };
-        for (auto a: root->residue()->atoms()) {
-            auto rt = atom_to_root[a];
-            if (seen_roots.find(rt) != seen_roots.end())
+    //
+    // in case a large all-atom one-residue non-structure leaks into here,
+    // skip if no bonds
+    if (num_bonds() > 0) {
+        std::set<Residue*> checked_residues;
+        auto ions_copy = ions;
+        for (auto root: ions_copy) {
+            if (group_lookup[root]->size() == root->residue()->atoms().size())
                 continue;
-            seen_roots.insert(rt);
-        }
-        // add segments of less than 5 heavy atoms
-        for (auto rt: seen_roots) {
-            if (ions.find(rt) != ions.end())
+            if (checked_residues.find(root->residue()) != checked_residues.end())
                 continue;
-            int num_heavys = 0;
-            for (auto a: *(group_lookup[rt])) {
-                if (a->element().number() > 1) {
-                    ++num_heavys;
-                    if (num_heavys > 4)
-                        break;
-                }
+            checked_residues.insert(root->residue());
+            std::set<Atom*> seen_roots = { root };
+            for (auto a: root->residue()->atoms()) {
+                auto rt = atom_to_root[a];
+                if (seen_roots.find(rt) != seen_roots.end())
+                    continue;
+                seen_roots.insert(rt);
             }
-            if (num_heavys < 5)
-                ions.insert(rt);
+            // add segments of less than 5 heavy atoms
+            for (auto rt: seen_roots) {
+                if (ions.find(rt) != ions.end())
+                    continue;
+                int num_heavys = 0;
+                for (auto a: *(group_lookup[rt])) {
+                    if (a->element().number() > 1) {
+                        ++num_heavys;
+                        if (num_heavys > 4)
+                            break;
+                    }
+                }
+                if (num_heavys < 5)
+                    ions.insert(rt);
+            }
         }
     }
     for (auto root: ions) {
