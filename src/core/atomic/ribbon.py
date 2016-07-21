@@ -542,7 +542,8 @@ class XSectionManager:
             r_front, r_back = self.transitions[(rc0, rc1, rc2)]
             return self._xs_ribbon(r_front), self._xs_ribbon(r_back)
         except KeyError:
-            raise RuntimeError("unsupported transition %d-%d-%d" % (rc0, rc1, rc2))
+            print("unsupported transition %d-%d-%d" % (rc0, rc1, rc2))
+            return self.xs_coil, self.xs_coil
 
     def is_compatible(self, xs0, xs1):
         """Return if the two cross sections can be blended."""
