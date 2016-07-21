@@ -38,8 +38,8 @@ Structure::_calculate_rings(bool cross_residue,
     //  pp. 460-465
 
     // in case a large atom-only non-molecule systems sneaks in here...
-    if (mol.bonds().size() == 0) {
-        mg_Rings.clear();
+    if (bonds().size() == 0) {
+        _rings.clear();
         return;
     }
     
