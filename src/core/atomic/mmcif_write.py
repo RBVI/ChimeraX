@@ -10,35 +10,23 @@ def write_mmcif(session, path, models, **kw):
     from . import Structure
     if models is None:
         models = session.models.list(type = Structure)
-        if len(models) != 1:
-            from ..errors import UserError
-            raise UserError('No model specified for saving map')
 
-    if len(models) != 1:
+    models = [m for m in models if isinstance(m, Structure)]
+    nm = len(models)
+    if nm == 0:
         from ..errors import UserError
-        raise UserError('Can only write 1 model to an mmCIF file, got %d' % len(models))
+        raise UserError('No structures specified')
 
-    for m in models:
-        if not isinstance(m, Structure):
-            from ..errors import UserError
-            raise UserError('Model %s is not an atomic structure' % m.name)
+    if nm > 1:
+        session.logger.info('Writing %d models to mmCIF file by appending model number to chain ids' % nm)
 
-    atoms = models[0].atoms
-    
-#    from . import concatenate, Atoms
-#    atoms = concatenate([m.atoms for m in models], Atoms)
-    
-    xyz = atoms.coords
-    n = len(xyz)
-    elem = atoms.element_names
-    aname = atoms.names
-    occ = atoms.occupancy
-    bfact = atoms.bfactors
-    res = atoms.residues
-    rname = res.names
-    cid = res.chain_ids  # string fields need "." if blank.
-    rnum = res.numbers
-    eid = entity_ids(atoms, res, rname)
+    lines = []
+    entities = {}
+    for mi, m in enumerate(models):
+        cid_suffix = '' if nm == 1 else '%d' % (mi+1)
+        atom_site_lines(m, cid_suffix, lines, entities)
+             
+    lines.append('#')
 
     atom_site_header = '''loop_
 _atom_site.id 
@@ -55,20 +43,38 @@ _atom_site.occupancy
 _atom_site.B_iso_or_equiv 
 '''
 
-    lines = [('%s %s %s %s %s %d %d %.3f %.3f %.3f %.2f %.2f' %
-              (a+1, elem[a], aname[a], rname[a], cid[a], eid[a], rnum[a],
-               xyz[a,0], xyz[a,1], xyz[a,2], occ[a], bfact[a]))
-             for a in range(n)]
-    lines.append('#')
-
     text = atom_site_header + '\n'.join(lines) + '\n'
     
     f = open(path, 'w')
     f.write(text)
     f.close()
 
+def atom_site_lines(m, cid_suffix, lines, entities):
+    
+    atoms = m.atoms
+    xyz = atoms.scene_coords
+    n = len(xyz)
+    elem = atoms.element_names
+    aname = atoms.names
+    occ = atoms.occupancy
+    bfact = atoms.bfactors
+    res = atoms.residues
+    rname = res.names
+    cid = res.chain_ids  # string fields need "." if blank.
+    rnum = res.numbers
+    eid = entity_ids(atoms, res, rname, entities)
+
+    for a in range(n):
+        line = ('%s %s %s %s %s %d %d %.3f %.3f %.3f %.2f %.2f' %
+                (a+1, elem[a], aname[a], rname[a], cid[a] + cid_suffix, eid[a], rnum[a],
+                 xyz[a,0], xyz[a,1], xyz[a,2], occ[a], bfact[a]))
+        lines.append(line)
+
+#
 # To determine entity id, use residue name if in_chain is false, use sequence if in_chain is true.
-def entity_ids(atoms, residues, rname):
+# Dictionary entities maps sequence or residue name to entity id.
+#
+def entity_ids(atoms, residues, rname, entities):
     n = len(residues)
     from numpy import empty, int32
     eids = empty((n,), int32)
@@ -76,7 +82,6 @@ def entity_ids(atoms, residues, rname):
     inch = atoms.in_chains
     ch = residues.filter(inch).chains  # chain.characters is sequence.
 
-    entities = {}	# Map sequence or residue name to entity id
     ci = 0		# Index of atoms in chains
     seqs = {}		# Map chain to sequence to avoid creating sequence string for each atom
     for i in range(n):
