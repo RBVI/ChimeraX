@@ -435,12 +435,12 @@ class XSectionManager:
 	# so ends of stick will be completely hidden by ribbon
 	# instead of sticking out partially on the other side
         self.structure = weakref.ref(structure)
-        self.scale_helix = (0.9, 0.21)
-        self.scale_helix_arrow = ((1.8, 0.21), (0.21, 0.21))
-        self.scale_sheet = (0.8, 0.21)
-        self.scale_sheet_arrow = ((1.5, 0.21), (0.21, 0.21))
-        self.scale_coil = (0.21, 0.21)
-        self.scale_nucleic = (0.21, 0.8)
+        self.scale_helix = (1.0, 0.2)
+        self.scale_helix_arrow = ((2.0, 0.2), (0.2, 0.2))
+        self.scale_sheet = (1.0, 0.2)
+        self.scale_sheet_arrow = ((2.0, 0.2), (0.2, 0.2))
+        self.scale_coil = (0.2, 0.2)
+        self.scale_nucleic = (0.2, 1.0)
         self.style_helix = self.STYLE_ROUND
         self.style_sheet = self.STYLE_SQUARE
         self.style_coil = self.STYLE_ROUND
@@ -456,7 +456,7 @@ class XSectionManager:
                 # No parameters yet for square style
             },
             self.STYLE_PIPING: {
-                "sides": 6,
+                "sides": 12,
                 "ratio": 0.5,
                 "faceted": False,
             },
