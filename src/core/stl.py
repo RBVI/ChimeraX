@@ -158,7 +158,8 @@ def write_stl(session, filename, models, **kw):
             if len(pos) > 0:
                 geom.append((va, ta, pos))
     va, ta = combine_geometry(geom)
-    stl_geom = stl_triangle_geometry(va, ta)
+    from .surface import stl_pack
+    stl_geom = stl_pack(va, ta)
     
     # Write 80 character comment.
     from chimerax import app_dirs as ad
@@ -205,7 +206,7 @@ def combine_geometry(geom):
 
 # -----------------------------------------------------------------------------
 #
-def stl_triangle_geometry(varray, tarray):
+def stl_pack(varray, tarray):
 
     from numpy import empty, float32, little_endian
     ta = empty((12,), float32)
