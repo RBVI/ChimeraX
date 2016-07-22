@@ -9,7 +9,6 @@ from .state import State, CORE_STATE_VERSION
 
 # code taken from chimera 1.7
 
-_builtin_open = open
 from . import generic3d
 
 
@@ -60,7 +59,7 @@ class TriangleInfo(State):
         pass
 
 
-def open(session, filename, name, *args, **kw):
+def read_stl(session, filename, name, *args, **kw):
     """Populate the scene with the geometry from a STL file
 
     :param filename: either the name of a file or a file-like object
@@ -72,7 +71,7 @@ def open(session, filename, name, *args, **kw):
         # it's really a file-like object
         input = filename
     else:
-        input = _builtin_open(filename, 'rb')
+        input = open(filename, 'rb')
 
     model = STLModel(name, session)
 
@@ -137,10 +136,119 @@ def stl_geometry(nv):
 
     return vert, normals, tri
 
+# -----------------------------------------------------------------------------
+#
+def write_stl(session, filename, models, **kw):
+    if models is None:
+        models = session.models.list()
 
+    # Collect all drawing children of models.
+    drawings = set()
+    for m in models:
+        if not m in drawings:
+            for d in m.all_drawings():
+                drawings.add(d)
+            
+    # Collect geometry, not including children, handle instancing
+    geom = []
+    for d in drawings:
+        va, ta = d.vertices, d.masked_triangles
+        if va is not None and ta is not None and d.display and d.parents_displayed:
+            pos = d.get_scene_positions(displayed_only = True)
+            if len(pos) > 0:
+                geom.append((va, ta, pos))
+    va, ta = combine_geometry(geom)
+    stl_geom = stl_triangle_geometry(va, ta)
+    
+    # Write 80 character comment.
+    from chimerax import app_dirs as ad
+    version  = "%s %s version: %s" % (ad.appauthor, ad.appname, ad.version)
+    created_by = '# Created by %s' % version
+    comment = created_by + ' ' * (80 - len(created_by))
+
+    file = open(filename, 'wb')
+    file.write(comment.encode('utf-8'))
+
+    # Write number of triangles
+    tc = len(ta)
+    from numpy import uint32
+    file.write(binary_string(tc, uint32))
+
+    # Write triangles.
+    file.write(stl_geom)
+    file.close()
+
+# -----------------------------------------------------------------------------
+#
+def combine_geometry(geom):
+    vc = tc = 0
+    for va, ta, pos in geom:
+        n, nv, nt = len(pos), len(va), len(ta)
+        vc += n*nv
+        tc += n*nt
+
+    from numpy import empty, float32, int32
+    varray = empty((vc,3), float32)
+    tarray = empty((tc,3), int32)
+
+    v = t = 0
+    for va, ta, pos in geom:
+        n, nv, nt = len(pos), len(va), len(ta)
+        for p in pos:
+            varray[v:v+nv,:] = va if p.is_identity() else p*va
+            tarray[t:t+nt,:] = ta
+            tarray[t:t+nt,:] += v
+            v += nv
+            t += nt
+    
+    return varray, tarray
+
+# -----------------------------------------------------------------------------
+#
+def stl_triangle_geometry(varray, tarray):
+
+    from numpy import empty, float32, little_endian
+    ta = empty((12,), float32)
+
+    slist = []
+    abc = b'\0\0'
+    for vi0,vi1,vi2 in tarray:
+        v0,v1,v2 = varray[vi0],varray[vi1],varray[vi2]
+        n = triangle_normal(v0,v1,v2)
+        ta[:3] = n
+        ta[3:6] = v0
+        ta[6:9] = v1
+        ta[9:12] = v2
+        if not little_endian:
+            ta[:] = ta.byteswap()
+        slist.append(ta.tobytes() + abc)
+    g = b''.join(slist)
+    return g
+
+# -----------------------------------------------------------------------------
+#
+def triangle_normal(v0,v1,v2):
+
+    e10, e20 = v1 - v0, v2 - v0
+    from .geometry import normalize_vector, cross_product
+    n = normalize_vector(cross_product(e10, e20))
+    return n
+
+# -----------------------------------------------------------------------------
+#
+def binary_string(x, dtype):
+
+    from numpy import array, little_endian
+    ta = array((x,), dtype)
+    if not little_endian:
+        ta[:] = ta.byteswap()
+    return ta.tobytes()
+
+# -----------------------------------------------------------------------------
+#
 def register():
     from . import io
     io.register_format(
         "StereoLithography", generic3d.CATEGORY, (".stl",), ("stl",),
         reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",
-        open_func=open)
+        open_func=read_stl, export_func=write_stl)
