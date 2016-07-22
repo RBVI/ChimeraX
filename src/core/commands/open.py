@@ -69,7 +69,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         return models
 
     if format is not None:
-        fmt = format_from_short_name(format)
+        fmt = format_from_name(format)
         if fmt:
             format = fmt.name
 
@@ -95,10 +95,10 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     return models
 
 
-def format_from_short_name(name, open=True, save=False):
+def format_from_name(name, open=True, save=False):
     from .. import io
     formats = [f for f in io.formats()
-               if name in f.short_names and
+               if (name in f.short_names or name == f.name) and
                ((open and f.open_func) or (save and f.export_func))]
     if formats:
         return formats[0]

@@ -54,7 +54,8 @@ def save(session, models, filename, format=None,
         fmt, fname, compress = io.deduce_format(filename, savable = True)
     else:
         format = format.casefold()
-        fmt = format_from_short_name(format, save=True, open=False)
+        from .open import format_from_name
+        fmt = format_from_name(format, save=True, open=False)
         if format_name is None:
             fnames = sum([tuple(f.short_names) for f in io.formats()], ())
             from ..errors import UserError
@@ -103,7 +104,7 @@ def save(session, models, filename, format=None,
     if fmt.open_func and not fmt.name.endswith('image'):
         # Remember in file history
         from ..filehistory import remember_file
-        remember_file(session, filename, fmt.name, models or 'all models', file_saved = True)
+        remember_file(session, filename, fmt.short_names[0], models or 'all models', file_saved = True)
 
 
 def save_formats(session):
