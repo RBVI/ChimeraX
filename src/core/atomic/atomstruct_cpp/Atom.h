@@ -152,7 +152,7 @@ public:
     int  session_num_floats(int version=0) const;
     void  session_restore(int version, int** ints, float** floats, PyObject* misc);
     void  session_save(int** ints, float** floats, PyObject* misc) const;
-    void  set_alt_loc(char alt_loc, bool create=false, bool from_residue=false);
+    void  set_alt_loc(char alt_loc, bool create=false, bool _from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
     void  set_bfactor(float);
     void  set_coord(const Point& coord) { set_coord(coord, NULL); }
