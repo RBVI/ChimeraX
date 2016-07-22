@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-from numpy import uint8, int32, float64, float32, bool as npy_bool
-from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, ctype_type_to_numpy, pointer
+from numpy import uint8, int32, float64, float32, byte, bool as npy_bool
+from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, c_array_function, ctype_type_to_numpy, pointer
 import ctypes
 size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 
@@ -111,6 +111,28 @@ class Atom:
         doc = "Whether atom is ligand, ion, etc.")
     visible = c_property('atom_visible', npy_bool, read_only=True,
         doc="Whether atom is displayed and not hidden.")
+
+    alt_loc = c_property('atom_alt_loc', byte,
+                         doc='Alternate location indicator')
+
+    def set_alt_loc(self, loc, create):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        f = c_function('atom_set_alt_loc', args=(ctypes.c_void_p, ctypes.c_char, ctypes.c_bool, ctypes.c_bool))
+        f(self._c_pointer, loc, create, False)
+
+    def has_alt_loc(self, loc):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        #value_type = npy_bool
+        #vtype = numpy_type_to_ctype[value_type]
+        vtype = ctypes.c_uint8
+        v = vtype()
+        v_ref = ctypes.byref(v)
+        f = c_array_function('atom_has_alt_loc', args=(byte,), ret=npy_bool, per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, loc, v_ref)
+        return v.value
 
     def __init__(self, c_pointer):
         set_c_pointer(self, c_pointer)
@@ -519,6 +541,13 @@ class Residue:
         must belong to a residue.'''
         f = c_function('residue_add_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
+
+    def set_alt_loc(self, loc):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
+        r_ref = ctypes.byref(self._c_pointer)
+        f(r_ref, 1, loc)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,

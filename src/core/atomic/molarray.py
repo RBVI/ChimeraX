@@ -34,8 +34,8 @@ Collections are immutable so can be hashed.  The only case in which their conten
 can be altered is if C++ objects they hold are deleted in which case those objects
 are automatically removed from the collection.
 '''
-from numpy import uint8, int32, float64, float32, uintp, bool as npy_bool, integer, empty, unique, array
-from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, pointer, ctype_type_to_numpy
+from numpy import uint8, int32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, unique, array
+from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
 from . import molobject
 import ctypes
 size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
@@ -422,7 +422,8 @@ class Atoms(Collection):
     visibles = cvec_property('atom_visible', npy_bool, read_only=True,
         doc="Returns whether the Atom should be visible (displayed and not hidden). Returns a "
         ":mod:`numpy` array of boolean values.  Read only.")
-
+    alt_locs = cvec_property('atom_alt_loc', byte, astype=bytearray,
+                         doc='Returns current alternate location indicators')
 
     def __init__(self, c_pointers = None):
         Collection.__init__(self, c_pointers, molobject.Atom, Atoms)
@@ -438,6 +439,15 @@ class Atoms(Collection):
         f = c_function('atom_update_ribbon_visibility',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
+
+    def have_alt_loc(self, loc):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        n = len(self)
+        values = empty((n,), npy_bool)
+        f = c_array_function('atom_has_alt_loc', args=(byte,), ret=npy_bool, per_object=False)
+        f(self._c_pointers, n, loc, pointer(values))
+        return values
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -781,6 +791,12 @@ class Residues(Collection):
         f = c_function('residue_ribbon_clear_hide',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
+
+    def set_alt_loc(self, loc):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
+        f(self._c_pointers, len(self), loc)
 
 # -----------------------------------------------------------------------------
 #
