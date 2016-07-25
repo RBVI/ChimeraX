@@ -30,9 +30,11 @@ other volume data, <i>i.e.</i>, values associated with points on a 3D grid.
 The <a href="atomspec.html"><i>model-spec</i></a> can be a specific model
 number or range of model numbers (preceded by #),
 or the word <b>all</b> to indicate all volume models.
+Volume data can be saved to a file with the 
+command <a href="save.html"><b>save</b></a>.
 See also:
 <a href="open.html"><b>open</b></a>,
-<a href="save.html"><b>save</b></a>,
+<a href="show.html"><b>show</b></a>,
 <a href="vop.html"><b>vop</b></a>,
 <b>vseries</b>,
 <a href="molmap.html"><b>molmap</b></a>,
@@ -55,7 +57,6 @@ The <b>volume</b> command has many options, here grouped into categories:
 <br><a href="#sampling">Sampling and Size Options</a>
 <br><a href="#dimensions">Dimension and Scale Options</a>
 <br><a href="#planes">Planes Options</a>
-<br><a href="#output">File-Saving Options</a>
 <br><a href="#dispsurf">Surface and Mesh Display Options</a>
 <br><a href="#dispsolid">Solid Display Options</a>
 </blockquote>
@@ -375,8 +376,8 @@ regardless of which are specified:
   <a href="#top" class="nounder">&bull;</a>
   <a name="symmetry"><b>symmetry</b> <i>sym-type</i></a>
   <br>Assign the specified symmetry to the volume data set.
-  This information is retained in files <a href="#save">saved</a> 
-  in <a href="#chimap">Chimera map</a> format and can be used by 
+  This information is retained in files <a href="save.html">saved</a> 
+  in <a href="save.html#chimap">Chimera map</a> format and can be used by 
   other commands such as <a href="molmap.html"><b>molmap</b></a>
   and <a href="fitmap.html"><b>fitmap</b></a>.
 <!--
@@ -544,6 +545,15 @@ regardless of which are specified:
   The reference coordinate system is used for interpreting specifications of
   <a href="#axis">axis</a> and <a href="#center">center</a> of symmetry.
 </blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="dump"><b>dumpHeader</b></a>
+  <br>Write the file header contents (if any) of a map read from 
+  MRC or CCP4 format to the <a href="../tools/log.html"><b>Log</b></a>.
+<!--
+takes true/false in Chimera
+-->
+</blockquote>
 
 <h4><a href="#top" class="nounder"><b>&larr;</b></a>
 <a name="planes">Planes Options</a>
@@ -621,149 +631,6 @@ regardless of which are specified:
   although these can be overriden with the corresponding command options.
   Turning box-face planes <b>off</b> restores the <b>auto8</b>
   <a href="#dispsolid">color mode</a>.
-</blockquote>
-
-<h4><a href="#top" class="nounder"><b>&larr;</b></a>
-<a name="output">File-Saving Options</a>
-&nbsp;&nbsp;&nbsp;
-(Usage:&nbsp;<a href="#top">volume</a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h4>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="save"><b>save</b> <i>filename</i></a>
-  [&nbsp;<b>append</b>&nbsp;true|<b>false</b>&nbsp;]
-  [&nbsp;<b>saveStep</b>&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-  [&nbsp;<b>saveRegion</b>&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
-  [&nbsp;<b>maskZone</b>&nbsp;<b>true</b>|false&nbsp;]
-  [&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
-  <br>Write the data to a file in
-  <a href="#mrcout"><b>MRC</b></a> (default), 
-  <a href="#chimap">Chimera map</a>, or BRIX format.
-  The desired format can be indicated with the corresponding
-  filename suffix:
-  <b>.mrc</b>, <b>.cmap</b>, or <b>.brix</b>
-  (overridden by <a href="#format"><b>saveFormat</b></a>).
-  For <a href="#chimap">Chimera map</a> format only,
-  <b>append true</b> can be used to append the data to an existing file
-  instead of overwriting it.
-  <p>
-  The output pathname <i>filename</i> cannot contain spaces.
-<!-- not implemented
-  However, specifying <i>filename</i> as <b>browse</b> or <b>browser</b>
-  will raise a dialog for saving the file.
--->
-  Multiple data sets can be written to multiple files by including a 
-  %d integer format specification in <i>filename</i>:
-  <blockquote>
-  <b>volume #2,3,7 save data%d.mrc</b>
-  <br>
-  <b>volume #2,3,7 save data%03d.mrc</b>
-  </blockquote>
-  The first example would generate the files data1.mrc, data2.mrc, 
-  and data3.mrc, while the second would instead use names like data001.mrc.
-  Successive integers starting with <b>baseIndex</b> <i>M</i> (default <b>1</b>)
-  will be used in the new names 
-  regardless of the volume model numbers. If the format specification is
-  incorrect, <i>filename</i> will be interpreted as the name of a single
-  file. Only the <a href="#chimap">Chimera map</a> format can accommodate
-  multiple data sets in a single file.
-  </p><p>
-  The output file header will include information for converting
-  between grid indices and Cartesian coordinates,
-  such as the <a href="#origin">origin</a> and <a href="#scale">scale</a>.
-  <ul class="circle">
-  <li><b>saveStep</b> indicates whether to write 
-  the full resolution of the data (step size <b>1</b>, default) 
-  or a specified subsample (step size &gt; 1). Step sizes must be integers.
-  A step size of 1 indicates all data points, 
-  2 indicates every other data point, 3 every third point, <i>etc.</i>
-  If a single number is supplied, it is
-  used along all three axes; if three numbers are supplied
-  (separated by commas but not spaces), they
-  are used along the X, Y, and Z axes, respectively.
-  <li><b>saveRegion</b> indicates whether to write
-   the full extents of the data or a specified subregion.
-  The full extents are specified by <b>all</b>, while
-  a subregion can be specified by <i>name</i> 
-  (previously <a href="#name">assigned</a>) or by grid indices
-  <i>i1&ndash;i2</i> along the X axis,
-  <i>j1&ndash;j2</i> along the Y axis, and
-  <i>k1&ndash;k2</i> along the Z axis.
-  Grid indices must be integers separated by commas but not spaces.
-  If the <b>saveRegion</b> option is not supplied, the currently displayed 
-  subregion will be written.  
-  In this context, a zone is not considered a subregion.
-  <li>If <b>maskZone</b> is <b>true</b> and zoning is in effect 
-  (see <a href="sop.html#zone"><b>sop zone</b></a>),
-<!--
-  and the <b>Zone</b></a> feature in <b>Volume Viewer</b>
--->
-  data will be written
-  out for a region enclosing the zone, with values outside the zone set to zero.
-  </ul>
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="format"><b>saveFormat</b> <b>mrc</b> | cmap | dsn6</a>
-  <br>Specify the <a href="#save"><b>save</b></a> format as
-  <a href="#mrcout"><b>MRC</b></a> (default), 
-  <a href="#chimap">Chimera map</a>, or BRIX (dsn6).
-  This option overrides any filename suffix
-  supplied with <a href="#save"><b>save</b></a>.
- <p>
-  When <a name="chimap">Chimera map</a> format is <a href="#save">saved</a>:
-  <ul class="circle">
-  <li>multiple data sets can be saved to a single file
-  (multiple models can be specified)
-  <li>the data layout can be controlled with 
-  <a href="#chunk"><b>chunkShapes</b></a>
-  <li>the file can be compressed with <a href="#compress"><b>compress</b></a>
-  <li>the file will include any <a href="#symmetry">symmetry assignment</a>
-  </ul>
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="chunk"><b>chunkShapes</b> <i>order</i></a>
-  <br>Control data layout when <a href="#save">saving</a> Chimera map format.
-  Layout affects the efficiency of later reading the data,
-  primarily a concern for very large data sets (hundreds of Mb).
-  The <i>order</i> can be one or more of the following, 
-  separated by commas but not spaces:
-  <ul class="circle">
-  <li><b>zyx</b> (default)
-  <li>zxy
-  <li>yxz
-  <li>yzx
-  <li>xzy
-  <li>xyz
-  </ul>
-  Data are written in blocks of up to 64 Kb.  The blocks are shaped
-  according to the specified <i>order</i>: 
-  smallest along the first axis and largest along the third.
-  Data planes are read from a file with different efficiencies 
-  depending on their orientations and the layout.
-  For example, from data written in the default order (<b>zyx</b>), XY planes 
-  will be read the most efficiently and YZ planes the least efficiently.
-  When multiple orders are specified, multiple copies of the data are
-  written to the same file.  When the file is read, the most efficient 
-  copy available will be used.
-  Saving a file with an <i>order</i> ending in "z" can be very slow 
-  because one Z-plane is written at a time.
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="compress"><b>compress</b></a>
-  <br>Compress the file when <a href="#save">saving</a> Chimera map format.
-  Most useful for volume masks (values 0/1), as other data sets tend to be
-  noisy and compress very little, if at all.
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="dump"><b>dumpHeader</b></a>
-  <br>Write the file header contents (if any) of a map read from 
-  MRC or CCP4 format to the <a href="../tools/log.html"><b>Log</b></a>.
-<!--
-compress and dumpHeader take true/false in Chimera
--->
 </blockquote>
 
 <h4><a href="#top" class="nounder"><b>&larr;</b></a>
@@ -1049,13 +916,6 @@ are the number of X, Y, and Z data planes displayed, respectively.
 Increasing the <a href="#transparency">transparency</a>
 and/or the thickness of the displayed data will make the exponent smaller and
 (because <b>T<sub>histo</sub></b> &le; 1) individual voxels more transparent.
-</p>
-
-<p><a name="mrcout"><b>Output MRC files</b></a>.
-MRC files written by ChimeraX
-are in the MRC 2000 format. Older MRC-reading programs or
-programs expecting CCP4 format will read such files successfully
-but may not align the data correctly with other data sets.
 </p>
 
 <p><a name="byteorder"><b>Byte order</b></a>.
