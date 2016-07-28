@@ -474,11 +474,28 @@ extern "C" EXPORT void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
     }
 }
 
-extern "C" EXPORT bool atom_is_backbone(pyobject_t atom, uint8_t extent)
+
+extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, uint8_t extent, npy_bool *bb)
 {
-    Atom *a = static_cast<Atom *>(atom);
+    Atom **a = static_cast<Atom **>(atoms);
     BackboneExtent bbe = static_cast<BackboneExtent>(extent);
-    return error_wrap([&] () { return a->is_backbone(bbe); });
+    try {
+        for (size_t i = 0; i < n; ++i)
+            bb[i] = a[i]->is_backbone(bbe);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_is_sidechain(void *atoms, size_t n, npy_bool *is_sidechain)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_sidechain[i] = a[i]->is_sidechain();
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)

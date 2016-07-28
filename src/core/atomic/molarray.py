@@ -336,6 +336,17 @@ class Atoms(Collection):
         "integer value.")
     in_chains = cvec_property('atom_in_chain', npy_bool, read_only = True,
         doc="Whether each atom belong to a polymer. Returns numpy bool array. Read only.")
+
+    def is_backbones(self, bb_extent=molobject.Atom.BBE_MAX):
+        n = len(self)
+        values = empty((n,), npy_bool)
+        f = c_array_function('atom_is_backbone', args=(int32,), ret=npy_bool, per_object=False)
+        f(self._c_pointers, n, bb_extent, pointer(values))
+        return values
+
+    is_sidechains = cvec_property('atom_is_sidechain', npy_bool, read_only = True,
+        doc="Whether each atom is part of an amino/nucleic acid sidechain."
+            " Returns numpy bool array. Read only.")
     occupancy = cvec_property('atom_occupancy', float32)
     @property
     def inter_bonds(self):
@@ -435,7 +446,7 @@ class Atoms(Collection):
 
     def update_ribbon_visibility(self):
         '''Update the 'hide' status for ribbon control point atoms, which
-	are hidden unless any of its neighbors are visible.'''
+            are hidden unless any of its neighbors are visible.'''
         f = c_function('atom_update_ribbon_visibility',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))

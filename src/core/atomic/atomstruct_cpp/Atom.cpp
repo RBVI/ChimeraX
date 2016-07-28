@@ -821,6 +821,20 @@ Atom::is_backbone(BackboneExtent bbe) const {
     return bb_names->find(name()) != bb_names->end();
 }
 
+bool
+Atom::is_sidechain() const {
+    // hydrogens depend on the heavy atom they're attached to
+    if (element().number() == 1) {
+        if (bonds().size() == 1)
+            return (*neighbors().begin())->is_sidechain();
+        return false;
+    }
+    const std::set<AtomName>* bb_names = residue()->backbone_atom_names(BBE_MAX);
+    if (bb_names == nullptr)
+        return false;
+    return !is_backbone(BBE_MAX);
+}
+
 float
 Atom::occupancy() const
 {

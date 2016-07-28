@@ -128,6 +128,7 @@ public:
     bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
     const AtomType&  idatm_type() const;
     bool  is_backbone(BackboneExtent bbe) const;
+    bool  is_sidechain() const;
     const AtomName&  name() const { return _name; }
     const Neighbors&  neighbors() const { return _neighbors; }
     float  occupancy() const;

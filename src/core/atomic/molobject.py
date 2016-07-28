@@ -95,6 +95,8 @@ class Atom:
         "    Hide mask for backbone atoms in ribbon.")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
+    is_sidechain = c_property('atom_is_sidechain', npy_bool, read_only = True,
+        doc = "Whether this atom is part of an amino/nucleic acid sidechain. Read only.")
     name = c_property('atom_name', string, doc = "Atom name. Maximum length 4 characters.")
     neighbors = c_property('atom_neighbors', cptr, "num_bonds", astype=_atoms, read_only=True,
         doc=":class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
@@ -157,7 +159,7 @@ class Atom:
         c = f(self._c_pointer, atom._c_pointer)
         return c
 
-    def is_backbone(self, bb_extent):
+    def is_backbone(self, bb_extent=BBE_MAX):
         '''Whether this Atom is considered backbone, given the 'extent' criteria.
 
         |  Possible 'extent' values are:
