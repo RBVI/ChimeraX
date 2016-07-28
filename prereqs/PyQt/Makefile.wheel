@@ -4,10 +4,12 @@ include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
 PYQT_LICENSE = commercial
-REMOTE_DIR = plato.cgl.ucsf.edu:/usr/local/src/PyQt5/$(VERSION)
+REMOTE_DIR = plato.cgl.ucsf.edu:/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
 VERSION = 5.7
+MINOR_VERSION = 0
+FULL_VERSION = $(VERSION).$(MINOR_VERSION)
 # use local directory for the wheel, so we don't have to convert it
 # to a Windows path when installing
 WHEEL = PyQt5_$(PYQT_LICENSE)-$(VERSION)-$(WHEEL_PLATFORM).whl
@@ -19,12 +21,11 @@ QTDIR = $(build_prefix)
 else ifeq ($(OS),Linux)
 PLATFORM = linux
 WHEEL_PLATFORM = cp35-cp35m-manylinux1_x86_64
-#QTDIR = $(TOP)/Qt5.6.0/5.6/gcc_64
-QTDIR = $(HOME)/Qt5.6.0/5.6/gcc_64
+QTDIR = $(HOME)/Qt$(FULL_VERSION)/$(VERSION)/gcc_64
 else ifeq ($(OS),Windows)
 PLATFORM = win
 WHEEL_PLATFORM = cp35-none-win_amd64
-QTDIR = c:\\Qt\\Qt5.6.0\\5.6\\msvc2015_64
+QTDIR = c:\\Qt\\Qt$(FULL_VERSION)\\$(VERSION)\\msvc2015_64
 endif
 
 LICENSE_ARGS = --quiet --license pyqt-commercial.sip --qt $(QTDIR) --no-openssl
@@ -42,17 +43,17 @@ app-install: $(WHEEL)
 	$(APP_PIP) install $(WHEEL)
 
 $(WHEEL):
-	rsync -av $(REMOTE_DIR)/$(WHEEL) .
+	rsync -av $(REMOTE_DIR)/$(VERSION)/$(WHEEL) .
 
 pyqt-commercial.sip:
-	rsync -a $(REMOTE_DIR)/{PyQt5_commercial-$(VERSION)-*$(PLATFORM)*.whl-unlicensed,pyqtlicense-$(PLATFORM)*} .
+	rsync -a $(REMOTE_DIR)/$(VERSION)/{PyQt5_commercial-$(VERSION)-*$(PLATFORM)*.whl-unlicensed,pyqtlicense-$(PLATFORM)*} .
 	rsync -a $(REMOTE_DIR)/pyqt-commercial.sip .
 
 wheel: pyqt-commercial.sip
 	./pyqtlicense-$(PLATFORM) $(LICENSE_ARGS) *.whl-unlicensed
 
 upload: wheel
-	rsync -av $(WHEEL) $(REMOTE_DIR)/.
+	rsync -av $(WHEEL) $(REMOTE_DIR)/$(VERSION)/.
 
 clean:
 	rm -rf $(WHEEL) pip.log
