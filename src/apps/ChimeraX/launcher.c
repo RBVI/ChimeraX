@@ -18,7 +18,7 @@
 static int
 app_main(int argc, wchar_t** wargv)
 {
-	wchar_t** args = (wchar_t**) malloc((argc + EXTRA) * sizeof (wchar_t*));
+	wchar_t** args = (wchar_t**) malloc((argc + EXTRA + 1) * sizeof (wchar_t*));
 	if (args == NULL) {
 		fprintf(stderr, "out of memory\n");
 		return 123;
@@ -31,6 +31,7 @@ app_main(int argc, wchar_t** wargv)
 	args[EXTRA] = L"ChimeraX_main";
 	for (int i = 1; i < argc; ++i)
 		args[i + EXTRA] = wargv[i];
+	args[argc + EXTRA] = NULL;
 
 	int result = Py_Main(argc + EXTRA, args);
 	return result;
