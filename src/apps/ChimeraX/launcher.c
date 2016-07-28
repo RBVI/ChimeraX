@@ -10,30 +10,36 @@
 /*
  * Mimic:
  *
- *	python -I -X faulthandler -m ChimeraX_main.py app-args
+ *	python -I [-X faulthandler] -m ChimeraX_main.py app-args
  */
 
-#define EXTRA 5	/* number of extra arguments */
+static wchar_t* extra[] = {
+	L"-I",
+#ifndef _WIN32
+	L"-X",
+	L"faulthandler",
+#endif
+	L"-m",
+	L"ChimeraX_main",
+};
+static const int ec = sizeof(extra) / sizeof (extra[0]);
 
 static int
 app_main(int argc, wchar_t** wargv)
 {
-	wchar_t** args = (wchar_t**) malloc((argc + EXTRA + 1) * sizeof (wchar_t*));
+	wchar_t** args = (wchar_t**) malloc((argc + ec + 1) * sizeof (wchar_t*));
 	if (args == NULL) {
 		fprintf(stderr, "out of memory\n");
 		return 123;
 	}
 	args[0] = wargv[0];
-	args[1] = L"-I";
-	args[2] = L"-X";
-	args[3] = L"faulthandler";
-	args[4] = L"-m";
-	args[EXTRA] = L"ChimeraX_main";
+	for (int i = 0; i < ec; ++i)
+		args[i + 1] = extra[i];
 	for (int i = 1; i < argc; ++i)
-		args[i + EXTRA] = wargv[i];
-	args[argc + EXTRA] = NULL;
+		args[i + ec] = wargv[i];
+	args[argc + ec] = NULL;
 
-	int result = Py_Main(argc + EXTRA, args);
+	int result = Py_Main(argc + ec, args);
 	return result;
 }
 
