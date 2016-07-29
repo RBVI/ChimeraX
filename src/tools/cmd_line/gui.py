@@ -26,7 +26,34 @@ class CommandLine(ToolInstance):
             from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLineEdit, QLabel
             label = QLabel(parent)
             label.setText("Command:")
-            self.text = QComboBox(parent)
+            class CmdText(QComboBox):
+                def __init__(self, parent, tool):
+                    self.tool = tool
+                    QComboBox.__init__(self, parent)
+
+                def keyPressEvent(self, event):
+                    from PyQt5.QtCore import Qt
+                    import sys
+                    control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifer
+                    shifted = event.modifiers() & Qt.ShiftModifier
+                    if event.key() == Qt.Key_Up:  # up arrow
+                        self.tool.history_dialog.up(shifted)
+                    elif event.key() == Qt.Key_Down:  # down arrow
+                        self.tool.history_dialog.down(shifted)
+                    elif event.modifiers() & control_key:
+                        if event.key() == Qt.Key_N:
+                            self.tool.history_dialog.down(shifted)
+                        elif event.key() == Qt.Key_P:
+                            self.tool.history_dialog.up(shifted)
+                        elif event.key() == Qt.Key_U:
+                            self.tool.cmd_clear()
+                        else:
+                            QComboBox.keyPressEvent(self, event)
+                    else:
+                        QComboBox.keyPressEvent(self, event)
+
+            self.text = CmdText(parent, self)
+            #self.text = QComboBox(parent)
             self.text.setEditable(True)
             self.text.setCompleter(None)
             layout = QHBoxLayout(parent)
@@ -496,8 +523,8 @@ class _HistoryDialog:
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
             return
-        sel = sels[0]
-        orig_text = self.controller.text.text()
+        sel = sels[0].row()
+        orig_text = self.controller.text.currentText()
         match_against = None
         self._suspend_handler = False
         if shifted:
@@ -518,7 +545,7 @@ class _HistoryDialog:
         if sel == self.listbox.count() - 1:
             return
         self.listbox.clearSelection()
-        self.listbox.setCurrentIndex(sel + 1)
+        self.listbox.setCurrentRow(sel + 1)
         new_text = self.listbox.item(sel + 1).text()
         self.controller.cmd_replace(new_text)
         if orig_text == new_text:
@@ -606,8 +633,8 @@ class _HistoryDialog:
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
             return
-        sel = sels[0]
-        orig_text = self.controller.text.text()
+        sel = sels[0].row()
+        orig_text = self.controller.text.currentText()
         match_against = None
         self._suspend_handler = False
         if shifted:
