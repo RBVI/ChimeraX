@@ -56,7 +56,7 @@ def save(session, models, filename, format=None,
         format = format.casefold()
         from .open import format_from_name
         fmt = format_from_name(format, save=True, open=False)
-        if format_name is None:
+        if fmt is None:
             fnames = sum([tuple(f.short_names) for f in io.formats()], ())
             from ..errors import UserError
             raise UserError("Unrecognized format '%s', must be one of %s" %
@@ -129,22 +129,32 @@ def save_formats(session):
         msg = '\n'.join(lines)
         session.logger.info(msg, is_html=True)
 
-
+from . import DynamicEnum
+class FileFormatArg(DynamicEnum):
+    def __init__(self, category = None):
+        DynamicEnum.__init__(self, self.formats)
+        self.category = category
+    def formats(self):
+        cat = self.category
+        from .. import io
+        names = sum((tuple(f.short_names) for f in io.formats()
+                     if f.export_func and (cat is None or f.category == cat)),
+                    ())
+        return names
+        
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, SaveFileNameArg, DynamicEnum
+    from . import CmdDesc, register, EnumOf, SaveFileNameArg
     from . import IntArg, BoolArg, PositiveIntArg, Bounded, FloatArg, NoArg
     from . import ModelsArg, EmptyArg, Or, ListOf
     from ..map.mapargs import MapRegionArg, Int1or3Arg
 
     models_arg = [('models', Or(ModelsArg, EmptyArg))]
     file_arg = [('filename', SaveFileNameArg)]
-    
-    def formats():
-        from .. import io
-        names = sum((tuple(f.short_names) for f in io.formats() if f.export_func), ())
-        return names
-    format_args = [
-        ('format', DynamicEnum(formats))]
+
+    format_args = [('format', FileFormatArg())]
+    from .. import toolshed
+    map_format_args = [('format', FileFormatArg(toolshed.VOLUME))]
+    image_format_args = [('format', FileFormatArg('Image'))]
 
     image_args = [
         ('width', PositiveIntArg),
@@ -180,14 +190,14 @@ def register_command(session):
 
     desc = CmdDesc(
         required=file_arg,
-        keyword=format_args + image_args,
+        keyword=image_format_args + image_args,
         synopsis='save image'
     )
     register('save image', desc, save_no_model)
 
     desc = CmdDesc(
         required=models_arg + file_arg,
-        keyword=format_args + map_args,
+        keyword=map_format_args + map_args,
         synopsis='save map'
     )
     register('save map', desc, save)
