@@ -86,6 +86,7 @@ def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, ori
         residues.ribbon_hide_backbones = hide_backbone
     if show_spine is not None:
         residues.unique_structures.ribbon_show_spines = show_spine
+    residues.atoms.update_ribbon_visibility()
 
 
 def _get_structures(session, structures):
