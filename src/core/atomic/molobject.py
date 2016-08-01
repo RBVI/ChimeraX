@@ -560,6 +560,7 @@ class Residue:
     def restore_snapshot(session, data):
         return object_map(data['structure'].session_id_to_residue(data['ses_id']), Residue)
 
+import atexit
 # -----------------------------------------------------------------------------
 #
 class Sequence:
@@ -568,6 +569,10 @@ class Sequence:
     '''
 
     def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
+        self.attrs = {} # miscellaneous attributes
+        self.markups = {} # per-residue (strings or lists)
+        self.numbering_start = None
+        self.chimera_exiting = False
         if seq_pointer:
             set_c_pointer(self, seq_pointer)
             return # name/characters already exists; don't set
@@ -582,10 +587,27 @@ class Sequence:
 
     # Some Sequence methods may have to be overridden/disallowed in Chain...
 
+    def __copy__(self, copy_seq=None):
+        if copy_seq is None:
+            copy_seq = Sequence(name=self.name, characters=self.characters)
+        else:
+            copy_seq.characters = self.characters
+        from copy import copy
+        copy_seq.attrs = copy(self.attrs)
+        copy_seq.markups = copy(self.markups)
+        copy_seq.numbering_start = self.numbering_start
+        return copy_seq
+
+    def __del__(self):
+        if self.chimera_exiting:
+            return
+        #TODO: destroy the C++ object; prevent destruction in Chain class
+
     def extend(self, chars):
         """Extend the sequence with the given string"""
         f = c_function('sequence_extend', args = (ctypes.c_void_p, ctypes.c_char_p))
         f(self._c_pointer, chars.encode('utf-8'))
+    append = extend
 
     def __len__(self):
         """Sequence length"""
@@ -593,12 +615,21 @@ class Sequence:
         return f(self._c_pointer)
 
     def take_snapshot(self, session, flags):
-        data = {'name': self.name, 'characters': self.characters}
+        data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
+            'markups': self.markups }
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Sequence(name=data['name'], characters=data['characters'])
+        seq = Sequence(name=data['name'], characters=data['characters'])
+        seq.attrs = data.get('attrs', {})
+        seq.markups = data.get('markups', {})
+        seq.numbering_start = data.get('numbering_start', None)
+        return seq
+
+    @atexit.register
+    def _exiting():
+        self.chimera_exiting = True
 
 # -----------------------------------------------------------------------------
 #
@@ -641,6 +672,12 @@ class Chain(Sequence):
         # for now, disallow Sequence.extend
         raise AssertionError("Sequence.extend called on Chain object")
 
+    @staticmethod
+    def restore_snapshot(session, data):
+        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
+        chain.description = data.get('description', None)
+        return chain
+
     def take_snapshot(self, session, flags):
         data = {
             'description': self.description,
@@ -648,12 +685,6 @@ class Chain(Sequence):
             'structure': self.structure
         }
         return data
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
-        chain.description = data.get('description', None)
-        return chain
 
 # -----------------------------------------------------------------------------
 #
