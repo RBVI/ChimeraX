@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def save(session, models, filename, format=None,
+def save(session, filename, models=None, format=None,
          width=None, height=None, supersample=3,
          pixel_size=None, transparent_background=False, quality=95,
          region = None, step = (1,1,1), mask_zone = True, chunk_shapes = None,
@@ -10,13 +10,13 @@ def save(session, models, filename, format=None,
 
     Parameters
     ----------
-    models : list of Model or None
-        Models to save
     filename : string
         File to save.
         File suffix determines what type of file is saved unless the format option is given.
         For sessions the suffix is .cxs.
         Image files can be saved with .png, .jpg, .tif, .ppm, .gif suffixes.
+    models : list of Model or None
+        Models to save
     format : string
         Recognized formats are session, or for saving images png, jpeg, tiff, gif, ppm, bmp.
         If not specified, then the filename suffix is used to identify the format.
@@ -145,11 +145,11 @@ class FileFormatArg(DynamicEnum):
 def register_command(session):
     from . import CmdDesc, register, EnumOf, SaveFileNameArg
     from . import IntArg, BoolArg, PositiveIntArg, Bounded, FloatArg, NoArg
-    from . import ModelsArg, EmptyArg, Or, ListOf
+    from . import ModelsArg, ListOf
     from ..map.mapargs import MapRegionArg, Int1or3Arg
 
-    models_arg = [('models', Or(ModelsArg, EmptyArg))]
     file_arg = [('filename', SaveFileNameArg)]
+    models_arg = [('models', ModelsArg)]
 
     format_args = [('format', FileFormatArg())]
     from .. import toolshed
@@ -174,7 +174,8 @@ def register_command(session):
         ('base_index', IntArg)]
 
     desc = CmdDesc(
-        required=models_arg + file_arg,
+        required=file_arg,
+        optional=models_arg,
         keyword=format_args + image_args + map_args,
         synopsis='save session or image'
     )
@@ -196,7 +197,8 @@ def register_command(session):
     register('save image', desc, save_no_model)
 
     desc = CmdDesc(
-        required=models_arg + file_arg,
+        required=file_arg,
+        optional=models_arg,
         keyword=map_format_args + map_args,
         synopsis='save map'
     )
