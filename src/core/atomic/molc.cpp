@@ -373,6 +373,41 @@ extern "C" EXPORT void atom_visible(void *atoms, size_t n, npy_bool *visible)
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::visible, visible);
 }
 
+extern "C" EXPORT void atom_alt_loc(void *atoms, size_t n, char *alt_loc)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, char>(a, n, &Atom::alt_loc, alt_loc);
+}
+
+extern "C" EXPORT void set_atom_alt_loc(void *atoms, size_t n, char *alt_locs)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    // can't use error_wrap_array_set because set_alt_loc takes multiple args
+    try {
+        for (size_t i = 0; i < n; ++i)
+            a[i]->set_alt_loc(alt_locs[i]);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_set_alt_loc(void *atom, char alt_loc, bool create, bool from_residue)
+{
+    Atom *a = static_cast<Atom *>(atom);
+    error_wrap(a, &Atom::set_alt_loc, alt_loc, create, from_residue);
+}
+
+extern "C" EXPORT void atom_has_alt_loc(void *atoms, size_t n, char alt_loc, npy_bool *has)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            has[i] = a[i]->has_alt_loc(alt_loc);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -439,11 +474,28 @@ extern "C" EXPORT void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
     }
 }
 
-extern "C" EXPORT bool atom_is_backbone(pyobject_t atom, uint8_t extent)
+
+extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, uint8_t extent, npy_bool *bb)
 {
-    Atom *a = static_cast<Atom *>(atom);
+    Atom **a = static_cast<Atom **>(atoms);
     BackboneExtent bbe = static_cast<BackboneExtent>(extent);
-    return error_wrap([&] () { return a->is_backbone(bbe); });
+    try {
+        for (size_t i = 0; i < n; ++i)
+            bb[i] = a[i]->is_backbone(bbe);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_is_sidechain(void *atoms, size_t n, npy_bool *is_sidechain)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_sidechain[i] = a[i]->is_sidechain();
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)
@@ -1646,6 +1698,17 @@ extern "C" EXPORT void residue_ribbon_clear_hide(void *residues, size_t n)
     try {
         for (size_t i = 0; i != n; ++i)
             r[i]->ribbon_clear_hide();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void residue_set_alt_loc(void *residues, size_t n, char alt_loc)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            r[i]->set_alt_loc(alt_loc);
     } catch (...) {
         molc_error();
     }

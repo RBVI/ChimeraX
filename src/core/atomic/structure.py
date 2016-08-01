@@ -369,6 +369,24 @@ class Structure(Model, StructureData):
         from .molobject import Residue
         from numpy import concatenate, array, zeros
         polymers = self.polymers(False, False)
+        def end_strand(res_class, ss_ranges, end):
+            if res_class[-1] == XSectionManager.RC_SHEET_START:
+                # Single-residue strands are coils
+                res_class[-1] = XSectionManager.RC_COIL
+                del ss_ranges[-1]
+            else:
+                # Multi-residue strands are okay
+                res_class[-1] = XSectionManager.RC_SHEET_END
+                ss_ranges[-1][1] = end
+        def end_helix(res_class, ss_ranges, end):
+            if res_class[-1] == XSectionManager.RC_HELIX_START:
+                # Single-residue helices are coils
+                res_class[-1] = XSectionManager.RC_COIL
+                del ss_ranges[-1]
+            else:
+                # Multi-residue helices are okay
+                res_class[-1] = XSectionManager.RC_HELIX_END
+                ss_ranges[-1][1] = end
         for rlist in polymers:
             rp = p.new_drawing(self.name + " ribbons")
             t2r = []
@@ -413,8 +431,7 @@ class Structure(Model, StructureData):
                             # Check if this is the start of another sheet
                             # rather than continuation for the current one
                             if ssids[i] != last_ssid:
-                                res_class[-1] = XSectionManager.RC_SHEET_END
-                                sheet_ranges[-1][1] = i
+                                end_strand(res_class, sheet_ranges, i)
                                 rc = XSectionManager.RC_SHEET_START
                                 sheet_ranges.append([i, -1])
                             else:
@@ -429,8 +446,7 @@ class Structure(Model, StructureData):
                             # Check if this is the start of another helix
                             # rather than a continuation for the current one
                             if ssids[i] != last_ssid:
-                                res_class[-1] = XSectionManager.RC_HELIX_END
-                                helix_ranges[-1][1] = i
+                                end_helix(res_class, helix_ranges, i)
                                 rc = XSectionManager.RC_HELIX_START
                                 helix_ranges.append([i, -1])
                             else:
@@ -447,23 +463,19 @@ class Structure(Model, StructureData):
                     rc = XSectionManager.RC_COIL
                     am_sheet = am_helix = False
                 if was_sheet and not am_sheet:
-                    res_class[-1] = XSectionManager.RC_SHEET_END
-                    sheet_ranges[-1][1] = i
+                    end_strand(res_class, sheet_ranges, i)
                 elif was_helix and not am_helix:
-                    res_class[-1] = XSectionManager.RC_HELIX_END
-                    helix_ranges[-1][1] = i
+                    end_helix(res_class, helix_ranges, i)
                 res_class.append(rc)
                 was_sheet = am_sheet
                 was_helix = am_helix
                 last_ssid = ssids[i]
             if was_sheet:
                 # 1hxx ends in a strand
-                res_class[-1] = XSectionManager.RC_SHEET_END
-                sheet_ranges[-1][1] = len(residues)
+                end_strand(res_class, sheet_ranges, len(residues))
             elif was_helix:
                 # 1hxx ends in a strand
-                res_class[-1] = XSectionManager.RC_HELIX_END
-                helix_ranges[-1][1] = len(residues)
+                end_helix(res_class, helix_ranges, len(residues))
 
             # Perform any smoothing (e.g., strand smoothing
             # to remove lasagna sheets, pipes and planks

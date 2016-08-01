@@ -821,6 +821,20 @@ Atom::is_backbone(BackboneExtent bbe) const {
     return bb_names->find(name()) != bb_names->end();
 }
 
+bool
+Atom::is_sidechain() const {
+    // hydrogens depend on the heavy atom they're attached to
+    if (element().number() == 1) {
+        if (bonds().size() == 1)
+            return (*neighbors().begin())->is_sidechain();
+        return false;
+    }
+    const std::set<AtomName>* bb_names = residue()->backbone_atom_names(BBE_MAX);
+    if (bb_names == nullptr)
+        return false;
+    return !is_backbone(BBE_MAX);
+}
+
 float
 Atom::occupancy() const
 {
@@ -985,7 +999,7 @@ Atom::session_save(int** ints, float** floats, PyObject* misc) const
 }
 
 void
-Atom::set_alt_loc(char alt_loc, bool create, bool from_residue)
+Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
 {
     if (alt_loc == _alt_loc || alt_loc == ' ')
         return;
@@ -1009,7 +1023,7 @@ Atom::set_alt_loc(char alt_loc, bool create, bool from_residue)
             << alt_loc << "'";
         throw std::invalid_argument(msg.str().c_str());
     }
-    if (from_residue) {
+    if (_from_residue) {
         _Alt_loc_info &info = (*i).second;
         _aniso_u = info.aniso_u;
         _serial_number = info.serial_number;

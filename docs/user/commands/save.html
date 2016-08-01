@@ -21,7 +21,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 
 <h3>Command: save</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>save</b> [&nbsp;<b>image</b>&nbsp;] &nbsp;<i>filename</i>
+<br><b>save</b> [&nbsp;<b>image</b>&nbsp;] &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
 [&nbsp;supersample&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
@@ -29,12 +29,29 @@ class="clRight" alt="ChimeraX logo"/></a>
 [&nbsp;<b>transparentBackground</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
-[&nbsp;<b>format</b>&nbsp;&nbsp;<b>session</b>&nbsp;]
+<br><b>save</b> [&nbsp;<b>map</b>&nbsp;] 
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a> &nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
+[&nbsp;<b>step</b>&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>region</b>&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
+[&nbsp;<b>maskZone</b>&nbsp;<b>true</b>|false&nbsp;]
+[&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>append</b>&nbsp;true|<b>false</b>&nbsp;]
+[&nbsp;<b>compress</b>&nbsp;]
+[&nbsp;<b>chunkShapes</b>&nbsp;&nbsp;<i>order</i>&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<b>ses</b>&nbsp;]
+</h3>
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>save</b> <b>formats</b>
 </h3>
 <p>
-The command <b>save</b> saves an image file or a ChimeraX session file to
-<i>filename</i>, which can be a pathname (including directory location).
+The command <b>save</b> saves an image, map (volume data),
+or ChimeraX session to <i>filename</i>, 
+which can be a pathname (including directory location).
 The pathname can be absolute or relative to the current working directory
 as reported by the command <a href="pwd.html"><b>pwd</b></a>.
 Image and session files can also be saved with <b>File... Save</b> in the menu.
@@ -43,12 +60,14 @@ See also:
 <a href="log.html"><b>log</b></a>,
 <a href="movie.html"><b>movie</b></a>,
 <a href="view.html"><b>view</b></a>,
+<a href="volume.html"><b>volume</b></a>,
 <a href="windowsize.html"><b>windowsize</b></a>,
 <a href="../tools/cli.html#history"><b>Command History</b></a>,
 <a href="../tools/graphics.html"><b>Graphics</b></a> icons,
 <a href="../images.html">making images</a>
 </p><p>
-The <b>image</b> or <b>session</b> keyword before the <i>filename</i>
+The <b>image</b>, <b>map</b>, or <b>session</b> keyword 
+before the <i>filename</i>
 is optional if the file type is specified with either the <i>filename</i> 
 suffix or the <b>format</b> option:
 </p>
@@ -84,23 +103,46 @@ suffix or the <b>format</b> option:
 <td align="center">Portable PixMap</td>
 </tr><tr>
 <th align="center" style="background-color: #eaeaea">
+<i>file-format</i> (map)</td>
+<th align="center" style="background-color: #eaeaea">
+<a name="suffix"><i>filename</i> suffix</a></td>
+<th align="center" style="background-color: #eaeaea">description</td>
+</tr><tr>
+<td align="center">cmap</td>
+<td align="center">.cmp<br>.cmap</td>
+<td align="center">Chimera map<br>(may contain multiple models)</td>
+</tr><tr>
+<td align="center">dsn6</td>
+<td align="center">.brix</td>
+<td align="center">BRIX density map</td>
+</tr><tr>
+<td align="center">mrc</td>
+<td align="center">.mrc</td>
+<td align="center">MRC density map</td>
+</tr><tr>
+<th align="center" style="background-color: #eaeaea">
 <i>file-format</i> (session)</td>
 <th align="center" style="background-color: #eaeaea">
 <a name="suffix"><i>filename</i> suffix</a></td>
 <th align="center" style="background-color: #eaeaea">description</td>
 </tr><tr>
-<td align="center">session</td>
+<td align="center">ses</td>
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
 </tr></table>
 <p>
 If the format is specified separately, the
 appropriate suffix will be added to <i>filename</i>.
-In the case of a session, the filename will end in <b>.cxs.gz</b>
-because the file will be gzipped automatically.
-ChimeraX can open a session file in either the gzipped or unzipped state.
+Further options for <a href="#image-options">images</a> and
+<a href="#map-options">maps</a> are described below.
+</p><p>
+The <b>save formats</b> command lists the possible output formats in the
+<a href="../tools/log.html"><b>Log</b></a>.
 </p>
 
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
 <a name="image-options"></a>
 <h3>Image Options</h3>
 <p>
@@ -148,7 +190,110 @@ interpreted correctly by Adobe Photoshop.)
 Synonyms for true: True, 1. Synonyms for false: False, 0.
 </p>
 
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="map-options"></a>
+<h3>Map Options</h3>
+<p>
+The <a href="atomspec.html"><i>model-spec</i></a> can be omitted if only one
+volume model is currently open.
+</p><p>
+Multiple data sets can be written to multiple files by including a
+%d integer format specification in <i>filename</i>:
+<blockquote>
+<b>save #2,3,7 data%d.mrc</b>
+<br>
+<b>save #2,3,7 data%03d.mrc</b>
+</blockquote>
+The first example would generate the files data1.mrc, data2.mrc,
+and data3.mrc, while the second would instead use names like data001.mrc.
+Successive integers starting with <b>baseIndex</b> <i>M</i> (default <b>1</b>)
+will be used in the new names
+regardless of the volume model numbers. If the format specification is
+incorrect, <i>filename</i> will be interpreted as the name of a single
+file. Only the <a href="#chimap">Chimera map</a> format 
+can accommodate multiple data sets in a single file.
+</p><p>
+The <b>step</b> option indicates using the full resolution of the data
+(step size <b>1</b>, default) or a specified subsample (step size &gt; 1).
+Step sizes must be integers.
+A step size of 1 indicates all data points,
+2 indicates every other data point, 3 every third point, <i>etc.</i>
+If a single number is supplied, it is
+used along all three axes; if three numbers are supplied
+(separated by commas but not spaces), they
+are used along the X, Y, and Z axes, respectively.
+</p><p>
+The <b>region</b> option indicates writing 
+the full extents of the data (<b>all</b>, default) or a specified subregion.
+A subregion can be specified by <i>name</i>
+(previously <a href="volume.html#dimensions">assigned</a> with 
+<a href="volume.html"><b>volume</b></a>) or by grid indices
+<i>i1&ndash;i2</i> along the X axis,
+<i>j1&ndash;j2</i> along the Y axis, and
+<i>k1&ndash;k2</i> along the Z axis.
+Grid indices must be integers separated by commas but not spaces.
+If the <b>region</b> option is not supplied, the currently displayed
+subregion will be written.
+In this context, a zone is not considered a subregion.
+</p><p>
+If <b>maskZone</b> is <b>true</b> and zoning is in effect
+(see <a href="sop.html#zone"><b>sop zone</b></a>),
+<!--
+and the <b>Zone</b></a> feature in <b>Volume Viewer</b>
+-->
+data will be written
+out for a region enclosing the zone, with values outside the zone set to zero.
+</p><p>
+MRC files written by ChimeraX
+are in the MRC 2000 format. Older MRC-reading programs or
+programs expecting CCP4 format will read such files successfully
+but may not align the data correctly with other data sets.
+</p><p>
+If <a name="chimap"><b><i>Chimera map</i></b></a> format is saved:
+</p>
+ <ul>
+ <li>multiple data sets can be saved to a single file
+ (multiple volume models can be specified)
+ <li><b>append true</b> can be used to append the data to an 
+ existing file instead of overwriting the file
+ <li>the file will include symmetry (if any) previously 
+ <a href="volume.html#dimensions">assigned</a> with 
+ <a href="volume.html"><b>volume</b></a>
+ <li>the file can be compressed with <b>compress</b></a>
+ <li>the data layout can be controlled with <b>chunkShapes</b></a>
+ </ul>
+<p>
+Compression is most useful for volume masks (values 0/1),
+as other data sets tend to be noisy and compress very little, if at all.
+Layout affects the efficiency of later reading the data,
+primarily a concern for very large data sets (hundreds of Mb).
+The <b>chunkShapes</b> <i>order</i> can be one or more of the following,
+separated by commas but not spaces:
+<ul class="circle">
+<li><b>zyx</b> (default)
+<li>zxy
+<li>yxz
+<li>yzx
+<li>xzy
+<li>xyz
+</ul>
+Data are written in blocks of up to 64 Kb.  The blocks are shaped
+according to the specified <i>order</i>:
+smallest along the first axis and largest along the third.
+Data planes are read from a file with different efficiencies
+depending on their orientations and the layout.
+For example, from data written in the default order (<b>zyx</b>), XY planes
+will be read the most efficiently and YZ planes the least efficiently.
+When multiple orders are specified, multiple copies of the data are
+written to the same file.  When the file is read, the most efficient
+copy available will be used.
+Saving a file with an <i>order</i> ending in &ldquo;z&rdquo; can be very slow
+because one Z-plane is written at a time.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2016</address>
+July 2016</address>
 </body></html>

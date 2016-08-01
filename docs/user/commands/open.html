@@ -45,10 +45,10 @@ or commands or code to be executed.
 Local files can also be browsed/opened with <b>File... Open</b> in the menu,
 in which case the proper filename <a href="#local">suffix</a> is required.
 See also: 
+<a href="rename.html"><b>rename</b></a>,
 <a href="close.html"><b>close</b></a>,
 <a href="save.html"><b>save</b></a>,
 <a href="sym.html"><b>sym</b></a>,
-<b>list</b>,
 <a href="colortables.html#autocolors">initial colors</a>
 </p><p>
 Any resulting model in ChimeraX is automatically assigned a model ID number,
@@ -64,7 +64,7 @@ rare cases where generating the initial representation is slow
 (<i>e.g.</i>, drawing cartoons for very large numbers of atomic models).
 </p><p>
 The <b>open formats</b> command lists the possible formats and databases
-in the <a href="../tools/log.html"><b>Log</b></a>.
+in the <a href="../tools/log.html"><b>Log</b></a>. 
 </p><p>
 Examples:
 <blockquote>
@@ -80,8 +80,11 @@ Examples:
 </blockquote>
 </p>
 
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
 <a name="local"></a>
-<h3><a href="#top" class="nounder"><b>&larr;</b></a>Local Files</h3>
+<h3>Local Files</h3>
 <p>
 The <i>filename</i> is generally a pathname to a local file, 
 either absolute or relative to the current working directory as
@@ -126,8 +129,8 @@ target="_blank"><b>UCSF Chimera</b></a>)</td>
 <td align="center">electrostatic potential map
 <br>(also used for lipophilic potential from <b>mlp</b>)</td>
 </tr><tr>
-<td align="center">BRIX or DSN6 (used by O)</td>
-<td align="center"><b>.brix<br>.omap</b></td>
+<td align="center">BRIX</td>
+<td align="center"><b>.brix</b></td>
 <td align="center"><b>dsn6</b></td>
 <td align="center">density map</td>
 </tr><tr>
@@ -140,8 +143,13 @@ target="_blank"><b>UCSF Chimera</b></a>)</td>
 <td align="center">Chimera/ChimeraX map
 <br>(based on the hierarchical data format
 <a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
-<td align="center"><b>.cmap<br>.cmp</b></td>
+<td align="center"><b>.cmp<br>.cmap</b></td>
 <td align="center"><b>cmap</b></td>
+<td align="center">density map</td>
+</tr><tr>
+<td align="center">DSN6</td>
+<td align="center"><b>.omap</b></td>
+<td align="center"><b>dsn6</b></td>
 <td align="center">density map</td>
 </tr><tr>
 <td align="center">Image stack
@@ -203,9 +211,16 @@ in ChimeraX to connect with pseudobonds</td>
 <td align="center">HTML 
 <br>(to show in the ChimeraX built-in browser)</td>
 </tr></table>
+<p>
+Files that are gzipped, as indicated by their additional .gz suffix, 
+can also be read.
+</p>
 
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
 <a name="fetch"></a>
-<h3><a href="#top" class="nounder"><b>&larr;</b></a>Web Fetch</h3>
+<h3>Web Fetch</h3>
 <p>
 Alternatively, an entry can be fetched from a database
 if its <i>identifier</i> is supplied.

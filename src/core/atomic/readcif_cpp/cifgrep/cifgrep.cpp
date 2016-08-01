@@ -21,7 +21,8 @@ using readcif::CIFFile;
 // global options
 bool mmCIF_style;
 bool show_data_block;
-bool list_filename;
+bool show_filename;
+bool list_filename_only;
 bool verbose;
 vector<string> tags;
 
@@ -61,7 +62,7 @@ Extract::finish_parse()
 Extract extract;
 
 void
-save_parse_info(bool /*in_loop*/)
+save_parse_info()
 {
 	const string& cat = extract.category();
 	auto& cat_info = info[cat];
@@ -90,15 +91,19 @@ save_parse_info(bool /*in_loop*/)
 		shorten_tags = false;
 	}
 	while (extract.parse_row(pv)) {
-		if (show_data_block) {
-			std::cout << extract.block_code() << '\n';
-			return;
+		found_something = true;
+		if (show_filename) {
+			if (show_data_block)
+				std::cout << extract.block_code();
+			else
+				std::cout << current_filename;
 		}
-		if (list_filename) {
-			std::cout << current_filename << '\n';
+		if (list_filename_only) {
+			std::cout << '\n';
 			throw TerminateEarly();
 		}
-		found_something = true;
+                if (show_filename)
+                    std::cout << ": ";
 		bool rest = false;
 		for (auto&& id: tags) {
 			if (rest)
@@ -155,6 +160,7 @@ int
 main(int argc, char** argv)
 {
 	int opt;
+        bool set_show_filename = false;
 
 	while ((opt = getopt(argc, argv, "mdlv")) != -1) {
 		switch (opt) {
@@ -164,8 +170,18 @@ main(int argc, char** argv)
 			case 'd':
 				show_data_block = true;
 				break;
+			case 'h':
+				show_filename = true;
+                                set_show_filename = true;
+				break;
+			case 'H':
+				show_filename = false;
+                                set_show_filename = true;
+				break;
 			case 'l':
-				list_filename = true;
+				list_filename_only = true;
+				show_filename = true;
+                                set_show_filename = true;
 				break;
 			case 'v':
 				verbose = true;
@@ -179,9 +195,11 @@ main(int argc, char** argv)
 usage:
 		std::cerr << "Usage: " << argv[0] <<
 			" [-d] [-m] [-l] [-q] CIF_tags filename(s)\n"
-			"\t-d\tIf a match is found, list the data block code.\n"
+			"\t-d\tShow data block instead of filename.\n"
+                        "\t-h\tSuppress filename.\n"
+                        "\t-H\tAlways show filename.\n"
+			"\t-l\tIf a match is found, just list the filename.\n"
 			"\t-m\tmmCIF style (lowercase keyword/tags at beginning of line).\n"
-			"\t-l\tIf a match is found, list the filename.\n"
 			"\tCIF tags are comma separated category.id values.\n"
 			"\t\tOnly one category is supported.  Subsequent id's\n"
 			"\t\tcan elide the category (.id is sufficient).\n"
@@ -189,12 +207,7 @@ usage:
 		exit(EX_USAGE);
 	}
 
-	if (show_data_block && list_filename) {
-		std::cerr << "-d and -l are mutually exclusive.\n";
-		exit(EX_USAGE);
-	}
-
-	parse_tags(argv[optind]);
+	parse_tags(argv[optind++]);
 
 //std::cerr << "tags:\n";
 //for (auto t: tags) std::cout << "  " << t << '\n';
@@ -204,7 +217,9 @@ usage:
 		extract.register_category(category, save_parse_info);
 	}
 
-	for (++optind; optind < argc; ++optind) {
+        if (!set_show_filename)
+            show_filename = (argc - optind) > 1;
+	for (; optind < argc; ++optind) {
 		current_filename = argv[optind];
 		try {
 			extract.parse_file(current_filename);
@@ -216,7 +231,7 @@ usage:
 		}
 	}
 
-	if (found_something || show_data_block || list_filename)
+	if (found_something)
 		exit(EXIT_SUCCESS);
 	exit(EXIT_FAILURE);
 }

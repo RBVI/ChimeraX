@@ -21,8 +21,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 
 <h3>Command: mlp</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>mlp</b> 
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
+<br><b>mlp</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
 [&nbsp;dx &nbsp;<i>pathname</i>&nbsp;] 
 [&nbsp;spacing&nbsp;<i>s</i>&nbsp;]
 [&nbsp;method&nbsp;dubost&nbsp;|&nbsp;fauchere&nbsp;|&nbsp;brasseur&nbsp;|&nbsp;buckingham&nbsp;[&nbsp;nexp&nbsp;<i>n</i>&nbsp;]&nbsp;|&nbsp;type5&nbsp;]
@@ -53,9 +52,10 @@ amino acids plus HYP (hydroxyproline) and PCA (pyroglutamic acid).
 Any other residue types are ignored.
 Positive potentials correspond to more lipophilic (more hydrophobic) areas,
 negative to less lipophilic (more hydrophilic) areas.
+<b>Warning</b>: execution of this command is rather slow.
 </p><p>
 See also: <a href="open.html"><b>open</b></a>,
-<b>volume</b>
+<a href="volume.html"><b>volume</b></a>
 </p><p>
 The output potential map will be opened automatically. 
 The <b>dx</b> option specifies a name and location (<i>pathname</i>) 
@@ -84,5 +84,5 @@ The potential at each grid point is a sum over the atomic contributions.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2016</address>
+July 2016</address>
 </body></html>

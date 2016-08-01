@@ -32,12 +32,12 @@ If no matches are found, then the exit status code is 1.
 OPTIONS
 =======
 
--d  If a match is found, suppress output and list the data block code.
+-d  Show data block instead of filename.
+-h  Suppress filename.
+-H  Always show filename.
+-l  If a match is found, suppress output and just list the filename.
 -m  Speed up processing by assuming mmCIF style -- lowercase keyword/tags at the beginning of a line.
--l  If a match is found, suppress output and list the filename.
 -v  Verbose.  Give reason for search failure.
-
-The -d and -l options are mutually exclusive.
 
 SEE ALSO
 ========
