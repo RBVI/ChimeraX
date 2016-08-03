@@ -31,7 +31,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 [&nbsp;<a href="#fetch"><i>prefix</i></a>:]<i>identifier</i>&nbsp;
 [&nbsp;fromDatabase&nbsp;&nbsp;<a href="#fetch"><i>source</i></a>&nbsp;]
 [&nbsp;format&nbsp;&nbsp;<a href="#fetch"><i>file-format</i></a>&nbsp;]
-[&nbsp;ignoreCache&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;ignoreCache&nbsp;]
 [&nbsp;name&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 [&nbsp;smartInitialDisplay&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
@@ -150,6 +150,7 @@ target="_blank"><b>UCSF Chimera</b></a>)</td>
 <td align="center">DSN6</td>
 <td align="center"><b>.omap</b></td>
 <td align="center"><b>dsn6</b></td>
+<!-- dsn6 format name is shared, program figures out which variant -->
 <td align="center">density map</td>
 </tr><tr>
 <td align="center">Image stack
@@ -272,13 +273,16 @@ Chimera instructions</a> for available identifiers</td>
 <td align="center"><b>cellpack</b></td>
 </tr></table>
 <p>
-Web-fetched data are automatically cached locally in subdirectories of
-<b>~/Downloads/Chimera</b>. 
-Retrieving previously fetched data from the cache can be bypassed 
-with <b>ignoreCache true</b>, although the new data will still be cached.
+Web-fetched data are stored locally in a standard location
+(platform-dependent, see <a href="https://pypi.python.org/pypi/appdirs" 
+target="_blank">python appdirs</a>). The default download
+location for Chimera (for example, <b>~/Downloads/Chimera</b> on a Mac) 
+is checked first, and then this standard ChimeraX location. 
+If the data file is not found locally or the user has specified
+<b>ignoreCache</b>, the file will be fetched and cached. 
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2016</address>
+August 2016</address>
 </body></html>
