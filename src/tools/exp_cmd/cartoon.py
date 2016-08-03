@@ -735,7 +735,7 @@ def initialize(command_name):
         desc = CmdDesc(optional=[("structures", AtomicStructuresArg)],
                        keyword=[("scale", Bounded(FloatArg, 0.0, 1.0)),
                                 ("shape", EnumOf(_TetherShapeMap.keys())),
-                                ("sides", Bounded(IntArg, 3, 10)),
+                                ("sides", Bounded(IntArg, 3, 24)),
                                 ("opacity", Bounded(FloatArg, 0.0, 1.0)),
                                 ],
                        synopsis='set cartoon tether options for specified structures')
@@ -749,7 +749,7 @@ def initialize(command_name):
                                 ("arrow_scale", Bounded(FloatArg, 1.0, 3.0)),
                                 ("xsection", EnumOf(_XSectionMap.keys())),
                                 ("bar_scale", FloatArg),
-                                ("sides", Bounded(IntArg, 3, 10)),
+                                ("bar_sides", Bounded(IntArg, 3, 24)),
                                 ("ss_ends", EnumOf(["default", "short", "long"])),
                                 # ("cylinders", BoolArg),
                                 ],
