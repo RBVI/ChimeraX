@@ -2148,6 +2148,7 @@ class Command:
         while 1:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
+                if log: self.log(text)
                 raise UserError(self._error)
             if not self._ci:
                 if len(self.current_text) > self.amount_parsed and self.current_text[self.amount_parsed] == ';':
@@ -2157,18 +2158,22 @@ class Command:
                 return results
             prev_annos = self._process_positional_arguments()
             if self._error:
+                if log: self.log(text)
                 raise UserError(self._error)
             self._process_keyword_arguments(final, prev_annos)
             if self._error:
+                if log: self.log(text)
                 raise UserError(self._error)
             missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
             if missing:
                 arg_names = ['"%s"' % m for m in missing]
                 msg = commas(arg_names, ' and')
                 noun = plural_form(arg_names, 'argument')
+                if log: self.log(text)
                 raise UserError("Missing required %s %s" % (msg, noun))
             for cond in self._ci._postconditions:
                 if not cond.check(self._kw_args):
+                    if log: self.log(text)
                     raise UserError(cond.error_message())
 
             if not final:
@@ -2178,17 +2183,7 @@ class Command:
             ci = self._ci
             kw_args = self._kw_args
             if log:
-                if not session.ui.is_gui:
-                    session.logger.info("Executing: %s" % cmd_text)
-                else:
-                    from html import escape
-                    if ci.url is None:
-                        msg = '<div class="cxcmd">%s</div>' % escape(cmd_text)
-                    else:
-                        cargs = cmd_text[len(self.command_name):]
-                        msg = '<div class="cxcmd"><a href="%s">%s</a>%s</div>' % (
-                            ci.url, escape(self.command_name), escape(cargs))
-                    session.logger.info(msg, is_html=True, add_newline=False)
+                self.log(cmd_text)
             try:
                 if not isinstance(ci.function, Alias):
                     results.append(ci.function(session, **kw_args))
@@ -2241,6 +2236,21 @@ class Command:
             if self.amount_parsed == len(self.current_text):
                 return results
             self.amount_parsed += 1  # skip semicolon
+
+    def log(self, cmd_text):
+        session = self._session()  # resolve back reference
+        if not session.ui.is_gui:
+            session.logger.info("Executing: %s" % cmd_text)
+        else:
+            ci = self._ci
+            from html import escape
+            if ci.url is None:
+                msg = '<div class="cxcmd">%s</div>' % escape(cmd_text)
+            else:
+                cargs = cmd_text[len(self.command_name):]
+                msg = '<div class="cxcmd"><a href="%s">%s</a>%s</div>' % (
+                    ci.url, escape(self.command_name), escape(cargs))
+            session.logger.info(msg, is_html=True, add_newline=False)
 
 
 def command_function(name, no_aliases=False):

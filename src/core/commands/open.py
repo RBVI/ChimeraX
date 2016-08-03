@@ -69,7 +69,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         return models
 
     if format is not None:
-        fmt = format_from_short_name(format)
+        fmt = format_from_name(format)
         if fmt:
             format = fmt.name
 
@@ -95,10 +95,10 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     return models
 
 
-def format_from_short_name(name, open=True, save=False):
+def format_from_name(name, open=True, save=False):
     from .. import io
     formats = [f for f in io.formats()
-               if name in f.short_names and
+               if (name in f.short_names or name == f.name) and
                ((open and f.open_func) or (save and f.export_func))]
     if formats:
         return formats[0]
@@ -154,7 +154,7 @@ def open_formats(session):
 
 
 def register_command(session):
-    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg
+    from . import CmdDesc, register, DynamicEnum, StringArg, BoolArg, OpenFileNameArg, NoArg
 
     def formats():
         from .. import io
@@ -170,7 +170,7 @@ def register_command(session):
             ('format', DynamicEnum(formats)),
             ('name', StringArg),
             ('from_database', DynamicEnum(db_formats)),
-            ('ignore_cache', BoolArg),
+            ('ignore_cache', NoArg),
             ('smart_initial_display', BoolArg),
             # ('id', ModelIdArg),
         ],

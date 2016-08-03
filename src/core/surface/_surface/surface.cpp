@@ -10,6 +10,7 @@
 #include "patches.h"			// use sharp_edge_patches
 #include "refinemesh.h"			// use refine_mesh
 #include "sasa.h"			// use surface_area_of_spheres
+#include "stl.h"			// use stl_pack
 #include "subdivide.h"			// use subdivide_triangles
 #include "triangulate.h"		// use triangulate_polygon
 #include "tube.h"			// use tube_geometry
@@ -174,6 +175,15 @@ static struct PyMethodDef surface_cpp_methods[] =
    "Use points on sphere, count how many are inside other spheres\n"
    "to estimate surface area of union of solid spheres.\n"
    "Third argument areas contains areas contributed by each sphere\n"
+   "Implemented in C++.\n"
+  },
+
+  /* stl.h */
+  {const_cast<char*>("stl_pack"), (PyCFunction)stl_pack,
+   METH_VARARGS|METH_KEYWORDS,
+   "stl_pack(vertices, triangles)\n"
+   "\n"
+   "Compute the STL (Stereo Lithography) file format packing of specified triangles.\n"
    "Implemented in C++.\n"
   },
 

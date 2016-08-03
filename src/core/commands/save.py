@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def save(session, models, filename, format=None,
+def save(session, filename, models=None, format=None,
          width=None, height=None, supersample=3,
          pixel_size=None, transparent_background=False, quality=95,
          region = None, step = (1,1,1), mask_zone = True, chunk_shapes = None,
@@ -10,13 +10,13 @@ def save(session, models, filename, format=None,
 
     Parameters
     ----------
-    models : list of Model or None
-        Models to save
     filename : string
         File to save.
         File suffix determines what type of file is saved unless the format option is given.
         For sessions the suffix is .cxs.
         Image files can be saved with .png, .jpg, .tif, .ppm, .gif suffixes.
+    models : list of Model or None
+        Models to save
     format : string
         Recognized formats are session, or for saving images png, jpeg, tiff, gif, ppm, bmp.
         If not specified, then the filename suffix is used to identify the format.
@@ -54,8 +54,9 @@ def save(session, models, filename, format=None,
         fmt, fname, compress = io.deduce_format(filename, savable = True)
     else:
         format = format.casefold()
-        fmt = format_from_short_name(format, save=True, open=False)
-        if format_name is None:
+        from .open import format_from_name
+        fmt = format_from_name(format, save=True, open=False)
+        if fmt is None:
             fnames = sum([tuple(f.short_names) for f in io.formats()], ())
             from ..errors import UserError
             raise UserError("Unrecognized format '%s', must be one of %s" %
@@ -103,7 +104,7 @@ def save(session, models, filename, format=None,
     if fmt.open_func and not fmt.name.endswith('image'):
         # Remember in file history
         from ..filehistory import remember_file
-        remember_file(session, filename, fmt.name, models or 'all models', file_saved = True)
+        remember_file(session, filename, fmt.short_names[0], models or 'all models', file_saved = True)
 
 
 def save_formats(session):
@@ -128,42 +129,53 @@ def save_formats(session):
         msg = '\n'.join(lines)
         session.logger.info(msg, is_html=True)
 
-
+from . import DynamicEnum
+class FileFormatArg(DynamicEnum):
+    def __init__(self, category = None):
+        DynamicEnum.__init__(self, self.formats)
+        self.category = category
+    def formats(self):
+        cat = self.category
+        from .. import io
+        names = sum((tuple(f.short_names) for f in io.formats()
+                     if f.export_func and (cat is None or f.category == cat)),
+                    ())
+        return names
+        
 def register_command(session):
-    from . import CmdDesc, register, EnumOf, SaveFileNameArg, DynamicEnum
-    from . import IntArg, BoolArg, PositiveIntArg, Bounded, FloatArg, NoArg
-    from . import ModelsArg, EmptyArg, Or, ListOf
+    from . import CmdDesc, register, EnumOf, SaveFileNameArg
+    from . import IntArg, PositiveIntArg, Bounded, FloatArg, NoArg
+    from . import ModelsArg, ListOf
     from ..map.mapargs import MapRegionArg, Int1or3Arg
 
-    models_arg = [('models', Or(ModelsArg, EmptyArg))]
     file_arg = [('filename', SaveFileNameArg)]
-    
-    def formats():
-        from .. import io
-        names = sum((tuple(f.short_names) for f in io.formats() if f.export_func), ())
-        return names
-    format_args = [
-        ('format', DynamicEnum(formats))]
+    models_arg = [('models', ModelsArg)]
+
+    format_args = [('format', FileFormatArg())]
+    from .. import toolshed
+    map_format_args = [('format', FileFormatArg(toolshed.VOLUME))]
+    image_format_args = [('format', FileFormatArg('Image'))]
 
     image_args = [
         ('width', PositiveIntArg),
         ('height', PositiveIntArg),
         ('supersample', PositiveIntArg),
         ('pixel_size', FloatArg),
-        ('transparent_background', BoolArg),
+        ('transparent_background', NoArg),
         ('quality', Bounded(IntArg, min=0, max=100))]
 
     map_args = [
         ('region', MapRegionArg),
         ('step', Int1or3Arg),
-        ('mask_zone', BoolArg),
+        ('mask_zone', NoArg),
         ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
-        ('append', BoolArg),
+        ('append', NoArg),
         ('compress', NoArg),
         ('base_index', IntArg)]
 
     desc = CmdDesc(
-        required=models_arg + file_arg,
+        required=file_arg,
+        optional=models_arg,
         keyword=format_args + image_args + map_args,
         synopsis='save session or image'
     )
@@ -179,14 +191,15 @@ def register_command(session):
 
     desc = CmdDesc(
         required=file_arg,
-        keyword=format_args + image_args,
+        keyword=image_format_args + image_args,
         synopsis='save image'
     )
     register('save image', desc, save_no_model)
 
     desc = CmdDesc(
-        required=models_arg + file_arg,
-        keyword=format_args + map_args,
+        required=file_arg,
+        optional=models_arg,
+        keyword=map_format_args + map_args,
         synopsis='save map'
     )
     register('save map', desc, save)

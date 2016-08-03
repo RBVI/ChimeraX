@@ -1627,6 +1627,10 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                         if ((atom->hide() & Atom::HIDE_RIBBON) == 0
                                 && atom->is_backbone(BBE_RIBBON) && atom != center)
                             atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+#if 0
+                    // Not sure if this code is still needed.
+                    // Bonds are not drawn if the atoms are not visible.
+                    // So hiding the atoms should be enough.
                     for (auto bond: r[i]->bonds_between(r[i])) {
                         auto atoms = bond->atoms();
                         if ((bond->hide() & Bond::HIDE_RIBBON) == 0
@@ -1634,6 +1638,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                                 && atoms[1]->is_backbone(BBE_RIBBON))
                             bond->set_hide(bond->hide() | Bond::HIDE_RIBBON);
                     }
+#endif
                 }
                 else {
                     // Ribbon is not shown or does not hide backbone, so unhide backbone atoms and bonds

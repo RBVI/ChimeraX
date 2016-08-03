@@ -34,7 +34,7 @@ class CommandLine(ToolInstance):
                 def keyPressEvent(self, event):
                     from PyQt5.QtCore import Qt
                     import sys
-                    control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifer
+                    control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
                     shifted = event.modifiers() & Qt.ShiftModifier
                     if event.key() == Qt.Key_Up:  # up arrow
                         self.tool.history_dialog.up(shifted)

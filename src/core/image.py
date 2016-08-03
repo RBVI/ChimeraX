@@ -1,22 +1,22 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 class ImageFormat:
-    def __init__(self, name, suffix, pil_name):
+    def __init__(self, name, suffixes, pil_name):
         self.name = name
-        self.suffix = suffix
+        self.suffixes = suffixes
         self.pil_name = pil_name
 
 _formats = [
-    ('png', 'png', 'PNG'),
-    ('jpeg', 'jpg','JPEG'),
-    ('tiff', 'tif','TIFF'),
-    ('gif', 'gif', 'GIF'),
-    ('ppm', 'ppm', 'PPM'),
-    ('bmp', 'bmp', 'BMP'),
+    ('png', ['png'], 'PNG'),
+    ('jpeg', ['jpg','jpeg'],'JPEG'),
+    ('tiff', ['tif','tiff'],'TIFF'),
+    ('gif', ['gif'], 'GIF'),
+    ('ppm', ['ppm'], 'PPM'),
+    ('bmp', ['bmp'], 'BMP'),
 ]
 default_format = 'png'
-image_formats = [ImageFormat(name, suffix, pil_name)
-                 for name, suffix, pil_name in _formats]
+image_formats = [ImageFormat(name, suffixes, pil_name)
+                 for name, suffixes, pil_name in _formats]
 
 def save_image(session, filename, format=None, width=None, height=None,
                supersample=3, pixel_size=None, transparent_background=False, quality=95, **kw):
@@ -63,12 +63,12 @@ def save_image(session, filename, format=None, width=None, height=None,
     if suffix == '':
         if fmt is None:
             fmt = default_format
-            path += '.' + default_format.suffix
+            path += '.' + default_format.suffixes[0]
         else:
-            path += '.' + fmt.suffix
+            path += '.' + fmt.suffixes[0]
     elif fmt is None:
         for f in image_formats:
-            if f.suffix == suffix:
+            if suffix in f.suffixes:
                 fmt = f
         if fmt is None:
             from .errors import UserError
@@ -84,6 +84,6 @@ def register_image_save():
     for format in image_formats:
         register_format("%s image" % format.name,
                         category = 'Image',
-                        extensions = ['.%s' % format.suffix],
+                        extensions = ['.%s' % s for s in format.suffixes],
                         short_names = [format.name],
                         export_func=save_image)

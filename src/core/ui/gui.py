@@ -1480,6 +1480,9 @@ def redirect_stdio_to_logger(logger):
 
         def flush(self):
             return
+
+        def isatty(self):
+            return False
     LogStderr = LogStdout
     import sys
     sys.orig_stdout = sys.stdout
