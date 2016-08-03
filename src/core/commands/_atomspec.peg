@@ -24,7 +24,7 @@ model            = '##' attrs:attribute_list [ parts:model_parts ] [ zone:zone_s
 		 | parts:model_parts [ zone:zone_selector ]
                  ;
 
-model_hierarchy  = range_list:model_range_list { /(?<!\s)\./ hierarchy:model_range_list }*
+model_hierarchy  = range_list:model_range_list { /(?<!\s)\./ hierarchy:model_hierarchy }*
                  ;
 
 model_range_list = range:model_range { ',' range_list:model_range_list }*
