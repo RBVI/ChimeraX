@@ -768,7 +768,10 @@ class XSectionManager:
         coords = []
         normals = []
         param = self.params[self.STYLE_PIPING]
-        sides = param["sides"]
+        # The total number of sides is param["sides"]
+        # We subtract the two connectors and then divide
+        # by two while rounding up
+        sides = (param["sides"] - 1) // 2
         ratio = param["ratio"]
         theta = asin(ratio)
         side_angle = 2.0 * (pi - theta) / sides

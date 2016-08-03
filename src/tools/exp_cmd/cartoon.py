@@ -137,7 +137,7 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
 
 
 def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, arrows_helix=None,
-                  arrow_scale=None, xsection=None, bar_scale=None, bar_sides=None, ss_ends=None):
+                  arrow_scale=None, xsection=None, bar_scale=None, sides=None, ss_ends=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -157,8 +157,8 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
         Scale factor of arrow base width relative to strand or helix width.
     xsection : string
         Cross section type, one of "rectangle", "oval" or "barbell".
-    bar_sides : integer
-        Number of sides for barbell circular silhouette.
+    sides : integer
+        Number of sides for oval and barbell cross sections.
     bar_scale : floating point number
         Scale factor of barbell connector to ends.
     ss_ends : string
@@ -379,14 +379,19 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
             if xsection is not None:
                 m.ribbon_xs_mgr.set_nucleic_style(_XSectionMap[xsection])
     # process bar_sides and bar_scale
-    params = {}
-    if bar_sides is not None:
-        params["sides"] = bar_sides
+    oval_params = {}
+    bar_params = {}
+    if sides is not None:
+        bar_params["sides"] = sides
+        oval_params["sides"] = sides
     if bar_scale is not None:
-        params["ratio"] = bar_scale
-    if params:
+        bar_params["ratio"] = bar_scale
+    if oval_params:
         for m in structures:
-            m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_PIPING, **params)
+            m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_ROUND, **oval_params)
+    if bar_params:
+        for m in structures:
+            m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_PIPING, **bar_params)
 
 
 # Other command functions (to be removed)
@@ -749,7 +754,7 @@ def initialize(command_name):
                                 ("arrow_scale", Bounded(FloatArg, 1.0, 3.0)),
                                 ("xsection", EnumOf(_XSectionMap.keys())),
                                 ("bar_scale", FloatArg),
-                                ("bar_sides", Bounded(IntArg, 3, 24)),
+                                ("sides", Bounded(IntArg, 3, 24)),
                                 ("ss_ends", EnumOf(["default", "short", "long"])),
                                 # ("cylinders", BoolArg),
                                 ],
