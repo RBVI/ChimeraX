@@ -237,15 +237,10 @@ def _set_surface_colors(session, atoms, color, opacity, bgcolor=None):
 #
 def _set_sequential_chain(session, selected, cmap, opacity, target):
     # Organize selected atoms by structure and then chain
-    sa = selected.atoms
-    chain_atoms = sa.filter(sa.in_chains)
-    structures = {}
-    for structure, chain_id, atoms in chain_atoms.by_chain:
-        try:
-            sl = structures[structure]
-        except KeyError:
-            structures[structure] = sl = []
-        sl.append((chain_id, atoms))
+    uc = selected.atoms.residues.chains.unique()
+    chain_atoms = {}
+    for c in uc:
+        chain_atoms.setdefault(c.structure, []).append((c.chain_id, c.existing_residues.atoms))
     # Make sure there is a colormap
     if cmap is None:
         from .. import colors
@@ -253,7 +248,8 @@ def _set_sequential_chain(session, selected, cmap, opacity, target):
     # Each structure is colored separately with cmap applied by chain
     import numpy
     from ..colors import Color
-    for sl in structures.values():
+    for sl in chain_atoms.values():
+        sl.sort()
         colors = cmap.get_colors_for(numpy.linspace(0.0, 1.0, len(sl)))
         for color, (chain_id, atoms) in zip(colors, sl):
             c = Color(color)
