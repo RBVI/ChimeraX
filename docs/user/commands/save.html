@@ -26,17 +26,18 @@ class="clRight" alt="ChimeraX logo"/></a>
 [&nbsp;supersample&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
 [[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
-[&nbsp;<b>transparentBackground</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>transparentBackground</b>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>save</b> [&nbsp;<b>map</b>&nbsp;] 
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a> &nbsp;<i>filename</i>
+&nbsp;<i>filename</i>
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
 [&nbsp;<b>step</b>&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>region</b>&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
-[&nbsp;<b>maskZone</b>&nbsp;<b>true</b>|false&nbsp;]
+[&nbsp;<b>maskZone</b>&nbsp;]
 [&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<b>append</b>&nbsp;true|<b>false</b>&nbsp;]
+[&nbsp;<b>append</b>&nbsp;]
 [&nbsp;<b>compress</b>&nbsp;]
 [&nbsp;<b>chunkShapes</b>&nbsp;&nbsp;<i>order</i>&nbsp;]
 </h3>
@@ -44,13 +45,16 @@ class="clRight" alt="ChimeraX logo"/></a>
 <br><b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<b>ses</b>&nbsp;]
 </h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>save</b> &nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;<i>file-format</i>&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>save</b> <b>formats</b>
 </h3>
 <p>
-The command <b>save</b> saves an image, map (volume data),
-or ChimeraX session to <i>filename</i>, 
+The command <b>save</b> saves an image, map (volume data), ChimeraX session,
+or other data to <i>filename</i>, 
 which can be a pathname (including directory location).
 The pathname can be absolute or relative to the current working directory
 as reported by the command <a href="pwd.html"><b>pwd</b></a>.
@@ -69,25 +73,28 @@ See also:
 The <b>image</b>, <b>map</b>, or <b>session</b> keyword 
 before the <i>filename</i>
 is optional if the file type is specified with either the <i>filename</i> 
-suffix or the <b>format</b> option:
+suffix or the <b>format</b> option. Some file types have no 
+preceding keyword and must be specified with either the <i>filename</i>
+suffix or the <b>format</b> option.
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
-<th align="center" style="background-color: #eaeaea">
-<i>file-format</i> (image)</td>
-<th align="center" style="background-color: #eaeaea">
-<a name="suffix"><i>filename</i> suffix</a></td>
-<th align="center" style="background-color: #eaeaea">description</td>
+<th style="background-color: #eaeaea">initial keyword<br>(subcommand)</th>
+<th style="background-color: #eaeaea"><i>file-format</i></th>
+<th style="background-color: #eaeaea">
+<a name="suffix"><i>filename</i> suffix</a></th>
+<th style="background-color: #eaeaea">description</th>
 </tr><tr>
+<td align="center" rowspan="6"><b>image</b></td>
 <td align="center">png<br>(default for <b>save image</b>)</td>
 <td align="center">.png</td>
 <td align="center">Portable Network Graphics</td>
 </tr><tr>
 <td align="center">tiff</td>
-<td align="center">.tif</td>
+<td align="center">.tif<br>.tiff</td>
 <td align="center">Tagged Image File Format</td>
 </tr><tr>
 <td align="center">jpeg</td>
-<td align="center">.jpg</td>
+<td align="center">.jpg<br>.jpeg</td>
 <td align="center">Joint Photographic Experts Group</td>
 </tr><tr>
 <td align="center">gif</td>
@@ -102,12 +109,7 @@ suffix or the <b>format</b> option:
 <td align="center">.ppm</td>
 <td align="center">Portable PixMap</td>
 </tr><tr>
-<th align="center" style="background-color: #eaeaea">
-<i>file-format</i> (map)</td>
-<th align="center" style="background-color: #eaeaea">
-<a name="suffix"><i>filename</i> suffix</a></td>
-<th align="center" style="background-color: #eaeaea">description</td>
-</tr><tr>
+<td align="center" rowspan="3"><b>map</b></td>
 <td align="center">cmap</td>
 <td align="center">.cmp<br>.cmap</td>
 <td align="center">Chimera map<br>(may contain multiple models)</td>
@@ -120,15 +122,19 @@ suffix or the <b>format</b> option:
 <td align="center">.mrc</td>
 <td align="center">MRC density map</td>
 </tr><tr>
-<th align="center" style="background-color: #eaeaea">
-<i>file-format</i> (session)</td>
-<th align="center" style="background-color: #eaeaea">
-<a name="suffix"><i>filename</i> suffix</a></td>
-<th align="center" style="background-color: #eaeaea">description</td>
-</tr><tr>
+<td align="center"><b>session</b></td>
 <td align="center">ses</td>
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
+</tr><tr>
+<td align="center" rowspan="2">(none)</td>
+<td align="center">mmcif</td>
+<td align="center">.cif</td>
+<td align="center">mmCIF<br>*experimental/incomplete*</td>
+</tr><tr>
+<td align="center">stl</td>
+<td align="center">.stl</td>
+<td align="center">STereoLithography</td>
 </tr></table>
 <p>
 If the format is specified separately, the
@@ -178,16 +184,14 @@ For example, if at half-depth the graphics window encloses
 a 400-&Aring by 300-&Aring; rectangle,
 <b>pixelSize 0.4</b> specifies image pixel dimensions of 1000 by 750.
 </p><p>
-The <b>transparentBackground</b> option (default <b>false</b>)
-indicates whether to include opacity values (alpha) 
-in an output PNG or TIFF file. 
+The <b>transparentBackground</b> option indicates
+including opacity values (alpha) in an output PNG or TIFF file. 
 With background transparency, the background
 will be completely invisible in the saved images.
 This facilitates combining the image 
 with different backgrounds in image-editing applications.
 (<b>Note:</b> TIFF images with background transparency may not be
 interpreted correctly by Adobe Photoshop.)
-Synonyms for true: True, 1. Synonyms for false: False, 0.
 </p>
 
 <p class="nav">
@@ -238,7 +242,7 @@ If the <b>region</b> option is not supplied, the currently displayed
 subregion will be written.
 In this context, a zone is not considered a subregion.
 </p><p>
-If <b>maskZone</b> is <b>true</b> and zoning is in effect
+If <b>maskZone</b> is specified and zoning is in effect
 (see <a href="sop.html#zone"><b>sop zone</b></a>),
 <!--
 and the <b>Zone</b></a> feature in <b>Volume Viewer</b>
@@ -256,7 +260,7 @@ If <a name="chimap"><b><i>Chimera map</i></b></a> format is saved:
  <ul>
  <li>multiple data sets can be saved to a single file
  (multiple volume models can be specified)
- <li><b>append true</b> can be used to append the data to an 
+ <li><b>append</b> can be used to append the data to an 
  existing file instead of overwriting the file
  <li>the file will include symmetry (if any) previously 
  <a href="volume.html#dimensions">assigned</a> with 
@@ -295,5 +299,5 @@ because one Z-plane is written at a time.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2016</address>
+August 2016</address>
 </body></html>
