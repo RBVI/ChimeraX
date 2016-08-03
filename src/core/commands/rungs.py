@@ -29,7 +29,8 @@ def rungs(session, atoms = None, color = None, radius = None, halfbond = None,
     if atoms is None:
         atoms = all_atoms(session)
 
-    abase = atoms.filter(atoms.names == "C3'")
+    ratoms = atoms.unique_residues.atoms
+    abase = ratoms.filter(ratoms.names == "C3'")
     aname = {'A':'N1', 'DA':'N1', 'G':'N1', 'DG':'N1',
              'C':'N3', 'DC':'N3', 'T':'N3', 'DT':'N3', 'U':'N3'}
     for m, ab in abase.by_structure:
@@ -49,12 +50,11 @@ def rungs(session, atoms = None, color = None, radius = None, halfbond = None,
                     a2 = a2list[0]
                     b = cur_pb.get((a1,a2), None)	# See if pseudobond already exists.
                     if b is None:
-                        if hide:
-                            continue
-                        b = g.new_pseudobond(a1, a2)
-                        b.color = r.ribbon_color if color is None else color.uint8x4()
-                        b.radius = 0.5 if radius is None else radius
-                        b.halfbond = False
+                        if not hide:
+                            b = g.new_pseudobond(a1, a2)
+                            b.color = r.ribbon_color if color is None else color.uint8x4()
+                            b.radius = 0.5 if radius is None else radius
+                            b.halfbond = False
                     else:
                         b.display = not hide
                         if color is not None:
@@ -63,6 +63,8 @@ def rungs(session, atoms = None, color = None, radius = None, halfbond = None,
                             b.radius = radius
                         if halfbond is not None:
                             b.halfbond = halfbond
+                    if hide:
+                        continue
                     if hide_atoms:
                         ratoms.displays = False
                         a1.display = a2.display = True
