@@ -367,6 +367,12 @@ class Drawing:
     scene_position = property(_get_scene_position, _set_scene_position)
     '''Position in scene coordinates.'''
 
+    def get_scene_positions(self, displayed_only = False):
+        p = self.get_positions(displayed_only)
+        for d in reversed(self.drawing_lineage[:-1]):
+            p = d.get_positions(displayed_only) * p
+        return p
+        
     def get_positions(self, displayed_only=False):
         if displayed_only:
             return self._positions.masked(self.display_positions)

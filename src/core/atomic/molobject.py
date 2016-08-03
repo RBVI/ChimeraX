@@ -568,18 +568,22 @@ class Sequence:
     A polymeric sequence.  Offers string-like interface.
     '''
 
+    chimera_exiting = False
+
     def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
         self.numbering_start = None
-        self.chimera_exiting = False
+        set_pyobj_f = c_function('sequence_set_pyobj', args = (ctypes.c_void_p, ctypes.py_object))
         if seq_pointer:
             set_c_pointer(self, seq_pointer)
+            set_pyobj_f(self._c_pointer, self)
             return # name/characters already exists; don't set
         seq_pointer = c_function('sequence_new',
             args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
                 name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
+        set_pyobj_f(self._c_pointer, self)
 
     characters = c_property('sequence_characters', string, doc=
         "A string representing the contents of the sequence")
@@ -599,9 +603,10 @@ class Sequence:
         return copy_seq
 
     def __del__(self):
-        if self.chimera_exiting:
+        if Sequence.chimera_exiting:
             return
-        #TODO: destroy the C++ object; prevent destruction in Chain class
+        set_pyobj_f = c_function('sequence_set_pyobj', args = (ctypes.c_void_p, ctypes.py_object))
+        set_pyobj_f(self._c_pointer, None) # will destroy C++ object unless it's an active Chain
 
     def extend(self, chars):
         """Extend the sequence with the given string"""
@@ -614,6 +619,13 @@ class Sequence:
         f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)
         return f(self._c_pointer)
 
+    def set_state_from_snapshot(self, session, data):
+        seq.name = data['name']
+        self.characters = data['characters']
+        seq.attrs = data.get('attrs', {})
+        seq.markups = data.get('markups', {})
+        seq.numbering_start = data.get('numbering_start', None)
+
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
             'markups': self.markups }
@@ -621,27 +633,30 @@ class Sequence:
 
     @staticmethod
     def restore_snapshot(session, data):
-        seq = Sequence(name=data['name'], characters=data['characters'])
-        seq.attrs = data.get('attrs', {})
-        seq.markups = data.get('markups', {})
-        seq.numbering_start = data.get('numbering_start', None)
+        seq = Sequence()
+        seq.set_state_from_snapshot(session, data)
         return seq
 
     @atexit.register
     def _exiting():
-        self.chimera_exiting = True
+        Sequence.chimera_exiting = True
 
 # -----------------------------------------------------------------------------
 #
-class Chain(Sequence):
+class StructureSeq(Sequence):
     '''
-    A single polymer chain such as a protein, DNA or RNA strand.
-    A chain has a sequence associated with it.  A chain may have breaks.
-    Chain objects are not always equivalent to Protein Databank chains.
+    A sequence that has associated structure residues.
 
+    Unlike the Chain subclass, StructureSeq will not change in size once created,
+    though associated residues may change to None if those residues are deleted/closed.
     '''
-    def __init__(self, chain_pointer):
-        super().__init__(chain_pointer)
+
+    def __init__(self, sseq_pointer=None, *, chain_id=None, structure=None):
+        if sseq_pointer is None:
+            seq_pointer = c_function('sseq_new',
+                args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
+                    chain_id.encode('utf-8'), structure._c_pointer)
+        super().__init__(sseq_pointer)
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
         self.description = None
 
@@ -654,23 +669,60 @@ class Chain(Sequence):
             return str(self.structure) + base_str
         return base_str
 
-    chain_id = c_property('chain_chain_id', string, read_only = True)
+    chain_id = c_property('sseq_chain_id', string, read_only = True)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
-    structure = c_property('chain_structure', cptr, astype = _atomic_structure, read_only = True)
-    ''':class:`.AtomicStructure` that this chain belongs too. Read only.'''
-    existing_residues = c_property('chain_residues', cptr, 'num_residues', astype = _non_null_residues, read_only = True)
-    ''':class:`.Residues` collection containing the residues of this chain with existing structure, in order. Read only.'''
-    num_existing_residues = c_property('chain_num_existing_residues', size_t, read_only = True)
-    '''Number of residues in this chain with existing structure. Read only.'''
+    structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
+    ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
+    existing_residues = c_property('sseq_residues', cptr, 'num_residues', astype = _non_null_residues, read_only = True)
+    ''':class:`.Residues` collection containing the residues of this sequence with existing structure, in order. Read only.'''
+    num_existing_residues = c_property('sseq_num_existing_residues', size_t, read_only = True)
+    '''Number of residues in this sequence with existing structure. Read only.'''
 
-    residues = c_property('chain_residues', cptr, 'num_residues', astype = _residues_or_nones, read_only = True)
-    '''List containing the residues of this chain in order. Residues with no structure will be None. Read only.'''
-    num_residues = c_property('chain_num_residues', size_t, read_only = True)
-    '''Number of residues belonging to this chain, including those without structure. Read only.'''
+    residues = c_property('sseq_residues', cptr, 'num_residues', astype = _residues_or_nones, read_only = True)
+    '''List containing the residues of this sequence in order. Residues with no structure will be None. Read only.'''
+    num_residues = c_property('sseq_num_residues', size_t, read_only = True)
+    '''Number of residues belonging to this sequence, including those without structure. Read only.'''
 
-    def extend(self, *args, **kw):
-        # for now, disallow Sequence.extend
-        raise AssertionError("Sequence.extend called on Chain object")
+    def extend(self, chars):
+        # disallow extend
+        raise AssertionError("extend() called on StructureSeq/Chain object")
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
+        Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
+        sseq.description = data['description']
+        ptrs = numpy.array([ r._c_pointer.value if r else 0 for r in data['residues']])
+        f = c_function('sseq_bulk_set', args = (ctypes.c_void_p, ctypes.py_object, ctypes.c_char_p))
+        f(sseq._c_pointer, ptrs, sseq.characters)
+        sseq.description = data.get('description', None)
+        return sseq
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
+        chain.description = data.get('description', None)
+        return chain
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'Sequence': Sequence.take_snapshot(self),
+            'chain_id': self.chain_id,
+            'description': self.description,
+            'residues': self.residues,
+            'structure': self.structure
+        }
+        return data
+
+# -----------------------------------------------------------------------------
+#
+class Chain(StructureSeq):
+    '''
+    A single polymer chain such as a protein, DNA or RNA strand.
+    A chain has a sequence associated with it.  A chain may have breaks.
+    Chain objects are not always equivalent to Protein Databank chains.
+
+    '''
 
     @staticmethod
     def restore_snapshot(session, data):

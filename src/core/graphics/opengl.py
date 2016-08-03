@@ -396,7 +396,10 @@ class Render:
         move = None if lp.move_lights_with_camera else self.current_view_matrix
 
         # Key light
-        kld = move.apply_without_translation(lp.key_light_direction) if move else lp.key_light_direction
+        from ..geometry import normalize_vector
+        kld = normalize_vector(lp.key_light_direction)
+        if move:
+            kld = move.apply_without_translation(kld)
         p.set_vector("key_light_direction", kld)
         ds = mp.diffuse_reflectivity * lp.key_light_intensity
         kdc = tuple(ds * c for c in lp.key_light_color)
@@ -409,7 +412,9 @@ class Render:
         p.set_float("key_light_specular_exponent", mp.specular_exponent)
 
         # Fill light
-        fld = move.apply_without_translation(lp.fill_light_direction) if move else lp.fill_light_direction
+        fld = normalize_vector(lp.fill_light_direction)
+        if move:
+            fld = move.apply_without_translation(fld)
         p.set_vector("fill_light_direction", fld)
         ds = mp.diffuse_reflectivity * lp.fill_light_intensity
         fdc = tuple(ds * c for c in lp.fill_light_color)
@@ -780,7 +785,8 @@ class Render:
               * translation((0, 0, radius)))
 
         # Compute the view matrix looking along the light direction.
-        ld = light_direction
+        from ..geometry import normalize_vector
+        ld = normalize_vector(light_direction)
         # Light view frame:
         lv = translation(center - radius * ld) * orthonormal_frame(-ld)
         lvinv = lv.inverse()  # Scene to light view coordinates

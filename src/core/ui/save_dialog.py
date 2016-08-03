@@ -263,7 +263,7 @@ if window_sys == "wx":
 
         def wildcard(self):
             from ..image import image_formats
-            exts = list(f.suffix for f in image_formats)
+            exts = sum((list(f.suffixes) for f in image_formats), [])
             exts.remove(self.DEFAULT_EXT)
             exts.insert(0, self.DEFAULT_EXT)
             fmts = ';'.join("*.%s" % e for e in exts)
@@ -285,7 +285,7 @@ if window_sys == "wx":
             from ..image import image_formats
             for f in image_formats:
                 if f.name == format_name:
-                    return f.suffix
+                    return f.suffixes[0]
             else:
                 raise RuntimeError("unsupported graphics format: %s" % format_name)
 else:
@@ -440,7 +440,7 @@ else:
 
         def wildcard(self):
             from ..image import image_formats
-            exts = list(f.suffix for f in image_formats)
+            exts = sum((list(f.suffixes) for f in image_formats), [])
             exts.remove(self.DEFAULT_EXT)
             exts.insert(0, self.DEFAULT_EXT)
             fmts = ' '.join("*.%s" % e for e in exts)
@@ -452,6 +452,6 @@ else:
             from ..image import image_formats
             for f in image_formats:
                 if f.name == format_name:
-                    return f.suffix
+                    return f.suffixes[0]
             else:
                 raise RuntimeError("unsupported graphics format: %s" % format_name)

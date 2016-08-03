@@ -24,8 +24,8 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
       and no shadows with silhouettes enabled.  Specifying a preset only specifies some
       of the lighting parameters. Specifying other options overrides the preset values.
     direction : 3 floats
-      Key light direction as vector.  Does not have to
-      have unit length -- it will be normalized.  Points in the direction the light shines.
+      Key light direction as vector.  Does not have to have unit length.
+      Points in the direction the light shines.
       The viewing direction is along -z.  Initially is pointing down to the right
       (1,-1,-1).
     intensity : float
@@ -103,7 +103,6 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         session.logger.info(msg)
         return
 
-    from ..geometry.vector import normalize_vector as normalize
     from numpy import array, float32
 
     if preset == 'default' or preset == 'simple':
@@ -143,13 +142,13 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         v.silhouettes = True
 
     if not direction is None:
-        lp.key_light_direction = array(normalize(direction), float32)
+        lp.key_light_direction = array(direction, float32)
     if not intensity is None:
         lp.key_light_intensity = intensity
     if not color is None:
         lp.key_light_color = color.rgba[:3]
     if not fill_direction is None:
-        lp.fill_light_direction = array(normalize(fill_direction), float32)
+        lp.fill_light_direction = array(fill_direction, float32)
     if not fill_intensity is None:
         lp.fill_light_intensity = fill_intensity
     if not fill_color is None:

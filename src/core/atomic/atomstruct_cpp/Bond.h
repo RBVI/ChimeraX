@@ -82,7 +82,7 @@ namespace atomstruct {
 inline bool Bond::shown() const {
     return Connection::shown() &&
       (atoms()[0]->draw_mode() != Atom::DrawMode::Sphere ||
-       atoms()[0]->draw_mode() != Atom::DrawMode::Sphere);
+       atoms()[1]->draw_mode() != Atom::DrawMode::Sphere);
 }
 
 inline ChangeTracker*

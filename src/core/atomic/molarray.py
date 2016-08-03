@@ -216,6 +216,9 @@ class Collection(State):
         All duplicates are removed.'''
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
+    def unique(self):
+        '''Return a new collection containing the unique elements from this one.'''
+        return self.objects_class(unique(self._pointers))
 
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
@@ -821,16 +824,16 @@ class Chains(Collection):
     def __init__(self, chain_pointers):
         Collection.__init__(self, chain_pointers, molobject.Chain, Chains)
 
-    chain_ids = cvec_property('chain_chain_id', string, read_only = True)
+    chain_ids = cvec_property('sseq_chain_id', string, read_only = True)
     '''A numpy array of string chain ids for each chain. Read only.'''
-    structures = cvec_property('chain_structure', cptr, astype = _atomic_structures, read_only = True)
+    structures = cvec_property('sseq_structure', cptr, astype = _atomic_structures, read_only = True)
     '''A :class:`.StructureDatas` collection containing structures for each chain.'''
-    existing_residues = cvec_property('chain_residues', cptr, 'num_residues',
+    existing_residues = cvec_property('sseq_residues', cptr, 'num_residues',
         astype = _non_null_residues, read_only = True, per_object = False)
     '''A :class:`Residues` containing the existing residues of all chains. Read only.'''
-    num_existing_residues = cvec_property('chain_num_existing_residues', size_t, read_only = True)
+    num_existing_residues = cvec_property('sseq_num_existing_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of existing residues in each chain.'''
-    num_residues = cvec_property('chain_num_residues', size_t, read_only = True)
+    num_residues = cvec_property('sseq_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
 
     @classmethod
