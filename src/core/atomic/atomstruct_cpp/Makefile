@@ -50,14 +50,15 @@ AtomicStructure.o: Atom.h AtomicStructure.h Bond.h CoordSet.h destruct.h Structu
 	PBGroup.h Pseudobond.h Residue.h seq_assoc.h
 AtomTypes.o: AtomicStructure.h Bond.h Coord.h Residue.h tmpl/TAexcept.h
 Bond.o: Atom.h Bond.h Chain.h Connection.h Structure.h Residue.h Sequence.h
-Chain.o: Structure.h Chain.h ChangeTracker.h destruct.h Structure.h Sequence.h Residue.h
+Chain.o: Chain.h StructureSeq.h
 ChangeTracker.o: ChangeTracker.h
 connect.o: Atom.h Bond.h connect.h Coord.h destruct.h Structure.h MolResId.h PBGroup.h \
 	Residue.h string_types.h tmpl/Residue.h tmpl/Atom.h tmpl/residues.h
 CoordSet.o: Atom.h Structure.h CoordSet.h destruct.h
 destruct.o: destruct.h
-Structure.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h Structure.h PBGroup.h Pseudobond.h \
-	Residue.h
+Structure.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h Pseudobond.h \
+	Structure.h Residue.h
+StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h Structure.h Sequence.h Residue.h
 PBGroup.o: Atom.h destruct.h Structure.h PBGroup.h Pseudobond.h
 PBManager.o: destruct.h Structure.h PBGroup.h PBManager.h
 Point.o: Point.h

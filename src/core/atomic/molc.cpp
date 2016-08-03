@@ -1715,11 +1715,35 @@ extern "C" EXPORT void residue_set_alt_loc(void *residues, size_t n, char alt_lo
 }
 
 // -------------------------------------------------------------------------
-// chain functions
+// structure sequence functions
 //
-extern "C" EXPORT void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
+extern "C" EXPORT void sseq_bulk_set(void *sseq_ptr, PyObject *res_ptr_vals, char *seq)
 {
-    Chain **c = static_cast<Chain **>(chains);
+    try {
+        StructureSeq* sseq = static_cast<StructureSeq*>(sseq_ptr);
+        if (!PyList_Check(res_ptr_vals))
+            throw std::invalid_argument("sseq_bulk_seq residues arg not a list!");
+        auto num_res = PyList_GET_SIZE(res_ptr_vals);
+        if (strlen(seq) != (size_t)num_res)
+            throw std::invalid_argument("sseq_bulk_seq residue list not same length as sequence");
+        Sequence::Contents chars;
+        StructureSeq::Residues residues;
+        char* c = seq;
+        for (int i = 0; i < num_res; ++i, ++c) {
+            chars.push_back(*c);
+            // since 0 == nullptr, don't need specific conversion...
+            residues.push_back(static_cast<Residue*>(
+                PyLong_AsVoidPtr(PyList_GET_ITEM(res_ptr_vals, i))));
+        }
+        sseq->bulk_set(residues, &chars);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void sseq_chain_id(void *chains, size_t n, pyobject_t *cids)
+{
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
         for (size_t i = 0; i != n; ++i)
             cids[i] = unicode_from_string(c[i]->chain_id());
@@ -1728,15 +1752,15 @@ extern "C" EXPORT void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
     }
 }
 
-extern "C" EXPORT void chain_structure(void *chains, size_t n, pyobject_t *molp)
+extern "C" EXPORT void sseq_structure(void *chains, size_t n, pyobject_t *molp)
 {
-    Chain **c = static_cast<Chain **>(chains);
-    error_wrap_array_get(c, n, &Chain::structure, molp);
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
+    error_wrap_array_get(c, n, &StructureSeq::structure, molp);
 }
 
-extern "C" EXPORT void chain_num_residues(void *chains, size_t n, size_t *nres)
+extern "C" EXPORT void sseq_num_residues(void *chains, size_t n, size_t *nres)
 {
-    Chain **c = static_cast<Chain **>(chains);
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
         for (size_t i = 0; i != n; ++i)
             nres[i] = c[i]->residues().size();
@@ -1745,9 +1769,9 @@ extern "C" EXPORT void chain_num_residues(void *chains, size_t n, size_t *nres)
     }
 }
 
-extern "C" EXPORT void chain_num_existing_residues(void *chains, size_t n, size_t *nres)
+extern "C" EXPORT void sseq_num_existing_residues(void *chains, size_t n, size_t *nres)
 {
-    Chain **c = static_cast<Chain **>(chains);
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
         for (size_t i = 0; i != n; ++i) {
             size_t num_sr = 0;
@@ -1760,14 +1784,29 @@ extern "C" EXPORT void chain_num_existing_residues(void *chains, size_t n, size_
     }
 }
 
-extern "C" EXPORT void chain_residues(void *chains, size_t n, pyobject_t *res)
+extern "C" EXPORT void sseq_residues(void *chains, size_t n, pyobject_t *res)
 {
-    Chain **c = static_cast<Chain **>(chains);
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const Chain::Residues &r = c[i]->residues();
+            const StructureSeq::Residues &r = c[i]->residues();
             for (size_t j = 0; j != r.size(); ++j)
                 *res++ = r[j];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void sseq_existing_residues(void *chains, size_t n, pyobject_t *res)
+{
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const StructureSeq::Residues &r = c[i]->residues();
+            for (size_t j = 0; j != r.size(); ++j)
+                if (r[j] != nullptr)
+                    *res++ = r[j];
         }
     } catch (...) {
         molc_error();
@@ -1970,6 +2009,19 @@ extern "C" EXPORT void set_sequence_name(void *seqs, size_t n, pyobject_t *names
     try {
         for (size_t i = 0; i != n; ++i)
             s[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void sequence_set_pyobj(void *seq_ptr, PyObject *seq_obj)
+{
+    Sequence *seq = static_cast<Sequence*>(seq_ptr);
+    try {
+        if (seq_obj == Py_None)
+            seq->set_python_obj(nullptr);
+        else
+            seq->set_python_obj(seq_obj);
     } catch (...) {
         molc_error();
     }

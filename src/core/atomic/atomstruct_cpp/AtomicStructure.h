@@ -9,8 +9,8 @@ namespace atomstruct {
 class ATOMSTRUCT_IMEX AtomicStructure: public Structure {
     friend class Atom; // for IDATM stuff and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
-    friend class Chain; // for remove_chain()
     friend class Residue; // for _polymers_computed
+    friend class StructureSeq; // for remove_chain()
 private:
     void  _compute_atom_types();
     void  _compute_structure_cats() const;
