@@ -729,23 +729,22 @@ class XSectionManager:
 
     def _make_xs_round(self, scale):
         from numpy import array
-        from math import pi, cos, sin
         from .molobject import RibbonXSection as XSection
         coords = []
         normals = []
         param = self.params[self.STYLE_ROUND]
         sides = param["sides"]
-        side_angle = 2.0 * pi / sides
-        offset = side_angle / 2
-        for i in range(sides):
-            angle = i * side_angle + offset
-            coords.append((cos(angle), sin(angle)))
-            normals.append(coords[-1])
-        coords = array(coords) * array(scale)
+        from numpy import linspace, cos, sin, stack
+        from math import pi
+        angles = linspace(0, 2 * pi, sides, endpoint=False)
+        ca = cos(angles)
+        sa = sin(angles)
+        circle = stack((ca, sa), axis=1)
+        coords = circle * array(scale)
         if param["faceted"]:
             return XSection(coords, faceted=True)
         else:
-            normals = array(normals)
+            normals = circle * array((scale[1], scale[0]))
             return XSection(coords, normals=normals, faceted=False)
 
     def _make_xs_square(self, scale):
