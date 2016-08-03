@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = _sw
+SUBDIRS = NeedlemanWunsch _sw
 
 include $(TOP)/mk/subdir.make
 

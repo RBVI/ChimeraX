@@ -568,6 +568,10 @@ class Sequence:
     A polymeric sequence.  Offers string-like interface.
     '''
 
+    SS_HELIX = 'H'
+    SS_OTHER = 'O'
+    SS_STRAND = 'S'
+
     chimera_exiting = False
 
     def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
@@ -614,10 +618,36 @@ class Sequence:
         f(self._c_pointer, chars.encode('utf-8'))
     append = extend
 
+    def gapped_to_ungapped(self, index):
+        f = c_function('sequence_gapped_to_ungapped', args = (ctypes.c_void_p, ctypes.c_int),
+            ret = ctypes.c_int)
+        return f(self._c_pointer)
+
+    def __getitem__(self, key):
+        return self.characters[key]
+
+    def __hash__(self):
+        return id(self)
+
     def __len__(self):
         """Sequence length"""
         f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)
         return f(self._c_pointer)
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        seq = Sequence()
+        seq.set_state_from_snapshot(session, data)
+        return seq
+
+    def __setitem__(self, key, val):
+        chars = self.characters
+        if isinstance(key, slice):
+            start = key.start if key.start is not None else 0
+            stop = key.stop if key.stop is not None else len(chars)
+            self.characters = chars[:start] + val + chars[stop:]
+        else:
+            self.characters = chars[:key] + val + chars[key+1:]
 
     def set_state_from_snapshot(self, session, data):
         seq.name = data['name']
@@ -626,16 +656,26 @@ class Sequence:
         seq.markups = data.get('markups', {})
         seq.numbering_start = data.get('numbering_start', None)
 
+    def ss_type(self, loc, loc_is_ungapped=False):
+        try:
+            ss_markup = self.markups['SS']
+        except KeyError:
+            return None
+        if not loc_is_ungapped:
+            loc = self.gapped_to_ungapped(loc)
+        if loc is None:
+            return None
+        ss = ss_markup[loc]
+        if ss in "HGI":
+            return self.SS_HELIX
+        if ss == "E":
+            return self.SS_STRAND
+        return self.SS_OTHER
+
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
             'markups': self.markups }
         return data
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        seq = Sequence()
-        seq.set_state_from_snapshot(session, data)
-        return seq
 
     @atexit.register
     def _exiting():
@@ -682,6 +722,13 @@ class StructureSeq(Sequence):
     '''List containing the residues of this sequence in order. Residues with no structure will be None. Read only.'''
     num_residues = c_property('sseq_num_residues', size_t, read_only = True)
     '''Number of residues belonging to this sequence, including those without structure. Read only.'''
+
+    def __copy__(self):
+        f = c_function('sseq_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
+        copy_sseq = StructureSeq(f(self._c_pointer))
+        Sequence.__copy__(self, copy_seq = copy_sseq)
+        copy_sseq.description = self.description
+        return copy_sseq
 
     def extend(self, chars):
         # disallow extend

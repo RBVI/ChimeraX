@@ -1729,17 +1729,16 @@ extern "C" EXPORT void sseq_bulk_set(void *sseq_ptr, PyObject *res_ptr_vals, cha
         if (!PyList_Check(res_ptr_vals))
             throw std::invalid_argument("sseq_bulk_seq residues arg not a list!");
         auto num_res = PyList_GET_SIZE(res_ptr_vals);
-        if (strlen(seq) != (size_t)num_res)
-            throw std::invalid_argument("sseq_bulk_seq residue list not same length as sequence");
-        Sequence::Contents chars;
         StructureSeq::Residues residues;
-        char* c = seq;
-        for (int i = 0; i < num_res; ++i, ++c) {
-            chars.push_back(*c);
+        for (int i = 0; i < num_res; ++i) {
             // since 0 == nullptr, don't need specific conversion...
             residues.push_back(static_cast<Residue*>(
                 PyLong_AsVoidPtr(PyList_GET_ITEM(res_ptr_vals, i))));
         }
+        // chars not necessarily same length as residues due to gap characters
+        Sequence::Contents chars;
+        for (auto s = seq; *s != '\0'; ++s)
+            chars.push_back(*s);
         sseq->bulk_set(residues, &chars);
     } catch (...) {
         molc_error();
@@ -1754,6 +1753,17 @@ extern "C" EXPORT void sseq_chain_id(void *chains, size_t n, pyobject_t *cids)
             cids[i] = unicode_from_string(c[i]->chain_id());
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" EXPORT void *sseq_copy(void* source)
+{
+    StructureSeq *sseq = static_cast<StructureSeq*>(source);
+    try {
+        return sseq->copy();
+    } catch (...) {
+        molc_error();
+        return nullptr;
     }
 }
 
@@ -1983,6 +1993,17 @@ extern "C" EXPORT void sequence_extend(void *seq, const char *chars)
         s->extend(chars);
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" EXPORT int sequence_gapped_to_ungapped(void *seq, int32_t index)
+{
+    Sequence *s = static_cast<Sequence *>(seq);
+    try {
+        return s->gapped_to_ungapped(index);
+    } catch (...) {
+        molc_error();
+        return 0;
     }
 }
 

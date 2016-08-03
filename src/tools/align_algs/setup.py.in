@@ -24,7 +24,7 @@ setup(
         "PKG_NAME",
         # Add subpackage names here
     ],
-    package_data={"PKG_NAME": ["*.PYMOD_EXT"]},
+    package_data={"PKG_NAME": ["*.PYMOD_EXT", "NeedlemanWunsch/*.py"]},
     data_files=[
         ("", ["timestamp"]),
     ],
