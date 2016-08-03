@@ -216,6 +216,9 @@ class Collection(State):
         All duplicates are removed.'''
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
+    def unique(self):
+        '''Return a new collection containing the unique elements from this one.'''
+        return self.objects_class(unique(self._pointers))
 
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
