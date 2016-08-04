@@ -56,21 +56,23 @@ def surface(session, atoms = None, enclose = None, include = None,
     close : bool
       Close surfaces for the specified atoms.
     '''
-    atoms = check_atoms(atoms, session) # Warn if no atoms specifed
 
     from ..atomic.molsurf import close_surfaces, show_surfaces, hide_surfaces, remove_solvent_ligands_ions
     from ..atomic.molsurf import surface_rgba, MolecularSurface, update_color, surfaces_overlapping_atoms
 
     if close:
+        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
         close_surfaces(atoms, session.models)
         return []
 
     # Show surface patches for existing surfaces.
     if show:
+        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
         return show_surfaces(atoms, session.models)
 
     # Hide surfaces or patches of surface for specified atoms.
     if hide:
+        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
         return hide_surfaces(atoms, session.models)
 
     if replace:
@@ -87,6 +89,7 @@ def surface(session, atoms = None, enclose = None, include = None,
     surfs = []
     new_surfs = []
     if enclose is None:
+        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
         atoms, all_small = remove_solvent_ligands_ions(atoms, include)
         for m, chain_id, show_atoms in atoms.by_chain:
             if all_small:
@@ -110,6 +113,9 @@ def surface(session, atoms = None, enclose = None, include = None,
             surfs.append(s)
     else:
         enclose_atoms, eall_small = remove_solvent_ligands_ions(enclose, include)
+        if len(enclose_atoms) == 0:
+            from ..errors import UserError
+            raise UserError('No atoms specified by %s' % (enclose.spec,))
         show_atoms = enclose_atoms if atoms is None else atoms.intersect(enclose_atoms)
         s = all_surfs.get(enclose_atoms.hash())
         if s is None:
@@ -201,10 +207,10 @@ def check_atoms(atoms, session):
         from ..atomic import all_atoms
         atoms = all_atoms(session)
         if len(atoms) == 0:
-            from . import AnnotationError
-            raise AnnotationError('No atomic models open.')
+            from ..errors import UserError
+            raise UserError('No atomic models open.')
         atoms.spec = 'all atoms'
     elif len(atoms) == 0:
-        from . import AnnotationError
-        raise AnnotationError('No atoms specified by %s' % (atoms.spec,))
+        from ..errors import UserError
+        raise UserError('No atoms specified by %s' % (atoms.spec,))
     return atoms
