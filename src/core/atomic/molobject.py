@@ -95,6 +95,8 @@ class Atom:
         "    Hide mask for backbone atoms in ribbon.")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
+    is_ribose = c_property('atom_is_ribose', npy_bool, read_only = True,
+        doc = "Whether this atom is part of an nucleic acid ribose moiety. Read only.")
     is_sidechain = c_property('atom_is_sidechain', npy_bool, read_only = True,
         doc = "Whether this atom is part of an amino/nucleic acid sidechain. Read only.")
     name = c_property('atom_name', string, doc = "Atom name. Maximum length 4 characters.")

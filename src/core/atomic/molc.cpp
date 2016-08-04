@@ -487,6 +487,17 @@ extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, uint8_t extent, n
     }
 }
 
+extern "C" EXPORT void atom_is_ribose(void *atoms, size_t n, npy_bool *is_ribose)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_ribose[i] = a[i]->is_ribose();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_is_sidechain(void *atoms, size_t n, npy_bool *is_sidechain)
 {
     Atom **a = static_cast<Atom **>(atoms);

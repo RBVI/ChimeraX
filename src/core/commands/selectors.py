@@ -20,6 +20,7 @@ def register_core_selectors(session):
     reg(None, "backbone", _backbone_selector)
     reg(None, "mainchain", _backbone_selector)
     reg(None, "sidechain", _sidechain_selector)
+    reg(None, "ribose", _ribose_selector)
     from ..atomic import Element
     for i in range(1, 115):
         e = Element.get_element(i)
@@ -157,3 +158,12 @@ def _sidechain_selector(session, models, results):
         for m in sidechain.unique_structures:
             results.add_model(m)
         results.add_atoms(sidechain)
+
+def _ribose_selector(session, models, results):
+    from ..atomic import Structure, structure_atoms
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    ribose = atoms.filter(atoms.is_riboses)
+    if ribose:
+        for m in ribose.unique_structures:
+            results.add_model(m)
+        results.add_atoms(ribose)
