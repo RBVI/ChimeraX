@@ -162,7 +162,7 @@ main(int argc, char** argv)
 	int opt;
         bool set_show_filename = false;
 
-	while ((opt = getopt(argc, argv, "mdlv")) != -1) {
+	while ((opt = getopt(argc, argv, "mdhHlv")) != -1) {
 		switch (opt) {
 			case 'm':
 				mmCIF_style = true;
@@ -171,11 +171,11 @@ main(int argc, char** argv)
 				show_data_block = true;
 				break;
 			case 'h':
-				show_filename = true;
+				show_filename = false;
                                 set_show_filename = true;
 				break;
 			case 'H':
-				show_filename = false;
+				show_filename = true;
                                 set_show_filename = true;
 				break;
 			case 'l':
