@@ -76,8 +76,8 @@ public:
 class ATOMSTRUCT_IMEX Structure: public GraphicsContainer {
     friend class Atom; // for IDATM stuff and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
-    friend class Chain; // for remove_chain()
     friend class Residue; // for _polymers_computed
+    friend class StructureSeq; // for remove_chain()
 public:
     typedef std::vector<Atom*>  Atoms;
     typedef std::vector<Bond*>  Bonds;

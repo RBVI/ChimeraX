@@ -99,12 +99,14 @@ at the specified <i>level</i>:
 (always applies to entire chains); non-biopolymer residues 
 such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <li><b>chains</b> - a different color for each biopolymer chain in an 
-atomic model (always applies to entire models); non-biopolymer residues
-are not affected
+atomic model; non-biopolymer residues are not affected
 <li><b>molmodels</b> - a different color for each atomic model
 </ul>
-For <b>rainbow</b> only, 
+For <b>rainbow</b> only,
 the <i>level</i> can be omitted and defaults to <b>residues</b>.
+Sequential coloring applies to all atoms within the affected residues,
+chains, or models even if fewer atoms are specified, but can be restricted 
+to certain representations with the <a href="#target"><b>target</b></a> option.
 </p>
 
 <p class="nav">

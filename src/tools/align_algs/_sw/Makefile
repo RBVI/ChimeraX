@@ -2,7 +2,6 @@ TOP = ../../../..
 include $(TOP)/mk/config.make
 
 PKG_DIR		= $(PYSITEDIR)/chimerax/seqalign/align_algs
-APP_PKG_DIR	= $(APP_PYSITEDIR)/chimerax/seqalign/align_algs
 
 PYMOD_NAME	= _sw
 SRCS		= sw.cpp

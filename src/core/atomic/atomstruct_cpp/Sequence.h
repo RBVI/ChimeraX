@@ -9,6 +9,14 @@
 #include "imex.h"
 #include "string_types.h"
 
+// "forward declare" PyObject, which is a typedef of a struct,
+// as per the python mailing list:
+// http://mail.python.org/pipermail/python-dev/2003-August/037601.html
+#ifndef PyObject_HEAD
+struct _object;
+typedef _object PyObject;
+#endif
+
 namespace atomstruct {
 
 class ATOMSTRUCT_IMEX Sequence {
@@ -29,6 +37,7 @@ protected:
     // can't inherit from vector, since we need to clear caches on changes
     Contents  _contents;
     std::string  _name;
+    PyObject*  _python_obj;
 
 private:
     static int  SESSION_NUM_INTS(int /*version*/=0) { return 3; }
@@ -41,8 +50,9 @@ public:
     static char  protein3to1(const ResName& rn);
     static char  rname3to1(const ResName& rn);
 
-    Sequence(std::string name = "sequence"): _name(name) {}
-    Sequence(const Contents& chars, std::string name = "sequence"): _contents(chars), _name(name) {}
+    Sequence(std::string name = "sequence"): _name(name), _python_obj(nullptr) {}
+    Sequence(const Contents& chars, std::string name = "sequence"): _contents(chars), _name(name),
+        _python_obj(nullptr) {}
     Sequence(const std::vector<ResName>& res_names, std::string name = "sequence");  // 3-letter codes
     virtual  ~Sequence() {}
 
@@ -82,6 +92,7 @@ public:
     void  session_save(int**, float**) const;
     void  set_name(std::string& name) { _name = name; }
     void  set_name(const char* name) { _name = name; }
+    void  set_python_obj(PyObject* py_obj);
     Contents::size_type  size() const { return _contents.size(); }
     void  swap(Contents& x) { _clear_cache(); _contents.swap(x); }
     const Contents&  ungapped() const;

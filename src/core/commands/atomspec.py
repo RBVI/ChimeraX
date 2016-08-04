@@ -61,6 +61,7 @@ import re
 from .cli import Annotation
 
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
+_terminator = re.compile("[;\s]")  # semicolon or whitespace
 
 
 class AtomSpecArg(Annotation):
@@ -75,7 +76,7 @@ class AtomSpecArg(Annotation):
     @staticmethod
     def parse(text, session):
         """Parse text and return an atomspec parse tree"""
-        if not text or text[0].isspace():
+        if not text or _terminator.match(text[0]) is not None:
             from .cli import AnnotationError
             raise AnnotationError("empty atom specifier")
         if text[0] == '"':
@@ -146,7 +147,7 @@ class AtomSpecArg(Annotation):
         if end == 0:
             from .cli import AnnotationError
             raise AnnotationError("not an atom specifier")
-        if end < len(text) and not text[end].isspace():
+        if end < len(text) and _terminator.match(text[end]) is None:
             from .cli import AnnotationError
             raise AnnotationError('only initial part "%s" of atom specifier valid' % text[:end])
         # Consume what we used and return the remainder
@@ -760,6 +761,7 @@ def everything(session):
         An AtomSpec instance that matches everything in session.
     """
     return AtomSpecArg.parse('#*', session)[0]
+
 
 def all_objects(session):
     '''Return Objects that matches everything.'''

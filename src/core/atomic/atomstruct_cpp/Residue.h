@@ -32,7 +32,7 @@ private:
     Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert);
     virtual  ~Residue();
 
-    friend class Chain;
+    friend class StructureSeq;
     void  set_chain(Chain* chain) { _chain = chain; if (chain == nullptr) set_ribbon_display(false); }
     friend class AtomicStructure;
     friend class Bond;
