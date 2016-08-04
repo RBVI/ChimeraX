@@ -230,7 +230,7 @@ def make_mime_file(name):
         mi.xml_comment(copyright)
 
         fmts = io.formats()
-        fmts.sort(key = lambda f: f.name)
+        fmts.sort(key=lambda f: f.name)
         for f in fmts:
             extensions = f.extensions
             mime_types = f.mime_types
