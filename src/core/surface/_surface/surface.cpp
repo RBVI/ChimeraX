@@ -10,7 +10,7 @@
 #include "patches.h"			// use sharp_edge_patches
 #include "refinemesh.h"			// use refine_mesh
 #include "sasa.h"			// use surface_area_of_spheres
-#include "stl.h"			// use stl_pack
+#include "stl.h"			// use stl_pack, stl_unpack
 #include "subdivide.h"			// use subdivide_triangles
 #include "triangulate.h"		// use triangulate_polygon
 #include "tube.h"			// use tube_geometry
@@ -184,6 +184,14 @@ static struct PyMethodDef surface_cpp_methods[] =
    "stl_pack(vertices, triangles)\n"
    "\n"
    "Compute the STL (Stereo Lithography) file format packing of specified triangles.\n"
+   "Implemented in C++.\n"
+  },
+  {const_cast<char*>("stl_unpack"), (PyCFunction)stl_unpack,
+   METH_VARARGS|METH_KEYWORDS,
+   "stl_unpack(data)\n"
+   "\n"
+   "Return vertices, normals and triangle vertex indices by unpacking STL (Stereo Lithography)\n"
+   "file format data.\n"
    "Implemented in C++.\n"
   },
 

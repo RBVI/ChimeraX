@@ -82,38 +82,43 @@ def read_stl(session, filename, name, *args, **kw):
     del comment
 
     # Next read uint32 triangle count.
-    from numpy import fromstring, uint32, empty, float32, array, uint8
+    from numpy import fromstring, uint32, float32, array, uint8
     tc = fromstring(input.read(4), uint32)        # triangle count
 
-    # Next read 50 bytes per triangle containing float32 normal vector
-    # followed three float32 vertices, followed by two "attribute bytes"
-    # sometimes used to hold color information, but ignored by this reader.
-    nv = empty((tc, 12), float32)
-    for t in range(tc):
-        nt = input.read(12 * 4 + 2)
-        nv[t, :] = fromstring(nt[:48], float32)
-
+    geom = input.read(tc*50)	# 12 floats per triangle, plus 2 bytes padding.
+    
     if input != filename:
         input.close()
 
-    va, na, ta = stl_geometry(nv)    # vertices, normals, triangles
+    from .surface import stl_unpack
+    va, na, ta = stl_unpack(geom)    # vertices, normals, triangles
     model.vertices = va
     model.normals = na
     model.triangles = ta
     cur_color = [0.7, 0.7, 0.7, 1.0]
     cur_color = (array(cur_color) * 255).astype(uint8)
     model.color = cur_color
+
     return [model], ("Opened STL file containing %d triangles"
                      % len(model.triangles))
 
 
-def stl_geometry(nv):
-    tc = nv.shape[0]
+# -----------------------------------------------------------------------------
+#
+def stl_unpack(geom):
+
+    tc = len(geom) // 50
+    
+    # Next read 50 bytes per triangle containing float32 normal vector
+    # followed three float32 vertices, followed by two "attribute bytes"
+    # sometimes used to hold color information, but ignored by this reader.
+    from numpy import empty, float32, fromstring
+    nv = empty((tc, 12), float32)
+    for t in range(tc):
+        nv[t, :] = fromstring(geom[50*t:50*t+48], float32)
 
     # Assign numbers to vertices.
-    from numpy import (
-        empty, int32, float32, zeros, sqrt, newaxis
-    )
+    from numpy import empty, int32, float32, zeros, sqrt, newaxis
     tri = empty((tc, 3), int32)
     vnum = {}
     for t in range(tc):
@@ -132,7 +137,7 @@ def stl_geometry(nv):
     for t, tvi in enumerate(tri):
         for i in tvi:
             normals[i, :] += nv[t, 0:3]
-    normals /= sqrt((normals ** 2).sum(1))[:, newaxis]
+    normals /= sqrt((normals * normals).sum(1))[:,newaxis]
 
     return vert, normals, tri
 

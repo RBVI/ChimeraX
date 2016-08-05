@@ -4,8 +4,9 @@
 //
 #include <Python.h>			// use PyObject
 
-//#include <iostream>			// use std::cerr for debugging
-//#include <set>				// use std::set<>
+//include <iostream>			// use std::cerr for debugging
+#include <map>				// use std::map
+#include <vector>			// use std::vector
 
 #include <math.h>			// use sqrtf()
 #include <string.h>			// use memcpy()
@@ -93,4 +94,103 @@ stl_pack(PyObject *, PyObject *args, PyObject *keywds)
   pack_triangles(varray, tarray, data);
   
   return a;
+}
+
+// ----------------------------------------------------------------------------
+//
+class Vertex
+{
+public:
+  float x,y,z;
+  Vertex() {};
+  bool operator<(const Vertex &v) const
+    { return (x < v.x || (x == v.x && (y < v.y || (y == v.y && z < v.z)))); }
+};
+
+// -----------------------------------------------------------------------------
+// Read 50 bytes per triangle containing float32 normal vector
+// followed three float32 vertices, followed by two "attribute bytes"
+// sometimes used to hold color information, but ignored by this reader.
+//
+static void stl_unpack(const char *geom, int ntri,
+		       int *tri, std::vector<float> &v, std::vector<float> &n)
+{
+  // Find unique vertices and record triangle vertex indices.
+  std::map<Vertex,int> vertices; // Map unique vertices to index.
+  float tv[12];
+  Vertex vxyz;
+  int vi;
+  for (int t = 0 ; t < ntri ; ++t)
+    {
+      memcpy(&tv[0], geom + t*50 + 12, 36);
+      for (int c = 0 ; c < 3 ; ++c)
+	{
+	  float *tc = tv + 3*c;
+	  vxyz.x = tc[0];
+	  vxyz.y = tc[1];
+	  vxyz.z = tc[2];
+	  auto vit = vertices.find(vxyz);
+	  if (vit == vertices.end())
+	    {
+	      vertices[vxyz] = vi = vertices.size();
+	      v.push_back(vxyz.x);
+	      v.push_back(vxyz.y);
+	      v.push_back(vxyz.z);
+	      n.push_back(0);
+	      n.push_back(0);
+	      n.push_back(0);
+	    }
+	  else
+	    vi = vit->second;
+	  tri[3*t+c] = vi;
+	}
+    }
+
+  // Compute vertex normals as average of triangle normals.
+  float nxyz[3];
+  for (int t = 0 ; t < ntri ; ++t)
+    {
+      memcpy(&nxyz[0], geom + t*50, 12);
+      for (int c = 0 ; c < 3 ; ++c)
+	{
+	  vi = tri[3*t+c];
+	  for (int a = 0 ; a < 3 ; ++a)
+	    n[3*vi+a] += nxyz[a];
+	}
+    }
+
+  // Normalize normals.
+  int nv = v.size() / 3;
+  for (vi = 0 ; vi < nv ; ++vi)
+    {
+      float nx = n[3*vi], ny = n[3*vi+1], nz = n[3*vi+2];
+      float nn = sqrtf(nx*nx + ny*ny + nz*nz);
+      if (nn > 0)
+	{ n[3*vi] = nx/nn; n[3*vi+1] = ny/nn; n[3*vi+2] = nz/nn; }
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *
+stl_unpack(PyObject *, PyObject *args, PyObject *keywds)
+{
+  const char *data;
+  int nbytes;
+  const char *kwlist[] = {"data", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("y#"),
+				   (char **)kwlist,
+				   &data, &nbytes))
+    return NULL;
+
+  int ntri = nbytes / 50;
+  int *tri;
+  PyObject *tpy = python_int_array(ntri, 3, &tri);
+  std::vector<float> v, n;
+  stl_unpack(data, ntri, tri, v, n);
+  int nv = v.size() / 3;
+  PyObject *vpy = c_array_to_python(v, nv, 3);
+  PyObject *npy = c_array_to_python(n, nv, 3);
+  
+  return python_tuple(vpy, npy, tpy);
 }
