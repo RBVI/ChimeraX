@@ -4,7 +4,8 @@ include $(TOP)/mk/config.make
 SUBDIRS = alignments cage_builder cellpack cmd_line contacts \
 	  exp_cmd file_history help_viewer label \
 	  log map_series_gui model_panel mouse_modes movie remote_control \
-	  residue_fit sim_matrices shell shortcuts sideview test toolshed volume_viewer
+	  residue_fit sim_matrices shell shortcuts sideview stl \
+	  test toolshed volume_viewer
 
 include $(TOP)/mk/subdir.make
 
