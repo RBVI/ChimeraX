@@ -3,15 +3,12 @@
 stl: STL format support
 =======================
 
-Read little-endian STL binary format.
+Read and write little-endian STL binary format.
 """
-from .state import State, CORE_STATE_VERSION
 
-# code taken from chimera 1.7
+from chimerax.core.state import State, CORE_STATE_VERSION
 
-from . import generic3d
-
-
+from chimerax.core import generic3d
 class STLModel(generic3d.Generic3DModel):
     clip_cap = True
 
@@ -90,7 +87,7 @@ def read_stl(session, filename, name, *args, **kw):
     if input != filename:
         input.close()
 
-    from .surface import stl_unpack
+    from ._stl import stl_unpack
     va, na, ta = stl_unpack(geom)    # vertices, normals, triangles
     model.vertices = va
     model.normals = na
@@ -163,7 +160,7 @@ def write_stl(session, filename, models, **kw):
             if len(pos) > 0:
                 geom.append((va, ta, pos))
     va, ta = combine_geometry(geom)
-    from .surface import stl_pack
+    from ._stl import stl_pack
     stl_geom = stl_pack(va, ta)
     
     # Write 80 character comment.
@@ -236,7 +233,7 @@ def stl_pack(varray, tarray):
 def triangle_normal(v0,v1,v2):
 
     e10, e20 = v1 - v0, v2 - v0
-    from .geometry import normalize_vector, cross_product
+    from chimerax.core.geometry import normalize_vector, cross_product
     n = normalize_vector(cross_product(e10, e20))
     return n
 
@@ -253,7 +250,7 @@ def binary_string(x, dtype):
 # -----------------------------------------------------------------------------
 #
 def register():
-    from . import io
+    from chimerax.core import io
     io.register_format(
         "StereoLithography", generic3d.CATEGORY, (".stl",), ("stl",),
         reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",

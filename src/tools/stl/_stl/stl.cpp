@@ -112,8 +112,8 @@ public:
 // followed three float32 vertices, followed by two "attribute bytes"
 // sometimes used to hold color information, but ignored by this reader.
 //
-static void stl_unpack(const char *geom, int ntri,
-		       int *tri, std::vector<float> &v, std::vector<float> &n)
+static void unpack(const char *geom, int ntri,
+		   int *tri, std::vector<float> &v, std::vector<float> &n)
 {
   // Find unique vertices and record triangle vertex indices.
   std::map<Vertex,int> vertices; // Map unique vertices to index.
@@ -187,10 +187,50 @@ stl_unpack(PyObject *, PyObject *args, PyObject *keywds)
   int *tri;
   PyObject *tpy = python_int_array(ntri, 3, &tri);
   std::vector<float> v, n;
-  stl_unpack(data, ntri, tri, v, n);
+  unpack(data, ntri, tri, v, n);
   int nv = v.size() / 3;
   PyObject *vpy = c_array_to_python(v, nv, 3);
   PyObject *npy = c_array_to_python(n, nv, 3);
   
   return python_tuple(vpy, npy, tpy);
+}
+
+// ----------------------------------------------------------------------------
+//
+static PyMethodDef stl_methods[] = {
+  {const_cast<char*>("stl_pack"), (PyCFunction)stl_pack,
+   METH_VARARGS|METH_KEYWORDS,
+   "stl_pack(vertices, triangles)\n"
+   "\n"
+   "Compute the STL (Stereo Lithography) file format packing of specified triangles.\n"
+   "Implemented in C++.\n"
+  },
+  {const_cast<char*>("stl_unpack"), (PyCFunction)stl_unpack,
+   METH_VARARGS|METH_KEYWORDS,
+   "stl_unpack(data)\n"
+   "\n"
+   "Return vertices, normals and triangle vertex indices by unpacking STL (Stereo Lithography)\n"
+   "file format data.\n"
+   "Implemented in C++.\n"
+  },
+};
+
+
+static struct PyModuleDef stl_def =
+{
+	PyModuleDef_HEAD_INIT,
+	"_stl",
+	"STL file read/write",
+	-1,
+	stl_methods,
+	NULL,
+	NULL,
+	NULL,
+	NULL
+};
+
+PyMODINIT_FUNC
+PyInit__stl()
+{
+	return PyModule_Create(&stl_def);
 }
