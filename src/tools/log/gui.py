@@ -162,6 +162,7 @@ class Log(ToolInstance, HtmlLog):
             self.tool_window = LogWindow(self)
             parent = self.tool_window.ui_area
             from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+            self.prelog_active_window = None
             class HtmlWindow(QWebEngineView):
                 def __init__(self, parent, log):
                     super().__init__(parent)
@@ -239,6 +240,13 @@ class Log(ToolInstance, HtmlLog):
             #self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
             #                     id=self.log_window.GetId())
             self.log = self._qt_log
+            def loaded(okay):
+                # shift focus back to main window from log
+                if self.prelog_active_window != None \
+                and self.prelog_active_window != self.session.ui.activeWindow():
+                    self.prelog_active_window.activateWindow()
+                    self.prelog_active_window = None
+            self.log_window.loadFinished.connect(loaded)
         self.show_page_source()
 
     #
@@ -281,8 +289,6 @@ class Log(ToolInstance, HtmlLog):
 
             self.page_source += msg
         self.show_page_source()
-        from PyQt5.QtCore import Qt
-        self.session.ui.main_window.setFocus(Qt.OtherFocusReason)
         return True
 
     #
@@ -357,6 +363,8 @@ class Log(ToolInstance, HtmlLog):
         else:
             css = context_menu_css + cxcmd_css
             html = "<style>%s</style>\n<body onload=\"window.scrollTo(0, document.body.scrollHeight);\">%s</body>" % (cxcmd_css, self.page_source)
+            if self.prelog_active_window is None:
+                self.prelog_active_window = self.session.ui.activeWindow()
             self.log_window.setHtml(html)
 
     # wx event handling
