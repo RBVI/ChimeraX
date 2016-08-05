@@ -13,6 +13,8 @@ class FilePanel(ToolInstance):
         ToolInstance.__init__(self, session, bundle_info)
 
         self.thumbnail_size = (64,64)	# Pixels
+        self._default_image = None
+        self._default_image_format = None
 
         from chimerax.core.ui.gui import MainToolWindow
         class FilesWindow(MainToolWindow):
@@ -40,6 +42,9 @@ class FilePanel(ToolInstance):
         else: # Qt
             self.tool_window = FilesWindow(self)
             parent = self.tool_window.ui_area
+            # Don't take focus away from command-line.  This doesn't work with QWebEngineView, QT bug 52999.
+            from PyQt5.QtCore import Qt
+            parent.setFocusPolicy(Qt.NoFocus)
 
             from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
             class HtmlWindow(QWebEngineView):
@@ -78,29 +83,43 @@ class FilePanel(ToolInstance):
             lines = ['<html>', '<body>', '<style>', 'table { float:left; }', '</style>']
             w,h = self.thumbnail_size
             # TODO: Qt 5.6.0 bug in QT-53414 makes web content > 2 Mbytes not display.
-            # TODO: JPEG inline images cause page to be blank.
-            max_images = 50
+            hbytes, max_bytes = 0, 1500000
             for fi, f in enumerate(reversed(files)):
-                name = f.short_name()
+                name = limit_string(f.short_name(), 8)
                 import html
                 cmd = html.escape(f.open_command())
-                if f.image is None or fi > max_images:
-                    line = '<a href="cxcmd:%s">%s</a>' % (cmd, name)
-                else:
-                    if self.window_sys == 'qt':
-                        img = '<img src="data:image/png;base64,%s" width=%d height=%d>' % (image_jpeg_to_png(f.image), w, h)
-                    else:  # wx
-                        img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d>' % (f.image, w, h)
-                    line = ('<table>'
-                            '<tr><td><a href="cxcmd:%s">%s</a>'
-                            '<tr><td align=center><a href="cxcmd:%s">%s</a>'
-                            '</table></a>'
-                            % (cmd, img, cmd, name))
+                if self.window_sys == 'qt':
+                    # TODO: JPEG inline images cause page to be blank.
+                    i = self.default_image('PNG') if f.image is None or hbytes > max_bytes else image_jpeg_to_png(f.image, (w,h))
+                    img = '<img src="data:image/png;base64,%s" width=%d height=%d>' % (i, w, h)
+                elif self.window_sys == 'wx':
+                    i = self.default_image() if f.image is None else f.image
+                    img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d>' % (i, w, h)
+                line = ('<table>'
+                        '<tr><td><a href="cxcmd:%s">%s</a>'
+                        '<tr><td align=center><a href="cxcmd:%s">%s</a>'
+                        '</table></a>'
+                        % (cmd, img, cmd, name))
                 lines.append(line)
+                hbytes += len(line)
             lines.extend(['</body>', '</html>'])
             html = '\n'.join(lines)
         return html
 
+    def default_image(self, format = 'JPEG'):
+        if self._default_image is None or self._default_image_format != format:
+            from PIL import Image
+            w,h = self.thumbnail_size
+            i = Image.new("RGB", (w,h), "gray")
+            import io
+            im = io.BytesIO()
+            i.save(im, format=format)
+            bytes = im.getvalue()
+            import codecs
+            self._default_image = codecs.encode(bytes, 'base64').decode('utf-8')
+            self._default_image_format = format
+        return self._default_image
+        
     def update_html(self):
         html = self.history_html()
         fhw = self.file_history_window
@@ -142,7 +161,7 @@ class FilePanel(ToolInstance):
             # unknown scheme
             self.session.logger.error("Unknown URL scheme: '%s'" % url)
 
-def image_jpeg_to_png(image_jpeg_base64):
+def image_jpeg_to_png(image_jpeg_base64, size = None):
     '''Convert base64 encoded jpeg image to base64 encode PNG image.'''
     import codecs
     image_jpeg = codecs.decode(image_jpeg_base64.encode('utf-8'), 'base64')
@@ -150,8 +169,15 @@ def image_jpeg_to_png(image_jpeg_base64):
     img_io = io.BytesIO(image_jpeg)
     from PIL import Image
     i = Image.open(img_io)
+    if size is not None:
+        i = i.resize(size)
     png_io = io.BytesIO()
     i.save(png_io, format='PNG')
     png_bytes = png_io.getvalue()
     image_png_base64 = codecs.encode(png_bytes, 'base64').decode('utf-8')
     return image_png_base64
+
+def limit_string(s, n):
+    if len(s) > n:
+        return s[:n//2] + '...' + s[-(n//2):]
+    return s
