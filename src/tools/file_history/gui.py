@@ -42,9 +42,6 @@ class FilePanel(ToolInstance):
         else: # Qt
             self.tool_window = FilesWindow(self)
             parent = self.tool_window.ui_area
-            # Don't take focus away from command-line.  This doesn't work with QWebEngineView, QT bug 52999.
-            from PyQt5.QtCore import Qt
-            parent.setFocusPolicy(Qt.NoFocus)
 
             from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
             class HtmlWindow(QWebEngineView):
@@ -52,6 +49,9 @@ class FilePanel(ToolInstance):
                     from PyQt5.QtCore import QSize
                     return QSize(*FilePanel.SIZE)
             self.file_history_window = fhw = HtmlWindow(parent)
+            # TODO: Don't take focus away from command-line.  This doesn't work with QWebEngineView, QT bug 52999.
+            # from PyQt5.QtCore import Qt
+            # fhw.setFocusPolicy(Qt.NoFocus)
             from PyQt5.QtWidgets import QGridLayout, QErrorMessage
             layout = QGridLayout(parent)
             layout.setContentsMargins(0,0,0,0)
