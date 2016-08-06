@@ -2244,7 +2244,7 @@ class Command:
         else:
             ci = self._ci
             from html import escape
-            if ci.url is None:
+            if ci is None or ci.url is None:
                 msg = '<div class="cxcmd">%s</div>' % escape(cmd_text)
             else:
                 cargs = cmd_text[len(self.command_name):]
