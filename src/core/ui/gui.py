@@ -841,10 +841,10 @@ else:
             pass
 
         def build(self):
-            self.main_window = MainWindow(self, self.session)
-            self.main_window.graphics_window.keyPressEvent = self.forward_keystroke
-            self.main_window.show()
-            self.splash.finish(self.main_window)
+            self.main_window = mw = MainWindow(self, self.session)
+            mw.graphics_window.keyPressEvent = self.forward_keystroke
+            mw.show()
+            self.splash.finish(mw)
 
         def deregister_for_keystrokes(self, sink, notfound_okay=False):
             """'undo' of register_for_keystrokes().  Use the same argument.
