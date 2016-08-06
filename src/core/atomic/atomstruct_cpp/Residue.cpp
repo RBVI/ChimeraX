@@ -27,6 +27,8 @@ const std::set<AtomName> Residue::na_max_backbone_names = {
     "C2'", "O4'", "C1'", "OP3", "O3P"};
 const std::set<AtomName> Residue::na_ribbon_backbone_names = {
     "O3'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"};
+const std::set<AtomName> Residue::ribose_names = {
+    "O3'", "C3'", "C4'", "C5'", "O5'", "O2'", "C2'", "O4'", "C1'"};
 const std::set<ResName> Residue::std_solvent_names = { "HOH", "WAT", "DOD" };
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert):

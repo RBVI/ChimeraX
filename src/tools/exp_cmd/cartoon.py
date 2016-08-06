@@ -3,6 +3,7 @@
 
 from chimerax.core.atomic.ribbon import XSectionManager
 from chimerax.core.atomic import Residue, Structure
+from chimerax.core.commands import Annotation, AnnotationError
 
 _StyleMap = {
     "ribbon": Residue.RIBBON,
@@ -137,7 +138,8 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
 
 
 def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, arrows_helix=None,
-                  arrow_scale=None, xsection=None, bar_scale=None, sides=None, ss_ends=None):
+                  arrow_scale=None, xsection=None, sides=None,
+                  bar_scale=None, bar_sides=None, ss_ends=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -158,9 +160,11 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     xsection : string
         Cross section type, one of "rectangle", "oval" or "barbell".
     sides : integer
-        Number of sides for oval and barbell cross sections.
+        Number of sides for oval cross sections.
     bar_scale : floating point number
         Scale factor of barbell connector to ends.
+    bar_sides : integer
+        Number of sides for barbell cross sections.
     ss_ends : string
         Length of helix/strand representation relative to backbone atoms.
         One of "default", "short" or "long".
@@ -170,6 +174,38 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     structures = results.atoms.unique_structures
+    if (width is None and thickness is None and arrows is None and
+        arrows_helix is None and arrow_scale is None and xsection is None and
+        sides is None and bar_scale is None and bar_sides is None and
+        ss_ends is None):
+        # No options, report current state and return
+        indent = "  -"
+        for m in structures:
+            mgr = m.ribbon_xs_mgr
+            print(m)
+            print(indent,
+                  "helix=%s strand=%s coil=%s nucleic=%s" % (_XSInverseMap[mgr.style_helix],
+                                                               _XSInverseMap[mgr.style_sheet],
+                                                               _XSInverseMap[mgr.style_coil],
+                                                               _XSInverseMap[mgr.style_nucleic]))
+            print(indent,
+                  "helix=%.2g,%.2g" % mgr.scale_helix,
+                  "arrow_helix=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
+                                                       mgr.scale_helix_arrow[1]),
+                  "strand=%.2g,%.2g" % mgr.scale_sheet,
+                  "arrow_strand=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_sheet_arrow[0] +
+                                                        mgr.scale_sheet_arrow[1]),
+                  "coil=%.2g,%.2g" % mgr.scale_coil,
+                  "nucleic=%.2g,%.2g" % mgr.scale_nucleic)
+            print(indent,
+                  "helix arrow=%s strand arrow=%s" % (mgr.arrow_helix, mgr.arrow_sheet))
+            param = mgr.params[XSectionManager.STYLE_ROUND]
+            print(indent,
+                  "oval parameters:", ", ".join("%s: %s" % item for item in param.items()))
+            param = mgr.params[XSectionManager.STYLE_PIPING]
+            print(indent,
+                  "barbell parameters:", ", ".join("%s: %s" % item for item in param.items()))
+        return
     residues = results.atoms.residues
     is_helix = residues.is_helix
     is_sheet = residues.is_sheet
@@ -181,15 +217,15 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
         width /= 2
     if thickness is not None:
         thickness /= 2
-    if not (is_helix | is_sheet).all():
         # set coil parameters
-        for m in structures:
-            mgr = m.ribbon_xs_mgr
-            if thickness is not None:
-                coil_scale_changed[m] = True
-                mgr.set_coil_scale(thickness, thickness)
-            if xsection is not None:
-                m.ribbon_xs_mgr.set_coil_style(_XSectionMap[xsection])
+    for m in structures:
+        mgr = m.ribbon_xs_mgr
+        if thickness is not None:
+            coil_scale_changed[m] = True
+            mgr.set_coil_scale(thickness, thickness)
+        if (xsection is not None and
+                _XSectionMap[xsection] != XSectionManager.STYLE_PIPING):
+            m.ribbon_xs_mgr.set_coil_style(_XSectionMap[xsection])
     if is_helix.any():
         # set helix parameters
         for m in structures:
@@ -378,17 +414,18 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
                 mgr.set_nucleic_scale(w, h)
             if xsection is not None:
                 m.ribbon_xs_mgr.set_nucleic_style(_XSectionMap[xsection])
-    # process bar_sides and bar_scale
+    # process sides, bar_sides and bar_scale
     oval_params = {}
     bar_params = {}
     if sides is not None:
-        bar_params["sides"] = sides
         oval_params["sides"] = sides
-    if bar_scale is not None:
-        bar_params["ratio"] = bar_scale
     if oval_params:
         for m in structures:
             m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_ROUND, **oval_params)
+    if bar_scale is not None:
+        bar_params["ratio"] = bar_scale
+    if bar_sides is not None:
+        bar_params["sides"] = bar_sides
     if bar_params:
         for m in structures:
             m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_PIPING, **bar_params)
@@ -466,7 +503,6 @@ def cartoon_scale(session, structures=None, helix=None, arrow_helix=None,
                                                         mgr.scale_sheet_arrow[1]),
                   "coil=%.2g,%.2g" % mgr.scale_coil,
                   "nucleic=%.2g,%.2g" % mgr.scale_nucleic)
-                                                          
         return
     for m in _get_structures(session, structures):
         if helix is not None:
@@ -717,6 +753,22 @@ def uncartoon(session, spec=None):
     results.atoms.residues.ribbon_displays = False
 
 
+class EvenIntArg(Annotation):
+    """Annotation for even integers (for "sides")"""
+    name = "an even integer"
+
+    @classmethod
+    def parse(cls, text, session):
+        from chimerax.core.commands import IntArg
+        try:
+            token, text, rest = IntArg.parse(text, session)
+        except AnnotationError:
+            raise AnnotationError("Expected %s" % cls.name)
+        if (token % 2) == 1:
+            raise AnnotationError("Expected %s" % cls.name)
+        return token, text, rest
+
+
 def initialize(command_name):
     from chimerax.core.commands import register
     from chimerax.core.commands import CmdDesc, AtomSpecArg, AtomicStructuresArg
@@ -753,8 +805,9 @@ def initialize(command_name):
                                 ("arrows_helix", BoolArg),
                                 ("arrow_scale", Bounded(FloatArg, 1.0, 3.0)),
                                 ("xsection", EnumOf(_XSectionMap.keys())),
+                                ("sides", Bounded(EvenIntArg, 3, 24)),
                                 ("bar_scale", FloatArg),
-                                ("sides", Bounded(IntArg, 3, 24)),
+                                ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                                 ("ss_ends", EnumOf(["default", "short", "long"])),
                                 # ("cylinders", BoolArg),
                                 ],

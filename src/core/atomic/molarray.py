@@ -347,6 +347,9 @@ class Atoms(Collection):
         f(self._c_pointers, n, bb_extent, pointer(values))
         return values
 
+    is_riboses = cvec_property('atom_is_ribose', npy_bool, read_only = True,
+        doc="Whether each atom is part of an nucleic acid ribose moiety."
+            " Returns numpy bool array. Read only.")
     is_sidechains = cvec_property('atom_is_sidechain', npy_bool, read_only = True,
         doc="Whether each atom is part of an amino/nucleic acid sidechain."
             " Returns numpy bool array. Read only.")

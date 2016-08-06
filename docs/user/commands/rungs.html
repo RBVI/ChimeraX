@@ -21,9 +21,7 @@ class="clRight" alt="ChimeraX logo"/></a>
 
 <h3>Command: rungs</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>rungs</b> &nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
-<!-- experiments suggest ione must specify all atoms in a residue, 
-but I think it should instead apply to all residues with any specified atom -->
+<br><b>rungs</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;radius&nbsp;<i>r</i>&nbsp;]
 [&nbsp;color&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;] 
 [&nbsp;halfbond&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -32,17 +30,18 @@ but I think it should instead apply to all residues with any specified atom -->
 [&nbsp;hideHbonds&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>rungs</b> &nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
+<br><b>rungs</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 <b>hide</b></h3>
 <p>
 The <b>rungs</b> command shows a simple broken-ladder representation
-of the <a href="atomspec.html">specified</a> nucleic acid residues,
+of the nucleic acid residues containing the
+<a href="atomspec.html">specified</a> atoms,
 or if nothing is specified, all nucleic acid residues.
 The rung representation for a nucleic acid residue is a cylinder 
 from the ribose C3' to N1 (if purine) or N3 (if pyrimidine),
 implemented as a <a href="../pseudobonds.html">pseudobond</a>.
-Using <b>rungs</b> with the <b>hide</b> keyword hides the rungs
-of the <a href="atomspec.html">specified</a> residues.
+Using <b>rungs</b> with the <b>hide</b> keyword hides
+any rungs of the specified residues.
 See also: 
 <a href="show.html"><b>show</b></a>,
 <a href="cartoon.html"><b>cartoon</b></a>,

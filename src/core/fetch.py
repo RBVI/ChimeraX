@@ -123,6 +123,7 @@ def html_user_agent(app_dirs):
 
     Notes
     -----
+    The user agent may have single quote characters in it.
 
     Typical use::
 
@@ -162,8 +163,8 @@ def html_user_agent(app_dirs):
 
     def comment(text):
         # TODO: check for matched parenthesis
-        # TODO: strip appropriate CTLs
-        return text
+        from html import escape
+        return escape(text)
 
     app_author = app_dirs.appauthor
     app_name = app_dirs.appname

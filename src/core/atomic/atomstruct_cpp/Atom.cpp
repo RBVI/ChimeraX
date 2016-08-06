@@ -811,8 +811,11 @@ bool
 Atom::is_backbone(BackboneExtent bbe) const {
     // hydrogens depend on the heavy atom they're attached to
     if (element().number() == 1) {
-        if (bonds().size() == 1)
-            return (*neighbors().begin())->is_backbone(bbe);
+        if (bonds().size() == 1) {
+            auto bonded = *neighbors().begin();
+            // need to check neighbor element to prevent possible infinite loop for H2
+            return bonded->element().number() > 1 && bonded->is_backbone(bbe);
+        }
         return false;
     }
     const std::set<AtomName>* bb_names = residue()->backbone_atom_names(bbe);
@@ -822,11 +825,31 @@ Atom::is_backbone(BackboneExtent bbe) const {
 }
 
 bool
+Atom::is_ribose() const {
+    // hydrogens depend on the heavy atom they're attached to
+    if (element().number() == 1) {
+        if (bonds().size() == 1) {
+            auto bonded = *neighbors().begin();
+            // need to check neighbor element to prevent possible infinite loop for H2
+            return bonded->element().number() > 1 && bonded->is_ribose();
+        }
+        return false;
+    }
+    const std::set<AtomName>* rb_names = residue()->ribose_atom_names();
+    if (rb_names == nullptr)
+        return false;
+    return rb_names->find(name()) != rb_names->end();
+}
+
+bool
 Atom::is_sidechain() const {
     // hydrogens depend on the heavy atom they're attached to
     if (element().number() == 1) {
-        if (bonds().size() == 1)
-            return (*neighbors().begin())->is_sidechain();
+        if (bonds().size() == 1) {
+            auto bonded = *neighbors().begin();
+            // need to check neighbor element to prevent possible infinite loop for H2
+            return bonded->element().number() > 1 && bonded->is_sidechain();
+        }
         return false;
     }
     const std::set<AtomName>* bb_names = residue()->backbone_atom_names(BBE_MAX);
