@@ -665,8 +665,6 @@ def common_startup(sess):
 
 
 def _register_core_file_formats():
-    from . import stl
-    stl.register()
     from .atomic import pdb
     pdb.register_pdb_format()
     from .atomic import mmcif

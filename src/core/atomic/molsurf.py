@@ -73,7 +73,6 @@ class MolecularSurface(Model):
 
         self._vertex_to_atom = None
         self._max_radius = None
-        self._atom_colors = None
         self.clip_cap = True
 
     def new_parameters(self, show_atoms, probe_radius, grid_spacing,
@@ -103,7 +102,7 @@ class MolecularSurface(Model):
             self.vertices = None
             self.normals = None
             self.triangles = None
-            self._preserve_colors()
+            self.color = self._average_color()
             self.vertex_colors = None
             self._vertex_to_atom = None
             self._max_radius = None
@@ -149,7 +148,6 @@ class MolecularSurface(Model):
         self.normals = na
         self.triangles = ta
         self.triangle_mask = self._calc_triangle_mask()
-        self._restore_colors()
 
     def _calc_triangle_mask(self):
         tmask = self._patch_display_mask(self.show_atoms)
@@ -241,27 +239,15 @@ class MolecularSurface(Model):
         self.vertex_colors = None
     single_color = property(_get_single_color, _set_single_color)
 
-    def _preserve_colors(self):
+    def _average_color(self):
         vc = self.vertex_colors
-        if vc is None:
-            return
-
-        # Preserve surface colors per atom.
-        v2a = self.vertex_to_atom_map()
-        from numpy import empty, uint8
-        acolor = empty((len(self.atoms),4), uint8)
-        acolor[:] = self.color
-        acolor[v2a] = vc
-        self._atom_colors = acolor
-
-    def _restore_colors(self):
-        acolor = self._atom_colors
-        if acolor is None:
-            return
-
-        v2a = self.vertex_to_atom_map()
-        self.vertex_colors = acolor[v2a,:]
-        self._atom_colors = None
+        if vc is None or len(vc) == 0:
+            self.color
+        from numpy import float32, uint8
+        csum = vc.sum(axis = 0, dtype = float32)
+        csum /= len(vc)
+        acolor = csum.astype(uint8)
+        return acolor
 
     def first_intercept(self, mxyz1, mxyz2, exclude = None):
         # Pick atom associated with surface patch

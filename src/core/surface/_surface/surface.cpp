@@ -6,11 +6,9 @@
 #include "connected.h"			// use connected_triangles, ...
 #include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "normals.h"			// use calculate_vertex_normals, invert_vertex_normals
-#include "parse_stl.h"			// use parse_stl
 #include "patches.h"			// use sharp_edge_patches
 #include "refinemesh.h"			// use refine_mesh
 #include "sasa.h"			// use surface_area_of_spheres
-#include "stl.h"			// use stl_pack
 #include "subdivide.h"			// use subdivide_triangles
 #include "triangulate.h"		// use triangulate_polygon
 #include "tube.h"			// use tube_geometry
@@ -116,17 +114,6 @@ static struct PyMethodDef surface_cpp_methods[] =
    "Implemented in C++.\n"
   },
 
-  /* parse_stl.h */
-  {const_cast<char*>("parse_stl"), (PyCFunction)parse_stl,
-   METH_VARARGS|METH_KEYWORDS,
-   "parse_stl(bytes) -> (comment, vertices, normals, triangles)\n"
-   "\n"
-   "Parse a binary STL file passed in as a byte array and return\n"
-   "4 values: the header comment, unique vertices, corresponding normals\n"
-   "and triangles (triples of vertex indices).\n"
-   "Implemented in C++.\n"
-   },
-
   /* patches.h */
   {const_cast<char*>("sharp_edge_patches"), (PyCFunction)sharp_edge_patches,
    METH_VARARGS|METH_KEYWORDS,
@@ -175,15 +162,6 @@ static struct PyMethodDef surface_cpp_methods[] =
    "Use points on sphere, count how many are inside other spheres\n"
    "to estimate surface area of union of solid spheres.\n"
    "Third argument areas contains areas contributed by each sphere\n"
-   "Implemented in C++.\n"
-  },
-
-  /* stl.h */
-  {const_cast<char*>("stl_pack"), (PyCFunction)stl_pack,
-   METH_VARARGS|METH_KEYWORDS,
-   "stl_pack(vertices, triangles)\n"
-   "\n"
-   "Compute the STL (Stereo Lithography) file format packing of specified triangles.\n"
    "Implemented in C++.\n"
   },
 
