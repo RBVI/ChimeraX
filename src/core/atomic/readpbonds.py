@@ -3,7 +3,6 @@ def read_pseudobond_file(session, file, name, radius = 0.5, color = (255,255,0,2
     lines = file.readlines()
     file.close()
 
-    from . import pbgroup
     g = session.pb_manager.get_group(name)
 
     from ..commands import AtomsArg
