@@ -52,6 +52,7 @@ class FilePanel(ToolInstance):
             # TODO: Don't take focus away from command-line.  This doesn't work with QWebEngineView, QT bug 52999.
             # from PyQt5.QtCore import Qt
             # fhw.setFocusPolicy(Qt.NoFocus)
+            fhw.setEnabled(False)	# Prevent file history panel from taking keyboard focus.
             from PyQt5.QtWidgets import QGridLayout, QErrorMessage
             layout = QGridLayout(parent)
             layout.setContentsMargins(0,0,0,0)
