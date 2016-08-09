@@ -53,6 +53,11 @@ class FilePanel(ToolInstance):
             # from PyQt5.QtCore import Qt
             # fhw.setFocusPolicy(Qt.NoFocus)
             fhw.setEnabled(False)	# Prevent file history panel from taking keyboard focus.
+            # Don't record html history as log changes.
+            def clear_history(okay, fhw=fhw):
+                fhw.history().clear()
+            fhw.loadFinished.connect(clear_history)
+
             from PyQt5.QtWidgets import QGridLayout, QErrorMessage
             layout = QGridLayout(parent)
             layout.setContentsMargins(0,0,0,0)
@@ -128,7 +133,6 @@ class FilePanel(ToolInstance):
             fhw.SetPage(html, "")
         else:
             fhw.setHtml(html)
-            fhw.history().clear()	# Prevent saving html history
 #            fhw.setUrl(QUrl('file:///Users/goddard/Desktop/test.html'))  # Works with > 2Mb history html
 
     def file_history_changed_cb(self, name, data):
