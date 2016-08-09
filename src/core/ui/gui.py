@@ -859,7 +859,6 @@ else:
                     self._keystroke_sinks[i + 1:]
 
         def event_loop(self):
-            self.main_window.graphics_window.widget.setFocus()
             redirect_stdio_to_logger(self.session.logger)
             self.exec_()
             self.session.logger.clear()
