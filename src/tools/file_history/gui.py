@@ -128,6 +128,7 @@ class FilePanel(ToolInstance):
             fhw.SetPage(html, "")
         else:
             fhw.setHtml(html)
+            fhw.history().clear()	# Prevent saving html history
 #            fhw.setUrl(QUrl('file:///Users/goddard/Desktop/test.html'))  # Works with > 2Mb history html
 
     def file_history_changed_cb(self, name, data):
