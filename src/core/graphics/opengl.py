@@ -907,6 +907,10 @@ class Render:
     def allow_equal_depth(self, equal):
         GL.glDepthFunc(GL.GL_LEQUAL if equal else GL.GL_LESS)
 
+    def depth_invert(self, invert):
+        GL.glDepthFunc(GL.GL_GREATER if invert else GL.GL_LESS)
+        GL.glClearDepth(0.0 if invert else 1.0)
+        
     def set_depth_range(self, min, max):
         # # Get z-fighting with screen depth copied to framebuffer object
         # # on Mac/Nvidia
