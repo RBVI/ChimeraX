@@ -33,7 +33,7 @@ static void cylinder_rotations(float *axyz0, float *axyz1, int n, float *radii,
       float wx = -vy, wy = vx;
       float cx = c1*wx, cy = c1*wy;
       float r = *radii++;
-      float h = 0.5*d;
+      float h = d;
 
       *rot44++ = r*(cx*wx + c);
       *rot44++ = r*cy*wx;
