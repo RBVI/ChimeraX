@@ -1710,7 +1710,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                         PeptidePlane peptide;
                         atom_vector(prev_c, prev_o, co);
                         atom_vector(prev_c, n, cn);
-                        cross(cn, co, peptide.normal);
+                        cross(co, cn, peptide.normal);
                         // NB: do not bother normalizing now since we will
                         // use them in a cross product later and will
                         // have to normalize that result
@@ -1784,9 +1784,8 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                 const float* this_pp = peptide_planes[i + 1].normal;
                 float* guide = gdata + (i+1)*3;
                 cross(prev_pp, this_pp, guide);
-                if (!normalize(guide)) {
+                if (!normalize(guide))
                     std::cerr << "normalization error\n";
-                }
             }
             // We double the first and last guides because the first and
             // last residues only have one defined peptide plane to use.
@@ -1794,6 +1793,17 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             for (int j = 0; j != 3; ++j) {
                 gdata[j] = gdata[3 + j];
                 gdata[last + j] = gdata[last - 3 + j];
+            }
+            // Make sure that each guide is positioned on the same
+            // side as the carbonyl oxygen (guide ATOM) so that
+            // ribbon orientation flipping can be enforced
+            float cg[3];
+            for (int i = 0; i != centers.size(); ++i) {
+                atom_vector(centers[i], guides[i], cg);
+                int offset = i * 3;
+                if (inner(cg, gdata + offset))
+                    for (int j = 0; j != 3; ++j)
+                        gdata[offset + j] = -gdata[offset + j];
             }
             // Finally, we add back the center coordinates to move
             // back to the same coordinate system
