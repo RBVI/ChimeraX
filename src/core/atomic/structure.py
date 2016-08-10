@@ -420,10 +420,12 @@ class Structure(Model, StructureData):
             last_ssid = None
             helix_ranges = []
             sheet_ranges = []
+            was_nucleic = False
             for i in range(len(residues)):
                 if polymer_type[i] == Residue.PT_NUCLEIC:
                     rc = XSectionManager.RC_NUCLEIC
                     am_sheet = am_helix = False
+                    was_nucleic = True
                 elif polymer_type[i] == Residue.PT_AMINO:
                     if is_sheet[i]:
                         # Define sheet SS as having higher priority over helix SS
@@ -459,8 +461,12 @@ class Structure(Model, StructureData):
                     else:
                         rc = XSectionManager.RC_COIL
                         am_sheet = am_helix = False
+                    was_nucleic = False
                 else:
-                    rc = XSectionManager.RC_COIL
+                    if was_nucleic:
+                        rc = XSectionManager.RC_NUCLEIC
+                    else:
+                        rc = XSectionManager.RC_COIL
                     am_sheet = am_helix = False
                 if was_sheet and not am_sheet:
                     end_strand(res_class, sheet_ranges, i)
