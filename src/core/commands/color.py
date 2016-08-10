@@ -113,8 +113,10 @@ def color(session, objects, color=None, what=None,
         what.append('%d residues' % len(residues))
 
     if 'm' in target and color is not None:
+        from ..atomic import Structure, MolecularSurface
         for m in objects.models:
-            m.single_color = color.uint8x4()
+            if not isinstance(m, (Structure, MolecularSurface)):
+                m.single_color = color.uint8x4()
 
     if 'b' in target:
         if atoms is not None:
