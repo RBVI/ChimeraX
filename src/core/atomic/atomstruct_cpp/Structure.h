@@ -97,7 +97,8 @@ public:
     enum RibbonOrientation { RIBBON_ORIENT_DEFAULT = 0,
                              RIBBON_ORIENT_GUIDES = 1,
                              RIBBON_ORIENT_ATOMS = 2,
-                             RIBBON_ORIENT_CURVATURE = 3 };
+                             RIBBON_ORIENT_CURVATURE = 3,
+                             RIBBON_ORIENT_PEPTIDE = 4 };
 protected:
     const int  CURRENT_SESSION_VERSION = 1;
 
