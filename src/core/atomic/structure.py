@@ -1641,7 +1641,7 @@ class LevelOfDetail(State):
         cg = self._cylinder_geometries
         if not div in cg:
             from .. import surface
-            cg[div] = surface.cylinder_geometry(nc = div, caps = False)
+            cg[div] = surface.cylinder_geometry(nc = div, caps = False, height = 0.5)
         return cg[div]
 
     def bond_cylinder_triangles(self, nbonds):
