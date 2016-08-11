@@ -1724,9 +1724,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             else {
                 prev_c = NULL;
                 // Look for nucleotide
-                Atom *a = r->find_atom("P");
-                if (a == NULL)
-                    a = r->find_atom("C5'");
+                Atom *a = r->find_atom("C5'");
                 if (a == NULL) {
                     // Case 2: not a nucleotide
                     r->set_ribbon_display(false);
