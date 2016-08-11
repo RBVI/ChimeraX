@@ -324,6 +324,13 @@ Structure::delete_atom(Atom* a)
 void
 Structure::_delete_atoms(const std::set<Atom*>& atoms)
 {
+    for (auto a: atoms)
+        if (a->structure() != this) {
+            logger::error(_logger, "Atom ", a->residue()->str(), " ", a->name(),
+                " does not belong to the structure that it's being deleted from.");
+            throw std::invalid_argument("delete_atoms called with Atom not in"
+                " AtomicStructure/Structure");
+        }
     if (atoms.size() == _atoms.size()) {
         delete this;
         return;

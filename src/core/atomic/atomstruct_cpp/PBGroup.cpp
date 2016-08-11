@@ -20,11 +20,10 @@ StructurePBGroupBase::_check_structure(Atom* a1, Atom* a2)
             " atomic structure associated with group");
 }
 
-static void
-_check_destroyed_atoms(Group::Pseudobonds& pbonds, const std::set<void*>& destroyed,
-    GraphicsContainer* gc)
+void
+PBGroup::_check_destroyed_atoms(PBGroup::Pseudobonds& pbonds, const std::set<void*>& destroyed)
 {
-    Group::Pseudobonds remaining;
+    PBGroup::Pseudobonds remaining;
     for (auto pb: pbonds) {
         auto& pb_atoms = pb->atoms();
         if (destroyed.find(static_cast<void*>(pb_atoms[0])) != destroyed.end()
@@ -36,10 +35,10 @@ _check_destroyed_atoms(Group::Pseudobonds& pbonds, const std::set<void*>& destro
     }
     if (remaining.size() == 0) {
         pbonds.clear();
-        gc->set_gc_shape();
+        set_gc_shape();
     } else if (remaining.size() != pbonds.size()) {
         pbonds.swap(remaining);
-        gc->set_gc_shape();
+        set_gc_shape();
     }
 }
 
@@ -48,21 +47,20 @@ CS_PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
 {
     auto db = DestructionBatcher(this);
     for (auto& cs_pbs: _pbonds)
-        _check_destroyed_atoms(cs_pbs.second, destroyed,
-            static_cast<GraphicsContainer*>(this));
+        _check_destroyed_atoms(cs_pbs.second, destroyed);
 }
 
 void
 StructurePBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
 {
     auto db = DestructionBatcher(this);
-    _check_destroyed_atoms(_pbonds, destroyed,
-        static_cast<GraphicsContainer*>(this));
+    _check_destroyed_atoms(_pbonds, destroyed);
 }
 
 void
 CS_PBGroup::clear()
 {
+    auto db = DestructionBatcher(this);
     for (auto cat_set : _pbonds)
         for (auto pb: cat_set.second)
             delete pb;
@@ -72,6 +70,7 @@ CS_PBGroup::clear()
 void
 StructurePBGroup::clear()
 {
+    auto db = DestructionBatcher(this);
     for (auto pb : _pbonds)
         delete pb;
     _pbonds.clear();
@@ -88,7 +87,64 @@ CS_PBGroup::~CS_PBGroup()
 }
 
 void
-Group::dtor_code()
+PBGroup::delete_pbs_check(const std::set<Pseudobond*>& pbs) const
+{
+    for (auto pb: pbs)
+        if (pb->group() != this)
+            throw std::invalid_argument("delete_pseudobonds called for Pseudobond not in PBGroup");
+}
+
+void
+CS_PBGroup::delete_pseudobond(Pseudobond* pb)
+{
+    if (pb->group() != this)
+        throw std::invalid_argument("delete_pseudobond called for Pseudobond not in PBGroup");
+
+    auto db = DestructionBatcher(this);
+    auto cs = static_cast<CS_Pseudobond*>(pb)->coord_set();
+    _pbonds[cs].erase(pb);
+    delete pb;
+    set_gc_shape();
+}
+
+void
+StructurePBGroup::delete_pseudobond(Pseudobond* pb)
+{
+    if (pb->group() != this)
+        throw std::invalid_argument("delete_pseudobond called for Pseudobond not in PBGroup");
+
+    auto db = DestructionBatcher(this);
+    _pbonds.erase(pb);
+    delete pb;
+    set_gc_shape();
+}
+
+void
+CS_PBGroup::delete_pseudobonds(const std::set<Pseudobond*>& pbs)
+{
+    delete_pbs_check(pbs);
+    auto db = DestructionBatcher(this);
+    for (auto pb: pbs) {
+        _pbonds[static_cast<CS_Pseudobond*>(pb)->coord_set()].erase(pb);
+        delete pb;
+    }
+    set_gc_shape();
+}
+
+void
+StructurePBGroup::delete_pseudobonds(const std::set<Pseudobond*>& pbs)
+{
+    delete_pbs_check(pbs);
+    auto db = DestructionBatcher(this);
+    for (auto pb: pbs) {
+        _pbonds.erase(pb);
+        delete pb;
+    }
+    set_gc_shape();
+}
+
+void
+PBGroup::dtor_code()
 {
     _destruction_relevant = false;
     auto du = DestructionUser(this);
@@ -106,7 +162,7 @@ Pseudobond*
 CS_PBGroup::new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs)
 {
     _check_structure(a1, a2);
-    Pseudobond* pb = new Pseudobond(a1, a2, this);
+    Pseudobond* pb = static_cast<Pseudobond*>(new CS_Pseudobond(a1, a2, this, cs));
     pb->set_color(get_default_color());
     pb->set_halfbond(get_default_halfbond());
     auto pbi = _pbonds.find(cs);
@@ -129,10 +185,18 @@ StructurePBGroup::new_pseudobond(Atom* a1, Atom* a2)
     _pbonds.insert(pb); return pb;
 }
 
-const Group::Pseudobonds&
+const PBGroup::Pseudobonds&
 CS_PBGroup::pseudobonds() const
 {
     return pseudobonds(_structure->active_coord_set());
+}
+
+void
+CS_PBGroup::remove_cs(const CoordSet* cs) {
+    auto db = DestructionBatcher(this);
+    for (auto pb: _pbonds[cs])
+        delete pb;
+    _pbonds.erase(cs);
 }
 
 std::pair<Atom*, Atom*>
@@ -213,7 +277,7 @@ StructurePBGroup::session_num_ints(int version) const {
 }
 
 void
-Group::session_restore(int version, int** ints, float** floats)
+PBGroup::session_restore(int version, int** ints, float** floats)
 {
     _default_color.session_restore(ints, floats);
     auto& int_ptr = *ints;
@@ -255,7 +319,7 @@ StructurePBGroup::session_restore(int version, int** ints, float** floats)
 }
 
 void
-Group::session_save(int** ints, float** floats) const
+PBGroup::session_save(int** ints, float** floats) const
 {
     _default_color.session_save(ints, floats);
     auto& int_ptr = *ints;
