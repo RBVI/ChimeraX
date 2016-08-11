@@ -16,7 +16,6 @@ def struts(session, atoms, length = 7.0, loop = 30.0, radius = 0.6, color = None
     log = session.logger
     log.status('Computing struts, %d atoms' % (len(atoms),))
     brace(atoms, length, loop, pbg, log)
-#    brace2(atoms, length, loop, pbg, log)
 
     c = (178,178,178,255) if color is None else color.uint8x4()
         
@@ -151,70 +150,6 @@ def short_connection(i1, i2, dmax, strut_connections):
                 if not n in adist or dn < adist[n]:
                     adist[n] = dn
                     bndry.add(n)
-    return False
-
-def brace2(atoms, max_length, max_loop_length, model, log):
-
-    # Find all atom pairs within distance d of each other.
-    apairs = []
-    alist = list(atoms)
-    xyz = atoms.scene_coords
-    from chimerax.core.geometry import distance
-    for i1, a1 in enumerate(alist):
-        if log and i1 > 0 and i1 % 100 == 0:
-            log.status('Struts %d of %d atoms' % (i1, len(atoms)))
-            import sys
-            sys.__stderr__.write('Struts %d of %d atoms\n' % (i1, len(atoms)))
-        xyz1 = xyz[i1]
-        for i2, a2 in enumerate(alist[i1+1:]):
-            xyz2 = xyz[i1+1+i2]
-            d12 = distance(xyz1, xyz2)
-            if d12 <= max_length:
-                apairs.append((d12,a1,a2))
-    apairs.sort(key = lambda ap: ap[0])
-    print ('close pairs', len(apairs))
-
-    sc = {}	# Map atom to list of strut pseudobonds
-    for pb in model.pseudobonds:
-        for a in pb.atoms:
-            sc.setdefault(a,[]).append(pb)
-
-    for c, (d12, a1, a2) in enumerate(apairs):
-        if log and c > 0 and c % 500 == 0:
-            log.status('Evaluating struts %d of %d' % (c, len(apairs)))
-            import sys
-            sys.__stderr__.write('Evaluating struts %d of %d, struts %d\n' % (c, len(apairs), model.num_pseudobonds))
-        if not short_connection2(a1, a2, max_loop_length, sc):
-            b = model.new_pseudobond(a1, a2)
-            for a in (a1, a2):
-                a.display = True
-                r = a.residue
-                if r.ribbon_display:
-                    r.ribbon_hide_backbone = False
-                    a.hide = 0
-                    a.draw_mode = a1.STICK_STYLE
-            sc.setdefault(a1,[]).append(b)
-            sc.setdefault(a2,[]).append(b)
-
-def short_connection2(a1, a2, dmax, strut_connections):
-
-    from chimerax.core.geometry import distance
-    adist = {a1:0}
-    bndry = set((a1,))
-    sc = strut_connections
-    while bndry:
-        a = bndry.pop()
-        d = adist[a]
-        acon = set([(b.other_atom(a), b.length) for b in a.bonds] +
-                   [(b.other_atom(a), b.length) for b in sc.get(a,[])])
-        for an,blen in acon:
-            dn = d + blen
-            if dn <= dmax:
-                if an is a2:
-                    return True
-                if not an in adist or dn < adist[an]:
-                    adist[an] = dn
-                    bndry.add(an)
     return False
 
 def thick_ribbon(atoms):
