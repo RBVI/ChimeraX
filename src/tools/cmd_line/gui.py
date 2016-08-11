@@ -47,6 +47,8 @@ class CommandLine(ToolInstance):
                             self.tool.history_dialog.up(shifted)
                         elif event.key() == Qt.Key_U:
                             self.tool.cmd_clear()
+                        elif event.key() == Qt.Key_K:
+                            self.tool.cmd_clear_to_end_of_line()
                         else:
                             QComboBox.keyPressEvent(self, event)
                     else:
@@ -97,6 +99,13 @@ class CommandLine(ToolInstance):
             self.text.lineEdit().clear()
         else:
             self.text.SetValue("")
+
+    def cmd_clear_to_end_of_line(self):
+        from chimerax.core import window_sys
+        if window_sys == "qt":
+            le = self.text.lineEdit()
+            t = le.text()[:le.cursorPosition()]
+            le.setText(t)
 
     def cmd_replace(self, cmd):
         from chimerax.core import window_sys

@@ -26,7 +26,7 @@ def color(session, objects, color=None, what=None,
     target : string
       Alternative to the "what" option for specifying what to color.
       Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces, m = models,
-      n = non-molecule models, l = labels, b = bonds, p = pseudobonds, d = distances.
+      l = labels, b = bonds, p = pseudobonds, d = distances.
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
@@ -112,13 +112,11 @@ def color(session, objects, color=None, what=None,
         _set_ribbon_colors(residues, color, opacity, bgcolor)
         what.append('%d residues' % len(residues))
 
-    if 'n' in target:
-        if not default_target:
-            session.logger.warning('Non-molecular model-level colors not supported yet')
-
-    if 'm' in target:
-        if not default_target:
-            session.logger.warning('Model-level colors not supported yet')
+    if 'm' in target and color is not None:
+        from ..atomic import Structure, MolecularSurface
+        for m in objects.models:
+            if not isinstance(m, (Structure, MolecularSurface)):
+                m.single_color = color.uint8x4()
 
     if 'b' in target:
         if atoms is not None:

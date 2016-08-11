@@ -242,7 +242,7 @@ class MolecularSurface(Model):
     def _average_color(self):
         vc = self.vertex_colors
         if vc is None or len(vc) == 0:
-            self.color
+            return self.color
         from numpy import float32, uint8
         csum = vc.sum(axis = 0, dtype = float32)
         csum /= len(vc)

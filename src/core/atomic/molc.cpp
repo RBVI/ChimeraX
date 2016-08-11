@@ -893,6 +893,17 @@ extern "C" EXPORT void set_bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
     error_wrap_array_set<Bond, bool, npy_bool>(b, n, &Bond::set_halfbond, halfb);
 }
 
+extern "C" EXPORT void bond_length(void *bonds, size_t n, float32_t *lengths)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  lengths[i] = b[i]->length();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void bond_radius(void *bonds, size_t n, float32_t *radii)
 {
     Bond **b = static_cast<Bond **>(bonds);
@@ -929,6 +940,18 @@ extern "C" EXPORT void bond_structure(void *bonds, size_t n, pyobject_t *molp)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_get(b, n, &Bond::structure, molp);
+}
+
+extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
+{
+    Bond *b = static_cast<Bond *>(bond);
+    Atom *a = static_cast<Atom *>(atom), *oa;
+    try {
+      oa = b->other_atom(a);
+    } catch (...) {
+      molc_error();
+    }
+    return oa;
 }
 
 // -------------------------------------------------------------------------

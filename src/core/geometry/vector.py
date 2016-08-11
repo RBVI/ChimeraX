@@ -42,8 +42,12 @@ def inner_product(u, v):
 
 def distance(p, q):
     '''Return the distance between two points.'''
-    d = p - q
     from math import sqrt
+    if len(p) == 3:
+        # Much faster than using numpy operations.
+        dx,dy,dz = p[0]-q[0], p[1]-q[1], p[2]-q[2]
+        return sqrt(dx*dx + dy*dy + dz*dz)
+    d = p - q
     return sqrt((d * d).sum())
 
 def interpolate_points(p1, p2, f):

@@ -1087,6 +1087,13 @@ else:
                 label = self._primary_status_label
             label.setText("<font color='" + color + "'>" + msg + "</font>")
             label.show()
+            # Make status line update during long computations where event loop is not running.
+            # Code that asks to display a status message does not expect arbitrary callbacks
+            # to run.  This could cause timers and callbacks to run that could lead to errors.
+            # User events are not processed since that could allow the user to delete data.
+            # Ticket #407.
+            from PyQt5.QtCore import QEventLoop
+            self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
 
         def _about(self, arg):
             from PyQt5.QtWidgets import QMessageBox

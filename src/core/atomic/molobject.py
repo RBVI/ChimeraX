@@ -247,19 +247,15 @@ class Bond:
     ''':class:`.AtomicStructure` the bond belongs to.'''
     visible = c_property('bond_visible', npy_bool, read_only = True)
     '''Whether bond is display and not hidden. Read only.'''
-
-    @property
-    def length(self):
-        '''Distance between bond atoms.'''
-        a1,a2 = self.atoms
-        from ..geometry import distance
-        return distance(a1.scene_coord, a2.scene_coord)
+    length = c_property('bond_length', float32, read_only = True)
+    '''Bond length. Read only.'''
     
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
-        a1,a2 = self.atoms
-        return a2 if atom is a1 else a1
+        f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
+        c = f(self._c_pointer, atom._c_pointer)
+        return object_map(c, Atom)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
@@ -319,6 +315,12 @@ class Pseudobond:
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
         return sqrt((v*v).sum())
+    
+    def other_atom(self, atom):
+        '''Return the :class:`Atom` at the other end of this bond opposite
+        the specified atom.'''
+        a1,a2 = self.atoms
+        return a2 if atom is a1 else a1
 
     _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used by session save/restore internals")
