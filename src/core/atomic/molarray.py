@@ -948,6 +948,11 @@ class PseudobondGroupDatas(Collection):
     num_bonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
     '''Number of pseudobonds in each group. Read only.'''
 
+    def delete(self):
+        '''Delete the C++ Pseudobond objects'''
+        c_function('pseudobond_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
 # -----------------------------------------------------------------------------
 #
 class PseudobondGroups(PseudobondGroupDatas):

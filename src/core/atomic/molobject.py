@@ -64,6 +64,23 @@ class Atom:
     HIDE_RIBBON = 0x1
     BBE_MIN, BBE_RIBBON, BBE_MAX = range(3)
 
+    def __init__(self, c_pointer):
+        set_c_pointer(self, c_pointer)
+
+    def __str__(self, atom_only = False):
+        from ..core_settings import settings
+        cmd_style = settings.atomspec_contents == "command-line specifier"
+        if cmd_style:
+            atom_str = '@' + self.name
+        else:
+            atom_str = self.name
+        if atom_only:
+            return atom_str
+        if cmd_style:
+            return '%s%s' % (str(self.residue), atom_str)
+        return '%s %s' % (str(self.residue), atom_str)
+
+    alt_loc = c_property('atom_alt_loc', byte, doc='Alternate location indicator')
     bfactor = c_property('atom_bfactor', float32, doc = "B-factor, floating point value.")
     bonds = c_property('atom_bonds', cptr, "num_bonds", astype=_bonds, read_only=True,
         doc="Bonds connected to this atom as an array of :py:class:`Bonds` objects. Read only.")
@@ -116,9 +133,6 @@ class Atom:
     visible = c_property('atom_visible', npy_bool, read_only=True,
         doc="Whether atom is displayed and not hidden.")
 
-    alt_loc = c_property('atom_alt_loc', byte,
-                         doc='Alternate location indicator')
-
     def set_alt_loc(self, loc, create):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
@@ -138,21 +152,10 @@ class Atom:
         f(a_ref, 1, loc, v_ref)
         return v.value
 
-    def __init__(self, c_pointer):
-        set_c_pointer(self, c_pointer)
-
-    def __str__(self, atom_only = False):
-        from ..core_settings import settings
-        cmd_style = settings.atomspec_contents == "command-line specifier"
-        if cmd_style:
-            atom_str = '@' + self.name
-        else:
-            atom_str = self.name
-        if atom_only:
-            return atom_str
-        if cmd_style:
-            return '%s%s' % (str(self.residue), atom_str)
-        return '%s %s' % (str(self.residue), atom_str)
+    def delete(self):
+        '''Delete this Atom from it's Structure'''
+        f = c_function('atom_delete', args = (ctypes.c_void_p,))
+        c = f(self._c_pointer)
 
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
@@ -303,6 +306,11 @@ class Pseudobond:
     '''Displayed cylinder radius for the bond.'''
     shown = c_property('pseudobond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown. Read only.'''
+
+    def delete(self):
+        '''Delete this pseudobond from it's group'''
+        f = c_function('pseudobond_delete', args = (ctypes.c_void_p,))
+        c = f(self._c_pointer)
 
     @property
     def length(self):

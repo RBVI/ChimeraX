@@ -332,7 +332,7 @@ extern "C" EXPORT void atom_delete(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
-        std::map<Structure *, std::vector<Atom *> > matoms;
+        std::map<Structure *, std::vector<Atom *>> matoms;
         for (size_t i = 0; i != n; ++i)
             matoms[a[i]->structure()].push_back(a[i]);
 
@@ -934,6 +934,21 @@ extern "C" EXPORT void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgb
             c.a = *rgba++;
             b[i]->set_color(c);
         }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void pseudobond_delete(void *pbonds, size_t n)
+{
+    Pseudobond **pb = static_cast<Pseudobond **>(pbonds);
+    try {
+        std::map<Proxy_PBGroup *, std::vector<Pseudobond *>> g_pbs;
+        for (size_t i = 0; i != n; ++i)
+            g_pbs[pb[i]->group()->proxy()].push_back(pb[i]);
+
+        for (auto grp_pbs: g_pbs)
+            grp_pbs.first->delete_pseudobonds(grp_pbs.second);
     } catch (...) {
         molc_error();
     }

@@ -63,6 +63,12 @@ public:
     }
 };
 
+}  // namespace atomstruct
+
+#include "PBGroup.h"
+
+namespace atomstruct {
+
 class CoordSet;
 
 class ATOMSTRUCT_IMEX CS_Pseudobond: public Pseudobond
@@ -74,7 +80,7 @@ private:
     CoordSet*  _cs;
 
     CS_Pseudobond(Atom* a1, Atom* a2, CS_PBGroup* grp, CoordSet* cs):
-        Pseudobond(a1, a2, grp), _cs(cs) {}
+        Pseudobond(a1, a2, static_cast<PBGroup*>(grp)), _cs(cs) {}
 
 public:
     CoordSet*  coord_set() const { return _cs; }
