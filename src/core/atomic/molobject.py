@@ -858,6 +858,8 @@ class StructureData:
     '''Ribbon orientation from interpolated atoms.'''
     RIBBON_ORIENT_CURVATURE = 3
     '''Ribbon orientation perpendicular to ribbon curvature.'''
+    RIBBON_ORIENT_PEPTIDE = 4
+    '''Ribbon orientation perpendicular to peptide planes.'''
     ribbon_display_count = c_property('structure_ribbon_display_count', int32, read_only = True)
     '''Return number of residues with ribbon display set. Integer.'''
     ribbon_tether_sides = c_property('structure_ribbon_tether_sides', int32)

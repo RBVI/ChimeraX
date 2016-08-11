@@ -1,0 +1,143 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: struts</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: struts</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>struts</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+[&nbsp;length&nbsp;&nbsp;<i>maxlen</i>&nbsp;]
+[&nbsp;loop&nbsp;&nbsp;<i>maxlooplen</i>&nbsp;]
+[&nbsp;fattenRibbon&nbsp;<b>true</b>|false&nbsp;]
+&nbsp;<a href="#options"><i>other-options</i></a>
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>~struts</b>
+[&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+</h3>
+<p>
+The <b>struts</b> command adds <a href="../pseudobonds.html">pseudobonds</a>
+to a molecular structure to strengthen it for 3D printing.
+Pairs of atoms within the maximum strut length of each other
+are considered in order of increasing distance.
+A strut is added if the shortest through-bond distance between the two atoms,
+including any existing struts, is greater than the maximum
+&ldquo;loop&rdquo; length.
+By default, ribbons (cartoons) are also thickened to make them more robust.
+The <b>~struts</b> command removes struts connected to the specified atoms,
+or all struts if no atoms are specified.
+See also: 
+<a href="cartoon.html"><b>cartoon</b></a>, 
+<a href="rungs.html"><b>rungs</b></a>, 
+<a href="save.html"><b>save</b></a>, 
+the
+<a href="http://www.rbvi.ucsf.edu/Outreach/technotes/ModelGallery/index.html"
+target="_blank">Chimera 3D Model Gallery</a>,
+<a href="http://www.munfred.com/proteins.html"
+target="_blank">Eduardo's Guide for 3D Printing Proteins</a>
+</p><p>
+Protein example:
+<blockquote>
+<b>struts @ca color blue</b>
+</blockquote>
+Nucleic acid example:
+<blockquote>
+<b>struts @C5’ length 15 loop 80 radius 1</b>
+</blockquote>
+</p>
+
+<a name="options">
+<h4>Options</h4>
+</a><p>
+Option keywords and Boolean (truth) values can be truncated, with
+synonyms for true: True, 1, and synonyms for false: False, 0.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
+default settings are indicated with <b>bold</b>.
+</p>
+<blockquote>
+  <b>length</b> &nbsp;<i>maxlen</i>
+<br>
+In effect, <i>maxlen</i> is the maximum length of a strut
+(default <b>7.0</b> &Aring).
+Pairs of atoms in <a href="atomspec.html"><i>atom-spec</i></a>
+within <i>maxlen</i> of each
+other are considered in order of increasing distance.
+A strut is added if the shortest through-bond distance between the two atoms,
+including any existing struts, is greater than
+that specified with the <b>loop</b> option.
+</blockquote>
+<blockquote>
+  <b>loop</b> &nbsp;<i>maxlooplen</i>
+<br>
+A strut is added between a candidate pair of atoms when the shortest
+through-bond path between them, including any existing struts,
+is longer than <i>maxlooplen</i> (default <b>30.0</b> &Aring;).
+</blockquote>
+<blockquote>
+  <b>fattenRibbon</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to change the dimensions of any displayed ribbon (cartoon) to:
+  <ul>
+  <li>width 3.0 &Aring; for protein helix and strand
+  <li>thickness 1.5 &Aring; for protein
+  <li>width 5.0 &Aring; for nucleic acid
+  <li>thickness 3.0 &Aring; for nucleic acid
+  </ul>
+Cartoon width and height can be fine-tuned with the command
+<a href="cartoon.html#style"><b>cartoon style</b></a>.
+</blockquote>
+<blockquote>
+  <b>radius</b> &nbsp;<i>strut-radius</i>
+<br>
+The struts will be shown as sticks of radius <i>strut-radius</i>
+(default <b>0.6</b> &Aring;).
+</blockquote>
+<blockquote>
+  <b>color</b> &nbsp;<i>strut-color</i>
+<br>
+The <i>strut-color</i> can be any
+<a href="colornames.html">color name</a> that specifies a single color
+(default <b>70,70,70</b>, a medium gray).
+</blockquote>
+<blockquote>
+  <b>name</b> &nbsp;<i>name</i>
+<br>
+Name for the strut model, a <a href="../pseudobonds.html">pseudobond group</a>.
+</blockquote>
+<blockquote>
+  <b>modelId</b> &nbsp;<i>N</i></a>
+<br>
+Add the strut <a href="../pseudobonds.html">pseudobond group</a>
+as model number N (an integer, optionally preceded by #).
+The default is the lowest unused number.
+</blockquote>
+<blockquote>
+<b>replace</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to replace struts previously calculated for the same set of atoms
+rather than creating a new model.
+Regardless of this setting, struts previously determined for a
+different set of atoms will not be replaced.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2016</address>
+</body></html>
