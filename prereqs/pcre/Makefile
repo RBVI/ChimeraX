@@ -59,7 +59,7 @@ all:
 
 install: $(SOURCE)
 ifeq ($(OS),Windows)
-	cd $(SOURCE)/build && $(NMAKE) && $(NMAKE) install
+	cd $(SOURCE)/build && $(NMAKE)
 	$(RSYNC) $(SOURCE)/build/*.$(SHLIB_EXT) $(shlibdir)
 	$(RSYNC) $(SOURCE)/build/*.$(LIB_EXT) $(libdir)
 	$(RSYNC) $(SOURCE)/pcre{cpp,posix,_scanner}.h $(includedir)
