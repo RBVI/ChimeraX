@@ -13,7 +13,7 @@ class Generic3DModel(Model):
         from .graphics.gsession import DrawingState
         data = {
             'model state': Model.take_snapshot(self, session, flags),
-            'drawing state': DrawingState(self).take_snapshot(session, flags),
+            'drawing state': DrawingState().take_snapshot(self, session, flags),
             'version': CORE_STATE_VERSION,
         }
         return data
@@ -23,7 +23,7 @@ class Generic3DModel(Model):
         m = cls('name', session)
         m.set_state_from_snapshot(session, data['model state'])
         from .graphics.gsession import DrawingState
-        DrawingState(m).set_state_from_snapshot(session, data['drawing state'])
+        DrawingState().set_state_from_snapshot(m, session, data['drawing state'])
         return m
 
     def reset_state(self, session):
