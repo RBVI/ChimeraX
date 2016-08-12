@@ -1,9 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-from chimerax.core.atomic import AtomicStructure
-
-
 def mlp(session, model=None, dx=None, method="fauchere", spacing=1.0, nexp=3.0):
     '''Display Molecular Lipophilic Potential for a single model.
 
@@ -15,7 +12,7 @@ def mlp(session, model=None, dx=None, method="fauchere", spacing=1.0, nexp=3.0):
         Name of file for computed dx map.
     '''
     if model is None:
-        from chimerax.core.commands import atomspec
+        from chimerax.core.atomic import AtomicStructure
         structures = session.models.list(type=AtomicStructure)
         if len(structures) != 1:
             from chimerax.core.errors import UserError
@@ -101,15 +98,13 @@ class _MLPAtomAdapter:
             raise KeyError("\"%s\" not supported in MLPAdapter" % key)
 
 
-def initialize(command_name):
-    from chimerax.core.commands import register, CmdDesc
-    from chimerax.core.commands import ModelArg, SaveFileNameArg
-    from chimerax.core.commands import Bounded, FloatArg, EnumOf
+def register_mlp_command():
+    from chimerax.core.commands import register, CmdDesc, ModelArg, SaveFileNameArg, FloatArg, EnumOf
     desc = CmdDesc(optional=[("model", ModelArg)],
                    keyword=[("dx", SaveFileNameArg),
-                            ("spacing", Bounded(FloatArg, 0.1, 10.0)),
+                            ("spacing", FloatArg),
                             ("method", EnumOf(['dubost','fauchere','brasseur','buckingham','type5'])),
                             ("nexp", FloatArg),
                             ],
                    synopsis='display molecular lipophilic potential for selected models')
-    register(command_name, desc, mlp)
+    register('mlp', desc, mlp)
