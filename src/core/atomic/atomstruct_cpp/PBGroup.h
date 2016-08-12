@@ -215,7 +215,7 @@ private:
         else
             _proxied = new CS_PBGroup(_category, _structure, _manager);
         _proxy = this;
-	static_cast<PBGroup*>(_proxied)->_proxy = this;
+        static_cast<PBGroup*>(_proxied)->_proxy = this;
     }
     void  remove_cs(const CoordSet* cs) {
         if (_group_type == AS_PBManager::GRP_PER_CS)

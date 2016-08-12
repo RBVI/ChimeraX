@@ -154,8 +154,8 @@ class Atom:
 
     def delete(self):
         '''Delete this Atom from it's Structure'''
-        f = c_function('atom_delete', args = (ctypes.c_void_p,))
-        c = f(self._c_pointer)
+        f = c_function('atom_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
 
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
@@ -305,8 +305,8 @@ class Pseudobond:
 
     def delete(self):
         '''Delete this pseudobond from it's group'''
-        f = c_function('pseudobond_delete', args = (ctypes.c_void_p,))
-        c = f(self._c_pointer)
+        f = c_function('pseudobond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
 
     @property
     def length(self):
@@ -401,6 +401,11 @@ class PseudobondManager(State):
         self.session.triggers.add_handler("end restore session",
             lambda *args: self._ses_call("restore_teardown"))
 
+    def delete_group(self, pbg):
+        f = c_function('pseudobond_global_manager_delete_group',
+                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
+        f(self._c_pointer, pbg._c_pointer)
+
     def get_group(self, category, create = True):
         '''Get an existing :class:`.PseudobondGroup` or create a new one given a category name.'''
         f = c_function('pseudobond_global_manager_get_group',
@@ -413,10 +418,18 @@ class PseudobondManager(State):
         return object_map(pbg,
             lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
 
-    def delete_group(self, pbg):
-        f = c_function('pseudobond_global_manager_delete_group',
-                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
-        f(self._c_pointer, pbg._c_pointer)
+    def group_map(self):
+        '''Returns a dict that maps from :class:`.PseudobondGroup` category to group'''
+        f = c_function('pseudobond_global_manager_group_map',
+                       args = (ctypes.c_void_p,),
+                       ret = ctypes.py_object)
+        ptr_map = f(self._c_pointer)
+        obj_map = {}
+        for cat, pbg_ptr in ptr_map.items():
+            obj = object_map(pbg_ptr,
+                lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
+            obj_map[cat] = obj
+        return obj_map
 
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''
