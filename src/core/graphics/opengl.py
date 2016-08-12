@@ -70,6 +70,20 @@ class OpenGLContext:
         '''Swap back and front OpenGL buffers.'''
         pass
 
+# OpenGL stipple patterns for various line types
+from .linetype import LineType
+_stipple_patterns = {
+        LineType.Solid: 0xffff,
+        LineType.Dashed: 0x1f1f,
+        LineType.Dotted: 0x0303,
+        LineType.DashedDotted: 0x0fc3,
+        LineType.DashDotDot: 0x3f33,
+}
+
+def stipple(line_type):
+    """Return unsigned short stipple pattern for given line_type"""
+    return _stipple_pattern.get(line_type, 0xffff)
+
 class Render:
     '''
     Manage shaders, viewing matrices and lighting parameters to render a scene.
@@ -907,6 +921,10 @@ class Render:
     def allow_equal_depth(self, equal):
         GL.glDepthFunc(GL.GL_LEQUAL if equal else GL.GL_LESS)
 
+    def depth_invert(self, invert):
+        GL.glDepthFunc(GL.GL_GREATER if invert else GL.GL_LESS)
+        GL.glClearDepth(0.0 if invert else 1.0)
+        
     def set_depth_range(self, min, max):
         # # Get z-fighting with screen depth copied to framebuffer object
         # # on Mac/Nvidia

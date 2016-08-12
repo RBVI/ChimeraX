@@ -1,30 +1,26 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-from chimerax.core.atomic import AtomicStructure
-
-
-def mlp(session, model=None, dx=None, method="fauchere", spacing=1.0, nexp=3.0):
+def mlp(session, atoms, dx=None, method="fauchere", spacing=1.0, nexp=3.0):
     '''Display Molecular Lipophilic Potential for a single model.
 
     Parameters
     ----------
-    spec : model specifier
+    atoms : Atoms
         Show MLP map for the specified model.
     dx : dx file name
         Name of file for computed dx map.
+    method : 'dubost','fauchere','brasseur','buckingham','type5'
+        Distance dependent function to use for calculation
+    spacing : float
+    	Grid spacing, default 1 Angstrom.
+    nexp : float
+        The buckingham method uses this numerical exponent.
     '''
-    if model is None:
-        from chimerax.core.commands import atomspec
-        structures = session.models.list(type=AtomicStructure)
-        if len(structures) != 1:
-            from chimerax.core.errors import UserError
-            raise UserError("mlp command works with exactly one model.")
-        model = structures[0]
     from .pyMLP import Molecule, Defaults
     defaults = Defaults()
     m = Molecule()
-    m.data = _MLPAtomicStructureAdapter(model)
+    m.data = _MLPAtomicStructureAdapter(atoms)
     m.assignfi(defaults.fidatadefault)
     m.calculatefimap(method, spacing, nexp)
     delete_temp = dx is None
@@ -49,17 +45,18 @@ def mlp(session, model=None, dx=None, method="fauchere", spacing=1.0, nexp=3.0):
 class _MLPAtomicStructureAdapter:
     '''Adapter class to enable pyMLP to access atomic structure data'''
 
-    def __init__(self, m):
-        self.model = m
-        self.atoms = {}
+    def __init__(self, atoms):
+        self.atoms = atoms
+        self.atom_map = {}
 
     def __iter__(self):
-        for a in self.model.atoms:
-            try:
-                aa = self.atoms[a]
-            except KeyError:
+        amap = self.atom_map
+        for a in self.atoms:
+            if a in amap:
+                aa = amap[a]
+            else:
                 aa = _MLPAtomAdapter(a)
-                self.atoms[a] = aa
+                amap[a] = aa
             yield aa
         raise StopIteration()
 
@@ -101,15 +98,13 @@ class _MLPAtomAdapter:
             raise KeyError("\"%s\" not supported in MLPAdapter" % key)
 
 
-def initialize(command_name):
-    from chimerax.core.commands import register, CmdDesc
-    from chimerax.core.commands import ModelArg, SaveFileNameArg
-    from chimerax.core.commands import Bounded, FloatArg, EnumOf
-    desc = CmdDesc(optional=[("model", ModelArg)],
+def register_mlp_command():
+    from chimerax.core.commands import register, CmdDesc, AtomsArg, SaveFileNameArg, FloatArg, EnumOf
+    desc = CmdDesc(required=[("atoms", AtomsArg)],
                    keyword=[("dx", SaveFileNameArg),
-                            ("spacing", Bounded(FloatArg, 0.1, 10.0)),
+                            ("spacing", FloatArg),
                             ("method", EnumOf(['dubost','fauchere','brasseur','buckingham','type5'])),
                             ("nexp", FloatArg),
                             ],
                    synopsis='display molecular lipophilic potential for selected models')
-    register(command_name, desc, mlp)
+    register('mlp', desc, mlp)

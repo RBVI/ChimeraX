@@ -204,7 +204,7 @@ if window_sys == "wx":
             w = wx.Window(parent, style=wx.BORDER_SIMPLE)
             s = wx.FlexGridSizer(rows=3, cols=2, hgap=2, vgap=2)
 
-            from .. import image_formats
+            from ..image import image_formats
             selector = wx.Choice(w, choices=list(f.name for f in image_formats),
                                  style=wx.CB_READONLY)
             selector.Bind(wx.EVT_CHOICE, self._select_format)

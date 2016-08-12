@@ -146,8 +146,10 @@ Bond::polymeric_start_atom() const
     Atom *a2 = as[1];
     Residue::PolymerType pt;
     auto psa = _polymeric_start_atom(a1, a2, &pt);
-    a1->residue()->set_polymer_type(pt);
-    a2->residue()->set_polymer_type(pt);
+    if (psa != nullptr) {
+        a1->residue()->set_polymer_type(pt);
+        a2->residue()->set_polymer_type(pt);
+    }
     return psa;
 }
 

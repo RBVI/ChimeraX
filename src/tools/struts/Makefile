@@ -1,23 +1,23 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimerax.exp_cmd
+PKG_NAME = chimerax.struts
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = Experimental commands
+PKG_DESCRIPTION = Add struts for 3D printing
 
 # For many cases, only a single tool and a single command
 # is provided by a package.  Variables below are designed
 # for this case.  If you have multiple tools or commands,
 # you need manually edit all the files.
-TOOL_NAME = exp_cmd
-TOOL_PKG_NAME = chimerax.exp_cmd
-TOOL_DISPLAY_NAME = Experimental Commands
+TOOL_NAME = struts
+TOOL_PKG_NAME = chimerax.struts
+TOOL_DISPLAY_NAME = Struts
 TOOL_CATEGORY = Hidden
 TOOL_FILE_TYPES =
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
-TOOL_SYNOPSIS = Experimental commands that may go away
-COMMAND_NAME = cartoon,~cartoon,ribbon,~ribbon
+TOOL_SYNOPSIS = Command to add struts for 3D printing
+COMMAND_NAME = struts
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
@@ -26,7 +26,7 @@ PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
-PYSRCS = $(wildcard *.py)
+PYSRCS = __init__.py struts.py
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
@@ -43,7 +43,7 @@ app-install: wheel
 
 wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
-	rm -rf $(PKG_NAME).egg-info
+	rm -rf $(TOOL_NAME).egg-info
 
 setup.py: setup.py.in Makefile
 	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
@@ -51,8 +51,6 @@ setup.py: setup.py.in Makefile
 		-e 's,SHLIB_DIR,$(shlibdir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
-		-e 's,#$(OS)#,,' \
-		-e 's,#$(OSARCH)#,,' \
 		-e 's,TOOL_NAME,$(TOOL_NAME),' \
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \

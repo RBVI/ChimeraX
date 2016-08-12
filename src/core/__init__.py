@@ -46,7 +46,6 @@ _class_class_init = {
     'Residue': '.atomic',
     'Residues': '.atomic',
     'Sequence': '.atomic',
-    'STLModel': 'chimerax.stl',
     'Structure': '.atomic',
     'Tasks': '.tasks',
     'Tools': '.tools',

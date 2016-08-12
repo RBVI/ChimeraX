@@ -119,7 +119,7 @@ class Collection(State):
             from .molobject import object_map
             v = object_map(self._pointers[i], self._object_class)
         elif isinstance(i, slice):
-            v = self._object_class(self._pointers[i])
+            v = self._objects_class(self._pointers[i])
         else:
             raise IndexError('Only integer indices allowed for %s, got %s'
                 % (self.__class__.__name__, str(type(i))))
@@ -654,6 +654,11 @@ class Pseudobonds(Collection):
     '''
     Whether each pseudobond is displayed, visible and has both atoms shown.
     '''
+
+    def delete(self):
+        '''Delete the C++ Pseudobond objects'''
+        c_function('pseudobond_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
     @property
     def half_colors(self):

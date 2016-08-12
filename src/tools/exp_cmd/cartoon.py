@@ -15,6 +15,7 @@ _OrientMap = {
     "guides": Structure.RIBBON_ORIENT_GUIDES,
     "atoms": Structure.RIBBON_ORIENT_ATOMS,
     "curvature": Structure.RIBBON_ORIENT_CURVATURE,
+    "peptide": Structure.RIBBON_ORIENT_PEPTIDE,
 }
 _TetherShapeMap = {
     "cone": Structure.TETHER_CONE,
@@ -59,6 +60,7 @@ def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, ori
         "guides" uses "guide" atoms like the carbonyl oxygens.
         "atoms" generates orientation from ribbon atoms like alpha carbons.
         "curvature" orients ribbon to be perpendicular to maximum curvature direction.
+        "peptide" orients ribbon to be perpendicular to peptide planes.
         "default" is to use "guides" if guide atoms are all present or "atoms" if not.
     show_spine : boolean
         Display ribbon "spine" (horizontal lines across center of ribbon).
@@ -183,28 +185,30 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
         for m in structures:
             mgr = m.ribbon_xs_mgr
             print(m)
-            print(indent,
-                  "helix=%s strand=%s coil=%s nucleic=%s" % (_XSInverseMap[mgr.style_helix],
-                                                               _XSInverseMap[mgr.style_sheet],
-                                                               _XSInverseMap[mgr.style_coil],
-                                                               _XSInverseMap[mgr.style_nucleic]))
-            print(indent,
-                  "helix=%.2g,%.2g" % mgr.scale_helix,
-                  "arrow_helix=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
-                                                       mgr.scale_helix_arrow[1]),
-                  "strand=%.2g,%.2g" % mgr.scale_sheet,
-                  "arrow_strand=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_sheet_arrow[0] +
-                                                        mgr.scale_sheet_arrow[1]),
-                  "coil=%.2g,%.2g" % mgr.scale_coil,
-                  "nucleic=%.2g,%.2g" % mgr.scale_nucleic)
-            print(indent,
-                  "helix arrow=%s strand arrow=%s" % (mgr.arrow_helix, mgr.arrow_sheet))
+            print(indent, "helix",
+                  "style=%s" % _XSInverseMap[mgr.style_helix],
+                  "size=%.2g,%.2g" % mgr.scale_helix,
+                  "arrow=%s" % mgr.arrow_helix,
+                  "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_helix_arrow[0] +
+                                                       mgr.scale_helix_arrow[1]))
+            print(indent, "strand",
+                  "style=%s" % _XSInverseMap[mgr.style_sheet],
+                  "size=%.2g,%.2g" % mgr.scale_sheet,
+                  "arrow=%s" % mgr.arrow_sheet,
+                  "arrow size=%.2g,%.2g,%.2g,%.2g" % (mgr.scale_sheet_arrow[0] +
+                                                        mgr.scale_sheet_arrow[1]))
+            print(indent, "coil",
+                  "style=%s" % _XSInverseMap[mgr.style_coil],
+                  "size=%.2g,%.2g" % mgr.scale_coil)
+            print(indent, "nucleic",
+                  "style=%s" % _XSInverseMap[mgr.style_nucleic],
+                  "size=%.2g,%.2g" % mgr.scale_nucleic)
             param = mgr.params[XSectionManager.STYLE_ROUND]
             print(indent,
-                  "oval parameters:", ", ".join("%s: %s" % item for item in param.items()))
+                  "oval parameters:", " ".join("%s=%s" % item for item in param.items()))
             param = mgr.params[XSectionManager.STYLE_PIPING]
             print(indent,
-                  "barbell parameters:", ", ".join("%s: %s" % item for item in param.items()))
+                  "barbell parameters:", " ".join("%s=%s" % item for item in param.items()))
         return
     residues = results.atoms.residues
     is_helix = residues.is_helix

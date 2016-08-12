@@ -206,6 +206,26 @@ class Place:
         '''Return the determinant of the linear part of the transformation.'''
         return m34.determinant(self.matrix)
 
+    def _polar_decomposition(self):
+        '''
+        Don't use. This code won't handle degenerate or near degenerate transforms.
+        Return 4 transforms, a translation, rotation, scaling, orthonormal scaling axes
+        whose product equals this transformation.  Needed for X3D output.
+        '''
+        from numpy import linalg
+        a = self.zero_translation()
+        at = a.transpose()
+        ata = at*a
+        eval, evect = linalg.eigh(ata.matrix[:3,:3])
+        from math import sqrt
+        s = scale([sqrt(e) for e in eval])
+        sinv = s.inverse()
+        ot = Place(axes = evect)
+        o = ot.transpose()
+        r = a*o*sinv
+        t = translation(self.translation())
+        return t, r, s, ot
+        
     def description(self):
         '''Return a text description of the transformation including
         the 3 by 4 matrix, and the decomposition as a rotation about a

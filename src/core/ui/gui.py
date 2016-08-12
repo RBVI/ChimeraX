@@ -842,6 +842,15 @@ else:
 
         def build(self):
             self.main_window = mw = MainWindow(self, self.session)
+            # Clicking the graphics window sets the Qt focus to None because
+            # the graphics window is a QWindow rather than a widget.  Then clicking
+            # on other widgets can prevent the graphics window from getting key
+            # strokes even though the focus remains None.  So redirect the main
+            # main window key strokes when the focus window is None.
+            def forward_from_top(event, self=self):
+                if self.focusWidget() is None:
+                    self.forward_keystroke(event)
+            mw.keyPressEvent = forward_from_top
             mw.graphics_window.keyPressEvent = self.forward_keystroke
             mw.show()
             self.splash.finish(mw)
@@ -859,7 +868,6 @@ else:
                     self._keystroke_sinks[i + 1:]
 
         def event_loop(self):
-            self.main_window.graphics_window.widget.setFocus()
             redirect_stdio_to_logger(self.session.logger)
             self.exec_()
             self.session.logger.clear()
@@ -1079,6 +1087,13 @@ else:
                 label = self._primary_status_label
             label.setText("<font color='" + color + "'>" + msg + "</font>")
             label.show()
+            # Make status line update during long computations where event loop is not running.
+            # Code that asks to display a status message does not expect arbitrary callbacks
+            # to run.  This could cause timers and callbacks to run that could lead to errors.
+            # User events are not processed since that could allow the user to delete data.
+            # Ticket #407.
+            from PyQt5.QtCore import QEventLoop
+            self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
 
         def _about(self, arg):
             from PyQt5.QtWidgets import QMessageBox

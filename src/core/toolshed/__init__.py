@@ -494,8 +494,14 @@ class Toolshed:
         before a session is discarded, but we don't do that yet.)
         """
         _debug("initialize_bundles")
+        failed = []
         for bi in self._installed_bundle_info:
-            bi.initialize(session)
+            try:
+                bi.initialize(session)
+            except ToolshedError:
+                failed.append(bi)
+        for bi in failed:
+            self._installed_bundle_info.remove(bi)
 
     #
     # End public API

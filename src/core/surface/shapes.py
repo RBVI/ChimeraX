@@ -119,7 +119,7 @@ def dashed_cylinder_geometry(segments = 5, radius = 1, height = 1, nz = 2, nc = 
     ts = []
     for s in range(segments):
         v = va.copy()
-        v[:,2] += (s - (segments-1)/2)*2*h
+        v[:,2] += (s - (segments-1)/2)*2*h*height
         vs.append(v)
         ns.append(na)
         ts.append(ta + s*nv)

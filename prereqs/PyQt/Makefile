@@ -8,7 +8,7 @@ endif
 PYQT_LICENSE = commercial
 REMOTE_DIR = plato.cgl.ucsf.edu:/usr/local/src/PyQt5
 
-VERSION = 5.6
+VERSION = 5.7
 DISTRIBUTION = PyQt5_$(PYQT_LICENSE)-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/PyQt5_$(PYQT_LICENSE)-$(VERSION)
 

@@ -47,9 +47,19 @@ def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
         else:
             ai = s.atoms.mask(atoms)
             v2a = s.vertex_to_atom_map()
-            v = ai[v2a]		# Vertices for the given atoms
+            if v2a is None:
+                if ai.all():
+                    v = slice(nv)
+                else:
+                    continue
+            else:
+                v = ai[v2a]		# Vertices for the given atoms
         if byatom:
             v2a = s.vertex_to_atom_map()
+            if v2a is None:
+                from ..errors import UserError
+                raise UserError('Surface #%s does not have atom patches, cannot color by atom'
+                                % s.id_string())
             if per_atom_colors is None:
                 c = s.atoms.colors[v2a[v],:]
             else:

@@ -420,10 +420,12 @@ class Structure(Model, StructureData):
             last_ssid = None
             helix_ranges = []
             sheet_ranges = []
+            was_nucleic = False
             for i in range(len(residues)):
                 if polymer_type[i] == Residue.PT_NUCLEIC:
                     rc = XSectionManager.RC_NUCLEIC
                     am_sheet = am_helix = False
+                    was_nucleic = True
                 elif polymer_type[i] == Residue.PT_AMINO:
                     if is_sheet[i]:
                         # Define sheet SS as having higher priority over helix SS
@@ -459,8 +461,12 @@ class Structure(Model, StructureData):
                     else:
                         rc = XSectionManager.RC_COIL
                         am_sheet = am_helix = False
+                    was_nucleic = False
                 else:
-                    rc = XSectionManager.RC_COIL
+                    if was_nucleic:
+                        rc = XSectionManager.RC_NUCLEIC
+                    else:
+                        rc = XSectionManager.RC_COIL
                     am_sheet = am_helix = False
                 if was_sheet and not am_sheet:
                     end_strand(res_class, sheet_ranges, i)
@@ -728,12 +734,12 @@ class Structure(Model, StructureData):
         # XXX: Skip helix smoothing for now since it does not work well for bent helices
         # Smooth helices
         # for start, end in helix_ranges:
-        #     self._smooth_helix(coords, guides, tethered, ribbon_adjusts, start, end)
+        #     self._smooth_helix(coords, guides, tethered, ribbon_adjusts, start, end, p)
         # Smooth strands
         for start, end in sheet_ranges:
-            self._smooth_strand(coords, guides, tethered, ribbon_adjusts, start, end)
+            self._smooth_strand(coords, guides, tethered, ribbon_adjusts, start, end, p)
 
-    def _smooth_helix(self, coords, guides, tethered, ribbon_adjusts, start, end):
+    def _smooth_helix(self, coords, guides, tethered, ribbon_adjusts, start, end, p):
         # Try to fix up the ribbon orientation so that it is parallel to the helical axis
         from numpy import dot, newaxis, mean
         from numpy.linalg import norm
@@ -774,7 +780,7 @@ class Structure(Model, StructureData):
         # when the atoms are displayed in stick mode, with radius self.bond_radius)
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
-    def _smooth_strand(self, coords, guides, tethered, ribbon_adjusts, start, end):
+    def _smooth_strand(self, coords, guides, tethered, ribbon_adjusts, start, end, p):
         if (end - start + 1) <= 2:
             # Short strands do not need smoothing
             return
@@ -794,15 +800,17 @@ class Structure(Model, StructureData):
             ideal[-1] = ss_coords[-1] - (ideal[-2] - ss_coords[-2])
         offsets = adjusts * (ideal - ss_coords)
         new_coords = ss_coords + offsets
-        if False:
-            # Debugging code to display center of secondary structure
-            self._ss_display(p, str(self) + " helix " + str(start), ideal)
         # Update both control point and guide coordinates
-        coords[start:end] = new_coords
         if guides is not None:
             # Compute guide atom position relative to control point atom
             delta_guides = guides[start:end] - ss_coords
             guides[start:end] = new_coords + delta_guides
+        coords[start:end] = new_coords
+        if False:
+            # Debugging code to display center of secondary structure
+            self._ss_display(p, str(self) + " strand " + str(start), ideal)
+            self._ss_guide_display(p, str(self) + " strand guide " + str(start),
+                                   coords[start:end], guides[start:end])
         # Update the tethered array
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
@@ -827,6 +835,20 @@ class Structure(Model, StructureData):
         ssp.positions = _tether_placements(centers[:-1], centers[1:], ss_radii, self.TETHER_CYLINDER)
         ss_colors = empty((len(ss_radii), 4), float32)
         ss_colors[:] = (0,255,0,255)
+        ssp.colors = ss_colors
+
+    def _ss_guide_display(self, p, name, centers, guides):
+        ssp = p.new_drawing(name)
+        from .. import surface
+        va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
+        ssp.geometry = va, ta
+        ssp.normals = na
+        from numpy import empty, float32
+        ss_radii = empty(len(centers), float32)
+        ss_radii.fill(0.4)
+        ssp.positions = _tether_placements(centers, guides, ss_radii, self.TETHER_CYLINDER)
+        ss_colors = empty((len(ss_radii), 4), float32)
+        ss_colors[:] = (255,255,0,255)
         ssp.colors = ss_colors
 
     def _need_twist(self, rc0, rc1):
@@ -1641,7 +1663,7 @@ class LevelOfDetail(State):
         cg = self._cylinder_geometries
         if not div in cg:
             from .. import surface
-            cg[div] = surface.cylinder_geometry(nc = div, caps = False)
+            cg[div] = surface.cylinder_geometry(nc = div, caps = False, height = 0.5)
         return cg[div]
 
     def bond_cylinder_triangles(self, nbonds):

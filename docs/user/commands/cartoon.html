@@ -19,13 +19,16 @@ software or any revisions or derivations thereof.
 <img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
 class="clRight" alt="ChimeraX logo"/></a>
 
+<font color="brown">
+Note: command in progress, default values and behaviors described below 
+not yet fully implemented.
+</font>
+
 <h3>Command: cartoon, ribbon</h3>
+
 <h3><a href="usageconventions.html">Usage</a>:
 <BR>(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-<!--
-[&nbsp;orient&nbsp;guides&nbsp;|&nbsp;atoms&nbsp;|&nbsp;curvature&nbsp;]
--->
 [&nbsp;smooth&nbsp;&nbsp;<i>factor</i>&nbsp;|&nbsp;default&nbsp;]
 [&nbsp;hideBackbone&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
@@ -47,24 +50,14 @@ for the <a href="atomspec.html">specified</a> residues.
 The commands <a href="show.html"><b>hide</b></a> and 
 <a href="show.html"><b>show</b></a> can also be used to control cartoon display.
 See also:
+<a href="rungs.html"><b>rungs</b></a>,
+<a href="struts.html"><b>struts</b></a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons
 </p><p>
 Protein helix and strand assignments are taken from the input structure file.
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
 and C5' in nucleic acids. The orientation is guided by CA&rarr;O (carbonyl
 oxygen) vectors in peptides and C5'&rarr;C1' vectors in nucleic acids.
-<!-- 
-guides method, default;
-curvature method slightly improves twists at helix ends, e.g. 2gbp 58, but
-some other helix ends may be a bit worse, e.g. 2gbp 95, and it definitely
-gives very bad strand orientation and increases strand ripples, with
-twists at 2gbp 206, 254;
-atoms method improves twists at helix ends, e.g. 2gbp 58, but some other
-helix ends may be a bit worse, e.g. 2gbp 95, and it increases strand
-ripples and twists (2gbp 173, 253) compared to the guides method, bad
-orientation especially for short strands, e.g. 2gbp 296-298;
-"orient" should be in a subcommand, not the main command, as it's per-model
--->
 The <b>smooth</b> <i>factor</i> sets the balance between smoothing peptide 
 strands versus following the exact positions of the &alpha;-carbons (0.0 
 unsmoothed, default <b>1.0</b> maximally smoothed).
@@ -81,35 +74,149 @@ its backbone atoms. Simultaneous display can be enabled with
 the backbone atoms hidden by cartoons are N, C, and O in amino acids
 and the phosphate moieties including  O5' in nucleic acids.
 </p><p>
-Subcommands control per-model settings for cartoon shape, size, 
-and the appearance of connections to &alpha;-carbons:
+Subcommands of <b>cartoon</b> control per-model settings:
 </p>
 <ul>
+<li><a href="#style"><b>cartoon style</b></a>
+- secondary structure representations, width, thickness, and shape
 <li><a href="#tether"><b>cartoon tether</b></a>
-- connections to peptide &alpha;-carbons
-<li><a href="#scale"><b>cartoon scale</b></a>
-- width and thickness perpendicular to the backbone path 
-<li><a href="#arrow"><b>cartoon arrow</b></a> 
-- arrows showing peptide N &rarr; C directionality
-<li><a href="#linker"><b>cartoon linker</b></a> 
-- connections between peptide helices and/or strands
-<li><a href="#xsection"><b>cartoon xsection</b></a> 
-- cross-section, the shape perpendicular to the backbone path
-<li><a href="#param"><b>cartoon param</b></a>
-- additional parameters related to cross-section
+- connectors between smoothed peptide strands and offset &alpha;-carbons
 </ul>
+<p>
+Even if fewer atoms are specified, any applicable settings for the 
+entire model(s) containing them will be changed.
+However, as noted below, some settings can have different values for
+different types of secondary structure even within the same model;
+these can be changed separately by using the words
+<b>helix</b>, <b>strand</b>, <b>coil</b>, and/or <b>nucleic</b> in the
+<a href="atomspec.html#builtin"><i>atom-spec</i></a>.
+Conversely, a blank <a href="atomspec.html"><i>atom-spec</i></a>
+indicates all applicable models and secondary structure types.
+Parameters not specified in the command retain their current values.
+Examples:
+</p>
+<blockquote><b>
+cartoon style width 1.5 thick 0.3
+<br>
+cartoon style <a href="atomspec.html#builtin">helix</a> width 1.5 thick 0.3
+<br>
+car style <a href="atomspec.html#builtin">strand</a> xsection rect width 2
+<br>
+rib style x rect
+<br>
+rib style (#1 & <a href="atomspec.html#builtin">coil</a>) x round
+<br>
+cartoon style #2 arrows f wid 1 thick 1 x round
+<br>
+cartoon tether #3 shape steeple
+</b></blockquote>
+
 <p>
 Option keywords and Boolean (truth) values can be truncated, with
 synonyms for true: True, 1, and synonyms for false: False, 0.
-a vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive values.
 </p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="style">
+(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
+<b>style</b></a> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>width</b></a>&nbsp;&nbsp;<i>w</i>&nbsp;]
+[&nbsp;<b>thickness</b></a>&nbsp;&nbsp;<i>t</i>&nbsp;]
+[&nbsp;<b>xsection</b>&nbsp;&nbsp;oval&nbsp;|&nbsp;rectangle&nbsp;|&nbsp;barbell&nbsp;]
+[&nbsp;<b>barScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
+[&nbsp;<b>arrows</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>arrowsHelix</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>arrowScale</b>&nbsp;&nbsp;<i>factor</i>&nbsp;]
+[&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>&nbsp;]
+[&nbsp;<b>ssEnds</b></a>&nbsp;&nbsp;short&nbsp;|&nbsp;long&nbsp;]
+<!--
+[&nbsp;<b>cylinders</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;&nbsp;<i>cylinder-options</i>
+-->
+<blockquote>
+<p>
+</p><p>
+Given without options, <b>cartoon style</b> reports the current settings
+for each atomic model.
+</p><p>
+The <b>width</b> <i>w</i> and <b>thickness</b> <i>t</i> are given
+in &Aring;, and different values may be used for peptide helix, strand, coil,
+and nucleic acids
+(see <a href="atomspec.html#builtin"><i>atom-spec</i> terms</a>)
+even within the same model. 
+The <b>width</b> setting does not affect coil,
+however, as only its <b>thickness</b> is used in both dimensions.
+The initial default width and thickness are
+<b>2.0</b> and <b>0.4</b> &Aring;, respectively.
+</p><p>
+The <b>xsection</b> or cross-sectional shape of the cartoon can be
+<b>oval</b> (synonym <b>round</b>), <b>rectangle</b> (synonym <b>square</b>),
+or <b>barbell</b> with rounded edges and a thinner middle
+(synonym <b>piping</b>).
+The shape can be set separately for peptide helix, strand, coil, and nucleic 
+acids (see <a href="atomspec.html#builtin"><i>atom-spec</i> terms</a>),
+except that <b>barbell</b> does not apply to coil or to arrowheads.
+The initial default cross-section is <b>oval</b> for helix and coil,
+<b>rectangle</b> for strand and nucleic.
+The <b>barScale</b> <i>factor</i> (range 0.2&ndash;1.0,
+initial default <b>0.5</b>) is multiplied by the thickness to give
+the central &ldquo;bar&rdquo; thickness of <b>barbell</b> cartoon
+relative to the edges, where the nominal value applies.
+</p><p>
+The <b>arrows</b> option specifies whether to show arrowheads at the 
+C-terminal ends of peptide strands (initial default <b>true</b>),
+whereas <b>arrowsHelix</b> is the analogous setting for peptide helices
+(initial default <b>false</b>).
+The <b>arrowScale</b> <i>factor</i> (initial default <b>2.0</b>)
+is multiplied by the width of helix or strand to give the arrowhead width.
+</p><p>
+The number of <b>sides</b> <i>N</i> is the number of straight-line segments
+used to draw an <b>oval</b> cross-section, with higher numbers 
+corresponding to finer subdivisions (initial default <b>12</b>);
+<b>barSides</b> <i>N<font size="-1"><sub>b</sub></font></i>
+is the analogous parameter for the <b>barbell</b> cross-section
+(initial default <b>18</b>). Odd values
+of <b>barSides</b> <i>N<font size="-1"><sub>b</sub></font></i>
+are automatically rounded up to the next even number.
+Shading is used to give a smooth, rounded appearance despite
+this approximation of the shape with facets.
+</p><p>
+The <b>ssEnds</b> <i>type</i> specifies the length and register of 
+peptide helix and/or strand representations 
+relative to the backbone atoms, with possible values:
+<table class="clRight" cellpadding="0px" cellspacing="0px">
+<tr>
+<td><img class="outline" width="150px" src="carlink-shortnew.png"></td>
+<td><img class="outline" width="150px" src="carlink-longnew.png"></td>
+</tr>
+</table>
+<ul>
+<li><b>short</b>
+- depiction of the helix or strand secondary structure element (SSE) 
+starts at the C&alpha; of its first (N-terminal) residue
+and ends at the C&alpha; of its last (C-terminal) residue
+<li><b>long</b> 
+- depiction of the SSE starts at the C&alpha; of its first residue (same as 
+for <b>short</b>) but ends in the middle of its following peptide bond
+</ul>
+The remainder of the peptide chain is shown as coil-like segments.
+Currently, the initial default is <b>short</b> for both strands and helices.
+<!--
+</p><p>
+The <b>cylinders</b> option specifies whether to show peptide helices as
+cylinders instead of as ribbons spiraling along the backbone atoms.
+-->
+</p>
+</blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="tether">
 (&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
-<b>tether</b></a> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
-[&nbsp;<b>shape</b>&nbsp;cone&nbsp;|&nbsp;steeple&nbsp;|&nbsp;cylinder&nbsp;]
-[&nbsp;<b>sides</b>&nbsp;&nbsp<i>N</i>&nbsp;]
+<b>tether</b></a> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>shape</b>&nbsp;<b>cone</b>&nbsp;|&nbsp;steeple&nbsp;|&nbsp;cylinder&nbsp;]
+[&nbsp;<b>sides</b>&nbsp;&nbsp<i>N<font size="-1"><sub>t</sub></font></i>&nbsp;]
 [&nbsp;<b>scale</b>&nbsp;&nbsp<i>scale</i>&nbsp;]
 [&nbsp;<b>opacity</b>&nbsp;&nbsp<i>opacity</i>&nbsp;]
 <blockquote>
@@ -130,152 +237,12 @@ a tether (range 3-10, initial default <b>4</b>).
 The <b>scale</b> option sets tether base radius relative to the display radius 
 of the corresponding &alpha;-carbon (range 0.0-1.0, initial default <b>1.0</b>).
 The tether <b>opacity</b> value (1 &ndash; transparency) can range from 0.0
-(completely transparent) to 1.0 (completely opaque), with initial default
-<b>0.5</b>.
+(completely transparent, allows hiding the tethers) to 1.0 (completely opaque),
+with initial default <b>0.5</b>.
 The tether color tracks the color of the corresponding &alpha;-carbon.
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="scale">
-(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
-<b>scale</b></a>
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
-[&nbsp;<b>helix</b>&nbsp;&nbsp;<i>w</i>,<i>h</i>]
-[&nbsp;<b>strand</b>&nbsp;&nbsp;<i>w</i>,<i>h</i>]
-[&nbsp;<b>coil</b>&nbsp;&nbsp;<i>w</i>,<i>h</i>]
-[&nbsp;<b>nucleic</b>&nbsp;&nbsp;<i>h</i>,<i>w</i>]
-[&nbsp;<b>arrowHelix</b>&nbsp;&nbsp;<i>basew</i>,<i>baseh</i>,<i>tipw</i>,<i>tiph</i>&nbsp;]
-[&nbsp;<b>arrowStrand</b>&nbsp;&nbsp;<i>basew</i>,<i>baseh</i>,<i>tipw</i>,<i>tiph</i>&nbsp;]
-<blockquote>
-The <b>scale</b> subcommand 
-sets the dimensions of the cartoon perpendicular to its path.
-The values are actually half-dimensions (half-widths and half-heights)
-in &Aring;.  Dimensions can be set separately for 
-peptide <b>helix</b> (initial default <b>0.9,0.21</b>) 
-and <b>helixArrow</b> (initial default <b>1.8,0.21,0.21,0.21</b>),
-peptide <b>strand</b> (initial default <b>0.8,0.21</b>)
-and <b>strandArrow</b> (initial default <b>1.5,0.21,0.21,0.21</b>),
-peptide <b>coil</b> (initial default <b>0.21,0.21</b>), 
-and <b>nucleic</b> acids (initial default <b>0.21,0.8</b>).
-<p>
-Given without options, <b>cartoon scale</b> reports the current settings.
-</p>
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="arrow">
-(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
-<b>arrow</b></a>
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
-[&nbsp;<b>helix</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>strand</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-<blockquote>
-Arrowheads can be shown at the C-terminal ends of peptide <b>helix</b>
-and/or <b>strand</b>. The initial default is arrows on strands only.
-<p>
-Given without options, <b>cartoon arrow</b> reports the current settings.
-</p>
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="linker">
-(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
-<b>linker</b></a>
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
-(&nbsp;<b>none</b>&nbsp;|&nbsp;<b>short</b>&nbsp;|&nbsp;<b>short2</b>&nbsp;|&nbsp;<b>long</b>&nbsp;)
-&nbsp;<i>type,type</i>
-<blockquote>
-Linkers are the connections between helix, strand, and coil segments 
-along a peptide chain. 
-The options specify the length and register of coil-like segments
-between the last residue of one segment and first residue of the next:
-<ul>
-<li><b>none</b>
-- no extra (other than for coil residues) coil-like linker;
-boundary occurs at peptide bond
-<li><b>short</b> - extra coil-like linker from the C&alpha; of the
-last residue in a segment to the peptide bond
-<li><b>short2</b> - extra coil-like linker from the peptide bond
-to the C&alpha; of the first residue of the next segment
-<li><b>long</b> - extra coil-like segment from the C&alpha; of the last
-residue in a segment to the C&alpha; of the first residue in
-the next segment (like <b>short</b> + <b>short2</b>)
-</ul>
-Segment <i>type</i> values <b>helix</b>, <b>strand</b>, and <b>coil</b>
-can be given as single letters, for example:
-<blockquote>
-<b>cartoon link long h,s; cartoon link long s,h</b>
-</blockquote>
-<!--
-** Note: <b>none</b> and <b>short</b> are not recommended 
-for coil &rarr; helix/strand transitions (c,h or c,s) **
--->
-In the following example images,
-a strand immediately precedes a helix, and &alpha;-carbons are shown as balls.
-<table cellpadding="0px" cellspacing="0px">
-<tr>
-<th align="center">none</th>
-<th align="center">short</th>
-<th align="center">short2</th>
-<th align="center">long</th>
-</tr><tr>
-<td><img class="outline" width="120px" src="carlink-none.png"></td>
-<td><img class="outline" width="120px" src="carlink-short.png"></td>
-<td><img class="outline" width="120px" src="carlink-short2.png"></td>
-<td><img class="outline" width="120px" src="carlink-long.png"></td>
-</tr>
-</table>
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="xsection">
-(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
-<b>xsection</b></a>
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
-[&nbsp;<b>helix</b>&nbsp;round&nbsp;|&nbsp;square&nbsp;|&nbsp;piping&nbsp;]
-[&nbsp;<b>strand</b>&nbsp;round&nbsp;|&nbsp;square&nbsp;|&nbsp;piping&nbsp;]
-[&nbsp;<b>coil</b>&nbsp;round&nbsp;|&nbsp;square&nbsp;|&nbsp;piping&nbsp;]
-[&nbsp;<b>nucleic</b>&nbsp;round&nbsp;|&nbsp;square&nbsp;|&nbsp;piping&nbsp;]
-<blockquote>
-The cross-section is the shape of the cartoon perpendicular to its path, with
-edges smoothly rounded, squared-off, or piped (edges rounded but thicker than
-the middle).  Cross-sections can be set separately for 
-peptide <b>helix</b> (initial default <b>round</b>), 
-peptide <b>strand</b> (initial default <b>square</b>), 
-peptide <b>coil</b> (initial default <b>round</b>), and <b>nucleic</b>
-acids (initial default <b>square</b>).
-<p>
-Given without options, <b>cartoon xsection</b> reports the current settings.
-</p>
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="param">
-(&nbsp;<b>cartoon</b>&nbsp;|&nbsp;<b>ribbon</b>&nbsp;)
-<b>param</b></a> (&nbsp;<b>piping</b>&nbsp;|&nbsp;<b>round</b>&nbsp;)
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
-[&nbsp;<b>sides</b>&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>faceted</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>ratio</b>&nbsp;<i>r</i>&nbsp;]
-<blockquote>
-The number of <b>sides</b> <i>N</i> is the number of straight-line segments
-used to draw a cross-sectional shape, with higher numbers corresponding 
-to finer subdivisions.
-The <b>faceted</b> option is whether shading should reveal the planar sides 
-(true) or give a smoother, rounded appearance (false).
-Initial defaults are <b>6</b> sides for <b>piping</b>
-and <b>12</b> sides for <b>round</b>, both unfaceted.
-The <b>ratio</b> <i>factor</i> (range 0.2&ndash;1.0,
-initial default <b>0.5</b>) applies only to <b>piping</b> and is multiplied by 
-the thickness to give its central thickness relative to the edges, where the 
-nominal value (see <a href="#scale"><b>cartoon scale</b></a>) applies.
-<p>
-Given without options, <b>cartoon param piping</b> or 
-<b>cartoon param round</b> reports the current settings.
-</p>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2016</address>
+August 2016</address>
 </body></html>

@@ -215,7 +215,7 @@ class Log(ToolInstance, HtmlLog):
                         from chimerax.core.errors import UserError
                         raise UserError("No file specified for save log contents")
                     self.log.save(filename)
-            self.log_window = HtmlWindow(parent, self)
+            self.log_window = lw = HtmlWindow(parent, self)
             from PyQt5.QtWidgets import QGridLayout, QErrorMessage
             self.error_dialog = QErrorMessage(parent)
             layout = QGridLayout(parent)
@@ -235,10 +235,14 @@ class Log(ToolInstance, HtmlLog):
             def link_clicked(qurl, nav_type, is_main_frame):
                 self.navigate(qurl)
                 return False
-            self.log_window.page().acceptNavigationRequest = link_clicked
+            lw.page().acceptNavigationRequest = link_clicked
             #self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
             #                     id=self.log_window.GetId())
             self.log = self._qt_log
+            # Don't record html history as log changes.
+            def clear_history(okay, lw=lw):
+                lw.history().clear()
+            lw.loadFinished.connect(clear_history)
         self.show_page_source()
 
     #

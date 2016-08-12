@@ -29,12 +29,14 @@ def rungs(session, atoms = None, color = None, radius = None, halfbond = None,
     if atoms is None:
         atoms = all_atoms(session)
 
-    ratoms = atoms.unique_residues.atoms
-    abase = ratoms.filter(ratoms.names == "C3'")
-    aname = {'A':'N1', 'DA':'N1', 'G':'N1', 'DG':'N1',
-             'C':'N3', 'DC':'N3', 'T':'N3', 'DT':'N3', 'U':'N3'}
+    ribose_base = "C3'"		# Base of rung
+    purine_atom = 'C8'		# Distinguishes purines from pyrimidines
+    purine_tip = 'N1'		# Tip of rung
+    pyrimidine_tip = 'N3'	# Tip of rung
 
     rungs = []
+    ratoms = atoms.unique_residues.atoms
+    abase = ratoms.filter(ratoms.names == ribose_base)
     for m, ab in abase.by_structure:
         g = m.pseudobond_group('rungs')
         pbonds = g.pseudobonds		# Recolor existing pseudobonds
@@ -44,11 +46,10 @@ def rungs(session, atoms = None, color = None, radius = None, halfbond = None,
         cur_pb = {(a1,a2):pb for a1,a2,pb in zip(ca1,ca2,pbonds)}
         for a1 in ab:
             r = a1.residue
-            a2n = aname.get(r.name)
-            if a2n is None:
-                continue
             ratoms = r.atoms
-            a2list = ratoms.filter(ratoms.names == a2n)
+            is_purine = len(ratoms.filter(ratoms.names == purine_atom)) > 0
+            tip_atom_name = purine_tip if is_purine else pyrimidine_tip
+            a2list = ratoms.filter(ratoms.names == tip_atom_name)
             if len(a2list) == 1:
                 a2 = a2list[0]
                 b = cur_pb.get((a1,a2))	# See if pseudobond already exists.
