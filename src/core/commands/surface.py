@@ -42,7 +42,7 @@ def surface(session, atoms = None, enclose = None, include = None,
       Percentage transparency for surfaces.
     visible_patches : int
       Maximum number of connected surface pieces per chain to show.
-    sharp_boundaries : bool
+ø    sharp_boundaries : bool
       Make the surface triangulation have edges exactly between atoms
       so per-atom surface colors and surface patches have smoother edges.
     nthread : int
@@ -81,10 +81,14 @@ def surface(session, atoms = None, enclose = None, include = None,
         all_surfs = {}
 
     if grid_spacing is None:
-        grid_spacing = 0.5 if resolution is None else 0.1 * resolution
+        grid = 0.5 if resolution is None else 0.1 * resolution
+    else:
+        grid = None
 
     if sharp_boundaries is None:
-        sharp_boundaries = True if resolution is None else False
+        sharp = True if resolution is None else False
+    else:
+        sharp = None
 
     surfs = []
     new_surfs = []
@@ -103,8 +107,8 @@ def surface(session, atoms = None, enclose = None, include = None,
                 name = '%s_%s SES surface' % (m.name, chain_id)
                 rgba = surface_rgba(color, transparency, chain_id)
                 s = MolecularSurface(session, enclose_atoms, show_atoms,
-                                     probe_radius, grid_spacing, resolution, level,
-                                     name, rgba, visible_patches, sharp_boundaries)
+                                     probe_radius, grid, resolution, level,
+                                     name, rgba, visible_patches, sharp)
                 new_surfs.append((s,m))
             else:
                 s.new_parameters(show_atoms, probe_radius, grid_spacing,
@@ -124,8 +128,8 @@ def surface(session, atoms = None, enclose = None, include = None,
             name = 'Surface %s' % enclose.spec
             rgba = surface_rgba(color, transparency)
             s = MolecularSurface(session, enclose_atoms, show_atoms,
-                                 probe_radius, grid_spacing, resolution, level,
-                                 name, rgba, visible_patches, sharp_boundaries)
+                                 probe_radius, grid, resolution, level,
+                                 name, rgba, visible_patches, sharp)
             new_surfs.append((s,parent))
         else:
             s.new_parameters(show_atoms, probe_radius, grid_spacing,

@@ -1,12 +1,12 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def transparency(session, atoms, percent, target='s'):
+def transparency(session, objects, percent, target='s'):
     """Set transparency of atoms, ribbons, surfaces, ....
 
     Parameters
     ----------
-    atoms : Atoms or None
+    objects : Objects or None
       Which objects to set transparency.
     percent : float
       Percent transparent from 0 completely opaque, to 100 completely transparent.
@@ -14,9 +14,10 @@ def transparency(session, atoms, percent, target='s'):
       Characters indicating what to make transparent:
       a = atoms, b = bonds, p = pseudobonds, c = cartoon, r = cartoon, s = surfaces, A = all
     """
-    if atoms is None:
-        from ..atomic import all_atoms
-        atoms = all_atoms(session)
+    if objects is None:
+        from . import all_objects
+        objects = all_objects(session)
+    atoms = objects.atoms
 
     if 'A' in target:
         target = 'abpcs'
@@ -53,24 +54,7 @@ def transparency(session, atoms, percent, target='s'):
             what.append('%d pseudobonds' % len(bonds))
 
     if 's' in target:
-        from .. import atomic
-        surfs = atomic.surfaces_with_atoms(atoms, session.models)
-        for s in surfs:
-            vcolors = s.vertex_colors
-            amask = s.atoms.mask(atoms)
-            if vcolors is None and amask.all():
-                c = s.colors
-                c[:, 3] = alpha
-                s.colors = c
-            else:
-                if vcolors is None:
-                    from numpy import empty, uint8
-                    vcolors = empty((len(s.vertices), 4), uint8)
-                    vcolors[:] = s.color
-                v2a = s.vertex_to_atom_map()
-                v = amask[v2a]
-                vcolors[v, 3] = alpha
-                s.vertex_colors = vcolors
+        surfs = _set_surface_transparency(atoms, objects, session, alpha)
         what.append('%d surfaces' % len(surfs))
 
     if 'c' in target or 'r' in target:
@@ -86,12 +70,58 @@ def transparency(session, atoms, percent, target='s'):
     from . import cli
     session.logger.status('Set transparency of %s' % cli.commas(what, ' and'))
 
+def _set_surface_transparency(atoms, objects, session, alpha):
+
+    # Handle surfaces for specified atoms
+    from .. import atomic
+    surfs = atomic.surfaces_with_atoms(atoms, session.models)
+    for s in surfs:
+        vcolors = s.vertex_colors
+        amask = s.atoms.mask(atoms)
+        if vcolors is None and amask.all():
+            c = s.colors
+            c[:, 3] = alpha
+            s.colors = c
+        else:
+            if vcolors is None:
+                from numpy import empty, uint8
+                vcolors = empty((len(s.vertices), 4), uint8)
+                vcolors[:] = s.color
+            v2a = s.vertex_to_atom_map()
+            if v2a is None:
+                if amask.all():
+                    v = slice(len(vcolors))
+                else:
+                    session.logger.info('No atom associations for surface #%s'
+                                        % s.id_string())
+                    continue
+            else:
+                v = amask[v2a]
+            vcolors[v, 3] = alpha
+            s.vertex_colors = vcolors
+
+    # Handle surface models specified without specifying atoms
+    from ..atomic import MolecularSurface
+    for s in objects.models:
+        if isinstance(s, MolecularSurface) and not s in surfs:
+            vcolors = s.vertex_colors
+            if vcolors is None:
+                c = s.colors
+                c[:, 3] = alpha
+                s.colors = c
+            else:
+                vcolors[v, 3] = alpha
+                s.vertex_colors = vcolors
+            surfs.append(s)
+            
+    return surfs
+
 
 # -----------------------------------------------------------------------------
 #
 def register_command(session):
-    from . import register, CmdDesc, Or, AtomsArg, EmptyArg, FloatArg, StringArg
-    desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg)),
+    from . import register, CmdDesc, Or, ObjectsArg, EmptyArg, FloatArg, StringArg
+    desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                              ('percent', FloatArg)],
                    keyword=[('target', StringArg)],
                    synopsis="change object transparency")
