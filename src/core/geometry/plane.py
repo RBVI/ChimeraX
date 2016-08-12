@@ -17,7 +17,7 @@ class Plane:
 
     usage_msg = "Plane must be defined either by a single point and a normal, or " \
         "with an array of N points"
-    def __init__(self, origin_info, normal=None):
+    def __init__(self, origin_info, *, normal=None):
         origin_info = numpy.array(origin_info)
         dims = origin_info.shape
         if dims == (1, 3):
@@ -96,6 +96,14 @@ class Plane:
 
     def _compute_offset(self):
         self._offset = numpy.negative(numpy.dot(self.origin, self.normal))
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return Plane(data['origin'], normal=data['normal'])
+
+    def take_snapshot(self):
+        data = { 'origin': self.origin, 'normal': self.normal }
+        return data
 
 class PlaneNoIntersectionError(ValueError):
     def __init__(self, msg="Planes do not intersect"):
