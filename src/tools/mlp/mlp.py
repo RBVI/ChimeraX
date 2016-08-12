@@ -1,15 +1,13 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def mlp(session, atoms, dx=None, method="fauchere", spacing=1.0, nexp=3.0):
+def mlp(session, atoms, method="fauchere", spacing=1.0, nexp=3.0):
     '''Display Molecular Lipophilic Potential for a single model.
 
     Parameters
     ----------
     atoms : Atoms
         Show MLP map for the specified model.
-    dx : dx file name
-        Name of file for computed dx map.
     method : 'dubost','fauchere','brasseur','buckingham','type5'
         Distance dependent function to use for calculation
     spacing : float
@@ -23,24 +21,9 @@ def mlp(session, atoms, dx=None, method="fauchere", spacing=1.0, nexp=3.0):
     m.data = _MLPAtomicStructureAdapter(atoms)
     m.assignfi(defaults.fidatadefault)
     m.calculatefimap(method, spacing, nexp)
-    delete_temp = dx is None
-    if dx is None:
-        import tempfile
-        tf = tempfile.NamedTemporaryFile(prefix="chtmp", suffix=".dx")
-        dx = tf.name
-        tf.close()
-    try:
-        m.writedxfile(dx)
-        from chimerax.core.commands import run
-        run(session, "open %s" % dx)
-    finally:
-        if delete_temp:
-            import os
-            try:
-                os.remove(dx)
-            except OSError:
-                pass
 
+    # Open mlp map
+    v = mlp_map(m, session)
 
 class _MLPAtomicStructureAdapter:
     '''Adapter class to enable pyMLP to access atomic structure data'''
@@ -97,6 +80,18 @@ class _MLPAtomAdapter:
         else:
             raise KeyError("\"%s\" not supported in MLPAdapter" % key)
 
+def mlp_map(m, session):
+    # m.pot is 1-dimensional if m.writedxfile() was called.  Has indices in x,y,z order.
+    data = m.pot.reshape(m.griddim).transpose()
+    origin = tuple(xmin for xmin,xmax in m.gridcoord)
+    s = m.spacing
+    step = (s,s,s)
+    from chimerax.core.map.data import Array_Grid_Data
+    g = Array_Grid_Data(data, origin, step, name = 'mlp map')
+    g.polar_values = True
+    from chimerax.core.map import volume_from_grid_data
+    v = volume_from_grid_data(g, session)
+    return v
 
 def register_mlp_command():
     from chimerax.core.commands import register, CmdDesc, AtomsArg, SaveFileNameArg, FloatArg, EnumOf
