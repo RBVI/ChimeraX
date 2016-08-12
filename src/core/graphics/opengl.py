@@ -70,6 +70,20 @@ class OpenGLContext:
         '''Swap back and front OpenGL buffers.'''
         pass
 
+# OpenGL stipple patterns for various line types
+from .linetype import LineType
+_stipple_patterns = {
+        LineType.Solid: 0xffff,
+        LineType.Dashed: 0x1f1f,
+        LineType.Dotted: 0x0303,
+        LineType.DashedDotted: 0x0fc3,
+        LineType.DashDotDot: 0x3f33,
+}
+
+def stipple(line_type):
+    """Return unsigned short stipple pattern for given line_type"""
+    return _stipple_pattern.get(line_type, 0xffff)
+
 class Render:
     '''
     Manage shaders, viewing matrices and lighting parameters to render a scene.
