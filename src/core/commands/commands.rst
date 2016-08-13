@@ -28,6 +28,7 @@ and their code location is described with the function descriptions.
 | `list`_ - List open models
 | `log`_ * - Clear or save the log
 | `material`_ - Change surface material light reflection properties
+| `mlp`_ * - Color surfaces by molecular lipophilicity
 | `molmap`_ - Calculate a density map from atoms
 | `mousemode`_ - Set mouse modes
 | `movie`_ * - Record videos
@@ -166,6 +167,14 @@ material
 ========
 .. autofunction:: chimerax.core.commands.material.material
 
+mlp
+===
+Function found in *chimerax.mlp.mlp*
+
+.. automodule:: chimerax.mlp.mlp
+  :members:
+  :member-order: bysource
+
 molmap
 ======
 .. autofunction:: chimerax.core.map.molmap.molmap
@@ -177,7 +186,6 @@ mousemode
 move
 ====
 .. autofunction:: chimerax.core.commands.move.move
-
 
 movie
 =====
