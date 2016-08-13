@@ -374,7 +374,7 @@ extern "C" EXPORT void atom_delete(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
-        std::map<Structure *, std::vector<Atom *> > matoms;
+        std::map<Structure *, std::vector<Atom *>> matoms;
         for (size_t i = 0; i != n; ++i)
             matoms[a[i]->structure()].push_back(a[i]);
 
@@ -1004,6 +1004,20 @@ extern "C" EXPORT void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgb
     }
 }
 
+extern "C" EXPORT void pseudobond_delete(void *pbonds, size_t n)
+{
+    Pseudobond **pb = static_cast<Pseudobond **>(pbonds);
+    try {
+        std::map<Proxy_PBGroup *, std::vector<Pseudobond *>> g_pbs;
+        for (size_t i = 0; i != n; ++i)
+            g_pbs[pb[i]->group()->proxy()].push_back(pb[i]);
+        for (auto grp_pbs: g_pbs)
+            grp_pbs.first->delete_pseudobonds(grp_pbs.second);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void pseudobond_group(void *pbonds, size_t n, pyobject_t *grps)
 {
     Pseudobond **pb = static_cast<Pseudobond **>(pbonds);
@@ -1210,6 +1224,28 @@ extern "C" EXPORT void* pseudobond_global_manager_get_group(void *manager, const
         molc_error();
         return nullptr;
     }
+}
+
+extern "C" EXPORT PyObject *pseudobond_global_manager_group_map(void *manager)
+{
+    PyObject* mapping = PyDict_New();
+    if (mapping == nullptr)
+        molc_error();
+    else {
+        try {
+            PBManager* mgr = static_cast<PBManager*>(manager);
+            for (auto cat_grp: mgr->group_map()) {
+                PyObject* key = PyUnicode_FromString(cat_grp.first.c_str());
+                PyObject* val = PyLong_FromVoidPtr(cat_grp.second);
+                PyDict_SetItem(mapping, key, val);
+                Py_DECREF(key);
+                Py_DECREF(val);
+            }
+        } catch (...) {
+            molc_error();
+        }
+    }
+    return mapping;
 }
 
 extern "C" EXPORT void pseudobond_global_manager_delete_group(void *manager, void *pbgroup)
@@ -1799,8 +1835,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             // product of the peptide planes formed with the previous and
             // next residues.  This will give us a vector that is in both
             // peptide planes and should define the ribbon orientations.
-            float guide[3];
-            for (int i = 0; i != peptide_planes.size() - 1; ++i) {
+            for (size_t i = 0; i != peptide_planes.size() - 1; ++i) {
                 const float* prev_pp = peptide_planes[i].normal;
                 const float* this_pp = peptide_planes[i + 1].normal;
                 float* guide = gdata + (i+1)*3;
@@ -1819,7 +1854,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             // side as the carbonyl oxygen (guide ATOM) so that
             // ribbon orientation flipping can be enforced
             float cg[3];
-            for (int i = 0; i != centers.size(); ++i) {
+            for (size_t i = 0; i != centers.size(); ++i) {
                 atom_vector(centers[i], guides[i], cg);
                 int offset = i * 3;
                 if (inner(cg, gdata + offset))
@@ -1828,7 +1863,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             }
             // Finally, we add back the center coordinates to move
             // back to the same coordinate system
-            for (int i = 0; i != centers.size() * 3; ++i)
+            for (size_t i = 0; i != centers.size() * 3; ++i)
                 gdata[i] += cdata[i];
 #if 0
             for (int i = 0; i != centers.size(); ++i) {

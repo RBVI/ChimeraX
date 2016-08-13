@@ -64,6 +64,23 @@ class Atom:
     HIDE_RIBBON = 0x1
     BBE_MIN, BBE_RIBBON, BBE_MAX = range(3)
 
+    def __init__(self, c_pointer):
+        set_c_pointer(self, c_pointer)
+
+    def __str__(self, atom_only = False):
+        from ..core_settings import settings
+        cmd_style = settings.atomspec_contents == "command-line specifier"
+        if cmd_style:
+            atom_str = '@' + self.name
+        else:
+            atom_str = self.name
+        if atom_only:
+            return atom_str
+        if cmd_style:
+            return '%s%s' % (str(self.residue), atom_str)
+        return '%s %s' % (str(self.residue), atom_str)
+
+    alt_loc = c_property('atom_alt_loc', byte, doc='Alternate location indicator')
     bfactor = c_property('atom_bfactor', float32, doc = "B-factor, floating point value.")
     bonds = c_property('atom_bonds', cptr, "num_bonds", astype=_bonds, read_only=True,
         doc="Bonds connected to this atom as an array of :py:class:`Bonds` objects. Read only.")
@@ -116,9 +133,6 @@ class Atom:
     visible = c_property('atom_visible', npy_bool, read_only=True,
         doc="Whether atom is displayed and not hidden.")
 
-    alt_loc = c_property('atom_alt_loc', byte,
-                         doc='Alternate location indicator')
-
     def set_alt_loc(self, loc, create):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
@@ -138,21 +152,10 @@ class Atom:
         f(a_ref, 1, loc, v_ref)
         return v.value
 
-    def __init__(self, c_pointer):
-        set_c_pointer(self, c_pointer)
-
-    def __str__(self, atom_only = False):
-        from ..core_settings import settings
-        cmd_style = settings.atomspec_contents == "command-line specifier"
-        if cmd_style:
-            atom_str = '@' + self.name
-        else:
-            atom_str = self.name
-        if atom_only:
-            return atom_str
-        if cmd_style:
-            return '%s%s' % (str(self.residue), atom_str)
-        return '%s %s' % (str(self.residue), atom_str)
+    def delete(self):
+        '''Delete this Atom from it's Structure'''
+        f = c_function('atom_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
 
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
@@ -300,6 +303,11 @@ class Pseudobond:
     shown = c_property('pseudobond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown. Read only.'''
 
+    def delete(self):
+        '''Delete this pseudobond from it's group'''
+        f = c_function('pseudobond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
+
     @property
     def length(self):
         '''Distance between centers of two bond end point atoms.'''
@@ -393,6 +401,11 @@ class PseudobondManager(State):
         self.session.triggers.add_handler("end restore session",
             lambda *args: self._ses_call("restore_teardown"))
 
+    def delete_group(self, pbg):
+        f = c_function('pseudobond_global_manager_delete_group',
+                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
+        f(self._c_pointer, pbg._c_pointer)
+
     def get_group(self, category, create = True):
         '''Get an existing :class:`.PseudobondGroup` or create a new one given a category name.'''
         f = c_function('pseudobond_global_manager_get_group',
@@ -405,10 +418,18 @@ class PseudobondManager(State):
         return object_map(pbg,
             lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
 
-    def delete_group(self, pbg):
-        f = c_function('pseudobond_global_manager_delete_group',
-                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
-        f(self._c_pointer, pbg._c_pointer)
+    def group_map(self):
+        '''Returns a dict that maps from :class:`.PseudobondGroup` category to group'''
+        f = c_function('pseudobond_global_manager_group_map',
+                       args = (ctypes.c_void_p,),
+                       ret = ctypes.py_object)
+        ptr_map = f(self._c_pointer)
+        obj_map = {}
+        for cat, pbg_ptr in ptr_map.items():
+            obj = object_map(pbg_ptr,
+                lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
+            obj_map[cat] = obj
+        return obj_map
 
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''

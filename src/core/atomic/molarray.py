@@ -655,6 +655,11 @@ class Pseudobonds(Collection):
     Whether each pseudobond is displayed, visible and has both atoms shown.
     '''
 
+    def delete(self):
+        '''Delete the C++ Pseudobond objects'''
+        c_function('pseudobond_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
     @property
     def half_colors(self):
         '''2N x 4 RGBA uint8 numpy array of half bond colors.'''
