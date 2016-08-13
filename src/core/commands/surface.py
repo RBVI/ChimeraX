@@ -42,7 +42,7 @@ def surface(session, atoms = None, enclose = None, include = None,
       Percentage transparency for surfaces.
     visible_patches : int
       Maximum number of connected surface pieces per chain to show.
-ø    sharp_boundaries : bool
+    sharp_boundaries : bool
       Make the surface triangulation have edges exactly between atoms
       so per-atom surface colors and surface patches have smoother edges.
     nthread : int
@@ -55,6 +55,7 @@ def surface(session, atoms = None, enclose = None, include = None,
       Undisplay surfaces or patches of surfaces.
     close : bool
       Close surfaces for the specified atoms.
+
     '''
 
     from ..atomic.molsurf import close_surfaces, show_surfaces, hide_surfaces, remove_solvent_ligands_ions

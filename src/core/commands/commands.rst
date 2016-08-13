@@ -5,6 +5,7 @@ The *chimerax.core.commands* module contains Python functions for the core comma
 available from the ChimeraX command-line.  Tools define additional commands noted with a (*)
 and their code location is described with the function descriptions.
 
+| `2dlabels`_ * - Show text labels with graphics
 | `alias`_ - Define aliases for commands
 | `align`_ - Align one set of atoms to another
 | `buriedarea`_ - Compute buried area between atomic structures
@@ -58,7 +59,6 @@ and their code location is described with the function descriptions.
 | `surface`_ - Compute a molecular surface
 | `sym`_ - Show molecular assemblies involving symmetry
 | `time`_ - Time a command
-| `title`_ * - Show text titles with graphics
 | `toolshed`_ * - Control the Tool Shed user interface
 | `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
@@ -69,6 +69,14 @@ and their code location is described with the function descriptions.
 | `wait`_ - Wait before executing next command
 | `windowsize`_ - Set or report graphics window size
 | `zoom`_ - Zoom in or out
+
+2dlabels
+========
+Function found in *chimerax.label.label*
+
+.. autofunction:: chimerax.label.label.label_create
+.. autofunction:: chimerax.label.label.label_change
+.. autofunction:: chimerax.label.label.label_delete
 
 alias
 =====
@@ -127,7 +135,7 @@ delete
 
 echo
 ====
-.. autofunction:: chimerax.core.commands.echo.echo
+Equivalent to the "log text" command.
 
 exit
 ====
@@ -292,14 +300,6 @@ sym
 time
 ====
 .. autofunction:: chimerax.core.commands.time.time
-
-title
-=====
-Function found in *chimerax.title.label*
-
-.. autofunction:: chimerax.title.label.title_create
-.. autofunction:: chimerax.title.label.title_change
-.. autofunction:: chimerax.title.label.title_delete
 
 toolshed
 ========
