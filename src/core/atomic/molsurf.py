@@ -303,7 +303,7 @@ class MolecularSurface(Model):
             self.selected_triangles_mask = tmask
 
     # State save/restore in ChimeraX
-    _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_max_radius', '_atom_colors',
+    _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_max_radius',
                    'vertices', 'normals', 'triangles', 'triangle_mask', 'vertex_colors', 'color')
 
     def take_snapshot(self, session, flags):
