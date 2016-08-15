@@ -84,7 +84,7 @@ def surface(session, atoms = None, enclose = None, include = None,
     if grid_spacing is None:
         grid = 0.5 if resolution is None else 0.1 * resolution
     else:
-        grid = None
+        grid = grid_spacing
 
     if sharp_boundaries is None:
         sharp = True if resolution is None else False
