@@ -119,7 +119,7 @@ class X3DScene:
         for prefix, uri in namespaces.items():
             print("\n%s xmlns:%s=\"%s\"" % (tab, escape(prefix), escape(uri)),
                   end='', file=stream)
-            print('>', file=stream)
+        print('>', file=stream)
         if 'created' not in meta:
             # See ISO 8601 and/or <http://www.w3.org/TR/NOTE-datetime>.
             iso_date = datetime.datetime.utcnow().isoformat() + 'Z'
