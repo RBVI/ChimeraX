@@ -314,11 +314,12 @@ def calculatefimap(atoms, method, spacing, nexp):
 
     from numpy import zeros, float32
     pot = zeros((nzgrid+1, nygrid+1, nxgrid+1), float32)
-    sum_fi(xyz, fi, origin, spacing, method, nexp, pot)
+    from ._mlp import mlp_sum
+    mlp_sum(xyz, fi, origin, spacing, method, nexp, pot)
                  
     return pot, bounds
 
-def sum_fi(xyz, fi, origin, spacing, method, nexp, pot):
+def mlp_sum(xyz, fi, origin, spacing, method, nexp, pot):
     if method == 'dubost':
         computemethod = _dubost
     elif method == 'fauchere':

@@ -1,6 +1,10 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
+SUBDIRS = _mlp
+
+include $(TOP)/mk/subdir.make
+
 PKG_NAME = chimerax.mlp
 PKG_VERSION = 1.0
 PKG_DESCRIPTION = Molecular lipophilicity calculation
