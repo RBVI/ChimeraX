@@ -61,73 +61,12 @@ def register_mlp_command():
                    synopsis='display molecular lipophilic potential for selected models')
     register('mlp', desc, mlp)
 
-class _MLPAtomicStructureAdapter:
-    '''Adapter class to enable pyMLP to access atomic structure data'''
-
-    def __init__(self, atoms):
-        self.atoms = atoms
-        self.atom_map = {}
-
-    def __iter__(self):
-        amap = self.atom_map
-        for a in self.atoms:
-            if a in amap:
-                aa = amap[a]
-            else:
-                aa = _MLPAtomAdapter(a)
-                amap[a] = aa
-            yield aa
-        raise StopIteration()
-
-
-class _MLPAtomAdapter:
-    '''Adapter class to enable pyMLP to access atom data'''
-
-    __slots__ = ["atom", "fi"]
-
-    def __init__(self, atom):
-        self.atom = atom
-        self.fi = None
-
-    def __str__(self):
-        return str(self.atom)
-
-    def __setitem__(self, key, value):
-        if key == 'fi':
-            self.fi = value
-        else:
-            raise KeyError("\"%s\" not supported in MLPAdapter" % key)
-
-    def __getitem__(self, key):
-        if key == 'fi':
-            return self.fi
-        elif key == 'atmx':
-            return self.atom.coord[0]
-        elif key == 'atmy':
-            return self.atom.coord[1]
-        elif key == 'atmz':
-            return self.atom.coord[2]
-        elif key == 'resname':
-            return self.atom.residue.name
-        elif key == 'atmname':
-            return self.atom.name
-        elif key == 'atmnumber':
-            return self.atom.element_number
-        else:
-            raise KeyError("\"%s\" not supported in MLPAdapter" % key)
-
 def mlp_map(session, atoms, method, spacing, nexp, open_map):
-    from .pyMLP import Molecule, Defaults
-    defaults = Defaults()
-    m = Molecule()
-    m.data = _MLPAtomicStructureAdapter(atoms)
-    m.assignfi(defaults.fidatadefault)
-    m.calculatefimap(method, spacing, nexp)
+    data, bounds = calculatefimap(atoms, method, spacing, nexp)
 
     # m.pot is 1-dimensional if m.writedxfile() was called.  Has indices in x,y,z order.
-    data = m.pot.reshape(m.griddim).transpose()
-    origin = tuple(xmin for xmin,xmax in m.gridcoord)
-    s = m.spacing
+    origin = tuple(xmin for xmin,xmax in bounds)
+    s = spacing
     step = (s,s,s)
     from chimerax.core.map.data import Array_Grid_Data
     g = Array_Grid_Data(data, origin, step, name = 'mlp map')
@@ -135,3 +74,293 @@ def mlp_map(session, atoms, method, spacing, nexp, open_map):
     from chimerax.core.map import volume_from_grid_data
     v = volume_from_grid_data(g, session, open_model = open_map, show_data = open_map, show_dialog = open_map)
     return v
+
+#
+# Code below is modified version of pyMLP, eliminating most the of code
+# (unneeded parsing PDB files, writing dx files, ...) and optimizing the calculation speed.
+#
+
+class Defaults(object):
+    """Constants"""
+
+    def __init__(self):
+        self.gridmargin = 10.0
+        self.fidatadefault = {                    #Default fi table
+ 'ALA': {'CB': 0.63,    #fi : lipophilic atomic potential
+         'C': -0.54,
+         'CA': 0.02,
+         'O': -0.68,
+         'N': -0.44},
+ 'ARG': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD': 0.45,
+         'CG': 0.45,
+         'CZ': -0.54,
+         'N': -0.44,
+         'NE': -0.55,
+         'NH1': -0.11,
+         'NH2': -0.83,
+         'O': -0.68},
+ 'ASN': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.02,
+         'CG': 0.45,
+         'N': -0.44,
+         'ND2': -0.11,
+         'O': -0.68,
+         'OD1': -0.68},
+ 'ASP': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CG': 0.54,
+         'N': -0.44,
+         'O': -0.68,
+         'OD1': -0.68,
+         'OD2': 0.53},
+ 'CYS': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'N': -0.44,
+         'O': -0.68,
+         'SG': 0.27},
+ 'GLN': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD': -0.54,
+         'CG': 0.45,
+         'N': -0.44,
+         'NE2': -0.11,
+         'O': -0.68,
+         'OE1': -0.68},
+ 'GLU': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD': -0.54,
+         'CG': 0.45,
+         'N': -0.44,
+         'O': -0.68,
+         'OE1': -0.68,
+         'OE2': 0.53},
+ 'GLY': {'C': -0.54,
+         'CA': 0.45,
+         'O': -0.68,
+         'N': -0.55},
+ 'HIS': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD2': 0.31,
+         'CE1': 0.31,
+         'CG': 0.09,
+         'N': -0.44,
+         'ND1': -0.56,
+         'NE2': -0.80,
+         'O': -0.68},
+ 'HYP': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD1': 0.45,
+         'CG': 0.02,
+         'N': -0.92,
+         'O': -0.68,
+         'OD2': -0.93},
+ 'ILE': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.02,
+         'CD': 0.63,
+         'CD1': 0.63,
+         'CG1': 0.45,
+         'CG2': 0.63,
+         'N': -0.44,
+         'O': -0.68},
+ 'LEU': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD1': 0.63,
+         'CD2': 0.63,
+         'CG': 0.02,
+         'N': -0.44,
+         'O': -0.68},
+ 'LYS': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD': 0.45,
+         'CE': 0.45,
+         'CG': 0.45,
+         'N': -0.44,
+         'NZ': -1.08,
+         'O': -0.68},
+ 'MET': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CE': 0.63,
+         'CG': 0.45,
+         'N': -0.44,
+         'O': -0.68,
+         'SD': -0.30},
+ 'PCA': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD': -0.54,
+         'CG': 0.45,
+         'N': 1.52,
+         'O': -0.68,
+         'OE': -0.68},
+ 'PHE': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD1': 0.31,
+         'CD2': 0.31,
+         'CE1': 0.31,
+         'CE2': 0.31,
+         'CG': 0.09,
+         'CZ': 0.31,
+         'N': -0.44,
+         'O': -0.68},
+ 'PRO': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD': 0.45,
+         'CG': 0.45,
+         'N': -0.92,
+         'O': -0.68},
+ 'SER': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'N': -0.44,
+         'O': -0.68,
+         'OG': -0.99},
+ 'THR': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.02,
+         'CG2': 0.63,
+         'N': -0.44,
+         'O': -0.68,
+         'OG1': -0.93},
+ 'TRP': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD1': 0.31,
+         'CD2': 0.24,
+         'CE2': 0.24,
+         'CE3': 0.31,
+         'CG': 0.09,
+         'CH2': 0.31,
+         'CZ2': 0.31,
+         'CZ3': 0.31,
+         'N': -0.44,
+         'NE1': -0.55,
+         'O': -0.68},
+ 'TYR': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.45,
+         'CD1': 0.31,
+         'CD2': 0.31,
+         'CE1': 0.31,
+         'CE2': 0.31,
+         'CG': 0.09,
+         'CZ': 0.09,
+         'N': -0.44,
+         'O': -0.68,
+         'OH': -0.17},
+ 'VAL': {'C': -0.54,
+         'CA': 0.02,
+         'CB': 0.02,
+         'CG1': 0.63,
+         'CG2': 0.63,
+         'N': -0.44,
+         'O': -0.68}}
+
+def assignfi(fidata, atoms):
+    """assign fi parameters to each atom in the pdbfile"""
+    n = len(atoms)
+    from numpy import empty, float32
+    fi = empty((n,), float32)
+    resname = atoms.residues.names
+    aname = atoms.names
+    for i in range(n):
+        rname = resname[i]
+        rfidata = fidata.get(rname)
+        if rfidata:
+            fi[i]=rfidata.get(aname[i], 0)
+    return fi
+
+def _griddimcalc(listcoord, spacing, gridmargin):
+    """Determination of the grid dimension"""
+    coordmin = min(listcoord) - gridmargin
+    coordmax = max(listcoord) + gridmargin
+    adjustment = ((spacing - (coordmax - coordmin)) % spacing) / 2.
+    coordmin = coordmin - adjustment
+    coordmax = coordmax + adjustment
+    ngrid = int(round((coordmax - coordmin) / spacing))
+    return coordmin, coordmax, ngrid
+
+import numpy
+
+def _dubost(fi, d, n):
+    return (100 * fi / (1 + d)).sum()
+
+def _fauchere(fi, d, n):
+    return (100 * fi * numpy.exp(-d)).sum()
+
+def _brasseur(fi, d, n):
+    #3.1 division is there to remove any units in the equation
+    #3.1A is the average diameter of a water molecule (2.82 -> 3.2)
+    return (100 * fi * numpy.exp(-d/3.1)).sum()
+
+def _buckingham(fi, d, n):
+    return (100 * fi / (d**n)).sum()
+
+def _type5(fi, d, n):
+    return (100 * fi * numpy.exp(-numpy.sqrt(d))).sum()
+
+def calculatefimap(atoms, method, spacing, nexp):
+    """Calculation loop"""
+
+    #grid settings in angstrom
+    gridmargin = Defaults().gridmargin
+    xyz = atoms.scene_coords
+    xmingrid, xmaxgrid, nxgrid = _griddimcalc(xyz[:,0], spacing, gridmargin)
+    ymingrid, ymaxgrid, nygrid = _griddimcalc(xyz[:,1], spacing, gridmargin)
+    zmingrid, zmaxgrid, nzgrid = _griddimcalc(xyz[:,2], spacing, gridmargin)
+    bounds = [[xmingrid, xmaxgrid],
+              [ymingrid, ymaxgrid],
+              [zmingrid, zmaxgrid]]
+
+    fi_table = Defaults().fidatadefault
+    fi = assignfi(fi_table, atoms)
+
+    if method == 'dubost':
+        computemethod = _dubost
+    elif method == 'fauchere':
+        computemethod = _fauchere
+    elif method == 'brasseur':
+        computemethod = _brasseur
+    elif method == 'buckingham':
+        computemethod = _buckingham
+    elif method == 'type5':
+        computemethod = _type5
+    else:
+        raise ValueError('Unknown lipophilicyt method %s\n' % computemethod)
+
+    from numpy import zeros, float32, empty, subtract, sqrt
+    pot = zeros((nzgrid+1, nygrid+1, nxgrid+1), float32)
+    grid_pt = empty((3,), float32)
+    dxyz = empty((len(xyz),3), float32)
+    dist = empty((len(xyz),), float32)
+    for k in range(nzgrid+1):
+        grid_pt[2] = zmingrid + k * spacing
+        for j in range(nygrid+1):
+            grid_pt[1] = ymingrid + j * spacing
+            for i in range(nxgrid+1):
+                #Evaluation of the distance between th grid point and each atoms
+                grid_pt[0] = xmingrid + i * spacing
+                subtract(xyz, grid_pt, dxyz)
+                dxyz *= dxyz
+                dist = dxyz[:,0]
+                dist += dxyz[:,1]
+                dist += dxyz[:,2]
+                sqrt(dist, dist)
+                pot[k,j,i] = computemethod(fi, dist, nexp)
+
+    return pot, bounds
