@@ -8,6 +8,7 @@
 //#include <iostream>			// use std::cerr for debugging
 
 #include <math.h>			// use sqrtf(), expf()
+#include <string.h>			// use strcmp()
 
 #include <arrays/pythonarray.h>		// use array_from_python()
 #include <arrays/rcarray.h>		// use FArray, IArray
@@ -31,6 +32,11 @@ static void lipophilicity_sum(const FArray &xyz, const FArray &fi,
   long fs0 = fi.stride(0);
   const float *fa = fi.values();
   int md = int(ceil(max_dist / spacing));
+  bool fauchere = (strcmp(method, "fauchere") == 0);
+  bool brasseur = (strcmp(method, "brasseur") == 0);
+  bool buckingham = (strcmp(method, "buckingham") == 0);
+  bool dubost = (strcmp(method, "dubost") == 0);
+  bool type5 = (strcmp(method, "type5") == 0);
   for (int a = 0 ; a < na ; ++a)
     {
       const float *xa = xyza + xs0*a;
@@ -53,34 +59,27 @@ static void lipophilicity_sum(const FArray &xyz, const FArray &fi,
 		  float dx = ax-gx, dy = ay-gy, dz = az-gz;
 		  float d = sqrtf(dx*dx + dy*dy + dz*dz);
 		  if (d <= max_dist)
-		    pa[ps0*k+ps1*j+ps2*i] += f * expf(-d);	// Fauchere
+		    {
+		      float p;
+		      if (fauchere)
+			p = expf(-d);
+		      else if (brasseur)
+			p = expf(-d/3.1);
+		      else if (buckingham)
+			p = 1.0/pow(d,nexp);
+		      else if (dubost)
+			p = 1.0/(1+d);
+		      else if (type5)
+			p = expf(-sqrtf(d));
+		      else
+			p = 0;
+		      pa[ps0*k+ps1*j+ps2*i] += f*p;
+		    }
 		}
 	    }
 	}
     }
 }
-
-/*
-def _dubost(fi, d, n):
-    return (100 * fi / (1 + d)).sum()
-
-def _fauchere(fi, d, n):
-    from numpy import exp
-    return (100 * fi * exp(-d)).sum()
-
-def _brasseur(fi, d, n):
-    #3.1 division is there to remove any units in the equation
-    #3.1A is the average diameter of a water molecule (2.82 -> 3.2)
-    from numpy import exp
-    return (100 * fi * exp(-d/3.1)).sum()
-
-def _buckingham(fi, d, n):
-    return (100 * fi / (d**n)).sum()
-
-def _type5(fi, d, n):
-    from numpy import exp, sqrt
-    return (100 * fi * exp(-sqrt(d))).sum()
-*/
 
 // ----------------------------------------------------------------------------
 //
