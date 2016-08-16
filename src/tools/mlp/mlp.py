@@ -42,11 +42,13 @@ def mlp(session, atoms, method="fauchere", spacing=1.0, max_dist=5.0, nexp=3.0,
         surfs = surface(session, atoms)
         for s in surfs:
             satoms = s.atoms
-            v = mlp_map(session, satoms, method, spacing, max_dist, nexp, open_map = map)
+            name = 'mlp ' + s.name.split(maxsplit=1)[0]
+            v = mlp_map(session, satoms, method, spacing, max_dist, nexp, name, open_map = map)
             from chimerax.core.commands.scolor import scolor
             scolor(session, satoms, map = v, palette = cmap, range = range)
     else:
-        v = mlp_map(session, atoms, method, spacing, max_dist, nexp, open_map = map)
+        name = 'mlp map'
+        v = mlp_map(session, atoms, method, spacing, max_dist, nexp, name, open_map = map)
             
 
 def register_mlp_command():
@@ -64,7 +66,7 @@ def register_mlp_command():
                    synopsis='display molecular lipophilic potential for selected models')
     register('mlp', desc, mlp)
 
-def mlp_map(session, atoms, method, spacing, max_dist, nexp, open_map):
+def mlp_map(session, atoms, method, spacing, max_dist, nexp, name, open_map):
     data, bounds = calculatefimap(atoms, method, spacing, max_dist, nexp)
 
     # m.pot is 1-dimensional if m.writedxfile() was called.  Has indices in x,y,z order.
@@ -72,7 +74,7 @@ def mlp_map(session, atoms, method, spacing, max_dist, nexp, open_map):
     s = spacing
     step = (s,s,s)
     from chimerax.core.map.data import Array_Grid_Data
-    g = Array_Grid_Data(data, origin, step, name = 'mlp map')
+    g = Array_Grid_Data(data, origin, step, name = name)
     g.polar_values = True
     from chimerax.core.map import volume_from_grid_data
     v = volume_from_grid_data(g, session, open_model = open_map, show_data = open_map, show_dialog = open_map)
