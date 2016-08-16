@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def mlp(session, atoms, method="fauchere", spacing=1.0, nexp=3.0,
+def mlp(session, atoms, method="fauchere", spacing=1.0, max_dist=5.0, nexp=3.0,
         color=True, palette=None, range=None, map=False):
     '''Display Molecular Lipophilic Potential for a single model.
 
@@ -13,6 +13,8 @@ def mlp(session, atoms, method="fauchere", spacing=1.0, nexp=3.0,
         Distance dependent function to use for calculation
     spacing : float
     	Grid spacing, default 1 Angstrom.
+    max_dist : float
+        Maximum distance from atom to sum lipophilicity.
     nexp : float
         The buckingham method uses this numerical exponent.
     color : bool
@@ -40,17 +42,18 @@ def mlp(session, atoms, method="fauchere", spacing=1.0, nexp=3.0,
         surfs = surface(session, atoms)
         for s in surfs:
             satoms = s.atoms
-            v = mlp_map(session, satoms, method, spacing, nexp, open_map = map)
+            v = mlp_map(session, satoms, method, spacing, max_dist, nexp, open_map = map)
             from chimerax.core.commands.scolor import scolor
             scolor(session, satoms, map = v, palette = cmap, range = range)
     else:
-        v = mlp_map(session, atoms, method, spacing, nexp, open_map = map)
+        v = mlp_map(session, atoms, method, spacing, max_dist, nexp, open_map = map)
             
 
 def register_mlp_command():
     from chimerax.core.commands import register, CmdDesc, AtomsArg, SaveFileNameArg, FloatArg, EnumOf, NoArg, BoolArg, ColormapArg, ColormapRangeArg
     desc = CmdDesc(required=[('atoms', AtomsArg)],
                    keyword=[('spacing', FloatArg),
+                            ('max_dist', FloatArg),
                             ('method', EnumOf(['dubost','fauchere','brasseur','buckingham','type5'])),
                             ('nexp', FloatArg),
                             ('color', BoolArg),
@@ -61,8 +64,8 @@ def register_mlp_command():
                    synopsis='display molecular lipophilic potential for selected models')
     register('mlp', desc, mlp)
 
-def mlp_map(session, atoms, method, spacing, nexp, open_map):
-    data, bounds = calculatefimap(atoms, method, spacing, nexp)
+def mlp_map(session, atoms, method, spacing, max_dist, nexp, open_map):
+    data, bounds = calculatefimap(atoms, method, spacing, max_dist, nexp)
 
     # m.pot is 1-dimensional if m.writedxfile() was called.  Has indices in x,y,z order.
     origin = tuple(xmin for xmin,xmax in bounds)
@@ -295,7 +298,7 @@ def _griddimcalc(listcoord, spacing, gridmargin):
     ngrid = int(round((coordmax - coordmin) / spacing))
     return coordmin, coordmax, ngrid
 
-def calculatefimap(atoms, method, spacing, nexp):
+def calculatefimap(atoms, method, spacing, max_dist, nexp):
     """Calculation loop"""
 
     #grid settings in angstrom
@@ -315,11 +318,11 @@ def calculatefimap(atoms, method, spacing, nexp):
     from numpy import zeros, float32
     pot = zeros((nzgrid+1, nygrid+1, nxgrid+1), float32)
     from ._mlp import mlp_sum
-    mlp_sum(xyz, fi, origin, spacing, method, nexp, pot)
+    mlp_sum(xyz, fi, origin, spacing, max_dist, method, nexp, pot)
                  
     return pot, bounds
 
-def mlp_sum(xyz, fi, origin, spacing, method, nexp, pot):
+def mlp_sum(xyz, fi, origin, spacing, max_dist, method, nexp, pot):
     if method == 'dubost':
         computemethod = _dubost
     elif method == 'fauchere':
