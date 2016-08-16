@@ -239,6 +239,7 @@ class Colormap:
                  color_above_value_range=None,
                  color_below_value_range=None,
                  color_no_value=None):
+        self.values_specified = (data_values is not None)
         from numpy import array, float32, ndarray, argsort
         if data_values is None:
             import numpy
@@ -285,12 +286,10 @@ class Colormap:
                                           self.color_below_value_range)
         return colors
 
-    def new_range(self, min_value, max_value):
-        v = self.data_values
-        v0, v1 = v[0], v[-1]
-        f = (max_value - min_value) / (v1-v0)
-        nv = (v - v0)*f + min_value
-        cmap = Colormap(nv, self.colors,
+    def linear_range(self, min_value, max_value):
+        import numpy
+        v = numpy.linspace(min_value, max_value, len(self.colors))
+        cmap = Colormap(v, self.colors,
                         self.color_above_value_range,
                         self.color_below_value_range,
                         self.color_no_value)

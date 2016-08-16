@@ -246,19 +246,29 @@ def volume_op(surfaces, volume = None, cmap = 'redblue', cmapRange = None,
 #
 def volume_color_source(surf, volume, cmap = None, cmap_range = None, color_outside_volume = 'gray',
                         offset = 0, cap_only = False, per_pixel = False, auto_update = False):
-    if cmap is None:
-        from ..colors import BuiltinColormaps
-        cmap = BuiltinColormaps['redblue']
 
     cs = Volume_Color()
     cs.set_volume(volume)
     cs.offset = offset
-    if cmap_range is None or cmap_range == 'full':
-        vmin,vmax = compute_value_range(surf, cs.value_range, cap_only)
+
+    if cmap is None:
+        from ..colors import BuiltinColormaps
+        cmap = BuiltinColormaps['redblue']
+    if cmap_range is None and (cmap is None or not cmap.values_specified):
+        cmap_range = 'full'
+    if cmap_range is None:
+        cm = cmap
     else:
-        vmin,vmax = cmap_range
-    cm = cmap.new_range(vmin, vmax)
+        if cmap_range == 'full':
+            vmin,vmax = compute_value_range(surf, cs.value_range, cap_only)
+        elif cmap.values_specified:
+            from ..errors import UserError
+            raise UserError('Only one of palette and range options should specify data values')
+        else:
+            vmin,vmax = cmap_range
+        cm = cmap.linear_range(vmin, vmax)
     cs.set_colormap(cm)
+    
     cs.per_pixel_coloring = per_pixel
     return cs
 
