@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def mlp(session, atoms, method="fauchere", spacing=1.0, max_dist=5.0, nexp=3.0,
+def mlp(session, atoms, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3.0,
         color=True, palette=None, range=None, map=False):
     '''Display Molecular Lipophilic Potential for a single model.
 
@@ -13,8 +13,8 @@ def mlp(session, atoms, method="fauchere", spacing=1.0, max_dist=5.0, nexp=3.0,
         Distance dependent function to use for calculation
     spacing : float
     	Grid spacing, default 1 Angstrom.
-    max_dist : float
-        Maximum distance from atom to sum lipophilicity.
+    max_distance : float
+        Maximum distance from atom to sum lipophilicity.  Default 5 Angstroms.
     nexp : float
         The buckingham method uses this numerical exponent.
     color : bool
@@ -43,19 +43,19 @@ def mlp(session, atoms, method="fauchere", spacing=1.0, max_dist=5.0, nexp=3.0,
         for s in surfs:
             satoms = s.atoms
             name = 'mlp ' + s.name.split(maxsplit=1)[0]
-            v = mlp_map(session, satoms, method, spacing, max_dist, nexp, name, open_map = map)
+            v = mlp_map(session, satoms, method, spacing, max_distance, nexp, name, open_map = map)
             from chimerax.core.commands.scolor import scolor
             scolor(session, satoms, map = v, palette = cmap, range = range)
     else:
         name = 'mlp map'
-        v = mlp_map(session, atoms, method, spacing, max_dist, nexp, name, open_map = map)
+        v = mlp_map(session, atoms, method, spacing, max_distance, nexp, name, open_map = map)
             
 
 def register_mlp_command():
     from chimerax.core.commands import register, CmdDesc, AtomsArg, SaveFileNameArg, FloatArg, EnumOf, NoArg, BoolArg, ColormapArg, ColormapRangeArg
     desc = CmdDesc(required=[('atoms', AtomsArg)],
                    keyword=[('spacing', FloatArg),
-                            ('max_dist', FloatArg),
+                            ('max_distance', FloatArg),
                             ('method', EnumOf(['dubost','fauchere','brasseur','buckingham','type5'])),
                             ('nexp', FloatArg),
                             ('color', BoolArg),
