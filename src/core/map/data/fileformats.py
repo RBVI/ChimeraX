@@ -10,11 +10,12 @@
 file_types = (
 #  ('Amira mesh', 'amira', ['amira'], ['am'], False),
   ('APBS potential', 'apbs', ['apbs'], ['dx'], False),
-  ('BRIX or DSN6 density map', 'dsn6', ['dsn6'], ['brix','omap'], False),
+  ('BRIX density map', 'dsn6', ['dsn6'], ['brix'], False),
   ('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map'], False),
   ('Chimera map', 'cmap', ['cmap'], ['cmp','cmap'], False),
 #  ('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor'], False),
 #  ('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi'], False),
+  ('DSN6 density map', 'dsn6', ['dsn6'], ['omap'], False),
 #  ('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg'], False),
 #  ('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5'], False),
 #  ('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub'], False),
@@ -37,12 +38,13 @@ file_types = (
 #
 #from . import mrc, netcdf, cmap, dsn6
 from . import mrc, cmap, dsn6
+# Format name, module name, suffixes, file writer, option names
 file_writers = (
-  ('MRC density map', 'mrc', '.mrc', mrc.write_mrc2000_grid_data, ()),
-#  ('NetCDF generic array', 'netcdf', '.nc', netcdf.write_grid_as_netcdf, ()),
-  ('Chimera map', 'cmap', '.cmap', cmap.write_grid_as_chimera_map,
+  ('MRC density map', 'mrc', ['mrc'], mrc.write_mrc2000_grid_data, ()),
+#  ('NetCDF generic array', 'netcdf', ['nc'], netcdf.write_grid_as_netcdf, ()),
+  ('Chimera map', 'cmap', ['cmap', 'cmp'], cmap.write_grid_as_chimera_map,
    ('chunk_shapes', 'append', 'compress', 'multigrid')),
-  ('BRIX map', 'dsn6', '.brix', dsn6.write_brix, ()),
+  ('BRIX density map', 'dsn6', ['brix'], dsn6.write_brix, ()),
   )
   
 # -----------------------------------------------------------------------------
@@ -175,8 +177,9 @@ def file_writer(path, format = None):
 
   if format is None:
     for fw in file_writers:
-      if path.endswith(fw[2]):
-        return fw
+      for suffix in fw[2]:
+        if path.endswith('.' + suffix):
+          return fw
   else:
     for fw in file_writers:
       if format == fw[1] or format == fw[0]:
@@ -232,14 +235,15 @@ def save_grid_data(grids, path, session, format = None, options = {}):
     glist = grids
 
   if len(glist) > 1 and not ('multigrid' in allowed_options):
-    raise ValueError('Cannot write multiple volumes using format %s' % format)
+    from ...errors import UserError
+    raise UserError('Cannot write multiple volumes using format %s' % format)
 
   # Use a temporary file if a source file is being overwritten.
   tpath = path
   if not ('append' in options):
     if matching_grid_path(glist, path):
       from tempfile import mkstemp
-      f, tpath = mkstemp(suffix)
+      f, tpath = mkstemp(suffix[0])
       from os import close, remove
       close(f)
       remove(tpath)  # Want new file to have normal, not secure, permissions.

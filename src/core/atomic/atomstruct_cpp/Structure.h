@@ -76,8 +76,8 @@ public:
 class ATOMSTRUCT_IMEX Structure: public GraphicsContainer {
     friend class Atom; // for IDATM stuff and structure categories
     friend class Bond; // for checking if make_chains() has been run yet, struct categories
-    friend class Chain; // for remove_chain()
     friend class Residue; // for _polymers_computed
+    friend class StructureSeq; // for remove_chain()
 public:
     typedef std::vector<Atom*>  Atoms;
     typedef std::vector<Bond*>  Bonds;
@@ -97,7 +97,8 @@ public:
     enum RibbonOrientation { RIBBON_ORIENT_DEFAULT = 0,
                              RIBBON_ORIENT_GUIDES = 1,
                              RIBBON_ORIENT_ATOMS = 2,
-                             RIBBON_ORIENT_CURVATURE = 3 };
+                             RIBBON_ORIENT_CURVATURE = 3,
+                             RIBBON_ORIENT_PEPTIDE = 4 };
 protected:
     const int  CURRENT_SESSION_VERSION = 1;
 

@@ -367,6 +367,12 @@ class Drawing:
     scene_position = property(_get_scene_position, _set_scene_position)
     '''Position in scene coordinates.'''
 
+    def get_scene_positions(self, displayed_only = False):
+        p = self.get_positions(displayed_only)
+        for d in reversed(self.drawing_lineage[:-1]):
+            p = d.get_positions(displayed_only) * p
+        return p
+        
     def get_positions(self, displayed_only=False):
         if displayed_only:
             return self._positions.masked(self.display_positions)
@@ -529,7 +535,7 @@ class Drawing:
             self.draw_self(renderer, place, draw_pass, selected_only)
 
         if self.child_drawings():
-            for i, p in enumerate(self.positions):
+            for p in self.positions:
                 pp = place if p.is_identity() else place * p
                 self._draw_children(renderer, pp, draw_pass, selected_only)
 
@@ -976,6 +982,95 @@ class Drawing:
         ta = self.triangles
         tm = self._triangle_mask
         return ta if tm is None else ta[tm,:]
+
+    def x3d_needs(self, x3d_scene):
+        if not self.display:
+            return
+        dlist = self.child_drawings()
+        for d in dlist:
+            d.x3d_needs(x3d_scene)
+        if self.empty_drawing():
+            return
+        any_opaque, any_transp = self._transparency()
+        from .. import x3d
+        # x3d_scene.need(x3d.Components.Core, 2)  # Prototyping
+        x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
+        if any_transp and self.vertex_colors:
+            x3d_scene.need(x3d.Components.Rendering, 4)  # ColorRGBA
+        else:
+            x3d_scene.need(x3d.Components.Rendering, 3)  # IndexedTriangleSet
+        # x3d_scene.need(x3d.Components.Rendering, 5)  # ClipPlane
+        x3d_scene.need(x3d.Components.Shape, 1)  # Appearance, Material, Shape
+        # x3d_scene.need(x3d.Components.Shape, 2)  # LineProperties
+        x3d_scene.need(x3d.Components.Shape, 3)  # Shaders
+        # x3d_scene.need(x3d.Components.Geometry3D, 1)  # Cylinder, Sphere
+        # x3d_scene.need(x3d.Components.Geometry3D, 4)  # Extrusion
+        if self.texture:
+            x3d_scene.need(x3d.Components.Texturing, 1)  # PixelTexture
+
+    def x3d_write(self, stream, x3d_scene, indent, place):
+        if not self.display:
+            return
+        dlist = self.child_drawings()
+        if dlist:
+            for p in self.positions:
+                pp = place if p.is_identity() else place * p
+                if self.reverse_order_children:
+                    dlist = dlist[::-1]
+                for d in dlist:
+                    d.x3d_write(stream, x3d_scene, indent, pp)
+        if self.empty_drawing():
+            return
+        any_opaque, any_transp = self._transparency()
+        # cases:
+        #  1 position, 1 color
+        #  multpiple positions, multiple colors
+        #  (multpiple positions, 1 color)
+        #  1 postion, per-vertex coloring
+        #  multiple postions, per-vertex coloring
+        has_ssa = self.positions.shift_and_scale_array() is not None
+        tab = ' ' * indent
+        print('%s<Group>' % tab, file=stream)
+        for p, c in zip(self.positions, self.colors):
+            if has_ssa:
+                s = (p.matrix[0][0], p.matrix[1][1], p.matrix[2][2])
+                t = p.translation()
+                print('%s<Transform scale="%g %g %g" translation="%g %g %g">' % (tab, s[0], s[1], s[2], t[0], t[1], t[2]), file=stream)
+            else:
+                r = p.rotation_axis_and_angle()
+                t = p.translation()
+                print('%s<Transform rotation="%g %g %g %g" translation="%g %g %g">' % (tab, r[0][0], r[0][1], r[0][2], r[1], t[0], t[1], t[2]), file=stream)
+            print('%s <Shape>' % tab, file=stream)
+            print('%s  <Appearance>' % tab, file=stream)
+            print("%s   <Material ambientIntensity='1' diffuseColor='%g %g %g' specularColor='0.85 0.85 0.85' shininess='0.234375' transparency='%g'/>" % (tab, c[0] / 255, c[1] / 255, c[2] / 255, 1 - c[3] / 255), file=stream)
+            print('%s  </Appearance>' % tab, file=stream)
+            colors = self.vertex_colors
+            normals = self.normals
+            indices = ['%g' % i for i in self.triangles.flatten()]
+            print('%s  <IndexedTriangleSet index="%s"' % (tab, ' '.join(indices)), end='', file=stream)
+
+            print(' solid="false"', end='', file=stream)
+            if colors is None:
+                print(' colorPerVerex="false"', end='', file=stream)
+            if normals is None:
+                print(' normalPerVerex="false"', end='', file=stream)
+            print('>', file=stream)
+            vertices = ['%g' % x for x in self.vertices.flatten()]
+            print('%s   <Coordinate point="%s"/>' % (tab, ' '.join(vertices)), file=stream)
+            if normals is not None:
+                normals = ['%g' % x for x in normals.flatten()]
+                print('%s   <Normal vector="%s"/>' % (tab, ' '.join(normals)), file=stream)
+            if colors is not None:
+                if any_transp:
+                    colors = ['%g' % x for x in (colors / 255).flatten()]
+                    print('%s   <ColorRGBA color="%s"/>' % (tab, ' '.join(colors)), file=stream)
+                else:
+                    colors = ['%g' % x for x in (colors[:, 0:3] / 255).flatten()]
+                    print('%s   <Color color="%s"/>' % (tab, ' '.join(colors)), file=stream)
+            print('%s  </IndexedTriangleSet>' % tab, file=stream)
+            print('%s </Shape>' % tab, file=stream)
+            print('%s</Transform>' % tab, file=stream)
+        print('%s</Group>' % tab, file=stream)
 
 def opaque_count(rgba):
     if rgba is None:

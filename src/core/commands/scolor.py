@@ -24,12 +24,15 @@
 #               [range <r>]
 #
 def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
-           per_atom_colors = None, esp = None):
+           per_atom_colors = None, map = None, palette = None, range = None, offset = 0):
     '''
     Color surfaces using a variety of methods, for example, to match nearby
     atom colors, or use a single color, or color by electrostatic potential,
     or color radially.  TODO: Only a few options are currently supported.
     '''
+    if atoms is None or len(atoms) == 0:
+        return 0
+        
     from .. import atomic
     surfs = atomic.surfaces_with_atoms(atoms, session.models)
 
@@ -47,17 +50,27 @@ def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
         else:
             ai = s.atoms.mask(atoms)
             v2a = s.vertex_to_atom_map()
-            v = ai[v2a]		# Vertices for the given atoms
+            if v2a is None:
+                if ai.all():
+                    v = slice(nv)
+                else:
+                    continue
+            else:
+                v = ai[v2a]		# Vertices for the given atoms
         if byatom:
             v2a = s.vertex_to_atom_map()
+            if v2a is None:
+                from ..errors import UserError
+                raise UserError('Surface #%s does not have atom patches, cannot color by atom'
+                                % s.id_string())
             if per_atom_colors is None:
                 c = s.atoms.colors[v2a[v],:]
             else:
                 sa2a = s.atoms.indices(atoms)
                 c = per_atom_colors[sa2a[v2a[v]],:]
             vcolors[v] = c
-        elif not esp is None:
-            cs = volume_color_source(s, esp, cmap_range = (-10,10), offset = 1.4)
+        elif not map is None:
+            cs = volume_color_source(s, map, palette, range, offset=offset)
             vcolors[v] = cs.vertex_colors(s)[v]
         elif not color is None:
             vcolors[v] = color.uint8x4()
@@ -70,14 +83,17 @@ def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
     return len(surfs)
 
 def register_command(session):
-    from . import cli, color, ColorArg
+    from . import cli, color, ColorArg, FloatArg, ColormapArg, ColormapRangeArg
     from ..map import MapArg
     _scolor_desc = cli.CmdDesc(
         optional = [('atoms', cli.Or(cli.AtomsArg, cli.EmptyArg)),
                     ('color', ColorArg),],
         keyword = [('opacity', cli.IntArg),
                    ('byatom', cli.NoArg),
-                   ('esp', MapArg)],
+                   ('map', MapArg),
+                   ('palette', ColormapArg),
+                   ('range', ColormapRangeArg),
+                   ('offset', FloatArg)],
         synopsis = 'color surfaces')
     cli.register('scolor', _scolor_desc, scolor)
 
@@ -228,15 +244,31 @@ def volume_op(surfaces, volume = None, cmap = 'redblue', cmapRange = None,
 
 # -----------------------------------------------------------------------------
 #
-def volume_color_source(surf, volume, cmap = 'redblue', cmap_range = None, color_outside_volume = 'gray',
+def volume_color_source(surf, volume, cmap = None, cmap_range = None, color_outside_volume = 'gray',
                         offset = 0, cap_only = False, per_pixel = False, auto_update = False):
-    if isinstance(cmap, str):
-        cmap, cmap_range = parse_colormap(cmap, cmap_range)
+
     cs = Volume_Color()
     cs.set_volume(volume)
     cs.offset = offset
-    cm = colormap(cs, cmap, cmap_range, cap_only, surf, color_outside_volume)
+
+    if cmap is None:
+        from ..colors import BuiltinColormaps
+        cmap = BuiltinColormaps['redblue']
+    if cmap_range is None and (cmap is None or not cmap.values_specified):
+        cmap_range = 'full'
+    if cmap_range is None:
+        cm = cmap
+    else:
+        if cmap_range == 'full':
+            vmin,vmax = compute_value_range(surf, cs.value_range, cap_only)
+        elif cmap.values_specified:
+            from ..errors import UserError
+            raise UserError('Only one of palette and range options should specify data values')
+        else:
+            vmin,vmax = cmap_range
+        cm = cmap.linear_range(vmin, vmax)
     cs.set_colormap(cm)
+    
     cs.per_pixel_coloring = per_pixel
     return cs
 
@@ -284,6 +316,15 @@ def colormap(cs, cmap, cmap_range, cap_only, surf, color_no_value = None):
     cm = Color_Map([v for v,c in vc], [c for v,c in vc],
                    color_no_value = color_no_value)
     return cm
+
+# -----------------------------------------------------------------------------
+#
+def compute_value_range(surf, value_range_func, cap_only):
+
+    v0,v1 = surface_value_range(surf, value_range_func, cap_only)
+    if v0 == None:
+        v0,v1 = (0,1)
+    return v0,v1
 
 # -----------------------------------------------------------------------------
 #

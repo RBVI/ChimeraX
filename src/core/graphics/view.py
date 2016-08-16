@@ -349,7 +349,7 @@ class View:
                 from .camera import camera_framing_drawings
                 c = camera_framing_drawings(drawings)
                 if c is None:
-                    return None         # Drawings not showing anything
+                    c = self.camera	# Drawings not showing anything, any camera will do
             else:
                 c = self.camera
         else:

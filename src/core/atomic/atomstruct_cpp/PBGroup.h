@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "imex.h"
 #include "destruct.h"
@@ -29,7 +30,7 @@ class Structure;
 class Pseudobond;
 class Proxy_PBGroup;
 
-class ATOMSTRUCT_IMEX Group: public DestructionObserver, public GraphicsContainer {
+class ATOMSTRUCT_IMEX PBGroup: public DestructionObserver, public GraphicsContainer {
 public:
     typedef std::set<Pseudobond*>  Pseudobonds;
 
@@ -46,17 +47,22 @@ protected:
     Proxy_PBGroup* _proxy; // the proxy for this group
 
     // the manager will need to be declared as a friend...
-    Group(const std::string& cat, BaseManager* manager):
+    PBGroup(const std::string& cat, BaseManager* manager):
         _category(cat), _destruction_relevant(true), _manager(manager), _proxy(nullptr) { }
-    virtual  ~Group() {}
+    virtual  ~PBGroup() {}
 
     // can't call pure virtuals from base class destructors, so
     // make the code easily available to derived classes...
     void  dtor_code();
+
+    void _check_destroyed_atoms(PBGroup::Pseudobonds& pbonds, const std::set<void*>& destroyed);
+    void delete_pbs_check(const std::set<Pseudobond*>& pbs) const;
 public:
     virtual void  clear() = 0;
     virtual const std::string&  category() const { return _category; }
     virtual void  check_destroyed_atoms(const std::set<void*>& destroyed) = 0;
+    virtual void  delete_pseudobond(Pseudobond* pb) = 0;
+    virtual void  delete_pseudobonds(const std::set<Pseudobond*>& pbs) = 0;
     virtual void  destructors_done(const std::set<void*>& destroyed) {
         if (!_destruction_relevant)
             return;
@@ -85,7 +91,7 @@ public:
 
 // in per-AtomicStructure groups there are per-CoordSet groups
 // and overall groups...
-class ATOMSTRUCT_IMEX StructurePBGroupBase: public Group {
+class ATOMSTRUCT_IMEX StructurePBGroupBase: public PBGroup {
 public:
     static int  SESSION_NUM_INTS(int /*version*/=0) { return 0; }
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 0; }
@@ -94,23 +100,23 @@ protected:
     void  _check_structure(Atom* a1, Atom* a2);
     Structure*  _structure;
     StructurePBGroupBase(const std::string& cat, Structure* as, BaseManager* manager):
-        Group(cat, manager), _structure(as) {}
+        PBGroup(cat, manager), _structure(as) {}
     virtual  ~StructurePBGroupBase() {}
 public:
     virtual Pseudobond*  new_pseudobond(Atom* e1, Atom* e2) = 0;
     std::pair<Atom*, Atom*> session_get_pb_ctor_info(int** ints) const;
     void  session_note_pb_ctor_info(Pseudobond* pb, int** ints) const;
     static int  session_num_floats(int version=0) {
-        return SESSION_NUM_FLOATS(version) + Group::session_num_floats();
+        return SESSION_NUM_FLOATS(version) + PBGroup::session_num_floats();
     }
     static int  session_num_ints(int version=0) {
-        return SESSION_NUM_INTS(version) + Group::session_num_ints();
+        return SESSION_NUM_INTS(version) + PBGroup::session_num_ints();
     }
     virtual void  session_restore(int version, int** ints, float** floats) {
-        Group::session_restore(version, ints, floats);
+        PBGroup::session_restore(version, ints, floats);
     }
     virtual void  session_save(int** ints, float** floats) const {
-        Group::session_save(ints, floats);
+        PBGroup::session_save(ints, floats);
     }
     Structure*  structure() const { return _structure; }
 };
@@ -129,6 +135,11 @@ protected:
 public:
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
     void  clear();
+    void  delete_pseudobond(Pseudobond* pb);
+    void  delete_pseudobonds(const std::set<Pseudobond*>& pbs);
+    void  delete_pseudobonds(const std::vector<Pseudobond*>& pbs) {
+        delete_pseudobonds(std::set<Pseudobond*>(pbs.begin(), pbs.end()));
+    }
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2);
     const Pseudobonds&  pseudobonds() const { return _pbonds; }
     int  session_num_ints(int version=0) const;
@@ -146,7 +157,7 @@ public:
 private:
     friend class Proxy_PBGroup;
     mutable std::unordered_map<const CoordSet*, Pseudobonds>  _pbonds;
-    void  remove_cs(const CoordSet* cs) { _pbonds.erase(cs); }
+    void  remove_cs(const CoordSet* cs);
 protected:
     CS_PBGroup(const std::string& cat, Structure* as, BaseManager* manager):
         StructurePBGroupBase(cat, as, manager) {}
@@ -154,6 +165,11 @@ protected:
 public:
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
     void  clear();
+    void  delete_pseudobond(Pseudobond* pb);
+    void  delete_pseudobonds(const std::set<Pseudobond*>& pbs);
+    void  delete_pseudobonds(const std::vector<Pseudobond*>& pbs) {
+        delete_pseudobonds(std::set<Pseudobond*>(pbs.begin(), pbs.end()));
+    }
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2);
     Pseudobond*  new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs);
     const Pseudobonds&  pseudobonds() const;
@@ -199,7 +215,7 @@ private:
         else
             _proxied = new CS_PBGroup(_category, _structure, _manager);
         _proxy = this;
-	static_cast<Group*>(_proxied)->_proxy = this;
+        static_cast<PBGroup*>(_proxied)->_proxy = this;
     }
     void  remove_cs(const CoordSet* cs) {
         if (_group_type == AS_PBManager::GRP_PER_CS)
@@ -221,6 +237,21 @@ public:
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<StructurePBGroup*>(_proxied)->clear();
         static_cast<CS_PBGroup*>(_proxied)->clear();
+    }
+    void  delete_pseudobond(Pseudobond* pb) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->delete_pseudobond(pb);
+        return static_cast<CS_PBGroup*>(_proxied)->delete_pseudobond(pb);
+    }
+    void  delete_pseudobonds(const std::set<Pseudobond*>& pbs) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->delete_pseudobonds(pbs);
+        return static_cast<CS_PBGroup*>(_proxied)->delete_pseudobonds(pbs);
+    }
+    void  delete_pseudobonds(const std::vector<Pseudobond*>& pbs) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            return static_cast<StructurePBGroup*>(_proxied)->delete_pseudobonds(pbs);
+        return static_cast<CS_PBGroup*>(_proxied)->delete_pseudobonds(pbs);
     }
     void  destroy() {
         if (structure() == nullptr)

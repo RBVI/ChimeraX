@@ -17,6 +17,10 @@ def register_core_selectors(session):
     reg(None, "nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False))
     reg(None, "pbonds", _pbonds_selector)
     reg(None, "hbonds", _hbonds_selector)
+    reg(None, "backbone", _backbone_selector)
+    reg(None, "mainchain", _backbone_selector)
+    reg(None, "sidechain", _sidechain_selector)
+    reg(None, "ribose", _ribose_selector)
     from ..atomic import Element
     for i in range(1, 115):
         e = Element.get_element(i)
@@ -136,3 +140,30 @@ def _hbonds_selector(session, models, results):
     for m in atoms.unique_structures:
         results.add_model(m)
     results.add_atoms(atoms)
+
+def _backbone_selector(session, models, results):
+    from ..atomic import Structure, structure_atoms
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    backbone = atoms.filter(atoms.is_backbones())
+    if backbone:
+        for m in backbone.unique_structures:
+            results.add_model(m)
+        results.add_atoms(backbone)
+
+def _sidechain_selector(session, models, results):
+    from ..atomic import Structure, structure_atoms
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    sidechain = atoms.filter(atoms.is_sidechains)
+    if sidechain:
+        for m in sidechain.unique_structures:
+            results.add_model(m)
+        results.add_atoms(sidechain)
+
+def _ribose_selector(session, models, results):
+    from ..atomic import Structure, structure_atoms
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    ribose = atoms.filter(atoms.is_riboses)
+    if ribose:
+        for m in ribose.unique_structures:
+            results.add_model(m)
+        results.add_atoms(ribose)

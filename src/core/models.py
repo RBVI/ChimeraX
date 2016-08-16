@@ -53,6 +53,8 @@ class Model(State, Drawing):
         delattr(self, "session")
 
     def id_string(self):
+        if self.id is None:
+            return ''
         return '.'.join(str(i) for i in self.id)
 
     def _get_single_color(self):
@@ -292,7 +294,8 @@ class Models(State):
         else:
             fns = filenames
         for fn in fns:
-            if io.category(io.deduce_format(fn, has_format=format)[0]) == toolshed.SCRIPT:
+            fmt = io.deduce_format(fn, has_format=format)[0]
+            if fmt and fmt.category == toolshed.SCRIPT:
                 collation_okay = False
                 break
         if collation_okay:

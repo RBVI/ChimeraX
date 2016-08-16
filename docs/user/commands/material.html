@@ -31,11 +31,12 @@ through individual <a href="#options">options</a> and through
 <a href="#preset">presets</a> that may change more than one parameter
 at a time. Currently, all objects use the same material properties.
 Parameters that are not specified retain their current values. 
-Without arguments, <b>material</b> reports the current settings in the
-<a href="../tools/log.html"><b>Log</b></a>.
 See also: 
 <a href="lighting.html"><b>lighting</b></a>,
 <a href="set.html"><b>set</b></a>
+</p><p>
+Given without arguments, <b>material</b> reports the current settings in the
+<a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
 The <a name="preset"><i>preset</i></a> can be:
 </p>
@@ -91,8 +92,20 @@ raised to the power of this exponent.
 <br>
 Set the fraction of ambient light that is reflected (default <b>0.8</b>).
 </blockquote>
+<blockquote>
+<b>transparentCastShadows</b> true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether transparent items cast shadows (default <b>false</b>)
+when ambient and/or directional shadowing is in use,
+see <a href="lighting.html"><b>lighting</b></a>.
+Shadow-casting by a transparent surface blackens objects inside
+the surface and detracts from the transparent effect.
+Due to limitations of the graphics implementation,
+shadows from a transparent surface are just as dark as 
+if the surface were completely opaque.
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2016</address>
+July 2016</address>
 </body></html>

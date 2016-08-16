@@ -1,8 +1,11 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def save(session, filename, width=None, height=None, supersample=3,
-         pixel_size=None, transparent_background=False, quality=95, format=None):
+def save(session, filename, models=None, format=None,
+         width=None, height=None, supersample=3,
+         pixel_size=None, transparent_background=False, quality=95,
+         region = None, step = (1,1,1), mask_zone = True, chunk_shapes = None,
+         append = None, compress = None, base_index = 1):
     '''Save data, sessions, images.
 
     Parameters
@@ -12,6 +15,11 @@ def save(session, filename, width=None, height=None, supersample=3,
         File suffix determines what type of file is saved unless the format option is given.
         For sessions the suffix is .cxs.
         Image files can be saved with .png, .jpg, .tif, .ppm, .gif suffixes.
+    models : list of Model or None
+        Models to save
+    format : string
+        Recognized formats are session, or for saving images png, jpeg, tiff, gif, ppm, bmp.
+        If not specified, then the filename suffix is used to identify the format.
     width : integer
         Width of image in pixels for saving image files.
         If width is not specified the current graphics window width is used.
@@ -31,147 +39,170 @@ def save(session, filename, width=None, height=None, supersample=3,
         with little improvement for larger values.
     transparent_background : bool
         Save image with transparent background.
-    format : string
-        Recognized formats are session, or for saving images png, jpeg, tiff, gif, ppm, bmp.
-        If not specified, then the filename suffix is used to identify the format.
+    region = None
+    step = (1,1,1)
+    mask_zone = True
+    chunk_shapes = None,
+    append = None
+    compress = None
+    base_index = 1
     '''
-    if format is not None:
+    from .. import io
+
+    if format is None:
+        from .. import io
+        fmt, fname, compress = io.deduce_format(filename, savable = True)
+    else:
         format = format.casefold()
-        if format not in format_suffix:
+        from .open import format_from_name
+        fmt = format_from_name(format, save=True, open=False)
+        if fmt is None:
+            fnames = sum([tuple(f.short_names) for f in io.formats()], ())
             from ..errors import UserError
             raise UserError("Unrecognized format '%s', must be one of %s" %
-                            (format, ', '.join(format_suffix.keys())))
+                            (format, ', '.join(fnames)))
+        if fmt.export_func is None:
+            from ..errors import UserError
+            raise UserError("Format '%s' cannot be saved." % format)
+    
     from os.path import splitext
     suffix = splitext(filename)[1][1:].casefold()
-    if not suffix and format:
-        suffix = format_suffix[format]
-        filename += '.%s' % suffix
-    if suffix in pil_image_formats:
-        save_image(session, filename, format, width, height,
-                   supersample, pixel_size, transparent_background, quality)
-    elif suffix == format_suffix['session']:
-        from ..session import save as save_session
-        save_session(session, filename)
-    else:
+    if not suffix and fmt:
+        suffix = fmt.extensions[0]
+        filename += suffix
+
+    save_func = fmt.export_func
+    if save_func is None:
+        suffixes = ', '.join(sum([f.extensions for f in io.formats() if f.export_func], []))
         from ..errors import UserError
-        from . import commas
-        suffixes = commas(["'%s'" % i for i in format_suffix.values()])
         if not suffix:
-            raise UserError('Missing file suffix, require one of %s' % suffixes)
-        raise UserError('Unrecognized file suffix "%s", require one of %s' %
-                        (suffix, suffixes))
+            msg = 'Missing file suffix, require one of %s' % suffixes
+        else:
+            msg = 'Unrecognized file suffix "%s", require one of %s' % (suffix, suffixes)
+        raise UserError(msg)
 
-# Map format name used by save command to file suffix.
-from ..session import SESSION_SUFFIX
-format_suffix = {
-    'session': SESSION_SUFFIX[1:],
-}
-image_format_suffix = {
-    'png': 'png',
-    'jpeg': 'jpg',
-    'tiff': 'tif',
-    'gif': 'gif',
-    'ppm': 'ppm',
-    'bmp': 'bmp',
-}
-format_suffix.update(image_format_suffix)
+    kw = {
+        'models': models,
+        'format': format,
+        'width': width,
+        'height': height,
+        'supersample': supersample,
+        'pixel_size': pixel_size,
+        'transparent_background': transparent_background,
+        'quality': quality,
+        'region': region,
+        'step': step,
+        'mask_zone': mask_zone,
+        'chunk_shapes': chunk_shapes,
+        'append': append,
+        'compress': compress,
+        'base_index': base_index,
+    }
+    
+    save_func(session, filename, **kw)
 
+    if fmt.open_func and not fmt.name.endswith('image'):
+        # Remember in file history
+        from ..filehistory import remember_file
+        remember_file(session, filename, fmt.short_names[0], models or 'all models', file_saved = True)
+
+
+def save_formats(session):
+    '''Report file formats and suffixes that the save command knows about.'''
+    if session.ui.is_gui:
+        lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Short name(s)<th>Suffixes']
+    else:
+        session.logger.info('File format, Short name(s), Suffixes:')
+    from .. import io
+    from . import commas
+    formats = list(f for f in io.formats() if f.export_func)
+    formats.sort(key = lambda f: f.name)
+    for f in formats:
+        if session.ui.is_gui:
+            lines.append('<tr><td>%s<td>%s<td>%s' % (f.name,
+                commas(f.short_names), ', '.join(f.extensions)))
+        else:
+            session.logger.info('    %s: %s: %s' % (f.name,
+                commas(f.short_names), ', '.join(f.extensions)))
+    if session.ui.is_gui:
+        lines.append('</table>')
+        msg = '\n'.join(lines)
+        session.logger.info(msg, is_html=True)
+
+from . import DynamicEnum
+class FileFormatArg(DynamicEnum):
+    def __init__(self, category = None):
+        DynamicEnum.__init__(self, self.formats)
+        self.category = category
+    def formats(self):
+        cat = self.category
+        from .. import io
+        names = sum((tuple(f.short_names) for f in io.formats()
+                     if f.export_func and (cat is None or f.category == cat)),
+                    ())
+        return names
+        
 def register_command(session):
     from . import CmdDesc, register, EnumOf, SaveFileNameArg
-    from . import IntArg, BoolArg, PositiveIntArg, Bounded, FloatArg
-    from .. import session as ses
-    ses_suffix = ses.SESSION_SUFFIX[1:]
-    img_fmts = EnumOf(image_format_suffix.keys())
-    all_fmts = EnumOf(format_suffix.keys())
-    quality_arg = Bounded(IntArg, min=0, max=100)
+    from . import IntArg, PositiveIntArg, Bounded, FloatArg, NoArg
+    from . import ModelsArg, ListOf
+    from ..map.mapargs import MapRegionArg, Int1or3Arg
+
+    file_arg = [('filename', SaveFileNameArg)]
+    models_arg = [('models', ModelsArg)]
+
+    format_args = [('format', FileFormatArg())]
+    from .. import toolshed
+    map_format_args = [('format', FileFormatArg(toolshed.VOLUME))]
+    image_format_args = [('format', FileFormatArg('Image'))]
+
+    image_args = [
+        ('width', PositiveIntArg),
+        ('height', PositiveIntArg),
+        ('supersample', PositiveIntArg),
+        ('pixel_size', FloatArg),
+        ('transparent_background', NoArg),
+        ('quality', Bounded(IntArg, min=0, max=100))]
+
+    map_args = [
+        ('region', MapRegionArg),
+        ('step', Int1or3Arg),
+        ('mask_zone', NoArg),
+        ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
+        ('append', NoArg),
+        ('compress', NoArg),
+        ('base_index', IntArg)]
+
     desc = CmdDesc(
-        required=[('filename', SaveFileNameArg), ],
-        keyword=[
-            ('width', PositiveIntArg),
-            ('height', PositiveIntArg),
-            ('supersample', PositiveIntArg),
-            ('pixel_size', FloatArg),
-            ('transparent_background', BoolArg),
-            ('quality', quality_arg),
-            ('format', all_fmts),
-        ],
+        required=file_arg,
+        optional=models_arg,
+        keyword=format_args + image_args + map_args,
         synopsis='save session or image'
     )
     register('save', desc, save)
 
     desc = CmdDesc(
-        required=[('filename', SaveFileNameArg), ],
-        # synopsis='save session'
+        required=file_arg,
+        synopsis='save session'
     )
-    from .. import session as ses
-    register('save session', desc, ses.save)
+    def save_no_model(session, filename, **kw):
+        save(session, None, filename, **kw)
+    register('save session', desc, save_no_model)
 
     desc = CmdDesc(
-        required=[('filename', SaveFileNameArg), ],
-        keyword=[
-            ('width', PositiveIntArg),
-            ('height', PositiveIntArg),
-            ('supersample', PositiveIntArg),
-            ('pixel_size', FloatArg),
-            ('transparent_background', BoolArg),
-            ('quality', quality_arg),
-            ('format', img_fmts),
-        ],
-        # synopsis='save image'
+        required=file_arg,
+        keyword=image_format_args + image_args,
+        synopsis='save image'
     )
-    register('save image', desc, save_image)
+    register('save image', desc, save_no_model)
 
-# Map image file suffix to Pillow image format.
-pil_image_formats = {
-    'png': 'PNG',
-    'jpg': 'JPEG',
-    'tif': 'TIFF',
-    'gif': 'GIF',
-    'ppm': 'PPM',
-    'bmp': 'BMP',
-}
+    desc = CmdDesc(
+        required=file_arg,
+        optional=models_arg,
+        keyword=map_format_args + map_args,
+        synopsis='save map'
+    )
+    register('save map', desc, save)
 
-def save_image(session, filename, format=None, width=None, height=None,
-               supersample=3, pixel_size=None, transparent_background=False, quality=95):
-    '''
-    Save an image of the current graphics window contents.
-    '''
-    from os.path import expanduser, dirname, exists, splitext
-    path = expanduser(filename)         # Tilde expansion
-    dir = dirname(path)
-    if dir and not exists(dir):
-        from ..errors import UserError
-        raise UserError('Directory "%s" does not exist' % dir)
-
-    if pixel_size is not None:
-        from ..errors import UserError
-        if width is not None or height is not None:
-            raise UserError('Cannot specify width or height if pixel_size is given')
-        v = session.main_view
-        b = v.drawing_bounds()
-        if b is None:
-            raise UserError('Cannot specify use pixel_size option when nothing is shown')
-        psize = v.pixel_size(b.center())
-        if psize > 0 and pixel_size > 0:
-            f = psize / pixel_size
-            w, h = v.window_size
-            width, height = int(round(f*w)), int(round(f*h))
-        else:
-            raise UserError('Pixel size option (%g) and screen pixel size (%g) must be positive'
-                            % (pixel_size, psize))
-        
-    suffix = splitext(path)[1][1:].casefold()
-    if suffix == '':
-        if format is None:
-            suffix = 'png'
-            path += '.' + suffix
-        else:
-            path += '.' + format_suffix[format]
-    elif suffix not in pil_image_formats:
-        raise UserError('Unrecognized image file suffix "%s"' % format)
-
-    view = session.main_view
-    i = view.image(width, height, supersample=supersample,
-                   transparent_background=transparent_background)
-    iformat = pil_image_formats[suffix if format is None else format_suffix[format]]
-    i.save(path, iformat, quality=quality)
+    sf_desc = CmdDesc(synopsis='report formats that can be saved')
+    register('save formats', sf_desc, save_formats)

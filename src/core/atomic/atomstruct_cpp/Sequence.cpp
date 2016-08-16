@@ -1,7 +1,7 @@
 // vi: set expandtab ts=4 sw=4:
 #include <cctype>
 #define ATOMSTRUCT_EXPORT
-#include "Sequence.h"
+#include "Chain.h"
 
 namespace atomstruct {
 
@@ -75,7 +75,7 @@ Sequence::_init_rname_map()
 
 // 3-letter codes
 Sequence::Sequence(const std::vector<ResName>& res_names, std::string name):
-    _name(name)
+    _name(name), _python_obj(nullptr)
 {
     for (auto rn: res_names) {
         this->push_back(rname3to1(rn));
@@ -178,6 +178,18 @@ Sequence::session_save(int** ints, float**) const
 
     for (auto c: _contents)
         *int_ptr++ = c;
+}
+void
+Sequence::set_python_obj(PyObject* py_obj)
+{
+    if (py_obj == nullptr) {
+        Chain* chain = dynamic_cast<Chain*>(this);
+        if (chain == nullptr || !chain->is_chain()) {
+            delete this;
+            return;
+        }
+    }
+    _python_obj = py_obj;
 }
 
 const Sequence::Contents&

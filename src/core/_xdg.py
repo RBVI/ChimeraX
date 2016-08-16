@@ -229,16 +229,16 @@ def make_mime_file(name):
         from . import __copyright__ as copyright
         mi.xml_comment(copyright)
 
-        names = io.format_names()
-        names.sort()
-        for fn in names:
-            extensions = io.extensions(fn)
-            mime_types = io.mime_types(fn)
+        fmts = io.formats()
+        fmts.sort(key=lambda f: f.name)
+        for f in fmts:
+            extensions = f.extensions
+            mime_types = f.mime_types
             if not extensions or not mime_types:
                 continue
             for m in mime_types:
                 with mi.type(m):
-                    mi.comment(io.category(fn))
+                    mi.comment(f.category)
                     for e in extensions:
                         mi.glob(e)
 
@@ -290,8 +290,8 @@ def install_icons(info, data_dir):
     # install icons for file formats
     from . import io
     from PIL import Image
-    for fn in io.format_names(open=True, export=True):
-        icon = io.icon(fn)
+    for f in io.formats():
+        icon = f.icon
         if icon is None:
             continue
         try:
@@ -302,7 +302,7 @@ def install_icons(info, data_dir):
         if im.width != im.height:
             # logger.warning('skipping non-square icon: %s' % icon)
             continue
-        mime_types = io.mime_types(fn)
+        mime_types = f.mime_types
         if not mime_types:
             continue
         for mt in mime_types:
@@ -409,8 +409,8 @@ def install_if_needed(session, localized_app_name={}, reinstall=False):
 def get_mime_types():
     from . import io
     mime_types = []
-    for fn in io.format_names():
-        mt = io.mime_types(fn)
+    for f in io.formats():
+        mt = f.mime_types
         if isinstance(mt, (list, tuple)):
             mime_types.extend(mt)
         elif mt:

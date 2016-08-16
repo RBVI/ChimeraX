@@ -369,6 +369,24 @@ class Structure(Model, StructureData):
         from .molobject import Residue
         from numpy import concatenate, array, zeros
         polymers = self.polymers(False, False)
+        def end_strand(res_class, ss_ranges, end):
+            if res_class[-1] == XSectionManager.RC_SHEET_START:
+                # Single-residue strands are coils
+                res_class[-1] = XSectionManager.RC_COIL
+                del ss_ranges[-1]
+            else:
+                # Multi-residue strands are okay
+                res_class[-1] = XSectionManager.RC_SHEET_END
+                ss_ranges[-1][1] = end
+        def end_helix(res_class, ss_ranges, end):
+            if res_class[-1] == XSectionManager.RC_HELIX_START:
+                # Single-residue helices are coils
+                res_class[-1] = XSectionManager.RC_COIL
+                del ss_ranges[-1]
+            else:
+                # Multi-residue helices are okay
+                res_class[-1] = XSectionManager.RC_HELIX_END
+                ss_ranges[-1][1] = end
         for rlist in polymers:
             rp = p.new_drawing(self.name + " ribbons")
             t2r = []
@@ -402,10 +420,12 @@ class Structure(Model, StructureData):
             last_ssid = None
             helix_ranges = []
             sheet_ranges = []
+            was_nucleic = False
             for i in range(len(residues)):
                 if polymer_type[i] == Residue.PT_NUCLEIC:
                     rc = XSectionManager.RC_NUCLEIC
                     am_sheet = am_helix = False
+                    was_nucleic = True
                 elif polymer_type[i] == Residue.PT_AMINO:
                     if is_sheet[i]:
                         # Define sheet SS as having higher priority over helix SS
@@ -413,8 +433,7 @@ class Structure(Model, StructureData):
                             # Check if this is the start of another sheet
                             # rather than continuation for the current one
                             if ssids[i] != last_ssid:
-                                res_class[-1] = XSectionManager.RC_SHEET_END
-                                sheet_ranges[-1][1] = i
+                                end_strand(res_class, sheet_ranges, i)
                                 rc = XSectionManager.RC_SHEET_START
                                 sheet_ranges.append([i, -1])
                             else:
@@ -429,8 +448,7 @@ class Structure(Model, StructureData):
                             # Check if this is the start of another helix
                             # rather than a continuation for the current one
                             if ssids[i] != last_ssid:
-                                res_class[-1] = XSectionManager.RC_HELIX_END
-                                helix_ranges[-1][1] = i
+                                end_helix(res_class, helix_ranges, i)
                                 rc = XSectionManager.RC_HELIX_START
                                 helix_ranges.append([i, -1])
                             else:
@@ -443,27 +461,27 @@ class Structure(Model, StructureData):
                     else:
                         rc = XSectionManager.RC_COIL
                         am_sheet = am_helix = False
+                    was_nucleic = False
                 else:
-                    rc = XSectionManager.RC_COIL
+                    if was_nucleic:
+                        rc = XSectionManager.RC_NUCLEIC
+                    else:
+                        rc = XSectionManager.RC_COIL
                     am_sheet = am_helix = False
                 if was_sheet and not am_sheet:
-                    res_class[-1] = XSectionManager.RC_SHEET_END
-                    sheet_ranges[-1][1] = i
+                    end_strand(res_class, sheet_ranges, i)
                 elif was_helix and not am_helix:
-                    res_class[-1] = XSectionManager.RC_HELIX_END
-                    helix_ranges[-1][1] = i
+                    end_helix(res_class, helix_ranges, i)
                 res_class.append(rc)
                 was_sheet = am_sheet
                 was_helix = am_helix
                 last_ssid = ssids[i]
             if was_sheet:
                 # 1hxx ends in a strand
-                res_class[-1] = XSectionManager.RC_SHEET_END
-                sheet_ranges[-1][1] = len(residues)
+                end_strand(res_class, sheet_ranges, len(residues))
             elif was_helix:
                 # 1hxx ends in a strand
-                res_class[-1] = XSectionManager.RC_HELIX_END
-                helix_ranges[-1][1] = len(residues)
+                end_helix(res_class, helix_ranges, len(residues))
 
             # Perform any smoothing (e.g., strand smoothing
             # to remove lasagna sheets, pipes and planks
@@ -716,12 +734,12 @@ class Structure(Model, StructureData):
         # XXX: Skip helix smoothing for now since it does not work well for bent helices
         # Smooth helices
         # for start, end in helix_ranges:
-        #     self._smooth_helix(coords, guides, tethered, ribbon_adjusts, start, end)
+        #     self._smooth_helix(coords, guides, tethered, ribbon_adjusts, start, end, p)
         # Smooth strands
         for start, end in sheet_ranges:
-            self._smooth_strand(coords, guides, tethered, ribbon_adjusts, start, end)
+            self._smooth_strand(coords, guides, tethered, ribbon_adjusts, start, end, p)
 
-    def _smooth_helix(self, coords, guides, tethered, ribbon_adjusts, start, end):
+    def _smooth_helix(self, coords, guides, tethered, ribbon_adjusts, start, end, p):
         # Try to fix up the ribbon orientation so that it is parallel to the helical axis
         from numpy import dot, newaxis, mean
         from numpy.linalg import norm
@@ -762,7 +780,7 @@ class Structure(Model, StructureData):
         # when the atoms are displayed in stick mode, with radius self.bond_radius)
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
-    def _smooth_strand(self, coords, guides, tethered, ribbon_adjusts, start, end):
+    def _smooth_strand(self, coords, guides, tethered, ribbon_adjusts, start, end, p):
         if (end - start + 1) <= 2:
             # Short strands do not need smoothing
             return
@@ -782,15 +800,17 @@ class Structure(Model, StructureData):
             ideal[-1] = ss_coords[-1] - (ideal[-2] - ss_coords[-2])
         offsets = adjusts * (ideal - ss_coords)
         new_coords = ss_coords + offsets
-        if False:
-            # Debugging code to display center of secondary structure
-            self._ss_display(p, str(self) + " helix " + str(start), ideal)
         # Update both control point and guide coordinates
-        coords[start:end] = new_coords
         if guides is not None:
             # Compute guide atom position relative to control point atom
             delta_guides = guides[start:end] - ss_coords
             guides[start:end] = new_coords + delta_guides
+        coords[start:end] = new_coords
+        if False:
+            # Debugging code to display center of secondary structure
+            self._ss_display(p, str(self) + " strand " + str(start), ideal)
+            self._ss_guide_display(p, str(self) + " strand guide " + str(start),
+                                   coords[start:end], guides[start:end])
         # Update the tethered array
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
@@ -815,6 +835,20 @@ class Structure(Model, StructureData):
         ssp.positions = _tether_placements(centers[:-1], centers[1:], ss_radii, self.TETHER_CYLINDER)
         ss_colors = empty((len(ss_radii), 4), float32)
         ss_colors[:] = (0,255,0,255)
+        ssp.colors = ss_colors
+
+    def _ss_guide_display(self, p, name, centers, guides):
+        ssp = p.new_drawing(name)
+        from .. import surface
+        va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
+        ssp.geometry = va, ta
+        ssp.normals = na
+        from numpy import empty, float32
+        ss_radii = empty(len(centers), float32)
+        ss_radii.fill(0.4)
+        ssp.positions = _tether_placements(centers, guides, ss_radii, self.TETHER_CYLINDER)
+        ss_colors = empty((len(ss_radii), 4), float32)
+        ss_colors[:] = (255,255,0,255)
         ssp.colors = ss_colors
 
     def _need_twist(self, rc0, rc1):
@@ -1629,7 +1663,7 @@ class LevelOfDetail(State):
         cg = self._cylinder_geometries
         if not div in cg:
             from .. import surface
-            cg[div] = surface.cylinder_geometry(nc = div, caps = False)
+            cg[div] = surface.cylinder_geometry(nc = div, caps = False, height = 0.5)
         return cg[div]
 
     def bond_cylinder_triangles(self, nbonds):

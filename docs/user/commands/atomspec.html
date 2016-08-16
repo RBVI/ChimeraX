@@ -279,7 +279,15 @@ Built-in classifications include:
 <li>the mutually exclusive categories
 (membership rules given <a href="#surfcats">below</a>):
 <b>solvent</b>, <b>ions</b>, <b>ligand</b>, <b>main</b>
-<li>biopolymer types: <b>protein</b>, <b>nucleic-acid</b> or <b>nucleic</b>
+<li>biopolymer types <b>protein</b>, <b>nucleic</b> or <b>nucleic-acid</b>,
+and their subparts:
+  <ul>
+  <li><b>sidechain</b> - amino acid sidechain (not including CA), nucleic 
+  acid base (not including ribose C1'), and any directly attached hydrogens
+  <li><b>mainchain</b> (or <b>backbone</b>) 
+  - the complement of <b>sidechain</b>
+  <li><b>ribose</b> - backbone ribose and deoxyribose moieties
+  </ul>
 <li>protein/peptide secondary structure types:
 <b>helix</b>, <b>strand</b>, <b>coil</b>
 <li>element symbols: <b>C</b>, <b>Fe</b>, <i>etc.</i>
@@ -379,37 +387,24 @@ User-defined targets include:
   <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/menu.html#menuselect"><b>Select</b> menu</a>
   mentioned <a href="#builtin">above</a> 
 </ul>
-Built-in classifications cannot be redefined by the user.
 </p>
+-->
 <p>Some examples:</p>
 <blockquote>
-<b>side chain/base.without CA/C1'</b>
-<br>- or -<br>
-<b>without CA/C1'</b>
+<b>helix &amp; :arg,lys</b>
 </blockquote>
-- atoms in amino acid side chains (not including CA)
-and atoms in nucleic acid bases (not including C1');
-using &ldquo;with&rdquo; instead of &ldquo;without&rdquo; would include CA/C1'
-<blockquote>
-<b>Mg</b>
-</blockquote>
-- magnesium atoms/ions
-<blockquote>
-<b>helix & positive</b>
-</blockquote>
-- residues in protein &alpha;-helices that are also in the <b>positive</b>
-<a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/resprop/resprop.html#aacat">amino
-acid category</a> (using <b>&amp;</b> for intersection, 
+- arginine and lysine residues in protein &alpha;-helices
+(using <b>&amp;</b> for intersection, 
 see <a href="#combinations">combinations</a>)
+<blockquote>
+<b>nucleic &amp; backbone</b>
+</blockquote>
+- nucleic acid ribose-phosphate backbone
+<!--
 <blockquote>
 <b>carboxylate</b>
 </blockquote>
 - atoms in carboxylate groups
-<blockquote>
-<b>solvent</b>
-</blockquote>
-- atoms <a href="#surfcats">automatically categorized</a>
-as <b>solvent</b>
 -->
 
 <hr>
@@ -854,7 +849,7 @@ Examples:
 - aspartate and glutamate residues in model 1 
 that are within 10 &Aring; of model 2
 <blockquote>
-<b>:phe,tyr &amp; with CA/C1'</b>
+<b>:phe,tyr &amp; (sidechain | @ca)</b>
 </blockquote>
 - sidechain and CA atoms of phenylalanine and tyrosine
 <blockquote>
@@ -905,5 +900,5 @@ depends on the command.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2016</address>
+August 2016</address>
 </body></html> 

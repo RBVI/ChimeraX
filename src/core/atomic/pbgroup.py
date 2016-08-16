@@ -30,7 +30,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         t = session.triggers
         self.handlers = [
             t.add_handler('graphics update',self._update_graphics_if_needed),
-            t.add_handler('shape changed', self._update_graphics)
+            t.add_handler('shape changed', lambda *args, s=self: s._update_graphics())
         ]
 
     def removed_from_session(self, session):
@@ -150,4 +150,4 @@ def interatom_pseudobonds(atoms, session, group_name = None):
 #
 def _pseudobond_geometry(segments = 9):
     from .. import surface
-    return surface.dashed_cylinder_geometry(segments)
+    return surface.dashed_cylinder_geometry(segments, height = 0.5)

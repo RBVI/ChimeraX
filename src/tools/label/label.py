@@ -113,6 +113,13 @@ class LabelDrawing(Drawing):
             from chimerax.core.graphics.drawing import position_rgba_drawing
             position_rgba_drawing(self, (x,y), (uw,uh))
 
+    def x3d_needs(self, x3d_scene):
+        from .. import x3d
+        x3d_scene.need(x3d.Components.Text, 1)  # Text
+
+    def x3d_write(self, stream, x3d_scene, indent, place):
+        pass
+
 
 def label_create(session, name, text = '', color = None, size = 24, typeface = 'Arial',
                  xpos = 0.5, ypos = 0.5, visibility = True):

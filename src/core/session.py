@@ -329,6 +329,7 @@ class Session:
 
     def _get_view(self):
         return self._state_containers['main_view']
+
     def _set_view(self, view):
         self._state_containers['main_view'] = view
     view = property(_get_view, _set_view)
@@ -352,7 +353,7 @@ class Session:
         # need to actually set attr first,
         # since add_state_manager will check if the attr exists
         object.__setattr__(self, name, value)
-        if self.snapshot_methods(value) != None:
+        if self.snapshot_methods(value) is not None:
             self.add_state_manager(name, value)
 
     def __delattr__(self, name):
@@ -508,19 +509,13 @@ def save(session, filename, **kw):
         filename = expanduser(filename)         # Tilde expansion
         if not filename.endswith(SESSION_SUFFIX):
             filename += SESSION_SUFFIX
-        from .safesave import SaveBinaryFile, SaveFile
-        my_open = SaveBinaryFile
-        try:
-            # default to saving compressed files
-            import gzip
-            filename += ".gz"
 
-            def my_open(filename):
-                return SaveFile(
-                    filename,
-                    open=lambda filename: gzip.GzipFile(filename, 'wb'))
-        except ImportError:
-            pass
+        # Save compressed files
+        def my_open(filename):
+            import gzip
+            from .safesave import SaveFile
+            f = SaveFile(filename, open=lambda filename: gzip.GzipFile(filename, 'wb'))
+            return f
         try:
             output = my_open(filename)
         except IOError as e:
@@ -594,16 +589,103 @@ def dump(session, session_file, output=None):
             pprint(data, stream=output)
 
 
-def open(session, stream, *args, **kw):
-    if hasattr(stream, 'read'):
-        input = stream
+def open(session, filename, *args, **kw):
+    if hasattr(filename, 'read'):
+        # Given a stream instead of a file name.
+        fname = filename.name
+        filename.close()
     else:
-        # it's really a filename
-        input = _builtin_open(stream, 'rb')
+        fname = filename
+
+    if is_gzip_file(fname):
+        import gzip
+        input = gzip.open(fname, 'rb')
+    else:
+        input = _builtin_open(fname, 'rb')
     # TODO: active trigger to allow user to stop overwritting
     # current session
     session.restore(input)
     return [], "opened ChimeraX session"
+
+
+def is_gzip_file(filename):
+    f = _builtin_open(filename, 'rb')
+    magic = f.read(2) + b'00'
+    f.close()
+    return (magic[0] == 0x1f and magic[1] == 0x8b)
+
+
+def save_x3d(session, filename, **kw):
+    # Settle on using Interchange profile as that is the intent of
+    # X3D exporting.
+    from . import x3d
+    from .fetch import html_user_agent
+    from chimerax import app_dirs
+    from html import unescape
+    import os, datetime
+    x3d_scene = x3d.X3DScene()
+    meta = {}
+    generator = unescape(html_user_agent(app_dirs))
+    generator += ", %s" % "http://www.cgl.ucsf.edu/chimerax/"
+    meta['generator'] = generator
+    year = datetime.datetime.today().year
+    # TODO: better way to get full user name
+    user = os.environ.get('USERNAME', None)
+    if user is None:
+        user = os.getlogin()
+    meta['author'] = user
+    meta['copyright'] = '\N{COPYRIGHT SIGN} %d by %s.  All Rights reserved.' % (year, user)
+
+    # record needed X3D components
+    x3d_scene.need(x3d.Components.EnvironmentalEffects, 1)  # Background
+    # x3d_scene.need(x3d.Components.EnvironmentalEffects, 2)  # Fog
+    camera = session.main_view.camera
+    if camera.name() == "orthographic":
+        x3d_scene.need(x3d.Components.Navigation, 3)  # OrthoViewpoint
+    else:
+        x3d_scene.need(x3d.Components.Navigation, 1)  # Viewpoint, NavigationInfo
+    # x3d_scene.need(x3d.Components.Rendering, 5)  # ClipPlane
+    # x3d_scene.need(x3d.Components.Lighting, 1)  # DirectionalLight
+    for m in session.models.list():
+        m.x3d_needs(x3d_scene)
+
+    with _builtin_open(filename, 'w') as stream:
+        x3d_scene.write_header(
+            stream, 0, meta, profile_name='Interchange',
+            # TODO? Skip units since it confuses X3D viewers and requires version 3.3
+            units={'length': ('ångström', 1e-10)},
+            # not using any of Chimera's extensions yet
+            # namespaces={"chimera": "http://www.cgl.ucsf.edu/chimera/"}
+            )
+        cofr = session.main_view.center_of_rotation
+        r, a = camera.position.rotation_axis_and_angle()
+        t = camera.position.translation()
+        if camera.name() == "orthographic":
+            hw = camera.field_width / 2
+            f = (-hw, -hw, hw, hw)
+            print('  <OrthoViewpoint centerOfRotation="%g %g %g" fieldOfView="%g %g %g %g" orientation="%g %g %g %g" position="%g %g %g"/>'
+                  % (cofr[0], cofr[1], cofr[2], f[0], f[1], f[2], f[3], r[0], r[1], r[2], a, t[0], t[1], t[2]), file=stream)
+        else:
+            from math import tan, atan, radians
+            h, w = session.main_view.window_size
+            horiz_fov = radians(camera.field_of_view)
+            vert_fov = 2 * atan(tan(horiz_fov / 2) * h / w)
+            fov = min(horiz_fov, vert_fov)
+            print('  <Viewpoint centerOfRotation="%g %g %g" fieldOfView="%g" orientation="%g %g %g %g" position="%g %g %g"/>'
+                  % (cofr[0], cofr[1], cofr[2], fov, r[0], r[1], r[2], a, t[0], t[1], t[2]), file=stream)
+        print('  <NavigationInfo type=\'"EXAMINE" "ANY"\' headlight=\'true\'/>', file=stream)
+        c = session.main_view.background_color
+        if kw.get('transparent_background', False):
+            t = 1
+        else:
+            t = 0
+        print("  <Background skyColor='%g %g %g' transparency='%g'/>" % (c[0], c[1], c[2], t), file=stream)
+        # TODO: write out lighting?
+        from .geometry import Place
+        p = Place()
+        for m in session.models.list():
+            m.x3d_write(stream, x3d_scene, 2, p)
+        x3d_scene.write_footer(stream, 0)
 
 
 def _initialize():
@@ -613,6 +695,11 @@ def _initialize():
         mime="application/x-chimerax-session",
         reference="http://www.rbvi.ucsf.edu/chimerax/",
         open_func=open, export_func=save)
+    io.register_format(
+        "X3D", toolshed.GENERIC3D, ".x3d", "x3d",
+        mime="model/x3d+xml",
+        reference="http://www.web3d.org/standards",
+        export_func=save_x3d)
 _initialize()
 
 
@@ -658,8 +745,6 @@ def common_startup(sess):
 
 
 def _register_core_file_formats():
-    from . import stl
-    stl.register()
     from .atomic import pdb
     pdb.register_pdb_format()
     from .atomic import mmcif
@@ -667,11 +752,13 @@ def _register_core_file_formats():
     from . import scripting
     scripting.register()
     from . import map
-    map.register_map_file_readers()
+    map.register_map_file_formats()
     from .atomic import readpbonds
     readpbonds.register_pbonds_format()
     from .surface import collada
     collada.register_collada_format()
+    from . import image
+    image.register_image_save()
 
 
 def _register_core_database_fetch(session):

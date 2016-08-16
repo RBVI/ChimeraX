@@ -6,7 +6,6 @@
 #include "connected.h"			// use connected_triangles, ...
 #include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "normals.h"			// use calculate_vertex_normals, invert_vertex_normals
-#include "parse_stl.h"			// use parse_stl
 #include "patches.h"			// use sharp_edge_patches
 #include "refinemesh.h"			// use refine_mesh
 #include "sasa.h"			// use surface_area_of_spheres
@@ -114,17 +113,6 @@ static struct PyMethodDef surface_cpp_methods[] =
    "Flip normals and reverse triangle vertex order.\n"
    "Implemented in C++.\n"
   },
-
-  /* parse_stl.h */
-  {const_cast<char*>("parse_stl"), (PyCFunction)parse_stl,
-   METH_VARARGS|METH_KEYWORDS,
-   "parse_stl(bytes) -> (comment, vertices, normals, triangles)\n"
-   "\n"
-   "Parse a binary STL file passed in as a byte array and return\n"
-   "4 values: the header comment, unique vertices, corresponding normals\n"
-   "and triangles (triples of vertex indices).\n"
-   "Implemented in C++.\n"
-   },
 
   /* patches.h */
   {const_cast<char*>("sharp_edge_patches"), (PyCFunction)sharp_edge_patches,

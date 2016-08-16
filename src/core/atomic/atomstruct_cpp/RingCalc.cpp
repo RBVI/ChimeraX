@@ -37,6 +37,13 @@ Structure::_calculate_rings(bool cross_residue,
     //  E.J. Corey and George A. Petersson, JACS, 94:2, Jan. 26, 1972
     //  pp. 460-465
 
+    // in case a large atom-only non-molecule systems sneaks in here...
+    if (bonds().size() == 0) {
+        _rings.clear();
+        return;
+    }
+    
+
     // set_symmetric_difference only works on sorted ranges, so use
     // std::set instead of std::unordered_set
     typedef std::set<Bond*> SpanningBonds;

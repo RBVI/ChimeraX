@@ -17,7 +17,7 @@ TOOL_FILE_TYPES =
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
 TOOL_SYNOPSIS = Experimental commands that may go away
-COMMAND_NAME = cartoon,~cartoon,ribbon,~ribbon,mlp
+COMMAND_NAME = cartoon,~cartoon,ribbon,~ribbon
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)

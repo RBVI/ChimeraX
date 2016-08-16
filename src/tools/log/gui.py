@@ -202,10 +202,12 @@ class Log(ToolInstance, HtmlLog):
 
                 def cm_save(self):
                     from chimerax.core.ui.open_save import export_file_filter, SaveDialog
-                    from chimerax.core.io import extensions
+                    from chimerax.core.io import format_from_name
+                    fmt = format_from_name("HTML")
+                    ext = fmt.extensions[0]
                     save_dialog = SaveDialog(self, "Save Log",
-                        name_filter=export_file_filter(format_name="HTML"),
-                        add_extension=extensions("HTML")[0])
+                                             name_filter=export_file_filter(format_name="HTML"),
+                                             add_extension=ext)
                     if not save_dialog.exec():
                         return
                     filename = save_dialog.selectedFiles()[0]
@@ -213,7 +215,7 @@ class Log(ToolInstance, HtmlLog):
                         from chimerax.core.errors import UserError
                         raise UserError("No file specified for save log contents")
                     self.log.save(filename)
-            self.log_window = HtmlWindow(parent, self)
+            self.log_window = lw = HtmlWindow(parent, self)
             from PyQt5.QtWidgets import QGridLayout, QErrorMessage
             self.error_dialog = QErrorMessage(parent)
             layout = QGridLayout(parent)
@@ -233,10 +235,14 @@ class Log(ToolInstance, HtmlLog):
             def link_clicked(qurl, nav_type, is_main_frame):
                 self.navigate(qurl)
                 return False
-            self.log_window.page().acceptNavigationRequest = link_clicked
+            lw.page().acceptNavigationRequest = link_clicked
             #self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
             #                     id=self.log_window.GetId())
             self.log = self._qt_log
+            # Don't record html history as log changes.
+            def clear_history(okay, lw=lw):
+                lw.history().clear()
+            lw.loadFinished.connect(clear_history)
         self.show_page_source()
 
     #
@@ -279,8 +285,6 @@ class Log(ToolInstance, HtmlLog):
 
             self.page_source += msg
         self.show_page_source()
-        from PyQt5.QtCore import Qt
-        self.session.ui.main_window.setFocus(Qt.OtherFocusReason)
         return True
 
     #
@@ -355,7 +359,11 @@ class Log(ToolInstance, HtmlLog):
         else:
             css = context_menu_css + cxcmd_css
             html = "<style>%s</style>\n<body onload=\"window.scrollTo(0, document.body.scrollHeight);\">%s</body>" % (cxcmd_css, self.page_source)
-            self.log_window.setHtml(html)
+            lw = self.log_window
+            # Disable and reenable to avoid QWebEngineView taking focus, QTBUG-52999 in Qt 5.7
+            lw.setEnabled(False)
+            lw.setHtml(html)
+            lw.setEnabled(True)
 
     # wx event handling
 
@@ -402,7 +410,7 @@ class Log(ToolInstance, HtmlLog):
                     page.triggerAction(page.SelectAll)
             elif cmd == 'save':
                 from chimerax.core.ui.open_save import export_file_filter, SaveDialog
-                from chimerax.core.io import extensions
+                from chimerax.core.io import format_from_name
                 if self.window_sys == "wx":
                     save_dialog = SaveDialog(
                         self.log_window, "Save Log", defaultFile="log",
@@ -413,9 +421,11 @@ class Log(ToolInstance, HtmlLog):
                         return
                     filename = save_dialog.GetPath()
                 else:
+                    fmt = format_from_name("HTML")
+                    ext = fmt.extensions[0]
                     save_dialog = SaveDialog(self.log_window, "Save Log",
-                        name_filter=export_file_filter(format_name="HTML"),
-                        add_extension=extensions("HTML")[0])
+                                             name_filter=export_file_filter(format_name="HTML"),
+                                             add_extension=ext)
                     if not save_dialog.exec():
                         return
                     filename = save_dialog.selectedFiles()[0]

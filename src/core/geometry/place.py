@@ -206,6 +206,26 @@ class Place:
         '''Return the determinant of the linear part of the transformation.'''
         return m34.determinant(self.matrix)
 
+    def _polar_decomposition(self):
+        '''
+        Don't use. This code won't handle degenerate or near degenerate transforms.
+        Return 4 transforms, a translation, rotation, scaling, orthonormal scaling axes
+        whose product equals this transformation.  Needed for X3D output.
+        '''
+        from numpy import linalg
+        a = self.zero_translation()
+        at = a.transpose()
+        ata = at*a
+        eval, evect = linalg.eigh(ata.matrix[:3,:3])
+        from math import sqrt
+        s = scale([sqrt(e) for e in eval])
+        sinv = s.inverse()
+        ot = Place(axes = evect)
+        o = ot.transpose()
+        r = a*o*sinv
+        t = translation(self.translation())
+        return t, r, s, ot
+        
     def description(self):
         '''Return a text description of the transformation including
         the 3 by 4 matrix, and the decomposition as a rotation about a
@@ -308,6 +328,58 @@ def interpolate_rotation(place1, place2, fraction):
     r1, r2 = place1.zero_translation(), place2.zero_translation()
     center = (0,0,0)
     return r1.interpolate(r2, center, fraction)
+
+def look_at(from_pt, to_pt, up):
+    '''
+    Return a Place object that represents looking from 'from_pt' to 'to_pt'
+    with 'up' pointing up.
+    '''
+    import numpy
+    from numpy.linalg import norm
+    normalize = lambda v: v/norm(v)
+
+    # Compute rotation
+    p01 = normalize(to_pt - from_pt)
+    x = normalize(numpy.cross(up, p01))
+    y = normalize(numpy.cross(p01, x))
+    xf = Place(axes=numpy.array([x, y, numpy.negative(p01)]),
+        origin=numpy.array([0.0, 0.0, 0.0])).transpose()
+
+    # Compute translation and return
+    return translation(numpy.negative(xf * from_pt)) * xf
+
+def z_align(pt1, pt2):
+    '''
+    Return a Place object that puts the pt1->pt2 vector on the Z axis
+    '''
+    a, b, c = pt2 - pt1
+    l = a * a + c * c
+    d = l + b * b
+    epsilon = 1e-10
+    if abs(d) < epsilon:
+        raise ValueError("z_align endpoints must be distinct")
+    from math import sqrt
+    l = sqrt(l)
+    d = sqrt(d)
+
+    from numpy import array, float64
+    xf = array(((0, 0, 0), (0, 0, 0), (0, 0, 0)), float64)
+    xf[1][1] = l / d
+    if abs(l) < epsilon:
+        xf[0][0] = 1.0
+        xf[2][1] = -b / d
+    else:
+        xf[0][0] = c / l
+        xf[2][0] = -a / l
+        xf[0][1] = -(a * b) / (l * d)
+        xf[2][1] = -(b * c) / (l * d)
+    xf[0][2] = a / d
+    xf[1][2] = b / d
+    xf[2][2] = c / d
+
+    import numpy
+    xlate = numpy.negative(numpy.dot(numpy.transpose(xf), pt1))
+    return Place(axes=xf, origin=xlate)
 
 class Places:
     ''' The Places class represents a list of 0 or more Place objects.

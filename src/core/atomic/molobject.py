@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-from numpy import uint8, int32, float64, float32, bool as npy_bool
-from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, ctype_type_to_numpy, pointer
+from numpy import uint8, int32, float64, float32, byte, bool as npy_bool
+from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, c_array_function, ctype_type_to_numpy, pointer
 import ctypes
 size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
 
@@ -64,6 +64,23 @@ class Atom:
     HIDE_RIBBON = 0x1
     BBE_MIN, BBE_RIBBON, BBE_MAX = range(3)
 
+    def __init__(self, c_pointer):
+        set_c_pointer(self, c_pointer)
+
+    def __str__(self, atom_only = False):
+        from ..core_settings import settings
+        cmd_style = settings.atomspec_contents == "command-line specifier"
+        if cmd_style:
+            atom_str = '@' + self.name
+        else:
+            atom_str = self.name
+        if atom_only:
+            return atom_str
+        if cmd_style:
+            return '%s%s' % (str(self.residue), atom_str)
+        return '%s %s' % (str(self.residue), atom_str)
+
+    alt_loc = c_property('atom_alt_loc', byte, doc='Alternate location indicator')
     bfactor = c_property('atom_bfactor', float32, doc = "B-factor, floating point value.")
     bonds = c_property('atom_bonds', cptr, "num_bonds", astype=_bonds, read_only=True,
         doc="Bonds connected to this atom as an array of :py:class:`Bonds` objects. Read only.")
@@ -95,11 +112,16 @@ class Atom:
         "    Hide mask for backbone atoms in ribbon.")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
+    is_ribose = c_property('atom_is_ribose', npy_bool, read_only = True,
+        doc = "Whether this atom is part of an nucleic acid ribose moiety. Read only.")
+    is_sidechain = c_property('atom_is_sidechain', npy_bool, read_only = True,
+        doc = "Whether this atom is part of an amino/nucleic acid sidechain. Read only.")
     name = c_property('atom_name', string, doc = "Atom name. Maximum length 4 characters.")
     neighbors = c_property('atom_neighbors', cptr, "num_bonds", astype=_atoms, read_only=True,
         doc=":class:`.Atom`\\ s connnected to this atom directly by one bond. Read only.")
     num_bonds = c_property("atom_num_bonds", size_t, read_only=True,
         doc="Number of bonds connected to this atom. Read only.")
+    occupancy = c_property('atom_occupancy', float32, doc = "Occupancy, floating point value.")
     radius = c_property('atom_radius', float32, doc="Radius of atom.")
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True,
         doc = ":class:`Residue` the atom belongs to.")
@@ -111,21 +133,29 @@ class Atom:
     visible = c_property('atom_visible', npy_bool, read_only=True,
         doc="Whether atom is displayed and not hidden.")
 
-    def __init__(self, c_pointer):
-        set_c_pointer(self, c_pointer)
+    def set_alt_loc(self, loc, create):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        f = c_function('atom_set_alt_loc', args=(ctypes.c_void_p, ctypes.c_char, ctypes.c_bool, ctypes.c_bool))
+        f(self._c_pointer, loc, create, False)
 
-    def __str__(self, atom_only = False):
-        from ..core_settings import settings
-        cmd_style = settings.atomspec_contents == "command-line specifier"
-        if cmd_style:
-            atom_str = '@' + self.name
-        else:
-            atom_str = self.name
-        if atom_only:
-            return atom_str
-        if cmd_style:
-            return '%s%s' % (str(self.residue), atom_str)
-        return '%s %s' % (str(self.residue), atom_str)
+    def has_alt_loc(self, loc):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        #value_type = npy_bool
+        #vtype = numpy_type_to_ctype[value_type]
+        vtype = ctypes.c_uint8
+        v = vtype()
+        v_ref = ctypes.byref(v)
+        f = c_array_function('atom_has_alt_loc', args=(byte,), ret=npy_bool, per_object=False)
+        a_ref = ctypes.byref(self._c_pointer)
+        f(a_ref, 1, loc, v_ref)
+        return v.value
+
+    def delete(self):
+        '''Delete this Atom from it's Structure'''
+        f = c_function('atom_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
 
     def connects_to(self, atom):
         '''Whether this atom is directly bonded to a specified atom.'''
@@ -134,7 +164,7 @@ class Atom:
         c = f(self._c_pointer, atom._c_pointer)
         return c
 
-    def is_backbone(self, bb_extent):
+    def is_backbone(self, bb_extent=BBE_MAX):
         '''Whether this Atom is considered backbone, given the 'extent' criteria.
 
         |  Possible 'extent' values are:
@@ -217,19 +247,15 @@ class Bond:
     ''':class:`.AtomicStructure` the bond belongs to.'''
     visible = c_property('bond_visible', npy_bool, read_only = True)
     '''Whether bond is display and not hidden. Read only.'''
-
-    @property
-    def length(self):
-        '''Distance between bond atoms.'''
-        a1,a2 = self.atoms
-        from ..geometry import distance
-        return distance(a1.scene_coord, a2.scene_coord)
+    length = c_property('bond_length', float32, read_only = True)
+    '''Bond length. Read only.'''
     
     def other_atom(self, atom):
         '''Return the :class:`Atom` at the other end of this bond opposite
         the specified atom.'''
-        a1,a2 = self.atoms
-        return a2 if atom is a1 else a1
+        f = c_function('bond_other_atom', args = (ctypes.c_void_p, ctypes.c_void_p), ret = ctypes.c_void_p)
+        c = f(self._c_pointer, atom._c_pointer)
+        return object_map(c, Atom)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
@@ -277,6 +303,11 @@ class Pseudobond:
     shown = c_property('pseudobond_shown', npy_bool, read_only = True)
     '''Whether bond is visible and both atoms are shown. Read only.'''
 
+    def delete(self):
+        '''Delete this pseudobond from it's group'''
+        f = c_function('pseudobond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
+        c = f(self._c_pointer_ref, 1)
+
     @property
     def length(self):
         '''Distance between centers of two bond end point atoms.'''
@@ -284,6 +315,12 @@ class Pseudobond:
         v = a1.scene_coord - a2.scene_coord
         from math import sqrt
         return sqrt((v*v).sum())
+    
+    def other_atom(self, atom):
+        '''Return the :class:`Atom` at the other end of this bond opposite
+        the specified atom.'''
+        a1,a2 = self.atoms
+        return a2 if atom is a1 else a1
 
     _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used by session save/restore internals")
@@ -364,6 +401,11 @@ class PseudobondManager(State):
         self.session.triggers.add_handler("end restore session",
             lambda *args: self._ses_call("restore_teardown"))
 
+    def delete_group(self, pbg):
+        f = c_function('pseudobond_global_manager_delete_group',
+                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
+        f(self._c_pointer, pbg._c_pointer)
+
     def get_group(self, category, create = True):
         '''Get an existing :class:`.PseudobondGroup` or create a new one given a category name.'''
         f = c_function('pseudobond_global_manager_get_group',
@@ -376,10 +418,18 @@ class PseudobondManager(State):
         return object_map(pbg,
             lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
 
-    def delete_group(self, pbg):
-        f = c_function('pseudobond_global_manager_delete_group',
-                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
-        f(self._c_pointer, pbg._c_pointer)
+    def group_map(self):
+        '''Returns a dict that maps from :class:`.PseudobondGroup` category to group'''
+        f = c_function('pseudobond_global_manager_group_map',
+                       args = (ctypes.c_void_p,),
+                       ret = ctypes.py_object)
+        ptr_map = f(self._c_pointer)
+        obj_map = {}
+        for cat, pbg_ptr in ptr_map.items():
+            obj = object_map(pbg_ptr,
+                lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
+            obj_map[cat] = obj
+        return obj_map
 
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''
@@ -519,6 +569,13 @@ class Residue:
         f = c_function('residue_add_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
 
+    def set_alt_loc(self, loc):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
+        r_ref = ctypes.byref(self._c_pointer)
+        f(r_ref, 1, loc)
+
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_residue_to_id(self._c_pointer)}
@@ -528,6 +585,7 @@ class Residue:
     def restore_snapshot(session, data):
         return object_map(data['structure'].session_id_to_residue(data['ses_id']), Residue)
 
+import atexit
 # -----------------------------------------------------------------------------
 #
 class Sequence:
@@ -535,14 +593,26 @@ class Sequence:
     A polymeric sequence.  Offers string-like interface.
     '''
 
+    SS_HELIX = 'H'
+    SS_OTHER = 'O'
+    SS_STRAND = 'S'
+
+    chimera_exiting = False
+
     def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
+        self.attrs = {} # miscellaneous attributes
+        self.markups = {} # per-residue (strings or lists)
+        self.numbering_start = None
+        set_pyobj_f = c_function('sequence_set_pyobj', args = (ctypes.c_void_p, ctypes.py_object))
         if seq_pointer:
             set_c_pointer(self, seq_pointer)
+            set_pyobj_f(self._c_pointer, self)
             return # name/characters already exists; don't set
         seq_pointer = c_function('sequence_new',
             args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
                 name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
+        set_pyobj_f(self._c_pointer, self)
 
     characters = c_property('sequence_characters', string, doc=
         "A string representing the contents of the sequence")
@@ -550,35 +620,108 @@ class Sequence:
 
     # Some Sequence methods may have to be overridden/disallowed in Chain...
 
+    def __copy__(self, copy_seq=None):
+        if copy_seq is None:
+            copy_seq = Sequence(name=self.name, characters=self.characters)
+        else:
+            copy_seq.characters = self.characters
+        from copy import copy
+        copy_seq.attrs = copy(self.attrs)
+        copy_seq.markups = copy(self.markups)
+        copy_seq.numbering_start = self.numbering_start
+        return copy_seq
+
+    def __del__(self):
+        if Sequence.chimera_exiting:
+            return
+        set_pyobj_f = c_function('sequence_set_pyobj', args = (ctypes.c_void_p, ctypes.py_object))
+        set_pyobj_f(self._c_pointer, None) # will destroy C++ object unless it's an active Chain
+
     def extend(self, chars):
         """Extend the sequence with the given string"""
         f = c_function('sequence_extend', args = (ctypes.c_void_p, ctypes.c_char_p))
         f(self._c_pointer, chars.encode('utf-8'))
+    append = extend
+
+    def gapped_to_ungapped(self, index):
+        f = c_function('sequence_gapped_to_ungapped', args = (ctypes.c_void_p, ctypes.c_int),
+            ret = ctypes.c_int)
+        return f(self._c_pointer)
+
+    def __getitem__(self, key):
+        return self.characters[key]
+
+    def __hash__(self):
+        return id(self)
 
     def __len__(self):
         """Sequence length"""
         f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)
         return f(self._c_pointer)
 
-    def take_snapshot(self, session, flags):
-        data = {'name': self.name, 'characters': self.characters}
-        return data
-
     @staticmethod
     def restore_snapshot(session, data):
-        return Sequence(name=data['name'], characters=data['characters'])
+        seq = Sequence()
+        seq.set_state_from_snapshot(session, data)
+        return seq
+
+    def __setitem__(self, key, val):
+        chars = self.characters
+        if isinstance(key, slice):
+            start = key.start if key.start is not None else 0
+            stop = key.stop if key.stop is not None else len(chars)
+            self.characters = chars[:start] + val + chars[stop:]
+        else:
+            self.characters = chars[:key] + val + chars[key+1:]
+
+    def set_state_from_snapshot(self, session, data):
+        seq.name = data['name']
+        self.characters = data['characters']
+        seq.attrs = data.get('attrs', {})
+        seq.markups = data.get('markups', {})
+        seq.numbering_start = data.get('numbering_start', None)
+
+    def ss_type(self, loc, loc_is_ungapped=False):
+        try:
+            ss_markup = self.markups['SS']
+        except KeyError:
+            return None
+        if not loc_is_ungapped:
+            loc = self.gapped_to_ungapped(loc)
+        if loc is None:
+            return None
+        ss = ss_markup[loc]
+        if ss in "HGI":
+            return self.SS_HELIX
+        if ss == "E":
+            return self.SS_STRAND
+        return self.SS_OTHER
+
+    def take_snapshot(self, session, flags):
+        data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
+            'markups': self.markups }
+        return data
+
+    @atexit.register
+    def _exiting():
+        Sequence.chimera_exiting = True
 
 # -----------------------------------------------------------------------------
 #
-class Chain(Sequence):
+class StructureSeq(Sequence):
     '''
-    A single polymer chain such as a protein, DNA or RNA strand.
-    A chain has a sequence associated with it.  A chain may have breaks.
-    Chain objects are not always equivalent to Protein Databank chains.
+    A sequence that has associated structure residues.
 
+    Unlike the Chain subclass, StructureSeq will not change in size once created,
+    though associated residues may change to None if those residues are deleted/closed.
     '''
-    def __init__(self, chain_pointer):
-        super().__init__(chain_pointer)
+
+    def __init__(self, sseq_pointer=None, *, chain_id=None, structure=None):
+        if sseq_pointer is None:
+            seq_pointer = c_function('sseq_new',
+                args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
+                    chain_id.encode('utf-8'), structure._c_pointer)
+        super().__init__(sseq_pointer)
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
         self.description = None
 
@@ -591,23 +734,73 @@ class Chain(Sequence):
             return str(self.structure) + base_str
         return base_str
 
-    chain_id = c_property('chain_chain_id', string, read_only = True)
+    chain_id = c_property('sseq_chain_id', string, read_only = True)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
-    structure = c_property('chain_structure', cptr, astype = _atomic_structure, read_only = True)
-    ''':class:`.AtomicStructure` that this chain belongs too. Read only.'''
-    existing_residues = c_property('chain_residues', cptr, 'num_residues', astype = _non_null_residues, read_only = True)
-    ''':class:`.Residues` collection containing the residues of this chain with existing structure, in order. Read only.'''
-    num_existing_residues = c_property('chain_num_existing_residues', size_t, read_only = True)
-    '''Number of residues in this chain with existing structure. Read only.'''
+    structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
+    ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
+    existing_residues = c_property('sseq_residues', cptr, 'num_residues', astype = _non_null_residues, read_only = True)
+    ''':class:`.Residues` collection containing the residues of this sequence with existing structure, in order. Read only.'''
+    num_existing_residues = c_property('sseq_num_existing_residues', size_t, read_only = True)
+    '''Number of residues in this sequence with existing structure. Read only.'''
 
-    residues = c_property('chain_residues', cptr, 'num_residues', astype = _residues_or_nones, read_only = True)
-    '''List containing the residues of this chain in order. Residues with no structure will be None. Read only.'''
-    num_residues = c_property('chain_num_residues', size_t, read_only = True)
-    '''Number of residues belonging to this chain, including those without structure. Read only.'''
+    residues = c_property('sseq_residues', cptr, 'num_residues', astype = _residues_or_nones, read_only = True)
+    '''List containing the residues of this sequence in order. Residues with no structure will be None. Read only.'''
+    num_residues = c_property('sseq_num_residues', size_t, read_only = True)
+    '''Number of residues belonging to this sequence, including those without structure. Read only.'''
 
-    def extend(self, *args, **kw):
-        # for now, disallow Sequence.extend
-        raise AssertionError("Sequence.extend called on Chain object")
+    def __copy__(self):
+        f = c_function('sseq_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
+        copy_sseq = StructureSeq(f(self._c_pointer))
+        Sequence.__copy__(self, copy_seq = copy_sseq)
+        copy_sseq.description = self.description
+        return copy_sseq
+
+    def extend(self, chars):
+        # disallow extend
+        raise AssertionError("extend() called on StructureSeq/Chain object")
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
+        Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
+        sseq.description = data['description']
+        ptrs = numpy.array([ r._c_pointer.value if r else 0 for r in data['residues']])
+        f = c_function('sseq_bulk_set', args = (ctypes.c_void_p, ctypes.py_object, ctypes.c_char_p))
+        f(sseq._c_pointer, ptrs, sseq.characters)
+        sseq.description = data.get('description', None)
+        return sseq
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
+        chain.description = data.get('description', None)
+        return chain
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'Sequence': Sequence.take_snapshot(self),
+            'chain_id': self.chain_id,
+            'description': self.description,
+            'residues': self.residues,
+            'structure': self.structure
+        }
+        return data
+
+# -----------------------------------------------------------------------------
+#
+class Chain(StructureSeq):
+    '''
+    A single polymer chain such as a protein, DNA or RNA strand.
+    A chain has a sequence associated with it.  A chain may have breaks.
+    Chain objects are not always equivalent to Protein Databank chains.
+
+    '''
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
+        chain.description = data.get('description', None)
+        return chain
 
     def take_snapshot(self, session, flags):
         data = {
@@ -616,12 +809,6 @@ class Chain(Sequence):
             'structure': self.structure
         }
         return data
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
-        chain.description = data.get('description', None)
-        return chain
 
 # -----------------------------------------------------------------------------
 #
@@ -692,6 +879,8 @@ class StructureData:
     '''Ribbon orientation from interpolated atoms.'''
     RIBBON_ORIENT_CURVATURE = 3
     '''Ribbon orientation perpendicular to ribbon curvature.'''
+    RIBBON_ORIENT_PEPTIDE = 4
+    '''Ribbon orientation perpendicular to peptide planes.'''
     ribbon_display_count = c_property('structure_ribbon_display_count', int32, read_only = True)
     '''Return number of residues with ribbon display set. Integer.'''
     ribbon_tether_sides = c_property('structure_ribbon_tether_sides', int32)
@@ -721,12 +910,12 @@ class StructureData:
         bp = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
         return object_map(bp, Bond)
 
-    def new_residue(self, residue_name, chain_id, pos):
+    def new_residue(self, residue_name, chain_id, pos, insert=' '):
         '''Create a new :class:`.Residue`.'''
         f = c_function('structure_new_residue',
-                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int),
+                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
                        ret = ctypes.c_void_p)
-        rp = f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos)
+        rp = f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
         return object_map(rp, Residue)
 
     def polymers(self, consider_missing_structure = True, consider_chains_ids = True):

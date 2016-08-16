@@ -34,8 +34,8 @@ Collections are immutable so can be hashed.  The only case in which their conten
 can be altered is if C++ objects they hold are deleted in which case those objects
 are automatically removed from the collection.
 '''
-from numpy import uint8, int32, float64, float32, uintp, bool as npy_bool, integer, empty, unique, array
-from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, pointer, ctype_type_to_numpy
+from numpy import uint8, int32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, unique, array
+from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, c_array_function, pointer, ctype_type_to_numpy
 from . import molobject
 import ctypes
 size_t = ctype_type_to_numpy[ctypes.c_size_t]   # numpy dtype for size_t
@@ -62,6 +62,8 @@ def _non_null_residues(p):
     return Residues(p[p!=0])
 def _chains(p):
     return Chains(p)
+def _non_null_chains(p):
+    return Chains(p[p!=0])
 def _atomic_structures(p):
     return AtomicStructures(p)
 def structure_datas(p):
@@ -117,7 +119,7 @@ class Collection(State):
             from .molobject import object_map
             v = object_map(self._pointers[i], self._object_class)
         elif isinstance(i, slice):
-            v = self._object_class(self._pointers[i])
+            v = self._objects_class(self._pointers[i])
         else:
             raise IndexError('Only integer indices allowed for %s, got %s'
                 % (self.__class__.__name__, str(type(i))))
@@ -214,6 +216,9 @@ class Collection(State):
         All duplicates are removed.'''
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
+    def unique(self):
+        '''Return a new collection containing the unique elements from this one.'''
+        return self.objects_class(unique(self._pointers))
 
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
@@ -334,6 +339,21 @@ class Atoms(Collection):
         "integer value.")
     in_chains = cvec_property('atom_in_chain', npy_bool, read_only = True,
         doc="Whether each atom belong to a polymer. Returns numpy bool array. Read only.")
+
+    def is_backbones(self, bb_extent=molobject.Atom.BBE_MAX):
+        n = len(self)
+        values = empty((n,), npy_bool)
+        f = c_array_function('atom_is_backbone', args=(int32,), ret=npy_bool, per_object=False)
+        f(self._c_pointers, n, bb_extent, pointer(values))
+        return values
+
+    is_riboses = cvec_property('atom_is_ribose', npy_bool, read_only = True,
+        doc="Whether each atom is part of an nucleic acid ribose moiety."
+            " Returns numpy bool array. Read only.")
+    is_sidechains = cvec_property('atom_is_sidechain', npy_bool, read_only = True,
+        doc="Whether each atom is part of an amino/nucleic acid sidechain."
+            " Returns numpy bool array. Read only.")
+    occupancy = cvec_property('atom_occupancy', float32)
     @property
     def inter_bonds(self):
         ":class:`Bonds` object where both endpoint atoms are in this collection"
@@ -416,10 +436,16 @@ class Atoms(Collection):
     def unique_structures(self):
         "The unique structures as an :class:`.AtomicStructures` collection"
         return _atomic_structures(unique(self.structures._pointers))
+    @property
+    def single_structure(self):
+        "Do all atoms belong to a single :class:`.Structure`"
+        p = self.structures._pointers
+        return len(p) == 0 or (p == p[0]).all()
     visibles = cvec_property('atom_visible', npy_bool, read_only=True,
         doc="Returns whether the Atom should be visible (displayed and not hidden). Returns a "
         ":mod:`numpy` array of boolean values.  Read only.")
-
+    alt_locs = cvec_property('atom_alt_loc', byte, astype=bytearray,
+                         doc='Returns current alternate location indicators')
 
     def __init__(self, c_pointers = None):
         Collection.__init__(self, c_pointers, molobject.Atom, Atoms)
@@ -431,10 +457,19 @@ class Atoms(Collection):
 
     def update_ribbon_visibility(self):
         '''Update the 'hide' status for ribbon control point atoms, which
-	are hidden unless any of its neighbors are visible.'''
+            are hidden unless any of its neighbors are visible.'''
         f = c_function('atom_update_ribbon_visibility',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
+
+    def have_alt_loc(self, loc):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        n = len(self)
+        values = empty((n,), npy_bool)
+        f = c_array_function('atom_has_alt_loc', args=(byte,), ret=npy_bool, per_object=False)
+        f(self._c_pointers, n, loc, pointer(values))
+        return values
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -625,6 +660,11 @@ class Pseudobonds(Collection):
     Whether each pseudobond is displayed, visible and has both atoms shown.
     '''
 
+    def delete(self):
+        '''Delete the C++ Pseudobond objects'''
+        c_function('pseudobond_delete',
+            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
     @property
     def half_colors(self):
         '''2N x 4 RGBA uint8 numpy array of half bond colors.'''
@@ -664,6 +704,8 @@ class Residues(Collection):
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False, doc =
     '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.''')
+    chains = cvec_property('residue_chain', cptr, astype = _non_null_chains, read_only = True, doc =
+    '''Return :class:`.Chains` for residues. Residues with no chain are omitted. Read only.''')
     chain_ids = cvec_property('residue_chain_id', string, read_only = True, doc =
     '''Returns a numpy array of chain IDs. Read only.''')
     insertion_codes = cvec_property('residue_insertion_code', string, doc =
@@ -777,6 +819,12 @@ class Residues(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
+    def set_alt_loc(self, loc):
+        if isinstance(loc, str):
+            loc = loc.encode('utf-8')
+        f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
+        f(self._c_pointers, len(self), loc)
+
 # -----------------------------------------------------------------------------
 #
 class Chains(Collection):
@@ -789,16 +837,16 @@ class Chains(Collection):
     def __init__(self, chain_pointers):
         Collection.__init__(self, chain_pointers, molobject.Chain, Chains)
 
-    chain_ids = cvec_property('chain_chain_id', string, read_only = True)
+    chain_ids = cvec_property('sseq_chain_id', string, read_only = True)
     '''A numpy array of string chain ids for each chain. Read only.'''
-    structures = cvec_property('chain_structure', cptr, astype = _atomic_structures, read_only = True)
+    structures = cvec_property('sseq_structure', cptr, astype = _atomic_structures, read_only = True)
     '''A :class:`.StructureDatas` collection containing structures for each chain.'''
-    existing_residues = cvec_property('chain_residues', cptr, 'num_residues',
+    existing_residues = cvec_property('sseq_residues', cptr, 'num_residues',
         astype = _non_null_residues, read_only = True, per_object = False)
     '''A :class:`Residues` containing the existing residues of all chains. Read only.'''
-    num_existing_residues = cvec_property('chain_num_existing_residues', size_t, read_only = True)
+    num_existing_residues = cvec_property('sseq_num_existing_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of existing residues in each chain.'''
-    num_residues = cvec_property('chain_num_residues', size_t, read_only = True)
+    num_residues = cvec_property('sseq_num_residues', size_t, read_only = True)
     '''A numpy integer array containing the number of residues in each chain.'''
 
     @classmethod
@@ -876,8 +924,13 @@ class AtomicStructures(StructureDatas):
     Collection of Python atomic structure objects.
     '''
     def __init__(self, mol_pointers):
-        from . import structure
-        Collection.__init__(self, mol_pointers, structure.AtomicStructure, AtomicStructures)
+        from .structure import AtomicStructure
+        if len(mol_pointers) > 0 and isinstance(mol_pointers[0], AtomicStructure):
+            # Converting from seq of AtomicStructure instances to AtomicStructures
+            # Used by command.cli.AtomicStructuresArg
+            import numpy
+            mol_pointers = numpy.array([s._c_pointer.value for s in mol_pointers])
+        Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
 
     @classmethod
     def session_restore_pointers(cls, session, data):

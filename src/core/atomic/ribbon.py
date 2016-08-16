@@ -33,8 +33,11 @@ class Ribbon:
         elif orient == Structure.RIBBON_ORIENT_CURVATURE:
             self.normals = self._compute_normals_from_curvature(coords)
             self.ignore_flip_mode = True
+        elif orient == Structure.RIBBON_ORIENT_PEPTIDE:
+            self.normals = self._compute_normals_from_guides(coords, guides)
+            self.ignore_flip_mode = False
         else:
-            # RIBBON_ORIENT_GUIDES and default case
+            # RIBBON_ORIENT_GUIDES, RIBBON_ORIENT_PEPTIDE and default case
             if guides is None or len(coords) != len(guides):
                 self.normals = self._compute_normals_from_control_points(coords)
                 self.ignore_flip_mode = True
@@ -435,12 +438,12 @@ class XSectionManager:
 	# so ends of stick will be completely hidden by ribbon
 	# instead of sticking out partially on the other side
         self.structure = weakref.ref(structure)
-        self.scale_helix = (0.9, 0.21)
-        self.scale_helix_arrow = ((1.8, 0.21), (0.21, 0.21))
-        self.scale_sheet = (0.8, 0.21)
-        self.scale_sheet_arrow = ((1.5, 0.21), (0.21, 0.21))
-        self.scale_coil = (0.21, 0.21)
-        self.scale_nucleic = (0.21, 0.8)
+        self.scale_helix = (1.0, 0.2)
+        self.scale_helix_arrow = ((2.0, 0.2), (0.2, 0.2))
+        self.scale_sheet = (1.0, 0.2)
+        self.scale_sheet_arrow = ((2.0, 0.2), (0.2, 0.2))
+        self.scale_coil = (0.2, 0.2)
+        self.scale_nucleic = (0.2, 1.0)
         self.style_helix = self.STYLE_ROUND
         self.style_sheet = self.STYLE_SQUARE
         self.style_coil = self.STYLE_ROUND
@@ -456,7 +459,7 @@ class XSectionManager:
                 # No parameters yet for square style
             },
             self.STYLE_PIPING: {
-                "sides": 6,
+                "sides": 12,
                 "ratio": 0.5,
                 "faceted": False,
             },
@@ -542,7 +545,8 @@ class XSectionManager:
             r_front, r_back = self.transitions[(rc0, rc1, rc2)]
             return self._xs_ribbon(r_front), self._xs_ribbon(r_back)
         except KeyError:
-            raise RuntimeError("unsupported transition %d-%d-%d" % (rc0, rc1, rc2))
+            print("unsupported transition %d-%d-%d" % (rc0, rc1, rc2))
+            return self.xs_coil, self.xs_coil
 
     def is_compatible(self, xs0, xs1):
         """Return if the two cross sections can be blended."""
@@ -728,23 +732,22 @@ class XSectionManager:
 
     def _make_xs_round(self, scale):
         from numpy import array
-        from math import pi, cos, sin
         from .molobject import RibbonXSection as XSection
         coords = []
         normals = []
         param = self.params[self.STYLE_ROUND]
         sides = param["sides"]
-        side_angle = 2.0 * pi / sides
-        offset = side_angle / 2
-        for i in range(sides):
-            angle = i * side_angle + offset
-            coords.append((cos(angle), sin(angle)))
-            normals.append(coords[-1])
-        coords = array(coords) * array(scale)
+        from numpy import linspace, cos, sin, stack
+        from math import pi
+        angles = linspace(0, 2 * pi, sides, endpoint=False)
+        ca = cos(angles)
+        sa = sin(angles)
+        circle = stack((ca, sa), axis=1)
+        coords = circle * array(scale)
         if param["faceted"]:
             return XSection(coords, faceted=True)
         else:
-            normals = array(normals)
+            normals = circle * array((scale[1], scale[0]))
             return XSection(coords, normals=normals, faceted=False)
 
     def _make_xs_square(self, scale):
@@ -768,7 +771,10 @@ class XSectionManager:
         coords = []
         normals = []
         param = self.params[self.STYLE_PIPING]
-        sides = param["sides"]
+        # The total number of sides is param["sides"]
+        # We subtract the two connectors and then divide
+        # by two while rounding up
+        sides = (param["sides"] - 1) // 2
         ratio = param["ratio"]
         theta = asin(ratio)
         side_angle = 2.0 * (pi - theta) / sides

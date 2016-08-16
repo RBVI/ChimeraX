@@ -10,7 +10,11 @@ include $(TOP)/mk/subdir.make
 all:
 	@echo "'make install' to build everything"
 
+ifdef WIN32
+install:	vsdefined
+else
 install:
+endif
 	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
 	$(MAKE) -C prereqs install-prebuilt
@@ -18,6 +22,14 @@ install:
 	$(MAKE) -C src install
 	$(MAKE) -C docs install
 	@echo 'Finished install at' `date`
+
+ifdef WIN32
+vsdefined:
+	if [ -z $${VSINSTALLDIR+x} ]; then \
+		echo 'Visual Studio not found.  Run ". vsvars.sh"' ; \
+		false; \
+	fi
+endif
 
 docs.install:
 	$(MAKE) -C docs install

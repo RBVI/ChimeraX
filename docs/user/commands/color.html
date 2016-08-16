@@ -21,13 +21,13 @@ class="clRight" alt="ChimeraX logo"/></a>
 
 <h3>Command: color, rainbow</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>color</b>
+<br><b>color</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 &nbsp;<a href="#colorname"><i>colorname</i></a>&nbsp;
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<BR><b>color</b>
+<br><b>color</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 &nbsp;<b>sequential</b>
 &nbsp;<a href="#level"><i>level</i></a>&nbsp;
@@ -48,7 +48,7 @@ Bonds and <a href="../pseudobonds.html">pseudobonds</a>
 are considered as specified when both flanking atoms are specified.
 See <a href="#examples">examples</a> below.
 See also: <a href="transparency.html"><b>transparency</b></a>,
-<b>volume</b>,
+<a href="volume.html"><b>volume</b></a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="colornames.html">color names</a>
@@ -99,12 +99,14 @@ at the specified <i>level</i>:
 (always applies to entire chains); non-biopolymer residues 
 such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <li><b>chains</b> - a different color for each biopolymer chain in an 
-atomic model (always applies to entire models); non-biopolymer residues
-are not affected
+atomic model; non-biopolymer residues are not affected
 <li><b>molmodels</b> - a different color for each atomic model
 </ul>
-For <b>rainbow</b> only, 
+For <b>rainbow</b> only,
 the <i>level</i> can be omitted and defaults to <b>residues</b>.
+Sequential coloring applies to all atoms within the affected residues,
+chains, or models even if fewer atoms are specified, but can be restricted 
+to certain representations with the <a href="#target"><b>target</b></a> option.
 </p>
 
 <p class="nav">

@@ -72,38 +72,46 @@ class MolecularSurface(Model):
         self._refinement_steps = 1	# Used for fixing sharp edge problems near 3 atom junctions.
 
         self._vertex_to_atom = None
+        self._vertex_to_atom_count = None	# Used to check if atoms deleted
         self._max_radius = None
-        self._atom_colors = None
         self.clip_cap = True
 
-    def new_parameters(self, show_atoms, probe_radius, grid_spacing,
-                       resolution, level, visible_patches, sharp_boundaries,
+    def new_parameters(self, show_atoms, probe_radius = None, grid_spacing = None,
+                       resolution = None, level = None, visible_patches = None, sharp_boundaries = None,
                        color = None, transparency = None):
         '''
         Change the surface parameters.  Parameter definitions are the
         same as for the contructor.
         '''
-        shape_change = (probe_radius != self.probe_radius or
-                        grid_spacing != self.grid_spacing or
-                        resolution != self.resolution or
-                        level != self.level or
-                        sharp_boundaries != self.sharp_boundaries)
-        shown_changed = (show_atoms.hash() != self.show_atoms.hash() or
-                         visible_patches != self.visible_patches)
 
+        shown_changed = show_atoms.hash() != self.show_atoms.hash()
         self.show_atoms = show_atoms	# Atoms for surface patch to show
-        self.probe_radius = probe_radius
-        self.grid_spacing = grid_spacing
-        self.resolution = resolution
-        self.level = level
-        self.visible_patches = visible_patches
-        self.sharp_boundaries = sharp_boundaries
+        
+        shape_change = False
+        if probe_radius is not None and probe_radius != self.probe_radius:
+            self.probe_radius = probe_radius
+            shape_change = True
+        if grid_spacing is not None and grid_spacing != self.grid_spacing:
+            self.grid_spacing = grid_spacing
+            shape_change = True
+        if resolution is not None and resolution != self.resolution:
+            self.resolution = resolution
+            shape_change = True
+        if level is not None and level != self.level:
+            self.level = level
+            shape_change = True
+        if visible_patches is not None and visible_patches != self.visible_patches:
+            self.visible_patches = visible_patches
+            shown_changed = True
+        if sharp_boundaries is not None and sharp_boundaries != self.sharp_boundaries:
+            self.sharp_boundaries = sharp_boundaries
+            shape_change = True
 
         if shape_change:
             self.vertices = None
             self.normals = None
             self.triangles = None
-            self._preserve_colors()
+            self.color = self._average_color()
             self.vertex_colors = None
             self._vertex_to_atom = None
             self._max_radius = None
@@ -115,13 +123,17 @@ class MolecularSurface(Model):
         '''Number of atoms for calculating the surface. Read only.'''
         return len(self.atoms)
 
+    def atom_coords(self):
+        atoms = self.atoms
+        return atoms.coords if atoms.single_structure else atoms.scene_coords
+    
     def calculate_surface_geometry(self):
         '''Recalculate the surface if parameters have been changed.'''
         if not self.vertices is None:
             return              # Geometry already computed
 
         atoms = self.atoms
-        xyz = atoms.coords
+        xyz = self.atom_coords()
         res = self.resolution
         from .. import surface
         if res is None:
@@ -149,7 +161,6 @@ class MolecularSurface(Model):
         self.normals = na
         self.triangles = ta
         self.triangle_mask = self._calc_triangle_mask()
-        self._restore_colors()
 
     def _calc_triangle_mask(self):
         tmask = self._patch_display_mask(self.show_atoms)
@@ -172,12 +183,13 @@ class MolecularSurface(Model):
         '''
         Returns a numpy array of integer values with length equal to
         the number of surface vertices and value is the atom index for
-        the atom closest to each vertex.
+        the atom closest to each vertex.  Can return None if atoms are
+        not associated with vertices.  Supplying vertices argument computes
+        new vertex to atom map.
         '''
-        v2a = self._vertex_to_atom
-        if v2a is None:
+        if vertices is not None:
             xyz1 = self.vertices if vertices is None else vertices
-            xyz2 = self.atoms.coords
+            xyz2 = self.atom_coords()
             radii = {'scale2':self.atoms.radii} if self.resolution is None else {}
             max_dist = self._maximum_atom_to_surface_distance()
             from .. import geometry
@@ -190,7 +202,11 @@ class MolecularSurface(Model):
             v2a = empty((len(xyz1),), int32)
             v2a[i1] = nearest1
             self._vertex_to_atom = v2a
-        return v2a
+            self._vertex_to_atom_count = len(self.atoms)
+        elif self._vertex_to_atom is not None and len(self.atoms) < self._vertex_to_atom_count:
+            # Atoms deleted
+            self._vertex_to_atom = None
+        return self._vertex_to_atom
 
     def _maximum_atom_to_surface_distance(self):
         res = self.resolution
@@ -209,6 +225,8 @@ class MolecularSurface(Model):
 
     def _atom_triangle_mask(self, atom_mask):
         v2a = self.vertex_to_atom_map()
+        if v2a is None:
+            return None
         shown_vertices = atom_mask[v2a]
         t = self.triangles
         from numpy import logical_and, empty, bool
@@ -217,20 +235,32 @@ class MolecularSurface(Model):
         logical_and(shown_triangles, shown_vertices[t[:,2]], shown_triangles)
         return shown_triangles
 
+    def has_atom_patches(self):
+        return self.vertex_to_atom_map() is not None
+        
     def show(self, atoms, only = False):
         '''
         Show the surface patch near these :class:`.Atoms` in
         addition to any already shown surface patch.
         '''
-        self.show_atoms = atoms if only else self.show_atoms.merge(atoms)
-        self.triangle_mask = self._calc_triangle_mask()
+        if self.has_atom_patches():
+            self.show_atoms = atoms if only else self.show_atoms.merge(atoms)
+            self.triangle_mask = self._calc_triangle_mask()
+            self.display = True
+        elif len(atoms) == len(self.atoms):
+            self.display = True
+            self.triangle_mask = None
 
     def hide(self, atoms):
         '''
         Hide the surface patch near these :class:`.Atoms`.
         '''
-        self.show_atoms = self.show_atoms.subtract(atoms)
-        self.triangle_mask = self._calc_triangle_mask()
+        if self.has_atom_patches():
+            self.show_atoms = self.show_atoms.subtract(atoms)
+            self.triangle_mask = self._calc_triangle_mask()
+        elif len(atoms) == len(self.atoms):
+            self.display = False
+            self.triangle_mask = None
 
     def _get_single_color(self):
         vc = self.vertex_colors
@@ -241,27 +271,15 @@ class MolecularSurface(Model):
         self.vertex_colors = None
     single_color = property(_get_single_color, _set_single_color)
 
-    def _preserve_colors(self):
+    def _average_color(self):
         vc = self.vertex_colors
-        if vc is None:
-            return
-
-        # Preserve surface colors per atom.
-        v2a = self.vertex_to_atom_map()
-        from numpy import empty, uint8
-        acolor = empty((len(self.atoms),4), uint8)
-        acolor[:] = self.color
-        acolor[v2a] = vc
-        self._atom_colors = acolor
-
-    def _restore_colors(self):
-        acolor = self._atom_colors
-        if acolor is None:
-            return
-
-        v2a = self.vertex_to_atom_map()
-        self.vertex_colors = acolor[v2a,:]
-        self._atom_colors = None
+        if vc is None or len(vc) == 0:
+            return self.color
+        from numpy import float32, uint8
+        csum = vc.sum(axis = 0, dtype = float32)
+        csum /= len(vc)
+        acolor = csum.astype(uint8)
+        return acolor
 
     def first_intercept(self, mxyz1, mxyz2, exclude = None):
         # Pick atom associated with surface patch
@@ -272,20 +290,24 @@ class MolecularSurface(Model):
         t = p.triangle_number
         v = self.triangles[t,0]
         v2a = self.vertex_to_atom_map()
-        a = v2a[v]
-        atom = self.atoms[a]
-        from .structure import PickedAtom
-        pa = PickedAtom(atom, p.distance)
+        if v2a is None:
+            pa = p
+        else:
+            a = v2a[v]
+            atom = self.atoms[a]
+            from .structure import PickedAtom
+            pa = PickedAtom(atom, p.distance)
         return pa
 
     def update_selection(self):
         asel = self.atoms.selected
         tmask = self._atom_triangle_mask(asel)
-        self.selected = (tmask.sum() > 0)
-        self.selected_triangles_mask = tmask
+        if tmask is not None:
+            self.selected = (tmask.sum() > 0)
+            self.selected_triangles_mask = tmask
 
     # State save/restore in ChimeraX
-    _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_max_radius', '_atom_colors',
+    _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_vertex_to_atom_count', '_max_radius',
                    'vertices', 'normals', 'triangles', 'triangle_mask', 'vertex_colors', 'color')
 
     def take_snapshot(self, session, flags):
@@ -377,7 +399,6 @@ def surfaces_with_atoms(atoms, models):
 def show_surfaces(atoms, models, only = False):
     surfs = surfaces_with_atoms(atoms, models)
     for s in surfs:
-        s.display = True
         s.show(atoms & s.atoms, only = only)
     return surfs
 
@@ -405,7 +426,7 @@ def buried_area(a1, a2, probe_radius):
     return ba, a1a, a2a, a12a
 
 def atom_spheres(atoms, probe_radius = 1.4):
-    xyz = atoms.coords
+    xyz = atoms.scene_coords
     r = atoms.radii.copy()
     r += probe_radius
     return xyz, r

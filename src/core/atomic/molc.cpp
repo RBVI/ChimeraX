@@ -185,6 +185,48 @@ error_wrap_array_set(T** instances, size_t n, void (T::*pm)(Elem), Elem2* args)
 using namespace atomstruct;
 
 // -------------------------------------------------------------------------
+// geometry functions
+//
+inline float* atom_vector(const Atom* f, const Atom* t, float* result)
+{
+    const Coord &fc = f->coord();
+    const Coord &tc = t->coord();
+    result[0] = tc[0] - fc[0];
+    result[1] = tc[1] - fc[1];
+    result[2] = tc[2] - fc[2];
+    return result;
+}
+
+inline float inner(const float* u, const float* v)
+{
+    return u[0]*v[0] + u[1]*v[1] + u[2]*v[2];
+}
+
+inline float* cross(const float* u, const float* v, float* result)
+{
+    result[0] = u[1]*v[2] - u[2]*v[1];
+    result[1] = u[2]*v[0] - u[0]*v[2];
+    result[2] = u[0]*v[1] - u[1]*v[0];
+    return result;
+}
+
+inline bool normalize(float *v)
+{
+    try {
+        float length = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+        if (length > 0) {
+            v[0] /= length;
+            v[1] /= length;
+            v[2] /= length;
+            return true;
+        }
+        return false;
+    } catch (std::domain_error) {
+        return false;
+    }
+}
+
+// -------------------------------------------------------------------------
 // atom functions
 //
 extern "C" EXPORT void atom_bfactor(void *atoms, size_t n, float32_t *bfactors)
@@ -198,6 +240,19 @@ extern "C" EXPORT void set_atom_bfactor(void *atoms, size_t n, float32_t *bfacto
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_set(a, n, &Atom::set_bfactor, bfactors);
 }
+
+extern "C" EXPORT void atom_occupancy(void *atoms, size_t n, float32_t *occupancies)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get(a, n, &Atom::occupancy, occupancies);
+}
+
+extern "C" EXPORT void set_atom_occupancy(void *atoms, size_t n, float32_t *occupancies)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_set(a, n, &Atom::set_occupancy, occupancies);
+}
+
 
 extern "C" EXPORT void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
 {
@@ -319,7 +374,7 @@ extern "C" EXPORT void atom_delete(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
-        std::map<Structure *, std::vector<Atom *> > matoms;
+        std::map<Structure *, std::vector<Atom *>> matoms;
         for (size_t i = 0; i != n; ++i)
             matoms[a[i]->structure()].push_back(a[i]);
 
@@ -358,6 +413,41 @@ extern "C" EXPORT void atom_visible(void *atoms, size_t n, npy_bool *visible)
 {
     Atom **a = static_cast<Atom **>(atoms);
     error_wrap_array_get<Atom, bool, npy_bool>(a, n, &Atom::visible, visible);
+}
+
+extern "C" EXPORT void atom_alt_loc(void *atoms, size_t n, char *alt_loc)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    error_wrap_array_get<Atom, char>(a, n, &Atom::alt_loc, alt_loc);
+}
+
+extern "C" EXPORT void set_atom_alt_loc(void *atoms, size_t n, char *alt_locs)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    // can't use error_wrap_array_set because set_alt_loc takes multiple args
+    try {
+        for (size_t i = 0; i < n; ++i)
+            a[i]->set_alt_loc(alt_locs[i]);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_set_alt_loc(void *atom, char alt_loc, bool create, bool from_residue)
+{
+    Atom *a = static_cast<Atom *>(atom);
+    error_wrap(a, &Atom::set_alt_loc, alt_loc, create, from_residue);
+}
+
+extern "C" EXPORT void atom_has_alt_loc(void *atoms, size_t n, char alt_loc, npy_bool *has)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            has[i] = a[i]->has_alt_loc(alt_loc);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void atom_draw_mode(void *atoms, size_t n, uint8_t *modes)
@@ -426,11 +516,39 @@ extern "C" EXPORT void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
     }
 }
 
-extern "C" EXPORT bool atom_is_backbone(pyobject_t atom, uint8_t extent)
+
+extern "C" EXPORT void atom_is_backbone(void *atoms, size_t n, uint8_t extent, npy_bool *bb)
 {
-    Atom *a = static_cast<Atom *>(atom);
+    Atom **a = static_cast<Atom **>(atoms);
     BackboneExtent bbe = static_cast<BackboneExtent>(extent);
-    return error_wrap([&] () { return a->is_backbone(bbe); });
+    try {
+        for (size_t i = 0; i < n; ++i)
+            bb[i] = a[i]->is_backbone(bbe);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_is_ribose(void *atoms, size_t n, npy_bool *is_ribose)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_ribose[i] = a[i]->is_ribose();
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_is_sidechain(void *atoms, size_t n, npy_bool *is_sidechain)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_sidechain[i] = a[i]->is_sidechain();
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void atom_structure(void *atoms, size_t n, pyobject_t *molp)
@@ -775,6 +893,17 @@ extern "C" EXPORT void set_bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
     error_wrap_array_set<Bond, bool, npy_bool>(b, n, &Bond::set_halfbond, halfb);
 }
 
+extern "C" EXPORT void bond_length(void *bonds, size_t n, float32_t *lengths)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    try {
+        for (size_t i = 0; i != n; ++i)
+	  lengths[i] = b[i]->length();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void bond_radius(void *bonds, size_t n, float32_t *radii)
 {
     Bond **b = static_cast<Bond **>(bonds);
@@ -811,6 +940,18 @@ extern "C" EXPORT void bond_structure(void *bonds, size_t n, pyobject_t *molp)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_get(b, n, &Bond::structure, molp);
+}
+
+extern "C" EXPORT void *bond_other_atom(void *bond, void *atom)
+{
+    Bond *b = static_cast<Bond *>(bond);
+    Atom *a = static_cast<Atom *>(atom), *oa;
+    try {
+      oa = b->other_atom(a);
+    } catch (...) {
+      molc_error();
+    }
+    return oa;
 }
 
 // -------------------------------------------------------------------------
@@ -858,6 +999,20 @@ extern "C" EXPORT void set_pseudobond_color(void *pbonds, size_t n, uint8_t *rgb
             c.a = *rgba++;
             b[i]->set_color(c);
         }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void pseudobond_delete(void *pbonds, size_t n)
+{
+    Pseudobond **pb = static_cast<Pseudobond **>(pbonds);
+    try {
+        std::map<Proxy_PBGroup *, std::vector<Pseudobond *>> g_pbs;
+        for (size_t i = 0; i != n; ++i)
+            g_pbs[pb[i]->group()->proxy()].push_back(pb[i]);
+        for (auto grp_pbs: g_pbs)
+            grp_pbs.first->delete_pseudobonds(grp_pbs.second);
     } catch (...) {
         molc_error();
     }
@@ -1069,6 +1224,28 @@ extern "C" EXPORT void* pseudobond_global_manager_get_group(void *manager, const
         molc_error();
         return nullptr;
     }
+}
+
+extern "C" EXPORT PyObject *pseudobond_global_manager_group_map(void *manager)
+{
+    PyObject* mapping = PyDict_New();
+    if (mapping == nullptr)
+        molc_error();
+    else {
+        try {
+            PBManager* mgr = static_cast<PBManager*>(manager);
+            for (auto cat_grp: mgr->group_map()) {
+                PyObject* key = PyUnicode_FromString(cat_grp.first.c_str());
+                PyObject* val = PyLong_FromVoidPtr(cat_grp.second);
+                PyDict_SetItem(mapping, key, val);
+                Py_DECREF(key);
+                Py_DECREF(val);
+            }
+        } catch (...) {
+            molc_error();
+        }
+    }
+    return mapping;
 }
 
 extern "C" EXPORT void pseudobond_global_manager_delete_group(void *manager, void *pbgroup)
@@ -1506,6 +1683,221 @@ extern "C" EXPORT void set_residue_ribbon_color(void *residues, size_t n, uint8_
     }
 }
 
+#define AVERAGE_PEPTIDE_PLANE
+#ifdef AVERAGE_PEPTIDE_PLANE
+static void residue_update_hide(Residue *r, Atom *center)
+{
+    if (r->ribbon_display() && r->ribbon_hide_backbone()) {
+        // Ribbon is shown and hides backbone, so hide backbone atoms and bonds
+        for (auto atom: r->atoms())
+            if ((atom->hide() & Atom::HIDE_RIBBON) == 0
+                    && atom->is_backbone(BBE_RIBBON) && atom != center)
+                atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+    }
+    else {
+        // Ribbon is not shown or does not hide backbone
+        // so unhide backbone atoms and bonds
+        for (auto atom: r->atoms())
+            if ((atom->hide() & Atom::HIDE_RIBBON) != 0
+                    && atom->is_backbone(BBE_RIBBON) && atom != center)
+                atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+    }
+}
+
+extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int orient)
+{
+    bool want_peptide = (orient == Structure::RIBBON_ORIENT_PEPTIDE);
+    bool want_guides = (orient != Structure::RIBBON_ORIENT_ATOMS &&
+                        orient != Structure::RIBBON_ORIENT_CURVATURE);
+    Residue **res_array = static_cast<Residue **>(residues);
+    try {
+        // If no ribbon is displayed for any residue, return Nones
+        bool any_display = false;
+        for (size_t i = 0; i != n; ++i)
+            if (res_array[i]->ribbon_display())
+                any_display = true;
+        if (!any_display) {
+            PyObject *o = PyTuple_New(4);
+            Py_INCREF(Py_False);
+            PyTuple_SetItem(o, 0, Py_False);
+            Py_INCREF(Py_None);
+            PyTuple_SetItem(o, 1, Py_None);
+            Py_INCREF(Py_None);
+            PyTuple_SetItem(o, 2, Py_None);
+            Py_INCREF(Py_None);
+            PyTuple_SetItem(o, 3, Py_None);
+            return o;
+        }
+
+        // Find all the ribbon-relevant atoms
+        struct PeptidePlane {
+            float normal[3];
+        };
+        std::vector<Atom *> centers;
+        std::vector<Atom *> guides;
+        std::vector<PeptidePlane> peptide_planes;
+        bool has_guides = want_guides;
+        Atom *prev_c = NULL;
+        Atom *prev_o = NULL;
+        for (size_t i = 0; i != n; ++i) {
+            Residue* r = res_array[i];
+            Atom *ca = r->find_atom("CA");
+            if (ca != NULL) {
+                // Case 1: amino acid
+                centers.push_back(ca);
+                if (!want_guides) {
+                    residue_update_hide(r, ca);
+                    continue;
+                }
+                Atom *o = r->find_atom("O");
+                if (want_guides) {
+                    if (o != NULL)
+                        guides.push_back(o);
+                    else
+                        has_guides = false;
+                }
+                if (want_peptide && o != NULL) {
+                    Atom *n = r->find_atom("N");
+                    Atom *c = r->find_atom("C");
+                    if (n == NULL || c == NULL) {
+                        want_peptide = false;
+                        residue_update_hide(r, ca);
+                        continue;
+                    }
+                    if (prev_c != NULL) {
+                        float co[3], cn[3];
+                        PeptidePlane peptide;
+                        atom_vector(prev_c, prev_o, co);
+                        atom_vector(prev_c, n, cn);
+                        cross(co, cn, peptide.normal);
+                        // NB: do not bother normalizing now since we will
+                        // use them in a cross product later and will
+                        // have to normalize that result
+                        peptide_planes.push_back(peptide);
+                    }
+                    prev_c = c;
+                    prev_o = o;
+                }
+                residue_update_hide(r, ca);
+            }
+            else {
+                prev_c = NULL;
+                // Look for nucleotide
+                Atom *a = r->find_atom("C5'");
+                if (a == NULL) {
+                    // Case 2: not a nucleotide
+                    r->set_ribbon_display(false);
+                    residue_update_hide(r, NULL);
+                    continue;
+                }
+                // Case 3: Nucleotide
+                centers.push_back(a);
+                if (want_guides) {
+                    Atom *c1p = r->find_atom("C1'");
+                    if (c1p)
+                        guides.push_back(c1p);
+                    else
+                        has_guides = false;
+                }
+                residue_update_hide(r, a);
+            }
+        }
+
+        // Create Python return value: tuple of (atoms, control points, guide points)
+        PyObject *o = PyTuple_New(4);
+        Py_INCREF(Py_True);
+        PyTuple_SetItem(o, 0, Py_True);
+        void **adata;
+        PyObject *alist = python_voidp_array(centers.size(), &adata);
+        for (auto atom : centers)
+            *adata++ = atom;
+        PyTuple_SetItem(o, 1, alist);
+        float *data;
+        float *cdata;
+        PyObject *ca = python_float_array(centers.size(), 3, &cdata);
+        data = cdata;
+        for (auto atom : centers) {
+            const Coord &c = atom->coord();
+            *data++ = c[0];
+            *data++ = c[1];
+            *data++ = c[2];
+        }
+        PyTuple_SetItem(o, 2, ca);
+        float *gdata;
+        if (want_peptide) {
+            // For orienting using peptide planes, we need to process some more
+            PyObject *ga = python_float_array(centers.size(), 3, &gdata);
+            // The peptide_planes vector is one shorter than the number
+            // of centers because the peptide plane is defined relative
+            // to the _previous_ residue.  So the first residue does not have
+            // a peptide plane vector.
+            // To get the "guide" vector for a residue, we find the cross
+            // product of the peptide planes formed with the previous and
+            // next residues.  This will give us a vector that is in both
+            // peptide planes and should define the ribbon orientations.
+            for (size_t i = 0; i != peptide_planes.size() - 1; ++i) {
+                const float* prev_pp = peptide_planes[i].normal;
+                const float* this_pp = peptide_planes[i + 1].normal;
+                float* guide = gdata + (i+1)*3;
+                cross(prev_pp, this_pp, guide);
+                if (!normalize(guide))
+                    std::cerr << "normalization error\n";
+            }
+            // We double the first and last guides because the first and
+            // last residues only have one defined peptide plane to use.
+            int last = centers.size() * 3 - 3;
+            for (int j = 0; j != 3; ++j) {
+                gdata[j] = gdata[3 + j];
+                gdata[last + j] = gdata[last - 3 + j];
+            }
+            // Make sure that each guide is positioned on the same
+            // side as the carbonyl oxygen (guide ATOM) so that
+            // ribbon orientation flipping can be enforced
+            float cg[3];
+            for (size_t i = 0; i != centers.size(); ++i) {
+                atom_vector(centers[i], guides[i], cg);
+                int offset = i * 3;
+                if (inner(cg, gdata + offset))
+                    for (int j = 0; j != 3; ++j)
+                        gdata[offset + j] = -gdata[offset + j];
+            }
+            // Finally, we add back the center coordinates to move
+            // back to the same coordinate system
+            for (size_t i = 0; i != centers.size() * 3; ++i)
+                gdata[i] += cdata[i];
+#if 0
+            for (int i = 0; i != centers.size(); ++i) {
+                float *c = cdata + i*3;
+                float *g = gdata + i*3;
+                std::cerr << ".m " << *(c+0) << ' ' << *(c+1) << ' ' << *(c+2) << '\n';
+                std::cerr << ".d " << *(g+0) << ' ' << *(g+1) << ' ' << *(g+2) << '\n';
+            }
+#endif
+            PyTuple_SetItem(o, 3, ga);
+        }
+        else if (has_guides) {
+            PyObject *ga = python_float_array(guides.size(), 3, &gdata);
+            data = gdata;
+            for (auto atom : guides) {
+                const Coord &c = atom->coord();
+                *data++ = c[0];
+                *data++ = c[1];
+                *data++ = c[2];
+            }
+            PyTuple_SetItem(o, 3, ga);
+        }
+        else {
+            Py_INCREF(Py_None);
+            PyTuple_SetItem(o, 3, Py_None);
+        }
+        return o;
+    } catch (...) {
+        molc_error();
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+}
+#else
 extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int orient)
 {
     bool want_guides = true;
@@ -1562,6 +1954,10 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                         if ((atom->hide() & Atom::HIDE_RIBBON) == 0
                                 && atom->is_backbone(BBE_RIBBON) && atom != center)
                             atom->set_hide(atom->hide() | Atom::HIDE_RIBBON);
+#if 0
+                    // Not sure if this code is still needed.
+                    // Bonds are not drawn if the atoms are not visible.
+                    // So hiding the atoms should be enough.
                     for (auto bond: r[i]->bonds_between(r[i])) {
                         auto atoms = bond->atoms();
                         if ((bond->hide() & Bond::HIDE_RIBBON) == 0
@@ -1569,6 +1965,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                                 && atoms[1]->is_backbone(BBE_RIBBON))
                             bond->set_hide(bond->hide() | Bond::HIDE_RIBBON);
                     }
+#endif
                 }
                 else {
                     // Ribbon is not shown or does not hide backbone, so unhide backbone atoms and bonds
@@ -1626,6 +2023,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
         return Py_None;
     }
 }
+#endif
 
 extern "C" EXPORT void residue_ribbon_clear_hide(void *residues, size_t n)
 {
@@ -1638,12 +2036,46 @@ extern "C" EXPORT void residue_ribbon_clear_hide(void *residues, size_t n)
     }
 }
 
-// -------------------------------------------------------------------------
-// chain functions
-//
-extern "C" EXPORT void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
+extern "C" EXPORT void residue_set_alt_loc(void *residues, size_t n, char alt_loc)
 {
-    Chain **c = static_cast<Chain **>(chains);
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            r[i]->set_alt_loc(alt_loc);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+// -------------------------------------------------------------------------
+// structure sequence functions
+//
+extern "C" EXPORT void sseq_bulk_set(void *sseq_ptr, PyObject *res_ptr_vals, char *seq)
+{
+    try {
+        StructureSeq* sseq = static_cast<StructureSeq*>(sseq_ptr);
+        if (!PyList_Check(res_ptr_vals))
+            throw std::invalid_argument("sseq_bulk_seq residues arg not a list!");
+        auto num_res = PyList_GET_SIZE(res_ptr_vals);
+        StructureSeq::Residues residues;
+        for (int i = 0; i < num_res; ++i) {
+            // since 0 == nullptr, don't need specific conversion...
+            residues.push_back(static_cast<Residue*>(
+                PyLong_AsVoidPtr(PyList_GET_ITEM(res_ptr_vals, i))));
+        }
+        // chars not necessarily same length as residues due to gap characters
+        Sequence::Contents chars;
+        for (auto s = seq; *s != '\0'; ++s)
+            chars.push_back(*s);
+        sseq->bulk_set(residues, &chars);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void sseq_chain_id(void *chains, size_t n, pyobject_t *cids)
+{
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
         for (size_t i = 0; i != n; ++i)
             cids[i] = unicode_from_string(c[i]->chain_id());
@@ -1652,15 +2084,26 @@ extern "C" EXPORT void chain_chain_id(void *chains, size_t n, pyobject_t *cids)
     }
 }
 
-extern "C" EXPORT void chain_structure(void *chains, size_t n, pyobject_t *molp)
+extern "C" EXPORT void *sseq_copy(void* source)
 {
-    Chain **c = static_cast<Chain **>(chains);
-    error_wrap_array_get(c, n, &Chain::structure, molp);
+    StructureSeq *sseq = static_cast<StructureSeq*>(source);
+    try {
+        return sseq->copy();
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
 }
 
-extern "C" EXPORT void chain_num_residues(void *chains, size_t n, size_t *nres)
+extern "C" EXPORT void sseq_structure(void *chains, size_t n, pyobject_t *molp)
 {
-    Chain **c = static_cast<Chain **>(chains);
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
+    error_wrap_array_get(c, n, &StructureSeq::structure, molp);
+}
+
+extern "C" EXPORT void sseq_num_residues(void *chains, size_t n, size_t *nres)
+{
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
         for (size_t i = 0; i != n; ++i)
             nres[i] = c[i]->residues().size();
@@ -1669,9 +2112,9 @@ extern "C" EXPORT void chain_num_residues(void *chains, size_t n, size_t *nres)
     }
 }
 
-extern "C" EXPORT void chain_num_existing_residues(void *chains, size_t n, size_t *nres)
+extern "C" EXPORT void sseq_num_existing_residues(void *chains, size_t n, size_t *nres)
 {
-    Chain **c = static_cast<Chain **>(chains);
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
         for (size_t i = 0; i != n; ++i) {
             size_t num_sr = 0;
@@ -1684,14 +2127,29 @@ extern "C" EXPORT void chain_num_existing_residues(void *chains, size_t n, size_
     }
 }
 
-extern "C" EXPORT void chain_residues(void *chains, size_t n, pyobject_t *res)
+extern "C" EXPORT void sseq_residues(void *chains, size_t n, pyobject_t *res)
 {
-    Chain **c = static_cast<Chain **>(chains);
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
         for (size_t i = 0; i != n; ++i) {
-            const Chain::Residues &r = c[i]->residues();
+            const StructureSeq::Residues &r = c[i]->residues();
             for (size_t j = 0; j != r.size(); ++j)
                 *res++ = r[j];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void sseq_existing_residues(void *chains, size_t n, pyobject_t *res)
+{
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const StructureSeq::Residues &r = c[i]->residues();
+            for (size_t j = 0; j != r.size(); ++j)
+                if (r[j] != nullptr)
+                    *res++ = r[j];
         }
     } catch (...) {
         molc_error();
@@ -1866,6 +2324,17 @@ extern "C" EXPORT void sequence_extend(void *seq, const char *chars)
     }
 }
 
+extern "C" EXPORT int sequence_gapped_to_ungapped(void *seq, int32_t index)
+{
+    Sequence *s = static_cast<Sequence *>(seq);
+    try {
+        return s->gapped_to_ungapped(index);
+    } catch (...) {
+        molc_error();
+        return 0;
+    }
+}
+
 extern "C" EXPORT size_t sequence_len(void *seq)
 {
     Sequence *s = static_cast<Sequence *>(seq);
@@ -1894,6 +2363,19 @@ extern "C" EXPORT void set_sequence_name(void *seqs, size_t n, pyobject_t *names
     try {
         for (size_t i = 0; i != n; ++i)
             s[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void sequence_set_pyobj(void *seq_ptr, PyObject *seq_obj)
+{
+    Sequence *seq = static_cast<Sequence*>(seq_ptr);
+    try {
+        if (seq_obj == Py_None)
+            seq->set_python_obj(nullptr);
+        else
+            seq->set_python_obj(seq_obj);
     } catch (...) {
         molc_error();
     }
@@ -2439,11 +2921,11 @@ extern "C" EXPORT void *structure_new_bond(void *mol, void *atom1, void *atom2)
     }
 }
 
-extern "C" EXPORT void *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos)
+extern "C" EXPORT void *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos, char insert)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
-        Residue *r = m->new_residue(residue_name, chain_id, pos, ' ');
+        Residue *r = m->new_residue(residue_name, chain_id, pos, insert);
         return r;
     } catch (...) {
         molc_error();
@@ -2889,19 +3371,6 @@ extern "C" EXPORT void* rxsection_arrow(void *p, float x1_scale, float y1_scale,
 
 // -------------------------------------------------------------------------
 // ribbon functions
-
-inline float inner(float* u, float* v)
-{
-    return u[0]*v[0] + u[1]*v[1] + u[2]*v[2];
-}
-
-inline float* cross(float* u, float* v, float* result)
-{
-    result[0] = u[1]*v[2] - u[2]*v[1];
-    result[1] = u[2]*v[0] - u[0]*v[2];
-    result[2] = u[0]*v[1] - u[1]*v[0];
-    return result;
-}
 
 static void _rotate_around(float* n, float c, float s, float* v)
 {

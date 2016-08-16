@@ -1,0 +1,84 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright (c) 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: rungs</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: rungs</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>rungs</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;radius&nbsp;<i>r</i>&nbsp;]
+[&nbsp;color&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;] 
+[&nbsp;halfbond&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;hideAtoms&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;showRibbon&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;hideHbonds&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>rungs</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<b>hide</b></h3>
+<p>
+The <b>rungs</b> command shows a simple broken-ladder representation
+of the nucleic acid residues containing the
+<a href="atomspec.html">specified</a> atoms,
+or if nothing is specified, all nucleic acid residues.
+The rung representation for a nucleic acid residue is a cylinder 
+from the ribose C3' to N1 (if purine) or N3 (if pyrimidine),
+implemented as a <a href="../pseudobonds.html">pseudobond</a>.
+Using <b>rungs</b> with the <b>hide</b> keyword hides
+any rungs of the specified residues.
+See also: 
+<a href="show.html"><b>show</b></a>,
+<a href="color.html"><b>color</b></a>,
+<a href="cartoon.html"><b>cartoon</b></a>,
+<a href="struts.html"><b>struts</b></a>
+</p><p>
+The initial default rung <b>radius</b> <i>r</i> is <b>0.5</b> &Aring;,
+and the initial default <b>color</b> is to match the cartoon of each residue.
+If <b>halfbond</b> is true (initial default <b>false</b>), the <b>color</b>
+setting is not used; instead, the two halves of each rung will be colored
+to match the endpoint atoms, and will track any subsequent color changes
+of those atoms.
+Once created, rung pseudobonds retain their existing radius and color settings
+unless those settings are changed explicitly.
+</p><p>
+The <b>hideAtoms</b> option indicates hiding the atoms/bonds of the 
+<a href="atomspec.html">specified</a> residues (default <b>true</b>),
+not including the rung endpoint atoms, which must remain shown for the
+rungs themselves to be shown.
+The <b>hideHbonds</b> option (default <b>true</b>) indicates hiding any
+H-bond representations (also pseudobonds, typically shown as dashed lines).
+The <b>showRibbons</b> option (default <b>true</b>) indicates whether
+to show the ribbon (cartoon) segments of the residues. 
+Setting a hiding option to false will not show already hidden items, and 
+setting <b>showRibbon</b> to false will not hide any cartoon segments that
+are already shown. 
+</p><p>
+The following commands can be used to show nucleic acid atoms and 
+and their pre-existing H-bonds again after rungs have been hidden:
+</p>
+<blockquote><b>
+<a href="show.html">show</a> <a href="atomspec.html#builtin">nucleic</a>
+<br>
+<a href="show.html">show</a> <a href="atomspec.html#builtin">hbonds</a> target p
+</b></blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2016</address>
+</body></html>

@@ -55,22 +55,25 @@ def surface(session, atoms = None, enclose = None, include = None,
       Undisplay surfaces or patches of surfaces.
     close : bool
       Close surfaces for the specified atoms.
+
     '''
-    atoms = check_atoms(atoms, session) # Warn if no atoms specifed
 
     from ..atomic.molsurf import close_surfaces, show_surfaces, hide_surfaces, remove_solvent_ligands_ions
     from ..atomic.molsurf import surface_rgba, MolecularSurface, update_color, surfaces_overlapping_atoms
 
     if close:
+        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
         close_surfaces(atoms, session.models)
         return []
 
     # Show surface patches for existing surfaces.
     if show:
+        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
         return show_surfaces(atoms, session.models)
 
     # Hide surfaces or patches of surface for specified atoms.
     if hide:
+        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
         return hide_surfaces(atoms, session.models)
 
     if replace:
@@ -79,14 +82,19 @@ def surface(session, atoms = None, enclose = None, include = None,
         all_surfs = {}
 
     if grid_spacing is None:
-        grid_spacing = 0.5 if resolution is None else 0.1 * resolution
+        grid = 0.5 if resolution is None else 0.1 * resolution
+    else:
+        grid = grid_spacing
 
     if sharp_boundaries is None:
-        sharp_boundaries = True if resolution is None else False
+        sharp = True if resolution is None else False
+    else:
+        sharp = sharp_boundaries
 
     surfs = []
     new_surfs = []
     if enclose is None:
+        atoms = check_atoms(atoms, session) # Warn if no atoms specifed
         atoms, all_small = remove_solvent_ligands_ions(atoms, include)
         for m, chain_id, show_atoms in atoms.by_chain:
             if all_small:
@@ -97,11 +105,12 @@ def surface(session, atoms = None, enclose = None, include = None,
                 enclose_atoms = remove_solvent_ligands_ions(chain_atoms, include)[0]
             s = all_surfs.get(enclose_atoms.hash())
             if s is None:
-                name = '%s_%s SES surface' % (m.name, chain_id)
+                stype = 'SES' if resolution is None else 'Gaussian'
+                name = '%s_%s %s surface' % (m.name, chain_id, stype)
                 rgba = surface_rgba(color, transparency, chain_id)
                 s = MolecularSurface(session, enclose_atoms, show_atoms,
-                                     probe_radius, grid_spacing, resolution, level,
-                                     name, rgba, visible_patches, sharp_boundaries)
+                                     probe_radius, grid, resolution, level,
+                                     name, rgba, visible_patches, sharp)
                 new_surfs.append((s,m))
             else:
                 s.new_parameters(show_atoms, probe_radius, grid_spacing,
@@ -110,6 +119,9 @@ def surface(session, atoms = None, enclose = None, include = None,
             surfs.append(s)
     else:
         enclose_atoms, eall_small = remove_solvent_ligands_ions(enclose, include)
+        if len(enclose_atoms) == 0:
+            from ..errors import UserError
+            raise UserError('No atoms specified by %s' % (enclose.spec,))
         show_atoms = enclose_atoms if atoms is None else atoms.intersect(enclose_atoms)
         s = all_surfs.get(enclose_atoms.hash())
         if s is None:
@@ -118,8 +130,8 @@ def surface(session, atoms = None, enclose = None, include = None,
             name = 'Surface %s' % enclose.spec
             rgba = surface_rgba(color, transparency)
             s = MolecularSurface(session, enclose_atoms, show_atoms,
-                                 probe_radius, grid_spacing, resolution, level,
-                                 name, rgba, visible_patches, sharp_boundaries)
+                                 probe_radius, grid, resolution, level,
+                                 name, rgba, visible_patches, sharp)
             new_surfs.append((s,parent))
         else:
             s.new_parameters(show_atoms, probe_radius, grid_spacing,
@@ -201,10 +213,10 @@ def check_atoms(atoms, session):
         from ..atomic import all_atoms
         atoms = all_atoms(session)
         if len(atoms) == 0:
-            from . import AnnotationError
-            raise AnnotationError('No atomic models open.')
+            from ..errors import UserError
+            raise UserError('No atomic models open.')
         atoms.spec = 'all atoms'
     elif len(atoms) == 0:
-        from . import AnnotationError
-        raise AnnotationError('No atoms specified by %s' % (atoms.spec,))
+        from ..errors import UserError
+        raise UserError('No atoms specified by %s' % (atoms.spec,))
     return atoms

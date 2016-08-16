@@ -32,7 +32,7 @@ private:
     Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert);
     virtual  ~Residue();
 
-    friend class Chain;
+    friend class StructureSeq;
     void  set_chain(Chain* chain) { _chain = chain; if (chain == nullptr) set_ribbon_display(false); }
     friend class AtomicStructure;
     friend class Bond;
@@ -107,8 +107,10 @@ public:
     static const std::set<AtomName>  na_min_backbone_names;
     static const std::set<AtomName>  na_max_backbone_names;
     static const std::set<AtomName>  na_ribbon_backbone_names;
+    static const std::set<AtomName>  ribose_names;
     static const std::set<ResName>  std_solvent_names;
     const std::set<AtomName>*  backbone_atom_names(BackboneExtent bbe) const;
+    const std::set<AtomName>*  ribose_atom_names() const;
 
     // graphics related
     float  ribbon_adjust() const;
@@ -166,6 +168,15 @@ Residue::ribbon_adjust() const {
         return 0.0;
     else
         return 0.0;
+}
+
+inline const std::set<AtomName>*
+Residue::ribose_atom_names() const
+{
+    if (!structure()->_polymers_computed) structure()->polymers();
+    if (polymer_type() == PT_NUCLEIC)
+        return &ribose_names;
+    return nullptr;
 }
 
 inline void

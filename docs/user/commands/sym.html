@@ -25,7 +25,17 @@ class="clRight" alt="ChimeraX logo"/></a>
 
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>sym</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
-&nbsp;assembly&nbsp;&nbsp;<i>identifier</i>&nbsp;
+&nbsp;&nbsp;assembly&nbsp;&nbsp;<i>identifier</i>&nbsp;
+[&nbsp;copies&nbsp;]
+[&nbsp;surfaceOnly&nbsp;[&nbsp;resolution&nbsp;&nbsp;<i>r</i>&nbsp;]]
+</h3>
+
+<h3><a href="usageconventions.html">Usage</a>:
+<BR><b>sym</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+&nbsp;&nbsp;<i>sym-type</i>
+[&nbsp;axis&nbsp;&nbsp;<i>axis</i>&nbsp;]
+[&nbsp;center&nbsp;&nbsp;<i>center</i>&nbsp;]
+[&nbsp;coordinateSystem&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;copies&nbsp;]
 [&nbsp;surfaceOnly&nbsp;[&nbsp;resolution&nbsp;&nbsp;<i>r</i>&nbsp;]]
 </h3>
@@ -35,22 +45,188 @@ class="clRight" alt="ChimeraX logo"/></a>
 </h3>
 
 <p>
-The <b>sym</b> command generates assemblies of atomic models read from
-<a href="http://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
-target="_blank">mmCIF</a>.
+The <b>sym</b> command generates symmetry copies of an atomic model
+according to either <a href="#assembly">mmCIF assembly</a> information
+or <a href="#symmetry">user-specified symmetry</a>, 
+with options for <a href="#copies">how to represent copies</a>.
 See also:
 <a href="open.html"><b>open</b></a>,
 <a href="close.html"><b>close</b></a>,
-<a href="surface.html"><b>surface</b></a>
-</p><p>
-If only a <a href="atomspec.html"><i>model-spec</i></a> is given,
-the available assemblies and their identifiers are listed in the
-<a href="../tools/log.html"><b>Log</b></a>.
-</p><p>
-An assembly <i>identifier</i> is a character string, usually a number.
-Besides which assembly to show, there is a choice of 
-how to represent the symmetry copies:
-</p><p>
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="position.html"><b>position</b></a>,
+<a href="surface.html"><b>surface</b></a>,
+<b>Cage Builder</b>
+</p>
+
+<a name="assembly"></a>
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+Assemblies from mmCIF</h4>
+<p>
+Given without options, <b>sym</b> lists any assemblies read from
+<a href="http://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
+target="_blank">mmCIF</a> for the <a href="atomspec.html">specified</a> model.
+For each assembly, the <a href="../tools/log.html"><b>Log</b></a> shows a brief 
+description and a character-string <i>identifier</i>, usually a number, which
+can then be used with the <b>assembly</b> keyword to specify that assembly.
+</p>
+
+<a name="symmetry"></a>
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+User-Specified Symmetry</h4>
+<p>
+Alternatively, symmetry information can specified explicitly in the command.
+The <i>sym-type</i> can be:
+ <ul>
+  <li><b>biomt</b>
+  - use &ldquo;biological assembly&rdquo; information from the atomic
+  model containing the specified atoms
+  <br>(currently this information is only read from PDB format, not mmCIF)
+  <li><b>symmetry #<i>N</i></b>
+  - use the biological assembly information from another atomic model or the
+  symmetry assignment of a volume model, where <i>N</i> is the model number
+<!--
+  <a href="volume.html#symmetry">symmetry assignment</a> of a volume model
+-->
+    <ul type="none">
+    <li>Example: <b>symmetry #4</b>
+    </ul>
+
+   <li>
+  <b>symmetry #<i>N</i>,p<i>M</i></b> or <b>symmetry #<i>N</i>,pn<i>M</i></b>
+  - use cage model (from <b>Cage Builder</b>) polygon symmetry;
+  place copies at equivalent positions relative to each M-sided polygon
+  in the cage with model number <i>N</i>.
+  The <b>p<i>M</i></b> form places one copy per M-sided polygon, 
+  whereas <b>pn<i>M</i></b> places M copies per M-sided polygon using 
+  C<font size=-1><i>M</i></font> symmetry about the center
+  of the M-sided polygon nearest the original copy.
+    <ul type="none">
+    <li>Examples: <b>symmetry #2,p6</b> or <b>symmetry #2,pn5</b>
+    </ul>
+
+  <li>cyclic symmetry <b>C<i>n</i></b>
+   around <a href="#axis">axis</a> and <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>C3</b>
+    </ul>
+
+  <li>dihedral symmetry <b>D<i>n</i></b>
+   around <a href="#axis">axis</a> and <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>d7</b>
+    </ul>
+
+  <li>tetrahedral symmetry <b>T[,<i>orientation</i>]</b>
+   around <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>t,z3</b>
+    </ul>
+   where <i>orientation</i> can be:
+   <ul>
+   <li><b>222</b> (default)
+   - with two-fold symmetry axes along the X, Y, and Z axes, a three-fold
+    along axis (1,1,1)
+   <li><b>z3</b> - a three-fold symmetry axis along Z, another three-fold
+   axis in the YZ plane such that rotation about the X axis by ~110&deg; is a
+   symmetry operation (EMAN convention)
+   </ul>
+
+  <li>octahedral symmetry <b>O</b> around <a href="#center">center</a>
+
+  <li>icosahedral symmetry <b>I[,<i>orientation</i>]</b>
+   around <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>i,n25</b>
+    </ul>
+   where <i>orientation</i> can be:
+    <ul>
+    <li><b>222</b> (default)
+    - with two-fold symmetry axes along the X, Y, and Z axes
+    <li><b>2n5</b> - with two-fold symmetry along X and 5-fold along Z
+    <li><b>n25</b> - with two-fold symmetry along Y and 5-fold along Z
+    <li><b>2n3</b> - with two-fold symmetry along X and 3-fold along Z
+    <li><b>222r</b> - same as 222 except rotated 90&deg; about Z
+    <li><b>2n5r</b> - same as 2n5 except rotated 180&deg; about Y
+    <li><b>n25r</b> - same as n25 except rotated 180&deg; about X
+    <li><b>2n3r</b> - same as 2n3 except rotated 180&deg; about Y
+    </ul>
+
+  <li>helical symmetry
+  <b>H,<i>rise,angle,n</i>[,<i>offset</i>]</b>
+  around <a href="#axis">axis</a> and <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>h,43.5,21,6,-2</b>
+    </ul>
+  where <i>rise</i> is the translation along the <a href="#axis">axis</a> per
+  subunit, <i>angle</i> is the rotation in degrees per subunit,
+  and <i>n</i> is how many copies total (including the original)
+  the resulting segment of infinite helix should contain.
+  The integer <i>offset</i> (default <b>0</b>) allows extending the helix in
+  both directions.  The example above would give <i>n</i> = 6 copies total,
+  with two copies in the negative axis direction,
+  one at the identity position, and three in the positive axis direction.
+
+  <li>translational symmetry
+  <b>shift,<i>n,distance</i></b> along <a href="#axis">axis</a>
+  &ndash; or &ndash; <b>shift,<i>n,x,y,z</i></b>
+    <ul type="none">
+    <li>Example: <b>shift,3,26.7</b>
+    </ul>
+  where <i>n</i> is how many copies total (including the original)
+  the result should contain.
+  The translation can be expressed as a
+  <i>distance</i> along the <a href="#axis">axis</a>
+  or as a vector <i>x,y,z</i> in the
+  <a href="#coordinateSystem">reference coordinate system</a>.
+   
+  <li>the product of symmetry groups, each specified as described above
+  and separated by <b>*</b> to indicate multiplying each symmetry matrix of one
+  group with each symmetry matrix of another; can be generalized to
+  multiple symmetry groups (not just two)
+    <ul type="none"> 
+    <li>Example: <b>c2*h,42,21,9,-4</b>
+    </ul>
+  </ul>
+  The <a name="axis"><b>axis</b></a> option
+  specifies axis of symmetry (default <b>z</b>), where <i>axis</i> can be:
+   <ul> 
+   <li><b>x</b> - X-axis
+   <li><b>y</b> - Y-axis
+   <li><b>z</b> - Z-axis
+   <li><i>x,y,z</i>
+   (three values separated by commas only) - an arbitrary vector
+   in the <a href="#coordinateSystem">reference coordinate system</a>
+   <li>an <a href="atomspec.html"><i>atom-spec</i></a> of
+   exactly two atoms (not necessarily bonded or in the same model)
+<!-- or one bond.
+   A bond can only be specified by <a href="select.html">selecting</a>
+   it and using the word <b>sel</b>;
+   any atoms also selected at the time will be ignored.
+--> 
+  </ul>
+  The <a name="center"><b>center</b></a> 
+  option specifies center of symmetry (default <b>0,0,0</b>),
+  where <i>center</i> can be:
+  <ul>
+  <li><i>x,y,z</i>
+   (three values separated by commas only) - an arbitrary point
+  in the <a href="#coordinateSystem">reference coordinate system</a>
+  <li>an <a href="atomspec.html"><i>atom-spec</i></a>
+  of any combination of atoms and surface models.
+  The center of the bounding sphere of the specified items will be used.
+  </ul>
+  The <a name="coordinateSystem"><b>coordinateSystem</b></a>
+  option specifies a reference model 
+  (default is the atomic model containing the specified atoms)
+  by model number <i>N</i> preceded by #.
+  The reference coordinate system is used for interpreting specifications of
+  <a href="#axis">axis</a> and <a href="#center">center</a> of symmetry.
+</p>
+
+<a name="copies"></a>
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+How to Represent Copies</h4>
+<p>
 By default, the added copies are simply graphical clones of
 the original structure, and cannot be displayed in different styles and
 structures from the original.
@@ -103,5 +279,5 @@ In that case, restoring the original state may require not only using
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2016</address>
+July 2016</address>
 </body></html>
