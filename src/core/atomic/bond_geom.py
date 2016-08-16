@@ -225,21 +225,20 @@ def angle_pos(atom_pos, bond_pos, bond_length, degrees, coplanar=None):
             up = cpos - atom_pos
             if xforms:
                 up.negate()
-            #TODO
-            xform = Xform.lookAt(atom_pos, bond_pos, up)
+            from ..geom.place import look_at, rotation
             # lookAt puts ref point opposite that of zAlign, so 
-            # rotate 180 degrees around y axis
-            xform.premultiply(Xform.yRotation(180))
+            # also rotate 180 degrees around y axis
+            xform = rotation((0.0,1.0,0.0), 180.0) * look_at(atom_pos, bond_pos, up)
             xforms.append(xform)
 
     else:
-        xforms = [Xform.zAlign(atom_pos, bond_pos)]
+        from ..geom.place import z_align
+        xforms = [z_align(atom_pos, bond_pos)]
     points = []
     for xform in xforms:
         radians = pi * degrees / 180.0
         angle = numpy.array([0.0, bond_length * sin(radians), bond_length * cos(radians)])
-        xform.invert()
-        points.append(xform.apply(angle))
+        points.append(xform.inverse() * angle)
     
     if len(points) > 1:
         midpoint = points[0] + (points[1] - points[0]) / 2.0

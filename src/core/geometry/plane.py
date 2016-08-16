@@ -8,9 +8,9 @@ sqlength = lambda v: numpy.sum(v*v)
 class Plane:
     """A mathematical plane
 
-       The 'origin_info' must either be a point (numpy array of 3 floats) or a numpy
-       array of at least 3 non-colinear points.  If it's a single point, then the normal
-       vector (numpy array of 3 floats) must be specified.  If it's multiple points then
+       The 'origin_info' must either be a point (numpy array of 3 floats) or an array/list
+       of at least 3 non-colinear points.  If it's a single point, then the normal vector
+       (numpy array of 3 floats) must be specified.  If it's multiple points then
        the best-fitting plane through those points will be calculated, with the origin
        at the centroid of those points.
     """
