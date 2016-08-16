@@ -213,6 +213,7 @@ static PyMethodDef stl_methods[] = {
    "file format data.\n"
    "Implemented in C++.\n"
   },
+  {NULL, NULL, 0, NULL}
 };
 
 
