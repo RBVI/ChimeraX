@@ -8,7 +8,7 @@ def mlp(session, atoms, method="fauchere", spacing=1.0, nexp=3.0,
     Parameters
     ----------
     atoms : Atoms
-        Show MLP map for the specified model.
+        Color surfaces for these atoms using MLP map.
     method : 'dubost','fauchere','brasseur','buckingham','type5'
         Distance dependent function to use for calculation
     spacing : float
@@ -25,31 +25,27 @@ def mlp(session, atoms, method="fauchere", spacing=1.0, nexp=3.0,
     map : bool
         Whether to open a volume model of lipophilicity values
     '''
-    from .pyMLP import Molecule, Defaults
-    defaults = Defaults()
-    m = Molecule()
-    m.data = _MLPAtomicStructureAdapter(atoms)
-    m.assignfi(defaults.fidatadefault)
-    m.calculatefimap(method, spacing, nexp)
-
-    # Create mlp map
-    v = mlp_map(m, session, open_map = map)
-
+    if palette is None:
+        from chimerax.core.colors import BuiltinColormaps
+        cmap = BuiltinColormaps['lipophilicity']
+    else:
+        cmap = palette
+    if range is None:
+        range = (-20,20)
+        
     # Color surfaces by lipophilicity
     if color:
         # Compute surfaces if not already created
         from chimerax.core.commands.surface import surface
-        surface(session, atoms)
-        
-        if palette is None:
-            from chimerax.core.colors import BuiltinColormaps
-            cmap = BuiltinColormaps['lipophilicity']
-        else:
-            cmap = palette
-        if range is None:
-            range = (-20,20)
-        from chimerax.core.commands.scolor import scolor
-        scolor(session, atoms, map = v, palette = cmap, range = range)
+        surfs = surface(session, atoms)
+        for s in surfs:
+            satoms = s.atoms
+            v = mlp_map(session, satoms, method, spacing, nexp, open_map = map)
+            from chimerax.core.commands.scolor import scolor
+            scolor(session, satoms, map = v, palette = cmap, range = range)
+    else:
+        v = mlp_map(session, atoms, method, spacing, nexp, open_map = map)
+            
 
 def register_mlp_command():
     from chimerax.core.commands import register, CmdDesc, AtomsArg, SaveFileNameArg, FloatArg, EnumOf, NoArg, BoolArg, ColormapArg, ColormapRangeArg
@@ -120,7 +116,14 @@ class _MLPAtomAdapter:
         else:
             raise KeyError("\"%s\" not supported in MLPAdapter" % key)
 
-def mlp_map(m, session, open_map):
+def mlp_map(session, atoms, method, spacing, nexp, open_map):
+    from .pyMLP import Molecule, Defaults
+    defaults = Defaults()
+    m = Molecule()
+    m.data = _MLPAtomicStructureAdapter(atoms)
+    m.assignfi(defaults.fidatadefault)
+    m.calculatefimap(method, spacing, nexp)
+
     # m.pot is 1-dimensional if m.writedxfile() was called.  Has indices in x,y,z order.
     data = m.pot.reshape(m.griddim).transpose()
     origin = tuple(xmin for xmin,xmax in m.gridcoord)
