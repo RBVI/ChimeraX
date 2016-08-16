@@ -293,8 +293,7 @@ class Volume(Model):
   def set_color(self, rgba):
     self.surface_colors = [rgba]*len(self.surface_levels)
     self.solid_colors = [rgba]*len(self.solid_levels)
-    if self.shown():
-      self.show()
+    self.update_display()
 
   # ---------------------------------------------------------------------------
   #
