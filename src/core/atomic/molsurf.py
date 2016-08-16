@@ -84,10 +84,10 @@ class MolecularSurface(Model):
         same as for the contructor.
         '''
 
+        shown_changed = show_atoms.hash() != self.show_atoms.hash()
         self.show_atoms = show_atoms	# Atoms for surface patch to show
         
         shape_change = False
-        shown_changed = show_atoms.hash() != self.show_atoms.hash()
         if probe_radius is not None and probe_radius != self.probe_radius:
             self.probe_radius = probe_radius
             shape_change = True
