@@ -295,25 +295,6 @@ def _griddimcalc(listcoord, spacing, gridmargin):
     ngrid = int(round((coordmax - coordmin) / spacing))
     return coordmin, coordmax, ngrid
 
-import numpy
-
-def _dubost(fi, d, n):
-    return (100 * fi / (1 + d)).sum()
-
-def _fauchere(fi, d, n):
-    return (100 * fi * numpy.exp(-d)).sum()
-
-def _brasseur(fi, d, n):
-    #3.1 division is there to remove any units in the equation
-    #3.1A is the average diameter of a water molecule (2.82 -> 3.2)
-    return (100 * fi * numpy.exp(-d/3.1)).sum()
-
-def _buckingham(fi, d, n):
-    return (100 * fi / (d**n)).sum()
-
-def _type5(fi, d, n):
-    return (100 * fi * numpy.exp(-numpy.sqrt(d))).sum()
-
 def calculatefimap(atoms, method, spacing, nexp):
     """Calculation loop"""
 
@@ -326,10 +307,18 @@ def calculatefimap(atoms, method, spacing, nexp):
     bounds = [[xmingrid, xmaxgrid],
               [ymingrid, ymaxgrid],
               [zmingrid, zmaxgrid]]
+    origin = (xmingrid, ymingrid, zmingrid)
 
     fi_table = Defaults().fidatadefault
     fi = assignfi(fi_table, atoms)
 
+    from numpy import zeros, float32
+    pot = zeros((nzgrid+1, nygrid+1, nxgrid+1), float32)
+    sum_fi(xyz, fi, origin, spacing, method, nexp, pot)
+                 
+    return pot, bounds
+
+def sum_fi(xyz, fi, origin, spacing, method, nexp, pot):
     if method == 'dubost':
         computemethod = _dubost
     elif method == 'fauchere':
@@ -341,20 +330,21 @@ def calculatefimap(atoms, method, spacing, nexp):
     elif method == 'type5':
         computemethod = _type5
     else:
-        raise ValueError('Unknown lipophilicyt method %s\n' % computemethod)
+        raise ValueError('Unknown lipophilicity method %s\n' % computemethod)
 
     from numpy import zeros, float32, empty, subtract, sqrt
-    pot = zeros((nzgrid+1, nygrid+1, nxgrid+1), float32)
     grid_pt = empty((3,), float32)
     dxyz = empty((len(xyz),3), float32)
     dist = empty((len(xyz),), float32)
-    for k in range(nzgrid+1):
-        grid_pt[2] = zmingrid + k * spacing
-        for j in range(nygrid+1):
-            grid_pt[1] = ymingrid + j * spacing
-            for i in range(nxgrid+1):
+    nz,ny,nx = pot.shape
+    x0,y0,z0 = origin
+    for k in range(nz):
+        grid_pt[2] = z0 + k * spacing
+        for j in range(ny):
+            grid_pt[1] = y0 + j * spacing
+            for i in range(nx):
                 #Evaluation of the distance between th grid point and each atoms
-                grid_pt[0] = xmingrid + i * spacing
+                grid_pt[0] = x0 + i * spacing
                 subtract(xyz, grid_pt, dxyz)
                 dxyz *= dxyz
                 dist = dxyz[:,0]
@@ -363,4 +353,22 @@ def calculatefimap(atoms, method, spacing, nexp):
                 sqrt(dist, dist)
                 pot[k,j,i] = computemethod(fi, dist, nexp)
 
-    return pot, bounds
+def _dubost(fi, d, n):
+    return (100 * fi / (1 + d)).sum()
+
+def _fauchere(fi, d, n):
+    from numpy import exp
+    return (100 * fi * exp(-d)).sum()
+
+def _brasseur(fi, d, n):
+    #3.1 division is there to remove any units in the equation
+    #3.1A is the average diameter of a water molecule (2.82 -> 3.2)
+    from numpy import exp
+    return (100 * fi * exp(-d/3.1)).sum()
+
+def _buckingham(fi, d, n):
+    return (100 * fi / (d**n)).sum()
+
+def _type5(fi, d, n):
+    from numpy import exp, sqrt
+    return (100 * fi * exp(-sqrt(d))).sum()
