@@ -141,6 +141,8 @@ def _parse_rgba_values(text):
     c.explicit_transparency = transparent
     return c
 
+from . import Or, TupleOf, FloatArg, EnumOf
+ColormapRangeArg = Or(TupleOf(FloatArg, 2), EnumOf(['full']))
 
 class ColormapArg(cli.Annotation):
     """Support color map names and value-color pairs specifications.

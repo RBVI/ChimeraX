@@ -12,7 +12,7 @@ from ..errors import UserError
 def register_command(session):
 
     # TODO: Port other subcommands from Chimera 1.
-    """
+    old_stuff = """
     ops = {
         'cap': (cap_op,
                 (('onoff', string_arg),),
@@ -257,6 +257,7 @@ def sop_dust(session, surfaces, metric = 'size', size = None, update = False):
     update : bool
       Whether to update dust hiding when surface shape changes.
       Not implemented.
+
     '''
 
     if len(surfaces) == 0:
