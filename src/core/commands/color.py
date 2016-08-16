@@ -117,10 +117,10 @@ def color(session, objects, color=None, what=None,
     if 'm' in target and (color is not None or map is not None):
         from ..atomic import Structure, MolecularSurface
         for m in objects.models:
-            if not isinstance(m, (Structure, MolecularSurface)) and not m.empty_drawing():
+            if not isinstance(m, (Structure, MolecularSurface)):
                 if map is None:
                     m.single_color = color.uint8x4()
-                else:
+                elif not m.empty_drawing():
                     # TODO: Won't color child drawings, e.g. density maps
                     from .scolor import volume_color_source
                     cs = volume_color_source(m, map, palette, range, offset=offset)
