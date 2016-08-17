@@ -576,7 +576,7 @@ class Volume_Color:
 
         values, outside = self.volume_values(surface)
         if report_stats and len(values) > 0:
-            report_stats('Surface %s values minimum %.4g, mean %.4g, maximum %.4g'
+            report_stats('Map values for surface "%s": minimum %.4g, mean %.4g, maximum %.4g'
                          % (surface.name, values.min(), values.mean(), values.max()))
         cmap = self.colormap
         rgba = interpolate_colormap(values, cmap.data_values, cmap.colors,

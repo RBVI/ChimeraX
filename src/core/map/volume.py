@@ -776,6 +776,12 @@ class Volume(Model):
     
   # ---------------------------------------------------------------------------
   #
+  def surface_drawings_for_vertex_coloring(self):
+
+    return self.surface_drawings
+  
+  # ---------------------------------------------------------------------------
+  #
   def remove_surfaces(self):
 
     for p in self.surface_drawings:

@@ -120,11 +120,17 @@ def color(session, objects, color=None, what=None,
             if not isinstance(m, (Structure, MolecularSurface)):
                 if map is None:
                     m.single_color = color.uint8x4()
-                elif not m.empty_drawing():
-                    # TODO: Won't color child drawings, e.g. density maps
-                    from .scolor import volume_color_source
-                    cs = volume_color_source(m, map, palette, range, offset=offset)
-                    m.vertex_colors = cs.vertex_colors(m, session.logger.info)
+                else:
+                    if hasattr(m, 'surface_drawings_for_vertex_coloring'):
+                        surfs = m.surface_drawings_for_vertex_coloring()
+                    elif not m.empty_drawing():
+                        surfs = [m]
+                    else:
+                        surfs = []
+                    for s in surfs:
+                        from .scolor import volume_color_source
+                        cs = volume_color_source(s, map, palette, range, offset=offset)
+                        s.vertex_colors = cs.vertex_colors(s, session.logger.info)
 
     if 'b' in target and color is not None:
         if atoms is not None:
