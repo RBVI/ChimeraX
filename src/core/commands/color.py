@@ -116,21 +116,10 @@ def color(session, objects, color=None, what=None,
 
     if 'm' in target and (color is not None or map is not None):
         from ..atomic import Structure, MolecularSurface
-        for m in objects.models:
-            if not isinstance(m, (Structure, MolecularSurface)):
-                if map is None:
-                    m.single_color = color.uint8x4()
-                else:
-                    if hasattr(m, 'surface_drawings_for_vertex_coloring'):
-                        surfs = m.surface_drawings_for_vertex_coloring()
-                    elif not m.empty_drawing():
-                        surfs = [m]
-                    else:
-                        surfs = []
-                    for s in surfs:
-                        from .scolor import volume_color_source
-                        cs = volume_color_source(s, map, palette, range, offset=offset)
-                        s.vertex_colors = cs.vertex_colors(s, session.logger.info)
+        mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface))]
+        for m in mlist:
+            _set_model_colors(session, m, color, map, opacity, palette, range, offset)
+        what.append('%d models' % len(mlist))
 
     if 'b' in target and color is not None:
         if atoms is not None:
@@ -247,6 +236,30 @@ def _set_surface_colors(session, atoms, color, opacity, bgcolor=None,
                     map=map, palette=palette, range=range, offset=offset)
     return ns
 
+def _set_model_colors(session, m, color, map, opacity, palette, range, offset):
+    if map is None:
+        c = color.uint8x4()
+        if not opacity is None:
+            c[3] = opacity
+        elif not m.single_color is None:
+            c[3] = m.single_color[3]
+        m.single_color = c
+    else:
+        if hasattr(m, 'surface_drawings_for_vertex_coloring'):
+            surfs = m.surface_drawings_for_vertex_coloring()
+        elif not m.empty_drawing():
+            surfs = [m]
+        else:
+            surfs = []
+        for s in surfs:
+            from .scolor import volume_color_source
+            cs = volume_color_source(s, map, palette, range, offset=offset)
+            vcolors = cs.vertex_colors(s, session.logger.info)
+            if opacity is not None:
+                vcolors[:,3] = opacity
+            else:
+                vcolors[:,3] = s.color[3] if s.vertex_colors is None else s.vertex_colors[:,3]
+            s.vertex_colors = vcolors
 
 # -----------------------------------------------------------------------------
 #
