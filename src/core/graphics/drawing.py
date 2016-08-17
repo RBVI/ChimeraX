@@ -682,6 +682,7 @@ class Drawing:
         # Update instancing buffers
         p = self.positions
         if ('_colors' in changes or
+            '_vertex_colors' in changes or
             '_positions' in changes or
             '_displayed_positions' in changes or
             '_selected_positions' in changes):
@@ -1418,8 +1419,7 @@ class _DrawShape:
                 data = getattr(self, b.buffer_attribute_name)
                 b.update_buffer_data(data)
                 b.up_to_date = True
-            if b.buffered_data is not None:
-                bi.bind_shader_variable(b)
+            bi.bind_shader_variable(b)
         bu.clear()
 
     def activate_bindings(self):
