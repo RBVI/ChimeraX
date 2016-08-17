@@ -572,7 +572,7 @@ class Volume_Color:
         
     # -------------------------------------------------------------------------
     #
-    def vertex_colors(self, surface, report_stats):
+    def vertex_colors(self, surface, report_stats = None):
 
         values, outside = self.volume_values(surface)
         if report_stats and len(values) > 0:

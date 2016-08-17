@@ -124,7 +124,7 @@ def color(session, objects, color=None, what=None,
                     # TODO: Won't color child drawings, e.g. density maps
                     from .scolor import volume_color_source
                     cs = volume_color_source(m, map, palette, range, offset=offset)
-                    m.vertex_colors = cs.vertex_colors(m)
+                    m.vertex_colors = cs.vertex_colors(m, session.logger.info)
 
     if 'b' in target and color is not None:
         if atoms is not None:
