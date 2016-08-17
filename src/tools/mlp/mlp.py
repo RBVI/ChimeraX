@@ -32,7 +32,7 @@ def mlp(session, atoms, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3
         cmap = BuiltinColormaps['lipophilicity']
     else:
         cmap = palette
-    if range is None:
+    if range is None and not cmap.values_specified:
         range = (-20,20)
         
     # Color surfaces by lipophilicity
