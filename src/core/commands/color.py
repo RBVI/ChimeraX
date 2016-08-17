@@ -23,7 +23,7 @@ def color(session, objects, color=None, what=None,
       What to color. Everything is colored if option is not specified.
     target : string
       Alternative to the "what" option for specifying what to color.
-      Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces, m = models,
+      Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
       l = labels, b = bonds, p = pseudobonds, d = distances.
       Everything is colored if no target is specified.
     transparency : float
@@ -51,7 +51,7 @@ def color(session, objects, color=None, what=None,
 
     default_target = (target is None and what is None)
     if default_target:
-        target = 'acsmnlbd'
+        target = 'acslbd'
     if target and 'r' in target:
         target += 'c'
 
@@ -100,26 +100,23 @@ def color(session, objects, color=None, what=None,
             session.logger.warning('Label colors not supported yet')
 
     if 's' in target and (color is not None or map is not None):
-        from ..atomic import MolecularSurface, concatenate
+        from ..atomic import MolecularSurface, concatenate, Structure
         msatoms = [m.atoms for m in objects.models
                    if isinstance(m, MolecularSurface) and not m.atoms.intersects(atoms)]
         satoms = concatenate(msatoms + [atoms]) if msatoms else atoms
         if color == "byhetero":
             satoms = satoms.filter(satoms.element_numbers != 6)
         ns = _set_surface_colors(session, satoms, color, opacity, bgcolor, map, palette, range, offset)
-        what.append('%d surfaces' % ns)
+        # Handle non-molecular surfaces like density maps
+        mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface))]
+        for m in mlist:
+            _set_model_colors(session, m, color, map, opacity, palette, range, offset)
+        what.append('%d surfaces' % (ns + len(mlist)))
 
     if 'c' in target and color is not None:
         residues = atoms.unique_residues
         _set_ribbon_colors(residues, color, opacity, bgcolor)
         what.append('%d residues' % len(residues))
-
-    if 'm' in target and (color is not None or map is not None):
-        from ..atomic import Structure, MolecularSurface
-        mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface))]
-        for m in mlist:
-            _set_model_colors(session, m, color, map, opacity, palette, range, offset)
-        what.append('%d models' % len(mlist))
 
     if 'b' in target and color is not None:
         if atoms is not None:
