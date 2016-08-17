@@ -58,7 +58,7 @@ def sym(session, molecules,
             from ..geometry import Places
             m.positions = Places([m.position])	# Keep only first position.
             for s in m.surfaces():
-                s.position = Places([s.position])
+                s.positions = Places([s.position])
         elif assembly is None:
             ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description(m))
                               for a in assem)
@@ -74,7 +74,7 @@ def sym(session, molecules,
             if copies:
                 a.show_copies(m, surface_only, resolution, session)
             elif surface_only:
-                a.show_surfaces(m, resolution, session)
+               a.show_surfaces(m, resolution, session)
             else:
                 a.show(m, session)
 
@@ -234,8 +234,8 @@ class Assembly:
         if len(excluded_atoms) > 0:
             surface(session, excluded_atoms, hide = True)
         for s in surfs:
-            cid = s.atoms[0].residue.chain_id
-            s.positions = self._chain_operators(cid)
+            mmcif_cid = mmcif_chain_ids(s.atoms[:1], self.chain_map)[0]
+            s.positions = self._chain_operators(mmcif_cid)
 
     def show_copies(self, mol, surface_only, resolution, session):
         mlist = []

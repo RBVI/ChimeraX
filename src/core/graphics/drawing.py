@@ -383,8 +383,16 @@ class Drawing:
         if positions and not isinstance(positions, Places):
             raise ValueError('Got %s instead of Places' % str(type(positions)))
         self._positions = positions
-        self._displayed_positions = None
-        self._selected_positions = None
+        np = len(positions)
+        if self._displayed_positions is not None and len(self._displayed_positions) != np:
+            self._displayed_positions = None
+        if self._selected_positions is not None and len(self._selected_positions) != np:
+            self._selected_positions = None
+        if len(self._colors) != np:
+            from numpy import empty, uint8
+            c = empty((np, 4), uint8)
+            c[:,:] = self._colors[0,:]
+            self._colors = c
         self.redraw_needed(shape_changed=True)
 
     positions = property(get_positions, set_positions)
@@ -644,7 +652,7 @@ class Drawing:
         return sopt
 
     _effects_shader = set(
-        ('use_lighting', 'vertex_colors', '_colors', 'texture',
+        ('use_lighting', '_vertex_colors', '_colors', 'texture',
          'ambient_texture', '_positions'))
 
     # Update the contents of vertex, element and instance buffers if associated
@@ -677,7 +685,7 @@ class Drawing:
             '_positions' in changes or
             '_displayed_positions' in changes or
             '_selected_positions' in changes):
-            c = self.colors
+            c = self.colors if self._vertex_colors is None else None
             pm = self._position_mask()
             pmsel = self._position_mask(True)
             ds.update_instance_buffers(p, c, pm)
@@ -913,7 +921,7 @@ class Drawing:
         vbufs = (
             ('vertices', opengl.VERTEX_BUFFER),
             ('normals', opengl.NORMAL_BUFFER),
-            ('vertex_colors', opengl.VERTEX_COLOR_BUFFER),
+            ('_vertex_colors', opengl.VERTEX_COLOR_BUFFER),
             ('texture_coordinates', opengl.TEXTURE_COORDS_BUFFER),
         )
 
@@ -927,7 +935,7 @@ class Drawing:
         self._draw_selection = _DrawShape(vb)
 
     _effects_buffers = set(
-        ('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
+        ('vertices', 'normals', '_vertex_colors', 'texture_coordinates',
          'triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
          '_edge_mask', '_triangle_mask', '_selected_triangles_mask', '_selected_positions'))
 
@@ -1410,7 +1418,8 @@ class _DrawShape:
                 data = getattr(self, b.buffer_attribute_name)
                 b.update_buffer_data(data)
                 b.up_to_date = True
-            bi.bind_shader_variable(b)
+            if b.buffered_data is not None:
+                bi.bind_shader_variable(b)
         bu.clear()
 
     def activate_bindings(self):

@@ -84,10 +84,10 @@ class MolecularSurface(Model):
         same as for the contructor.
         '''
 
+        shown_changed = show_atoms.hash() != self.show_atoms.hash()
         self.show_atoms = show_atoms	# Atoms for surface patch to show
         
         shape_change = False
-        shown_changed = show_atoms.hash() != self.show_atoms.hash()
         if probe_radius is not None and probe_radius != self.probe_radius:
             self.probe_radius = probe_radius
             shape_change = True
@@ -123,13 +123,17 @@ class MolecularSurface(Model):
         '''Number of atoms for calculating the surface. Read only.'''
         return len(self.atoms)
 
+    def atom_coords(self):
+        atoms = self.atoms
+        return atoms.coords if atoms.single_structure else atoms.scene_coords
+    
     def calculate_surface_geometry(self):
         '''Recalculate the surface if parameters have been changed.'''
         if not self.vertices is None:
             return              # Geometry already computed
 
         atoms = self.atoms
-        xyz = atoms.coords
+        xyz = self.atom_coords()
         res = self.resolution
         from .. import surface
         if res is None:
@@ -185,7 +189,7 @@ class MolecularSurface(Model):
         '''
         if vertices is not None:
             xyz1 = self.vertices if vertices is None else vertices
-            xyz2 = self.atoms.coords
+            xyz2 = self.atom_coords()
             radii = {'scale2':self.atoms.radii} if self.resolution is None else {}
             max_dist = self._maximum_atom_to_surface_distance()
             from .. import geometry
@@ -303,7 +307,7 @@ class MolecularSurface(Model):
             self.selected_triangles_mask = tmask
 
     # State save/restore in ChimeraX
-    _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_max_radius', '_atom_colors',
+    _save_attrs = ('_refinement_steps', '_vertex_to_atom', '_vertex_to_atom_count', '_max_radius',
                    'vertices', 'normals', 'triangles', 'triangle_mask', 'vertex_colors', 'color')
 
     def take_snapshot(self, session, flags):
@@ -422,7 +426,7 @@ def buried_area(a1, a2, probe_radius):
     return ba, a1a, a2a, a12a
 
 def atom_spheres(atoms, probe_radius = 1.4):
-    xyz = atoms.coords
+    xyz = atoms.scene_coords
     r = atoms.radii.copy()
     r += probe_radius
     return xyz, r

@@ -239,6 +239,7 @@ class Colormap:
                  color_above_value_range=None,
                  color_below_value_range=None,
                  color_no_value=None):
+        self.values_specified = (data_values is not None)
         from numpy import array, float32, ndarray, argsort
         if data_values is None:
             import numpy
@@ -285,12 +286,10 @@ class Colormap:
                                           self.color_below_value_range)
         return colors
 
-    def new_range(self, min_value, max_value):
-        v = self.data_values
-        v0, v1 = v[0], v[-1]
-        f = (max_value - min_value) / (v1-v0)
-        nv = (v - v0)*f + min_value
-        cmap = Colormap(nv, self.colors,
+    def linear_range(self, min_value, max_value):
+        import numpy
+        v = numpy.linspace(min_value, max_value, len(self.colors))
+        cmap = Colormap(v, self.colors,
                         self.color_above_value_range,
                         self.color_below_value_range,
                         self.color_no_value)
@@ -306,7 +305,8 @@ BuiltinColormaps['grayscale'] = Colormap(None, ((0, 0, 0, 1), (1, 1, 1, 1)))
 BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (.7, .7, .7, 1), (0, 0, 1, 1)))
 BuiltinColormaps['blue-white-red'] = Colormap(None, ((0, 0, 1, 1), (1, 1, 1, 1), (1, 0, 0, 1)))
 BuiltinColormaps['cyan-white-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (1, 1, 1, 1), (0.62, 0.125, 0.37, 1)))
-BuiltinColormaps['lipophilicity'] = Colormap(None, ((.118,.565,1,1), (1,1,1,1), (1,.271,0,1)))	# dodger blue, white, orange red
+#BuiltinColormaps['lipophilicity'] = Colormap(None, ((.118,.565,1,1), (1,1,1,1), (1,.271,0,1)))	# dodger blue, white, orange red
+BuiltinColormaps['lipophilicity'] = Colormap(None, ((0,139/255,139/255,1), (1,1,1,1), (184/255,134/255,11/255,1)))	# dark cyan, white, dark goldenrod
 
 # Add some aliases
 BuiltinColormaps['redblue'] = BuiltinColormaps['red-white-blue']
