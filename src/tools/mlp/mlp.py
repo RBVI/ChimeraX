@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
-def mlp(session, atoms, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3.0,
+def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3.0,
         color=True, palette=None, range=None, map=False):
     '''Display Molecular Lipophilic Potential for a single model.
 
@@ -27,6 +27,10 @@ def mlp(session, atoms, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3
     map : bool
         Whether to open a volume model of lipophilicity values
     '''
+    if atoms is None:
+        from chimerax.core.atomic import all_atoms
+        atoms = all_atoms(session)
+        
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps
         cmap = BuiltinColormaps['lipophilicity']
@@ -53,7 +57,7 @@ def mlp(session, atoms, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3
 
 def register_mlp_command():
     from chimerax.core.commands import register, CmdDesc, AtomsArg, SaveFileNameArg, FloatArg, EnumOf, NoArg, BoolArg, ColormapArg, ColormapRangeArg
-    desc = CmdDesc(required=[('atoms', AtomsArg)],
+    desc = CmdDesc(optional=[('atoms', AtomsArg)],
                    keyword=[('spacing', FloatArg),
                             ('max_distance', FloatArg),
                             ('method', EnumOf(['dubost','fauchere','brasseur','buckingham','type5'])),
