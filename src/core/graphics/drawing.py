@@ -1017,7 +1017,7 @@ class Drawing:
         if self.texture:
             x3d_scene.need(x3d.Components.Texturing, 1)  # PixelTexture
 
-    def x3d_write(self, stream, x3d_scene, indent, place):
+    def write_x3d(self, stream, x3d_scene, indent, place):
         if not self.display:
             return
         dlist = self.child_drawings()
@@ -1027,9 +1027,48 @@ class Drawing:
                 if self.reverse_order_children:
                     dlist = dlist[::-1]
                 for d in dlist:
-                    d.x3d_write(stream, x3d_scene, indent, pp)
-        if self.empty_drawing():
+                    d.write_x3d(stream, x3d_scene, indent, pp)
+        if not self.empty_drawing():
+            self.custom_x3d(stream, x3d_scene, indent, place)
+
+    def reuse_unlit_appearance(self, stream, x3d_scene, indent, color, line_width, line_type):
+        tab = ' ' * indent
+        use, name = self.def_or_use((tuple(color), line_width, line_type), 'aup')
+        if use == 'USE':
+            print("%s<Appearance USE='%s'/>" % (tab, name), file=stream)
             return
+
+        from graphics.linetype import LineType
+        print("%s<Appearance DEF='%s'>" % (tab, name), file=stream)
+        if line_width != 1 or line_type != LineType.Solid:
+            print("%s <LineProperties" % tab, end='', file=stream)
+            if line_width != 1:
+                    print(" linewidthScaleFactor='%g'" % line_width, end='', file=stream)
+            if line_type != LineType.Solid:
+                    print(" linetype='%d'" % line_type.value, end='', file=stream)
+            print("/>", file=stream)
+        if color is not None:
+            color.write_x3d(stream, indent + 1, False)
+        print("%s</Appearance>" % tab, file=stream)
+
+    def reuse_appearance(self, stream, x3d_scene, indent, color):
+        if color is None:
+            return
+        tab = ' ' * indent
+        use, name = x3d_scene.def_or_use(tuple(color), 'ap')
+        if use == 'USE':
+            print("%s<Appearance USE='%s'/>" % (tab, name), file=stream)
+            return
+
+        print("%s<Appearance DEF='%s'>" % (tab, name), file=stream)
+        print("%s <Material ambientIntensity='1' diffuseColor='%g %g %g' specularColor='0.85 0.85 0.85' shininess='0.234375' transparency='%g'/>" % (tab, color[0] / 255, color[1] / 255, color[2] / 255, 1 - color[3] / 255), file=stream)
+        print('%s</Appearance>' % tab, file=stream)
+
+    def custom_x3d(self, stream, x3d_scene, indent, place):
+        """Override this function for custom X3D
+
+        This is a generic version and assumes that positions are orthogonal.
+        """
         any_opaque, any_transp = self._transparency()
         # cases:
         #  1 position, 1 color
@@ -1050,9 +1089,7 @@ class Drawing:
                 t = p.translation()
                 print('%s<Transform rotation="%g %g %g %g" translation="%g %g %g">' % (tab, r[0][0], r[0][1], r[0][2], r[1], t[0], t[1], t[2]), file=stream)
             print('%s <Shape>' % tab, file=stream)
-            print('%s  <Appearance>' % tab, file=stream)
-            print("%s   <Material ambientIntensity='1' diffuseColor='%g %g %g' specularColor='0.85 0.85 0.85' shininess='0.234375' transparency='%g'/>" % (tab, c[0] / 255, c[1] / 255, c[2] / 255, 1 - c[3] / 255), file=stream)
-            print('%s  </Appearance>' % tab, file=stream)
+            self.reuse_appearance(stream, x3d_scene, indent + 2, c)
             colors = self.vertex_colors
             normals = self.normals
             indices = ['%g' % i for i in self.triangles.flatten()]
@@ -1060,9 +1097,9 @@ class Drawing:
 
             print(' solid="false"', end='', file=stream)
             if colors is None:
-                print(' colorPerVerex="false"', end='', file=stream)
+                print(' colorPerVertex="false"', end='', file=stream)
             if normals is None:
-                print(' normalPerVerex="false"', end='', file=stream)
+                print(' normalPerVertex="false"', end='', file=stream)
             print('>', file=stream)
             vertices = ['%g' % x for x in self.vertices.flatten()]
             print('%s   <Coordinate point="%s"/>' % (tab, ' '.join(vertices)), file=stream)
