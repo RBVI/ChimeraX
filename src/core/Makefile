@@ -2,7 +2,7 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
-	   chutil_cpp commands devices \
+	   chutil_cpp commands \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
 	   map pysupport_cpp surface toolshed ui \
