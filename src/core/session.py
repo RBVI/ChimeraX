@@ -684,7 +684,7 @@ def save_x3d(session, filename, **kw):
         from .geometry import Place
         p = Place()
         for m in session.models.list():
-            m.x3d_write(stream, x3d_scene, 2, p)
+            m.write_x3d(stream, x3d_scene, 2, p)
         x3d_scene.write_footer(stream, 0)
 
 
