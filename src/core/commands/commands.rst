@@ -205,7 +205,7 @@ Functions defined in *chimerax.movie.moviecmd*
 
 oculus
 ======
-.. autofunction:: chimerax.core.devices.oculus.oculuscmd.oculus
+.. autofunction:: chimerax.oculus.oculuscmd.oculus
 
 open
 ====
@@ -270,7 +270,7 @@ show
 
 snav
 ====
-.. autofunction:: chimerax.core.devices.spacenavigator.snav.snav
+.. autofunction:: chimerax.spacenavigator.snav.snav
 
 sop
 ===
