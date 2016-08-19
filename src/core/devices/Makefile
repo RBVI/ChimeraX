@@ -6,7 +6,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/devices
 
 PYSRCS = __init__.py
 
-SUBDIRS	= oculus spacenavigator
+SUBDIRS	= 
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

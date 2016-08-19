@@ -30,9 +30,6 @@ setup(
         "chimerax.core",
         "chimerax.core.atomic",
         "chimerax.core.commands",
-        "chimerax.core.devices",
-        "chimerax.core.devices.oculus",
-        "chimerax.core.devices.spacenavigator",
         "chimerax.core.geometry",
         "chimerax.core.graphics",
         "chimerax.core.map",
@@ -54,8 +51,6 @@ setup(
     package_data={
         "chimerax.core": ["*.PYMOD_EXT"],
         "chimerax.core.atomic": ["*.SHLIB_EXT", "*.PYMOD_EXT"],
-        "chimerax.core.devices.oculus": ["*.PYMOD_EXT"],
-        "chimerax.core.devices.spacenavigator": ["*.PYMOD_EXT"],
         "chimerax.core.geometry": ["*.PYMOD_EXT"],
         "chimerax.core.graphics": ["*.txt", "*.PYMOD_EXT"],
         "chimerax.core.map": ["*.PYMOD_EXT"],
