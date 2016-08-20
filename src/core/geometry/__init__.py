@@ -11,7 +11,7 @@ from ._geometry import sphere_axes_bounds, spheres_in_bounds, bounds_overlap
 from ._geometry import find_close_points, find_closest_points
 from ._geometry import closest_sphere_intercept, closest_cylinder_intercept, closest_triangle_intercept
 from ._geometry import segment_intercepts_spheres, points_within_planes
-from ._geometry import cylinder_rotations
+from ._geometry import cylinder_rotations, cylinder_rotations_x3d
 from .align import align_points
 from .symmetry import cyclic_symmetry_matrices
 from .symmetry import dihedral_symmetry_matrices

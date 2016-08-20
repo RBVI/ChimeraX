@@ -1028,6 +1028,8 @@ extern "C" int parse_float_n4_array(PyObject *arg, void *farray)
   { return parse_float_nm(arg, 4, farray, true, false); }
 extern "C" int parse_writable_float_n4_array(PyObject *arg, void *farray)
   { return parse_float_nm(arg, 4, farray, false, false); }
+extern "C" int parse_writable_float_n9_array(PyObject *arg, void *farray)
+  { return parse_float_nm(arg, 9, farray, false, false); }
 
 // ----------------------------------------------------------------------------
 //

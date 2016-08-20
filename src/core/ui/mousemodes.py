@@ -766,7 +766,7 @@ class RotateMouseMode(MouseMode):
         if self.click_to_select:
             if event.position() == self.mouse_down_position:
                 mouse_select(event, self.session, self.view)
-            MouseMode.mouse_up(self, event)
+        MouseMode.mouse_up(self, event)
 
     def mouse_drag(self, event):
         axis, angle = self.mouse_rotation(event)

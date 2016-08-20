@@ -436,6 +436,11 @@ class Atoms(Collection):
     def unique_structures(self):
         "The unique structures as an :class:`.AtomicStructures` collection"
         return _atomic_structures(unique(self.structures._pointers))
+    @property
+    def single_structure(self):
+        "Do all atoms belong to a single :class:`.Structure`"
+        p = self.structures._pointers
+        return len(p) == 0 or (p == p[0]).all()
     visibles = cvec_property('atom_visible', npy_bool, read_only=True,
         doc="Returns whether the Atom should be visible (displayed and not hidden). Returns a "
         ":mod:`numpy` array of boolean values.  Read only.")

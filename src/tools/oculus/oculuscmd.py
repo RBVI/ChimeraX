@@ -36,7 +36,7 @@ def start_oculus(session):
 
     # Create separate graphics window for rendering to Oculus Rift.
     # Don't show window until after oculus started, otherwise rendering uses wrong viewport.
-    from ...ui.graphics import OculusGraphicsWindow
+    from .window import OculusGraphicsWindow
     v = session.main_view
     parent = session.ui.main_window
     win = OculusGraphicsWindow(v, parent)
@@ -78,7 +78,7 @@ def stop_oculus(session):
 # Register the oculus command for ChimeraX.
 #
 def register_oculus_command():
-    from ...commands import CmdDesc, BoolArg, FloatArg, register
+    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, register
     _oculus_desc = CmdDesc(required = [('enable', BoolArg)],
                            keyword = [('pan_speed', FloatArg)])
     register('oculus', _oculus_desc, oculus)

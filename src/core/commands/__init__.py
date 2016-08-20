@@ -15,7 +15,7 @@ from .cli import ModelIdArg, AtomsArg, StructuresArg, AtomicStructuresArg, Surfa
 from .cli import ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
 from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg
 
-from .colorarg import ColorArg, ColormapArg
+from .colorarg import ColorArg, ColormapArg, ColormapRangeArg
 from .symarg import SymmetryArg
 
 from .atomspec import AtomSpecArg, all_objects

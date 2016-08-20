@@ -35,8 +35,8 @@ static struct PyMethodDef geometry_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, find_close_points_sets_doc},
 
   /* cylinderrot.h */
-  {const_cast<char*>("cylinder_rotations"), (PyCFunction)cylinder_rotations,
-   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("cylinder_rotations"), (PyCFunction)cylinder_rotations, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("cylinder_rotations_x3d"), (PyCFunction)cylinder_rotations_x3d, METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* distancepy.h */
   {const_cast<char*>("distances_from_origin"), py_distances_from_origin, METH_VARARGS, NULL},

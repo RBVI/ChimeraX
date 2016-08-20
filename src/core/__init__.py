@@ -10,6 +10,9 @@ __copyright__ = (
     "  Free for non-commercial use."
     "  See http://www.rbvi.ucsf.edu/chimerax/ for license details."
 )
+
+window_sys = None       # Set by startup script to "qt" or "wx".
+
 _class_cache = {}
 # list modules classes are found in used by session restore to recreate objects.
 _class_class_init = {

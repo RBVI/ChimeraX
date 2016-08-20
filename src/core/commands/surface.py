@@ -42,7 +42,7 @@ def surface(session, atoms = None, enclose = None, include = None,
       Percentage transparency for surfaces.
     visible_patches : int
       Maximum number of connected surface pieces per chain to show.
-ø    sharp_boundaries : bool
+    sharp_boundaries : bool
       Make the surface triangulation have edges exactly between atoms
       so per-atom surface colors and surface patches have smoother edges.
     nthread : int
@@ -55,6 +55,7 @@ def surface(session, atoms = None, enclose = None, include = None,
       Undisplay surfaces or patches of surfaces.
     close : bool
       Close surfaces for the specified atoms.
+
     '''
 
     from ..atomic.molsurf import close_surfaces, show_surfaces, hide_surfaces, remove_solvent_ligands_ions
@@ -83,12 +84,12 @@ def surface(session, atoms = None, enclose = None, include = None,
     if grid_spacing is None:
         grid = 0.5 if resolution is None else 0.1 * resolution
     else:
-        grid = None
+        grid = grid_spacing
 
     if sharp_boundaries is None:
         sharp = True if resolution is None else False
     else:
-        sharp = None
+        sharp = sharp_boundaries
 
     surfs = []
     new_surfs = []
@@ -104,7 +105,8 @@ def surface(session, atoms = None, enclose = None, include = None,
                 enclose_atoms = remove_solvent_ligands_ions(chain_atoms, include)[0]
             s = all_surfs.get(enclose_atoms.hash())
             if s is None:
-                name = '%s_%s SES surface' % (m.name, chain_id)
+                stype = 'SES' if resolution is None else 'Gaussian'
+                name = '%s_%s %s surface' % (m.name, chain_id, stype)
                 rgba = surface_rgba(color, transparency, chain_id)
                 s = MolecularSurface(session, enclose_atoms, show_atoms,
                                      probe_radius, grid, resolution, level,

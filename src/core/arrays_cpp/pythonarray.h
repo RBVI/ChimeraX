@@ -52,6 +52,7 @@ ARRAYS_IMEX int parse_uint8_n2_array(PyObject *arg, void *carray);
 ARRAYS_IMEX int parse_uint8_n4_array(PyObject *arg, void *carray);
 ARRAYS_IMEX int parse_float_n4_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_writable_float_n4_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_writable_float_n9_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_float_n_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_writable_float_n_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_double_n_array(PyObject *arg, void *farray);
