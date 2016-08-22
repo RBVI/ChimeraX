@@ -28,38 +28,40 @@ class="clRight" alt="ChimeraX logo"/></a>
 </h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>color</b>
-&nbsp;<a href="atomspec.html"><i>surface-spec</i></a>
-&nbsp;map&nbsp;&nbsp;<a href="atomspec.html"><i>map-model</i></a>&nbsp;
-&nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
-&nbsp;<a href="#general-options"><i>general-options</i></a>
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<br><b>color</b>
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 &nbsp;<b>sequential</b>
 &nbsp;<a href="#level"><i>level</i></a>&nbsp;
 [&nbsp;palette&nbsp;&nbsp;<a href="#palette"><i>palette</i></a>&nbsp;]
 &nbsp;<a href="#general-options"><i>general-options</i></a>
-</h3>
-<h3><a href="usageconventions.html">Usage</a>:
-<BR><b>rainbow</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+<br>&ndash; or &ndash;<br>
+<b>rainbow</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<a href="#level"><i>level</i></a>&nbsp;]
 [&nbsp;palette&nbsp;&nbsp;<a href="#palette"><i>palette</i></a>&nbsp;]
+&nbsp;<a href="#general-options"><i>general-options</i></a>
+</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>color</b>
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+&nbsp;map&nbsp;&nbsp;<a href="atomspec.html"><i>map-model</i></a>&nbsp;
+[&nbsp;<a href="#offset"><b>offset</b>&nbsp;&nbsp;<i>d</i></a>&nbsp;]
+&nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 &nbsp;<a href="#general-options"><i>general-options</i></a>
 </h3>
 <p>
 The <b>color</b> command colors atomic models, including
 cartoon and molecular surface representations. 
 Simple coloring also applies to volume model (map) isosurfaces
-and semitransparent solid displays.
+and semitransparent solid displays, and coloring by map value applies
+to both molecular and nonmolecular surfaces.
 The absence of an atom or model specifier implies &ldquo;all&rdquo;
 applicable items.
 Bonds and <a href="../pseudobonds.html">pseudobonds</a>
 are considered as specified when both flanking atoms are specified.
 See <a href="#examples">examples</a> below.
 See also: <a href="transparency.html"><b>transparency</b></a>,
-<a href="volume.html"><b>volume</b></a>,
 <a href="mlp.html"><b>mlp</b></a>,
+<a href="surface.html"><b>surface</b></a>,
+<a href="volume.html"><b>volume</b></a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="colornames.html">color names</a>
@@ -118,6 +120,22 @@ the <i>level</i> can be omitted and defaults to <b>residues</b>.
 Sequential coloring applies to all atoms within the affected residues,
 chains, or models even if fewer atoms are specified, but can be restricted 
 to certain representations with the <a href="#target"><b>target</b></a> option.
+</p><p>
+Coloring by <b>map</b> value applies to surfaces only,
+both molecular and nonmolecular (such as volume isosurfaces).
+The color-value mapping is specified
+with <a href="#palette-options">palette options</a>.
+The <a name="offset"><b>offset</b></a> <i>d</i> is how far out 
+from each surface vertex, along its normal, to evaluate the data
+(default <b>0.0</b> &Aring;).
+An offset of 1.4 &Aring; is typically used for coloring a 
+<a href="surface.html">molecular surface</a> by electrostatic potential.
+The rationale for looking outward is that the values at the centers 
+of any interacting atoms are more relevant than those at their surfaces.
+By default, a molecular surface shows where the surface of a spherical probe 
+of radius 1.4 &Aring; can lie, the <b><i>solvent-excluded</i></b> surface.
+An offset of 1.4 &Aring; approximates the <b><i>solvent-accessible</i></b>
+surface, about as close as the probe center can get to the molecule.
 </p>
 
 <p class="nav">
@@ -151,12 +169,13 @@ without commas or spaces:
   <li><b>c</b> &nbsp;or&nbsp; <b>r</b>
   - cartoons (ribbons) (divisible to per-residue segments)
   <li><b>s</b> - surfaces
-  (molecular surfaces divisible to per-atom patches)
+  (molecular surfaces divisible to per-atom patches, other surface models
+   such as volume isosurfaces, and for simple coloring only, 
+   solid volume displays)
   <li><b>p</b> - pseudobonds-only
   (coloring shown for <a href="../pseudobonds.html">pseudobonds</a>
    not in <a href="#halfbond">halfbond mode</a>)
 <!--
-  <li><b>r</b> - residue labels
   <li><b>n</b> - nonmolecular models (model-level color)
   <li><b>m</b> - molecular models (model-level color)
   <li><b>d</b> - distances and other pseudobond labels
