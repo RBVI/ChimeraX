@@ -65,7 +65,7 @@ public:
     AtomsMap  atoms_map() const;
     std::vector<Bond*>  bonds_between(const Residue* other_res,
         bool just_first=false) const;
-    Chain*  chain() const { (void)_structure->chains(); return _chain; }
+    Chain*  chain() const;
     const ChainID&  chain_id() const;
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
@@ -156,6 +156,12 @@ Residue::chain_id() const
     if (_chain != nullptr)
         return _chain->chain_id();
     return _chain_id;
+}
+
+inline Chain*
+Residue::chain() const {
+    (void)_structure->chains();
+    return _chain;
 }
 
 inline float
