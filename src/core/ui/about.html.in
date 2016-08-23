@@ -1,0 +1,19 @@
+<html>
+<head>
+<title>About UCSF ChimeraX</title>
+</head>
+<body>
+<h2>UCSF ChimeraX</h2>
+<p>version VERSION (DATE)<br/>
+<a href="http://www.rbvi.ucsf.edu/chimerax">
+http://www.rbvi.ucsf.edu/chimerax</a></p>
+<p>An application for molecular visualization and analysis,
+with an emphasis on molecular assemblies.</p>
+<p>
+COPYRIGHT
+</p>
+<p>Free for non-commercial use.
+Contact <a href="mailto:chimerax@cgl.ucsf.edu">chimerax@cgl.ucsf.edu</a>
+for other licensing terms.</p>
+</body>
+</html>
