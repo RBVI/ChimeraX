@@ -12,7 +12,7 @@ SUBDIRS = devel pdbimages quickstart user download
 
 DOCDIR = $(app_datadir)/docs
 
-SRCS = $(wildcard *.html)
+SRCS = $(wildcard *.html) license.html
 IMAGES = $(wildcard *.png)
 
 # All needed subdirectories must be set by now.
