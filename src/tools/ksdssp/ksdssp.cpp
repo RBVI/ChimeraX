@@ -195,9 +195,13 @@ find_hbonds(KsdsspParams& params)
     // mark prolines
     for (auto r: params.residues) {
         Atom *n = r->find_atom("N");
+		if (n == nullptr) {
+			is_pro.push_back(false);
+			continue;
+		}
+		auto& nnb = n->neighbors();
         Atom *cd = r->find_atom("CD");
-        is_pro.push_back(n && cd
-			&& std::find(n->neighbors().begin(), n->neighbors().end(), cd) != n->neighbors().end());
+        is_pro.push_back(cd && std::find(nnb.begin(), nnb.end(), cd) != nnb.end());
     }
     for (int i = 0; i < num_res; ++i) {
         KsdsspCoords *crds1 = params.coords[i];
@@ -575,35 +579,23 @@ make_summary(KsdsspParams& params)
 static void
 compute_chain(KsdsspParams& params)
 {
-std::cerr << "compute_chain: start\n";
     int num_res = params.residues.size();
     params.hbonds.resize(num_res);
     for (auto& hbonds: params.hbonds)
         hbonds.resize(num_res);
 
     // Compute secondary structure
-std::cerr << "compute_chain: add_imide_hydrogens\n";
     add_imide_hydrogens(params);
-std::cerr << "added " << params.imide_Hs.size() << " imide Hs\n";
-std::cerr << "compute_chain: find_hbonds\n";
     find_hbonds(params);
 
-std::cerr << "compute_chain: find_turns(3)\n";
     find_turns(params, 3);
-std::cerr << "compute_chain: mark_helices(3)\n";
     mark_helices(params, 3);
-std::cerr << "compute_chain: find_turns(4)\n";
     find_turns(params, 4);
-std::cerr << "compute_chain: mark_helices(4)\n";
     mark_helices(params, 4);
-std::cerr << "compute_chain: find_turns(5)\n";
     find_turns(params, 5);
-std::cerr << "compute_chain: mark_helices(5)\n";
     mark_helices(params, 5);
-std::cerr << "compute_chain: find_helices\n";
     find_helices(params);
 
-std::cerr << "compute_chain: find_bridges\n";
     find_bridges(params);
     // Don't need to find entire sheets per se, pairs of strands
     // (i.e. ladders) are good enough
@@ -611,7 +603,6 @@ std::cerr << "compute_chain: find_bridges\n";
     // actually markup the structure
     // do some fancy footwork to ensure that strands are numbered
     // in N->C order
-std::cerr << "compute_chain: markup structure\n";
     std::vector<std::pair<int, int> > res_ranges;
 	for (auto l: params.ladders) {
         res_ranges.push_back(std::pair<int,int>(l.start[0], l.end[0]));
@@ -641,7 +632,6 @@ std::cerr << "compute_chain: markup structure\n";
         }
     }
 
-std::cerr << "compute_chain: report\n";
     if (params.report)
         make_summary(params);
 }
@@ -732,10 +722,10 @@ PyObject *
 compute_ss(PyObject *, PyObject *args)
 {
     PyObject* ptr;
-    Real energy_cutoff;
+    double energy_cutoff;
     int min_helix_length, min_strand_length;
     int report;
-    if (!PyArg_ParseTuple(args, PY_STUPID "Ofiip", &ptr, &energy_cutoff,
+    if (!PyArg_ParseTuple(args, PY_STUPID "Odiip", &ptr, &energy_cutoff,
         &min_helix_length, &min_strand_length, &report))
         return nullptr;
     // convert first arg to Structure*
@@ -745,8 +735,8 @@ compute_ss(PyObject *, PyObject *args)
     }
     Structure* mol = static_cast<Structure*>(PyLong_AsVoidPtr(ptr));
     try {
-        compute_secondary_structure(mol, energy_cutoff, min_helix_length, min_strand_length,
-            static_cast<bool>(report));
+        compute_secondary_structure(mol, static_cast<Real>(energy_cutoff), min_helix_length,
+			min_strand_length, static_cast<bool>(report));
     } catch (std::exception& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
     }

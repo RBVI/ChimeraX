@@ -3,6 +3,7 @@
 #define atomstruct_Point
 
 #include <cmath>
+#include <iostream>
 #include <string>
 
 #include "imex.h"
@@ -52,6 +53,12 @@ public:
     const Real&  operator[](int index) const { return _xyz[index]; }
     std::string  str() const;
 };
+
+inline std::ostream&
+operator<<(std::ostream& os, const Point& p) {
+    os << "(" << p[0] << ", " << p[1] << ", " << p[2] << ")";
+    return os;
+}
 
 } //  namespace atomstruct
 

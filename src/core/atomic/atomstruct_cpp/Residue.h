@@ -191,6 +191,7 @@ Residue::set_is_helix(bool ih) {
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_HELIX);
     _is_helix = ih;
+    _structure->set_gc_ribbon();
 }
 
 inline void
@@ -207,6 +208,7 @@ Residue::set_is_sheet(bool is) {
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_SHEET);
     _is_sheet = is;
+    _structure->set_gc_ribbon();
 }
 
 inline void
@@ -267,6 +269,7 @@ Residue::set_ss_id(int ss_id)
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SS_ID);
     _ss_id = ss_id;
+    _structure->set_gc_ribbon();
 }
 
 }  // namespace atomstruct
