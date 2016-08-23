@@ -77,7 +77,7 @@ class MouseModePanel(ToolInstance):
             tb.setStyleSheet('QToolBar{spacing:0px;}\n'
                              'QToolButton{padding:0px; margin:0px; border:none;}')
             tb.setIconSize(QSize(40,40))
-            parent.addToolBar(Qt.RightToolBarArea, tb)
+            parent.addToolBar(Qt.LeftToolBarArea, tb)
             group = QActionGroup(tb)
             for mode in modes:
                 from os import path

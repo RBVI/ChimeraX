@@ -76,7 +76,7 @@ class Space_Navigator:
                 rmag = sqrt(rx*rx + ry*ry + rz*rz)
 
         from numpy import array, float32
-        from ...geometry import place
+        from chimerax.core.geometry import place
 
         if rmag > 0:
             axis = array((rx/rmag, ry/rmag, rz/rmag), float32)
@@ -125,7 +125,7 @@ class Space_Navigator:
             if tf.rotation_angle() <= 1e-5:
                 v._update_center_of_rotation = True  # Translation
             cr = cpinv * v.center_of_rotation
-        from ...geometry import translation
+        from chimerax.core.geometry import translation
         stf = cp * translation(cr) * tf * translation(-cr) * cpinv
         if self.collision(stf.inverse() * cam.position.origin()):
             return
@@ -238,7 +238,7 @@ def snav(session, enable = None, fly = None):
 # Register the snav command for ChimeraX.
 #
 def register_snav_command():
-    from ...commands import CmdDesc, BoolArg, register
+    from chimerax.core.commands import CmdDesc, BoolArg, register
     _snav_desc = CmdDesc(optional = [('enable', BoolArg)],
                          keyword = [('fly', BoolArg)])
     register('snav', _snav_desc, snav)
