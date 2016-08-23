@@ -128,6 +128,12 @@ class Place:
         m[:, 3] = 0
         return Place(m)
 
+    def scale_translation(self, s):
+        '''Return a copy of the transform with scaled shift.'''
+        m = self.matrix.copy()
+        m[:, 3] *= s
+        return Place(m)
+
     def opengl_matrix(self):
         '''Return a numpy 4x4 array which is the transformation matrix
         in OpenGL order (columns major).'''
