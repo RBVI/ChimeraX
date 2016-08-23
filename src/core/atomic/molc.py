@@ -218,8 +218,8 @@ numpy_type_to_ctype = {
     numpy.uint8: ctypes.c_uint8,
     numpy.uintp: ctypes.c_void_p,
     numpy.byte: ctypes.c_char,
-    numpy.bool: ctypes.c_uint8,
-    numpy.bool_: ctypes.c_uint8,
+    numpy.bool: ctypes.c_bool,
+    numpy.bool_: ctypes.c_bool,
     numpy.object_: ctypes.py_object,
     numpy.object: ctypes.py_object,
 }

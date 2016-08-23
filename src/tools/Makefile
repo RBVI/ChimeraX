@@ -2,10 +2,10 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 SUBDIRS = alignments cage_builder cellpack cmd_line contacts \
-	  exp_cmd file_history help_viewer label \
-	  log map_series_gui mlp model_panel mouse_modes movie remote_control \
-	  residue_fit sim_matrices shell shortcuts sideview stl struts \
-	  test toolshed volume_viewer
+	  exp_cmd file_history help_viewer ksdssp label \
+	  log map_series_gui mlp model_panel mouse_modes movie oculus remote_control \
+	  residue_fit sim_matrices shell shortcuts sideview spacenavigator stl struts \
+	  test toolshed vive volume_viewer
 
 include $(TOP)/mk/subdir.make
 

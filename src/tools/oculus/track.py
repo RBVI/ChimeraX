@@ -48,7 +48,7 @@ class Oculus_Rift:
 
         self.stop_event_processing()
 
-        from ...graphics import MonoCamera
+        from chimerax.core.graphics import MonoCamera
         self.view.camera = MonoCamera()
 
     def stop_event_processing(self):
@@ -109,7 +109,7 @@ class Oculus_Rift:
         from . import _oculus
         x,y,z,qw,qx,qy,qz = _oculus.state()
 
-        from ...geometry import place
+        from chimerax.core.geometry import place
         if qw is None:
             r = None
         else:
@@ -140,7 +140,7 @@ class Oculus_Rift:
         no_r = (r is None or lr is None)
         if no_t:
             if no_r:
-                from ...geometry import place
+                from chimerax.core.geometry import place
                 rel = place.Place()
             else:
                 rel = r.inverse()*lr
@@ -152,7 +152,7 @@ class Oculus_Rift:
             rel = m.inverse()*lm
         return rel
 
-from ...graphics import Camera
+from chimerax.core.graphics import Camera
 class Oculus_Rift_Camera(Camera):
 
     def __init__(self, oculus_rift, oculus_opengl_context, render_opengl_context):
@@ -209,7 +209,7 @@ class Oculus_Rift_Camera(Camera):
             # Stereo eyes view in same direction with position shifted along x.
             s = -1 if view_num == 0 else 1
             es = self.eye_separation_scene
-            from ...geometry import place
+            from chimerax.core.geometry import place
             t = place.translation((s*0.5*es,0,0))
             v = camera_position * t
         return v
@@ -219,7 +219,7 @@ class Oculus_Rift_Camera(Camera):
         return 2
 
     def view_width(self, point):
-        from ...graphics.camera import perspective_view_width
+        from chimerax.core.graphics.camera import perspective_view_width
         return perspective_view_width(point, self.position.origin(), self.field_of_view)
 
     def view_pixel_shift(self, view_num):
@@ -231,7 +231,7 @@ class Oculus_Rift_Camera(Camera):
         return (s*sx, s*sy)
 
     def view_all(self, bounds, aspect = None, pad = 0):
-        from ...graphics import camera
+        from chimerax.core.graphics import camera
         self.position = camera.perspective_view_all(bounds, self.position, self.field_of_view, aspect, pad)
 
     def set_render_target(self, view_num, render):
@@ -277,7 +277,7 @@ class Oculus_Rift_Camera(Camera):
         
         fb = self._warp_framebuffers[view_num]
         if fb is None or fb.width != tw or fb.height != th:
-            from ...graphics import Texture, opengl
+            from chimerax.core.graphics import Texture, opengl
             t = Texture()
             t.initialize_rgba((tw,th))
             self._warp_framebuffers[view_num] = fb = opengl.Framebuffer(color_texture = t)
@@ -304,7 +304,7 @@ class Oculus_Rift_Camera(Camera):
 
         s = self._warping_surface(render)
         s.texture = self._warp_framebuffers[0].color_texture
-        from ...graphics.drawing import draw_overlays
+        from chimerax.core.graphics.drawing import draw_overlays
         draw_overlays([s], render)
 
         # Draw right eye
@@ -317,7 +317,7 @@ class Oculus_Rift_Camera(Camera):
         if hasattr(self, '_warp_surface'):
             return self._warp_surface
 
-        from ...graphics import Drawing
+        from chimerax.core.graphics import Drawing
         self._warp_surface = s = Drawing('warp plane')
         # TODO: Use a childless drawing.
         from numpy import array, float32, int32

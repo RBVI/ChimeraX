@@ -117,7 +117,8 @@ class LabelDrawing(Drawing):
         from .. import x3d
         x3d_scene.need(x3d.Components.Text, 1)  # Text
 
-    def x3d_write(self, stream, x3d_scene, indent, place):
+    def custom_x3d(self, stream, x3d_scene, indent, place):
+        # TODO
         pass
 
 

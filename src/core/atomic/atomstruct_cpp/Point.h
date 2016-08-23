@@ -3,6 +3,7 @@
 #define atomstruct_Point
 
 #include <cmath>
+#include <iostream>
 #include <string>
 
 #include "imex.h"
@@ -31,14 +32,33 @@ public:
     static Real  distance(const Point& pt1, const Point& pt2) {
             return pt1.distance(pt2);
     }
+    Real  length() const {
+        return sqrt(_xyz[0] * _xyz[0] + _xyz[1] * _xyz[1] + _xyz[2] * _xyz[2]);
+    }
+    void  normalize();
     void  set_xyz(Real x, Real y, Real z) {
         _xyz[0] = x; _xyz[1] = y; _xyz[2] = z;
     }
     Real  sqdistance(const Point  &pt) const;
+    Point  operator*(Real mul) const {
+            return Point(_xyz[0] * mul, _xyz[1] * mul, _xyz[2] * mul);
+    }
+    Point  operator+(const Point  &pt) const {
+        return Point(_xyz[0] + pt._xyz[0], _xyz[1] + pt._xyz[1], _xyz[2] + pt._xyz[2]);
+    }
+    Point  operator-(const Point  &pt) const {
+        return Point(_xyz[0] - pt._xyz[0], _xyz[1] - pt._xyz[1], _xyz[2] - pt._xyz[2]);
+    }
     Real&  operator[](int index) { return _xyz[index]; }
     const Real&  operator[](int index) const { return _xyz[index]; }
     std::string  str() const;
 };
+
+inline std::ostream&
+operator<<(std::ostream& os, const Point& p) {
+    os << "(" << p[0] << ", " << p[1] << ", " << p[2] << ")";
+    return os;
+}
 
 } //  namespace atomstruct
 

@@ -292,9 +292,10 @@ class Volume(Model):
   #
   def set_color(self, rgba):
     self.surface_colors = [rgba]*len(self.surface_levels)
+    for s in self.surface_drawings:
+      s.vertex_colors = None
     self.solid_colors = [rgba]*len(self.solid_levels)
-    if self.shown():
-      self.show()
+    self.update_display()
 
   # ---------------------------------------------------------------------------
   #
@@ -775,6 +776,12 @@ class Volume(Model):
       level = None
     return level
     
+  # ---------------------------------------------------------------------------
+  #
+  def surface_drawings_for_vertex_coloring(self):
+
+    return self.surface_drawings
+  
   # ---------------------------------------------------------------------------
   #
   def remove_surfaces(self):

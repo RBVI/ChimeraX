@@ -58,10 +58,11 @@ class Model(State, Drawing):
         return '.'.join(str(i) for i in self.id)
 
     def _get_single_color(self):
-        return None
+        return self.color if self.vertex_colors is None else None
 
     def _set_single_color(self, color):
-        return
+        self.color = color
+        self.vertex_colors = None
     single_color = property(_get_single_color, _set_single_color)
     '''
     Getting the single color may give the dominant color.

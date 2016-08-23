@@ -634,7 +634,6 @@ def save_x3d(session, filename, **kw):
     if user is None:
         user = os.getlogin()
     meta['author'] = user
-    meta['copyright'] = '\N{COPYRIGHT SIGN} %d by %s.  All Rights reserved.' % (year, user)
 
     # record needed X3D components
     x3d_scene.need(x3d.Components.EnvironmentalEffects, 1)  # Background
@@ -684,7 +683,7 @@ def save_x3d(session, filename, **kw):
         from .geometry import Place
         p = Place()
         for m in session.models.list():
-            m.x3d_write(stream, x3d_scene, 2, p)
+            m.write_x3d(stream, x3d_scene, 2, p)
         x3d_scene.write_footer(stream, 0)
 
 

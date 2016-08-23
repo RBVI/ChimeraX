@@ -25,8 +25,8 @@ def rungs(session, atoms = None, color = None, radius = None, halfbond = None,
     hide_hbonds : bool
         Whether to hide hydrogen bonds read from mmCIF file.
     '''
-    from ..atomic import all_atoms
     if atoms is None:
+        from ..atomic import all_atoms
         atoms = all_atoms(session)
 
     ribose_base = "C3'"		# Base of rung
