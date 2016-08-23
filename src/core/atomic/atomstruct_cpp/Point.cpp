@@ -34,6 +34,17 @@ Point::angle(const Point& pt1, const Point& pt3) const
     return 180.0 * acos(dot) / M_PI;
 }
 
+void
+Point::normalize()
+{
+    auto len = length();
+    if (len == 0.0)
+        throw std::domain_error("Can't normalize if length is zero");
+    _xyz[0] /= len;
+    _xyz[1] /= len;
+    _xyz[2] /= len;
+}
+
 Real
 Point::sqdistance(const Point& pt) const
 {

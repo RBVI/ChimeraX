@@ -65,7 +65,7 @@ public:
     AtomsMap  atoms_map() const;
     std::vector<Bond*>  bonds_between(const Residue* other_res,
         bool just_first=false) const;
-    Chain*  chain() const { (void)_structure->chains(); return _chain; }
+    Chain*  chain() const;
     const ChainID&  chain_id() const;
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
@@ -158,6 +158,12 @@ Residue::chain_id() const
     return _chain_id;
 }
 
+inline Chain*
+Residue::chain() const {
+    (void)_structure->chains();
+    return _chain;
+}
+
 inline float
 Residue::ribbon_adjust() const {
     if (_ribbon_adjust >= 0)
@@ -185,6 +191,7 @@ Residue::set_is_helix(bool ih) {
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_HELIX);
     _is_helix = ih;
+    _structure->set_gc_ribbon();
 }
 
 inline void
@@ -201,6 +208,7 @@ Residue::set_is_sheet(bool is) {
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_SHEET);
     _is_sheet = is;
+    _structure->set_gc_ribbon();
 }
 
 inline void
@@ -261,6 +269,7 @@ Residue::set_ss_id(int ss_id)
         return;
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_SS_ID);
     _ss_id = ss_id;
+    _structure->set_gc_ribbon();
 }
 
 }  // namespace atomstruct
