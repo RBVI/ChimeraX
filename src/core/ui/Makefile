@@ -24,5 +24,5 @@ lint:
 
 about.html:	about.html.in Makefile
 	sed '/===/d' $(TOP)/copyright.txt | \
-		sed $$'/COPYRIGHT/{r /dev/stdin\nd}' \
+		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd}' \
 		about.html.in > about.html

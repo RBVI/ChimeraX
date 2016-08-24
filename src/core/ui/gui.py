@@ -387,9 +387,7 @@ if window_sys == "wx":
             info.SetName("%s %s" % (ad.appauthor, ad.appname))
             info.SetVersion("%s (%s)" % (ad.version, buildinfo.date.split()[0]))
             info.Description = wordwrap(buildinfo.synopsis, width, dc)
-#            info.Copyright = wordwrap(buildinfo.copyright, width, dc)
             info.SetWebSite(buildinfo.web_site)
-#            info.SetLicense(wordwrap(buildinfo.license, width, dc))
 
             wx.adv.AboutBox(info)
 
