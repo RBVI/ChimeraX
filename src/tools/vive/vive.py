@@ -217,19 +217,39 @@ class ViveCamera(Camera):
     def process_controller_motion(self):
 
         # For controllers with trigger pressed, use controller motion to move scene
+        # Rotation and scaling is about controller position -- has natural feel,
+        # like you grab the models where your hand is located.
+        # Another idea is to instead pretend controller is at center of models.
+        cm = self.controller_motions()
+        if len(cm) == 1:
+            # One controller has trigger pressed, move scene.
+            previous_pose, pose = cm[0]
+            move = previous_pose * pose.inverse()
+            self.room_to_scene = self.room_to_scene * move
+        elif len(cm) == 2:
+            # Two controllers have trigger pressed, scale scene.
+            (prev_pose1, pose1), (prev_pose2, pose2) = cm
+            pp1, p1 = prev_pose1.origin(), pose1.origin()
+            pp2, p2 = prev_pose2.origin(), pose2.origin()
+            from chimerax.core.geometry import distance, translation, scale
+            d, dp = distance(p1,p2), distance(pp1,pp2)
+            center = 0.5*(p1+p2)
+            if d > 0.5*dp:
+                s = dp / d
+                scale = translation(center) * scale(s) * translation(-center)
+                self.room_to_scene = self.room_to_scene * scale
+                
+    def controller_motions(self):
+        '''Return list of (pose, previous_pose) for controllers with trigger pressed.'''
+        cm = []
         cp = self._controller_poses
-        if len(cp) == 1:
-            for d, previous_pose in cp.items():
-                # Get current controller pose and use motion relative to previous pose.
-                # Pose maps controller to room coords.
-                pose = hmd34_to_position(self._poses[d].mDeviceToAbsoluteTracking)
-                if previous_pose is not None:
-                    # This rotates about controller position -- has natural feel,
-                    # like you grab the models where your hand is located.
-                    # Might want to instead pretend controller is at center of models.
-                    move = previous_pose * pose.inverse()
-                    self.room_to_scene = self.room_to_scene * move
-                cp[d] = pose
+        for d, previous_pose in tuple(cp.items()):
+            # Pose maps controller to room coords.
+            pose = hmd34_to_position(self._poses[d].mDeviceToAbsoluteTracking)
+            if previous_pose:
+                cm.append((previous_pose, pose))
+            cp[d] = pose
+        return cm
         
     def view(self, camera_position, view_num):
         '''
