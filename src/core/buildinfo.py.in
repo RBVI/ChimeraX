@@ -8,17 +8,6 @@ branch = "BRANCH"   # (modified) branch of last commit
 
 # general information
 
-copyright = (
-    "Copyright \N{Copyright Sign} 2015-2016"
-    " by the Regents of the University of California."
-    "  All Rights Reserved."
-)
-
-license = (
-    "Free for non-commercial use."
-    "  Contact chimera@cgl.ucsf.edu for other licensing terms."
-)
-
 synopsis = (
     "An application for molecular visualization and analysis,"
     " with an emphasis on molecular assemblies."

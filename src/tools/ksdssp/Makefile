@@ -16,13 +16,21 @@ TOOL_SYNOPSIS = $(PKG_DESCRIPTION)
 COMMAND_NAME = ss_assign
 
 PKG_DIR		= $(PYSITEDIR)/chimerax/ksdssp
+ifdef WIN32
+PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
+shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
+endif
 
 PYMOD_NAME	= _ksdssp
 SRCS		= ksdssp.cpp
 OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS		+= $(PYDEF)
 INCS 		+= $(PYTHON_INCLUDE_DIRS)
+ifdef WIN32
+LIBS		+= $(PYTHON_LIB) libatomstruct.lib liblogger.lib
+else
 LIBS		+= $(PYTHON_LIB) -latomstruct -llogger
+endif
 
 PYSRCS = __init__.py ksdssp.py
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl

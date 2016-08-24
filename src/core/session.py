@@ -634,7 +634,6 @@ def save_x3d(session, filename, **kw):
     if user is None:
         user = os.getlogin()
     meta['author'] = user
-    meta['copyright'] = '\N{COPYRIGHT SIGN} %d by %s.  All Rights reserved.' % (year, user)
 
     # record needed X3D components
     x3d_scene.need(x3d.Components.EnvironmentalEffects, 1)  # Background

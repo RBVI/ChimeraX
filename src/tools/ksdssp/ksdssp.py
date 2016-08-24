@@ -3,7 +3,7 @@
 #
 # Compute/assign secondary structure using Kabsch and Sander algorithm
 #
-def ss_assign(session, structures=None, *,
+def dssp(session, structures=None, *,
         min_helix_len=3, min_strand_len=3, energy_cutoff=-0.5, report=False):
     from chimerax.core.atomic import Structure
     if structures is None:
@@ -29,4 +29,4 @@ def register_command():
                    ('energy_cutoff', FloatArg),
                    ('report', BoolArg)],
     )
-    register('ss_assign', desc, ss_assign)
+    register('dssp', desc, ss_assign)

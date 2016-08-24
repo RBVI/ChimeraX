@@ -55,7 +55,7 @@ setup(
         "chimerax.core.graphics": ["*.txt", "*.PYMOD_EXT"],
         "chimerax.core.map": ["*.PYMOD_EXT"],
         "chimerax.core.surface": ["*.PYMOD_EXT"],
-        "chimerax.core.ui": ["*.jpg", "*.png"],
+        "chimerax.core.ui": ["*.jpg", "*.png", "*.html"],
     },
     data_files=[
         ("", ["timestamp"]),

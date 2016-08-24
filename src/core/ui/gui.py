@@ -387,9 +387,9 @@ if window_sys == "wx":
             info.SetName("%s %s" % (ad.appauthor, ad.appname))
             info.SetVersion("%s (%s)" % (ad.version, buildinfo.date.split()[0]))
             info.Description = wordwrap(buildinfo.synopsis, width, dc)
-            info.Copyright = wordwrap(buildinfo.copyright, width, dc)
+#            info.Copyright = wordwrap(buildinfo.copyright, width, dc)
             info.SetWebSite(buildinfo.web_site)
-            info.SetLicense(wordwrap(buildinfo.license, width, dc))
+#            info.SetLicense(wordwrap(buildinfo.license, width, dc))
 
             wx.adv.AboutBox(info)
 
@@ -1096,14 +1096,18 @@ else:
             self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
 
         def _about(self, arg):
-            from PyQt5.QtWidgets import QMessageBox
-            from chimerax import app_dirs as ad
+            from PyQt5.QtWebEngineWidgets import QWebEngineView
+            import os.path
             from .. import buildinfo
-            title = "About %s %s" % (ad.appauthor, ad.appname)
-            text = "%s %s version %s (%s)\n\n%s\n\n%s\n\n%s\n\n%s" % (ad.appauthor, ad.appname,
-                ad.version, buildinfo.date.split()[0], buildinfo.synopsis, buildinfo.web_site,
-                buildinfo.copyright, buildinfo.license)
-            QMessageBox.about(self, title, text)
+            from chimerax import app_dirs as ad
+            fn = os.path.join(os.path.dirname(__file__), "about.html")
+            with open(fn) as f:
+                content = f.read()
+            content = content.replace("VERSION", ad.version)
+            content = content.replace("DATE", buildinfo.date.split()[0])
+            self._about_dialog = QWebEngineView()
+            self._about_dialog.setHtml(content)
+            self._about_dialog.show()
 
         def _build_status(self):
             sb = QStatusBar(self)
