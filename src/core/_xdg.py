@@ -1,7 +1,9 @@
 #!/bin/env python
 # vim: set expandtab shiftwidth=4 softtabstop=4 fileencoding=utf-8:
-# Copyright ÃÂ© 2010-2015 Regents of the University of California.
+
+# Copyright ÃÂÃÂ© 2010-2015 Regents of the University of California.
 # All Rights Reserved.
+
 #
 # Make X11 desktop menu, icon, and mime types with xdg-utils
 #

@@ -1,4 +1,5 @@
 // vi: set expandtab ts=4 sw=4:
+
 // Copyright (c) 1989,2001 The Regents of the University of California.
 // All rights reserved.
 // 
@@ -17,7 +18,7 @@
 // IN NO EVENT SHALL THE REGENTS OF THE UNIVERSITY OF CALIFORNIA BE
 // LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
 // OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OF THIS SOFTWARE.
-//
+
 // $Id: pstream.cpp 36239 2012-04-26 00:09:34Z goddard $
 #include "pstream.h"
 #include <limits.h>
