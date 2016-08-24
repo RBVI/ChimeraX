@@ -114,7 +114,9 @@ class MapSeries(ToolInstance):
             sname = sname[:50] + '...'
         self.display_name = "Map series %s" % sname
         self.tool_window.title = self.display_name
-        self.update_time(self.slider.GetValue())
+        from chimerax.core import window_sys
+        t = self.slider.GetValue() if window_sys == 'wx' else self.slider.value()
+        self.update_time(t)
 
     def size(self):
         if not self.series:
