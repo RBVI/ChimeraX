@@ -78,6 +78,9 @@ class ViveCamera(Camera):
         self._framebuffer = None	# For rendering each eye view to a texture
         self._last_position = None
         self._last_h = None
+
+        self.mirror_display = False	# Mirror right eye in ChimeraX window
+        				# This causes stuttering in the Vive.
         
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
@@ -101,8 +104,7 @@ class ViveCamera(Camera):
         self.eye_shift_left = hmd34_to_position(vl)
         vr = vrs.getEyeToHeadTransform(openvr.Eye_Right)
         self.eye_shift_right = hmd34_to_position(vr)
-#        print('left', self.eye_shift_left.matrix)
-#        print('right', self.eye_shift_right.matrix)
+
         # Map ChimeraX scene coordinates to OpenVR room coordinates
         from numpy import array, zeros, float32
         room_scene_size = 2 		# Initial virtual model size in meters
@@ -155,10 +157,6 @@ class ViveCamera(Camera):
 
         # head to room coordinates.
         hmd_pose = hmd34_to_position(hmd_pose0.mDeviceToAbsoluteTracking)
-#        f = getattr(self, '_frame', 0)
-#        if f%100 == 0:
-#            print('hmd position', hmd_pose.origin())
-#        self._frame = f+1
         
         # Compute effective camera scene position from HMD position in room
         lp = self._last_position
@@ -206,8 +204,6 @@ class ViveCamera(Camera):
         elif view_num == 1:
             p = self.projection_right
         pm = p.copy()
-#        pm[:,:3] *= self.scene_scale
-#        pm[:,:] *= self.scene_scale
         pm[:3,:] *= self.scene_scale
         return pm
 
@@ -230,6 +226,11 @@ class ViveCamera(Camera):
         import openvr
         self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
 
+        if self.mirror_display:
+            # Render right eye to ChimeraX window.
+            from chimerax.core.graphics.drawing import draw_overlays
+            draw_overlays([self._texture_drawing], render)
+
     def _texture_framebuffer(self):
 
         tw,th = self._render_size
@@ -245,11 +246,16 @@ class ViveCamera(Camera):
             ovrt.handle = t.id
             ovrt.eType = openvr.API_OpenGL
             ovrt.eColorSpace = openvr.ColorSpace_Gamma
+            if self.mirror_display:
+                # Drawing object for rendering to ChimeraX window
+                from chimerax.core.graphics.drawing import _texture_drawing
+                self._texture_drawing = d = _texture_drawing(t)
+                d.opaque_texture = True
 
         return fb
 
     def do_swap_buffers(self):
-        return False
+        return self.mirror_display
 
 def hmd44_to_opengl44(hm44):
     from numpy import array, float32
