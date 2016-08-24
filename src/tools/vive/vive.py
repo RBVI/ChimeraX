@@ -78,6 +78,7 @@ class ViveCamera(Camera):
         self._framebuffer = None	# For rendering each eye view to a texture
         self._last_position = None
         self._last_h = None
+        self._trigger_pressed = None	# Controller device and pose for moving models
 
         self.mirror_display = False	# Mirror right eye in ChimeraX window
         				# This causes stuttering in the Vive.
@@ -155,6 +156,8 @@ class ViveCamera(Camera):
         if not hmd_pose0.bPoseIsValid:
             return
 
+        self.process_controller_events()
+        
         # head to room coordinates.
         hmd_pose = hmd34_to_position(hmd_pose0.mDeviceToAbsoluteTracking)
         
@@ -171,6 +174,37 @@ class ViveCamera(Camera):
         self._last_position = Cnew
         self._last_h = H
 
+    def process_controller_events(self):
+        # Check for button press
+        vrs = self.vr_system
+        result, e = vrs.pollNextEvent()
+        if result:
+            t = e.eventType
+            import openvr
+            if t == openvr.VREvent_ButtonPress or t == openvr.VREvent_ButtonUnpress:
+                pressed = (t == openvr.VREvent_ButtonPress)
+                press = 'press' if pressed else 'unpress'
+                d = e.trackedDeviceIndex
+                b = e.data.controller.button
+#                print('Controller button %s, device %d, button %d'
+#                      % (press, d, b))
+                if b == openvr.k_EButton_SteamVR_Trigger:
+                    self._trigger_pressed = [d, None] if pressed else None
+
+        # Use controller motion to move scene
+        tp = self._trigger_pressed
+        if tp:
+            d,pose = tp
+            p = hmd34_to_position(self._poses[d].mDeviceToAbsoluteTracking) # Device to room coords
+            new_pose = p.scale_translation(1/self.scene_scale)
+            if pose is not None:
+                Q = self.scene_to_room_no_scale
+                # This rotates about controller position -- has natural feel,
+                # like you grab the models where your hand is located.
+                # Might want to instead pretend controller is at center of models.
+                self.scene_to_room_no_scale = new_pose * pose.inverse() * Q
+            tp[1] = new_pose
+        
     def view(self, camera_position, view_num):
         '''
         Return the Place coordinate frame of the camera.
