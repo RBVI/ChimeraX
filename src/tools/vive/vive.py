@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # Command to view models in HTC Vive for ChimeraX.
 #
-def vive(session, enable, pan_speed = None):
+def vive(session, enable):
     '''Enable stereo viewing and head motion tracking with an HTC Vive headset.
 
     Parameters
@@ -13,8 +13,6 @@ def vive(session, enable, pan_speed = None):
       conventional display will cause stuttering of the Vive graphics.
       Also the Side View panel in the main ChimeraX window should be closed to avoid
       stuttering.
-    pan_speed : float
-      Controls how far the camera moves in response to tranlation head motion.  Default 5.
     '''
     
     if enable:
@@ -22,17 +20,13 @@ def vive(session, enable, pan_speed = None):
     else:
         stop_vive(session)
 
-    if not pan_speed is None:
-        for v in session.vive:
-            v.panning_speed = pan_speed
-
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
 def register_vive_command():
     from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, register
     desc = CmdDesc(required = [('enable', BoolArg)],
-                   keyword = [('pan_speed', FloatArg)])
+                   synopsis = 'Start / stop HTC Vive rendering')
     register('vive', desc, vive)
 
 # -----------------------------------------------------------------------------
@@ -75,10 +69,12 @@ class ViveCamera(Camera):
 
         Camera.__init__(self)
 
+        self._session = session
         self._framebuffer = None	# For rendering each eye view to a texture
         self._last_position = None
         self._last_h = None
         self._trigger_pressed = None	# Controller device and pose for moving models
+        self._close = False
 
         self.mirror_display = False	# Mirror right eye in ChimeraX window
         				# This causes stuttering in the Vive.
@@ -133,20 +129,29 @@ class ViveCamera(Camera):
         # Update camera position every frame.
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self._poses = poses_t()
-        session.triggers.add_handler('new frame', lambda *_, self=self: self.next_frame())
-
-        self.field_of_view = 100	# For view all calculation
+        h = session.triggers.add_handler('new frame', self.next_frame)
+        self._new_frame_handler = h
 
     def close(self):
+        self._close = True
+        
+    def _delayed_close(self):
+        # Apparently OpenVR doesn't make its OpenGL context current
+        # before deleting resources.  If the Qt GUI opengl context is current
+        # openvr deletes the Qt resources instead.  So delay openvr close
+        # until after rendering so that openvr opengl context is current.
+        self._session.triggers.remove_handler(self._new_frame_handler)
+        self._new_frame_handler = None
         import openvr
         openvr.shutdown()
         self.vr_system = None
+        self.compositor = None
         
     def name(self):
         '''Name of camera.'''
         return 'vive'
 
-    def next_frame(self):
+    def next_frame(self, *_):
         c = self.compositor
         if c is None:
             return
@@ -224,12 +229,14 @@ class ViveCamera(Camera):
         return 2
 
     def view_width(self, point):
+        fov = 100	# Effective field of view, degrees
         from chimerax.core.graphics.camera import perspective_view_width
-        return perspective_view_width(point, self.position.origin(), self.field_of_view)
+        return perspective_view_width(point, self.position.origin(), fov)
 
     def view_all(self, bounds, aspect = None, pad = 0):
+        fov = 100	# Effective field of view, degrees
         from chimerax.core.graphics.camera import perspective_view_all
-        self.position = perspective_view_all(bounds, self.position, self.field_of_view, aspect, pad)
+        self.position = perspective_view_all(bounds, self.position, fov, aspect, pad)
 
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
@@ -259,6 +266,8 @@ class ViveCamera(Camera):
         fb = render.pop_framebuffer()
         import openvr
         self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
+        if self._close:
+            self._delayed_close()
 
         if self.mirror_display:
             # Render right eye to ChimeraX window.
