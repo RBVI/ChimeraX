@@ -4,13 +4,6 @@ chimerax.core: collection of base ChimeraX functionality
 ========================================================
 
 """
-__copyright__ = (
-    "Copyright \N{Copyright Sign} 2015-2016 by the Regents of the University of California."
-    "  All Rights Reserved."
-    "  Free for non-commercial use."
-    "  See http://www.rbvi.ucsf.edu/chimerax/ for license details."
-)
-
 window_sys = None       # Set by startup script to "qt" or "wx".
 
 _class_cache = {}

@@ -7,6 +7,7 @@ grako==3.6.3
 line_profiler==1.0
 matplotlib==1.5.1
 networkx==1.10
+numpy==1.11.1
 openvr==1.0.0201
 Pillow==3.2.0
 python-dateutil==2.5.3

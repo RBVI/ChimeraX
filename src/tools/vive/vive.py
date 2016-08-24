@@ -75,8 +75,13 @@ class ViveCamera(Camera):
 
         Camera.__init__(self)
 
-#        self._framebuffer = None	# For rendering each eye view to a texture
-        self._framebuffer = [None,None]	# For rendering each eye view to a texture
+        self._framebuffer = None	# For rendering each eye view to a texture
+        self._last_position = None
+        self._last_h = None
+        self._trigger_pressed = None	# Controller device and pose for moving models
+
+        self.mirror_display = False	# Mirror right eye in ChimeraX window
+        				# This causes stuttering in the Vive.
         
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
@@ -100,8 +105,7 @@ class ViveCamera(Camera):
         self.eye_shift_left = hmd34_to_position(vl)
         vr = vrs.getEyeToHeadTransform(openvr.Eye_Right)
         self.eye_shift_right = hmd34_to_position(vr)
-#        print('left', self.eye_shift_left.matrix)
-#        print('right', self.eye_shift_right.matrix)
+
         # Map ChimeraX scene coordinates to OpenVR room coordinates
         from numpy import array, zeros, float32
         room_scene_size = 2 		# Initial virtual model size in meters
@@ -123,7 +127,8 @@ class ViveCamera(Camera):
             scene_center = zeros((3,), float32)
         # First apply scene shift then scene scale to get room coords
         self.scene_scale = ss = room_scene_size / scene_size
-        self.scene_shift = room_center/ss - scene_center
+        from chimerax.core.geometry import translation
+        self.scene_to_room_no_scale = translation(room_center/ss - scene_center)
         
         # Update camera position every frame.
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
@@ -151,18 +156,55 @@ class ViveCamera(Camera):
         if not hmd_pose0.bPoseIsValid:
             return
 
+        self.process_controller_events()
+        
         # head to room coordinates.
         hmd_pose = hmd34_to_position(hmd_pose0.mDeviceToAbsoluteTracking)
-#        f = getattr(self, '_frame', 0)
-#        if f%100 == 0:
-#            print('hmd position', hmd_pose.origin())
-#        self._frame = f+1
         
-        # Compute effective camera scene position
-        from chimerax.core.geometry import translation
-        self.position = (translation(-self.scene_shift + hmd_pose.origin()/self.scene_scale)
-                         * hmd_pose.zero_translation())
+        # Compute effective camera scene position from HMD position in room
+        lp = self._last_position
+        C = self.position
+        if lp is not None and C is not lp:
+            # Camera moved by mouse or command.
+            self.scene_to_room_no_scale = self._last_h * C.inverse()
+        H = hmd_pose.scale_translation(1/self.scene_scale)
+        Q = self.scene_to_room_no_scale
+        Cnew = Q.inverse() * H
+        self.position = Cnew
+        self._last_position = Cnew
+        self._last_h = H
 
+    def process_controller_events(self):
+        # Check for button press
+        vrs = self.vr_system
+        result, e = vrs.pollNextEvent()
+        if result:
+            t = e.eventType
+            import openvr
+            if t == openvr.VREvent_ButtonPress or t == openvr.VREvent_ButtonUnpress:
+                pressed = (t == openvr.VREvent_ButtonPress)
+                press = 'press' if pressed else 'unpress'
+                d = e.trackedDeviceIndex
+                b = e.data.controller.button
+#                print('Controller button %s, device %d, button %d'
+#                      % (press, d, b))
+                if b == openvr.k_EButton_SteamVR_Trigger:
+                    self._trigger_pressed = [d, None] if pressed else None
+
+        # Use controller motion to move scene
+        tp = self._trigger_pressed
+        if tp:
+            d,pose = tp
+            p = hmd34_to_position(self._poses[d].mDeviceToAbsoluteTracking) # Device to room coords
+            new_pose = p.scale_translation(1/self.scene_scale)
+            if pose is not None:
+                Q = self.scene_to_room_no_scale
+                # This rotates about controller position -- has natural feel,
+                # like you grab the models where your hand is located.
+                # Might want to instead pretend controller is at center of models.
+                self.scene_to_room_no_scale = new_pose * pose.inverse() * Q
+            tp[1] = new_pose
+        
     def view(self, camera_position, view_num):
         '''
         Return the Place coordinate frame of the camera.
@@ -196,23 +238,18 @@ class ViveCamera(Camera):
         elif view_num == 1:
             p = self.projection_right
         pm = p.copy()
-#        pm[:,:3] *= self.scene_scale
-#        pm[:,:] *= self.scene_scale
         pm[:3,:] *= self.scene_scale
         return pm
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        fb = self._texture_framebuffer()
         if view_num == 0:
-            fb = self._texture_framebuffer(view_num)
             render.push_framebuffer(fb)
         elif view_num == 1:
             # Submit left eye texture (view 0) before rendering right eye (view 1)
-            fb = render.pop_framebuffer()
             import openvr
             self.compositor.submit(openvr.Eye_Left, fb.openvr_texture)
-            fb = self._texture_framebuffer(view_num)
-            render.push_framebuffer(fb)
 
     def combine_rendered_camera_views(self, render):
         '''
@@ -220,32 +257,39 @@ class ViveCamera(Camera):
         by set_render_target() when render target switched to right eye.
         '''
         fb = render.pop_framebuffer()
-#        fb = self._texture_framebuffer(0) # DEBUG: Trying left eye in both eyes.
         import openvr
         self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
 
-    def _texture_framebuffer(self, view_num):
+        if self.mirror_display:
+            # Render right eye to ChimeraX window.
+            from chimerax.core.graphics.drawing import draw_overlays
+            draw_overlays([self._texture_drawing], render)
+
+    def _texture_framebuffer(self):
 
         tw,th = self._render_size
-#        fb = self._framebuffer
-        fb = self._framebuffer[view_num]
+        fb = self._framebuffer
         if fb is None or fb.width != tw or fb.height != th:
             from chimerax.core.graphics import Texture, opengl
             t = Texture()
             t.initialize_rgba((tw,th))
-#            self._framebuffer = fb = opengl.Framebuffer(color_texture = t)
-            self._framebuffer[view_num] = fb = opengl.Framebuffer(color_texture = t)
-            # OpenVR texture id
+            self._framebuffer = fb = opengl.Framebuffer(color_texture = t)
+            # OpenVR texture id object
             import openvr
             fb.openvr_texture = ovrt = openvr.Texture_t()
             ovrt.handle = t.id
             ovrt.eType = openvr.API_OpenGL
             ovrt.eColorSpace = openvr.ColorSpace_Gamma
+            if self.mirror_display:
+                # Drawing object for rendering to ChimeraX window
+                from chimerax.core.graphics.drawing import _texture_drawing
+                self._texture_drawing = d = _texture_drawing(t)
+                d.opaque_texture = True
 
         return fb
 
     def do_swap_buffers(self):
-        return False
+        return self.mirror_display
 
 def hmd44_to_opengl44(hm44):
     from numpy import array, float32
