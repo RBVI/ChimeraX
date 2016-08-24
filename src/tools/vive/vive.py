@@ -75,8 +75,7 @@ class ViveCamera(Camera):
 
         Camera.__init__(self)
 
-#        self._framebuffer = None	# For rendering each eye view to a texture
-        self._framebuffer = [None,None]	# For rendering each eye view to a texture
+        self._framebuffer = None	# For rendering each eye view to a texture
         self._last_position = None
         self._last_h = None
         
@@ -214,16 +213,13 @@ class ViveCamera(Camera):
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        fb = self._texture_framebuffer()
         if view_num == 0:
-            fb = self._texture_framebuffer(view_num)
             render.push_framebuffer(fb)
         elif view_num == 1:
             # Submit left eye texture (view 0) before rendering right eye (view 1)
-            fb = render.pop_framebuffer()
             import openvr
             self.compositor.submit(openvr.Eye_Left, fb.openvr_texture)
-            fb = self._texture_framebuffer(view_num)
-            render.push_framebuffer(fb)
 
     def combine_rendered_camera_views(self, render):
         '''
@@ -231,22 +227,19 @@ class ViveCamera(Camera):
         by set_render_target() when render target switched to right eye.
         '''
         fb = render.pop_framebuffer()
-#        fb = self._texture_framebuffer(0) # DEBUG: Trying left eye in both eyes.
         import openvr
         self.compositor.submit(openvr.Eye_Right, fb.openvr_texture)
 
-    def _texture_framebuffer(self, view_num):
+    def _texture_framebuffer(self):
 
         tw,th = self._render_size
-#        fb = self._framebuffer
-        fb = self._framebuffer[view_num]
+        fb = self._framebuffer
         if fb is None or fb.width != tw or fb.height != th:
             from chimerax.core.graphics import Texture, opengl
             t = Texture()
             t.initialize_rgba((tw,th))
-#            self._framebuffer = fb = opengl.Framebuffer(color_texture = t)
-            self._framebuffer[view_num] = fb = opengl.Framebuffer(color_texture = t)
-            # OpenVR texture id
+            self._framebuffer = fb = opengl.Framebuffer(color_texture = t)
+            # OpenVR texture id object
             import openvr
             fb.openvr_texture = ovrt = openvr.Texture_t()
             ovrt.handle = t.id
