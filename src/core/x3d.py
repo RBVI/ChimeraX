@@ -96,7 +96,7 @@ class X3DScene:
                 return profile
 
     def write_header(self, stream, indent, meta={}, *, namespaces={}, units={}, profile_name=None):
-        # meta argument is good for author, copyright, etc.
+        # meta argument is good for author, etc.
         import datetime
         from html import escape
         if indent == 0:
