@@ -77,6 +77,8 @@ class ViveCamera(Camera):
 
 #        self._framebuffer = None	# For rendering each eye view to a texture
         self._framebuffer = [None,None]	# For rendering each eye view to a texture
+        self._last_position = None
+        self._last_h = None
         
         import openvr
         self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
@@ -123,7 +125,8 @@ class ViveCamera(Camera):
             scene_center = zeros((3,), float32)
         # First apply scene shift then scene scale to get room coords
         self.scene_scale = ss = room_scene_size / scene_size
-        self.scene_shift = room_center/ss - scene_center
+        from chimerax.core.geometry import translation
+        self.scene_to_room_no_scale = translation(room_center/ss - scene_center)
         
         # Update camera position every frame.
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
@@ -158,10 +161,18 @@ class ViveCamera(Camera):
 #            print('hmd position', hmd_pose.origin())
 #        self._frame = f+1
         
-        # Compute effective camera scene position
-        from chimerax.core.geometry import translation
-        self.position = (translation(-self.scene_shift + hmd_pose.origin()/self.scene_scale)
-                         * hmd_pose.zero_translation())
+        # Compute effective camera scene position from HMD position in room
+        lp = self._last_position
+        C = self.position
+        if lp is not None and C is not lp:
+            # Camera moved by mouse or command.
+            self.scene_to_room_no_scale = self._last_h * C.inverse()
+        H = hmd_pose.scale_translation(1/self.scene_scale)
+        Q = self.scene_to_room_no_scale
+        Cnew = Q.inverse() * H
+        self.position = Cnew
+        self._last_position = Cnew
+        self._last_h = H
 
     def view(self, camera_position, view_num):
         '''
