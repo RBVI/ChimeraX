@@ -170,8 +170,8 @@ leapmotion.install: setuptools.install
 leapmotion.app-install: setuptools.app-install
 llvm.install:
 mesa.install: llvm.install pkgconfig.install
-numexpr.install: setuptools.install
-numexpr.app-install: setuptools.app-install
+numexpr.install: setuptools.install pips.install
+numexpr.app-install: setuptools.app-install pips.app-install
 pcre.install: zlib.install
 pcre.app-install: zlib.app-install
 pips.install: setuptools.install
