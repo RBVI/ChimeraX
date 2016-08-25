@@ -1493,8 +1493,16 @@ extern "C" EXPORT void residue_is_helix(void *residues, size_t n, npy_bool *is_h
 
 extern "C" EXPORT void set_residue_is_helix(void *residues, size_t n, npy_bool *is_helix)
 {
+    // If true, also unsets is_sheet
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_helix, is_helix);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            if (is_helix[i])
+                r[i]->set_is_sheet(false);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void residue_is_sheet(void *residues, size_t n, npy_bool *is_sheet)
@@ -1505,8 +1513,16 @@ extern "C" EXPORT void residue_is_sheet(void *residues, size_t n, npy_bool *is_s
 
 extern "C" EXPORT void set_residue_is_sheet(void *residues, size_t n, npy_bool *is_sheet)
 {
+    // If true, also unsets is_helix
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_sheet, is_sheet);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            if (is_sheet[i])
+                r[i]->set_is_helix(false);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void residue_ss_id(void *residues, size_t n, int32_t *ss_id)
@@ -2056,6 +2072,30 @@ extern "C" EXPORT void residue_set_alt_loc(void *residues, size_t n, char alt_lo
     try {
         for (size_t i = 0; i < n; ++i)
             r[i]->set_alt_loc(alt_loc);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void residue_set_ss_helix(void *residues, size_t n, bool value)
+{
+    // Doesn't touch is_sheet
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            r[i]->set_is_helix(value);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void residue_set_ss_sheet(void *residues, size_t n, bool value)
+{
+    // Doesn't touch is_helix
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            r[i]->set_is_sheet(value);
     } catch (...) {
         molc_error();
     }
