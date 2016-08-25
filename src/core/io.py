@@ -315,8 +315,6 @@ def open_data(session, filespec, format=None, name=None, **kw):
     if not stream.closed:
         stream.close()
 
-    if name is None:
-        name = dname
     if name is not None:
         for m in models:
             m.name = name
