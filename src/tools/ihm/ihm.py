@@ -42,6 +42,8 @@ def read_ihm(session, filename, name, *args, **kw):
     from os.path import basename, splitext
     name = splitext(basename(filename))[0]
     models = [IHMSphereModel(session, '%s %d' % (name,mid) , slist) for mid, slist in mspheres.items()]
+    for m in models[1:]:
+        m.display = False	# Only show first model.
 
     xlink_fields = [
         'asym_id_1',
@@ -57,7 +59,7 @@ def read_ihm(session, filename, name, *args, **kw):
 #        xname = '%s crosslinks' % name
 #        g = session.pb_manager.get_group(xname)
 #        g.name = xname
-        xlink_radius = 2.0
+        xlink_radius = 1.0
         long_xlink_color = (255,0,0,255)	# Red
         xlink_color = (0,255,0,255)		# Green
         for m in models:
