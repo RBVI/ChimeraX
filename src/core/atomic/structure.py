@@ -1975,9 +1975,15 @@ def all_atomic_structures(session):
 
 # -----------------------------------------------------------------------------
 #
+def all_structures(session):
+    '''List of all :class:`.Structure` objects.'''
+    return [m for m in session.models.list() if isinstance(m,Structure)]
+
+# -----------------------------------------------------------------------------
+#
 def all_atoms(session):
     '''All atoms in all structures as an :class:`.Atoms` collection.'''
-    return structure_atoms(all_atomic_structures(session))
+    return structure_atoms(all_structures(session))
 
 # -----------------------------------------------------------------------------
 #
