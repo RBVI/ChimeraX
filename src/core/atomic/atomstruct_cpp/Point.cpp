@@ -17,6 +17,7 @@
 #include "Point.h"
 #include <sstream>
 #include <cmath>
+#include <stdexcept>
 
 #ifndef M_PI
 // not defined on Windows
