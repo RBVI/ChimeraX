@@ -140,9 +140,9 @@ def register_mmcif_fetch(session):
                          prefixes=['pdb'], default_format=True)
 
 
-def get_mmcif_tables(model, table_names):
+def get_mmcif_tables(filename, table_names):
     from . import _mmcif
-    data = _mmcif.extract_mmCIF_tables(model.filename, table_names)
+    data = _mmcif.extract_mmCIF_tables(filename, table_names)
     tlist = []
     for name in table_names:
         if name not in data:
