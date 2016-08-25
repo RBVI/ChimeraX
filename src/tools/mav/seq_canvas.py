@@ -31,11 +31,30 @@ DISPLAY_TREE = "hide/show tree"
 """
 
 class SeqCanvas:
+    """'public' methods are only public to the MultalignViewer class.
+       Access to SeqCanvas functions is made through methods of the
+       MultalignViewer class.
+    """
+
     """TODO
 	EditUpdateDelay = 7000
 	viewMargin = 2
     """
-	def __init__(self, parent, mav, seqs):
+	def __init__(self, parent, mav, alignment):
+        from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QFrame, QHBoxLayout
+        from PyQt5.QtCore import Qt
+        self.label_scene = QGraphicsScene()
+        self.label_scene.setBackgroundBrush(Qt.lightgray)
+        self.label_view = QGraphicsView(self.label_scene)
+        self._vdivider = QFrame()
+        self._vdivider.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        self._vdidver.setLineWidth(2)
+        self._hdivider = QFrame()
+        self._hdivider.setFrameStyle(QFrame.HLine | QFrame.Plain)
+        self._hdivider.setLineWidth(1)
+        self.main_scene = QGraphicsScene()
+        self.main_scene.setBackgroundBrush(Qt.lightgray)
+        self.main_view = QGraphicsView(self.main_scene)
         """TODO
 		self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
 		self._vdivider = Tkinter.Frame(parent, bd=2, relief='raised')
@@ -73,7 +92,10 @@ class SeqCanvas:
 
 		self.mainCanvas.bind('<Configure>', self._configureCB)
 
+        """
 		self.mav = mav
+        self.alignment = alignment
+        """TODO
 		self.seqs = seqs
 		for trig in [ADD_HEADERS, DEL_HEADERS,
 				SHOW_HEADERS, HIDE_HEADERS, DISPLAY_TREE]:
@@ -94,14 +116,28 @@ class SeqCanvas:
 		self.lineWidth = self.lineWidthFromPrefs()
 		self.font = tkFont.Font(parent,
 			(self.mav.prefs[FONT_NAME], self.mav.prefs[FONT_SIZE]))
+        """
+        from PyQt5.QtGui import QFont
+        self.font = QFont("Helvetica")
+        """TODO
 		self.treeBalloon = Pmw.Balloon(parent)
 		self.tree = self._treeCallback = None
 		self.treeShown = self.nodesShown = False
 		self._residueHandlers = None
-		self.layout()
+        """
+		self.layout_alignment()
+        """TODO
 		self.mainCanvas.grid(row=1, column=2, sticky='nsew')
 		parent.columnconfigure(2, weight=1)
 		parent.rowconfigure(1, weight=1)
+        """
+        layout = QHBoxLayout()
+        layout.addWidget(self.label_view)
+        layout.addWidget(self._hdivider)
+        layout.addWidget(self.main_view, stretch=1)
+        parent.setLayout(layout)
+        self.main_view.show()
+        """TODO
 
 		# make the main canvas a reasonable size
 		left, top, right, bottom = map(int,
@@ -534,23 +570,10 @@ class SeqCanvas:
 		self.leadBlock.hideHeaders(headers)
 		self.mav.regionBrowser.redrawRegions(cullEmpty=True)
 		self.mav.triggers.activateTrigger(HIDE_HEADERS, headers)
-
-	def _labelCanvas(self, grid=1):
-		if self.shouldWrap():
-			labelCanvas = self.mainCanvas
-			if grid:
-				self.labelCanvas.grid_forget()
-				self._vdivider.grid_forget()
-		else:
-			labelCanvas = self.labelCanvas
-			if grid:
-				self.labelCanvas.grid(row=1, column=0,
-								sticky="nsw")
-				self._vdivider.grid(row=1, column=1,
-						rowspan=2, sticky="nsew")
-		return labelCanvas
+        """
 		
-	def layout(self):
+	def layout_alignment(self):
+        """
 		self.consensus = Consensus(self.mav)
 		def colorConsensus(line, offset, upper=string.uppercase):
 			if line[offset] in upper:
@@ -646,7 +669,13 @@ class SeqCanvas:
 			self.showRuler, self.treeBalloon, self.showNumberings,
 			self.mav.prefs)
 		self._resizescrollregion()
+        """
+        self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
+            None, self.font, 0 [], self.alignment,
+            50, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
+            False, None, False, None)
 
+    """TODO
 	def lineWidthFromPrefs(self):
 		if self.shouldWrap():
 			if len(self.mav.seqs) == 1:
@@ -1155,8 +1184,11 @@ class SeqCanvas:
 
 		self._clustalXcache[offset] = consensusChars
 		return consensusChars
+        """
 
-	def shouldWrap(self):
+	def should_wrap(self):
+        return True
+        """TODO
 		return shouldWrap(len(self.seqs), self.mav.prefs)
 
 	def showHeaders(self, headers, fromMenu=False):
@@ -2517,7 +2549,22 @@ class SeqBlock:
 						self._makeNumbering(line, i)
 		if self.nextBlock:
 			self.nextBlock.updateNumberings()
+    """
+
+	def _label_scene(self, grid=true):
+		if self.should_wrap():
+			label_scene = self.main_scene
+			if grid:
+				self.label_view.hide()
+				self._vdivider.hide()
+		else:
+			label_scene = self.label_scene
+			if grid:
+				self.label_view.show()
+				self._vdivider.show()
+		return label_scene
 			
+"""
 def shouldWrap(numSeqs, prefs):
 	if numSeqs == 1:
 		prefix = SINGLE_PREFIX

@@ -59,6 +59,9 @@ class MultalignViewer(ToolInstance):
         from common import getStaticSeqs
         seqs, fileMarkups, fileAttrs = getStaticSeqs(fileNameOrSeqs, fileType=fileType)
         self.seqs = seqs
+        """
+        self.alignment = alignment
+        """
         self.prefs = prefs
         from SeqCanvas import shouldWrap
         if numberingDisplay:
@@ -137,7 +140,7 @@ class MultalignViewer(ToolInstance):
 
         """
         from .seq_canvas import SeqCanvas
-		self.seqCanvas = SeqCanvas(parent, self, self.seqs)
+		self.seqCanvas = SeqCanvas(parent, self, self.alignment)
         """TODO
 		self.regionBrowser = RegionBrowser(self.seqCanvas)
 		if self.fileMarkups:
