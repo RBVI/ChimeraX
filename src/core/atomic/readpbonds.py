@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def read_pseudobond_file(session, file, name, radius = 0.5, color = (255,255,0,255), as_ = None):
+def read_pseudobond_file(session, file, name, *args, radius = 0.5, color = (255,255,0,255), **kw):
     lines = file.readlines()
     file.close()
 
