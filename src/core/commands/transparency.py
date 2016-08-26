@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 
 def transparency(session, objects, percent, target='s'):
     """Set transparency of atoms, ribbons, surfaces, ....
@@ -101,18 +112,27 @@ def _set_surface_transparency(atoms, objects, session, alpha):
             s.vertex_colors = vcolors
 
     # Handle surface models specified without specifying atoms
-    from ..atomic import MolecularSurface
+    from ..atomic import MolecularSurface, Structure
+    osurfs = []
     for s in objects.models:
-        if isinstance(s, MolecularSurface) and not s in surfs:
-            vcolors = s.vertex_colors
-            if vcolors is None:
-                c = s.colors
-                c[:, 3] = alpha
-                s.colors = c
-            else:
-                vcolors[v, 3] = alpha
-                s.vertex_colors = vcolors
-            surfs.append(s)
+        if isinstance(s, MolecularSurface):
+            if not s in surfs:
+                osurfs.append(s)
+        elif not isinstance(s, Structure):
+            if hasattr(s, 'surface_drawings_for_vertex_coloring'):
+                osurfs.extend(s.surface_drawings_for_vertex_coloring())
+            elif not s.empty_drawing():
+                osurfs.append(s)
+    for s in osurfs:
+        vcolors = s.vertex_colors
+        if vcolors is None:
+            c = s.colors
+            c[:, 3] = alpha
+            s.colors = c
+        else:
+            vcolors[:, 3] = alpha
+            s.vertex_colors = vcolors
+    surfs.extend(osurfs)
             
     return surfs
 

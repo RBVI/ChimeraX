@@ -1,3 +1,14 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from chimerax.core.errors import UserError as CommandError
 def register_label_command():
 
@@ -117,7 +128,8 @@ class LabelDrawing(Drawing):
         from .. import x3d
         x3d_scene.need(x3d.Components.Text, 1)  # Text
 
-    def x3d_write(self, stream, x3d_scene, indent, place):
+    def custom_x3d(self, stream, x3d_scene, indent, place):
+        # TODO
         pass
 
 

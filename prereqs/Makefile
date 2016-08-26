@@ -82,23 +82,17 @@ NEED_OPENSSL=1
 SUBDIRS += llvm mesa pkgconfig xdg-utils
 endif
 
-ifdef ENABLE_QT
-SUBDIRS += PyQt qt sip
-endif
-
 # Python egg installation has a race condition updating easy-install.pth
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= fonts \
-	   imex numexpr numpy scipy \
+	   imex numexpr scipy \
 	   pcre pips pycollada \
 	   PyOpenGL pytables Python \
 	   setuptools wrappy3
 
-ifndef WIN32
-SUBDIRS += wx
-endif
+SUBDIRS += PyQt
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -170,22 +164,17 @@ leapmotion.install: setuptools.install
 leapmotion.app-install: setuptools.app-install
 llvm.install:
 mesa.install: llvm.install pkgconfig.install
-numexpr.install: numpy.install
-numexpr.app-install: numpy.app-install
-numpy.install: setuptools.install
-numpy.app-install: setuptools.app-install
+numexpr.install: setuptools.install pips.install
+numexpr.app-install: setuptools.app-install pips.app-install
 pcre.install: zlib.install
 pcre.app-install: zlib.app-install
-# For Pillow:
-# pips.install: jpeg.install tiff.install freetype.install littecms.install webp.install webpmux.install
-# pips.app-install: jpeg.app-install tiff.app-install freetype.app-install littecms.app-install webp.app-install webpmux.app-install
 pips.install: setuptools.install
 pips.app-install: setuptools.app-install
 pkgconfig.install:
-pycollada.install: setuptools.install numpy.install pips.install
-pycollada.app-install: setuptools.app-install numpy.app-install pips.app-install
-PyOpenGL.install: setuptools.install numpy.install pips.install
-PyOpenGL.app-install: setuptools.app-install numpy.app-install pips.app-install
+pycollada.install: setuptools.install pips.install
+pycollada.app-install: setuptools.app-install pips.app-install
+PyOpenGL.install: setuptools.install pips.install
+PyOpenGL.app-install: setuptools.app-install pips.app-install
 PyQt.install: setuptools.install qt.install sip.install
 PyQt.app-install: setuptools.app-install qt.app-install sip.app-install
 pytables.install: hdf5.install numexpr.install pips.install setuptools.install zlib.install
@@ -198,8 +187,8 @@ qt.install: p7zip.install openssl.install zlib.install
 qt.app-install: p7zip.app-install openssl.app-install zlib.app-install
 # qt.install: png.install jpeg.install
 # qt.app-install: png.app-install jpeg.app-install
-scipy.install: numpy.install pips.install
-scipy.app-install: numpy.app-install pips.app-install
+scipy.install: pips.install
+scipy.app-install: pips.app-install
 setuptools.install: Python.install
 setuptools.app-install: Python.app-install
 sip.install: setuptools.install

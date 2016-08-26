@@ -1,8 +1,23 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #define ATOMSTRUCT_EXPORT
 #include "Point.h"
 #include <sstream>
 #include <cmath>
+#include <stdexcept>
 
 #ifndef M_PI
 // not defined on Windows
@@ -32,6 +47,17 @@ Point::angle(const Point& pt1, const Point& pt3) const
     else if (dot < -1.0)
         dot = -1.0;
     return 180.0 * acos(dot) / M_PI;
+}
+
+void
+Point::normalize()
+{
+    auto len = length();
+    if (len == 0.0)
+        throw std::domain_error("Can't normalize if length is zero");
+    _xyz[0] /= len;
+    _xyz[1] /= len;
+    _xyz[2] /= len;
 }
 
 Real

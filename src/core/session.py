@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 session: Application session support
 ====================================
@@ -634,7 +646,6 @@ def save_x3d(session, filename, **kw):
     if user is None:
         user = os.getlogin()
     meta['author'] = user
-    meta['copyright'] = '\N{COPYRIGHT SIGN} %d by %s.  All Rights reserved.' % (year, user)
 
     # record needed X3D components
     x3d_scene.need(x3d.Components.EnvironmentalEffects, 1)  # Background
@@ -684,7 +695,7 @@ def save_x3d(session, filename, **kw):
         from .geometry import Place
         p = Place()
         for m in session.models.list():
-            m.x3d_write(stream, x3d_scene, 2, p)
+            m.write_x3d(stream, x3d_scene, 2, p)
         x3d_scene.write_footer(stream, 0)
 
 

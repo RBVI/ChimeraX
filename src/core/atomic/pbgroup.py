@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from .molobject import PseudobondGroupData
 from ..models import Model
 class PseudobondGroup(PseudobondGroupData, Model):
@@ -17,12 +29,19 @@ class PseudobondGroup(PseudobondGroupData, Model):
         Model.__init__(self, self.category, session)
         self._pbond_drawing = None
         self._dashes = 9
+        s = self.structure
+        if s:
+            s.add([self])
+        self._global_group = (s is None)
 
     def delete(self):
-        pbm = self.session.pb_manager
+        if self._global_group:
+            pbm = self.session.pb_manager
+            pbm.delete_group(self)
+        else:
+            self.structure.delete_pseudobond_group(self)
         Model.delete(self)
         self._pbond_drawing = None
-        pbm.delete_group(self)
 
     def added_to_session(self, session):
         # Detect when atoms moved so pseudobonds must be redrawn.
@@ -45,11 +64,10 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._dashes = n
         pb = self._pbond_drawing
         if pb:
-            owner = self.structure if self.structure else self
-            owner.remove_drawing(pb)
+            self.remove_drawing(pb)
             self._pbond_drawing = None
             self._graphics_changed |= self._SHAPE_CHANGE
-            owner.redraw_needed(shape_changed = True)
+            self.redraw_needed(shape_changed = True)
     dashes = property(_get_dashes, _set_dashes)
 
     def _update_graphics_if_needed(self, *_):
@@ -66,14 +84,12 @@ class PseudobondGroup(PseudobondGroupData, Model):
         d = self._pbond_drawing
         if len(pbonds) == 0:
             if d:
-                owner = self.structure if self.structure else self
-                owner.remove_drawing(d)
+                self.remove_drawing(d)
                 self._pbond_drawing = None
             return
 
         if d is None:
-            owner = self.structure
-            d = owner.new_drawing(self.category) if owner else self.new_drawing('pbonds')
+            d = self.new_drawing('pbonds')
             self._pbond_drawing = d
             va, na, ta = _pseudobond_geometry(self._dashes//2)
             d.vertices = va
@@ -84,11 +100,11 @@ class PseudobondGroup(PseudobondGroupData, Model):
             bond_atoms = pbonds.atoms
         if changes & self._SHAPE_CHANGE:
             ba1, ba2 = bond_atoms
-            if self.structure:
-                axyz0, axyz1 = ba1.coords, ba2.coords
-            else:
+            if self._global_group:
                 to_pbg = self.scene_position.inverse()
                 axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
+            else:
+                axyz0, axyz1 = ba1.coords, ba2.coords
             from . import structure as s
             d.positions = s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
             d.display_positions = s._shown_bond_cylinders(pbonds)

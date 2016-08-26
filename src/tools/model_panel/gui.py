@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from chimerax.core.tools import ToolInstance
 
 
@@ -151,6 +162,8 @@ class ModelPanel(ToolInstance):
             if display is not None:
                 item.setCheckState(2, Qt.Checked if display else Qt.Unchecked)
             item.setText(3, name)
+        if not update:
+            self.tree.expandAll()
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)
 
@@ -186,20 +199,11 @@ class ModelPanel(ToolInstance):
         return DEREGISTER
 
     def _get_info(self, obj):
-        from chimerax.core.atomic import Chain
-        if isinstance(obj, Chain):
-            chain_string = '/%s' % obj.chain_id
-            model_id = obj.structure.id + (chain_string,)
-            model_id_string = obj.structure.id_string() + chain_string
-            bg_color = None
-            display = None
-            name = obj.description or "chain %s" % obj.chain_id
-        else:
-            model_id = obj.id
-            model_id_string = obj.id_string()
-            bg_color = self._model_color(obj)
-            display = obj.display
-            name = getattr(obj, "name", "(unnamed)")
+        model_id = obj.id
+        model_id_string = obj.id_string()
+        bg_color = self._model_color(obj)
+        display = obj.display
+        name = getattr(obj, "name", "(unnamed)")
         return model_id, model_id_string, bg_color, display, name
 
     def _header_click_cb(self, index):
@@ -229,14 +233,11 @@ class ModelPanel(ToolInstance):
     def _process_models(self):
         models = self.session.models.list()
         tree_models = []
-        chains = []
         sorted_models = sorted(models, key=lambda m: m.id)
         from chimerax.core.atomic import AtomicStructure
         final_models = []
         for model in sorted_models:
             final_models.append(model)
-            if isinstance(model, AtomicStructure):
-                final_models.extend([c for c in model.chains])
         update = True if hasattr(self, 'models') and final_models == self.models else False
         self.models = final_models
         return update
@@ -281,10 +282,6 @@ def view(objs, session):
     for model in models:
         if getattr(model, 'atoms', None):
             view_objects.add_atoms(model.atoms)
-    from chimerax.core.atomic import Chain
-    for o in objs:
-        if isinstance(o, Chain):
-            view_objects.add_atoms(o.existing_residues.atoms)
     from chimerax.core.commands.view import view
     view(session, view_objects)
 

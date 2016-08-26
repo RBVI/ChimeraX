@@ -1,3 +1,14 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 x3d: support X3D output
 =======================
@@ -96,7 +107,7 @@ class X3DScene:
                 return profile
 
     def write_header(self, stream, indent, meta={}, *, namespaces={}, units={}, profile_name=None):
-        # meta argument is good for author, copyright, etc.
+        # meta argument is good for author, etc.
         import datetime
         from html import escape
         if indent == 0:
@@ -119,7 +130,7 @@ class X3DScene:
         for prefix, uri in namespaces.items():
             print("\n%s xmlns:%s=\"%s\"" % (tab, escape(prefix), escape(uri)),
                   end='', file=stream)
-            print('>', file=stream)
+        print('>', file=stream)
         if 'created' not in meta:
             # See ISO 8601 and/or <http://www.w3.org/TR/NOTE-datetime>.
             iso_date = datetime.datetime.utcnow().isoformat() + 'Z'
@@ -163,40 +174,6 @@ class X3DScene:
             return 'DEF', name_format % (prefix, index)
         return 'USE', name_format % (prefix, prefix_cache[key])
 
-    # rest of methods are ChimeraX specific
-
-    def resuse_appearance(self, stream, indent, color):
-        if color is None:
-            return
-        tab = ' ' * indent
-        use, name = self.def_or_use(color, 'ap')
-        if use == 'USE':
-            print("%s<Appearance USE='%s'/>" % (tab, name), file=stream)
-            return
-
-        print("%s<Appearance DEF='%s'>" % (tab, name), file=stream)
-        color.x3d_write(stream, indent + 1, True)
-        print("%s</Appearance>" % tab, file=stream)
-
-    def resuse_unlit_appearance(self, stream, indent, color, line_width, line_type):
-        tab = ' ' * indent
-        use, name = self.def_or_use((color, line_width, line_type), 'aup')
-        if use == 'USE':
-            print("%s<Appearance USE='%s'/>" % (tab, name), file=stream)
-            return
-
-        from graphics.linetype import LineType
-        print("%s<Appearance DEF='%s'>" % (tab, name), file=stream)
-        if line_width != 1 or line_type != LineType.Solid:
-            print("%s <LineProperties" % tab, end='', file=stream)
-            if line_width != 1:
-                    print(" linewidthScaleFactor='%g'" % line_width, end='', file=stream)
-            if line_type != LineType.Solid:
-                    print(" linetype='%d'" % line_type.value, end='', file=stream)
-            print("/>", file=stream)
-        if color is not None:
-            color.x3d_write(stream, indent + 1, False)
-        print("%s</Appearance>" % tab, file=stream)
 
 # Appendix F, X3D Version 3.0, ISO/IEC 19775:2004
 FULL_3_0_PROFILE = (

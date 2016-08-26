@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 '''
 molarray: Collections of molecular objects
 ==========================================
@@ -436,6 +448,11 @@ class Atoms(Collection):
     def unique_structures(self):
         "The unique structures as an :class:`.AtomicStructures` collection"
         return _atomic_structures(unique(self.structures._pointers))
+    @property
+    def single_structure(self):
+        "Do all atoms belong to a single :class:`.Structure`"
+        p = self.structures._pointers
+        return len(p) == 0 or (p == p[0]).all()
     visibles = cvec_property('atom_visible', npy_bool, read_only=True,
         doc="Returns whether the Atom should be visible (displayed and not hidden). Returns a "
         ":mod:`numpy` array of boolean values.  Read only.")
@@ -814,11 +831,19 @@ class Residues(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
-    def set_alt_loc(self, loc):
+    def set_alt_locs(self, loc):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
         f(self._c_pointers, len(self), loc)
+
+    def set_secondary_structures(self, ss_type, value):
+        '''See Residue.set_secondary_structure()'''
+        if value == molobject.Residue.SS_HELIX:
+            f = c_array_function('residue_set_ss_helix', args=(npy_bool,), per_object=False)
+        else:
+            f = c_array_function('residue_set_ss_sheet', args=(npy_bool,), per_object=False)
+        f(self._c_pointers, len(self), value)
 
 # -----------------------------------------------------------------------------
 #

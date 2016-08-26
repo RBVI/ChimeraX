@@ -1,5 +1,16 @@
 # vim: set expandtab ts=4 sw=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 class MouseMode:
     '''
     Classes derived from MouseMode implement specific mouse modes providing
@@ -766,7 +777,7 @@ class RotateMouseMode(MouseMode):
         if self.click_to_select:
             if event.position() == self.mouse_down_position:
                 mouse_select(event, self.session, self.view)
-            MouseMode.mouse_up(self, event)
+        MouseMode.mouse_up(self, event)
 
     def mouse_drag(self, event):
         axis, angle = self.mouse_rotation(event)

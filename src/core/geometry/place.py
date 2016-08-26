@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 '''
 place: Coordinate systems
 =========================
@@ -126,6 +138,12 @@ class Place:
         '''Return a copy of the transform with zero shift.'''
         m = self.matrix.copy()
         m[:, 3] = 0
+        return Place(m)
+
+    def scale_translation(self, s):
+        '''Return a copy of the transform with scaled shift.'''
+        m = self.matrix.copy()
+        m[:, 3] *= s
         return Place(m)
 
     def opengl_matrix(self):
@@ -328,6 +346,58 @@ def interpolate_rotation(place1, place2, fraction):
     r1, r2 = place1.zero_translation(), place2.zero_translation()
     center = (0,0,0)
     return r1.interpolate(r2, center, fraction)
+
+def look_at(from_pt, to_pt, up):
+    '''
+    Return a Place object that represents looking from 'from_pt' to 'to_pt'
+    with 'up' pointing up.
+    '''
+    import numpy
+    from numpy.linalg import norm
+    normalize = lambda v: v/norm(v)
+
+    # Compute rotation
+    p01 = normalize(to_pt - from_pt)
+    x = normalize(numpy.cross(up, p01))
+    y = normalize(numpy.cross(p01, x))
+    xf = Place(axes=numpy.array([x, y, numpy.negative(p01)]),
+        origin=numpy.array([0.0, 0.0, 0.0])).transpose()
+
+    # Compute translation and return
+    return translation(numpy.negative(xf * from_pt)) * xf
+
+def z_align(pt1, pt2):
+    '''
+    Return a Place object that puts the pt1->pt2 vector on the Z axis
+    '''
+    a, b, c = pt2 - pt1
+    l = a * a + c * c
+    d = l + b * b
+    epsilon = 1e-10
+    if abs(d) < epsilon:
+        raise ValueError("z_align endpoints must be distinct")
+    from math import sqrt
+    l = sqrt(l)
+    d = sqrt(d)
+
+    from numpy import array, float64
+    xf = array(((0, 0, 0), (0, 0, 0), (0, 0, 0)), float64)
+    xf[1][1] = l / d
+    if abs(l) < epsilon:
+        xf[0][0] = 1.0
+        xf[2][1] = -b / d
+    else:
+        xf[0][0] = c / l
+        xf[2][0] = -a / l
+        xf[0][1] = -(a * b) / (l * d)
+        xf[2][1] = -(b * c) / (l * d)
+    xf[0][2] = a / d
+    xf[1][2] = b / d
+    xf[2][2] = c / d
+
+    import numpy
+    xlate = numpy.negative(numpy.dot(numpy.transpose(xf), pt1))
+    return Place(axes=xf, origin=xlate)
 
 class Places:
     ''' The Places class represents a list of 0 or more Place objects.

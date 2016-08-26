@@ -1,7 +1,17 @@
 #!/bin/env python
 # vim: set expandtab shiftwidth=4 softtabstop=4 fileencoding=utf-8:
-# Copyright © 2010-2015 Regents of the University of California.
-# All Rights Reserved.
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 #
 # Make X11 desktop menu, icon, and mime types with xdg-utils
 #
@@ -190,8 +200,6 @@ def make_desktop(info, localized_app_name={}):
     mime_types = get_mime_types()
     with open(info.desktop, mode='wt', encoding='utf-8') as f:
         desktop_group(f, "Desktop Entry")
-        from . import __copyright__ as copyright
-        desktop_comment(f, copyright)
         desktop_string(f, "Type", "Application")
         desktop_string(f, "Version", info.version)
         desktop_string(f, "Encoding", "UTF-8")
@@ -226,9 +234,6 @@ def make_mime_file(name):
     from . import io
     mi = MimeInfo(open(name, mode='wt', encoding='utf-8'))
     with mi:
-        from . import __copyright__ as copyright
-        mi.xml_comment(copyright)
-
         fmts = io.formats()
         fmts.sort(key=lambda f: f.name)
         for f in fmts:

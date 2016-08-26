@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # -------------------------------------------------------------------------------------
 #
 def surface(session, atoms = None, enclose = None, include = None,
@@ -84,12 +95,12 @@ def surface(session, atoms = None, enclose = None, include = None,
     if grid_spacing is None:
         grid = 0.5 if resolution is None else 0.1 * resolution
     else:
-        grid = None
+        grid = grid_spacing
 
     if sharp_boundaries is None:
         sharp = True if resolution is None else False
     else:
-        sharp = None
+        sharp = sharp_boundaries
 
     surfs = []
     new_surfs = []
@@ -105,7 +116,8 @@ def surface(session, atoms = None, enclose = None, include = None,
                 enclose_atoms = remove_solvent_ligands_ions(chain_atoms, include)[0]
             s = all_surfs.get(enclose_atoms.hash())
             if s is None:
-                name = '%s_%s SES surface' % (m.name, chain_id)
+                stype = 'SES' if resolution is None else 'Gaussian'
+                name = '%s_%s %s surface' % (m.name, chain_id, stype)
                 rgba = surface_rgba(color, transparency, chain_id)
                 s = MolecularSurface(session, enclose_atoms, show_atoms,
                                      probe_radius, grid, resolution, level,

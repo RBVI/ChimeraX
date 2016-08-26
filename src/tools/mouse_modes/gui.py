@@ -1,5 +1,16 @@
 # vim: set expandtab ts=4 sw=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from chimerax.core.tools import ToolInstance
 
 # ------------------------------------------------------------------------------
@@ -77,7 +88,7 @@ class MouseModePanel(ToolInstance):
             tb.setStyleSheet('QToolBar{spacing:0px;}\n'
                              'QToolButton{padding:0px; margin:0px; border:none;}')
             tb.setIconSize(QSize(40,40))
-            parent.addToolBar(Qt.RightToolBarArea, tb)
+            parent.addToolBar(Qt.LeftToolBarArea, tb)
             group = QActionGroup(tb)
             for mode in modes:
                 from os import path

@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from .. import toolshed
 from ..models import Model
 from ..state import State
@@ -245,8 +257,8 @@ class Structure(Model, StructureData):
 
     def _make_drawing(self):
         # Create graphics
-        self._update_atom_graphics(self.atoms)
-        self._update_bond_graphics(self.bonds)
+        self._update_atom_graphics()
+        self._update_bond_graphics()
         for pbg in self.pbg_map.values():
             pbg._update_graphics()
         self._create_ribbon_graphics()
@@ -280,19 +292,21 @@ class Structure(Model, StructureData):
                 self._atom_bounds_needs_update = True
 
     def _update_graphics(self, changes = StructureData._ALL_CHANGE):
-        self._update_atom_graphics(self.atoms, changes)
-        self._update_bond_graphics(self.bonds, changes)
+        self._update_atom_graphics(changes)
+        self._update_bond_graphics(changes)
         for pbg in self.pbg_map.values():
             pbg._update_graphics(changes)
         self._update_ribbon_graphics()
 
-    def _update_atom_graphics(self, atoms, changes = StructureData._ALL_CHANGE):
+    def _update_atom_graphics(self, changes = StructureData._ALL_CHANGE):
+        atoms = self.atoms  # micro-optimzation
         avis = atoms.visibles
         p = self._atoms_drawing
         if p is None:
             if avis.sum() == 0:
                 return
             self._atoms_drawing = p = self.new_drawing('atoms')
+            self._atoms_drawing.custom_x3d = self._custom_atom_x3d
             # Update level of detail of spheres
             self._level_of_detail.set_atom_sphere_geometry(p)
 
@@ -316,6 +330,22 @@ class Structure(Model, StructureData):
             # Set selected
             p.selected_positions = atoms.selected if atoms.num_selected > 0 else None
 
+    def _custom_atom_x3d(self, stream, x3d_scene, indent, place):
+        from numpy import empty, float32
+        p = self._atoms_drawing
+        atoms = self.atoms
+        radii = self._atom_display_radii(atoms)
+        tab = ' ' * indent
+        for v, xyz, r, c in zip(p.display_positions, atoms.coords, radii, p.colors):
+            if not v:
+                continue
+            print('%s<Transform translation="%g %g %g">' % (tab, xyz[0], xyz[1], xyz[2]), file=stream)
+            print('%s <Shape>' % tab, file=stream)
+            self.reuse_appearance(stream, x3d_scene, indent + 2, c)
+            print('%s  <Sphere radius="%g"/>' % (tab, r), file=stream)
+            print('%s </Shape>' % tab, file=stream)
+            print('%s</Transform>' % tab, file=stream)
+
     def _atom_display_radii(self, atoms):
         r = atoms.radii.copy()
         dm = atoms.draw_modes
@@ -324,13 +354,15 @@ class Structure(Model, StructureData):
         r[dm == Atom.STICK_STYLE] = self.bond_radius
         return r
 
-    def _update_bond_graphics(self, bonds, changes = StructureData._ALL_CHANGE):
+    def _update_bond_graphics(self, changes = StructureData._ALL_CHANGE):
+        bonds = self.bonds  # micro-optimzation
         p = self._bonds_drawing
         if p is None:
             if bonds.num_shown == 0:
                 return
             self._bonds_drawing = p = self.new_drawing('bonds')
-            # Update level of detail of spheres
+            self._bonds_drawing.custom_x3d = self._custom_bond_x3d
+            # Update level of detail of cylinders
             self._level_of_detail.set_bond_cylinder_geometry(p)
 
         if changes & (self._SHAPE_CHANGE | self._SELECT_CHANGE):
@@ -343,6 +375,27 @@ class Structure(Model, StructureData):
             p.colors = c = bonds.half_colors
         if changes & (self._SELECT_CHANGE | self._SHAPE_CHANGE):
             p.selected_positions = _selected_bond_cylinders(bond_atoms)
+
+    def _custom_bond_x3d(self, stream, x3d_scene, indent, place):
+        from numpy import empty, float32
+        p = self._bonds_drawing
+        bonds = self.bonds
+        ba1, ba2 = bonds.atoms
+        cyl_info = _halfbond_cylinder_x3d(ba1.coords, ba2.coords, bonds.radii)
+        tab = ' ' * indent
+        for v, ci, c in zip(p.display_positions, cyl_info, p.colors):
+            if not v:
+                continue
+            h = ci[0]
+            r = ci[1]
+            rot = ci[2:6]
+            xyz = ci[6:9]
+            print('%s<Transform translation="%g %g %g" rotation="%g %g %g %g">' % (tab, xyz[0], xyz[1], xyz[2], rot[0], rot[1], rot[2], rot[3]), file=stream)
+            print('%s <Shape>' % tab, file=stream)
+            self.reuse_appearance(stream, x3d_scene, indent + 2, c)
+            print('%s  <Cylinder height="%g" radius="%g" bottom="false" top="false"/>' % (tab, h, r), file=stream)
+            print('%s </Shape>' % tab, file=stream)
+            print('%s</Transform>' % tab, file=stream)
 
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
@@ -1877,6 +1930,26 @@ def _halfbond_cylinder_placements(axyz0, axyz1, radii):
   return pl
 
 # -----------------------------------------------------------------------------
+# Return height, radius, rotation, and translation for each halfbond cylinder.
+# Each row is [height, radius, *rotationAxis, rotationAngle, *translation]
+#
+def _halfbond_cylinder_x3d(axyz0, axyz1, radii):
+
+  n = len(axyz0)
+  from numpy import empty, float32
+  ci = empty((2 * n, 9), float32)
+  
+  from ..geometry import cylinder_rotations_x3d
+  cylinder_rotations_x3d(axyz0, axyz1, radii, ci[:n])
+  ci[n:, :] = ci[:n, :]
+
+  # Translations
+  ci[:n, 6:9] = 0.75 * axyz0 + 0.25 * axyz1
+  ci[n:, 6:9] = 0.25 * axyz0 + 0.75 * axyz1
+
+  return ci
+
+# -----------------------------------------------------------------------------
 # Display mask for 2 cylinders representing each bond.
 #
 def _shown_bond_cylinders(bonds):
@@ -1914,9 +1987,15 @@ def all_atomic_structures(session):
 
 # -----------------------------------------------------------------------------
 #
+def all_structures(session):
+    '''List of all :class:`.Structure` objects.'''
+    return [m for m in session.models.list() if isinstance(m,Structure)]
+
+# -----------------------------------------------------------------------------
+#
 def all_atoms(session):
     '''All atoms in all structures as an :class:`.Atoms` collection.'''
-    return structure_atoms(all_atomic_structures(session))
+    return structure_atoms(all_structures(session))
 
 # -----------------------------------------------------------------------------
 #

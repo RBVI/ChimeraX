@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from numpy import object as string, uintp as cptr, object as pyobject
 
 from numpy import empty, ndarray
@@ -218,8 +230,8 @@ numpy_type_to_ctype = {
     numpy.uint8: ctypes.c_uint8,
     numpy.uintp: ctypes.c_void_p,
     numpy.byte: ctypes.c_char,
-    numpy.bool: ctypes.c_uint8,
-    numpy.bool_: ctypes.c_uint8,
+    numpy.bool: ctypes.c_bool,
+    numpy.bool_: ctypes.c_bool,
     numpy.object_: ctypes.py_object,
     numpy.object: ctypes.py_object,
 }

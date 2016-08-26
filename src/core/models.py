@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 models: Displayed data
 ======================
@@ -58,10 +70,11 @@ class Model(State, Drawing):
         return '.'.join(str(i) for i in self.id)
 
     def _get_single_color(self):
-        return None
+        return self.color if self.vertex_colors is None else None
 
     def _set_single_color(self, color):
-        return
+        self.color = color
+        self.vertex_colors = None
     single_color = property(_get_single_color, _set_single_color)
     '''
     Getting the single color may give the dominant color.
@@ -314,7 +327,11 @@ class Models(State):
             log.status(status, log=True)
         if models:
             if len(models) > 1:
-                self.add_group(models)
+                from os.path import basename
+                name = basename(filenames[0])
+                if len(filenames) > 1:
+                    name += '...'
+                self.add_group(models, name=name)
             else:
                 self.add(models)
         return models

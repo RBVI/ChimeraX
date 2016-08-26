@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # HelpUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
 #
@@ -121,18 +132,21 @@ class HelpUI(ToolInstance):
             self.forward.setEnabled(False)
             tb.addAction(self.forward)
             import os.path
-            icon_path = os.path.join(os.path.dirname(__file__), "home.png")
+            d = os.path.dirname(__file__)
+            icon_path = os.path.join(d, "home.png")
             self.home = QAction(QIcon(icon_path), "Home page", tb)
             self.home.triggered.connect(self.go_home)
             self.home.setEnabled(False)
             tb.addAction(self.home)
-            self.zoom_in = QAction("+", tb)
+            icon_path = os.path.join(d, "zoom-plus.png")
+            self.zoom_in = QAction(QIcon(icon_path), "Zoom in", tb)
             self.zoom_in.triggered.connect(self.page_zoom_in)
             font = self.zoom_in.font()
             font.setPointSize(48)
             self.zoom_in.setFont(font)
             tb.addAction(self.zoom_in)
-            self.zoom_out = QAction("-", tb)
+            icon_path = os.path.join(d, "zoom-minus.png")
+            self.zoom_out = QAction(QIcon(icon_path), "Zoom out", tb)
             self.zoom_out.setFont(font)
             self.zoom_out.triggered.connect(self.page_zoom_out)
             tb.addAction(self.zoom_out)
