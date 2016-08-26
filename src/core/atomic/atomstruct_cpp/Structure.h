@@ -144,6 +144,7 @@ protected:
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
     mutable std::set<const Residue *>*  _rings_last_ignore;
+    bool  _ss_assigned;
     mutable bool  _structure_cats_dirty;
 
     void  add_bond(Bond* b) { _bonds.emplace_back(b); }
@@ -261,6 +262,8 @@ public:
     }
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }
+    void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
+    bool  ss_assigned() const { return _ss_assigned; }
     void  start_change_tracking(ChangeTracker* ct) { _change_tracker = ct; ct->add_created(this); }
     void  use_best_alt_locs();
 

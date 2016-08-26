@@ -32,23 +32,23 @@
 #endif
 
 enum {
-		KSDSSP_3DONOR           = 0x0001,
-		KSDSSP_3ACCEPTOR        = 0x0002,
-		KSDSSP_3GAP             = 0x0004,
-		KSDSSP_3HELIX           = 0x0008,
-		KSDSSP_4DONOR           = 0x0010,
-		KSDSSP_4ACCEPTOR        = 0x0020,
-		KSDSSP_4GAP             = 0x0040,
-		KSDSSP_4HELIX           = 0x0080,
-		KSDSSP_5DONOR           = 0x0100,
-		KSDSSP_5ACCEPTOR        = 0x0200,
-		KSDSSP_5GAP             = 0x0400,
-		KSDSSP_5HELIX           = 0x0800,
-		KSDSSP_PBRIDGE          = 0x1000,
-		KSDSSP_ABRIDGE          = 0x2000,
+		DSSP_3DONOR           = 0x0001,
+		DSSP_3ACCEPTOR        = 0x0002,
+		DSSP_3GAP             = 0x0004,
+		DSSP_3HELIX           = 0x0008,
+		DSSP_4DONOR           = 0x0010,
+		DSSP_4ACCEPTOR        = 0x0020,
+		DSSP_4GAP             = 0x0040,
+		DSSP_4HELIX           = 0x0080,
+		DSSP_5DONOR           = 0x0100,
+		DSSP_5ACCEPTOR        = 0x0200,
+		DSSP_5GAP             = 0x0400,
+		DSSP_5HELIX           = 0x0800,
+		DSSP_PBRIDGE          = 0x1000,
+		DSSP_ABRIDGE          = 0x2000,
 
-		KSDSSP_PARA             = 1,
-		KSDSSP_ANTI             = 2
+		DSSP_PARA             = 1,
+		DSSP_ANTI             = 2
 };
 
 using atomstruct::Atom;
@@ -240,12 +240,12 @@ find_hbonds(KsdsspParams& params)
 static void
 find_turns(KsdsspParams& params, int n)
 {
-    int donor = n == 3 ? KSDSSP_3DONOR :
-            (n == 4 ? KSDSSP_4DONOR : KSDSSP_5DONOR);
-    int acceptor = n == 3 ? KSDSSP_3ACCEPTOR : 
-            (n == 4 ? KSDSSP_4ACCEPTOR : KSDSSP_5ACCEPTOR);
-    int gap = n == 3 ? KSDSSP_3GAP : 
-            (n == 4 ? KSDSSP_4GAP : KSDSSP_5GAP);
+    int donor = n == 3 ? DSSP_3DONOR :
+            (n == 4 ? DSSP_4DONOR : DSSP_5DONOR);
+    int acceptor = n == 3 ? DSSP_3ACCEPTOR : 
+            (n == 4 ? DSSP_4ACCEPTOR : DSSP_5ACCEPTOR);
+    int gap = n == 3 ? DSSP_3GAP : 
+            (n == 4 ? DSSP_4GAP : DSSP_5GAP);
     int max = params.residues.size() - n;
     for (int i = 0; i < max; ++i)
         if (params.hbonds[i][i+n]) {
@@ -262,10 +262,10 @@ find_turns(KsdsspParams& params, int n)
 static void
 mark_helices(KsdsspParams& params, int n)
 {
-	int acceptor = n == 3 ? KSDSSP_3ACCEPTOR :
-			(n == 4 ? KSDSSP_4ACCEPTOR : KSDSSP_5ACCEPTOR);
-	int helix = n == 3 ? KSDSSP_3HELIX :
-			(n == 4 ? KSDSSP_4HELIX : KSDSSP_5HELIX);
+	int acceptor = n == 3 ? DSSP_3ACCEPTOR :
+			(n == 4 ? DSSP_4ACCEPTOR : DSSP_5ACCEPTOR);
+	int helix = n == 3 ? DSSP_3HELIX :
+			(n == 4 ? DSSP_4HELIX : DSSP_5HELIX);
 	int max = params.residues.size() - n;
 	for (int i = 1; i < max; ++i)
 		if (params.rflags[params.residues[i-1]] & acceptor
@@ -282,7 +282,7 @@ find_helices(KsdsspParams& params)
 {
 	int max = params.residues.size();
 	int first = -1;
-	const int anyHelix = KSDSSP_3HELIX | KSDSSP_4HELIX | KSDSSP_5HELIX;
+	const int anyHelix = DSSP_3HELIX | DSSP_4HELIX | DSSP_5HELIX;
 	for (int i = 0; i < max; ++i)
 		if (params.rflags[params.residues[i]] & anyHelix) {
 			if (first < 0)
@@ -325,7 +325,7 @@ merge_bulge(KsdsspLadderInfo &lr1, KsdsspLadderInfo &lr2)
 	if (d0 < 0 || d0 > 4)
 		return nullptr;
 	int d1;
-	if (l1->type == KSDSSP_PARA)
+	if (l1->type == DSSP_PARA)
 		d1 = l2->start[1] - l1->end[1];
 	else
 		d1 = l1->start[1] - l2->end[1];
@@ -337,7 +337,7 @@ merge_bulge(KsdsspLadderInfo &lr1, KsdsspLadderInfo &lr2)
 	int s0 = l1->start[0];
 	int e0 = l2->end[0];
 	int s1, e1;
-	if (l1->type == KSDSSP_PARA) {
+	if (l1->type == DSSP_PARA) {
 		s1 = l1->start[1];
 		e1 = l2->end[1];
 	}
@@ -399,15 +399,15 @@ find_bridges(KsdsspParams& params)
 			if ((i > 0 && params.hbonds[i-1][j] && params.hbonds[j][i+1])
 			|| (j < max-1 && params.hbonds[j-1][i] && params.hbonds[i][j+1])) {
 				bridge[i][j] = 'P';
-				params.rflags[params.residues[i]] |= KSDSSP_PBRIDGE;
-				params.rflags[params.residues[j]] |= KSDSSP_PBRIDGE;
+				params.rflags[params.residues[i]] |= DSSP_PBRIDGE;
+				params.rflags[params.residues[j]] |= DSSP_PBRIDGE;
 			}
 			else if ((params.hbonds[i][j] && params.hbonds[j][i])
 			|| (i > 0 && j < max-1 && params.hbonds[i-1][j+1] && params.hbonds[j-1][i+1]))
 			{
 				bridge[i][j] = 'A';
-				params.rflags[params.residues[i]] |= KSDSSP_ABRIDGE;
-				params.rflags[params.residues[j]] |= KSDSSP_ABRIDGE;
+				params.rflags[params.residues[i]] |= DSSP_ABRIDGE;
+				params.rflags[params.residues[j]] |= DSSP_ABRIDGE;
 			}
 		}
 	}
@@ -421,13 +421,13 @@ find_bridges(KsdsspParams& params)
 				for (k = 0; i+k < max && j+k < max && bridge[i+k][j+k] == 'P'; ++k)
 					bridge[i+k][j+k] = 'p';
 				k--;
-				params.ladders.push_back(KsdsspLadderInfo(KSDSSP_PARA, i, i + k, j, j + k));
+				params.ladders.push_back(KsdsspLadderInfo(DSSP_PARA, i, i + k, j, j + k));
 				break;
 			  case 'A':
 				for (k = 0; i+k < max && j-k >= 0 && bridge[i+k][j-k] == 'A'; ++k) 
 					bridge[i+k][j-k] = 'a';
 				k--;
-				params.ladders.push_back(KsdsspLadderInfo(KSDSSP_ANTI, i, i + k, j - k, j));
+				params.ladders.push_back(KsdsspLadderInfo(DSSP_ANTI, i, i + k, j - k, j));
 				break;
 			}
 		}
@@ -472,7 +472,7 @@ make_summary(KsdsspParams& params)
 		Residue *e0 = params.residues[l.end[0]];
 		Residue *e1 = params.residues[l.end[1]];
 		logger::info(logger, s0->str(), " -> ", e0->str(), " ",
-			(l.type == KSDSSP_PARA ? "parallel" : "antiparallel"),
+			(l.type == DSSP_PARA ? "parallel" : "antiparallel"),
 			" ", s1->str(), " -> ", e1->str());
 	}
 	logger::info(logger, ""); // blank line
@@ -531,51 +531,51 @@ make_summary(KsdsspParams& params)
 	for (auto r: params.residues) {
 		int rflags = params.rflags[r];
 		char summary = ' ';
-		if (rflags & (KSDSSP_3HELIX))
+		if (rflags & (DSSP_3HELIX))
 			summary = 'G';
-		else if (rflags & (KSDSSP_4HELIX))
+		else if (rflags & (DSSP_4HELIX))
 			summary = 'H';
-		else if (rflags & (KSDSSP_5HELIX))
+		else if (rflags & (DSSP_5HELIX))
 			summary = 'I';
-		else if (rflags & (KSDSSP_PBRIDGE | KSDSSP_ABRIDGE))
+		else if (rflags & (DSSP_PBRIDGE | DSSP_ABRIDGE))
 			summary = 'E';
 
 		char turn3 = ' ';
-		if ((rflags & KSDSSP_3DONOR) && (rflags & KSDSSP_3ACCEPTOR))
+		if ((rflags & DSSP_3DONOR) && (rflags & DSSP_3ACCEPTOR))
 			turn3 = 'X';
-		else if (rflags & (KSDSSP_3ACCEPTOR))
+		else if (rflags & (DSSP_3ACCEPTOR))
 			turn3 = '>';
-		else if (rflags & (KSDSSP_3DONOR))
+		else if (rflags & (DSSP_3DONOR))
 			turn3 = '<';
-		else if (rflags & (KSDSSP_3GAP))
+		else if (rflags & (DSSP_3GAP))
 			turn3 = '3';
 
 		char turn4 = ' ';
-		if ((rflags & KSDSSP_4DONOR) && (rflags & KSDSSP_4ACCEPTOR))
+		if ((rflags & DSSP_4DONOR) && (rflags & DSSP_4ACCEPTOR))
 			turn4 = 'X';
-		else if (rflags & (KSDSSP_4ACCEPTOR))
+		else if (rflags & (DSSP_4ACCEPTOR))
 			turn4 = '>';
-		else if (rflags & (KSDSSP_4DONOR))
+		else if (rflags & (DSSP_4DONOR))
 			turn4 = '<';
-		else if (rflags & (KSDSSP_4GAP))
+		else if (rflags & (DSSP_4GAP))
 			turn4 = '4';
 
 		char turn5 = ' ';
-		if ((rflags & KSDSSP_5DONOR) && (rflags & KSDSSP_5ACCEPTOR))
+		if ((rflags & DSSP_5DONOR) && (rflags & DSSP_5ACCEPTOR))
 			turn5 = 'X';
-		else if (rflags & (KSDSSP_5ACCEPTOR))
+		else if (rflags & (DSSP_5ACCEPTOR))
 			turn5 = '>';
-		else if (rflags & (KSDSSP_5DONOR))
+		else if (rflags & (DSSP_5DONOR))
 			turn5 = '<';
-		else if (rflags & (KSDSSP_5GAP))
+		else if (rflags & (DSSP_5GAP))
 			turn5 = '5';
 
 		char bridge = ' ';
-		if ((rflags & KSDSSP_PBRIDGE) && (rflags & KSDSSP_ABRIDGE))
+		if ((rflags & DSSP_PBRIDGE) && (rflags & DSSP_ABRIDGE))
 			bridge = '+';
-		else if (rflags & (KSDSSP_PBRIDGE))
+		else if (rflags & (DSSP_PBRIDGE))
 			bridge = 'p';
-		else if (rflags & (KSDSSP_ABRIDGE))
+		else if (rflags & (DSSP_ABRIDGE))
 			bridge = 'A';
 
 		char sheet = ' ';
@@ -697,6 +697,7 @@ compute_secondary_structure(Structure* s, Real energy_cutoff,
                 crds->h = nullptr;
         }
         compute_chain(params);
+		s->set_ss_assigned(true);
         for (auto crd: params.coords)
             delete crd;
         for (auto ih: params.imide_Hs)
@@ -712,7 +713,7 @@ compute_secondary_structure(Structure* s, Real energy_cutoff,
 
 //
 // compute_ss
-//    Compute KSDSSP secondary structure
+//    Compute Kabsch & Sander DSSP secondary structure
 //
 // This is an implementation of
 //
@@ -727,7 +728,7 @@ compute_secondary_structure(Structure* s, Real energy_cutoff,
 //        hbond energy cutoff (Real)
 //        minimum helix length (int)
 //        minimum strand length (int)
-//        whether to report summary of ksdssp computation [ladders, etc.] (bool)
+//        whether to report summary of dssp computation [ladders, etc.] (bool)
 //
 extern "C" {
 
@@ -762,7 +763,7 @@ compute_ss(PyObject *, PyObject *args)
 
 static const char* docstr_compute_ss =
 "compute_ss\n"
-"Compute/assign KSDSSP secondary structure\n"
+"Compute/assign Kabsch & Sander DSSP secondary structure\n"
 "\n"
 "The function takes five arguments:\n"
 "    mol_ptr        pointer to Structure\n"
@@ -771,18 +772,18 @@ static const char* docstr_compute_ss =
 "    min_s_len    minimum strand length\n"
 "    do_report    whether to log computed values\n";
 
-static PyMethodDef ksdssp_methods[] = {
+static PyMethodDef dssp_methods[] = {
     { PY_STUPID "compute_ss", compute_ss,    METH_VARARGS, PY_STUPID docstr_compute_ss },
     { nullptr, nullptr, 0, nullptr }
 };
 
-static struct PyModuleDef ksdssp_def =
+static struct PyModuleDef dssp_def =
 {
     PyModuleDef_HEAD_INIT,
-    "_ksdssp",
-    "Compute secondary structure via KSDSSP method",
+    "_dssp",
+    "Compute secondary structure via Kabsch & Sander DSSP method",
     -1,
-    ksdssp_methods,
+    dssp_methods,
     nullptr,
     nullptr,
     nullptr,
@@ -790,7 +791,7 @@ static struct PyModuleDef ksdssp_def =
 };
 
 PyMODINIT_FUNC
-PyInit__ksdssp()
+PyInit__dssp()
 {
-    return PyModule_Create(&ksdssp_def);
+    return PyModule_Create(&dssp_def);
 }

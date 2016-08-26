@@ -41,7 +41,7 @@ Structure::Structure(PyObject* logger):
     _change_tracker(DiscardingChangeTracker::discarding_change_tracker()),
     _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure/Structure"),
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
-    _structure_cats_dirty(true),
+    _ss_assigned(false), _structure_cats_dirty(true),
     asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0)
 {
