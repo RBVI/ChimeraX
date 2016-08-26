@@ -311,9 +311,10 @@ class Session:
         Starts with session triggers.
     """
 
-    def __init__(self, app_name, *, debug=False, minimal=False):
+    def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
         self.app_name = app_name
         self.debug = debug
+        self.silent = silent
         from . import logger
         self.logger = logger.Logger(self)
         from . import triggerset
@@ -634,7 +635,8 @@ def save_x3d(session, filename, **kw):
     from .fetch import html_user_agent
     from chimerax import app_dirs
     from html import unescape
-    import os, datetime
+    import datetime
+    import os
     x3d_scene = x3d.X3DScene()
     meta = {}
     generator = unescape(html_user_agent(app_dirs))
@@ -667,7 +669,7 @@ def save_x3d(session, filename, **kw):
             units={'length': ('ångström', 1e-10)},
             # not using any of Chimera's extensions yet
             # namespaces={"chimera": "http://www.cgl.ucsf.edu/chimera/"}
-            )
+        )
         cofr = session.main_view.center_of_rotation
         r, a = camera.position.rotation_axis_and_angle()
         t = camera.position.translation()
