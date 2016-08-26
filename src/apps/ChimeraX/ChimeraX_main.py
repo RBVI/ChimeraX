@@ -339,7 +339,7 @@ def init(argv, event_loop=True):
                         chimerax.app_data_dir, adu.user_cache_dir)
 
     from chimerax.core import session
-    sess = session.Session(app_name, debug=opts.debug)
+    sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
 
     from chimerax.core import core_settings
     core_settings.init(sess)
