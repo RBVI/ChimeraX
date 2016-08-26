@@ -2689,6 +2689,12 @@ extern "C" EXPORT void set_structure_ribbon_show_spine(void *mols, size_t n, npy
     error_wrap_array_set(m, n, &Structure::set_ribbon_show_spine, ribbon_show_spine);
 }
 
+extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy_bool *ss_assigned)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
+}
+
 extern "C" EXPORT void structure_ribbon_display_count(void *mols, size_t n, int32_t *ribbon_display_count)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -2893,6 +2899,12 @@ extern "C" EXPORT void structure_session_save_teardown(void *mol)
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT void structure_ss_assigned(void *structures, size_t n, npy_bool *ss_assigned)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::ss_assigned, ss_assigned);
 }
 
 extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)

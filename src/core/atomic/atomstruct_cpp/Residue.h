@@ -203,6 +203,8 @@ inline void
 Residue::set_is_helix(bool ih) {
     if (ih == _is_helix)
         return;
+    if (ih)
+        _structure->set_ss_assigned(true);
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_HELIX);
     _is_helix = ih;
     _structure->set_gc_ribbon();
@@ -220,6 +222,8 @@ inline void
 Residue::set_is_sheet(bool is) {
     if (is == _is_sheet)
         return;
+    if (is)
+        _structure->set_ss_assigned(true);
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_SHEET);
     _is_sheet = is;
     _structure->set_gc_ribbon();

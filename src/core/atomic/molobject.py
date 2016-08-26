@@ -917,6 +917,9 @@ class StructureData:
     '''Number of sides for ribbon tether. Integer value.'''
     ribbon_tether_opacity = c_property('structure_ribbon_tether_opacity', float32)
     '''Ribbon tether opacity scale factor (relative to the atom).'''
+    ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
+        "Has secondary structure been assigned, either by data in original structure file "
+        "or by some algorithm (e.g. dssp command)")
 
     def _copy(self):
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
