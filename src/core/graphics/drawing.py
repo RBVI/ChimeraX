@@ -1239,11 +1239,14 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     else:
         d = drawing
 
+    r = renderer
+    s = r.pixel_scale()
     from numpy import array, float32
-    d.vertices = array(((x1, y1, 0), (x2, y1, 0), (x2, y2, 0), (x1, y2, 0)), float32)
+    d.vertices = array(((s*x1, s*y1, 0), (s*x2, s*y1, 0),
+                        (s*x2, s*y2, 0), (s*x1, s*y2, 0)),
+                       float32)
     d.color = color
 
-    r = renderer
     from ..geometry import identity
     p0 = identity()
     r.set_view_matrix(p0)
