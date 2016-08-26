@@ -327,7 +327,11 @@ class Models(State):
             log.status(status, log=True)
         if models:
             if len(models) > 1:
-                self.add_group(models)
+                from os.path import basename
+                name = basename(filenames[0])
+                if len(filenames) > 1:
+                    name += '...'
+                self.add_group(models, name=name)
             else:
                 self.add(models)
         return models

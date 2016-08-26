@@ -619,6 +619,9 @@ class Render:
         stencil8_needed = (sys.platform.startswith('linux') and vendor and
                            vendor.startswith((b'AMD', b'ATI')))
 
+    def pixel_scale(self):
+        return self._opengl_context.pixel_scale()
+
     def set_viewport(self, x, y, w, h):
         'Set the OpenGL viewport.'
         if (x, y, w, h) != self.current_viewport:
