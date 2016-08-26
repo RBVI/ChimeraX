@@ -955,6 +955,11 @@ class StructureData:
         from .pbgroup import PseudobondGroup
         return object_map(pbg, PseudobondGroup)
 
+    def delete_pseudobond_group(self, pbg):
+        f = c_function('structure_delete_pseudobond_group',
+                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
+        f(self._c_pointer, pbg._c_pointer)
+
     @classmethod
     def restore_snapshot(cls, session, data):
         g = StructureData(logger=session.logger)

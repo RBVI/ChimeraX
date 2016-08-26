@@ -1267,7 +1267,7 @@ extern "C" EXPORT void pseudobond_global_manager_delete_group(void *manager, voi
     try {
         PBManager* mgr = static_cast<PBManager*>(manager);
         Proxy_PBGroup* pbg = static_cast<Proxy_PBGroup*>(pbgroup);
-        return mgr->delete_group(pbg);
+        mgr->delete_group(pbg);
     } catch (...) {
         molc_error();
     }
@@ -2687,6 +2687,17 @@ extern "C" EXPORT Proxy_PBGroup *structure_pseudobond_group(void *mol, const cha
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" EXPORT void structure_delete_pseudobond_group(void *mol, void *pbgroup)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        Proxy_PBGroup* pbg = static_cast<Proxy_PBGroup*>(pbgroup);
+        m->pb_mgr().delete_group(pbg);
+    } catch (...) {
+        molc_error();
     }
 }
 
