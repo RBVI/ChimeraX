@@ -26,12 +26,12 @@ def dssp(session, structures=None, *,
         from chimerax.core.errors import UserError
         raise UserError('No structures specified')
 
-    from ._ksdssp import compute_ss
+    from .._dssp import compute_ss
     for struct in structures:
         compute_ss(struct._c_pointer.value, energy_cutoff, min_helix_len, min_strand_len, report)
 
-def register_command():
-    from chimerax.core.commands import CmdDesc, register, StructuresArg, FloatArg, BoolArg, IntArg
+def register_command(session):
+    from . import CmdDesc, register, StructuresArg, FloatArg, BoolArg, IntArg
 
     desc = CmdDesc(
         optional=[('structures', StructuresArg)],
@@ -39,5 +39,6 @@ def register_command():
                    ('min_strand_len', IntArg),
                    ('energy_cutoff', FloatArg),
                    ('report', BoolArg)],
+        synopsis="compute/assign secondary structure using Kabsch & Sander DSSP algorithm"
     )
-    register('dssp', desc, ss_assign)
+    register('dssp', desc, dssp)

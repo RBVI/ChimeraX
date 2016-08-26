@@ -70,7 +70,7 @@ conf.py: conf.py.in
 
 index.rst: index.rst.in
 	sed '/===/d' $(TOP)/copyright.txt | \
-		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd}' \
+		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
 		$< > $@
 
 html: conf.py index.rst

@@ -9,6 +9,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# bash is the default shell on Cygwin and Mac OS X so use it on Linux as well
+SHELL=/bin/bash
+
 # need absolute directory for build_prefix
 TOP := $(shell (cd "$(TOP)"; pwd))
 build_prefix = $(TOP)/build
