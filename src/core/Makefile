@@ -13,7 +13,7 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomic \
-	   chutil_cpp commands \
+	   chutil_cpp commands dssp_cpp \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
 	   map pysupport_cpp surface toolshed ui \
@@ -97,6 +97,7 @@ buildinfo.py: buildinfo.py.in mkbuildinfo
 _appdirs.install: appdirs_cpp.install
 atomic.install: arrays_cpp.install chutil_cpp.install ioutil_cpp.install \
 	logger_cpp.install pysupport_cpp.install
+dssp.install: atomic.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
 map.install: arrays_cpp.install

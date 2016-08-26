@@ -1441,6 +1441,27 @@ class AtomicStructure(Structure):
         return s
 
     def added_to_session(self, session):
+        # run dssp?  Is it a protein with no SS assignments?
+        if not self.ss_assigned:
+            pas = self.residues.existing_principal_atoms
+            if len(pas.residues.filter(pas.names=="CA")) > 0:
+                session.logger.info("Model %s (%s) has no secondary structure assignments. "
+                    ' Running <a href="help:user/commands/dssp.html">dssp</a>'
+                    " using default settings." % (self.id_string, self.name), is_html=True)
+                session.logger.status("Computing secondary structure assignments...")
+                from ..dssp import compute_ss
+                try:
+                    compute_ss(self._c_pointer.value)
+                except ValueError as e:
+                    if "normalize" in str(e):
+                        msg = "Unable to compute secondary structure assigments" \
+                            " due to degenerate geometry in structure"
+                        session.logger.status(msg, color="red")
+                        session.logger.warning(msg)
+                    else:
+                        raise
+                else:
+                    session.logger.status("Computed secondary structure assignments (see log)")
         super().added_to_session(session)
         self._set_chain_descriptions(session)
         self._determine_het_res_descriptions(session)

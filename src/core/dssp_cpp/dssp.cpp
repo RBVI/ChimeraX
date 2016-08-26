@@ -697,6 +697,7 @@ compute_secondary_structure(Structure* s, Real energy_cutoff,
                 crds->h = nullptr;
         }
         compute_chain(params);
+		s->set_ss_assigned(true);
         for (auto crd: params.coords)
             delete crd;
         for (auto ih: params.imide_Hs)
