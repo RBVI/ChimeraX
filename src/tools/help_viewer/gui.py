@@ -127,9 +127,6 @@ class HelpUI(ToolInstance):
 
     # wx event handling
 
-    def on_back(self, event):
-        self.help_window.GoBack()
-
     def page_back(self, checked):
         self.help_window.history().back()
 
@@ -143,26 +140,8 @@ class HelpUI(ToolInstance):
         self.show(self.home_page)
     go_home = on_home
 
-    def on_zoom_in(self, event):
-        from wx import html2
-        if self.zoom_factor < html2.WEBVIEW_ZOOM_LARGEST:
-            self.zoom_factor += 1
-            self.help_window.SetZoom(self.zoom_factor)
-        if self.zoom_factor == html2.WEBVIEW_ZOOM_LARGEST:
-            self.toolbar.EnableTool(self.zoom_in.GetId(), False)
-        self.toolbar.EnableTool(self.zoom_out.GetId(), True)
-
     def page_zoom_in(self, checked):
         self.help_window.setZoomFactor(1.25 * self.help_window.zoomFactor())
-
-    def on_zoom_out(self, event):
-        from wx import html2
-        if self.zoom_factor > html2.WEBVIEW_ZOOM_TINY:
-            self.zoom_factor -= 1
-            self.help_window.SetZoom(self.zoom_factor)
-        if self.zoom_factor == html2.WEBVIEW_ZOOM_TINY:
-            self.toolbar.EnableTool(self.zoom_out.GetId(), False)
-        self.toolbar.EnableTool(self.zoom_in.GetId(), True)
 
     def page_zoom_out(self, checked):
         self.help_window.setZoomFactor(0.8 * self.help_window.zoomFactor())
