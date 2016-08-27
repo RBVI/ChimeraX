@@ -254,6 +254,8 @@ class Logger:
 
         The parameters are the same as for the :py:meth:`error` method.
         """
+        if session.silent:
+            return
         import sys
         self._log(Log.LEVEL_INFO, msg, add_newline, image, is_html,
                   last_resort=sys.stdout)
@@ -304,6 +306,8 @@ class Logger:
                blank_after=None, follow_with="", follow_time=20,
                follow_log=None):
         """Show status."""
+        if session.silent:
+            return
         if log:
             self.info(msg)
 
@@ -355,6 +359,8 @@ class Logger:
 
         The parameters are the same as for the :py:meth:`error` method.
         """
+        if session.silent:
+            return
         import sys
         self._log(Log.LEVEL_WARNING, msg, add_newline, image, is_html,
                   last_resort=sys.stderr)

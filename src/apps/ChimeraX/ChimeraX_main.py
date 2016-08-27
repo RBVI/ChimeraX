@@ -322,7 +322,7 @@ def init(argv, event_loop=True):
                         chimerax.app_data_dir, adu.user_cache_dir)
 
     from chimerax.core import session
-    sess = session.Session(app_name, debug=opts.debug)
+    sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
 
     from chimerax.core import core_settings
     core_settings.init(sess)
@@ -425,8 +425,10 @@ def init(argv, event_loop=True):
 
     if opts.gui:
         sess.ui.close_splash()
-    import chimerax.core.commands.version as vercmd
-    vercmd.version(sess)  # report version in log
+
+    if not opts.silent:
+        import chimerax.core.commands.version as vercmd
+        vercmd.version(sess)  # report version in log
     if opts.gui:
         r = sess.main_view.render
         r.make_current()

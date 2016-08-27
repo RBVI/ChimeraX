@@ -119,10 +119,12 @@ def color(session, objects, color=None, what=None,
             satoms = satoms.filter(satoms.element_numbers != 6)
         ns = _set_surface_colors(session, satoms, color, opacity, bgcolor, map, palette, range, offset)
         # Handle non-molecular surfaces like density maps
-        mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface))]
-        for m in mlist:
-            _set_model_colors(session, m, color, map, opacity, palette, range, offset)
-        what.append('%d surfaces' % (ns + len(mlist)))
+        if color not in _SpecialColors:
+            mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface))]
+            for m in mlist:
+                _set_model_colors(session, m, color, map, opacity, palette, range, offset)
+            ns += len(mlist)
+        what.append('%d surfaces' % ns)
 
     if 'c' in target and color is not None:
         residues = atoms.unique_residues
