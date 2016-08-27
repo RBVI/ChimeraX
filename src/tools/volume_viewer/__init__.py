@@ -20,9 +20,6 @@ _initialized = False
 def start_tool(session, bundle_info):
     if not session.ui.is_gui:
         return None
-    from chimerax.core import window_sys
-    if window_sys == "wx":
-        return None	# Only Qt GUI supported
     from . import gui
     return gui.show_volume_dialog(session)
 

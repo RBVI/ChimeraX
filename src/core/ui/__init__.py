@@ -13,3 +13,5 @@
 
 from .mousemodes import MouseMode, SelectMouseMode, RotateMouseMode, TranslateMouseMode, \
                         RotateSelectedMouseMode, TranslateSelectedMouseMode, ZoomMouseMode
+
+from .gui import MainToolWindow, ChildToolWindow
