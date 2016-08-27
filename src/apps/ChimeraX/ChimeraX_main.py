@@ -116,7 +116,6 @@ def parse_arguments(argv):
         "--uninstall",
         "--usedefaults",
         "--version",
-        "--windowsys <qt|wx>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
