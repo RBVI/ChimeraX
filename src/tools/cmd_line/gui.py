@@ -197,12 +197,6 @@ class _HistoryDialog:
             "Command History", window_class=HistoryWindow)
 
         parent = self.window.ui_area
-        self.add = self.qt_add
-        self.up = self.qt_up
-        self.down = self.qt_down
-        self.select = self.qt_select
-        self.populate = self.qt_populate
-        self.update_list = self.qt_update_list
         from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton
         self.listbox = QListWidget(parent)
         self.listbox.setSelectionMode(QListWidget.ExtendedSelection)
@@ -228,17 +222,7 @@ class _HistoryDialog:
         self._search_cache = None
         self._suspend_handler = False
 
-    def wx_add(self, item):
-        self.listbox.Append(item)
-        while self.listbox.GetCount() > self.NUM_REMEMBERED:
-            self.listbox.Delete(0)
-        self.history.enqueue(item)
-        for sel in self.listbox.GetSelections():
-            self.listbox.Deselect(sel)
-        self.listbox.SetSelection(len(self.history) - 1)
-        self.update_list()
-
-    def qt_add(self, item):
+    def add(self, item):
         self.listbox.addItem(item)
         while self.listbox.count() > self.NUM_REMEMBERED:
             self.listbox.takeItem(0)
@@ -321,40 +305,7 @@ class _HistoryDialog:
             # TODO
             return
 
-    def wx_down(self, shifted):
-        sels = self.listbox.GetSelections()
-        if len(sels) != 1:
-            return
-        orig_sel = sel = sels[0]
-        orig_text = self.controller.text.Value
-        match_against = None
-        self._suspend_handler = False
-        if shifted:
-            if self._search_cache is None:
-                words = orig_text.strip().split()
-                if words:
-                    match_against = words[0]
-                    self._search_cache = match_against
-            else:
-                match_against = self._search_cache
-            self._suspend_handler = True
-        if match_against:
-            last = self.listbox.GetCount() - 1
-            while sel < last:
-                if self.listbox.GetString(sel + 1).startswith(match_against):
-                    break
-                sel += 1
-        if sel == self.listbox.GetCount() - 1:
-            return
-        self.listbox.Deselect(orig_sel)
-        self.listbox.SetSelection(sel + 1)
-        new_text = self.listbox.GetString(sel + 1)
-        self.controller.cmd_replace(new_text)
-        if orig_text == new_text:
-            self.down(shifted)
-        self._suspend_handler = False
-
-    def qt_down(self, shifted):
+    def down(self, shifted):
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
             return
@@ -399,18 +350,7 @@ class _HistoryDialog:
     def on_listbox(self, event):
         self.select()
 
-    def wx_populate(self):
-        self.listbox.Items = [cmd for cmd in self.history]
-        self.listbox.Selection = len(self.history) - 1
-        self.update_list()
-        self.select()
-        self.controller.text.SetFocus()
-        self.controller.text.SetSelection(-1, -1)
-        cursels = self.listbox.GetSelections()
-        if len(cursels) == 1:
-            self.listbox.EnsureVisible(cursels[0])
-
-    def qt_populate(self):
+    def populate(self):
         self.listbox.clear()
         self.listbox.addItems([cmd for cmd in self.history])
         self.listbox.setCurrentRow(len(self.history) - 1)
@@ -420,51 +360,13 @@ class _HistoryDialog:
         self.controller.text.lineEdit().selectAll()
         cursels = self.listbox.scrollToBottom()
 
-    def wx_select(self):
-        sels = self.listbox.GetSelections()
-        if len(sels) != 1:
-            return
-        self.controller.cmd_replace(self.listbox.GetString(sels[0]))
-
-    def qt_select(self):
+    def select(self):
         sels = self.listbox.selectedItems()
         if len(sels) != 1:
             return
         self.controller.cmd_replace(sels[0].text())
 
-    def wx_up(self, shifted):
-        sels = self.listbox.GetSelections()
-        if len(sels) != 1:
-            return
-        orig_sel = sel = sels[0]
-        orig_text = self.controller.text.Value
-        match_against = None
-        self._suspend_handler = False
-        if shifted:
-            if self._search_cache is None:
-                words = orig_text.strip().split()
-                if words:
-                    match_against = words[0]
-                    self._search_cache = match_against
-            else:
-                match_against = self._search_cache
-            self._suspend_handler = True
-        if match_against:
-            while sel > 0:
-                if self.listbox.GetString(sel - 1).startswith(match_against):
-                    break
-                sel -= 1
-        if sel == 0:
-            return
-        self.listbox.Deselect(orig_sel)
-        self.listbox.SetSelection(sel - 1)
-        new_text = self.listbox.GetString(sel - 1)
-        self.controller.cmd_replace(new_text)
-        if orig_text == new_text:
-            self.up(shifted)
-        self._suspend_handler = False
-
-    def qt_up(self, shifted):
+    def up(self, shifted):
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
             return
@@ -496,13 +398,7 @@ class _HistoryDialog:
             self.up(shifted)
         self._suspend_handler = False
 
-    def wx_update_list(self):
-        c = self.controller
-        last8 = self.history[-8:]
-        last8.reverse()
-        c.text.Items = last8 + [c.show_history_label, c.compact_label]
-
-    def qt_update_list(self):
+    def update_list(self):
         c = self.controller
         last8 = self.history[-8:]
         last8.reverse()

@@ -284,11 +284,6 @@ class Log(ToolInstance, HtmlLog):
         lw.setHtml(html)
         lw.setEnabled(True)
 
-    # wx event handling
-
-    def on_close(self, event):
-        self.session.logger.remove_log(self)
-
     def navigate(self, data):
         session = self.session
         # Handle event

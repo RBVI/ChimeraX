@@ -67,7 +67,7 @@ class Log:
         Note that this method may be called from a thread (due to the
         use of timers to get proper time delays) and that therefore
         special window toolkit handling may be necessary to get your
-        code executed in the main thread (*e.g.*, wx.CallAfter).
+        code executed in the main thread (*e.g.*, session.ui.thread_safe()).
         """
         return False
 
