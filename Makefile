@@ -36,7 +36,7 @@ endif
 
 ifdef WIN32
 vsdefined:
-	if [ -z $${VSINSTALLDIR+x} ]; then \
+	@if [ -z $${VSINSTALLDIR+x} ]; then \
 		echo 'Visual Studio not found.  Run ". vsvars.sh"' ; \
 		false; \
 	fi
