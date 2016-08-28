@@ -15,6 +15,7 @@ include $(TOP)/mk/config.make
 
 ifdef WIN32
 RST2HTML = $(shell cygpath -m $(bindir)/Scripts/rst2html.py)
+HTML2TEXT = $(bindir)/Scripts/html2text.exe
 else
 RST2HTML = $(bindir)/rst2html.py
 endif
@@ -33,11 +34,22 @@ install: license.html
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
 
+# rst2html converts quotes to Unicode.
+# We turn them back into HTML entities.
 license.html: license.rst
 	$(PYTHON_EXE) $(RST2HTML) \
-		--smart-quotes=alt \
-		--stylesheet-path=license.css \
-		license.rst > license.html
+			--no-xml-declaration \
+			--smart-quotes=alt \
+			--stylesheet-path=license.css \
+			license.rst \
+		| sed -e 's/\o342\o200\o234/\&ldquo;/g' \
+			-e 's/\o342\o200\o235/\&rdquo;/g' \
+			-e "s/\o342\o200\o231/'/g" \
+		> license.html
+ifdef WIN32
+	$(PYTHON_EXE) -m pip install html2text
+	$(HTML2TEXT) --body-width=0 license.html > license.txt
+endif
 
 clean:
-	rm -f license.html
+	rm -f license.html license.txt
