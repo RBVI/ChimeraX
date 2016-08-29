@@ -51,5 +51,11 @@ ifdef WIN32
 	$(HTML2TEXT) --body-width=0 license.html > license.txt
 endif
 
+embedded.html: embedded.html.in make_embedded.py
+	if [ -d "$(app_prefix)" ]; then \
+		$(APP_PYTHON_EXE) make_embedded.py; \
+	fi
+
+
 clean:
 	rm -f license.html license.txt
