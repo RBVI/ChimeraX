@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def info(session, models=None):
     '''
     Report state of models, such as whether they are displayed, color, number of children,

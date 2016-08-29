@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def open(session, filename, format=None, name=None, from_database=None, ignore_cache=False,
          smart_initial_display = True):
     '''Open a file.

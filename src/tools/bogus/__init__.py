@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def start_tool(session, bundle_info):
     # If providing more than one tool in package,
     # look at the name in 'bundle_info.name' to see which is being started.

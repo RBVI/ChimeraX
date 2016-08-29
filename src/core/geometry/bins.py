@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 # -----------------------------------------------------------------------------
 # Eliminate copies of close transformations from a set of transformations.
 #

@@ -1,3 +1,5 @@
+<html>
+
 <!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
@@ -11,7 +13,7 @@ or derivations thereof.
 === UCSF ChimeraX Copyright ===
 -->
 
-<html><head>
+<head>
 <title>Software Embedded in UCSF ChimeraX</title>
 </head><body>
 <h1>Software Embedded in UCSF ChimeraX</h1>

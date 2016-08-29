@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 # -----------------------------------------------------------------------------
 #
 def apply_matrix(tf, points):

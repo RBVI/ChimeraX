@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def list(session):
     '''List the open model ids and names.'''
     models = session.models.list()

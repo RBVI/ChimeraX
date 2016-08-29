@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def pwd(session):
     '''Report the current directory to the log.'''
     import os
