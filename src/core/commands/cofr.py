@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None):
     '''
     Set center of rotation method to "front center" or "fixed".  For fixed can

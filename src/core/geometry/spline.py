@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 # -----------------------------------------------------------------------------
 # Cubic spline through points in 3D.
 #

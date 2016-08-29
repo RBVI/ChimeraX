@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def sphere_points(n):
     '''
     Return N uniformly distributed points on a sphere of radius 1.

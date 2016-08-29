@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def time(session, command):
     '''Time a command.'''
     from time import time

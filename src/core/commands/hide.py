@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def hide(session, objects=None, what=None, target=None):
     '''Hide specified atoms, bonds or models.
 

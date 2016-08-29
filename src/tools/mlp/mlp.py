@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3.0,
         color=True, palette=None, range=None, map=False):
     '''Display Molecular Lipophilic Potential for a single model.

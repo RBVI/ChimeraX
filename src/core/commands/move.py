@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def move(session, axis, distance=None, frames=None, coordinate_system=None, models=None):
     '''Shift the scene.  Actually the camera is shifted and the models stay fixed
     unless the models option is specified.

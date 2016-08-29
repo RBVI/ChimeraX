@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def initialize(command_name):
     from chimerax.core.commands import create_alias
     create_alias(command_name, "%s $*" % command_name.replace("ribbon", "cartoon"))

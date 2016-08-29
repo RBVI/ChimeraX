@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def camera(session, type=None, field_of_view=None,
            eye_separation=None, pixel_eye_separation=None):
     '''Change camera parameters.
