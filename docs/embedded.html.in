@@ -1,0 +1,94 @@
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<html><head>
+<title>Software Embedded in UCSF ChimeraX</title>
+</head><body>
+<h1>Software Embedded in UCSF ChimeraX</h1>
+
+<blockquote>
+WORK IN PROGRESS
+</blockquote>
+
+UCSF ChimeraX is built upon other great software.
+
+
+<ul>
+<li> <a href="#o"> Incorporated Software </a>
+<li> <a href="#p"> Included Python Packages </a>
+</ul>
+
+<h2><a id="o"> Incorporated Software </a></h2>
+
+<dl>
+<dt><a href="http://www.python.org/"> Python 3 </a>
+<dd>The Python programming language and interpreter.<br>
+History and License: <a href="https://docs.python.org/3/license.html">open source</a>
+<p>
+ChimeraX is distributed as Python packages,
+either written in the Python language
+or as a binary package written in C or C++.
+
+<p>
+<dt><a href="http://ffmpeg.org/"> FFmpeg </a>
+<dd>A complete, cross-platform solution to record, convert and stream audio and video.<br>
+License: <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">GNU Lesser General Public License (LGPL) version 2.1</a> (MacOS/Linux)<br>
+License: <a href="http://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License v3</a> (Windows)<br>
+<p>
+FFmpeg is bundled as a convenience for users of ChimeraX.
+It is a separate product,
+and thus, its licence does not affect ChimeraX's license.
+FFmpeg can be freely redistributed separately from ChimeraX.
+See the <a href="http://www.gnu.org/gpl-faq.html">GPL FAQ</a>.
+It can be found in the <code>bin</code> directory.
+
+<p>
+<dt><a href="http://www.gnu.org/software/freefont/">
+GNU FreeFont </a>
+<dd>GNU FreeFont is a free family of scalable outline fonts, suitable for general use on computers and for desktop publishing. It is Unicode-encoded for compatibility with all modern operating systems.
+License: <a href="http://www.gnu.org/licenses/gpl-3.0.html">GNU Public License v3</a> or later and the following exception:
+<blockquote>
+"As a special exception, if you create a document which uses this font, and embed this font or unaltered portions of this font into the document, this font does not by itself cause the resulting document to be covered by the GNU General Public License. This exception does not however invalidate any other reasons why the document might be covered by the GNU General Public License."
+</blockquote>
+<p>
+GNU FreeFont is bundled as a convenience for users of ChimeraX.
+It is a separate product,
+and thus, its licence does not affect ChimeraX's license.
+GNU FreeFont can be freely redistributed separately from ChimeraX.
+See the <a href="http://www.gnu.org/gpl-faq.html">GPL FAQ</a>
+and the <a href="http://www.gnu.org/software/freefont/FAQ.html">GNU FreeFont FAQ</a>.
+It can be found in the <code>bin/share/fonts/freefont</code> directory.
+
+<p>
+<dt><a href="https://www.freedesktop.org/wiki/Software/xdg-utils/"> xdg-utils </a>
+<dd>xdg-utils is a set of tools that allows applications to easily integrate with the desktop environment of the user, regardless of the specific desktop environment that the user runs.<br>
+License type: <a href="https://cgit.freedesktop.org/xdg/xdg-utils/tree/LICENSE">free</a>
+<p>
+Linux only.
+
+</dl>
+
+
+<h2><a id="p">Included Python Packages</a></h2>
+
+For convenience,
+the ChimeraX distribution includes the Python packages that it depends on.
+Both the direct and indirect dependencies are shown below.
+The package names are links to the home page of the corresponding Python package.
+The license type is shown, and if a license is bundled with the package,
+a link to it is provided.
+<i>Note: this list is automatically generated.</i>
+
+PYTHON_PKGS
+
+</body></html>

@@ -24,7 +24,6 @@ class ToolUI(ToolInstance):
 
     SESSION_ENDURING = False
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
-    SIZE = (500, 25)
 
     def __init__(self, session, bundle_info):
         ToolInstance.__init__(self, session, bundle_info)
@@ -34,7 +33,7 @@ class ToolUI(ToolInstance):
         self.display_name = "custom name for running tool"
         if session.ui.is_gui:
             from chimerax.core.ui.gui import MainToolWindow
-            self.tool_window = MainToolWindow(self, size=self.SIZE)
+            self.tool_window = MainToolWindow(self)
             self.tool_window.manage(placement="bottom")
             parent = self.tool_window.ui_area
             # TODO: UI content code goes here

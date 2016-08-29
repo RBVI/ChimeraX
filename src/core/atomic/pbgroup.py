@@ -39,7 +39,9 @@ class PseudobondGroup(PseudobondGroupData, Model):
             pbm = self.session.pb_manager
             pbm.delete_group(self)
         else:
-            self.structure.delete_pseudobond_group(self)
+            s = self.structure
+            if not s.deleted():
+                s.delete_pseudobond_group(self)
         Model.delete(self)
         self._pbond_drawing = None
 

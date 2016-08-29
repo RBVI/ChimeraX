@@ -16,8 +16,6 @@ chimerax.core: collection of base ChimeraX functionality
 ========================================================
 
 """
-window_sys = None       # Set by startup script to "qt" or "wx".
-
 _class_cache = {}
 # list modules classes are found in used by session restore to recreate objects.
 _class_class_init = {

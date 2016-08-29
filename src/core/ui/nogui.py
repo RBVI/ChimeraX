@@ -82,7 +82,7 @@ class UI:
             except ImportError:
                 pass
 
-        if not self.initialize_offscreen_rendering(session.main_view):
+        if not self.initialize_offscreen_rendering(session.main_view) and not session.silent:
             session.logger.info('Offscreen rendering not available')
 
     def initialize_offscreen_rendering(self, view):

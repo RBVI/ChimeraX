@@ -76,41 +76,26 @@ _RUNNING_ROW = (
 class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
-    SIZE = (800, 50)
 
     def __init__(self, session, bundle_info):
         ToolInstance.__init__(self, session, bundle_info)
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
-        from chimerax.core import window_sys
-        self.window_sys = window_sys
-        if self.window_sys == "wx":
-            from wx import html2
-            import wx
-            self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
-            self.webview.EnableContextMenu(False)
-            # self.webview.EnableHistory(False)
-            self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.navigate, id=self.webview.GetId())
-            sizer = wx.BoxSizer(wx.VERTICAL)
-            sizer.Add(self.webview, 1, wx.EXPAND)
-            parent.SetSizerAndFit(sizer)
-        else:  # qt
-            from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 
-            class HtmlWindow(QWebView):
+        from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+        class HtmlWindow(QWebView):
+            def sizeHint(self):   # NOQA
+                from PyQt5.QtCore import QSize
+                return QSize(800, 50)
 
-                def sizeHint(self):   # NOQA
-                    from PyQt5.QtCore import QSize
-                    return QSize(*ToolshedUI.SIZE)
-
-            self.webview = HtmlWindow(parent)
-            from PyQt5.QtWidgets import QGridLayout
-            layout = QGridLayout(parent)
-            layout.addWidget(self.webview, 0, 0)
-            parent.setLayout(layout)
-            self.webview.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
-            self.webview.linkClicked.connect(self.navigate)
+        self.webview = HtmlWindow(parent)
+        from PyQt5.QtWidgets import QGridLayout
+        layout = QGridLayout(parent)
+        layout.addWidget(self.webview, 0, 0)
+        parent.setLayout(layout)
+        self.webview.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
+        self.webview.linkClicked.connect(self.navigate)
         self.tool_window.manage(placement="right")
         from chimerax.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
         self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE, self._make_page),
@@ -120,16 +105,11 @@ class ToolshedUI(ToolInstance):
     def navigate(self, data):
         session = self.session
         # Handle event
-        if self.window_sys == "wx":
-            # data is wx event
-            url = data.GetURL()
-            link_handled = data.Veto
-        else:
-            # data is QUrl
-            url = data.toString()
+        # data is QUrl
+        url = data.toString()
 
-            def link_handled():
-                return False
+        def link_handled():
+            return False
         if url.startswith("toolshed:"):
             link_handled()
             parts = url.split(':')
@@ -211,12 +191,8 @@ class ToolshedUI(ToolInstance):
         page = page.replace("AVAILABLE_TOOLS", s.getvalue())
         page = page.replace("TOOLSHED_URL", ts.remote_url)
 
-        if self.window_sys == "wx":
-            self.webview.ClearHistory()
-            self.webview.SetPage(page, "")
-        else:
-            self.webview.history().clear()
-            self.webview.setHtml(page)
+        self.webview.history().clear()
+        self.webview.setHtml(page)
 
     def refresh_installed(self, session):
         # refresh list of installed tools

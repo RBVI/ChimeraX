@@ -4564,10 +4564,6 @@ def volume_dialog(session, create=False):
 # -----------------------------------------------------------------------------
 #
 def show_volume_dialog(session):
-    from chimerax.core import window_sys
-    if window_sys == "wx":
-        return None
-
     vv = volume_dialog(session, create = True)
     vv.show()
     return vv
