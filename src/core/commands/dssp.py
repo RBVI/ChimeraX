@@ -16,7 +16,7 @@
 #
 def dssp(session, structures=None, *,
         min_helix_len=3, min_strand_len=3, energy_cutoff=-0.5, report=False):
-    from chimerax.core.atomic import Structure
+    from ..atomic import Structure, _dssp
     if structures is None:
         structures = [m for m in session.models.list() if isinstance(m, Structure)]
     elif isinstance(structures, Structure):
@@ -26,9 +26,8 @@ def dssp(session, structures=None, *,
         from chimerax.core.errors import UserError
         raise UserError('No structures specified')
 
-    from .._dssp import compute_ss
     for struct in structures:
-        compute_ss(struct._c_pointer.value, energy_cutoff, min_helix_len, min_strand_len, report)
+        _dssp.compute_ss(struct._c_pointer.value, energy_cutoff, min_helix_len, min_strand_len, report)
 
 def register_command(session):
     from . import CmdDesc, register, StructuresArg, FloatArg, BoolArg, IntArg

@@ -9,11 +9,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP = ../../..
+TOP = ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR		= $(PYSITEDIR)/chimerax/core
-APP_PKG_DIR		= $(PYSITEDIR)/chimerax/core
+PKG_DIR		= $(PYSITEDIR)/chimerax/core/atomic
+APP_PKG_DIR		= $(PYSITEDIR)/chimerax/core/atomic
 ifdef WIN32
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 APP_PKG_DIR := $(shell cygpath -m '$(APP_PKG_DIR)' | sed 's,/,\\\\\\\\,g')

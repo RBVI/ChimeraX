@@ -114,7 +114,7 @@ public:
                              RIBBON_ORIENT_CURVATURE = 3,
                              RIBBON_ORIENT_PEPTIDE = 4 };
 protected:
-    const int  CURRENT_SESSION_VERSION = 1;
+    const int  CURRENT_SESSION_VERSION = 2;
 
     CoordSet *  _active_coord_set;
     Atoms  _atoms;
@@ -174,7 +174,7 @@ protected:
         std::set<const Residue *>* ignore = nullptr) const;
     // in the SESSION* functions, a version of "0" means the latest version
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 9; }
+    static int  SESSION_NUM_INTS(int version=0) { return version == 1 ? 9 : 10; }
     static int  SESSION_NUM_MISC(int /*version*/=0) { return 4; }
 
 public:
