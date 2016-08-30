@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bymodel",
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bysequence", "bymodel",
                   "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "helix", "helices", "strands",
@@ -29,7 +29,7 @@ def color(session, objects, color=None, what=None,
     objects : Objects
       Which objects to color.
     color : Color
-      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bymodel".
+      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bysequence", "bymodel".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
       What to color. Everything is colored if option is not specified.
     target : string
@@ -166,6 +166,12 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
         from ..colors import chain_colors
         c = chain_colors(atoms.residues.chain_ids)
         c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
+    elif color == "bysequence":
+        from ..colors import sequence_colors
+        c = atoms.colors.copy()
+        sc,amask = sequence_colors(atoms.residues)
+        c[amask,:] = sc[amask,:]
+        c[amask, 3] = atoms.colors[amask, 3] if opacity is None else opacity
     elif color == "bymodel":
         c = atoms.colors.copy()
         for m, matoms in atoms.by_structure:
@@ -216,6 +222,11 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor=None):
         c = chain_colors(residues.chain_ids)
         c[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
         residues.ribbon_colors = c
+    elif color == "bysequence":
+        from ..colors import sequence_colors
+        c,rmask = sequence_colors(residues)
+        c[rmask, 3] = residues.ribbon_colors[rmask, 3] if opacity is None else opacity
+        residues.filter(rmask).ribbon_colors = c[rmask,:]
     elif color == 'bymodel':
         for m, res in residues.by_structure:
             c = res.ribbon_colors
