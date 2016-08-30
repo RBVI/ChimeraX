@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def window_size(session, width=None, height=None):
     '''Report or set graphics window size in pixels.'''
 

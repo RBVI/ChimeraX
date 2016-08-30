@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def transparency(session, objects, percent, target='s'):
     """Set transparency of atoms, ribbons, surfaces, ....
 

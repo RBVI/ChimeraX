@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def crossfade(session, frames=30):
     '''Fade from the current view to the next drawn view. Used in movie recording.
 

@@ -491,8 +491,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         help_menu = mb.addMenu("&Help")
         for entry, topic in (('User Guide', 'user'),
                            ('Quick Start Guide', 'quickstart'),
-                           ('Programming Guide', 'devel'),
-                           ('PDB images command', 'pdbimages')):
+                           ('Programming Manual', 'devel'),
+                           ('Documentation Index', 'index.html'),
+                           ):
             help_action = QAction(entry, self)
             help_action.setStatusTip("Show " + entry)
             def cb(arg, ses=session, t=topic):

@@ -21,10 +21,10 @@
 
 #include <logger/logger.h>
 
-#include "atomstruct/Atom.h"
-#include "atomstruct/Coord.h"
-#include "atomstruct/Residue.h"
-#include "atomstruct/Structure.h"
+#include <atomstruct/Atom.h>
+#include <atomstruct/Coord.h>
+#include <atomstruct/Residue.h>
+#include <atomstruct/Structure.h>
 
 #ifndef PY_STUPID
 // workaround for Python API missing const's.

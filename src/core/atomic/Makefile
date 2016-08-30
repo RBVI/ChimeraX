@@ -12,7 +12,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= atomstruct_cpp element_cpp mmcif_cpp pdb_cpp pdbio readcif_cpp
+SUBDIRS	+= atomstruct_cpp dssp_cpp element_cpp mmcif_cpp pdb_cpp pdbio readcif_cpp
 
 include $(TOP)/mk/subdir.make
 
@@ -79,5 +79,6 @@ $(includedir)/atomstruct/RibbonXSection.h: atomstruct_cpp.install
 $(includedir)/atomstruct/Sequence.h: atomstruct_cpp.install
 
 atomstruct_cpp.install: element_cpp.install
+dssp_cpp.install: atomstruct_cpp.install
 mmcif_cpp.install: readcif_cpp.install atomstruct_cpp.install
 pdbio.install: atomstruct_cpp.install pdb_cpp.install

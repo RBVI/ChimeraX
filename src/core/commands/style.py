@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def style(session, objects, atom_style = None, dashes = None):
     '''Set the atom display style.
 
