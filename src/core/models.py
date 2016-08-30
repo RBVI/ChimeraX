@@ -300,7 +300,6 @@ class Models(State):
         self.remove(models)
         for m in models:
             if m not in dset:	# Deleted parent will delete children.
-                print ('delete', m.id_string())
                 m.delete()
 
     def open(self, filenames, id=None, format=None, name=None, **kw):
