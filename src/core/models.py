@@ -192,14 +192,7 @@ class Models(State):
         if model_id is None:
             models = list(self._models.values())
         else:
-            if model_id not in self._models:
-                return []
-            # find all submodels
-            size = len(model_id)
-            model_ids = [x for x in self._models if x[0:size] == model_id]
-            # sort so submodels are removed before parent models
-            model_ids.sort(key=len, reverse=True)
-            models = [self._models[x] for x in model_ids]
+            models = [self._models[model_id]] if model_id in self._models else []
         if type is not None:
             models = [m for m in models if isinstance(m, type)]
         return models
