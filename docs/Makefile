@@ -24,7 +24,7 @@ SUBDIRS = devel pdbimages quickstart user download
 
 DOCDIR = $(app_datadir)/docs
 
-SRCS = $(wildcard *.html) license.html
+SRCS = $(wildcard *.html) license.html licenses
 IMAGES = $(wildcard *.png)
 
 # All needed subdirectories must be set by now.
@@ -58,4 +58,5 @@ embedded.html: embedded.html.in make_embedded.py
 
 
 clean:
-	rm -f license.html license.txt
+	rm -f license.html license.txt embedded.html
+	rm -rf licenses

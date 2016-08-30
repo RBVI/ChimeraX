@@ -39,32 +39,81 @@ def get_packages_info():
         except (KeyError, IOError):
             lines = pkg.get_metadata_lines('PKG-INFO')
 
+        classifier_licenses = []
         for line in lines:
             try:
                 key, value = line.split(': ', 1)
             except ValueError:
                 pass
+            value = value.strip()
             if key in KEY_MAP:
                 info[KEY_MAP[key]] = value
             elif key == 'Classifier':
-                what = [x.strip() for x in value.split('::')]
-                if len(what) < 2:
+                category, text = value.split('::', 1)
+                category = category.strip()
+                if category != 'License':
                     continue
-                if what[0] != 'License':
-                    continue
-                # TODO: handle multiple licenses, like pyzmq
+                text = text.strip()
                 # Classifier: License :: OSI Approved :: BSD License
-                #if info['license'].startswith('http'):
-                #    continue
-                if what[1] == 'OSI Approved':
-                    if len(what) > 2:
-                        info['license'] = what[2]
-                    continue
-                info['license'] = what[1]
+                if text.startswith('OSI Approved'):
+                    extract = text.split('::', 1)
+                    if len(extract) > 1:
+                        text = extract[1].strip()
+                classifier_licenses.append(text)
+        if classifier_licenses:
+            #? if not info['license'].startswith('http'):
+            info['license'] = ', '.join(classifier_licenses)
+
+        license_file = find_license_file(pkg)
+        info['license-file'] = license_file
 
         infos += [info]
 
     return infos
+
+def find_license_file(pkg):
+    # return absolute path to a file with the license for a package if found
+    import os
+    import fnmatch
+    import re
+    license_file = None
+
+    # scan egg/wheel info for a license
+    dir_re = fnmatch.translate('%s-*info' % pkg.project_name)
+    dir_re = re.compile(fnmatch.translate('%s*info' % pkg.project_name))
+    for filename in os.listdir(pkg.location):
+        if dir_re.match(filename):
+            break
+    else:
+        return license_file
+
+    top_levels = []
+    license_re = re.compile('licen[sc]e', re.I)
+    dirname = os.path.join(pkg.location, filename)
+    for filename in os.listdir(dirname):
+        if filename == 'top_level.txt':
+            fn = os.path.join(dirname, 'top_level.txt')
+            with open(fn) as f:
+                top_levels = [x.strip() for x in f.readlines()]
+        elif license_re.match(filename):
+            license_file = os.path.join(dirname, filename)
+
+    # scan modules provided by egg/wheel for a license
+    if not license_file and top_levels:
+        import importlib
+        for t in top_levels:
+            try:
+                m = importlib.import_module(t)
+            except:
+                continue
+            if not hasattr(m, '__path__'):
+                continue
+            for dirname in m.__path__:
+                for filename in os.listdir(dirname):
+                    if license_re.match(filename):
+                        license_file = os.path.join(dirname, filename)
+                        return license_file
+    return license_file
 
 def html4_id(name):
     # must match [A-Za-z][-A-Za-z0-9_:.]*
@@ -96,7 +145,18 @@ def print_pkgs(out):
         print('<dd>%s<br>' % escape(info['summary']), file=out)
         license = info['license']
         if license:
-            print('License type: %s' % escape(license), file=out)
+            lf = info['license-file']
+            if not lf:
+                print('License type: %s' % escape(license), file=out)
+            else:
+                import os
+                import shutil
+                os.makedirs('licenses', exist_ok=True)
+                fn = 'licenses/%s-%s' % (id, os.path.basename(lf))
+                if not os.path.splitext(fn)[1]:
+                    fn += '.txt'
+                shutil.copyfile(lf, fn)
+                print('License type: <a href="%s">%s</a>' % (fn, escape(license)), file=out)
     print('</dl>', file=out)
 
 with open('embedded.html.in') as src:
