@@ -83,11 +83,11 @@ class Structure(Model, StructureData):
     def delete(self):
         '''Delete this structure.'''
         self._deleted = True
-        StructureData.delete(self)
         t = self.session.triggers
         for handler in self._ses_handlers:
             t.remove_handler(handler)
-        Model.delete(self)
+        Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
+        StructureData.delete(self)
 
     def deleted(self):
         '''Has this atomic structure been deleted.'''

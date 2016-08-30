@@ -272,7 +272,9 @@ class Models(State):
 
     def remove(self, models):
         # Also remove all child models, and remove deepest children first.
-        mlist = descendant_models(models)
+        dset = descendant_models(models)
+        dset.update(models)
+        mlist = list(dset)
         mlist.sort(key=lambda m: len(m.id), reverse=True)
         session = self._session()  # resolve back reference
         for m in mlist:
@@ -294,9 +296,12 @@ class Models(State):
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
 
     def close(self, models):
+        dset = descendant_models(models)
         self.remove(models)
         for m in models:
-            m.delete()
+            if m not in dset:	# Deleted parent will delete children.
+                print ('delete', m.id_string())
+                m.delete()
 
     def open(self, filenames, id=None, format=None, name=None, **kw):
         from . import io, toolshed
@@ -340,8 +345,9 @@ class Models(State):
 def descendant_models(models):
     mset = set()
     for m in models:
-        mset.update(m.all_models())
-    return list(mset)
+        for c in m.child_models():
+            mset.update(c.all_models())
+    return mset
 
 
 def ancestor_models(models):
