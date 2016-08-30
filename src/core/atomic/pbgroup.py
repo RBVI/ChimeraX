@@ -31,6 +31,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._dashes = 9
         s = self.structure
         if s:
+            # TODO: This does not assure that model is added to open models
+            # if structure already is in open models.
             s.add([self])
         self._global_group = (s is None)
 

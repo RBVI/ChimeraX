@@ -207,6 +207,9 @@ class Structure(Model, StructureData):
         for attr_name, default_val in self._session_attrs.items():
             setattr(self, attr_name, data.get(attr_name, default_val))
 
+        # Create Python pseudobond group models so they are added as children.
+        list(self.pbg_map.values())
+
         # TODO: For some reason ribbon drawing does not update automatically.
         # TODO: Also marker atoms do not draw without this.
         self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE)
