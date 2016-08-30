@@ -554,7 +554,6 @@ def chain_rgba8(cid):
 #
 def sequence_colors(residues):
     seqs, seq_ids = residues.unique_sequences	# id = 0 for non-chain residues (e.g. solvent).
-    print ('seq col', len(residues), seq_ids.min(), seq_ids.max())
     nc = len(seqs)
     from random import seed, randint
     colors = []
