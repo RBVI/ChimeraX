@@ -99,7 +99,6 @@ def parse_arguments(argv):
     opts.uninstall = False
     opts.use_defaults = False
     opts.version = -1
-    opts.window_sys = None
 
     # Will build usage string from list of arguments
     arguments = [
@@ -117,7 +116,6 @@ def parse_arguments(argv):
         "--uninstall",
         "--usedefaults",
         "--version",
-        "--windowsys <qt|wx>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -193,11 +191,10 @@ def parse_arguments(argv):
             opts.load_tools = opt[2] == 'u'
         elif opt == "--version":
             opts.version += 1
-        elif opt == "--windowsys":
-            if optarg not in ("wx", "qt"):
-                print("--windowsys argument must be either wx or qt", file=sys.stderr)
-                raise SystemExit(os.EX_USAGE)
-            opts.window_sys = optarg
+        else:
+            print("Unknown option: ", opt)
+            help = True
+            break
     if help:
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
@@ -284,21 +281,6 @@ def init(argv, event_loop=True):
         ver += (0,)
     partial_version = '%s.%s' % (ver[0], ver[1])
 
-    import chimerax.core
-    if opts.gui:
-        if opts.window_sys is None:
-            try:
-                import PyQt5
-                opts.window_sys = "qt"
-            except ImportError:
-                try:
-                    import wx
-                    opts.window_sys = "wx"
-                except ImportError:
-                    print("ERROR: neither Qt nor wx toolkit is installed.")
-                    raise SystemExit(1)
-    chimerax.core.window_sys = opts.window_sys if opts.gui else None
-
     import chimerax
     import appdirs
     chimerax.app_dirs = ad = appdirs.AppDirs(app_name, appauthor=app_author,
@@ -339,7 +321,7 @@ def init(argv, event_loop=True):
                         chimerax.app_data_dir, adu.user_cache_dir)
 
     from chimerax.core import session
-    sess = session.Session(app_name, debug=opts.debug)
+    sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
 
     from chimerax.core import core_settings
     core_settings.init(sess)
@@ -442,8 +424,10 @@ def init(argv, event_loop=True):
 
     if opts.gui:
         sess.ui.close_splash()
-    import chimerax.core.commands.version as vercmd
-    vercmd.version(sess)  # report version in log
+
+    if not opts.silent:
+        import chimerax.core.commands.version as vercmd
+        vercmd.version(sess)  # report version in log
     if opts.gui:
         r = sess.main_view.render
         r.make_current()

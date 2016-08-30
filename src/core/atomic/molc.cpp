@@ -1,4 +1,18 @@
 // vi: set expandtab shiftwidth=4 softtabstop=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #include <Python.h>	// Use PyUnicode_FromString
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -1253,7 +1267,7 @@ extern "C" EXPORT void pseudobond_global_manager_delete_group(void *manager, voi
     try {
         PBManager* mgr = static_cast<PBManager*>(manager);
         Proxy_PBGroup* pbg = static_cast<Proxy_PBGroup*>(pbgroup);
-        return mgr->delete_group(pbg);
+        mgr->delete_group(pbg);
     } catch (...) {
         molc_error();
     }
@@ -1479,8 +1493,16 @@ extern "C" EXPORT void residue_is_helix(void *residues, size_t n, npy_bool *is_h
 
 extern "C" EXPORT void set_residue_is_helix(void *residues, size_t n, npy_bool *is_helix)
 {
+    // If true, also unsets is_sheet
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_helix, is_helix);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            if (is_helix[i])
+                r[i]->set_is_sheet(false);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void residue_is_sheet(void *residues, size_t n, npy_bool *is_sheet)
@@ -1491,8 +1513,16 @@ extern "C" EXPORT void residue_is_sheet(void *residues, size_t n, npy_bool *is_s
 
 extern "C" EXPORT void set_residue_is_sheet(void *residues, size_t n, npy_bool *is_sheet)
 {
+    // If true, also unsets is_helix
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_sheet, is_sheet);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            if (is_sheet[i])
+                r[i]->set_is_helix(false);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void residue_ss_id(void *residues, size_t n, int32_t *ss_id)
@@ -2042,6 +2072,30 @@ extern "C" EXPORT void residue_set_alt_loc(void *residues, size_t n, char alt_lo
     try {
         for (size_t i = 0; i < n; ++i)
             r[i]->set_alt_loc(alt_loc);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void residue_set_ss_helix(void *residues, size_t n, bool value)
+{
+    // Doesn't touch is_sheet
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            r[i]->set_is_helix(value);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void residue_set_ss_sheet(void *residues, size_t n, bool value)
+{
+    // Doesn't touch is_helix
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            r[i]->set_is_sheet(value);
     } catch (...) {
         molc_error();
     }
@@ -2635,6 +2689,12 @@ extern "C" EXPORT void set_structure_ribbon_show_spine(void *mols, size_t n, npy
     error_wrap_array_set(m, n, &Structure::set_ribbon_show_spine, ribbon_show_spine);
 }
 
+extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy_bool *ss_assigned)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
+}
+
 extern "C" EXPORT void structure_ribbon_display_count(void *mols, size_t n, int32_t *ribbon_display_count)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -2673,6 +2733,17 @@ extern "C" EXPORT Proxy_PBGroup *structure_pseudobond_group(void *mol, const cha
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" EXPORT void structure_delete_pseudobond_group(void *mol, void *pbgroup)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        Proxy_PBGroup* pbg = static_cast<Proxy_PBGroup*>(pbgroup);
+        m->pb_mgr().delete_group(pbg);
+    } catch (...) {
+        molc_error();
     }
 }
 
@@ -2828,6 +2899,12 @@ extern "C" EXPORT void structure_session_save_teardown(void *mol)
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT void structure_ss_assigned(void *structures, size_t n, npy_bool *ss_assigned)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::ss_assigned, ss_assigned);
 }
 
 extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)

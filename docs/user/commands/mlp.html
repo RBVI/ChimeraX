@@ -1,15 +1,19 @@
+<html>
+
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2016 Regents of the University of California.
+Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
-duplication and use.  This notice must be embedded in or
-attached to all copies, including partial copies, of the
-software or any revisions or derivations thereof.
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
 === UCSF ChimeraX Copyright ===
 -->
 
-<html><head>
+<head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: mlp</title>
 </head><body>
@@ -21,14 +25,20 @@ class="clRight" alt="ChimeraX logo"/></a>
 
 <h3>Command: mlp</h3>
 <h3><a href="usageconventions.html">Usage</a>:
-<br><b>mlp</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
-[&nbsp;dx&nbsp;&nbsp;<i>pathname</i>&nbsp;] 
+<br><b>mlp</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;method&nbsp;&nbsp;fauchere&nbsp;|&nbsp;brasseur&nbsp;|&nbsp;type5&nbsp;|&nbsp;dubost&nbsp;|&nbsp;buckingham&nbsp;[&nbsp;nexp&nbsp;<i>n</i>&nbsp;]]
 [&nbsp;spacing&nbsp;<i>s</i>&nbsp;]
-[&nbsp;method&nbsp;dubost&nbsp;|&nbsp;fauchere&nbsp;|&nbsp;brasseur&nbsp;|&nbsp;buckingham&nbsp;[&nbsp;nexp&nbsp;<i>n</i>&nbsp;]&nbsp;|&nbsp;type5&nbsp;]
+[&nbsp;maxDistance&nbsp;<i>D</i>&nbsp;]
+[&nbsp;<b>map</b>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<i><a href="color.html#palette-options">palette-options</a></i>&nbsp;
 </h3>
 <p>
-The command <b>mlp</b> generates molecular lipophilicity potential (MLP) 
-maps for protein structures using the program
+The command <b>mlp</b> calculates molecular lipophilicity potential (MLP) 
+maps for proteins.
+By default, the results are shown with coloring on the molecular surface
+ranging from <b>dark cyan</b> (most hydrophilic) to <b>white</b> to 
+<b>dark goldenrod</b> (most lipophilic). The calculation is based on 
 <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</b></a>:
 </p>
 <blockquote>
@@ -44,45 +54,69 @@ in proteins.</a>
 Laguerre M, Saux M, Dubost JP, Carpy A.
 <i>Pharm. Sci.</i> 1997;3(5-6):217-22.
 </blockquote>
-<p>
-The 
-<a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</b></a>
-code includes lookup values for nonhydrogen atoms in the 20 standard 
-amino acids plus HYP (hydroxyproline) and PCA (pyroglutamic acid). 
-Any other residue types are ignored.
-Positive potentials correspond to more lipophilic (more hydrophobic) areas,
-negative to less lipophilic (more hydrophilic) areas.
-<b>Warning</b>: execution of this command is rather slow.
-</p><p>
-See also: <a href="open.html"><b>open</b></a>,
+Optimizations for speed, including a 
+distance cutoff, have been added in ChimeraX.
+See also: 
+<a href="color.html"><b>color</b></a>,
+<a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>
 </p><p>
-The output potential map will be opened automatically. 
-The <b>dx</b> option specifies a name and location (<i>pathname</i>) 
-for the output map in DX format;
-otherwise, a temporary name and location will be used.
+The <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</b></a>
+program includes values for nonhydrogen atoms in the 20 standard 
+amino acids plus HYP (hydroxyproline) and PCA (pyroglutamic acid). 
+Other atoms are ignored.
 </p><p>
-The <b>spacing</b> <i>s</i> of the map grid in &Aring; can be
-specified in the range 0.1&ndash;10.0 (default <b>1.0</b>).
-</p><p>
-The <b>method</b> indicates how atomic values propagate through space,
-with multiplicative factors based on the distance <i>d</i> from the atom.
+The <b>method</b> specifies how the atomic values propagate through space,
+with factors based on the distance <i>d</i> from the atom.
 The potential at each grid point is a sum over the atomic contributions.
+Positive potentials correspond to more lipophilic (more hydrophobic) areas,
+negative to less lipophilic (more hydrophilic) areas. Choices of <b>method</b>:
 <ul>
 <font size="+1">
-<li><b>dubost</b>: (1+<i>d</i>)<sup>&ndash;1</sup>
 <li><b>fauchere</b> (default): <i>e</i><sup>&ndash;<i>d</i></sup>
 <li><b>brasseur</b>: <i>e</i><sup>&ndash;<i>d</i>/3.1</sup>
+<li><b>type5</b>: <i>e</i><sup>&ndash;<i>d</i><sup>&nbsp;&frac12;</sup></sup>
+<li><b>dubost</b>: (1+<i>d</i>)<sup>&ndash;1</sup>
 <li><b>buckingham</b>: <i>d</i><sup>&nbsp;&ndash;<i>n</i></sup>
 </font>
 <br>... <i>n</i> given with the <b>nexp</b> option (default <b>3.0</b>)
-<font size="+1">
-<li><b>type5</b>: <i>e</i><sup>&ndash;<i>d</i><sup>&nbsp;&frac12;</sup></sup>
-</font>
 </ul>
+The <b>spacing</b> <i>s</i> of the map grid can be
+specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
+Decreasing the spacing increases map size and calculation time.
+</p><p>
+The <b>maxDistance</b> <i>D</i> is a distance cutoff
+beyond which an atom's contribution is ignored (default <b>5.0</b> &Aring;).
+Increasing the cutoff increases calculation time; the results
+may change only subtly or more noticeably depending on the method.
+</p><p>
+With <b>color true</b> (default),
+the molecular surface(s) for the <a href="atomspec.html">specified</a>
+atoms will be displayed and colored to show the MLP.
+A separate MLP map will be computed for each surface
+based on all of its enclosed atoms.
+If the surfaces do not yet exist, they will be created as if the
+same atoms had been specified in the
+<a href="surface.html"><b>surface</b></a> command.
+The coloring <a href="color.html#palette-options"><i>palette-options</i></a>
+are as described for <a href="color.html"><b>color</b></a>,
+except with defaults:
+<blockquote>
+<b>palette&nbsp;"dark&nbsp;cyan:white:dark&nbsp;goldenrod"&nbsp;range&nbsp;-20,20</b>
+</blockquote>
+</p><p>
+With <b>color false</b>, a single MLP map will be calculated based on 
+the <a href="atomspec.html">specified</a> atoms only,
+and no surface calculations or coloring will be performed.
+</p><p>
+If the <b>map</b> keyword is given, the map(s) will be
+opened as volume models; this allows subsequently 
+recoloring the surfaces by MLP map (without recalculation)
+using <a href="color.html"><b>color</b></a>,
+and/or <a href="save.html">saving</a> the maps to file.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2016</address>
+August 2016</address>
 </body></html>

@@ -1,5 +1,15 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
 
 def register_core_commands(session):
     """Register core commands"""
@@ -10,7 +20,7 @@ def register_core_commands(session):
     modules = [
         'alias', 'align', 'buriedarea',
         'camera', 'clip', 'close', 'cofr', 'color', 'colorname', 'crossfade', 'crosslinks',
-        'delete', 'exit', 'hide', 'info',
+        'delete', 'dssp', 'exit', 'hide', 'info',
         'lighting', 'list', 'material', 'mousemode', 'move',
         'open', 'pdbimages', 'perframe', 'position', 'pwd',
         'rainbow', 'rename', 'roll', 'run', 'rungs',
@@ -32,8 +42,3 @@ def register_core_commands(session):
     fit.register_fitmap_command()
     from ..map import series
     series.register_vseries_command()
-
-    from ..devices import oculus
-    oculus.register_oculus_command()
-    from ..devices import spacenavigator
-    spacenavigator.register_snav_command()

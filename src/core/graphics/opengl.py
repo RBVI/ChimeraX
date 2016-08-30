@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 '''
 OpenGL classes
 ==============
@@ -606,6 +618,9 @@ class Render:
         global stencil8_needed
         stencil8_needed = (sys.platform.startswith('linux') and vendor and
                            vendor.startswith((b'AMD', b'ATI')))
+
+    def pixel_scale(self):
+        return self._opengl_context.pixel_scale()
 
     def set_viewport(self, x, y, w, h):
         'Set the OpenGL viewport.'
@@ -1337,6 +1352,7 @@ class Bindings:
     def __init__(self):
         self.vao_id = GL.glGenVertexArrays(1)
         self.bound_attr_ids = {}        # Maps buffer to list of ids
+        self.bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
 
     def __del__(self):
         self.delete_bindings()
@@ -1362,7 +1378,9 @@ class Bindings:
         if buf_id is None:
             # Unbind already bound variable
             for a in self.bound_attr_ids.get(buffer, []):
-                GL.glDisableVertexAttribArray(a)
+                if self.bound_attr_buffers[a] is buffer:
+                    GL.glDisableVertexAttribArray(a)
+                    self.bound_attr_buffers[a] = None
             self.bound_attr_ids[buffer] = []
             if btype == GL.GL_ELEMENT_ARRAY_BUFFER:
                 GL.glBindBuffer(btype, 0)
@@ -1389,20 +1407,22 @@ class Bindings:
             GL.glEnableVertexAttribArray(attr_id)
             GL.glVertexAttribDivisor(attr_id, 1 if buffer.instance_buffer else 0)
             self.bound_attr_ids[buffer] = [attr_id]
+            self.bound_attr_buffers[attr_id] = buffer
         else:
             # Matrices use multiple vector attributes
             esize = buffer.array_element_bytes()
             abytes = ncomp * esize
             stride = nattr * abytes
+            bab = self.bound_attr_buffers
             import ctypes
             for a in range(nattr):
                 # Pointer arg must be void_p, not an integer.
                 p = ctypes.c_void_p(a * abytes)
-                GL.glVertexAttribPointer(attr_id + a, ncomp, gtype, normalize,
-                                         stride, p)
-                GL.glEnableVertexAttribArray(attr_id + a)
-                GL.glVertexAttribDivisor(attr_id + a,
-                                         1 if buffer.instance_buffer else 0)
+                a_id = attr_id + a
+                GL.glVertexAttribPointer(a_id, ncomp, gtype, normalize, stride, p)
+                GL.glEnableVertexAttribArray(a_id)
+                GL.glVertexAttribDivisor(a_id, 1 if buffer.instance_buffer else 0)
+                bab[a_id] = buffer
             self.bound_attr_ids[buffer] = [attr_id + a for a in range(nattr)]
         GL.glBindBuffer(btype, 0)
 

@@ -1,3 +1,15 @@
+.. 
+    === UCSF ChimeraX Copyright ===
+    Copyright 2016 Regents of the University of California.
+    All rights reserved.  This software provided pursuant to a
+    license agreement containing restrictions on its disclosure,
+    duplication and use.  For details see:
+    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    This notice must be embedded in or attached to all copies,
+    including partial copies, of the software or any revisions
+    or derivations thereof.
+    === UCSF ChimeraX Copyright ===
+
 Functions for User Commands
 ***************************
 
@@ -24,7 +36,7 @@ and their code location is described with the function descriptions.
 | `fitmap`_ - fit atomic structures in density maps
 | `help`_ - Show documentation
 | `hide`_ - Hide atoms, ribbons, models
-| `ks`_ - Enable keyboard shortcuts
+| `ks`_ * - Enable keyboard shortcuts
 | `lighting`_ - Change lighting parameters
 | `list`_ - List open models
 | `log`_ * - Clear or save the log
@@ -34,7 +46,7 @@ and their code location is described with the function descriptions.
 | `mousemode`_ - Set mouse modes
 | `movie`_ * - Record videos
 | `move`_ - Move camera
-| `oculus`_ - Enable Oculus Rift headset
+| `oculus`_ * - Enable Oculus Rift headset
 | `open`_ - Open data files
 | `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
@@ -51,7 +63,7 @@ and their code location is described with the function descriptions.
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
-| `snav`_ - Enable space navigator input device
+| `snav`_ * - Enable space navigator input device
 | `sop`_ - Surface operations
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
@@ -205,7 +217,7 @@ Functions defined in *chimerax.movie.moviecmd*
 
 oculus
 ======
-.. autofunction:: chimerax.core.devices.oculus.oculuscmd.oculus
+.. autofunction:: chimerax.oculus.oculuscmd.oculus
 
 open
 ====
@@ -270,7 +282,7 @@ show
 
 snav
 ====
-.. autofunction:: chimerax.core.devices.spacenavigator.snav.snav
+.. autofunction:: chimerax.spacenavigator.snav.snav
 
 sop
 ===

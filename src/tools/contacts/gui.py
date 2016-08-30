@@ -1,41 +1,40 @@
 # vim: set expandtab ts=4 sw=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # ------------------------------------------------------------------------------
 #
 from chimerax.core.tools import ToolInstance
 class Plot(ToolInstance):
 
-    SIZE = (300, 300)
-
     def __init__(self, session, bundle_info, *, title='Plot'):
         ToolInstance.__init__(self, session, bundle_info)
 
-        from chimerax.core import window_sys
-        kw = {'size': self.SIZE} if window_sys == 'wx' else {}
         from chimerax.core.ui.gui import MainToolWindow
-        tw = MainToolWindow(self, **kw)
+        tw = MainToolWindow(self)
         self.tool_window = tw
         parent = tw.ui_area
 
         from matplotlib import figure
         self.figure = f = figure.Figure(dpi=100, figsize=(2,2))
 
-        if window_sys == 'wx':
-            from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as Canvas
-            self.canvas = Canvas(parent, -1, f)
-            import wx
-            sizer = wx.BoxSizer(wx.VERTICAL)
-            sizer.Add(self.canvas,1,wx.EXPAND)
-            parent.SetSizerAndFit(sizer)
-        elif window_sys == 'qt':
-            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
-            self.canvas = c = Canvas(f)
-            c.setParent(parent)
-            from PyQt5.QtWidgets import QHBoxLayout
-            layout = QHBoxLayout()
-            layout.setContentsMargins(0,0,0,0)
-            layout.addWidget(c)
-            parent.setLayout(layout)
+        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
+        self.canvas = c = Canvas(f)
+        c.setParent(parent)
+        from PyQt5.QtWidgets import QHBoxLayout
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.addWidget(c)
+        parent.setLayout(layout)
         tw.manage(placement="right")
 
         self.axes = axes = f.gca()

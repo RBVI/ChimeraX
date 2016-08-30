@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 '''
 molarray: Collections of molecular objects
 ==========================================
@@ -819,11 +831,19 @@ class Residues(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
-    def set_alt_loc(self, loc):
+    def set_alt_locs(self, loc):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
         f(self._c_pointers, len(self), loc)
+
+    def set_secondary_structures(self, ss_type, value):
+        '''See Residue.set_secondary_structure()'''
+        if value == molobject.Residue.SS_HELIX:
+            f = c_array_function('residue_set_ss_helix', args=(npy_bool,), per_object=False)
+        else:
+            f = c_array_function('residue_set_ss_sheet', args=(npy_bool,), per_object=False)
+        f(self._c_pointers, len(self), value)
 
 # -----------------------------------------------------------------------------
 #
@@ -911,6 +931,11 @@ class StructureDatas(Collection):
     '''Returns an array of booleans of whether to show ribbon spines.'''
     ribbon_orientations = cvec_property('structure_ribbon_orientation', int32)
     '''Returns an array of ribbon orientations.'''
+    ss_assigneds = cvec_property('structure_ss_assigned', npy_bool, doc =
+    '''
+    Whether secondary structure has been assigned, either from data in the
+    original structure file, or from an algorithm (e.g. dssp command)
+    ''')
 
     # Graphics changed flags used by rendering code.  Private.
     _graphics_changeds = cvec_property('structure_graphics_change', int32)

@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 def sym(session, molecules,
         symmetry = None, center = None, axis = None, coordinate_system = None, assembly = None,
         copies = False, clear = False, surface_only = False, resolution = None):
@@ -58,7 +69,7 @@ def sym(session, molecules,
             from ..geometry import Places
             m.positions = Places([m.position])	# Keep only first position.
             for s in m.surfaces():
-                s.position = Places([s.position])
+                s.positions = Places([s.position])
         elif assembly is None:
             ainfo = '\n'.join(' %s = %s (%s)' % (a.id,a.description,a.copy_description(m))
                               for a in assem)
@@ -74,7 +85,7 @@ def sym(session, molecules,
             if copies:
                 a.show_copies(m, surface_only, resolution, session)
             elif surface_only:
-                a.show_surfaces(m, resolution, session)
+               a.show_surfaces(m, resolution, session)
             else:
                 a.show(m, session)
 
@@ -144,7 +155,7 @@ def mmcif_assemblies(model):
                    'pdbx_poly_seq_scheme',
                    'pdbx_nonpoly_scheme')
     from ..atomic import mmcif
-    assem, assem_gen, oper, cremap1, cremap2 = mmcif.get_mmcif_tables(model, table_names)
+    assem, assem_gen, oper, cremap1, cremap2 = mmcif.get_mmcif_tables(model.filename, table_names)
     if assem is None or assem_gen is None or oper is None:
         return []
 
@@ -234,8 +245,8 @@ class Assembly:
         if len(excluded_atoms) > 0:
             surface(session, excluded_atoms, hide = True)
         for s in surfs:
-            cid = s.atoms[0].residue.chain_id
-            s.positions = self._chain_operators(cid)
+            mmcif_cid = mmcif_chain_ids(s.atoms[:1], self.chain_map)[0]
+            s.positions = self._chain_operators(mmcif_cid)
 
     def show_copies(self, mol, surface_only, resolution, session):
         mlist = []

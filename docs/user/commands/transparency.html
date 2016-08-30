@@ -1,15 +1,19 @@
+<html>
+
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015-2016 Regents of the University of California.
+Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
-duplication and use.  This notice must be embedded in or
-attached to all copies, including partial copies, of the
-software or any revisions or derivations thereof.
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
 === UCSF ChimeraX Copyright ===
 -->
 
-<html><head>
+<head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: transparency</title>
 </head><body>
@@ -22,12 +26,12 @@ class="clRight" alt="ChimeraX logo"/></a>
 <h3>Command: transparency</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <BR><b>transparency</b>
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a> &nbsp;<i>percent</i>&nbsp;
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp; &nbsp;<i>percent</i>&nbsp;
 [&nbsp;<a href="#target">target</a> &nbsp;<i>string</i>&nbsp;]
 </h3>
 <p>
 The <b>transparency</b> command sets the transparency of 
-atomic and molecular representations
+atomic representations, molecular surfaces, and volume (map) isosurfaces
 to the specified <i>percent</i>, where 0% is completely opaque 
 and 100% is completely transparent, without otherwise changing colors.  
 <!--
@@ -56,22 +60,22 @@ without commas or spaces:
   <li><b>c</b> &nbsp;or&nbsp; <b>r</b>
   - cartoons (ribbons) (divisible to per-residue segments)
   <li><b>s</b> - surfaces
-  (molecular surfaces divisible to per-atom patches)
+  (molecular surfaces divisible to per-atom patches, other surface models
+   such as volume isosurfaces)
   <li><b>p</b> - pseudobonds-only
   (shown for <a href="../pseudobonds.html">pseudobonds</a>
    not in <a href="color.html#halfbond">halfbond mode</a>)
   <li><b>A</b> - all of the above (equivalent to <b>abcsp</b>)
 <!--
-  <li><b>r</b> - residue labels
   <li><b>n</b> - nonmolecular models (model-level color)
   <li><b>m</b> - molecular models (model-level color)
   <li><b>d</b> - distances and other pseudobond labels
 -->
   </ul>
-The default target is <b>s</b>, molecular surfaces only.
+The default target is <b>s</b>, surfaces only.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2016</address>
+August 2016</address>
 </body></html>

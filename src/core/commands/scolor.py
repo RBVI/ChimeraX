@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # -----------------------------------------------------------------------------
 # Code for scolor (spatial coloring) command, providing the campabilities of
 # the Surface Color dialog.
@@ -71,7 +82,7 @@ def scolor(session, atoms = None, color = None, opacity = None, byatom = False,
             vcolors[v] = c
         elif not map is None:
             cs = volume_color_source(s, map, palette, range, offset=offset)
-            vcolors[v] = cs.vertex_colors(s)[v]
+            vcolors[v] = cs.vertex_colors(s, session.logger.info)[v]
         elif not color is None:
             vcolors[v] = color.uint8x4()
         if opacity is None:
@@ -572,9 +583,12 @@ class Volume_Color:
         
     # -------------------------------------------------------------------------
     #
-    def vertex_colors(self, surface_piece):
+    def vertex_colors(self, surface, report_stats = None):
 
-        values, outside = self.volume_values(surface_piece)
+        values, outside = self.volume_values(surface)
+        if report_stats and len(values) > 0:
+            report_stats('Map values for surface "%s": minimum %.4g, mean %.4g, maximum %.4g'
+                         % (surface.name, values.min(), values.mean(), values.max()))
         cmap = self.colormap
         rgba = interpolate_colormap(values, cmap.data_values, cmap.colors,
                                     cmap.color_above_value_range,

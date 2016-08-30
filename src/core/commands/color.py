@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 _SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bymodel",
                   "fromatoms", "random"]
 
@@ -23,7 +34,7 @@ def color(session, objects, color=None, what=None,
       What to color. Everything is colored if option is not specified.
     target : string
       Alternative to the "what" option for specifying what to color.
-      Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces, m = models,
+      Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
       l = labels, b = bonds, p = pseudobonds, d = distances.
       Everything is colored if no target is specified.
     transparency : float
@@ -51,7 +62,7 @@ def color(session, objects, color=None, what=None,
 
     default_target = (target is None and what is None)
     if default_target:
-        target = 'acsmnlbd'
+        target = 'acslbd'
     if target and 'r' in target:
         target += 'c'
 
@@ -100,31 +111,25 @@ def color(session, objects, color=None, what=None,
             session.logger.warning('Label colors not supported yet')
 
     if 's' in target and (color is not None or map is not None):
-        from ..atomic import MolecularSurface, concatenate
+        from ..atomic import MolecularSurface, concatenate, Structure
         msatoms = [m.atoms for m in objects.models
                    if isinstance(m, MolecularSurface) and not m.atoms.intersects(atoms)]
         satoms = concatenate(msatoms + [atoms]) if msatoms else atoms
         if color == "byhetero":
             satoms = satoms.filter(satoms.element_numbers != 6)
         ns = _set_surface_colors(session, satoms, color, opacity, bgcolor, map, palette, range, offset)
+        # Handle non-molecular surfaces like density maps
+        if color not in _SpecialColors:
+            mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface))]
+            for m in mlist:
+                _set_model_colors(session, m, color, map, opacity, palette, range, offset)
+            ns += len(mlist)
         what.append('%d surfaces' % ns)
 
     if 'c' in target and color is not None:
         residues = atoms.unique_residues
         _set_ribbon_colors(residues, color, opacity, bgcolor)
         what.append('%d residues' % len(residues))
-
-    if 'm' in target and (color is not None or map is not None):
-        from ..atomic import Structure, MolecularSurface
-        for m in objects.models:
-            if not isinstance(m, (Structure, MolecularSurface)):
-                if map is None:
-                    m.single_color = color.uint8x4()
-                elif not m.empty_drawing():
-                    # TODO: Won't color child drawings, e.g. density maps
-                    from .scolor import volume_color_source
-                    cs = volume_color_source(m, map, palette, range, offset=offset)
-                    m.vertex_colors = cs.vertex_colors(m)
 
     if 'b' in target and color is not None:
         if atoms is not None:
@@ -241,6 +246,30 @@ def _set_surface_colors(session, atoms, color, opacity, bgcolor=None,
                     map=map, palette=palette, range=range, offset=offset)
     return ns
 
+def _set_model_colors(session, m, color, map, opacity, palette, range, offset):
+    if map is None:
+        c = color.uint8x4()
+        if not opacity is None:
+            c[3] = opacity
+        elif not m.single_color is None:
+            c[3] = m.single_color[3]
+        m.single_color = c
+    else:
+        if hasattr(m, 'surface_drawings_for_vertex_coloring'):
+            surfs = m.surface_drawings_for_vertex_coloring()
+        elif not m.empty_drawing():
+            surfs = [m]
+        else:
+            surfs = []
+        for s in surfs:
+            from .scolor import volume_color_source
+            cs = volume_color_source(s, map, palette, range, offset=offset)
+            vcolors = cs.vertex_colors(s, session.logger.info)
+            if opacity is not None:
+                vcolors[:,3] = opacity
+            else:
+                vcolors[:,3] = s.color[3] if s.vertex_colors is None else s.vertex_colors[:,3]
+            s.vertex_colors = vcolors
 
 # -----------------------------------------------------------------------------
 #

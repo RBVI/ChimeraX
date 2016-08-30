@@ -1,4 +1,18 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #include <algorithm>
 #include <set>
 
@@ -27,7 +41,7 @@ Structure::Structure(PyObject* logger):
     _change_tracker(DiscardingChangeTracker::discarding_change_tracker()),
     _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure/Structure"),
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
-    _structure_cats_dirty(true),
+    _ss_assigned(false), _structure_cats_dirty(true),
     asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0)
 {
@@ -673,6 +687,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array++ = lower_case_chains;
     *int_array++ = pdb_version;
     *int_array++ = _ribbon_display_count;
+    *int_array++ = _ss_assigned;
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
@@ -946,6 +961,10 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     lower_case_chains = *int_array++;
     pdb_version = *int_array++;
     _ribbon_display_count = *int_array++;
+    if (version == 1)
+        _ss_assigned = true;
+    else
+        _ss_assigned = *int_array++;
     auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 

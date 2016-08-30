@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from numpy import uint8, int32, float64, float32, byte, bool as npy_bool
 from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function, c_array_function, ctype_type_to_numpy, pointer
 import ctypes
@@ -487,6 +499,9 @@ class Residue:
     To create a Residue use the :class:`.AtomicStructure` new_residue() method.
     '''
 
+    SS_HELIX = 0
+    SS_SHEET = SS_STRAND = 1
+
     def __init__(self, residue_pointer):
         set_c_pointer(self, residue_pointer)
 
@@ -518,10 +533,14 @@ class Residue:
         return getattr(self.structure, '_hetnam_descriptions', {}).get(self.name, None)
     insertion_code = c_property('residue_insertion_code', string)
     '''Protein Data Bank residue insertion code. 1 character or empty string.'''
-    is_helix = c_property('residue_is_helix', npy_bool)
-    '''Whether this residue belongs to a protein alpha helix. Boolean value.'''
-    is_sheet = c_property('residue_is_sheet', npy_bool)
-    '''Whether this residue belongs to a protein beta sheet. Boolean value.'''
+    is_helix = c_property('residue_is_helix', npy_bool, doc=
+        "Whether this residue belongs to a protein alpha helix. Boolean value. "
+        "If set to True, also sets is_sheet to False. "
+        "Use set_secondary_structure() if this behavior is undesired.")
+    is_sheet = c_property('residue_is_sheet', npy_bool, doc=
+        "Whether this residue belongs to a protein beta sheet. Boolean value. "
+        "If set to True, also sets is_helix to False. "
+        "Use set_secondary_structure() if this behavior is undesired.")
     PT_NONE = 0
     '''Residue polymer type = none.'''
     PT_AMINO = 1
@@ -575,6 +594,17 @@ class Residue:
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
         r_ref = ctypes.byref(self._c_pointer)
         f(r_ref, 1, loc)
+
+    def set_secondary_structure(self, ss_type, value):
+        '''Set helix/sheet to True/False
+        Unlike is_helix/is_sheet attrs, this function only sets the value requested,
+        it will not unset any other types as a side effect.
+        'ss_type' should be one of Residue.SS_HELIX or RESIDUE.SS_SHEET'''
+        if ss_type == Residue.SS_HELIX:
+            f = c_array_function('residue_set_ss_helix', args=(npy_bool,), per_object=False)
+        else:
+            f = c_array_function('residue_set_ss_sheet', args=(npy_bool,), per_object=False)
+        f(self._c_pointer_ref, 1, value)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
@@ -887,6 +917,9 @@ class StructureData:
     '''Number of sides for ribbon tether. Integer value.'''
     ribbon_tether_opacity = c_property('structure_ribbon_tether_opacity', float32)
     '''Ribbon tether opacity scale factor (relative to the atom).'''
+    ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
+        "Has secondary structure been assigned, either by data in original structure file "
+        "or by some algorithm (e.g. dssp command)")
 
     def _copy(self):
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
@@ -942,6 +975,11 @@ class StructureData:
         pbg = f(self._c_pointer, name.encode('utf-8'), create_arg)
         from .pbgroup import PseudobondGroup
         return object_map(pbg, PseudobondGroup)
+
+    def delete_pseudobond_group(self, pbg):
+        f = c_function('structure_delete_pseudobond_group',
+                       args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
+        f(self._c_pointer, pbg._c_pointer)
 
     @classmethod
     def restore_snapshot(cls, session, data):

@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # -----------------------------------------------------------------------------
 # Manages surface and volume display for a region of a data set.
 # Holds surface and solid thresholds, color, and transparency and brightness
@@ -292,9 +304,10 @@ class Volume(Model):
   #
   def set_color(self, rgba):
     self.surface_colors = [rgba]*len(self.surface_levels)
+    for s in self.surface_drawings:
+      s.vertex_colors = None
     self.solid_colors = [rgba]*len(self.solid_levels)
-    if self.shown():
-      self.show()
+    self.update_display()
 
   # ---------------------------------------------------------------------------
   #
@@ -775,6 +788,12 @@ class Volume(Model):
       level = None
     return level
     
+  # ---------------------------------------------------------------------------
+  #
+  def surface_drawings_for_vertex_coloring(self):
+
+    return self.surface_drawings
+  
   # ---------------------------------------------------------------------------
   #
   def remove_surfaces(self):
