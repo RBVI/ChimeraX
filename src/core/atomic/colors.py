@@ -235,3 +235,25 @@ def sequence_colors(residues):
     mask = (seq_ids > 0)	# mask for residues that are part of a chain
     return c, mask
 
+
+# -----------------------------------------------------------------------------
+#
+atomic_color_names = ["tan", "sky blue", "plum", "light green",
+                      "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
+
+def structure_color(id, bg_color):
+    from ..colors import BuiltinColors, distinguish_from, Color
+    try:
+        cname = atomic_color_names[id[0]-1]
+        model_color = BuiltinColors[cname]
+        if (model_color.rgba[:3] == bg_color[:3]).all():
+            # force use of another color...
+            raise IndexError("Same as background color")
+    except IndexError:
+        # pick a color that distinguishes from the standard list
+        # as well as white and black and green (highlight), and hope...
+        avoid = [BuiltinColors[cn].rgba[:3] for cn in atomic_color_names]
+        avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
+        model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
+    return model_color
+

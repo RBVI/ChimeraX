@@ -20,9 +20,6 @@ CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
 
-    ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
-        "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
-
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  smart_initial_display = True):
         # Cross section coordinates are 2D and counterclockwise
@@ -218,20 +215,8 @@ class Structure(Model, StructureData):
         pass
 
     def initial_color(self, bg_color):
-        from ..colors import BuiltinColors, distinguish_from, Color
-        try:
-            cname = self.ATOMIC_COLOR_NAMES[self.id[0]-1]
-            model_color = BuiltinColors[cname]
-            if (model_color.rgba[:3] == bg_color[:3]).all():
-                # force use of another color...
-                raise IndexError("Same as background color")
-        except IndexError:
-            # pick a color that distinguishes from the standard list
-            # as well as white and black and green (highlight), and hope...
-            avoid = [BuiltinColors[cn].rgba[:3] for cn in self.ATOMIC_COLOR_NAMES]
-            avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
-            model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
-        return model_color
+        from .colors import structure_color
+        return structure_color(self.id, bg_color)
 
     def set_color(self, color):
         from ..colors import Color
