@@ -150,7 +150,9 @@ def element_colors(element_numbers):
 chain_rgba_256 = None
 
 
-def chain_colors(cids):
+def chain_colors(cids, palette=None):
+    if palette is not None:
+        return _palette_chain_colors(cids, palette)
     global chain_rgba_256
     if chain_rgba_256 is None:
         chain_rgba_256 = {
@@ -206,6 +208,24 @@ def chain_colors(cids):
         c = array(tuple(chain_rgba_256[cid.lower()] for cid in cids), uint8)
     return c
 
+# -----------------------------------------------------------------------------
+#
+def _palette_chain_colors(cids, palette):
+    c = palette.interpolated_rgba8(_palette_values(cids))
+    return c
+
+def _palette_values(cids):
+    from numpy import empty, float32
+    values = empty([len(cids)], float32)
+    vmap = {}
+    from random import seed, random
+    for i,cid in enumerate(cids):
+        if cid in vmap:
+            values[i] = vmap[cid]
+        else:
+            seed(cid)
+            vmap[cid] = values[i] = random()
+    return values
 
 # -----------------------------------------------------------------------------
 #
