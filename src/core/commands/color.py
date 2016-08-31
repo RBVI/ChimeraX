@@ -15,7 +15,7 @@ _SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bysequence", "b
                   "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "helix", "helices", "strands",
-                     "SSEs", "chains", "molmodels",
+                     "SSEs", "chains", "sequences", "molmodels",
                      "volmodels", "allmodels"]
 
 def color(session, objects, color=None, what=None,
@@ -39,7 +39,7 @@ def color(session, objects, color=None, what=None,
       Everything is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
-    sequential : "residues", "chains", "molmodels"
+    sequential : "residues", "chains", "sequences", "molmodels"
       Assigns each object a color from a color map.
     palette : :class:`.Colormap`
       Color map to use with sequential coloring.
@@ -283,6 +283,7 @@ def _set_model_colors(session, m, color, map, opacity, palette, range, offset):
             s.vertex_colors = vcolors
 
 # -----------------------------------------------------------------------------
+# Chain ids in each structure are colored from color map ordered alphabetically.
 #
 def _set_sequential_chain(session, selected, cmap, opacity, target):
     # Organize selected atoms by structure and then chain
@@ -309,6 +310,37 @@ def _set_sequential_chain(session, selected, cmap, opacity, target):
                 _set_ribbon_colors(res, c, opacity)
             if target is None or 's' in target:
                 _set_surface_colors(session, atoms, c, opacity)
+
+# ----------------------------------------------------------------------------------
+# Sequences in each structure are colored from color map ordered by sequence length.
+#
+def _set_sequential_sequence(session, objects, cmap, opacity, target):
+    # Organize atoms by structure and then sequence
+    uc = objects.atoms.residues.chains.unique()
+    seq_atoms = {}
+    for c in uc:
+        seq_atoms.setdefault(c.structure, {}).setdefault(c.characters, []).append(c.existing_residues.atoms)
+    # Make sure there is a colormap
+    if cmap is None:
+        from .. import colors
+        cmap = colors.BuiltinColormaps["rainbow"]
+    # Each structure is colored separately with cmap applied by chain
+    import numpy
+    from ..colors import Color
+    for sl in seq_atoms.values():
+        sseq = list(sl.items())
+        sseq.sort(key = lambda sa: len(sa[0]))	# Sort by sequence length
+        colors = cmap.get_colors_for(numpy.linspace(0.0, 1.0, len(sseq)))
+        for color, (seq, alist) in zip(colors, sseq):
+            c = Color(color)
+            for atoms in alist:
+                if target is None or 'a' in target:
+                    _set_atom_colors(atoms, c, opacity)
+                if target is None or 'c' in target:
+                    res = atoms.unique_residues
+                    _set_ribbon_colors(res, c, opacity)
+                if target is None or 's' in target:
+                    _set_surface_colors(session, atoms, c, opacity)
 
 # -----------------------------------------------------------------------------
 #
@@ -373,6 +405,7 @@ def _set_sequential_structures(session, selected, cmap, opacity, target):
             ns = scolor(session, m.atoms, c)
 
 _SequentialColor = {
+    "sequences": _set_sequential_sequence,
     "chains": _set_sequential_chain,
     "residues": _set_sequential_residue,
     "molmodels": _set_sequential_structures,
