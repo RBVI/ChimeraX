@@ -127,10 +127,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def take_snapshot(self, session, flags):
         data = {
             'version': 1,
-            'mgr': session.pb_manager, # so that the global manager gets restored before we do
             'category': self.category,
-            'dashes': self._dashes
+            'dashes': self._dashes,
+            'structure': self.structure,
         }
+        if self._global_group:
+            # Make the global manager restore before we do
+            data['mgr'] = session.pb_manager
+
         return data
 
     @staticmethod
