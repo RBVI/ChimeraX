@@ -276,23 +276,25 @@ class Structure(Model, StructureData):
         self._atom_bounds_needs_update = True
 
     def _update_graphics_if_needed(self, *_):
-        gc = self._graphics_changed         # Molecule changes
+        gc = self._graphics_changed
+        if gc == 0:
+            return
+        
         if gc & self._RIBBON_CHANGE:
-            # Do this before fetching bits because ribbon creation changes some
-            # display and hide bits
             self._create_ribbon_graphics()
+            # Displaying ribbon can set backbone atom hide bits producing shape change.
+            gc |= self._graphics_changed
         
         # Update graphics
-        if gc:
-            self._graphics_changed = 0
-            s = (gc & self._SHAPE_CHANGE)
-            if gc & (self._COLOR_CHANGE | self._RIBBON_CHANGE) or s:
-                self._update_ribbon_tethers()
-            self._update_graphics(gc)
-            self.redraw_needed(shape_changed = s,
-                               selection_changed = (gc & self._SELECT_CHANGE))
-            if s:
-                self._atom_bounds_needs_update = True
+        self._graphics_changed = 0
+        s = (gc & self._SHAPE_CHANGE)
+        if gc & (self._COLOR_CHANGE | self._RIBBON_CHANGE) or s:
+            self._update_ribbon_tethers()
+        self._update_graphics(gc)
+        self.redraw_needed(shape_changed = s,
+                           selection_changed = (gc & self._SELECT_CHANGE))
+        if s:
+            self._atom_bounds_needs_update = True
 
     def _update_graphics(self, changes = StructureData._ALL_CHANGE):
         self._update_atom_graphics(changes)
