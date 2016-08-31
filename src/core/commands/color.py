@@ -300,7 +300,7 @@ def _set_sequential_chain(session, selected, cmap, opacity, target):
     from ..colors import Color
     for sl in chain_atoms.values():
         sl.sort()
-        colors = cmap.get_colors_for(numpy.linspace(0.0, 1.0, len(sl)))
+        colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(sl)))
         for color, (chain_id, atoms) in zip(colors, sl):
             c = Color(color)
             if target is None or 'a' in target:
@@ -330,7 +330,7 @@ def _set_sequential_sequence(session, objects, cmap, opacity, target):
     for sl in seq_atoms.values():
         sseq = list(sl.items())
         sseq.sort(key = lambda sa: len(sa[0]))	# Sort by sequence length
-        colors = cmap.get_colors_for(numpy.linspace(0.0, 1.0, len(sseq)))
+        colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(sseq)))
         for color, (seq, alist) in zip(colors, sseq):
             c = Color(color)
             for atoms in alist:
@@ -365,7 +365,7 @@ def _set_sequential_residue(session, selected, cmap, opacity, target):
             if chain.chain_id not in cids:
                 continue
             residues = chain.existing_residues
-            colors = cmap.get_colors_for(numpy.linspace(0.0, 1.0, len(residues)))
+            colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(residues)))
             for color, r in zip(colors, residues):
                 c = Color(color)
                 if target is None or 'a' in target:
@@ -393,7 +393,7 @@ def _set_sequential_structures(session, selected, cmap, opacity, target):
     # Each structure is colored separately with cmap applied by chain
     import numpy
     from ..colors import Color
-    colors = cmap.get_colors_for(numpy.linspace(0.0, 1.0, len(models)))
+    colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(models)))
     for color, m in zip(colors, models):
         c = Color(color)
         if 'a' in target:

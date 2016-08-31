@@ -280,8 +280,8 @@ class Colormap:
         self.color_below_value_range = color_below_value_range
         self.color_no_value = color_no_value
 
-    def get_colors_for(self, values):
-        """Return numpy array of rgba for given values.
+    def interpolated_rgba(self, values):
+        """Return numpy array of float rgba for given values.
 
         Parameter
         ---------
@@ -297,6 +297,13 @@ class Colormap:
                                           self.color_below_value_range)
         return colors
 
+    def interpolated_rgba8(self, values):
+        c = self.interpolated_rgba(values)
+        c *= 255
+        from numpy import uint8
+        c8 = c.astype(uint8)
+        return c8
+    
     def linear_range(self, min_value, max_value):
         import numpy
         v = numpy.linspace(min_value, max_value, len(self.colors))
