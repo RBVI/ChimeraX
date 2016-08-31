@@ -163,11 +163,11 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
     if color in ("byatom", "byelement", "byhetero"):
         c = _element_colors(atoms, opacity)
     elif color == "bychain":
-        from ..colors import chain_colors
+        from ..atomic.colors import chain_colors
         c = chain_colors(atoms.residues.chain_ids)
         c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
     elif color == "bysequence":
-        from ..colors import sequence_colors
+        from ..atomic.colors import sequence_colors
         c = atoms.colors.copy()
         sc,amask = sequence_colors(atoms.residues)
         c[amask,:] = sc[amask,:]
@@ -191,7 +191,7 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
 
 
 def _element_colors(atoms, opacity=None):
-    from ..colors import element_colors
+    from ..atomic.colors import element_colors
     c = element_colors(atoms.element_numbers)
     c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
     return c
@@ -218,12 +218,12 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor=None):
             c[:, 3] = opacity
         residues.ribbon_colors = c
     elif color == 'bychain':
-        from ..colors import chain_colors
+        from ..atomic.colors import chain_colors
         c = chain_colors(residues.chain_ids)
         c[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
         residues.ribbon_colors = c
     elif color == "bysequence":
-        from ..colors import sequence_colors
+        from ..atomic.colors import sequence_colors
         c,rmask = sequence_colors(residues)
         c[rmask, 3] = residues.ribbon_colors[rmask, 3] if opacity is None else opacity
         residues.filter(rmask).ribbon_colors = c[rmask,:]

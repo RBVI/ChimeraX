@@ -116,14 +116,14 @@ class Structure(Model, StructureData):
                 lighting = "default"
                 from .molobject import Atom, Bond
                 atoms.draw_modes = Atom.STICK_STYLE
-                from ..colors import element_colors
+                from .colors import element_colors
                 het_atoms = atoms.filter(atoms.element_numbers != 6)
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
             elif self.num_chains < 5:
                 lighting = "default"
                 from .molobject import Atom, Bond
                 atoms.draw_modes = Atom.STICK_STYLE
-                from ..colors import element_colors
+                from .colors import element_colors
                 het_atoms = atoms.filter(atoms.element_numbers != 6)
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
                 physical_residues = self.chains.existing_residues
@@ -154,7 +154,7 @@ class Structure(Model, StructureData):
                     atoms.draw_modes = Atom.BALL_STYLE
             elif self.num_chains < 250:
                 lighting = "full"
-                from ..colors import chain_colors, element_colors
+                from .colors import chain_colors, element_colors
                 residues = self.residues
                 residues.ribbon_colors = chain_colors(residues.chain_ids)
                 atoms.colors = chain_colors(atoms.residues.chain_ids)

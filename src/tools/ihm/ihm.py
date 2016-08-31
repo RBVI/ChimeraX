@@ -125,7 +125,7 @@ class IHMSphereModel(Structure):
 
         self._res_sphere = rs = {}	# (asym_id, res_num) -> sphere atom
         
-        from chimerax.core.colors import chain_rgba8
+        from chimerax.core.atomic.colors import chain_rgba8
         for (sb,se,asym_id,xyz,r) in sphere_list:
             aname = ''
             a = self.new_atom(aname, 'H')
