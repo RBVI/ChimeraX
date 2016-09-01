@@ -808,6 +808,20 @@ class Residues(Collection):
         '''
         return self._pointers
 
+    @property
+    def unique_sequences(self):
+        '''
+        Return :mod:`numpy` array giving an integer index for each residue and a list of sequence strings.
+        Index 0 is for residues that are not part of a chain (empty string).
+        '''
+        from numpy import empty, int32
+        seq_ids = empty((len(self),), int32)
+        f = c_function('residue_unique_sequences',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p],
+                       ret = ctypes.py_object)
+        seqs = f(self._c_pointers, len(self), pointer(seq_ids))
+        return seqs, seq_ids
+
     def get_polymer_spline(self, orient):
         '''Return a tuple of spline center and guide coordinates for a
 	polymer chain.  Residues in the chain that do not have a center

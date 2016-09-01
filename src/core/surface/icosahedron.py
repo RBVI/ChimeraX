@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 # -----------------------------------------------------------------------------
 # Edge length of unit icosahedron.
 #

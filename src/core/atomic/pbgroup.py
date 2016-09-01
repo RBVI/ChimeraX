@@ -31,6 +31,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._dashes = 9
         s = self.structure
         if s:
+            # TODO: This does not assure that model is added to open models
+            # if structure already is in open models.
             s.add([self])
         self._global_group = (s is None)
 
@@ -39,9 +41,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             pbm = self.session.pb_manager
             pbm.delete_group(self)
         else:
-            s = self.structure
-            if not s.deleted():
-                s.delete_pseudobond_group(self)
+            self.structure.delete_pseudobond_group(self)
         Model.delete(self)
         self._pbond_drawing = None
 
@@ -127,10 +127,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def take_snapshot(self, session, flags):
         data = {
             'version': 1,
-            'mgr': session.pb_manager, # so that the global manager gets restored before we do
             'category': self.category,
-            'dashes': self._dashes
+            'dashes': self._dashes,
+            'structure': self.structure,
         }
+        if self._global_group:
+            # Make the global manager restore before we do
+            data['mgr'] = session.pb_manager
+
         return data
 
     @staticmethod

@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def run(session, text, *, log=True, downgrade_errors=False):
     """execute a textual command
 

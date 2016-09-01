@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def wait(session, frames=None):
     '''Wait before proceeding to the next command. Used in movie recording scripts.
 

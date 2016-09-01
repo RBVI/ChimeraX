@@ -687,6 +687,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array++ = lower_case_chains;
     *int_array++ = pdb_version;
     *int_array++ = _ribbon_display_count;
+    *int_array++ = _ss_assigned;
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
@@ -960,6 +961,10 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     lower_case_chains = *int_array++;
     pdb_version = *int_array++;
     _ribbon_display_count = *int_array++;
+    if (version == 1)
+        _ss_assigned = true;
+    else
+        _ss_assigned = *int_array++;
     auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 

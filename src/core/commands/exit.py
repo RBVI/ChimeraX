@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def exit(session):
     '''Quit the program.'''
     session.ui.quit()

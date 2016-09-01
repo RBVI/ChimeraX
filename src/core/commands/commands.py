@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def register_core_commands(session):
     """Register core commands"""
     from importlib import import_module

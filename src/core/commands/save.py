@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def save(session, filename, models=None, format=None,
          width=None, height=None, supersample=3,
          pixel_size=None, transparent_background=False, quality=95,

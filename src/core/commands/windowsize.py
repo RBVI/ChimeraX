@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def window_size(session, width=None, height=None):
     '''Report or set graphics window size in pixels.'''
 
@@ -29,7 +28,7 @@ def window_size(session, width=None, height=None):
             height = h
         if not session.ui.is_gui:
             v.window_size = width, height
-        else:
+        elif width != w or height != h:
             session.ui.main_window.adjust_size(width-w, height-h)
 
 def register_command(session):

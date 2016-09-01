@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 from chimerax.core.atomic.ribbon import XSectionManager
 from chimerax.core.atomic import Residue, Structure
 from chimerax.core.commands import Annotation, AnnotationError

@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 class _SaveFormat:
 
     def __init__(self, name, wildcard, make_ui, update, save):

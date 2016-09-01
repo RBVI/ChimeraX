@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
 def set(session, bg_color=None,
         silhouettes=None, silhouette_width=None, silhouette_color=None, silhouette_depth_jump=None,
         subdivision=None):
