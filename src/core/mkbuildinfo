@@ -35,7 +35,7 @@ template = "buildinfo.py.in"
 result = "buildinfo.py"
 
 branch = None
-build = None
+commit = None
 daytime = None
 
 def extract(file):
