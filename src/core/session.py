@@ -662,7 +662,7 @@ def save_x3d(session, filename, **kw):
     for m in session.models.list():
         m.x3d_needs(x3d_scene)
 
-    with _builtin_open(filename, 'w') as stream:
+    with _builtin_open(filename, 'w', encoding='utf-8') as stream:
         x3d_scene.write_header(
             stream, 0, meta, profile_name='Interchange',
             # TODO? Skip units since it confuses X3D viewers and requires version 3.3
