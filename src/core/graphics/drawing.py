@@ -1076,6 +1076,39 @@ class Drawing:
         print("%s <Material ambientIntensity='1' diffuseColor='%g %g %g' specularColor='0.85 0.85 0.85' shininess='0.234375' transparency='%g'/>" % (tab, color[0] / 255, color[1] / 255, color[2] / 255, 1 - color[3] / 255), file=stream)
         print('%s</Appearance>' % tab, file=stream)
 
+    def reuse_its(self, stream, x3d_scene, indent, def_use_tag, indices, colors, normals, any_transp):
+        tab = ' ' * indent
+        if def_use_tag is None:
+            def_use = ''
+        else:
+            use, name = x3d_scene.def_or_use(def_use_tag, 'its')
+            if use == 'USE':
+                print("%s<IndexedTriangleSet USE='%s'/>" % (tab, name), file=stream)
+                return
+            def_use = "%s='%s' " % (use, name)
+        indices = ['%g' % i for i in indices]
+        print('%s<IndexedTriangleSet %sindex="%s"' % (tab, def_use, ' '.join(indices)), end='', file=stream)
+
+        print(' solid="false"', end='', file=stream)
+        if colors is None:
+            print(' colorPerVertex="false"', end='', file=stream)
+        if normals is None:
+            print(' normalPerVertex="false"', end='', file=stream)
+        print('>', file=stream)
+        vertices = ['%g' % x for x in self.vertices.flatten()]
+        print('%s <Coordinate point="%s"/>' % (tab, ' '.join(vertices)), file=stream)
+        if normals is not None:
+            normals = ['%g' % x for x in normals.flatten()]
+            print('%s <Normal vector="%s"/>' % (tab, ' '.join(normals)), file=stream)
+        if colors is not None:
+            if any_transp:
+                colors = ['%g' % x for x in (colors / 255).flatten()]
+                print('%s <ColorRGBA color="%s"/>' % (tab, ' '.join(colors)), file=stream)
+            else:
+                colors = ['%g' % x for x in (colors[:, 0:3] / 255).flatten()]
+                print('%s <Color color="%s"/>' % (tab, ' '.join(colors)), file=stream)
+        print('%s</IndexedTriangleSet>' % tab, file=stream)
+
     def custom_x3d(self, stream, x3d_scene, indent, place):
         """Override this function for custom X3D
 
@@ -1090,7 +1123,11 @@ class Drawing:
         #  multiple postions, per-vertex coloring
         has_ssa = self.positions.shift_and_scale_array() is not None
         tab = ' ' * indent
+        def_use_tag = self if len(self.positions) > 1 else None
         print('%s<Group>' % tab, file=stream)
+        colors = self.vertex_colors
+        normals = self.normals
+        indices = self.masked_triangles.flatten()
         for p, c in zip(self.positions, self.colors):
             if has_ssa:
                 s = (p.matrix[0][0], p.matrix[1][1], p.matrix[2][2])
@@ -1102,30 +1139,8 @@ class Drawing:
                 print('%s<Transform rotation="%g %g %g %g" translation="%g %g %g">' % (tab, r[0][0], r[0][1], r[0][2], r[1], t[0], t[1], t[2]), file=stream)
             print('%s <Shape>' % tab, file=stream)
             self.reuse_appearance(stream, x3d_scene, indent + 2, c)
-            colors = self.vertex_colors
-            normals = self.normals
-            indices = ['%g' % i for i in self.triangles.flatten()]
-            print('%s  <IndexedTriangleSet index="%s"' % (tab, ' '.join(indices)), end='', file=stream)
-
-            print(' solid="false"', end='', file=stream)
-            if colors is None:
-                print(' colorPerVertex="false"', end='', file=stream)
-            if normals is None:
-                print(' normalPerVertex="false"', end='', file=stream)
-            print('>', file=stream)
-            vertices = ['%g' % x for x in self.vertices.flatten()]
-            print('%s   <Coordinate point="%s"/>' % (tab, ' '.join(vertices)), file=stream)
-            if normals is not None:
-                normals = ['%g' % x for x in normals.flatten()]
-                print('%s   <Normal vector="%s"/>' % (tab, ' '.join(normals)), file=stream)
-            if colors is not None:
-                if any_transp:
-                    colors = ['%g' % x for x in (colors / 255).flatten()]
-                    print('%s   <ColorRGBA color="%s"/>' % (tab, ' '.join(colors)), file=stream)
-                else:
-                    colors = ['%g' % x for x in (colors[:, 0:3] / 255).flatten()]
-                    print('%s   <Color color="%s"/>' % (tab, ' '.join(colors)), file=stream)
-            print('%s  </IndexedTriangleSet>' % tab, file=stream)
+            self.reuse_its(stream, x3d_scene, indent + 2, def_use_tag, indices,
+                           colors, normals, any_transp)
             print('%s </Shape>' % tab, file=stream)
             print('%s</Transform>' % tab, file=stream)
         print('%s</Group>' % tab, file=stream)
