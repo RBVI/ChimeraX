@@ -45,14 +45,14 @@ class Plot(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
-def show_contact_graph(node_weights, edge_weights, short_names, colors, spring_constant, session):
+def show_contact_graph(groups, edge_weights, spring_constant, node_click_callback, session):
 
     # Create graph
-    max_w = float(max(w for nm1,nm2,w in edge_weights))
+    max_w = float(max(w for g1,g2,w in edge_weights))
     import networkx as nx
     G = nx.Graph()
-    for name1, name2, w in edge_weights:
-        G.add_edge(name1, name2, weight = w/max_w)
+    for g1, g2, w in edge_weights:
+        G.add_edge(g1, g2, weight = w/max_w)
 
     # Layout nodes
     kw = {} if spring_constant is None else {'k':spring_constant}
@@ -64,11 +64,11 @@ def show_contact_graph(node_weights, edge_weights, short_names, colors, spring_c
     a = p.axes
 
     # Draw nodes
-    from math import sqrt
-    w = dict(node_weights)
-    node_sizes = tuple(10*sqrt(w[n]) for n in G)
-    node_colors = tuple(colors[short_names[n]] for n in G)
-    nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=a)
+    # Sizes are areas define by matplotlib.pyplot.scatter() s parameter documented as point^2.
+    node_sizes = tuple(0.05 * n.area for n in G)
+    node_colors = tuple(n.color for n in G)
+    nc = nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=a)
+    nc.set_picker(True)	# Generate mouse pick events for clicks on nodes
 
     # Draw edges
     esmall=[(u,v) for (u,v,d) in G.edges(data=True) if d['weight'] <=0.1]
@@ -77,6 +77,7 @@ def show_contact_graph(node_weights, edge_weights, short_names, colors, spring_c
     nx.draw_networkx_edges(G, pos, edgelist=elarge, width=3, ax=a)
 
     # Draw node labels
+    short_names = {n:n.short_name for n in G}
     nx.draw_networkx_labels(G, pos, labels=short_names, font_size=16, font_family='sans-serif', ax=a)
 
     # Hide axes and reduce border padding
@@ -85,3 +86,10 @@ def show_contact_graph(node_weights, edge_weights, short_names, colors, spring_c
     a.axis('tight')
     p.figure.tight_layout(pad = 0, w_pad = 0, h_pad = 0)
     p.show()
+
+    if node_click_callback:
+        def pick(event, nodes = G.nodes(), cb=node_click_callback):
+            n = nodes[event.ind[0]]
+            cb(n)
+        p.canvas.mpl_connect('pick_event', pick)
+    
