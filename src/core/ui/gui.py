@@ -71,6 +71,7 @@ class UI(QApplication):
 
     def __init__(self, session):
         self.is_gui = True
+        self.already_quit = False
         self.session = session
 
         from PyQt5.QtCore import QObject, pyqtSlot
@@ -168,6 +169,8 @@ class UI(QApplication):
                 self._keystroke_sinks[i + 1:]
 
     def event_loop(self):
+        if self.already_quit:
+            return
         redirect_stdio_to_logger(self.session.logger)
         self.exec_()
         self.session.logger.clear()
@@ -212,6 +215,7 @@ class UI(QApplication):
 
     def quit(self, confirm=True):
         # called by exit command
+        self.already_quit = True
         self.session.logger.status("Exiting ...", blank_after=0)
         self.session.logger.clear()    # clear logging timers
         self.closeAllWindows()
