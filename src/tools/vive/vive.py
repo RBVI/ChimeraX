@@ -327,7 +327,8 @@ class ViveCamera(Camera):
             # OpenVR texture id object
             import openvr
             fb.openvr_texture = ovrt = openvr.Texture_t()
-            ovrt.handle = t.id
+            from ctypes import c_void_p
+            ovrt.handle = c_void_p(int(t.id))
             ovrt.eType = openvr.API_OpenGL
             ovrt.eColorSpace = openvr.ColorSpace_Gamma
             if self._mirror_display:
