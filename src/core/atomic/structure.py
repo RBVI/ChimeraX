@@ -289,7 +289,7 @@ class Structure(Model, StructureData):
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, changes = StructureData._ALL_CHANGE):
-        atoms = self.atoms  # micro-optimzation
+        atoms = self.atoms  # optimzation, avoid making new numpy array from C++
         avis = atoms.visibles
         p = self._atoms_drawing
         if p is None:
@@ -345,7 +345,7 @@ class Structure(Model, StructureData):
         return r
 
     def _update_bond_graphics(self, changes = StructureData._ALL_CHANGE):
-        bonds = self.bonds  # micro-optimzation
+        bonds = self.bonds  # optimzation, avoid making new numpy array from C++
         p = self._bonds_drawing
         if p is None:
             if bonds.num_shown == 0:
@@ -1593,13 +1593,14 @@ class StructureGraphicsChangeManager:
     def _update_graphics_if_needed(self, *_):
         s = self._array()
         gc = s._graphics_changeds	# Includes pseudobond group changes.
+        # TODO: Changing drawing display does not cause level of detail update.
         if gc.any():
             for i in gc.nonzero()[0]:
                 s[i]._update_graphics_if_needed()
 
             # Update level of detail
             n = sum(tuple(m.num_atoms_visible for m in s if m.display))
-            if n != self.num_atoms_shown:
+            if n > 0 and n != self.num_atoms_shown:
                 self.num_atoms_shown = n
                 self._update_level_of_detail()
 
@@ -1646,12 +1647,14 @@ class LevelOfDetail(State):
 
         self._atom_min_triangles = 10
         self._atom_max_triangles = 2000
+        self._atom_default_triangles = 200
         self._atom_max_total_triangles = 10000000
         self._step_factor = 1.2
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
 
         self._bond_min_triangles = 24
         self._bond_max_triangles = 160
+        self._bond_default_triangles = 60
         self._bond_max_total_triangles = 5000000
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
@@ -1694,7 +1697,7 @@ class LevelOfDetail(State):
 
     def atom_sphere_triangles(self, natoms):
         if natoms is None:
-            return self._atom_min_triangles
+            return self._atom_default_triangles
         ntri = self.quality * self._atom_max_total_triangles // natoms
         nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
         ntri = self.clamp_geometric(ntri, nmin, nmax)
@@ -1732,7 +1735,7 @@ class LevelOfDetail(State):
 
     def bond_cylinder_triangles(self, nbonds):
         if nbonds is None:
-            return self._bond_min_triangles
+            return self._bond_default_triangles
         ntri = self.quality * self._bond_max_total_triangles // nbonds
         nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
         ntri = self.clamp_geometric(ntri, nmin, nmax)
