@@ -284,7 +284,7 @@ class OrthographicCamera(Camera):
     '''Orthographic projection camera.'''
     def __init__(self, field_width = None):
         Camera.__init__(self)
-        self.field_width = 1 if field_width is None else field_width
+        self.field_width = 1 if field_width is None or field_width <= 0 else field_width
         "Horizontal field width in scene coordinate units."
 
     def name(self):
@@ -303,7 +303,7 @@ class OrthographicCamera(Camera):
         xsize, ysize, zsize = b.xyz_max - b.xyz_min
         w = max(xsize, ysize/aspect) if aspect else xsize
         w *= 1/max(0.01, 1-pad)
-        self.field_width = w
+        self.field_width = w if w > 0 else 1.0
         ca = bounds.center() - zsize*self.view_direction()
         shift = ca - self.position.origin()
         from ..geometry import translation
