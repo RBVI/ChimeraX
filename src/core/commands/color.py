@@ -299,7 +299,7 @@ def _set_sequential_chain(session, selected, cmap, opacity, target):
     import numpy
     from ..colors import Color
     for sl in chain_atoms.values():
-        sl.sort()
+        sl.sort(key = lambda ca: ca[0])	# Sort by chain id
         colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(sl)))
         for color, (chain_id, atoms) in zip(colors, sl):
             c = Color(color)
