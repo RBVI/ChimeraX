@@ -43,3 +43,7 @@ src/wheelhouse/Makefile.wheelhouse
 src/core/ui/about.html
 prereqs/PyQt/*commercial*
 docs/license.html
+docs/license.txt
+docs/embedded.html
+docs/devel/index.rst
+docs/licenses

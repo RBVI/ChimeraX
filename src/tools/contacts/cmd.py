@@ -1,5 +1,16 @@
 # vim: set expandtab ts=4 sw=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from chimerax.core.commands import CmdDesc, AtomsArg, FloatArg
 contacts_desc = CmdDesc(
     optional = [('atoms', AtomsArg),],
@@ -16,26 +27,42 @@ def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
     atoms : Atoms
     probe_radius : float
     '''
-    s = atom_spheres(atoms, session)
-    areas, ba = buried_areas(s, probe_radius)
+    sg = chain_spheres(atoms, session)
+    ba = buried_areas(sg, probe_radius)
 
-    names = [name for name,xyz,r,color in s]
-    sn = dict(zip(names,short_chain_names(names)))
-    colors = {sn[name]:color for name,xyz,r,color in s}
+    for g,sname in zip(sg,short_chain_names([g.name for g in sg])):
+        g.short_name = sname
 
     # Report result
-    msg = '%d buried areas: ' % len(ba) + ', '.join('%s %s %.0f' % (sn[n1],sn[n2],a) for n1,n2,a in ba)
+    msg = '%d buried areas: ' % len(ba) + ', '.join('%s %s %.0f' % (g1.short_name,g2.short_name,a) for g1,g2,a in ba)
     log = session.logger
     log.info(msg)
     log.status(msg)
 
     if session.ui.is_gui:
+        def node_clicked(sphere_group, session=session):
+            g = sphere_group
+            session.selection.clear()
+            for m, matoms in g.atoms.by_structure:
+                m.select_atoms(matoms)
         from . import gui
-        gui.show_contact_graph(areas, ba, sn, colors, spring_constant, session)
+        gui.show_contact_graph(sg, ba, spring_constant, node_clicked, session)
     else:
         log.warning("unable to show graph without GUI")
 
-def atom_spheres(atoms, session):
+
+
+class SphereGroup:
+    def __init__(self, name, atoms):
+        self.name = name
+        self.atoms = atoms
+        self.centers = atoms.scene_coords
+        self.radii = atoms.radii
+        from numpy import mean
+        self.color = mean(atoms.colors,axis=0)/255.0
+        self.area = None
+        
+def chain_spheres(atoms, session):
     if atoms is None:
         from chimerax.core.atomic import all_atoms
         atoms = all_atoms(session)
@@ -43,7 +70,7 @@ def atom_spheres(atoms, session):
         from chimerax.core.errors import UserError
         raise UserError('No atoms specified')
     from numpy import mean
-    s = [('#%s/%s'%(m.id_string(),cid), catoms.scene_coords, catoms.radii, mean(catoms.colors,axis=0)/255)
+    s = [SphereGroup('#%s/%s'%(m.id_string(),cid), catoms)
          for m, cid, catoms in atoms.by_chain]
     return s
 
@@ -52,23 +79,23 @@ def short_chain_names(names):
     sn = tuple(n.split('/',1)[-1] for n in names) if use_short_names else names
     return sn
 
-def buried_areas(s, probe_radius, min_area = 1):
-    s = [(name, xyz, r + probe_radius) for name, xyz, r, color in s]
+def buried_areas(sphere_groups, probe_radius, min_area = 1):
+    s = [(g, g.radii + probe_radius) for g in sphere_groups]
     s.sort(key = lambda v: len(v[1]), reverse = True)   # Biggest first for threading.
     
     # Compute area of each atom set.
     from chimerax.core.surface import spheres_surface_area
     from chimerax.core.threadq import apply_to_list
-    def area(name, xyz, r):
-        return (name, spheres_surface_area(xyz,r).sum())
-    areas = apply_to_list(area, s)
+    def area(g, r):
+        g.area = spheres_surface_area(g.centers,r).sum()
+    apply_to_list(area, s)
 
     # Optimize buried area calculations using bounds of each atom set.
     naxes = 64
     from chimerax.core.geometry.sphere import sphere_points
     axes = sphere_points(naxes)
     from chimerax.core.geometry import sphere_axes_bounds
-    bounds = [sphere_axes_bounds(xyz, r, axes) for name, xyz, r in s]
+    bounds = [sphere_axes_bounds(g.centers, r, axes) for g, r in s]
 
     # Compute buried areas between all pairs.
     buried = []
@@ -81,15 +108,15 @@ def buried_areas(s, probe_radius, min_area = 1):
                 pairs.append((i,j))
 
     def barea(i, j, s = s, bounds = bounds, axes = axes, probe_radius = probe_radius):
-        n1, xyz1, r1 = s[i]
-        n2, xyz2, r2 = s[j]
-        ba = optimized_buried_area(xyz1, r1, bounds[i], xyz2, r2, bounds[j], axes, probe_radius)
-        return (n1,n2,ba)
+        g1, r1 = s[i]
+        g2, r2 = s[j]
+        ba = optimized_buried_area(g1.centers, r1, bounds[i], g2.centers, r2, bounds[j], axes, probe_radius)
+        return (g1,g2,ba)
     bareas = apply_to_list(barea, pairs)
-    buried = [(n1,n2,ba) for n1,n2,ba in bareas if ba >= min_area]
+    buried = [(g1,g2,ba) for g1,g2,ba in bareas if ba >= min_area]
     buried.sort(key = lambda a: a[2], reverse = True)
 
-    return areas, buried
+    return buried
 
 # Consider only spheres in each set overlapping bounds of other set.
 def optimized_buried_area(xyz1, r1, b1, xyz2, r2, b2, axes, probe_radius):

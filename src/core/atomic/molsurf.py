@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 molsurf: Compute molecular surfaces
 ===================================
@@ -353,8 +365,8 @@ def surface_rgba(color, transparency, chain_id = None):
             from numpy import array, uint8
             rgba8 = array((180,180,180,255), uint8)
         else:
-            from .. import colors
-            rgba8 = colors.chain_rgba8(chain_id)
+            from .colors import chain_rgba8
+            rgba8 = chain_rgba8(chain_id)
     else:
         rgba8 = color.uint8x4()
     if not transparency is None:

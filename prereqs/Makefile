@@ -82,10 +82,6 @@ NEED_OPENSSL=1
 SUBDIRS += llvm mesa pkgconfig xdg-utils
 endif
 
-ifdef ENABLE_QT
-SUBDIRS += PyQt qt sip
-endif
-
 # Python egg installation has a race condition updating easy-install.pth
 .NOTPARALLEL:
 
@@ -96,9 +92,7 @@ SUBDIRS	+= fonts \
 	   PyOpenGL pytables Python \
 	   setuptools wrappy3
 
-ifndef WIN32
-SUBDIRS += wx
-endif
+SUBDIRS += PyQt
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

@@ -1,4 +1,18 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #ifndef atomstruct_Structure
 #define atomstruct_Structure
 
@@ -100,7 +114,7 @@ public:
                              RIBBON_ORIENT_CURVATURE = 3,
                              RIBBON_ORIENT_PEPTIDE = 4 };
 protected:
-    const int  CURRENT_SESSION_VERSION = 1;
+    const int  CURRENT_SESSION_VERSION = 2;
 
     CoordSet *  _active_coord_set;
     Atoms  _atoms;
@@ -130,6 +144,7 @@ protected:
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
     mutable std::set<const Residue *>*  _rings_last_ignore;
+    bool  _ss_assigned;
     mutable bool  _structure_cats_dirty;
 
     void  add_bond(Bond* b) { _bonds.emplace_back(b); }
@@ -159,7 +174,7 @@ protected:
         std::set<const Residue *>* ignore = nullptr) const;
     // in the SESSION* functions, a version of "0" means the latest version
     static int  SESSION_NUM_FLOATS(int /*version*/=0) { return 1; }
-    static int  SESSION_NUM_INTS(int /*version*/=0) { return 9; }
+    static int  SESSION_NUM_INTS(int version=0) { return version == 1 ? 9 : 10; }
     static int  SESSION_NUM_MISC(int /*version*/=0) { return 4; }
 
 public:
@@ -247,6 +262,8 @@ public:
     }
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(const std::string& name) { _name = name; }
+    void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
+    bool  ss_assigned() const { return _ss_assigned; }
     void  start_change_tracking(ChangeTracker* ct) { _change_tracker = ct; ct->add_created(this); }
     void  use_best_alt_locs();
 

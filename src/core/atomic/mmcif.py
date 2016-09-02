@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 mmcif: mmCIF format support
 ===========================
@@ -140,9 +152,9 @@ def register_mmcif_fetch(session):
                          prefixes=['pdb'], default_format=True)
 
 
-def get_mmcif_tables(model, table_names):
+def get_mmcif_tables(filename, table_names):
     from . import _mmcif
-    data = _mmcif.extract_mmCIF_tables(model.filename, table_names)
+    data = _mmcif.extract_mmCIF_tables(filename, table_names)
     tlist = []
     for name in table_names:
         if name not in data:

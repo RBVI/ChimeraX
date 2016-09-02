@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 '''
 Camera
 ======
@@ -272,7 +284,7 @@ class OrthographicCamera(Camera):
     '''Orthographic projection camera.'''
     def __init__(self, field_width = None):
         Camera.__init__(self)
-        self.field_width = 1 if field_width is None else field_width
+        self.field_width = 1 if field_width is None or field_width <= 0 else field_width
         "Horizontal field width in scene coordinate units."
 
     def name(self):
@@ -291,7 +303,7 @@ class OrthographicCamera(Camera):
         xsize, ysize, zsize = b.xyz_max - b.xyz_min
         w = max(xsize, ysize/aspect) if aspect else xsize
         w *= 1/max(0.01, 1-pad)
-        self.field_width = w
+        self.field_width = w if w > 0 else 1.0
         ca = bounds.center() - zsize*self.view_direction()
         shift = ca - self.position.origin()
         from ..geometry import translation
