@@ -98,6 +98,13 @@ class Model(State, Drawing):
                 dlist.extend(d.all_models())
         return dlist
 
+    @property
+    def visible(self):
+        if self.display:
+            p = getattr(self, 'parent', None)
+            return p is None or p.visible
+        return False
+    
     def _set_display(self, display):
         Drawing.set_display(self, display)
         self.session.triggers.activate_trigger(MODEL_DISPLAY_CHANGED, self)

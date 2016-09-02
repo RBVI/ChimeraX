@@ -1571,15 +1571,19 @@ class AtomicStructure(Structure):
 class StructureGraphicsChangeManager:
     def __init__(self, session):
         self.session = session
-        self._handler = session.triggers.add_handler('graphics update',
-                                                     self._update_graphics_if_needed)
+        t = session.triggers
+        self._handler = t.add_handler('graphics update', self._update_graphics_if_needed)
         self._structures = set()
         self._structures_array = None		# StructureDatas object
         self.num_atoms_shown = 0
         self.level_of_detail = LevelOfDetail()
+        from ..models import MODEL_DISPLAY_CHANGED
+        self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
+        self._need_update = False
         
     def __del__(self):
         self.session.triggers.remove_handler(self._handler)
+        self.session.triggers.remove_handler(self._display_handler)
 
     def add_structure(self, s):
         self._structures.add(s)
@@ -1589,21 +1593,25 @@ class StructureGraphicsChangeManager:
     def remove_structure(self, s):
         self._structures.remove(s)
         self._structures_array = None
+
+    def _model_display_changed(self, tname, model):
+        if isinstance(model, Structure) or _has_structure_descendant(model):
+            self._need_update = True
         
     def _update_graphics_if_needed(self, *_):
         s = self._array()
         gc = s._graphics_changeds	# Includes pseudobond group changes.
-        # TODO: Changing drawing display does not cause level of detail update.
-        if gc.any():
+        if gc.any() or self._need_update:
             for i in gc.nonzero()[0]:
                 s[i]._update_graphics_if_needed()
 
             # Update level of detail
-            n = sum(tuple(m.num_atoms_visible for m in s if m.display))
+            n = sum(tuple(m.num_atoms_visible for m in s if m.visible))
             if n > 0 and n != self.num_atoms_shown:
                 self.num_atoms_shown = n
                 self._update_level_of_detail()
-
+            self._need_update = False
+            
     def _update_level_of_detail(self):
         n = self.num_atoms_shown
         for m in self._structures:
@@ -1992,6 +2000,14 @@ def _tether_placements(xyz0, xyz1, radius, shape):
         return _bond_cylinder_placements(xyz1, xyz0, radius)
     else:
         return _bond_cylinder_placements(xyz0, xyz1, radius)
+
+# -----------------------------------------------------------------------------
+#
+def _has_structure_descendant(model):
+    for c in model.child_models():
+        if c.display and (isinstance(c, Structure) or _has_structure_descendant(c)):
+            return True
+    return False
 
 # -----------------------------------------------------------------------------
 #
