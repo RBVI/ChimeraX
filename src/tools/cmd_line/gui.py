@@ -153,11 +153,12 @@ class CommandLine(ToolInstance):
                 error_at = cmd.amount_parsed + spaces
                 syntax_error = error_at < len(cmd.current_text)
                 # error message in red text
-                msg = '<div class="cxcmd">%s' % escape(
-                        cmd.current_text[cmd.start:error_at])
                 err_color = 'crimson'
-                if syntax_error:
-                    msg += '<span style="color:white; background-color:%s;">%s</span>' % (
+                if not syntax_error:
+                    msg = ''
+                else:
+                    msg = '<div class="cxcmd">%s<span style="color:white; background-color:%s;">%s</span>' % (
+                        escape(cmd.current_text[cmd.start:error_at]),
                         err_color,
                         escape(cmd.current_text[error_at:]))
                 msg += '</div>\n<span style="color:%s;">%s</span>\n' % (

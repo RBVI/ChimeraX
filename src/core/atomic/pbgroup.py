@@ -46,6 +46,10 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._pbond_drawing = None
 
     def added_to_session(self, session):
+        if self.structure:
+            return	# Structure tells pseudobond group when to update
+
+        # For global pseudobond groups:
         # Detect when atoms moved so pseudobonds must be redrawn.
         # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
         t = session.triggers
