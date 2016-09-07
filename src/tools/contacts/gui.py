@@ -30,6 +30,11 @@ class Plot(ToolInstance):
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
         self.canvas = c = Canvas(f)
         c.setParent(parent)
+
+	# To get keys held down during mouse event need to accept focus
+        from PyQt5.QtCore import Qt
+        c.setFocusPolicy(Qt.ClickFocus)
+
         from PyQt5.QtWidgets import QHBoxLayout
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -67,14 +72,20 @@ def show_contact_graph(groups, edge_weights, spring_constant, node_click_callbac
     # Sizes are areas define by matplotlib.pyplot.scatter() s parameter documented as point^2.
     node_sizes = tuple(0.05 * n.area for n in G)
     node_colors = tuple(n.color for n in G)
-    nc = nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=a)
-    nc.set_picker(True)	# Generate mouse pick events for clicks on nodes
+    na = nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=a)
+    na.set_picker(True)	# Generate mouse pick events for clicks on nodes
 
     # Draw edges
-    esmall=[(u,v) for (u,v,d) in G.edges(data=True) if d['weight'] <=0.1]
-    nx.draw_networkx_edges(G, pos, edgelist=esmall, width=2, style='dotted', ax=a)
-    elarge=[(u,v) for (u,v,d) in G.edges(data=True) if d['weight'] >0.1]
-    nx.draw_networkx_edges(G, pos, edgelist=elarge, width=3, ax=a)
+    edges = []
+    widths = []
+    styles = []
+    for (u,v,d) in G.edges(data=True):
+        edges.append((u,v))
+        large_area = d['weight'] >0.1
+        widths.append(3 if large_area else 2)
+        styles.append('solid' if large_area else 'dotted')
+    ea = nx.draw_networkx_edges(G, pos, edgelist=edges, width=widths, style=styles, ax=a)
+    ea.set_picker(True)
 
     # Draw node labels
     short_names = {n:n.short_name for n in G}
@@ -88,8 +99,20 @@ def show_contact_graph(groups, edge_weights, spring_constant, node_click_callbac
     p.show()
 
     if node_click_callback:
-        def pick(event, nodes = G.nodes(), cb=node_click_callback):
-            n = nodes[event.ind[0]]
-            cb(n)
-        p.canvas.mpl_connect('pick_event', pick)
-    
+        def pick(event, nodes = G.nodes(), cb=node_click_callback,
+                 node_artist = na, edge_artist = ea):
+            # Check for node click
+            c,d = node_artist.contains(event)
+            if c:
+                n = [nodes[d['ind'][0]]]
+            else:
+                # Check for edge click
+                ec,ed = ea.contains(event)
+                if ec:
+                    i = ed['ind'][0]
+                    n = edges[i]	# Two nodes connected by this edge
+                else:
+                    # Background clicked
+                    n = []
+            cb(n, event)
+        p.canvas.mpl_connect('button_press_event', pick)
