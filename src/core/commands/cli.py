@@ -2160,7 +2160,8 @@ class Command:
         while 1:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
-                if log: self.log(text)
+                if log:
+                    self.log(text)
                 raise UserError(self._error)
             if not self._ci:
                 if len(self.current_text) > self.amount_parsed and self.current_text[self.amount_parsed] == ';':
@@ -2170,22 +2171,26 @@ class Command:
                 return results
             prev_annos = self._process_positional_arguments()
             if self._error:
-                if log: self.log(text)
+                if log:
+                    self.log(text)
                 raise UserError(self._error)
             self._process_keyword_arguments(final, prev_annos)
             if self._error:
-                if log: self.log(text)
+                if log:
+                    self.log(text)
                 raise UserError(self._error)
             missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
             if missing:
                 arg_names = ['"%s"' % m for m in missing]
                 msg = commas(arg_names, ' and')
                 noun = plural_form(arg_names, 'argument')
-                if log: self.log(text)
+                if log:
+                    self.log(text)
                 raise UserError("Missing required %s %s" % (msg, noun))
             for cond in self._ci._postconditions:
                 if not cond.check(self._kw_args):
-                    if log: self.log(text)
+                    if log:
+                        self.log(text)
                     raise UserError(cond.error_message())
 
             if not final:
@@ -2215,21 +2220,8 @@ class Command:
                     results.append(ci.function(session, *args, optional=optional,
                                    _used_aliases=used_aliases))
             except UserError as err:
-                if isinstance(ci.function, Alias):
-                    # propagate expanded alias
-                    cmd = ci.function.cmd
-                    self.current_text = cmd.current_text
-                    self.amount_parsed = cmd.amount_parsed
-                    self._error = cmd._error
-                    raise UserError(self._error)
                 raise
             except ValueError as err:
-                if isinstance(ci.function, Alias):
-                    # propagate expanded alias
-                    cmd = ci.function.cmd
-                    self.current_text = cmd.current_text
-                    self.amount_parsed = cmd.amount_parsed
-                    self._error = cmd._error
                 # convert function's ValueErrors to UserErrors,
                 # but not those of functions it calls
                 import traceback

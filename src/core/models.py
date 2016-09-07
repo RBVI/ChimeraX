@@ -98,6 +98,13 @@ class Model(State, Drawing):
                 dlist.extend(d.all_models())
         return dlist
 
+    @property
+    def visible(self):
+        if self.display:
+            p = getattr(self, 'parent', None)
+            return p is None or p.visible
+        return False
+    
     def _set_display(self, display):
         Drawing.set_display(self, display)
         self.session.triggers.activate_trigger(MODEL_DISPLAY_CHANGED, self)
@@ -192,14 +199,7 @@ class Models(State):
         if model_id is None:
             models = list(self._models.values())
         else:
-            if model_id not in self._models:
-                return []
-            # find all submodels
-            size = len(model_id)
-            model_ids = [x for x in self._models if x[0:size] == model_id]
-            # sort so submodels are removed before parent models
-            model_ids.sort(key=len, reverse=True)
-            models = [self._models[x] for x in model_ids]
+            models = [self._models[model_id]] if model_id in self._models else []
         if type is not None:
             models = [m for m in models if isinstance(m, type)]
         return models
@@ -272,7 +272,9 @@ class Models(State):
 
     def remove(self, models):
         # Also remove all child models, and remove deepest children first.
-        mlist = descendant_models(models)
+        dset = descendant_models(models)
+        dset.update(models)
+        mlist = list(dset)
         mlist.sort(key=lambda m: len(m.id), reverse=True)
         session = self._session()  # resolve back reference
         for m in mlist:
@@ -294,9 +296,11 @@ class Models(State):
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
 
     def close(self, models):
+        dset = descendant_models(models)
         self.remove(models)
         for m in models:
-            m.delete()
+            if m not in dset:	# Deleted parent will delete children.
+                m.delete()
 
     def open(self, filenames, id=None, format=None, name=None, **kw):
         from . import io, toolshed
@@ -342,8 +346,9 @@ class Models(State):
 def descendant_models(models):
     mset = set()
     for m in models:
-        mset.update(m.all_models())
-    return list(mset)
+        for c in m.child_models():
+            mset.update(c.all_models())
+    return mset
 
 
 def ancestor_models(models):

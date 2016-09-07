@@ -1681,6 +1681,44 @@ extern "C" EXPORT void residue_secondary_structure_id(void *residues, size_t n, 
     }
 }
 
+extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, int *seq_ids)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    PyObject *seqs = PyList_New(1);
+    try {
+        PyList_SetItem(seqs, 0, unicode_from_string(""));
+        std::map<Chain *, int> cmap;
+        std::map<std::string, int> smap;
+        for (size_t i = 0; i != n; ++i)
+	  {
+	    Chain *c = r[i]->chain();
+	    int si = 0;
+	    if (c)
+	      {
+	        auto ci = cmap.find(c);
+		if (ci == cmap.end())
+		  {
+		    std::string seq(c->begin(), c->end());
+		    auto seqi = smap.find(seq);
+		    if (seqi == smap.end())
+		      {
+			si = cmap[c] = smap[seq] = smap.size()+1;
+			PyList_Append(seqs, unicode_from_string(seq));
+		      }
+		    else
+		      si = cmap[c] = seqi->second;
+		  }
+		else
+		  si = ci->second;
+	      }
+	    seq_ids[i] = si;
+	  }
+    } catch (...) {
+        molc_error();
+    }
+    return seqs;
+}
+
 extern "C" EXPORT void residue_add_atom(void *res, void *atom)
 {
     Residue *r = static_cast<Residue *>(res);

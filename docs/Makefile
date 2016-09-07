@@ -24,13 +24,13 @@ SUBDIRS = devel pdbimages quickstart user download
 
 DOCDIR = $(app_datadir)/docs
 
-SRCS = $(wildcard *.html) license.html
+SRCS = $(wildcard *.html) license.html embedded.html licenses
 IMAGES = $(wildcard *.png)
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
 
-install: license.html
+install: license.html embedded.html
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
 
@@ -51,11 +51,12 @@ ifdef WIN32
 	$(HTML2TEXT) --body-width=0 license.html > license.txt
 endif
 
-embedded.html: embedded.html.in make_embedded.py
+embedded.html licenses: embedded.html.in make_embedded.py
 	if [ -d "$(app_prefix)" ]; then \
 		$(APP_PYTHON_EXE) make_embedded.py; \
 	fi
 
 
 clean:
-	rm -f license.html license.txt
+	rm -f license.html license.txt embedded.html
+	rm -rf licenses

@@ -31,34 +31,40 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self._dashes = 9
         s = self.structure
         if s:
+            # TODO: This does not assure that model is added to open models
+            # if structure already is in open models.
             s.add([self])
         self._global_group = (s is None)
-
+        self._handlers = []
+        
     def delete(self):
         if self._global_group:
             pbm = self.session.pb_manager
             pbm.delete_group(self)
         else:
-            s = self.structure
-            if not s.deleted():
-                s.delete_pseudobond_group(self)
+            self.structure.delete_pseudobond_group(self)
         Model.delete(self)
         self._pbond_drawing = None
 
     def added_to_session(self, session):
+        if self.structure:
+            return	# Structure tells pseudobond group when to update
+
+        # For global pseudobond groups:
         # Detect when atoms moved so pseudobonds must be redrawn.
         # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
         t = session.triggers
-        self.handlers = [
+        self._handlers = [
             t.add_handler('graphics update',self._update_graphics_if_needed),
             t.add_handler('shape changed', lambda *args, s=self: s._update_graphics())
         ]
 
     def removed_from_session(self, session):
         t = session.triggers
-        while self.handlers:
-            t.remove_handler(self.handlers.pop())
-        self.handlers = []
+        h = self._handlers
+        while h:
+            t.remove_handler(h.pop())
+        self._handlers = []
 
     def _get_dashes(self):
         return self._dashes
@@ -127,10 +133,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def take_snapshot(self, session, flags):
         data = {
             'version': 1,
-            'mgr': session.pb_manager, # so that the global manager gets restored before we do
             'category': self.category,
-            'dashes': self._dashes
+            'dashes': self._dashes,
+            'structure': self.structure,
         }
+        if self._global_group:
+            # Make the global manager restore before we do
+            data['mgr'] = session.pb_manager
+
         return data
 
     @staticmethod

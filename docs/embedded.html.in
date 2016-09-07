@@ -18,62 +18,68 @@ or derivations thereof.
 </head><body>
 <h1>Software Embedded in UCSF ChimeraX</h1>
 
-<blockquote>
-WORK IN PROGRESS
-</blockquote>
-
 UCSF ChimeraX is built upon other great software.
 
-
 <ul>
-<li> <a href="#o"> Incorporated Software </a>
+<li> <a href="#o"> Included Software </a>
 <li> <a href="#p"> Included Python Packages </a>
 </ul>
 
-<h2><a id="o"> Incorporated Software </a></h2>
+<h2><a id="o"> Included Software </a></h2>
 
 <dl>
-<dt><a href="http://www.python.org/"> Python 3 </a>
-<dd>The Python programming language and interpreter.<br>
+<dt><a href="http://www.python.org/"> Python </a> version 3.5
+<dd>&ldquo;The Python programming language and interpreter.&rdquo;
+<br>
 History and License: <a href="https://docs.python.org/3/license.html">open source</a>
 <p>
 ChimeraX is distributed as Python packages,
 either written in the Python language
 or as a binary package written in C or C++.
 
+<dt><a href="https://www.riverbankcomputing.com/software/pyqt/"> PyQt </a> version 5
+<dd>&ldquo;PyQt is a set of Python v2 and v3 bindings for <a href="http://www.qt.io">The Qt Company's</a> Qt application framework and runs on all platforms supported by Qt including Windows, OS X, Linux, iOS and Android.&rdquo;
+&ldquo;PyQt is dual licensed on all supported platforms under the GNU GPL v3 and the Riverbank Commercial License.&rdquo;
+<br>
+License: ChimeraX is develped with a commercial license for PyQt.
+See the Riverbank <a href="https://www.riverbankcomputing.com/commercial/license-faq"> License FAQ </a> for more details.
+
 <p>
-<dt><a href="http://ffmpeg.org/"> FFmpeg </a>
-<dd>A complete, cross-platform solution to record, convert and stream audio and video.<br>
+<dt><a href="http://ffmpeg.org/"> FFmpeg </a> version 2.3.2
+<dd>&ldquo;A complete, cross-platform solution to record, convert and stream audio and video.&rdquo;
+<br>
 License: <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">GNU Lesser General Public License (LGPL) version 2.1</a> (MacOS/Linux)<br>
 License: <a href="http://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License v3</a> (Windows)<br>
 <p>
 FFmpeg is bundled as a convenience for users of ChimeraX.
 It is a separate product,
-and thus, its licence does not affect ChimeraX's license.
+and thus, its license does not affect ChimeraX's license.
 FFmpeg can be freely redistributed separately from ChimeraX.
-See the <a href="http://www.gnu.org/gpl-faq.html">GPL FAQ</a>.
+See the <a href="http://www.gnu.org/gpl-faq.html">GPL FAQ</a> for more details.
 It can be found in the <code>bin</code> directory.
 
 <p>
 <dt><a href="http://www.gnu.org/software/freefont/">
 GNU FreeFont </a>
-<dd>GNU FreeFont is a free family of scalable outline fonts, suitable for general use on computers and for desktop publishing. It is Unicode-encoded for compatibility with all modern operating systems.
+<dd>&ldquo;GNU FreeFont is a free family of scalable outline fonts, suitable for general use on computers and for desktop publishing. It is Unicode-encoded for compatibility with all modern operating systems.&rdquo;
+<br>
 License: <a href="http://www.gnu.org/licenses/gpl-3.0.html">GNU Public License v3</a> or later and the following exception:
 <blockquote>
-"As a special exception, if you create a document which uses this font, and embed this font or unaltered portions of this font into the document, this font does not by itself cause the resulting document to be covered by the GNU General Public License. This exception does not however invalidate any other reasons why the document might be covered by the GNU General Public License."
+"As a special exception, if you create a document which uses this font, and embed this font or unaltered portions of this font into the document, this font does not by itself cause the resulting document to be covered by the GNU General Public License. This exception does not however invalidate any other reasons why the document might be covered by the GNU General Public License.&rdquo;
 </blockquote>
 <p>
 GNU FreeFont is bundled as a convenience for users of ChimeraX.
 It is a separate product,
-and thus, its licence does not affect ChimeraX's license.
+and thus, its license does not affect ChimeraX's license.
 GNU FreeFont can be freely redistributed separately from ChimeraX.
 See the <a href="http://www.gnu.org/gpl-faq.html">GPL FAQ</a>
-and the <a href="http://www.gnu.org/software/freefont/FAQ.html">GNU FreeFont FAQ</a>.
+and the <a href="http://www.gnu.org/software/freefont/FAQ.html">GNU FreeFont FAQ</a> for more details.
 It can be found in the <code>bin/share/fonts/freefont</code> directory.
 
 <p>
-<dt><a href="https://www.freedesktop.org/wiki/Software/xdg-utils/"> xdg-utils </a>
-<dd>xdg-utils is a set of tools that allows applications to easily integrate with the desktop environment of the user, regardless of the specific desktop environment that the user runs.<br>
+<dt><a href="https://www.freedesktop.org/wiki/Software/xdg-utils/"> xdg-utils </a> version 1.1.1
+<dd>&ldquo;xdg-utils is a set of tools that allows applications to easily integrate with the desktop environment of the user, regardless of the specific desktop environment that the user runs.&rdquo;
+<br>
 License type: <a href="https://cgit.freedesktop.org/xdg/xdg-utils/tree/LICENSE">free</a>
 <p>
 Linux only.
