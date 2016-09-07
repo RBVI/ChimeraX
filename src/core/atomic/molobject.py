@@ -47,7 +47,7 @@ def _non_null_residues(p):
     from .molarray import Residues
     return Residues(p[p!=0])
 def _residues_or_nones(p):
-    return [Residue(rptr) if rptr else None for rptr in p]
+    return [_residue(rptr) if rptr else None for rptr in p]
 def _chains(p):
     from .molarray import Chains
     return Chains(p)
@@ -588,6 +588,14 @@ class Residue:
         f = c_function('residue_add_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, atom._c_pointer)
 
+    def find_atom(self, atom_name):
+        '''Return the atom with the given name, or None if not found.\n'''
+        '''If multiple atoms in the residue have that name, an arbitrary one that matches will'''
+        ''' be returned.'''
+        f = c_function('residue_find_atom', args = (ctypes.c_void_p, ctypes.c_char_p),
+            ret = cptr, astype = _atom_or_none)
+        return f(self._c_pointer, atom_name.encode('utf-8'))
+
     def set_alt_loc(self, loc):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
@@ -626,6 +634,10 @@ class Sequence:
     SS_HELIX = 'H'
     SS_OTHER = 'O'
     SS_STRAND = 'S'
+
+    nucleic3to1 = c_function('sequence_nucleic3to1', args = (ctypes.c_char_p,), ret = byte)
+    protein3to1 = c_function('sequence_protein3to1', args = (ctypes.c_char_p,), ret = byte)
+    rname3to1 = c_function('sequence_rname3to1', args = (ctypes.c_char_p,), ret = byte)
 
     chimera_exiting = False
 
@@ -673,10 +685,14 @@ class Sequence:
         f(self._c_pointer, chars.encode('utf-8'))
     append = extend
 
+    @property
+    def full_name(self):
+        return self.name
+
     def gapped_to_ungapped(self, index):
         f = c_function('sequence_gapped_to_ungapped', args = (ctypes.c_void_p, ctypes.c_int),
             ret = ctypes.c_int)
-        return f(self._c_pointer)
+        return f(self._c_pointer, index)
 
     def __getitem__(self, key):
         return self.characters[key]
@@ -703,6 +719,9 @@ class Sequence:
             self.characters = chars[:start] + val + chars[stop:]
         else:
             self.characters = chars[:key] + val + chars[key+1:]
+
+    def __str__(self):
+        return self.characters
 
     def set_state_from_snapshot(self, session, data):
         seq.name = data['name']
@@ -732,6 +751,11 @@ class Sequence:
             'markups': self.markups }
         return data
 
+    def ungapped(self):
+        """String of sequence without gap characters"""
+        f = c_function('sequence_ungapped', args = (ctypes.c_void_p,), ret = string)
+        return f(self._c_pointer)
+
     @atexit.register
     def _exiting():
         Sequence.chimera_exiting = True
@@ -748,8 +772,8 @@ class StructureSeq(Sequence):
 
     def __init__(self, sseq_pointer=None, *, chain_id=None, structure=None):
         if sseq_pointer is None:
-            seq_pointer = c_function('sseq_new',
-                args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
+            sseq_pointer = c_function('sseq_new',
+                args = (ctypes.c_char_p, ctypes.c_void_p), ret = ctypes.c_void_p)(
                     chain_id.encode('utf-8'), structure._c_pointer)
         super().__init__(sseq_pointer)
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
@@ -766,17 +790,32 @@ class StructureSeq(Sequence):
 
     chain_id = c_property('sseq_chain_id', string, read_only = True)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
-    structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
-    ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
+    # characters read-only in StructureSeq/Chain (use bulk_set)
+    characters = c_property('sequence_characters', string, doc=
+        "A string representing the contents of the sequence. Read only.")
     existing_residues = c_property('sseq_residues', cptr, 'num_residues', astype = _non_null_residues, read_only = True)
     ''':class:`.Residues` collection containing the residues of this sequence with existing structure, in order. Read only.'''
+    from_seqres = c_property('sseq_from_seqres', npy_bool, doc = "Was the full sequence "
+        " determined from SEQRES (or equivalent) records in the input file")
     num_existing_residues = c_property('sseq_num_existing_residues', size_t, read_only = True)
     '''Number of residues in this sequence with existing structure. Read only.'''
 
-    residues = c_property('sseq_residues', cptr, 'num_residues', astype = _residues_or_nones, read_only = True)
-    '''List containing the residues of this sequence in order. Residues with no structure will be None. Read only.'''
+    residues = c_property('sseq_residues', cptr, 'num_residues', astype = _residues_or_nones,
+        read_only = True, doc = "List containing the residues of this sequence in order. "
+        "Residues with no structure will be None. Read only.")
     num_residues = c_property('sseq_num_residues', size_t, read_only = True)
     '''Number of residues belonging to this sequence, including those without structure. Read only.'''
+    structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
+    ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
+
+    def bulk_set(self, residues, characters):
+        '''Set all residues/characters of StructureSeq. '''
+        '''"characters" is a string or a list of characters.'''
+        ptrs = [r._c_pointer.value if r else 0 for r in residues]
+        if type(characters) == list:
+            characters = "".join(characters)
+        f = c_function('sseq_bulk_set', args = (ctypes.c_void_p, ctypes.py_object, ctypes.c_char_p))
+        f(self._c_pointer, ptrs, characters.encode('utf-8'))
 
     def __copy__(self):
         f = c_function('sseq_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
@@ -785,18 +824,36 @@ class StructureSeq(Sequence):
         copy_sseq.description = self.description
         return copy_sseq
 
-    def extend(self, chars):
-        # disallow extend
-        raise AssertionError("extend() called on StructureSeq/Chain object")
+    @property
+    def full_name(self):
+        rem = self.name
+        for part in (self.structure.name, "(%s)" % self.structure):
+            rem = rem.strip()
+            if rem:
+                rem = rem.strip()
+                if rem.startswith(part):
+                    rem = rem[len(part):]
+                    continue
+            break
+        if rem and not rem.isspace():
+            name_part = " " + rem.strip()
+        else:
+            name_part = ""
+        return "%s (%s)$s" % (self.structure.name, self.structure, name_part)
+
+    @property
+    def has_protein(self):
+        for r in self.residues:
+            if r and Sequence.protein3to1(r.name.encode('utf8')) != 'X':
+                return True
+        return False
 
     @staticmethod
     def restore_snapshot(session, data):
         sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
         Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
         sseq.description = data['description']
-        ptrs = numpy.array([ r._c_pointer.value if r else 0 for r in data['residues']])
-        f = c_function('sseq_bulk_set', args = (ctypes.c_void_p, ctypes.py_object, ctypes.c_char_p))
-        f(sseq._c_pointer, ptrs, sseq.characters)
+        self.bulk_set(data['residues'], sseq.characters)
         sseq.description = data.get('description', None)
         return sseq
 
@@ -825,6 +882,10 @@ class Chain(StructureSeq):
     Chain objects are not always equivalent to Protein Databank chains.
 
     '''
+
+    def extend(self, chars):
+        # disallow extend
+        raise AssertionError("extend() called on Chain object")
 
     @staticmethod
     def restore_snapshot(session, data):

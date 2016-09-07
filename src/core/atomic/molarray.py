@@ -96,11 +96,17 @@ class Collection(State):
     intersection, union, subtracting, and filtering.  By design, a
     Collection is immutable.
     '''
-    def __init__(self, pointers, object_class, objects_class):
-        if pointers is None:
+    def __init__(self, items, object_class, objects_class):
+        if items is None:
             # Empty Atoms
             import numpy
             pointers = numpy.empty((0,), cptr)
+        elif type(items) in [list, tuple]:
+            # presumably items of the object_class
+            import numpy
+            pointers = numpy.array([i._c_pointer.value for i in items], cptr)
+        else:
+            pointers = items
         self._pointers = pointers
         self._object_class = object_class
         self._objects_class = objects_class
@@ -127,10 +133,11 @@ class Collection(State):
         return iter(self._object_list)
     def __getitem__(self, i):
         '''Indexing of collection objects using square brackets, *e.g.* c[i].'''
+        import numpy
         if isinstance(i,(int,integer)):
             from .molobject import object_map
             v = object_map(self._pointers[i], self._object_class)
-        elif isinstance(i, slice):
+        elif isinstance(i, (slice, numpy.ndarray)):
             v = self._objects_class(self._pointers[i])
         else:
             raise IndexError('Only integer indices allowed for %s, got %s'
@@ -950,11 +957,6 @@ class AtomicStructures(StructureDatas):
     '''
     def __init__(self, mol_pointers):
         from .structure import AtomicStructure
-        if len(mol_pointers) > 0 and isinstance(mol_pointers[0], AtomicStructure):
-            # Converting from seq of AtomicStructure instances to AtomicStructures
-            # Used by command.cli.AtomicStructuresArg
-            import numpy
-            mol_pointers = numpy.array([s._c_pointer.value for s in mol_pointers])
         Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
 
     @classmethod

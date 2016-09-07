@@ -311,12 +311,11 @@ class Models(State):
             if fmt and fmt.category == toolshed.SCRIPT:
                 collation_okay = False
                 break
+        from .logger import Collator
+        log_errors = kw.pop('log_errors', True)
         if collation_okay:
-            from .logger import Collator
             descript = "files" if len(fns) > 1 else fns[0]
-            with Collator(session.logger,
-                          "Summary of problems opening " + descript,
-                          kw.pop('log_errors', True)):
+            with Collator(session.logger, "Summary of problems opening " + descript, log_errors):
                 models, status = io.open_multiple_data(
                     session, filenames, format=format, name=name, **kw)
         else:
@@ -331,7 +330,10 @@ class Models(State):
                 name = basename(filenames[0])
                 if len(filenames) > 1:
                     name += '...'
-                self.add_group(models, name=name)
+                descript = "files" if len(fns) > 1 else fns[0]
+                with Collator(session.logger,
+                        "Summary of additional actions taken when opening " + descript, log_errors):
+                    self.add_group(models, name=name)
             else:
                 self.add(models)
         return models

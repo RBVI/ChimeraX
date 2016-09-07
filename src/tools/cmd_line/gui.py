@@ -163,7 +163,7 @@ class CommandLine(ToolInstance):
                 msg += '</div>\n<span style="color:%s;">%s</span>\n' % (
                     err_color, escape(str(err)))
                 logger.info(msg, is_html=True)
-                logger.status(str(err))
+                logger.status(str(err), color="red")
             except:
                 import traceback
                 session.logger.error(traceback.format_exc())

@@ -1431,6 +1431,17 @@ extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *ci
     }
 }
 
+extern "C" EXPORT void* find_atom(void *residue, char *atom_name)
+{
+    Residue *r = static_cast<Residue*>(residue);
+    try {
+        return r->find_atom(atom_name);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT void residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -2149,10 +2160,34 @@ extern "C" EXPORT void *sseq_copy(void* source)
     }
 }
 
+extern "C" EXPORT void sseq_from_seqres(void *sseqs, size_t n, npy_bool *from_seqres)
+{
+    StructureSeq **ss = static_cast<StructureSeq **>(sseqs);
+    error_wrap_array_get(ss, n, &StructureSeq::from_seqres, from_seqres);
+}
+
+extern "C" EXPORT void set_sseq_from_seqres(void *sseqs, size_t n, npy_bool *from_seqres)
+{
+    StructureSeq **ss = static_cast<StructureSeq **>(sseqs);
+    error_wrap_array_set(ss, n, &StructureSeq::set_from_seqres, from_seqres);
+}
+
 extern "C" EXPORT void sseq_structure(void *chains, size_t n, pyobject_t *molp)
 {
     StructureSeq **c = static_cast<StructureSeq **>(chains);
     error_wrap_array_get(c, n, &StructureSeq::structure, molp);
+}
+
+extern "C" EXPORT void *sseq_new(char *chain_id, void *struct_ptr)
+{
+    Structure *structure = static_cast<Structure*>(struct_ptr);
+    try {
+        StructureSeq *sseq = new StructureSeq(chain_id, structure);
+        return sseq;
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
 }
 
 extern "C" EXPORT void sseq_num_residues(void *chains, size_t n, size_t *nres)
@@ -2422,6 +2457,26 @@ extern "C" EXPORT void set_sequence_name(void *seqs, size_t n, pyobject_t *names
     }
 }
 
+extern "C" EXPORT char sequence_nucleic3to1(const char *rname)
+{
+    try {
+        return Sequence::nucleic3to1(rname);
+    } catch (...) {
+        molc_error();
+        return 'X';
+    }
+}
+
+extern "C" EXPORT char sequence_protein3to1(const char *rname)
+{
+    try {
+        return Sequence::protein3to1(rname);
+    } catch (...) {
+        molc_error();
+        return 'X';
+    }
+}
+
 extern "C" EXPORT void sequence_set_pyobj(void *seq_ptr, PyObject *seq_obj)
 {
     Sequence *seq = static_cast<Sequence*>(seq_ptr);
@@ -2432,6 +2487,29 @@ extern "C" EXPORT void sequence_set_pyobj(void *seq_ptr, PyObject *seq_obj)
             seq->set_python_obj(seq_obj);
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" EXPORT char sequence_rname3to1(const char *rname)
+{
+    try {
+        return Sequence::rname3to1(rname);
+    } catch (...) {
+        molc_error();
+        return 'X';
+    }
+}
+
+extern "C" EXPORT pyobject_t sequence_ungapped(void *seq)
+{
+    Sequence *s = static_cast<Sequence *>(seq);
+    try {
+        auto ungapped = s->ungapped();
+        return unicode_from_string(std::string(ungapped.begin(), ungapped.end()));
+    } catch (...) {
+        molc_error();
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 }
 
