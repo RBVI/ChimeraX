@@ -281,6 +281,14 @@ class Structure(Model, StructureData):
         if s:
             self._atom_bounds_needs_update = True
 
+        if gc & self._SELECT_CHANGE:
+            # Update selection on molecular surfaces
+            # TODO: Won't work for surfaces spanning multiple molecules
+            from .molsurf import MolecularSurface
+            for surf in self.child_drawings():
+                if isinstance(surf, MolecularSurface):
+                    surf.update_selection()
+
     def _update_graphics(self, changes = StructureData._ALL_CHANGE):
         self._update_atom_graphics(changes)
         self._update_bond_graphics(changes)
@@ -1160,40 +1168,6 @@ class Structure(Model, StructureData):
         Model.set_selected_positions(self, spos)
     selected_positions = property(Model.get_selected_positions, set_selected_positions)
 
-    def select_atom(self, atom, toggle=False, selected=True):
-        '''
-        Select or unselect a specified :class:`.Atom`.
-        If selected is false then it unselects this atom.
-        '''
-        atom.selected = (not atom.selected) if toggle else selected
-        self._selection_changed()
-
-    def select_atoms(self, atoms, toggle=False, selected=True):
-        '''
-        Select or unselect :class:`.Atoms`.
-        If selected is false then it unselects the atoms.
-        '''
-        a = self.atoms
-        asel = a.selected
-        m = a.mask(atoms)
-        from numpy import logical_not
-        asel[m] = logical_not(asel[m]) if toggle else selected
-        self.select_mask_atoms(asel)
-
-    def select_mask_atoms(self, atom_mask):
-        self.atoms.selected = atom_mask
-        self._selection_changed()
-
-    def select_residue(self, residue, toggle=False, selected=True):
-        '''
-        Select a specified :class:`.Residue`.
-        If selected is false then it unselects the residue.
-        Selecting a residue is equivalent to select all the residue atoms.
-        '''
-        if toggle:
-            selected = self._ribbon_selected_residues.index(residue) < 0
-        self.select_atoms(residue.atoms, toggle=False, selected=selected)
-
     def selected_items(self, itype):
         if itype == 'atoms':
             atoms = self.atoms
@@ -1212,15 +1186,6 @@ class Structure(Model, StructureData):
     def clear_selection(self):
         self.selected = False
         self.atoms.selected = False
-        self._selection_changed()
-
-    def _selection_changed(self):
-        # Update selection on molecular surfaces
-        # TODO: Won't work for surfaces spanning multiple molecules
-        from .molsurf import MolecularSurface
-        for s in self.child_drawings():
-            if isinstance(s, MolecularSurface):
-                s.update_selection()
 
     def selection_promotion(self):
         atoms = self.atoms
@@ -1760,9 +1725,9 @@ class PromoteAtomSelection(SelectionPromotion):
         self._atom_sel_mask = atom_sel_mask
         self._prev_sel_mask = prev_sel_mask
     def promote(self):
-        self._structure.select_mask_atoms(self._atom_sel_mask)
+        self._structure.atoms.selected = self._atom_sel_mask
     def demote(self):
-        self._structure.select_mask_atoms(self._prev_sel_mask)
+        self._structure.atoms.selected = self._prev_sel_mask
 
 # -----------------------------------------------------------------------------
 #
@@ -1778,7 +1743,7 @@ class PickedAtom(Pick):
         return self.atom.residue
     def select(self, toggle = False):
         a = self.atom
-        a.structure.select_atom(a, toggle)
+        a.selected = (not a.selected) if toggle else True
 
 # -----------------------------------------------------------------------------
 #
@@ -1841,7 +1806,7 @@ class PickedBond(Pick):
         return None
     def select(self, toggle = False):
         for a in self.bond.atoms:
-            a.structure.select_atom(a, toggle)
+            a.selected = (not a.selected) if toggle else True
 
 # -----------------------------------------------------------------------------
 #
@@ -1859,7 +1824,7 @@ class PickedPseudobond(Pick):
         return None
     def select(self, toggle = False):
         for a in self.pbond.atoms:
-            a.structure.select_atom(a, toggle)
+            a.selected = (not a.selected) if toggle else True
 
 # -----------------------------------------------------------------------------
 #
@@ -1871,8 +1836,8 @@ class PickedResidue(Pick):
     def description(self):
         return str(self.residue)
     def select(self, toggle=False):
-        r = self.residue
-        r.structure.select_residue(r, toggle)
+        atoms = self.residue.atoms
+        atoms.selected = (not atoms.selected.any()) if toggle else True
 
 # -----------------------------------------------------------------------------
 #

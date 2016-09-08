@@ -45,8 +45,7 @@ def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
             if event.key == 'shift':
                 session.selection.clear()
                 for g in sg:
-                    for m, matoms in g.atoms.by_structure:
-                        m.select_atoms(matoms)
+                    g.atoms.selected = True
             else:
                 n = len(sg)
                 if n == 0:
