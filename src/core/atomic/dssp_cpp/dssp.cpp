@@ -661,17 +661,17 @@ compute_secondary_structure(Structure* s, Real energy_cutoff,
         params.min_helix_length = min_helix_length;
         params.min_strand_length = min_strand_length;
         params.report = report;
-        Residue *prev_res = nullptr;
+		// commented out lines that restricted
+		// sheets to be intra-chain
+        //Residue *prev_res = nullptr;
         for (auto r: s->residues()) {
             r->set_is_helix(false);
             r->set_is_sheet(false);
             r->set_ss_id(-1);
-            // commented out following three lines in order to
-            // allow sheets to cross chain boundaries...
             //if (prev_res && !bonds_between(prev_res, r)) {
             //    compute_chain(info);
             //}
-            prev_res = r;
+            //prev_res = r;
             Atom *c = r->find_atom("C");
             if (!c)
                 continue;

@@ -1112,7 +1112,7 @@ class Or(Annotation):
 
     def __init__(self, *annotations, name=None, url=None):
         if len(annotations) < 2:
-            raise ValueError("Need at two alternative annotations")
+            raise ValueError("Need at least two alternative annotations")
         Annotation.__init__(self, name, url)
         self.annotations = annotations
         if name is None:

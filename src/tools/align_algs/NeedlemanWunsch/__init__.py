@@ -250,9 +250,6 @@ def clone_seq(seq):
     from copy import copy
     clone = copy(seq)
     if hasattr(clone, "structure"):
-        name = clone.molecule.name
-        if not clone.name.startswith("principal"):
-            name += ", " + clone.name
-        clone.name = name
+        clone.name = clone.structure.name + ", " + clone.name
     clone[:] = ""
     return clone
