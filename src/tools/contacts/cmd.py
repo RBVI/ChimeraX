@@ -66,7 +66,7 @@ def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
                     
 #            print ('event button', event.button, 'key', event.key, 'step', event.step)
         from . import gui
-        gui.show_contact_graph(sg, ba, spring_constant, graph_clicked, session)
+        gui.ContactPlot(session, sg, ba, spring_constant, graph_clicked)
     else:
         log.warning("unable to show graph without GUI")
 
@@ -81,6 +81,10 @@ class SphereGroup:
         from numpy import mean
         self.color = mean(atoms.colors,axis=0)/255.0
         self.area = None
+
+    def shown(self):
+        a = self.atoms
+        return a.displays.any() or a.residues.ribbon_displays.any()
         
 def chain_spheres(atoms, session):
     if atoms is None:

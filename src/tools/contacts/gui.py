@@ -50,69 +50,105 @@ class Plot(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
-def show_contact_graph(groups, edge_weights, spring_constant, node_click_callback, session):
+# ------------------------------------------------------------------------------
+#
+class ContactPlot(Plot):
+    
+    def __init__(self, session, groups, edge_weights, spring_constant, graph_click_callback):
 
-    # Create graph
-    max_w = float(max(w for g1,g2,w in edge_weights))
-    import networkx as nx
-    G = nx.Graph()
-    for g1, g2, w in edge_weights:
-        G.add_edge(g1, g2, weight = w/max_w)
+        # Create matplotlib panel
+        bundle_info = session.toolshed.find_bundle('contacts')
+        Plot.__init__(self, session, bundle_info)
 
-    # Layout nodes
-    kw = {} if spring_constant is None else {'k':spring_constant}
-    pos = nx.spring_layout(G, **kw) # positions for all nodes
+        # Create graph
+        self.graph = self._make_graph(edge_weights)
 
-    # Create matplotlib panel
-    bundle_info = session.toolshed.find_bundle('contacts')
-    p = Plot(session, bundle_info)
-    a = p.axes
+        # Layout and plot graph
+        self.undisplayed_color = (.8,.8,.8,1)	# Node color for undisplayed chains
+        self._draw_graph(spring_constant)
 
-    # Draw nodes
-    # Sizes are areas define by matplotlib.pyplot.scatter() s parameter documented as point^2.
-    node_sizes = tuple(0.05 * n.area for n in G)
-    node_colors = tuple(n.color for n in G)
-    na = nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=a)
-    na.set_picker(True)	# Generate mouse pick events for clicks on nodes
+        self._graph_click_callback = graph_click_callback
+        if graph_click_callback:
+            self.canvas.mpl_connect('button_press_event', self._pick)
 
-    # Draw edges
-    edges = []
-    widths = []
-    styles = []
-    for (u,v,d) in G.edges(data=True):
-        edges.append((u,v))
-        large_area = d['weight'] >0.1
+        self._handler = session.triggers.add_handler('atomic changes', self._atom_display_change)
+
+    def delete(self):
+        self._session().triggers.remove_handler(self._handler)
+        self._handler = None
+        Plot.delete(self)
+
+    def _make_graph(self, edge_weights):
+        max_w = float(max(w for g1,g2,w in edge_weights))
+        import networkx as nx
+        G = nx.Graph()
+        for g1, g2, w in edge_weights:
+            G.add_edge(g1, g2, weight = w/max_w)
+        return G
+
+    def _draw_graph(self, spring_constant):
+                
+        G = self.graph
+        axes = self.axes
+        
+        # Layout nodes
+        kw = {} if spring_constant is None else {'k':spring_constant}
+        import networkx as nx
+        pos = nx.spring_layout(G, **kw) # positions for all nodes
+
+        # Draw nodes
+        # Sizes are areas define by matplotlib.pyplot.scatter() s parameter documented as point^2.
+        node_sizes = tuple(0.05 * n.area for n in G)
+        node_colors = tuple((n.color if n.shown() else self.undisplayed_color) for n in G)
+        na = nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=axes)
+        na.set_picker(True)	# Generate mouse pick events for clicks on nodes
+        self._node_artist = na
+    
+        # Draw edges
+        self._edges = edges = []
+        widths = []
+        styles = []
+        for (u,v,d) in G.edges(data=True):
+            edges.append((u,v))
+            large_area = d['weight'] >0.1
         widths.append(3 if large_area else 2)
         styles.append('solid' if large_area else 'dotted')
-    ea = nx.draw_networkx_edges(G, pos, edgelist=edges, width=widths, style=styles, ax=a)
-    ea.set_picker(True)
+        ea = nx.draw_networkx_edges(G, pos, edgelist=edges, width=widths, style=styles, ax=axes)
+        ea.set_picker(True)
+        self._edge_artist = ea
 
-    # Draw node labels
-    short_names = {n:n.short_name for n in G}
-    nx.draw_networkx_labels(G, pos, labels=short_names, font_size=16, font_family='sans-serif', ax=a)
+        # Draw node labels
+        short_names = {n:n.short_name for n in G}
+        nx.draw_networkx_labels(G, pos, labels=short_names, font_size=16, font_family='sans-serif', ax=axes)
 
-    # Hide axes and reduce border padding
-    a.get_xaxis().set_visible(False)
-    a.get_yaxis().set_visible(False)
-    a.axis('tight')
-    p.figure.tight_layout(pad = 0, w_pad = 0, h_pad = 0)
-    p.show()
+        # Hide axes and reduce border padding
+        axes.get_xaxis().set_visible(False)
+        axes.get_yaxis().set_visible(False)
+        axes.axis('tight')
+        self.figure.tight_layout(pad = 0, w_pad = 0, h_pad = 0)
+        self.show()
 
-    if node_click_callback:
-        def pick(event, nodes = G.nodes(), cb=node_click_callback,
-                 node_artist = na, edge_artist = ea):
-            # Check for node click
-            c,d = node_artist.contains(event)
-            if c:
-                n = [nodes[d['ind'][0]]]
+    def _pick(self, event):
+        # Check for node click
+        c,d = self._node_artist.contains(event)
+        if c:
+            i = d['ind'][0]
+            n = [self.graph.nodes()[i]]
+        else:
+            # Check for edge click
+            ec,ed = self._edge_artist.contains(event)
+            if ec:
+                i = ed['ind'][0]
+                n = self._edges[i]	# Two nodes connected by this edge
             else:
-                # Check for edge click
-                ec,ed = ea.contains(event)
-                if ec:
-                    i = ed['ind'][0]
-                    n = edges[i]	# Two nodes connected by this edge
-                else:
-                    # Background clicked
-                    n = []
-            cb(n, event)
-        p.canvas.mpl_connect('button_press_event', pick)
+                # Background clicked
+                n = []
+        self._graph_click_callback(n, event)
+
+    def _atom_display_change(self, name, changes):
+        if 'display changed' in changes.atom_reasons():
+            # Atoms shown or hidden.  Color hidden nodes gray.
+            node_colors = tuple((n.color if n.shown() else self.undisplayed_color) for n in self.graph)
+            self._node_artist.set_facecolor(node_colors)
+            self.canvas.draw()	# Need to ask canvas to redraw the new colors.
+
