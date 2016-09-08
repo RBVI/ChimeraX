@@ -88,7 +88,6 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
         gapped_match = StructureSeq(structure=match.structure, chain_id=match.chain_id)
         gapped_match.name = match.structure.name
         # Smith-Waterman may not be entirety of sequences...
-        print("Smith-Waterman result:")
         for orig, gapped, sw in [
                 (ref, gapped_ref, Sequence(characters=alignment[0])),
                 (match, gapped_match, Sequence(characters=alignment[1]))]:

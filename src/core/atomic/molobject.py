@@ -853,6 +853,20 @@ class StructureSeq(Sequence):
         chain.description = data.get('description', None)
         return chain
 
+    def ss_type(self, loc, loc_is_ungapped=False):
+        if not loc_is_ungapped:
+            loc = self.gapped_to_ungapped(loc)
+        if loc is None:
+            return None
+        r = self.residues[loc]
+        if r is None:
+            return None
+        if r.is_helix:
+            return self.SS_HELIX
+        if r.is_sheet:
+            return self.SS_STRAND
+        return self.SS_OTHER
+
     def take_snapshot(self, session, flags):
         data = {
             'Sequence': Sequence.take_snapshot(self),
