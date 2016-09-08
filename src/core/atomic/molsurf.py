@@ -428,13 +428,13 @@ def close_surfaces(atoms, models):
 def buried_area(a1, a2, probe_radius):
     from ..surface import spheres_surface_area
     xyz1, r1 = atom_spheres(a1, probe_radius)
-    a1a = spheres_surface_area(xyz1, r1).sum()
+    a1a = spheres_surface_area(xyz1, r1)
     xyz2, r2 = atom_spheres(a2, probe_radius)
-    a2a = spheres_surface_area(xyz2, r2).sum()
+    a2a = spheres_surface_area(xyz2, r2)
     from numpy import concatenate
     xyz12, r12 = concatenate((xyz1,xyz2)), concatenate((r1,r2))
-    a12a = spheres_surface_area(xyz12, r12).sum()
-    ba = 0.5 * (a1a + a2a - a12a)
+    a12a = spheres_surface_area(xyz12, r12)
+    ba = 0.5 * (a1a.sum() + a2a.sum() - a12a.sum())
     return ba, a1a, a2a, a12a
 
 def atom_spheres(atoms, probe_radius = 1.4):

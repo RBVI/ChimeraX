@@ -490,6 +490,13 @@ class Atoms(Collection):
         f(self._c_pointers, n, loc, pointer(values))
         return values
 
+    def residue_sums(self, atom_values):
+        '''Compute per-residue sum of atom float values.  Return unique residues and array of residue sums.'''
+        f = c_function('atom_residue_sums', args=(ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_double)),
+                       ret=ctypes.py_object)
+        rp, rsums = f(self._c_pointers, len(self), pointer(atom_values))
+        return Residues(rp), rsums
+        
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, atom_ids = data
