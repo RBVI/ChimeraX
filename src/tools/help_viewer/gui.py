@@ -86,7 +86,8 @@ class HelpUI(ToolInstance):
                 QWebEngineView.__init__(self)
 
             def createWindow(self, win_type):
-                help_ui = HelpUI(self.session, self.bundle_info)
+                # win_type is window, tab, dialog, backgroundtab
+                help_ui = HelpUI.get_viewer(self.session)  # TODO: target
                 return help_ui.help_window
         self.help_window = HelpWebView()
         layout.addWidget(self.help_window)
