@@ -58,7 +58,7 @@ def nw(s1, s2, score_match=10, score_mismatch=-3, score_gap=0, score_gap_open=-4
     if doing_ss:
         prev_eval = evaluate
         sim_fraction = 1.0 - ss_fraction
-        def ssEval(i1, i2):
+        def ss_eval(i1, i2):
             if hasattr(s1, 'ss_freqs'):
                 freqs1 = s1.ss_freqs[i1]
             else:
@@ -76,7 +76,7 @@ def nw(s1, s2, score_match=10, score_mismatch=-3, score_gap=0, score_gap_open=-4
                         continue
                     val += freq1 * freq2 * ss_matrix[(ss1, ss2)]
             return val
-        evaluate = lambda i1, i2: ss_fraction * ssEval(i1, i2) + \
+        evaluate = lambda i1, i2: ss_fraction * ss_eval(i1, i2) + \
                     sim_fraction * prev_eval(i1, i2)
 
     # precompute appropriate gap-open penalties
@@ -250,9 +250,6 @@ def clone_seq(seq):
     from copy import copy
     clone = copy(seq)
     if hasattr(clone, "structure"):
-        name = clone.molecule.name
-        if not clone.name.startswith("principal"):
-            name += ", " + clone.name
-        clone.name = name
+        clone.name = clone.structure.name + ", " + clone.name
     clone[:] = ""
     return clone

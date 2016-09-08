@@ -17,6 +17,7 @@
 #define ATOMSTRUCT_EXPORT
 #include "Chain.h"
 
+#include <iostream>
 namespace atomstruct {
 
 Sequence::_1Letter_Map Sequence::_nucleic3to1 = {

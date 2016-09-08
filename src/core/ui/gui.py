@@ -384,6 +384,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             tool_windows[0].shown = shown
 
     def status(self, msg, color, secondary):
+        # prevent status message causing/allowing a redraw
+        self.graphics_window.session.update_loop.block_redraw()
         self.statusBar().clearMessage()
         if secondary:
             label = self._secondary_status_label
@@ -398,6 +400,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         # Ticket #407.
         from PyQt5.QtCore import QEventLoop
         self.graphics_window.session.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
+        self.graphics_window.session.update_loop.unblock_redraw()
 
     def _about(self, arg):
         from PyQt5.QtWebEngineWidgets import QWebEngineView

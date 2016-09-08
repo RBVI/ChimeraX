@@ -1146,7 +1146,7 @@ class Structure(Model, StructureData):
                         res = [rtr.residue for rtr in t2r if tmask[rtr.start:rtr.end].sum() > 0]
                         if res:
                             from .molarray import Residues
-                            rc = Residues(residues=res)
+                            rc = Residues(res)
                             picks.append(PickedResidues(rc))
         return picks
 
@@ -1439,9 +1439,9 @@ class AtomicStructure(Structure):
                     ' Running <a href="help:user/commands/dssp.html">dssp</a>'
                     " using default settings." % (self.id_string(), self.name), is_html=True)
                 session.logger.status("Computing secondary structure assignments...")
-                from ..commands.dssp import dssp
+                from ..commands.dssp import compute_ss
                 try:
-                    dssp(session, self)
+                    compute_ss(session, self)
                 except ValueError as e:
                     if "normalize" in str(e):
                         msg = "Unable to compute secondary structure assigments" \

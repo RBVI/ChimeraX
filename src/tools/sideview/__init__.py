@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+
 #
 # 'start_tool' is called to start an instance of the tool
 #

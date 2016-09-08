@@ -35,7 +35,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
             # if structure already is in open models.
             s.add([self])
         self._global_group = (s is None)
-
+        self._handlers = []
+        
     def delete(self):
         if self._global_group:
             pbm = self.session.pb_manager
@@ -53,16 +54,17 @@ class PseudobondGroup(PseudobondGroupData, Model):
         # Detect when atoms moved so pseudobonds must be redrawn.
         # TODO: Update only when atoms move or are shown hidden, not when anything shown or hidden.
         t = session.triggers
-        self.handlers = [
+        self._handlers = [
             t.add_handler('graphics update',self._update_graphics_if_needed),
             t.add_handler('shape changed', lambda *args, s=self: s._update_graphics())
         ]
 
     def removed_from_session(self, session):
         t = session.triggers
-        while self.handlers:
-            t.remove_handler(self.handlers.pop())
-        self.handlers = []
+        h = self._handlers
+        while h:
+            t.remove_handler(h.pop())
+        self._handlers = []
 
     def _get_dashes(self):
         return self._dashes

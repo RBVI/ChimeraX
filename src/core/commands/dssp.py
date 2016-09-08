@@ -14,7 +14,7 @@
 #
 # Compute/assign secondary structure using Kabsch and Sander algorithm
 #
-def dssp(session, structures=None, *,
+def compute_ss(session, structures=None, *,
         min_helix_len=3, min_strand_len=3, energy_cutoff=-0.5, report=False):
     from ..atomic import Structure, _dssp
     if structures is None:
@@ -40,4 +40,4 @@ def register_command(session):
                    ('report', BoolArg)],
         synopsis="compute/assign secondary structure using Kabsch & Sander DSSP algorithm"
     )
-    register('dssp', desc, dssp)
+    register('dssp', desc, compute_ss)
