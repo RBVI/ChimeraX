@@ -33,6 +33,10 @@ def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
       Whether to report a list of contacting residues for each set of atoms.
     area_cutoff : float
       Per-residue minimum area for listing residues.
+    color : Color or None
+      Color contacting residues.
+    select : bool
+      Whether to select contacting residues.
     '''
     atoms2 = with_atoms2
     ni = len(atoms1.intersect(atoms2))
