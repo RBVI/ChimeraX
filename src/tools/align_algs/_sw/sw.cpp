@@ -31,7 +31,7 @@ const char *SeqLenMismatch = "sequence lengths don't match their secondary"
 					" structure strings";
 
 //
-// makeMatrix
+// make_matrix
 //	Convert a Python similarity dictionary into a C++ similarity map
 //
 //	The keys in the Python dictionary must be 2-tuples of
@@ -45,7 +45,7 @@ const char *SeqLenMismatch = "sequence lengths don't match their secondary"
 //
 static
 int
-makeMatrix(PyObject *dict, Similarity &matrix)
+make_matrix(PyObject *dict, Similarity &matrix)
 {
 	if (!PyDict_Check(dict)) {
 		PyErr_SetString(PyExc_TypeError, "matrix must be a dictionary");
@@ -101,14 +101,14 @@ makeMatrix(PyObject *dict, Similarity &matrix)
 }
 
 //
-// matrixLookup
+// matrix_lookup
 //	Look up the matrix value for the given characters
 //
 //	Uses wildcards if the characters are not found directly.
 //
 static
 Similarity::const_iterator
-matrixLookup(const Similarity &matrix, char c1, char c2)
+matrix_lookup(const Similarity &matrix, char c1, char c2)
 {
 	Similarity::const_iterator it = matrix.find(Pair(c1, c2));
 	if (it != matrix.end())
@@ -133,8 +133,8 @@ matrixLookup(const Similarity &matrix, char c1, char c2)
 //		seq1		first sequence
 //		seq2		second sequence
 //		matrix		similarity dictionary (see above)
-//		gapOpen		gap opening penalty
-//		gapExtend	gap extension penalty
+//		gap_open		gap opening penalty
+//		gap_extend	gap extension penalty
 //	and returns the best score.  This function is mostly
 //	useful for optimizing similarity matrices.
 //
@@ -146,13 +146,13 @@ score(PyObject *, PyObject *args)
 {
 	char *seq1, *seq2;
 	PyObject *m;
-	double gapOpen, gapExtend;
+	double gap_open, gap_extend;
 	if (!PyArg_ParseTuple(args, PY_STUPID "ssOdd", &seq1, &seq2, &m,
-		&gapOpen, &gapExtend))
-		return NULL;
+		&gap_open, &gap_extend))
+		return nullptr;
 	Similarity matrix;
-	if (makeMatrix(m, matrix) < 0)
-		return NULL;
+	if (make_matrix(m, matrix) < 0)
+		return nullptr;
 	int rows = strlen(seq1) + 1;
 	int cols = strlen(seq2) + 1;
 	double **H = new double *[rows];
@@ -161,42 +161,38 @@ score(PyObject *, PyObject *args)
 		for (int j = 0; j < cols; ++j)
 			H[i][j] = 0;
 	}
-	double bestScore = 0;
+	double best_score = 0;
 	for (int i = 1; i < rows; ++i) {
 		for (int j = 1; j < cols; ++j) {
-			Similarity::const_iterator it =
-				matrixLookup(matrix, seq1[i - 1], seq2[j - 1]);
+			Similarity::const_iterator it = matrix_lookup(matrix, seq1[i - 1], seq2[j - 1]);
 			if (it == matrix.end()) {
 				char buf[80];
-				(void) sprintf(buf, MissingKey, seq1[i - 1],
-							seq2[j - 1]);
+				(void) sprintf(buf, MissingKey, seq1[i - 1], seq2[j - 1]);
 				PyErr_SetString(PyExc_KeyError, buf);
-				return NULL;
+				return nullptr;
 			}
 			double best = H[i - 1][j - 1] + (*it).second;
 			for (int k = 1; k < i; ++k) {
-				double score = H[i - k][j] - gapOpen
-						- k * gapExtend;
+				double score = H[i - k][j] - gap_open - k * gap_extend;
 				if (score > best)
 					best = score;
 			}
 			for (int l = 1; l < j; ++l) {
-				double score = H[i][j - l] - gapOpen
-						- l * gapExtend;
+				double score = H[i][j - l] - gap_open - l * gap_extend;
 				if (score > best)
 					best = score;
 			}
 			if (best < 0)
 				best = 0;
 			H[i][j] = best;
-			if (best > bestScore)
-				bestScore = best;
+			if (best > best_score)
+				best_score = best;
 		}
 	}
 	for (int i = 0; i < rows; ++i)
 		delete [] H[i];
 	delete [] H;
-	return PyFloat_FromDouble(bestScore);
+	return PyFloat_FromDouble(best_score);
 }
 
 //
@@ -207,15 +203,15 @@ score(PyObject *, PyObject *args)
 //		seq1		first sequence
 //		seq2		second sequence
 //		matrix		similarity dictionary (see above)
-//		gapOpen		gap opening penalty
-//		gapExtend	gap extension penalty
+//		gap_open		gap opening penalty
+//		gap_extend	gap extension penalty
 //	and the following optional keyword arguments:
-//		gapChar		character used in gaps (default: '-')
-//		ssMatrix	secondary-structure scoring dictionary (NULL)
-//		ssFraction	fraction of weight given to SS scoring (0.3)
-//		gapOpenHelix	intra-helix gap opening penalty (18)
-//		gapOpenStrand	intra-strand gap opening penalty (18)
-//		gapOpenOther	other gap opening penalty (6)
+//		gap_char		character used in gaps (default: '-')
+//		ss_matrix	secondary-structure scoring dictionary (nullptr)
+//		ss_fraction	fraction of weight given to SS scoring (0.3)
+//		gap_open_helix	intra-helix gap opening penalty (18)
+//		gap_open_strand	intra-strand gap opening penalty (18)
+//		gap_open_other	other gap opening penalty (6)
 //		ss1		first SS "sequence" (i.e. composed of H/S/O)
 //		ss2		second SS "sequence" (i.e. composed of H/S/O)
 //	and returns the best score and the alignment.
@@ -223,89 +219,99 @@ score(PyObject *, PyObject *args)
 //	where the first and second elements of the tuple
 //	represent bases (and gaps) from seq1 and seq2 respectively.
 //
-//	Secondary-structure features are only enabled if the ssMatrix dictionary
+//	Secondary-structure features are only enabled if the ss_matrix dictionary
 //	is provided and is not None.  In that case the ssGapOpen penalties are
-//	used and gapOpen is ignored.  The residue-matching score is a
+//	used and gap_open is ignored.  The residue-matching score is a
 //	combination of the secondary-structure and similarity scores, weighted
-//	by the ssFraction.
+//	by the ss_fraction.
 static
 PyObject *
 align(PyObject *, PyObject *args, PyObject *kwdict)
 {
 	char *seq1, *seq2;
 	PyObject *m;
-	double gapOpen, gapExtend;
-	char gapChar = '-';
-	PyObject *ssM = NULL;
-	double ssFraction = 0.3;
-	double gapOpenHelix = 18.0;
-	double gapOpenStrand = 18.0;
-	double gapOpenOther = 18.0;
-	char *ss1 = NULL;
-	char *ss2 = NULL;
+	double gap_open, gap_extend;
+	char gap_char = '-';
+	PyObject *ss_m = nullptr;
+	double ss_fraction = 0.3;
+	double gap_open_helix = 18.0;
+	double gap_open_strand = 18.0;
+	double gap_open_other = 18.0;
+	char *ss1 = nullptr;
+	char *ss2 = nullptr;
+	char *gap_char_string = nullptr;
 	static char *kwlist[] = { PY_STUPID "seq1", PY_STUPID "seq2",
-		PY_STUPID "matrix", PY_STUPID "gapOpen", PY_STUPID "gapExtend",
-		PY_STUPID "gapChar", PY_STUPID "ssMatrix",
-		PY_STUPID "ssFraction", PY_STUPID "gapOpenHelix",
-		PY_STUPID "gapOpenStrand", PY_STUPID "gapOpenOther",
+		PY_STUPID "matrix", PY_STUPID "gap_open", PY_STUPID "gap_extend",
+		PY_STUPID "gap_char", PY_STUPID "ss_matrix",
+		PY_STUPID "ss_fraction", PY_STUPID "gap_open_helix",
+		PY_STUPID "gap_open_strand", PY_STUPID "gap_open_other",
 		PY_STUPID "ss1", PY_STUPID "ss2",
-		NULL };
+		nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwdict,
-			PY_STUPID "ssOdd|cOddddss",
-			kwlist, &seq1, &seq2, &m, &gapOpen, &gapExtend,
-			&gapChar, &ssM, &ssFraction, &gapOpenHelix,
-			&gapOpenStrand, &gapOpenOther, &ss1, &ss2))
-		return NULL;
+			PY_STUPID "ssOdd|sOddddss",
+			kwlist, &seq1, &seq2, &m, &gap_open, &gap_extend,
+			&gap_char_string, &ss_m, &ss_fraction, &gap_open_helix,
+			&gap_open_strand, &gap_open_other, &ss1, &ss2))
+		return nullptr;
+	// Don't want caller to have to figure out how to send a single-byte gap character,
+	// (i.e. have to use "decode" in the call), so accept a string as the gap character
+	// and process/check it
+	if (gap_char_string != nullptr) {
+		if (strlen(gap_char_string) != 1) {
+			PyErr_SetString(PyExc_ValueError, "gap_char must be a single-character string");
+			return nullptr;
+		}
+		gap_char = gap_char_string[0];
+	}
 
 	//
 	// Convert Python similarity dictionary into C++ similarity map
 	//
-	Similarity matrix, ssMatrix;
-	if (makeMatrix(m, matrix) < 0)
-		return NULL;
+	Similarity matrix, ss_matrix;
+	if (make_matrix(m, matrix) < 0)
+		return nullptr;
 	size_t rows = strlen(seq1) + 1;
 	size_t cols = strlen(seq2) + 1;
 
 	// handle secondary-structure setup if appropriate
-	double *rowGapOpens = new double[rows];
-	double *colGapOpens = new double[cols];
-	bool doingSS = ssM != NULL && ss1 != NULL && ss2 != NULL
-						&& ssM != Py_None;
-	rowGapOpens[0] = colGapOpens[0] = 0;
-	if (doingSS) {
+	double *row_gap_opens = new double[rows];
+	double *col_gap_opens = new double[cols];
+	bool doing_ss = ss_m != nullptr && ss1 != nullptr && ss2 != nullptr && ss_m != Py_None;
+	row_gap_opens[0] = col_gap_opens[0] = 0;
+	if (doing_ss) {
 		if (strlen(ss1) + 1 != rows || strlen(ss2) + 1 != cols) {
 			PyErr_SetString(PyExc_ValueError, SeqLenMismatch);
-			return NULL;
+			return nullptr;
 		}
-		if (makeMatrix(ssM, ssMatrix) < 0)
-			return NULL;
+		if (make_matrix(ss_m, ss_matrix) < 0)
+			return nullptr;
 		size_t r, c;
 		for (r = 1; r < rows; ++r) {
 			char ssl = ss1[r-1];
 			char ssr = ss1[r];
 			if (ssl == 'H' && ssr == 'H')
-				rowGapOpens[r] = gapOpenHelix;
+				row_gap_opens[r] = gap_open_helix;
 			else if (ssl == 'S' && ssr == 'S')
-				rowGapOpens[r] = gapOpenStrand;
+				row_gap_opens[r] = gap_open_strand;
 			else
-				rowGapOpens[r] = gapOpenOther;
+				row_gap_opens[r] = gap_open_other;
 		}
 		for (c = 1; c < cols; ++c) {
 			char ssl = ss2[c-1];
 			char ssr = ss2[c];
 			if (ssl == 'H' && ssr == 'H')
-				colGapOpens[c] = gapOpenHelix;
+				col_gap_opens[c] = gap_open_helix;
 			else if (ssl == 'S' && ssr == 'S')
-				colGapOpens[c] = gapOpenStrand;
+				col_gap_opens[c] = gap_open_strand;
 			else
-				colGapOpens[c] = gapOpenOther;
+				col_gap_opens[c] = gap_open_other;
 		}
 	} else {
 		size_t r, c;
 		for (r = 1; r < rows; ++r)
-			rowGapOpens[r] = gapOpen;
+			row_gap_opens[r] = gap_open;
 		for (c = 1; c < cols; ++c)
-			colGapOpens[c] = gapOpen;
+			col_gap_opens[c] = gap_open;
 		
 	}
 
@@ -326,46 +332,40 @@ align(PyObject *, PyObject *args, PyObject *kwdict)
 	//
 	// Fill in all cells of the score matrix
 	//
-	double bestScore = 0;
-	int bestRow = 0, bestColumn = 0;
+	double best_score = 0;
+	int best_row = 0, best_column = 0;
 	for (size_t i = 1; i < rows; ++i) {
 		for (size_t j = 1; j < cols; ++j) {
 			//
 			// Start with the matching score
 			//
-			Similarity::const_iterator it =
-				matrixLookup(matrix, seq1[i - 1], seq2[j - 1]);
+			Similarity::const_iterator it = matrix_lookup(matrix, seq1[i - 1], seq2[j - 1]);
 			if (it == matrix.end()) {
 				char buf[80];
-				(void) sprintf(buf, MissingKey, seq1[i - 1],
-							seq2[j - 1]);
+				(void) sprintf(buf, MissingKey, seq1[i - 1], seq2[j - 1]);
 				PyErr_SetString(PyExc_KeyError, buf);
-				return NULL;
+				return nullptr;
 			}
-			double matchScore = (*it).second;
-			if (doingSS) {
-				Similarity::const_iterator it =
-					matrixLookup(ssMatrix, ss1[i - 1],
-								ss2[j - 1]);
-				if (it == ssMatrix.end()) {
+			double match_score = (*it).second;
+			if (doing_ss) {
+				Similarity::const_iterator it = matrix_lookup(ss_matrix, ss1[i - 1], ss2[j - 1]);
+				if (it == ss_matrix.end()) {
 					char buf[80];
-					(void) sprintf(buf, MissingSSKey,
-							ss1[i - 1], ss2[j - 1]);
+					(void) sprintf(buf, MissingSSKey, ss1[i - 1], ss2[j - 1]);
 					PyErr_SetString(PyExc_KeyError, buf);
-					return NULL;
+					return nullptr;
 				}
-				matchScore = (1.0 - ssFraction) * matchScore
-					+ ssFraction * (*it).second;
+				match_score = (1.0 - ss_fraction) * match_score + ss_fraction * (*it).second;
 			}
-			double best = H[i - 1][j - 1] + matchScore;
+			double best = H[i - 1][j - 1] + match_score;
 			int op = 0;
 
 			//
 			// Check if insertion is better
 			//
-			double go = colGapOpens[j];
+			double go = col_gap_opens[j];
 			for (size_t k = 1; k < i; ++k) {
-				double score = H[i - k][j] - go - k * gapExtend;
+				double score = H[i - k][j] - go - k * gap_extend;
 				if (score > best) {
 					best = score;
 					op = k;
@@ -375,9 +375,9 @@ align(PyObject *, PyObject *args, PyObject *kwdict)
 			//
 			// Check if deletion is better
 			//
-			go = rowGapOpens[i];
+			go = row_gap_opens[i];
 			for (size_t l = 1; l < j; ++l) {
-				double score = H[i][j - l] - go - l * gapExtend;
+				double score = H[i][j - l] - go - l * gap_extend;
 				if (score > best) {
 					best = score;
 					op = -l;
@@ -398,10 +398,10 @@ align(PyObject *, PyObject *args, PyObject *kwdict)
 			//
 			H[i][j] = best;
 			bt[i][j] = op;
-			if (best > bestScore) {
-				bestScore = best;
-				bestRow = i;
-				bestColumn = j;
+			if (best > best_score) {
+				best_score = best;
+				best_row = i;
+				best_column = j;
 			}
 		}
 	}
@@ -410,27 +410,27 @@ align(PyObject *, PyObject *args, PyObject *kwdict)
 	// Use the backtrack matrix to create the best alignment
 	//
 	std::string a1, a2;
-	while (H[bestRow][bestColumn] > 0) {
-		int op = bt[bestRow][bestColumn];
+	while (H[best_row][best_column] > 0) {
+		int op = bt[best_row][best_column];
 		if (op > 0) {
 			for (int k = 0; k < op; ++k) {
-				--bestRow;
-				a1.append(1, seq1[bestRow]);
-				a2.append(1, gapChar);
+				--best_row;
+				a1.append(1, seq1[best_row]);
+				a2.append(1, gap_char);
 			}
 		}
 		else if (op == 0) {
-			--bestRow;
-			--bestColumn;
-			a1.append(1, seq1[bestRow]);
-			a2.append(1, seq2[bestColumn]);
+			--best_row;
+			--best_column;
+			a1.append(1, seq1[best_row]);
+			a2.append(1, seq2[best_column]);
 		}
 		else {
 			op = -op;
 			for (int k = 0; k < op; ++k) {
-				--bestColumn;
-				a1.append(1, gapChar);
-				a2.append(1, seq2[bestColumn]);
+				--best_column;
+				a1.append(1, gap_char);
+				a2.append(1, seq2[best_column]);
 			}
 		}
 	}
@@ -449,13 +449,13 @@ align(PyObject *, PyObject *args, PyObject *kwdict)
 	}
 	delete [] H;
 	delete [] bt;
-	delete [] rowGapOpens;
-	delete [] colGapOpens;
+	delete [] row_gap_opens;
+	delete [] col_gap_opens;
 
 	//
 	// Return our results
 	//
-	return Py_BuildValue(PY_STUPID "fO", bestScore, alignment);
+	return Py_BuildValue(PY_STUPID "fO", best_score, alignment);
 }
 
 }
@@ -479,8 +479,8 @@ static const char* docstr_score =
 "	seq1		first sequence\n"
 "	seq2		second sequence\n"
 "	matrix		similarity dictionary (see below)\n"
-"	gapOpen		gap opening penalty\n"
-"	gapExtend	gap extension penalty\n"
+"	gap_open		gap opening penalty\n"
+"	gap_extend	gap extension penalty\n"
 "and returns the best score.  This function is mostly\n"
 "useful for optimizing similarity matrices."
 MATRIX_EXPLAIN;
@@ -493,15 +493,15 @@ static const char* docstr_align =
 "	seq1		first sequence\n"
 "	seq2		second sequence\n"
 "	matrix		similarity dictionary (see above)\n"
-"	gapOpen		gap opening penalty\n"
-"	gapExtend	gap extension penalty\n"
+"	gap_open		gap opening penalty\n"
+"	gap_extend	gap extension penalty\n"
 "and the following optional keyword arguments:\n"
-"	gapChar		character used in gaps (default: '-')\n"
-"	ssMatrix	secondary-structure scoring dictionary (NULL)\n"
-"	ssFraction	fraction of weight given to SS scoring (0.3)\n"
-"	gapOpenHelix	intra-helix gap opening penalty (18)\n"
-"	gapOpenStrand	intra-strand gap opening penalty (18)\n"
-"	gapOpenOther	other gap opening penalty (6)\n"
+"	gap_char		character used in gaps (default: '-')\n"
+"	ss_matrix	secondary-structure scoring dictionary (nullptr)\n"
+"	ss_fraction	fraction of weight given to SS scoring (0.3)\n"
+"	gap_open_helix	intra-helix gap opening penalty (18)\n"
+"	gap_open_strand	intra-strand gap opening penalty (18)\n"
+"	gap_open_other	other gap opening penalty (6)\n"
 "	ss1		first SS \"sequence\" (i.e. composed of H/S/O)\n"
 "	ss2		second SS \"sequence\" (i.e. composed of H/S/O)\n"
 "and returns the best score and the alignment.\n"
@@ -509,17 +509,17 @@ static const char* docstr_align =
 "where the first and second elements of the tuple\n"
 "represent bases (and gaps) from seq1 and seq2 respectively.\n"
 "\n"
-"Secondary-structure features are only enabled if the ssMatrix dictionary\n"
-"is provided and is not None.  In that case the ssGapOpen penalties are\n"
-"used and gapOpen is ignored.  The residue-matching score is a\n"
+"Secondary-structure features are only enabled if the ss_matrix dictionary\n"
+"is provided and is not None.  In that case the ss_gap_open penalties are\n"
+"used and gap_open is ignored.  The residue-matching score is a\n"
 "combination of the secondary-structure and similarity scores, weighted\n"
-"by the ssFraction."
+"by the ss_fraction."
 MATRIX_EXPLAIN;
 
 static PyMethodDef sw_methods[] = {
 	{ PY_STUPID "score", score,	METH_VARARGS, PY_STUPID docstr_score	},
 	{ PY_STUPID "align", (PyCFunction)align, METH_VARARGS|METH_KEYWORDS, PY_STUPID docstr_align	},
-	{ NULL, NULL, 0, NULL }
+	{ nullptr, nullptr, 0, nullptr }
 };
 
 static struct PyModuleDef sw_def =
@@ -529,10 +529,10 @@ static struct PyModuleDef sw_def =
 	"Smith-Waterman alignment methods",
 	-1,
 	sw_methods,
-	NULL,
-	NULL,
-	NULL,
-	NULL
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr
 };
 
 PyMODINIT_FUNC

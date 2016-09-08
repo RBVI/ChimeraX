@@ -61,7 +61,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
                 return ' '
             if r.is_helix:
                 return 'H'
-            elif r.is_strand:
+            elif r.is_sheet:
                 return 'S'
             return 'O'
         if ssf is False or ssf is None:
@@ -73,8 +73,8 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             for let in "HSO ":
                 ssm[(let, ' ')] = 0.0
                 ssm[(' ', let)] = 0.0
-        from chimerax.align_algs import SmithWaterman
-        score, alignment = SmithWaterman.align(str(ref), str(match),
+        from chimerax.seqalign.align_algs import SmithWaterman
+        score, alignment = SmithWaterman.align(ref.characters, match.characters,
             similarity_matrix, float(gap_open), float(gap_extend),
             gap_char=".", ss_matrix=ssm, ss_fraction=ssf,
             gap_open_helix=float(gap_open_helix),
@@ -82,12 +82,13 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             gap_open_other=float(gap_open_other),
             ss1="".join([ss_let(r) for r in ref.residues]),
             ss2="".join([ss_let(r) for r in match.residues]))
-        from chimerax.core.atomic import StructureSeq
+        from chimerax.core.atomic import StructureSeq, Sequence
         gapped_ref = StructureSeq(structure=ref.structure, chain_id=ref.chain_id)
         gapped_ref.name = ref.structure.name
         gapped_match = StructureSeq(structure=match.structure, chain_id=match.chain_id)
         gapped_match.name = match.structure.name
         # Smith-Waterman may not be entirety of sequences...
+        print("Smith-Waterman result:")
         for orig, gapped, sw in [
                 (ref, gapped_ref, Sequence(characters=alignment[0])),
                 (match, gapped_match, Sequence(characters=alignment[1]))]:
@@ -413,7 +414,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 """ % (chain_pairing, alg_name, matrix, ss_rows, iterate_row)
                 logger.info(param_table, is_html=True)
                 logged_params = True
-            logger.status("Matchmaker %s (%s) with %s (%s),"
+            logger.status("Matchmaker %s (#%s) with %s (#%s),"
                 " sequence alignment score = %g" % (
                 s1.name, s1.structure.id_string(), s2.name,
                 s2.structure.id_string(), score), log=True)

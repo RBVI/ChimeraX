@@ -77,6 +77,7 @@ typedef void *pyobject_t;
 
 inline PyObject* unicode_from_string(const char *data, size_t size)
 {
+std::cerr << "unicode_from_string is called with string of size " << size << "\n";
     return PyUnicode_DecodeUTF8(data, size, "replace");
 }
 

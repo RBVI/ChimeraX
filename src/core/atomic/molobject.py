@@ -753,7 +753,7 @@ class Sequence:
 
     def ungapped(self):
         """String of sequence without gap characters"""
-        f = c_function('sequence_ungapped', args = (ctypes.c_void_p,), ret = string)
+        f = c_function('sequence_ungapped', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 
     @atexit.register
