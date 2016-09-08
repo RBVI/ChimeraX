@@ -529,7 +529,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
     _dm_cleanup = []
     return ret_vals
 
-def cmd_match(session, match_atoms, onto=None, pairing=defaults["chain_pairing"],
+def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         alg=defaults["alignment_algorithm"], verbose=False,
         ss_fraction=defaults["ss_mixture"], matrix=defaults["matrix"],
         gap_open=defaults["gap_open"], hgap=defaults["helix_open"],
@@ -642,7 +642,7 @@ def register_command():
     desc = CmdDesc(
         required = [('match_atoms', AtomsArg)],
         required_arguments = ['onto'],
-        keyword = [('onto', AtomsArg), ('pairing', StringArg), ('alg', StringArg),
+        keyword = [('to', AtomsArg), ('pairing', StringArg), ('alg', StringArg),
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)), ('matrix', StringArg),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
             ('iterate', Or(FloatArg, BoolArg)), ('gap_extend', FloatArg),
