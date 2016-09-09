@@ -3,6 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
+# PYQT_LICENSE can be "gpl" for gpl version
 PYQT_LICENSE = commercial
 REMOTE_DIR = plato.cgl.ucsf.edu:/usr/local/src/PyQt5
 
@@ -42,8 +43,10 @@ install: $(WHEEL)
 app-install: $(WHEEL)
 	$(APP_PIP) install $(WHEEL)
 
-$(WHEEL):
+$(WHEEL) prefetch:
+ifneq ($(PYQT_LICENSE),gpl)
 	rsync -av $(REMOTE_DIR)/$(VERSION)/$(WHEEL) .
+endif
 
 pyqt-commercial.sip:
 	# separate rsyncs due to bug in rsync 2.6.9 on Mac OS X

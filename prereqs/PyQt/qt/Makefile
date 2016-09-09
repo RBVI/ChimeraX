@@ -6,11 +6,11 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.6.0
-DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).7z
-SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(VERSION)
+FULL_VERSION = $(VERSION).$(MINOR_VERSION)
+DISTRIBUTION = qt-everywhere-opensource-src-$(FULL_VERSION).7z
+SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(FULL_VERSION)
 
-PATCHES	= $(wildcard qt-$(VERSION)-*.patch) $(wildcard qt-$(VERSION)_$(OS)-*.patch)
+PATCHES	= $(wildcard qt-$(FULL_VERSION)-*.patch) $(wildcard qt-$(FULL_VERSION)_$(OS)-*.patch)
 
 CONFIG_OPTS = -opensource -confirm-license \
 	      -no-audio-backend \
