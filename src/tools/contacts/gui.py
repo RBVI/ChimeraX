@@ -50,17 +50,17 @@ class Plot(ToolInstance):
 #
 class ContactPlot(Plot):
     
-    def __init__(self, session, groups, edge_weights, spring_constant):
+    def __init__(self, session, groups, contacts, spring_constant):
 
         # Create matplotlib panel
         bundle_info = session.toolshed.find_bundle('contacts')
         Plot.__init__(self, session, bundle_info)
 
         self.groups = groups
-        self.edge_weights = edge_weights
+        self.contacts = contacts
         
         # Create graph
-        self.graph = self._make_graph(edge_weights)
+        self.graph = self._make_graph(contacts)
 
         # Layout and plot graph
         self.undisplayed_color = (.8,.8,.8,1)	# Node color for undisplayed chains
@@ -77,8 +77,8 @@ class ContactPlot(Plot):
         self._handler = None
         Plot.delete(self)
 
-    def _make_graph(self, edge_weights):
-        max_w = float(max(w for g1,g2,w in edge_weights))
+    def _make_graph(self, contacts):
+        max_area = float(max(c.buried_area for c in contacts))
         import networkx as nx
         # Keep graph nodes in order so we can reproduce the same layout.
         from collections import OrderedDict
@@ -87,8 +87,8 @@ class ContactPlot(Plot):
             adjlist_dict_factory = OrderedDict
         G = nx.OrderedGraph()
 #        G = nx.Graph()
-        for g1, g2, w in edge_weights:
-            G.add_edge(g1, g2, weight = w/max_w)
+        for c in contacts:
+            G.add_edge(c.group1, c.group2, weight = c.buried_area/max_area)
         return G
 
     def _draw_graph(self, spring_constant):
@@ -169,7 +169,7 @@ class ContactPlot(Plot):
 
     def _show_neighbors(self, g):
         from .cmd import neighbors
-        ng = neighbors(g, self.edge_weights)
+        ng = neighbors(g, self.contacts)
         ng.add(g)
         for h in self.groups:
             h.atoms.displays = (h in ng)
