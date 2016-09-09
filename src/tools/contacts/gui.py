@@ -80,7 +80,13 @@ class ContactPlot(Plot):
     def _make_graph(self, edge_weights):
         max_w = float(max(w for g1,g2,w in edge_weights))
         import networkx as nx
-        G = nx.Graph()
+        # Keep graph nodes in order so we can reproduce the same layout.
+        from collections import OrderedDict
+        class OrderedGraph(nx.Graph):
+            node_dict_factory = OrderedDict
+            adjlist_dict_factory = OrderedDict
+        G = nx.OrderedGraph()
+#        G = nx.Graph()
         for g1, g2, w in edge_weights:
             G.add_edge(g1, g2, weight = w/max_w)
         return G
@@ -89,9 +95,11 @@ class ContactPlot(Plot):
                 
         G = self.graph
         axes = self.axes
-        
+
         # Layout nodes
         kw = {} if spring_constant is None else {'k':spring_constant}
+        from numpy.random import seed
+        seed(1)	# Initialize random number generator so layout the same for the same input.
         import networkx as nx
         pos = nx.spring_layout(G, **kw) # positions for all nodes
 
