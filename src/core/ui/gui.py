@@ -562,8 +562,9 @@ class ToolWindow:
     are set up to show the tool window in the main interface.
     """
 
-    #: Where the window is placed in the main interface
-    placements = ["right", "left", "top", "bottom"]
+    #: Where the window is placed in the main interface;
+    #: 'side' is either left or right, depending on user preference
+    placements = ["side", "right", "left", "top", "bottom"]
 
     #: Whether closing this window destroys it or hides it.
     #: If it destroys it and this is the main window, all the
@@ -698,7 +699,8 @@ class _Qt:
         self.title = title
         self.main_window = mw = main_window
         from PyQt5.QtCore import Qt
-        qt_sides = [Qt.RightDockWidgetArea, Qt.LeftDockWidgetArea,
+        # for now, 'side' equals 'right'
+        qt_sides = [Qt.RightDockWidgetArea, Qt.RightDockWidgetArea, Qt.LeftDockWidgetArea,
             Qt.TopDockWidgetArea, Qt.BottomDockWidgetArea]
         self.placement_map = dict(zip(self.tool_window.placements, qt_sides))
         if not mw:

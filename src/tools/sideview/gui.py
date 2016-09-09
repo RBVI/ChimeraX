@@ -444,7 +444,7 @@ class SideViewUI(ToolInstance):
         layout.addWidget(self.opengl_canvas.widget, 1)
         layout.addLayout(button_layout)
         parent.setLayout(layout)
-        self.tool_window.manage(placement="right")
+        self.tool_window.manage(placement="side")
 
     def delete(self):
         self.opengl_canvas.close()
