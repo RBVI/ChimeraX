@@ -11,13 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, AtomsArg, FloatArg
-contacts_desc = CmdDesc(
-    optional = [('atoms', AtomsArg),],
-    keyword = [('probe_radius', FloatArg),
-               ('spring_constant', FloatArg)])
-
-def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
+def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None, area_cutoff = None):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
@@ -29,6 +23,9 @@ def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
     '''
     sg = chain_spheres(atoms, session)
     ba = buried_areas(sg, probe_radius)
+
+    if area_cutoff is not None:
+        ba = [(g1,g2,a) for g1,g2,a in ba if a >= area_cutoff]
 
     for g,sname in zip(sg,short_chain_names([g.name for g in sg])):
         g.short_name = sname
@@ -45,6 +42,15 @@ def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
     else:
         log.warning("unable to show graph without GUI")
 
+        
+def register_contacts():
+    from chimerax.core.commands import register, CmdDesc, AtomsArg, FloatArg
+    desc = CmdDesc(
+        optional = [('atoms', AtomsArg),],
+        keyword = [('probe_radius', FloatArg),
+                   ('spring_constant', FloatArg),
+                   ('area_cutoff', FloatArg),])
+    register('contacts', desc, contacts)
 
 
 class SphereGroup:
