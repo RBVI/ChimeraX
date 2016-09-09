@@ -236,8 +236,10 @@ class Collection(State):
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
     def unique(self):
-        '''Return a new collection containing the unique elements from this one.'''
-        return self.objects_class(unique(self._pointers))
+        '''Return a new collection containing the unique elements from this one, preserving order.'''
+        indices = unique(self._pointers, return_index = True)[1]
+        indices.sort()
+        return self.objects_class(self._pointers[indices])
 
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):

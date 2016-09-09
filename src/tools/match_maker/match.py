@@ -88,7 +88,6 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
         gapped_match = StructureSeq(structure=match.structure, chain_id=match.chain_id)
         gapped_match.name = match.structure.name
         # Smith-Waterman may not be entirety of sequences...
-        print("Smith-Waterman result:")
         for orig, gapped, sw in [
                 (ref, gapped_ref, Sequence(characters=alignment[0])),
                 (match, gapped_match, Sequence(characters=alignment[1]))]:
@@ -529,7 +528,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
     _dm_cleanup = []
     return ret_vals
 
-def cmd_match(session, match_atoms, onto=None, pairing=defaults["chain_pairing"],
+def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         alg=defaults["alignment_algorithm"], verbose=False,
         ss_fraction=defaults["ss_mixture"], matrix=defaults["matrix"],
         gap_open=defaults["gap_open"], hgap=defaults["helix_open"],
@@ -544,8 +543,8 @@ def cmd_match(session, match_atoms, onto=None, pairing=defaults["chain_pairing"]
         mat_so=default_ss_matrix[('S', 'O')]):
     """wrapper for command-line command (friendlier args)"""
 
-    # 'onto' only needed to sidestep problem with adjacent atom specs...
-    ref_atoms = onto
+    # 'to' only needed to sidestep problem with adjacent atom specs...
+    ref_atoms = to
 
     from chimerax.seqalign import sim_matrices
     if matrix not in sim_matrices.matrices(session):
@@ -557,16 +556,16 @@ def cmd_match(session, match_atoms, onto=None, pairing=defaults["chain_pairing"]
     if pairing == CP_SPECIFIC_SPECIFIC or pairing == CP_SPECIFIC_BEST:
         refs = ref_atoms.residues.chains.unique()
         if not refs:
-            raise UserError("No 'onto' chains specified")
+            raise UserError("No 'to' chains specified")
         if pairing == CP_SPECIFIC_BEST:
             if len(refs) > 1:
-                raise UserError("Specify a single 'onto' chain only")
+                raise UserError("Specify a single 'to' chain only")
     else:
         ref_mols = ref_atoms.structures.unique()
         if not ref_mols:
-            raise UserError("No 'onto' model specified")
+            raise UserError("No 'to' model specified")
         if len(ref_mols) > 1:
-            raise UserError("Specify a single 'onto' model only")
+            raise UserError("Specify a single 'to' model only")
         refs = ref_mols
         matches = match_atoms.structures.unique()
     if not matches:
@@ -641,8 +640,8 @@ def register_command():
         import CmdDesc, register, AtomsArg, FloatArg, StringArg, BoolArg, create_alias, Or
     desc = CmdDesc(
         required = [('match_atoms', AtomsArg)],
-        required_arguments = ['onto'],
-        keyword = [('onto', AtomsArg), ('pairing', StringArg), ('alg', StringArg),
+        required_arguments = ['to'],
+        keyword = [('to', AtomsArg), ('pairing', StringArg), ('alg', StringArg),
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)), ('matrix', StringArg),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
             ('iterate', Or(FloatArg, BoolArg)), ('gap_extend', FloatArg),

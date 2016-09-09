@@ -1,0 +1,67 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Side View</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Tool: Side View</h3>
+<p>
+<table class="clRight">
+<tr><td><img class="outline" src="sideview.png" alt="Side View"></td></tr>
+</table>
+<p>
+The <b>Side View</b> tool provides a convenient and intuitive way to zoom
+the view and to control global clipping.
+See also: <a href="../commands/clip.html"><b>clip</b></a>,
+<a href="../commands/zoom.html"><b>zoom</b></a>,
+<a href="../commands/camera.html"><b>camera</b></a>
+</p><p>
+Like other tools, this interface can be opened from the <b>Tools</b> menu.
+<!--
+(<a href="ui.html">more...</a>).
+-->
+</p>
+<ul>
+<li>The square on the left represents the viewer's <b>eye position</b>. 
+Dragging it horizontally adjusts the zoom.
+<br><br>
+<li>The vertical lines represent the <b>near</b> and <b>far</b>
+<a href="../commands/clip.html">clipping planes</a>,
+which always remain perpendicular to the line of sight and
+are &ldquo;global&rdquo; in that they apply to everything. 
+Each can be dragged with the mouse.
+<br><br>
+<li>The lines emanating from the eye position show the field of vision.
+The lines diverge when perspective is used (default),
+but are parallel to each other in the orthographic
+<a href="../commands/camera.html">camera mode</a>.
+</ul>
+<p>
+The <b>auto clip</b> checkboxes indicate whether
+the <b>near</b> and/or <b>far</b> planes
+should adjust automatically to avoid clipping the contents of the scene.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+September 2016</address>
+</body></html>

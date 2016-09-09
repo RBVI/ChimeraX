@@ -90,12 +90,16 @@ class SideViewCanvas(QWindow):
         class SideViewContext:
 
             def __init__(self, window, opengl_context):
+                # opengl_context uses QOpenGLContext API
                 self.window = window
                 self.opengl_context = opengl_context
 
             def make_current(self):
                 if not self.opengl_context.makeCurrent(self.window):
                     raise RuntimeError('Could not make graphics context current in Side View')
+
+            def done_current(self):
+                self.opengl_context.doneCurrent()
 
             def swap_buffers(self):
                 self.opengl_context.swapBuffers(self.window)
@@ -120,15 +124,15 @@ class SideViewCanvas(QWindow):
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
 
     def close(self):
-        # TODO: double check this is the right method, was on_destroy()
         self.opengl_context = None
         self.session.triggers.remove_handler(self.handler)
 
     def _redraw(self, *_):
-        self.show()
+        self.render()
 
     def exposeEvent(self, event):
-        self.show()
+        if self.isExposed():
+            self.render()
 
     def resizeEvent(self, event):
         size = event.size()
@@ -137,15 +141,20 @@ class SideViewCanvas(QWindow):
         self.set_viewport(width, height)
 
     def set_viewport(self, width, height):
+        # Don't need make_current, since OpenGL isn't used
+        # until rendering
         self.view.resize(width, height)
 
     def make_current(self):
         self.opengl_context.make_current()
 
+    def done_current(self):
+        self.opengl_context.done_current()
+
     def swap_buffers(self):
         self.opengl_context.swap_buffers()
 
-    def show(self):
+    def render(self):
         ww, wh = self.main_view.window_size
         if ww <= 0 or wh <= 0:
             return
@@ -300,6 +309,7 @@ class SideViewCanvas(QWindow):
                 [8, 10],   # left plane
                 [9, 11],   # right plane
             ], dtype=int32)
+            self.make_current()  # protect against having wrong (Qt?) context
             from OpenGL import GL
             GL.glViewport(0, 0, width, height)
             self.view.draw()
@@ -310,8 +320,11 @@ class SideViewCanvas(QWindow):
             opengl_context.make_current = save_make_current
             opengl_context.swap_buffers = save_swap_buffers
             self.main_view._render.current_shader_program = None
+            # Since we brorrowed the main window's OpenGL context,
+            # restore the viewport when done
             from OpenGL import GL
             GL.glViewport(0, 0, ww, wh)
+        self.done_current()
 
 
     def mousePressEvent(self, event):
@@ -432,6 +445,10 @@ class SideViewUI(ToolInstance):
         layout.addLayout(button_layout)
         parent.setLayout(layout)
         self.tool_window.manage(placement="right")
+
+    def delete(self):
+        self.opengl_canvas.close()
+        ToolInstance.delete(self)
 
     def on_autoclip_near(self, event):
         session = self._session()

@@ -720,8 +720,7 @@ class Sequence:
         else:
             self.characters = chars[:key] + val + chars[key+1:]
 
-    def __str__(self):
-        return self.characters
+    # no __str__, since it's confusing whether it should be self.name or self.characters
 
     def set_state_from_snapshot(self, session, data):
         seq.name = data['name']
@@ -778,15 +777,6 @@ class StructureSeq(Sequence):
         super().__init__(sseq_pointer)
         # description derived from PDB/mmCIF info and set by AtomicStructure constructor
         self.description = None
-
-    def __str__(self):
-        base_str = '/' + self.chain_id
-        from .structure import Structure
-        from ..core_settings import settings
-        if settings.atomspec_contents == "command-line specifier" or \
-        len(self.structure.session.models.list(type=Structure)) > 1:
-            return str(self.structure) + base_str
-        return base_str
 
     chain_id = c_property('sseq_chain_id', string, read_only = True)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
@@ -862,6 +852,20 @@ class StructureSeq(Sequence):
         chain = object_map(data['structure'].session_id_to_chain(data['ses_id']), Chain)
         chain.description = data.get('description', None)
         return chain
+
+    def ss_type(self, loc, loc_is_ungapped=False):
+        if not loc_is_ungapped:
+            loc = self.gapped_to_ungapped(loc)
+        if loc is None:
+            return None
+        r = self.residues[loc]
+        if r is None:
+            return None
+        if r.is_helix:
+            return self.SS_HELIX
+        if r.is_sheet:
+            return self.SS_STRAND
+        return self.SS_OTHER
 
     def take_snapshot(self, session, flags):
         data = {
