@@ -95,8 +95,7 @@ def report_selection(session):
 def modify_selection(objects, mode = 'add'):
     select = (mode == 'add')
     atoms, models = _atoms_and_models(objects)
-    for m, matoms in atoms.by_structure:
-        m.select_atoms(matoms, selected = select)
+    atoms.selected = select
     for m in models:
         m.selected = select
 
@@ -108,8 +107,7 @@ def intersect_selection(objects, session):
     from ..atomic import Structure
     selmodels = set(m for m in session.selection.models() if not isinstance(m, Structure))
     submodels = selmodels.difference(models)
-    for m, matoms in subatoms.by_structure:
-        m.select_atoms(matoms, selected = False)
+    subatoms.selected = False
     for m in submodels:
         m.selected = False
 

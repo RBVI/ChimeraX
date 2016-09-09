@@ -11,13 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, AtomsArg, FloatArg
-contacts_desc = CmdDesc(
-    optional = [('atoms', AtomsArg),],
-    keyword = [('probe_radius', FloatArg),
-               ('spring_constant', FloatArg)])
-
-def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
+def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None, area_cutoff = None):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
@@ -30,6 +24,9 @@ def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
     sg = chain_spheres(atoms, session)
     ba = buried_areas(sg, probe_radius)
 
+    if area_cutoff is not None:
+        ba = [(g1,g2,a) for g1,g2,a in ba if a >= area_cutoff]
+
     for g,sname in zip(sg,short_chain_names([g.name for g in sg])):
         g.short_name = sname
 
@@ -40,36 +37,20 @@ def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
     log.status(msg)
 
     if session.ui.is_gui:
-        def graph_clicked(sphere_groups, event, all_sphere_groups = sg, session=session):
-            sg = sphere_groups
-            if event.key == 'shift':
-                session.selection.clear()
-                for g in sg:
-                    for m, matoms in g.atoms.by_structure:
-                        m.select_atoms(matoms)
-            else:
-                n = len(sg)
-                if n == 0:
-                    for h in all_sphere_groups:
-                        h.atoms.displays = True
-                elif n == 1:
-                    g = sg[0]
-                    ng = neigbhors(g, ba)
-                    ng.add(g)
-                    for h in all_sphere_groups:
-                        h.atoms.displays = (h in ng)
-                else:
-                    # Edge clicked, g = pair of sphere groups
-                    gset = set(sg)
-                    for h in all_sphere_groups:
-                        h.atoms.displays = (h in gset)
-                    
-#            print ('event button', event.button, 'key', event.key, 'step', event.step)
         from . import gui
-        gui.ContactPlot(session, sg, ba, spring_constant, graph_clicked)
+        gui.ContactPlot(session, sg, ba, spring_constant)
     else:
         log.warning("unable to show graph without GUI")
 
+        
+def register_contacts():
+    from chimerax.core.commands import register, CmdDesc, AtomsArg, FloatArg
+    desc = CmdDesc(
+        optional = [('atoms', AtomsArg),],
+        keyword = [('probe_radius', FloatArg),
+                   ('spring_constant', FloatArg),
+                   ('area_cutoff', FloatArg),])
+    register('contacts', desc, contacts)
 
 
 class SphereGroup:
@@ -176,7 +157,7 @@ def buried_area(xyz1, r1, a1, xyz2, r2, a2):
     ba = 0.5 * (a1 + a2 - a12)
     return ba
 
-def neigbhors(g, buried_areas):
+def neighbors(g, buried_areas):
     n = set()
     for g1,g2,w in buried_areas:
         if w > 0:
