@@ -228,6 +228,9 @@ def check_atoms(atoms, session):
             raise UserError('No atomic models open.')
         atoms.spec = 'all atoms'
     elif len(atoms) == 0:
+        msg = 'No atoms specified'
+        if hasattr(atoms, 'spec'):
+            msg += 'by %s' % atoms.spec
         from ..errors import UserError
-        raise UserError('No atoms specified by %s' % (atoms.spec,))
+        raise UserError(msg)
     return atoms
