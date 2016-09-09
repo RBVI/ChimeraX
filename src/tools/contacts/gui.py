@@ -31,10 +31,6 @@ class Plot(ToolInstance):
         self.canvas = c = Canvas(f)
         c.setParent(parent)
 
-	# To get keys held down during mouse event need to accept focus
-        from PyQt5.QtCore import Qt
-        c.setFocusPolicy(Qt.ClickFocus)
-
         from PyQt5.QtWidgets import QHBoxLayout
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -54,12 +50,15 @@ class Plot(ToolInstance):
 #
 class ContactPlot(Plot):
     
-    def __init__(self, session, groups, edge_weights, spring_constant, graph_click_callback):
+    def __init__(self, session, groups, edge_weights, spring_constant):
 
         # Create matplotlib panel
         bundle_info = session.toolshed.find_bundle('contacts')
         Plot.__init__(self, session, bundle_info)
 
+        self.groups = groups
+        self.edge_weights = edge_weights
+        
         # Create graph
         self.graph = self._make_graph(edge_weights)
 
@@ -67,12 +66,19 @@ class ContactPlot(Plot):
         self.undisplayed_color = (.8,.8,.8,1)	# Node color for undisplayed chains
         self._draw_graph(spring_constant)
 
-        self._graph_click_callback = graph_click_callback
-        if graph_click_callback:
-            self.canvas.mpl_connect('button_press_event', self._pick)
+        # TODO: May want to instead get a Qt button press since matplotlib doesn't give key modifiers
+        # unless given keyboard focus.
+        c = self.canvas
+        c.mpl_connect('button_press_event', self._pick)
+
+	# To get keys held down during mouse event need to accept focus
+        from PyQt5.QtCore import Qt
+        c.setFocusPolicy(Qt.ClickFocus)
 
         self._handler = session.triggers.add_handler('atomic changes', self._atom_display_change)
 
+        self.tool_window.ui_area.contextMenuEvent = self._show_context_menu
+        
     def delete(self):
         self._session().triggers.remove_handler(self._handler)
         self._handler = None
@@ -129,6 +135,51 @@ class ContactPlot(Plot):
         self.show()
 
     def _pick(self, event):
+        if event.button != 1:
+            return	# Only handle left button.  Right button will post menu.
+        n = self._clicked_nodes(event)
+        self._graph_clicked(n, event)
+
+    def _graph_clicked(self, nodes, event):
+            if event.key == 'shift':
+                self._select_nodes(nodes)
+            else:
+                n = len(nodes)
+                if n == 0:
+                    self._show_all_atoms()
+                elif n == 1:
+                    self._show_neighbors(nodes[0])
+                else:
+                    # Edge clicked, pair of nodes
+                    self._show_node_atoms(nodes)
+                    
+#            print ('event button', event.button, 'key', event.key, 'step', event.step)
+
+    def _select_nodes(self, nodes):
+        self._clear_selection()
+        for g in nodes:
+            g.atoms.selected = True
+
+    def _clear_selection(self):
+        self._session().selection.clear()
+
+    def _show_node_atoms(self, nodes):
+        gset = set(nodes)
+        for h in self.groups:
+            h.atoms.displays = (h in gset)
+
+    def _show_neighbors(self, g):
+        from .cmd import neighbors
+        ng = neighbors(g, self.edge_weights)
+        ng.add(g)
+        for h in self.groups:
+            h.atoms.displays = (h in ng)
+
+    def _show_all_atoms(self):
+        for g in self.groups:
+            g.atoms.displays = True
+
+    def _clicked_nodes(self, event):
         # Check for node click
         c,d = self._node_artist.contains(event)
         if c:
@@ -143,7 +194,7 @@ class ContactPlot(Plot):
             else:
                 # Background clicked
                 n = []
-        self._graph_click_callback(n, event)
+        return n
 
     def _atom_display_change(self, name, changes):
         if 'display changed' in changes.atom_reasons():
@@ -152,3 +203,39 @@ class ContactPlot(Plot):
             self._node_artist.set_facecolor(node_colors)
             self.canvas.draw()	# Need to ask canvas to redraw the new colors.
 
+    def _show_context_menu(self, event):
+        widget = self.tool_window.ui_area
+        h = widget.height()
+        x, y = event.x(), h-event.y()
+        from matplotlib.backend_bases import MouseEvent
+        e = MouseEvent('context menu', self.canvas, x, y)
+        nodes = self._clicked_nodes(e)
+        
+        from PyQt5.QtWidgets import QMenu, QAction
+        menu = QMenu(widget)
+
+        if nodes:
+            node_names = ','.join(n.name for n in nodes)
+            sel = QAction('Select %s' % node_names, widget)
+            #sel.setStatusTip("Select specified chain")
+            sel.triggered.connect(lambda checked, self=self, nodes=nodes: self._select_nodes(nodes))
+            menu.addAction(sel)
+
+            show = QAction('Show only %s' % node_names, widget)
+            show.triggered.connect(lambda checked, self=self, nodes=nodes: self._show_node_atoms(nodes))
+            menu.addAction(show)
+
+            if len(nodes) == 1:
+                sn = QAction('Show %s and neighbors' % node_names, widget)
+                sn.triggered.connect(lambda checked, self=self, nodes=nodes: self._show_neighbors(nodes[0]))
+                menu.addAction(sn)
+                
+        csel = QAction('Clear selection', widget)
+        csel.triggered.connect(lambda checked, self=self: self._clear_selection())
+        menu.addAction(csel)
+        
+        sat = QAction('Show all atoms', widget)
+        sat.triggered.connect(lambda checked, self=self: self._show_all_atoms())
+        menu.addAction(sat)
+        
+        menu.exec(event.globalPos())
