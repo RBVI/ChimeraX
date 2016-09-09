@@ -592,9 +592,8 @@ class Residue:
         '''Return the atom with the given name, or None if not found.\n'''
         '''If multiple atoms in the residue have that name, an arbitrary one that matches will'''
         ''' be returned.'''
-        f = c_function('residue_find_atom', args = (ctypes.c_void_p, ctypes.c_char_p),
-            ret = cptr, astype = _atom_or_none)
-        return f(self._c_pointer, atom_name.encode('utf-8'))
+        f = c_function('residue_find_atom', args = (ctypes.c_void_p, ctypes.c_char_p), ret = cptr)
+        return _atom_or_none(f(self._c_pointer, atom_name.encode('utf-8')))
 
     def set_alt_loc(self, loc):
         if isinstance(loc, str):
