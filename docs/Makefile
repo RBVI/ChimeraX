@@ -30,13 +30,21 @@ IMAGES = $(wildcard *.png)
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
 
-install: license.html embedded.html
+install: license.html embedded.html need_app
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
 
+$(SUBDIR_INSTALL): need_app
+
+need_app:
+	@if [ ! -d "$(app_prefix)" ]; then \
+		echo "!! Need application to install documentation !!"; \
+		exit 1; \
+	fi
+
 # rst2html converts quotes to Unicode.
 # We turn them back into HTML entities.
-license.html: license.rst
+license.html: license.rst need_app
 	$(PYTHON_EXE) $(RST2HTML) \
 			--no-xml-declaration \
 			--smart-quotes=alt \
@@ -51,7 +59,7 @@ ifdef WIN32
 	$(HTML2TEXT) --body-width=0 license.html > license.txt
 endif
 
-embedded.html licenses: embedded.html.in make_embedded.py
+embedded.html licenses: embedded.html.in make_embedded.py need_app
 	if [ -d "$(app_prefix)" ]; then \
 		$(APP_PYTHON_EXE) make_embedded.py; \
 	fi
