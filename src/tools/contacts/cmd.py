@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None, area_cutoff = 1):
+def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None, area_cutoff = 200):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
@@ -118,15 +118,13 @@ def buried_areas(sphere_groups, probe_radius, min_area = 1):
         g2, r2 = s[j]
         c = optimized_buried_area(g1.centers, r1, bounds[i], g2.centers, r2, bounds[j],
                                    axes, probe_radius)
-        return (g1,g2,c)
+        if c:
+            c.group1, c.group2 = g1, g2
+        return c
     bareas = apply_to_list(barea, pairs)
 
     # Apply minimum area threshold.
-    buried = []
-    for g1,g2,c in bareas:
-        if c.buried_area >= min_area:
-            c.group1, c.group2 = g1, g2
-            buried.append(c)
+    buried = [c for c in bareas if c and c.buried_area >= min_area]
 
     # Sort to get predictable order since multithreaded calculation gives unpredictable ordering.
     buried.sort(key = lambda c: c.buried_area, reverse = True)
@@ -142,7 +140,7 @@ def optimized_buried_area(xyz1, r1, b1, xyz2, r2, b2, axes, probe_radius):
     i1 = spheres_in_bounds(xyz1, r1, axes, b2, 0)
     i2 = spheres_in_bounds(xyz2, r2, axes, b1, 0)
     if len(i1) == 0 or len(i2) == 0:
-        return 0
+        return None
 
     # Compute areas for spheres near contact interface.
     xyz1, r1 = xyz1[i1], r1[i1]
@@ -170,6 +168,23 @@ class Contact:
         self.i2 = i2
         self.group1 = None
         self.group2 = None
+
+    def contact_residue_atoms(self, group, min_area = 1):
+        atoms = self.contact_atoms(group, min_area)
+        return atoms.residues.atoms
+
+    def contact_atoms(self, group, min_area = 1):
+        g1, g2 = self.group1, self.group2
+        n1 = len(self.area1i)
+        if group is g1:
+            ba = self.area1i - self.area12i[:n1]
+            i = self.i1[ba >= min_area]
+            atoms = g1.atoms[i]
+        elif group is g2:
+            ba = self.area2i - self.area12i[n1:]
+            i = self.i2[ba >= min_area]
+            atoms = g2.atoms[i]
+        return atoms
         
 def buried_area(xyz1, r1, a1, xyz2, r2, a2):
 
@@ -181,11 +196,11 @@ def buried_area(xyz1, r1, a1, xyz2, r2, a2):
     return ba
 
 def neighbors(g, contacts):
-    n = set()
+    n = {}
     for c in contacts:
         if c.buried_area > 0:
             if c.group1 is g:
-                n.add(c.group2)
+                n[c.group2] = c
             elif c.group2 is g:
-                n.add(c.group1)
+                n[c.group1] = c
     return n

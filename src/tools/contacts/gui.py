@@ -88,7 +88,7 @@ class ContactPlot(Plot):
         G = nx.OrderedGraph()
 #        G = nx.Graph()
         for c in contacts:
-            G.add_edge(c.group1, c.group2, weight = c.buried_area/max_area)
+            G.add_edge(c.group1, c.group2, weight = c.buried_area/max_area, contact=c)
         return G
 
     def _draw_graph(self, spring_constant):
@@ -112,12 +112,14 @@ class ContactPlot(Plot):
         self._node_artist = na
     
         # Draw edges
-        self._edges = edges = []
+        self._edge_contacts = ec = []
+        edges = []
         widths = []
         styles = []
         for (u,v,d) in G.edges(data=True):
+            ec.append(d['contact'])
             edges.append((u,v))
-            large_area = d['weight'] >0.1
+            large_area = d['weight'] > 0.1
             widths.append(3 if large_area else 2)
             styles.append('solid' if large_area else 'dotted')
         ea = nx.draw_networkx_edges(G, pos, edgelist=edges, width=widths, style=styles, ax=axes)
@@ -139,7 +141,8 @@ class ContactPlot(Plot):
         from PyQt5.QtCore import Qt
         if event.button() != Qt.LeftButton:
             return	# Only handle left button.  Right button will post menu.
-        nodes = self._clicked_nodes(event.x(), event.y())
+        item = self._clicked_item(event.x(), event.y())
+        nodes = self._item_nodes(item)
         shift_key = event.modifiers() & Qt.ShiftModifier
 
         if shift_key:
@@ -153,38 +156,8 @@ class ContactPlot(Plot):
             else:
                 # Edge clicked, pair of nodes
                 self._show_node_atoms(nodes)
-                    
-    def _select_nodes(self, nodes):
-        self._clear_selection()
-        for g in nodes:
-            g.atoms.selected = True
 
-    def _clear_selection(self):
-        self._session().selection.clear()
-
-    def _show_node_atoms(self, nodes):
-        gset = set(nodes)
-        for h in self.groups:
-            h.atoms.displays = (h in gset)
-
-    def _show_neighbors(self, g):
-        from .cmd import neighbors
-        ng = neighbors(g, self.contacts)
-        ng.add(g)
-        for h in self.groups:
-            h.atoms.displays = (h in ng)
-
-    def _select_neighbors(self, g):
-        self._clear_selection()
-        from .cmd import neighbors
-        for n in neighbors(g, self.contacts):
-            n.atoms.selected = True
-
-    def _show_all_atoms(self):
-        for g in self.groups:
-            g.atoms.displays = True
-
-    def _clicked_nodes(self, x, y):
+    def _clicked_item(self, x, y):
         # Convert Qt click position to matplotlib MouseEvent
         h = self.tool_window.ui_area.height()
         from matplotlib.backend_bases import MouseEvent
@@ -194,17 +167,87 @@ class ContactPlot(Plot):
         c,d = self._node_artist.contains(e)
         if c:
             i = d['ind'][0]
-            n = [self.graph.nodes()[i]]
+            item = self.graph.nodes()[i]
         else:
             # Check for edge click
             ec,ed = self._edge_artist.contains(e)
             if ec:
                 i = ed['ind'][0]
-                n = self._edges[i]	# Two nodes connected by this edge
+                c = self._edge_contacts[i]
+                item = c
             else:
                 # Background clicked
-                n = []
-        return n
+                item = None
+        return item
+
+    def _item_nodes(self, item):
+        from .cmd import SphereGroup, Contact
+        if item is None:
+            nodes = []
+        elif isinstance(item, SphereGroup):
+            nodes = [item]
+        elif isinstance(item, Contact):
+            nodes = [item.group1, item.group2]
+        return nodes
+                    
+    def _select_nodes(self, nodes):
+        self._clear_selection()
+        for g in nodes:
+            g.atoms.selected = True
+
+    def _select_neighbors(self, g):
+        self._clear_selection()
+        from .cmd import neighbors
+        for n in neighbors(g, self.contacts):
+            n.atoms.selected = True
+
+    def _select_contact_residues(self, contacts, min_area = 1):
+        self._clear_selection()        
+        for c in contacts:
+            for g in (c.group1, c.group2):
+                atoms = c.contact_residue_atoms(g, min_area)
+                atoms.selected = True
+            
+    def _clear_selection(self):
+        self._session().selection.clear()
+
+    def _node_contacts(self, n):
+        from .cmd import neighbors
+        nc = neighbors(n, self.contacts)	# Map neighbor node to Contact
+        return tuple(nc.values())
+        
+    def _show_node_atoms(self, nodes):
+        gset = set(nodes)
+        for h in self.groups:
+            h.atoms.displays = (h in gset)
+
+    def _show_neighbors(self, g):
+        from .cmd import neighbors
+        ng = neighbors(g, self.contacts)
+        ng[g] = None
+        for h in self.groups:
+            h.atoms.displays = (h in ng)
+
+    def _show_contact_residues(self, g, min_area = 5, color = (255,255,255,255)):
+        from .cmd import neighbors
+        ng = neighbors(g, self.contacts)	# Map neighbor node to Contact
+        from chimerax.core.atomic import Atom
+        for h in self.groups:
+            if h in ng:
+                c = ng[h]
+                atoms = c.contact_residue_atoms(h, min_area)
+                h.atoms.displays = False
+                atoms.displays = True	# Show only contacting residues
+                atoms.draw_modes = Atom.STICK_STYLE
+                gatoms = c.contact_residue_atoms(g, min_area)
+                gatoms.draw_modes = Atom.STICK_STYLE
+                gatoms.colors = color
+            else:
+                h.atoms.displays = (h is g)
+
+    def _show_all_atoms(self):
+        for g in self.groups:
+            g.atoms.displays = True
 
     def _atom_display_change(self, name, changes):
         if 'display changed' in changes.atom_reasons():
@@ -219,37 +262,64 @@ class ContactPlot(Plot):
         x, y = event.x(), h-event.y()
         from matplotlib.backend_bases import MouseEvent
         e = MouseEvent('context menu', self.canvas, x, y)
-        nodes = self._clicked_nodes(event.x(), event.y())
+        item = self._clicked_item(event.x(), event.y())
+        nodes = self._item_nodes(item)
+        node_names = ','.join(n.name for n in nodes)
         
         from PyQt5.QtWidgets import QMenu, QAction
         menu = QMenu(widget)
 
+        # Show/hide menu entries
+        if nodes:    
+            show = QAction('Show only %s' % node_names, widget)
+            show.triggered.connect(lambda checked, self=self, nodes=nodes: self._show_node_atoms(nodes))
+            menu.addAction(show)
+
+        if len(nodes) == 1:
+            n = nodes[0]
+            sn = QAction('Show %s and neighbors' % node_names, widget)
+            sn.triggered.connect(lambda checked, self=self, n=n: self._show_neighbors(n))
+            menu.addAction(sn)
+
+            cr = QAction('Show contact residues', widget)
+            cr.triggered.connect(lambda checked, self=self, n=n: self._show_contact_residues(n))
+            menu.addAction(cr)
+        
+        sat = QAction('Show all atoms', widget)
+        sat.triggered.connect(lambda checked, self=self: self._show_all_atoms())
+        menu.addAction(sat)
+
+        menu.addSeparator()
+
+        # Selection menu entries
         if nodes:
-            node_names = ','.join(n.name for n in nodes)
             sel = QAction('Select %s' % node_names, widget)
             #sel.setStatusTip("Select specified chain")
             sel.triggered.connect(lambda checked, self=self, nodes=nodes: self._select_nodes(nodes))
             menu.addAction(sel)
 
-            show = QAction('Show only %s' % node_names, widget)
-            show.triggered.connect(lambda checked, self=self, nodes=nodes: self._show_node_atoms(nodes))
-            menu.addAction(show)
+        nn = len(nodes)
+        if nn == 1:
+            seln = QAction('Select neighbors', widget)
+            seln.triggered.connect(lambda checked, self=self, n=n: self._select_neighbors(n))
+            menu.addAction(seln)
 
-            if len(nodes) == 1:
-                sn = QAction('Show %s and neighbors' % node_names, widget)
-                sn.triggered.connect(lambda checked, self=self, nodes=nodes: self._show_neighbors(nodes[0]))
-                menu.addAction(sn)
-
-                seln = QAction('Select neighbors', widget)
-                seln.triggered.connect(lambda checked, self=self, nodes=nodes: self._select_neighbors(nodes[0]))
-                menu.addAction(seln)
+        if nn == 0:
+            clist = self.contacts
+        elif nn == 1:
+            clist = self._node_contacts(nodes[0])
+        elif nn == 2:
+            clist = [item]
+        selc = QAction('Select contact residues', widget)
+        selc.triggered.connect(lambda checked, self=self, clist=clist: self._select_contact_residues(clist))
+        menu.addAction(selc)
                 
+        sel = QAction('Select all', widget)
+        sel.triggered.connect(lambda checked, self=self: self._select_nodes(self.groups))
+        menu.addAction(sel)
+            
         csel = QAction('Clear selection', widget)
         csel.triggered.connect(lambda checked, self=self: self._clear_selection())
         menu.addAction(csel)
-        
-        sat = QAction('Show all atoms', widget)
-        sat.triggered.connect(lambda checked, self=self: self._show_all_atoms())
-        menu.addAction(sat)
         
         menu.exec(event.globalPos())
