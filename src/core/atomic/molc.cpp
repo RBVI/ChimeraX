@@ -1462,7 +1462,7 @@ extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *ci
     }
 }
 
-extern "C" EXPORT void* find_atom(void *residue, char *atom_name)
+extern "C" EXPORT void* residue_find_atom(void *residue, char *atom_name)
 {
     Residue *r = static_cast<Residue*>(residue);
     try {

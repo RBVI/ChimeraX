@@ -525,6 +525,7 @@ ExtractMolecule::finished_parse()
         if (m != mol) {
             copy_nmr_info(mol, m, _logger);
         }
+        m->use_best_alt_locs();
     }
     vector<AtomicStructure*> save_molecules;
     save_molecules.swap(all_molecules);
