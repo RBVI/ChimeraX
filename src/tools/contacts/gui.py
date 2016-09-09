@@ -174,6 +174,12 @@ class ContactPlot(Plot):
         for h in self.groups:
             h.atoms.displays = (h in ng)
 
+    def _select_neighbors(self, g):
+        self._clear_selection()
+        from .cmd import neighbors
+        for n in neighbors(g, self.contacts):
+            n.atoms.selected = True
+
     def _show_all_atoms(self):
         for g in self.groups:
             g.atoms.displays = True
@@ -233,6 +239,10 @@ class ContactPlot(Plot):
                 sn = QAction('Show %s and neighbors' % node_names, widget)
                 sn.triggered.connect(lambda checked, self=self, nodes=nodes: self._show_neighbors(nodes[0]))
                 menu.addAction(sn)
+
+                seln = QAction('Select neighbors', widget)
+                seln.triggered.connect(lambda checked, self=self, nodes=nodes: self._select_neighbors(nodes[0]))
+                menu.addAction(seln)
                 
         csel = QAction('Clear selection', widget)
         csel.triggered.connect(lambda checked, self=self: self._clear_selection())
