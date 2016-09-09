@@ -351,6 +351,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._hide_tools_shown_states = states = {}
             for tool_windows in self.tool_instance_to_windows.values():
                 for tw in tool_windows:
+                    if tw.title == "Command Line Interface":
+                        # leave the command line as is
+                        continue
                     state = tw.shown
                     states[tw] = state
                     if state:
