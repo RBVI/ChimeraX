@@ -77,11 +77,6 @@ zlib.install:
 zlib.app-install:
 endif
 
-ifeq ($(OS),Linux)
-NEED_OPENSSL=1
-SUBDIRS += llvm mesa pkgconfig xdg-utils
-endif
-
 # Python egg installation has a race condition updating easy-install.pth
 .NOTPARALLEL:
 
