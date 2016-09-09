@@ -118,8 +118,8 @@ class ContactPlot(Plot):
         for (u,v,d) in G.edges(data=True):
             edges.append((u,v))
             large_area = d['weight'] >0.1
-        widths.append(3 if large_area else 2)
-        styles.append('solid' if large_area else 'dotted')
+            widths.append(3 if large_area else 2)
+            styles.append('solid' if large_area else 'dotted')
         ea = nx.draw_networkx_edges(G, pos, edgelist=edges, width=widths, style=styles, ax=axes)
         ea.set_picker(True)
         self._edge_artist = ea
