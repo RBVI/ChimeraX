@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None, area_cutoff = 200):
+def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None, area_cutoff = 300):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
