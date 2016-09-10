@@ -65,8 +65,13 @@ class ContactPlot(Plot):
         # Layout and plot graph
         self.undisplayed_color = (.8,.8,.8,1)	# Node color for undisplayed chains
         self._draw_graph(spring_constant)
+        self.axes.set_aspect('equal', adjustable='datalim')	# Don't squish plot if window is not square.
 
-        self.canvas.mousePressEvent = self._mouse_press
+        c = self.canvas
+        c.mousePressEvent = self._mouse_press
+        c.mouseMoveEvent = self._mouse_move
+        c.mouseReleaseEvent = self._mouse_release
+        self._pan = None
 
         self._handler = session.triggers.add_handler('atomic changes', self._atom_display_change)
 
@@ -105,7 +110,7 @@ class ContactPlot(Plot):
 
         # Draw nodes
         # Sizes are areas define by matplotlib.pyplot.scatter() s parameter documented as point^2.
-        node_sizes = tuple(0.05 * n.area for n in G)
+        node_sizes = tuple(0.03 * n.area for n in G)
         node_colors = tuple((n.color if n.shown() else self.undisplayed_color) for n in G)
         na = nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=axes)
         na.set_picker(True)	# Generate mouse pick events for clicks on nodes
@@ -119,7 +124,7 @@ class ContactPlot(Plot):
         for (u,v,d) in G.edges(data=True):
             ec.append(d['contact'])
             edges.append((u,v))
-            large_area = d['weight'] > 0.1
+            large_area = d['weight'] > 0.5
             widths.append(3 if large_area else 2)
             styles.append('solid' if large_area else 'dotted')
         ea = nx.draw_networkx_edges(G, pos, edgelist=edges, width=widths, style=styles, ax=axes)
@@ -128,7 +133,7 @@ class ContactPlot(Plot):
 
         # Draw node labels
         short_names = {n:n.short_name for n in G}
-        nx.draw_networkx_labels(G, pos, labels=short_names, font_size=16, font_family='sans-serif', ax=axes)
+        nx.draw_networkx_labels(G, pos, labels=short_names, font_size=12, font_family='sans-serif', ax=axes)
 
         # Hide axes and reduce border padding
         axes.get_xaxis().set_visible(False)
@@ -138,6 +143,35 @@ class ContactPlot(Plot):
         self.show()
 
     def _mouse_press(self, event):
+        h = self.tool_window.ui_area.height()
+        x, y = event.x(), h-event.y()
+        self.axes.start_pan(x, y, button = 1)
+        self._pan = False
+
+    def _mouse_move(self, event):
+        if self._pan is not None:
+            from PyQt5.QtCore import Qt
+            if event.modifiers() & Qt.ShiftModifier:
+                # Zoom preserving aspect ratio
+                button = 3
+                key = 'control'
+            else:
+                # Pan in x and y
+                button = 1
+                key = None
+            h = self.tool_window.ui_area.height()
+            x, y = event.x(), h-event.y()
+            self.axes.drag_pan(button, key, x, y)
+            self._pan = True
+            self.canvas.draw()
+    
+    def _mouse_release(self, event):
+        if self._pan is not None:
+            self.axes.end_pan()
+            did_pan = self._pan
+            self._pan = None
+            if did_pan:
+                return
         from PyQt5.QtCore import Qt
         if event.button() != Qt.LeftButton:
             return	# Only handle left button.  Right button will post menu.
