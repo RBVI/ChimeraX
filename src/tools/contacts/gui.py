@@ -36,7 +36,7 @@ class Plot(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(c)
         parent.setLayout(layout)
-        tw.manage(placement="right")
+        tw.manage(placement="side")
 
         self.axes = axes = f.gca()
 

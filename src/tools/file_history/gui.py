@@ -53,7 +53,7 @@ class FilePanel(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(self.file_history_window, 0, 0)
         parent.setLayout(layout)
-        self.tool_window.manage(placement="right")
+        self.tool_window.manage(placement="side")
 
         # TODO: The following link click binding is not working in Qt 5.6.
         # Instead the link dispatching is going through core/ui/gui.py handling href="cxcmd:<command>".

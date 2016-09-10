@@ -96,7 +96,7 @@ class ToolshedUI(ToolInstance):
         parent.setLayout(layout)
         self.webview.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
         self.webview.linkClicked.connect(self.navigate)
-        self.tool_window.manage(placement="right")
+        self.tool_window.manage(placement="side")
         from chimerax.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
         self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE, self._make_page),
                           session.triggers.add_handler(REMOVE_TOOL_INSTANCE, self._make_page)]
