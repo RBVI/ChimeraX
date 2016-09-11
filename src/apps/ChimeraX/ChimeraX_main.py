@@ -242,9 +242,9 @@ def init(argv, event_loop=True):
         from chimerax.core import configinfo
         configinfo.only_use_defaults = True
 
+    from chimerax import core
     if not opts.gui and opts.offscreen:
         # Flag to configure off-screen rendering before PyOpenGL imported
-        from chimerax import core
         core.offscreen_rendering = True
 
     # figure out the user/system directories for application
@@ -428,7 +428,7 @@ def init(argv, event_loop=True):
     if not opts.silent:
         import chimerax.core.commands.version as vercmd
         vercmd.version(sess)  # report version in log
-    if opts.gui:
+    if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render
         r.make_current()
         sess.logger.info('OpenGL version: ' + r.opengl_version())
