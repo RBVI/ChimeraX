@@ -77,9 +77,9 @@ class Image_Stack_Data:
     mim = self.multipage_image()
     for k in range(k0, k0+ksz, kstep):
       if progress:
-        progress.plane((k-k0)/kstep)
+        progress.plane((k-k0)//kstep)
       p = self.read_plane(k, mim, channel)
-      array[(k-k0)/kstep,:,:] = p[j0:j0+jsz:jstep,i0:i0+isz:istep]
+      array[(k-k0)//kstep,:,:] = p[j0:j0+jsz:jstep,i0:i0+isz:istep]
     return array
 
   # ---------------------------------------------------------------------------
