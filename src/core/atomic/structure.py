@@ -470,7 +470,7 @@ class Structure(Model, StructureData):
             from .ribbon import XSectionManager
             polymer_type = residues.polymer_types
             is_helix = residues.is_helix
-            is_sheet = residues.is_sheet
+            is_strand = residues.is_strand
             ssids = residues.secondary_structure_ids
             res_class = []
             was_sheet = was_helix = False
@@ -484,7 +484,7 @@ class Structure(Model, StructureData):
                     am_sheet = am_helix = False
                     was_nucleic = True
                 elif polymer_type[i] == Residue.PT_AMINO:
-                    if is_sheet[i]:
+                    if is_strand[i]:
                         # Define sheet SS as having higher priority over helix SS
                         if was_sheet:
                             # Check if this is the start of another sheet
@@ -540,11 +540,36 @@ class Structure(Model, StructureData):
                 # 1hxx ends in a strand
                 end_helix(res_class, helix_ranges, len(residues))
 
+            # Assign front and back cross sections for each residue.
+            # The "front" section is between this residue and the previous.
+            # The "back" section is between this residue and the next.
+            # The front and back sections meet at the control point atom.
+            # Compute cross sections and whether we care about a smooth
+            # transition between residues.
+            from .ribbon import XSectionManager
+            xs_front = []
+            xs_back = []
+            need_twist = []
+            rc0 = XSectionManager.RC_COIL
+            for i in range(len(residues)):
+                rc1 = res_class[i]
+                try:
+                    rc2 = res_class[i + 1]
+                except IndexError:
+                    rc2 = XSectionManager.RC_COIL
+                f, b = self.ribbon_xs_mgr.assign(rc0, rc1, rc2)
+                xs_front.append(f)
+                xs_back.append(b)
+                need_twist.append(self._need_twist(rc1, rc2))
+                rc0 = rc1
+            need_twist[-1] = False
+
             # Perform any smoothing (e.g., strand smoothing
             # to remove lasagna sheets, pipes and planks
             # display as cylinders and planes, etc.)
             tethered = zeros(len(atoms), bool)
-            self._smooth_ribbon(residues, coords, guides, atoms, tethered, p, helix_ranges, sheet_ranges)
+            self._smooth_ribbon(residues, coords, guides, atoms, tethered,
+                                xs_front, xs_back, p, helix_ranges, sheet_ranges)
             tethered &= displays
             if False:
                 # Debugging code to display line from control point to guide
@@ -583,30 +608,6 @@ class Structure(Model, StructureData):
             else:
                 seg_cap = rd
                 seg_blend = seg_cap + 1
-
-            # Assign front and back cross sections for each residue.
-            # The "front" section is between this residue and the previous.
-            # The "back" section is between this residue and the next.
-            # The front and back sections meet at the control point atom.
-            # Compute cross sections and whether we care about a smooth
-            # transition between residues.
-            from .ribbon import XSectionManager
-            xs_front = []
-            xs_back = []
-            need_twist = []
-            rc0 = XSectionManager.RC_COIL
-            for i in range(len(residues)):
-                rc1 = res_class[i]
-                try:
-                    rc2 = res_class[i + 1]
-                except IndexError:
-                    rc2 = XSectionManager.RC_COIL
-                f, b = self.ribbon_xs_mgr.assign(rc0, rc1, rc2)
-                xs_front.append(f)
-                xs_back.append(b)
-                need_twist.append(self._need_twist(rc1, rc2))
-                rc0 = rc1
-            need_twist[-1] = False
 
             # Draw first and last residue differently because they
             # are each only a single half segment, while the middle
@@ -667,11 +668,11 @@ class Structure(Model, StructureData):
                 next_cap = displays[i] != displays[i + 1] or not xs_compat
                 seg = next_cap and seg_cap or seg_blend
                 flip_mode = FLIP_MINIMIZE
-                if is_helix[i] and is_helix[i + 1]:
+                if self.ribbon_mode_helix == self.RIBBON_MODE_DEFAULT and is_helix[i] and is_helix[i + 1]:
                     flip_mode = FLIP_PREVENT
                 # strands generally flip normals at every residue but
                 # beta bulges violate this rule so we cannot always flip
-                # elif is_sheet[i] and is_sheet[i + 1]:
+                # elif is_strand[i] and is_strand[i + 1]:
                 #     flip_mode = FLIP_FORCE
                 back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, not need_twist[i],
                                                         flip_mode=flip_mode)
@@ -786,17 +787,34 @@ class Structure(Model, StructureData):
         from .molarray import Residues
         self._ribbon_selected_residues = Residues()
 
-    def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered, p, helix_ranges, sheet_ranges):
+    def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered,
+                       xs_front, xs_back, p, helix_ranges, sheet_ranges):
         ribbon_adjusts = rlist.ribbon_adjusts
-        # XXX: Skip helix smoothing for now since it does not work well for bent helices
-        # Smooth helices
-        # for start, end in helix_ranges:
-        #     self._smooth_helix(coords, guides, tethered, ribbon_adjusts, start, end, p)
-        # Smooth strands
-        for start, end in sheet_ranges:
-            self._smooth_strand(coords, guides, tethered, ribbon_adjusts, start, end, p)
+        if self.ribbon_mode_helix == self.RIBBON_MODE_DEFAULT:
+            # Smooth helices
+            # XXX: Skip helix smoothing for now since it does not work well for bent helices
+            pass
+            # for start, end in helix_ranges:
+            #     self._smooth_helix(coords, guides, tethered, xs_front, xs_back,
+            #                        ribbon_adjusts, start, end, p)
+        elif self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+            for start, end in helix_ranges:
+                self._arc_helix(coords, guides, tethered, xs_front, xs_back,
+                                ribbon_adjusts, start, end, p)
+        if self.ribbon_mode_strand == self.RIBBON_MODE_DEFAULT:
+            # Smooth strands
+            for start, end in sheet_ranges:
+                self._smooth_strand(coords, guides, tethered, xs_front, xs_back,
+                                    ribbon_adjusts, start, end, p)
+        elif self.ribbon_mode_strand == self.RIBBON_MODE_ARC:
+            # TODO: not implemented yet
+            pass
+            # for start, end in sheet_ranges:
+            #     self._arc_strand(coords, guides, tethered, xs_front, xs_back,
+            #                      ribbon_adjusts, start, end, p)
 
-    def _smooth_helix(self, coords, guides, tethered, ribbon_adjusts, start, end, p):
+    def _smooth_helix(self, coords, guides, tethered, xs_front, xs_back,
+                      ribbon_adjusts, start, end, p):
         # Try to fix up the ribbon orientation so that it is parallel to the helical axis
         from numpy import dot, newaxis, mean
         from numpy.linalg import norm
@@ -837,7 +855,29 @@ class Structure(Model, StructureData):
         # when the atoms are displayed in stick mode, with radius self.bond_radius)
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
-    def _smooth_strand(self, coords, guides, tethered, ribbon_adjusts, start, end, p):
+    def _arc_helix(self, coords, guides, tethered, xs_front, xs_back,
+                   ribbon_adjusts, start, end, p):
+        from .sse import HelixCylinder
+        hc = HelixCylinder(coords[start:end])
+        centers = hc.cylinder_centers()
+        radius = hc.cylinder_radius() / 5
+        normals, binormals = hc.cylinder_normals()
+        coords[start:end] = centers
+        if guides is not None:
+            guides[start:end] = normals
+        tethered[start:end] = True
+        xs = self.ribbon_xs_mgr._make_xs_round((radius, radius))
+        xs_helix = self.ribbon_xs_mgr.xs_helix
+        xs_front[start] = self.ribbon_xs_mgr.xs_coil
+        xs_back[start] = xs
+        for i in range(start + 1, end):
+            if xs_back[i] == xs_helix:
+                xs_back[i] = xs
+            if xs_front[i] == xs_helix:
+                xs_front[i] = xs
+
+    def _smooth_strand(self, coords, guides, tethered, xs_front, xs_back,
+                       ribbon_adjusts, start, end, p):
         if (end - start + 1) <= 2:
             # Short strands do not need smoothing
             return
