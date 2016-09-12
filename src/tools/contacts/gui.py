@@ -143,10 +143,13 @@ class ContactPlot(Plot):
         self.show()
 
     def _mouse_press(self, event):
-        h = self.tool_window.ui_area.height()
-        x, y = event.x(), h-event.y()
-        self.axes.start_pan(x, y, button = 1)
-        self._pan = False
+        from PyQt5.QtCore import Qt
+        if event.button() == Qt.LeftButton and self._clicked_item(event.x(), event.y()) is None:
+            # Initiate pan and zoom for left click on background
+            h = self.tool_window.ui_area.height()
+            x, y = event.x(), h-event.y()
+            self.axes.start_pan(x, y, button = 1)
+            self._pan = False
 
     def _mouse_move(self, event):
         if self._pan is not None:
@@ -283,6 +286,22 @@ class ContactPlot(Plot):
         for g in self.groups:
             g.atoms.displays = True
 
+    def _explode_all(self, scale = 2):
+        centers = [g.centroid() for g in self.groups]
+        from numpy import mean
+        center = mean(centers, axis = 0)
+        for g,c in zip(self.groups, centers):
+            g.move((scale-1)*(c - center))
+
+    def _unexplode_all(self):
+        for g in self.groups:
+            g.unmove()
+
+    def _explode_neighbors(self, n):
+        for c in self._node_contacts(n):
+            g = c.group2 if n is c.group1 else c.group1
+            c.explode_contact(move_group = g)
+
     def _atom_display_change(self, name, changes):
         if 'display changed' in changes.atom_reasons():
             # Atoms shown or hidden.  Color hidden nodes gray.
@@ -299,6 +318,7 @@ class ContactPlot(Plot):
         item = self._clicked_item(event.x(), event.y())
         nodes = self._item_nodes(item)
         node_names = ','.join(n.name for n in nodes)
+        nn = len(nodes)
         
         from PyQt5.QtWidgets import QMenu, QAction
         menu = QMenu(widget)
@@ -325,6 +345,22 @@ class ContactPlot(Plot):
 
         menu.addSeparator()
 
+        exp = QAction('Explode', widget)
+        menu.addAction(exp)
+        uexp = QAction('Unexplode', widget)
+        uexp.triggered.connect(lambda checked, self=self: self._unexplode_all())
+        menu.addAction(uexp)
+        menu.addSeparator()
+
+        from .cmd import Contact, SphereGroup
+        if isinstance(item, Contact):
+            explode = lambda checked, c=item: c.explode_contact()
+        elif isinstance(item, SphereGroup):
+            explode = lambda checked, self=self, n=item: self._explode_neighbors(n)
+        else:
+            explode = lambda checked, self=self: self._explode_all()
+        exp.triggered.connect(explode)
+
         # Selection menu entries
         if nodes:
             sel = QAction('Select %s' % node_names, widget)
@@ -332,7 +368,6 @@ class ContactPlot(Plot):
             sel.triggered.connect(lambda checked, self=self, nodes=nodes: self._select_nodes(nodes))
             menu.addAction(sel)
 
-        nn = len(nodes)
         if nn == 1:
             seln = QAction('Select neighbors', widget)
             seln.triggered.connect(lambda checked, self=self, n=n: self._select_neighbors(n))

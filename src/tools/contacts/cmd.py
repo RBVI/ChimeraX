@@ -65,7 +65,23 @@ class SphereGroup:
     def shown(self):
         a = self.atoms
         return a.displays.any() or a.residues.ribbon_displays.any()
-        
+
+    def centroid(self):
+        return self.atoms.scene_coords.mean(axis = 0)
+
+    def move(self, step):
+        a = self.atoms
+        if hasattr(self, '_original_coords'):
+            a.coords = self._original_coords
+        else:
+            self._original_coords = a.coords
+        a.scene_coords += step
+
+    def unmove(self):
+        if hasattr(self, '_original_coords'):
+            self.atoms.coords = self._original_coords
+            delattr(self, '_original_coords')
+
 def chain_spheres(atoms, session):
     if atoms is None:
         from chimerax.core.atomic import all_atoms
@@ -185,6 +201,21 @@ class Contact:
             i = self.i2[ba >= min_area]
             atoms = g2.atoms[i]
         return atoms
+
+    def explode_contact(self, distance = 30, move_group = None):
+        g1, g2 = (self.group1, self.group2)
+        xyz1, xyz2 = [self.contact_residue_atoms(g).scene_coords.mean(axis = 0) for g in (g1,g2)]
+        from chimerax.core.geometry import normalize_vector
+        step = (0.5*distance)*normalize_vector(xyz2 - xyz1)
+        if move_group is g1:
+            g1.move(-2*step)
+            g2.unmove()
+        elif move_group is g2:
+            g1.unmove()
+            g2.move(2*step)
+        else:
+            g1.move(-step)
+            g2.move(step)
         
 def buried_area(xyz1, r1, a1, xyz2, r2, a2):
 
