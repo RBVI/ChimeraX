@@ -860,7 +860,7 @@ class Structure(Model, StructureData):
         from .sse import HelixCylinder
         hc = HelixCylinder(coords[start:end])
         centers = hc.cylinder_centers()
-        radius = hc.cylinder_radius() / 5
+        radius = hc.cylinder_radius()
         normals, binormals = hc.cylinder_normals()
         coords[start:end] = centers
         if guides is not None:
@@ -868,13 +868,25 @@ class Structure(Model, StructureData):
         tethered[start:end] = True
         xs = self.ribbon_xs_mgr._make_xs_round((radius, radius))
         xs_helix = self.ribbon_xs_mgr.xs_helix
-        xs_front[start] = self.ribbon_xs_mgr.xs_coil
-        xs_back[start] = xs
         for i in range(start + 1, end):
             if xs_back[i] == xs_helix:
                 xs_back[i] = xs
             if xs_front[i] == xs_helix:
                 xs_front[i] = xs
+        r = radius / 4
+        xs14 = self.ribbon_xs_mgr._make_xs_round((r, r))
+        r = radius / 2
+        xs12 = self.ribbon_xs_mgr._make_xs_round((r, r))
+        r = radius * 3 / 4
+        xs34 = self.ribbon_xs_mgr._make_xs_round((r, r))
+        xs_front[start+1] = xs12
+        xs_back[start+1] = xs34
+        xs_front[end-2] = xs34
+        xs_back[end-2] = xs12
+        xs_front[start] = self.ribbon_xs_mgr.xs_coil
+        xs_back[start] = xs14
+        xs_front[end-1] = xs14
+        xs_back[end-1] = self.ribbon_xs_mgr.xs_coil
 
     def _smooth_strand(self, coords, guides, tethered, xs_front, xs_back,
                        ribbon_adjusts, start, end, p):
