@@ -1375,7 +1375,7 @@ ExtractMolecule::parse_struct_conf()
                     strand_id = 1;
                     last_chain_id = chain_id1;
                 }
-                r->set_is_sheet(true);
+                r->set_is_strand(true);
                 r->set_ss_id(strand_id);
             }
         }
@@ -1513,7 +1513,7 @@ ExtractMolecule::parse_struct_sheet_range()
             if (ri == residue_map.end())
                 continue;
             Residue *r = ri->second;
-            r->set_is_sheet(true);
+            r->set_is_strand(true);
             r->set_ss_id(strand_id);
         }
     }

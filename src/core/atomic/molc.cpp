@@ -77,7 +77,6 @@ typedef void *pyobject_t;
 
 inline PyObject* unicode_from_string(const char *data, size_t size)
 {
-std::cerr << "unicode_from_string is called with string of size " << size << "\n";
     return PyUnicode_DecodeUTF8(data, size, "replace");
 }
 
@@ -1505,32 +1504,32 @@ extern "C" EXPORT void residue_is_helix(void *residues, size_t n, npy_bool *is_h
 
 extern "C" EXPORT void set_residue_is_helix(void *residues, size_t n, npy_bool *is_helix)
 {
-    // If true, also unsets is_sheet
+    // If true, also unsets is_strand
     Residue **r = static_cast<Residue **>(residues);
     error_wrap_array_set(r, n, &Residue::set_is_helix, is_helix);
     try {
         for (size_t i = 0; i < n; ++i)
             if (is_helix[i])
-                r[i]->set_is_sheet(false);
+                r[i]->set_is_strand(false);
     } catch (...) {
         molc_error();
     }
 }
 
-extern "C" EXPORT void residue_is_sheet(void *residues, size_t n, npy_bool *is_sheet)
+extern "C" EXPORT void residue_is_strand(void *residues, size_t n, npy_bool *is_strand)
 {
     Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get(r, n, &Residue::is_sheet, is_sheet);
+    error_wrap_array_get(r, n, &Residue::is_strand, is_strand);
 }
 
-extern "C" EXPORT void set_residue_is_sheet(void *residues, size_t n, npy_bool *is_sheet)
+extern "C" EXPORT void set_residue_is_strand(void *residues, size_t n, npy_bool *is_strand)
 {
     // If true, also unsets is_helix
     Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_set(r, n, &Residue::set_is_sheet, is_sheet);
+    error_wrap_array_set(r, n, &Residue::set_is_strand, is_strand);
     try {
         for (size_t i = 0; i < n; ++i)
-            if (is_sheet[i])
+            if (is_strand[i])
                 r[i]->set_is_helix(false);
     } catch (...) {
         molc_error();
@@ -1669,7 +1668,7 @@ extern "C" EXPORT void residue_secondary_structure_id(void *residues, size_t n, 
 	      sid[cres] = ((pres == NULL ||
 			    cres->ss_id() != pres->ss_id() ||
 			    cres->is_helix() != pres->is_helix() ||
-			    cres->is_sheet() != pres->is_sheet()) ?
+			    cres->is_strand() != pres->is_strand()) ?
 			   ++id : id);
 	      pres = cres;
 	    }
@@ -2129,7 +2128,7 @@ extern "C" EXPORT void residue_set_alt_loc(void *residues, size_t n, char alt_lo
 
 extern "C" EXPORT void residue_set_ss_helix(void *residues, size_t n, bool value)
 {
-    // Doesn't touch is_sheet
+    // Doesn't touch is_strand
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i < n; ++i)
@@ -2145,7 +2144,7 @@ extern "C" EXPORT void residue_set_ss_sheet(void *residues, size_t n, bool value
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i < n; ++i)
-            r[i]->set_is_sheet(value);
+            r[i]->set_is_strand(value);
     } catch (...) {
         molc_error();
     }
@@ -2789,6 +2788,40 @@ extern "C" EXPORT void set_structure_ribbon_orientation(void *mols, size_t n, in
     try {
         for (size_t i = 0; i < n; ++i)
             m[i]->set_ribbon_orientation(static_cast<Structure::RibbonOrientation>(ribbon_orientation[i]));
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_ribbon_mode_helix(void *mols, size_t n, int32_t *ribbon_mode_helix)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ribbon_mode_helix, ribbon_mode_helix);
+}
+
+extern "C" EXPORT void set_structure_ribbon_mode_helix(void *mols, size_t n, int32_t *ribbon_mode_helix)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            m[i]->set_ribbon_mode_helix(static_cast<Structure::RibbonMode>(ribbon_mode_helix[i]));
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_ribbon_mode_strand(void *mols, size_t n, int32_t *ribbon_mode_strand)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::ribbon_mode_strand, ribbon_mode_strand);
+}
+
+extern "C" EXPORT void set_structure_ribbon_mode_strand(void *mols, size_t n, int32_t *ribbon_mode_strand)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            m[i]->set_ribbon_mode_strand(static_cast<Structure::RibbonMode>(ribbon_mode_strand[i]));
     } catch (...) {
         molc_error();
     }
