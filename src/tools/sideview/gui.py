@@ -398,6 +398,8 @@ class SideViewCanvas(QWindow):
 
 class SideViewUI(ToolInstance):
 
+    help = "help:user/tools/sideview.html"
+
     def __init__(self, session, bundle_info):
         ToolInstance.__init__(self, session, bundle_info)
         from chimerax.core.ui.gui import MainToolWindow
