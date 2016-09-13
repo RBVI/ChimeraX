@@ -815,12 +815,12 @@ class Structure(Model, StructureData):
             #                        ribbon_adjusts, start, end, p)
         elif self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
             for start, end in helix_ranges:
-                self._arc_helix(coords, guides, ssids, tethered, xs_front, xs_back,
+                self._arc_helix(rlist, coords, guides, ssids, tethered, xs_front, xs_back,
                                 ribbon_adjusts, start, end, p)
         if self.ribbon_mode_strand == self.RIBBON_MODE_DEFAULT:
             # Smooth strands
             for start, end in sheet_ranges:
-                self._smooth_strand(coords, guides, tethered, xs_front, xs_back,
+                self._smooth_strand(rlist, coords, guides, tethered, xs_front, xs_back,
                                     ribbon_adjusts, start, end, p)
         elif self.ribbon_mode_strand == self.RIBBON_MODE_ARC:
             # TODO: not implemented yet
@@ -829,7 +829,7 @@ class Structure(Model, StructureData):
             #     self._arc_strand(coords, guides, tethered, xs_front, xs_back,
             #                      ribbon_adjusts, start, end, p)
 
-    def _smooth_helix(self, coords, guides, tethered, xs_front, xs_back,
+    def _smooth_helix(self, rlist, coords, guides, tethered, xs_front, xs_back,
                       ribbon_adjusts, start, end, p):
         # Try to fix up the ribbon orientation so that it is parallel to the helical axis
         from numpy import dot, newaxis, mean
@@ -871,9 +871,13 @@ class Structure(Model, StructureData):
         # when the atoms are displayed in stick mode, with radius self.bond_radius)
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
-    def _arc_helix(self, coords, guides, ssids, tethered, xs_front, xs_back,
+    def _arc_helix(self, rlist, coords, guides, ssids, tethered, xs_front, xs_back,
                    ribbon_adjusts, start, end, p):
         from .sse import HelixCylinder
+        from numpy import linspace, cos, sin
+        from math import pi
+        from numpy import empty, repeat, tile
+
         hc = HelixCylinder(coords[start:end])
         centers = hc.cylinder_centers()
         radius = hc.cylinder_radius()
@@ -881,27 +885,9 @@ class Structure(Model, StructureData):
         coords[start:end] = centers
         tethered[start:end] = True
 
-        # TODO: draw helix and update picking data
-        return
-
-        from numpy import linspace, cos, sin
-        from math import pi
-        from numpy import cross, newaxis, empty, float32, array
-        from numpy import outer, repeat, tile, arange, vstack
-        from numpy.linalg import norm
-
-        # centers = cylinder center line (vector Nx3)
-        centers = hc.cylinder_centers()
-        # radius = cylinder radius (scalar)
-        radius = hc.cylinder_radius()
-        # normals = width (vector Nx3)
-        # binormals = thickness (vector Nx3)
-        # (Even for straight cylinders, we expect to
-        # get back an array of identicals vectors
-        # and not a single vector for all points.)
-        normals, binormals = hc.cylinder_normals()
-
         # Compute unit circle in 2D
+        mgr = self.ribbon_xs_mgr
+        num_pts = mgr.params[mgr.STYLE_ROUND]["sides"]
         angles = linspace(0.0, pi * 2, num=num_pts, endpoint=False)
         cos_a = radius * cos(angles)
         sin_a = radius * sin(angles)
@@ -915,10 +901,10 @@ class Structure(Model, StructureData):
         va = empty((num_res * num_pts, 3))
         na = empty((num_res * num_pts, 3))
         for i in range(num_pts):
-            start = (num_pts - i - 1) * num_res
-            end = start + num_res
-            na[start:end] = cos_a[i] * normals + sin_a[i] * binormals
-            va[start:end] = centers + na[start:end]
+            first = (num_pts - i - 1) * num_res
+            last = first + num_res
+            na[first:last] = cos_a[i] * normals + sin_a[i] * binormals
+            va[first:last] = centers + na[first:last]
 
         # Generate triangles
         num_seg = num_res - 1
@@ -936,15 +922,14 @@ class Structure(Model, StructureData):
             ta[(i*2+1)*num_seg:(i*2+2)*num_seg,1] = range(right_start+1, right_end)
             ta[(i*2+1)*num_seg:(i*2+2)*num_seg,2] = range(right_start, right_end-1)
 
-        # Display straight plank
-        from chimerax.core import surface
-        name = "helix-%d" % helix_id
+        # Create graphics object
+        name = "helix-%d" % ssids[start]
         ssp = p.new_drawing(name)
         ssp.geometry = va, ta
         ssp.normals = na
-        ssp.colors = array([(64, 255, 128, 255)])
+        ssp.vertex_colors = tile(rlist.ribbon_colors[start:end], [num_pts, 1])
 
-    def _smooth_strand(self, coords, guides, tethered, xs_front, xs_back,
+    def _smooth_strand(self, rlist, coords, guides, tethered, xs_front, xs_back,
                        ribbon_adjusts, start, end, p):
         if (end - start + 1) <= 2:
             # Short strands do not need smoothing
