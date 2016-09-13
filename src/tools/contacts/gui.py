@@ -107,6 +107,8 @@ class ContactPlot(Plot):
         seed(1)	# Initialize random number generator so layout the same for the same input.
         import networkx as nx
         pos = nx.spring_layout(G, **kw) # positions for all nodes
+        from numpy import array
+        self._layout_positions = array([pos[n] for n in self.groups])
 
         # Draw nodes
         # Sizes are areas define by matplotlib.pyplot.scatter() s parameter documented as point^2.
@@ -287,10 +289,12 @@ class ContactPlot(Plot):
             g.atoms.displays = True
 
     def _explode_all(self, scale = 2):
-        centers = [g.centroid() for g in self.groups]
+        gc = [(g,g.centroid()) for g in self.groups if g.shown()]
+        if len(gc) < 2:
+            return
         from numpy import mean
-        center = mean(centers, axis = 0)
-        for g,c in zip(self.groups, centers):
+        center = mean([c for g,c in gc], axis = 0)
+        for g,c in gc:
             g.move((scale-1)*(c - center))
 
     def _unexplode_all(self):
@@ -302,6 +306,25 @@ class ContactPlot(Plot):
             g = c.group2 if n is c.group1 else c.group1
             c.explode_contact(move_group = g)
 
+    def _orient(self):
+        gc = []
+        la = []
+        for g,(x,y) in zip(self.groups, self._layout_positions):
+            if g.shown():
+                gc.append(g.centroid())
+                la.append((x,y,0))
+        if len(gc) < 2:
+            return
+        from chimerax.core.geometry import align_points, translation
+        from numpy import array, mean
+        p, rms = align_points(array(gc), array(la))
+        ra = p.zero_translation()
+        center = mean(gc, axis=0)
+        v = self._session().main_view
+        rc = v.camera.position.zero_translation()
+        rot = translation(center) * rc * ra * translation(-center)
+        v.move(rot)
+        
     def _atom_display_change(self, name, changes):
         if 'display changed' in changes.atom_reasons():
             # Atoms shown or hidden.  Color hidden nodes gray.
@@ -346,12 +369,6 @@ class ContactPlot(Plot):
         menu.addSeparator()
 
         exp = QAction('Explode', widget)
-        menu.addAction(exp)
-        uexp = QAction('Unexplode', widget)
-        uexp.triggered.connect(lambda checked, self=self: self._unexplode_all())
-        menu.addAction(uexp)
-        menu.addSeparator()
-
         from .cmd import Contact, SphereGroup
         if isinstance(item, Contact):
             explode = lambda checked, c=item: c.explode_contact()
@@ -360,7 +377,19 @@ class ContactPlot(Plot):
         else:
             explode = lambda checked, self=self: self._explode_all()
         exp.triggered.connect(explode)
+        menu.addAction(exp)
+        uexp = QAction('Unexplode', widget)
+        uexp.triggered.connect(lambda checked, self=self: self._unexplode_all())
+        menu.addAction(uexp)
 
+        menu.addSeparator()
+
+        ort = QAction('Orient', widget)
+        ort.triggered.connect(lambda checked, self=self: self._orient())
+        menu.addAction(ort)
+        
+        menu.addSeparator()
+        
         # Selection menu entries
         if nodes:
             sel = QAction('Select %s' % node_names, widget)
