@@ -568,8 +568,9 @@ class Structure(Model, StructureData):
             # to remove lasagna sheets, pipes and planks
             # display as cylinders and planes, etc.)
             tethered = zeros(len(atoms), bool)
-            self._smooth_ribbon(residues, coords, guides, atoms, tethered,
-                                xs_front, xs_back, p, helix_ranges, sheet_ranges)
+            self._smooth_ribbon(residues, coords, guides, atoms, ssids,
+                                tethered, xs_front, xs_back, p,
+                                helix_ranges, sheet_ranges)
             tethered &= displays
             if False:
                 # Debugging code to display line from control point to guide
@@ -655,63 +656,78 @@ class Structure(Model, StructureData):
                 # print(residues[i], file=sys.__stderr__); sys.__stderr__.flush()
                 if not displays[i]:
                     continue
-                seg = capped and seg_cap or seg_blend
-                mid_cap = not self.ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
-                front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, mid_cap, last=mid_cap)
-                if self.ribbon_show_spine:
-                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
-                                                                                     front_c, front_n,
-                                                                                     spine_colors,
-                                                                                     spine_xyz1,
-                                                                                     spine_xyz2)
-                xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
-                next_cap = displays[i] != displays[i + 1] or not xs_compat
-                seg = next_cap and seg_cap or seg_blend
-                flip_mode = FLIP_MINIMIZE
-                if self.ribbon_mode_helix == self.RIBBON_MODE_DEFAULT and is_helix[i] and is_helix[i + 1]:
-                    flip_mode = FLIP_PREVENT
-                # strands generally flip normals at every residue but
-                # beta bulges violate this rule so we cannot always flip
-                # elif is_strand[i] and is_strand[i + 1]:
-                #     flip_mode = FLIP_FORCE
-                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, not need_twist[i],
-                                                        flip_mode=flip_mode)
-                if self.ribbon_show_spine:
-                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
-                                                                                     back_c, back_n,
-                                                                                     spine_colors,
-                                                                                     spine_xyz1,
-                                                                                     spine_xyz2)
-                sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
-                                           capped, mid_cap, v_start)
-                v_start += len(sf.vertices)
-                sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
-                                           mid_cap, next_cap, v_start)
-                v_start += len(sb.vertices)
-                t_end = t_start + len(sf.triangles) + len(sb.triangles)
-                vertex_list.append(sf.vertices)
-                vertex_list.append(sb.vertices)
-                normal_list.append(sf.normals)
-                normal_list.append(sb.normals)
-                triangle_list.append(sf.triangles)
-                triangle_list.append(sb.triangles)
-                color_list.append(sf.colors)
-                color_list.append(sb.colors)
-                if prev_band is not None:
-                    triangle_list.append(xs_front[i].blend(prev_band, sf.front_band))
-                    t_end += len(triangle_list[-1])
-                if not mid_cap:
-                    triangle_list.append(xs_back[i].blend(sf.back_band, sb.front_band))
-                    t_end += len(triangle_list[-1])
-                if next_cap:
+                t_end = t_start
+                if is_helix[i] and is_helix[i-1] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                    # Helix is shown separately as a tube, so we do not need to
+                    # draw anything
+                    next_cap = True
                     prev_band = None
                 else:
-                    prev_band = sb.back_band
+                    # Show as ribbon
+                    seg = capped and seg_cap or seg_blend
+                    mid_cap = not self.ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
+                    front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, mid_cap, last=mid_cap)
+                    if self.ribbon_show_spine:
+                        spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
+                                                                                         front_c, front_n,
+                                                                                         spine_colors,
+                                                                                         spine_xyz1,
+                                                                                         spine_xyz2)
+                    xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
+                    next_cap = displays[i] != displays[i + 1] or not xs_compat
+                    sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
+                                               capped, mid_cap, v_start)
+                    v_start += len(sf.vertices)
+                    t_end += len(sf.triangles)
+                    vertex_list.append(sf.vertices)
+                    normal_list.append(sf.normals)
+                    triangle_list.append(sf.triangles)
+                    color_list.append(sf.colors)
+                    if prev_band is not None:
+                        triangle_list.append(xs_front[i].blend(prev_band, sf.front_band))
+                        t_end += len(triangle_list[-1])
+                if is_helix[i] and is_helix[i+1] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                    # Helix is shown separately as a tube, so we do not need to
+                    # draw anything
+                    prev_band = None
+                else:
+                    seg = next_cap and seg_cap or seg_blend
+                    flip_mode = FLIP_MINIMIZE
+                    if self.ribbon_mode_helix == self.RIBBON_MODE_DEFAULT and is_helix[i] and is_helix[i + 1]:
+                        flip_mode = FLIP_PREVENT
+                    # strands generally flip normals at every residue but
+                    # beta bulges violate this rule so we cannot always flip
+                    # elif is_strand[i] and is_strand[i + 1]:
+                    #     flip_mode = FLIP_FORCE
+                    back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, not need_twist[i],
+                                                            flip_mode=flip_mode)
+                    if self.ribbon_show_spine:
+                        spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
+                                                                                         back_c, back_n,
+                                                                                         spine_colors,
+                                                                                         spine_xyz1,
+                                                                                         spine_xyz2)
+                    sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
+                                               mid_cap, next_cap, v_start)
+                    v_start += len(sb.vertices)
+                    t_end += len(sb.triangles)
+                    vertex_list.append(sb.vertices)
+                    normal_list.append(sb.normals)
+                    triangle_list.append(sb.triangles)
+                    color_list.append(sb.colors)
+                    if not mid_cap:
+                        triangle_list.append(xs_back[i].blend(sf.back_band, sb.front_band))
+                        t_end += len(triangle_list[-1])
+                    if next_cap:
+                        prev_band = None
+                    else:
+                        prev_band = sb.back_band
                 capped = next_cap
-                triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[i])
-                t2r.append(triangle_range)
-                self._ribbon_r2t[residues[i]] = triangle_range
-                t_start = t_end
+                if t_end != t_start:
+                    triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[i])
+                    t2r.append(triangle_range)
+                    self._ribbon_r2t[residues[i]] = triangle_range
+                    t_start = t_end
             # Last residue
             if displays[-1]:
                 # print(residues[-1], file=sys.__stderr__); sys.__stderr__.flush()
@@ -787,7 +803,7 @@ class Structure(Model, StructureData):
         from .molarray import Residues
         self._ribbon_selected_residues = Residues()
 
-    def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered,
+    def _smooth_ribbon(self, rlist, coords, guides, atoms, ssids, tethered,
                        xs_front, xs_back, p, helix_ranges, sheet_ranges):
         ribbon_adjusts = rlist.ribbon_adjusts
         if self.ribbon_mode_helix == self.RIBBON_MODE_DEFAULT:
@@ -799,7 +815,7 @@ class Structure(Model, StructureData):
             #                        ribbon_adjusts, start, end, p)
         elif self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
             for start, end in helix_ranges:
-                self._arc_helix(coords, guides, tethered, xs_front, xs_back,
+                self._arc_helix(coords, guides, ssids, tethered, xs_front, xs_back,
                                 ribbon_adjusts, start, end, p)
         if self.ribbon_mode_strand == self.RIBBON_MODE_DEFAULT:
             # Smooth strands
@@ -855,7 +871,7 @@ class Structure(Model, StructureData):
         # when the atoms are displayed in stick mode, with radius self.bond_radius)
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
-    def _arc_helix(self, coords, guides, tethered, xs_front, xs_back,
+    def _arc_helix(self, coords, guides, ssids, tethered, xs_front, xs_back,
                    ribbon_adjusts, start, end, p):
         from .sse import HelixCylinder
         hc = HelixCylinder(coords[start:end])
@@ -863,30 +879,70 @@ class Structure(Model, StructureData):
         radius = hc.cylinder_radius()
         normals, binormals = hc.cylinder_normals()
         coords[start:end] = centers
-        if guides is not None:
-            guides[start:end] = normals
         tethered[start:end] = True
-        xs = self.ribbon_xs_mgr._make_xs_round((radius, radius))
-        xs_helix = self.ribbon_xs_mgr.xs_helix
-        for i in range(start + 1, end):
-            if xs_back[i] == xs_helix:
-                xs_back[i] = xs
-            if xs_front[i] == xs_helix:
-                xs_front[i] = xs
-        r = radius / 4
-        xs14 = self.ribbon_xs_mgr._make_xs_round((r, r))
-        r = radius / 2
-        xs12 = self.ribbon_xs_mgr._make_xs_round((r, r))
-        r = radius * 3 / 4
-        xs34 = self.ribbon_xs_mgr._make_xs_round((r, r))
-        xs_front[start+1] = xs12
-        xs_back[start+1] = xs34
-        xs_front[end-2] = xs34
-        xs_back[end-2] = xs12
-        xs_front[start] = self.ribbon_xs_mgr.xs_coil
-        xs_back[start] = xs14
-        xs_front[end-1] = xs14
-        xs_back[end-1] = self.ribbon_xs_mgr.xs_coil
+
+        # TODO: draw helix and update picking data
+        return
+
+        from numpy import linspace, cos, sin
+        from math import pi
+        from numpy import cross, newaxis, empty, float32, array
+        from numpy import outer, repeat, tile, arange, vstack
+        from numpy.linalg import norm
+
+        # centers = cylinder center line (vector Nx3)
+        centers = hc.cylinder_centers()
+        # radius = cylinder radius (scalar)
+        radius = hc.cylinder_radius()
+        # normals = width (vector Nx3)
+        # binormals = thickness (vector Nx3)
+        # (Even for straight cylinders, we expect to
+        # get back an array of identicals vectors
+        # and not a single vector for all points.)
+        normals, binormals = hc.cylinder_normals()
+
+        # Compute unit circle in 2D
+        angles = linspace(0.0, pi * 2, num=num_pts, endpoint=False)
+        cos_a = radius * cos(angles)
+        sin_a = radius * sin(angles)
+
+        # Generate cylinder coordinates.
+        # We will construct the vertices as num_pts edges of N points each,
+        # where N is the number of coordinates/residues in the cylinder:
+        # The faces are made using adjacent edges with wrap-around back to
+        # the initial edge.
+        num_res = len(centers)
+        va = empty((num_res * num_pts, 3))
+        na = empty((num_res * num_pts, 3))
+        for i in range(num_pts):
+            start = (num_pts - i - 1) * num_res
+            end = start + num_res
+            na[start:end] = cos_a[i] * normals + sin_a[i] * binormals
+            va[start:end] = centers + na[start:end]
+
+        # Generate triangles
+        num_seg = num_res - 1
+        num_tri = num_pts * num_seg * 2
+        ta = empty((num_tri, 3), int)
+        for i in range(num_pts):
+            left_start = i * num_res
+            left_end = left_start + num_res
+            right_start = ((i + 1) % num_pts) * num_res
+            right_end = right_start + num_res
+            ta[i*2*num_seg:(i*2+1)*num_seg,0] = range(left_start, left_end-1)
+            ta[i*2*num_seg:(i*2+1)*num_seg,1] = range(left_start+1, left_end)
+            ta[i*2*num_seg:(i*2+1)*num_seg,2] = range(right_start, right_end-1)
+            ta[(i*2+1)*num_seg:(i*2+2)*num_seg,0] = range(left_start+1, left_end)
+            ta[(i*2+1)*num_seg:(i*2+2)*num_seg,1] = range(right_start+1, right_end)
+            ta[(i*2+1)*num_seg:(i*2+2)*num_seg,2] = range(right_start, right_end-1)
+
+        # Display straight plank
+        from chimerax.core import surface
+        name = "helix-%d" % helix_id
+        ssp = p.new_drawing(name)
+        ssp.geometry = va, ta
+        ssp.normals = na
+        ssp.colors = array([(64, 255, 128, 255)])
 
     def _smooth_strand(self, coords, guides, tethered, xs_front, xs_back,
                        ribbon_adjusts, start, end, p):
