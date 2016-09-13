@@ -47,7 +47,7 @@ class VolumeViewer(ToolInstance):
         default_settings.set_gui_to_defaults(self)
 #        default_settings.add_change_callback(self.default_settings_changed_cb)
 
-        tw.manage(placement="right")
+        tw.manage(placement="side")
     
         # Add any data sets opened prior to volume dialog being created.
         self.volume_opened_cb(volume_list(session))

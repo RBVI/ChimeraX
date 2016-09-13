@@ -11,13 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, AtomsArg, FloatArg
-contacts_desc = CmdDesc(
-    optional = [('atoms', AtomsArg),],
-    keyword = [('probe_radius', FloatArg),
-               ('spring_constant', FloatArg)])
-
-def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
+def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None, area_cutoff = 300):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
@@ -27,49 +21,35 @@ def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None):
     atoms : Atoms
     probe_radius : float
     '''
-    sg = chain_spheres(atoms, session)
-    ba = buried_areas(sg, probe_radius)
+    sg = chain_spheres(atoms, session)			# List of SphereGroup
+    ba = buried_areas(sg, probe_radius, area_cutoff)	# List of Contact
 
+    # Remove common prefix for chain names.
     for g,sname in zip(sg,short_chain_names([g.name for g in sg])):
         g.short_name = sname
 
     # Report result
-    msg = '%d buried areas: ' % len(ba) + ', '.join('%s %s %.0f' % (g1.short_name,g2.short_name,a) for g1,g2,a in ba)
+    areas = ['%s %s %.0f' % (c.group1.short_name, c.group2.short_name, c.buried_area) for c in ba]
+    msg = '%d buried areas: ' % len(ba) + ', '.join(areas)
     log = session.logger
     log.info(msg)
     log.status(msg)
 
     if session.ui.is_gui:
-        def graph_clicked(sphere_groups, event, all_sphere_groups = sg, session=session):
-            sg = sphere_groups
-            if event.key == 'shift':
-                session.selection.clear()
-                for g in sg:
-                    for m, matoms in g.atoms.by_structure:
-                        m.select_atoms(matoms)
-            else:
-                n = len(sg)
-                if n == 0:
-                    for h in all_sphere_groups:
-                        h.atoms.displays = True
-                elif n == 1:
-                    g = sg[0]
-                    ng = neigbhors(g, ba)
-                    ng.add(g)
-                    for h in all_sphere_groups:
-                        h.atoms.displays = (h in ng)
-                else:
-                    # Edge clicked, g = pair of sphere groups
-                    gset = set(sg)
-                    for h in all_sphere_groups:
-                        h.atoms.displays = (h in gset)
-                    
-#            print ('event button', event.button, 'key', event.key, 'step', event.step)
         from . import gui
-        gui.ContactPlot(session, sg, ba, spring_constant, graph_clicked)
+        gui.ContactPlot(session, sg, ba, spring_constant)
     else:
         log.warning("unable to show graph without GUI")
 
+        
+def register_contacts():
+    from chimerax.core.commands import register, CmdDesc, AtomsArg, FloatArg
+    desc = CmdDesc(
+        optional = [('atoms', AtomsArg),],
+        keyword = [('probe_radius', FloatArg),
+                   ('spring_constant', FloatArg),
+                   ('area_cutoff', FloatArg),])
+    register('contacts', desc, contacts)
 
 
 class SphereGroup:
@@ -104,6 +84,7 @@ def short_chain_names(names):
     return sn
 
 def buried_areas(sphere_groups, probe_radius, min_area = 1):
+    # Multi-threaded calculation of all pairwise buried areas.
     s = [(g, g.radii + probe_radius) for g in sphere_groups]
     s.sort(key = lambda v: len(v[1]), reverse = True)   # Biggest first for threading.
     
@@ -131,42 +112,80 @@ def buried_areas(sphere_groups, probe_radius, min_area = 1):
             if bounds_overlap(bounds[i], bounds[j], 0):
                 pairs.append((i,j))
 
+    # Do multi-threaded buried area calculation.
     def barea(i, j, s = s, bounds = bounds, axes = axes, probe_radius = probe_radius):
         g1, r1 = s[i]
         g2, r2 = s[j]
-        ba = optimized_buried_area(g1.centers, r1, bounds[i], g2.centers, r2, bounds[j], axes, probe_radius)
-        return (g1,g2,ba)
+        c = optimized_buried_area(g1.centers, r1, bounds[i], g2.centers, r2, bounds[j],
+                                   axes, probe_radius)
+        if c:
+            c.group1, c.group2 = g1, g2
+        return c
     bareas = apply_to_list(barea, pairs)
-    buried = [(g1,g2,ba) for g1,g2,ba in bareas if ba >= min_area]
-    buried.sort(key = lambda a: a[2], reverse = True)
+
+    # Apply minimum area threshold.
+    buried = [c for c in bareas if c and c.buried_area >= min_area]
+
+    # Sort to get predictable order since multithreaded calculation gives unpredictable ordering.
+    buried.sort(key = lambda c: c.buried_area, reverse = True)
 
     return buried
 
 # Consider only spheres in each set overlapping bounds of other set.
 def optimized_buried_area(xyz1, r1, b1, xyz2, r2, b2, axes, probe_radius):
 
-#    from chimerax.core.geometry import bounds_overlap, spheres_in_bounds
-#    if not bounds_overlap(b1, b2, 0):
-#        return 0
-
+    # Check for no contact using bounding planes.
+    # And find subsets of spheres that may be in contact to speed up area calculation.
     from chimerax.core.geometry import spheres_in_bounds
     i1 = spheres_in_bounds(xyz1, r1, axes, b2, 0)
     i2 = spheres_in_bounds(xyz2, r2, axes, b1, 0)
     if len(i1) == 0 or len(i2) == 0:
-        return 0
+        return None
 
+    # Compute areas for spheres near contact interface.
     xyz1, r1 = xyz1[i1], r1[i1]
     from chimerax.core.surface import spheres_surface_area
-    a1 = spheres_surface_area(xyz1, r1).sum()
+    a1 = spheres_surface_area(xyz1, r1)
     xyz2, r2 = xyz2[i2], r2[i2]
-    a2 = spheres_surface_area(xyz2, r2).sum()
+    a2 = spheres_surface_area(xyz2, r2)
 
+    # Compute exposed areas for combined spheres.
     from numpy import concatenate
     xyz12, r12 = concatenate((xyz1,xyz2)), concatenate((r1,r2))
-    a12 = spheres_surface_area(xyz12, r12).sum()
-    ba = 0.5 * (a1 + a2 - a12)
-    return ba
+    a12 = spheres_surface_area(xyz12, r12)
 
+    ba = 0.5 * (a1.sum() + a2.sum() - a12.sum())
+    c = Contact(ba, a1, a2, a12, i1, i2)
+    return c
+
+class Contact:
+    def __init__(self, buried_area, area1, area2, area12, i1, i2):
+        self.buried_area = buried_area
+        self.area1i = area1	# Areas for atom index set i1
+        self.area2i = area2	# Areas for atom index set i2
+        self.area12i = area12
+        self.i1 = i1
+        self.i2 = i2
+        self.group1 = None
+        self.group2 = None
+
+    def contact_residue_atoms(self, group, min_area = 1):
+        atoms = self.contact_atoms(group, min_area)
+        return atoms.residues.atoms
+
+    def contact_atoms(self, group, min_area = 1):
+        g1, g2 = self.group1, self.group2
+        n1 = len(self.area1i)
+        if group is g1:
+            ba = self.area1i - self.area12i[:n1]
+            i = self.i1[ba >= min_area]
+            atoms = g1.atoms[i]
+        elif group is g2:
+            ba = self.area2i - self.area12i[n1:]
+            i = self.i2[ba >= min_area]
+            atoms = g2.atoms[i]
+        return atoms
+        
 def buried_area(xyz1, r1, a1, xyz2, r2, a2):
 
     from numpy import concatenate
@@ -176,12 +195,12 @@ def buried_area(xyz1, r1, a1, xyz2, r2, a2):
     ba = 0.5 * (a1 + a2 - a12)
     return ba
 
-def neigbhors(g, buried_areas):
-    n = set()
-    for g1,g2,w in buried_areas:
-        if w > 0:
-            if g1 is g:
-                n.add(g2)
-            elif g2 is g:
-                n.add(g1)
+def neighbors(g, contacts):
+    n = {}
+    for c in contacts:
+        if c.buried_area > 0:
+            if c.group1 is g:
+                n[c.group2] = c
+            elif c.group2 is g:
+                n[c.group1] = c
     return n

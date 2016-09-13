@@ -212,7 +212,7 @@ class Log(ToolInstance, HtmlLog):
         parent.setLayout(layout)
         #self.log_window.EnableHistory(False)
         self.page_source = ""
-        self.tool_window.manage(placement="right")
+        self.tool_window.manage(placement="side")
         session.logger.add_log(self)
         #self.log_window.contextMenuEvent = self.contextMenuEvent
         #from PyQt5.QtCore import Qt

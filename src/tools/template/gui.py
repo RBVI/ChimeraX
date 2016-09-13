@@ -34,6 +34,6 @@ class ToolUI(ToolInstance):
         if session.ui.is_gui:
             from chimerax.core.ui.gui import MainToolWindow
             self.tool_window = MainToolWindow(self)
-            self.tool_window.manage(placement="bottom")
+            self.tool_window.manage(placement="side")
             parent = self.tool_window.ui_area
             # TODO: UI content code goes here

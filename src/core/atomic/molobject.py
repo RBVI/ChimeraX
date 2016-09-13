@@ -516,10 +516,15 @@ class Residue:
         if residue_only:
             return res_str
         chain_str = '/' + self.chain_id
+        from .structure import Structure
+        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
+            struct_string = str(self.structure)
+        else:
+            struct_string = ""
         from ..core_settings import settings
         if cmd_style:
-            return str(self.structure) + chain_str + res_str
-        return '%s%s %s' % (str(self.structure), chain_str, res_str)
+            return struct_string + chain_str + res_str
+        return '%s%s %s' % (struct_string, chain_str, res_str)
 
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     ''':class:`.Atoms` collection containing all atoms of the residue.'''
@@ -593,8 +598,8 @@ class Residue:
         '''If multiple atoms in the residue have that name, an arbitrary one that matches will'''
         ''' be returned.'''
         f = c_function('residue_find_atom', args = (ctypes.c_void_p, ctypes.c_char_p),
-            ret = cptr, astype = _atom_or_none)
-        return f(self._c_pointer, atom_name.encode('utf-8'))
+            ret = ctypes.c_void_p)
+        return _atom_or_none(f(self._c_pointer, atom_name.encode('utf-8')))
 
     def set_alt_loc(self, loc):
         if isinstance(loc, str):

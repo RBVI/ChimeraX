@@ -588,6 +588,17 @@ start_t = end_t;
             }
             if (as->input_seq_source.empty())
                 as->input_seq_source = "PDB SEQRES record";
+            break;
+        }
+
+        case PDB::OBSLTE: {
+            for (int i = 0; i < 8; ++i) {
+                auto r_id_code = record.obslte.r_id_code[i];
+                if (r_id_code[0] != '\0')
+                    logger::warning(py_logger, "Entry ", record.obslte.id_code,
+                        " superceded by entry ", r_id_code);
+            }
+            break;
         }
         }
 #ifdef CLOCK_PROFILING

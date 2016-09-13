@@ -75,7 +75,7 @@ class MapSeries(ToolInstance):
         layout.addWidget(x2)
         parent.setLayout(layout)
 
-        tw.manage(placement="right")
+        tw.manage(placement="side")
 
         from chimerax.core.models import REMOVE_MODELS
         self.model_close_handler = session.triggers.add_handler(

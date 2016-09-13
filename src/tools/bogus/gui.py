@@ -60,7 +60,7 @@ ACTION_BUTTONS
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.webview, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
-        self.tool_window.manage(placement="right")
+        self.tool_window.manage(placement="side")
         # Add triggers for model addition/removal
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self._handlers = [session.triggers.add_handler(ADD_MODELS,

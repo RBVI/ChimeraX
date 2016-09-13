@@ -31,7 +31,7 @@ class ToolUI(ToolInstance):
         if session.ui.is_gui:
             from chimerax.core.ui.gui import MainToolWindow
             self.tool_window = MainToolWindow(self, size=self.SIZE)
-            self.tool_window.manage(placement="right")
+            self.tool_window.manage(placement="side")
             parent = self.tool_window.ui_area
             # Tool specific code
             from wx import html2

@@ -58,7 +58,7 @@ class CageBuilder(ToolInstance):
         layout.addStretch(1)    # Extra space at end of button row.
         parent.setLayout(layout)
 
-        tw.manage(placement="right")
+        tw.manage(placement="side")
 
     def show(self):
         self.tool_window.shown = True

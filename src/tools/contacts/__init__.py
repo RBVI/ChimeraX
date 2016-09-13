@@ -26,9 +26,8 @@ def start_tool(session, bundle_info):
 # 'register_command' is called by the toolshed on start up
 #
 def register_command(command_name, bundle_info):
-    from chimerax.core.commands import register
     from . import cmd
-    register('contacts', cmd.contacts_desc, cmd.contacts)
+    cmd.register_contacts()
 
 
 #

@@ -622,6 +622,37 @@ extern "C" EXPORT void atom_residue(void *atoms, size_t n, pyobject_t *resp)
     error_wrap_array_get(a, n, &Atom::residue, resp);
 }
 
+extern "C" EXPORT PyObject *atom_residue_sums(void *atoms, size_t n, double *atom_values)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    std::map<Residue *, double> rmap;
+    PyObject *result = NULL;
+    try {
+      for (size_t i = 0; i < n; ++i) {
+	Residue *r = a[i]->residue();
+	double v = atom_values[i];
+	auto ri = rmap.find(r);
+	if (ri == rmap.end())
+	  rmap[r] = v;
+	else
+	  rmap[r] += v;
+      }
+      void **p;
+      double *v;
+      PyObject *rp = python_voidp_array(rmap.size(), &p);
+      PyObject *rv = python_double_array(rmap.size(), &v);
+      Residue **res = (Residue **)p;
+      for (auto ri = rmap.begin() ; ri != rmap.end() ; ++ri) {
+	*res++ = ri->first;
+	*v++ = ri->second;
+      }
+      result = python_tuple(rp, rv);
+    } catch (...) {
+        molc_error();
+    }
+    return result;
+}
+
 // Apply per-structure transform to atom coordinates.
 extern "C" EXPORT void atom_scene_coords(void *atoms, size_t n, void *mols, size_t m, float64_t *mtf, float64_t *xyz)
 {
@@ -1431,7 +1462,7 @@ extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *ci
     }
 }
 
-extern "C" EXPORT void* find_atom(void *residue, char *atom_name)
+extern "C" EXPORT void* residue_find_atom(void *residue, char *atom_name)
 {
     Residue *r = static_cast<Residue*>(residue);
     try {

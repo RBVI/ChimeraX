@@ -68,7 +68,7 @@ class ModelPanel(ToolInstance):
         self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
         self.session.triggers.add_handler("atomic changes", self._changes_cb)
         self._frame_drawn_handler = None
-        self.tool_window.manage(placement="right")
+        self.tool_window.manage(placement="side")
 
     @classmethod
     def get_singleton(self, session):

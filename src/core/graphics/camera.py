@@ -140,15 +140,14 @@ class Camera:
         clockwise = ((x2 > x1) != (y1 > y2))
         if not clockwise:
             corners.reverse()
-        dirs = []
+        rays = []
         for x,y in corners:
             origin, direction = self.ray(x, y, window_size)	# Scene coords
             if origin is None:
                 return [] # Camera does not support ray calculation
-            dirs.append(direction)
-        d1,d2,d3,d4 = dirs
-        o = origin
-        faces = ((o,o+d1,o+d2), (o,o+d2,o+d3), (o,o+d3,o+d4), (o,o+d4,o+d1))
+            rays.append((origin,direction))
+        (o1,d1),(o2,d2),(o3,d3),(o4,d4) = rays
+        faces = ((o1,o1+d1,o2+d2), (o2,o2+d2,o3+d3), (o3,o3+d3,o4+d4), (o4,o4+d4,o1+d1))
         from .. import geometry
         planes = geometry.planes_as_4_vectors(faces)
         return planes
