@@ -44,24 +44,23 @@ hydrogen-bonded and geometrical features.</a>
 Kabsch W, Sander C.
 <i>Biopolymers.</i> 1983 Dec;22(12):2577-637.
 </blockquote>
-Per-residue helix and strand assignments are
-used for drawing protein <a href="cartoon.html">cartoons</a>.
-<!--
-and may be used by
-MatchMaker, depending on its settings.
--->
+Per-residue helix and strand assignments are used for drawing protein 
+<a href="cartoon.html">cartoons</a>, and may be used by
+<a href="matchmaker.html"><b>matchmaker</b></a>, depending on its settings.
 In PDB format, secondary structure assignments are described in HELIX and 
 SHEET records, and analogous information is included in mmCIF files.
 However, not all input files include this information.
-When a protein structure without secondary structure assignments
-is read in, <b>dssp</b> is invoked automatically.
-<!--
-It is also called automatically when
-MatchMaker is used with the
-<b>Compute secondary structure assignments</b> option,
-regardless of whether secondary structure assignments already exist.
--->
-</p><p>
+The <b>dssp</b> calculation is run automatically:
+</p>
+<ul>
+<li>when an atomic structure of a protein 
+without secondary structure assignments is read
+<li>by <a href="matchmaker.html"><b>matchmaker</b></a> with default settings
+(see <a href="matchmaker.html#computeSS"><b>computeSS</b></a>),
+even when the proteins being superimposed already have 
+secondary structure assignments
+</ul>
+<p>
 The calculation applies to all protein/peptide chains in models 
 containing the <a href="atomspec.html">specified</a> atoms.
 The coordinates of protein backbone atoms (N, CA, C, O, and optionally H)
@@ -145,5 +144,5 @@ participates. Sheets are named sequentially from N- to C-terminus.
 </tr></table>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2016</address>
+September 2016</address>
 </body></html>
