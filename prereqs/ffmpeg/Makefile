@@ -44,7 +44,7 @@ clean:
 	rm -rf $(FFMPEG_SOURCE) $(YASM_SOURCE) $(LIBX264_SOURCE)
 
 $(FFMPEG_EXE): $(FFMPEG_SOURCE) video_codecs
-	cd $(FFMPEG_SOURCE); ./configure $(FFMPEG_OPTS) ; make
+	cd $(FFMPEG_SOURCE); ./configure $(FFMPEG_OPTS) ; $(MAKE)
 
 $(FFMPEG_SOURCE):
 	tar jxf $(FFMPEG_DISTRIB) -C $(tmpdir)
@@ -52,7 +52,7 @@ $(FFMPEG_SOURCE):
 video_codecs: $(LIBX264)
 
 $(YASM_EXE): $(YASM_SOURCE)
-	cd $(YASM_SOURCE) ; ./configure --prefix=$(build_prefix); make install
+	cd $(YASM_SOURCE) ; ./configure --prefix=$(build_prefix); $(MAKE) install
 
 $(YASM_SOURCE): $(YASM_DISTRIB)
 	tar jxf $(YASM_DISTRIB) -C $(tmpdir)
@@ -60,7 +60,7 @@ $(YASM_SOURCE): $(YASM_DISTRIB)
 $(LIBX264): $(LIBX264_SOURCE) $(YASM_EXE)
 	cd $(LIBX264_SOURCE) ; \
 	env PATH=$(bindir):$(PATH) ./configure --prefix=$(build_prefix) --enable-pic; \
-	env PATH=$(bindir):$(PATH) make lib-static install install-lib-static install-lib-dev
+	env PATH=$(bindir):$(PATH) $(MAKE) lib-static install install-lib-static install-lib-dev
 
 $(LIBX264_SOURCE):
 	tar jxf $(LIBX264_DISTRIB) -C $(tmpdir)

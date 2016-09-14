@@ -34,10 +34,8 @@ setup(
     packages=[
         "PKG_NAME",
         # Add subpackage names here
+        "PKG_NAME.io",
     ],
-    package_data={
-        "PKG_NAME": ["io/*.py"]
-    },
     data_files=[
         ("", ["timestamp"]),
     ],
@@ -49,10 +47,11 @@ setup(
         "Environment :: MacOS X :: Aqua",
         "Environment :: Win32 (MS Windows)",
         "Environment :: X11 Applications",
+        "Framework :: ChimeraX",
         "Intended Audience :: Science/Research",
         "License :: Free for non-commercial use",
         "Operating System :: MacOS :: MacOS X",
-        "Operating System :: Microsoft :: Windows 7",
+        "Operating System :: Microsoft :: Windows :: Windows 10",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering :: Visualization",

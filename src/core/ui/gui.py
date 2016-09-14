@@ -496,7 +496,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 tool_action = QAction(tool_name, self)
                 tool_action.setStatusTip(bi.synopsis)
                 tool_action.triggered.connect(lambda arg, ses=session, bi=bi: bi.start(ses))
-                tools_menu.addAction(tool_action)
+                cat_menu.addAction(tool_action)
 
         help_menu = mb.addMenu("&Help")
         for entry, topic in (('User Guide', 'user'),

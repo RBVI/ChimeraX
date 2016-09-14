@@ -328,27 +328,42 @@ class SideViewCanvas(QWindow):
 
 
     def mousePressEvent(self, event):
-        x, y = event.x(), event.y()
-        eye_x, eye_y = self.locations.eye[0:2]
-        near = self.locations.near
-        far = self.locations.far
-        es = self.EyeSize
-        if eye_x - es <= x <= eye_x + es and eye_y - es <= y <= eye_y + es:
-            self.moving = self.ON_EYE
-        elif near - es <= x <= near + es:
-            self.moving = self.ON_NEAR
-        elif far - es <= x <= far + es:
-            self.moving = self.ON_FAR
-        else:
+        from PyQt5.QtCore import Qt
+        b = event.button() | event.buttons()
+        if b & Qt.RightButton:
+            self.widget.parent().contextMenuEvent(event)
             return
-        self.x, self.y = x, y
+        if b & Qt.LeftButton:
+            x, y = event.x(), event.y()
+            eye_x, eye_y = self.locations.eye[0:2]
+            near = self.locations.near
+            far = self.locations.far
+            es = self.EyeSize
+            if eye_x - es <= x <= eye_x + es and eye_y - es <= y <= eye_y + es:
+                self.moving = self.ON_EYE
+            elif near - es <= x <= near + es:
+                self.moving = self.ON_NEAR
+            elif far - es <= x <= far + es:
+                self.moving = self.ON_FAR
+            else:
+                return
+            self.x, self.y = x, y
+            return
 
     def mouseReleaseEvent(self, event):
-        if self.moving:
+        if not self.moving:
+            return
+        from PyQt5.QtCore import Qt
+        b = event.button() | event.buttons()
+        if b & Qt.LeftButton:
             self.moving = self.ON_NOTHING
 
     def mouseMoveEvent(self, event):
         if self.moving is self.ON_NOTHING:
+            return
+        from PyQt5.QtCore import Qt
+        b = event.button() | event.buttons()
+        if (b & Qt.LeftButton) == 0:
             return
         x, y = event.x(), event.y()
         diff_x = x - self.x
@@ -397,6 +412,8 @@ class SideViewCanvas(QWindow):
 
 
 class SideViewUI(ToolInstance):
+
+    help = "help:user/tools/sideview.html"
 
     def __init__(self, session, bundle_info):
         ToolInstance.__init__(self, session, bundle_info)

@@ -312,6 +312,17 @@ class Colormap:
                         self.color_below_value_range,
                         self.color_no_value)
         return cmap
+    
+    def rescale_range(self, value0, value1):
+        '''Return new colormap with [0,1] range becoming [value0,value1].'''
+        v = self.data_values.copy()
+        v *= (value1 - value0)
+        v += value0
+        cmap = Colormap(v, self.colors,
+                        self.color_above_value_range,
+                        self.color_below_value_range,
+                        self.color_no_value)
+        return cmap
 
 
 # Initialize built-in colormaps
@@ -319,8 +330,8 @@ class Colormap:
 # produces the conventional blue to red.
 BuiltinColormaps['rainbow'] = Colormap(None, ((0, 0, 1, 1), (0, 1, 1, 1), (0, 1, 0, 1), (1, 1, 0, 1), (1, 0, 0, 1)))
 BuiltinColormaps['grayscale'] = Colormap(None, ((0, 0, 0, 1), (1, 1, 1, 1)))
-# BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (1, 1, 1, 1), (0, 0, 1, 1)))
-BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (.7, .7, .7, 1), (0, 0, 1, 1)))
+BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (1, 1, 1, 1), (0, 0, 1, 1)))
+#BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (.7, .7, .7, 1), (0, 0, 1, 1)))
 BuiltinColormaps['blue-white-red'] = Colormap(None, ((0, 0, 1, 1), (1, 1, 1, 1), (1, 0, 0, 1)))
 BuiltinColormaps['cyan-white-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (1, 1, 1, 1), (0.62, 0.125, 0.37, 1)))
 #BuiltinColormaps['lipophilicity'] = Colormap(None, ((.118,.565,1,1), (1,1,1,1), (1,.271,0,1)))	# dodger blue, white, orange red

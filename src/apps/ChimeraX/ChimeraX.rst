@@ -71,6 +71,14 @@ In particular, the follow command line arguments are useful:
     The module name is ``__main__`` instead of a sandbox name that
     is used for normal :py:mod:`~chimerax.core.scripting`.
 
+``-c command``
+    Only recognized if it is the first argument.
+    Act like the Python interpreter and run the command
+    with the rest of the arguments in :py:obj:`sys.argv`.
+    Implies ``--nogui`` and ``--silent``.
+    This is done after ChimeraX has started up, so a ChimeraX session
+    is available in the global variable ``session``.
+
 
 Initializing the Session
 ========================

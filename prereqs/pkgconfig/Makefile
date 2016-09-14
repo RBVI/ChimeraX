@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 0.28
+VERSION = 0.29.1
 DISTRIBUTION = pkg-config-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/pkg-config-$(VERSION)
 
@@ -11,7 +11,7 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) && \
 	  ./configure --prefix=$(build_prefix) --with-internal-glib && \
-	  make install
+	  $(MAKE) install
 
 app-install:;
 

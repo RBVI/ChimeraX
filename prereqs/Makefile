@@ -38,8 +38,22 @@ NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_P7ZIP=1
 NEED_ZLIB=1
-SUBDIRS += llvm mesa pkgconfig xdg-utils
+SUBDIRS += xdg-utils
 SUBDIRS += ffmpeg
+endif
+
+ifdef NEED_OFFSCREEN
+SUBDIRS += llvm mesa
+ifeq ($(OS),Darwin)
+NEED_PKGCONFIG=1
+endif
+endif
+
+ifdef NEED_PKGCONFIG
+SUBDIRS += pkgconfig
+else
+pkgconfig.install:
+pkgconfig.app-install:
 endif
 
 ifdef NEED_EXPAT
@@ -75,11 +89,6 @@ SUBDIRS += zlib
 else
 zlib.install:
 zlib.app-install:
-endif
-
-ifeq ($(OS),Linux)
-NEED_OPENSSL=1
-SUBDIRS += llvm mesa pkgconfig xdg-utils
 endif
 
 # Python egg installation has a race condition updating easy-install.pth
@@ -162,37 +171,33 @@ hdf5.install: zlib.install
 hdf5.app-install: zlib.app-install
 leapmotion.install: setuptools.install
 leapmotion.app-install: setuptools.app-install
-llvm.install:
-mesa.install: llvm.install pkgconfig.install
+llvm.install: py7zip.install
+mesa.install: py7zip.install llvm.install pkgconfig.install
 numexpr.install: setuptools.install pips.install
 numexpr.app-install: setuptools.app-install pips.app-install
 pcre.install: zlib.install
 pcre.app-install: zlib.app-install
 pips.install: setuptools.install
 pips.app-install: setuptools.app-install
-pkgconfig.install:
 pycollada.install: setuptools.install pips.install
 pycollada.app-install: setuptools.app-install pips.app-install
 PyOpenGL.install: setuptools.install pips.install
 PyOpenGL.app-install: setuptools.app-install pips.app-install
-PyQt.install: setuptools.install qt.install sip.install
-PyQt.app-install: setuptools.app-install qt.app-install sip.app-install
+PyQt.install: setuptools.install
+PyQt.app-install: setuptools.app-install
+# PyQt's Qt's dependencies
+PyQt.install: p7zip.install openssl.install zlib.install
+PyQt.app-install: p7zip.app-install openssl.app-install zlib.app-install
 pytables.install: hdf5.install numexpr.install pips.install setuptools.install zlib.install
 pytables.app-install: hdf5.app-install numexpr.app-install pips.app-install setuptools.app-install zlib.app-install
 pythomnic3k.install: setuptools.install
 pythomnic3k.app-install: setuptools.app-install
 Python.install: p7zip.install zlib.install openssl.install expat.install
 Python.app-install: p7zip.app-install zlib.app-install openssl.app-install expat.app-install
-qt.install: p7zip.install openssl.install zlib.install
-qt.app-install: p7zip.app-install openssl.app-install zlib.app-install
-# qt.install: png.install jpeg.install
-# qt.app-install: png.app-install jpeg.app-install
 scipy.install: pips.install
 scipy.app-install: pips.app-install
 setuptools.install: Python.install
 setuptools.app-install: Python.app-install
-sip.install: setuptools.install
-sip.app-install: setuptools.app-install
 wrappy3.install: pcre.install setuptools.install
 wrappy3.app-install: pcre.app-install setuptools.app-install
 wx.install: setuptools.install
