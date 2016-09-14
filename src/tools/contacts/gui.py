@@ -137,7 +137,7 @@ class Plot(ToolInstance):
 #
 class ContactPlot(Plot):
     
-    def __init__(self, session, groups, contacts, spring_constant):
+    def __init__(self, session, groups, contacts):
 
         # Create matplotlib panel
         bundle_info = session.toolshed.find_bundle('contacts')
@@ -151,9 +151,11 @@ class ContactPlot(Plot):
         self.graph = self._make_graph(contacts)
 
         # Layout and plot graph
+        self._node_artist = None	# Matplotlib PathCollection for node display
+        self._edge_artist = None	# Matplotlib LineCollection for edge display
+        self._labels = {}		# Maps group to Matplotlib Text object for labels
         self.undisplayed_color = (.8,.8,.8,1)	# Node color for undisplayed chains
-        self._draw_graph(spring_constant)
-        self.equal_aspect()	# Don't squish plot if window is not square.
+        self._draw_graph()
 
         c = self.canvas
         c.mousePressEvent = self._mouse_press
@@ -183,50 +185,83 @@ class ContactPlot(Plot):
             G.add_edge(c.group1, c.group2, weight = c.buried_area/max_area, contact=c)
         return G
 
-    def _draw_graph(self, spring_constant):
-                
-        G = self.graph
-        axes = self.axes
-
-        # Layout nodes
-        kw = {} if spring_constant is None else {'k':spring_constant}
-        from numpy.random import seed
-        seed(1)	# Initialize random number generator so layout the same for the same input.
-        import networkx as nx
-        pos = nx.spring_layout(G, **kw) # positions for all nodes
-        from numpy import array
-        self._layout_positions = array([pos[n] for n in self.groups])
-
+    def _draw_graph(self):
         # Draw nodes
+        node_pos = self._draw_nodes()
+    
+        # Draw edges
+        self._draw_edges(node_pos)
+
+        # Draw node labels
+        self._draw_labels(node_pos)
+
+        self.tight_layout()
+        self.equal_aspect()	# Don't squish plot if window is not square.
+        self.canvas.draw()
+
+        self.show()	# Show graph panel
+
+    def _draw_nodes(self):
+        G = self.graph
+        node_pos = self._node_layout_positions()
         # Sizes are areas define by matplotlib.pyplot.scatter() s parameter documented as point^2.
         node_sizes = tuple(0.03 * n.area for n in G)
         node_colors = tuple((n.color if n.shown() else self.undisplayed_color) for n in G)
-        na = nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=axes)
+        import networkx as nx
+        na = nx.draw_networkx_nodes(G, node_pos, node_size=node_sizes, node_color=node_colors, ax=self.axes)
         na.set_picker(True)	# Generate mouse pick events for clicks on nodes
-        self._node_artist = na
-    
-        # Draw edges
+        if self._node_artist:
+            self._node_artist.remove()
+        self._node_artist = na	# matplotlib PathCollection object
+        return node_pos
+
+    def _node_layout_positions(self):
+        # Project camera view positions of chains to x,y.
+        proj = self._session().main_view.camera.position.inverse()
+        ipos = {g : tuple((proj * g.centroid())[:2]) for g in self.groups}
+
+        # Compute optimal distance between nodes
+        from chimerax.core.geometry import distance
+        d = sum(distance(ipos[c.group1], ipos[c.group2]) for c in self.contacts) / len(self.contacts)
+            
+        import networkx as nx
+        pos = nx.spring_layout(self.graph, pos = ipos, k = d) # positions for all nodes
+        from numpy import array
+        self._layout_positions = array([pos[n] for n in self.groups])
+
+        return pos
+
+    def _draw_edges(self, node_pos):
+        
         self._edge_contacts = ec = []
         edges = []
         widths = []
         styles = []
+        G = self.graph
         for (u,v,d) in G.edges(data=True):
             ec.append(d['contact'])
             edges.append((u,v))
             large_area = d['weight'] > 0.5
             widths.append(3 if large_area else 2)
             styles.append('solid' if large_area else 'dotted')
-        ea = nx.draw_networkx_edges(G, pos, edgelist=edges, width=widths, style=styles, ax=axes)
+        import networkx as nx
+        ea = nx.draw_networkx_edges(G, node_pos, edgelist=edges, width=widths, style=styles, ax=self.axes)
         ea.set_picker(True)
+        if self._edge_artist:
+            self._edge_artist.remove()
         self._edge_artist = ea
 
-        # Draw node labels
-        short_names = {n:n.short_name for n in G}
-        nx.draw_networkx_labels(G, pos, labels=short_names, font_size=12, font_family='sans-serif', ax=axes)
-
-        self.tight_layout()
-        self.show()
-
+    def _draw_labels(self, node_pos):
+        short_names = {n:n.short_name for n in self.graph}
+        import networkx as nx
+        labels = nx.draw_networkx_labels(self.graph, node_pos, labels=short_names,
+                                         font_size=12, font_family='sans-serif', ax=self.axes)
+        if self._labels:
+            # Remove existing labels.
+            for t in self._labels.values():
+                t.remove()
+        self._labels = labels	# Dictionary mapping node to matplotlib Text objects.
+            
     def _mouse_press(self, event):
         if self._clicked_item(event.x(), event.y()) is None:
             self._mouse_press_pan(event)
@@ -429,7 +464,8 @@ class ContactPlot(Plot):
 
         self.add_menu_separator()
 
-        add('Orient', self._orient)
+        add('Layout matching structure', self._draw_graph)
+        add('Orient structure', self._orient)
         
         self.add_menu_separator()
         
