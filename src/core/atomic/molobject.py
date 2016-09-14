@@ -843,6 +843,14 @@ class StructureSeq(Sequence):
                 return True
         return False
 
+    def residue_at(self, index):
+        '''Return the Residue/None at the (ungapped) position 'index'.'''
+        '''  More efficient that self.residues[index] since the entire residues'''
+        ''' list isn't built/destroyed.'''
+        f = c_function('sseq_residue_at', args = (ctypes.c_void_p, ctypes.c_size_t),
+            ret = ctypes.c_void_p)
+        return _atom_or_none(f(self._c_pointer, index))
+
     @staticmethod
     def restore_snapshot(session, data):
         sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
@@ -863,7 +871,7 @@ class StructureSeq(Sequence):
             loc = self.gapped_to_ungapped(loc)
         if loc is None:
             return None
-        r = self.residues[loc]
+        r = self.residue_at(loc)
         if r is None:
             return None
         if r.is_helix:

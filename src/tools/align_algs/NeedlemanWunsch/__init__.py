@@ -53,20 +53,22 @@ def nw(s1, s2, score_match=10, score_mismatch=-3, score_gap=0, score_gap_open=-4
             if s1[i1] == s2[i2]:
                 return score_match
             return score_mismatch
-    doing_ss =  ss_fraction is not None and ss_fraction is not False \
-                        and ss_matrix is not None
+    doing_ss =  ss_fraction is not None and ss_fraction is not False and ss_matrix is not None
     if doing_ss:
         prev_eval = evaluate
         sim_fraction = 1.0 - ss_fraction
+        # prevent slow ss_type() call in inner loop...
+        ss_types1 = [ s1.ss_type(i) for i in range(len(s1))]
+        ss_types2 = [ s2.ss_type(i) for i in range(len(s2))]
         def ss_eval(i1, i2):
             if hasattr(s1, 'ss_freqs'):
                 freqs1 = s1.ss_freqs[i1]
             else:
-                freqs1 = {s1.ss_type(i1): 1.0}
+                freqs1 = {ss_types1[i1]: 1.0}
             if hasattr(s2, 'ss_freqs'):
                 freqs2 = s2.ss_freqs[i2]
             else:
-                freqs2 = {s2.ss_type(i2): 1.0}
+                freqs2 = {ss_types2[i2]: 1.0}
             val = 0.0
             for ss1, freq1 in freqs1.items():
                 if ss1 == None:
@@ -76,8 +78,7 @@ def nw(s1, s2, score_match=10, score_mismatch=-3, score_gap=0, score_gap_open=-4
                         continue
                     val += freq1 * freq2 * ss_matrix[(ss1, ss2)]
             return val
-        evaluate = lambda i1, i2: ss_fraction * ss_eval(i1, i2) + \
-                    sim_fraction * prev_eval(i1, i2)
+        evaluate = lambda i1, i2: ss_fraction * ss_eval(i1, i2) + sim_fraction * prev_eval(i1, i2)
 
     # precompute appropriate gap-open penalties
     gap_open_1 = [score_gap_open] * (len(s1)+1)
@@ -206,8 +207,7 @@ def nw(s1, s2, score_match=10, score_mismatch=-3, score_gap=0, score_gap_open=-4
         else:
             i2 = i2 + bt_type
     if return_seqs:
-        return m[len(s1)][len(s2)], matches_to_gapped_seqs(match_list,
-                            s1, s2, gap_char=gap_char)
+        return m[len(s1)][len(s2)], matches_to_gapped_seqs(match_list, s1, s2, gap_char=gap_char)
     return m[len(s1)][len(s2)], match_list
 
 def matches_to_gapped_seqs(matches, s1, s2, gap_char=".", reverse_sorts=True):
