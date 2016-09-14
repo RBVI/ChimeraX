@@ -17,6 +17,7 @@ include $(TOP)/mk/config.make
 DOCDIR = $(app_datadir)/docs/user/tools
 
 SRCS = $(wildcard *.html)
+IMAGES = $(wildcard *.png)
 
 MOUSEICONS = $(TOP)/src/tools/mouse_modes/icons/*.png
 MICONDIR = $(DOCDIR)/mouse-icons
@@ -25,7 +26,7 @@ SICONDIR = $(DOCDIR)/shortcut-icons
 
 install:
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
-	$(RSYNC) $(SRCS) $(DOCDIR)
+	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
 	if [ ! -d "$(MICONDIR)" ]; then mkdir -p $(MICONDIR); fi
 	$(RSYNC) $(MOUSEICONS) $(MICONDIR)
 	if [ ! -d "$(SICONDIR)" ]; then mkdir -p $(SICONDIR); fi

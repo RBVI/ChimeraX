@@ -312,6 +312,17 @@ class Colormap:
                         self.color_below_value_range,
                         self.color_no_value)
         return cmap
+    
+    def rescale_range(self, value0, value1):
+        '''Return new colormap with [0,1] range becoming [value0,value1].'''
+        v = self.data_values.copy()
+        v *= (value1 - value0)
+        v += value0
+        cmap = Colormap(v, self.colors,
+                        self.color_above_value_range,
+                        self.color_below_value_range,
+                        self.color_no_value)
+        return cmap
 
 
 # Initialize built-in colormaps

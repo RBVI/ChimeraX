@@ -16,11 +16,13 @@
 from chimerax.core.tools import ToolInstance
 class Plot(ToolInstance):
 
-    def __init__(self, session, bundle_info, *, title='Plot'):
+    def __init__(self, session, bundle_info, *, title=None):
         ToolInstance.__init__(self, session, bundle_info)
 
         from chimerax.core.ui.gui import MainToolWindow
         tw = MainToolWindow(self)
+        if title is not None:
+            tw.title = title
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -40,11 +42,96 @@ class Plot(ToolInstance):
 
         self.axes = axes = f.gca()
 
+        self._pan = None	# Pan/zoom mouse control
+        self._menu = None	# Context menu
+        
     def show(self):
         self.tool_window.shown = True
 
     def hide(self):
         self.tool_window.shown = False
+
+    def tight_layout(self):
+        '''Hide axes and reduce border padding.'''
+        a = self.axes
+        a.get_xaxis().set_visible(False)
+        a.get_yaxis().set_visible(False)
+        a.axis('tight')
+        self.figure.tight_layout(pad = 0, w_pad = 0, h_pad = 0)
+
+    def equal_aspect(self):
+        '''
+        Make both axes use same scaling, pixels per plot unit.
+        Without this if the window is not square, the plot squishes one axis.
+        '''
+        self.axes.set_aspect('equal', adjustable='datalim')
+
+    def _mouse_press_pan(self, event):
+        from PyQt5.QtCore import Qt
+        if event.button() == Qt.LeftButton:
+            # Initiate pan and zoom for left click on background
+            h = self.tool_window.ui_area.height()
+            x, y = event.x(), h-event.y()
+            self.axes.start_pan(x, y, button = 1)
+            self._pan = False
+
+    def _mouse_move_pan(self, event):
+        if self._pan is not None:
+            from PyQt5.QtCore import Qt
+            if event.modifiers() & Qt.ShiftModifier:
+                # Zoom preserving aspect ratio
+                button = 3
+                key = 'control'
+            else:
+                # Pan in x and y
+                button = 1
+                key = None
+            h = self.tool_window.ui_area.height()
+            x, y = event.x(), h-event.y()
+            self.axes.drag_pan(button, key, x, y)
+            self._pan = True
+            self.canvas.draw()
+    
+    def _mouse_release_pan(self, event):
+        if self._pan is not None:
+            self.axes.end_pan()
+            did_pan = self._pan
+            self._pan = None
+            if did_pan:
+                return True
+        return False
+
+    def matplotlib_mouse_event(self, x, y):
+        '''Used for detecting clicked matplotlib canvas item using Artist.contains().'''
+        h = self.tool_window.ui_area.height()
+        from matplotlib.backend_bases import MouseEvent
+        e = MouseEvent('context menu', self.canvas, x, h-y)
+        return e
+
+    def add_menu_item(self, text, callback, arg = None):
+        '''Add menu item to context menu'''
+        widget = self.tool_window.ui_area
+        from PyQt5.QtWidgets import QAction
+        a = QAction(text, widget)
+        #a.setStatusTip("Info about this menu entry")
+        args = () if arg is None else (arg,)
+        a.triggered.connect(lambda checked, cb=callback, args=args: cb(*args))
+        self._context_menu().addAction(a)
+
+    def add_menu_separator(self):
+        self._context_menu().addSeparator()
+
+    def post_menu(self, event):
+        self._context_menu().exec(event.globalPos())
+        self._menu = None
+        
+    def _context_menu(self):
+        m = self._menu
+        if m is None:
+            widget = self.tool_window.ui_area
+            from PyQt5.QtWidgets import QMenu
+            self._menu = m = QMenu(widget)
+        return m
 
 # ------------------------------------------------------------------------------
 #
@@ -54,7 +141,8 @@ class ContactPlot(Plot):
 
         # Create matplotlib panel
         bundle_info = session.toolshed.find_bundle('contacts')
-        Plot.__init__(self, session, bundle_info)
+        title = '%d Chains %d Contacts' % (len(groups), len(contacts))
+        Plot.__init__(self, session, bundle_info, title = title)
 
         self.groups = groups
         self.contacts = contacts
@@ -65,13 +153,12 @@ class ContactPlot(Plot):
         # Layout and plot graph
         self.undisplayed_color = (.8,.8,.8,1)	# Node color for undisplayed chains
         self._draw_graph(spring_constant)
-        self.axes.set_aspect('equal', adjustable='datalim')	# Don't squish plot if window is not square.
+        self.equal_aspect()	# Don't squish plot if window is not square.
 
         c = self.canvas
         c.mousePressEvent = self._mouse_press
         c.mouseMoveEvent = self._mouse_move
         c.mouseReleaseEvent = self._mouse_release
-        self._pan = None
 
         self._handler = session.triggers.add_handler('atomic changes', self._atom_display_change)
 
@@ -107,6 +194,8 @@ class ContactPlot(Plot):
         seed(1)	# Initialize random number generator so layout the same for the same input.
         import networkx as nx
         pos = nx.spring_layout(G, **kw) # positions for all nodes
+        from numpy import array
+        self._layout_positions = array([pos[n] for n in self.groups])
 
         # Draw nodes
         # Sizes are areas define by matplotlib.pyplot.scatter() s parameter documented as point^2.
@@ -135,43 +224,20 @@ class ContactPlot(Plot):
         short_names = {n:n.short_name for n in G}
         nx.draw_networkx_labels(G, pos, labels=short_names, font_size=12, font_family='sans-serif', ax=axes)
 
-        # Hide axes and reduce border padding
-        axes.get_xaxis().set_visible(False)
-        axes.get_yaxis().set_visible(False)
-        axes.axis('tight')
-        self.figure.tight_layout(pad = 0, w_pad = 0, h_pad = 0)
+        self.tight_layout()
         self.show()
 
     def _mouse_press(self, event):
-        h = self.tool_window.ui_area.height()
-        x, y = event.x(), h-event.y()
-        self.axes.start_pan(x, y, button = 1)
-        self._pan = False
+        if self._clicked_item(event.x(), event.y()) is None:
+            self._mouse_press_pan(event)
 
     def _mouse_move(self, event):
-        if self._pan is not None:
-            from PyQt5.QtCore import Qt
-            if event.modifiers() & Qt.ShiftModifier:
-                # Zoom preserving aspect ratio
-                button = 3
-                key = 'control'
-            else:
-                # Pan in x and y
-                button = 1
-                key = None
-            h = self.tool_window.ui_area.height()
-            x, y = event.x(), h-event.y()
-            self.axes.drag_pan(button, key, x, y)
-            self._pan = True
-            self.canvas.draw()
+        self._mouse_move_pan(event)
     
     def _mouse_release(self, event):
-        if self._pan is not None:
-            self.axes.end_pan()
-            did_pan = self._pan
-            self._pan = None
-            if did_pan:
-                return
+        if self._mouse_release_pan(event):
+            return
+
         from PyQt5.QtCore import Qt
         if event.button() != Qt.LeftButton:
             return	# Only handle left button.  Right button will post menu.
@@ -192,12 +258,8 @@ class ContactPlot(Plot):
                 self._show_node_atoms(nodes)
 
     def _clicked_item(self, x, y):
-        # Convert Qt click position to matplotlib MouseEvent
-        h = self.tool_window.ui_area.height()
-        from matplotlib.backend_bases import MouseEvent
-        e = MouseEvent('context menu', self.canvas, x, h-y)
-
         # Check for node click
+        e = self.matplotlib_mouse_event(x,y)
         c,d = self._node_artist.contains(e)
         if c:
             i = d['ind'][0]
@@ -283,6 +345,47 @@ class ContactPlot(Plot):
         for g in self.groups:
             g.atoms.displays = True
 
+    def _show_residue_plot(self, c):
+        from .resplot import ResiduePlot
+        ResiduePlot(self._session(), c)
+        
+    def _explode_all(self, scale = 2):
+        gc = [(g,g.centroid()) for g in self.groups if g.shown()]
+        if len(gc) < 2:
+            return
+        from numpy import mean
+        center = mean([c for g,c in gc], axis = 0)
+        for g,c in gc:
+            g.move((scale-1)*(c - center))
+
+    def _unexplode_all(self):
+        for g in self.groups:
+            g.unmove()
+
+    def _explode_neighbors(self, n):
+        for c in self._node_contacts(n):
+            g = c.group2 if n is c.group1 else c.group1
+            c.explode_contact(move_group = g)
+
+    def _orient(self):
+        gc = []
+        la = []
+        for g,(x,y) in zip(self.groups, self._layout_positions):
+            if g.shown():
+                gc.append(g.centroid())
+                la.append((x,y,0))
+        if len(gc) < 2:
+            return
+        from chimerax.core.geometry import align_points, translation
+        from numpy import array, mean
+        p, rms = align_points(array(gc), array(la))
+        ra = p.zero_translation()
+        center = mean(gc, axis=0)
+        v = self._session().main_view
+        rc = v.camera.position.zero_translation()
+        rot = translation(center) * rc * ra * translation(-center)
+        v.move(rot)
+        
     def _atom_display_change(self, name, changes):
         if 'display changed' in changes.atom_reasons():
             # Atoms shown or hidden.  Color hidden nodes gray.
@@ -291,52 +394,51 @@ class ContactPlot(Plot):
             self.canvas.draw()	# Need to ask canvas to redraw the new colors.
 
     def _show_context_menu(self, event):
-        widget = self.tool_window.ui_area
-        h = widget.height()
-        x, y = event.x(), h-event.y()
-        from matplotlib.backend_bases import MouseEvent
-        e = MouseEvent('context menu', self.canvas, x, y)
         item = self._clicked_item(event.x(), event.y())
         nodes = self._item_nodes(item)
         node_names = ','.join(n.name for n in nodes)
+        nn = len(nodes)
         
-        from PyQt5.QtWidgets import QMenu, QAction
-        menu = QMenu(widget)
-
         # Show/hide menu entries
-        if nodes:    
-            show = QAction('Show only %s' % node_names, widget)
-            show.triggered.connect(lambda checked, self=self, nodes=nodes: self._show_node_atoms(nodes))
-            menu.addAction(show)
+        add = self.add_menu_item
+        if nodes:
+            add('Show only %s' % node_names, self._show_node_atoms, nodes)
 
         if len(nodes) == 1:
-            n = nodes[0]
-            sn = QAction('Show %s and neighbors' % node_names, widget)
-            sn.triggered.connect(lambda checked, self=self, n=n: self._show_neighbors(n))
-            menu.addAction(sn)
-
-            cr = QAction('Show contact residues', widget)
-            cr.triggered.connect(lambda checked, self=self, n=n: self._show_contact_residues(n))
-            menu.addAction(cr)
+            add('Show %s and neighbors' % node_names, self._show_neighbors, nodes[0])
+            add('Show contact residues', self._show_contact_residues, nodes[0])
         
-        sat = QAction('Show all atoms', widget)
-        sat.triggered.connect(lambda checked, self=self: self._show_all_atoms())
-        menu.addAction(sat)
+        add('Show all atoms', self._show_all_atoms)
 
-        menu.addSeparator()
+        from .cmd import Contact, SphereGroup
+        if isinstance(item, Contact):
+            add('Residue plot', self._show_residue_plot, item)
 
+        self.add_menu_separator()
+
+        earg = None
+        if isinstance(item, Contact):
+            explode = item.explode_contact
+        elif isinstance(item, SphereGroup):
+            explode = self._explode_neighbors
+            earg = item
+        else:
+            explode = self._explode_all
+        add('Explode', explode, earg)
+        add('Unxplode', self._unexplode_all)
+
+        self.add_menu_separator()
+
+        add('Orient', self._orient)
+        
+        self.add_menu_separator()
+        
         # Selection menu entries
         if nodes:
-            sel = QAction('Select %s' % node_names, widget)
-            #sel.setStatusTip("Select specified chain")
-            sel.triggered.connect(lambda checked, self=self, nodes=nodes: self._select_nodes(nodes))
-            menu.addAction(sel)
+            add('Select %s' % node_names, self._select_nodes, nodes)
 
-        nn = len(nodes)
         if nn == 1:
-            seln = QAction('Select neighbors', widget)
-            seln.triggered.connect(lambda checked, self=self, n=n: self._select_neighbors(n))
-            menu.addAction(seln)
+            add('Select neighbors', self._select_neighbors, nodes[0])
 
         if nn == 0:
             clist = self.contacts
@@ -344,16 +446,9 @@ class ContactPlot(Plot):
             clist = self._node_contacts(nodes[0])
         elif nn == 2:
             clist = [item]
-        selc = QAction('Select contact residues', widget)
-        selc.triggered.connect(lambda checked, self=self, clist=clist: self._select_contact_residues(clist))
-        menu.addAction(selc)
-                
-        sel = QAction('Select all', widget)
-        sel.triggered.connect(lambda checked, self=self: self._select_nodes(self.groups))
-        menu.addAction(sel)
-            
-        csel = QAction('Clear selection', widget)
-        csel.triggered.connect(lambda checked, self=self: self._clear_selection())
-        menu.addAction(csel)
-        
-        menu.exec(event.globalPos())
+        add('Select contact residues', self._select_contact_residues, clist)
+
+        add('Select all', self._select_nodes, self.groups)
+        add('Clear selection', self._clear_selection)
+
+        self.post_menu(event)

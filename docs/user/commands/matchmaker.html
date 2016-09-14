@@ -1,0 +1,416 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: matchmaker, mmaker</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: matchmaker, mmaker</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br>(&nbsp;<b>matchmaker</b>&nbsp;|&nbsp;<b>mmaker</b>&nbsp;)
+&nbsp;<a href="atomspec.html"><i>matchstruct</i></a>&nbsp; <b>to</b> 
+&nbsp;<a href="atomspec.html"><i>refstruct</i></a>&nbsp;
+&nbsp;<a href="#options"><i>options</i></a></h3>
+<p>
+The <b>matchmaker</b> (or <b>mmaker</b>) command
+superimposes protein or nucleic acid structures by first creating 
+a pairwise sequence alignment, then fitting the aligned residue pairs.
+Residue types and/or protein secondary structure information
+can be used to align the sequences.
+<a name="matchatom">
+Fitting uses one point per residue:  CA in
+amino acid residues and C4' in nucleic acid residues.
+If a nucleic acid residue lacks a C4' atom 
+(some lower-resolution structures are P traces), 
+its P atom will be paired with the P atom of the aligned residue.
+</a>
+</p><p>
+Note: if it is already known which residue numbers in one structure
+should be paired with which residue numbers in the other,
+another possibility is to use the <b>align</b>
+command, which executes more quickly
+because it does not include a sequence alignment step.
+See also:
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="position.html"><b>position</b></a>,
+<a href="view.html"><b>view</b></a>,
+<a href="dssp.html"><b>dssp</b></a>
+</p><p>
+The structure to match (<i>matchstruct</i>) 
+and a reference structure (<i>refstruct</i>) must be
+<a href="atomspec.html" target="_top">specified</a>.
+The <i>matchstruct</i> specifcation can include multiple models to be
+matched to <i>refstruct</i> independently, but cannot
+include parts of the same model as <i>refstruct</i>.
+The <a href="#pairing"><b>pairing</b> mode</a> determines
+whether chains or models should be specified.
+On occasion, it may be useful to <a href="#restrict">restrict</a>
+the calculation to certain residues.
+</p><p>
+Sequence alignment scores,
+parameter values, and final match RMSDs are reported in the
+<a href="../tools/log.html"><b>Log</b></a>.
+If the fit is <a href="#iterate">iterated</a>,
+the final RMSD over all residue pairs (columns in the sequence alignment) 
+will be reported along with the RMSD over the pruned set of pairs.
+</p><p>
+<a name="examples">Examples</a>:
+<blockquote>
+<b>match #2 to #1</b>
+</blockquote>
+&ndash; superimpose model 2 onto model 1 using default settings.
+Default settings are to recalculate secondary structure assignments 
+with <a href="dssp.html"><b>dssp</b></a>, generate sequence alignments
+using the Needleman-Wunsch <a href="#algorithm">algorithm</a>
+with the BLOSUM-62 <a href="#matrix">residue similarity matrix</a>
+(weight 0.7) and 
+<a href="#ssFraction">secondary structure scoring</a> (weight 0.3),
+keep the sequence alignment for the <a href="#pairing">best-scoring pair</a>
+of chains (one from model 0 and one from model 1), and using that alignment,
+<a href="#iterate">iteratively fit</a> the structures with a
+cutoff of 2.0 &Aring;.
+<blockquote>
+<b>mm #1-5 to #6 computeSS false</b>
+</blockquote>
+&ndash; independently superimpose models 1-5 onto model 6 using 
+default settings, except without <a href="#computeSS">recalculating</a> 
+secondary structure assignments.
+<blockquote>
+<b>mm #1:.a to #2 pair sb alg sw matrix PAM-150 ss false iter 5.0</b>
+</blockquote>
+(example structures: mouse and human phosphoserine phosphatases 
+<b>1j97</b>, <b>1nnl</b> open as models 1 and 2, respectively)
+<br>
+&ndash; superimpose chain A in model 1 with the 
+<a href="#pairing">highest-scoring chain</a> in model 2 using
+the Smith-Waterman <a href="#algorithm">algorithm</a>
+with the PAM-150 <a href="#matrix">residue similarity matrix</a>
+(weight 1.0, no <a href="#ssFraction">secondary structure scoring</a>);
+<a href="#iterate">iteratively fit</a>
+the structures using a cutoff of 5.0 &Aring;.
+<blockquote>
+<b>mm #1:.a:.b to #2:.c:.d pair ss</b>
+</blockquote>
+(example structures: insulin <b>1b17</b>, <b>1ben</b> 
+open as models 1 and 2, respectively)
+<br>
+&ndash; align the <a href="#pairing">specific chain pairs</a>
+A/C and B/D (in models 1/2) using default settings.
+<p>
+<a name="restrict">
+Including specific residues in the
+<i>matchstruct</i> and/or <i>refstruct</i> specifications restricts the
+calculation to only those residues.
+</a>
+In general, restriction should only be used in specific cases
+to suppress results that would otherwise be obtained.
+For example, two chains that would
+otherwise align on their N-terminal domains can be forced to align on
+their C-terminal domains by specifying only the residues in
+the C-terminal domains.  Otherwise, restriction is not recommended,
+because full-length alignments tend to be of higher quality, and
+<a href="#iterate">iteration</a> already serves to exclude
+poorly superimposed regions from the final fit.
+<!--
+Although the unused parts of matched chains will appear in the resulting
+sequence alignment (if <a href="#show">shown</a>), they have simply
+been added back in as &ldquo;filler,&rdquo; without consideration of
+how the characters align, after alignment and matching of only the
+specified residues.
+-->
+</p>
+
+<a name="options">
+<h4>Options</h4>
+</a><p>
+Option keywords and Boolean (truth) values can be truncated, with
+synonyms for true: True, 1, and synonyms for false: False, 0.
+A vertical bar &ldquo;|&rdquo; designates mutually exclusive values, and
+default settings are indicated with <b>bold</b>.
+Most of the options affect <a href="#scoring">alignment scoring</a>.
+</p>
+<blockquote>
+    <a name="pairing"><b>pairing</b> <i>mode</i></a>
+    <br>The <i>mode</i> controls which chain sequences are used 
+    to construct the reference-match alignment:
+    <ul>
+    <li><b>bb</b> (default) - use the pair of chains,
+     one from the reference model and one from the match model, 
+     with the highest alignment score;
+    <i>refstruct</i> and <i>matchstruct</i> should each specify a model or
+     part of a model
+    <li><b>sb</b> - pair a specific chain in the reference model with whichever
+    chain in the match model gives the highest alignment score;
+    <i>refstruct</i> should specify a chain, <i>matchstruct</i> a model or
+     part of a model
+    <li><b>ss</b> - pair specific chain(s) in the reference model with
+    specific chain(s) in the match model; <i>refstruct</i> and
+    <i>matchstruct</i> should specify equal numbers of chains
+    </ul>
+</blockquote>
+<blockquote>
+  <a name="algorithm"><b>alg</b> <i>alignment-algorithm</i></a>
+    <br>The <i>alignment-algorithm</i> can be:
+    <ul>
+    <li> <b>nw</b> (or <b>needle</b>; default) - Needleman-Wunsch, global
+    <li> <b>sw</b> (or <b>smith</b>) - Smith-Waterman, local
+    </ul>
+</blockquote>
+<blockquote>
+  <font color="brown">
+  Not yet implemented:<br>
+  <a name="show"><b>showAlignment</b> true&nbsp;|&nbsp;<b>false</b></a>
+    <br>Whether to show the resulting pairwise sequence alignment(s).
+  </font>
+<!--
+    with <a href="../../ContributedSoftware/multalignviewer/framemav.html"
+    target="_top"><b>Multalign Viewer</b></a>.
+    When <a href="#iterate">fit iteration</a> is employed,
+    the pairs used in the final fit will be shown in the alignment as a 
+<a href="../../ContributedSoftware/multalignviewer/multalignviewer.html#regions">region</a> 
+   named <b>matched residues</b>. The &ldquo;<b>RMSD: ca</b>&rdquo; 
+<a href="../../ContributedSoftware/multalignviewer/multalignviewer.html#headers">header</a>
+  is automatically shown above the sequences, with histogram bar heights
+  representing the <a href="#matchatom">single-point</a>
+  spatial variation among residues associated with a column.
+  In the pairwise case, the value per column is simply the distance between
+  the two associated residues.
+  <p>
+*When the fit has been <a href="#restrict">restricted</a> to specified residues,
+the remaining residues of matched chains will still appear in the alignment,
+but merely as a convenient compact representation; how they are aligned
+is not meaningful.
+  </p><p>
+  **These sequence alignments can be considered a by-product of superposition.
+  Successful superposition only requires the sequence alignment to be partly
+  correct, as incorrect portions tend to be excluded from the fit during
+  <a href="#iterate">iteration</a>.
+  If the sequences are easy to align (highly similar),
+  the sequence alignment is likely to be correct throughout.
+  However, if the sequences are more distantly related,
+  parts of the alignment may be incorrect even when a successful
+  superposition is produced. When <b>matchmaker</b> is used 
+  simply to superimpose structures, this is not important.  However, if
+  one also wants a corresponding sequence alignment,
+  generating a structure-based alignment (after superposition) with
+  <a href="../../ContributedSoftware/matchalign/matchalign.html"><b>Match 
+  -> Align</b></a> is recommended, especially if the sequences are dissimilar.
+  The structure-based sequence alignment will provide better
+  statistics for describing structural similarity (RMSD, <i>etc.</i>)
+  because more columns will be aligned correctly.
+-->
+</blockquote>
+<blockquote>
+  <a name="iterate"><b>iterate</b> <i>cutoff</i>&nbsp;|&nbsp;false</a>
+  <br>Whether to iteratively fit the structures, and the cutoff for
+   excluding residue pairs from the fit. An iterative fit
+   will be performed unless this option is set to <b>false</b>.
+   The sequence alignment is not changed, but residue pairs in the 
+   alignment can be removed from the "match list" used to 
+   superimpose the structures. In each cycle,
+   pairs of <a href="#matchatom">atoms</a>
+   are removed from the match list and the remaining
+   pairs are fitted, until no matched pair is
+   more than <i>cutoff</i> &Aring; apart (<b>2.0</b> by default).
+The atom pairs removed are either the 10% farthest apart of all pairs
+or the 50% farthest apart of all pairs exceeding the cutoff, whichever
+is the lesser number of pairs.
+The result is that the best-matching "core" regions are maximally
+superimposed; conformationally dissimilar regions such as flexible
+loops are not included in the final fit, even though they may be aligned
+in the sequence alignment.
+</blockquote>
+
+<blockquote>
+  <b>verbose</b> true&nbsp;|&nbsp;<b>false</b>
+  <br>
+  For each chain-chain pair, send additional information to the
+  <a href="../tools/log.html"><b>Log</b></a>:
+  <ul>
+  <li><b>Sequences:</b> 
+  followed by the pairwise sequence alignment, <i>i.e.</i>, two lines,
+  each containing a sequence name and (gapped) sequence
+  <li><b>Residues:</b> 
+  followed by two lines, each a comma-separated list of the structure residues 
+  associated with the nongap positions of the corresponding sequence;
+  missing structure residues are reported as <b>None</b>
+  <li><b>Residue usage in match (1=used, 0=unused):</b> 
+  followed by two lines, each a comma-separated list of zeroes and ones,
+  indicating which structure residues were used in the final fit
+  </ul>
+</blockquote>
+
+<a name="scoring">
+<h4>Alignment Scoring Options</h4></a>
+<p>
+Sequence alignment scores can include a residue similarity term,
+a secondary structure term (if protein), and gap penalties.
+</p>
+<blockquote>
+  <a name="matrix"><b>matrix</b> <i>similarity-matrix</i></a>
+    <br>The <i>similarity-matrix</i> can be any of:
+<!--
+    those listed in the
+    <a href="../../ContributedSoftware/matchmaker/matchmaker.html">
+    <b>MatchMaker</b></a> graphical interface (case is important):
+-->
+    BLOSUM-30, BLOSUM-35, BLOSUM-40, BLOSUM-45, BLOSUM-50, BLOSUM-55,
+    BLOSUM-60, <b>BLOSUM-62</b> (default), BLOSUM-65, BLOSUM-70, BLOSUM-75,
+    BLOSUM-80, BLOSUM-85, BLOSUM-90, BLOSUM-100, BLOSUM-N, 
+    PAM-40, PAM-120, PAM-150, PAM-250, SDM, HSDM, Nucleic.
+<!--
+    Matrix files reside in the
+    <b>share/SmithWaterman/matrices/</b> directory of a Chimera installation.
+-->
+    <p>
+    If an amino acid matrix (any except <b>Nucleic</b>) is specified, 
+    only peptide chains will be aligned; if the <b>Nucleic</b> matrix
+    is specified, only nucleic acid chains will be aligned.  
+    An error message will appear if there are no reference-match pairs
+    of the appropriate type.
+    </p>
+</blockquote>
+<blockquote>
+  <a name="ssFraction"><b>ssFraction</b> <i>fraction</i>&nbsp;|&nbsp;false</a>
+    <br>
+    <i>Fraction</i> is the relative weight of the secondary structure term
+    for proteins and can range from 0 to 1 (default <b>0.3</b>).
+    Unless the option is set to <b>false</b>,
+    a protein secondary structure term will be included
+    with a weight of <i>ssfract</i> and the residue
+    similarity term will be given a weight of (1-<i>ssfract</i>). 
+</blockquote>
+<blockquote>
+  <a name="computeSS"><b>computeSS</b></a> <b>true</b>&nbsp;|&nbsp;false
+    <br>
+    When <a href="#ssFraction">secondary structure scoring</a> is used,
+    whether to first identify helices and strands with the
+    <a href="dssp.html"><b>dssp</b></a> algorithm,
+    overwriting any pre-existing secondary structure assignments
+    (except for CA-only structures, which are automatically skipped).
+    This option may improve superposition results 
+    by generating consistent assignments, whereas pre-existing assignments
+    may reflect the use of different criteria on different structures. When
+    <a href="#ssFraction">secondary structure scoring</a> is <b><i>not</i></b>
+    used, this option is ignored and secondary structure assignments 
+    are not computed.
+</blockquote>
+<blockquote>
+  <a name="gapOpen"><b>gapOpen</b> <i>opening-penalty</i></a>
+    <br>
+    When <a href="#ssFraction">secondary structure scoring</a> is
+    <b><i>not</i></b> used, the <i>opening-penalty</i> is subtracted from the
+    score for each gap opened (<b>12</b> by default).
+    When <a href="#ssFraction">secondary structure scoring</a> is used,
+    secondary-structure-specific gap opening penalties (see
+    <a href="#ssGap"><b>hgap</b>, <b>sgap</b>, and <b>ogap</b></a>) 
+    are used instead.
+</blockquote>
+<blockquote>
+  <b>gapExtend</b> <i>extension-penalty</i>
+    <br>
+    The <i>extension-penalty</i> is subtracted from the
+    score for each increment in gap length (<b>1</b> by default).
+</blockquote>
+<blockquote>
+  <a name="ssGap"><b>hgap</b> <i>intrahelix-penalty</i></a>
+    <br>
+    When <a href="#ssFraction">secondary structure scoring</a> is used, the
+    <i>intrahelix-penalty</i> is subtracted from the
+    score for each gap opened within a helix (<b>18</b> by default).
+    When <a href="#ssFraction">secondary structure scoring</a> is
+    <b><i>not</i></b> used, a generic gap penalty (see 
+    <a href="#gapOpen"><b>gapOpen</b></a>) is used instead.
+</blockquote>
+<blockquote>
+  <b>sgap</b> <i>intrastrand-penalty</i>
+    <br>
+    When <a href="#ssFraction">secondary structure scoring</a> is used, the
+    <i>intrastrand-penalty</i> is subtracted from the
+    score for each gap opened within a strand (<b>18</b> by default).
+    When <a href="#ssFraction">secondary structure scoring</a> is
+    <b><i>not</i></b> used, a generic gap penalty (see
+    <a href="#gapOpen"><b>gapOpen</b></a>) is used instead.
+</blockquote>
+<blockquote>
+  <b>ogap</b> <i>other-penalty</i>
+    <br>
+    When <a href="#ssFraction">secondary structure scoring</a> is used, the
+    <i>other-penalty</i> is subtracted from the
+    score for each gap opened that is not within a helix or strand 
+    (<b>6</b> by default).
+    When <a href="#ssFraction">secondary structure scoring</a> is
+    <b><i>not</i></b> used, a generic gap penalty (see
+    <a href="#gapOpen"><b>gapOpen</b></a>) is used instead.
+</blockquote>
+<blockquote>
+  <b>matHH</b> <i>helix-helix-score</i>
+  <br>
+  When <a href="#ssFraction">secondary structure scoring</a> is used,
+  <i>helix-helix-score</i> is the value added to the secondary structure
+  term for aligning a residue in a helix with a residue in a helix 
+  (default <b>6</b>).
+</blockquote>
+<blockquote>
+  <b>matSS</b> <i>strand-strand-score</i>
+  <br>
+  When <a href="#ssFraction">secondary structure scoring</a> is used,
+  <i>strand-strand-score</i> is the value added to the secondary structure
+  term for aligning a residue in a strand with a residue in a strand 
+  (default <b>6</b>).
+</blockquote>
+<blockquote>
+  <b>matOO</b> <i>other-other-score</i>
+  <br>
+  When <a href="#ssFraction">secondary structure scoring</a> is used,
+  <i>other-other-score</i> is the value added to the secondary structure
+  term for aligning a non-helix, non-strand residue with a non-helix, 
+  non-strand residue (default <b>4</b>).
+</blockquote>
+<blockquote>
+  <b>matHS</b> <i>helix-strand-score</i>
+  <br>
+  When <a href="#ssFraction">secondary structure scoring</a> is used,
+  <i>helix-strand-score</i> is the value added to the secondary structure
+  term for aligning a residue in a helix with a residue in a strand 
+  (default <b>-9</b>).
+</blockquote>
+<blockquote>
+  <b>matHO</b> <i>helix-other-score</i>
+  <br>
+  When <a href="#ssFraction">secondary structure scoring</a> is used,
+  <i>helix-other-score</i> is the value added to the secondary structure
+  term for aligning a residue in a helix with a non-helix, 
+  non-strand residue (default <b>-6</b>).
+</blockquote>
+<blockquote>
+  <b>matSO</b> <i>strand-other-score</i>
+  <br>
+  When <a href="#ssFraction">secondary structure scoring</a> is used,
+  <i>strand-other-score</i> is the value added to the secondary structure
+  term for aligning a residue in a strand with a non-helix, 
+  non-strand residue (default <b>-6</b>).
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+September 2016</address>
+</body></html>
