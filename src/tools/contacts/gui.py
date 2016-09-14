@@ -359,22 +359,43 @@ class ContactPlot(Plot):
         for h in self.groups:
             h.atoms.displays = (h in ng)
 
-    def _show_contact_residues(self, g, min_area = 5, color = (255,255,255,255)):
+    def _show_contact_residues(self, g, min_area = 5, color = (180,180,180,255)):
         from .cmd import neighbors
         ng = neighbors(g, self.contacts)	# Map neighbor node to Contact
-        from chimerax.core.atomic import Atom
         for h in self.groups:
             if h in ng:
                 c = ng[h]
                 atoms = c.contact_residue_atoms(h, min_area)
                 h.atoms.displays = False
                 atoms.displays = True	# Show only contacting residues
-                atoms.draw_modes = Atom.STICK_STYLE
+                atoms.draw_modes = atoms.STICK_STYLE
                 gatoms = c.contact_residue_atoms(g, min_area)
-                gatoms.draw_modes = Atom.STICK_STYLE
+#                gatoms.draw_modes = gatoms.STICK_STYLE
                 gatoms.colors = color
             else:
                 h.atoms.displays = (h is g)
+
+    def _show_interface_residues(self, c, g, min_area = 5, color = (180,180,180,255)):
+        for go in self.groups:
+            go.atoms.displays = False
+            
+        g1, g2 = c.group1, c.group2
+        gf, gb = (g1,g2) if g is g1 else (g2,g1)
+        af = c.contact_residue_atoms(gf, min_area)
+        ab = c.contact_residue_atoms(gb, min_area)
+
+        af.displays = True	# Show only contacting residues
+        af.draw_modes = af.STICK_STYLE
+        gf.restore_atom_colors()
+
+        allb = gb.atoms
+        allb.displays = True
+        allb.draw_modes = allb.SPHERE_STYLE
+        gb.color_atoms(ab, color)
+
+        v = self._session().main_view
+        v.camera.position = c.interface_frame(gb)
+        v.view_all(allb.scene_bounds)
 
     def _show_all_atoms(self):
         for g in self.groups:
@@ -442,10 +463,17 @@ class ContactPlot(Plot):
         if len(nodes) == 1:
             add('Show %s and neighbors' % node_names, self._show_neighbors, nodes[0])
             add('Show contact residues', self._show_contact_residues, nodes[0])
+
+        from .cmd import Contact, SphereGroup
+        if isinstance(item, Contact):
+            c = item
+            add('Show %s contact residues' % c.group1.name,
+                self._show_interface_residues, c, c.group1)
+            add('Show %s contact residues' % c.group2.name,
+                self._show_interface_residues, c, c.group2)
         
         add('Show all atoms', self._show_all_atoms)
 
-        from .cmd import Contact, SphereGroup
         if isinstance(item, Contact):
             add('Residue plot', self._show_residue_plot, item)
         
