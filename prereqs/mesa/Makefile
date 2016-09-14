@@ -2,20 +2,21 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 10.6.3
-DISTRIBUTION = mesa-$(VERSION).tar.gz
+VERSION = 12.0.2
+DISTRIBUTION = mesa-$(VERSION).tar.xz
 SOURCE = $(tmpdir)/mesa-$(VERSION)
 
 ifeq ($(OS),Darwin)
-PATCHES	= mesa-10.6.3-darwin.patch
+MESA_ENV = PKG_CONFIG=$(bindir)/pkg-config
 endif
+
+#PATCHES	= $(wildcard mesa-$(VERSION)-$(OS).patch)
 
 all:
 
 install: $(SOURCE)
 	cd $(SOURCE) && \
-	  PKG_CONFIG=$(bin_dir)/pkg-config \
-	  ./configure --prefix=$(build_prefix) \
+	  $(MESA_ENV) ./configure --prefix=$(build_prefix) \
 		--enable-gallium-osmesa \
 		--with-gallium-drivers="swrast" \
 		--enable-gallium-llvm=yes \
@@ -24,14 +25,16 @@ install: $(SOURCE)
 		--disable-dri \
 		--disable-glx \
 		--disable-egl \
+		--disable-gles1 \
+		--disable-gles2 \
 		--disable-shared-glapi && \
-	  make install
+	  $(MAKE) install
 
 app-install:;
 	$(RSYNC) $(shlibdir)/libOSMesa.*$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE):
-	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+	$(bindir)/7za e -so $(DISTRIBUTION) | tar xf - -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \

@@ -38,8 +38,22 @@ NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_P7ZIP=1
 NEED_ZLIB=1
-SUBDIRS += llvm mesa pkgconfig xdg-utils
+SUBDIRS += xdg-utils
 SUBDIRS += ffmpeg
+endif
+
+ifdef NEED_OFFSCREEN
+SUBDIRS += llvm mesa
+ifeq ($(OS),Darwin)
+NEED_PKGCONFIG=1
+endif
+endif
+
+ifdef NEED_PKGCONFIG
+SUBDIRS += pkgconfig
+else
+pkgconfig.install:
+pkgconfig.app-install:
 endif
 
 ifdef NEED_EXPAT
@@ -157,15 +171,14 @@ hdf5.install: zlib.install
 hdf5.app-install: zlib.app-install
 leapmotion.install: setuptools.install
 leapmotion.app-install: setuptools.app-install
-llvm.install:
-mesa.install: llvm.install pkgconfig.install
+llvm.install: py7zip.install
+mesa.install: py7zip.install llvm.install pkgconfig.install
 numexpr.install: setuptools.install pips.install
 numexpr.app-install: setuptools.app-install pips.app-install
 pcre.install: zlib.install
 pcre.app-install: zlib.app-install
 pips.install: setuptools.install
 pips.app-install: setuptools.app-install
-pkgconfig.install:
 pycollada.install: setuptools.install pips.install
 pycollada.app-install: setuptools.app-install pips.app-install
 PyOpenGL.install: setuptools.install pips.install

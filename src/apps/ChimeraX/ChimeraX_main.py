@@ -85,6 +85,7 @@ def parse_arguments(argv):
     class Opts:
         pass
     opts = Opts()
+    opts.command = None
     opts.debug = False
     opts.gui = True
     opts.module = None
@@ -121,6 +122,7 @@ def parse_arguments(argv):
         arguments += ["--console", "--noconsole"]
     usage = '[' + "] [".join(arguments) + ']'
     usage += " or -m module_name [args]"
+    usage += " or -c command"
     # add in default argument values
     arguments += [
         "--nodebug",
@@ -138,6 +140,12 @@ def parse_arguments(argv):
         opts.gui = False
         opts.silent = True
         opts.module = sys.argv[2]
+        return opts, sys.argv[2:]
+    if len(sys.argv) > 2 and sys.argv[1] == '-c':
+        # treat like Python's -c argument
+        opts.gui = False
+        opts.silent = True
+        opts.command = sys.argv[2]
         return opts, sys.argv[2:]
     try:
         shortopts = ""
@@ -242,9 +250,9 @@ def init(argv, event_loop=True):
         from chimerax.core import configinfo
         configinfo.only_use_defaults = True
 
+    from chimerax import core
     if not opts.gui and opts.offscreen:
         # Flag to configure off-screen rendering before PyOpenGL imported
-        from chimerax import core
         core.offscreen_rendering = True
 
     # figure out the user/system directories for application
@@ -428,7 +436,7 @@ def init(argv, event_loop=True):
     if not opts.silent:
         import chimerax.core.commands.version as vercmd
         vercmd.version(sess)  # report version in log
-    if opts.gui:
+    if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render
         r.make_current()
         sess.logger.info('OpenGL version: ' + r.opengl_version())
@@ -446,6 +454,14 @@ def init(argv, event_loop=True):
             }
             runpy.run_module(opts.module, init_globals=global_dict,
                              run_name='__main__', alter_sys=True)
+        return os.EX_OK
+
+    if opts.command:
+        # This is needed for -m pip to work in some cases.
+        global_dict = {
+            'session': sess
+        }
+        exec(opts.command, global_dict)
         return os.EX_OK
 
     # the rest of the arguments are data files
