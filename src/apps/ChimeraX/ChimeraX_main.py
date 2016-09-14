@@ -381,6 +381,7 @@ def init(argv, event_loop=True):
     sess.tasks = tasks.Tasks(sess, first=True)
 
     if opts.version >= 0:
+        sess.silent = False
         format = [None, 'verbose', 'bundles', 'packages'][opts.version]
         from chimerax.core.commands import command_function
         version_cmd = command_function("version")
@@ -388,6 +389,7 @@ def init(argv, event_loop=True):
         return os.EX_OK
 
     if opts.list_io_formats:
+        sess.silent = False
         from chimerax.core import io
         io.print_file_suffixes()
         # TODO: show database formats
