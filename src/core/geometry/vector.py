@@ -59,8 +59,8 @@ def distance(p, q):
         # Much faster than using numpy operations.
         dx,dy,dz = p[0]-q[0], p[1]-q[1], p[2]-q[2]
         return sqrt(dx*dx + dy*dy + dz*dz)
-    d = p - q
-    return sqrt((d * d).sum())
+    d = sqrt(sum((pi-qi)*(pi-qi) for pi,qi in zip(p,q)))
+    return d
 
 def interpolate_points(p1, p2, f):
     '''Linearly interpolate from point p1 to p2 by fraction f (0 -> p1, 1 -> p2).'''
