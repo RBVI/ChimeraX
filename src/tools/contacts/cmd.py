@@ -185,22 +185,32 @@ class Contact:
         self.group1 = None
         self.group2 = None
 
-    def contact_residue_atoms(self, group, min_area = 1):
-        atoms = self.contact_atoms(group, min_area)
-        return atoms.residues.atoms
-
     def contact_atoms(self, group, min_area = 1):
         g1, g2 = self.group1, self.group2
         n1 = len(self.area1i)
         if group is g1:
             ba = self.area1i - self.area12i[:n1]
-            i = self.i1[ba >= min_area]
+            i = self.i1 if min_area is None else self.i1[ba >= min_area]
             atoms = g1.atoms[i]
         elif group is g2:
             ba = self.area2i - self.area12i[n1:]
-            i = self.i2[ba >= min_area]
+            i = self.i2 if min_area is None else self.i2[ba >= min_area]
             atoms = g2.atoms[i]
         return atoms
+
+    def contact_residue_atoms(self, group, min_area = 1):
+        atoms = self.contact_atoms(group, min_area)
+        return atoms.unique_residues.atoms
+
+    def contact_residues(self, group, min_area = 15):
+        g1, g2 = self.group1, self.group2
+        n1 = len(self.area1i)
+        if group is g1:
+            i, areas = self.i1, self.area1i - self.area12i[:n1]
+        elif group is g2:
+            i, areas = self.i2, self.area2i - self.area12i[n1:]
+        res, rareas = group.atoms[i].residue_sums(areas)
+        return res.filter(rareas >= min_area)
 
     def explode_contact(self, distance = 30, move_group = None):
         g1, g2 = (self.group1, self.group2)
