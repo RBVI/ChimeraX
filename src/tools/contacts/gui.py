@@ -108,13 +108,12 @@ class Plot(ToolInstance):
         e = MouseEvent('context menu', self.canvas, x, h-y)
         return e
 
-    def add_menu_item(self, text, callback, arg = None):
+    def add_menu_item(self, text, callback, *args):
         '''Add menu item to context menu'''
         widget = self.tool_window.ui_area
         from PyQt5.QtWidgets import QAction
         a = QAction(text, widget)
         #a.setStatusTip("Info about this menu entry")
-        args = () if arg is None else (arg,)
         a.triggered.connect(lambda checked, cb=callback, args=args: cb(*args))
         self._context_menu().addAction(a)
 
@@ -218,7 +217,7 @@ class ContactPlot(Plot):
     def _node_layout_positions(self):
         # Project camera view positions of chains to x,y.
         proj = self._session().main_view.camera.position.inverse()
-        ipos = {g : tuple((proj * g.centroid())[:2]) for g in self.groups}
+        ipos = {g : (proj * g.centroid())[:2] for g in self.groups}
 
         # Compute optimal distance between nodes
         from chimerax.core.geometry import distance
@@ -332,12 +331,13 @@ class ContactPlot(Plot):
         for n in neighbors(g, self.contacts):
             n.atoms.selected = True
 
-    def _select_contact_residues(self, contacts, min_area = 1):
+    def _select_contact_residues(self, contacts, group = None, min_area = 1):
         self._clear_selection()        
         for c in contacts:
             for g in (c.group1, c.group2):
-                atoms = c.contact_residue_atoms(g, min_area)
-                atoms.selected = True
+                if g is group or group is None:
+                    atoms = c.contact_residue_atoms(g, min_area)
+                    atoms.selected = True
             
     def _clear_selection(self):
         self._session().selection.clear()
@@ -448,24 +448,6 @@ class ContactPlot(Plot):
         from .cmd import Contact, SphereGroup
         if isinstance(item, Contact):
             add('Residue plot', self._show_residue_plot, item)
-
-        self.add_menu_separator()
-
-        earg = None
-        if isinstance(item, Contact):
-            explode = item.explode_contact
-        elif isinstance(item, SphereGroup):
-            explode = self._explode_neighbors
-            earg = item
-        else:
-            explode = self._explode_all
-        add('Explode', explode, earg)
-        add('Unxplode', self._unexplode_all)
-
-        self.add_menu_separator()
-
-        add('Layout matching structure', self._draw_graph)
-        add('Orient structure', self._orient)
         
         self.add_menu_separator()
         
@@ -484,7 +466,32 @@ class ContactPlot(Plot):
             clist = [item]
         add('Select contact residues', self._select_contact_residues, clist)
 
+        if isinstance(item, Contact):
+            c = item
+            add('Select %s contact residues' % c.group1.name,
+                self._select_contact_residues, clist, c.group1)
+            add('Select %s contact residues' % c.group2.name,
+                self._select_contact_residues, clist, c.group2)
+
         add('Select all', self._select_nodes, self.groups)
         add('Clear selection', self._clear_selection)
+
+        self.add_menu_separator()
+
+        earg = None
+        if isinstance(item, Contact):
+            explode = item.explode_contact
+        elif isinstance(item, SphereGroup):
+            explode = self._explode_neighbors
+            earg = item
+        else:
+            explode = self._explode_all
+        add('Explode', explode, earg)
+        add('Unxplode', self._unexplode_all)
+
+        self.add_menu_separator()
+
+        add('Layout matching structure', self._draw_graph)
+        add('Orient structure', self._orient)
 
         self.post_menu(event)
