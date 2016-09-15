@@ -584,8 +584,6 @@ class Residue:
     structure = c_property('residue_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this residue belongs to. Read only.'''
 
-    # TODO: Currently no C++ method to get Chain
-
     def add_atom(self, atom):
         '''Add the specified :class:`.Atom` to this residue.
         An atom can only belong to one residue, and all atoms
@@ -802,6 +800,15 @@ class StructureSeq(Sequence):
     '''Number of residues belonging to this sequence, including those without structure. Read only.'''
     structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
+
+    def append(self, *args, **kw):
+        # could be implemented via modified C++ StructureSeq.push_back(), where that method
+        # does not remove from chain unless is_chain() is true, and takes an optional
+        # sequence character to use
+        from ..errors import LimitationError
+        raise LimitationError(self.__class__.__name__ + ".append/extend not implemented yet"
+            " (use bulk_set for now)")
+    extend = append
 
     def bulk_set(self, residues, characters):
         '''Set all residues/characters of StructureSeq. '''
