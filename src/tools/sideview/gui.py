@@ -1,13 +1,23 @@
 # vim: set expandtab ts=4 sw=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
 #
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-import wx
-from wx import glcanvas
+from PyQt5.QtGui import QWindow, QSurface
 from chimerax.core.tools import ToolInstance
 from chimerax.core.geometry import Place
 from chimerax.core.graphics import View, Camera
@@ -53,7 +63,7 @@ class OrthoCamera(Camera):
         return self.field_width
 
 
-class SideViewCanvas(glcanvas.GLCanvas):
+class SideViewCanvas(QWindow):
 
     EyeSize = 4     # half size really
     TOP_SIDE = 1
@@ -64,11 +74,11 @@ class SideViewCanvas(glcanvas.GLCanvas):
     ON_NEAR = 2
     ON_FAR = 3
 
-    def __init__(self, parent, view, session, panel, size, side=RIGHT_SIDE):
-        attribs = session.ui.opengl_attribs
-        if not glcanvas.GLCanvas.IsDisplaySupported(attribs):
-            raise AssertionError(
-                "Missing required OpenGL capabilities for Side View")
+    def __init__(self, parent, view, session, panel, side=RIGHT_SIDE):
+        QWindow.__init__(self)
+        from PyQt5.QtWidgets import QWidget
+        self.widget = QWidget.createWindowContainer(self, parent)
+        self.setSurfaceType(QSurface.OpenGLSurface)
         self.view = view
         self.session = session
         self.panel = panel
@@ -76,16 +86,26 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.side = side
         # self.side = self.TOP_SIDE  # DEBUG
         self.moving = self.ON_NOTHING
-        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs,
-                                   size=size)
 
-        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
-        self.Bind(wx.EVT_PAINT, self.on_paint)
-        self.Bind(wx.EVT_SIZE, self.on_size)
-        self.Bind(wx.EVT_WINDOW_DESTROY, self.on_destroy)
-        self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
-        self.Bind(wx.EVT_LEFT_UP, self.on_left_up)
-        self.Bind(wx.EVT_MOTION, self.on_motion)
+        class SideViewContext:
+
+            def __init__(self, window, opengl_context):
+                # opengl_context uses QOpenGLContext API
+                self.window = window
+                self.opengl_context = opengl_context
+
+            def make_current(self):
+                if not self.opengl_context.makeCurrent(self.window):
+                    raise RuntimeError('Could not make graphics context current in Side View')
+
+            def done_current(self):
+                self.opengl_context.doneCurrent()
+
+            def swap_buffers(self):
+                self.opengl_context.swapBuffers(self.window)
+
+        self.primary_opengl_context = poc = view.render._opengl_context
+        self.opengl_context = SideViewContext(self, poc)
 
         self.locations = loc = _PixelLocations()
         loc.eye = 0, 0, 0   # x, y coordinates of eye
@@ -103,39 +123,38 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.view.add_2d_overlay(self.applique)
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
 
-    def on_destroy(self, event):
+    def close(self):
+        self.opengl_context = None
         self.session.triggers.remove_handler(self.handler)
 
     def _redraw(self, *_):
-        # wx.CallAfter(self.draw)
-        self.draw()
+        self.render()
 
-    def on_paint(self, event):
-        # TODO: set flag to be drawn
-        # print('Sideview::OnPaint') # DEBUG
-        if self.view.window_size[0] == -1:
-            return
-        self.draw()
+    def exposeEvent(self, event):
+        if self.isExposed():
+            self.render()
 
-    def on_size(self, event):
-        # poor man's collapsing of OnSize events
-        wx.CallAfter(self.set_viewport)
-        event.Skip()
+    def resizeEvent(self, event):
+        size = event.size()
+        width = size.width()
+        height = size.height()
+        self.set_viewport(width, height)
 
-    def set_viewport(self):
-        try:
-            self.view.resize(*self.GetClientSize())
-        except RuntimeError:
-            # wx.CallAfter executes after being destroyed
-            pass
+    def set_viewport(self, width, height):
+        # Don't need make_current, since OpenGL isn't used
+        # until rendering
+        self.view.resize(width, height)
 
     def make_current(self):
-        self.SetCurrent(self.view.render.opengl_context)
+        self.opengl_context.make_current()
+
+    def done_current(self):
+        self.opengl_context.done_current()
 
     def swap_buffers(self):
-        self.SwapBuffers()
+        self.opengl_context.swap_buffers()
 
-    def draw(self):
+    def render(self):
         ww, wh = self.main_view.window_size
         if ww <= 0 or wh <= 0:
             return
@@ -180,20 +199,20 @@ class SideViewCanvas(glcanvas.GLCanvas):
             button = self.panel.auto_clip_near
             if near_plane:
                 near = near_plane.offset(main_pos.origin())
-                if button.GetValue():
-                    button.SetValue(False)
+                if button.isChecked():
+                    button.setChecked(False)
             else:
-                if not button.GetValue():
-                    button.SetValue(True)
+                if not button.isChecked():
+                    button.setChecked(True)
             far_plane = planes.find_plane('far')
             button = self.panel.auto_clip_far
             if far_plane:
                 far = -far_plane.offset(main_pos.origin())
-                if button.GetValue():
-                    button.SetValue(False)
+                if button.isChecked():
+                    button.setChecked(False)
             else:
-                if not button.GetValue():
-                    button.SetValue(True)
+                if not button.isChecked():
+                    button.setChecked(True)
             if not self.moving:
                 main_axes = main_pos.axes()
                 camera_pos = Place()
@@ -290,6 +309,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 [8, 10],   # left plane
                 [9, 11],   # right plane
             ], dtype=int32)
+            self.make_current()  # protect against having wrong (Qt?) context
             from OpenGL import GL
             GL.glViewport(0, 0, width, height)
             self.view.draw()
@@ -300,37 +320,52 @@ class SideViewCanvas(glcanvas.GLCanvas):
             opengl_context.make_current = save_make_current
             opengl_context.swap_buffers = save_swap_buffers
             self.main_view._render.current_shader_program = None
+            # Since we brorrowed the main window's OpenGL context,
+            # restore the viewport when done
             from OpenGL import GL
             GL.glViewport(0, 0, ww, wh)
+        self.done_current()
 
-    def on_left_down(self, event):
-        x, y = event.GetPosition()
-        eye_x, eye_y = self.locations.eye[0:2]
-        near = self.locations.near
-        far = self.locations.far
-        es = self.EyeSize
-        if eye_x - es <= x <= eye_x + es and eye_y - es <= y <= eye_y + es:
-            self.moving = self.ON_EYE
-        elif near - es <= x <= near + es:
-            self.moving = self.ON_NEAR
-        elif far - es <= x <= far + es:
-            self.moving = self.ON_FAR
-        else:
+
+    def mousePressEvent(self, event):
+        from PyQt5.QtCore import Qt
+        b = event.button() | event.buttons()
+        if b & Qt.RightButton:
+            self.widget.parent().contextMenuEvent(event)
             return
-        self.x, self.y = x, y
-        self.CaptureMouse()
-        self.Refresh()
+        if b & Qt.LeftButton:
+            x, y = event.x(), event.y()
+            eye_x, eye_y = self.locations.eye[0:2]
+            near = self.locations.near
+            far = self.locations.far
+            es = self.EyeSize
+            if eye_x - es <= x <= eye_x + es and eye_y - es <= y <= eye_y + es:
+                self.moving = self.ON_EYE
+            elif near - es <= x <= near + es:
+                self.moving = self.ON_NEAR
+            elif far - es <= x <= far + es:
+                self.moving = self.ON_FAR
+            else:
+                return
+            self.x, self.y = x, y
+            return
 
-    def on_left_up(self, event):
-        if self.moving:
+    def mouseReleaseEvent(self, event):
+        if not self.moving:
+            return
+        from PyQt5.QtCore import Qt
+        b = event.button() | event.buttons()
+        if b & Qt.LeftButton:
             self.moving = self.ON_NOTHING
-            self.ReleaseMouse()
-            self.Refresh()
 
-    def on_motion(self, event):
-        if not self.HasCapture() or not event.Dragging():
+    def mouseMoveEvent(self, event):
+        if self.moving is self.ON_NOTHING:
             return
-        x, y = event.GetPosition()
+        from PyQt5.QtCore import Qt
+        b = event.button() | event.buttons()
+        if (b & Qt.LeftButton) == 0:
+            return
+        x, y = event.x(), event.y()
         diff_x = x - self.x
         self.x, self.y = x, y
         psize = self.view.pixel_size()
@@ -345,7 +380,6 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 factor = 10 ** (diff_x / size)
                 main_camera.field_width /= factor
                 main_camera.redraw_needed = True
-                #self.main_view.redraw_needed = True
             else:
                 self.main_view.translate(shift)
         elif self.moving == self.ON_NEAR:
@@ -373,19 +407,29 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 plane_point = camera_pos + far * vd
             planes.set_clip_position('far', plane_point - shift, v.camera)
 
+    def keyPressEvent(self, event):
+        return self.session.ui.forward_keystroke(event)
+
 
 class SideViewUI(ToolInstance):
 
-    SIZE = (300, 200)
+    help = "help:user/tools/sideview.html"
 
     def __init__(self, session, bundle_info):
         ToolInstance.__init__(self, session, bundle_info)
         from chimerax.core.ui.gui import MainToolWindow
-        self.tool_window = MainToolWindow(self, size=self.SIZE)
+        self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
 
+        def sizeHint():
+            from PyQt5.QtCore import QSize
+            return QSize(300, 300)
+        parent.sizeHint = sizeHint
+
         # UI content code
-        self.view = v = View(session.models.drawing, window_size=wx.DefaultSize)
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QCheckBox
+        self.view = v = View(session.models.drawing, window_size=(0, 0))
         v.initialize_rendering(session.main_view.render.opengl_context)
         # TODO: from chimerax.core.graphics.camera import OrthographicCamera
         v.camera = OrthoCamera()
@@ -393,32 +437,41 @@ class SideViewUI(ToolInstance):
             side = SideViewCanvas.TOP_SIDE
         else:
             side = SideViewCanvas.RIGHT_SIDE
-        self.opengl_canvas = SideViewCanvas(
-            parent, v, session, self, self.SIZE, side=side)
-        auto_clip = wx.StaticText(parent, label="auto clip:")
-        self.auto_clip_near = wx.CheckBox(parent, label="near")
-        self.auto_clip_near.SetValue(True)
-        parent.Bind(wx.EVT_CHECKBOX, self.on_autoclip_near, self.auto_clip_near)
-        self.auto_clip_far = wx.CheckBox(parent, label="far")
-        self.auto_clip_far.SetValue(True)
-        parent.Bind(wx.EVT_CHECKBOX, self.on_autoclip_far, self.auto_clip_far)
+        self.opengl_canvas = SideViewCanvas(parent, v, session, self, side=side)
+        auto_clip = QLabel(parent)
+        auto_clip.setText("auto clip:")
+        self.auto_clip_near = QCheckBox(parent)
+        self.auto_clip_near.setText("near")
+        self.auto_clip_near.down = True
+        # TODO: parent.Bind(wx.EVT_CHECKBOX, self.on_autoclip_near, self.auto_clip_near)
+        self.auto_clip_near.clicked.connect(self.on_autoclip_near)
+        self.auto_clip_far = QCheckBox(parent)
+        self.auto_clip_far.setText("far")
+        self.auto_clip_far.down = True
+        # TODO: parent.Bind(wx.EVT_CHECKBOX, self.on_autoclip_far, self.auto_clip_far)
+        self.auto_clip_far.clicked.connect(self.on_autoclip_far)
 
-        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        button_sizer.Add(auto_clip, 1, wx.LEFT | wx.ALIGN_CENTER_VERTICAL)
-        button_sizer.Add(self.auto_clip_near, 1, wx.LEFT)
-        button_sizer.Add(self.auto_clip_far, 1, wx.LEFT)
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(auto_clip, alignment=Qt.AlignCenter)
+        button_layout.addWidget(self.auto_clip_near)
+        button_layout.addWidget(self.auto_clip_far)
+        button_layout.addStretch(1)
 
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
-        sizer.Add(button_sizer, 0, wx.BOTTOM | wx.LEFT)
-        parent.SetSizerAndFit(sizer)
-        self.tool_window.manage(placement="right")
+        layout = QVBoxLayout()
+        layout.addWidget(self.opengl_canvas.widget, 1)
+        layout.addLayout(button_layout)
+        parent.setLayout(layout)
+        self.tool_window.manage(placement="side")
+
+    def delete(self):
+        self.opengl_canvas.close()
+        ToolInstance.delete(self)
 
     def on_autoclip_near(self, event):
         session = self._session()
         v = session.main_view
         planes = v.clip_planes
-        if self.auto_clip_near.IsChecked():
+        if self.auto_clip_near.isChecked():
             planes.remove_plane('near')
             return
         p = planes.find_plane('near')
@@ -427,7 +480,7 @@ class SideViewUI(ToolInstance):
         b = v.drawing_bounds()
         if b is None:
             session.logger.info("Can not turn off automatic clipping since there are no models to clip")
-            self.auto_clip_near.SetValue(True)
+            self.auto_clip_near.setChecked(True)
             return
         near, far = v.near_far_distances(v.camera, None)
         camera_pos = v.camera.position.origin()
@@ -439,7 +492,7 @@ class SideViewUI(ToolInstance):
         session = self._session()
         v = session.main_view
         planes = v.clip_planes
-        if self.auto_clip_far.IsChecked():
+        if self.auto_clip_far.isChecked():
             planes.remove_plane('far')
             return
         p = planes.find_plane('far')
@@ -448,7 +501,7 @@ class SideViewUI(ToolInstance):
         b = v.drawing_bounds()
         if b is None:
             session.logger.info("Can not turn off automatic clipping since there are no models to clip")
-            self.auto_clip_far.SetValue(True)
+            self.auto_clip_far.setChecked(True)
             return
         near, far = v.near_far_distances(v.camera, None)
         camera_pos = v.camera.position.origin()

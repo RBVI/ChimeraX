@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 io: Manage file formats that can be opened and saved
 =====================================================
@@ -213,7 +225,7 @@ def deduce_format(filename, has_format=None, savable=False):
         fmt = _file_formats.get(has_format, None)
         if fmt is None:
             for f in _file_formats.values():
-                if has_format in f.short_names and (not savable or f.export_func):
+                if has_format in f.short_names and (f.open_func or (savable and f.export_func)):
                     fmt = f
                     break
         stripped, compression = determine_compression(filename)
@@ -227,7 +239,7 @@ def deduce_format(filename, has_format=None, savable=False):
         ext = ext.casefold()
         fmt = None
         for f in _file_formats.values():
-            if ext in f.extensions and (not savable or f.export_func):
+            if ext in f.extensions and (f.open_func or (savable and f.export_func)):
                 fmt = f
                 break
         if fmt is None:
@@ -315,8 +327,6 @@ def open_data(session, filespec, format=None, name=None, **kw):
     if not stream.closed:
         stream.close()
 
-    if name is None:
-        name = dname
     if name is not None:
         for m in models:
             m.name = name

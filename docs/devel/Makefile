@@ -1,3 +1,14 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # Makefile for Sphinx documentation
 #
 TOP	= ../..
@@ -57,38 +68,43 @@ clean:
 conf.py: conf.py.in
 	sed 's/PYTHON_VERSION/$(PYTHON_VERSION)/' < $< > $@
 
-html: conf.py
+index.rst: index.rst.in
+	sed '/===/d' $(TOP)/copyright.txt | \
+		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
+		$< > $@
+
+html: conf.py index.rst
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-dirhtml: conf.py
+dirhtml: conf.py index.rst
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
 
-singlehtml: conf.py
+singlehtml: conf.py index.rst
 	$(SPHINXBUILD) -b singlehtml $(ALLSPHINXOPTS) $(BUILDDIR)/singlehtml
 	@echo
 	@echo "Build finished. The HTML page is in $(BUILDDIR)/singlehtml."
 
-pickle: conf.py
+pickle: conf.py index.rst
 	$(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) $(BUILDDIR)/pickle
 	@echo
 	@echo "Build finished; now you can process the pickle files."
 
-json: conf.py
+json: conf.py index.rst
 	$(SPHINXBUILD) -b json $(ALLSPHINXOPTS) $(BUILDDIR)/json
 	@echo
 	@echo "Build finished; now you can process the JSON files."
 
-htmlhelp: conf.py
+htmlhelp: conf.py index.rst
 	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) $(BUILDDIR)/htmlhelp
 	@echo
 	@echo "Build finished; now you can run HTML Help Workshop with the" \
 	      ".hhp project file in $(BUILDDIR)/htmlhelp."
 
-qthelp: conf.py
+qthelp: conf.py index.rst
 	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) $(BUILDDIR)/qthelp
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
@@ -97,7 +113,7 @@ qthelp: conf.py
 	@echo "To view the help file:"
 	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/ChimeraX.qhc"
 
-devhelp: conf.py
+devhelp: conf.py index.rst
 	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
 	@echo
 	@echo "Build finished."
@@ -106,67 +122,67 @@ devhelp: conf.py
 	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/ChimeraX"
 	@echo "# devhelp"
 
-epub: conf.py
+epub: conf.py index.rst
 	$(SPHINXBUILD) -b epub $(ALLSPHINXOPTS) $(BUILDDIR)/epub
 	@echo
 	@echo "Build finished. The epub file is in $(BUILDDIR)/epub."
 
-latex: conf.py
+latex: conf.py index.rst
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo
 	@echo "Build finished; the LaTeX files are in $(BUILDDIR)/latex."
 	@echo "Run \`make' in that directory to run these through (pdf)latex" \
 	      "(use \`make latexpdf' here to do that automatically)."
 
-latexpdf: conf.py
+latexpdf: conf.py index.rst
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
 
-text: conf.py
+text: conf.py index.rst
 	$(SPHINXBUILD) -b text $(ALLSPHINXOPTS) $(BUILDDIR)/text
 	@echo
 	@echo "Build finished. The text files are in $(BUILDDIR)/text."
 
-man: conf.py
+man: conf.py index.rst
 	$(SPHINXBUILD) -b man $(ALLSPHINXOPTS) $(BUILDDIR)/man
 	@echo
 	@echo "Build finished. The manual pages are in $(BUILDDIR)/man."
 
-texinfo: conf.py
+texinfo: conf.py index.rst
 	$(SPHINXBUILD) -b texinfo $(ALLSPHINXOPTS) $(BUILDDIR)/texinfo
 	@echo
 	@echo "Build finished. The Texinfo files are in $(BUILDDIR)/texinfo."
 	@echo "Run \`make' in that directory to run these through makeinfo" \
 	      "(use \`make info' here to do that automatically)."
 
-info: conf.py
+info: conf.py index.rst
 	$(SPHINXBUILD) -b texinfo $(ALLSPHINXOPTS) $(BUILDDIR)/texinfo
 	@echo "Running Texinfo files through makeinfo..."
 	make -C $(BUILDDIR)/texinfo info
 	@echo "makeinfo finished; the Info files are in $(BUILDDIR)/texinfo."
 
-gettext: conf.py
+gettext: conf.py index.rst
 	$(SPHINXBUILD) -b gettext $(I18NSPHINXOPTS) $(BUILDDIR)/locale
 	@echo
 	@echo "Build finished. The message catalogs are in $(BUILDDIR)/locale."
 
-changes: conf.py
+changes: conf.py index.rst
 	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) $(BUILDDIR)/changes
 	@echo
 	@echo "The overview file is in $(BUILDDIR)/changes."
 
-linkcheck: conf.py
+linkcheck: conf.py index.rst
 	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) $(BUILDDIR)/linkcheck
 	@echo
 	@echo "Link check complete; look for any errors in the above output " \
 	      "or in $(BUILDDIR)/linkcheck/output.txt."
 
-doctest: conf.py
+doctest: conf.py index.rst
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
-llgr:
+llgr: conf.py
 	$(PYTHON_EXE) $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html

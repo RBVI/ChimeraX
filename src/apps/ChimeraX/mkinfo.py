@@ -21,8 +21,9 @@
 import os
 import sys
 import plistlib
+import datetime
 from distlib.version import NormalizedVersion as Version
-from chimerax.core import io, session, configfile, core_settings, __copyright__ as copyright
+from chimerax.core import io, session, configfile, core_settings
 
 configfile.only_use_defaults = True
 
@@ -111,7 +112,7 @@ chimera_types = [f.name for f in io.formats() if f.name.startswith('Chimera')]
 # create Info.plist
 
 # use today's year as the copyright year
-year = copyright.split()[2]
+year = datetime.datetime.now().year
 
 # extract chimerax.core version
 f = open('../../core/Makefile')

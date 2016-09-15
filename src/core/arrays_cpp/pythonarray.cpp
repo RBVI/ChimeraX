@@ -1,4 +1,18 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 // ----------------------------------------------------------------------------
 //
 // #include <iostream>          // use std::cerr for debugging
@@ -954,6 +968,20 @@ extern "C" int parse_double_n_array(PyObject *arg, void *farray)
   { return parse_float_n(arg, farray, true, true); }
 extern "C" int parse_writable_double_n_array(PyObject *arg, void *farray)
   { return parse_float_n(arg, farray, false, true); }
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_float_3x3_array(PyObject *arg, void *f33)
+{
+  return python_array_to_c(arg, static_cast<float*>(f33), 3, 3) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_double_3x3_array(PyObject *arg, void *d33)
+{
+  return python_array_to_c(arg, static_cast<double*>(d33), 3, 3) ? 1 : 0;
+}
 
 // ----------------------------------------------------------------------------
 //

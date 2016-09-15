@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from .. import toolshed
 from ..models import Model
 from ..state import State
@@ -7,9 +19,6 @@ from .molobject import StructureData
 CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
-
-    ATOMIC_COLOR_NAMES = ["tan", "sky blue", "plum", "light green",
-        "salmon", "light gray", "deep pink", "gold", "dodger blue", "purple"]
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  smart_initial_display = True):
@@ -71,11 +80,11 @@ class Structure(Model, StructureData):
     def delete(self):
         '''Delete this structure.'''
         self._deleted = True
-        StructureData.delete(self)
         t = self.session.triggers
         for handler in self._ses_handlers:
             t.remove_handler(handler)
-        Model.delete(self)
+        Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
+        StructureData.delete(self)
 
     def deleted(self):
         '''Has this atomic structure been deleted.'''
@@ -104,14 +113,14 @@ class Structure(Model, StructureData):
                 lighting = "default"
                 from .molobject import Atom, Bond
                 atoms.draw_modes = Atom.STICK_STYLE
-                from ..colors import element_colors
+                from .colors import element_colors
                 het_atoms = atoms.filter(atoms.element_numbers != 6)
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
             elif self.num_chains < 5:
                 lighting = "default"
                 from .molobject import Atom, Bond
                 atoms.draw_modes = Atom.STICK_STYLE
-                from ..colors import element_colors
+                from .colors import element_colors
                 het_atoms = atoms.filter(atoms.element_numbers != 6)
                 het_atoms.colors = element_colors(het_atoms.element_numbers)
                 physical_residues = self.chains.existing_residues
@@ -142,7 +151,7 @@ class Structure(Model, StructureData):
                     atoms.draw_modes = Atom.BALL_STYLE
             elif self.num_chains < 250:
                 lighting = "full"
-                from ..colors import chain_colors, element_colors
+                from .colors import chain_colors, element_colors
                 residues = self.residues
                 residues.ribbon_colors = chain_colors(residues.chain_ids)
                 atoms.colors = chain_colors(atoms.residues.chain_ids)
@@ -195,6 +204,9 @@ class Structure(Model, StructureData):
         for attr_name, default_val in self._session_attrs.items():
             setattr(self, attr_name, data.get(attr_name, default_val))
 
+        # Create Python pseudobond group models so they are added as children.
+        list(self.pbg_map.values())
+
         # TODO: For some reason ribbon drawing does not update automatically.
         # TODO: Also marker atoms do not draw without this.
         self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE)
@@ -203,20 +215,8 @@ class Structure(Model, StructureData):
         pass
 
     def initial_color(self, bg_color):
-        from ..colors import BuiltinColors, distinguish_from, Color
-        try:
-            cname = self.ATOMIC_COLOR_NAMES[self.id[0]-1]
-            model_color = BuiltinColors[cname]
-            if (model_color.rgba[:3] == bg_color[:3]).all():
-                # force use of another color...
-                raise IndexError("Same as background color")
-        except IndexError:
-            # pick a color that distinguishes from the standard list
-            # as well as white and black and green (highlight), and hope...
-            avoid = [BuiltinColors[cn].rgba[:3] for cn in self.ATOMIC_COLOR_NAMES]
-            avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
-            model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
-        return model_color
+        from .colors import structure_color
+        return structure_color(self.id, bg_color)
 
     def set_color(self, color):
         from ..colors import Color
@@ -261,23 +261,33 @@ class Structure(Model, StructureData):
         self._atom_bounds_needs_update = True
 
     def _update_graphics_if_needed(self, *_):
-        gc = self._graphics_changed         # Molecule changes
+        gc = self._graphics_changed
+        if gc == 0:
+            return
+        
         if gc & self._RIBBON_CHANGE:
-            # Do this before fetching bits because ribbon creation changes some
-            # display and hide bits
             self._create_ribbon_graphics()
+            # Displaying ribbon can set backbone atom hide bits producing shape change.
+            gc |= self._graphics_changed
         
         # Update graphics
-        if gc:
-            self._graphics_changed = 0
-            s = (gc & self._SHAPE_CHANGE)
-            if gc & (self._COLOR_CHANGE | self._RIBBON_CHANGE) or s:
-                self._update_ribbon_tethers()
-            self._update_graphics(gc)
-            self.redraw_needed(shape_changed = s,
-                               selection_changed = (gc & self._SELECT_CHANGE))
-            if s:
-                self._atom_bounds_needs_update = True
+        self._graphics_changed = 0
+        s = (gc & self._SHAPE_CHANGE)
+        if gc & (self._COLOR_CHANGE | self._RIBBON_CHANGE) or s:
+            self._update_ribbon_tethers()
+        self._update_graphics(gc)
+        self.redraw_needed(shape_changed = s,
+                           selection_changed = (gc & self._SELECT_CHANGE))
+        if s:
+            self._atom_bounds_needs_update = True
+
+        if gc & self._SELECT_CHANGE:
+            # Update selection on molecular surfaces
+            # TODO: Won't work for surfaces spanning multiple molecules
+            from .molsurf import MolecularSurface
+            for surf in self.child_drawings():
+                if isinstance(surf, MolecularSurface):
+                    surf.update_selection()
 
     def _update_graphics(self, changes = StructureData._ALL_CHANGE):
         self._update_atom_graphics(changes)
@@ -287,7 +297,7 @@ class Structure(Model, StructureData):
         self._update_ribbon_graphics()
 
     def _update_atom_graphics(self, changes = StructureData._ALL_CHANGE):
-        atoms = self.atoms  # micro-optimzation
+        atoms = self.atoms  # optimzation, avoid making new numpy array from C++
         avis = atoms.visibles
         p = self._atoms_drawing
         if p is None:
@@ -343,7 +353,7 @@ class Structure(Model, StructureData):
         return r
 
     def _update_bond_graphics(self, changes = StructureData._ALL_CHANGE):
-        bonds = self.bonds  # micro-optimzation
+        bonds = self.bonds  # optimzation, avoid making new numpy array from C++
         p = self._bonds_drawing
         if p is None:
             if bonds.num_shown == 0:
@@ -1144,7 +1154,7 @@ class Structure(Model, StructureData):
                         res = [rtr.residue for rtr in t2r if tmask[rtr.start:rtr.end].sum() > 0]
                         if res:
                             from .molarray import Residues
-                            rc = Residues(residues=res)
+                            rc = Residues(res)
                             picks.append(PickedResidues(rc))
         return picks
 
@@ -1157,40 +1167,6 @@ class Structure(Model, StructureData):
         self.atoms.selected = (spos is not None and spos.sum() > 0)
         Model.set_selected_positions(self, spos)
     selected_positions = property(Model.get_selected_positions, set_selected_positions)
-
-    def select_atom(self, atom, toggle=False, selected=True):
-        '''
-        Select or unselect a specified :class:`.Atom`.
-        If selected is false then it unselects this atom.
-        '''
-        atom.selected = (not atom.selected) if toggle else selected
-        self._selection_changed()
-
-    def select_atoms(self, atoms, toggle=False, selected=True):
-        '''
-        Select or unselect :class:`.Atoms`.
-        If selected is false then it unselects the atoms.
-        '''
-        a = self.atoms
-        asel = a.selected
-        m = a.mask(atoms)
-        from numpy import logical_not
-        asel[m] = logical_not(asel[m]) if toggle else selected
-        self.select_mask_atoms(asel)
-
-    def select_mask_atoms(self, atom_mask):
-        self.atoms.selected = atom_mask
-        self._selection_changed()
-
-    def select_residue(self, residue, toggle=False, selected=True):
-        '''
-        Select a specified :class:`.Residue`.
-        If selected is false then it unselects the residue.
-        Selecting a residue is equivalent to select all the residue atoms.
-        '''
-        if toggle:
-            selected = self._ribbon_selected_residues.index(residue) < 0
-        self.select_atoms(residue.atoms, toggle=False, selected=selected)
 
     def selected_items(self, itype):
         if itype == 'atoms':
@@ -1210,15 +1186,6 @@ class Structure(Model, StructureData):
     def clear_selection(self):
         self.selected = False
         self.atoms.selected = False
-        self._selection_changed()
-
-    def _selection_changed(self):
-        # Update selection on molecular surfaces
-        # TODO: Won't work for surfaces spanning multiple molecules
-        from .molsurf import MolecularSurface
-        for s in self.child_drawings():
-            if isinstance(s, MolecularSurface):
-                s.update_selection()
 
     def selection_promotion(self):
         atoms = self.atoms
@@ -1429,6 +1396,27 @@ class AtomicStructure(Structure):
         return s
 
     def added_to_session(self, session):
+        # run dssp?  Is it a protein with no SS assignments?
+        if not self.ss_assigned:
+            pas = self.residues.existing_principal_atoms
+            if len(pas.residues.filter(pas.names=="CA")) > 0:
+                session.logger.info("Model %s (%s) has no secondary structure assignments. "
+                    ' Running <a href="help:user/commands/dssp.html">dssp</a>'
+                    " using default settings." % (self.id_string(), self.name), is_html=True)
+                session.logger.status("Computing secondary structure assignments...")
+                from ..commands.dssp import compute_ss
+                try:
+                    compute_ss(session, self)
+                except ValueError as e:
+                    if "normalize" in str(e):
+                        msg = "Unable to compute secondary structure assigments" \
+                            " due to degenerate geometry in structure"
+                        session.logger.status(msg, color="red")
+                        session.logger.warning(msg)
+                    else:
+                        raise
+                else:
+                    session.logger.status("Computed secondary structure assignments (see log)")
         super().added_to_session(session)
         self._set_chain_descriptions(session)
         self._determine_het_res_descriptions(session)
@@ -1548,15 +1536,19 @@ class AtomicStructure(Structure):
 class StructureGraphicsChangeManager:
     def __init__(self, session):
         self.session = session
-        self._handler = session.triggers.add_handler('graphics update',
-                                                     self._update_graphics_if_needed)
+        t = session.triggers
+        self._handler = t.add_handler('graphics update', self._update_graphics_if_needed)
         self._structures = set()
         self._structures_array = None		# StructureDatas object
         self.num_atoms_shown = 0
         self.level_of_detail = LevelOfDetail()
+        from ..models import MODEL_DISPLAY_CHANGED
+        self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
+        self._need_update = False
         
     def __del__(self):
         self.session.triggers.remove_handler(self._handler)
+        self.session.triggers.remove_handler(self._display_handler)
 
     def add_structure(self, s):
         self._structures.add(s)
@@ -1566,20 +1558,25 @@ class StructureGraphicsChangeManager:
     def remove_structure(self, s):
         self._structures.remove(s)
         self._structures_array = None
+
+    def _model_display_changed(self, tname, model):
+        if isinstance(model, Structure) or _has_structure_descendant(model):
+            self._need_update = True
         
     def _update_graphics_if_needed(self, *_):
         s = self._array()
         gc = s._graphics_changeds	# Includes pseudobond group changes.
-        if gc.any():
+        if gc.any() or self._need_update:
             for i in gc.nonzero()[0]:
                 s[i]._update_graphics_if_needed()
 
             # Update level of detail
-            n = sum(tuple(m.num_atoms_visible for m in s if m.display))
-            if n != self.num_atoms_shown:
+            n = sum(tuple(m.num_atoms_visible for m in s if m.visible))
+            if n > 0 and n != self.num_atoms_shown:
                 self.num_atoms_shown = n
                 self._update_level_of_detail()
-
+            self._need_update = False
+            
     def _update_level_of_detail(self):
         n = self.num_atoms_shown
         for m in self._structures:
@@ -1623,12 +1620,14 @@ class LevelOfDetail(State):
 
         self._atom_min_triangles = 10
         self._atom_max_triangles = 2000
+        self._atom_default_triangles = 200
         self._atom_max_total_triangles = 10000000
         self._step_factor = 1.2
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
 
         self._bond_min_triangles = 24
         self._bond_max_triangles = 160
+        self._bond_default_triangles = 60
         self._bond_max_total_triangles = 5000000
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
@@ -1671,7 +1670,7 @@ class LevelOfDetail(State):
 
     def atom_sphere_triangles(self, natoms):
         if natoms is None:
-            return self._atom_min_triangles
+            return self._atom_default_triangles
         ntri = self.quality * self._atom_max_total_triangles // natoms
         nmin, nmax = self._atom_min_triangles, self._atom_max_triangles
         ntri = self.clamp_geometric(ntri, nmin, nmax)
@@ -1709,7 +1708,7 @@ class LevelOfDetail(State):
 
     def bond_cylinder_triangles(self, nbonds):
         if nbonds is None:
-            return self._bond_min_triangles
+            return self._bond_default_triangles
         ntri = self.quality * self._bond_max_total_triangles // nbonds
         nmin, nmax = self._bond_min_triangles, self._bond_max_triangles
         ntri = self.clamp_geometric(ntri, nmin, nmax)
@@ -1726,9 +1725,9 @@ class PromoteAtomSelection(SelectionPromotion):
         self._atom_sel_mask = atom_sel_mask
         self._prev_sel_mask = prev_sel_mask
     def promote(self):
-        self._structure.select_mask_atoms(self._atom_sel_mask)
+        self._structure.atoms.selected = self._atom_sel_mask
     def demote(self):
-        self._structure.select_mask_atoms(self._prev_sel_mask)
+        self._structure.atoms.selected = self._prev_sel_mask
 
 # -----------------------------------------------------------------------------
 #
@@ -1744,7 +1743,7 @@ class PickedAtom(Pick):
         return self.atom.residue
     def select(self, toggle = False):
         a = self.atom
-        a.structure.select_atom(a, toggle)
+        a.selected = (not a.selected) if toggle else True
 
 # -----------------------------------------------------------------------------
 #
@@ -1807,7 +1806,7 @@ class PickedBond(Pick):
         return None
     def select(self, toggle = False):
         for a in self.bond.atoms:
-            a.structure.select_atom(a, toggle)
+            a.selected = (not a.selected) if toggle else True
 
 # -----------------------------------------------------------------------------
 #
@@ -1825,7 +1824,7 @@ class PickedPseudobond(Pick):
         return None
     def select(self, toggle = False):
         for a in self.pbond.atoms:
-            a.structure.select_atom(a, toggle)
+            a.selected = (not a.selected) if toggle else True
 
 # -----------------------------------------------------------------------------
 #
@@ -1837,8 +1836,8 @@ class PickedResidue(Pick):
     def description(self):
         return str(self.residue)
     def select(self, toggle=False):
-        r = self.residue
-        r.structure.select_residue(r, toggle)
+        atoms = self.residue.atoms
+        atoms.selected = (not atoms.selected.any()) if toggle else True
 
 # -----------------------------------------------------------------------------
 #
@@ -1969,15 +1968,29 @@ def _tether_placements(xyz0, xyz1, radius, shape):
 
 # -----------------------------------------------------------------------------
 #
+def _has_structure_descendant(model):
+    for c in model.child_models():
+        if c.display and (isinstance(c, Structure) or _has_structure_descendant(c)):
+            return True
+    return False
+
+# -----------------------------------------------------------------------------
+#
 def all_atomic_structures(session):
     '''List of all :class:`.AtomicStructure` objects.'''
     return [m for m in session.models.list() if isinstance(m,AtomicStructure)]
 
 # -----------------------------------------------------------------------------
 #
+def all_structures(session):
+    '''List of all :class:`.Structure` objects.'''
+    return [m for m in session.models.list() if isinstance(m,Structure)]
+
+# -----------------------------------------------------------------------------
+#
 def all_atoms(session):
     '''All atoms in all structures as an :class:`.Atoms` collection.'''
-    return structure_atoms(all_atomic_structures(session))
+    return structure_atoms(all_structures(session))
 
 # -----------------------------------------------------------------------------
 #

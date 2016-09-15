@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 session: Application session support
 ====================================
@@ -299,9 +311,10 @@ class Session:
         Starts with session triggers.
     """
 
-    def __init__(self, app_name, *, debug=False, minimal=False):
+    def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
         self.app_name = app_name
         self.debug = debug
+        self.silent = silent
         from . import logger
         self.logger = logger.Logger(self)
         from . import triggerset
@@ -622,7 +635,8 @@ def save_x3d(session, filename, **kw):
     from .fetch import html_user_agent
     from chimerax import app_dirs
     from html import unescape
-    import os, datetime
+    import datetime
+    import os
     x3d_scene = x3d.X3DScene()
     meta = {}
     generator = unescape(html_user_agent(app_dirs))
@@ -648,14 +662,14 @@ def save_x3d(session, filename, **kw):
     for m in session.models.list():
         m.x3d_needs(x3d_scene)
 
-    with _builtin_open(filename, 'w') as stream:
+    with _builtin_open(filename, 'w', encoding='utf-8') as stream:
         x3d_scene.write_header(
             stream, 0, meta, profile_name='Interchange',
             # TODO? Skip units since it confuses X3D viewers and requires version 3.3
             units={'length': ('ångström', 1e-10)},
             # not using any of Chimera's extensions yet
             # namespaces={"chimera": "http://www.cgl.ucsf.edu/chimera/"}
-            )
+        )
         cofr = session.main_view.center_of_rotation
         r, a = camera.position.rotation_axis_and_angle()
         t = camera.position.translation()

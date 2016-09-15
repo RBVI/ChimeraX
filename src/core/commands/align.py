@@ -1,6 +1,23 @@
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+from ..errors import UserError
+class IterationError(UserError):
+    pass
+
 def align(session, atoms, to_atoms = None, move = None, each = None,
           match_chain_ids = False, match_sequence_numbers = False, match_atom_names = False,
-          sequence = None, cutoff_distance = None, iterations = 20, report_matrix=False):
+          sequence = None, cutoff_distance = None, report_matrix=False):
     """Move atoms to minimize RMSD with to_atoms.
 
     If 'move' is 'molecules', superimpose the models.  If it is 'atoms',
@@ -60,32 +77,36 @@ def align(session, atoms, to_atoms = None, move = None, each = None,
         patoms, pto_atoms = sequence_alignment_pairing(atoms, to_atoms, sequence)
 
     npa, npta = len(patoms), len(pto_atoms)
+    from ..errors import UserError
     if npa != npta:
-        from ..errors import UserError
         raise UserError('Must align equal numbers of atoms, got %d and %d' % (npa, npta))
     elif npa == 0:
-        from ..errors import UserError
         raise UserError('No atoms paired for alignment')
         
     if cutoff_distance is None:
         from ..geometry import align_points
         tf, rmsd = align_points(patoms.scene_coords, pto_atoms.scene_coords)
         np = npa
+        full_rmsd = rmsd
+        matched_patoms, matched_pto_atoms = patoms, pto_atoms
+        msg = 'RMSD between %d atom pairs is %.3f angstroms' % (np, rmsd)
     else:
-        tf, rmsd, mask = align_and_prune(patoms.scene_coords, pto_atoms.scene_coords,
-                                         cutoff_distance, iterations)
-        if tf is None:
-            msg = ('Alignment failed, pruning %d distances > %g left less than 3 pairs'
-                   % (npa, cutoff_distance))
-            log.status(msg)
-            log.info(msg)
-            return
-        np = mask.sum()
+        if cutoff_distance <= 0.0:
+            raise UserError("Distance cutoff must be positive")
+        tf, rmsd, indices = align_and_prune(patoms.scene_coords, pto_atoms.scene_coords,
+                                         cutoff_distance)
+        np = len(indices)
+        dxyz = tf*patoms.scene_coords - pto_atoms.scene_coords
+        d2 = (dxyz*dxyz).sum(axis=1)
+        import math
+        full_rmsd = math.sqrt(d2.sum() / len(d2))
+        matched_patoms, matched_pto_atoms = patoms[indices], pto_atoms[indices]
+        msg = 'RMSD between %d pruned atom pairs is %.3f angstroms;' \
+            ' (across all %d pairs: %.3f)' % (np, rmsd, npa, full_rmsd)
 
     if report_matrix:
         log.info(matrix_text(tf, atoms, to_atoms))
 
-    msg = 'RMSD between %d atom pairs is %.3f Angstroms' % (np, rmsd)
     log.status(msg)
     log.info(msg)
 
@@ -94,31 +115,35 @@ def align(session, atoms, to_atoms = None, move = None, each = None,
 
     move_atoms(atoms, to_atoms, tf, move)
 
-    return tf, rmsd
+    return matched_patoms, matched_pto_atoms, rmsd, full_rmsd, tf
 
-def align_and_prune(xyz, ref_xyz, cutoff_distance, iterations, mask = None):
+def align_and_prune(xyz, ref_xyz, cutoff_distance, indices = None):
 
-    axyz, ref_axyz = (xyz, ref_xyz) if mask is None else (xyz[mask,:], ref_xyz[mask,:])
+    import numpy
+    if indices is None:
+        indices = numpy.arange(len(xyz))
+    axyz, ref_axyz = xyz[indices], ref_xyz[indices]
     from ..geometry import align_points
     p, rms = align_points(axyz, ref_axyz)
-    dxyz = p*xyz - ref_xyz
+    dxyz = p*axyz - ref_axyz
     d2 = (dxyz*dxyz).sum(axis=1)
-    c = (d2 <= cutoff_distance*cutoff_distance)
-    nc = c.sum()
-    if nc == len(xyz) or (not mask is None and (c == mask).all()):
-        return p, rms, c
-    if iterations <= 1:
-        print ('prune fail', nc, iterations, rms, len(xyz), len(axyz))
-        return None, None, None
-    if nc < 3 and len(c) > 3:
-        # TODO: This method of avoiding overpruning is not well thought out.
-        dm2 = cutoff_distance*cutoff_distance
-        while True:
-            dm2 *= 1.5
-            c = (d2 <= dm2)
-            if c.sum() > len(c)/2:
-                break
-    return align_and_prune(xyz, ref_xyz, cutoff_distance, iterations-1, c)
+    cutoff2 = cutoff_distance * cutoff_distance
+    i = d2.argsort()
+    if d2[i[-1]] <= cutoff2:
+        return p, rms, indices
+
+    # cull 10% or...
+    index1 = int(len(d2) * 0.9)
+    # cull half the long pairings
+    index2 = int(((d2 <= cutoff2).sum() + len(d2)) / 2)
+    # whichever is fewer
+    index = max(index1, index2)
+    survivors = indices[i[:index]]
+
+    if len(survivors) < 3:
+        raise IterationError("Alignment failed;"
+            " pruning distances > %g left less than 3 atom pairs" % cutoff_distance)
+    return align_and_prune(xyz, ref_xyz, cutoff_distance, survivors)
 
 def paired_atoms(atoms, to_atoms, match_chain_ids, match_sequence_numbers, match_atom_names):
     # TODO: return summary string of all dropped atoms.
@@ -258,7 +283,6 @@ def register_command(session):
                               ('match_sequence_numbers', NoArg),
                               ('match_atom_names', NoArg),
                               ('cutoff_distance', FloatArg),
-                              ('iterations', IntArg),
                               ('report_matrix', NoArg)],
                    synopsis = 'Align one set of atoms to another')
     register('align', desc, align)

@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 nogui: Text UI
 ==============
@@ -70,21 +82,23 @@ class UI:
             except ImportError:
                 pass
 
-        if not self.initialize_offscreen_rendering(session.main_view):
-            session.logger.info('Offscreen rendering not available')
+        from chimerax import core
+        requested_offscreen = hasattr(core, 'offscreen_rendering')
+        if requested_offscreen and not self.initialize_offscreen_rendering(session.main_view) and not session.silent:
+            session.logger.info('Offscreen rendering is not available.')
+            session.logger.info('Need OSMesa library from Mesa version 12.0 or newer for offscreen rendering.')
 
     def initialize_offscreen_rendering(self, view):
-        from chimerax import core
-        if not hasattr(core, 'offscreen_rendering'):
-            return False
         from .. import graphics
         try:
             c = graphics.OffScreenRenderingContext()
-        except:
-            c = None             # OSMesa library was not found
-        if c:
-            view.initialize_rendering(c)
-        return c is not None
+        except Exception as e:
+            # OSMesa library was not found, or old version
+            from chimerax import core
+            del core.offscreen_rendering
+            return False
+        view.initialize_rendering(c)
+        return True
 
     def splash_info(self, message, splash_step, num_splash_steps):
         import sys

@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 '''
 OpenGL classes
 ==============
@@ -20,19 +32,13 @@ def configure_offscreen_rendering():
     if not hasattr(chimerax, 'app_lib_dir'):
         return
     import sys
-    if sys.platform == 'darwin':
-        return  # OSMesa 10.6.3 with LLVM crashes in glDrawElements() on Mac.
     import os
     os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
-    # OSMesa 10.6.2 gives an OpenGL 3.0 compatibility context on Linux with only GLSL 130 support.
-    # ChimeraX needs OpenGL 3.3 with GLSL 330 shaders and requires only a core context.
-    # Overriding Mesa to give OpenGL 3.3, gives a core context that really does support 3.3.
-    # OSMesa doesn't allow requesting a core context, see OffscreenRenderingContext below.
-    os.environ['MESA_GL_VERSION_OVERRIDE'] = '3.3'
-    # Tell PyOpenGL where to find libOSMesa
-    lib_suffix = '.dylib' if sys.platform == 'darwin' else '.so'
+    # Check for local version of OSMesa library
+    from distutils import ccompiler
+    lib_name = ccompiler.new_compiler().library_filename('OSMesa', 'shared')
     from chimerax import app_lib_dir
-    lib_mesa = os.path.join(app_lib_dir, 'libOSMesa' + lib_suffix)
+    lib_mesa = os.path.join(app_lib_dir, lib_name)
     if os.path.exists(lib_mesa):
         os.environ['PYOPENGL_OSMESA_LIB_PATH'] = lib_mesa
 
@@ -606,6 +612,9 @@ class Render:
         global stencil8_needed
         stencil8_needed = (sys.platform.startswith('linux') and vendor and
                            vendor.startswith((b'AMD', b'ATI')))
+
+    def pixel_scale(self):
+        return self._opengl_context.pixel_scale()
 
     def set_viewport(self, x, y, w, h):
         'Set the OpenGL viewport.'
@@ -1940,23 +1949,72 @@ def pyopengl_null():
     return ctypes.c_void_p(0)
 
 class OffScreenRenderingContext:
+
     def __init__(self, width = 512, height = 512):
         self.width = width
         self.height = height
         from OpenGL import GL, arrays, platform
-        from OpenGL.raw.osmesa import mesa
+        from OpenGL import osmesa
         # To use OSMesa with PyOpenGL requires environment variable PYOPENGL_PLATFORM=osmesa
         # Also will need libOSMesa in dlopen library path.
-        self.context = mesa.OSMesaCreateContext(GL.GL_RGBA, None)
+        import ctypes
+        if not hasattr(osmesa, 'OSMesaCreateContextAttribs'):
+            from OpenGL.raw.osmesa import mesa
+            # monkey patch mesa to be able to create Core contexts
+            @mesa._f
+            @mesa._p.types(mesa.OSMesaContext, ctypes.POINTER(ctypes.c_int), mesa.OSMesaContext)
+            def OSMesaCreateContextAttribs(attribList, sharelist): pass
+            # TODO: figure out why load() is needed
+            OSMesaCreateContextAttribs.load()
+            mesa.OSMesaCreateContextAttribs = OSMesaCreateContextAttribs
+            mesa.OSMESA_DEPTH_BITS = mesa._C('OSMESA_DEPTH_BITS', 0x30)
+            mesa.OSMESA_STENCIL_BITS = mesa._C('OSMESA_STENCIL_BITS', 0x31)
+            mesa.OSMESA_ACCUM_BITS = mesa._C('OSMESA_ACCUM_BITS', 0x32)
+            mesa.OSMESA_PROFILE = mesa._C('OSMESA_PROFILE', 0x33)
+            mesa.OSMESA_CORE_PROFILE = mesa._C('OSMESA_CORE_PROFILE', 0x34)
+            mesa.OSMESA_COMPAT_PROFILE = mesa._C('OSMESA_COMPAT_PROFILE', 0x35)
+            mesa.OSMESA_CONTEXT_MAJOR_VERSION = mesa._C('OSMESA_CONTEXT_MAJOR_VERSION', 0x36)
+            mesa.OSMESA_CONTEXT_MINOR_VERSION = mesa._C('OSMESA_CONTEXT_MINOR_VERSION', 0x37)
+            # do osmesa/__init__'s "from OpenGL.raw.osmesa.mesa import *"
+            osmesa.OSMesaCreateContextAttribs = mesa.OSMesaCreateContextAttribs
+            osmesa.OSMESA_DEPTH_BITS = mesa.OSMESA_DEPTH_BITS
+            osmesa.OSMESA_STENCIL_BITS = mesa.OSMESA_STENCIL_BITS
+            osmesa.OSMESA_ACCUM_BITS = mesa.OSMESA_ACCUM_BITS
+            osmesa.OSMESA_PROFILE = mesa.OSMESA_PROFILE
+            osmesa.OSMESA_CORE_PROFILE = mesa.OSMESA_CORE_PROFILE
+            osmesa.OSMESA_COMPAT_PROFILE = mesa.OSMESA_COMPAT_PROFILE
+            osmesa.OSMESA_CONTEXT_MAJOR_VERSION = mesa.OSMESA_CONTEXT_MAJOR_VERSION
+            osmesa.OSMESA_CONTEXT_MINOR_VERSION = mesa.OSMESA_CONTEXT_MINOR_VERSION
+
+        # if not bool(osmesa.OSMesaCreateContextAttribs):
+        #     raise RuntimeError('Need Mesa version 12.0 or newer for offscreen rendering')
+
+        attribs = [
+            osmesa.OSMESA_FORMAT, osmesa.OSMESA_RGBA,
+            osmesa.OSMESA_DEPTH_BITS, 32,
+            # osmesa.OSMESA_STENCIL_BITS, 8,
+            osmesa.OSMESA_PROFILE, mesa.OSMESA_CORE_PROFILE,
+            osmesa.OSMESA_CONTEXT_MAJOR_VERSION, 3,
+            osmesa.OSMESA_CONTEXT_MINOR_VERSION, 3,
+            0  # must end with zero
+        ]
+        attribs = (ctypes.c_int * len(attribs))(*attribs)
+        self.context = osmesa.OSMesaCreateContextAttribs(attribs, None)
         buf = arrays.GLubyteArray.zeros((height, width, 4))
         #p = arrays.ArrayDatatype.dataPointer(buf)
         self.buffer = buf
+        # call make_current to induce exception if an older Mesa
+        self.make_current()
         
     def make_current(self):
         from OpenGL import GL, arrays, platform
-        from OpenGL.raw.osmesa import mesa
-        assert(mesa.OSMesaMakeCurrent(self.context, self.buffer, GL.GL_UNSIGNED_BYTE, self.width, self.height))
+        from OpenGL import osmesa
+        assert(osmesa.OSMesaMakeCurrent(self.context, self.buffer, GL.GL_UNSIGNED_BYTE, self.width, self.height))
         assert(platform.CurrentContextIsValid())
 
     def swap_buffers(self):
         pass
+
+    def pixel_scale(self):
+        # Ratio Qt pixel size to OpenGL pixel size.
+        return 1

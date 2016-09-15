@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 '''
 molarray: Collections of molecular objects
 ==========================================
@@ -84,11 +96,17 @@ class Collection(State):
     intersection, union, subtracting, and filtering.  By design, a
     Collection is immutable.
     '''
-    def __init__(self, pointers, object_class, objects_class):
-        if pointers is None:
+    def __init__(self, items, object_class, objects_class):
+        if items is None:
             # Empty Atoms
             import numpy
             pointers = numpy.empty((0,), cptr)
+        elif type(items) in [list, tuple]:
+            # presumably items of the object_class
+            import numpy
+            pointers = numpy.array([i._c_pointer.value for i in items], cptr)
+        else:
+            pointers = items
         self._pointers = pointers
         self._object_class = object_class
         self._objects_class = objects_class
@@ -115,10 +133,11 @@ class Collection(State):
         return iter(self._object_list)
     def __getitem__(self, i):
         '''Indexing of collection objects using square brackets, *e.g.* c[i].'''
+        import numpy
         if isinstance(i,(int,integer)):
             from .molobject import object_map
             v = object_map(self._pointers[i], self._object_class)
-        elif isinstance(i, slice):
+        elif isinstance(i, (slice, numpy.ndarray)):
             v = self._objects_class(self._pointers[i])
         else:
             raise IndexError('Only integer indices allowed for %s, got %s'
@@ -217,8 +236,10 @@ class Collection(State):
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
     def unique(self):
-        '''Return a new collection containing the unique elements from this one.'''
-        return self.objects_class(unique(self._pointers))
+        '''Return a new collection containing the unique elements from this one, preserving order.'''
+        indices = unique(self._pointers, return_index = True)[1]
+        indices.sort()
+        return self.objects_class(self._pointers[indices])
 
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
@@ -283,6 +304,7 @@ class Atoms(Collection):
     without creating Python :py:class:`Atom` objects which require much more memory
     and are slower to use in computation.
     '''
+    SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
 
     bfactors = cvec_property('atom_bfactor', float32)
     @property
@@ -471,6 +493,13 @@ class Atoms(Collection):
         f(self._c_pointers, n, loc, pointer(values))
         return values
 
+    def residue_sums(self, atom_values):
+        '''Compute per-residue sum of atom float values.  Return unique residues and array of residue sums.'''
+        f = c_function('atom_residue_sums', args=(ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_double)),
+                       ret=ctypes.py_object)
+        rp, rsums = f(self._c_pointers, len(self), pointer(atom_values))
+        return Residues(rp), rsums
+        
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, atom_ids = data
@@ -796,6 +825,20 @@ class Residues(Collection):
         '''
         return self._pointers
 
+    @property
+    def unique_sequences(self):
+        '''
+        Return :mod:`numpy` array giving an integer index for each residue and a list of sequence strings.
+        Index 0 is for residues that are not part of a chain (empty string).
+        '''
+        from numpy import empty, int32
+        seq_ids = empty((len(self),), int32)
+        f = c_function('residue_unique_sequences',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p],
+                       ret = ctypes.py_object)
+        seqs = f(self._c_pointers, len(self), pointer(seq_ids))
+        return seqs, seq_ids
+
     def get_polymer_spline(self, orient):
         '''Return a tuple of spline center and guide coordinates for a
 	polymer chain.  Residues in the chain that do not have a center
@@ -819,11 +862,19 @@ class Residues(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
-    def set_alt_loc(self, loc):
+    def set_alt_locs(self, loc):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
         f = c_array_function('residue_set_alt_loc', args=(byte,), per_object=False)
         f(self._c_pointers, len(self), loc)
+
+    def set_secondary_structures(self, ss_type, value):
+        '''See Residue.set_secondary_structure()'''
+        if value == molobject.Residue.SS_HELIX:
+            f = c_array_function('residue_set_ss_helix', args=(npy_bool,), per_object=False)
+        else:
+            f = c_array_function('residue_set_ss_sheet', args=(npy_bool,), per_object=False)
+        f(self._c_pointers, len(self), value)
 
 # -----------------------------------------------------------------------------
 #
@@ -911,6 +962,11 @@ class StructureDatas(Collection):
     '''Returns an array of booleans of whether to show ribbon spines.'''
     ribbon_orientations = cvec_property('structure_ribbon_orientation', int32)
     '''Returns an array of ribbon orientations.'''
+    ss_assigneds = cvec_property('structure_ss_assigned', npy_bool, doc =
+    '''
+    Whether secondary structure has been assigned, either from data in the
+    original structure file, or from an algorithm (e.g. dssp command)
+    ''')
 
     # Graphics changed flags used by rendering code.  Private.
     _graphics_changeds = cvec_property('structure_graphics_change', int32)
@@ -925,11 +981,6 @@ class AtomicStructures(StructureDatas):
     '''
     def __init__(self, mol_pointers):
         from .structure import AtomicStructure
-        if len(mol_pointers) > 0 and isinstance(mol_pointers[0], AtomicStructure):
-            # Converting from seq of AtomicStructure instances to AtomicStructures
-            # Used by command.cli.AtomicStructuresArg
-            import numpy
-            mol_pointers = numpy.array([s._c_pointer.value for s in mol_pointers])
         Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
 
     @classmethod

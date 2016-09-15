@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 molsurf: Compute molecular surfaces
 ===================================
@@ -353,8 +365,8 @@ def surface_rgba(color, transparency, chain_id = None):
             from numpy import array, uint8
             rgba8 = array((180,180,180,255), uint8)
         else:
-            from .. import colors
-            rgba8 = colors.chain_rgba8(chain_id)
+            from .colors import chain_rgba8
+            rgba8 = chain_rgba8(chain_id)
     else:
         rgba8 = color.uint8x4()
     if not transparency is None:
@@ -416,13 +428,13 @@ def close_surfaces(atoms, models):
 def buried_area(a1, a2, probe_radius):
     from ..surface import spheres_surface_area
     xyz1, r1 = atom_spheres(a1, probe_radius)
-    a1a = spheres_surface_area(xyz1, r1).sum()
+    a1a = spheres_surface_area(xyz1, r1)
     xyz2, r2 = atom_spheres(a2, probe_radius)
-    a2a = spheres_surface_area(xyz2, r2).sum()
+    a2a = spheres_surface_area(xyz2, r2)
     from numpy import concatenate
     xyz12, r12 = concatenate((xyz1,xyz2)), concatenate((r1,r2))
-    a12a = spheres_surface_area(xyz12, r12).sum()
-    ba = 0.5 * (a1a + a2a - a12a)
+    a12a = spheres_surface_area(xyz12, r12)
+    ba = 0.5 * (a1a.sum() + a2a.sum() - a12a.sum())
     return ba, a1a, a2a, a12a
 
 def atom_spheres(atoms, probe_radius = 1.4):

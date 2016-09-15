@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 def select(session, objects=None, add=None, subtract=None, intersect=None, clear=False):
     '''Select specified objects.
 
@@ -84,8 +95,7 @@ def report_selection(session):
 def modify_selection(objects, mode = 'add'):
     select = (mode == 'add')
     atoms, models = _atoms_and_models(objects)
-    for m, matoms in atoms.by_structure:
-        m.select_atoms(matoms, selected = select)
+    atoms.selected = select
     for m in models:
         m.selected = select
 
@@ -97,8 +107,7 @@ def intersect_selection(objects, session):
     from ..atomic import Structure
     selmodels = set(m for m in session.selection.models() if not isinstance(m, Structure))
     submodels = selmodels.difference(models)
-    for m, matoms in subatoms.by_structure:
-        m.select_atoms(matoms, selected = False)
+    subatoms.selected = False
     for m in submodels:
         m.selected = False
 

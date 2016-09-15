@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
 # ToolUI classes may also override
@@ -20,7 +31,7 @@ class ToolUI(ToolInstance):
         if session.ui.is_gui:
             from chimerax.core.ui.gui import MainToolWindow
             self.tool_window = MainToolWindow(self, size=self.SIZE)
-            self.tool_window.manage(placement="right")
+            self.tool_window.manage(placement="side")
             parent = self.tool_window.ui_area
             # Tool specific code
             from wx import html2

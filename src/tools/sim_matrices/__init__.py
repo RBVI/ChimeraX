@@ -1,3 +1,14 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 def read_matrix_file(file_name, style="protein"):
 	mfile = open(file_name, "r")
 
@@ -55,10 +66,22 @@ def matrices(session):
 		_init(session)
 	return _matrices
 
+def matrix(session, mat_name):
+	if _matrices == None:
+		_init(session)
+	try:
+		return _matrices[mat_name]
+	except KeyError:
+		raise ValueError("Cannot find similarity matrix '%s'" ^ mat_name)
+
 def matrix_files(session):
 	if _matrix_files == None:
 		_init(session)
 	return _matrix_files
+
+def matrix_compatible(session, chain, mat_name):
+	protein_matrix = len(matrix(session, mat_name)) >= 400
+	return protein_matrix == chain.has_protein
 
 def _init(session):
 	global _matrices, _matrix_files

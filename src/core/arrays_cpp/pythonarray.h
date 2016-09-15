@@ -1,4 +1,18 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 // ----------------------------------------------------------------------------
 // Convert multi-dimensional arrays between Python and C++.
 //
@@ -61,6 +75,8 @@ ARRAYS_IMEX int parse_int_3_array(PyObject *arg, void *i3);
 ARRAYS_IMEX int parse_float_3_array(PyObject *arg, void *f3);
 ARRAYS_IMEX int parse_double_3_array(PyObject *arg, void *f3);
 ARRAYS_IMEX int parse_float_4_array(PyObject *arg, void *f4);
+ARRAYS_IMEX int parse_float_3x3_array(PyObject *arg, void *f3x3);
+ARRAYS_IMEX int parse_double_3x3_array(PyObject *arg, void *d3x3);
 ARRAYS_IMEX int parse_float_3x4_array(PyObject *arg, void *f3x4);
 ARRAYS_IMEX int parse_double_3x4_array(PyObject *arg, void *d3x4);
 ARRAYS_IMEX int parse_writable_float_3d_array(PyObject *arg, void *farray);

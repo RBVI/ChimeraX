@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 def sym(session, molecules,
         symmetry = None, center = None, axis = None, coordinate_system = None, assembly = None,
         copies = False, clear = False, surface_only = False, resolution = None):
@@ -144,7 +155,7 @@ def mmcif_assemblies(model):
                    'pdbx_poly_seq_scheme',
                    'pdbx_nonpoly_scheme')
     from ..atomic import mmcif
-    assem, assem_gen, oper, cremap1, cremap2 = mmcif.get_mmcif_tables(model, table_names)
+    assem, assem_gen, oper, cremap1, cremap2 = mmcif.get_mmcif_tables(model.filename, table_names)
     if assem is None or assem_gen is None or oper is None:
         return []
 

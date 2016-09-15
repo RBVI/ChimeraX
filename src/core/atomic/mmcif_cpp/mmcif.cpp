@@ -1,4 +1,18 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #include "_mmcif.h"
 #include "mmcif.h"
 #include <atomstruct/AtomicStructure.h>
@@ -511,6 +525,7 @@ ExtractMolecule::finished_parse()
         if (m != mol) {
             copy_nmr_info(mol, m, _logger);
         }
+        m->use_best_alt_locs();
     }
     vector<AtomicStructure*> save_molecules;
     save_molecules.swap(all_molecules);

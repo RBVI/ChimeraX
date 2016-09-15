@@ -1,4 +1,18 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #include <algorithm>  // for std::sort
 #include <set>
 #include <sstream>
@@ -574,6 +588,17 @@ start_t = end_t;
             }
             if (as->input_seq_source.empty())
                 as->input_seq_source = "PDB SEQRES record";
+            break;
+        }
+
+        case PDB::OBSLTE: {
+            for (int i = 0; i < 8; ++i) {
+                auto r_id_code = record.obslte.r_id_code[i];
+                if (r_id_code[0] != '\0')
+                    logger::warning(py_logger, "Entry ", record.obslte.id_code,
+                        " superceded by entry ", r_id_code);
+            }
+            break;
         }
         }
 #ifdef CLOCK_PROFILING

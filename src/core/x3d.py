@@ -1,3 +1,14 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 x3d: support X3D output
 =======================
@@ -96,7 +107,7 @@ class X3DScene:
                 return profile
 
     def write_header(self, stream, indent, meta={}, *, namespaces={}, units={}, profile_name=None):
-        # meta argument is good for author, copyright, etc.
+        # meta argument is good for author, etc.
         import datetime
         from html import escape
         if indent == 0:

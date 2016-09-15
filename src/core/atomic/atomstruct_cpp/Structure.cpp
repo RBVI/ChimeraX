@@ -1,4 +1,18 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #include <algorithm>
 #include <set>
 
@@ -27,7 +41,7 @@ Structure::Structure(PyObject* logger):
     _change_tracker(DiscardingChangeTracker::discarding_change_tracker()),
     _idatm_valid(false), _logger(logger), _name("unknown AtomicStructure/Structure"),
     _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
-    _structure_cats_dirty(true),
+    _ss_assigned(false), _structure_cats_dirty(true),
     asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0)
 {
@@ -223,6 +237,7 @@ void Structure::_copy(Structure* g) const
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
         g->metadata[h->first] = h->second;
     g->pdb_version = pdb_version;
+    g->set_ss_assigned(ss_assigned());
 
     std::map<Residue*, Residue*> rmap;
     for (auto ri = residues().begin() ; ri != residues().end() ; ++ri) {
@@ -234,8 +249,8 @@ void Structure::_copy(Structure* g) const
         cr->set_is_sheet(r->is_sheet());
         cr->set_is_het(r->is_het());
         rmap[r] = cr;
+	// TODO: Copy all ribbon display style attributes.
     }
-
     std::map<Atom*, Atom*> amap;
     for (auto ai = atoms().begin() ; ai != atoms().end() ; ++ai) {
         Atom* a = *ai;
@@ -260,13 +275,14 @@ void Structure::_copy(Structure* g) const
             a->set_alt_loc(aloc);	// Restore original alt loc.
             ca->set_alt_loc(aloc);
         }
+	// TODO: Copy coordinate sets.
         ca->set_draw_mode(a->draw_mode());
         ca->set_radius(a->radius());
         ca->set_color(a->color());
         ca->set_display(a->display());
         amap[a] = ca;
     }
-
+    
     for (auto bi = bonds().begin() ; bi != bonds().end() ; ++bi) {
         Bond* b = *bi;
         const Bond::Atoms& a = b->atoms();
@@ -275,6 +291,27 @@ void Structure::_copy(Structure* g) const
         cb->set_color(b->color());
         cb->set_halfbond(b->halfbond());
         cb->set_radius(b->radius());
+    }
+
+    // Copy pseudobond groups.
+    const AS_PBManager::GroupMap &gm = pb_mgr().group_map();
+    for (auto gi = gm.begin() ; gi != gm.end() ; ++gi) {
+      Proxy_PBGroup *pbg = gi->second;
+      if (pbg->group_type() == AS_PBManager::GRP_NORMAL) {
+	Proxy_PBGroup *pbgc = g->pb_mgr().get_group(gi->first, AS_PBManager::GRP_NORMAL);
+	const PBGroup::Pseudobonds &pbs = pbg->pseudobonds();
+	for (auto bi = pbs.begin() ; bi != pbs.end() ; ++bi) {
+	  Pseudobond *pb = *bi;
+	  const Connection::Atoms &a = pb->atoms();
+	  Pseudobond *pbc = pbgc->new_pseudobond(amap[a[0]], amap[a[1]]);
+	  pbc->set_display(pb->display());
+	  pbc->set_hide(pb->hide());
+	  pbc->set_color(pb->color());
+	  pbc->set_halfbond(pb->halfbond());
+	  pbc->set_radius(pb->radius());
+	}
+      }
+      // TODO: Copy per coordinate set pseudobond groups.
     }
 }
 
@@ -673,6 +710,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array++ = lower_case_chains;
     *int_array++ = pdb_version;
     *int_array++ = _ribbon_display_count;
+    *int_array++ = _ss_assigned;
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
@@ -946,6 +984,10 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     lower_case_chains = *int_array++;
     pdb_version = *int_array++;
     _ribbon_display_count = *int_array++;
+    if (version == 1)
+        _ss_assigned = true;
+    else
+        _ss_assigned = *int_array++;
     auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 

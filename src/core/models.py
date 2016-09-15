@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 models: Displayed data
 ======================
@@ -86,6 +98,13 @@ class Model(State, Drawing):
                 dlist.extend(d.all_models())
         return dlist
 
+    @property
+    def visible(self):
+        if self.display:
+            p = getattr(self, 'parent', None)
+            return p is None or p.visible
+        return False
+    
     def _set_display(self, display):
         Drawing.set_display(self, display)
         self.session.triggers.activate_trigger(MODEL_DISPLAY_CHANGED, self)
@@ -180,14 +199,7 @@ class Models(State):
         if model_id is None:
             models = list(self._models.values())
         else:
-            if model_id not in self._models:
-                return []
-            # find all submodels
-            size = len(model_id)
-            model_ids = [x for x in self._models if x[0:size] == model_id]
-            # sort so submodels are removed before parent models
-            model_ids.sort(key=len, reverse=True)
-            models = [self._models[x] for x in model_ids]
+            models = [self._models[model_id]] if model_id in self._models else []
         if type is not None:
             models = [m for m in models if isinstance(m, type)]
         return models
@@ -260,7 +272,9 @@ class Models(State):
 
     def remove(self, models):
         # Also remove all child models, and remove deepest children first.
-        mlist = descendant_models(models)
+        dset = descendant_models(models)
+        dset.update(models)
+        mlist = list(dset)
         mlist.sort(key=lambda m: len(m.id), reverse=True)
         session = self._session()  # resolve back reference
         for m in mlist:
@@ -282,9 +296,11 @@ class Models(State):
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
 
     def close(self, models):
+        dset = descendant_models(models)
         self.remove(models)
         for m in models:
-            m.delete()
+            if m not in dset:	# Deleted parent will delete children.
+                m.delete()
 
     def open(self, filenames, id=None, format=None, name=None, **kw):
         from . import io, toolshed
@@ -299,12 +315,11 @@ class Models(State):
             if fmt and fmt.category == toolshed.SCRIPT:
                 collation_okay = False
                 break
+        from .logger import Collator
+        log_errors = kw.pop('log_errors', True)
         if collation_okay:
-            from .logger import Collator
             descript = "files" if len(fns) > 1 else fns[0]
-            with Collator(session.logger,
-                          "Summary of problems opening " + descript,
-                          kw.pop('log_errors', True)):
+            with Collator(session.logger, "Summary of problems opening " + descript, log_errors):
                 models, status = io.open_multiple_data(
                     session, filenames, format=format, name=name, **kw)
         else:
@@ -315,7 +330,14 @@ class Models(State):
             log.status(status, log=True)
         if models:
             if len(models) > 1:
-                self.add_group(models)
+                from os.path import basename
+                name = basename(filenames[0])
+                if len(filenames) > 1:
+                    name += '...'
+                descript = "files" if len(fns) > 1 else fns[0]
+                with Collator(session.logger,
+                        "Summary of additional actions taken when opening " + descript, log_errors):
+                    self.add_group(models, name=name)
             else:
                 self.add(models)
         return models
@@ -324,8 +346,9 @@ class Models(State):
 def descendant_models(models):
     mset = set()
     for m in models:
-        mset.update(m.all_models())
-    return list(mset)
+        for c in m.child_models():
+            mset.update(c.all_models())
+    return mset
 
 
 def ancestor_models(models):

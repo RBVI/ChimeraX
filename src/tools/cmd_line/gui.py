@@ -1,5 +1,16 @@
 # vim: set expandtab ts=4 sw=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from chimerax.core.tools import ToolInstance
 
 
@@ -20,137 +31,71 @@ class CommandLine(ToolInstance):
         self.tool_window = CmdWindow(self)
         parent = self.tool_window.ui_area
         self.history_dialog = _HistoryDialog(self)
-        from chimerax.core import window_sys
-        self.window_sys = window_sys
-        if window_sys == "qt":
-            from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLineEdit, QLabel
-            label = QLabel(parent)
-            label.setText("Command:")
-            class CmdText(QComboBox):
-                def __init__(self, parent, tool):
-                    self.tool = tool
-                    QComboBox.__init__(self, parent)
+        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLineEdit, QLabel
+        label = QLabel(parent)
+        label.setText("Command:")
+        class CmdText(QComboBox):
+            def __init__(self, parent, tool):
+                self.tool = tool
+                QComboBox.__init__(self, parent)
 
-                def keyPressEvent(self, event):
-                    from PyQt5.QtCore import Qt
-                    import sys
-                    control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
-                    shifted = event.modifiers() & Qt.ShiftModifier
-                    if event.key() == Qt.Key_Up:  # up arrow
-                        self.tool.history_dialog.up(shifted)
-                    elif event.key() == Qt.Key_Down:  # down arrow
+            def keyPressEvent(self, event):
+                from PyQt5.QtCore import Qt
+                import sys
+                control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
+                shifted = event.modifiers() & Qt.ShiftModifier
+                if event.key() == Qt.Key_Up:  # up arrow
+                    self.tool.history_dialog.up(shifted)
+                elif event.key() == Qt.Key_Down:  # down arrow
+                    self.tool.history_dialog.down(shifted)
+                elif event.modifiers() & control_key:
+                    if event.key() == Qt.Key_N:
                         self.tool.history_dialog.down(shifted)
-                    elif event.modifiers() & control_key:
-                        if event.key() == Qt.Key_N:
-                            self.tool.history_dialog.down(shifted)
-                        elif event.key() == Qt.Key_P:
-                            self.tool.history_dialog.up(shifted)
-                        elif event.key() == Qt.Key_U:
-                            self.tool.cmd_clear()
-                        elif event.key() == Qt.Key_K:
-                            self.tool.cmd_clear_to_end_of_line()
-                        else:
-                            QComboBox.keyPressEvent(self, event)
+                    elif event.key() == Qt.Key_P:
+                        self.tool.history_dialog.up(shifted)
+                    elif event.key() == Qt.Key_U:
+                        self.tool.cmd_clear()
+                    elif event.key() == Qt.Key_K:
+                        self.tool.cmd_clear_to_end_of_line()
                     else:
                         QComboBox.keyPressEvent(self, event)
+                else:
+                    QComboBox.keyPressEvent(self, event)
 
-            self.text = CmdText(parent, self)
-            #self.text = QComboBox(parent)
-            self.text.setEditable(True)
-            self.text.setCompleter(None)
-            layout = QHBoxLayout(parent)
-            layout.setSpacing(1)
-            layout.setContentsMargins(2, 0, 0, 0)
-            layout.addWidget(label)
-            layout.addWidget(self.text, 1)
-            parent.setLayout(layout)
-            self.text.lineEdit().returnPressed.connect(self.execute)
-            self.text.lineEdit().editingFinished.connect(self.text.lineEdit().selectAll)
-            self.text.currentTextChanged.connect(self.text_changed)
-            self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e)
-            session.ui.register_for_keystrokes(self.text)
-        else:
-            import wx
-            SIZE = (500, 25)
-            self.text = wx.ComboBox(parent, size=SIZE,
-                                    style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
-            sizer = wx.BoxSizer(wx.HORIZONTAL)
-            label = wx.StaticText(parent, label="Command:")
-            sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
-            sizer.Add(self.text, 1, wx.EXPAND)
-            parent.SetSizerAndFit(sizer)
-            self.text.Bind(wx.EVT_COMBOBOX, self.on_combobox)
-            self.text.Bind(wx.EVT_TEXT, self.history_dialog._entry_modified)
-            self.text.Bind(wx.EVT_TEXT_ENTER, lambda e: self.execute())
-            self.text.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-            session.ui.register_for_keystrokes(self)
-            # since only TextCtrls have the EmulateKeyPress method,
-            # create a completely hidden TextCtrl so that we can
-            # process forwarded keystrokes and copy the result back
-            # into the ComboBox!
-            self.kludge_text = wx.TextCtrl(parent)
-            self.kludge_text.Hide()
+        self.text = CmdText(parent, self)
+        #self.text = QComboBox(parent)
+        self.text.setEditable(True)
+        self.text.setCompleter(None)
+        layout = QHBoxLayout(parent)
+        layout.setSpacing(1)
+        layout.setContentsMargins(2, 0, 0, 0)
+        layout.addWidget(label)
+        layout.addWidget(self.text, 1)
+        parent.setLayout(layout)
+        self.text.lineEdit().returnPressed.connect(self.execute)
+        self.text.lineEdit().editingFinished.connect(self.text.lineEdit().selectAll)
+        self.text.currentTextChanged.connect(self.text_changed)
+        self.text.forwarded_keystroke = lambda e: self.text.keyPressEvent(e)
+        session.ui.register_for_keystrokes(self.text)
         self.history_dialog.populate()
         self.tool_window.manage(placement="bottom")
 
     def cmd_clear(self):
-        from chimerax.core import window_sys
-        if window_sys == "qt":
-            self.text.lineEdit().clear()
-        else:
-            self.text.SetValue("")
+        self.text.lineEdit().clear()
 
     def cmd_clear_to_end_of_line(self):
-        from chimerax.core import window_sys
-        if window_sys == "qt":
-            le = self.text.lineEdit()
-            t = le.text()[:le.cursorPosition()]
-            le.setText(t)
+        le = self.text.lineEdit()
+        t = le.text()[:le.cursorPosition()]
+        le.setText(t)
 
     def cmd_replace(self, cmd):
-        from chimerax.core import window_sys
-        if window_sys == "qt":
-            line_edit = self.text.lineEdit()
-            line_edit.setText(cmd)
-            line_edit.setCursorPosition(len(cmd))
-        else:
-            self.text.SetValue(cmd)
-            self.text.SetInsertionPointEnd()
+        line_edit = self.text.lineEdit()
+        line_edit.setText(cmd)
+        line_edit.setCursorPosition(len(cmd))
 
     def delete(self):
         self.session.ui.deregister_for_keystrokes(self.text)
         super().delete()
-
-    def forwarded_keystroke(self, event):
-        import wx
-        if event.KeyCode == 13:          # Return
-            self.execute()
-        elif event.KeyCode == 14:        # Ctrl-N
-            self.history_dialog.down(event.GetModifiers() & wx.MOD_SHIFT)
-        elif event.KeyCode == 16:        # Ctrl-P
-            self.history_dialog.up(event.GetModifiers() & wx.MOD_SHIFT)
-        elif event.KeyCode == 21:        # Ctrl-U
-            self.cmd_clear()
-        elif event.KeyCode == 27:         # Escape
-            self.session.keyboard_shortcuts.enable_shortcuts()
-        elif event.KeyCode == 315:        # Up arrow
-            self.session.selection.promote()
-        elif event.KeyCode == 317:        # Down arrow
-            self.session.selection.demote()
-        else:
-            # Only TextCtrls handle forwarded keystroke events,
-            # so copy the current ComboBox text state into a
-            # TextCtrl, apply the forwarded keystroke, and copy
-            # the result back (ugh)
-            self.kludge_text.Value = self.text.Value
-            self.kludge_text.SetInsertionPoint(self.text.InsertionPoint)
-            self.kludge_text.SetSelection(*self.text.GetTextSelection())
-            self.kludge_text.EmulateKeyPress(event)
-            if self.text.Value != self.kludge_text.Value:
-                # prevent gratuituous 'text modified' events
-                self.text.Value = self.kludge_text.Value
-            self.text.SetInsertionPoint(self.kludge_text.InsertionPoint)
-            self.text.SetSelection(*self.kludge_text.GetSelection())
 
     def on_combobox(self, event):
         val = self.text.GetValue()
@@ -188,10 +133,7 @@ class CommandLine(ToolInstance):
     def execute(self):
         session = self.session
         logger = session.logger
-        if self.window_sys == "wx":
-            text = self.text.Value
-        else:
-            text = self.text.lineEdit().text()
+        text = self.text.lineEdit().text()
         logger.status("")
         from chimerax.core import errors
         from chimerax.core.commands import Command
@@ -211,54 +153,27 @@ class CommandLine(ToolInstance):
                 error_at = cmd.amount_parsed + spaces
                 syntax_error = error_at < len(cmd.current_text)
                 # error message in red text
-                msg = '<div class="cxcmd">%s' % escape(
-                        cmd.current_text[cmd.start:error_at])
                 err_color = 'crimson'
-                if syntax_error:
-                    msg += '<span style="color:white; background-color:%s;">%s</span>' % (
+                if not syntax_error:
+                    msg = ''
+                else:
+                    msg = '<div class="cxcmd">%s<span style="color:white; background-color:%s;">%s</span>' % (
+                        escape(cmd.current_text[cmd.start:error_at]),
                         err_color,
                         escape(cmd.current_text[error_at:]))
                 msg += '</div>\n<span style="color:%s;">%s</span>\n' % (
                     err_color, escape(str(err)))
                 logger.info(msg, is_html=True)
-                logger.status(str(err))
+                logger.status(str(err), color="red")
             except:
                 import traceback
                 session.logger.error(traceback.format_exc())
             else:
                 self.history_dialog.add(cmd_text)
-        if self.window_sys == "wx":
-            self.text.SetValue(cmd_text)
-            self.text.SelectAll()
-        else:
-            from PyQt5.QtCore import Qt
-            self.text.lineEdit().setFocus(Qt.OtherFocusReason)
-            self.text.lineEdit().setText(cmd_text)
-            self.text.lineEdit().selectAll()
-
-    def on_key_down(self, event):
-        import wx
-        # prevent combobox from responding to up/down arrow key
-        # (opening/closing dropdown listbox), and handle it as
-        # history forward/back, as well as getting other relevant
-        # control-key events before the ComboBox KeyDown handler
-        # consumes them
-        shifted = event.GetModifiers() & wx.MOD_SHIFT
-        if event.KeyCode == 315:  # up arrow
-            self.history_dialog.up(shifted)
-        elif event.KeyCode == 317:  # down arrow
-            self.history_dialog.down(shifted)
-        elif event.GetModifiers() & wx.MOD_RAW_CONTROL:
-            if event.KeyCode == 78:
-                self.history_dialog.down(shifted)
-            elif event.KeyCode == 80:
-                self.history_dialog.up(shifted)
-            elif event.KeyCode == 85:
-                self.cmd_clear()
-            else:
-                event.Skip()
-        else:
-            event.Skip()
+        from PyQt5.QtCore import Qt
+        self.text.lineEdit().setFocus(Qt.OtherFocusReason)
+        self.text.lineEdit().setText(cmd_text)
+        self.text.lineEdit().selectAll()
 
     @classmethod
     def get_singleton(cls, session):
@@ -283,55 +198,23 @@ class _HistoryDialog:
             "Command History", window_class=HistoryWindow)
 
         parent = self.window.ui_area
-        from chimerax.core import window_sys
-        self.window_sys = window_sys
-        if window_sys == "qt":
-            self.add = self.qt_add
-            self.up = self.qt_up
-            self.down = self.qt_down
-            self.select = self.qt_select
-            self.populate = self.qt_populate
-            self.update_list = self.qt_update_list
-            from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton
-            self.listbox = QListWidget(parent)
-            self.listbox.setSelectionMode(QListWidget.ExtendedSelection)
-            self.listbox.itemSelectionChanged.connect(self.select)
-            main_layout = QVBoxLayout(parent)
-            main_layout.addWidget(self.listbox)
-            button_frame = QFrame(parent)
-            main_layout.addWidget(button_frame)
-            button_layout = QHBoxLayout(button_frame)
-            for but_name in [self.record_label, self.execute_label, "Delete", "Copy", "Help"]:
-                but = QPushButton(but_name, button_frame)
-                but.setAutoDefault(False)
-                but.clicked.connect(lambda arg, txt=but_name: self.button_clicked(txt))
-                if but_name == "Help":
-                    but.setDisabled(True)
-                button_layout.addWidget(but)
-            button_frame.setLayout(button_layout)
-        else:
-            self.add = self.wx_add
-            self.up = self.wx_up
-            self.down = self.wx_down
-            self.select = self.wx_select
-            self.populate = self.wx_populate
-            self.update_list = self.wx_update_list
-            import wx
-            self.listbox = wx.ListBox(parent, size=(100, 400),
-                                  style=wx.LB_EXTENDED | wx.LB_NEEDED_SB)
-            self.listbox.Bind(wx.EVT_LISTBOX, self.on_listbox)
-            main_sizer = wx.BoxSizer(wx.VERTICAL)
-            main_sizer.Add(self.listbox, 1, wx.EXPAND)
-            button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-            main_sizer.Add(button_sizer)
-            record_button = wx.Button(parent, label=self.record_label)
-            button_sizer.Add(record_button)
-            button_sizer.Add(wx.Button(parent, label=self.execute_label))
-            for stock_id in [wx.ID_DELETE, wx.ID_COPY, wx.ID_HELP]:
-                sz = button_sizer.Add(wx.Button(parent, id=stock_id))
-            sz.GetWindow().Disable()
-            parent.SetSizerAndFit(main_sizer)
-            parent.Bind(wx.EVT_BUTTON, self.button_cb)
+        from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton
+        self.listbox = QListWidget(parent)
+        self.listbox.setSelectionMode(QListWidget.ExtendedSelection)
+        self.listbox.itemSelectionChanged.connect(self.select)
+        main_layout = QVBoxLayout(parent)
+        main_layout.addWidget(self.listbox)
+        button_frame = QFrame(parent)
+        main_layout.addWidget(button_frame)
+        button_layout = QHBoxLayout(button_frame)
+        for but_name in [self.record_label, self.execute_label, "Delete", "Copy", "Help"]:
+            but = QPushButton(but_name, button_frame)
+            but.setAutoDefault(False)
+            but.clicked.connect(lambda arg, txt=but_name: self.button_clicked(txt))
+            if but_name == "Help":
+                but.setDisabled(True)
+            button_layout.addWidget(but)
+        button_frame.setLayout(button_layout)
         self.window.manage(placement=None)
         self.window.shown = False
         from chimerax.core.history import FIFOHistory
@@ -340,17 +223,7 @@ class _HistoryDialog:
         self._search_cache = None
         self._suspend_handler = False
 
-    def wx_add(self, item):
-        self.listbox.Append(item)
-        while self.listbox.GetCount() > self.NUM_REMEMBERED:
-            self.listbox.Delete(0)
-        self.history.enqueue(item)
-        for sel in self.listbox.GetSelections():
-            self.listbox.Deselect(sel)
-        self.listbox.SetSelection(len(self.history) - 1)
-        self.update_list()
-
-    def qt_add(self, item):
+    def add(self, item):
         self.listbox.addItem(item)
         while self.listbox.count() > self.NUM_REMEMBERED:
             self.listbox.takeItem(0)
@@ -358,68 +231,6 @@ class _HistoryDialog:
         self.listbox.clearSelection()
         self.listbox.setCurrentRow(len(self.history) - 1)
         self.update_list()
-
-    def button_cb(self, event):
-        label = event.GetEventObject().GetLabelText()
-        import wx
-        if label == self.record_label:
-            from chimerax.core import io
-            fmt = io.format_from_name("ChimeraX commands")
-            ext = fmt.extensions[0]
-            wc = "ChimeraX commands (*{})|*{}".format(ext, ext)
-            from chimerax.core.ui.open_save import SaveDialog
-            if self._record_dialog is None:
-                self._record_dialog = dlg = SaveDialog(
-                    self.window.ui_area, "Record Commands",
-                    wildcard=wc, add_extension=ext)
-                dlg.SetExtraControlCreator(self._record_customize_cb)
-            else:
-                dlg = self._record_dialog
-            if dlg.ShowModal() == wx.ID_CANCEL:
-                return
-            path = dlg.GetPath()
-            if not path:
-                from chimerax.core.errors import UserError
-                raise UserError("No file specified for saving command history")
-            if self.save_amount_Choice.GetStringSelection() == "all":
-                cmds = [cmd for cmd in self.history]
-            else:
-                cmds = [self.listbox.GetString(x) for x in self.listbox.GetSelections()]
-            if self.save_append_CheckBox.Value:
-                mode = 'a'
-            else:
-                mode = 'w'
-            f = io.open_filename(path, mode)
-            for cmd in cmds:
-                print(cmd, file=f)
-            f.close()
-            return
-        if label == self.execute_label:
-            for index in self.listbox.GetSelections():
-                self.controller.cmd_replace(self.listbox.GetString(index))
-                self.controller.on_enter(None)
-            return
-        stock_id = event.GetEventObject().GetId()
-        if stock_id == wx.ID_DELETE:
-            self.history.replace([self.history[i]
-                                  for i in range(len(self.history))
-                                  if i not in self.listbox.GetSelections()])
-            self.populate()
-            return
-        if stock_id == wx.ID_COPY:
-            if not wx.TheClipboard.Open():
-                self.controller.session.logger.error(
-                    "Could not access the system clipboard")
-                return
-            wx.TheClipboard.SetData(wx.TextDataObject("\n".join(
-                [self.listbox.GetString(i)
-                 for i in self.listbox.GetSelections()])))
-            wx.TheClipboard.Flush()
-            wx.TheClipboard.Close()
-            return
-        if stock_id == wx.ID_HELP:
-            # TODO
-            return
 
     def button_clicked(self, label):
         if label == self.record_label:
@@ -495,40 +306,7 @@ class _HistoryDialog:
             # TODO
             return
 
-    def wx_down(self, shifted):
-        sels = self.listbox.GetSelections()
-        if len(sels) != 1:
-            return
-        orig_sel = sel = sels[0]
-        orig_text = self.controller.text.Value
-        match_against = None
-        self._suspend_handler = False
-        if shifted:
-            if self._search_cache is None:
-                words = orig_text.strip().split()
-                if words:
-                    match_against = words[0]
-                    self._search_cache = match_against
-            else:
-                match_against = self._search_cache
-            self._suspend_handler = True
-        if match_against:
-            last = self.listbox.GetCount() - 1
-            while sel < last:
-                if self.listbox.GetString(sel + 1).startswith(match_against):
-                    break
-                sel += 1
-        if sel == self.listbox.GetCount() - 1:
-            return
-        self.listbox.Deselect(orig_sel)
-        self.listbox.SetSelection(sel + 1)
-        new_text = self.listbox.GetString(sel + 1)
-        self.controller.cmd_replace(new_text)
-        if orig_text == new_text:
-            self.down(shifted)
-        self._suspend_handler = False
-
-    def qt_down(self, shifted):
+    def down(self, shifted):
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
             return
@@ -573,18 +351,7 @@ class _HistoryDialog:
     def on_listbox(self, event):
         self.select()
 
-    def wx_populate(self):
-        self.listbox.Items = [cmd for cmd in self.history]
-        self.listbox.Selection = len(self.history) - 1
-        self.update_list()
-        self.select()
-        self.controller.text.SetFocus()
-        self.controller.text.SetSelection(-1, -1)
-        cursels = self.listbox.GetSelections()
-        if len(cursels) == 1:
-            self.listbox.EnsureVisible(cursels[0])
-
-    def qt_populate(self):
+    def populate(self):
         self.listbox.clear()
         self.listbox.addItems([cmd for cmd in self.history])
         self.listbox.setCurrentRow(len(self.history) - 1)
@@ -594,51 +361,13 @@ class _HistoryDialog:
         self.controller.text.lineEdit().selectAll()
         cursels = self.listbox.scrollToBottom()
 
-    def wx_select(self):
-        sels = self.listbox.GetSelections()
-        if len(sels) != 1:
-            return
-        self.controller.cmd_replace(self.listbox.GetString(sels[0]))
-
-    def qt_select(self):
+    def select(self):
         sels = self.listbox.selectedItems()
         if len(sels) != 1:
             return
         self.controller.cmd_replace(sels[0].text())
 
-    def wx_up(self, shifted):
-        sels = self.listbox.GetSelections()
-        if len(sels) != 1:
-            return
-        orig_sel = sel = sels[0]
-        orig_text = self.controller.text.Value
-        match_against = None
-        self._suspend_handler = False
-        if shifted:
-            if self._search_cache is None:
-                words = orig_text.strip().split()
-                if words:
-                    match_against = words[0]
-                    self._search_cache = match_against
-            else:
-                match_against = self._search_cache
-            self._suspend_handler = True
-        if match_against:
-            while sel > 0:
-                if self.listbox.GetString(sel - 1).startswith(match_against):
-                    break
-                sel -= 1
-        if sel == 0:
-            return
-        self.listbox.Deselect(orig_sel)
-        self.listbox.SetSelection(sel - 1)
-        new_text = self.listbox.GetString(sel - 1)
-        self.controller.cmd_replace(new_text)
-        if orig_text == new_text:
-            self.up(shifted)
-        self._suspend_handler = False
-
-    def qt_up(self, shifted):
+    def up(self, shifted):
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
             return
@@ -670,13 +399,7 @@ class _HistoryDialog:
             self.up(shifted)
         self._suspend_handler = False
 
-    def wx_update_list(self):
-        c = self.controller
-        last8 = self.history[-8:]
-        last8.reverse()
-        c.text.Items = last8 + [c.show_history_label, c.compact_label]
-
-    def qt_update_list(self):
+    def update_list(self):
         c = self.controller
         last8 = self.history[-8:]
         last8.reverse()
@@ -687,28 +410,3 @@ class _HistoryDialog:
         if not self._suspend_handler:
             self._search_cache = None
         event.Skip()
-
-    def _record_customize_cb(self, parent):
-        import wx
-        panel = wx.Panel(parent)
-        amount_label1 = wx.StaticText(panel, label="Record")
-        self.save_amount_Choice = amount = wx.Choice(panel, choices=["all", "selected"])
-        amount.SetSelection(0)
-        amount_label2 = wx.StaticText(panel, label="commands")
-        amount_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        amount_sizer.Add(amount_label1)
-        amount_sizer.Add(amount)
-        amount_sizer.Add(amount_label2)
-        row_sizer = wx.BoxSizer(wx.VERTICAL)
-        row_sizer.Add(amount_sizer)
-        self.save_append_CheckBox = cb = wx.CheckBox(panel, label="Append to file")
-        cb.Bind(wx.EVT_CHECKBOX, self.on_append_change)
-        cb.Value = False
-        row_sizer.Add(cb, flag=wx.ALIGN_CENTER)
-        self.overwrite_disclaimer = disclaimer = wx.StaticText(
-            panel, label="(ignore overwrite warning)")
-        disclaimer.SetLabelMarkup("<small><i>(ignore overwrite warning)</i></small>")
-        disclaimer.Hide()
-        row_sizer.Add(disclaimer, flag=wx.ALIGN_CENTER | wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
-        panel.SetSizerAndFit(row_sizer)
-        return panel

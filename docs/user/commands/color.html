@@ -1,15 +1,19 @@
+<html>
+
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015-2016 Regents of the University of California.
+Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
-duplication and use.  This notice must be embedded in or
-attached to all copies, including partial copies, of the
-software or any revisions or derivations thereof.
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
 === UCSF ChimeraX Copyright ===
 -->
 
-<html><head>
+<head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: color, rainbow</title>
 </head><body>
@@ -62,7 +66,7 @@ See also: <a href="transparency.html"><b>transparency</b></a>,
 <a href="mlp.html"><b>mlp</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
-<a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons,
+<a href="../tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="colornames.html">color names</a>
 </p><p>
@@ -99,6 +103,14 @@ atomic representations and per-atom patches of molecular surfaces
 <a href="surface.html">molecular surfaces</a>
 <li><a name="bymodel"><b>bymodel</b></a>
 - the <a href="colortables.html#autocolors">initial colors</a> of atomic models
+<li><a name="byseq"><b>bysequence</b> or <b>byseq</b></a>
+- random colors per unique chain or molecular entity;
+biopolymer chain sequences are used to initialize the random number
+generator for choosing red, green, and blue color components,
+so the same sequence always gets the same color
+<!-- 
+using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
+-->
 <li><a name="random"><b>random</b></a>
 - random color per atom
 </ul>
@@ -113,6 +125,9 @@ at the specified <i>level</i>:
 such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <li><b>chains</b> - a different color for each biopolymer chain in an 
 atomic model; non-biopolymer residues are not affected
+<li><b>sequences</b> - a different color for each unique biopolymer chain 
+(molecular entity) in an atomic model, based on sequence; 
+non-biopolymer residues are not affected
 <li><b>molmodels</b> - a different color for each atomic model
 </ul>
 For <b>rainbow</b> only,
@@ -233,7 +248,9 @@ can be used to set transparency apart from color.
 <a name="palette-options"></a>
 <h3>Palette Options</h3>
 <p>
-A <b><i>palette</i></b> is an ordered list of colors or value-color pairs.
+A <b><i>palette</i></b> is an ordered list of 
+<a href="colornames.html">colors</a> or 
+value,<a href="colornames.html">color</a> pairs.
 <blockquote>
 <a name="palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>
 <br>
@@ -248,32 +265,44 @@ Specify a <i>palette</i> for <b>sequential</b> coloring
    - default for <b>map</b> coloring
   <li><b>blue-white-red</b> or <b>bluered</b>
   <li><b>cyan-white-maroon</b> or <b>cyanmaroon</b>
+   - #0f1bc7adcf5b
+   <table style="display:inline-block; vertical-align:middle"><tr>
+   <td bgcolor=#0f1bc7adcf5b><font size=-1>&nbsp;&nbsp;&nbsp;&nbsp;</font></td>
+   </tr></table>,
+   white, #9eb820005eb8
+   <table style="display:inline-block; vertical-align:middle"><tr>
+   <td bgcolor=#9eb820005eb8><font size=-1>&nbsp;&nbsp;&nbsp;&nbsp;</font></td>
+   </tr></table>
   <li><b>grayscale</b> or <b>gray</b> - black, white
+  <li><b>lipophilicity</b> - dark cyan, white, dark goldenrod
+  (default for <a href="mlp.html"><b>mlp</b></a> command,
+  along with <a href="#range"><b>range</b></a> -20,20)
   </ul>
 <br>
 <li> <i>color1</i>:<i>color2</i>:<i>color3</i>...
-a series of colon-separated
-<a href="colornames.html">color specifications</i></a>, collectively
-enclosed in quotation marks if it contains any spaces
-(example: <b>palette cornflowerblue:red:gold</b> or
-<b>palette "cornflower&nbsp;blue:red:gold"</b>).
+a series of <a href="colornames.html">color specifications</i></a> 
+separated by colons,
+collectively enclosed in quotation marks if it contains any spaces
+(example: <b>palette&nbsp;cornflowerblue:red:gold</b> or
+<b>palette&nbsp;"cornflower&nbsp;blue:red:gold"</b>).
 The colors are placed evenly in ascending value order along the range,
 with the first and last colors at the extremes.
 Colors for intermediate values are interpolated.
 <br><br>
 <li> <i>value1,color1</i>:<i>value2,color2</i>:<i>value3,color3</i>...
-a series of colon-separated
-<i>value</i>,<a href="colornames.html"><i>color-spec</i></a> pairs,
+a series of <i>value,<a href="colornames.html">color</a></i> pairs 
+separated by colons,
 collectively enclosed in quotation marks if it contains any spaces
 (example: <b>palette "0,cornflower&nbsp;blue:1,gold:0.7,red"</b>).
-This type of palette specification cannot be combined with the
-<a href="#range"><b>range</b></a> option.
 For <b>sequential</b> coloring,
 an entire range (such as the residues in each chain 
-or the chains in each model) is mapped to fractional values 0.0-1.0.
-For numerical data, the values can be specified directly in the
-<i>value</i>,<a href="colornames.html"><i>color-spec</i></a> pairs.
-Values below the lowest given will map to the same color as the lowest,
+or the chains in each model) is always mapped to fractional values 0.0-1.0.
+For numerical data,
+the values can be expressed directly on the scale of the data
+(<a href="#range"><b>range</b></a> not used)
+or as fractional values 0.0-1.0 across a range of data
+specified with <a href="#range"><b>range</b></a>.
+Values below the lowest given value will map to the same color as the lowest,
 and values above the highest will map to the same color as the highest.
 Colors are interpolated between specified value-color pairs; 
 discrete coloring can be achieved by specifying the same color 
@@ -300,8 +329,8 @@ Palette and author names must be capitalized as shown on the website.
 Palettes with &ldquo;all rights reserved&rdquo; cannot be fetched.
 In ChimeraX, the palette colors are used in left-to-right order,
 spaced equally along the range of values.
-Web-fetched palettes are automatically cached locally, as
-described for <a href="open.html#fetch"><b>open</b></a>.
+Web-fetched palettes are cached locally as
+<a href="open.html#fetch">described for <b>open</b></a>.
 </ul>
 </blockquote>
 <blockquote>
@@ -444,5 +473,5 @@ named <i>cname</i>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2016</address>
+September 2016</address>
 </body></html>

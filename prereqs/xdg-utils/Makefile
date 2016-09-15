@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.1.0-rc1
+VERSION = 1.1.1
 DISTRIBUTION = xdg-utils-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/xdg-utils-$(VERSION)
 

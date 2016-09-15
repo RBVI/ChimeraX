@@ -1,15 +1,19 @@
+<html>
+
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2016 Regents of the University of California.
+Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
-duplication and use.  This notice must be embedded in or
-attached to all copies, including partial copies, of the
-software or any revisions or derivations thereof.
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
 === UCSF ChimeraX Copyright ===
 -->
 
-<html><head>
+<head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: rename</title>
 </head><body>
@@ -22,17 +26,32 @@ class="clRight" alt="ChimeraX logo"/></a>
 <h3>Command: rename</h3>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>rename</b> 
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a> &nbsp;<i>new-name</i>
+&nbsp;<a href="atomspec.html"><i>model-spec</i></a> 
+[&nbsp;<i>new-name</i>&nbsp;]
+[&nbsp;id&nbsp;<i>new-id</i>&nbsp;]
 </h3>
 <p>
 The command <b>rename</b> changes the name of the
-<a href="atomspec.html">specified</a> model(s) to <i>new-name</i>.
-The <b>Model Panel</b> will not show the change until its display is
+<a href="atomspec.html">specified</a> model(s) to <i>new-name</i>
+and/or the ID number of a single specified top-level model to <i>new-id</i>.
+The <i>new-name</i> should precede the <b>id</b> option if both are given,
+and if <i>new-name</i> includes spaces, it should be enclosed in quotes.
+If only the name is changed,
+the <b>Model Panel</b> will not show the change until its display is
 updated by some other action such as opening or closing a model or 
 clicking a checkbox. See also: <a href="open.html"><b>open</b></a>
+</p><p>
+Example: 
 </p>
+<blockquote>
+<b>rename #1 mutant4</b>
+<br>
+<b>rename #5 id #3</b>
+<br>
+<b>rename #8 "closed conformation" id #5</b>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2016</address>
+September 2016</address>
 </body></html>

@@ -1,3 +1,14 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # -----------------------------------------------------------------------------
 # Read stack of images representing a density map.  The image filename
 # suffix gives the image number.  Images are stacked increasing order of
@@ -66,9 +77,9 @@ class Image_Stack_Data:
     mim = self.multipage_image()
     for k in range(k0, k0+ksz, kstep):
       if progress:
-        progress.plane((k-k0)/kstep)
+        progress.plane((k-k0)//kstep)
       p = self.read_plane(k, mim, channel)
-      array[(k-k0)/kstep,:,:] = p[j0:j0+jsz:jstep,i0:i0+isz:istep]
+      array[(k-k0)//kstep,:,:] = p[j0:j0+jsz:jstep,i0:i0+isz:istep]
     return array
 
   # ---------------------------------------------------------------------------

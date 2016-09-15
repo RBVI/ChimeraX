@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 '''
 place: Coordinate systems
 =========================
@@ -286,12 +298,12 @@ def scale(s):
     return Place(((s[0], 0, 0, 0), (0, s[1], 0, 0), (0, 0, s[2], 0)))
 
 
-def orthonormal_frame(zaxis, ydir=None, xdir=None):
+def orthonormal_frame(zaxis, ydir=None, xdir=None, origin=None):
     '''Return a Place object with the specified z axis.  Any rotation
     about that z axis is allowed, unless a vector ydir is given in which
     case the y axis will be in the plane define by the z axis and ydir.
     '''
-    return Place(axes=m34.orthonormal_frame(zaxis, ydir, xdir))
+    return Place(axes=m34.orthonormal_frame(zaxis, ydir, xdir), origin=origin)
 
 
 def skew_axes(cell_angles):

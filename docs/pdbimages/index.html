@@ -1,4 +1,18 @@
 <html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
 <title>PDB Assembly Images</title>
 <body>
 <h1>PDB Assembly Images</h1>
@@ -94,7 +108,7 @@ in the Mac app in
 <p>
 Some of the available commands that could be used to provide different renderings are illustrated
 in the ChimeraX <a href="../quickstart/index.html">Quick Start Guide</a> and more details is
-in the <a href="../devel/core/commands/commands.html">Programming Guide</a>.
+in the <a href="../devel/core/commands/commands.html">Programming Manual</a>.
 </p>
 
 <h2>
@@ -104,7 +118,7 @@ Options
 <p>
 There are additional options to the <i>pdbimages</i> command.  The command is not yet documented
 in the <a href="../user/index.html">User Guide</a> but is listed in the
-<a href="../devel/core/commands/commands.html#pdbimages">Programming Guide</a>.
+<a href="../devel/core/commands/commands.html#pdbimages">Programming Manual</a>.
 The following example makes 800 by 800 pixel images, with edge smoothing using supersampling
 and logs the files processed in the specified file (useful when errors occur).
 </p>
@@ -119,7 +133,7 @@ Server Rendering
 
 <p>
 The pdbimages command can be used on a Linux server without graphics and with no display by
-starting Linux ChimeraX with the <i>--nogui</i> flag and then typing the pdbimages command
+starting Linux ChimeraX with the <i>--nogui --offscreen</i> flags and then typing the pdbimages command
 to the resulting ChimeraX prompt.  This uses CPU rendering which tests showed to be approximately
 60 times slower than rendering with a graphics card and display.  It is currently not possible
 to use a graphics card without a display in ChimeraX.

@@ -1,12 +1,22 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 from chimerax.core.tools import ToolInstance
 
 class FilePanel(ToolInstance):
 
     SESSION_ENDURING = True
     SESSION_SKIP = True
-    SIZE = (575, 200)
     help = "help:user/tools/filehistory.html"
 
     def __init__(self, session, bundle_info):
@@ -20,57 +30,37 @@ class FilePanel(ToolInstance):
         class FilesWindow(MainToolWindow):
             close_destroys = False
 
-        from chimerax.core import window_sys
-        self.window_sys = window_sys
-        if self.window_sys == "wx":
-            self.tool_window = FilesWindow(self, size=self.SIZE)
-            parent = self.tool_window.ui_area
+        self.tool_window = FilesWindow(self)
+        parent = self.tool_window.ui_area
 
-            from wx import html2
-            self.file_history_window = fhw = html2.WebView.New(parent, size=self.SIZE)
-            fhw.EnableHistory(False)
+        from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+        class HtmlWindow(QWebEngineView):
+            def sizeHint(self):
+                from PyQt5.QtCore import QSize
+                return QSize(575, 200)
+        self.file_history_window = fhw = HtmlWindow(parent)
+        # TODO: Don't take focus away from command-line.  This doesn't work with QWebEngineView, QT bug 52999.
+        # from PyQt5.QtCore import Qt
+        # fhw.setFocusPolicy(Qt.NoFocus)
+        fhw.setEnabled(False)	# Prevent file history panel from taking keyboard focus.
+        # Don't record html history as log changes.
+        def clear_history(okay, fhw=fhw):
+            fhw.history().clear()
+        fhw.loadFinished.connect(clear_history)
 
-            import wx
-            sizer = wx.BoxSizer(wx.VERTICAL)
-            sizer.Add(fhw, 1, wx.EXPAND)
-            parent.SetSizerAndFit(sizer)
-            self.tool_window.manage(placement="right")
+        from PyQt5.QtWidgets import QGridLayout, QErrorMessage
+        layout = QGridLayout(parent)
+        layout.setContentsMargins(0,0,0,0)
+        layout.addWidget(self.file_history_window, 0, 0)
+        parent.setLayout(layout)
+        self.tool_window.manage(placement="side")
 
-            fhw.Bind(wx.EVT_CLOSE, self.on_close)
-            fhw.Bind(html2.EVT_WEBVIEW_LOADED, self.on_load)
-            fhw.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating, id=fhw.GetId())
-        else: # Qt
-            self.tool_window = FilesWindow(self)
-            parent = self.tool_window.ui_area
-
-            from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
-            class HtmlWindow(QWebEngineView):
-                def sizeHint(self):
-                    from PyQt5.QtCore import QSize
-                    return QSize(*FilePanel.SIZE)
-            self.file_history_window = fhw = HtmlWindow(parent)
-            # TODO: Don't take focus away from command-line.  This doesn't work with QWebEngineView, QT bug 52999.
-            # from PyQt5.QtCore import Qt
-            # fhw.setFocusPolicy(Qt.NoFocus)
-            fhw.setEnabled(False)	# Prevent file history panel from taking keyboard focus.
-            # Don't record html history as log changes.
-            def clear_history(okay, fhw=fhw):
-                fhw.history().clear()
-            fhw.loadFinished.connect(clear_history)
-
-            from PyQt5.QtWidgets import QGridLayout, QErrorMessage
-            layout = QGridLayout(parent)
-            layout.setContentsMargins(0,0,0,0)
-            layout.addWidget(self.file_history_window, 0, 0)
-            parent.setLayout(layout)
-            self.tool_window.manage(placement="right")
-
-            # TODO: The following link click binding is not working in Qt 5.6.
-            # Instead the link dispatching is going through core/ui/gui.py handling href="cxcmd:<command>".
-            def link_clicked(qurl, nav_type, is_main_frame):
-                self.navigate(qurl.toString())
-                return False
-            fhw.page().acceptNavigationRequest = link_clicked
+        # TODO: The following link click binding is not working in Qt 5.6.
+        # Instead the link dispatching is going through core/ui/gui.py handling href="cxcmd:<command>".
+        def link_clicked(qurl, nav_type, is_main_frame):
+            self.navigate(qurl.toString())
+            return False
+        fhw.page().acceptNavigationRequest = link_clicked
 
         from chimerax.core.filehistory import file_history
         file_history(session).remove_missing_files()
@@ -94,13 +84,9 @@ class FilePanel(ToolInstance):
                 name = limit_string(f.short_name(), 8)
                 import html
                 cmd = html.escape(f.open_command())
-                if self.window_sys == 'qt':
-                    # TODO: JPEG inline images cause page to be blank.
-                    i = self.default_image('PNG') if f.image is None or hbytes > max_bytes else image_jpeg_to_png(f.image, (w,h))
-                    img = '<img src="data:image/png;base64,%s" width=%d height=%d>' % (i, w, h)
-                elif self.window_sys == 'wx':
-                    i = self.default_image() if f.image is None else f.image
-                    img = '<img src="data:image/jpeg;base64,%s" width=%d height=%d>' % (i, w, h)
+                # TODO: JPEG inline images cause page to be blank.
+                i = self.default_image('PNG') if f.image is None or hbytes > max_bytes else image_jpeg_to_png(f.image, (w,h))
+                img = '<img src="data:image/png;base64,%s" width=%d height=%d>' % (i, w, h)
                 line = ('<table>'
                         '<tr><td><a href="cxcmd:%s">%s</a>'
                         '<tr><td align=center><a href="cxcmd:%s">%s</a>'
@@ -129,11 +115,8 @@ class FilePanel(ToolInstance):
     def update_html(self):
         html = self.history_html()
         fhw = self.file_history_window
-        if self.window_sys == 'wx':
-            fhw.SetPage(html, "")
-        else:
-            fhw.setHtml(html)
-#            fhw.setUrl(QUrl('file:///Users/goddard/Desktop/test.html'))  # Works with > 2Mb history html
+        fhw.setHtml(html)
+#        fhw.setUrl(QUrl('file:///Users/goddard/Desktop/test.html'))  # Works with > 2Mb history html
 
     def file_history_changed_cb(self, name, data):
         # TODO: Only update if window shown.

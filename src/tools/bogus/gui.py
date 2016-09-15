@@ -1,5 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
 #
@@ -49,7 +60,7 @@ ACTION_BUTTONS
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.webview, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
-        self.tool_window.manage(placement="right")
+        self.tool_window.manage(placement="side")
         # Add triggers for model addition/removal
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self._handlers = [session.triggers.add_handler(ADD_MODELS,

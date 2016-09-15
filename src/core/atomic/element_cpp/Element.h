@@ -1,25 +1,20 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #ifndef element_Element
 #define element_Element
-
-// Copyright (c) 1996-2009 The Regents of the University of California.
-// All rights reserved.
-// 
-// Redistribution and use in source and binary forms are permitted
-// provided that the above copyright notice and this paragraph are
-// duplicated in all such forms and that any documentation,
-// distribution and/or use acknowledge that the software was developed
-// by the Computer Graphics Laboratory, University of California,
-// San Francisco.  The name of the University may not be used to
-// endorse or promote products derived from this software without
-// specific prior written permission.
-// 
-// THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
-// IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
-// WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
-// IN NO EVENT SHALL THE REGENTS OF THE UNIVERSITY OF CALIFORNIA BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
-// OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OF THIS SOFTWARE.
 
 // $Id: Element.h 36237 2012-04-26 00:02:50Z goddard $
 

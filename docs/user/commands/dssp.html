@@ -1,0 +1,148 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: dssp</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
+class="clRight" alt="ChimeraX logo"/></a>
+
+<h3>Command: dssp</h3>
+<h3><a href="usageconventions.html">Usage</a>:
+<br><b>dssp</b> 
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;energyCutoff&nbsp;&nbsp;<i>c</i>&nbsp;]
+[&nbsp;minHelixLen&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;minStrandLen&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;report&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<p>
+The <b>dssp</b> command identifies helices and strands in protein
+atomic coordinates. It is an implementation of the algorithm for 
+<b>D</b>efining the <b>S</b>econdary <b>S</b>tructure of
+<b>P</b>roteins described in:
+<blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/6667333" target="_blank">
+Dictionary of protein secondary structure: pattern recognition of 
+hydrogen-bonded and geometrical features.</a>
+Kabsch W, Sander C.
+<i>Biopolymers.</i> 1983 Dec;22(12):2577-637.
+</blockquote>
+Per-residue helix and strand assignments are used for drawing protein 
+<a href="cartoon.html">cartoons</a>, and may be used by
+<a href="matchmaker.html"><b>matchmaker</b></a>, depending on its settings.
+In PDB format, secondary structure assignments are described in HELIX and 
+SHEET records, and analogous information is included in mmCIF files.
+However, not all input files include this information.
+The <b>dssp</b> calculation is run automatically:
+</p>
+<ul>
+<li>when an atomic structure of a protein 
+without secondary structure assignments is read
+<li>by <a href="matchmaker.html"><b>matchmaker</b></a> with default settings
+(see <a href="matchmaker.html#computeSS"><b>computeSS</b></a>),
+even when the proteins being superimposed already have 
+secondary structure assignments
+</ul>
+<p>
+The calculation applies to all protein/peptide chains in models 
+containing the <a href="atomspec.html">specified</a> atoms.
+The coordinates of protein backbone atoms (N, CA, C, O, and optionally H)
+are used to identify hydrogen bonds, which in turn define
+which residues are in helices and strands. If an amide
+hydrogen is not present, it is placed 1.01 &Aring; from N along the bisector
+of (1) the vector opposite the bisector of C-N-CA, and (2) the vector
+opposite the C-O vector from the previous amino acid.
+</p><p>
+The <b>energyCutoff</b> <i>c</i> specifies the least favorable (maximum)
+estimated energy required to classify an interaction as a hydrogen bond.
+The default is <b>&ndash;0.5</b> kcal/mol, as recommended
+by Kabsch and Sander, who add that &ldquo;A good H-bond has about &ndash;3
+kcal/mol binding energy.&rdquo;
+</blockquote>
+</p><p>
+The <b>minHelixLen</b> <i>N</i> and <b>minStrandLen</b> <i>M</i> specify the
+mininum number of residues in a helix or strand, respectively,
+and both default to <b>3</b>. Single-residue strands should not be allowed,
+as there are bridges in many structures that would confuse the
+algorithm for identifying sheets.
+</p><p>
+The <b>report</b> option (default <b>false</b>) indicates whether to
+report detailed results in the <a href="../tools/log.html"><b>Log</b></a>, 
+including helix and strand residue ranges and 
+whether ladder (strand-pair) relationships are parallel or antiparallel.
+The last section lists each protein residue followed by various symbols.
+The notation is similar to that used by Kabsch and Sander, but is in a 
+vertical instead of horizontal format. There are 6 single-character
+fields after the residue specifier, each preceded by a single space;
+if a field is blank, none of the values apply:
+<!-- 
+see src/tools/ksdssp/ksdssp.cpp
+-->
+</p>
+<table border cellpadding="5" cellspacing="0" width="90%" align="center"><tr>
+<th>Field</th><th>Possible contents and meaning</th>
+</tr><tr>
+<td align="center">1. Secondary structure type
+<br>(before filtering by minimum length)</td><td>
+<b>G</b> = 3/10-helix
+<br><b>H</b> = &alpha;-helix
+<br><b>I</b> = 5-helix
+<br><b>E</b> = &beta;-strand
+</td>
+</tr><tr>
+<td align="center">2. 3-turn status
+<br>(interactions between residues 3 apart in sequence)</td><td>
+<b>&gt;</b> = backbone CO of this residue makes H-bond (i, i+3)
+<br><b>&lt;</b> = backbone NH of this residue makes H-bond (i-3, i)
+<br><b>X</b> = both of the above
+<br><b>3</b> = not participating but bracketed
+</td>
+</tr><tr>
+<td align="center">3. 4-turn status
+<br>(interactions between residues 4 apart in sequence)</td><td>
+<b>&gt;</b> = backbone CO of this residue makes H-bond (i, i+4)
+<br><b>&lt;</b> = backbone NH of this residue makes H-bond (i-4, i)
+<br><b>X</b> = both of the above
+<br><b>4</b> = not participating but bracketed
+</td>
+</tr><tr>
+<td align="center">4. 5-turn status
+<br>(interactions between residues 5 apart in sequence)</td><td>
+<b>&gt;</b> = backbone CO of this residue makes H-bond (i, i+5)
+<br><b>&lt;</b> = backbone NH of this residue makes H-bond (i-5, i)
+<br><b>X</b> = both of the above
+<br><b>5</b> = not participating but bracketed
+</td>
+</tr><tr>
+<td align="center">5. Pairing direction</td><td>
+<b>p</b> = parallel
+<br><b>A</b> = antiparallel
+<br><b>+</b> = both (parallel on one side, antiparallel on the other)
+</td>
+</tr><tr>
+<td align="center">6. Sheet membership</td><td>
+A single-character name for the &beta;-sheet in which the residue 
+participates. Sheets are named sequentially from N- to C-terminus.
+</td>
+</tr></table>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+September 2016</address>
+</body></html>

@@ -1,5 +1,16 @@
 # vim: set expandtab ts=4 sw=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # -----------------------------------------------------------------------------
 # Graphical user interface to display surfaces, meshes, and images
 # for 3 dimensional grid data.
@@ -36,7 +47,7 @@ class VolumeViewer(ToolInstance):
         default_settings.set_gui_to_defaults(self)
 #        default_settings.add_change_callback(self.default_settings_changed_cb)
 
-        tw.manage(placement="right")
+        tw.manage(placement="side")
     
         # Add any data sets opened prior to volume dialog being created.
         self.volume_opened_cb(volume_list(session))
@@ -4553,10 +4564,6 @@ def volume_dialog(session, create=False):
 # -----------------------------------------------------------------------------
 #
 def show_volume_dialog(session):
-    from chimerax.core import window_sys
-    if window_sys == "wx":
-        return None
-
     vv = volume_dialog(session, create = True)
     vv.show()
     return vv

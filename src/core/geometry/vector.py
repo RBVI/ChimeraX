@@ -1,4 +1,16 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 '''
 vector: Point and vector operations
 ===================================
@@ -47,8 +59,8 @@ def distance(p, q):
         # Much faster than using numpy operations.
         dx,dy,dz = p[0]-q[0], p[1]-q[1], p[2]-q[2]
         return sqrt(dx*dx + dy*dy + dz*dz)
-    d = p - q
-    return sqrt((d * d).sum())
+    d = sqrt(sum((pi-qi)*(pi-qi) for pi,qi in zip(p,q)))
+    return d
 
 def interpolate_points(p1, p2, f):
     '''Linearly interpolate from point p1 to p2 by fraction f (0 -> p1, 1 -> p2).'''

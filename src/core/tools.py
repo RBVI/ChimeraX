@@ -1,5 +1,16 @@
 # vim: set expandtab ts=4 sw=4:
 
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """This module defines classes for running tools and their state manager.
 
 Attributes
@@ -349,22 +360,30 @@ class Tools(State):
 
     def start_tools(self, tool_names):
         """Start tools that are specified by name."""
+        # Errors are printed instead of logged, since logging goes to
+        # the splash screen, and that disappears before the user can
+        # see it.
         session = self._session()   # resolve back reference
         from .toolshed import ToolshedError
         from .core_settings import settings
-        auto_ti = [None] * len(tool_names)
-        for tool_inst in session.toolshed.bundle_info():
+        start_ti = [None] * len(tool_names)
+        for bi in session.toolshed.bundle_info():
+            # TODO: look for tools within bundles, not bundles with name
             try:
-                auto_ti[tool_names.index(tool_inst.name)] = tool_inst
+                start_ti[tool_names.index(bi.name)] = bi
             except ValueError:
                 continue
         # start them in the same order as given in the setting
-        for tool_inst in auto_ti:
+        for tool_name, tool_inst in zip(tool_names, start_ti):
             if tool_inst is None:
+                print("Could not find tool \"%s\"" % tool_name)
                 continue
             try:
                 tool_inst.start(session)
-            except ToolshedError as e:
-                session.logger.info("Tool \"%s\" failed to start"
-                                    % tool_inst.name)
-                print("{}".format(e))
+            #except ToolshedError as e:
+            except Exception as e:
+                msg = "Tool \"%s\" failed to start" % tool_inst.name
+                # session.logger.info(msg)
+                print(msg)
+                import traceback
+                traceback.print_exc()

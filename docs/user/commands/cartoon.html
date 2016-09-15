@@ -1,15 +1,19 @@
+<html>
+
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015-2016 Regents of the University of California.
+Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
-duplication and use.  This notice must be embedded in or
-attached to all copies, including partial copies, of the
-software or any revisions or derivations thereof.
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
 === UCSF ChimeraX Copyright ===
 -->
 
-<html><head>
+<head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: cartoon, ribbon</title>
 </head><body>
@@ -52,9 +56,10 @@ The commands <a href="show.html"><b>hide</b></a> and
 See also:
 <a href="rungs.html"><b>rungs</b></a>,
 <a href="struts.html"><b>struts</b></a>,
-<a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons
+<a href="../tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
 </p><p>
-Protein helix and strand assignments are taken from the input structure file.
+Protein helix and strand assignments are read from the input structure file
+or calculated with <a href="dssp.html"><b>dssp</b></a>.
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
 and C5' in nucleic acids. The orientation is guided by CA&rarr;O (carbonyl
 oxygen) vectors in peptides and C5'&rarr;C1' vectors in nucleic acids.

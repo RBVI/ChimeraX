@@ -1,4 +1,18 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #ifndef atomstruct_Residue
 #define atomstruct_Residue
 
@@ -189,6 +203,8 @@ inline void
 Residue::set_is_helix(bool ih) {
     if (ih == _is_helix)
         return;
+    if (ih)
+        _structure->set_ss_assigned(true);
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_HELIX);
     _is_helix = ih;
     _structure->set_gc_ribbon();
@@ -206,6 +222,8 @@ inline void
 Residue::set_is_sheet(bool is) {
     if (is == _is_sheet)
         return;
+    if (is)
+        _structure->set_ss_assigned(true);
     _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_SHEET);
     _is_sheet = is;
     _structure->set_gc_ribbon();

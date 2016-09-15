@@ -1,4 +1,18 @@
 // vi: set expandtab ts=4 sw=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #ifndef atomstruct_structureseq
 #define atomstruct_structureseq
 
@@ -60,7 +74,6 @@ public:
     // is character sequence derived from SEQRES records (or equivalent)?
     bool  from_seqres() const { return _from_seqres; }
     Contents::const_reference  front() const { return Sequence::front(); }
-    const Residues&  residues() const { return _residues; }
     Residue*  get(unsigned i) const { return _residues[i]; }
     virtual bool  is_chain() const { return false; }
     bool  is_sequence() const { return _structure == nullptr; }
@@ -69,6 +82,7 @@ public:
     void  pop_front();
     void  push_back(Residue* r);
     void  push_front(Residue* r);
+    const Residues&  residues() const { return _residues; }
     int  session_num_floats(int version=0) const {
         return Sequence::session_num_floats(version) + SESSION_NUM_FLOATS(version);
     }

@@ -1,15 +1,19 @@
+<html>
+
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2016 Regents of the University of California.
+Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
-duplication and use.  This notice must be embedded in or
-attached to all copies, including partial copies, of the
-software or any revisions or derivations thereof.
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
 === UCSF ChimeraX Copyright ===
 -->
 
-<html><head>
+<head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: mlp</title>
 </head><body>
@@ -23,11 +27,11 @@ class="clRight" alt="ChimeraX logo"/></a>
 <h3><a href="usageconventions.html">Usage</a>:
 <br><b>mlp</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;method&nbsp;&nbsp;fauchere&nbsp;|&nbsp;brasseur&nbsp;|&nbsp;type5&nbsp;|&nbsp;dubost&nbsp;|&nbsp;buckingham&nbsp;[&nbsp;nexp&nbsp;<i>n</i>&nbsp;]]
-[&nbsp;spacing&nbsp;<i>s</i>&nbsp;]
 [&nbsp;maxDistance&nbsp;<i>D</i>&nbsp;]
+[&nbsp;spacing&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>map</b>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<i><a href="color.html#palette-options">palette-options</a></i>&nbsp;
+&nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 </h3>
 <p>
 The command <b>mlp</b> calculates molecular lipophilicity potential (MLP) 
@@ -55,18 +59,21 @@ distance cutoff, have been added in ChimeraX.
 See also: 
 <a href="color.html"><b>color</b></a>,
 <a href="surface.html"><b>surface</b></a>,
-<a href="volume.html"><b>volume</b></a>
+<a href="volume.html"><b>volume</b></a>,
+some <a href="http://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/"
+target="_blank">comparisons</a> at the Chimera website
 </p><p>
 The <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</b></a>
 program includes values for nonhydrogen atoms in the 20 standard 
 amino acids plus HYP (hydroxyproline) and PCA (pyroglutamic acid). 
 Other atoms are ignored.
+The potential at each grid point is a sum over the atomic contributions.
+Positive potentials correspond to more lipophilic (more hydrophobic) areas,
+negative to less lipophilic (more hydrophilic) areas. 
 </p><p>
 The <b>method</b> specifies how the atomic values propagate through space,
 with factors based on the distance <i>d</i> from the atom.
-The potential at each grid point is a sum over the atomic contributions.
-Positive potentials correspond to more lipophilic (more hydrophobic) areas,
-negative to less lipophilic (more hydrophilic) areas. Choices of <b>method</b>:
+Choices of <b>method</b>:
 <ul>
 <font size="+1">
 <li><b>fauchere</b> (default): <i>e</i><sup>&ndash;<i>d</i></sup>
@@ -77,14 +84,10 @@ negative to less lipophilic (more hydrophilic) areas. Choices of <b>method</b>:
 </font>
 <br>... <i>n</i> given with the <b>nexp</b> option (default <b>3.0</b>)
 </ul>
-The <b>spacing</b> <i>s</i> of the map grid can be
-specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
-Decreasing the spacing increases map size and calculation time.
-</p><p>
 The <b>maxDistance</b> <i>D</i> is a distance cutoff
 beyond which an atom's contribution is ignored (default <b>5.0</b> &Aring;).
 Increasing the cutoff increases calculation time; the results
-may change only subtly or more noticeably depending on the method.
+may change only subtly or more noticeably depending on the <b>method</b>.
 </p><p>
 With <b>color true</b> (default),
 the molecular surface(s) for the <a href="atomspec.html">specified</a>
@@ -94,16 +97,28 @@ based on all of its enclosed atoms.
 If the surfaces do not yet exist, they will be created as if the
 same atoms had been specified in the
 <a href="surface.html"><b>surface</b></a> command.
-The coloring <a href="color.html#palette-options"><i>palette-options</i></a>
-are as described for <a href="color.html"><b>color</b></a>,
+MLP value ranges for each surface are reported in the
+<a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
+<a name="palette-options"></a>
+The coloring <b><i>palette-options</i></b> are the same as
+<a href="color.html#palette-options">described for <b>color</b></a>,
 except with defaults:
+</p>
 <blockquote>
-<b>palette&nbsp;"dark&nbsp;cyan:white:dark&nbsp;goldenrod"&nbsp;range&nbsp;-20,20</b>
+<b>palette&nbsp;"dark cyan:white:dark goldenrod"&nbsp;range&nbsp;-20,20</b>
 </blockquote>
+<p>
+Different choices of <b>method</b> and/or <b>maxDistance</b> can give very 
+different values, and the coloring <b>range</b> may need to be adjusted.
 </p><p>
 With <b>color false</b>, a single MLP map will be calculated based on 
 the <a href="atomspec.html">specified</a> atoms only,
 and no surface calculations or coloring will be performed.
+</p><p>
+The <b>spacing</b> <i>s</i> of the map grid can be
+specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
+Decreasing the spacing increases map size and calculation time.
 </p><p>
 If the <b>map</b> keyword is given, the map(s) will be
 opened as volume models; this allows subsequently 
@@ -114,5 +129,5 @@ and/or <a href="save.html">saving</a> the maps to file.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2016</address>
+September 2016</address>
 </body></html>

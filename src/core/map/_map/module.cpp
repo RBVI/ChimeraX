@@ -1,4 +1,18 @@
 // vi: set expandtab shiftwidth=4 softtabstop=4:
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
@@ -61,6 +75,8 @@ static struct PyMethodDef map_cpp_methods[] =
   {const_cast<char*>("sum_of_gaussians"), (PyCFunction)py_sum_of_gaussians,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("sum_of_balls"), (PyCFunction)py_sum_of_balls,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("covariance_sum"), (PyCFunction)covariance_sum,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* histogram.h */

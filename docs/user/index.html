@@ -1,15 +1,19 @@
+<html>
+
 <!--
 === UCSF ChimeraX Copyright ===
-Copyright (c) 2015-2016 Regents of the University of California.
+Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
-duplication and use.  This notice must be embedded in or
-attached to all copies, including partial copies, of the
-software or any revisions or derivations thereof.
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
 === UCSF ChimeraX Copyright ===
 -->
 
-<html><head>
+<head>
 <title>UCSF ChimeraX User Guide</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
@@ -17,7 +21,7 @@ software or any revisions or derivations thereof.
 
 <a name="top"></a>
 <h2><img width="70px" src="ChimeraX-icon.svg" alt="ChimeraX logo"
-title="click this icon on User Guide pages to return to this index"/>
+title="click this icon in User Guide pages to return to this index"/>
 UCSF ChimeraX User Guide</h2>
 <p>
 <a href="http://www.rbvi.ucsf.edu/chimerax/" 
@@ -33,26 +37,28 @@ target="_blank"><b>UCSF Chimera</b></a>.
 <li><a href="images.html">Making Images</a></li>
 <li><a href="movies.html">Making Movies</a></li>
 <li><a href="../credits.html">Citing ChimeraX</a></li>
+<li><a href="../index.html">Documentation Index</a></li>
 </ul>
 <li><a name="tools">Tools</a>:</li>
 <ul>
 <li><a href="tools/cli.html"><b>Command Line Interface</b></a>
 </li>
-<li><a href="tools/densitymaps.html"><b>Density Maps</b></a>
+<li><a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
 <img class="iconbar" src="density-icons.png">
 </li>
-<li><a href="tools/graphics.html"><b>Graphics</b></a>
+<li><a href="tools/graphics.html"><b>Graphics Toolbar</b></a>
 <img class="iconbar" src="graphics-icons.png">
 </li>
 <li><a href="tools/log.html"><b>Log</b></a>
 </li>
-<li><a href="tools/moldisplay.html"><b>Molecule Display</b></a>
+<li><a href="tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
 <img class="iconbar" src="molecule-icons.png">
 </li>
 <li><a href="tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
 <img class="iconbar" src="mouse-icons.png">
 </li>
-<li><b>Side View</b>
+<li><a href="tools/sideview.html"><b>Side View</b></a>
+- intuitive zooming and clipping
 </li>
 </ul>
 <li><a name="commands">Commands</a>:</li>
@@ -83,19 +89,27 @@ target="_blank"><b>UCSF Chimera</b></a>.
 - color atoms/bonds, cartoons, surfaces</li>
 <li><a href="commands/delete.html"><b>delete</b></a>
 - delete atoms</li>
+<li><a href="commands/dssp.html"><b>dssp</b></a>
+- define secondary structure of proteins using atomic coordinates</li>
 <li><a href="commands/exit.html"><b>exit</b> or <b>quit</b></a>
  - exit from ChimeraX</li>
 <li><a href="commands/fitmap.html"><b>fitmap</b></a>
 - fit atoms or map into map</li>
+<li><a href="commands/help.html"><b>help</b></a>
+- show command help, web page, or local file 
+in the ChimeraX internal browser</li>
 <li><a href="commands/lighting.html"><b>lighting</b></a>
 - report or adjust lights and shadows</li>
 <li><a href="commands/log.html"><b>log</b></a>
 - clear, save to file, and other actions related to the 
 <a href="tools/log.html"><b>Log</b></a></li>
+<li><a href="commands/matchmaker.html"><b>matchmaker</b> or <b>mmaker</b></a>
+- superimpose proteins or nucleic acids, guided by sequence alignment</li>
 <li><a href="commands/material.html"><b>material</b></a>
 - report or adjust material properties for light reflection</li>
 <li><a href="commands/mlp.html"><b>mlp</b></a>
-- calculate molecular lipophilicity potential (MLP) for proteins</li>
+- calculate molecular lipophilicity potential (MLP) for proteins,
+color surfaces</li>
 <li><a href="commands/molmap.html"><b>molmap</b></a>
 - create a density map from atomic coordinates</li>
 <li><a href="commands/move.html"><b>move</b></a>
@@ -109,12 +123,12 @@ target="_blank"><b>UCSF Chimera</b></a>.
 <li><a href="commands/open.html"><b>open</b></a>
  - open local file or fetch from repository</li> 
 <li><a href="commands/position.html"><b>position</b></a>
-- set location and orientation of camera, models by input matrix</li>
+- set location and orientation of camera, models by input matrices</li>
 <li><a href="commands/pwd.html"><b>pwd</b></a>
 - print working directory to the 
 <a href="tools/log.html"><b>Log</b></a></li>
 <li><a href="commands/rename.html"><b>rename</b></a>
-- rename models</li>
+- change model name and/or ID number</li>
 <li><a href="commands/roll.html"><b>roll</b></a>
 - rotate models continuously</li>
 <li><a href="commands/rungs.html"><b>rungs</b></a>
@@ -143,6 +157,8 @@ target="_blank"><b>UCSF Chimera</b></a>.
 - adjust transparency of atoms/bonds, cartoons, surfaces</li>
 <li><a href="commands/turn.html"><b>turn</b></a>
 - rotate models</li>
+<li><a href="commands/usage.html"><b>usage</b></a>
+- show brief description of command syntax and options</li>
 <li><a href="commands/version.html"><b>version</b></a>
 - report ChimeraX version</li>
 <li><a href="commands/view.html"><b>view</b></a>
@@ -161,13 +177,11 @@ target="_blank"><b>UCSF Chimera</b></a>.
 <p>
 Additional commands exist but lack detailed documentation;
 several are listed below.
-Some resemble the corresponding Chimera commands,
-except for <a href="commands/atomspec-diffsum.html">target-specification
-differences</a>. Try
-<b>usage <i>command</i></b> (for example, <b>usage set</b>)
+Try <b><a href="commands/usage.html">usage</a> <i>command</i></b>
 to show a brief description,
-<b>help <i>command</i></b> to show full documentation, if available.
-Commands and their syntax are potentially subject to change.
+<b><a href="commands/help.html">help</a> <i>command</i></b>
+to show the detailed documentation, if available.
+Commands and their syntax may change.
 </p>
 <ul>
 <li><b>align</b>
@@ -192,7 +206,8 @@ target="_blank"><b>perframe</b></a></li>
 <li><b>pdbimages</b>
 - batch-render images of molecular assemblies defined in mmCIF files
 (see <a href="../pdbimages/index.html">examples</a>)</li>
-<li><b>oculus</b></li>
+<li><b>oculus</b> - mode for Oculus Rift VR system</li>
+<li><b>vive</b> - mode for HTC Vive VR system</li>
 </ul>
 </ul>
 

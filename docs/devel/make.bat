@@ -1,3 +1,14 @@
+REM === UCSF ChimeraX Copyright ===
+REM Copyright 2016 Regents of the University of California.
+REM All rights reserved.  This software provided pursuant to a
+REM license agreement containing restrictions on its disclosure,
+REM duplication and use.  For details see:
+REM http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+REM This notice must be embedded in or attached to all copies,
+REM including partial copies, of the software or any revisions
+REM or derivations thereof.
+REM === UCSF ChimeraX Copyright ===
+
 @ECHO OFF
 
 REM Command file for Sphinx documentation

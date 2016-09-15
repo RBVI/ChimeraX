@@ -35,6 +35,15 @@ dist
 *.out
 _build
 src/apps/structcomp/structcomp.sh
+src/apps/ChimeraX/ChimeraX.ico
+src/apps/ChimeraX/icon.rc
 src/core/buildinfo.py
 src/core/commands/_atomspec.py
 src/wheelhouse/Makefile.wheelhouse
+src/core/ui/about.html
+prereqs/PyQt/*commercial*
+docs/license.html
+docs/license.txt
+docs/embedded.html
+docs/devel/index.rst
+docs/licenses
