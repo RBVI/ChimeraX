@@ -359,6 +359,9 @@ class Atoms(Collection):
         "array of int32 values.  Possible values:\nHIDE_RIBBON\n    Hide mask for backbone atoms "
         "in ribbon.\nCan be set with such an array (or equivalent sequence), or with a single "
         "integer value.")
+    idatm_types = cvec_property('atom_idatm_type', string,
+        doc="Returns a numpy array of IDATM types.  Can be set with such an array (or equivalent "
+        "sequence), or with a single string.")
     in_chains = cvec_property('atom_in_chain', npy_bool, read_only = True,
         doc="Whether each atom belong to a polymer. Returns numpy bool array. Read only.")
 
