@@ -2314,6 +2314,17 @@ extern "C" EXPORT void sseq_existing_residues(void *chains, size_t n, pyobject_t
     }
 }
 
+extern "C" EXPORT void* sseq_residue_at(void *sseq_ptr, size_t i)
+{
+    StructureSeq *sseq = static_cast<StructureSeq*>(sseq_ptr);
+    try {
+        return sseq->residues()[i];
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 // -------------------------------------------------------------------------
 // change tracker functions
 //
