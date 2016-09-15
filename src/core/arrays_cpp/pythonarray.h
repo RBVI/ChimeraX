@@ -75,6 +75,8 @@ ARRAYS_IMEX int parse_int_3_array(PyObject *arg, void *i3);
 ARRAYS_IMEX int parse_float_3_array(PyObject *arg, void *f3);
 ARRAYS_IMEX int parse_double_3_array(PyObject *arg, void *f3);
 ARRAYS_IMEX int parse_float_4_array(PyObject *arg, void *f4);
+ARRAYS_IMEX int parse_float_3x3_array(PyObject *arg, void *f3x3);
+ARRAYS_IMEX int parse_double_3x3_array(PyObject *arg, void *d3x3);
 ARRAYS_IMEX int parse_float_3x4_array(PyObject *arg, void *f3x4);
 ARRAYS_IMEX int parse_double_3x4_array(PyObject *arg, void *d3x4);
 ARRAYS_IMEX int parse_writable_float_3d_array(PyObject *arg, void *farray);

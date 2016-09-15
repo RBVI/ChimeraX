@@ -33,6 +33,7 @@ from ._map import extend_crystal_map
 from ._map import moments, affine_scale
 from ._map import local_correlation
 from ._map import linear_combination
+from ._map import covariance_sum
 
 # -----------------------------------------------------------------------------
 # Mouse modes for moving planes and changing contour level

@@ -37,6 +37,10 @@ class Bounds:
         "Center of bounding box."
         return 0.5 * (self.xyz_min + self.xyz_max)
 
+    def size(self):
+        "Size of box along x,y,z axes."
+        return self.xyz_max - self.xyz_min
+
     def width(self):
         "Maximum of size of box x,y,z axes."
         return (self.xyz_max - self.xyz_min).max()

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None, area_cutoff = 300):
+def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
@@ -37,7 +37,7 @@ def contacts(session, atoms = None, probe_radius = 1.4, spring_constant = None, 
 
     if session.ui.is_gui:
         from . import gui
-        gui.ContactPlot(session, sg, ba, spring_constant)
+        gui.ContactPlot(session, sg, ba)
     else:
         log.warning("unable to show graph without GUI")
 
@@ -47,7 +47,6 @@ def register_contacts():
     desc = CmdDesc(
         optional = [('atoms', AtomsArg),],
         keyword = [('probe_radius', FloatArg),
-                   ('spring_constant', FloatArg),
                    ('area_cutoff', FloatArg),])
     register('contacts', desc, contacts)
 
@@ -81,6 +80,18 @@ class SphereGroup:
         if hasattr(self, '_original_coords'):
             self.atoms.coords = self._original_coords
             delattr(self, '_original_coords')
+
+    def color_atoms(self, atoms, color):
+        '''Restore original colors before coloring a subset of atoms.'''
+        if hasattr(self, '_original_atom_colors'):
+            self.atoms.colors = self._original_atom_colors
+        else:
+            self._original_atom_colors = self.atoms.colors
+        atoms.colors = color
+
+    def restore_atom_colors(self):
+        if hasattr(self, '_original_atom_colors'):
+            self.atoms.colors = self._original_atom_colors
 
 def chain_spheres(atoms, session):
     if atoms is None:
@@ -226,6 +237,15 @@ class Contact:
         else:
             g1.move(-step)
             g2.move(step)
+
+    def interface_frame(self, facing_group):
+        r1, r2 = [self.contact_residues(g) for g in (self.group1, self.group2)]
+        xyz1, xyz2 = [r.atoms.scene_coords.mean(axis = 0) for r in (r1,r2)]
+        zaxis = (xyz2 - xyz1) if facing_group is self.group1 else (xyz1 - xyz2)
+        center = 0.5 * (xyz1 + xyz2)
+        from chimerax.core.geometry import orthonormal_frame
+        f = orthonormal_frame(zaxis, origin = center)
+        return f
         
 def buried_area(xyz1, r1, a1, xyz2, r2, a2):
 

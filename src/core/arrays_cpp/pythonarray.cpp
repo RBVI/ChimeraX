@@ -971,6 +971,20 @@ extern "C" int parse_writable_double_n_array(PyObject *arg, void *farray)
 
 // ----------------------------------------------------------------------------
 //
+extern "C" int parse_float_3x3_array(PyObject *arg, void *f33)
+{
+  return python_array_to_c(arg, static_cast<float*>(f33), 3, 3) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_double_3x3_array(PyObject *arg, void *d33)
+{
+  return python_array_to_c(arg, static_cast<double*>(d33), 3, 3) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" int parse_float_3x4_array(PyObject *arg, void *f34)
 {
   return python_array_to_c(arg, static_cast<float*>(f34), 3, 4) ? 1 : 0;
