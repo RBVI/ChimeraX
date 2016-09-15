@@ -190,3 +190,44 @@ extern "C" PyObject *py_sum_of_balls(PyObject *, PyObject *args, PyObject *keywd
   Py_INCREF(Py_None);
   return Py_None;
 }
+
+// ----------------------------------------------------------------------------
+//
+static void covariance_sum(float c[3][3], float center[3], float scale, FArray &array)
+{
+  int ksize = array.size(0), jsize = array.size(1), isize = array.size(2);
+  float i0 = center[0], j0 = center[1], k0 = center[2];
+  long as0 = array.stride(0), as1 = array.stride(1), as2 = array.stride(2);
+  float *aa = array.values();
+  for (int k = 0 ; k < ksize ; ++k)
+    for (int j = 0 ; j < jsize ; ++j)
+      for (int i = 0 ; i < isize ; ++i)
+	{
+	  float vi = i-i0, vj = j-j0, vk = k-k0;
+	  float e = (vi * (c[0][0]*vi + c[0][1]*vj + c[0][2]*vk) +
+		     vj * (c[1][0]*vi + c[1][1]*vj + c[1][2]*vk) +
+		     vk * (c[2][0]*vi + c[2][1]*vj + c[2][2]*vk));
+	  aa[as0*k + as1*j + as2*i] += scale*expf(-0.5*e);
+	}
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *covariance_sum(PyObject *, PyObject *args, PyObject *keywds)
+{
+  float cov_inv[3][3], center[3], scale;
+  FArray array;
+  const char *kwlist[] = {"cov_inv", "center", "scale", "array", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds,
+				   const_cast<char *>("O&O&fO&"), (char **)kwlist,
+				   parse_float_3x3_array, &cov_inv[0][0],
+				   parse_float_3_array, &center,
+				   &scale,
+				   parse_writable_float_3d_array, &array))
+    return NULL;
+
+  covariance_sum(cov_inv, center, scale, array);
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}

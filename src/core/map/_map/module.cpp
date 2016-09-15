@@ -76,6 +76,8 @@ static struct PyMethodDef map_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("sum_of_balls"), (PyCFunction)py_sum_of_balls,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("covariance_sum"), (PyCFunction)covariance_sum,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* histogram.h */
   {const_cast<char*>("minimum_and_maximum"), (PyCFunction)minimum_and_maximum,
