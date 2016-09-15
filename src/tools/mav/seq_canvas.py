@@ -1250,7 +1250,22 @@ class SeqCanvas:
 		self._treeCallback = callback
 		self.treeShown = self.nodesShown = bool(tree)
 		self.mav.triggers.activateTrigger(DISPLAY_TREE, tree)
+        """
 
+	def _label_scene(self, grid=true):
+		if self.should_wrap():
+			label_scene = self.main_scene
+			if grid:
+				self.label_view.hide()
+				self._vdivider.hide()
+		else:
+			label_scene = self.label_scene
+			if grid:
+				self.label_view.show()
+				self._vdivider.show()
+		return label_scene
+			
+    """
 	def _undoRedo(self, undo):
 		# up/down == redo/undo
 		curOffset, curEdited, curLeft, curRight = self._checkPoints[
@@ -1284,22 +1299,24 @@ class SeqCanvas:
 		for seq, chkSeq in zip(self.seqs, checkPoint):
 			seq[:] = chkSeq
 		self._editRefresh(self.seqs, left, right)
+        """
 
 
 class SeqBlock:
-	normalLabelColor = 'black'
-	headerLabelColor = 'blue'
+	normal_label_color = 'black'
+	header_label_color = 'blue'
 
-	def __init__(self, labelCanvas, mainCanvas, prevBlock, font, seqOffset,
-			headers, seqs, lineWidth, labelBindings, statusFunc,
-			showRuler, treeBalloon, showNumberings, prefs):
-		self.labelCanvas = labelCanvas
-		self.mainCanvas = mainCanvas
-		self.prevBlock = prevBlock
-		self.seqs = seqs
+	def __init__(self, label_scene, main_scene, prev_block, font, seq_offset,
+			headers, alignment, line_width, label_bindings, status_func,
+			show_ruler, tree_balloon, show_numberings, prefs):
+		self.label_scene = label_scene
+		self.main_scene = main_scene
+		self.prev_block = prev_block
+		self.alignment = alignment
 		self.font = font
-		self.labelBindings = labelBindings
-		self.statusFunc = statusFunc
+        """
+		self.label_bindings = label_bindings
+		self.status_func = status_func
 		self._mouseID = None
 		if len(seqs) == 1:
 			prefPrefix = SINGLE_PREFIX
@@ -1315,21 +1332,21 @@ class SeqBlock:
 			self.blockGap = 15
 		else:
 			self.blockGap = 0
-		self.showRuler = showRuler
-		self.treeBalloon = treeBalloon
-		self.showNumberings = showNumberings[:]
+		self.show_ruler = show_ruler
+		self.tree_balloon = tree_balloon
+		self.show_numberings = show_numberings[:]
 		self.prefs = prefs
-		self.seqOffset = seqOffset
-		self.lineWidth = lineWidth
+		self.seq_offset = seq_offset
+		self.line_width = line_width
 
-		if prevBlock:
-			self.topY = prevBlock.bottomY + self.blockGap
-			self.labelWidth = prevBlock.labelWidth
-			self.fontPixels = prevBlock.fontPixels
-			self.lines = prevBlock.lines
-			self.lineIndex = prevBlock.lineIndex
-			self.emphasisFont = prevBlock.emphasisFont
-			self.numberingWidths = prevBlock.numberingWidths
+		if prev_block:
+			self.topY = prev_block.bottomY + self.blockGap
+			self.labelWidth = prev_block.labelWidth
+			self.fontPixels = prev_block.fontPixels
+			self.lines = prev_block.lines
+			self.lineIndex = prev_block.lineIndex
+			self.emphasisFont = prev_block.emphasisFont
+			self.numberingWidths = prev_block.numberingWidths
 		else:
 			self.topY = 0
 			self.lineIndex = {}
@@ -1353,8 +1370,8 @@ class SeqBlock:
 			recurLimit = sys.getrecursionlimit()
 			# seems to be a hidden factor of 4 between the recursion
 			# limit and the actual stack depth (!)
-			if 4 * (100 + len(seqs[0]) / lineWidth) > recurLimit:
-				sys.setrecursionlimit(4 * int(100 + len(seqs[0]) / lineWidth))
+			if 4 * (100 + len(seqs[0]) / line_width) > recurLimit:
+				sys.setrecursionlimit(4 * int(100 + len(seqs[0]) / line_width))
 		self.bottomY = self.topY
 
 		self.labelTexts = {}
@@ -1369,13 +1386,13 @@ class SeqBlock:
 		self.layoutLines(headers, self.headerLabelColor)
 		self.layoutLines(self.seqs, self.normalLabelColor)
 
-		if seqOffset + lineWidth >= len(seqs[0]):
+		if seq_offset + line_width >= len(seqs[0]):
 			self.nextBlock = None
 		else:
-			self.nextBlock = SeqBlock(labelCanvas, mainCanvas,
-				self, self.font, seqOffset + lineWidth, headers,
-				seqs, lineWidth, labelBindings, statusFunc,
-				showRuler, treeBalloon, showNumberings,
+			self.nextBlock = SeqBlock(label_scene, main_scene,
+				self, self.font, seq_offset + line_width, headers,
+				seqs, line_width, label_bindings, status_func,
+				show_ruler, tree_balloon, show_numberings,
 				self.prefs)
 
 	def activateNode(self, node, callback=None,
@@ -1384,13 +1401,13 @@ class SeqBlock:
 		if active == node:
 			return
 		if active:
-			self.labelCanvas.itemconfigure(
+			self.label_scene.itemconfigure(
 					self.treeNodeMap[active], fill='black')
-		self.labelCanvas.itemconfigure(
+		self.label_scene.itemconfigure(
 					self.treeNodeMap[node], fill='red')
 		self.treeNodeMap['active'] = node
-		if not fromPrev and self.prevBlock:
-			self.prevBlock.activateNode(node, callback,
+		if not fromPrev and self.prev_block:
+			self.prev_block.activateNode(node, callback,
 								fromNext=True)
 		if not fromNext and self.nextBlock:
 			self.nextBlock.activateNode(node, callback,
@@ -1400,9 +1417,9 @@ class SeqBlock:
 
 	def addSeqs(self, seqs, pushDown=0):
 		self.topY += pushDown
-		if self.prevBlock:
-			newLabelWidth = self.prevBlock.labelWidth
-			newNumberingWidths = self.prevBlock.numberingWidths
+		if self.prev_block:
+			newLabelWidth = self.prev_block.labelWidth
+			newNumberingWidths = self.prev_block.numberingWidths
 			insertIndex = len(self.lines) - len(seqs)
 		else:
 			insertIndex = len(self.lines)
@@ -1419,7 +1436,7 @@ class SeqBlock:
 		self.numberingWidths = newNumberingWidths
 
 		for rulerText in self.rulerTexts:
-			self.mainCanvas.move(rulerText,
+			self.main_scene.move(rulerText,
 				labelChange + numberingChanges[0], pushDown)
 		self.bottomRulerY += pushDown
 
@@ -1443,13 +1460,13 @@ class SeqBlock:
 
 	def assocSeq(self, aseq):
 		item = self.labelTexts[aseq]
-		self.labelCanvas.itemconfigure(item, font=self._labelFont(aseq))
+		self.label_scene.itemconfigure(item, font=self._labelFont(aseq))
 		associated = self.hasAssociatedStructures(aseq)
 		if associated:
 			self._colorizeLabel(aseq)
 		else:
 			if self.labelRects.has_key(aseq):
-				self.labelCanvas.delete(self.labelRects[aseq])
+				self.label_scene.delete(self.labelRects[aseq])
 				del self.labelRects[aseq]
 		if self._largeAlignment():
 			lineItems = self.lineItems[aseq]
@@ -1458,7 +1475,7 @@ class SeqBlock:
 				if not item:
 					continue
 				if associated:
-					self._assocResBind(item, aseq, self.seqOffset+i)
+					self._assocResBind(item, aseq, self.seq_offset+i)
 				else:
 					item.tagBind('<Enter>', "")
 					item.tagBind('<Leave>', "")
@@ -1472,12 +1489,12 @@ class SeqBlock:
 		return halfX, leftRectOff, rightRectOff
 
 	def bboxList(self, line1, line2, pos1, pos2, coverGaps):
-		if pos1 >= self.seqOffset + self.lineWidth:
+		if pos1 >= self.seq_offset + self.line_width:
 			return self.nextBlock.bboxList(line1, line2, pos1, pos2,
 								coverGaps)
-		left = max(pos1, self.seqOffset) - self.seqOffset
-		right = min(pos2, self.seqOffset + self.lineWidth - 1) \
-							- self.seqOffset
+		left = max(pos1, self.seq_offset) - self.seq_offset
+		right = min(pos2, self.seq_offset + self.line_width - 1) \
+							- self.seq_offset
 		bboxes = []
 		if coverGaps:
 			bboxes.append(self._boxCorners(left,right,line1,line2))
@@ -1490,7 +1507,7 @@ class SeqBlock:
 				l = None
 				for lo in range(left, right+1):
 					if line.gapped2ungapped(lo +
-							self.seqOffset) is None:
+							self.seq_offset) is None:
 						# gap
 						if l is not None:
 							bboxes.append(self._boxCorners(l, lo-1, line, line))
@@ -1503,7 +1520,7 @@ class SeqBlock:
 					bboxes.append(self._boxCorners(
 							l, right, line, line))
 							
-		if pos2 >= self.seqOffset + self.lineWidth:
+		if pos2 >= self.seq_offset + self.line_width:
 			bboxes.extend(self.nextBlock.bboxList(
 					line1, line2, pos1, pos2, coverGaps))
 		return bboxes
@@ -1583,13 +1600,13 @@ class SeqBlock:
 
 	def _colorizeLabel(self, aseq):
 		labelText = self.labelTexts[aseq]
-		bbox = self.labelCanvas.bbox(labelText)
+		bbox = self.label_scene.bbox(labelText)
 		if self.labelRects.has_key(aseq):
 			labelRect = self.labelRects[aseq]
-			self.labelCanvas.coords(labelRect, *bbox)
+			self.label_scene.coords(labelRect, *bbox)
 		else:
-			labelRect = self.labelCanvas.create_rectangle(*bbox)
-			self.labelCanvas.tag_lower(labelRect, labelText)
+			labelRect = self.label_scene.create_rectangle(*bbox)
+			self.label_scene.tag_lower(labelRect, labelText)
 			self.labelRects[aseq] = labelRect
 		if len(aseq.matchMaps) > 1:
 			stipple = ""
@@ -1602,23 +1619,23 @@ class SeqBlock:
 			stipple= ""
 			dash = ""
 			outline = ""
-		self.labelCanvas.itemconfigure(labelRect, stipple=stipple,
+		self.label_scene.itemconfigure(labelRect, stipple=stipple,
 					dash=dash, outline=outline, fill=color)
 
 	def _computeNumbering(self, line, end):
 		if end == 0:
-			count = len([c for c in line[:self.seqOffset]
+			count = len([c for c in line[:self.seq_offset]
 						if c.isalpha()])
 			if count == len(line.ungapped()):
 				count -= 1
 		else:
-			count = len([c for c in line[:self.seqOffset
-				+ self.lineWidth] if c.isalpha()]) - 1
+			count = len([c for c in line[:self.seq_offset
+				+ self.line_width] if c.isalpha()]) - 1
 		return line.numberingStart + count
 
 	def dehighlightName(self):
 		if self.highlightedName:
-			self.labelCanvas.itemconfigure(self.highlightedName,
+			self.label_scene.itemconfigure(self.highlightedName,
 				fill=self.normalLabelColor)
 			self.highlightedName = None
 			if self.nextBlock:
@@ -1629,20 +1646,20 @@ class SeqBlock:
 			self.nextBlock.destroy()
 			self.nextBlock = None
 		for rulerText in self.rulerTexts:
-			self.mainCanvas.delete(rulerText)
+			self.main_scene.delete(rulerText)
 		for labelText in self.labelTexts.values():
-			self.labelCanvas.delete(labelText)
+			self.label_scene.delete(labelText)
 		for numberings in self.numberingTexts.values():
 			for numbering in numberings:
 				if numbering:
-					self.mainCanvas.delete(numbering)
+					self.main_scene.delete(numbering)
 		for box in self.treeItems['boxes']:
-			self.treeBalloon.tagunbind(self.labelCanvas, box)
+			self.tree_balloon.tagunbind(self.label_scene, box)
 		for treeItems in self.treeItems.values():
 			for treeItem in treeItems:
-				self.labelCanvas.delete(treeItem)
+				self.label_scene.delete(treeItem)
 		for labelRect in self.labelRects.values():
-			self.labelCanvas.delete(labelRect)
+			self.label_scene.delete(labelRect)
 		for lineItems in self.lineItems.values():
 			for lineItem in lineItems:
 				if lineItem is not None:
@@ -1659,11 +1676,11 @@ class SeqBlock:
 
 	def findNumberingWidths(self, font):
 		lwidth = rwidth = 0
-		if self.showNumberings[0]:
-			baseNumBlocks = int(len(self.seqs[0]) / self.lineWidth)
+		if self.show_numberings[0]:
+			baseNumBlocks = int(len(self.seqs[0]) / self.line_width)
 			blocks = baseNumBlocks + (baseNumBlocks !=
-					len(self.seqs[0]) / self.lineWidth)
-			extent = (blocks - 1) * self.lineWidth
+					len(self.seqs[0]) / self.line_width)
+			extent = (blocks - 1) * self.line_width
 			for seq in self.lines:
 				if getattr(seq, 'numberingStart', None) == None:
 					continue
@@ -1672,7 +1689,7 @@ class SeqBlock:
 				lwidth = max(lwidth, font.measure(
 					"%d " % (seq.numberingStart + offset)))
 			lwidth += 3
-		if self.showNumberings[1]:
+		if self.show_numberings[1]:
 			for seq in self.lines:
 				if getattr(seq, 'numberingStart', None) == None:
 					continue
@@ -1695,10 +1712,10 @@ class SeqBlock:
 			prefPrefix = ""
 		if self.prefs[prefPrefix + BOLD_ALIGNMENT]:
 			self.font = self.emphasisFont
-		if self.prevBlock:
-			newLabelWidth = self.prevBlock.labelWidth
-			fontPixels = self.prevBlock.fontPixels
-			newNumberingWidths = self.prevBlock.numberingWidths
+		if self.prev_block:
+			newLabelWidth = self.prev_block.labelWidth
+			fontPixels = self.prev_block.fontPixels
+			newNumberingWidths = self.prev_block.numberingWidths
 		else:
 			newLabelWidth = self.findLabelWidth(font,
 							self.emphasisFont)
@@ -1717,24 +1734,24 @@ class SeqBlock:
 		over = labelChange + leftNumberingChange + perChar / 2
 		down = pushDown + perLine
 		for rulerText in self.rulerTexts:
-			self.mainCanvas.itemconfigure(rulerText, font=font)
-			self.mainCanvas.move(rulerText, over, down)
+			self.main_scene.itemconfigure(rulerText, font=font)
+			self.main_scene.move(rulerText, over, down)
 			over += perChar * 10
 		self.bottomRulerY += down
 
 		down = pushDown + 2 * perLine
 		for line in self.lines:
 			labelText = self.labelTexts[line]
-			self.labelCanvas.itemconfigure(labelText,
+			self.label_scene.itemconfigure(labelText,
 						font=self._labelFont(line))
-			self.labelCanvas.move(labelText, 0, down)
+			self.label_scene.move(labelText, 0, down)
 			if self.labelRects.has_key(line):
 				self._colorizeLabel(line)
 			leftNumberingText = self.numberingTexts[line][0]
 			if leftNumberingText:
-				self.mainCanvas.itemconfigure(leftNumberingText,
+				self.main_scene.itemconfigure(leftNumberingText,
 								font=font)
-				self.mainCanvas.move(leftNumberingText,
+				self.main_scene.move(leftNumberingText,
 					labelChange + leftNumberingChange, down)
 			down += perLine
 
@@ -1752,7 +1769,7 @@ class SeqBlock:
 				oldx, oldy = itemAuxInfo[i]
 				newx, newy = itemAuxInfo[i] = (oldx + over, oldy + down)
 				if lineItem:
-					index = self.seqOffset + i
+					index = self.seq_offset + i
 					if depictable:
 						val = seq.depictionVal(index)
 					else:
@@ -1781,9 +1798,9 @@ class SeqBlock:
 				over += perChar
 			rightNumberingText = self.numberingTexts[seq][1]
 			if rightNumberingText:
-				self.mainCanvas.move(rightNumberingText, over,
+				self.main_scene.move(rightNumberingText, over,
 									down)
-				self.mainCanvas.itemconfigure(
+				self.main_scene.itemconfigure(
 						rightNumberingText, font=font)
 			down += perLine
 		self.labelWidth = newLabelWidth
@@ -1814,8 +1831,8 @@ class SeqBlock:
 
 	def hideHeaders(self, headers, pushDown=0, delIndex=None):
 		self.topY += pushDown
-		if self.prevBlock:
-			newLabelWidth = self.prevBlock.labelWidth
+		if self.prev_block:
+			newLabelWidth = self.prev_block.labelWidth
 		else:
 			# assuming parent function passes us a continuous block
 			delIndex = self.lineIndex[headers[0]]
@@ -1830,7 +1847,7 @@ class SeqBlock:
 		self.labelWidth = newLabelWidth
 
 		for rulerText in self.rulerTexts:
-			self.mainCanvas.move(rulerText, labelChange, pushDown)
+			self.main_scene.move(rulerText, labelChange, pushDown)
 		self.bottomRulerY += pushDown
 
 		self._moveLines(self.lines[:delIndex], labelChange, 0, pushDown)
@@ -1838,7 +1855,7 @@ class SeqBlock:
 		for line in headers:
 			labelText = self.labelTexts[line]
 			del self.labelTexts[line]
-			self.labelCanvas.delete(labelText)
+			self.label_scene.delete(labelText)
 
 			lineItems = self.lineItems[line]
 			del self.lineItems[line]
@@ -1860,10 +1877,10 @@ class SeqBlock:
 
 	def highlightName(self, line):
 		if self.highlightedName:
-			self.labelCanvas.itemconfigure(self.highlightedName,
+			self.label_scene.itemconfigure(self.highlightedName,
 				fill=self.normalLabelColor)
 		self.highlightedName = text = self.labelTexts[line]
-		self.labelCanvas.itemconfigure(text, fill='red')
+		self.label_scene.itemconfigure(text, fill='red')
 		if self.nextBlock:
 			self.nextBlock.highlightName(line)
 
@@ -1878,17 +1895,17 @@ class SeqBlock:
 	def layoutRuler(self, rerule=0):
 		if rerule:
 			for text in self.rulerTexts:
-				self.mainCanvas.delete(text)
+				self.main_scene.delete(text)
 		self.rulerTexts = []
-		if not self.showRuler:
+		if not self.show_ruler:
 			self.bottomRulerY = self.topY
 			return
 		x = self._leftSeqsEdge() + self.fontPixels[0]/2
 		y = self.topY + self.fontPixels[1] + self.letterGaps[1]
 
-		end = min(self.seqOffset + self.lineWidth, len(self.seqs[0]))
-		for chunkStart in range(self.seqOffset, end, 10):
-			text = self.mainCanvas.create_text(x, y, anchor='s',
+		end = min(self.seq_offset + self.line_width, len(self.seqs[0]))
+		for chunkStart in range(self.seq_offset, end, 10):
+			text = self.main_scene.create_text(x, y, anchor='s',
 				font=self.font, text="%d" % (chunkStart+1))
 			self.rulerTexts.append(text)
 			x += self.chunkGap + 10 * (self.fontPixels[0]
@@ -1900,7 +1917,7 @@ class SeqBlock:
 	def _layoutLine(self, line, labelColor, baseLayoutInfo=None, end=None,
 							lineIndex=None, adding=False):
 		if not end:
-			end = min(self.seqOffset + self.lineWidth,
+			end = min(self.seq_offset + self.line_width,
 							len(self.seqs[0]))
 		if baseLayoutInfo:
 			halfX, leftRectOff, rightRectOff = baseLayoutInfo
@@ -1919,30 +1936,30 @@ class SeqBlock:
 			lColor = line.labelColor
 		else:
 			lColor = labelColor
-		text = self.labelCanvas.create_text(x, y, anchor='sw',
+		text = self.label_scene.create_text(x, y, anchor='sw',
 				fill=lColor, font=self._labelFont(line),
 				text=seqName(line, self.prefs))
 		self.labelTexts[line] = text
 		if self.hasAssociatedStructures(line):
 			self._colorizeLabel(line)
-		bindings = self.labelBindings[line]
+		bindings = self.label_bindings[line]
 		if bindings:
 			for eventType, function in bindings.items():
-				self.labelCanvas.tag_bind(text,
+				self.label_scene.tag_bind(text,
 							eventType, function)
 		colorFunc = self._colorFunc(line)
 		lineItems = []
 		itemAuxInfo = []
-		xs = self._getXs(end - self.seqOffset)
+		xs = self._getXs(end - self.seq_offset)
 		if self._largeAlignment():
 			resStatus = hasattr(line, "matchMaps") and line.matchMaps
 		else:
 			resStatus = line in self.seqs or adding
-		for i in range(end - self.seqOffset):
-			item = self.makeItem(line, self.seqOffset + i, xs[i],
+		for i in range(end - self.seq_offset):
+			item = self.makeItem(line, self.seq_offset + i, xs[i],
 				y, halfX, leftRectOff, rightRectOff, colorFunc)
 			if resStatus:
-				self._assocResBind(item, line, self.seqOffset + i)
+				self._assocResBind(item, line, self.seq_offset + i)
 			lineItems.append(item)
 			itemAuxInfo.append((xs[i], y))
 
@@ -1954,13 +1971,13 @@ class SeqBlock:
 		numberings = [None, None]
 		if line.numberingStart != None:
 			for numbering in range(2):
-				if self.showNumberings[numbering]:
+				if self.show_numberings[numbering]:
 					numberings[numbering] = \
 					self._makeNumbering(line, numbering)
 		self.numberingTexts[line] = numberings
 
 	def layoutLines(self, lines, labelColor):
-		end = min(self.seqOffset + self.lineWidth, len(self.seqs[0]))
+		end = min(self.seq_offset + self.line_width, len(self.seqs[0]))
 		bli = self.baseLayoutInfo()
 		for line in lines:
 			self._layoutLine(line, labelColor, bli, end)
@@ -1978,26 +1995,26 @@ class SeqBlock:
 		y = yFunc(node.yPos)
 		lines = self.treeItems['lines']
 		if prevXpos is not None:
-			lines.append(self.labelCanvas.create_line(
+			lines.append(self.label_scene.create_line(
 					"%.2f" % prevXpos, y, "%.2f" % x, y))
 		if not node.subNodes:
 			rightmostX = xFunc(1.0, 0.0)
 			if x != rightmostX:
-				lines.append(self.labelCanvas.create_line("%.2f" % x, y,
+				lines.append(self.label_scene.create_line("%.2f" % x, y,
 					"%.2f" % rightmostX, y, dash=[1,3]))
 			return
 		subYs = [n.yPos for n in node.subNodes]
 		minSubY = min(subYs)
 		maxSubY = max(subYs)
-		lines.append(self.labelCanvas.create_line(
+		lines.append(self.label_scene.create_line(
 			"%.2f" % x, yFunc(minSubY), "%.2f" % x, yFunc(maxSubY)))
 		if self.treeNodeMap['active'] == node:
 			fill = 'red'
 		else:
 			fill = 'black'
-		box = self.labelCanvas.create_rectangle(x-2, y-2,
+		box = self.label_scene.create_rectangle(x-2, y-2,
 					x+2, y+2, fill=fill, outline="black")
-		self.labelCanvas.tag_bind(box, "<ButtonRelease-1>",
+		self.label_scene.tag_bind(box, "<ButtonRelease-1>",
 			lambda e, cb=callback, n=node: self.activateNode(n, cb))
 		self.treeNodeMap[node] = box
 		if node.label:
@@ -2005,10 +2022,10 @@ class SeqBlock:
 		else:
 			balloonText = ""
 		balloonText += "%d sequences" % node.countNodes("leaf")
-		self.treeBalloon.tagbind(self.labelCanvas, box, balloonText)
+		self.tree_balloon.tagbind(self.label_scene, box, balloonText)
 		self.treeItems['boxes'].append(box)
 		if not nodesShown:
-			self.labelCanvas.itemconfigure(box, state='hidden')
+			self.label_scene.itemconfigure(box, state='hidden')
 		for sn in node.subNodes:
 			self._layoutTree(treeInfo, sn, callback, nodesShown, x)
 
@@ -2028,13 +2045,13 @@ class SeqBlock:
 				right = x + rightRectOff
 				bottom = y
 				top = y - self.fontPixels[1]
-				return LineItem(info, self.mainCanvas, left, right, top, bottom,
+				return LineItem(info, self.main_scene, left, right, top, bottom,
 					colorFunc(line, offset))
-			return LineItem('text', self.mainCanvas, x, y, anchor='s',
+			return LineItem('text', self.main_scene, x, y, anchor='s',
 				font=self.font, fill=colorFunc(line, offset), text=info)
 		if info != None and info > 0.0:
 			topRect = y - info * self.fontPixels[1]
-			return LineItem('rectangle', self.mainCanvas, x + leftRectOff,
+			return LineItem('rectangle', self.main_scene, x + leftRectOff,
 							topRect, x + rightRectOff, y, width=0,
 							outline="", fill=colorFunc(line, offset))
 		return None
@@ -2043,10 +2060,10 @@ class SeqBlock:
 		n = self._computeNumbering(line, numbering)
 		x, y = self.itemAuxInfo[line][-1]
 		if numbering == 0:
-			item = self.mainCanvas.create_text(self._leftSeqsEdge(),
+			item = self.main_scene.create_text(self._leftSeqsEdge(),
 				y, anchor='se', font=self.font, text="%d " % n)
 		else:
-			item = self.mainCanvas.create_text(x +
+			item = self.main_scene.create_text(x +
 				self.baseLayoutInfo()[0], y, anchor='sw',
 				font=self.font, text="  %d" % n)
 		return item
@@ -2054,7 +2071,7 @@ class SeqBlock:
 	def measureFont(self, font):
 		height = self.font.actual('size')
 		if height > 0: # points
-			height = self.mainCanvas.winfo_pixels(
+			height = self.main_scene.winfo_pixels(
 							"%gp" % float(height))
 		else:
 			height = 0 - height
@@ -2072,29 +2089,29 @@ class SeqBlock:
 
 	def _mouseResidue(self, enter, seq=None, index=None):
 		if enter:
-			self._mouseID = self.mainCanvas.after(300,
+			self._mouseID = self.main_scene.after(300,
 					lambda: self._showResidue(seq, index))
 		else:
 			if self._mouseID:
 				if self._mouseID == "done":
 					# only clear the status line if we've
 					# put # a residue ID in it previously...
-					self.statusFunc("")
+					self.status_func("")
 				else:
-					self.mainCanvas.after_cancel(
+					self.main_scene.after_cancel(
 								self._mouseID)
 				self._mouseID = None
 
 	def _moveLines(self, lines, overLabel, overNumber, down):
 		over = overLabel + overNumber
 		for line in lines:
-			self.labelCanvas.move(self.labelTexts[line], 0, down)
+			self.label_scene.move(self.labelTexts[line], 0, down)
 
 			lnum, rnum = self.numberingTexts[line]
 			if lnum:
-				self.mainCanvas.move(lnum, overLabel, down)
+				self.main_scene.move(lnum, overLabel, down)
 			if rnum:
-				self.mainCanvas.move(rnum, over, down)
+				self.main_scene.move(rnum, over, down)
 			for item in self.lineItems[line]:
 				if item is not None:
 					item.move(over, down)
@@ -2103,12 +2120,12 @@ class SeqBlock:
 				itemAuxInfo.append((oldx+over, oldy+down))
 			self.itemAuxInfo[line] = itemAuxInfo
 			if self.labelRects.has_key(line):
-				self.labelCanvas.move(self.labelRects[line],
+				self.label_scene.move(self.labelRects[line],
 								0, down)
 	def _moveTree(self, down):
 		for itemType, itemList in self.treeItems.items():
 			for item in itemList:
-				self.labelCanvas.move(item, 0, down)
+				self.label_scene.move(item, 0, down)
 
 	def numBlocks(self):
 		if self.nextBlock:
@@ -2124,10 +2141,10 @@ class SeqBlock:
 			return self.nextBlock.pos(x, bound, y)
 		if x < self._leftSeqsEdge():
 			if bound == "left":
-				return self.seqOffset
+				return self.seq_offset
 			elif bound == "right":
-				if self.seqOffset > 0:
-					return self.seqOffset -1
+				if self.seq_offset > 0:
+					return self.seq_offset -1
 				else:
 					return None
 			else:
@@ -2141,15 +2158,15 @@ class SeqBlock:
 		chunkOffset = int(chunkX / (self.fontPixels[0]
 							+ self.letterGaps[0]))
 		offset = 10 * chunk + min(chunkOffset, 10)
-		myLineWidth = min(self.lineWidth,
-					len(self.seqs[0]) - self.seqOffset)
+		myLineWidth = min(self.line_width,
+					len(self.seqs[0]) - self.seq_offset)
 		if offset >= myLineWidth:
 			if bound == "left":
 				if self.nextBlock:
-					return self.seqOffset + myLineWidth
+					return self.seq_offset + myLineWidth
 				return None
 			elif bound == "right":
-				return self.seqOffset + myLineWidth - 1
+				return self.seq_offset + myLineWidth - 1
 			return None
 		offset = 10 * chunk + min(chunkOffset, 9)
 		rightEdge = self._leftSeqsEdge() + \
@@ -2160,12 +2177,12 @@ class SeqBlock:
 		if chunkOffset >= 10 or rightEdge - x < self.letterGaps[0]:
 			# in gap
 			if bound == "left":
-				return self.seqOffset + offset + 1
+				return self.seq_offset + offset + 1
 			elif bound == "right":
-				return self.seqOffset + offset
+				return self.seq_offset + offset
 			return None
 		# on letter
-		return self.seqOffset + offset
+		return self.seq_offset + offset
 
 	def recolor(self, seq):
 		if self.nextBlock:
@@ -2176,15 +2193,15 @@ class SeqBlock:
 		for i, lineItem in enumerate(self.lineItems[seq]):
 			if lineItem is None:
 				continue
-			lineItem.configure(fill=colorFunc(seq, self.seqOffset + i))
+			lineItem.configure(fill=colorFunc(seq, self.seq_offset + i))
 		
 	def refresh(self, seq, left, right):
-		if self.seqOffset + self.lineWidth <= right:
+		if self.seq_offset + self.line_width <= right:
 			self.nextBlock.refresh(seq, left, right)
-		if left >= self.seqOffset + self.lineWidth:
+		if left >= self.seq_offset + self.line_width:
 			return
-		myLeft = max(left - self.seqOffset, 0)
-		myRight = min(right - self.seqOffset, self.lineWidth - 1)
+		myLeft = max(left - self.seq_offset, 0)
+		myRight = min(right - self.seq_offset, self.line_width - 1)
 
 		halfX, leftRectOff, rightRectOff = self.baseLayoutInfo()
 		lineItems = self.lineItems[seq]
@@ -2199,19 +2216,19 @@ class SeqBlock:
 			if lineItem is not None:
 				lineItem.delete()
 			x, y = itemAuxInfo[i]
-			lineItems[i] = self.makeItem(seq, self.seqOffset + i,
+			lineItems[i] = self.makeItem(seq, self.seq_offset + i,
 						x, y, halfX, leftRectOff,
 						rightRectOff, colorFunc)
 			if resStatus:
 				self._assocResBind(lineItems[i], seq,
-							self.seqOffset + i)
-		if self.showNumberings[0] and seq.numberingStart != None \
+							self.seq_offset + i)
+		if self.show_numberings[0] and seq.numberingStart != None \
 							and myLeft == 0:
-			self.mainCanvas.delete(self.numberingTexts[seq][0])
+			self.main_scene.delete(self.numberingTexts[seq][0])
 			self.numberingTexts[seq][0] = self._makeNumbering(seq,0)
-		if self.showNumberings[1] and seq.numberingStart != None \
-					and myRight == self.lineWidth - 1:
-			self.mainCanvas.delete(self.numberingTexts[seq][1])
+		if self.show_numberings[1] and seq.numberingStart != None \
+					and myRight == self.line_width - 1:
+			self.main_scene.delete(self.numberingTexts[seq][1])
 			self.numberingTexts[seq][1] = self._makeNumbering(seq,1)
 		
 	def relativeY(self, rawY):
@@ -2219,10 +2236,10 @@ class SeqBlock:
 		"""return the y relative to the block the y is in"""
         """
 		if rawY < self.topY:
-			if not self.prevBlock:
+			if not self.prev_block:
 				return 0
 			else:
-				return self.prevBlock.relativeY(rawY)
+				return self.prev_block.relativeY(rawY)
 		if rawY > self.bottomY + self.blockGap:
 			if not self.nextBlock:
 				return self.bottomY - self.topY
@@ -2236,18 +2253,18 @@ class SeqBlock:
 """
 
 		if shouldWrap(len(self.seqs), self.prefs):
-			blockEnd = self.seqOffset + self.lineWidth
-			prevBlockLen = min(prevLen, blockEnd)
+			blockEnd = self.seq_offset + self.line_width
+			prev_blockLen = min(prevLen, blockEnd)
 			curBlockLen = min(len(self.seqs[0]), blockEnd)
 		else:
 			blockEnd = len(self.seqs[0])
-			self.lineWidth = blockEnd
-			prevBlockLen = prevLen
+			self.line_width = blockEnd
+			prev_blockLen = prevLen
 			curBlockLen = blockEnd
 
 		halfX, leftRectOff, rightRectOff = self.baseLayoutInfo()
 
-		numUnchanged = min(prevBlockLen, curBlockLen) - self.seqOffset
+		numUnchanged = min(prev_blockLen, curBlockLen) - self.seq_offset
 		for line in self.lines:
 			lineItems = self.lineItems[line]
 			itemAuxInfo = self.itemAuxInfo[line]
@@ -2262,27 +2279,27 @@ class SeqBlock:
 					item.delete()
 				x, y = itemAuxInfo[i]
 				lineItems[i] = self.makeItem(line,
-					self.seqOffset + i, x, y, halfX,
+					self.seq_offset + i, x, y, halfX,
 					leftRectOff, rightRectOff, colorFunc)
 				if resStatus:
 					self._assocResBind(lineItems[i], line,
-							self.seqOffset + i)
+							self.seq_offset + i)
 
-		if curBlockLen < prevBlockLen:
+		if curBlockLen < prev_blockLen:
 			# delete excess items
 			self.layoutRuler(rerule=1)
 			for line in self.lines:
 				lineItems = self.lineItems[line]
-				for i in range(curBlockLen, prevBlockLen):
-					item = lineItems[i - self.seqOffset]
+				for i in range(curBlockLen, prev_blockLen):
+					item = lineItems[i - self.seq_offset]
 					if item is None:
 						continue
 					item.delete()
-				start = curBlockLen - self.seqOffset
-				end = prevBlockLen - self.seqOffset
+				start = curBlockLen - self.seq_offset
+				end = prev_blockLen - self.seq_offset
 				lineItems[start:end] = []
 				self.itemAuxInfo[line][start:end] = []
-		elif curBlockLen > prevBlockLen:
+		elif curBlockLen > prev_blockLen:
 			# add items
 			self.layoutRuler(rerule=1)
 			for line in self.lines:
@@ -2294,9 +2311,9 @@ class SeqBlock:
 				itemAuxInfo = self.itemAuxInfo[line]
 				x, y = itemAuxInfo[0]
 				colorFunc = self._colorFunc(line)
-				xs = self._getXs(curBlockLen - self.seqOffset)
-				for i in range(prevBlockLen, curBlockLen):
-					x = xs[i - self.seqOffset]
+				xs = self._getXs(curBlockLen - self.seq_offset)
+				for i in range(prev_blockLen, curBlockLen):
+					x = xs[i - self.seq_offset]
 					lineItems.append(self.makeItem(line, i,
 						x, y, halfX, leftRectOff,
 						rightRectOff, colorFunc))
@@ -2314,14 +2331,14 @@ class SeqBlock:
 			if self.nextBlock:
 				self.nextBlock.realign(prevLen)
 			else:
-				self.nextBlock = SeqBlock(self.labelCanvas,
-					self.mainCanvas, self, self.font,
-					self.seqOffset + self.lineWidth,
+				self.nextBlock = SeqBlock(self.label_scene,
+					self.main_scene, self, self.font,
+					self.seq_offset + self.line_width,
 					self.lines[:0-len(self.seqs)],
-					self.seqs, self.lineWidth,
-					self.labelBindings, self.statusFunc,
-					self.showRuler, self.treeBalloon,
-					self.showNumberings, self.prefs)
+					self.seqs, self.line_width,
+					self.label_bindings, self.status_func,
+					self.show_ruler, self.tree_balloon,
+					self.show_numberings, self.prefs)
 
 	def rowIndex(self, y, bound=None):
         """
@@ -2333,7 +2350,7 @@ class SeqBlock:
 			if bound == "top":
 				return 0
 			elif bound == "bottom":
-				if self.prevBlock:
+				if self.prev_block:
 					return len(self.lines) - 1
 				return None
 			return None
@@ -2364,18 +2381,18 @@ class SeqBlock:
 		return row
 	
 	def setLeftNumberingDisplay(self, showNumbering):
-		if showNumbering == self.showNumberings[0]:
+		if showNumbering == self.show_numberings[0]:
 			return
-		self.showNumberings[0] = showNumbering
+		self.show_numberings[0] = showNumbering
 		numberedLines = [l for l in self.lines if getattr(l,
 					'numberingStart', None) != None]
 		if showNumbering:
-			if not self.prevBlock:
+			if not self.prev_block:
 				self.numberingWidths[:] = \
 					self.findNumberingWidths(self.font)
 			delta = self.numberingWidths[0]
 			for rulerText in self.rulerTexts:
-				self.mainCanvas.move(rulerText, delta, 0)
+				self.main_scene.move(rulerText, delta, 0)
 			for line in numberedLines:
 				self.numberingTexts[line][0] = \
 						self._makeNumbering(line, 0)
@@ -2383,11 +2400,11 @@ class SeqBlock:
 		else:
 			delta = 0 - self.numberingWidths[0]
 			for rulerText in self.rulerTexts:
-				self.mainCanvas.move(rulerText, delta, 0)
+				self.main_scene.move(rulerText, delta, 0)
 			for texts in self.numberingTexts.values():
 				if not texts[0]:
 					continue
-				self.mainCanvas.delete(texts[0])
+				self.main_scene.delete(texts[0])
 				texts[0] = None
 			self._moveLines(self.lines, 0, delta, 0)
 			if not self.nextBlock:
@@ -2396,11 +2413,11 @@ class SeqBlock:
 			self.nextBlock.setLeftNumberingDisplay(showNumbering)
 
 	def setRightNumberingDisplay(self, showNumbering):
-		if showNumbering == self.showNumberings[1]:
+		if showNumbering == self.show_numberings[1]:
 			return
-		self.showNumberings[1] = showNumbering
+		self.show_numberings[1] = showNumbering
 		if showNumbering:
-			if not self.prevBlock:
+			if not self.prev_block:
 				self.numberingWidths[:] = \
 					self.findNumberingWidths(self.font)
 			numberedLines = [l for l in self.lines if getattr(l,
@@ -2412,33 +2429,33 @@ class SeqBlock:
 			for texts in self.numberingTexts.values():
 				if not texts[1]:
 					continue
-				self.mainCanvas.delete(texts[1])
+				self.main_scene.delete(texts[1])
 				texts[1] = None
 			if not self.nextBlock:
 				self.numberingWidths[1] = 0
 		if self.nextBlock:
 			self.nextBlock.setRightNumberingDisplay(showNumbering)
 
-	def setRulerDisplay(self, showRuler, pushDown=0):
-		if showRuler == self.showRuler:
+	def setRulerDisplay(self, show_ruler, pushDown=0):
+		if show_ruler == self.show_ruler:
 			return
-		self.showRuler = showRuler
+		self.show_ruler = show_ruler
 		self.topY += pushDown
 		self.bottomY += pushDown
 		pull = self.fontPixels[1] + self.letterGaps[1]
-		if showRuler:
+		if show_ruler:
 			pushDown += pull
 			self.layoutRuler()
 		else:
 			for text in self.rulerTexts:
-				self.mainCanvas.delete(text)
+				self.main_scene.delete(text)
 			pushDown -= pull
 			self.bottomRulerY = self.topY
 			self.bottomY -= pull
 		self._moveLines(self.lines, 0, 0, pushDown)
 		self._moveTree(pushDown)
 		if self.nextBlock:
-			self.nextBlock.setRulerDisplay(showRuler,
+			self.nextBlock.setRulerDisplay(show_ruler,
 							pushDown=pushDown)
 
 	def _showResidue(self, aseq, index):
@@ -2471,12 +2488,12 @@ class SeqBlock:
 				off = aseq.numberingStart
 			statusText = "sequence position %d" % (ungapped+off)
 
-		self.statusFunc(statusText, blankAfter=0)
+		self.status_func(statusText, blankAfter=0)
 
 	def showHeaders(self, headers, pushDown=0):
 		self.topY += pushDown
-		if self.prevBlock:
-			newLabelWidth = self.prevBlock.labelWidth
+		if self.prev_block:
+			newLabelWidth = self.prev_block.labelWidth
 			insertIndex = len(self.lines) - len(self.seqs) - len(
 								headers)
 		else:
@@ -2492,7 +2509,7 @@ class SeqBlock:
 		self.labelWidth = newLabelWidth
 
 		for rulerText in self.rulerTexts:
-			self.mainCanvas.move(rulerText, labelChange, pushDown)
+			self.main_scene.move(rulerText, labelChange, pushDown)
 		self.bottomRulerY += pushDown
 
 		self._moveLines(self.lines[:insertIndex], labelChange, 0,
@@ -2518,16 +2535,16 @@ class SeqBlock:
 		else:
 			state = 'hidden'
 		for box in self.treeItems['boxes']:
-			self.labelCanvas.itemconfigure(box, state=state)
+			self.label_scene.itemconfigure(box, state=state)
 		if self.nextBlock:
 			self.nextBlock.showNodes(show)
 
 	def showTree(self, treeInfo, callback, nodesShown, active=None):
 		for box in self.treeItems['boxes']:
-			self.treeBalloon.tagunbind(self.labelCanvas, box)
+			self.tree_balloon.tagunbind(self.label_scene, box)
 		for treeItems in self.treeItems.values():
 			while treeItems:
-				self.labelCanvas.delete(treeItems.pop())
+				self.label_scene.delete(treeItems.pop())
 		if self.nextBlock:
 			self.nextBlock.showTree(treeInfo, callback, nodesShown)
 		if not treeInfo:
@@ -2544,27 +2561,12 @@ class SeqBlock:
 				nt = self.numberingTexts[line][i]
 				if not nt:
 					continue
-				self.mainCanvas.delete(nt)
+				self.main_scene.delete(nt)
 				self.numberingTexts[line][i] = \
 						self._makeNumbering(line, i)
 		if self.nextBlock:
 			self.nextBlock.updateNumberings()
-    """
 
-	def _label_scene(self, grid=true):
-		if self.should_wrap():
-			label_scene = self.main_scene
-			if grid:
-				self.label_view.hide()
-				self._vdivider.hide()
-		else:
-			label_scene = self.label_scene
-			if grid:
-				self.label_view.show()
-				self._vdivider.show()
-		return label_scene
-			
-"""
 def shouldWrap(numSeqs, prefs):
 	if numSeqs == 1:
 		prefix = SINGLE_PREFIX
