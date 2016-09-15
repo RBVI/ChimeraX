@@ -33,11 +33,8 @@ setup(name="PKG_NAME",
     },
     packages=[
         "PKG_NAME",
-    # Add subpackage names here
+        # Add subpackage names here
     ],
-    package_data={
-        "PKG_NAME": [],
-    },
     data_files=[
         ("", [ "timestamp" ]),
     ],

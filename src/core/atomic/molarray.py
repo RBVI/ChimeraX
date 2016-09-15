@@ -304,6 +304,7 @@ class Atoms(Collection):
     without creating Python :py:class:`Atom` objects which require much more memory
     and are slower to use in computation.
     '''
+    SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
 
     bfactors = cvec_property('atom_bfactor', float32)
     @property

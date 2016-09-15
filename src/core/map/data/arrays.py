@@ -175,9 +175,8 @@ class Matrix_Value_Statistics:
     return self.ccounts
 
   # ---------------------------------------------------------------------------
-  # Find the data value where a specified fraction of total mass above that
-  # data value is a given fraction of total mass of non-negative voxels.
-  # Result is an approximation using binned data.
+  # Find the data value where the specified fraction of total mass of non-negative
+  # values is below the level.  Result is an approximation using binned data.
   #
   def mass_rank_data_value(self, fraction):
     

@@ -272,12 +272,13 @@ def volume_color_source(surf, volume, cmap = None, cmap_range = None, color_outs
     else:
         if cmap_range == 'full':
             vmin,vmax = compute_value_range(surf, cs.value_range, cap_only)
-        elif cmap.values_specified:
-            from ..errors import UserError
-            raise UserError('Only one of palette and range options should specify data values')
         else:
             vmin,vmax = cmap_range
-        cm = cmap.linear_range(vmin, vmax)
+        if cmap.values_specified:
+            cm = cmap.rescale_range(vmin, vmax)
+        else:
+            cm = cmap.linear_range(vmin, vmax)
+
     cs.set_colormap(cm)
     
     cs.per_pixel_coloring = per_pixel

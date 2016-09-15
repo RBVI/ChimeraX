@@ -276,7 +276,6 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         if not ref or not matches:
             raise UserError("Must select at least one reference"
                 " and match item in different models.\n")
-        cdm = check_domain_matching(ref.chains, rd_res)
         rseqs = [s for s in check_domain_matching(ref.chains, rd_res)
                     if matrix_compatible(session, s, matrix)]
         if not rseqs and ref.chains:

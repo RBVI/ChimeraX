@@ -584,8 +584,6 @@ class Residue:
     structure = c_property('residue_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this residue belongs to. Read only.'''
 
-    # TODO: Currently no C++ method to get Chain
-
     def add_atom(self, atom):
         '''Add the specified :class:`.Atom` to this residue.
         An atom can only belong to one residue, and all atoms
@@ -803,6 +801,15 @@ class StructureSeq(Sequence):
     structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
 
+    def append(self, *args, **kw):
+        # could be implemented via modified C++ StructureSeq.push_back(), where that method
+        # does not remove from chain unless is_chain() is true, and takes an optional
+        # sequence character to use
+        from ..errors import LimitationError
+        raise LimitationError(self.__class__.__name__ + ".append/extend not implemented yet"
+            " (use bulk_set for now)")
+    extend = append
+
     def bulk_set(self, residues, characters):
         '''Set all residues/characters of StructureSeq. '''
         '''"characters" is a string or a list of characters.'''
@@ -843,6 +850,14 @@ class StructureSeq(Sequence):
                 return True
         return False
 
+    def residue_at(self, index):
+        '''Return the Residue/None at the (ungapped) position 'index'.'''
+        '''  More efficient that self.residues[index] since the entire residues'''
+        ''' list isn't built/destroyed.'''
+        f = c_function('sseq_residue_at', args = (ctypes.c_void_p, ctypes.c_size_t),
+            ret = ctypes.c_void_p)
+        return _atom_or_none(f(self._c_pointer, index))
+
     @staticmethod
     def restore_snapshot(session, data):
         sseq = StructureSequence(chain_id=data['chain_id'], structure=data['structure'])
@@ -863,7 +878,7 @@ class StructureSeq(Sequence):
             loc = self.gapped_to_ungapped(loc)
         if loc is None:
             return None
-        r = self.residues[loc]
+        r = self.residue_at(loc)
         if r is None:
             return None
         if r.is_helix:

@@ -225,7 +225,7 @@ def deduce_format(filename, has_format=None, savable=False):
         fmt = _file_formats.get(has_format, None)
         if fmt is None:
             for f in _file_formats.values():
-                if has_format in f.short_names and (not savable or f.export_func):
+                if has_format in f.short_names and (f.open_func or (savable and f.export_func)):
                     fmt = f
                     break
         stripped, compression = determine_compression(filename)
@@ -239,7 +239,7 @@ def deduce_format(filename, has_format=None, savable=False):
         ext = ext.casefold()
         fmt = None
         for f in _file_formats.values():
-            if ext in f.extensions and (not savable or f.export_func):
+            if ext in f.extensions and (f.open_func or (savable and f.export_func)):
                 fmt = f
                 break
         if fmt is None:
