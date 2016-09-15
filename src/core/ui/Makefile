@@ -34,7 +34,9 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 about.html:	about.html.in Makefile
-	sed '/===/d' $(TOP)/copyright.txt | \
+	sed -e '/===/d' \
+		-e 's,http:.*html,<a href="&">&</a>.,' \
+		$(TOP)/copyright.txt | \
 		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
 		about.html.in > about.html \
 		|| rm about.html
