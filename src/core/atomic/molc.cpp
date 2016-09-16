@@ -519,6 +519,28 @@ extern "C" EXPORT void atom_element_number(void *atoms, size_t n, uint8_t *nums)
     }
 }
 
+extern "C" EXPORT void atom_idatm_type(void *atoms, size_t n, pyobject_t *idatm_types)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            idatm_types[i] = unicode_from_string(a[i]->idatm_type());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_atom_idatm_type(void *atoms, size_t n, pyobject_t *idatm_types)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            a[i]->set_idatm_type(PyUnicode_AsUTF8(static_cast<PyObject *>(idatm_types[i])));
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_in_chain(void *atoms, size_t n, npy_bool *in_chain)
 {
     Atom **a = static_cast<Atom **>(atoms);

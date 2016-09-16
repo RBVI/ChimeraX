@@ -94,26 +94,34 @@ cutoff of 2.0 &Aring;.
 default settings, except without <a href="#computeSS">recalculating</a> 
 secondary structure assignments.
 <blockquote>
-<b>mm #1:.a to #2 pair sb alg sw matrix PAM-150 ss false iter 5.0</b>
+<b>mm #2 to #1/a pair sb alg sw matrix PAM-150 ss false iter 5.0</b>
 </blockquote>
 (example structures: mouse and human phosphoserine phosphatases 
 <b>1j97</b>, <b>1nnl</b> open as models 1 and 2, respectively)
 <br>
-&ndash; superimpose chain A in model 1 with the 
-<a href="#pairing">highest-scoring chain</a> in model 2 using
+&ndash; match the <a href="#pairing">highest-scoring chain</a>
+in model 2 onto chain A in model 1 using
 the Smith-Waterman <a href="#algorithm">algorithm</a>
 with the PAM-150 <a href="#matrix">residue similarity matrix</a>
 (weight 1.0, no <a href="#ssFraction">secondary structure scoring</a>);
 <a href="#iterate">iteratively fit</a>
 the structures using a cutoff of 5.0 &Aring;.
 <blockquote>
-<b>mm #1:.a:.b to #2:.c:.d pair ss</b>
+<b>mm #1/a,b to #2/c,d pair ss</b>
 </blockquote>
 (example structures: insulin <b>1b17</b>, <b>1ben</b> 
 open as models 1 and 2, respectively)
 <br>
 &ndash; align the <a href="#pairing">specific chain pairs</a>
 A/C and B/D (in models 1/2) using default settings.
+<blockquote>
+<b>mm #1 to #2 matrix Nucleic</b>
+</blockquote>
+(example structures: tRNAs
+<b>2tra</b>, <b>4tra</b> open as models 1 and 2, respectively)
+<br>
+&ndash; superimpose model 1 onto model 2 using default settings,
+except that the Nucleic matrix is required for nucleic acid structures.
 <p>
 <a name="restrict">
 Including specific residues in the

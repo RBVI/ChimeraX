@@ -132,6 +132,9 @@ class Structure(Model, StructureData):
                     ribbonable -= ligand
                     metal_atoms = atoms.filter(atoms.elements.is_metal)
                     metal_atoms.draw_modes = Atom.SPHERE_STYLE
+                    ions = atoms.filter(atoms.structure_categories == "ions")
+                    lone_ions = ions.filter(ions.residues.num_atoms == 1)
+                    lone_ions.draw_modes = Atom.SPHERE_STYLE
                     ligand |= metal_atoms.residues
                     display = ligand
                     pas = ribbonable.existing_principal_atoms
@@ -144,7 +147,10 @@ class Structure(Model, StructureData):
                         from ..geometry import find_closest_points
                         close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
                         display |= atoms.filter(close_indices).residues
-                    display.atoms.displays = True
+                    display_atoms = display.atoms
+                    if self.num_residues > 1:
+                        display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
+                    display_atoms.displays = True
                     ribbonable.ribbon_displays = True
                 elif len(ribbonable) == 0:
                     # CA only?
