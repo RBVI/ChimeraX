@@ -71,6 +71,7 @@ def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
             res1.atoms.colors = res2.atoms.colors = c8
             res1.ribbon_colors = res2.ribbon_colors = c8
         if select:
+            session.selection.clear()
             res1.atoms.selected = True
             res2.atoms.selected = True
         if residue_list:
