@@ -639,9 +639,12 @@ class Sequence:
     SS_OTHER = 'O'
     SS_STRAND = 'S'
 
-    nucleic3to1 = c_function('sequence_nucleic3to1', args = (ctypes.c_char_p,), ret = byte)
-    protein3to1 = c_function('sequence_protein3to1', args = (ctypes.c_char_p,), ret = byte)
-    rname3to1 = c_function('sequence_rname3to1', args = (ctypes.c_char_p,), ret = byte)
+    nucleic3to1 = lambda rn: c_function('sequence_nucleic3to1', args = (ctypes.c_char_p,),
+        ret = ctypes.c_char)(rn).decode('utf-8')
+    protein3to1 = lambda rn: c_function('sequence_protein3to1', args = (ctypes.c_char_p,),
+        ret = ctypes.c_char)(rn).decode('utf-8')
+    rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
+        ret = ctypes.c_char)(rn).decode('utf-8')
 
     chimera_exiting = False
 
@@ -802,14 +805,7 @@ class StructureSeq(Sequence):
     structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
 
-    def append(self, *args, **kw):
-        # could be implemented via modified C++ StructureSeq.push_back(), where that method
-        # does not remove from chain unless is_chain() is true, and takes an optional
-        # sequence character to use
-        from ..errors import LimitationError
-        raise LimitationError(self.__class__.__name__ + ".append/extend not implemented yet"
-            " (use bulk_set for now)")
-    extend = append
+    # allow append/extend for now, since NeedlemanWunsch uses it
 
     def bulk_set(self, residues, characters):
         '''Set all residues/characters of StructureSeq. '''
