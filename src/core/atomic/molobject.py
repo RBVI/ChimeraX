@@ -122,6 +122,7 @@ class Atom:
         "\n\n|  Possible values:\n"
         "HIDE_RIBBON\n"
         "    Hide mask for backbone atoms in ribbon.")
+    idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
     is_ribose = c_property('atom_is_ribose', npy_bool, read_only = True,
@@ -584,8 +585,6 @@ class Residue:
     structure = c_property('residue_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this residue belongs to. Read only.'''
 
-    # TODO: Currently no C++ method to get Chain
-
     def add_atom(self, atom):
         '''Add the specified :class:`.Atom` to this residue.
         An atom can only belong to one residue, and all atoms
@@ -640,9 +639,12 @@ class Sequence:
     SS_OTHER = 'O'
     SS_STRAND = 'S'
 
-    nucleic3to1 = c_function('sequence_nucleic3to1', args = (ctypes.c_char_p,), ret = byte)
-    protein3to1 = c_function('sequence_protein3to1', args = (ctypes.c_char_p,), ret = byte)
-    rname3to1 = c_function('sequence_rname3to1', args = (ctypes.c_char_p,), ret = byte)
+    nucleic3to1 = lambda rn: c_function('sequence_nucleic3to1', args = (ctypes.c_char_p,),
+        ret = ctypes.c_char)(rn).decode('utf-8')
+    protein3to1 = lambda rn: c_function('sequence_protein3to1', args = (ctypes.c_char_p,),
+        ret = ctypes.c_char)(rn).decode('utf-8')
+    rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
+        ret = ctypes.c_char)(rn).decode('utf-8')
 
     chimera_exiting = False
 
@@ -802,6 +804,8 @@ class StructureSeq(Sequence):
     '''Number of residues belonging to this sequence, including those without structure. Read only.'''
     structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
+
+    # allow append/extend for now, since NeedlemanWunsch uses it
 
     def bulk_set(self, residues, characters):
         '''Set all residues/characters of StructureSeq. '''
