@@ -873,15 +873,21 @@ class Structure(Model, StructureData):
 
     def _arc_helix(self, rlist, coords, guides, ssids, tethered, xs_front, xs_back,
                    ribbon_adjusts, start, end, p):
+        # Only bother if at least one residue is displayed
+        displays = rlist.ribbon_displays
+        if not any(displays[start:end]):
+            return
+
         from .sse import HelixCylinder
         from numpy import linspace, cos, sin
         from math import pi
-        from numpy import empty, repeat, tile
+        from numpy import empty, tile
 
         hc = HelixCylinder(coords[start:end])
         centers = hc.cylinder_centers()
         radius = hc.cylinder_radius()
         normals, binormals = hc.cylinder_normals()
+        icenters, inormals, ibinormals = hc.cylinder_intermediates()
         coords[start:end] = centers
         tethered[start:end] = True
 
@@ -892,35 +898,245 @@ class Structure(Model, StructureData):
         cos_a = radius * cos(angles)
         sin_a = radius * sin(angles)
 
-        # Generate cylinder coordinates.
-        # We will construct the vertices as num_pts edges of N points each,
-        # where N is the number of coordinates/residues in the cylinder:
-        # The faces are made using adjacent edges with wrap-around back to
-        # the initial edge.
-        num_res = len(centers)
-        va = empty((num_res * num_pts, 3))
-        na = empty((num_res * num_pts, 3))
-        for i in range(num_pts):
-            first = (num_pts - i - 1) * num_res
-            last = first + num_res
-            na[first:last] = cos_a[i] * normals + sin_a[i] * binormals
-            va[first:last] = centers + na[first:last]
+        if False:
+            # Generate cylinder coordinates.
+            # We will construct the vertices as num_pts edges of N points each,
+            # where N is the number of coordinates/residues in the cylinder:
+            # The faces are made using adjacent edges with wrap-around back to
+            # the initial edge.
+            num_res = len(centers)
+            va = empty((num_res * num_pts, 3))
+            na = empty((num_res * num_pts, 3))
+            for i in range(num_pts):
+                first = (num_pts - i - 1) * num_res
+                last = first + num_res
+                na[first:last] = cos_a[i] * normals + sin_a[i] * binormals
+                va[first:last] = centers + na[first:last]
 
-        # Generate triangles
-        num_seg = num_res - 1
-        num_tri = num_pts * num_seg * 2
-        ta = empty((num_tri, 3), int)
-        for i in range(num_pts):
-            left_start = i * num_res
-            left_end = left_start + num_res
-            right_start = ((i + 1) % num_pts) * num_res
-            right_end = right_start + num_res
-            ta[i*2*num_seg:(i*2+1)*num_seg,0] = range(left_start, left_end-1)
-            ta[i*2*num_seg:(i*2+1)*num_seg,1] = range(left_start+1, left_end)
-            ta[i*2*num_seg:(i*2+1)*num_seg,2] = range(right_start, right_end-1)
-            ta[(i*2+1)*num_seg:(i*2+2)*num_seg,0] = range(left_start+1, left_end)
-            ta[(i*2+1)*num_seg:(i*2+2)*num_seg,1] = range(right_start+1, right_end)
-            ta[(i*2+1)*num_seg:(i*2+2)*num_seg,2] = range(right_start, right_end-1)
+            # Generate triangles
+            num_seg = num_res - 1
+            num_tri = num_pts * num_seg * 2
+            ta = empty((num_tri, 3), int)
+            for i in range(num_pts):
+                left_start = i * num_res
+                left_end = left_start + num_res
+                right_start = ((i + 1) % num_pts) * num_res
+                right_end = right_start + num_res
+                ta[i*2*num_seg:(i*2+1)*num_seg,0] = range(left_start, left_end-1)
+                ta[i*2*num_seg:(i*2+1)*num_seg,1] = range(left_start+1, left_end)
+                ta[i*2*num_seg:(i*2+1)*num_seg,2] = range(right_start, right_end-1)
+                ta[(i*2+1)*num_seg:(i*2+2)*num_seg,0] = range(left_start+1, left_end)
+                ta[(i*2+1)*num_seg:(i*2+2)*num_seg,1] = range(right_start+1, right_end)
+                ta[(i*2+1)*num_seg:(i*2+2)*num_seg,2] = range(right_start, right_end-1)
+
+        # Generate the cylinders and caps for displayed residues
+        # Each middle residue consists of three points:
+        #   intermediate point (i-1,i)
+        #   point i
+        #   intermediate point (i,i+1)
+        # The first and last residues only have two points.
+        # This means there are two bands of triangles for middle
+        # residues but only one for the end residues.
+        #
+        # Note that even though two adjacent residues share
+        # a single intermediate point, the intermediate point
+        # is duplicated for each residue since they may be
+        # colored differently.  XXX: Possible optimization
+        # is reusing intermediate points that have the same
+        # color instead of duplicating them.
+        num_vertices = 0
+        num_triangles = 0
+        cap_triangles = num_pts - 2
+        band_triangles = 2 * num_pts
+        # First and last residues are special
+        if displays[start]:
+            # 3 = 1 for cap, 2 for tube
+            num_vertices += 3 * num_pts
+            num_triangles += cap_triangles + band_triangles
+        was_displayed = displays[start]
+        for i in range(start+1, end-1):
+            # Middle residues
+            if displays[i]:
+                if not was_displayed:
+                    # front cap
+                    num_vertices += num_pts
+                    num_triangles += cap_triangles
+                # 3 for tube: (i-1,i),i,(i,i+1)
+                num_vertices += 3 * num_pts
+                num_triangles += 2 * band_triangles
+            else:
+                if was_displayed:
+                    # back cap
+                    num_vertices += num_pts
+                    num_triangles += cap_triangles
+            was_displayed = displays[i]
+        # last residue
+        if displays[end-1]:
+            if was_displayed:
+                # 3 = 1 for back cap, 2 for tube
+                num_vertices += 3 * num_pts
+                num_triangles += cap_triangles + band_triangles
+            else:
+                # 4 = 2 for caps, 2 for tube
+                num_vertices += 4 * num_ptes
+                num_triangles += 2 * cap_triangles + band_triangles
+        elif was_displayed:
+            # back cap
+            num_vertices += num_pts
+            num_triangles += cap_triangles
+
+        # Create containers for vertices, normals and triangles
+        va = empty((num_vertices, 3))
+        na = empty((num_vertices, 3))
+        ca = empty((num_vertices, 4))
+        ta = empty((num_triangles, 3))
+
+        # Add vertices, normals and triangles for each residue
+        # In the following functions, "i" = [start:end] and
+        # "offset" = [0, end-start]
+        colors = rlist.ribbon_colors
+        vi = 0
+        ti = 0
+        def _make_circle(c, n, bn):
+            from numpy import tile
+            count = (len(cos_a), 1)
+            normals = (tile(n, count) * cos_a.reshape(count) +
+                       tile(bn, count) + sin_a.reshape(count))
+            circle = normals + c
+            return circle, normals
+        def _make_tangent(n, bn):
+            from numpy import cross
+            return cross(n, bn)
+        def _add_cap(c, n, bn, color, back):
+            circle, normals = _make_circle(c, n, bn)
+            tangent = make_tangent(n, bn)
+            if back:
+                tangent = -tangent
+            va[vi:vi+num_pts] = circle
+            na[vi:vi+num_pts] = tangent
+            ca[vi:vi+num_pts] = color
+            if back:
+                ta[ti:ti+cap_triangles,0] = range(vi+2,vi+num_pts)
+                ta[ti:ti+cap_triangles,1] = range(vi+1,vi+num_pts-1)
+                ta[ti:ti+cap_triangles,2] = vi
+            else:
+                ta[ti:ti+cap_triangles,0] = vi
+                ta[ti:ti+cap_triangles,1] = range(vi+1,vi+num_pts-1)
+                ta[ti:ti+cap_triangles,2] = range(vi+2,vi+num_pts)
+            vi += num_pts
+            ti += cap_triangles
+        def _add_band_vertices(circlef, normalsf, color):
+            save = vi
+            va[vi:vi+num_pts] = circlef
+            na[vi:vi+num_pts] = normalsf
+            ca[vi:vi+num_pts] = color
+            vi += num_pts
+            return save
+        def _add_band_triangles(f, b):
+            ta[ti:ti+num_pts, 0] = range(f, f+num_pts)
+            ta[ti:ti+num_pts, 1] = [(n+1) % num_pts for n in range(f, f+num_pts)]
+            ta[ti:ti+num_pts, 2] = range(b, b+num_pts)
+            ti += num_pts
+            ta[ti:ti+num_pts, 0] = [(n+1) % num_pts for n in range(f, f+num_pts)]
+            ta[ti:ti+num_pts, 1] = [(b+1) % num_pts for n in range(b, b+num_pts)]
+            ta[ti:ti+num_pts, 2] = range(b, b+num_pts)
+            ti += num_pts
+        def add_front_cap(i):
+            if i == 0:
+                # First residue is special
+                offset = i - start
+                c = centers[offset]
+                n = normals[offset]
+                bn = binormals[offset]
+            else:
+                offset = (i - 1) - start
+                c = icenters[offset]
+                n = inormals[offset]
+                bn = ibinormals[offset]
+            _add_cap(c, n, bn, colors[i], False)
+        def add_back_cap(i):
+            offset = i - start
+            if i == (end - 1):
+                # Last residue is special
+                c = centers[offset]
+                n = normals[offset]
+                bn = binormals[offset]
+            else:
+                c = icenters[offset]
+                n = inormals[offset]
+                bn = ibinormals[offset]
+            _add_cap(c, n, bn, colors[i], True)
+        def add_front_band(i):
+            offset = i - start
+            cf = icenters[offset-1]
+            nf = inormals[offset-1]
+            bnf = ibinormals[offset-1]
+            circlef, normalsf = _make_circle(cf, nf, bnf)
+            fi = _add_band_vertices(circlef, normalsf, colors[i])
+            cb = centers[offset]
+            nb = normals[offset]
+            bnb = binormals[offset]
+            circleb, normalsb = _make_circle(cb, nb, bnb)
+            bi = _add_band_vertices(circleb, normalsb, colors[i])
+            _add_band_triangles(fi, bi)
+        def add_back_band(i):
+            offset = i - start
+            cf = centers[offset]
+            nf = normals[offset]
+            bnf = binormals[offset]
+            circlef, normalsf = _make_circle(cf, nf, bnf)
+            fi = _add_band_vertices(circlef, normalsf, colors[i])
+            cb = icenters[offset]
+            nb = inormals[offset]
+            bnb = ibinormals[offset]
+            circleb, normalsb = _make_circle(cb, nb, bnb)
+            bi = _add_band_vertices(circleb, normalsb, colors[i])
+            _add_band_triangles(fi, bi)
+        def add_both_bands(i):
+            offset = i - start
+            cf = icenters[offset-1]
+            nf = inormals[offset-1]
+            bnf = ibinormals[offset-1]
+            circlef, normalsf = _make_circle(cf, nf, bnf)
+            fi = _add_band_vertices(circlef, normalsf, colors[i])
+            cm = centers[offset]
+            nm = normals[offset]
+            bnm = binormals[offset]
+            circlem, normalsm = _make_circle(cm, nm, bnm)
+            mi = _add_band_vertices(circlem, normalsm, colors[i])
+            cb = icenters[offset]
+            nb = inormals[offset]
+            bnb = ibinormals[offset]
+            circleb, normalsb = _make_circle(cb, nb, bnb)
+            bi = _add_band_vertices(circleb, normalsb, colors[i])
+            _add_band_triangles(fi, mi)
+            _add_band_triangles(mi, bi)
+
+        # Create the caps and bands
+        if displays[start]:
+            add_front_cap(start)
+            add_back_band(start)
+        was_displayed = displays[start]
+        for i in range(start+1, end-1):
+            if displays[i]:
+                if not was_displayed:
+                    add_front_cap(i)
+                add_both_bands(i)
+            else:
+                if was_displayed:
+                    add_back_cap(i-1)
+            was_displayed = displays[i]
+        # last residue
+        if displays[end-1]:
+            if was_displayed:
+                add_front_band(end-1)
+                add_back_cap(end-1)
+            else:
+                add_front_cap(end-1)
+                add_front_band(end-1)
+                add_back_cap(end-1)
+        elif was_displayed:
+            add_back_cap(end-2)
 
         # Create graphics object
         name = "helix-%d" % ssids[start]

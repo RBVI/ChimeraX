@@ -235,6 +235,28 @@ class HelixCylinder:
             self._surface = centers + uv * self.radius
         return self._surface
 
+    def cylinder_intermediates(self):
+        """Return three arrays (points, normals, binormals) for intermediates.
+
+        Intermediate points are points half way between points returned
+        by ''cylinder_center''.  These values are useful when rendering
+        the cylinder such that each segment can be independently displayed
+        and colored with sharp boundaries."""
+        from numpy import tile, newaxis
+        from numpy.linalg import norm
+        centers = self.cylinder_centers()
+        if self.curved:
+            t = (centers[:-1] + centers[1:]) - self.center
+            normals = tile(self.axis, [len(centers) - 1, 1])
+            binormals = t / norm(t, axis=1)[:, newaxis]
+            ipoints = binormals * self.cylinder_radius() + self.center
+        else:
+            normals, binormals = self.cylinder_normals()
+            normals = normals[:-1]
+            binormals = binormals[:-1]
+            ipoints = (centers[:-1] + centers[1:]) / 2
+        return ipoints, normals, binormals
+
     def _try_curved(self):
         from numpy import mean, cross, sum, vdot
         from numpy.linalg import norm
