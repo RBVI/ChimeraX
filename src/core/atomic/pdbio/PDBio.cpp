@@ -811,7 +811,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         ri != as->residues().end(); ++ri) {
             Residue *r = *ri;
             r->set_ss_id(id);
-            r->set_is_sheet(true);
+            r->set_is_strand(true);
             if (ri == sri->second)
                 break;
         }

@@ -46,7 +46,7 @@ const std::set<ResName> Residue::std_solvent_names = { "HOH", "WAT", "DOD" };
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int pos, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _is_helix(false), _is_het(false), _is_sheet(false), _name(name), _polymer_type(PT_NONE),
+    _is_helix(false), _is_het(false), _is_strand(false), _name(name), _polymer_type(PT_NONE),
     _position(pos), _ribbon_adjust(-1.0), _ribbon_display(false),
     _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
     _ribbon_style(RIBBON_RIBBON), _ss_id(-1), _structure(as)
@@ -170,7 +170,7 @@ Residue::session_restore(int version, int** ints, float** floats)
     _alt_loc = int_ptr[0];
     _is_helix = int_ptr[1];
     _is_het = int_ptr[2];
-    _is_sheet = int_ptr[3];
+    _is_strand = int_ptr[3];
     _polymer_type = (PolymerType)int_ptr[4];
     _ribbon_display = int_ptr[5];
     _ribbon_hide_backbone = int_ptr[6];
@@ -199,7 +199,7 @@ Residue::session_save(int** ints, float** floats) const
     int_ptr[0] = (int)_alt_loc;
     int_ptr[1] = (int)_is_helix;
     int_ptr[2] = (int)_is_het;
-    int_ptr[3] = (int)_is_sheet;
+    int_ptr[3] = (int)_is_strand;
     int_ptr[4] = (int)_polymer_type;
     int_ptr[5] = (int)_ribbon_display;
     int_ptr[6] = (int)_ribbon_hide_backbone;
