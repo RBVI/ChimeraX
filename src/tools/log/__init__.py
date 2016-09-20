@@ -11,31 +11,32 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
-# 'start_tool' is called to start an instance of the tool
-#
-def start_tool(session, bundle_info):
-    from . import cmd
-    return cmd.get_singleton(session, create=True)
+from chimerax.core.toolshed import BundleAPI
 
+class _MyAPI(BundleAPI):
 
-#
-# 'register_command' is called by the toolshed on start up
-#
-def register_command(command_name, bundle_info):
-    from . import cmd
-    from chimerax.core.commands import register, create_alias
-    if command_name == "echo":
-        create_alias("echo", "log text $*")
-        return
-    register(command_name, cmd.log_desc, cmd.log)
+    @staticmethod
+    def start_tool(session, bundle_info):
+        # 'start_tool' is called to start an instance of the tool
+        from . import cmd
+        return cmd.get_singleton(session, create=True)
 
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        # 'register_command' is lazily called when command is referenced
+        from . import cmd
+        from chimerax.core.commands import register, create_alias
+        if command_name == "echo":
+            create_alias("echo", "log text $*")
+            return
+        register(command_name, cmd.log_desc, cmd.log)
 
-#
-# 'get_class' is called by session code to get class saved in a session
-#
-def get_class(class_name):
-    if class_name == 'Log':
-        from . import gui
-        return gui.Log
-    return None
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'Log':
+            from . import gui
+            return gui.Log
+        return None
+
+bundle_api = _MyAPI()

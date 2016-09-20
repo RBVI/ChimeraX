@@ -11,21 +11,33 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def finish(bundle_info, session):
-    """De-install alignments manager from existing session"""
-    del session.alignments
+from chimerax.core.toolshed import BundleAPI
 
-def get_class(class_name):
-    if class_name == "AlignmentsManager":
-        from . import manager
-        return manager.AlignmentsManager
+class _MyAPI(BundleAPI):
 
-def initialize(bundle_info, session):
-    """Install alignments manager into existing session"""
-    from . import settings
-    settings.init(session)
+    @staticmethod
+    def get_class(class_name):
+        if class_name == "AlignmentsManager":
+            from . import manager
+            return manager.AlignmentsManager
 
-    from .manager import AlignmentsManager
-    session.alignments = AlignmentsManager(session, bundle_info)
+    @staticmethod
+    def initialize(session, bundle_info):
+        """Install alignments manager into existing session"""
+        from . import settings
+        settings.init(session)
 
-from .parse import open_file
+        from .manager import AlignmentsManager
+        session.alignments = AlignmentsManager(session, bundle_info)
+
+    @staticmethod
+    def finish(session, bundle_info):
+        """De-install alignments manager from existing session"""
+        del session.alignments
+
+    @staticmethod
+    def open_file(*args, **kw):
+        from .parse import open_file
+        open_file(*args, **kw)
+
+bundle_api = _MyAPI()

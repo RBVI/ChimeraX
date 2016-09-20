@@ -11,38 +11,37 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
-# 'start_tool' is called to start an instance of the tool
-#
-def start_tool(session, bundle_info):
-    from .gui import HelpUI
-    return HelpUI.get_viewer(session)
+from chimerax.core.toolshed import BundleAPI
 
+class _MyAPI(BundleAPI):
 
-#
-# 'register_command' is called by the toolshed on start up
-#
-def register_command(command_name, bundle_info):
-    from . import cmd
-    from chimerax.core.commands import register
-    register(command_name, cmd.help_desc, cmd.help)
+    @staticmethod
+    def start_tool(session, bundle_info):
+        # 'start_tool' is called to start an instance of the tool
+        from .gui import HelpUI
+        return HelpUI.get_viewer(session)
 
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        # 'register_command' is lazily called when command is referenced
+        from . import cmd
+        from chimerax.core.commands import register
+        register(command_name, cmd.help_desc, cmd.help)
 
-#
-# 'get_class' is called by session code to get class saved in a session
-#
-def get_class(class_name):
-    if class_name == 'HelpUI':
-        from . import gui
-        return gui.HelpUI
-    return None
+    @staticmethod
+    def open_file(session, f, name, filespec=None, **kw):
+        # 'open_file' is called by session code to open a file
+        from . import cmd
+        import os.path
+        cmd.help(session, "file:" + os.path.realpath(filespec))
+        return [], "Opened %s" % name
 
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'HelpUI':
+            from . import gui
+            return gui.HelpUI
+        return None
 
-#
-# 'open_file' is called by session code to open a file
-#
-def open_file(session, f, name, filespec=None, **kw):
-    from . import cmd
-    import os.path
-    cmd.help(session, "file:" + os.path.realpath(filespec))
-    return [], "Opened %s" % name
+bundle_api = _MyAPI()

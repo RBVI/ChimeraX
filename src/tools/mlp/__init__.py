@@ -11,9 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
-# 'register_command' is the delayed command registration callback
-#
-def register_command(command_name, bundle_info):
-    from . import mlp
-    mlp.register_mlp_command()
+from chimerax.core.toolshed import BundleAPI
+
+class _MyAPI(BundleAPI):
+
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        # 'register_command' is lazily called when the command is referenced
+        from . import mlp
+        mlp.register_mlp_command()
+
+bundle_api = _MyAPI()

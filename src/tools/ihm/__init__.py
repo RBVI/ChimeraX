@@ -11,7 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def initialize(bundle_info, session):
-    """Register IHM file format."""
-    from . import ihm
-    ihm.register()
+from chimerax.core.toolshed import BundleAPI
+
+class _MyAPI(BundleAPI):
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        """Register IHM file format."""
+        from . import ihm
+        ihm.register()
+
+bundle_api = _MyAPI()

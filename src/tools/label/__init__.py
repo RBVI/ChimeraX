@@ -9,9 +9,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
-# 'register_command' is called by the toolshed on start up
-#
-def register_command(command_name, bundle_info):
-    from . import label
-    label.register_label_command()
+from chimerax.core.toolshed import BundleAPI
+
+class _MyAPI(BundleAPI):
+
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        # 'register_command' is lazily called when the command is referenced
+        from . import label
+        label.register_label_command()
+
+bundle_api = _MyAPI()
