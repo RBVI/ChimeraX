@@ -11,16 +11,22 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def start_tool(session, bi):
-    if not session.ui.is_gui:
-        return
-    from .gui import cage_builder_panel
-    p = cage_builder_panel(session, bi)
-    return p
+from chimerax.core.toolshed import BundleAPI
 
-#
-# 'register_command' is called by the toolshed on start up
-#
-def register_command(command_name, bundle_info):
-    from . import cmd
-    cmd.register_cage_command()
+class _MyAPI(BundleAPI):
+
+    @staticmethod
+    def start_tool(session, bi):
+        if not session.ui.is_gui:
+            return
+        from .gui import cage_builder_panel
+        p = cage_builder_panel(session, bi)
+        return p
+
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        # 'register_command' is lazily called when command is referenced
+        from . import cmd
+        cmd.register_cage_command()
+
+bundle_api = _MyAPI()

@@ -11,6 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def start_tool(session, bi):
-    from . import fetch_cellpack
-    fetch_cellpack.register_cellpack_fetch(session)
+from chimerax.core.toolshed import BundleAPI
+
+class _MyAPI(BundleAPI):
+
+    @staticmethod
+    def initialize(session, bi):
+        from . import fetch_cellpack
+        fetch_cellpack.register_cellpack_fetch(session)
+
+bundle_api = _MyAPI()

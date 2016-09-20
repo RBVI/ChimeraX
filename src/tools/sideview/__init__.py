@@ -11,32 +11,25 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.toolshed import BundleAPI
 
-#
-# 'start_tool' is called to start an instance of the tool
-#
-def start_tool(session, bundle_info):
-    # If providing more than one tool in package,
-    # look at the name in 'bundle_info.name' to see which is being started.
+class _MyAPI(BundleAPI):
 
-    # Starting tools may only work in GUI mode, or in all modes.
-    # Here, we check for GUI-only tool.
-    if not session.ui.is_gui:
+    @staticmethod
+    def start_tool(session, bundle_info):
+        # 'start_tool' is called to start an instance of the tool
+        # If providing more than one tool in package,
+        # look at the name in 'bundle_info.name' to see which is being started.
+        from .gui import SideViewUI
+        s = SideViewUI(session, bundle_info)
+        return s
+
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'SideViewUI':
+            from . import gui
+            return gui.SideViewUI
         return None
-    from .gui import SideViewUI
-    # return SideViewUI(session, bundle_info)
-    s = SideViewUI(session, bundle_info)
-    return s
 
-
-# no commands
-
-
-#
-# 'get_class' is called by session code to get class saved in a session
-#
-def get_class(class_name):
-    if class_name == 'SideViewUI':
-        from . import gui
-        return gui.SideViewUI
-    return None
+bundle_api = _MyAPI()

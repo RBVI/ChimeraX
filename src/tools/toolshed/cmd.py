@@ -170,6 +170,9 @@ def ts_start(session, bundle_name):
     if tinfo is None:
         from chimerax.core.errors import UserError
         raise UserError('No installed bundle named "%s"' % bundle_name)
+    if not session.ui.is_gui:
+        from chimerax.core.errors import UserError
+        raise UserError("Need a GUI to start tools")
     tinfo.start(session)
 ts_start_desc = CmdDesc(required=[('bundle_name', StringArg)])
 
@@ -190,7 +193,7 @@ def ts_show(session, bundle_name, _show=True):
     tinst = [t for t in session.tools.list() if t.bundle_info is tinfo]
     for ti in tinst:
         ti.display(_show)
-    if len(tinst) == 0:
+    if _show and len(tinst) == 0:
         tinfo.start(session)
 ts_show_desc = CmdDesc(required=[('bundle_name', StringArg)])
 

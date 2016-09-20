@@ -132,6 +132,9 @@ class Structure(Model, StructureData):
                     ribbonable -= ligand
                     metal_atoms = atoms.filter(atoms.elements.is_metal)
                     metal_atoms.draw_modes = Atom.SPHERE_STYLE
+                    ions = atoms.filter(atoms.structure_categories == "ions")
+                    lone_ions = ions.filter(ions.residues.num_atoms == 1)
+                    lone_ions.draw_modes = Atom.SPHERE_STYLE
                     ligand |= metal_atoms.residues
                     display = ligand
                     pas = ribbonable.existing_principal_atoms
@@ -144,7 +147,10 @@ class Structure(Model, StructureData):
                         from ..geometry import find_closest_points
                         close_indices = find_closest_points(lig_points, mol_points, 3.6)[1]
                         display |= atoms.filter(close_indices).residues
-                    display.atoms.displays = True
+                    display_atoms = display.atoms
+                    if self.num_residues > 1:
+                        display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
+                    display_atoms.displays = True
                     ribbonable.ribbon_displays = True
                 elif len(ribbonable) == 0:
                     # CA only?
@@ -464,7 +470,7 @@ class Structure(Model, StructureData):
             from .ribbon import XSectionManager
             polymer_type = residues.polymer_types
             is_helix = residues.is_helix
-            is_sheet = residues.is_sheet
+            is_strand = residues.is_strand
             ssids = residues.secondary_structure_ids
             res_class = []
             was_sheet = was_helix = False
@@ -478,7 +484,7 @@ class Structure(Model, StructureData):
                     am_sheet = am_helix = False
                     was_nucleic = True
                 elif polymer_type[i] == Residue.PT_AMINO:
-                    if is_sheet[i]:
+                    if is_strand[i]:
                         # Define sheet SS as having higher priority over helix SS
                         if was_sheet:
                             # Check if this is the start of another sheet
@@ -534,11 +540,37 @@ class Structure(Model, StructureData):
                 # 1hxx ends in a strand
                 end_helix(res_class, helix_ranges, len(residues))
 
+            # Assign front and back cross sections for each residue.
+            # The "front" section is between this residue and the previous.
+            # The "back" section is between this residue and the next.
+            # The front and back sections meet at the control point atom.
+            # Compute cross sections and whether we care about a smooth
+            # transition between residues.
+            from .ribbon import XSectionManager
+            xs_front = []
+            xs_back = []
+            need_twist = []
+            rc0 = XSectionManager.RC_COIL
+            for i in range(len(residues)):
+                rc1 = res_class[i]
+                try:
+                    rc2 = res_class[i + 1]
+                except IndexError:
+                    rc2 = XSectionManager.RC_COIL
+                f, b = self.ribbon_xs_mgr.assign(rc0, rc1, rc2)
+                xs_front.append(f)
+                xs_back.append(b)
+                need_twist.append(self._need_twist(rc1, rc2))
+                rc0 = rc1
+            need_twist[-1] = False
+
             # Perform any smoothing (e.g., strand smoothing
             # to remove lasagna sheets, pipes and planks
             # display as cylinders and planes, etc.)
             tethered = zeros(len(atoms), bool)
-            self._smooth_ribbon(residues, coords, guides, atoms, tethered, p, helix_ranges, sheet_ranges)
+            self._smooth_ribbon(residues, coords, guides, atoms, ssids,
+                                tethered, xs_front, xs_back, p,
+                                helix_ranges, sheet_ranges)
             tethered &= displays
             if False:
                 # Debugging code to display line from control point to guide
@@ -578,30 +610,6 @@ class Structure(Model, StructureData):
                 seg_cap = rd
                 seg_blend = seg_cap + 1
 
-            # Assign front and back cross sections for each residue.
-            # The "front" section is between this residue and the previous.
-            # The "back" section is between this residue and the next.
-            # The front and back sections meet at the control point atom.
-            # Compute cross sections and whether we care about a smooth
-            # transition between residues.
-            from .ribbon import XSectionManager
-            xs_front = []
-            xs_back = []
-            need_twist = []
-            rc0 = XSectionManager.RC_COIL
-            for i in range(len(residues)):
-                rc1 = res_class[i]
-                try:
-                    rc2 = res_class[i + 1]
-                except IndexError:
-                    rc2 = XSectionManager.RC_COIL
-                f, b = self.ribbon_xs_mgr.assign(rc0, rc1, rc2)
-                xs_front.append(f)
-                xs_back.append(b)
-                need_twist.append(self._need_twist(rc1, rc2))
-                rc0 = rc1
-            need_twist[-1] = False
-
             # Draw first and last residue differently because they
             # are each only a single half segment, while the middle
             # residues are each two half segments.
@@ -609,7 +617,7 @@ class Structure(Model, StructureData):
 
             # First residues
             from .ribbon import FLIP_MINIMIZE, FLIP_PREVENT, FLIP_FORCE
-            if displays[0]:
+            if displays[0] and not (is_helix[0] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC):
                 # print(residues[0], file=sys.__stderr__); sys.__stderr__.flush()
                 xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[0], xs_front[1])
                 capped = displays[0] != displays[1] or not xs_compat
@@ -648,65 +656,80 @@ class Structure(Model, StructureData):
                 # print(residues[i], file=sys.__stderr__); sys.__stderr__.flush()
                 if not displays[i]:
                     continue
-                seg = capped and seg_cap or seg_blend
-                mid_cap = not self.ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
-                front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, mid_cap, last=mid_cap)
-                if self.ribbon_show_spine:
-                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
-                                                                                     front_c, front_n,
-                                                                                     spine_colors,
-                                                                                     spine_xyz1,
-                                                                                     spine_xyz2)
-                xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
-                next_cap = displays[i] != displays[i + 1] or not xs_compat
-                seg = next_cap and seg_cap or seg_blend
-                flip_mode = FLIP_MINIMIZE
-                if is_helix[i] and is_helix[i + 1]:
-                    flip_mode = FLIP_PREVENT
-                # strands generally flip normals at every residue but
-                # beta bulges violate this rule so we cannot always flip
-                # elif is_sheet[i] and is_sheet[i + 1]:
-                #     flip_mode = FLIP_FORCE
-                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, not need_twist[i],
-                                                        flip_mode=flip_mode)
-                if self.ribbon_show_spine:
-                    spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
-                                                                                     back_c, back_n,
-                                                                                     spine_colors,
-                                                                                     spine_xyz1,
-                                                                                     spine_xyz2)
-                sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
-                                           capped, mid_cap, v_start)
-                v_start += len(sf.vertices)
-                sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
-                                           mid_cap, next_cap, v_start)
-                v_start += len(sb.vertices)
-                t_end = t_start + len(sf.triangles) + len(sb.triangles)
-                vertex_list.append(sf.vertices)
-                vertex_list.append(sb.vertices)
-                normal_list.append(sf.normals)
-                normal_list.append(sb.normals)
-                triangle_list.append(sf.triangles)
-                triangle_list.append(sb.triangles)
-                color_list.append(sf.colors)
-                color_list.append(sb.colors)
-                if prev_band is not None:
-                    triangle_list.append(xs_front[i].blend(prev_band, sf.front_band))
-                    t_end += len(triangle_list[-1])
-                if not mid_cap:
-                    triangle_list.append(xs_back[i].blend(sf.back_band, sb.front_band))
-                    t_end += len(triangle_list[-1])
-                if next_cap:
+                t_end = t_start
+                if is_helix[i] and is_helix[i-1] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                    # Helix is shown separately as a tube, so we do not need to
+                    # draw anything
+                    next_cap = True
                     prev_band = None
                 else:
-                    prev_band = sb.back_band
+                    # Show as ribbon
+                    seg = capped and seg_cap or seg_blend
+                    mid_cap = not self.ribbon_xs_mgr.is_compatible(xs_front[i], xs_back[i])
+                    front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg, mid_cap, last=mid_cap)
+                    if self.ribbon_show_spine:
+                        spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
+                                                                                         front_c, front_n,
+                                                                                         spine_colors,
+                                                                                         spine_xyz1,
+                                                                                         spine_xyz2)
+                    xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
+                    next_cap = displays[i] != displays[i + 1] or not xs_compat
+                    sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
+                                               capped, mid_cap, v_start)
+                    v_start += len(sf.vertices)
+                    t_end += len(sf.triangles)
+                    vertex_list.append(sf.vertices)
+                    normal_list.append(sf.normals)
+                    triangle_list.append(sf.triangles)
+                    color_list.append(sf.colors)
+                    if prev_band is not None:
+                        triangle_list.append(xs_front[i].blend(prev_band, sf.front_band))
+                        t_end += len(triangle_list[-1])
+                if is_helix[i] and is_helix[i+1] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                    # Helix is shown separately as a tube, so we do not need to
+                    # draw anything
+                    prev_band = None
+                else:
+                    seg = next_cap and seg_cap or seg_blend
+                    flip_mode = FLIP_MINIMIZE
+                    if self.ribbon_mode_helix == self.RIBBON_MODE_DEFAULT and is_helix[i] and is_helix[i + 1]:
+                        flip_mode = FLIP_PREVENT
+                    # strands generally flip normals at every residue but
+                    # beta bulges violate this rule so we cannot always flip
+                    # elif is_strand[i] and is_strand[i + 1]:
+                    #     flip_mode = FLIP_FORCE
+                    back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, not need_twist[i],
+                                                            flip_mode=flip_mode)
+                    if self.ribbon_show_spine:
+                        spine_colors, spine_xyz1, spine_xyz2 = self._ribbon_update_spine(colors[i],
+                                                                                         back_c, back_n,
+                                                                                         spine_colors,
+                                                                                         spine_xyz1,
+                                                                                         spine_xyz2)
+                    sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
+                                               mid_cap, next_cap, v_start)
+                    v_start += len(sb.vertices)
+                    t_end += len(sb.triangles)
+                    vertex_list.append(sb.vertices)
+                    normal_list.append(sb.normals)
+                    triangle_list.append(sb.triangles)
+                    color_list.append(sb.colors)
+                    if not mid_cap:
+                        triangle_list.append(xs_back[i].blend(sf.back_band, sb.front_band))
+                        t_end += len(triangle_list[-1])
+                    if next_cap:
+                        prev_band = None
+                    else:
+                        prev_band = sb.back_band
                 capped = next_cap
-                triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[i])
-                t2r.append(triangle_range)
-                self._ribbon_r2t[residues[i]] = triangle_range
-                t_start = t_end
+                if t_end != t_start:
+                    triangle_range = RibbonTriangleRange(t_start, t_end, rp, residues[i])
+                    t2r.append(triangle_range)
+                    self._ribbon_r2t[residues[i]] = triangle_range
+                    t_start = t_end
             # Last residue
-            if displays[-1]:
+            if displays[-1] and not (is_helix[-1] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC):
                 # print(residues[-1], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, True)
@@ -780,17 +803,34 @@ class Structure(Model, StructureData):
         from .molarray import Residues
         self._ribbon_selected_residues = Residues()
 
-    def _smooth_ribbon(self, rlist, coords, guides, atoms, tethered, p, helix_ranges, sheet_ranges):
+    def _smooth_ribbon(self, rlist, coords, guides, atoms, ssids, tethered,
+                       xs_front, xs_back, p, helix_ranges, sheet_ranges):
         ribbon_adjusts = rlist.ribbon_adjusts
-        # XXX: Skip helix smoothing for now since it does not work well for bent helices
-        # Smooth helices
-        # for start, end in helix_ranges:
-        #     self._smooth_helix(coords, guides, tethered, ribbon_adjusts, start, end, p)
-        # Smooth strands
-        for start, end in sheet_ranges:
-            self._smooth_strand(coords, guides, tethered, ribbon_adjusts, start, end, p)
+        if self.ribbon_mode_helix == self.RIBBON_MODE_DEFAULT:
+            # Smooth helices
+            # XXX: Skip helix smoothing for now since it does not work well for bent helices
+            pass
+            # for start, end in helix_ranges:
+            #     self._smooth_helix(coords, guides, tethered, xs_front, xs_back,
+            #                        ribbon_adjusts, start, end, p)
+        elif self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+            for start, end in helix_ranges:
+                self._arc_helix(rlist, coords, guides, ssids, tethered, xs_front, xs_back,
+                                ribbon_adjusts, start, end, p)
+        if self.ribbon_mode_strand == self.RIBBON_MODE_DEFAULT:
+            # Smooth strands
+            for start, end in sheet_ranges:
+                self._smooth_strand(rlist, coords, guides, tethered, xs_front, xs_back,
+                                    ribbon_adjusts, start, end, p)
+        elif self.ribbon_mode_strand == self.RIBBON_MODE_ARC:
+            # TODO: not implemented yet
+            pass
+            # for start, end in sheet_ranges:
+            #     self._arc_strand(coords, guides, tethered, xs_front, xs_back,
+            #                      ribbon_adjusts, start, end, p)
 
-    def _smooth_helix(self, coords, guides, tethered, ribbon_adjusts, start, end, p):
+    def _smooth_helix(self, rlist, coords, guides, tethered, xs_front, xs_back,
+                      ribbon_adjusts, start, end, p):
         # Try to fix up the ribbon orientation so that it is parallel to the helical axis
         from numpy import dot, newaxis, mean
         from numpy.linalg import norm
@@ -831,7 +871,287 @@ class Structure(Model, StructureData):
         # when the atoms are displayed in stick mode, with radius self.bond_radius)
         tethered[start:end] = norm(offsets, axis=1) > self.bond_radius
 
-    def _smooth_strand(self, coords, guides, tethered, ribbon_adjusts, start, end, p):
+    def _arc_helix(self, rlist, coords, guides, ssids, tethered, xs_front, xs_back,
+                   ribbon_adjusts, start, end, p):
+        # Only bother if at least one residue is displayed
+        displays = rlist.ribbon_displays
+        if not any(displays[start:end]):
+            return
+
+        from .sse import HelixCylinder
+        from numpy import linspace, cos, sin
+        from math import pi
+        from numpy import empty, tile
+
+        hc = HelixCylinder(coords[start:end])
+        centers = hc.cylinder_centers()
+        radius = hc.cylinder_radius()
+        normals, binormals = hc.cylinder_normals()
+        icenters, inormals, ibinormals = hc.cylinder_intermediates()
+        coords[start:end] = centers
+        tethered[start:end] = True
+
+        # Compute unit circle in 2D
+        mgr = self.ribbon_xs_mgr
+        num_pts = mgr.params[mgr.STYLE_ROUND]["sides"]
+        angles = linspace(0.0, pi * 2, num=num_pts, endpoint=False)
+        cos_a = radius * cos(angles)
+        sin_a = radius * sin(angles)
+
+        # Generate the cylinders and caps for displayed residues
+        # Each middle residue consists of three points:
+        #   intermediate point (i-1,i)
+        #   point i
+        #   intermediate point (i,i+1)
+        # The first and last residues only have two points.
+        # This means there are two bands of triangles for middle
+        # residues but only one for the end residues.
+        #
+        # Note that even though two adjacent residues share
+        # a single intermediate point, the intermediate point
+        # is duplicated for each residue since they may be
+        # colored differently.  XXX: Possible optimization
+        # is reusing intermediate points that have the same
+        # color instead of duplicating them.
+
+        # First we count up how many caps and bands are displayed
+        num_vertices = 0
+        num_triangles = 0
+        cap_triangles = num_pts - 2
+        band_triangles = 2 * num_pts
+        # First and last residues are special
+        if displays[start]:
+            # 3 = 1 for cap, 2 for tube
+            num_vertices += 3 * num_pts
+            num_triangles += cap_triangles + band_triangles
+        was_displayed = displays[start]
+        for i in range(start+1, end-1):
+            # Middle residues
+            if displays[i]:
+                if not was_displayed:
+                    # front cap
+                    num_vertices += num_pts
+                    num_triangles += cap_triangles
+                # 3 for tube: (i-1,i),i,(i,i+1)
+                num_vertices += 3 * num_pts
+                num_triangles += 2 * band_triangles
+            else:
+                if was_displayed:
+                    # back cap
+                    num_vertices += num_pts
+                    num_triangles += cap_triangles
+            was_displayed = displays[i]
+        # last residue
+        if displays[end-1]:
+            if was_displayed:
+                # 3 = 1 for back cap, 2 for tube
+                num_vertices += 3 * num_pts
+                num_triangles += cap_triangles + band_triangles
+            else:
+                # 4 = 2 for caps, 2 for tube
+                num_vertices += 4 * num_ptes
+                num_triangles += 2 * cap_triangles + band_triangles
+        elif was_displayed:
+            # back cap
+            num_vertices += num_pts
+            num_triangles += cap_triangles
+
+        # Second, create containers for vertices, normals and triangles
+        va = empty((num_vertices, 3), dtype=float)
+        na = empty((num_vertices, 3), dtype=float)
+        ca = empty((num_vertices, 4), dtype=float)
+        ta = empty((num_triangles, 3), dtype=int)
+
+        # Third, add vertices, normals and triangles for each residue
+        # In the following functions, "i" = [start:end] and
+        # "offset" = [0, end-start]
+        colors = rlist.ribbon_colors
+        vi = 0
+        ti = 0
+        def _make_circle(c, n, bn):
+            nonlocal cos_a, sin_a
+            from numpy import tile, cross
+            from numpy.linalg import norm
+            count = (len(cos_a), 1)
+            normals = (tile(n, count) * cos_a.reshape(count) +
+                       tile(bn, count) * sin_a.reshape(count))
+            circle = normals + c
+            return circle, normals
+        def _make_tangent(n, bn):
+            from numpy import cross
+            return cross(n, bn)
+        def _add_cap(c, n, bn, color, back):
+            nonlocal vi, ti, va, na, ca, ta, num_pts
+            circle, normals = _make_circle(c, n, bn)
+            tangent = _make_tangent(n, bn)
+            if back:
+                tangent = -tangent
+            va[vi:vi+num_pts] = circle
+            na[vi:vi+num_pts] = tangent
+            ca[vi:vi+num_pts] = color
+            if back:
+                ta[ti:ti+cap_triangles,0] = range(vi+2,vi+num_pts)
+                ta[ti:ti+cap_triangles,1] = range(vi+1,vi+num_pts-1)
+                ta[ti:ti+cap_triangles,2] = vi
+            else:
+                ta[ti:ti+cap_triangles,0] = vi
+                ta[ti:ti+cap_triangles,1] = range(vi+1,vi+num_pts-1)
+                ta[ti:ti+cap_triangles,2] = range(vi+2,vi+num_pts)
+            vi += num_pts
+            ti += cap_triangles
+        def _add_band_vertices(circlef, normalsf, color):
+            nonlocal vi, ti, va, na, ca, num_pts
+            save = vi
+            va[vi:vi+num_pts] = circlef
+            na[vi:vi+num_pts] = normalsf
+            ca[vi:vi+num_pts] = color
+            vi += num_pts
+            return save
+        def _add_band_triangles(f, b):
+            nonlocal ti, ta, num_pts
+            ta[ti:ti+num_pts, 0] = range(f, f+num_pts)
+            ta[ti:ti+num_pts, 1] = [f + (n+1) % num_pts for n in range(num_pts)]
+            ta[ti:ti+num_pts, 2] = range(b, b+num_pts)
+            ti += num_pts
+            ta[ti:ti+num_pts, 0] = [f + (n+1) % num_pts for n in range(num_pts)]
+            ta[ti:ti+num_pts, 1] = [b + (n+1) % num_pts for n in range(num_pts)]
+            ta[ti:ti+num_pts, 2] = range(b, b+num_pts)
+            ti += num_pts
+        def add_front_cap(i):
+            nonlocal start, centers, normals, binormals
+            nonlocal icenters, inormals, ibinormals, colors
+            if i == start:
+                # First residue is special
+                offset = 0
+                c = centers[offset]
+                n = normals[offset]
+                bn = binormals[offset]
+            else:
+                offset = (i - 1) - start
+                c = icenters[offset]
+                n = inormals[offset]
+                bn = ibinormals[offset]
+            _add_cap(c, n, bn, colors[i], False)
+        def add_back_cap(i):
+            nonlocal start, end, centers, normals, binormals
+            nonlocal icenters, inormals, ibinormals, colors
+            if i == (end - 1):
+                # Last residue is special
+                offset = -1
+                c = centers[offset]
+                n = normals[offset]
+                bn = binormals[offset]
+            else:
+                offset = i - start
+                c = icenters[offset]
+                n = inormals[offset]
+                bn = ibinormals[offset]
+            _add_cap(c, n, bn, colors[i], True)
+        def add_front_band(i):
+            nonlocal start, centers, normals, binormals
+            nonlocal icenters, inormals, ibinormals, colors
+            offset = i - start
+            cf = icenters[offset-1]
+            nf = inormals[offset-1]
+            bnf = ibinormals[offset-1]
+            circlef, normalsf = _make_circle(cf, nf, bnf)
+            fi = _add_band_vertices(circlef, normalsf, colors[i])
+            cb = centers[offset]
+            nb = normals[offset]
+            bnb = binormals[offset]
+            circleb, normalsb = _make_circle(cb, nb, bnb)
+            bi = _add_band_vertices(circleb, normalsb, colors[i])
+            _add_band_triangles(fi, bi)
+        def add_back_band(i):
+            nonlocal start, centers, normals, binormals
+            nonlocal icenters, inormals, ibinormals, colors
+            offset = i - start
+            cf = centers[offset]
+            nf = normals[offset]
+            bnf = binormals[offset]
+            circlef, normalsf = _make_circle(cf, nf, bnf)
+            fi = _add_band_vertices(circlef, normalsf, colors[i])
+            cb = icenters[offset]
+            nb = inormals[offset]
+            bnb = ibinormals[offset]
+            circleb, normalsb = _make_circle(cb, nb, bnb)
+            bi = _add_band_vertices(circleb, normalsb, colors[i])
+            _add_band_triangles(fi, bi)
+        def add_both_bands(i):
+            nonlocal start, centers, normals, binormals
+            nonlocal icenters, inormals, ibinormals, colors
+            offset = i - start
+            cf = icenters[offset-1]
+            nf = inormals[offset-1]
+            bnf = ibinormals[offset-1]
+            circlef, normalsf = _make_circle(cf, nf, bnf)
+            fi = _add_band_vertices(circlef, normalsf, colors[i])
+            cm = centers[offset]
+            nm = normals[offset]
+            bnm = binormals[offset]
+            circlem, normalsm = _make_circle(cm, nm, bnm)
+            mi = _add_band_vertices(circlem, normalsm, colors[i])
+            cb = icenters[offset]
+            nb = inormals[offset]
+            bnb = ibinormals[offset]
+            circleb, normalsb = _make_circle(cb, nb, bnb)
+            bi = _add_band_vertices(circleb, normalsb, colors[i])
+            _add_band_triangles(fi, mi)
+            _add_band_triangles(mi, bi)
+
+        # Third (still), create the caps and bands
+        t_range = {}
+        if displays[start]:
+            add_front_cap(start)
+            add_back_band(start)
+            t_range[start] = [0, ti]
+        was_displayed = displays[start]
+        for i in range(start+1, end-1):
+            if displays[i]:
+                t_start = ti
+                if not was_displayed:
+                    add_front_cap(i)
+                add_both_bands(i)
+                t_range[i] = [t_start, ti]
+            else:
+                if was_displayed:
+                    add_back_cap(i-1)
+                    t_range[i-1][1] = ti
+            was_displayed = displays[i]
+        # last residue
+        if displays[end-1]:
+            t_start = ti
+            if was_displayed:
+                add_front_band(end-1)
+                add_back_cap(end-1)
+            else:
+                add_front_cap(end-1)
+                add_front_band(end-1)
+                add_back_cap(end-1)
+            t_range[end-1] = [t_start, ti]
+        elif was_displayed:
+            add_back_cap(end-2)
+            t_range[end-2][1] = ti
+
+        # Fourth, create graphics object of vertices, normals,
+        # colors and triangles
+        name = "helix-%d" % ssids[start]
+        ssp = p.new_drawing(name)
+        ssp.geometry = va, ta
+        ssp.normals = na
+        ssp.vertex_colors = ca
+
+        # Finally, update selection data structures
+        t2r = []
+        for i, r in t_range.items():
+            res = rlist[i]
+            triangle_range = RibbonTriangleRange(r[0], r[1], ssp, res)
+            t2r.append(triangle_range)
+            self._ribbon_r2t[res] = triangle_range
+        self._ribbon_t2r[ssp] = t2r
+
+    def _smooth_strand(self, rlist, coords, guides, tethered, xs_front, xs_back,
+                       ribbon_adjusts, start, end, p):
         if (end - start + 1) <= 2:
             # Short strands do not need smoothing
             return

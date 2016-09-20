@@ -630,7 +630,7 @@ compute_chain(KsdsspParams& params)
             ++id;
         for (int i = start_end.first; i <= start_end.second; ++i) {
             Residue *r = params.residues[i];
-            r->set_is_sheet(true);
+            r->set_is_strand(true);
             r->set_ss_id(id);
         }
         last = start_end.second;
@@ -666,7 +666,7 @@ compute_secondary_structure(Structure* s, Real energy_cutoff,
         //Residue *prev_res = nullptr;
         for (auto r: s->residues()) {
             r->set_is_helix(false);
-            r->set_is_sheet(false);
+            r->set_is_strand(false);
             r->set_ss_id(-1);
             //if (prev_res && !bonds_between(prev_res, r)) {
             //    compute_chain(info);

@@ -11,39 +11,36 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
-# 'start_tool' is called to start an instance of the tool
-#
-def start_tool(session, bundle_info):
-    if not session.ui.is_gui:
-        return None
-    # GUI actually starts when data is opened, so this is for
-    # restoring sessions
-    from . import gui
-    return gui.MapSeries(session, bundle_info)
+from chimerax.core.toolshed import BundleAPI
 
+class _MyAPI(BundleAPI):
 
-#
-# 'initialize' is called by the toolshed on start up
-#
-def initialize(bundle_info, session):
-    from . import gui
-    gui.show_slider_on_open(session)
-
-
-#
-# 'finish' is called by the toolshed when updated/reloaded
-#
-def finish(bundle_info, session):
-    from . import gui
-    gui.remove_slider_on_open(session)
-
-
-#
-# 'get_class' is called by session code to get class saved in a session
-#
-def get_class(class_name):
-    if class_name == 'MapSeries':
+    @staticmethod
+    def start_tool(session, bundle_info):
+        # 'start_tool' is called to start an instance of the tool
+        # GUI actually starts when data is opened, so this is for
+        # restoring sessions
         from . import gui
-        return gui.MapSeries
-    return None
+        return gui.MapSeries(session, bundle_info)
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        # 'initialize' is called by the toolshed on start up
+        from . import gui
+        gui.show_slider_on_open(session)
+
+    @staticmethod
+    def finish(session, bundle_info):
+        # 'finish' is called by the toolshed when updated/reloaded
+        from . import gui
+        gui.remove_slider_on_open(session)
+
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'MapSeries':
+            from . import gui
+            return gui.MapSeries
+        return None
+
+bundle_api = _MyAPI()

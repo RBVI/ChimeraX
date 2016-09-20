@@ -122,6 +122,7 @@ class Atom:
         "\n\n|  Possible values:\n"
         "HIDE_RIBBON\n"
         "    Hide mask for backbone atoms in ribbon.")
+    idatm_type = c_property('atom_idatm_type', string, doc = "IDATM type")
     in_chain = c_property('atom_in_chain', npy_bool, read_only = True,
         doc = "Whether this atom belongs to a polymer. Read only.")
     is_ribose = c_property('atom_is_ribose', npy_bool, read_only = True,
@@ -540,9 +541,9 @@ class Residue:
     '''Protein Data Bank residue insertion code. 1 character or empty string.'''
     is_helix = c_property('residue_is_helix', npy_bool, doc=
         "Whether this residue belongs to a protein alpha helix. Boolean value. "
-        "If set to True, also sets is_sheet to False. "
+        "If set to True, also sets is_strand to False. "
         "Use set_secondary_structure() if this behavior is undesired.")
-    is_sheet = c_property('residue_is_sheet', npy_bool, doc=
+    is_strand = c_property('residue_is_strand', npy_bool, doc=
         "Whether this residue belongs to a protein beta sheet. Boolean value. "
         "If set to True, also sets is_helix to False. "
         "Use set_secondary_structure() if this behavior is undesired.")
@@ -608,7 +609,7 @@ class Residue:
 
     def set_secondary_structure(self, ss_type, value):
         '''Set helix/sheet to True/False
-        Unlike is_helix/is_sheet attrs, this function only sets the value requested,
+        Unlike is_helix/is_strand attrs, this function only sets the value requested,
         it will not unset any other types as a side effect.
         'ss_type' should be one of Residue.SS_HELIX or RESIDUE.SS_SHEET'''
         if ss_type == Residue.SS_HELIX:
@@ -638,9 +639,12 @@ class Sequence:
     SS_OTHER = 'O'
     SS_STRAND = 'S'
 
-    nucleic3to1 = c_function('sequence_nucleic3to1', args = (ctypes.c_char_p,), ret = byte)
-    protein3to1 = c_function('sequence_protein3to1', args = (ctypes.c_char_p,), ret = byte)
-    rname3to1 = c_function('sequence_rname3to1', args = (ctypes.c_char_p,), ret = byte)
+    nucleic3to1 = lambda rn: c_function('sequence_nucleic3to1', args = (ctypes.c_char_p,),
+        ret = ctypes.c_char)(rn).decode('utf-8')
+    protein3to1 = lambda rn: c_function('sequence_protein3to1', args = (ctypes.c_char_p,),
+        ret = ctypes.c_char)(rn).decode('utf-8')
+    rname3to1 = lambda rn: c_function('sequence_rname3to1', args = (ctypes.c_char_p,),
+        ret = ctypes.c_char)(rn).decode('utf-8')
 
     chimera_exiting = False
 
@@ -801,14 +805,7 @@ class StructureSeq(Sequence):
     structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
 
-    def append(self, *args, **kw):
-        # could be implemented via modified C++ StructureSeq.push_back(), where that method
-        # does not remove from chain unless is_chain() is true, and takes an optional
-        # sequence character to use
-        from ..errors import LimitationError
-        raise LimitationError(self.__class__.__name__ + ".append/extend not implemented yet"
-            " (use bulk_set for now)")
-    extend = append
+    # allow append/extend for now, since NeedlemanWunsch uses it
 
     def bulk_set(self, residues, characters):
         '''Set all residues/characters of StructureSeq. '''
@@ -1002,6 +999,14 @@ class StructureData:
     '''Number of sides for ribbon tether. Integer value.'''
     ribbon_tether_opacity = c_property('structure_ribbon_tether_opacity', float32)
     '''Ribbon tether opacity scale factor (relative to the atom).'''
+    ribbon_mode_helix = c_property('structure_ribbon_mode_helix', int32)
+    '''Ribbon mode for helices. Integer value.'''
+    ribbon_mode_strand = c_property('structure_ribbon_mode_strand', int32)
+    '''Ribbon mode for strands. Integer value.'''
+    RIBBON_MODE_DEFAULT = 0
+    '''Default ribbon mode showing secondary structure with ribbons.'''
+    RIBBON_MODE_ARC = 1
+    '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")

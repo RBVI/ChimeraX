@@ -31,26 +31,61 @@ def read_ihm(session, filename, name, *args, **kw):
 
     from os.path import basename, splitext
     name = splitext(basename(filename))[0]
+    from chimerax.core.models import Model
+    ihm_model = Model(name, session)
 
-    table_names = ['ihm_sphere_obj_site', 'ihm_cross_link_restraint', 'ihm_gaussian_obj_ensemble']
+    table_names = ['ihm_model_list', 'ihm_sphere_obj_site', 'ihm_cross_link_restraint',
+                   'ihm_ensemble_info', 'ihm_gaussian_obj_ensemble']
     from chimerax.core.atomic import mmcif
-    spheres_obj_site, xlink_restraint, gaussian_obj = mmcif.get_mmcif_tables(filename, table_names)
-        
-    models = make_sphere_models(session, spheres_obj_site, name)
-    xlinks = []
-    if xlink_restraint is not None:
-        xlinks = make_crosslink_pseudobonds(xlink_restraint, models)
-    pgrids = []
-    if gaussian_obj is not None:
-        pgrids = make_probability_grids(session, gaussian_obj)
+    table_list = mmcif.get_mmcif_tables(filename, table_names)
+    tables = dict(zip(table_names, table_list))
 
-    msg = ('Opened IHM file %s containing %d sphere models, %d distance restraints, %d probability maps' %
-           (filename, len(models), len(xlinks), len(pgrids)))
-    return models + pgrids, msg
+    gmodels = make_model_groups(session, tables['ihm_model_list'])
+    for g in gmodels[1:]:
+        g.display = False	# Only show first group.
+    ihm_model.add(gmodels)
+    
+    smodels = make_sphere_models(session, tables['ihm_sphere_obj_site'], gmodels)
+
+    xlinks = []
+    xlink_table = tables['ihm_cross_link_restraint']
+    if xlink_table is not None:
+        xlinks = make_crosslink_pseudobonds(xlink_table, smodels)
+
+    pgrids = []
+    ensembles_table = tables['ihm_ensemble_info']
+    gaussian_table = tables['ihm_gaussian_obj_ensemble']
+    if ensembles_table is not None and gaussian_table is not None:
+        pgrids = make_probability_grids(session, ensembles_table, gaussian_table, gmodels)
+
+    msg = ('Opened IHM file %s containing %d model groups, %d sphere models, %d distance restraints, %d ensemble distributions' %
+           (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids)))
+    return [ihm_model], msg
 
 # -----------------------------------------------------------------------------
 #
-def make_sphere_models(session, spheres_obj_site, name):
+def make_model_groups(session, ihm_model_list_table):
+    ml_fields = [
+        'model_id',
+        'model_group_id',
+        'model_group_name',]
+    ml = ihm_model_list_table.fields(ml_fields)
+    gm = {}
+    for mid, gid, gname in ml:
+        gm.setdefault((gid, gname), []).append(mid)
+    models = []
+    from chimerax.core.models import Model
+    for (gid, gname), mid_list in gm.items():
+        m = Model(gname, session)
+        m.ihm_group_id = gid
+        m.ihm_model_ids = mid_list
+        models.append(m)
+    models.sort(key = lambda m: m.ihm_group_id)
+    return models
+
+# -----------------------------------------------------------------------------
+#
+def make_sphere_models(session, spheres_obj_site, group_models):
 
     sos_fields = [
         'seq_id_begin',
@@ -67,12 +102,15 @@ def make_sphere_models(session, spheres_obj_site, name):
         sb, se = int(seq_beg), int(seq_end)
         xyz = float(x), float(y), float(z)
         r = float(radius)
-        mid = int(model_id)
-        mspheres.setdefault(mid, []).append((sb,se,asym_id,xyz,r))
+        mspheres.setdefault(model_id, []).append((sb,se,asym_id,xyz,r))
 
-    models = [IHMSphereModel(session, '%s %d' % (name,mid) , slist) for mid, slist in mspheres.items()]
-    for m in models[1:]:
-        m.display = False	# Only show first model.
+    models = [IHMSphereModel(session, 'Sphere model %s' % mid, mid, slist) for mid, slist in mspheres.items()]
+    models.sort(key = lambda m: m.ihm_model_id)
+
+    # Add sphere models to group
+    gmodel = {id:g for g in group_models for id in g.ihm_model_ids}
+    for m in models:
+        gmodel[m.ihm_model_id].add([m])
 
     return models
 
@@ -116,8 +154,14 @@ def make_crosslink_pseudobonds(xlink_restraint, models,
 
 # -----------------------------------------------------------------------------
 #
-def make_probability_grids(session, gaussian_obj, level = 0.2, opacity = 0.5):
+def make_probability_grids(session, ensemble_table, gaussian_table, group_models,
+                           level = 0.2, opacity = 0.5):
     '''Level sets surface threshold so that fraction of mass is outside the surface.'''
+
+    ensemble_fields = ['ensemble_id', 'model_group_id', 'num_ensemble_models']
+    ens = ensemble_table.fields(ensemble_fields)
+    ens_group = {id:(gid,int(n)) for id, gid, n in ens}
+    
     gauss_fields = ['asym_id',
                    'mean_cartn_x',
                    'mean_cartn_y',
@@ -134,30 +178,31 @@ def make_probability_grids(session, gaussian_obj, level = 0.2, opacity = 0.5):
                    'covariance_matrix[3][3]',
                    'ensemble_id']
     cov = {}	# Map model_id to dictionary mapping asym id to list of (weight,center,covariance) triples
-    gauss_rows = gaussian_obj.fields(gauss_fields)
+    gauss_rows = gaussian_table.fields(gauss_fields)
     from numpy import array, float64
-    for asym_id, x, y, z, w, c11, c12, c13, c21, c22, c23, c31, c32, c33, mid in gauss_rows:
+    for asym_id, x, y, z, w, c11, c12, c13, c21, c22, c23, c31, c32, c33, eid in gauss_rows:
         center = array((float(x), float(y), float(z)), float64)
         weight = float(w)
         covar = array(((float(c11),float(c12),float(c13)),
                        (float(c21),float(c22),float(c23)),
                        (float(c31),float(c32),float(c33))), float64)
-        model_id = int(mid)
-        cov.setdefault(model_id, {}).setdefault(asym_id, []).append((weight, center, covar))
+        cov.setdefault(eid, {}).setdefault(asym_id, []).append((weight, center, covar))
 
     # Compute probability volume models
     pmods = []
+    gmodel = {id:g for g in group_models for id in g.ihm_model_ids}
     from chimerax.core.models import Model
     from chimerax.core.map import volume_from_grid_data
     from chimerax.core.atomic.colors import chain_rgba
     first_model_id = min(cov.keys())
-    for model_id, asyms in cov.items():
-        m = Model('Ensemble %d' % model_id, session)
-        m.display = (model_id == first_model_id)
+    for ensemble_id, asym_gaussians in cov.items():
+        gid, n = ens_group[ensemble_id]
+        m = Model('Ensemble %s of %d models' % (ensemble_id, n), session)
+        gmodel[gid].add([m])
         pmods.append(m)
-        for asym_id, clist in asyms.items():
-            g = probability_grid(clist)
-            g.name = asym_id
+        for asym_id in sorted(asym_gaussians.keys()):
+            g = probability_grid(asym_gaussians[asym_id])
+            g.name = '%s Gaussians' % asym_id
             g.rgba = chain_rgba(asym_id)[:3] + (opacity,)
             v = volume_from_grid_data(g, session, show_data = False,
                                       open_model = False, show_dialog = False)
@@ -238,9 +283,10 @@ def register():
 #
 from chimerax.core.atomic import Structure
 class IHMSphereModel(Structure):
-    def __init__(self, session, name, sphere_list):
+    def __init__(self, session, name, id, sphere_list):
         Structure.__init__(self, session, name = name, smart_initial_display = False)
 
+        self.ihm_model_id = id
         self._res_sphere = rs = {}	# (asym_id, res_num) -> sphere atom
         
         from chimerax.core.atomic.colors import chain_rgba8

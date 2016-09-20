@@ -359,6 +359,9 @@ class Atoms(Collection):
         "array of int32 values.  Possible values:\nHIDE_RIBBON\n    Hide mask for backbone atoms "
         "in ribbon.\nCan be set with such an array (or equivalent sequence), or with a single "
         "integer value.")
+    idatm_types = cvec_property('atom_idatm_type', string,
+        doc="Returns a numpy array of IDATM types.  Can be set with such an array (or equivalent "
+        "sequence), or with a single string.")
     in_chains = cvec_property('atom_in_chain', npy_bool, read_only = True,
         doc="Whether each atom belong to a polymer. Returns numpy bool array. Read only.")
 
@@ -741,7 +744,7 @@ class Residues(Collection):
     '''Returns a numpy array of insertion codes.  An empty string indicates no insertion code.''')
     is_helix = cvec_property('residue_is_helix', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein helix''')
-    is_sheet = cvec_property('residue_is_sheet', npy_bool, doc =
+    is_strand = cvec_property('residue_is_strand', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein sheet''')
     names = cvec_property('residue_name', string, read_only = True, doc =
     '''Returns a numpy array of residue names. Read only.''')
