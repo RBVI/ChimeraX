@@ -617,7 +617,7 @@ class Structure(Model, StructureData):
 
             # First residues
             from .ribbon import FLIP_MINIMIZE, FLIP_PREVENT, FLIP_FORCE
-            if displays[0]:
+            if displays[0] and not (is_helix[0] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC):
                 # print(residues[0], file=sys.__stderr__); sys.__stderr__.flush()
                 xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[0], xs_front[1])
                 capped = displays[0] != displays[1] or not xs_compat
@@ -729,7 +729,7 @@ class Structure(Model, StructureData):
                     self._ribbon_r2t[residues[i]] = triangle_range
                     t_start = t_end
             # Last residue
-            if displays[-1]:
+            if displays[-1] and not (is_helix[-1] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC):
                 # print(residues[-1], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, True)
