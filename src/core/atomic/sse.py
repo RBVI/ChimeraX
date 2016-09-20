@@ -246,10 +246,11 @@ class HelixCylinder:
         from numpy.linalg import norm
         centers = self.cylinder_centers()
         if self.curved:
-            t = (centers[:-1] + centers[1:]) - self.center
-            normals = tile(self.axis, [len(centers) - 1, 1])
+            v = centers - self.center
+            t = v[:-1] + v[1:]
+            normals = tile(self.axis, [len(t), 1])
             binormals = t / norm(t, axis=1)[:, newaxis]
-            ipoints = binormals * self.cylinder_radius() + self.center
+            ipoints = binormals * self.major_radius + self.center
         else:
             normals, binormals = self.cylinder_normals()
             normals = normals[:-1]
