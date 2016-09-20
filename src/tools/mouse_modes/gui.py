@@ -24,12 +24,11 @@ class MouseModePanel(ToolInstance):
     def __init__(self, session, bundle_info):
         ToolInstance.__init__(self, session, bundle_info)
 
-        self.mouse_modes = session.ui.main_window.graphics_window.mouse_modes
+        self.mouse_modes = mm = session.ui.mouse_modes
         self.button_to_bind = 'right'
 
         parent = session.ui.main_window
 
-        mm = session.ui.main_window.graphics_window.mouse_modes
         self.modes = [m for m in mm.modes if m.icon_file]
         initial_mode = [m for m in self.modes if m.name == 'zoom'][0]
 

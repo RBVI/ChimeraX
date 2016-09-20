@@ -74,6 +74,9 @@ class UI(QApplication):
         self.already_quit = False
         self.session = session
 
+        from .mousemodes import MouseModes
+        self.mouse_modes = MouseModes(session)
+
         from PyQt5.QtCore import QObject, pyqtSlot
         class CxUrlHandler(QObject):
             def __init__(self, session):

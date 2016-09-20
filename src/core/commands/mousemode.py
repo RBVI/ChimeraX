@@ -33,7 +33,7 @@ def mousemode(session, left_mode=None, middle_mode=None, right_mode=None,
     if not session.ui.is_gui:
         session.logger.info("mouse is not supported in nogui mode")
         return
-    mm = session.ui.main_window.graphics_window.mouse_modes
+    mm = session.ui.mouse_modes
     bmode = (('left', left_mode), ('middle', middle_mode), ('right', right_mode),
              ('wheel', wheel_mode), ('pause', pause_mode))
     modifiers = [n for s,n in [(alt,'alt'), (command,'command'), (control,'control'), (shift,'shift')] if s]
@@ -64,7 +64,7 @@ class MouseModeArg(Annotation):
 
     def parse(self, text, session):
         from ..ui import mousemodes
-        modes = session.ui.main_window.graphics_window.mouse_modes.modes
+        modes = session.ui.mouse_modes.modes
         from .cli import EnumOf
         mode_arg = EnumOf(tuple(m.name for m in modes))
         value, used, rest = mode_arg.parse(text, session)
@@ -75,7 +75,7 @@ class MouseModeArg(Annotation):
     def name(self):
         if not self._session.ui.is_gui:
             return 'a mouse mode'
-        modes = self._session.ui.main_window.graphics_window.mouse_modes.modes
+        modes = self._session.ui.mouse_modes.modes
         return 'one of ' + ', '.join("'%s'" % m.name for m in modes)
 
 def register_command(session):

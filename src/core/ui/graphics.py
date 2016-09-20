@@ -51,8 +51,7 @@ class GraphicsWindow(QWindow):
 
         self.popup = Popup(self)        # For display of atom spec balloons
 
-        from .mousemodes import MouseModes
-        self.mouse_modes = MouseModes(self, ui.session)
+        ui.mouse_modes.set_graphics_window(self)
 
     def make_context_current(self):
         # creates context if needed
@@ -112,8 +111,9 @@ class GraphicsWindow(QWindow):
             # Redraw only if enough time has elapsed since last frame to process some events.
             # This keeps the user interface responsive even during slow rendering
             self.last_redraw_start_time = t
-            self.session.update_loop.draw_new_frame(self.session) \
-                or self.mouse_modes.mouse_pause_tracking()
+            s = self.session
+            if not s.update_loop.draw_new_frame(s):
+                s.ui.mouse_modes.mouse_pause_tracking()
             self.last_redraw_finish_time = time.perf_counter()
 
 from PyQt5.QtWidgets import QLabel
