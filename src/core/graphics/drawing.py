@@ -1128,7 +1128,9 @@ class Drawing:
         colors = self.vertex_colors
         normals = self.normals
         indices = self.masked_triangles.flatten()
+        from math import radians
         for p, c in zip(self.positions, self.colors):
+            p = place if p.is_identity() else place * p
             if has_ssa:
                 s = (p.matrix[0][0], p.matrix[1][1], p.matrix[2][2])
                 t = p.translation()
@@ -1136,7 +1138,7 @@ class Drawing:
             else:
                 r = p.rotation_axis_and_angle()
                 t = p.translation()
-                print('%s<Transform rotation="%g %g %g %g" translation="%g %g %g">' % (tab, r[0][0], r[0][1], r[0][2], r[1], t[0], t[1], t[2]), file=stream)
+                print('%s<Transform rotation="%g %g %g %g" translation="%g %g %g">' % (tab, r[0][0], r[0][1], r[0][2], radians(r[1]), t[0], t[1], t[2]), file=stream)
             print('%s <Shape>' % tab, file=stream)
             self.reuse_appearance(stream, x3d_scene, indent + 2, c)
             self.reuse_its(stream, x3d_scene, indent + 2, def_use_tag, indices,
