@@ -957,10 +957,10 @@ class Structure(Model, StructureData):
             num_triangles += cap_triangles
 
         # Second, create containers for vertices, normals and triangles
-        va = empty((num_vertices, 3))
-        na = empty((num_vertices, 3))
-        ca = empty((num_vertices, 4))
-        ta = empty((num_triangles, 3))
+        va = empty((num_vertices, 3), dtype=float)
+        na = empty((num_vertices, 3), dtype=float)
+        ca = empty((num_vertices, 4), dtype=float)
+        ta = empty((num_triangles, 3), dtype=int)
 
         # Third, add vertices, normals and triangles for each residue
         # In the following functions, "i" = [start:end] and
@@ -1100,21 +1100,27 @@ class Structure(Model, StructureData):
             _add_band_triangles(mi, bi)
 
         # Third (still), create the caps and bands
+        t_range = {}
         if displays[start]:
             add_front_cap(start)
             add_back_band(start)
+            t_range[start] = [0, ti]
         was_displayed = displays[start]
         for i in range(start+1, end-1):
             if displays[i]:
+                t_start = ti
                 if not was_displayed:
                     add_front_cap(i)
                 add_both_bands(i)
+                t_range[i] = [t_start, ti]
             else:
                 if was_displayed:
                     add_back_cap(i-1)
+                    t_range[i-1][1] = ti
             was_displayed = displays[i]
         # last residue
         if displays[end-1]:
+            t_start = ti
             if was_displayed:
                 add_front_band(end-1)
                 add_back_cap(end-1)
@@ -1122,16 +1128,27 @@ class Structure(Model, StructureData):
                 add_front_cap(end-1)
                 add_front_band(end-1)
                 add_back_cap(end-1)
+            t_range[end-1] = [t_start, ti]
         elif was_displayed:
             add_back_cap(end-2)
+            t_range[end-2][1] = ti
 
-        # Finally, create graphics object of vertices, normals,
+        # Fourth, create graphics object of vertices, normals,
         # colors and triangles
         name = "helix-%d" % ssids[start]
         ssp = p.new_drawing(name)
         ssp.geometry = va, ta
         ssp.normals = na
         ssp.vertex_colors = ca
+
+        # Finally, update selection data structures
+        t2r = []
+        for i, r in t_range.items():
+            res = rlist[i]
+            triangle_range = RibbonTriangleRange(r[0], r[1], ssp, res)
+            t2r.append(triangle_range)
+            self._ribbon_r2t[res] = triangle_range
+        self._ribbon_t2r[ssp] = t2r
 
     def _smooth_strand(self, rlist, coords, guides, tethered, xs_front, xs_back,
                        ribbon_adjusts, start, end, p):
