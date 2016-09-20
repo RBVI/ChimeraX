@@ -94,7 +94,7 @@ cutoff of 2.0 &Aring;.
 default settings, except without <a href="#computeSS">recalculating</a> 
 secondary structure assignments.
 <blockquote>
-<b>mm #2 to #1/a pair sb alg sw matrix PAM-150 ss false iter 5.0</b>
+<b>mm #2 to #1/a pair bs alg sw matrix PAM-150 ss false iter 5.0</b>
 </blockquote>
 (example structures: mouse and human phosphoserine phosphatases 
 <b>1j97</b>, <b>1nnl</b> open as models 1 and 2, respectively)
@@ -161,17 +161,18 @@ Most of the options affect <a href="#scoring">alignment scoring</a>.
     to construct the reference-match alignment:
     <ul>
     <li><b>bb</b> (default) - use the pair of chains,
-     one from the reference model and one from the match model, 
+     one from the match model and one from the reference model, 
      with the highest alignment score;
-    <i>refstruct</i> and <i>matchstruct</i> should each specify a model or
-     part of a model
-    <li><b>sb</b> - pair a specific chain in the reference model with whichever
-    chain in the match model gives the highest alignment score;
-    <i>refstruct</i> should specify a chain, <i>matchstruct</i> a model or
-     part of a model
-    <li><b>ss</b> - pair specific chain(s) in the reference model with
-    specific chain(s) in the match model; <i>refstruct</i> and
-    <i>matchstruct</i> should specify equal numbers of chains
+    <i>matchstruct</i> and <i>refstruct</i> 
+    should each specify a model or part of a model
+    <li><b>bs</b> - use the chain in the match model that gives the best 
+    alignment score with a specific chain in the reference model;
+    <i>matchstruct</i> should specify a model or part of a model, and
+    <i>refstruct</i> should specify a chain
+    <li><b>ss</b> - pair specific chain(s) in the match model with
+    specific chain(s) in the reference model; 
+    <i>matchstruct</i> and <i>refstruct</i> 
+    should specify equal numbers of chains
     </ul>
 </blockquote>
 <blockquote>

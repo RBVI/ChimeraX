@@ -29,8 +29,8 @@ class="clRight" alt="ChimeraX logo"/></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp; withAtoms2
 &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;
 [&nbsp;probeRadius&nbsp;&nbsp;<i>rad</i>&nbsp;]
-[&nbsp;residueList&nbsp;]
-[&nbsp;areaCutoff&nbsp;&nbsp;<i>area</i>&nbsp;] 
+[&nbsp;listResidues&nbsp;]
+[&nbsp;cutoffArea&nbsp;&nbsp;<i>area</i>&nbsp;] 
 [&nbsp;select&nbsp;]
 [&nbsp;color&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </h3>
@@ -61,13 +61,13 @@ The <b>probeRadius</b> <i>rad</i> is the radius of this
 &ldquo;rolling sphere&rdquo; probe (default <b>1.4</b> &Aring;, 
 the value often used to approximate a water molecule).
 </p><p>
-Residues with more than <b>areaCutoff</b> <i>area</i> buried
+Residues with more than <b>cutoffArea</b> <i>area</i> buried
 (default <b>1.0</b> &Aring;<sup>2</sup>) can be:
 </p>
 <ul>
 <li>listed along with their buried areas
 in the <a href="../tools/log.html"><b>Log</b></a> 
-using the <b>residueList</b> option
+using the <b>listResidues</b> option
 <li><a href="select.html">selected</a> with the <b>select</b> option
 <li>colored using <b>color</b> <a href="colornames.html"><i>color-spec</i></a>
 </ul>
