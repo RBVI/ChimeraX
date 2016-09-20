@@ -96,10 +96,10 @@ endif
 
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= fonts \
-	   imex numexpr scipy \
+	   imex numexpr numpy \
 	   pcre pips pycollada \
 	   PyOpenGL pytables Python \
-	   setuptools wrappy3
+	   scipy setuptools wrappy3
 
 SUBDIRS += PyQt
 
@@ -173,8 +173,8 @@ leapmotion.install: setuptools.install
 leapmotion.app-install: setuptools.app-install
 llvm.install: py7zip.install
 mesa.install: py7zip.install llvm.install pkgconfig.install
-numexpr.install: setuptools.install pips.install
-numexpr.app-install: setuptools.app-install pips.app-install
+numexpr.install: setuptools.install numpy.install pips.install
+numexpr.app-install: setuptools.app-install numpy.app-install pips.app-install
 pcre.install: zlib.install
 pcre.app-install: zlib.app-install
 pips.install: setuptools.install
@@ -194,8 +194,8 @@ pythomnic3k.install: setuptools.install
 pythomnic3k.app-install: setuptools.app-install
 Python.install: p7zip.install zlib.install openssl.install expat.install
 Python.app-install: p7zip.app-install zlib.app-install openssl.app-install expat.app-install
-scipy.install: pips.install
-scipy.app-install: pips.app-install
+scipy.install: setuptools.install numpy.install
+scipy.app-install: setuptools.app-install numpy.app-install
 setuptools.install: Python.install
 setuptools.app-install: Python.app-install
 wrappy3.install: pcre.install setuptools.install

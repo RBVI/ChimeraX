@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
-VERSION = 0.17.1
+VERSION = 0.18.0
 
 ifdef WIN32
 WHEEL = scipy-$(VERSION)-cp35-cp35m-win_amd64.whl

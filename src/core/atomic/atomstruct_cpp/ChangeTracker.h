@@ -77,7 +77,7 @@ public:
     static const std::string  REASON_IS_BACKBONE;
     static const std::string  REASON_IS_HELIX;
     static const std::string  REASON_IS_HET;
-    static const std::string  REASON_IS_SHEET;
+    static const std::string  REASON_IS_STRAND;
     static const std::string  REASON_NAME;
     static const std::string  REASON_OCCUPANCY;
     static const std::string  REASON_RADIUS;
@@ -89,6 +89,7 @@ public:
     static const std::string  REASON_RIBBON_HIDE_BACKBONE;
     static const std::string  REASON_RIBBON_TETHER;
     static const std::string  REASON_RIBBON_ORIENTATION;
+    static const std::string  REASON_RIBBON_MODE;
     static const std::string  REASON_SELECTED;
     static const std::string  REASON_SEQUENCE;
     static const std::string  REASON_SERIAL_NUMBER;
