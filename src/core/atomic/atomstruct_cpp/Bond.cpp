@@ -60,7 +60,8 @@ Bond::Bond(Structure* as, Atom* a1, Atom* a2): UniqueConnection(a1, a2)
     a1->structure()->_structure_cats_dirty = true;
 }
 
-static bool
+enum XResType { NonPolymer, Capping, Polymer };
+static XResType
 _polymer_res(Residue* r, Atom* a, bool* is_nucleic)
 {
     const std::set<AtomName>* min_names;
@@ -70,24 +71,24 @@ _polymer_res(Residue* r, Atom* a, bool* is_nucleic)
         *is_nucleic = true;
         min_names = &Residue::na_min_backbone_names;
         missing_ok = "P";
-    } else {
+    } else if (a->name() == "C" || a->name() == "N") {
         // amino acid
         *is_nucleic = false;
         min_names = &Residue::aa_min_backbone_names;
-    }
+    } else return XResType::NonPolymer;
     auto atoms_map = r->atoms_map();
     for (auto aname: *min_names) {
         auto name_atom = atoms_map.find(aname);
         if (name_atom == atoms_map.end()) {
             if (aname == missing_ok)
                 continue;
-            return false;
+            return XResType::Capping;
         }
         auto element_name = (*name_atom).second->element().name();
         if (strlen(element_name) > 1 || aname[0] != element_name[0])
-            return false;
+            return XResType::NonPolymer;
     }
-    return true;
+    return XResType::Polymer;
 }
 
 static Atom*
@@ -100,17 +101,20 @@ _polymeric_start_atom(Atom* a1, Atom* a2, Residue::PolymerType* pt = nullptr)
 
     bool n1, n2;
     unsigned char c1 = Sequence::rname3to1(r1->name());
+    XResType xrt1, xrt2;
     if (c1 == 'X') {
         // some heavily modified polymeric residues may not be in
         // MODRES records (or such records may be missing...)
-        if (!_polymer_res(r1, a1, &n1))
+        xrt1 = _polymer_res(r1, a1, &n1);
+        if (xrt1 == XResType::NonPolymer)
             return nullptr;
     } else {
         n1 = Sequence::nucleic3to1(r1->name()) != 'X';
     }
     unsigned char c2 = Sequence::rname3to1(r2->name());
     if (c2 == 'X') {
-        if (!_polymer_res(r2, a2, &n2))
+        xrt2 = _polymer_res(r2, a2, &n2);
+        if (xrt2 == XResType::NonPolymer)
             return nullptr;
     } else {
         n2 = Sequence::nucleic3to1(r2->name()) != 'X';
@@ -118,6 +122,9 @@ _polymeric_start_atom(Atom* a1, Atom* a2, Residue::PolymerType* pt = nullptr)
 
     // are they both the same kind (amino acid / nucleic acid)?
     if (n1 != n2)
+        return nullptr;
+
+    if (c1 == 'X' && c2 == 'X' && xrt1 == XResType::Capping && xrt2 == XResType::Capping)
         return nullptr;
 
     if (n1) {

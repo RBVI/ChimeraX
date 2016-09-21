@@ -9,11 +9,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
-# 'register_command' is called by the toolshed on start up
-#
-def register_command(command_name, bundle_info):
-    from . import test
-    from chimerax.core.commands import register, CmdDesc
-    desc = CmdDesc(synopsis = 'Run through test sequence of commands to check for errors')
-    register('test', desc, test.run_commands)
+from chimerax.core.toolshed import BundleAPI
+
+class _MyAPI(BundleAPI):
+
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        # 'register_command' is lazily called when the command is referenced
+        from . import test
+        from chimerax.core.commands import register, CmdDesc
+        desc = CmdDesc(synopsis = 'Run through test sequence of commands to check for errors')
+        register('test', desc, test.run_commands)
+
+bundle_api = _MyAPI()

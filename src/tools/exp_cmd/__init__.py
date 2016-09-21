@@ -11,32 +11,23 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
-# 'start_tool' is called to start an instance of the tool
-#
-def start_tool(session, bundle_info):
-    return None
+from chimerax.core.toolshed import BundleAPI
 
+class _MyAPI(BundleAPI):
 
-#
-# 'register_command' is the delayed command registration callback
-#
-def register_command(command_name, bundle_info):
-    from importlib import import_module
-    if command_name.startswith('~'):
-        module_name = "." + command_name[1:]
-    else:
-        module_name = "." + command_name
-    try:
-        m = import_module(module_name, __package__)
-    except ImportError:
-        print("cannot import %s from %s" % (module_name, __package__))
-    else:
-        m.initialize(command_name)
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        # 'register_command' is lazily called when the command is referenced
+        from importlib import import_module
+        if command_name.startswith('~'):
+            module_name = "." + command_name[1:]
+        else:
+            module_name = "." + command_name
+        try:
+            m = import_module(module_name, __package__)
+        except ImportError:
+            print("cannot import %s from %s" % (module_name, __package__))
+        else:
+            m.initialize(command_name)
 
-
-#
-# 'get_class' is called by session code to get class saved in a session
-#
-def get_class(class_name):
-    return None
+bundle_api = _MyAPI()

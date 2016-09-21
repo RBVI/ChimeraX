@@ -26,7 +26,7 @@
 namespace atomstruct {
 
 StructureSeq::StructureSeq(const ChainID& chain_id, Structure* s):
-    Sequence(std::string("chain ") += (chain_id == " " ? "(blank)" : chain_id)),
+    Sequence(std::string("chain ") + (chain_id == " " ? "(blank)" : chain_id.c_str())),
     _chain_id(chain_id), _from_seqres(false), _structure(s)
 { }
 

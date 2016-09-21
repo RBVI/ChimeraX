@@ -14,7 +14,6 @@ line_profiler==1.0
 markupsafe==0.23
 mccabe==0.4.0
 networkx==1.10
-numpy==1.11.1
 numpydoc==0.5
 pep8==1.7.0
 pep8-naming==0.3.3

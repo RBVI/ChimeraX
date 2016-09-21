@@ -41,11 +41,14 @@ _XSectionMap = {
     "round": XSectionManager.STYLE_ROUND,
     "piping": XSectionManager.STYLE_PIPING,
 }
+_ModeMap = {
+    "default": Structure.RIBBON_MODE_DEFAULT,
+    "arc": Structure.RIBBON_MODE_ARC,
+}
 _XSInverseMap = dict([(v, k) for k, v in _XSectionMap.items()])
 
 
-def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, orient=None,
-            show_spine=False):
+def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, show_spine=False):
     '''Display cartoon for specified residues.
 
     Parameters
@@ -65,13 +68,6 @@ def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, ori
     hide_backbone : boolean
         Set whether displaying a ribbon hides the sphere/ball/stick representation of
         backbone atoms.
-    orient : string
-        Choose which method to use for determining ribbon orientation FOR THE ENTIRE STRUCTURE.
-        "guides" uses "guide" atoms like the carbonyl oxygens.
-        "atoms" generates orientation from ribbon atoms like alpha carbons.
-        "curvature" orients ribbon to be perpendicular to maximum curvature direction.
-        "peptide" orients ribbon to be perpendicular to peptide planes.
-        "default" is to use "guides" if guide atoms are all present or "atoms" if not.
     show_spine : boolean
         Display ribbon "spine" (horizontal lines across center of ribbon).
         This parameter applies at the atomic structure level, so setting it for any residue
@@ -91,10 +87,6 @@ def cartoon(session, spec=None, smooth=None, style=None, hide_backbone=None, ori
     if style is not None:
         s = _StyleMap.get(style, Residue.RIBBON)
         residues.ribbon_styles = s
-    if orient is not None:
-        o = _OrientMap.get(orient, None)
-        for m in residues.unique_structures:
-            m.ribbon_orientation = o
     if hide_backbone is not None:
         residues.ribbon_hide_backbones = hide_backbone
     if show_spine is not None:
@@ -151,7 +143,8 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
 
 def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, arrows_helix=None,
                   arrow_scale=None, xsection=None, sides=None,
-                  bar_scale=None, bar_sides=None, ss_ends=None):
+                  bar_scale=None, bar_sides=None, ss_ends=None,
+                  orient=None, mode_helix=None, mode_strand=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -180,6 +173,19 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     ss_ends : string
         Length of helix/strand representation relative to backbone atoms.
         One of "default", "short" or "long".
+    orient : string
+        Choose which method to use for determining ribbon orientation FOR THE ENTIRE STRUCTURE.
+        "guides" uses "guide" atoms like the carbonyl oxygens.
+        "atoms" generates orientation from ribbon atoms like alpha carbons.
+        "curvature" orients ribbon to be perpendicular to maximum curvature direction.
+        "peptide" orients ribbon to be perpendicular to peptide planes.
+        "default" is to use "guides" if guide atoms are all present or "atoms" if not.
+    mode_helix : string
+        Choose how helices are rendered.
+        "default" uses ribbons through the alpha carbons.
+        "arc" uses a tube along an arc so that the alpha carbons are on the surface of the tube.
+    mode_strand : string
+        Same argument values are mode_helix.
     '''
     if spec is None:
         from chimerax.core.commands import atomspec
@@ -189,7 +195,8 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     if (width is None and thickness is None and arrows is None and
         arrows_helix is None and arrow_scale is None and xsection is None and
         sides is None and bar_scale is None and bar_sides is None and
-        ss_ends is None):
+        ss_ends is None and orient is None and
+        mode_helix is None and mode_strand is None):
         # No options, report current state and return
         indent = "  -"
         for m in structures:
@@ -222,7 +229,7 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
         return
     residues = results.atoms.residues
     is_helix = residues.is_helix
-    is_sheet = residues.is_sheet
+    is_strand = residues.is_strand
     polymer_types = residues.polymer_types
     coil_scale_changed = {}
     # Code uses half-width/thickness but command uses full width/thickness,
@@ -340,7 +347,7 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
                 mgr.set_transition(mgr.RC_HELIX_MIDDLE, mgr.RC_HELIX_END, mgr.RC_SHEET_START, *h_he_ss)
             if xsection is not None:
                 m.ribbon_xs_mgr.set_helix_style(_XSectionMap[xsection])
-    if is_sheet.any():
+    if is_strand.any():
         # set strand/sheet parameters
         for m in structures:
             mgr = m.ribbon_xs_mgr
@@ -443,6 +450,18 @@ def cartoon_style(session, spec=None, width=None, thickness=None, arrows=None, a
     if bar_params:
         for m in structures:
             m.ribbon_xs_mgr.set_params(XSectionManager.STYLE_PIPING, **bar_params)
+    if orient is not None:
+        o = _OrientMap.get(orient, None)
+        for m in structures:
+            m.ribbon_orientation = o
+    if mode_helix is not None:
+        mode = _ModeMap.get(mode_helix, None)
+        for m in structures:
+            m.ribbon_mode_helix = mode
+    if mode_strand is not None:
+        mode = _ModeMap.get(mode_strand, None)
+        for m in structures:
+            m.ribbon_mode_strand = mode
 
 
 # Other command functions (to be removed)
@@ -796,7 +815,6 @@ def initialize(command_name):
                        keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
                                               EnumOf(["default"]))),
                                 ("style", EnumOf(list(_StyleMap.keys()))),
-                                ("orient", EnumOf(list(_OrientMap.keys()))),
                                 ("hide_backbone", BoolArg),
                                 ("show_spine", BoolArg),
                                 ],
@@ -823,7 +841,9 @@ def initialize(command_name):
                                 ("bar_scale", FloatArg),
                                 ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                                 ("ss_ends", EnumOf(["default", "short", "long"])),
-                                # ("cylinders", BoolArg),
+                                ("orient", EnumOf(list(_OrientMap.keys()))),
+                                ("mode_helix", EnumOf(list(_ModeMap.keys()))),
+                                ("mode_strand", EnumOf(list(_ModeMap.keys()))),
                                 ],
                        synopsis='set cartoon style for secondary structures in specified models')
         register(command_name + " style", desc, cartoon_style)

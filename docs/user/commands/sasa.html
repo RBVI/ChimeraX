@@ -34,16 +34,17 @@ class="clRight" alt="ChimeraX logo"/></a>
 The <b>sasa</b> command calculates a solvent-accessible
 surface enclosing the atoms in 
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>
-and reports in the <a href="../tools/log.html"><b>Log</b></a>
-either the total surface area or the area contribution to that surface from
-just the atoms specified with the <b>sum</b> option.
+and reports the total surface area
+in the <a href="../tools/log.html"><b>Log</b></a>.
+In addition, the area contribution from some subset of the atoms
+(given as &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>)
+can be obtained with the <b>sum</b> option.
 The surface is not displayed.
-The atoms should be specified with care; 
-&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a> 
-(if given) should be a subset of
-&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>, and
+The atoms should be specified with care;
 solvent, ions, and ligand residues are not excluded automatically.
-Unspecified atoms are ignored.
+Unspecified atoms are ignored, as are atoms in 
+&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a> 
+that are not also in &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>.
 See also: <a href="buriedarea.html"><b>buriedarea</b></a>
 </p><p>
 Whereas the <a href="surface.html"><b>surface</b></a> command shows
@@ -62,7 +63,7 @@ Example:
 </blockquote>
 &ndash; calculate the SAS of the
 <a href="atomspec.html#builtin">protein</a> in model #1 chain A
-and report the total area within that surface from
+and report both the total area and the contribution from
 phenylalanine, tyrosine, and tryptophan residues
 
 <hr>

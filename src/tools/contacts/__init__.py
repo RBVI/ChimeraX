@@ -11,30 +11,29 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
-# 'start_tool' is called to start an instance of the tool
-#
-def start_tool(session, bundle_info):
-    # GUI started by command, so this is for restoring sessions
-    if not session.ui.is_gui:
+from chimerax.core.toolshed import BundleAPI
+
+class _MyAPI(BundleAPI):
+
+    @staticmethod
+    def start_tool(session, bundle_info):
+        # 'start_tool' is called to start an instance of the tool
+        # GUI started by command, so this is for restoring sessions
+        from .gui import Plot
+        return Plot(session, bundle_info)
+
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        # 'register_command' is called by the toolshed on start up
+        from . import cmd
+        cmd.register_contacts()
+
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'Plot':
+            from . import gui
+            return gui.Plot
         return None
-    from .gui import Plot
-    return Plot(session, bundle_info)
 
-
-#
-# 'register_command' is called by the toolshed on start up
-#
-def register_command(command_name, bundle_info):
-    from . import cmd
-    cmd.register_contacts()
-
-
-#
-# 'get_class' is called by session code to get class saved in a session
-#
-def get_class(class_name):
-    if class_name == 'Plot':
-        from . import gui
-        return gui.Plot
-    return None
+bundle_api = _MyAPI()

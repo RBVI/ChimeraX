@@ -83,19 +83,25 @@ class ToolshedUI(ToolInstance):
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
 
-        from PyQt5.QtWebKitWidgets import QWebView, QWebPage
-        class HtmlWindow(QWebView):
-            def sizeHint(self):   # NOQA
-                from PyQt5.QtCore import QSize
-                return QSize(800, 50)
+        from PyQt5.QtWebEngineWidgets import QWebEngineView
+        class HtmlWindow(QWebEngineView):
+            pass
+
+        def sizeHint():
+            from PyQt5.QtCore import QSize
+            return QSize(800, 200)
+        parent.sizeHint = sizeHint
 
         self.webview = HtmlWindow(parent)
         from PyQt5.QtWidgets import QGridLayout
         layout = QGridLayout(parent)
         layout.addWidget(self.webview, 0, 0)
         parent.setLayout(layout)
-        self.webview.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
-        self.webview.linkClicked.connect(self.navigate)
+        #self.webview.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
+        def link_clicked(qurl, nav_type, is_main_frame):
+            self.navigate(qurl)
+            return False
+        self.webview.page().acceptNavigationRequest = link_clicked
         self.tool_window.manage(placement="side")
         from chimerax.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
         self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE, self._make_page),
