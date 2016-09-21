@@ -41,6 +41,7 @@ NEED_P7ZIP=1
 NEED_ZLIB=1
 SUBDIRS += xdg-utils
 SUBDIRS += ffmpeg
+SUBDIRS += openmm
 endif
 
 ifdef NEED_OFFSCREEN
