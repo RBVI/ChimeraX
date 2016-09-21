@@ -30,7 +30,7 @@ app-install: install
 	$(RSYNC) $(PYSITEDIR)/simtk $(APP_PYSITEDIR)
 
 $(SOURCE):
-	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+	tar xf $(DISTRIBUTION) -C $(tmpdir)
 
 endif
 
