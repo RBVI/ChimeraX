@@ -176,8 +176,8 @@ llvm.install: py7zip.install
 mesa.install: py7zip.install llvm.install pkgconfig.install
 numexpr.install: setuptools.install numpy.install pips.install
 numexpr.app-install: setuptools.app-install numpy.app-install pips.app-install
-openmm.install: python.install numpy.install pips.install
-openmm.app-install: python.app-install numpy-app.install pips.app-install
+openmm.install: Python.install numpy.install pips.install
+openmm.app-install: Python.app-install numpy-app.install pips.app-install
 pcre.install: zlib.install
 pcre.app-install: zlib.app-install
 pips.install: setuptools.install
