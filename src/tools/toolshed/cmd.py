@@ -17,7 +17,9 @@ _bundle_types = EnumOf(["all", "installed", "available"])
 
 
 def _display_bundles(bi_list, logger):
-    for bi in bi_list:
+    def bundle_key(bi):
+        return bi.display_name
+    for bi in sorted(bi_list, key=bundle_key):
         logger.info(" %s (%s %s): %s" % (bi.display_name, bi.name,
                                          bi.version, bi.synopsis))
 
@@ -170,6 +172,9 @@ def ts_start(session, bundle_name):
     if tinfo is None:
         from chimerax.core.errors import UserError
         raise UserError('No installed bundle named "%s"' % bundle_name)
+    if not session.ui.is_gui:
+        from chimerax.core.errors import UserError
+        raise UserError("Need a GUI to start tools")
     tinfo.start(session)
 ts_start_desc = CmdDesc(required=[('bundle_name', StringArg)])
 
@@ -190,7 +195,7 @@ def ts_show(session, bundle_name, _show=True):
     tinst = [t for t in session.tools.list() if t.bundle_info is tinfo]
     for ti in tinst:
         ti.display(_show)
-    if len(tinst) == 0:
+    if _show and len(tinst) == 0:
         tinfo.start(session)
 ts_show_desc = CmdDesc(required=[('bundle_name', StringArg)])
 

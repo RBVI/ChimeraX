@@ -699,7 +699,7 @@ def register_selector(session, name, func):
     if not name[0].isalpha():
         raise ValueError("registering illegal selector name \"%s\"" % name)
     for c in name[1:]:
-        if not c.isalnum() and c not in "-":
+        if not c.isalnum() and c not in "-+":
             raise ValueError("registering illegal selector name \"%s\"" % name)
     _get_selector_map(session)[name] = func
 

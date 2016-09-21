@@ -26,7 +26,7 @@ as_term          = '(' atomspec:atom_specifier ')'
                  | models:model_list
                  ;
 
-selector_name    = name:/[a-zA-Z][-a-zA-Z0-9]*/
+selector_name    = name:/[a-zA-Z][-+a-zA-Z0-9]*/
                  ;
 
 model_list       = { model+:model }+

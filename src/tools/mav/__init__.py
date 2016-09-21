@@ -11,10 +11,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def finish(bundle_info, session):
-    """De-register MAV from alignments manager"""
-    session.alignments.deregister_viewer(bundle_info)
+from chimerax.core.toolshed import BundleAPI
 
-def initialize(bundle_info, session):
-    """Register MAV with alignments manager"""
-    session.alignments.register_viewer(bundle_info, ["mav", "multalign"])
+class _MyAPI(BundleAPI):
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        """Register MAV with alignments manager"""
+        session.alignments.register_viewer(bundle_info, ["mav", "multalign"])
+
+    @staticmethod
+    def finish(session, bundle_info):
+        """De-register MAV from alignments manager"""
+        session.alignments.deregister_viewer(bundle_info)
+
+bundle_api = _MyAPI()

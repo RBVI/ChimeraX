@@ -139,11 +139,11 @@ class MouseModes:
     Keep the list of available mouse modes and also which mode is bound
     to each mouse button (left, middle, right), or mouse button and modifier
     key (alt, command, control shift).
-    The mouse modes object for a session is session.ui.main_window.graphics_window.mouse_modes
+    The mouse modes object for a session is session.ui.mouse_modes
     '''
-    def __init__(self, graphics_window, session):
+    def __init__(self, session):
 
-        self.graphics_window = graphics_window
+        self.graphics_window = None
         self.session = session
 
         self._available_modes = [mode(session) for mode in standard_mouse_mode_classes()]
@@ -168,8 +168,6 @@ class MouseModes:
         self._mouse_pause_position = None
 
         self.bind_standard_mouse_modes()
-
-        self._set_mouse_event_handlers()
 
     def bind_mouse_mode(self, button, modifiers, mode):
         '''
@@ -336,8 +334,8 @@ class MouseModes:
         if m:
             m.move_after_pause()
 
-    def _set_mouse_event_handlers(self):
-        gw = self.graphics_window
+    def set_graphics_window(self, graphics_window):
+        self.graphics_window = gw = graphics_window
         gw.mousePressEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_down")
         gw.mouseMoveEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_drag")
         gw.mouseReleaseEvent = lambda e, s=self: s._dispatch_mouse_event(e, "mouse_up")

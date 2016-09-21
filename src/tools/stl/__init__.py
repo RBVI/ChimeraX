@@ -11,19 +11,25 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def initialize(bundle_info, session):
-    """Register STL file format."""
-    from . import stl
-    stl.register()
+from chimerax.core.toolshed import BundleAPI
 
-    # Configure STLModel for session saving
-    stl.STLModel.bundle_info = bundle_info
+class _MyAPI(BundleAPI):
 
-#
-# 'get_class' is called by session code to get class saved in a session
-#
-def get_class(class_name):
-    if class_name == 'STLModel':
+    @staticmethod
+    def initialize(session, bundle_info):
+        """Register STL file format."""
         from . import stl
-        return stl.STLModel
-    return None
+        stl.register()
+
+        # Configure STLModel for session saving
+        stl.STLModel.bundle_info = bundle_info
+
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'STLModel':
+            from . import stl
+            return stl.STLModel
+        return None
+
+bundle_api = _MyAPI()

@@ -255,6 +255,10 @@ def init(argv, event_loop=True):
         # Flag to configure off-screen rendering before PyOpenGL imported
         core.offscreen_rendering = True
 
+    if not opts.gui and opts.load_tools:
+        # only load tools if we have a GUI
+        opts.load_tools = False
+
     # figure out the user/system directories for application
     # invoked with -m ChimeraX_main, so argv[0] is full path to ChimeraX_main
     # Windows:

@@ -10,10 +10,19 @@ AA_SMITH_WATERMAN = "Smith-Waterman"
 
 
 #--- toolshed/session-init funcs ---
-def initialize(bundle_info, session):
-    from . import settings
-    settings.init(session)
 
-def register_command(command_name, bundle_info):
-    from . import match
-    match.register_command()
+from chimerax.core.toolshed import BundleAPI
+
+class _MyAPI(BundleAPI):
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        from . import settings
+        settings.init(session)
+
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        from . import match
+        match.register_command()
+
+bundle_api = _MyAPI()

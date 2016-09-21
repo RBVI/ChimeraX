@@ -58,37 +58,8 @@ the following fields separated by double colons (``::``).
     A short description of the bundle.
 
 
-Depending on the values of metadata fields, modules may need to define:
-
-  ``start_tool(session, bi)``
-    Called to create a tool instance.
-    ``session`` is a :py:class:`~chimerax.core.session.Session` instance for
-    the current session.
-    ``bi`` is a :py:class:`BundleInfo` instance for the tool to be started.
-    If no tool instance is created when called,
-    ``start_tool`` should return ``None``.
-    Errors should be reported via exceptions.
-
-  ``register_command(command_name)``
-    Called when delayed command line registration occurs.
-    ``command_name`` is a string of the command to be registered.
-    Must be defined if the ``commands`` metadata field is non-empty.
-    This function is called when the command line interface is invoked
-    with one of the registered command names.
-
-  ``open_file(session, stream, name, **kw)``
-    Called to open a file.
-    Arguments and return values are as described for open functions in in core.io.
-
-  ``initialize(bi, session)``
-  ``finish(bi, session)``
-    Called to initialize and deinitialize a bundle in a session.
-    ``bi`` is a :py:class:`BundleInfo` instance.
-    ``session`` is a :py:class:`~chimerax.core.session.Session` instance.
-    Must be defined if the ``custom_init`` metadata field is set to 'true'.
-    ``initialize`` is called when the bundle is first loaded and
-    ``finish`` is called when the bundle is unloaded.
-    To make ChimeraX start quickly, custom initialization is discouraged.
+Depending on the values of metadata fields, modules need to override methods
+of the :py:class:`BundleAPI` class.
 
 Attributes
 ----------
@@ -1249,7 +1220,15 @@ class BundleInfo:
 
     def _register_cmd(self, command_name):
         """Called when commands need to be really registered."""
-        self._get_module().register_command(command_name, self)
+        try:
+            f = self._get_api().register_command
+        except AttributeError:
+            raise ToolshedError(
+                "no register_command function found for bundle \"%s\""
+                % self.name)
+        if f == BundleAPI.register_command:
+            raise ToolshedError("bundle \"%s\"'s API forgot to override register_command()" % self.name)
+        f(command_name, self)
 
     def deregister_commands(self):
         """Deregister commands with cli."""
@@ -1263,7 +1242,16 @@ class BundleInfo:
         from chimerax.core import io
         for args in self.file_types:
             def cb(*args, **kw):
-                return self._get_module().open_file(*args, **kw)
+                try:
+                    f = self._get_api().open_file
+                except AttributeError:
+                    raise ToolshedError(
+                        "no open_file function found for bundle \"%s\""
+                        % self.name)
+                if f == BundleAPI.open_file:
+                    raise ToolshedError("bundle \"%s\"'s API forgot to override open_file()" % self.name)
+                # TODO: optimize by replacing open_func for format
+                return f(*args, **kw)
             _debug("register_file_type", args)
             io.register_format(*args, open_func=cb)
 
@@ -1276,34 +1264,51 @@ class BundleInfo:
         """Initialize bundle by calling custom initialization code if needed."""
         if self.custom_init:
             try:
-                f = self._get_module().initialize
-            except (ImportError, AttributeError, TypeError, SyntaxError):
-                raise ToolshedError("no initialize function found for bundle \"%s\""
-                                    % self.name)
-            f(self, session)
+                f = self._get_api().initialize
+            except AttributeError:
+                raise ToolshedError(
+                    "no initialize function found for bundle \"%s\""
+                    % self.name)
+            if f == BundleAPI.initialize:
+                raise ToolshedError("bundle \"%s\"'s API forgot to override initialize()" % self.name)
+            f(session, self)
 
     def finish(self, session):
         """Deinitialize bundle by calling custom finish code if needed."""
         if self.custom_init:
             try:
-                f = self._get_module().finish
-            except (ImportError, AttributeError, TypeError, SyntaxError):
+                f = self._get_api().finish
+            except AttributeError:
                 raise ToolshedError("no finish function found for bundle \"%s\""
                                     % self.name)
-            f(self, session)
+            if f == BundleAPI.finish:
+                raise ToolshedError("bundle \"%s\"'s API forgot to override finish()" % self.name)
+            f(session, self)
 
     def get_class(self, class_name):
         """Return bundle's class with given name."""
-        return self._get_module().get_class(class_name)
+        try:
+            f = self._get_api().get_class
+        except AttributeError:
+            raise ToolshedError("no get_class function found for bundle \"%s\""
+                                % self.name)
+        return f(class_name)
 
-    def _get_module(self):
-        """Return module for this bundle."""
+    def _get_api(self):
+        """Return BundleAPI instance for this bundle."""
         if not self._module_name:
             raise ToolshedError("no module specified for bundle \"%s\"" % self.name)
         import importlib
-        m = importlib.import_module(self._module_name)
-        _debug("_get_module", self._module_name, m)
-        return m
+        try:
+            m = importlib.import_module(self._module_name)
+        except Exception as e:
+            raise ToolshedError("Error importing tool \"%s\": %s" % (self.name, str(e)))
+        try:
+            bundle_api = getattr(m, 'bundle_api')
+        except AttributeError:
+            raise ToolshedError("missing bundle_api in bundle \"%s\"" % self.name)
+        _debug("_get_module", self._module_name, m, bundle_api)
+        return bundle_api
 
     def start(self, session, *args, **kw):
         """Create and return a tool instance.
@@ -1332,13 +1337,16 @@ class BundleInfo:
         if not self.installed:
             raise ToolshedUninstalledError("tool \"%s\" is not installed"
                                            % self.name)
-        try:
-            f = self._get_module().start_tool
-        except AttributeError:
-            raise ToolshedError("no start_tool function found for tool \"%s\""
+        if not session.ui.is_gui:
+            raise ToolshedError("tool \"%s\" is not supported without a GUI"
                                 % self.name)
-        except (ImportError, TypeError, SyntaxError) as e:
-            raise ToolshedError("Error importing tool \"%s\": %s" % (self.name, str(e)))
+        try:
+            f = self._get_api().start_tool
+        except AttributeError:
+            raise ToolshedError("no start_tool function found for bundle \"%s\""
+                                % self.name)
+        if f == BundleAPI.start_tool:
+            raise ToolshedError("bundle \"%s\"'s API forgot to override start_tool()" % self.name)
         ti = f(session, self, *args, **kw)
         if ti is not None:
             ti.display(True)  # in case the instance is a singleton not currently shown
@@ -1359,6 +1367,95 @@ class BundleInfo:
         """
         from distlib.version import NormalizedVersion as Version
         return Version(self.version) > Version(bi.version)
+
+
+class BundleAPI:
+    """API for accessing bundles
+
+    The metadata for the bundle indicates which of the methods need to be
+    implemented.
+    """
+
+    @staticmethod
+    def start_tool(session, bi):
+        """Called to create a tool instance.
+
+        Parameters
+        ----------
+        session : :py:class:`~chimerax.core.session.Session` instance.
+        bi : :py:class:`BundleInfo` instance.
+
+        If no tool instance is created when called,
+        ``start_tool`` should return ``None``.
+        Errors should be reported via exceptions.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def register_command(command_name):
+        """Called when delayed command line registration occurs.
+
+        Parameters
+        ----------
+        command_name : :py:class:`str`
+
+        ``command_name`` is a string of the command to be registered.
+        Must be defined if the ``commands`` metadata field is non-empty.
+        This function is called when the command line interface is invoked
+        with one of the registered command names.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def open_file(session, stream, name, **kw):
+        """Called to open a file.
+
+        Arguments and return values are as described for open functions in
+        :py:mod:`chimerax.core.io`.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def initialize(bi, session):
+        """Called to initialize a bundle in a session.
+
+        Parameters
+        ----------
+        bi : :py:class:`BundleInfo` instance.
+        session : :py:class:`~chimerax.core.session.Session` instance.
+
+        Must be defined if the ``custom_init`` metadata field is set to 'true'.
+        ``initialize`` is called when the bundle is first loaded.
+        To make ChimeraX start quickly, custom initialization is discouraged.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def finish(bi, session):
+        """Called to deinitialize a bundle in a session.
+
+        Parameters
+        ----------
+        bi : :py:class:`BundleInfo` instance.
+        session : :py:class:`~chimerax.core.session.Session` instance.
+
+        ``finish`` is called when the bundle is unloaded.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def get_class(name):
+        """Called to get named class from bundle.
+
+        Parameters
+        ----------
+        name : str 
+            Name of class in bundle.
+
+        Used when restoring sessions.  Classes that aren't found via
+        'get_class' can not be saved in sessions.
+        """
+        return None
 
 
 # Toolshed is a singleton.  Multiple calls to init returns the same instance.

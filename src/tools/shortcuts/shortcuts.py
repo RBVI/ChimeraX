@@ -286,7 +286,7 @@ class Shortcut:
             v = s.main_view
             f(v)
         elif self.mouse_modes_arg:
-            m = s.ui.main_window.graphics_window.mouse_modes
+            m = s.ui.mouse_modes
             f(m)
         elif self.session_arg:
             f(s)
@@ -767,7 +767,7 @@ def depth_cue(viewer):
     viewer.depth_cue = not viewer.depth_cue
     
 def selection_mouse_mode(session):
-    mm = session.main_window.graphcs_window.mouse_modes
+    mm = session.mouse_modes
     mm.mouse_modes.bind_mouse_mode('right', mm.mouse_select)
 
 def command_line(session):

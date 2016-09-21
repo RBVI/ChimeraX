@@ -62,7 +62,7 @@ private:
     char  _insertion_code;
     bool  _is_helix;
     bool  _is_het;
-    bool  _is_sheet;
+    bool  _is_strand;
     ResName  _name;
     PolymerType  _polymer_type;
     int  _position;
@@ -86,7 +86,7 @@ public:
     char  insertion_code() const { return _insertion_code; }
     bool  is_helix() const { return _is_helix; }
     bool  is_het() const { return _is_het; }
-    bool  is_sheet() const { return _is_sheet; }
+    bool  is_strand() const { return _is_strand; }
     const ResName&  name() const { return _name; }
     PolymerType  polymer_type() const { return _polymer_type; }
     int  position() const { return _position; }
@@ -105,7 +105,7 @@ public:
     void  set_insertion_code(char ic) { _insertion_code = ic; }
     void  set_is_helix(bool ih);
     void  set_is_het(bool ih);
-    void  set_is_sheet(bool is);
+    void  set_is_strand(bool is);
     void  set_ss_id(int ssid);
     int  ss_id() const { return _ss_id; }
     std::string  str() const;
@@ -182,7 +182,7 @@ inline float
 Residue::ribbon_adjust() const {
     if (_ribbon_adjust >= 0)
         return _ribbon_adjust;
-    else if (_is_sheet)
+    else if (_is_strand)
         return 1.0;
     else if (_is_helix)
         return 0.0;
@@ -219,13 +219,13 @@ Residue::set_is_het(bool ih) {
 }
 
 inline void
-Residue::set_is_sheet(bool is) {
-    if (is == _is_sheet)
+Residue::set_is_strand(bool is) {
+    if (is == _is_strand)
         return;
     if (is)
         _structure->set_ss_assigned(true);
-    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_SHEET);
-    _is_sheet = is;
+    _structure->change_tracker()->add_modified(this, ChangeTracker::REASON_IS_STRAND);
+    _is_strand = is;
     _structure->set_gc_ribbon();
 }
 

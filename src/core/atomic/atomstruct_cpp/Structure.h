@@ -113,6 +113,8 @@ public:
                              RIBBON_ORIENT_ATOMS = 2,
                              RIBBON_ORIENT_CURVATURE = 3,
                              RIBBON_ORIENT_PEPTIDE = 4 };
+    enum RibbonMode { RIBBON_MODE_DEFAULT = 0,
+                      RIBBON_MODE_ARC = 1 };
 protected:
     const int  CURRENT_SESSION_VERSION = 2;
 
@@ -140,6 +142,8 @@ protected:
     TetherShape  _ribbon_tether_shape = RIBBON_TETHER_CONE;
     int  _ribbon_tether_sides = 4;
     float  _ribbon_tether_opacity = 0.5;
+    RibbonMode  _ribbon_mode_helix = RIBBON_MODE_DEFAULT;
+    RibbonMode  _ribbon_mode_strand = RIBBON_MODE_DEFAULT;
     mutable Rings  _rings;
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
@@ -275,12 +279,16 @@ public:
     bool  ribbon_show_spine() const { return _ribbon_show_spine; }
     int  ribbon_display_count() const { return _ribbon_display_count; }
     RibbonOrientation  ribbon_orientation() const { return _ribbon_orientation; }
+    RibbonMode  ribbon_mode_helix() const { return _ribbon_mode_helix; }
+    RibbonMode  ribbon_mode_strand() const { return _ribbon_mode_strand; }
     void  set_ribbon_tether_scale(float s);
     void  set_ribbon_tether_shape(TetherShape ts);
     void  set_ribbon_tether_sides(int s);
     void  set_ribbon_tether_opacity(float o);
     void  set_ribbon_show_spine(bool ss);
     void  set_ribbon_orientation(RibbonOrientation o);
+    void  set_ribbon_mode_helix(RibbonMode m);
+    void  set_ribbon_mode_strand(RibbonMode m);
 
     // graphics changes including pseudobond group changes.
     int   get_all_graphics_changes() const;
@@ -339,6 +347,24 @@ Structure::set_ribbon_orientation(RibbonOrientation o) {
     change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_ORIENTATION);
     set_gc_ribbon();
     _ribbon_orientation = o;
+}
+
+inline void
+Structure::set_ribbon_mode_helix(RibbonMode m) {
+    if (m == _ribbon_mode_helix)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_MODE);
+    set_gc_ribbon();
+    _ribbon_mode_helix = m;
+}
+
+inline void
+Structure::set_ribbon_mode_strand(RibbonMode m) {
+    if (m == _ribbon_mode_strand)
+        return;
+    change_tracker()->add_modified(this, ChangeTracker::REASON_RIBBON_MODE);
+    set_gc_ribbon();
+    _ribbon_mode_strand = m;
 }
 
 } //  namespace atomstruct

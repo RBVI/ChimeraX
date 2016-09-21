@@ -9,11 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def start_tool(session, bundle_info):
-    from .remotecmd import remote_control
-    remote_control(session, enable = True)	# Start XMLRPC server
+from chimerax.core.toolshed import BundleAPI
 
-def register_command(command_name, bundle_info):
-    from . import remotecmd
-    remotecmd.register_remote_control_command()
+class _MyAPI(BundleAPI):
 
+    @staticmethod
+    def start_tool(session, bundle_info):
+        from .remotecmd import remote_control
+        remote_control(session, enable = True)	# Start XMLRPC server
+
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        from . import remotecmd
+        remotecmd.register_remote_control_command()
+
+bundle_api = _MyAPI()

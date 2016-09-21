@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
-               residue_list = False, area_cutoff = 1, color = None, select = False):
+               list_residues = False, cutoff_area = 1, color = None, select = False):
     '''
     Compute buried solvent accessible surface (SAS) area between two sets of atoms.
     This is the sum of the SAS area of each set of atoms minus the SAS area of the
@@ -29,9 +29,9 @@ def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
       Second set of atoms -- must be disjoint from first set.
     probe_radius : float
       Radius of the probe sphere.
-    residue_list : bool
+    list_residues : bool
       Whether to report a list of contacting residues for each set of atoms.
-    area_cutoff : float
+    cutoff_area : float
       Per-residue minimum area for listing residues.
     color : Color or None
       Color contacting residues.
@@ -56,15 +56,15 @@ def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
             % (atoms1.spec, a1a.sum(), atoms2.spec, a2a.sum(), a12a.sum()))
     log.info(msg)
 
-    if residue_list or color or select:
+    if list_residues or color or select:
         n1 = len(a1a)
         a1b = a1a - a12a[:n1]
         a2b = a2a - a12a[n1:]
         res1, rba1 = atoms1.residue_sums(a1b)
         res2, rba2 = atoms2.residue_sums(a2b)
-        r1mask = (rba1 > area_cutoff)
+        r1mask = (rba1 > cutoff_area)
         res1, rba1 = res1.filter(r1mask), rba1[r1mask]
-        r2mask = (rba2 > area_cutoff)
+        r2mask = (rba2 > cutoff_area)
         res2, rba2 = res2.filter(r2mask), rba2[r2mask]
         if color:
             c8 = color.uint8x4()
@@ -74,7 +74,7 @@ def buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
             session.selection.clear()
             res1.atoms.selected = True
             res2.atoms.selected = True
-        if residue_list:
+        if list_residues:
             lines = ['%15s %.5g' % (str(r), a) for r, a in tuple(zip(res1, rba1)) + tuple(zip(res2, rba2))]
             log.info('%d contacting residues\n%s' % (len(res1) + len(res2), '\n'.join(lines)))
             
@@ -84,8 +84,8 @@ def register_command(session):
         required = [('atoms1', AtomsArg)],
         keyword = [('with_atoms2', AtomsArg),
                    ('probe_radius', FloatArg),
-                   ('residue_list', NoArg),
-                   ('area_cutoff', FloatArg),
+                   ('list_residues', NoArg),
+                   ('cutoff_area', FloatArg),
                    ('color', ColorArg),
                    ('select', NoArg),],
         required_arguments = ['with_atoms2'],
