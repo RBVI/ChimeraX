@@ -105,67 +105,84 @@ class StructureTugger:
         self.atoms = structure.atoms
         self.atom = None
 
+        # OpenMM objects
+        self._pdb = None
+        self._system = None
+        self._force = None	# CustomExternalForce pulling force
+        self._platform = None
+        self._simulation = None
+
+        # OpenMM simulation parameters
+        self._sim_steps = 50		# Simulation steps between mouse position updates
+        self._force_constant = 10000
+        from simtk import unit
+        #self._temperature = 300*unit.kelvin
+        self._temperature = 0*unit.kelvin
+        #self._constraint_tolerance = 0.00001
+        self._time_step = 2.0*unit.femtoseconds
+        self._constraint_tolerance = 0.001
+        self._friction = 1.0/unit.picoseconds	# Coupling to heat bath
+        self._platform_name = 'CPU'
+        #self._platform_name = 'CUDA'	# This is 3x faster but requires env DYLD_LIBRARY_PATH=/usr/local/cuda/lib Chimera.app/Contents/MacOS/ChimeraX so paths to cuda libraries are found.
+        
+        # OpenMM particle data
         self._particle_number = None
         self._particle_positions = None
-        self._force = None
-        self._force_terms = {}
-        self._sim_steps = 50
-        self._force_constant = 200
-        self._openmm_platform = None
-        self._openmm_system = None
-        self._openmm_pdb = None
+        self._particle_force_index = {}
 
         self._create_openmm_system()
         
     def tug_atom(self, atom):
+
+        # OpenMM does not allow removing a force from a system.
+        # So when the atom changes we either have to make a new system or add
+        # the new atom to the existing force and set the force constant to zero
+        # for the previous atom. Use the latter approach.
         self.atom = atom
         p = self.structure.atoms.index(atom)
         pp = self._particle_number
         f = self._force
-        ft = self._force_terms
-        if pp is not None and pp != p and pp in ft:
-            f.setParticleParameters(ft[pp], pp, (0,0,0,0))	# Reset force to 0 for previous particle
+        pfi = self._particle_force_index
+        if pp is not None and pp != p and pp in pfi:
+            f.setParticleParameters(pfi[pp], pp, (0,))	# Reset force to 0 for previous particle
         self._particle_number = p
-        if not p in ft:
-            ft[p] = f.addParticle(p, (0,0,0,0))
+        k = self._force_constant
+        if p in pfi:
+            f.setParticleParameters(pfi[p], p, (k,))
+        else:
+            pfi[p] = f.addParticle(p, (k,))
+
+        # If a particle is added to a force an existing simulation using
+        # that force does not get updated. So we create a new simulation each
+        # time a new atoms is pulled. The integrator can only be associated with
+        # one simulation so we also create a new integrator.
+        from simtk import openmm as mm
+        integrator = mm.LangevinIntegrator(self._temperature, self._friction, self._time_step)
+        integrator.setConstraintTolerance(self._constraint_tolerance)
+
+        # Make a new simulation.
+        from simtk.openmm import app
+        s = app.Simulation(self._pdb.topology, self._system, integrator, self._platform)
+        self._simulation = s
         
     def tug_displacement(self, d):
 
-        from simtk.openmm import app
-        from simtk import openmm as mm
-        from simtk import unit
-        
         particle = self._particle_number
         pos = self._particle_positions
-        px,py,pz = pos[particle].value_in_unit(unit.nanometer)
-        px += d[0]
-        py += d[1]
-        pz += d[2]
-        self._force.setParticleParameters(self._force_terms[particle], particle, (px,py,pz,self._force_constant))
-    
-        a = self.atom
-        r = a.residue
-#        print('Moving particle %d, atom %s, res %s resnum %d in direction %.1f %.1f %.1f toward position %.1f %.1f %.1f' %
-#              (particle, a.name, r.name, r.number, d[0], d[1], d[2], px, py, pz))
+        from simtk import unit
+        pxyz = pos[particle].value_in_unit(unit.nanometer)
+        txyz = pxyz + 0.1*d	# displacement d is in Angstroms, convert to nanometers
+        
+        simulation = self._simulation
+        c = simulation.context
+        for p,v in zip(('x0','y0','z0'), txyz):
+            c.setParameter(p,v)
+        c.setPositions(pos)
+        c.setVelocitiesToTemperature(self._temperature)
 
-        # Require new integrator because previous simulation "owns" the integrator.
-#        integrator = mm.LangevinIntegrator(300*unit.kelvin, 1.0/unit.picoseconds, 2.0*unit.femtoseconds)
-#        integrator = mm.LangevinIntegrator(10*unit.kelvin, 1.0/unit.picoseconds, 2.0*unit.femtoseconds)
-        integrator = mm.LangevinIntegrator(0*unit.kelvin, 1.0/unit.picoseconds, 2.0*unit.femtoseconds)
-#        integrator.setConstraintTolerance(0.00001)
-        integrator.setConstraintTolerance(0.001)
-
-        # Make a new simulation.
-        # Apparently the force parameters are compiled by the simulation and cannot be changed
-        # after the simulation is made.
-        simulation = app.Simulation(self._openmm_pdb.topology, self._openmm_system, integrator, self._openmm_platform)
-        simulation.context.setPositions(pos)
-#        simulation.context.setVelocitiesToTemperature(300*unit.kelvin)
-        simulation.context.setVelocitiesToTemperature(0*unit.kelvin)
-
-# Minimization tends "Particle coordinate is nan" errors rather frequently, 1 in 10 minimizations.
+# Minimization generates "Exception. Particle coordinate is nan" errors rather frequently, 1 in 10 minimizations.
 #        simulation.minimizeEnergy(maxIterations = self._sim_steps)
-# Also get "Exception: Particle coordinate is nan" in LangevinIntegrator_step().
+# Get same error in LangevinIntegrator_step().
         from time import time
         t0 = time()
         try:
@@ -176,8 +193,8 @@ class StructureTugger:
             else:
                 raise
         t1 = time()
-#        print ('%d steps in %.2f seconds' % (self._sim_steps, t1-t0))
-        state = simulation.context.getState(getPositions = True)
+        #print ('%d steps in %.2f seconds' % (self._sim_steps, t1-t0))
+        state = c.getState(getPositions = True)
         self._particle_positions = pos = state.getPositions()
         from numpy import array, float64
         xyz = array(pos.value_in_unit(unit.angstrom), float64)
@@ -196,8 +213,8 @@ class StructureTugger:
             pdb = app.PDBxFile(path)
         else:
             raise ValueError('Atom motion requires PDB or mmCIF format file, got %s' % pdb_path)
-        self._openmm_pdb = pdb
-        self._particle_positions = self._openmm_pdb.positions
+        self._pdb = pdb
+        self._particle_positions = pdb.positions
         
         forcefield = app.ForceField('amber99sbildn.xml', 'amber99_obc.xml')
 #        self._add_hydrogens(pdb, forcefield)
@@ -208,21 +225,22 @@ class StructureTugger:
 # Can't have hbond constraints with 0 mass fixed particles.
                                          constraints=app.HBonds,
                                          rigidWater=True)
-        self._openmm_system = system
+        self._system = system
+
         # Fix positions of some particles
         # Test.
 #        for i in range(len(self._particle_positions)//2):
 #            system.setParticleMass(i, 0)
 
-        platform = mm.Platform.getPlatformByName('CPU')
-#        platform = mm.Platform.getPlatformByName('CUDA')
-        self._openmm_platform = platform
+        platform = mm.Platform.getPlatformByName(self._platform_name)
+        self._platform = platform
 
         # Setup pulling force
-        k = self._force_constant
         e = 'k*((x-x0)^2+(y-y0)^2+(z-z0)^2)'
         self._force = force = mm.CustomExternalForce(e)
-        param_indices = [force.addPerParticleParameter(param) for param in ('x0', 'y0', 'z0', 'k')]
+        force.addPerParticleParameter('k')
+        for p in ('x0', 'y0', 'z0'):
+            force.addGlobalParameter(p, 0.0)
         system.addForce(force)
 
     def _add_hydrogens(self, openmm_pdb, forcefield):
