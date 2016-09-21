@@ -17,7 +17,9 @@ _bundle_types = EnumOf(["all", "installed", "available"])
 
 
 def _display_bundles(bi_list, logger):
-    for bi in bi_list:
+    def bundle_key(bi):
+        return bi.display_name
+    for bi in sorted(bi_list, key=bundle_key):
         logger.info(" %s (%s %s): %s" % (bi.display_name, bi.name,
                                          bi.version, bi.synopsis))
 
