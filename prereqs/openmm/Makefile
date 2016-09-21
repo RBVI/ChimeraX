@@ -14,6 +14,8 @@ DISTRIBUTION = OpenMM-$(VERSION)-$(PLATFORM).tar.bz2
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
 OPENMM_LIB_INSTALL = $(libdir)/openmm
 
+PATCHES	= $(wildcard OpenMM-$(VERSION)-$(PLATFORM)-*.patch)
+
 ifeq ($(OS),Windows)
 
 install:
@@ -31,6 +33,11 @@ app-install: install
 
 $(SOURCE):
 	tar xf $(DISTRIBUTION) -C $(tmpdir)
+ifneq (,$(PATCHES))
+	for p in $(PATCHES); do \
+		(cd $(SOURCE) && patch -f -p0) < $$p ; \
+	done
+endif
 
 endif
 
