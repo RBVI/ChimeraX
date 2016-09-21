@@ -1123,7 +1123,7 @@ class Drawing:
         #  multiple postions, per-vertex coloring
         has_ssa = self.positions.shift_and_scale_array() is not None
         tab = ' ' * indent
-        def_use_tag = self if len(self.positions) > 1 else None
+        def_use_tag = self  # always allow reuse
         print('%s<Group>' % tab, file=stream)
         colors = self.vertex_colors
         normals = self.normals
