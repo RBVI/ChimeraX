@@ -13,6 +13,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+
 class _MyAPI(BundleAPI):
 
     @staticmethod
