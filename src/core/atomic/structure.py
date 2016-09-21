@@ -660,6 +660,7 @@ class Structure(Model, StructureData):
                 if is_helix[i] and is_helix[i-1] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
                     # Helix is shown separately as a tube, so we do not need to
                     # draw anything
+                    mid_cap = True
                     next_cap = True
                     prev_band = None
                 else:
