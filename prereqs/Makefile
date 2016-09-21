@@ -30,6 +30,7 @@ NEED_ZLIB=1
 #SUBDIRS += leapmotion
 SUBDIRS += oculus
 SUBDIRS += ffmpeg
+SUBDIRS += openmm
 endif
 
 ifeq ($(OS),Linux)
@@ -175,6 +176,8 @@ llvm.install: py7zip.install
 mesa.install: py7zip.install llvm.install pkgconfig.install
 numexpr.install: setuptools.install pips.install
 numexpr.app-install: setuptools.app-install pips.app-install
+openmm.install: python.install pips.install
+openmm.app-install: python.app-install pips.app-install
 pcre.install: zlib.install
 pcre.app-install: zlib.app-install
 pips.install: setuptools.install
