@@ -76,6 +76,8 @@ class Atom:
     HIDE_RIBBON = 0x1
     BBE_MIN, BBE_RIBBON, BBE_MAX = range(3)
 
+    idatm_info_map = c_function('atom_idatm_info_map', args = (), ret = ctypes.py_object)()
+
     def __init__(self, c_pointer):
         set_c_pointer(self, c_pointer)
 
