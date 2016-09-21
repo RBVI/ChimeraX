@@ -3,11 +3,24 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 VERSION = 7.0.1
-DISTRIBUTION = OpenMM-$(VERSION)-Mac.tar.bz2
-SOURCE = $(tmpdir)/OpenMM-$(VERSION)-Mac
+ifeq ($(OS),Darwin)
+PLATFORM = Mac
+endif
+ifeq ($(OS),Linux)
+PLATFORM = Linux
+endif
+
+DISTRIBUTION = OpenMM-$(VERSION)-$(PLATFORM).tar.bz2
+SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
 OPENMM_LIB_INSTALL = $(libdir)/openmm
 
-ifeq ($(OS),Darwin)
+ifeq ($(OS),Windows)
+
+install:
+
+app-install:
+
+else
 
 install: $(SOURCE)
 	cd $(SOURCE) ; printf "$(OPENMM_LIB_INSTALL)\n$(PYTHON_EXE)\n" | ./install.sh
@@ -18,12 +31,6 @@ app-install: install
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
-
-else
-
-install:
-
-app-install:
 
 endif
 
