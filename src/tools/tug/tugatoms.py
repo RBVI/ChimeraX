@@ -46,6 +46,7 @@ class TugAtomsMode(MouseMode):
         self._tug_handler = None
         self._last_frame_number = None
         self._last_xy = None
+        self._arrow_model = None
         
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -55,7 +56,7 @@ class TugAtomsMode(MouseMode):
         if hasattr(pick, 'atom'):
             a = pick.atom
             st = self._tugger
-            if st is None:
+            if st is None or st.structure is not a.structure:
                 self._tugger = st = StructureTugger(a.structure)
             st.tug_atom(a)
             self._tugging = True
@@ -74,30 +75,59 @@ class TugAtomsMode(MouseMode):
         if th:
             self.session.triggers.remove_handler(th)
             self._tug_handler = None
+            a = self._arrow_model
+            if a:
+                a.display = False
         
     def _tug(self, x, y):
         if not self._tugging:
             return
-        st = self._tugger
         v = self.session.main_view
         if v.frame_number == self._last_frame_number:
             return	# Make sure we draw a frame before doing another MD calculation
+
+        atom_xyz, offset = self._pull_direction(x, y)
+        from time import time
+        t0 = time()
+        if self._tugger.tug_displacement(offset):
+            self._last_frame_number = v.frame_number
+        t1 = time()
+        #print ('one pull time %.2f' % (t1-t0))
+        atom_xyz, offset = self._pull_direction(x, y)
+        self._draw_arrow(atom_xyz+offset, atom_xyz)
+
+    def _pull_direction(self, x, y):
+        v = self.session.main_view
         x0,x1 = v.clip_plane_points(x, y)
-        axyz = st.atom.scene_coord
+        axyz = self._tugger.atom.scene_coord
         # Project atom onto view ray to get displacement.
         dir = x1 - x0
         da = axyz - x0
         from chimerax.core.geometry import inner_product
         offset = da - (inner_product(da, dir)/inner_product(dir,dir)) * dir
-        from time import time
-        t0 = time()
-        if st.tug_displacement(-offset):
-            self._last_frame_number = v.frame_number
-        t1 = time()
-#        print ('one pull time %.2f' % (t1-t0))
+        return axyz, -offset
 
     def _continue_tugging(self, *_):
         self._tug(*self._last_xy)
+
+    def _draw_arrow(self, xyz1, xyz2, radius = 0.1):
+        a = self._arrow_model
+        if a is None:
+            from chimerax.core.models import Model
+            s = self.session
+            self._arrow_model = a = Model('Tug arrow', s)
+            from chimerax.core.surface import cone_geometry
+            a.vertices, a.normals, a.triangles  = cone_geometry()
+            a.color = (0,255,0,255)
+            s.models.add([a])
+        # Scale and rotate prototype cylinder.
+        from chimerax.core.atomic import structure
+        from numpy import array, float32
+        p = structure._bond_cylinder_placements(xyz1.reshape((1,3)),
+                                                xyz2.reshape((1,3)),
+                                                array([radius],float32))
+        a.position = p[0]
+        a.display = True
 
 class StructureTugger:
     def __init__(self, structure):
@@ -123,6 +153,7 @@ class StructureTugger:
         self._constraint_tolerance = 0.001
         self._friction = 1.0/unit.picoseconds	# Coupling to heat bath
         self._platform_name = 'CPU'
+        #self._platform_name = 'OpenCL' # Works on Mac
         #self._platform_name = 'CUDA'	# This is 3x faster but requires env DYLD_LIBRARY_PATH=/usr/local/cuda/lib Chimera.app/Contents/MacOS/ChimeraX so paths to cuda libraries are found.
         
         # OpenMM particle data
