@@ -205,9 +205,7 @@ class HelixCylinder:
             self._normals = (normals, binormals)
         else:
             centers = self.cylinder_centers()
-            delta = self.coords[1] - self.centroid
-            d = vdot(delta, self.axis)
-            normal = delta - d * self.axis
+            normal = self.coords[1] - centers[1]
             normal = normal / norm(normal)
             binormal = cross(self.axis, normal)
             self._normals = (tile(normal, tile_shape),
@@ -298,12 +296,14 @@ class HelixCylinder:
 
     def _straight_optimize(self):
         from numpy.linalg import norm
-        from numpy import mean
+        from numpy import mean, vdot
         centroid, axis, radius = self._straight_initial()
         opt = OptLine(self.coords, centroid, axis)
         self.curved = False
         self.centroid = opt.centroid
         self.axis = opt.axis
+        if vdot(self.coords[-1] - self.coords[0], self.axis) < 0:
+            self.axis = -self.axis
         radii = norm(self.coords - self.cylinder_centers(), axis=1)
         self.radius = mean(radii)
 

@@ -161,7 +161,7 @@ class CommandLine(ToolInstance):
                         escape(cmd.current_text[cmd.start:error_at]),
                         err_color,
                         escape(cmd.current_text[error_at:]))
-                msg += '</div>\n<span style="color:%s;">%s</span>\n' % (
+                msg += '</div>\n<span style="color:%s;font-weight:bold">%s</span>\n' % (
                     err_color, escape(str(err)))
                 logger.info(msg, is_html=True)
                 logger.status(str(err), color="red")

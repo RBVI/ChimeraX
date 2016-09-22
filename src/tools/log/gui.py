@@ -141,7 +141,7 @@ class Log(ToolInstance, HtmlLog):
 
     def __init__(self, session, bundle_info):
         ToolInstance.__init__(self, session, bundle_info)
-        self.warning_shows_dialog = True
+        self.warning_shows_dialog = False
         self.error_shows_dialog = True
         from chimerax.core.ui.gui import MainToolWindow
 
@@ -226,7 +226,6 @@ class Log(ToolInstance, HtmlLog):
         lw.page().acceptNavigationRequest = link_clicked
         #self.log_window.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.on_navigating,
         #                     id=self.log_window.GetId())
-        self.log = self._qt_log
         # Don't record html history as log changes.
         def clear_history(okay, lw=lw):
             lw.history().clear()
@@ -236,7 +235,7 @@ class Log(ToolInstance, HtmlLog):
     #
     # Implement logging
     #
-    def _qt_log(self, level, msg, image_info, is_html):
+    def log(self, level, msg, image_info, is_html):
         """Log a message
 
         Parameters documented in HtmlLog base class
@@ -267,9 +266,9 @@ class Log(ToolInstance, HtmlLog):
                 msg = msg.replace("\n", "<br>\n")
 
             if level == self.LEVEL_ERROR:
-                msg = '<font color="red">' + msg + '</font>'
+                msg = '<p style="color:crimson;font-weight:bold">' + msg + '</p>'
             elif level == self.LEVEL_WARNING:
-                msg = '<font color="red">' + msg + '</font>'
+                msg = '<p style="color:darkorange">' + msg + '</p>'
 
             self.page_source += msg
         self.show_page_source()

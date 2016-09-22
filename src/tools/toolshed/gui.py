@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
+from PyQt5.QtWebEngineWidgets import QWebEnginePage
 
 _PageTemplate = """<html>
 <head>
@@ -73,6 +74,20 @@ _RUNNING_ROW = (
     '</tr>')
 
 
+class Page(QWebEnginePage):
+
+    def __init__(self, parent, tool):
+        QWebEnginePage.__init__(self, parent)
+        self.tool = tool
+
+    def acceptNavigation(self, qurl, nav_type, is_main_frame):  # noqa
+        return self.tool.navigate(qurl)
+
+    def javaScriptConsoleMessage(self, level, msg, linenumber, source_id):  # noqa
+        import sys
+        print('toolshed page: %s' % msg, file=sys.__stderr__)
+
+
 class ToolshedUI(ToolInstance):
 
     SESSION_ENDURING = True
@@ -82,12 +97,12 @@ class ToolshedUI(ToolInstance):
         from chimerax.core.ui.gui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
-
         from PyQt5.QtWebEngineWidgets import QWebEngineView
+
         class HtmlWindow(QWebEngineView):
             pass
 
-        def sizeHint():
+        def sizeHint():  # noqa
             from PyQt5.QtCore import QSize
             return QSize(800, 200)
         parent.sizeHint = sizeHint
@@ -97,22 +112,19 @@ class ToolshedUI(ToolInstance):
         layout = QGridLayout(parent)
         layout.addWidget(self.webview, 0, 0)
         parent.setLayout(layout)
-        #self.webview.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
-        def link_clicked(qurl, nav_type, is_main_frame):
-            self.navigate(qurl)
-            return False
-        self.webview.page().acceptNavigationRequest = link_clicked
+        self.webview.setPage(Page(self.webview, self))
+
         self.tool_window.manage(placement="side")
         from chimerax.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
         self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE, self._make_page),
                           session.triggers.add_handler(REMOVE_TOOL_INSTANCE, self._make_page)]
         self._make_page()
 
-    def navigate(self, data):
+    def navigate(self, qurl):
         session = self.session
         # Handle event
         # data is QUrl
-        url = data.toString()
+        url = qurl.toString()
 
         def link_handled():
             return False
