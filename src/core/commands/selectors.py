@@ -92,7 +92,7 @@ def _strands_selector(session, models, results):
     from ..atomic import Structure
     for m in models:
         if isinstance(m, Structure):
-            strands = m.residues.filter(m.residues.is_sheet)
+            strands = m.residues.filter(m.residues.is_strand)
             if strands:
                 results.add_model(m)
                 results.add_atoms(strands.atoms)
@@ -121,7 +121,7 @@ def _coil_selector(session, models, results):
         if isinstance(m, Structure):
             from numpy import logical_not, logical_or
             cr = m.chains.existing_residues
-            is_coil = logical_not(logical_or(cr.is_sheet, cr.is_helix))
+            is_coil = logical_not(logical_or(cr.is_strand, cr.is_helix))
             coil = cr.filter(is_coil)
             # also exclude nucleic acids
             coil = coil.existing_principal_atoms.residues
