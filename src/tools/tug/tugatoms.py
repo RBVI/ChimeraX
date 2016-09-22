@@ -135,6 +135,8 @@ class StructureTugger:
         self.atoms = structure.atoms
         self.atom = None
 
+        initialize_openmm()
+        
         # OpenMM objects
         self._pdb = None
         self._system = None
@@ -291,6 +293,19 @@ class StructureTugger:
         print('After adding hydrogens')
         dump_topology(top)
 
+_openmm_initialized = False
+def initialize_openmm():
+    # On linux need to set environment variable to find plugins.
+    # Without this it gives an error saying there is no "CPU" platform.
+    global _openmm_initialized
+    if not _openmm_initialized:
+        _openmm_initialized = True
+        from sys import platform
+        if platform == 'linux':
+            from os import environ, path
+            from chimerax import app_lib_dir
+            environ['OPENMM_PLUGINS_DIR'] = path.join(app_lib_dir, 'plugins')
+        
 def dump_topology(t):
     for a in t.atoms():
         an, r, ai = a.name, a.residue, a.index
