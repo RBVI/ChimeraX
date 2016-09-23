@@ -3,7 +3,6 @@
 """TODO
 from Consensus import Consensus
 from Conservation import Conservation
-from LineItem import LineItem
 import string
 from prefs import SINGLE_PREFIX
 from prefs import WRAP_IF, WRAP_THRESHOLD, WRAP, LINE_WIDTH, BLOCK_SPACE
@@ -1304,8 +1303,8 @@ class SeqCanvas:
 
 class SeqBlock:
     from PyQt5.QtCore import Qt
-	normal_label_color = Qt::black
-	header_label_color = Qt::blue
+	normal_label_color = Qt.black
+	header_label_color = Qt.blue
 
 	def __init__(self, label_scene, main_scene, prev_block, font, seq_offset,
 			headers, alignment, line_width, label_bindings, status_func,
@@ -1614,17 +1613,17 @@ class SeqBlock:
 
     """
 
-    def _brush(self, color, item):
+    def _brush(self, color):
         try:
             return self._brushes[color]
         except KeyError:
-            brush = item.brush()
-            brush.setColor(color)
+            from PyQt5.QtGui import QBrush
+            brush = QBrush(color)
             self._brushes[color] = brush
             return brush
 
 	def _color_func(self, line):
-			return lambda l, o: 'black'
+			return lambda l, o: Qt.black
     """TODO
 		try:
 			return line.color_func
@@ -1798,7 +1797,7 @@ class SeqBlock:
 			line_items = self.line_items[seq]
 			item_aux_info = self.item_aux_info[seq]
 			color_func = self._color_func(seq)
-			depictable = hasattr(seq, 'depictionVal')
+			depictable = hasattr(seq, 'depiction_val')
 			for i in range(len(line_items)):
 				lineItem = line_items[i]
 				oldx, oldy = item_aux_info[i]
@@ -1806,7 +1805,7 @@ class SeqBlock:
 				if lineItem:
 					index = self.seq_offset + i
 					if depictable:
-						val = seq.depictionVal(index)
+						val = seq.depiction_val(index)
 					else:
 						val = seq[index]
 					if isinstance(val, basestring):
@@ -1946,7 +1945,7 @@ class SeqBlock:
 
 		end = min(self.seq_offset + self.line_width, len(self.alignment.seqs[0]))
 		for chunk_start in range(self.seq_offset, end, 10):
-            text = self.main_scene.addSimpleText("%d" % (chunk_start+1) font=self.font)
+            text = self.main_scene.addSimpleText("%d" % (chunk_start+1), font=self.font)
             # anchor='s': subtract half the height from y
             rect = text.sceneBoundingRect()
             text.setPos(x, y - rect.height()/2)
@@ -1973,10 +1972,10 @@ class SeqBlock:
 
 		text = self.label_scene.addSimpleText(seq_name(line, self.prefs),
             font=self._label_font(line))
-        text.setBrush(self._brush(label_color, text))
+        text.setBrush(self._brush(label_color))
         # anchor='sw': subtract half the width from x and half the height from y
         rect = text.sceneBoundingRect()
-        text.moveBy(x - rect.width()/2, y - rect.height()/2)
+        text.setPos(x - rect.width()/2, y - rect.height()/2)
 		self.label_texts[line] = text
         """TODO
 		if self.has_associated_structures(line):
@@ -1998,7 +1997,7 @@ class SeqBlock:
 			resStatus = line in self.seqs or adding
         """
 		for i in range(end - self.seq_offset):
-			item = self.makeItem(line, self.seq_offset + i, xs[i],
+			item = self.make_item(line, self.seq_offset + i, xs[i],
 				y, half_x, left_rect_off, right_rect_off, color_func)
             """TODO
 			if resStatus:
@@ -2078,14 +2077,13 @@ class SeqBlock:
 	def _left_seqs_edge(self):
 		return self.label_width + self.letter_gaps[0] + self.numbering_widths[0]
 
-    """TODO
-	def makeItem(self, line, offset, x, y, half_x,
-					left_rect_off, right_rect_off, color_func):
-		if hasattr(line, 'depictionVal'):
-			info = line.depictionVal(offset)
+	def make_item(self, line, offset, x, y, half_x, left_rect_off, right_rect_off, color_func):
+		if hasattr(line, 'depiction_val'):
+			info = line.depiction_val(offset)
 		else:
 			info = line[offset]
 		if isinstance(info, basestring):
+            """TODO: try to use QGraphicsItem/QGraphicsItemGroup instead of high-overhead LineItem
 			if len(info) > 1:
 				left = x + left_rect_off
 				right = x + right_rect_off
@@ -2093,15 +2091,19 @@ class SeqBlock:
 				top = y - self.font_pixels[1]
 				return LineItem(info, self.main_scene, left, right, top, bottom,
 					color_func(line, offset))
-			return LineItem('text', self.main_scene, x, y, anchor='s',
-				font=self.font, fill=color_func(line, offset), text=info)
+            """
+            text = self.main_scene.addSimpleText(info, font=self.font)
+            # anchor='s': subtract half the height from y
+            rect = text.sceneBoundingRect()
+            text.setPos(x, y - rect.height()/2)
+            text.setBrush(self._brush(color_func(line, offset)))
+            return text
 		if info != None and info > 0.0:
-			topRect = y - info * self.font_pixels[1]
-			return LineItem('rectangle', self.main_scene, x + left_rect_off,
-							topRect, x + right_rect_off, y, width=0,
-							outline="", fill=color_func(line, offset))
+            return self.main_scene.addRect(x + left_rect_off, y, right_rect_off - left_rect_off,
+                info * self.font_pixels[1], brush=self._brush(color_func(line, offset)))
 		return None
 
+    """TODO
 	def _makeNumbering(self, line, numbering):
 		n = self._computeNumbering(line, numbering)
 		x, y = self.item_aux_info[line][-1]
@@ -2262,7 +2264,7 @@ class SeqBlock:
 			if lineItem is not None:
 				lineItem.delete()
 			x, y = item_aux_info[i]
-			line_items[i] = self.makeItem(seq, self.seq_offset + i,
+			line_items[i] = self.make_item(seq, self.seq_offset + i,
 						x, y, half_x, left_rect_off,
 						right_rect_off, color_func)
 			if resStatus:
@@ -2324,7 +2326,7 @@ class SeqBlock:
 				if item is not None:
 					item.delete()
 				x, y = item_aux_info[i]
-				line_items[i] = self.makeItem(line,
+				line_items[i] = self.make_item(line,
 					self.seq_offset + i, x, y, half_x,
 					left_rect_off, right_rect_off, color_func)
 				if resStatus:
@@ -2360,7 +2362,7 @@ class SeqBlock:
 				xs = self._get_xs(curBlockLen - self.seq_offset)
 				for i in range(prev_blockLen, curBlockLen):
 					x = xs[i - self.seq_offset]
-					line_items.append(self.makeItem(line, i,
+					line_items.append(self.make_item(line, i,
 						x, y, half_x, left_rect_off,
 						right_rect_off, color_func))
 					item_aux_info.append((x, y))
