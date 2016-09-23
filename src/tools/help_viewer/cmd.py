@@ -121,7 +121,7 @@ def help(session, topic=None, *, option=None, is_query=False, target=None):
 
     if session.ui.is_gui:
         new = option == 'new_viewer'
-        from .gui import HelpUI
+        from .tool import HelpUI
         if new:
             target = topic
         help_viewer = HelpUI.get_viewer(session, target)

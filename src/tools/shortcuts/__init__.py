@@ -21,7 +21,7 @@ class _MyAPI(BundleAPI):
         # This function is simple because we "know" we only provide
         # a single tool in the entire package, so we do not need to
         # look at the name in 'bundle_info.name'
-        from .gui import panel_classes
+        from .tool import panel_classes
         cls = panel_classes[bundle_info.name]
         spanel = cls.get_singleton(session)
         if spanel is not None:
@@ -42,7 +42,7 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
-        from .gui import panel_classes
+        from .tool import panel_classes
         for c in panel_classes.values():
             if class_name == c.__name__:
                 return c

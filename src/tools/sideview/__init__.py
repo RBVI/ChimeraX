@@ -20,7 +20,7 @@ class _MyAPI(BundleAPI):
         # 'start_tool' is called to start an instance of the tool
         # If providing more than one tool in package,
         # look at the name in 'bundle_info.name' to see which is being started.
-        from .gui import SideViewUI
+        from .tool import SideViewUI
         s = SideViewUI(session, bundle_info)
         return s
 
@@ -28,8 +28,8 @@ class _MyAPI(BundleAPI):
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'SideViewUI':
-            from . import gui
-            return gui.SideViewUI
+            from . import tool
+            return tool.SideViewUI
         return None
 
 bundle_api = _MyAPI()

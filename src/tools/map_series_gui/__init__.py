@@ -20,27 +20,27 @@ class _MyAPI(BundleAPI):
         # 'start_tool' is called to start an instance of the tool
         # GUI actually starts when data is opened, so this is for
         # restoring sessions
-        from . import gui
-        return gui.MapSeries(session, bundle_info)
+        from . import tool
+        return tool.MapSeries(session, bundle_info)
 
     @staticmethod
     def initialize(session, bundle_info):
         # 'initialize' is called by the toolshed on start up
-        from . import gui
-        gui.show_slider_on_open(session)
+        from . import tool
+        tool.show_slider_on_open(session)
 
     @staticmethod
     def finish(session, bundle_info):
         # 'finish' is called by the toolshed when updated/reloaded
-        from . import gui
-        gui.remove_slider_on_open(session)
+        from . import tool
+        tool.remove_slider_on_open(session)
 
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'MapSeries':
-            from . import gui
-            return gui.MapSeries
+            from . import tool
+            return tool.MapSeries
         return None
 
 bundle_api = _MyAPI()

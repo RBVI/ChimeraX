@@ -18,15 +18,15 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def start_tool(session, bundle_info):
         # 'start_tool' is called to start an instance of the tool
-        from .gui import MouseModePanel
+        from .tool import MouseModePanel
         return MouseModePanel.get_singleton(session)
 
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'MouseModePanel':
-            from . import gui
-            return gui.MouseModePanel
+            from . import tool
+            return tool.MouseModePanel
         return None
 
 bundle_api = _MyAPI()

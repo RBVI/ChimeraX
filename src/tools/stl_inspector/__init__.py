@@ -20,15 +20,15 @@ class _MyAPI(BundleAPI):
         # 'start_tool' is called to start an instance of the tool
         # If providing more than one tool in package,
         # look at the name in 'bi.name' to see which is being started.
-        from .gui import ToolUI
+        from .tool import ToolUI
         return ToolUI(session, bi)     # UI should register itself with tool state manager
 
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'ToolUI':
-            from . import gui
-            return gui.ToolUI
+            from . import tool
+            return tool.ToolUI
         return None
 
 bundle_api = _MyAPI()

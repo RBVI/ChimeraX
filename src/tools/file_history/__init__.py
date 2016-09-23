@@ -24,15 +24,13 @@ class _MyAPI(BundleAPI):
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'FilePanel':
-            from . import gui
-            return gui.FilePanel
+            from . import tool
+            return tool.FilePanel
         return None
 
 bundle_api = _MyAPI()
 
 def get_singleton(session, create=False):
-    if not session.ui.is_gui:
-        return None
     from chimerax.core import tools
-    from .gui import FilePanel
+    from .tool import FilePanel
     return tools.get_singleton(session, FilePanel, 'file history', create=create)

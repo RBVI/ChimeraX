@@ -20,9 +20,9 @@ class _MyAPI(BundleAPI):
     def start_tool(session, bundle_info):
         # If providing more than one tool in package,
         # look at the name in 'bundle_info.name' to see which is being started.
-        from . import gui
+        from . import tool
         try:
-            ui = getattr(gui, bundle_info.name + "UI")
+            ui = getattr(tool, bundle_info.name + "UI")
         except AttributeError:
             raise RuntimeError("cannot find UI for tool \"%s\"" % bundle_info.name)
         else:
@@ -52,8 +52,8 @@ class _MyAPI(BundleAPI):
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'BogusUI':
-            from . import gui
-            return gui.BogusUI
+            from . import tool
+            return tool.BogusUI
         return None
 
 bundle_api = _MyAPI()

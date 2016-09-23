@@ -17,9 +17,7 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, bi):
-        if not session.ui.is_gui:
-            return
-        from .gui import cage_builder_panel
+        from .tool import cage_builder_panel
         p = cage_builder_panel(session, bi)
         return p
 

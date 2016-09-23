@@ -19,7 +19,7 @@ class _MyAPI(BundleAPI):
     def start_tool(session, bundle_info):
         # 'start_tool' is called to start an instance of the tool
         # GUI started by command, so this is for restoring sessions
-        from .gui import Plot
+        from .tool import Plot
         return Plot(session, bundle_info)
 
     @staticmethod
@@ -32,8 +32,8 @@ class _MyAPI(BundleAPI):
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'Plot':
-            from . import gui
-            return gui.Plot
+            from . import tool
+            return tool.Plot
         return None
 
 bundle_api = _MyAPI()

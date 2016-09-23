@@ -27,13 +27,12 @@ class ToolUI(ToolInstance):
 
     def __init__(self, session, bundle_info):
         ToolInstance.__init__(self, session, bundle_info)
-        # 'display_name' defaults to class name with spaces inserted
+        # FIXME: display_name' defaults to class name with spaces inserted
         # between lower-then-upper-case characters (therefore "Tool UI"
         # in this case), so only override if different name desired
         self.display_name = "custom name for running tool"
-        if session.ui.is_gui:
-            from chimerax.core.ui.gui import MainToolWindow
-            self.tool_window = MainToolWindow(self)
-            self.tool_window.manage(placement="side")
-            parent = self.tool_window.ui_area
-            # TODO: UI content code goes here
+        from chimerax.core.ui.gui import MainToolWindow
+        self.tool_window = MainToolWindow(self)
+        self.tool_window.manage(placement="side")
+        parent = self.tool_window.ui_area
+        # FIXME: UI content code goes here

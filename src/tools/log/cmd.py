@@ -15,7 +15,7 @@ def get_singleton(session, create=False):
     if not session.ui.is_gui:
         return None
     from chimerax.core import tools
-    from .gui import Log
+    from .tool import Log
     return tools.get_singleton(session, Log, 'log', create=create)
 
 def log(session, show = False, hide = False, clear = False, save_path = None,

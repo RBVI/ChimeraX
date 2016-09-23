@@ -18,15 +18,15 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def start_tool(session, bundle_info):
         # 'start_tool' is called to start an instance of the tool
-        from .gui import CommandLine
+        from .tool import CommandLine
         return CommandLine.get_singleton(session)
 
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'CommandLine':
-            from . import gui
-            return gui.CommandLine
+            from . import tool
+            return tool.CommandLine
         return None
 
 bundle_api = _MyAPI()

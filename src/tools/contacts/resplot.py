@@ -13,7 +13,7 @@
 
 # ------------------------------------------------------------------------------
 #
-from .gui import Plot
+from .tool import Plot
 class ResiduePlot(Plot):
     
     def __init__(self, session, contact):

@@ -35,8 +35,8 @@ class _MyAPI(BundleAPI):
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'Log':
-            from . import gui
-            return gui.Log
+            from . import tool
+            return tool.Log
         return None
 
 bundle_api = _MyAPI()

@@ -36,8 +36,8 @@ def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300):
     log.status(msg)
 
     if session.ui.is_gui:
-        from . import gui
-        gui.ContactPlot(session, sg, ba)
+        from . import tool
+        tool.ContactPlot(session, sg, ba)
     else:
         log.warning("unable to show graph without GUI")
 

@@ -20,7 +20,7 @@ class _MyAPI(BundleAPI):
     def start_tool(session, bundle_info):
         # 'start_tool' is called to start an instance of the tool
         # Starting tools may only work in GUI mode, or in all modes.
-        from .gui import ToolshedUI
+        from .tool import ToolshedUI
         return ToolshedUI.get_singleton(session)
 
     @staticmethod
@@ -44,8 +44,8 @@ class _MyAPI(BundleAPI):
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'ToolshedUI':
-            from . import gui
-            return gui.ToolshedUI
+            from . import tool
+            return tool.ToolshedUI
         return None
 
 bundle_api = _MyAPI()
