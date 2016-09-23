@@ -30,7 +30,6 @@ NEED_ZLIB=1
 #SUBDIRS += leapmotion
 SUBDIRS += oculus
 SUBDIRS += ffmpeg
-SUBDIRS += openmm
 endif
 
 ifeq ($(OS),Linux)
@@ -41,7 +40,6 @@ NEED_P7ZIP=1
 NEED_ZLIB=1
 SUBDIRS += xdg-utils
 SUBDIRS += ffmpeg
-SUBDIRS += openmm
 endif
 
 ifdef NEED_OFFSCREEN
@@ -98,7 +96,7 @@ endif
 
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= fonts \
-	   imex numexpr numpy \
+	   imex numexpr numpy openmm \
 	   pcre pips pycollada \
 	   PyOpenGL pytables Python \
 	   scipy setuptools wrappy3
