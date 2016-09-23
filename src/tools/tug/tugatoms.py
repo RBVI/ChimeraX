@@ -138,7 +138,7 @@ class StructureTugger:
         initialize_openmm()
         
         # OpenMM objects
-        self._pdb = None
+        self._topology = None
         self._system = None
         self._force = None	# CustomExternalForce pulling force
         self._platform = None
@@ -159,8 +159,8 @@ class StructureTugger:
         #self._platform_name = 'CUDA'	# This is 3x faster but requires env DYLD_LIBRARY_PATH=/usr/local/cuda/lib Chimera.app/Contents/MacOS/ChimeraX so paths to cuda libraries are found.
         
         # OpenMM particle data
-        self._particle_number = None
-        self._particle_positions = None
+        self._particle_number = None		# Integer index of tugged atom
+        self._particle_positions = None		# Numpy array, Angstroms
         self._particle_force_index = {}
 
         self._create_openmm_system()
@@ -195,22 +195,21 @@ class StructureTugger:
 
         # Make a new simulation.
         from simtk.openmm import app
-        s = app.Simulation(self._pdb.topology, self._system, integrator, self._platform)
+        s = app.Simulation(self._topology, self._system, integrator, self._platform)
         self._simulation = s
         
     def tug_displacement(self, d):
 
         particle = self._particle_number
         pos = self._particle_positions
-        from simtk import unit
-        pxyz = pos[particle].value_in_unit(unit.nanometer)
-        txyz = pxyz + 0.1*d	# displacement d is in Angstroms, convert to nanometers
+        pxyz = 0.1*pos[particle]	# Nanometers
+        txyz = pxyz + 0.1*d		# displacement d is in Angstroms, convert to nanometers
         
         simulation = self._simulation
         c = simulation.context
         for p,v in zip(('x0','y0','z0'), txyz):
             c.setParameter(p,v)
-        c.setPositions(pos)
+        c.setPositions(0.1*pos)	# Nanometers
         c.setVelocitiesToTemperature(self._temperature)
 
 # Minimization generates "Exception. Particle coordinate is nan" errors rather frequently, 1 in 10 minimizations.
@@ -228,9 +227,10 @@ class StructureTugger:
         t1 = time()
         #print ('%d steps in %.2f seconds' % (self._sim_steps, t1-t0))
         state = c.getState(getPositions = True)
-        self._particle_positions = pos = state.getPositions()
+        from simtk import unit
+        pos = state.getPositions().value_in_unit(unit.angstrom)
         from numpy import array, float64
-        xyz = array(pos.value_in_unit(unit.angstrom), float64)
+        self._particle_positions = xyz = array(pos, float64)
         self.atoms.coords = xyz
         return True
         
@@ -239,20 +239,12 @@ class StructureTugger:
         from simtk import openmm as mm
         from simtk import unit
 
-        path = self.structure.filename
-        if path.endswith('.pdb'):
-            pdb = app.PDBFile(path)
-        elif path.endswith('.cif'):
-            pdb = app.PDBxFile(path)
-        else:
-            raise ValueError('Atom motion requires PDB or mmCIF format file, got %s' % pdb_path)
-        self._pdb = pdb
-        self._particle_positions = pdb.positions
+        self._topology, self._particle_positions = openmm_topology_and_coordinates(self.structure)
         
         forcefield = app.ForceField('amber99sbildn.xml', 'amber99_obc.xml')
 #        self._add_hydrogens(pdb, forcefield)
         
-        system = forcefield.createSystem(pdb.topology, 
+        system = forcefield.createSystem(self._topology, 
                                          nonbondedMethod=app.CutoffNonPeriodic,
                                          nonbondedCutoff=1.0*unit.nanometers,
 # Can't have hbond constraints with 0 mass fixed particles.
@@ -292,6 +284,37 @@ class StructureTugger:
         dump_topology(openmm_pdb.topology)
         print('After adding hydrogens')
         dump_topology(top)
+
+def openmm_topology_and_coordinates(mol):
+    '''Make OpenMM topology and positions from ChimeraX AtomicStructure.'''
+    a = mol.atoms
+    n = len(a)
+    r = a.residues
+    aname = a.names
+    ename = a.element_names
+    rname = r.names
+    rnum = r.numbers
+    cids = r.chain_ids
+    from simtk.openmm.app import Topology, Element
+    top = Topology()
+    cmap = {}
+    rmap = {}
+    atoms = {}
+    for i in range(n):
+        cid = cids[i]
+        if not cid in cmap:
+            cmap[cid] = top.addChain()	# OpenMM chains have no name.
+        rid = (rname[i], rnum[i], cid)
+        if not rid in rmap:
+            rmap[rid] = top.addResidue(rname[i], cmap[cid])
+        element = Element.getBySymbol(ename[i])
+        atoms[i] = top.addAtom(aname[i], element, rmap[rid])
+    a1, a2 = mol.bonds.atoms
+    for i1, i2 in zip(a1.indices(a), a2.indices(a)):
+        top.addBond(atoms[i1], atoms[i2])
+    from simtk.openmm import Vec3
+    pos = a.coords
+    return top, pos
 
 _openmm_initialized = False
 def initialize_openmm():
