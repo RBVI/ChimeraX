@@ -9,6 +9,9 @@ endif
 ifeq ($(OS),Linux)
 PLATFORM = Linux
 endif
+ifeq ($(OS),Windows)
+PLATFORM = Windows
+endif
 
 DISTRIBUTION = OpenMM-$(VERSION)-$(PLATFORM).tar.bz2
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
@@ -19,13 +22,14 @@ PATCHES	= $(wildcard OpenMM-$(VERSION)-$(PLATFORM)-*.patch)
 ifeq ($(OS),Windows)
 
 install:
-
-app-install:
+	cd $(SOURCE) ; $(RSYNC) simtk $(PYSITEDIR) ; $(RSYNC) lib $(OPENMM_LIB_INSTALL)
 
 else
 
 install: $(SOURCE)
 	cd $(SOURCE) ; printf "$(OPENMM_LIB_INSTALL)\n$(PYTHON_EXE)\n" | ./install.sh
+
+endif
 
 app-install: install
 	$(RSYNC) $(OPENMM_LIB_INSTALL)/lib/* $(app_shlibdir)
@@ -37,8 +41,6 @@ ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \
 	done
-endif
-
 endif
 
 clean:
