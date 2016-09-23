@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,21 +11,20 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Note: any software used should be mentioned in docs/embedded.html
-# with the appropriate license.
+from chimerax.core.toolshed import BundleAPI
 
-TOP = ..
-NO_SUBDIR_ALL = 1
+class _MyAPI(BundleAPI):
 
-include $(TOP)/mk/config.make
+    @staticmethod
+    def start_tool(session, bi):
+        from .tool import cage_builder_panel
+        p = cage_builder_panel(session, bi)
+        return p
 
-SUBDIRS	+= core bundles apps wheelhouse wsgi
+    @staticmethod
+    def register_command(command_name, bundle_info):
+        # 'register_command' is lazily called when command is referenced
+        from . import cmd
+        cmd.register_cage_command()
 
-# All needed subdirectories must be set by now.
-include $(TOP)/mk/subdir.make
-
-all:
-
-core.install: wheelhouse.install
-bundles.install: core.install
-apps.install: bundles.install
+bundle_api = _MyAPI()
