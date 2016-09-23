@@ -57,7 +57,11 @@ class TugAtomsMode(MouseMode):
             a = pick.atom
             st = self._tugger
             if st is None or st.structure is not a.structure:
-                self._tugger = st = StructureTugger(a.structure)
+                try:
+                    self._tugger = st = StructureTugger(a.structure)
+                except ForceFieldError as e:
+                    self.session.logger.warning(str(e))
+                    return
             st.tug_atom(a)
             self._tugging = True
 
@@ -243,13 +247,18 @@ class StructureTugger:
         
         forcefield = app.ForceField('amber99sbildn.xml', 'amber99_obc.xml')
 #        self._add_hydrogens(pdb, forcefield)
-        
-        system = forcefield.createSystem(self._topology, 
-                                         nonbondedMethod=app.CutoffNonPeriodic,
-                                         nonbondedCutoff=1.0*unit.nanometers,
-# Can't have hbond constraints with 0 mass fixed particles.
-                                         constraints=app.HBonds,
-                                         rigidWater=True)
+
+        try:
+            system = forcefield.createSystem(self._topology, 
+                                             nonbondedMethod=app.CutoffNonPeriodic,
+                                             nonbondedCutoff=1.0*unit.nanometers,
+                                             # Can't have hbond constraints with 0 mass fixed particles.
+                                             constraints=app.HBonds,
+                                             rigidWater=True)
+        except ValueError as e:
+            raise ForceFieldError('Missing atoms or parameterization needed by force field.\n' +
+                                  'All heavy atoms and hydrogens with standard names are required.\n' +
+                                  str(e))
         self._system = system
 
         # Fix positions of some particles
@@ -284,6 +293,9 @@ class StructureTugger:
         dump_topology(openmm_pdb.topology)
         print('After adding hydrogens')
         dump_topology(top)
+
+class ForceFieldError(Exception):
+    pass
 
 def openmm_topology_and_coordinates(mol):
     '''Make OpenMM topology and positions from ChimeraX AtomicStructure.'''
