@@ -24,8 +24,11 @@ class Alignment(State):
         self.file_markups = file_markups
 
     def take_snapshot(self, session, flags):
-        return { 'version': 1, 'seqs': self.seqs, 'name': self.name
+        return { 'version': 1, 'seqs': self.seqs, 'name': self.name,
             'file_attrs': self.file_atts, 'file_markups': self.file_markups }
+
+    def reset_state(self, session):
+        pass
 
     @staticmethod
     def restore_snapshot(session, data):

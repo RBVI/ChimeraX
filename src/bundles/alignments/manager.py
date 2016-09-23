@@ -71,7 +71,7 @@ class AlignmentsManager(State):
             align_attrs, align_markups, autodestroy)
         self.alignments[final_identify_as] = alignment
         if viewer:
-            bundle_info.start(alignment, **kw)
+            bundle_info.start(self.session, alignment)
         return alignment
 
     def register_viewer(self, bundle_info, synonyms=[]):
