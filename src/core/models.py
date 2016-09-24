@@ -58,9 +58,11 @@ class Model(State, Drawing):
         Drawing.__init__(self, name)
         self.session = session
         self.id = None
+        self.deleted = False
         # TODO: track.created(Model, [self])
 
     def delete(self):
+        self.deleted = True
         Drawing.delete(self)
         delattr(self, "session")
 
