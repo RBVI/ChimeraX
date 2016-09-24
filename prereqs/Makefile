@@ -97,7 +97,7 @@ endif
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= fonts \
 	   imex numexpr numpy openmm \
-	   pcre pips pycollada \
+	   pcre pdbfixer pips pycollada \
 	   PyOpenGL pytables Python \
 	   scipy setuptools wrappy3
 
@@ -179,6 +179,8 @@ openmm.install: Python.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
 pcre.install: zlib.install
 pcre.app-install: zlib.app-install
+pdbfixer.install: python.install
+pdbfixer.app-install: python.app-install
 pips.install: setuptools.install
 pips.app-install: setuptools.app-install
 pycollada.install: setuptools.install pips.install
