@@ -96,16 +96,10 @@ endif
 
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= fonts \
-	   imex numexpr numpy \
-	   pcre pips pycollada \
+	   imex numexpr numpy openmm \
+	   pcre pdbfixer pips pycollada \
 	   PyOpenGL PyQt pytables Python \
 	   scipy setuptools wrappy3
-
-ifeq ($(OS),Linux)
-SUBDIRS += pdbfixer openmm
-else ifeq ($(OS),Darwin)
-SUBDIRS += pdbfixer openmm
-endif
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -183,8 +177,8 @@ openmm.install: Python.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
 pcre.install: zlib.install
 pcre.app-install: zlib.app-install
-pdbfixer.install: Python.install
-pdbfixer.app-install: Python.app-install
+pdbfixer.install: Python.install openmm.install
+pdbfixer.app-install: Python.app-install openmm.app-install
 pips.install: setuptools.install
 pips.app-install: setuptools.app-install
 pycollada.install: setuptools.install pips.install
