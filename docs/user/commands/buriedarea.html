@@ -61,7 +61,7 @@ The <b>probeRadius</b> <i>rad</i> is the radius of this
 &ldquo;rolling sphere&rdquo; probe (default <b>1.4</b> &Aring;, 
 the value often used to approximate a water molecule).
 </p><p>
-Residues with more than <b>cutoffArea</b> <i>area</i> buried
+Residues with at least <b>cutoffArea</b> <i>area</i> buried
 (default <b>1.0</b> &Aring;<sup>2</sup>) can be:
 </p>
 <ul>
@@ -75,13 +75,19 @@ using the <b>listResidues</b> option
 The buried area of a residue is its SAS area in the individual set minus
 that in the combined set.
 </p><p>
-Example:
+Examples:
 </p>
 <blockquote>
 <b>buriedarea /c & protein with /d & protein</b>
 </blockquote>
 &ndash; calculate buried surface area between the
 <a href="atomspec.html#builtin">protein</a> parts only of chains C and D
+<blockquote>
+<b>buried ligand with protein list sel</b>
+</blockquote>
+&ndash; select and list residues with &ge; 1.0 &Aring;<sup>2</sup> area
+buried between <a href="atomspec.html#builtin">ligand</a> and
+<a href="atomspec.html#builtin">protein</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
