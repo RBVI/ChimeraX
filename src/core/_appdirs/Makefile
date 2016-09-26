@@ -42,4 +42,5 @@ clean:
 	rm -f $(OBJS) $(PYMOD)
 ifdef WIN32
 	rm -f $(PYMOD_NAME).pdb vc*.pdb
+	rm -f $(PYMOD_NAME).exp $(PYMOD_NAME).lib
 endif

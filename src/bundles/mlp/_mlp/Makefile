@@ -42,3 +42,6 @@ $(PYMOD): $(OBJS)
 
 clean:
 	rm -f $(PYMOD) $(OBJS)
+ifdef WIN32
+	rm -f $(PYMOD_NAME).exp $(PYMOD_NAME).lib
+endif
