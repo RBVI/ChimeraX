@@ -1270,7 +1270,8 @@ class BundleInfo:
                     "no initialize function found for bundle \"%s\""
                     % self.name)
             if f == BundleAPI.initialize:
-                raise ToolshedError("bundle \"%s\"'s API forgot to override initialize()" % self.name)
+                session.logger.warning("bundle \"%s\"'s API forgot to override initialize()" % self.name)
+                return
             f(session, self)
 
     def finish(self, session):
@@ -1282,7 +1283,8 @@ class BundleInfo:
                 raise ToolshedError("no finish function found for bundle \"%s\""
                                     % self.name)
             if f == BundleAPI.finish:
-                raise ToolshedError("bundle \"%s\"'s API forgot to override finish()" % self.name)
+                session.logger.warning("bundle \"%s\"'s API forgot to override finish()" % self.name)
+                return
             f(session, self)
 
     def get_class(self, class_name):
