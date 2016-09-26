@@ -165,7 +165,7 @@ class HelixCylinder:
         
         The returned points are the nearest points on the cylinder
         center line nearest the given atomic coordinates."""
-        from numpy import dot, outer, newaxis
+        from numpy import dot, outer, newaxis, cross, argsort
         from numpy.linalg import norm
         if self._centers is not None:
             return self._centers
@@ -180,11 +180,16 @@ class HelixCylinder:
             # to in_plane position (vector Nx3)
             uv = in_plane / norm(in_plane, axis=1)[:, newaxis]
             # Get centers by projecting along unit vectors
-            self._centers = self.center + uv * self.major_radius
+            centers = self.center + uv * self.major_radius
+            # Sort them so that centers are always in order
+            dv = centers - self.center
+            d = norm(cross(dv, dv[0]), axis=1)
+            self._centers = centers[argsort(d)]
         else:
             # Get distance of each atomic coordinate
             # from centroid along the center line
             d = dot(self.coords - self.centroid, self.axis)
+            d.sort()
             # Get centers by adding offsets to centroid along axis
             self._centers = self.centroid + outer(d, self.axis)
         return self._centers
@@ -198,16 +203,14 @@ class HelixCylinder:
         from numpy import tile, vdot, newaxis, cross
         from numpy.linalg import norm
         tile_shape = [len(self.coords), 1]
+        centers = self.cylinder_centers()
         if self.curved:
             normals = tile(self.axis, tile_shape)
-            in_plane = self.coords - self.center
+            in_plane = centers - self.center
             binormals = in_plane / norm(in_plane, axis=1)[:, newaxis]
             self._normals = (normals, binormals)
         else:
-            centers = self.cylinder_centers()
-            delta = self.coords[1] - self.centroid
-            d = vdot(delta, self.axis)
-            normal = delta - d * self.axis
+            normal = self.coords[1] - centers[1]
             normal = normal / norm(normal)
             binormal = cross(self.axis, normal)
             self._normals = (tile(normal, tile_shape),
@@ -298,12 +301,14 @@ class HelixCylinder:
 
     def _straight_optimize(self):
         from numpy.linalg import norm
-        from numpy import mean
+        from numpy import mean, vdot
         centroid, axis, radius = self._straight_initial()
         opt = OptLine(self.coords, centroid, axis)
         self.curved = False
         self.centroid = opt.centroid
         self.axis = opt.axis
+        if vdot(self.coords[-1] - self.coords[0], self.axis) < 0:
+            self.axis = -self.axis
         radii = norm(self.coords - self.cylinder_centers(), axis=1)
         self.radius = mean(radii)
 

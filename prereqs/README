@@ -77,6 +77,8 @@ numpydoc==0.5
 	Extension to sphinx documentation generation providing better doc string parsing for function parameters. Allows more readable code doc strings.
 oculus/
 	Oculus Rift library, needed for Oculus
+openmm/
+	Molecular dynamics used by tug tool
 openssl/
 	used to build Python
 p7zip/

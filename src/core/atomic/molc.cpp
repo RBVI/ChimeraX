@@ -519,6 +519,51 @@ extern "C" EXPORT void atom_element_number(void *atoms, size_t n, uint8_t *nums)
     }
 }
 
+extern "C" EXPORT PyObject *atom_idatm_info_map()
+{
+    PyObject* mapping = PyDict_New();
+    if (mapping == nullptr)
+        molc_error();
+    else {
+        try {
+            // map values are named tuples, set that up...
+            PyStructSequence_Field fields[] = {
+                { (char*)"geometry", (char*)"arrangement of bonds; 0: no bonds; 1: one bond;"
+                    " 2: linear; 3: planar; 4: tetrahedral" },
+                { (char*)"substituents", (char*)"number of bond partners" },
+                { (char*)"description", (char*)"text description of atom type" },
+                { nullptr, nullptr }
+            };
+            static PyStructSequence_Desc type_desc;
+            type_desc.name = (char*)"IdatmInfo";
+            type_desc.doc = (char*)"Information about an IDATM type";
+            type_desc.fields = fields;
+            type_desc.n_in_sequence = 3;
+            auto type_obj = PyStructSequence_NewType(&type_desc);
+            // As per https://bugs.python.org/issue20066 and https://bugs.python.org/issue15729,
+            // the type object isn't completely initialized, so...
+            type_obj->tp_flags |= Py_TPFLAGS_HEAPTYPE;
+            PyObject *ht_name = PyUnicode_FromString(type_desc.name);
+            reinterpret_cast<PyHeapTypeObject*>(type_obj)->ht_name = ht_name;
+            reinterpret_cast<PyHeapTypeObject*>(type_obj)->ht_qualname = ht_name;
+            for (auto type_info: Atom::get_idatm_info_map()) {
+                PyObject* key = PyUnicode_FromString(type_info.first.c_str());
+                PyObject* val = PyStructSequence_New(type_obj);
+                auto info = type_info.second;
+                PyStructSequence_SET_ITEM(val, 0, PyLong_FromLong(info.geometry));
+                PyStructSequence_SET_ITEM(val, 1, PyLong_FromLong(info.substituents));
+                PyStructSequence_SET_ITEM(val, 2, PyUnicode_FromString(info.description.c_str()));
+                PyDict_SetItem(mapping, key, val);
+                Py_DECREF(key);
+                Py_DECREF(val);
+            }
+        } catch (...) {
+            molc_error();
+        }
+    }
+    return mapping;
+}
+
 extern "C" EXPORT void atom_idatm_type(void *atoms, size_t n, pyobject_t *idatm_types)
 {
     Atom **a = static_cast<Atom **>(atoms);

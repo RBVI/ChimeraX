@@ -32,10 +32,12 @@ def register_core_selectors(session):
     reg(None, "mainchain", _backbone_selector)
     reg(None, "sidechain", _sidechain_selector)
     reg(None, "ribose", _ribose_selector)
-    from ..atomic import Element
+    from ..atomic import Element, Atom
     for i in range(1, 115):
         e = Element.get_element(i)
         reg(None, e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results))
+    for idatm in Atom.idatm_info_map.keys():
+        reg(None, idatm, lambda ses, models, results, sym=idatm: _idatm_selector(sym, models, results))
 
     
 
@@ -44,6 +46,15 @@ def _element_selector(symbol, models, results):
     for m in models:
         if isinstance(m, Structure):
             atoms = m.atoms.filter(m.atoms.element_names == symbol)
+            if len(atoms) > 0:
+                results.add_model(m)
+                results.add_atoms(atoms)
+
+def _idatm_selector(symbol, models, results):
+    from ..atomic import Structure
+    for m in models:
+        if isinstance(m, Structure):
+            atoms = m.atoms.filter(m.atoms.idatm_types == symbol)
             if len(atoms) > 0:
                 results.add_model(m)
                 results.add_atoms(atoms)
@@ -81,7 +92,7 @@ def _strands_selector(session, models, results):
     from ..atomic import Structure
     for m in models:
         if isinstance(m, Structure):
-            strands = m.residues.filter(m.residues.is_sheet)
+            strands = m.residues.filter(m.residues.is_strand)
             if strands:
                 results.add_model(m)
                 results.add_atoms(strands.atoms)
@@ -110,7 +121,7 @@ def _coil_selector(session, models, results):
         if isinstance(m, Structure):
             from numpy import logical_not, logical_or
             cr = m.chains.existing_residues
-            is_coil = logical_not(logical_or(cr.is_sheet, cr.is_helix))
+            is_coil = logical_not(logical_or(cr.is_strand, cr.is_helix))
             coil = cr.filter(is_coil)
             # also exclude nucleic acids
             coil = coil.existing_principal_atoms.residues

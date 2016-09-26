@@ -23,8 +23,10 @@ def open_pdb(session, filename, name, *args, **kw):
     if hasattr(filename, 'read'):
         # it's really a fetched stream
         input = filename
+        path = filename.name if hasattr(filename, 'name') else None
     else:
         input = open(filename, 'rb')
+        path = filename
 
     from . import pdbio
     pointers = pdbio.read_pdb_file(input, log=session.logger)
@@ -35,6 +37,10 @@ def open_pdb(session, filename, name, *args, **kw):
     
     from .structure import AtomicStructure
     models = [AtomicStructure(session, name = name, c_pointer = p, smart_initial_display = smid) for p in pointers]
+
+    if path:
+        for m in models:
+            m.filename = path
 
     return models, ("Opened PDB data containing %d atoms and %d bonds"
                     % (sum(m.num_atoms for m in models),

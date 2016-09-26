@@ -444,6 +444,16 @@ class Structure(Model, StructureData):
                 # Multi-residue helices are okay
                 res_class[-1] = XSectionManager.RC_HELIX_END
                 ss_ranges[-1][1] = end
+        def is_arc_helix_end(i):
+            if self.ribbon_mode_helix != self.RIBBON_MODE_ARC:
+                return False
+            return is_helix[i]
+        def is_arc_helix_middle(i, j):
+            if self.ribbon_mode_helix != self.RIBBON_MODE_ARC:
+                return False
+            if not is_helix[i] or not is_helix[j]:
+                return False
+            return ssids[i] == ssids[j]
         for rlist in polymers:
             rp = p.new_drawing(self.name + " ribbons")
             t2r = []
@@ -478,6 +488,7 @@ class Structure(Model, StructureData):
             helix_ranges = []
             sheet_ranges = []
             was_nucleic = False
+
             for i in range(len(residues)):
                 if polymer_type[i] == Residue.PT_NUCLEIC:
                     rc = XSectionManager.RC_NUCLEIC
@@ -546,6 +557,9 @@ class Structure(Model, StructureData):
             # The front and back sections meet at the control point atom.
             # Compute cross sections and whether we care about a smooth
             # transition between residues.
+            # If helices are displayed as tubes, we alter the cross sections
+            # at the beginning and end to coils since the wide ribbon looks
+            # odd when it is only for half a residue
             from .ribbon import XSectionManager
             xs_front = []
             xs_back = []
@@ -562,6 +576,15 @@ class Structure(Model, StructureData):
                 xs_back.append(b)
                 need_twist.append(self._need_twist(rc1, rc2))
                 rc0 = rc1
+            if self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                for i in range(len(residues)):
+                    if not is_helix[i]:
+                        continue
+                    rc = res_class[i]
+                    if rc == XSectionManager.RC_HELIX_START:
+                        xs_front[i] = self.ribbon_xs_mgr.xs_coil
+                    elif rc == XSectionManager.RC_HELIX_END:
+                        xs_back[i] = self.ribbon_xs_mgr.xs_coil
             need_twist[-1] = False
 
             # Perform any smoothing (e.g., strand smoothing
@@ -617,7 +640,7 @@ class Structure(Model, StructureData):
 
             # First residues
             from .ribbon import FLIP_MINIMIZE, FLIP_PREVENT, FLIP_FORCE
-            if displays[0] and not (is_helix[0] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC):
+            if displays[0] and not is_arc_helix_end(0):
                 # print(residues[0], file=sys.__stderr__); sys.__stderr__.flush()
                 xs_compat = self.ribbon_xs_mgr.is_compatible(xs_back[0], xs_front[1])
                 capped = displays[0] != displays[1] or not xs_compat
@@ -657,9 +680,10 @@ class Structure(Model, StructureData):
                 if not displays[i]:
                     continue
                 t_end = t_start
-                if is_helix[i] and is_helix[i-1] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                if is_arc_helix_middle(i, i - 1):
                     # Helix is shown separately as a tube, so we do not need to
                     # draw anything
+                    mid_cap = True
                     next_cap = True
                     prev_band = None
                 else:
@@ -686,7 +710,7 @@ class Structure(Model, StructureData):
                     if prev_band is not None:
                         triangle_list.append(xs_front[i].blend(prev_band, sf.front_band))
                         t_end += len(triangle_list[-1])
-                if is_helix[i] and is_helix[i+1] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC:
+                if is_arc_helix_middle(i, i + 1):
                     # Helix is shown separately as a tube, so we do not need to
                     # draw anything
                     prev_band = None
@@ -729,7 +753,7 @@ class Structure(Model, StructureData):
                     self._ribbon_r2t[residues[i]] = triangle_range
                     t_start = t_end
             # Last residue
-            if displays[-1] and not (is_helix[-1] and self.ribbon_mode_helix == self.RIBBON_MODE_ARC):
+            if displays[-1] and not is_arc_helix_end(-1):
                 # print(residues[-1], file=sys.__stderr__); sys.__stderr__.flush()
                 seg = capped and seg_cap or seg_blend
                 front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, True)

@@ -154,7 +154,7 @@ def cone_geometry(radius = 1, height = 1, nc = 10, caps = True):
         tc += nc
     varray = empty((vc, 3), float32)
     narray = empty((vc, 3), float32)
-    tarray = empty((tc, 3), float32)
+    tarray = empty((tc, 3), int32)
 
     # Compute a circle (which may be used twice if caps is true)
     angles = (2 * pi / nc) * arange(nc)
@@ -183,9 +183,9 @@ def cone_geometry(radius = 1, height = 1, nc = 10, caps = True):
         varray[nc2+1:,:2] = circle
         varray[nc2+1:,2] = 0.5
         narray[nc2:] = (0, 0, 1)
-        tarray[nc2:,0] = nc2
-        tarray[nc2:,1] = (arange(nc) + 1) % nc + nc2 + 1
-        tarray[nc2:,2] = arange(nc) + nc2 + 1
+        tarray[nc:,0] = nc2
+        tarray[nc:,1] = (arange(nc) + 1) % nc + nc2 + 1
+        tarray[nc:,2] = arange(nc) + nc2 + 1
 
     return varray, narray, tarray
 
