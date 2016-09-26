@@ -30,6 +30,8 @@ def open_file(session, stream, fname, file_type="FASTA", return_seqs=False,
             seqs, file_attrs, file_markups = ns['read'](f)
         except FormatSyntaxError as err:
             raise IOError("Syntax error in %s file '%s': %s" % (file_type, fname, err))
+    if not seqs:
+        raise ValueError("No sequences found in %s file '%s'!" % (file_type, fname))
     uniform_length = True
     for s in seqs:
         if uniform_length and len(s) != len(seqs[0]):

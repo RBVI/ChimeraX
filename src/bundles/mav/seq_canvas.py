@@ -52,7 +52,13 @@ class SeqCanvas:
         self._hdivider.setFrameStyle(QFrame.HLine | QFrame.Plain)
         self._hdivider.setLineWidth(1)
         self.main_scene = QGraphicsScene()
-        self.main_scene.setBackgroundBrush(Qt.lightGray)
+        """if gray background desired...
+        ms_brush = self.main_scene.backgroundBrush()
+        from PyQt5.QtGui import QColor
+        ms_color = QColor(240, 240, 240) # lighter gray than "lightGray"
+        ms_brush.setColor(ms_color)
+        self.main_scene.setBackgroundBrush(ms_color)
+        """
         self.main_view = QGraphicsView(self.main_scene)
         """TODO
         self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
@@ -1296,6 +1302,7 @@ class SeqBlock:
     from PyQt5.QtCore import Qt
     normal_label_color = Qt.black
     header_label_color = Qt.blue
+    label_pad = 3
 
     def __init__(self, label_scene, main_scene, prev_block, font, seq_offset,
             headers, alignment, line_width, label_bindings, status_func,
@@ -1699,7 +1706,7 @@ class SeqBlock:
             name = seq_name(seq, self.prefs)
             label_width = max(label_width, font_metrics.width(name))
             label_width = max(label_width, emphasis_font_metrics.width(name))
-        label_width += 3
+        label_width += self.label_pad
         return label_width
 
     """TODO
@@ -1941,9 +1948,9 @@ class SeqBlock:
         end = min(self.seq_offset + self.line_width, len(self.alignment.seqs[0]))
         for chunk_start in range(self.seq_offset, end, 10):
             text = self.main_scene.addSimpleText("%d" % (chunk_start+1), font=self.font)
-            # anchor='s': subtract half the height from y
+            # anchor='s': subtract the height and half the width
             rect = text.sceneBoundingRect()
-            text.setPos(x, y - rect.height()/2)
+            text.setPos(x - rect.width()/2, y - rect.height())
             self.ruler_texts.append(text)
             x += self.chunk_gap + 10 * (self.font_pixels[0] + self.letter_gaps[0])
         if not rerule:
@@ -1968,9 +1975,11 @@ class SeqBlock:
         text = self.label_scene.addSimpleText(seq_name(line, self.prefs),
             font=self._label_font(line))
         text.setBrush(self._brush(label_color))
-        # anchor='sw': subtract half the width from x and half the height from y
+        # anchor='sw': subtract the height
         rect = text.sceneBoundingRect()
-        text.setPos(x - rect.width()/2, y - rect.height()/2)
+        text.setPos(x, y - rect.height())
+        # but then right justify
+        text.moveBy(self.label_width - self.label_pad - rect.width(), 0)
         self.label_texts[line] = text
         """TODO
         if self.has_associated_structures(line):
@@ -2090,9 +2099,9 @@ class SeqBlock:
                     color_func(line, offset))
             """
             text = self.main_scene.addSimpleText(info, font=self.font)
-            # anchor='s': subtract half the height from y
+            # anchor='s': subtract the height and half the width
             rect = text.sceneBoundingRect()
-            text.setPos(x, y - rect.height()/2)
+            text.setPos(x - rect.width()/2, y - rect.height())
             text.setBrush(self._brush(color_func(line, offset)))
             return text
         if info != None and info > 0.0:
