@@ -12,52 +12,38 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimerax.spacenavigator
+PKG_NAME = chimerax.addmissingatoms
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = Space Navigator input device
+PKG_DESCRIPTION = Prep structures for molecular dynamics
 
-TOOL_NAME = spacenavigator
-TOOL_PKG_NAME = chimerax.spacenavigator
-TOOL_DISPLAY_NAME = Space Navigator
+# For many cases, only a single tool and a single command
+# is provided by a package.  Variables below are designed
+# for this case.  If you have multiple tools or commands,
+# you need manually edit all the files.
+TOOL_NAME = addmissingatoms
+TOOL_PKG_NAME = chimerax.addmissingatoms
+TOOL_DISPLAY_NAME = Add Missing Atoms
 TOOL_CATEGORY = Hidden
 TOOL_FILE_TYPES =
 TOOL_SESSION_VERSIONS = 1,1
 TOOL_CUSTOM_INIT = false
-TOOL_SYNOPSIS = Move models with Space Navigator device
-COMMAND_NAME = snav
+TOOL_SYNOPSIS = Command to prepare structures for molecular dynamics
+COMMAND_NAME = addmissingatoms
 
-PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
+PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 ifdef WIN32
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
-PYSRCS = __init__.py snav.py snavmac.py
-DATAFILES =
+PYSRCS = __init__.py addmissingatoms.py
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
-PYMOD_NAME = _spacenavigator
-SRCS	= spacenav.cpp
-OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-SNFW = /Library/Frameworks/3DconnexionClient.framework
-SNINC = -I$(SNFW)/Versions/Current/Headers
-DEFS += $(PYDEF)
-INCS += $(PYTHON_INCLUDE_DIRS) $(SNINC)
-LIBS += $(PYTHON_LIB) -F/Library/Frameworks -framework 3DconnexionClient
-PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
+all: $(PYOBJS)
 
-ifeq ($(shell test -e $(SNFW) && echo found),found)
-	HAVE_SNAV_SDK = 1
-else
-	PYMOD = 
-	PYOBJS = 
-endif
-
-all: $(PYMOD) $(PYOBJS)
-
-install: dir all
-	$(RSYNC) $(PYSRCS) $(PYMOD) $(DATAFILES) $(PKG_DIR)
+install: dir
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
@@ -68,18 +54,7 @@ app-install: wheel
 
 wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
-	rm -rf $(PKG_NAME).egg-info
-
-ifdef HAVE_SNAV_SDK
-
-$(PYMOD): $(OBJS)
-	$(PYMOD_LINK)
-ifeq ($(OS),Darwin)
-# Fix _spacenavigator.so to use relative path to Python framework library.
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PYMOD)
-endif
-
-endif
+	rm -rf $(TOOL_NAME).egg-info
 
 setup.py: setup.py.in Makefile
 	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
@@ -114,4 +89,4 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 clean:
-	rm -rf __pycache__ build dist $(PKG_NAME).egg-info setup.py timestamp $(PYMOD) $(OBJS)
+	rm -rf __pycache__ build dist $(PKG_NAME).egg-info setup.py timestamp

@@ -80,7 +80,7 @@ class TugAtomsMode(MouseMode):
             self.session.triggers.remove_handler(th)
             self._tug_handler = None
             a = self._arrow_model
-            if a:
+            if a and not a.deleted:
                 a.display = False
         
     def _tug(self, x, y):
@@ -116,7 +116,7 @@ class TugAtomsMode(MouseMode):
 
     def _draw_arrow(self, xyz1, xyz2, radius = 0.1):
         a = self._arrow_model
-        if a is None:
+        if a is None or a.deleted:
             from chimerax.core.models import Model
             s = self.session
             self._arrow_model = a = Model('Tug arrow', s)

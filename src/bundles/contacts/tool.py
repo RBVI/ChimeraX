@@ -506,15 +506,15 @@ class ContactPlot(Plot):
 
         self.add_menu_separator()
 
-        earg = None
+        eargs = ()
         if isinstance(item, Contact):
             explode = item.explode_contact
         elif isinstance(item, SphereGroup):
             explode = self._explode_neighbors
-            earg = item
+            eargs = (item,)
         else:
             explode = self._explode_all
-        add('Explode', explode, earg)
+        add('Explode', explode, *eargs)
         add('Unxplode', self._unexplode_all)
 
         self.add_menu_separator()
