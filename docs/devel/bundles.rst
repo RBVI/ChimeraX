@@ -12,10 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-Tools
-=====
+Bundles
+=======
 
-Documentation for API that tools provide
+Documentation for API that bundles provide
 that are layered on top of the ChimeraX core.
 The user interface documentation is found
 in :doc:`User's Manual </users/index>`.
