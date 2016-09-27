@@ -278,10 +278,14 @@ def init(argv, event_loop=True):
 
     if sys.platform.startswith('win'):
         import ctypes
-        # getpn = ctypes.pythonapi.Py_GetProgramName
-        # getpn.restype = ctypes.c_wchar_p
-        # pn = getpn()
-        # assert(os.path.dirname(pn) == rootdir)
+        ## getpn = ctypes.pythonapi.Py_GetProgramName
+        ## getpn.restype = ctypes.c_wchar_p
+        ## pn = getpn()
+        ## assert(os.path.dirname(pn) == rootdir)
+        # Python uses LoadLibraryEx with LOAD_WITH_ALTERED_SEARCH_PATH to
+        # search in directory of library first instead of the directory of
+        # application binary.  So add back the "bin" directory, which is
+        # the Windows equivalent of the Linux/Mac OS X rpath directory.
         setdlldir = ctypes.windll.kernel32.SetDllDirectoryW
         setdlldir.argtypes = [ctypes.c_wchar_p]
         setdlldir.restype = ctypes.c_bool
