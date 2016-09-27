@@ -85,10 +85,11 @@ def parse_arguments(argv):
     class Opts:
         pass
     opts = Opts()
-    opts.command = None
+    opts.commands = []
+    opts.cmd = None   # Python's -c option
     opts.debug = False
     opts.gui = True
-    opts.module = None
+    opts.module = None  # Python's -m option
     opts.line_profile = False
     opts.list_io_formats = False
     opts.load_tools = True
@@ -112,6 +113,7 @@ def parse_arguments(argv):
         "--silent",
         "--nostatus",
         "--start <tool name>",
+        "--cmd <command>",
         "--notools",
         "--stereo",
         "--uninstall",
@@ -145,7 +147,7 @@ def parse_arguments(argv):
         # treat like Python's -c argument
         opts.gui = False
         opts.silent = True
-        opts.command = sys.argv[2]
+        opts.cmd = sys.argv[2]
         return opts, sys.argv[2:]
     try:
         shortopts = ""
@@ -191,6 +193,8 @@ def parse_arguments(argv):
             opts.stereo = True
         elif opt == "--start":
             opts.start_tools.append(optarg)
+        elif opt == "--cmd":
+            opts.commands.append(optarg)
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
         elif opt == "--uninstall":
@@ -434,6 +438,16 @@ def init(argv, event_loop=True):
                 print(msg, flush=True)
         sess.tools.start_tools(opts.start_tools)
 
+    if opts.commands:
+        if not opts.silent:
+            msg = 'Running startup commands'
+            # sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
+            if sess.ui.is_gui and opts.debug:
+                print(msg, flush=True)
+        from chimerax.core.commands import run
+        for cmd in opts.commands:
+            run(sess, cmd)
+
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
                             next(splash_step), num_splash_steps)
@@ -466,12 +480,12 @@ def init(argv, event_loop=True):
                              run_name='__main__', alter_sys=True)
         return os.EX_OK
 
-    if opts.command:
+    if opts.cmd:
         # This is needed for -m pip to work in some cases.
         global_dict = {
             'session': sess
         }
-        exec(opts.command, global_dict)
+        exec(opts.cmd, global_dict)
         return os.EX_OK
 
     # the rest of the arguments are data files
