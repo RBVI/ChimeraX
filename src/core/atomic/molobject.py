@@ -81,6 +81,11 @@ class Atom:
     def __init__(self, c_pointer):
         set_c_pointer(self, c_pointer)
 
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
+
     def __str__(self, atom_only = False):
         from ..core_settings import settings
         cmd_style = settings.atomspec_contents == "command-line specifier"
@@ -223,6 +228,11 @@ class Bond:
     def __init__(self, bond_pointer):
         set_c_pointer(self, bond_pointer)
 
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
+
     def __str__(self):
         a1, a2 = self.atoms
         bond_sep = " \N{Left Right Arrow} "
@@ -295,6 +305,11 @@ class Pseudobond:
     def __init__(self, pbond_pointer):
         set_c_pointer(self, pbond_pointer)
 
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
+
     __str__ = Bond.__str__
 
     atoms = c_property('pseudobond_atoms', cptr, 2, astype = _atom_pair, read_only = True)
@@ -366,6 +381,11 @@ class PseudobondGroupData:
 
     def __init__(self, pbg_pointer):
         set_c_pointer(self, pbg_pointer)
+
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
 
     category = c_property('pseudobond_group_category', string, read_only = True,
         doc = "Name of the pseudobond group.  Read only string.")
@@ -507,6 +527,11 @@ class Residue:
 
     def __init__(self, residue_pointer):
         set_c_pointer(self, residue_pointer)
+
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
 
     def __str__(self, residue_only = False):
         from ..core_settings import settings
@@ -664,6 +689,11 @@ class Sequence:
                 name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
         set_pyobj_f(self._c_pointer, self)
+
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
 
     characters = c_property('sequence_characters', string, doc=
         "A string representing the contents of the sequence")
@@ -940,6 +970,11 @@ class StructureData:
             mol_pointer = c_function(new_func, args = (ctypes.py_object,), ret = ctypes.c_void_p)(logger)
         set_c_pointer(self, mol_pointer)
 
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
+
     def delete(self):
         '''Deletes the C++ data for this atomic structure.'''
         c_function('structure_delete', args = (ctypes.c_void_p,))(self._c_pointer)
@@ -1188,6 +1223,11 @@ class ChangeTracker:
         f = c_function('change_tracker_create', args = (), ret = ctypes.c_void_p)
         set_c_pointer(self, f())
 
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
+
     def add_modified(self, modded, reason):
         f = c_function('change_tracker_add_modified',
             args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
@@ -1258,6 +1298,11 @@ class Element:
     '''A chemical element having a name, number, mass, and other physical properties.'''
     def __init__(self, element_pointer):
         set_c_pointer(self, element_pointer)
+
+    @property
+    def cpp_pointer(self):
+        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
+        return self._c_pointer.value
 
     name = c_property('element_name', string, read_only = True)
     '''Element name, for example C for carbon. Read only.'''
