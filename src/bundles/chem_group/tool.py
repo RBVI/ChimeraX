@@ -151,7 +151,7 @@ group_info = {
 
 def find_group(group_desc, structures):
 	
-	if isinstance(group_desc, basestring):
+	if isinstance(group_desc, str):
 		try:
 			group_formula, group_rep, group_principals = group_info[group_desc]
 		except:
@@ -162,6 +162,13 @@ def find_group(group_desc, structures):
 	if callable(group_rep):
 		return group_rep(structures)
 	
+	from ._chem_group import find_group as fg
+	from chimerax.core.atomic import Atoms
+	groups = []
+	for structure in structures:
+		groups.extend(Atoms(fg(structure.cpp_pointer, group_rep, group_principals)))
+	return groups
+'''
 	groups = []
 	for structure in structures:
 		for atom in structure.atoms:
@@ -441,3 +448,4 @@ for group in %s.find_group('%s',structures):
 
 	del group, nucSels, selAll, ns, description, selMgr, selectorText
 	del amineSels, amine, SortString
+'''
