@@ -38,9 +38,6 @@ setup(name="PKG_NAME",
     package_data={
         "PKG_NAME": ["*.PYMOD_EXT"],
     },
-    data_files=[
-        ("", [ "timestamp" ]),
-    ],
     install_requires=[
         "chimerax.core",
     ],

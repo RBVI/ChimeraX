@@ -36,9 +36,6 @@ setup(
         # Add subpackage names here
     ],
     package_data={"PKG_NAME": ['matrices/*.*matrix']},
-    data_files=[
-        ("", ["timestamp"]),
-    ],
     install_requires=[
         "chimerax.core",
     ],

@@ -38,9 +38,6 @@ setup(name="PKG_NAME",
     package_data={
         "PKG_NAME": [],
     },
-    data_files=[
-        ("", [ "timestamp" ]),
-    ],
     install_requires=[
         "chimerax.core",
     ],

@@ -23,15 +23,6 @@ include $(TOP)/mk/subdir.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax
 
-PYSRCS = $(wildcard *.py)
-
-all: $(PYOBJS)
-
-install: all dir
-ifneq (,$(PYSRCS))
-	$(RSYNC) $(PYSRCS) $(PKG_DIR)
-endif
-
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 
@@ -44,3 +35,7 @@ endif
 
 clean:
 	rm -rf __pycache__
+
+align_algs.install: alignments.install
+sim_matrices.install: alignments.install
+match_maker.install: align_algs.install sim_matrices.install
