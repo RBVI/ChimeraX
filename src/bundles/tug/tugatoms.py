@@ -339,7 +339,7 @@ def initialize_openmm():
         if platform == 'linux':
             from os import environ, path
             from chimerax import app_lib_dir
-            environ['OPENMM_PLUGINS_DIR'] = path.join(app_lib_dir, 'plugins')
+            environ['OPENMM_PLUGIN_DIR'] = path.join(app_lib_dir, 'plugins')
         
 def dump_topology(t):
     for a in t.atoms():
