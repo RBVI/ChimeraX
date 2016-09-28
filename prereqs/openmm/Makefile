@@ -21,7 +21,7 @@ PATCHES	= $(wildcard OpenMM-$(VERSION)-$(PLATFORM)-*.patch)
 
 ifeq ($(OS),Windows)
 
-install:
+install: $(SOURCE)
 	cd $(SOURCE) ; $(RSYNC) simtk $(PYSITEDIR) ; $(RSYNC) lib $(OPENMM_LIB_INSTALL)
 
 else
