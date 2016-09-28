@@ -22,10 +22,10 @@ findAromatics = findAliAmines = findAroAmines = None
 # X is a shorthand for 'any halide'
 # None matches anything (and nothing)
 from chimerax.core.atomic import Element
-N = Element.get_element('N')
-C = Element.get_element('C')
-O = Element.get_element('O')
-H = Element.get_element('H')
+N = Element.get_element('N').number
+C = Element.get_element('C').number
+O = Element.get_element('O').number
+H = Element.get_element('H').number
 R = (C, H)
 X = ('F', 'Cl', 'Br', 'I')
 single_bond = (H, {'geometry':tetrahedral}, {'geometry':single})
@@ -59,7 +59,7 @@ non_oxygen_single_bond = (H, {'geometry':tetrahedral, 'not_type': ['O', 'O3', 'O
 #	attribute value the atom must have to match.  The dictionary can
 #	have a special key named 'default'.  The value of True for 'default'
 #	means that atom types not in the type_info dictionary will match,
-#	False means they won't.  The default for 'default' [urg] is 0.  The
+#	False means they won't.  The default for 'default' [urg] is False.  The
 #	dictionary can also have a special 'not_type' key, whose value is a
 #	list of idatm types that aren't allowed to match.
 #
@@ -162,11 +162,13 @@ def find_group(group_desc, structures):
 	if callable(group_rep):
 		return group_rep(structures)
 	
+	import os
+	num_cpus = os.cpu_count() if not None else 1
 	from ._chem_group import find_group as fg
 	from chimerax.core.atomic import Atoms
 	groups = []
 	for structure in structures:
-		groups.extend(Atoms(fg(structure.cpp_pointer, group_rep, group_principals)))
+		groups.extend(Atoms(fg(structure.cpp_pointer, group_rep, group_principals, num_cpus)))
 	return groups
 '''
 	groups = []

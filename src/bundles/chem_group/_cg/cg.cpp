@@ -12,29 +12,82 @@
  */
 
 #include <Python.h>
-#include <algorithm>
-#include <string>
-#include <map>
+#include <atomic/Atom.h>
+#include <pysupport/convert.h>
+#include <vector>
+
+class Atom_Condition
+{
+public:
+	virtual  ~Atom_Condition() {}
+	virtual bool  evaluate(const Atom* a) const;
+};
+
+class CG_Condition
+{
+public:
+	Atom_Condition*  atom_cond;
+	std::vector<CG_Condition*>  bonded;
+
+	virtual  ~CG_Condition() { delete atom_cond; for (auto cond: bonded) delete cond; }
+	bool  evaluate(const Atom* a, const Atom* parent = nullptr) const;
+};
+
+CG_Condition*
+make_condition(PyObject* group_rep)
+{
+	
+}
+
+extern "C" {
+
+//TODO: don't forget to parallize on per-atom basis
 
 #ifndef PY_STUPID
 // workaround for Python API missing const's.
 # define PY_STUPID (char *)
 #endif
 
-extern "C" {
-
-//TODO: don't forget to parallize on per-atom basis
-
 static
 PyObject *
 find_group(PyObject *, PyObject *args)
 {
-	char *seq1, *seq2;
-	PyObject *m;
-	double gapOpen, gapExtend;
-	if (!PyArg_ParseTuple(args, PY_STUPID "ssOdd", &seq1, &seq2, &m,
-		&gapOpen, &gapExtend))
+	PyObject*  py_struct_ptr;
+	PyObject*  py_group_rep;
+	PyObject*  py_group_principals;
+	unsigned int  num_cpus;
+	if (!PyArg_ParseTuple(args, PY_STUPID "OOOI", &py_struct_ptr, &py_group_rep,
+			&py_group_principals, &num_cpus))
 		return NULL;
+	if (!PyLong_Check(py_struct_ptr)) {
+		PyErr_SetString(PyExc_TypeError, "Structure pointer value must be int!");
+		return NULL;
+	}
+	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
+	if (!PyList_Check(py_group_rep)) {
+		PyErr_SetString(PyExc_TypeError, "group_rep must be a list!");
+		return NULL;
+	}
+	if (!PyList_Check(py_group_principals) || PyList_Size(py_group_principals) != 2) {
+		PyErr_SetString(PyExc_TypeError, "group_principals must be a two-element list!");
+		return NULL;
+	}
+
+	std::vector<long>  group_principals;
+	try {
+		pysupport::pylist_of_int_to_cvec(py_group_principals, &group_principals, "group principal");
+	} catch (pysupport::PySupportError& pse) {
+		PyErr_SetString(PyExc_TypeError, pse.what());
+		return NULL;
+	}
+
+	auto group_rep = make_condition(py_group_rep);
+	if (group_rep == nullptr)
+		return NULL;
+
+Py_BEGIN_ALLOW_THREADS
+Py_END_ALLOW_THREADS
+
 	Similarity matrix;
 	if (makeMatrix(m, matrix) < 0)
 		return NULL;

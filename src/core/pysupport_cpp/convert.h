@@ -74,6 +74,12 @@ public:
         PySupportError(_make_msg({item_description, " is not a Unicode string"})) {}
 };
 
+class ErrListItemNotInt : public PySupportError {
+public:
+    ErrListItemNotInt(const char* item_description) :
+        PySupportError(_make_msg({item_description, " is not an integer"})) {}
+};
+
 template <class Str>
 PyObject* cchar_to_pystring(Str& cchar, const char* item_description) {
     auto pyobj = PyUnicode_FromString(cchar.c_str());
@@ -135,6 +141,23 @@ void pylist_of_string_to_cvec(PyObject* pylist, std::vector<Contained>& cvec,
     for (decltype(num_items) i = 0; i < num_items; ++i) {
         PyObject* item = PyList_GET_ITEM(pylist, i);
         cvec.emplace_back(pystring_to_cchar(item, item_description));
+    }
+}
+
+inline char* pyint_to_clong(PyObject* integer, const char* item_description) {
+    if (!PyLong_Check(integer))
+        throw ErrListItemNotInt(item_description);
+    return PyLong_AsLong(integer);
+}
+
+void pylist_of_int_to_cvec(PyObject* pylist, std::vector<long>& cvec, const char* item_description)
+{
+    if (!PyList_Check(pylist))
+        throw ErrNotList(item_description);
+    auto num_items = PyList_GET_SIZE(pylist);
+    for (decltype(num_items) i = 0; i < num_items; ++i) {
+        PyObject* item = PyList_GET_ITEM(pylist, i);
+        cvec.push_back(pyint_to_clong(item, item_description));
     }
 }
 
