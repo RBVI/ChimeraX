@@ -1,0 +1,49 @@
+*** pdbfixer/pdbfixer.py~	Wed Jun 22 17:38:46 2016
+--- pdbfixer/pdbfixer.py	Wed Sep 28 09:49:17 2016
+***************
+*** 233,239 ****
+              self.source = filename
+              file = open(filename, 'r')
+              if _guessFileFormat(file, filename) == 'pdbx':
+!                 self._initializeFromPDBx(file.read())
+              else:
+                  self._initializeFromPDB(file)
+              file.close()
+--- 233,239 ----
+              self.source = filename
+              file = open(filename, 'r')
+              if _guessFileFormat(file, filename) == 'pdbx':
+!                 self._initializeFromPDBx(file)
+              else:
+                  self._initializeFromPDB(file)
+              file.close()
+***************
+*** 322,333 ****
+  
+          # Load the modified residues.
+  
+          modData = block.getObj('pdbx_struct_mod_residue')
+          asymIdCol = modData.getAttributeIndex('label_asym_id')
+          resNameCol = modData.getAttributeIndex('label_comp_id')
+          resNumCol = modData.getAttributeIndex('auth_seq_id')
+          standardResCol = modData.getAttributeIndex('parent_comp_id')
+-         self.modifiedResidues = []
+          if -1 not in (asymIdCol, resNameCol, resNumCol, standardResCol):
+              for row in modData.getRowList():
+                  self.modifiedResidues.append(ModifiedResidue(row[asymIdCol], int(row[resNumCol]), row[resNameCol], row[standardResCol]))
+--- 322,336 ----
+  
+          # Load the modified residues.
+  
++         self.modifiedResidues = []
+          modData = block.getObj('pdbx_struct_mod_residue')
++         if modData is None:
++             return
++ 
+          asymIdCol = modData.getAttributeIndex('label_asym_id')
+          resNameCol = modData.getAttributeIndex('label_comp_id')
+          resNumCol = modData.getAttributeIndex('auth_seq_id')
+          standardResCol = modData.getAttributeIndex('parent_comp_id')
+          if -1 not in (asymIdCol, resNameCol, resNumCol, standardResCol):
+              for row in modData.getRowList():
+                  self.modifiedResidues.append(ModifiedResidue(row[asymIdCol], int(row[resNumCol]), row[resNameCol], row[standardResCol]))

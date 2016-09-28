@@ -7,7 +7,7 @@ EGG_VERSION = 1.3
 DISTRIBUTION = pdbfixer-$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/pdbfixer-$(VERSION)
 
-PATCHES	= pdbfixer-$(VERSION)-openmm.patch
+PATCHES	= pdbfixer-$(VERSION)-openmm.patch pdbfixer-$(VERSION)-mmcif.patch
 
 install: $(SOURCE)
 	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py install
