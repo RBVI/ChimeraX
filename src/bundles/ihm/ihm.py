@@ -15,7 +15,7 @@
 ihm: Integrative Hybrid Model file format support
 =================================================
 """
-def read_ihm(session, filename, name, *args, **kw):
+def read_ihm(session, filename, name, *args, load_linked_files = False, **kw):
     """Read an integrative hybrid models file creating sphere models and restraint models
 
     :param filename: either the name of a file or a file-like object
@@ -35,7 +35,7 @@ def read_ihm(session, filename, name, *args, **kw):
     ihm_model = Model(name, session)
 
     table_names = ['ihm_model_list', 'ihm_sphere_obj_site', 'ihm_cross_link_restraint',
-                   'ihm_ensemble_info', 'ihm_gaussian_obj_ensemble']
+                   'ihm_ensemble_info', 'ihm_gaussian_obj_ensemble', 'ihm_dataset_other']
     from chimerax.core.atomic import mmcif
     table_list = mmcif.get_mmcif_tables(filename, table_names)
     tables = dict(zip(table_names, table_list))
@@ -58,8 +58,18 @@ def read_ihm(session, filename, name, *args, **kw):
     if ensembles_table is not None and gaussian_table is not None:
         pgrids = make_probability_grids(session, ensembles_table, gaussian_table, gmodels)
 
-    msg = ('Opened IHM file %s containing %d model groups, %d sphere models, %d distance restraints, %d ensemble distributions' %
-           (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids)))
+    lmodels = []
+    datasets_table = tables['ihm_dataset_other']
+    if datasets_table and load_linked_files:
+        lmodels = read_linked_datasets(session, datasets_table, gmodels)
+        if lmodels:
+            from chimerax.core.models import Model
+            comp_group = Model('Comparative models', session)
+            comp_group.add(lmodels)
+            ihm_model.add([comp_group])
+        
+    msg = ('Opened IHM file %s containing %d model groups, %d sphere models, %d distance restraints, %d ensemble distributions, %d linked models' %
+           (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids), len(lmodels)))
     return [ihm_model], msg
 
 # -----------------------------------------------------------------------------
@@ -270,6 +280,24 @@ def covariance_sum(cinv, center, s, array):
                 array[k,j,i] += s*exp(-0.5*dot(v, dot(cinv, v)))
 
 from chimerax.core.map import covariance_sum
+
+# -----------------------------------------------------------------------------
+#
+def read_linked_datasets(session, datasets_table, gmodels):
+    '''Read linked data from ihm_dataset_other table'''
+    lmodels = []
+    fields = ['data_type', 'doi', 'content_filename']
+    for data_type, doi, content_filename in datasets_table.fields(fields):
+        if data_type == 'Comparative model' and content_filename.endswith('.pdb'):
+            from .doi_fetch import fetch_doi_archive_file
+            pdbf = fetch_doi_archive_file(session, doi, content_filename)
+            from os.path import basename
+            name = basename(content_filename)
+            from chimerax.core.atomic.pdb import open_pdb
+            models, msg = open_pdb(session, pdbf, name)
+            pdbf.close()
+            lmodels.extend(models)
+    return lmodels
 
 # -----------------------------------------------------------------------------
 #

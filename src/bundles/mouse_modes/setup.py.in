@@ -38,9 +38,6 @@ setup(
     package_data={
         "PKG_NAME": ['icons/*.png'],
     },
-    data_files=[
-        ("", ["timestamp"]),
-    ],
     install_requires=[
         "chimerax.core",
     ],

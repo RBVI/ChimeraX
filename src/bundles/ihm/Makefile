@@ -33,7 +33,7 @@ PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 endif
 
-PYSRCS = __init__.py ihm.py
+PYSRCS = __init__.py ihm.py doi_fetch.py
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
@@ -45,10 +45,10 @@ install: dir
 	fi
 
 app-install: wheel
-	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
+	$(APP_PIP) install -U $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
-wheel: setup.py timestamp
+wheel: setup.py
 	$(PYTHON_EXE) setup.py bdist_wheel
 	rm -rf $(PKG_NAME).egg-info
 
@@ -74,11 +74,6 @@ setup.py: setup.py.in Makefile
 		-e 's,PKG_DESCRIPTION,$(PKG_DESCRIPTION),' \
 		< setup.py.in > setup.py
 
-timestamp: always
-	echo "$(TOOL_NAME) $(PKG_VERSION)" >  timestamp
-
-always:
-
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
@@ -87,4 +82,4 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 clean:
-	rm -rf __pycache__ build dist $(PKG_NAME).egg-info setup.py timestamp
+	rm -rf __pycache__ build dist $(PKG_NAME).egg-info setup.py

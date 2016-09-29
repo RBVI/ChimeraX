@@ -579,8 +579,6 @@ class Toolshed:
         Returns boolean on whether cache file was read."""
         _debug("_read_cache")
         cache_file = self._bundle_cache(False)
-        if not self._is_cache_current(cache_file):
-            return None
         import shelve
         import dbm
         try:
@@ -594,19 +592,6 @@ class Toolshed:
         finally:
             s.close()
         return bundle_info
-
-    def _is_cache_current(self, cache_file):
-        """Check if cache is up to date."""
-        _debug("_is_cache_current")
-        import sys
-        import os.path
-        try:
-            sys_timestamp = os.path.getmtime(os.path.join(sys.prefix, "timestamp"))
-            cache_timestamp = os.path.getmtime(cache_file + ".timestamp")
-        except FileNotFoundError:
-            return False
-        # TODO: check against user timestamp as well
-        return cache_timestamp > sys_timestamp
 
     def _write_cache(self, bundle_info, logger):
         """Write current bundle information to cache file."""
@@ -622,10 +607,6 @@ class Toolshed:
                 s["bundle_info"] = [bi.cache_data() for bi in bundle_info]
             finally:
                 s.close()
-        timestamp_file = cache_file + ".timestamp"
-        with open(timestamp_file, "w") as f:
-            import time
-            print(time.ctime(), file=f)
 
     def _make_bundle_info(self, d, installed, logger):
         """Convert distribution into a list of :py:class:`BundleInfo` instances."""

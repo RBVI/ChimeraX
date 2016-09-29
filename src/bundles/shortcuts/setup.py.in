@@ -38,9 +38,6 @@ setup(
     package_data={
         "chimerax.shortcuts": ['icons/*.png'],
     },
-    data_files=[
-        ("", ["timestamp"]),
-    ],
     install_requires=[
         "chimerax.core",
     ],
