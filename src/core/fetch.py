@@ -15,46 +15,59 @@
 #
 def fetch_file(session, url, name, save_name, save_dir, *,
                uncompress=False, ignore_cache=False, check_certificates=True):
-    import os
-    from chimerax import app_dirs, app_dirs_unversioned
-    if len(_cache_dirs) == 0:
-        _cache_dirs.append(app_dirs_unversioned.user_cache_dir)
-        old_cache_dir = os.path.join('~', 'Downloads', 'Chimera')
-        old_cache_dir = os.path.expanduser(old_cache_dir)
-        if os.path.isdir(old_cache_dir):
-            _cache_dirs.append(old_cache_dir)
 
-    if not ignore_cache:
-        for d in _cache_dirs:
-            filename = os.path.join(d, save_dir, save_name)
-            if os.path.exists(filename):
+    from os import path, makedirs
+    cache_dirs = cache_directories()
+    if not ignore_cache and save_dir is not None:
+        for d in cache_dirs:
+            filename = path.join(d, save_dir, save_name)
+            if path.exists(filename):
                 return filename
 
-    dirname = os.path.join(_cache_dirs[0], save_dir)
-    filename = os.path.join(dirname, save_name)
-    os.makedirs(dirname, exist_ok=True)
+    if save_dir is None:
+        import tempfile
+        f = tempfile.NamedTemporaryFile(suffix = save_name)
+        filename = f.name
+        f.close()
+    else:
+        dirname = path.join(cache_dirs[0], save_dir)
+        filename = path.join(dirname, save_name)
+        makedirs(dirname, exist_ok=True)
 
     from urllib.request import URLError, Request
+    from chimerax import app_dirs
     headers = {"User-Agent": html_user_agent(app_dirs)}
     request = Request(url, unverifiable=True, headers=headers)
     try:
-        retrieve_cached_url(request, filename, uncompress=uncompress, logger=session.logger,
-                            check_certificates=check_certificates, name=name)
+        retrieve_url(request, filename, uncompress=uncompress, logger=session.logger,
+                     check_certificates=check_certificates, name=name)
     except URLError as e:
         from .errors import UserError
         raise UserError('Fetching url %s failed:\n%s' % (url, str(e)))
     return filename
-_cache_dirs = []
-
 
 # -----------------------------------------------------------------------------
 #
-def retrieve_cached_url(request, filename, logger=None,
+_cache_dirs = []
+def cache_directories():
+    from os import path
+    from chimerax import app_dirs, app_dirs_unversioned
+    if len(_cache_dirs) == 0:
+        _cache_dirs.append(app_dirs_unversioned.user_cache_dir)
+        old_cache_dir = path.join('~', 'Downloads', 'Chimera')
+        old_cache_dir = path.expanduser(old_cache_dir)
+        if path.isdir(old_cache_dir):
+            _cache_dirs.append(old_cache_dir)
+    return _cache_dirs
+
+# -----------------------------------------------------------------------------
+#
+def retrieve_url(request, filename, logger=None,
                         uncompress=False, update=False, check_certificates=True, name=None):
-    """Return requested URL in (cached) filename
+    """Return requested URL in filename
 
     :param request: a :py:class:`urlib.request.Request`
-    :param filename: where to cache the URL
+    :param filename: where to save the contents of the URL
     :param name: string to use to identify the data in status messages
     :returns: the filename if successful
     :raises urllib.request.URLError: if unsuccessful
@@ -139,12 +152,11 @@ def html_user_agent(app_dirs):
 
         url = "http://www.example.com/example_file"
         from urllib.request import URLError, Request
-        from chimerax.core import utils
         request = Request(url, unverifiable=True, headers={
-            "User-Agent": utils.html_user_agent(chimerax.app_dirs),
+            "User-Agent": html_user_agent(chimerax.app_dirs),
         })
         try:
-            utils.retrieve_cached_url(request, filename, session.logger)
+            retrieve_url(request, filename, session.logger)
         except URLError as e:
             from chimerax.core.errors import UsereError
             raise UserError(str(e))
