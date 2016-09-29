@@ -116,7 +116,7 @@ def _get_template(session, name):
         "User-Agent": fetch.html_user_agent(app_dirs),
     })
     try:
-        return fetch.retrieve_cached_url(request, path, session.logger)
+        return fetch.retrieve_url(request, path, session.logger)
     except URLError:
         session.logger.warning(
             "Unable to fetch template for '%s': might be missing bonds"

@@ -239,6 +239,18 @@ class Models(State):
 
         return m_all
 
+    def __getitem__(self, i):
+        '''index into models using square brackets (e.g. session.models[i])'''
+        return list(self._models.values())[i]
+
+    def __iter__(self):
+        '''iterator over models'''
+        return iter(self._models.values())
+
+    def __len__(self):
+        '''number of models'''
+        return len(self._models)
+
     def _next_child_id(self, parent):
         # Find lowest unused id.  Typically all ids 1,...,N are used with no gaps
         # and then it is fast to assign N+1 to the next model.  But if there are

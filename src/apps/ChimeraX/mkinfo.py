@@ -164,7 +164,7 @@ useLSItemContent_types = False
 
 pl["CFBundleDocumentTypes"] = []
 formats = io.formats()
-formats.sort(key = lambda f: f.name)  # get consistent order
+formats.sort(key=lambda f: f.name)  # get consistent order
 for f in formats:
     if useLSItemContent_types:
         id = utid(f.name)
