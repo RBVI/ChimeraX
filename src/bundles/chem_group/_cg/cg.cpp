@@ -13,35 +13,117 @@
 
 #include <Python.h>
 #include <atomic/Atom.h>
+#include <atomic/AtomicStructure.h>
+#include <mutex>
 #include <pysupport/convert.h>
+#include <sstream>
+#include <thread>
 #include <vector>
 
 class Atom_Condition
 {
 public:
 	virtual  ~Atom_Condition() {}
-	virtual bool  evaluate(const Atom* a) const;
+	virtual bool  atom_matches(const Atom* a) const = 0;
 };
 
-class CG_Condition
+class Atom_Idatm_Condition: public Atom_Condition
+{
+	std::string  _idatm_type;
+public:
+	virtual  ~Atom_Idatm_Condition(const char *idatm_type) _idatm_type(idatm_type) {}
+	bool  atom_matches(const Atom* a) const { return a->idatm_type() == _idatm_type; }
+}
+
+class CG_Condition: public Atom_Condition
 {
 public:
 	Atom_Condition*  atom_cond;
-	std::vector<CG_Condition*>  bonded;
+	std::vector<Atom_Condition*>  bonded; // may actually also hold CG_Conditions
 
 	virtual  ~CG_Condition() { delete atom_cond; for (auto cond: bonded) delete cond; }
-	bool  evaluate(const Atom* a, const Atom* parent = nullptr) const;
+	bool  atom_matches(const Atom* a) const { return atom_cond->atom_matches(a); }
 };
+
+Atom_Condition*
+make_atom_condition(PyObject* atom_rep)
+{
+	if (PyUnicode_Check(atom_rep) {
+		return new Atom_Idatm_Condition(PyUnicode_AsUTF8(atom_rep));
+	}
+	//TODO: remainder of types
+}
 
 CG_Condition*
 make_condition(PyObject* group_rep)
 {
+	if (!PyList_Check(group_rep) || PyList_Size(group_rep) != 2) {
+		PyObject* repr = PyObject_ASCII(group_rep);
+		if (repr == nullptr)
+			PyErr_SetString(PyExc_ValueError,
+				"Could not compute repr() of chem group representation");
+		else {
+			std::ostringstream err_msg;
+			err_msg << "While parsing chemical group representation, ";
+			err_msg << "expected two-element list but got: ";
+			err_msg << PyUnicode_AsUTF8(repr);
+			PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
+			PY_DECREF(repr);
+		}
+		return nullptr;
+	}
+	PyObject* atom = PyList_GET_ITEM(group_rep, 0);
+	PyObject* bonded = PyList_GET_ITEM(group_rep, 1);
+	if (!PyList_Check(bonded)) {
+		PyErr_SetString(PyExc_ValueError, "Second element of chem group list is not itself a list");
+		return nullptr;
+	}
+
+	auto cond = new CG_Condition();
+	cond->atom_cond = make_atom_condition(atom);
+	if (cond->atom_cond == nullptr) {
+		delete cond;
+		return nullptr;
+	}
 	
+	auto list_size = PyList_GET_SIZE(bonded);
+	for (Py_ssize_t i = 0; i < list_size; ++i) {
+		PyObject* b = PyList_GET_ITEM(bonded, i);
+		if (PyList_Check(b))
+			bcond = make_condition(b);
+		else
+			bcond = make_atom_condition(b);
+		if (bcond == nullptr) {
+			delete cond;
+			return nullptr;
+		}
+		cond->bonded.push_back(bcond);
+	}
+	return cond;
+}
+
+void
+initiate_find_group(CG_Condition* group_rep, std::vector<long>* group_principals,
+	std::vector<const Atom*>* atoms, std::mutex* atoms_mutex,
+	std::vector<std::vector<const Atom*>>* groups, std::mutex* groups_mutex)
+{
+	atoms_mutex->lock();
+	while (atoms->size() > 0) {
+		auto a = atoms->back();
+		atoms->pop_back();
+		atoms_mutex->unlock();
+
+		std::vector<const Atom*> group;
+		if (group_rep->evaluate(a, group) {
+			//TODO: check rings, reduce to principals, and add group with locking
+		}
+
+		atoms_mutex.lock();
+	}
+	atoms_mutex->unlock();
 }
 
 extern "C" {
-
-//TODO: don't forget to parallize on per-atom basis
 
 #ifndef PY_STUPID
 // workaround for Python API missing const's.
@@ -58,19 +140,15 @@ find_group(PyObject *, PyObject *args)
 	unsigned int  num_cpus;
 	if (!PyArg_ParseTuple(args, PY_STUPID "OOOI", &py_struct_ptr, &py_group_rep,
 			&py_group_principals, &num_cpus))
-		return NULL;
+		return nullptr;
 	if (!PyLong_Check(py_struct_ptr)) {
 		PyErr_SetString(PyExc_TypeError, "Structure pointer value must be int!");
-		return NULL;
+		return nullptr;
 	}
 	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
-	if (!PyList_Check(py_group_rep)) {
-		PyErr_SetString(PyExc_TypeError, "group_rep must be a list!");
-		return NULL;
-	}
-	if (!PyList_Check(py_group_principals) || PyList_Size(py_group_principals) != 2) {
-		PyErr_SetString(PyExc_TypeError, "group_principals must be a two-element list!");
-		return NULL;
+	if (!PyList_Check(py_group_principals)) {
+		PyErr_SetString(PyExc_TypeError, "group_principals must be a list!");
+		return nullptr;
 	}
 
 	std::vector<long>  group_principals;
@@ -78,63 +156,30 @@ find_group(PyObject *, PyObject *args)
 		pysupport::pylist_of_int_to_cvec(py_group_principals, &group_principals, "group principal");
 	} catch (pysupport::PySupportError& pse) {
 		PyErr_SetString(PyExc_TypeError, pse.what());
-		return NULL;
+		return nullptr;
 	}
 
 	auto group_rep = make_condition(py_group_rep);
 	if (group_rep == nullptr)
-		return NULL;
+		return nullptr;
 
-Py_BEGIN_ALLOW_THREADS
-Py_END_ALLOW_THREADS
+	auto atoms = s->atoms();
+	std::vector<std::vector<const Atom*>> groups;
+	std::mutex atoms_mtx, groups_mtx;
 
-	Similarity matrix;
-	if (makeMatrix(m, matrix) < 0)
-		return NULL;
-	int rows = strlen(seq1) + 1;
-	int cols = strlen(seq2) + 1;
-	double **H = new double *[rows];
-	for (int i = 0; i < rows; ++i) {
-		H[i] = new double[cols];
-		for (int j = 0; j < cols; ++j)
-			H[i][j] = 0;
-	}
-	double bestScore = 0;
-	for (int i = 1; i < rows; ++i) {
-		for (int j = 1; j < cols; ++j) {
-			Similarity::const_iterator it =
-				matrixLookup(matrix, seq1[i - 1], seq2[j - 1]);
-			if (it == matrix.end()) {
-				char buf[80];
-				(void) sprintf(buf, MissingKey, seq1[i - 1],
-							seq2[j - 1]);
-				PyErr_SetString(PyExc_KeyError, buf);
-				return NULL;
-			}
-			double best = H[i - 1][j - 1] + (*it).second;
-			for (int k = 1; k < i; ++k) {
-				double score = H[i - k][j] - gapOpen
-						- k * gapExtend;
-				if (score > best)
-					best = score;
-			}
-			for (int l = 1; l < j; ++l) {
-				double score = H[i][j - l] - gapOpen
-						- l * gapExtend;
-				if (score > best)
-					best = score;
-			}
-			if (best < 0)
-				best = 0;
-			H[i][j] = best;
-			if (best > bestScore)
-				bestScore = best;
-		}
-	}
-	for (int i = 0; i < rows; ++i)
-		delete [] H[i];
-	delete [] H;
-	return PyFloat_FromDouble(bestScore);
+	int num_threads = num_cpus > 1 ? num_cpus : 1;
+	std::thread threads[num_threads];
+	for (int i = 0; i < num_threads; ++i)
+		threads[i] = std::thread(initiate_find_group, group_rep, &group_principals,
+			&atoms, &atoms_mtx, &groups, &groups_mtx);
+	for (auto th: threads)
+		th.join();
+
+	delete group_rep;
+
+	// return some Python form of the groups
+	//return groups;
+
 }
 
 }
@@ -144,7 +189,7 @@ static const char* docstr_find_group = "find_group\n"
 
 static PyMethodDef cg_methods[] = {
 	{ PY_STUPID "find_group", find_group,	METH_VARARGS, PY_STUPID docstr_find_group	},
-	{ NULL, NULL, 0, NULL }
+	{ nullptr, nullptr, 0, nullptr }
 };
 
 static struct PyModuleDef cg_def =
@@ -154,10 +199,10 @@ static struct PyModuleDef cg_def =
 	"Chemical group finding",
 	-1,
 	cg_methods,
-	NULL,
-	NULL,
-	NULL,
-	NULL
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr
 };
 
 PyMODINIT_FUNC
