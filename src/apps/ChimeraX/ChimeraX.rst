@@ -33,9 +33,8 @@ In particular, the follow command line arguments are useful:
 ``--lineprofile``
     Turn on line profiling.  See `Line Profiling`_ for details.
 
-``--list_io_formats``
-    Show all recognized file suffixes and if they can be opened or
-    exported.
+``--listioformats``
+    Show all recognized file suffixes and if they can be opened or saved.
 
 ``--silent``
     Don't output startup splash text and otherwise refrain from being
@@ -60,6 +59,14 @@ In particular, the follow command line arguments are useful:
     then all of installed ChimeraX tools verions are listed.
     If given three times,
     then all of installed Python package versions are listed.
+
+``--start_tool tool_name``
+
+    Start the named tool during ChimeraX startup after the autostart tools.
+
+``--cmd command``
+
+    Run the ChimeraX command at startup after starting tools.
 
 ``-m module``
     Only recognized if it is the first argument.

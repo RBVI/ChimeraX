@@ -17,30 +17,63 @@ or derivations thereof.
 <title>UCSF ChimeraX User Guide</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
+<style>
+div.expanded {visibility:visible; display: block}
+div.collapsed {visibility:hidden; display: none}
+</style>
+<script>
+function toggle(id, image) {
+	div = document.getElementById(id);
+	if (div.className == "expanded") {
+		div.className = "collapsed";
+		image.src="triangler.png";
+	} else {
+	div.className = "expanded";
+	image.src="triangled.png";
+	}
+}
+</script>
 </head><body>
 
+<!--
+<p class="nav">
+[<a href="../index.html">ChimeraX doc index</a>]
+</p>
+-->
+
 <a name="top"></a>
-<h2><img width="70px" src="ChimeraX-icon.svg" alt="ChimeraX logo"
+<h2>
+<img width="60px" src="ChimeraX-icon.svg" alt="ChimeraX logo"
 title="click this icon in User Guide pages to return to this index"/>
-UCSF ChimeraX User Guide</h2>
+UCSF ChimeraX User Guide
+</h2>
 <p>
 <a href="http://www.rbvi.ucsf.edu/chimerax/" 
 target="_blank"><b>UCSF ChimeraX</b></a> is the successor program to
 <a href="http://www.rbvi.ucsf.edu/chimera/" 
 target="_blank"><b>UCSF Chimera</b></a>.
 </p>
+
 <ul class="none">
-<li>General:</li>
+<li><a name="general" href="#glist"></a>
+<img onClick="toggle('glist', this);" 
+src="triangled.png" width=10 height=10/>&nbsp;<b>General</b></li>
+<div id="glist" class="expanded">
 <ul>
-<li><a href="advantages.html">ChimeraX advantages <i>vs.</i> Chimera</a></li>
+<li><a href="../index.html">Documentation Index</a>
+<li><a href="advantages.html">ChimeraX Advantages</li>
 <li><a href="../quickstart/index.html">Quick Start Guide</a></li>
 <li><a href="window.html">ChimeraX Window</a></li>
 <li><a href="images.html">Making Images</a></li>
 <li><a href="movies.html">Making Movies</a></li>
 <li><a href="../credits.html">Citing ChimeraX</a></li>
-<li><a href="../index.html">Documentation Index</a></li>
 </ul>
-<li><a name="tools">Tools</a>:</li>
+</div>
+
+<li><a name="tools" href="#tlist"></a>
+<img onClick="toggle('tlist', this);" 
+src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
+<div id="tlist" class="expanded">
 <ul>
 <li><a href="tools/cli.html"><b>Command Line Interface</b></a>
 </li>
@@ -62,7 +95,12 @@ target="_blank"><b>UCSF Chimera</b></a>.
 - intuitive zooming and clipping
 </li>
 </ul>
-<li><a name="commands">Commands</a>:</li>
+</div>
+
+<li><a name="commands" href="#clist"></a>
+<img onClick="toggle('clist', this);" 
+src="triangled.png" width=10 height=10/>&nbsp;<b>Commands</b></li>
+<div id="clist" class="expanded">
 <ul>
 <li>command <a href="commands/usageconventions.html">usage conventions</a></li>
 <li>command-line <a href="commands/atomspec.html">target specification</a></li>
@@ -207,6 +245,7 @@ target="_blank"><b>perframe</b></a></li>
 - batch-render images of molecular assemblies defined in mmCIF files
 (see <a href="../pdbimages/index.html">examples</a>)</li>
 </ul>
+</div>
 </ul>
 
 <hr>

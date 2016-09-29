@@ -49,7 +49,7 @@ install: dir all
 	fi
 
 app-install: wheel
-	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
+	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
 wheel: setup.py timestamp
@@ -83,9 +83,6 @@ $(SUBDIR_INSTALL): dir
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
-
-test:
-	$(APP_PYTHON_EXE)
 
 clean:
 	rm -rf __pycache__ build dist chimerax.core.egg-info setup.py timestamp $(GENSRCS)
