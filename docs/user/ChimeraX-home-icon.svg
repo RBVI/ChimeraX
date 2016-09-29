@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1"
+	 id="svg2" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:svg="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" sodipodi:docname="ChimeraX-icon.svg" inkscape:version="0.91 r13725"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="907.505px"
+	 height="828.361px" viewBox="-145.12 -182.361 907.505 828.361" enable-background="new -145.12 -182.361 907.505 828.361"
+	 xml:space="preserve">
+<filter  style="color-interpolation-filters:sRGB;" inkscape:label="Drop Shadow" id="filter4198">
+	<feFlood  result="flood" flood-color="rgb(0,0,0)" flood-opacity="0.498039" id="feFlood4200"></feFlood>
+	<feComposite  operator="in" in2="SourceGraphic" in="flood" result="composite1" id="feComposite4202"></feComposite>
+	<feGaussianBlur  in="composite1" stdDeviation="4.7" result="blur" id="feGaussianBlur4204"></feGaussianBlur>
+	<feOffset  dy="8" dx="8" result="offset" id="feOffset4206"></feOffset>
+	<feComposite  operator="over" in2="offset" in="SourceGraphic" result="composite2" id="feComposite4208"></feComposite>
+</filter>
+<filter  style="color-interpolation-filters:sRGB;" inkscape:label="Drop Shadow" id="filter4186">
+	<feFlood  result="flood" flood-color="rgb(0,0,0)" flood-opacity="0.498039" id="feFlood4188"></feFlood>
+	<feComposite  operator="in" in2="SourceGraphic" in="flood" result="composite1" id="feComposite4190"></feComposite>
+	<feGaussianBlur  in="composite1" stdDeviation="4.7" result="blur" id="feGaussianBlur4192"></feGaussianBlur>
+	<feOffset  dy="-8" dx="8" result="offset" id="feOffset4194"></feOffset>
+	<feComposite  operator="over" in2="offset" in="SourceGraphic" result="composite2" id="feComposite4196"></feComposite>
+</filter>
+<sodipodi:namedview  inkscape:cy="320" inkscape:cx="428.90827" inkscape:zoom="0.52149125" showgrid="false" guidetolerance="10" gridtolerance="10" objecttolerance="10" borderopacity="1" pagecolor="#ffffff" bordercolor="#666666" id="namedview4" inkscape:current-layer="g10" inkscape:window-maximized="0" inkscape:window-y="192" inkscape:window-x="605" inkscape:window-height="1044" inkscape:window-width="1542" inkscape:pageshadow="2" inkscape:pageopacity="0">
+	</sodipodi:namedview>
+<g id="g10" transform="matrix(1.25,0,0,-1.25,0,640)" inkscape:label="Chimera-icon" inkscape:groupmode="layer">
+	<g id="g12" filter="url(#filter4186)">
+		<g>
+			<g>
+				<defs>
+					<rect id="SVGID_1_" x="-64" y="-64" width="640" height="640"/>
+				</defs>
+				<clipPath id="SVGID_2_">
+					<use xlink:href="#SVGID_1_"  overflow="visible"/>
+				</clipPath>
+			</g>
+		</g>
+		<g>
+			<g>
+				<defs>
+					<rect id="SVGID_3_" x="-64" y="-64" width="640" height="640"/>
+				</defs>
+				<clipPath id="SVGID_4_">
+					<use xlink:href="#SVGID_3_"  overflow="visible"/>
+				</clipPath>
+				<g id="g14_1_" clip-path="url(#SVGID_4_)">
+					<g id="g20_1_" transform="translate(224.0718,77.5586)">
+						<path id="path22_1_" inkscape:connector-curvature="0" fill="#AAD9F5" d="M0,0c-98.377,0-178.128,84.388-178.128,188.49
+							c0,104.1,79.751,188.49,178.128,188.49c98.377,0,178.128-84.39,178.128-188.49C178.128,84.388,98.377,0,0,0 M19.737,417.441
+							c-120.178,0-217.602-98.087-217.602-219.083c0-120.995,97.424-219.083,217.602-219.083
+							c120.179,0,217.603,98.088,217.603,219.083C237.34,319.354,139.916,417.441,19.737,417.441"/>
+					</g>
+					<g id="g24_1_" transform="translate(369.6914,59.5215)">
+						<path id="path26_1_" inkscape:connector-curvature="0" fill="#2E292A" d="M0,0c-30.819,6.541-71.937,23.895-113.963,49.616
+							c-76.291,46.683-126.683,103.246-112.552,126.338c7.057,11.533,28.872,12.533,58.447,4.83
+							c1.011-5.385,4.137-10.345,9.178-13.433c7.81-4.777,17.545-3.502,23.974,2.384c22.399-8.866,47.09-21.19,72.119-36.505
+							c21.908-13.409,41.672-27.625,58.391-41.634c3.67,4.895,6.342,8.995,9.063,13.702c-17.053,12.289-35.481,24.562-54.998,36.506
+							c-26.763,16.375-53.134,30.634-78.08,42.519c0.043,6.8-3.298,13.454-9.519,17.26c-7.805,4.777-17.528,3.504-23.958-2.373
+							c-64.818,26.596-114.704,33.544-126.688,13.958c-18.304-29.909,58.69-110.35,171.971-179.668
+							C-59.127-1.682-3.342-27.235,40.053-39.965L0,0z"/>
+					</g>
+				</g>
+			</g>
+		</g>
+		<g>
+			<g>
+				<defs>
+					<rect id="SVGID_5_" x="-64" y="-64" width="640" height="640"/>
+				</defs>
+				<clipPath id="SVGID_6_">
+					<use xlink:href="#SVGID_5_"  overflow="visible"/>
+				</clipPath>
+			</g>
+		</g>
+	</g>
+	<g id="text4154" transform="matrix(1,0,0,-1,-44.487803,29.147181)" filter="url(#filter4198)">
+		<path id="path4230_1_" fill="#FF0000" d="M482.106-258.931c-3.85,0.35-7.35,0.7-8.4,0.7c-6.3,0.7-11.9,1.05-15.4,1.05
+			c-13.3,0-21.7-4.9-26.25-15.05c-5.6-13.3-9.45-28.35-18.9-73.85l-3.15-15.75l27.3-32.9c15.4-18.9,25.2-25.9,36.4-25.9
+			c4.9,0,9.1,1.4,15.4,5.25l15.75-24.85c-7-5.6-11.9-7.35-19.6-7.35c-15.05,0-25.9,7-42,28l-35.35,44.1l-12.6-63.7
+			c-1.05-5.25-3.15-7.35-7-7.35c-5.25,0-21.35,3.85-54.25,12.95l-8.05,10.15c3.85-0.7,7.35-1.4,8.4-1.75
+			c13.65-2.8,14.35-2.8,18.55-2.8c10.15,0,15.4,4.9,18.9,16.45c5.95,21,10.85,41.3,14.7,62.65c-27.3,35.35-46.55,59.15-53.55,66.15
+			c-9.45,9.45-18.2,12.6-35,12.6c-3.15,0-5.25,0-10.85-0.7l-17.15,26.25c8.05,1.05,11.9,1.4,15.75,1.4c10.15,0,21.35-2.1,28.7-5.6
+			c10.85-5.25,20.3-14.7,40.25-40.6l21-26.95l14.7-18.55l14.7,72.1c3.5,18.55,5.6,22.75,11.2,22.75c2.8,0,7-0.7,11.9-2.1l19.95-3.5
+			l28-5.25L482.106-258.931L482.106-258.931z"/>
+	</g>
+</g>
+<g>
+	
+		<sodipodi:namedview  inkscape:cy="-23.180794" inkscape:cx="52.705473" inkscape:zoom="2.8" showgrid="false" borderopacity="1.0" pagecolor="#ffffff" bordercolor="#666666" id="base" fit-margin-bottom="0" fit-margin-right="0" inkscape:document-units="px" inkscape:current-layer="g6331" inkscape:window-maximized="1" inkscape:window-y="0" inkscape:window-x="-8" inkscape:window-height="1689" inkscape:window-width="3200" inkscape:pageshadow="2" inkscape:pageopacity="0.0" fit-margin-top="0" fit-margin-left="0">
+		</sodipodi:namedview>
+	<g id="layer1" transform="translate(-71.835 -798.77)" inkscape:label="Layer 1" inkscape:groupmode="layer">
+		<g id="g6331" transform="translate(-358.67 457.9)">
+			<path id="rect3006" inkscape:connector-curvature="0" fill="none" stroke="#000000" stroke-width="10" d="M734.948,166.37
+				L281.58,492.173h151.122V980.87h604.49V492.173h151.122L734.948,166.37z"/>
+		</g>
+	</g>
+</g>
+</svg>
