@@ -24,7 +24,7 @@ include $(TOP)/mk/subdir.make
 
 all:
 
-mainapp-install:
+mainapp-install: core.install
 	$(MAKE) -C apps/$(APP_NAME) install
 
 core.install: wheelhouse.install
