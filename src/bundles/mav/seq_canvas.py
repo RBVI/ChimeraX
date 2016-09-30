@@ -675,7 +675,7 @@ class SeqCanvas:
         self.lead_block = SeqBlock(self._label_scene(), self.main_scene,
             None, self.font, 0, [], self.alignment,
             50, {}, lambda *args, **kw: self.mav.status(secondary=True, *args, **kw),
-            False, None, [False, False], None)
+            True, None, [False, False], None)
 
     """TODO
     def lineWidthFromPrefs(self):

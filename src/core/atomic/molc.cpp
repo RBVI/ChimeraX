@@ -2392,6 +2392,28 @@ extern "C" EXPORT void* sseq_residue_at(void *sseq_ptr, size_t i)
     }
 }
 
+extern "C" EXPORT PyObject *sseq_res_map(void *sseq_ptr)
+{
+    PyObject* mapping = PyDict_New();
+    if (mapping == nullptr)
+        molc_error();
+    else {
+        try {
+            StructureSeq *sseq = static_cast<StructureSeq*>(sseq_ptr);
+            for (auto res_pos: sseq->res_map()) {
+                PyObject* key = PyLong_FromVoidPtr(res_pos.first);
+                PyObject* val = PyLong_FromSize_t(res_pos.second);
+                PyDict_SetItem(mapping, key, val);
+                Py_DECREF(key);
+                Py_DECREF(val);
+            }
+        } catch (...) {
+            molc_error();
+        }
+    }
+    return mapping;
+}
+
 // -------------------------------------------------------------------------
 // change tracker functions
 //
@@ -2548,6 +2570,18 @@ extern "C" EXPORT void set_sequence_characters(void *seqs, size_t n, pyobject_t 
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT void sequence_circular(void *seqs, size_t n, npy_bool *seq_circular)
+{
+    Sequence **s = static_cast<Sequence **>(seqs);
+    error_wrap_array_get(s, n, &Sequence::circular, seq_circular);
+}
+
+extern "C" EXPORT void set_sequence_circular(void *seqs, size_t n, npy_bool *seq_circular)
+{
+    Sequence **s = static_cast<Sequence **>(seqs);
+    error_wrap_array_set(s, n, &Sequence::set_circular, seq_circular);
 }
 
 extern "C" EXPORT void sequence_extend(void *seq, const char *chars)

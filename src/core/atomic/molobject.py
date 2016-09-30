@@ -453,6 +453,7 @@ class PseudobondManager(State):
         return object_map(pbg,
             lambda ptr, ses=self.session: PseudobondGroup(ptr, session=ses))
 
+    @property
     def group_map(self):
         '''Returns a dict that maps from :class:`.PseudobondGroup` category to group'''
         f = c_function('pseudobond_global_manager_group_map',
@@ -697,6 +698,10 @@ class Sequence:
 
     characters = c_property('sequence_characters', string, doc=
         "A string representing the contents of the sequence")
+    circular = c_property('sequence_circular', npy_bool, doc="Indicates the sequence involves"
+        " a cicular permutation; the sequence characters have been doubled, and residue"
+        " correspondences of the first half implicitly exist in the second half as well."
+        " Typically used in alignments to line up with sequences that aren't permuted.")
     name = c_property('sequence_name', string, doc="The sequence name")
 
     # Some Sequence methods may have to be overridden/disallowed in Chain...
@@ -828,12 +833,11 @@ class StructureSeq(Sequence):
         " determined from SEQRES (or equivalent) records in the input file")
     num_existing_residues = c_property('sseq_num_existing_residues', size_t, read_only = True)
     '''Number of residues in this sequence with existing structure. Read only.'''
-
+    num_residues = c_property('sseq_num_residues', size_t, read_only = True)
+    '''Number of residues belonging to this sequence, including those without structure. Read only.'''
     residues = c_property('sseq_residues', cptr, 'num_residues', astype = _residues_or_nones,
         read_only = True, doc = "List containing the residues of this sequence in order. "
         "Residues with no structure will be None. Read only.")
-    num_residues = c_property('sseq_num_residues', size_t, read_only = True)
-    '''Number of residues belonging to this sequence, including those without structure. Read only.'''
     structure = c_property('sseq_structure', cptr, astype = _atomic_structure, read_only = True)
     ''':class:`.AtomicStructure` that this structure sequence comes from. Read only.'''
 
@@ -878,6 +882,17 @@ class StructureSeq(Sequence):
             if r and Sequence.protein3to1(r.name.encode('utf8')) != 'X':
                 return True
         return False
+
+    @property
+    def res_map(self):
+        '''Returns a dict that maps from :class:`.Residue` to an ungapped sequence position'''
+        f = c_function('sseq_res_map', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        ptr_map = f(self._c_pointer)
+        obj_map = {}
+        for res_ptr, pos in ptr_map.items():
+            res = _residue(res_ptr)
+            obj_map[res] = pos
+        return obj_map
 
     def residue_at(self, index):
         '''Return the Residue/None at the (ungapped) position 'index'.'''
