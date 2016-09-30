@@ -487,8 +487,9 @@ class CollatingLog(PlainTextLog):
                             continue
                         # let first few reps get logged individually...
                     else:
-                        summarized.append("{} messages similar to the above omitted\n".format(
-                            sim_reps - self.sim_collapse_after))
+                        if sim_reps > self.sim_collapse_after:
+                            summarized.append("{} messages similar to the above omitted\n".format(
+                                sim_reps - self.sim_collapse_after))
                         sim_info = None
                 elif prev_msg is not None:
                     st = self.sim_test_size
