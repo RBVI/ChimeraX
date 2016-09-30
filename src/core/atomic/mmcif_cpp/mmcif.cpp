@@ -764,9 +764,9 @@ ExtractMolecule::parse_atom_site()
     ResName auth_residue_name;    // auth_comp_id
     char symbol[3];               // type_symbol
     long serial_num = 0;          // id
-    float x, y, z;                // Cartn_[xyz]
-    float occupancy = FLT_MAX;    // occupancy
-    float b_factor = FLT_MAX;     // B_iso_or_equiv
+    double x, y, z;                // Cartn_[xyz]
+    double occupancy = DBL_MAX;    // occupancy
+    double b_factor = DBL_MAX;     // B_iso_or_equiv
     int model_num = 0;            // pdbx_PDB_model_num
 
     bool missing_poly_seq = poly_seq.empty();
@@ -874,14 +874,14 @@ ExtractMolecule::parse_atom_site()
         pv.emplace_back(get_column("occupancy"), false,
             [&] (const char* start, const char*) {
                 if (*start == '?')
-                    occupancy = FLT_MAX;
+                    occupancy = DBL_MAX;
                 else
                     occupancy = readcif::str_to_float(start);
             });
         pv.emplace_back(get_column("B_iso_or_equiv"), false,
             [&] (const char* start, const char*) {
                 if (*start == '?')
-                    b_factor = FLT_MAX;
+                    b_factor = DBL_MAX;
                 else
                     b_factor = readcif::str_to_float(start);
             });
@@ -986,9 +986,9 @@ ExtractMolecule::parse_atom_site()
         } else {
             a->set_serial_number(++atom_serial);
         }
-        if (b_factor != FLT_MAX)
+        if (b_factor != DBL_MAX)
             a->set_bfactor(b_factor);
-        if (occupancy != FLT_MAX)
+        if (occupancy != DBL_MAX)
             a->set_occupancy(occupancy);
 
     }
