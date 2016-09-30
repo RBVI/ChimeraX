@@ -29,4 +29,4 @@ mainapp-install:
 
 core.install: wheelhouse.install
 bundles.install: core.install mainapp-install
-apps.install: bundles.install
+apps.install: bundles.install core.install
