@@ -53,12 +53,12 @@ either atomically detailed solvent-excluded surfaces (default) or
 lower-resolution Gaussian surfaces specified with the 
 <a href="#parameters"><b>resolution</b></a> option.
 A <b><i>solvent-excluded</i></b> surface (SES) is
-composed of the contact, toroidal, and reentrant surfaces
-of a probe sphere rolled over the spacefilling atoms. By contrast,
+composed of the contact, toroidal, and reentrant surfaces of a probe sphere 
+rolled over the atomic <a href="../radii.html">VDW spheres</a>. By contrast,
 a <b><i>solvent-accessible</i></b> surface (SAS, not shown by ChimeraX)
 is the surface traced out by the center of the probe sphere.
 See below for <a href="#options">surface creation options</a> and
-<a href="#examples">examples</a>.  See also:
+<a href="#examples">examples</a>. See also:
 <a href="show.html"><b>show</b></a>,
 <a href="color.html"><b>color</b></a>,
 <a href="sop.html"><b>sop</b></a>,
@@ -291,7 +291,8 @@ surface point with an atom.
 In a solvent-excluded surface, each point is associated with the atom with
 the smallest distance normalized by radius (the atom with the
 smallest <i>d</i>/<i>r</i>, where <i>d</i> is the distance between the 
-surface point and the atom center, and <i>r</i> is the atomic VDW radius).
+surface point and the atom center, and <i>r</i> is the atomic 
+<a href="../radii.html">VDW radius</a>).
 In a Gaussian surface, each point is simply associated with the closest
 atomic center.
 </p>

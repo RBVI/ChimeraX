@@ -1,0 +1,405 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<title>VDW Radii</title>
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>VDW Radii</h3>
+<p>
+Atomic VDW (van der Waals) radii are used in
+<a href="commands/style.html">sphere and ball display</a>.
+They are also used 
+to calculate <a href="commands/surface.html">molecular surfaces</a>.
+<!--
+and in clash detection.
+-->
+VDW radii are assigned according to <a href="atomtypes.html">atom type</a>.
+<!--
+and stored as the atom attribute <b>radius</b>.
+-->
+See also: <a href="commands/sasa.html"><b>sasa</b></a>,
+<a href="commands/buriedarea.html"><b>buriedarea</b></a>
+</p>
+
+<h3><a name="defaults">Default Assignments</a></h3>
+<p>
+For <b>C</b>, <b>N</b>, <b>O</b>, and <b>S</b>, the default 
+VDW radii depend on whether explicit hydrogen atoms are present:
+</p>
+<ul>
+<li> When a molecule model has <b>no explicit hydrogens</b>,
+<a href="#united">&ldquo;united-atom&rdquo; radii</a>
+based on the ProtOr set are used:
+<a name="protor-ref"></a>
+<blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/10388571" target="_blank">
+The packing density in proteins: standard radii and volumes.</a>
+Tsai J, Taylor R, Chothia C, Gerstein M.
+<i>J Mol Biol.</i> 1999 Jul 2;290(1):253-66.
+</blockquote>
+<li>When there are <b>explicit hydrogens</b>, 
+<a href="#allatom">&ldquo;all-atom&rdquo; radii</a> 
+derived from the <a href="http://ambermd.org/index.html"
+target="_blank">Amber</a> parm99 parameters
+are used for the filled-valence atoms.
+<a href="#united">United-atom radii</a>
+are used for any atoms with unfilled valence 
+(those apparently missing hydrogens).
+</ul>
+Due to differences in how the sets were derived,
+<a href="#united">united-atom radii</a>
+are not always larger than the corresponding
+<a href="#allatom">all-atom radii</a>.
+</p><p>
+For <b>metal</b> and <b>halide</b> ions,
+<a href="#ionic">ionic radii</a> from <i>The CRC Handbook of
+Chemistry and Physics</i>, 82nd Edition (2001-2002) are used.
+If the charge state differs from that listed <a href="#ionic">below</a>,
+a different radius may be more appropriate.
+</p><p>
+For <b>P</b>, and for <b>F</b>, <b>Cl</b>, <b>Br</b>, and <b>I</b> 
+in the context of molecules (as opposed to singleton ions), the
+<a href="#allatom">all-atom radii</a> are used.
+</p><p>
+The default VDW radii of any <b>remaining atoms</b> are twice their
+<a href="atomtypes.html#covrad">covalent bond radii</a>.
+</p>
+
+<!--
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<a name="changing"></a>
+<h3>Changing VDW Radii</h3>
+<p>
+Ways to change VDW radii directly:
+<ul>
+<li>with the command <b><A href="vdwdefine.html">vdwdefine</a></b>
+(<b><A href="vdwdefine.html">~vdwdefine</a></b> restores the default values)
+<li>by <a href="../selection.html">selecting</a> one or more atoms
+and then changing the <b>radius</b> value in the
+<a href="../inspection.html"><b>Selection Inspector</b></a>
+<li>reassigning <b>radius</b> values with
+<a href="../../ContributedSoftware/defineattrib/defineattrib.html">
+<b>Define Attribute</b></a> 
+or its command equivalent, <b><A href="defattr.html">defattr</a></b>
+(can assign multiple values simultaneously; see
+<a href="../../ContributedSoftware/defineattrib/midasrad.txt">example
+assignment file</a>) 
+<li>reassigning <b>radius</b> with the command 
+<b><A href="setattr.html">setattr</a></b> 
+(assigns one value at a time, although potentially to multiple atoms)
+<li>according to attribute values using
+<a href="../../ContributedSoftware/render/render.html#render">
+<b>Render by Attribute</b></a> (see the 
+<a href="../../ContributedSoftware/render/render.html#radii"><b>Radii</b></a>
+section)
+</ul>
+The VDW radius of an atom may also change as a side effect of changing its
+<a href="atomtypes.html">atom type</a> or number of attached hydrogens.
+</p>
+-->
+
+<h3>Default VDW Radii</h3>
+
+<a name="united"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<table border cellpadding="4" cellspacing="0">
+<TR><th colspan=3>United-Atom Radii</th></tr>
+<TR><th>atom description
+<br>(see also <a href="atomtypes.html">atom type</a>)</th>
+<th># hydrogens attached</th> <th>radius (&Aring;)</th></tr>
+
+<tr><td align=center><i>sp</i><sup>2</sup> C</td>
+<td align=center>0</td> <td align=center>1.61<a href="#anote"><sup>a</sup></a></td></tr>
+<tr><td align=center><i>sp</i><sup>2</sup> C</td>
+<td align=center>1</td> <td align=center>1.76<a href="#anote"><sup>a</sup></a></td></tr>
+<tr><td align=center><i>sp</i><sup>3</sup> C</td>
+<td align=center>1-3</td> <td align=center>1.88<a href="#anote"><sup>a</sup></a></td></tr>
+<tr><td align=center>any other C</td>
+<td></td> <td align=center>1.88</td></tr>
+
+<tr><td align=center><i>sp</i><sup>2</sup> N</td>
+<td align=center>0-2</td> <td align=center>1.64<a href="#anote"><sup>a</sup></a></td></tr>
+<tr><td align=center><i>sp</i><sup>3</sup> N</td>
+<td align=center>3</td> <td align=center>1.64<a href="#anote"><sup>a</sup></a></td></tr>
+<tr><td align=center>any other N</td>
+<td></td> <td align=center>1.64</td></tr>
+
+<tr><td align=center><i>sp</i><sup>2</sup> O</td>
+<td align=center>0</td> <td align=center>1.42<a href="#anote"><sup>a</sup></a></td></tr>
+<tr><td align=center><i>sp</i><sup>3</sup> O</td>
+<td align=center>1</td> <td align=center>1.46<a href="#anote"><sup>a</sup></a></td></tr>
+<tr><td align=center><i>sp</i><sup>3</sup> O</td>
+<td align=center>0</td> <td align=center>1.46</td></tr>
+<tr><td align=center>any other O</td>
+<td></td> <td align=center>1.42</td></tr>
+
+<tr><td align=center><i>sp</i><sup>3</sup> S</td>
+<td align=center>0-1</td> <td align=center>1.77<a href="#anote"><sup>a</sup></a></td></tr>
+<tr><td align=center>any other S</td>
+<td></td> <td align=center>1.77</td></tr>
+</table>
+<p>
+<a name="anote"><sup><b>a</b></sup></a>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/10388571" target="_blank">
+Tsai <i>et al.</i></a>, <i>J Mol Biol</i> <b>290</b>:253 (1999)
+</p>
+
+<a name="allatom"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<table border cellpadding="4" cellspacing="0">
+<TR><th colspan="3">All-Atom Radii</th></tr>
+
+<TR><th>atom description
+<br>(see also <a href="atomtypes.html">atom type</a>)</th>
+<th><a href="http://ambermd.org/index.html" 
+target="_blank">Amber</a> atom type</th>
+<th>radius (&Aring;)<a href="#bnote"><sup>b</sup></a></th></tr>
+
+<tr><td align=center>C</td> 
+<td align=center>all C types</td> <td align=center>1.700</td></tr>
+
+<tr><td align=center>N</td> 
+<td align=center>all N types</td> <td align=center>1.625</td></tr>
+
+<tr><td align=center><i>sp</i><sup>2</sup> O</td> 
+<td align=center>O, O2</td> <td align=center>1.480</td></tr>
+<tr><td align=center><i>sp</i><sup>3</sup> O</td> 
+<td align=center>OS</td> <td align=center>1.500</td></tr>
+
+<tr><td align=center>S</td> 
+<td align=center>S, SH</td> <td align=center>1.782</td></tr>
+
+<tr><td align=center>H</td> 
+<td align=center>(see note<a href="#cnote"><sup>c</sup></a>)</td>
+<td align=center>1.000</td></tr>
+
+<tr><td align=center>P</td> 
+<td align=center>P</td> <td align=center>1.871</td></tr>
+
+<tr><td align=center>F</td> 
+<td align=center>F</td> <td align=center>1.560</td></tr>
+
+<tr><td align=center>Cl</td> 
+<td align=center>Cl</td> <td align=center>1.735</td></tr>
+
+<tr><td align=center>Br</td> 
+<td align=center>Br</td> <td align=center>1.978</td></tr>
+
+<tr><td align=center>I</td> 
+<td align=center>I</td> <td align=center>2.094</td></tr>
+</table>
+<p>
+<a name="bnote"><sup><b>b</b></sup></a> Derived from the
+<a href="http://ambermd.org/index.html" target="_blank">Amber</a>
+parm99 parameters: R<sub>VDW</sub> = (R*)/(2<sup>1/6</sup>)
+<br>
+<a name="cnote"><sup><b>c</b></sup></a>
+<a href="http://ambermd.org/index.html" target="_blank">Amber</a>
+parm99 includes many H types with VDW radii ranging from 
+0.0 to 1.325 &Aring;; smaller radii are assigned to hydrogens bonded to
+more electron-withdrawing moieties.  The <a href="atomtypes.html">atom 
+types</a> only distinguish between hydrogen bonded to carbon
+and hydrogen bonded to &ldquo;other,&rdquo; so a compromise value of 1.0 
+has been used for all hydrogens.
+</p>
+
+<a name="ionic"></a>
+<p class="nav">
+[<a href="#top">back to top</a>]
+</p>
+<table border cellpadding="4" cellspacing="0">
+<TR><th colspan="3">Selected Ionic Radii</th></tr>
+<TR><th>ion</th>
+<th>coordination number<br>(default in <b>bold</b>)</th>
+<th>radius (&Aring;)<a href="#dnote"><sup>d</sup></a></th></tr>
+
+<tr><td align=center>Al<sup>+3</sup></td>
+<td align=center>4<br>5<br><b>6</b></td>
+<td align=center>0.39<br>0.48<br>0.54</td></tr>
+
+<tr><td align=center>As<sup>+3</sup></td>
+<td align=center><b>6</b></td>
+<td align=center>0.58</td></tr>
+
+<tr><td align=center>Au<sup>+1</sup></td> 
+<td align=center><b>6</b></td>
+<td align=center>1.37</td></tr>
+
+<tr><td align=center>Ba<sup>+2</sup></td>
+<td align=center><b>6</b><br>8<br>12</td>
+<td align=center>1.35<br>1.42<br>1.61</td></tr>
+
+<tr><td align=center>Be<sup>+2</sup></td>
+<td align=center>4<br><b>6</b></td>
+<td align=center>0.27<br>0.45</td></tr>
+
+<tr><td align=center>Bi<sup>+3</sup></td>
+<td align=center>5<br><b>6</b><br>8</td>
+<td align=center>0.96<br>1.03<br>1.17</td></tr>
+
+<tr><td align=center>Ca<sup>+2</sup></td>
+<td align=center><b>6</b><br>8<br>10<br>12</td>
+<td align=center>1.00<br>1.12<br>1.23<br>1.34</td></tr>
+
+<tr><td align=center>Cd<sup>+2</sup></td>
+<td align=center>4<br><b>6</b><br>8<br>12</td>
+<td align=center>0.78<br>0.95<br>1.10<br>1.31</td></tr>
+
+<tr><td align=center>Co<sup>+2</sup></td>
+<td align=center>4<br><b>6</b><br>8</td>
+<td align=center>0.56<br>0.65<br>0.90</td></tr>
+
+<tr><td align=center>Cr<sup>+2</sup></td> 
+<td align=center><b>6</b></td>
+<td align=center>0.73</td></tr>
+
+<tr><td align=center>Cs<sup>+</sup></td>
+<td align=center><b>6</b><br>8<br>10<br>12</td>
+<td align=center>1.67<br>1.74<br>1.81<br>1.88</td></tr>
+
+<tr><td align=center>Cu<sup>+2</sup></td> 
+<td align=center>4<br><b>6</b></td>
+<td align=center>0.57<br>0.73</td></tr>
+
+<tr><td align=center>Fe<sup>+2</sup></td>
+<td align=center>4<br><b>6</b><br>8</td>
+<td align=center>0.63<br>0.61<br>0.92</td></tr>
+
+<tr><td align=center>Ga<sup>+3</sup></td> 
+<td align=center>4<br><b>6</b></td>
+<td align=center>0.47<br>0.62</td></tr>
+
+<tr><td align=center>Ge<sup>+2</sup></td> 
+<td align=center><b>6</b></td>
+<td align=center>0.73</td></tr>
+
+<tr><td align=center>Hg<sup>+2</sup></td>
+<td align=center>2<br>4<br><b>6</b><br>8</td>
+<td align=center>0.69<br>0.96<br>1.02<br>1.14</td></tr>
+
+<tr><td align=center>K<sup>+</sup></td>
+<td align=center>4<br><b>6</b><br>8<br>12</td>
+<td align=center>1.37<br>1.38<br>1.51<br>1.64</td></tr>
+
+<tr><td align=center>Li<sup>+</sup></td>
+<td align=center>4<br><b>6</b><br>8</td>
+<td align=center>0.59<br>0.76<br>0.92</td></tr>
+
+<tr><td align=center>Mg<sup>+2</sup></td>
+<td align=center>4<br><b>6</b><br>8</td>
+<td align=center>0.57<br>0.72<br>0.89</td></tr>
+
+<tr><td align=center>Mn<sup>+2</sup></td>
+<td align=center>4<br><b>6</b><br>8</td>
+<td align=center>0.66<br>0.83<br>0.96</td></tr>
+
+<tr><td align=center>Mo<sup>+3</sup></td> 
+<td align=center><b>6</b></td>
+<td align=center>0.69</td></tr>
+
+<tr><td align=center>Na<sup>+</sup></td>
+<td align=center>4<br><b>6</b><br>8<br>9<br>12</td>
+<td align=center>0.99<br>1.02<br>1.18<br>1.24<br>1.39</td></tr>
+
+<tr><td align=center>Ni<sup>+2</sup></td> 
+<td align=center>4<br><b>6</b></td>
+<td align=center>0.49<br>0.69</td></tr>
+
+<tr><td align=center>Pb<sup>+2</sup></td>
+<td align=center><b>6</b><br>8<br>10<br>12</td>
+<td align=center>1.19<br>1.29<br>1.40<br>1.49</td></tr>
+
+<tr><td align=center>Pd<sup>+2</sup></td> 
+<td align=center>4<br><b>6</b></td>
+<td align=center>0.64<br>0.86</td></tr>
+
+<tr><td align=center>Pt<sup>+2</sup></td> 
+<td align=center>4<br><b>6</b></td>
+<td align=center>0.60<br>0.80</td></tr>
+
+<tr><td align=center>Rb<sup>+</sup></td>
+<td align=center><b>6</b><br>8<br>10<br>12</td>
+<td align=center>1.52<br>1.61<br>1.66<br>1.72</td></tr>
+
+<tr><td align=center>Sb<sup>+3</sup></td> 
+<td align=center>4<br><b>6</b></td>
+<td align=center>0.76<br>0.76</td></tr>
+
+<tr><td align=center>Sc<sup>+3</sup></td>
+<td align=center><b>6</b><br>8</td>
+<td align=center>0.75<br>0.87</td></tr>
+
+<tr><td align=center>Sn<sup>+4</sup></td>
+<td align=center>4<br><b>6</b><br>8</td>
+<td align=center>0.55<br>0.69<br>0.81</td></tr>
+
+<tr><td align=center>Sr<sup>+2</sup></td>
+<td align=center><b>6</b><br>8<br>10<br>12</td>
+<td align=center>1.18<br>1.26<br>1.36<br>1.44</td></tr>
+
+<tr><td align=center>Tc<sup>+4</sup></td> 
+<td align=center><b>6</b></td>
+<td align=center>0.65</td></tr>
+
+<tr><td align=center>Ti<sup>+2</sup></td> 
+<td align=center><b>6</b></td>
+<td align=center>0.86</td></tr>
+
+<tr><td align=center>V<sup>+2</sup></td> 
+<td align=center><b>6</b></td>
+<td align=center>0.79</td></tr>
+
+<tr><td align=center>Zn<sup>+2</sup></td>
+<td align=center>4<br><b>6</b><br>8</td>
+<td align=center>0.60<br>0.74<br>0.90</td></tr>
+
+<tr><td align=center>Zr<sup>+4</sup></td>
+<td align=center>4<br><b>6</b><br>8<br>9</td>
+<td align=center>0.59<br>0.72<br>0.84<br>0.89</td></tr>
+
+<tr><td align=center>F<sup>&ndash;</sup></td> <td align=center><b>6</b></td>
+<td align=center>1.33</td></tr>
+<tr><td align=center>Cl<sup>&ndash;</sup></td> <td align=center><b>6</b></td>
+<td align=center>1.81</td></tr>
+<tr><td align=center>Br<sup>&ndash;</sup></td> <td align=center><b>6</b></td>
+<td align=center>1.96</td></tr>
+<tr><td align=center>I<sup>&ndash;</sup></td> <td align=center><b>6</b></td>
+<td align=center>2.20</td></tr>
+</table>
+<p>
+<a name="dnote"><sup><b>d</b></sup></a>
+<i>CRC Handbook of Chemistry and Physics</i>, 82nd Edition
+(2001-2002).
+Additional ionic radii from the same reference (for more rarely encountered
+ions) are also used as defaults in ChimeraX, but not listed above.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+September 2016</address>
+</body></html>
