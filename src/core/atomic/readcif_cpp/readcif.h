@@ -86,12 +86,12 @@ inline double str_to_float(const char* s)
     long long iv = 0;
     double fv;
     for (; *s; ++s) {
-	char c = *s;
-	switch (c) {
-	    default:
+    char c = *s;
+    switch (c) {
+        default:
             break;
-	    case '0': case '1': case '2': case '3': case '4':
-	    case '5': case '6': case '7': case '8': case '9':
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
             if (saw_exp) {
                 exp = exp * 10 + (c - '0');
                 continue;
@@ -101,16 +101,20 @@ inline double str_to_float(const char* s)
                 decimals -= 1;
             iv = iv * 10 + (c - '0');
             continue;
-	    case '.':
+        case '.':
             saw_decimal = true;
             continue;
-	    case '-':
+        case '-':
             if (saw_exp)
                 exp_neg = true;
             else
                 neg = true;
             continue;
-	    case 'e':
+        case '+':
+            if (saw_exp)
+                continue;
+            break;
+        case 'e':
             saw_exp = true;
             continue;
         }
