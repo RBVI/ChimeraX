@@ -17,13 +17,13 @@ DISTRIBUTION = OpenMM-$(VERSION)-$(PLATFORM).tar.bz2
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
 OPENMM_LIB_INSTALL = $(libdir)/openmm
 
-PATCHES	= $(wildcard OpenMM-$(VERSION)-$(PLATFORM)-*.patch)
+PATCHES	= $(wildcard OpenMM-$(VERSION)-$(OS)-*.patch)
 PATCHES += OpenMM-$(VERSION)-mmcif.patch
 
 ifeq ($(OS),Windows)
 
 install: $(SOURCE)
-	cd $(SOURCE) ; $(RSYNC) simtk $(PYSITEDIR) ; $(RSYNC) lib $(OPENMM_LIB_INSTALL)
+	cd $(SOURCE) ; $(RSYNC) python/simtk $(PYSITEDIR) ; $(RSYNC) lib $(OPENMM_LIB_INSTALL)
 
 else
 
