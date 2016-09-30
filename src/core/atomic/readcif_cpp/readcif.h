@@ -41,6 +41,7 @@
 # include <algorithm>
 # include <stdexcept>
 # include <limits>
+# include <cmath>
 
 // readcif -- parse CIF and mmCIF files with minimal overhead
 //
@@ -69,34 +70,86 @@ is_not_whitespace(char c)
     return NotWhitespace[(unsigned char) c];
 }
 
-// non-error checking replacement for the standard library's strtof
-// for non-scientific notation
-// returns NaN if not a floating point number
-inline float str_to_float(const char* s)
+// Non-error checking replacement for the standard library's strtof.
+// Returns NaN if not a floating point number.
+// While this routine is slower than atof by iself, it is faster than
+// atof when inlined within a parser. 
+inline double str_to_float(const char* s)
 {
     bool saw_digit = false;
+    bool saw_decimal = false;
+    bool saw_exp = false;
+    int decimals = 0;
     bool neg = false;
-    float fa = 0, v = 0;
-    for (;;) {
-        char c = *s;
-        if (c >= '0' && c <= '9') {
-            saw_digit = true;
-            if (fa) {
-                v += fa * (c - '0');
-                fa *= 0.1f;
-            } else
-                v = 10 * v + (c - '0');
-        }
-        else if (c == '.')
-            fa = 0.1f;
-        else if (c == '-')
-            neg = true;
-        else
+    bool exp_neg = false;
+    int exp = 0;
+    long long iv = 0;
+    double fv;
+    for (; *s; ++s) {
+    char c = *s;
+    switch (c) {
+        default:
             break;
-        s += 1;
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
+            if (saw_exp) {
+                exp = exp * 10 + (c - '0');
+                continue;
+            }
+            saw_digit = true;
+            if (saw_decimal)
+                decimals -= 1;
+            iv = iv * 10 + (c - '0');
+            continue;
+        case '.':
+            saw_decimal = true;
+            continue;
+        case '-':
+            if (saw_exp)
+                exp_neg = true;
+            else
+                neg = true;
+            continue;
+        case '+':
+            if (saw_exp)
+                continue;
+            break;
+        case 'e':
+            saw_exp = true;
+            continue;
+        }
+        break;
+    }
+    if (saw_exp) {
+        if (exp_neg)
+            decimals -= exp;
+        else
+            decimals += exp;
+    }
+    switch (decimals) {
+        case 9: fv = iv * 1e9; break;
+        case 8: fv = iv * 1e8; break;
+        case 7: fv = iv * 1e7; break;
+        case 6: fv = iv * 1e6; break;
+        case 5: fv = iv * 1e5; break;
+        case 4: fv = iv * 1e4; break;
+        case 3: fv = iv * 1e3; break;
+        case 2: fv = iv * 1e2; break;
+        case 1: fv = iv * 1e1; break;
+        case 0: fv = iv; break;
+        case -1: fv = iv * 1e-1; break;
+        case -2: fv = iv * 1e-2; break;
+        case -3: fv = iv * 1e-3; break;
+        case -4: fv = iv * 1e-4; break;
+        case -5: fv = iv * 1e-5; break;
+        case -6: fv = iv * 1e-6; break;
+        case -7: fv = iv * 1e-7; break;
+        case -8: fv = iv * 1e-8; break;
+        case -9: fv = iv * 1e-9; break;
+        default: fv = iv * std::pow(10, decimals); break;
     }
     if (saw_digit)
-        return (neg ? -v : v);
+        return (neg ? -fv : fv);
     return std::numeric_limits<float>::quiet_NaN();
 }
 
