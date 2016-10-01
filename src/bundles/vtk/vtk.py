@@ -85,7 +85,8 @@ def read_vtk(session, filename, name, *args, **kw):
     if polylines is None:
         raise UserError('VTK file did not contain LINES')
 
-    model = lines_model(session, points, polylines, name = fname)
+    from os.path import basename
+    model = lines_model(session, points, polylines, name = basename(fname))
     
     return [model], ("Opened VTK file %s containing %d points, %d lines" % (fname, np, nl))
 
