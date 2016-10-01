@@ -339,6 +339,17 @@ class MainWindow(QMainWindow, PlainTextLog):
     def file_quit_cb(self, session):
         session.ui.quit()
 
+    def hide_other_tools(self, tool_instance):
+        for ti, tool_windows in self.tool_instance_to_windows.items():
+            if ti == tool_instance:
+                continue
+            for tw in tool_windows:
+                if tw.title == "Command Line Interface":
+                    # leave the command line as is
+                    continue
+                if tw.shown:
+                    tw._mw_set_shown(False)
+        
     def _get_hide_tools(self):
         return self._hide_tools
 
@@ -596,8 +607,9 @@ class ToolWindow:
         """
         self.tool_instance.session.ui.main_window._tool_window_destroy(self)
 
-    def fill_context_menu(self, menu):
-        """Add items to this tool window's context menu
+    def fill_context_menu(self, menu, x, y):
+        """Add items to this tool window's context menu,
+           whose downclick occurred at position (x,y)
 
         Override to add items to any context menu popped up over this window"""
         pass
@@ -752,14 +764,21 @@ class _Qt:
         if self.tool_window.close_destroys:
             self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
-    def show_context_menu(self, pos):
+    def show_context_menu(self, event):
         from PyQt5.QtWidgets import QMenu, QAction
         menu = QMenu(self.ui_area)
 
-        self.tool_window.fill_context_menu(menu)
+        self.tool_window.fill_context_menu(menu, event.x(), event.y())
         if not menu.isEmpty():
             menu.addSeparator()
         ti = self.tool_window.tool_instance
+        hide_tool_action = QAction("Hide this tool", self.ui_area)
+        hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
+        menu.addAction(hide_tool_action)
+        hide_other_tools_action = QAction("Hide other tools", self.ui_area)
+        hide_other_tools_action.triggered.connect(
+            lambda arg, ti=ti, ho=self.main_window.hide_other_tools: ho(ti))
+        menu.addAction(hide_other_tools_action)
         if ti.help is not None:
             help_action = QAction("Help", self.ui_area)
             help_action.setStatusTip("Show tool help")
@@ -769,7 +788,7 @@ class _Qt:
             no_help_action = QAction("No help available", self.ui_area)
             no_help_action.setEnabled(False)
             menu.addAction(no_help_action)
-        menu.exec(pos)
+        menu.exec(event)
 
     def _get_shown(self):
         return not self.dock_widget.isHidden()

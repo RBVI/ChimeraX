@@ -43,7 +43,6 @@ class Plot(ToolInstance):
         self.axes = axes = f.gca()
 
         self._pan = None	# Pan/zoom mouse control
-        self._menu = None	# Context menu
         
     def show(self):
         self.tool_window.shown = True
@@ -108,30 +107,6 @@ class Plot(ToolInstance):
         e = MouseEvent('context menu', self.canvas, x, h-y)
         return e
 
-    def add_menu_item(self, text, callback, *args):
-        '''Add menu item to context menu'''
-        widget = self.tool_window.ui_area
-        from PyQt5.QtWidgets import QAction
-        a = QAction(text, widget)
-        #a.setStatusTip("Info about this menu entry")
-        a.triggered.connect(lambda checked, cb=callback, args=args: cb(*args))
-        self._context_menu().addAction(a)
-
-    def add_menu_separator(self):
-        self._context_menu().addSeparator()
-
-    def post_menu(self, event):
-        self._context_menu().exec(event.globalPos())
-        self._menu = None
-        
-    def _context_menu(self):
-        m = self._menu
-        if m is None:
-            widget = self.tool_window.ui_area
-            from PyQt5.QtWidgets import QMenu
-            self._menu = m = QMenu(widget)
-        return m
-
 # ------------------------------------------------------------------------------
 #
 class ContactPlot(Plot):
@@ -142,6 +117,7 @@ class ContactPlot(Plot):
         bundle_info = session.toolshed.find_bundle('contacts')
         title = '%d Chains %d Contacts' % (len(groups), len(contacts))
         Plot.__init__(self, session, bundle_info, title = title)
+        self.tool_window.fill_context_menu = self.fill_context_menu
 
         self.groups = groups
         self.contacts = contacts
@@ -162,8 +138,6 @@ class ContactPlot(Plot):
         c.mouseReleaseEvent = self._mouse_release
 
         self._handler = session.triggers.add_handler('atomic changes', self._atom_display_change)
-
-        self.tool_window.ui_area.contextMenuEvent = self._show_context_menu
         
     def delete(self):
         self._session().triggers.remove_handler(self._handler)
@@ -449,14 +423,22 @@ class ContactPlot(Plot):
             self._node_artist.set_facecolor(node_colors)
             self.canvas.draw()	# Need to ask canvas to redraw the new colors.
 
-    def _show_context_menu(self, event):
-        item = self._clicked_item(event.x(), event.y())
+    def fill_context_menu(self, menu, x, y):
+        item = self._clicked_item(x, y)
         nodes = self._item_nodes(item)
         node_names = ','.join(n.name for n in nodes)
         nn = len(nodes)
-        
+
+        def add(text, callback, *args):
+            '''Add menu item to context menu'''
+            widget = self.tool_window.ui_area
+            from PyQt5.QtWidgets import QAction
+            a = QAction(text, widget)
+            #a.setStatusTip("Info about this menu entry")
+            a.triggered.connect(lambda checked, cb=callback, args=args: cb(*args))
+            menu.addAction(a)
+
         # Show/hide menu entries
-        add = self.add_menu_item
         if nodes:
             add('Show only %s' % node_names, self._show_node_atoms, nodes)
 
@@ -477,7 +459,7 @@ class ContactPlot(Plot):
         if isinstance(item, Contact):
             add('Residue plot', self._show_residue_plot, item)
         
-        self.add_menu_separator()
+        menu.addSeparator()
         
         # Selection menu entries
         if nodes:
@@ -504,7 +486,7 @@ class ContactPlot(Plot):
         add('Select all', self._select_nodes, self.groups)
         add('Clear selection', self._clear_selection)
 
-        self.add_menu_separator()
+        menu.addSeparator()
 
         eargs = ()
         if isinstance(item, Contact):
@@ -517,9 +499,7 @@ class ContactPlot(Plot):
         add('Explode', explode, *eargs)
         add('Unxplode', self._unexplode_all)
 
-        self.add_menu_separator()
+        menu.addSeparator()
 
         add('Layout matching structure', self._draw_graph)
         add('Orient structure', self._orient)
-
-        self.post_menu(event)
