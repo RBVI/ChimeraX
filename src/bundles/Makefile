@@ -17,7 +17,7 @@ SUBDIRS = add_missing_atoms align_algs alignments cage_builder cellpack cmd_line
 	  log map_series_gui match_maker mlp model_panel \
 	  mouse_modes movie oculus remote_control \
 	  residue_fit sim_matrices shell shortcuts sideview spacenavigator stl struts \
-	  test toolshed tug vive volume_viewer
+	  test toolshed tug vive volume_viewer vtk
 
 include $(TOP)/mk/subdir.make
 
