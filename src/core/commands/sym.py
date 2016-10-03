@@ -291,7 +291,7 @@ class Assembly:
         return Places(cops)
 
     def _molecule_copies(self, mol, session):
-        copies = [m for m in getattr(mol, '_sym_copies', []) if not m.deleted()]
+        copies = [m for m in getattr(mol, '_sym_copies', []) if not m.deleted]
         nm = 1 + len(copies)
         n = len(self.chain_ops)
         if nm < n:
