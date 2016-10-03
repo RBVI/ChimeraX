@@ -328,10 +328,16 @@ class MainWindow(QMainWindow, PlainTextLog):
     def file_open_cb(self, session):
         from PyQt5.QtWidgets import QFileDialog
         from .open_save import open_file_filter
-        paths = QFileDialog.getOpenFileNames(filter=open_file_filter(all=True))
-        if not paths:
+        paths_and_types = QFileDialog.getOpenFileNames(filter=open_file_filter(all=True))
+        if not paths_and_types:
             return
-        session.models.open(paths[0])
+
+        paths, types = paths_and_types
+        models = session.models.open(paths)
+        if models and len(paths) == 1:
+            # Remember in file history
+            from ..filehistory import remember_file
+            remember_file(session, paths[0], format=None, models=models)
 
     def file_save_cb(self, session):
         self.save_dialog.display(self, session)
