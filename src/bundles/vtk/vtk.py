@@ -26,102 +26,194 @@ def read_vtk(session, filename, name, *args, **kw):
         # it's really a file-like object
         fname = filename.name
         filename.close()
-        f = open(fname, 'r')
+        f = open(fname, 'rb')
     else:
         # TODO: will need binary mode for handling binary files.
-        f = open(filename, 'r')
+        f = open(filename, 'rb')
         fname = filename
 
     # parse file
     from chimerax.core.errors import UserError
     ver = f.readline()
-    if not ver.startswith('# vtk DataFile Version'):
+    if not ver.startswith(b'# vtk DataFile Version'):
       raise UserError('First line does not start with "# vtk DataFile Version"')
 
     header = f.readline()               # description of data set
     
     ab = f.readline().strip()           # ASCII or BINARY
-    if ab != 'ASCII':
-      raise UserError('VTK file is not ascii format, got "%s"' % ab)
+    if ab != b'ASCII' and ab != b'BINARY':
+      raise UserError('VTK file line 3 is not "ASCII" or "BINARY", got "%s"' % ab)
+    binary = (ab == b'BINARY')
 
     g = f.readline().strip()
-    if g != 'DATASET POLYDATA':
+    if g != b'DATASET POLYDATA':
       raise UserError('VTK file is not structured points, got "%s"' % g)
 
-    points = polylines = None
+    points = line_segments = triangles = None
+    details = ''
     while True:
         line = f.readline().strip()
         if not line:
             break
-        if line.startswith('POINTS'):
-            pf = line.split()
-            if len(pf) != 3:
-                raise UserError('VTK file POINTS line does not have 3 fields, got "%s"' % line)
-            if pf[2] != 'float':
-                raise UserError('VTK file POINTS are not float, got "%s"' % line)
-            try:
-                np = int(pf[1])
-            except ValueError:
-                raise UserError('VTK file POINTS count is not an integer, got "%s"' % line)
-            points = read_ascii_floats(f, 3*np).reshape((np,3))
-        elif line.startswith('LINES'):
-            lf = line.split()
-            if len(lf) != 3:
-                raise UserError('VTK file LINES line does not have 3 fields, got "%s"' % line)
-            try:
-                nl,nlp = int(lf[1]), int(lf[2])
-            except ValueError:
-                raise UserError('VTK file LINES count not an integer, got "%s"' % line)
-            polylines = []
-            for i in range(nl):
-                lif = f.readline().split()
-                nlip = int(lif[0])
-                polylines.append(tuple(int(lif[j+1]) for j in range(nlip)))
-        else:
-            raise UserError('VTK file line does not start with POINTS or LINES, got "%s"' % line)
-
+        data_type, nobj, nnum = parse_data_type_line(line)
+        if data_type == 'POINTS':
+            points = read_floats(f, 3*nobj, binary).reshape((nobj,3))
+        elif data_type == 'LINES':
+            plines = read_ints(f, nnum, binary)
+            nseg = nnum-2*nobj
+            line_segments = polyline_segments(plines, nseg)
+            details += ', %d lines' % nobj
+        elif data_type == 'POLYGONS':
+            pgons = read_ints(f, nnum, binary)
+            ntri = nnum-3*nobj
+            triangles = polygon_triangles(pgons, ntri)
+            details += ', %d polygons' % nobj
+        elif data_type == 'POINT_DATA' or data_type == 'CELL_DATA': 
+            # Don't handle point data such as surface normals and scalars or cell data (attributes of lines and polygons).
+            break
+        if binary:
+            # There is a newline following binary data.
+            nline = f.readline()
+            if nline != b'\n':
+                raise UserError('VTK file data after line "%s" does not end with newline, got "%s"'
+                                % (line, nline))
+            
     if points is None:
         raise UserError('VTK file did not contain POINTS')
-    if polylines is None:
-        raise UserError('VTK file did not contain LINES')
+    if line_segments is None and triangles is None:
+        raise UserError('VTK file did not contain LINES or POLYGONS')
 
+    models = []
     from os.path import basename
-    model = lines_model(session, points, polylines, name = basename(fname))
-    
-    return [model], ("Opened VTK file %s containing %d points, %d lines" % (fname, np, nl))
+    mname = basename(fname)
+    if line_segments is not None:
+        models.append(lines_model(session, points, line_segments, name = mname + ' lines'))
+    if triangles is not None:
+        models.append(triangles_model(session, points, triangles, name = mname + ' polygons'))
+
+    msg = 'Opened VTK file %s containing %d points%s' % (fname, len(points), details)
+    return models, msg
 
 # -----------------------------------------------------------------------------
 #
-def read_ascii_floats(file, n):
-    from numpy import empty, float32
-    fv = empty((n,), float32)
-    c = 0
-    while c < n:
-        line = file.readline()
-        values = tuple(float(v) for v in line.split())
-        nv = len(values)
-        fv[c:c+nv] = values
-        c += nv
+def parse_data_type_line(line):
+    f = line.split()
+
+    data_type = f[0].decode('utf-8') if f else None
+    if data_type in ('POINT_DATA', 'CELL_DATA'):
+        return data_type, 0, 0
+    
+    from chimerax.core.errors import UserError
+    if len(f) != 3:
+        raise UserError('VTK file data type line does not have 3 fields, got "%s"' % line)
+
+    if data_type in ('VERTICES', 'TRIANGLE_STRIPS'):
+        raise UserError('VTK reader does not handle type %s, got line "%s"' % (data_type, line))
+    if not data_type in ('POINTS', 'LINES', 'POLYGONS'):
+        raise UserError('VTK file line does not start with POINTS, LINES, or POLYGONS, got "%s"' % line)
+
+    try:
+        nobj = int(f[1])
+    except ValueError:
+        raise UserError('VTK file object count is not an integer, got "%s"' % line)
+
+    if line.startswith(b'POINTS'):
+        if f[2] != b'float':
+            raise UserError('VTK file only handle float POINTS, got "%s"' % line)
+        nnum = 3 * nobj
+    else:
+        try:
+            nnum = int(f[2])
+        except ValueError:
+            raise UserError('VTK file value count not an integer, got "%s"' % line)
+
+    return data_type, nobj, nnum
+
+# -----------------------------------------------------------------------------
+#
+def read_floats(file, n, binary = False):
+    from numpy import float32
+    return read_values(file, n, float32, float, binary)
+
+# -----------------------------------------------------------------------------
+#
+def read_ints(file, n, binary = False):
+    from numpy import int32
+    return read_values(file, n, int32, int, binary)
+
+# -----------------------------------------------------------------------------
+#
+def read_values(file, n, numpy_dtype, py_type, binary = False):
+    from numpy import empty, frombuffer, float32
+    if binary:
+        dtype = numpy_dtype()
+        b = file.read(dtype.itemsize * n)
+        fv = frombuffer(b, dtype)
+        import sys
+        if sys.byteorder == 'little':
+            # VTK binary files are written in big-endian byte order.
+            fv = fv.byteswap()
+    else:
+        fv = empty((n,), numpy_dtype)
+        c = 0
+        while c < n:
+            line = file.readline()
+            values = tuple(py_type(v) for v in line.split())
+            nv = len(values)
+            fv[c:c+nv] = values
+            c += nv
     return fv
 
 # -----------------------------------------------------------------------------
 #
-def lines_model(session, points, polylines, name = 'vtk lines', color = (255,255,255,255)):
+def polyline_segments(plines, nseg):
+    from numpy import empty, int32
+    seg = empty((nseg,2), int32)
+    p = s = 0
+    while s < nseg:
+        np = plines[p]
+        for j in range(p+1, p+np):
+            seg[s,:] = (plines[j], plines[j+1])
+            s += 1
+        p += np+1
+    return seg
+
+# -----------------------------------------------------------------------------
+#
+def polygon_triangles(pgons, ntri):
+    from numpy import empty, int32
+    tri = empty((ntri,3), int32)
+    p = t = 0
+    while t < ntri:
+        np = pgons[p]
+        for j in range(p+2, p+np):
+            tri[t,:] = (pgons[p+1], pgons[j], pgons[j+1])
+            t += 1
+        p += np+1
+    return tri
+
+# -----------------------------------------------------------------------------
+#
+def lines_model(session, points, line_segments, name = 'vtk lines', color = (255,255,255,255)):
     from chimerax.core.models import Model
     m = Model(name, session)
     m.vertices = points
-
-    # Compute line segments array
-    ns = sum(len(pl)-1 for pl in polylines)
-    ls = []
-    for pl in polylines:
-        ls.extend(pl[i:i+2] for i in range(len(pl)-1))
-        #ls.extend((pl[i],pl[i+1],pl[i+1]) for i in range(len(pl)-1))
-    from numpy import array, int32
-    m.triangles = array(ls, int32)
+    m.triangles = line_segments
     m.display_style = m.Mesh
     m.color = color
+    return m
 
+# -----------------------------------------------------------------------------
+#
+def triangles_model(session, points, triangles,
+                    name = 'vtk polygons', color = (180,180,180,255)):
+    from chimerax.core.models import Model
+    m = Model(name, session)
+    m.vertices = points
+    m.triangles = triangles
+    from chimerax.core import surface
+    m.normals = surface.calculate_vertex_normals(points, triangles)
+    m.color = color
     return m
     
 # -----------------------------------------------------------------------------
