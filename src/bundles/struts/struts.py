@@ -17,6 +17,32 @@
 #
 def struts(session, atoms, length = 7.0, loop = 30.0, radius = 0.6, color = None,
            fatten_ribbon = True, replace = True, name = None, model_id = None):
+    '''
+    Create fake bonds between atoms of a structure in order to strengthen it
+    for 3d printing.
+
+    Parameters
+    ----------
+    atoms : Atoms
+        Set of atoms to use as strut end-points.
+    length : float
+        The maximum length of a strut.  Default 7.0.
+    loop : float
+        Add struts between atoms when their through-bond distance from each other
+        is greater than this loop distance. Default 30.
+    radius : float
+        Radius for drawing the strut cylinders. Default 0.6.
+    color : Color
+        Make the struts this color.  Default gray.
+    fatten_ribbon : bool
+        Increase ribbon thickness to make it stronger for printing.  Default true.
+    replace : bool
+        Whether to replace or keep previously calculated struts.
+    name : string
+        Name for the strut model.
+    model_id : tuple of integers
+        Model id number for strut model.
+    '''
 
     if len(atoms) == 0:
         from chimerax.core.errors import UserError
