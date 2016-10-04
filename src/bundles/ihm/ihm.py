@@ -34,8 +34,15 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
     from chimerax.core.models import Model
     ihm_model = Model(name, session)
 
-    table_names = ['ihm_struct_assembly', 'ihm_model_list', 'ihm_sphere_obj_site', 'ihm_cross_link_restraint',
-                   'ihm_ensemble_info', 'ihm_gaussian_obj_ensemble', 'ihm_dataset_other']
+    table_names = ['ihm_struct_assembly',  	# Asym ids, entity ids, and entity names
+                   'ihm_model_list',		# Model groups
+                   'ihm_sphere_obj_site',	# Bead model for each cluster
+                   'ihm_cross_link_restraint',	# Crosslinks
+                   'ihm_ensemble_info',		# Names of ensembles, e.g. cluster 1, 2, ...
+                   'ihm_gaussian_obj_ensemble',	# Distribution of ensemble models
+                   'ihm_dataset_other',		# Comparative models, EM data, DOI references
+                   'ihm_starting_model_details', # Starting models, including compararative model templates
+    ]
     from chimerax.core.atomic import mmcif
     table_list = mmcif.get_mmcif_tables(filename, table_names)
     tables = dict(zip(table_names, table_list))
@@ -60,15 +67,22 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
     if ensembles_table is not None and gaussian_table is not None:
         pgrids = make_probability_grids(session, ensembles_table, gaussian_table, gmodels)
 
+    dataset_entities = {}
+    starting_models = tables['ihm_starting_model_details']
+    if starting_models:
+        #stmodels = read_starting_models(session, starting_models)
+        dataset_entities = read_starting_models(session, starting_models)
+
     lmodels = []
     datasets_table = tables['ihm_dataset_other']
     if datasets_table and load_linked_files:
-        lmodels = read_linked_datasets(session, datasets_table, gmodels, acomp)
+        lmodels = read_linked_datasets(session, datasets_table, gmodels, acomp, dataset_entities)
         if lmodels:
             from chimerax.core.models import Model
             comp_group = Model('Comparative models', session)
             comp_group.add(lmodels)
             ihm_model.add([comp_group])
+        align_comparative_models_to_spheres(lmodels, smodels)
         
     msg = ('Opened IHM file %s containing %d model groups, %d sphere models, %d distance restraints, %d ensemble distributions, %d linked models' %
            (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids), len(lmodels)))
@@ -327,11 +341,23 @@ from chimerax.core.map import covariance_sum
 
 # -----------------------------------------------------------------------------
 #
-def read_linked_datasets(session, datasets_table, gmodels, acomp):
+def read_starting_models(session, starting_models):
+    fields = ['entity_id', 'asym_id', 'seq_id_begin', 'seq_id_end', 'starting_model_source',
+              'starting_model_db_name', 'starting_model_db_code', 'starting_model_db_pdb_auth_asym_id',
+              'dataset_list_id']
+    rows = starting_models.fields(fields)
+    dataset_entities = {}
+    for eid, asym_id, seq_beg, seq_end, source, db_name, db_code, db_asym_id, did in rows:
+        dataset_entities[did] = (eid, asym_id)
+    return dataset_entities
+    
+# -----------------------------------------------------------------------------
+#
+def read_linked_datasets(session, datasets_table, gmodels, acomp, dataset_entities):
     '''Read linked data from ihm_dataset_other table'''
     lmodels = []
-    fields = ['data_type', 'doi', 'content_filename']
-    for data_type, doi, content_filename in datasets_table.fields(fields):
+    fields = ['dataset_list_id', 'data_type', 'doi', 'content_filename']
+    for did, data_type, doi, content_filename in datasets_table.fields(fields):
         if data_type == 'Comparative model' and content_filename.endswith('.pdb'):
             from .doi_fetch import fetch_doi_archive_file
             pdbf = fetch_doi_archive_file(session, doi, content_filename)
@@ -339,10 +365,19 @@ def read_linked_datasets(session, datasets_table, gmodels, acomp):
             name = basename(content_filename)
             from chimerax.core.atomic.pdb import open_pdb
             models, msg = open_pdb(session, pdbf, name, smart_initial_display = False)
-            from numpy import random, uint8
-            color = random.randint(128,255,(4,),uint8)
-            color[3] = 255
+            if did in dataset_entities:
+                eid, asym_id = dataset_entities[did]
+                from chimerax.core.atomic.colors import chain_rgba8
+                color = chain_rgba8(asym_id)
+            else:
+                eid = asym_id = None
+                from numpy import random, uint8
+                color = random.randint(128,255,(4,),uint8)
+                color[3] = 255
             for m in models:
+                m.dataset_list_id = did
+                m.entity_id = eid
+                m.asym_id = asym_id
                 r = m.residues
                 r.ribbon_colors = color
                 r.ribbon_displays = True
@@ -353,6 +388,34 @@ def read_linked_datasets(session, datasets_table, gmodels, acomp):
             lmodels.extend(models)
     return lmodels
 
+# -----------------------------------------------------------------------------
+#
+def align_comparative_models_to_spheres(cmodels, smodels):
+    amodels = smodels[0].asym_model_map()
+    for cm in cmodels:
+        sm = amodels.get(cm.asym_id)
+        if sm is None:
+            continue
+        # Align comparative model residue centers to sphere centers
+        res = cm.residues
+        rnums = res.numbers
+        rc = res.centers
+        cxyz = []
+        sxyz = []
+        for rn, c in zip(rnums, rc):
+            s = sm.residue_sphere(rn)
+            if s:
+                cxyz.append(c)
+                sxyz.append(s.coord)
+                # TODO: For spheres with multiple residues use average residue center
+        if len(cxyz) >= 3:
+            from chimerax.core.geometry import align_points
+            from numpy import array, float64
+            p, rms = align_points(array(cxyz,float64), array(sxyz,float64))
+            cm.position = p
+            print ('aligned %s, %d points, rms %.4g' % (cm.name, len(cxyz), rms))
+            
+    
 # -----------------------------------------------------------------------------
 #
 def register():
@@ -379,6 +442,9 @@ class SphereModel(Model):
 
     def asym_model(self, asym_id):
         return self._asym_models.get(asym_id)
+
+    def asym_model_map(self):
+        return self._asym_models
     
 # -----------------------------------------------------------------------------
 #
