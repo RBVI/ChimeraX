@@ -27,8 +27,8 @@ or attribute names from Chimera that are not defined in ChimeraX. **
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-icon.svg" title="to User Guide Index..."
-class="clRight" alt="ChimeraX logo"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
 
 <h2>Command-Line Target Specification</h2>
 <p>
@@ -297,6 +297,8 @@ and their subparts:
 <li>element symbols: <b>C</b>, <b>Fe</b>, <i>etc.</i>
 <li>ChimeraX <a href="../atomtypes.html">atom types</a>:
 <b>Car</b>, <b>N3+</b>, <b>O2</b>, <i>etc.</i>
+(<b>H</b> is both an element symbol and an 
+<a href="../atomtypes.html">atom type</a>, but element &ldquo;wins&rdquo;)
 <li><b>sel</b> - the current <a href="select.html#seldef">selection</a>
 <li><b>selAtoms</b> - the current atomic model
 <a href="select.html#seldef">selection</a>,
@@ -395,7 +397,7 @@ User-defined targets include:
 </ul>
 </p>
 -->
-<p>Some examples:</p>
+<p>Examples:</p>
 <blockquote>
 <b>helix &amp; :arg,lys</b>
 </blockquote>
@@ -410,6 +412,10 @@ see <a href="#combinations">combinations</a>)
 <b>Car &amp; :phe,tyr</b>
 </blockquote>
 - aromatic ring carbons of phenylalanine and tyrosine
+<blockquote>
+<b>H &amp; ~HC</b>
+</blockquote>
+- polar hydrogens (those not bonded to carbon)
 <!--
 <blockquote>
 <b>carboxylate</b>
