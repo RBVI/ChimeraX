@@ -32,6 +32,8 @@
 # use of OpenMM.  Might be worth trying that.  Also could apply it on the fly to prepare a 20 residue fragment
 # for interactive MD.  It can build missing segments which could be nice for fitting in high res cryoEM.
 #
+write_logs = False
+
 from chimerax.core.ui import MouseMode
 class TugAtomsMode(MouseMode):
     name = 'tug'
@@ -47,8 +49,11 @@ class TugAtomsMode(MouseMode):
         self._last_frame_number = None
         self._last_xy = None
         self._arrow_model = None
-        
+
+        self._log = Logger('tug.log' if write_logs else None)
+            
     def mouse_down(self, event):
+        self._log('In mouse_down')
         MouseMode.mouse_down(self, event)
         x,y = event.position()
         view = self.session.main_view
@@ -66,12 +71,15 @@ class TugAtomsMode(MouseMode):
             self._tugging = True
 
     def mouse_drag(self, event):
+        self._log('In mouse_drag')
         self._last_xy = x,y = event.position()
         self._tug(x, y)
+
         if self._tug_handler is None:
             self._tug_handler = self.session.triggers.add_handler('new frame', self._continue_tugging)
         
     def mouse_up(self, event):
+        self._log('In mouse_up', close = True)
         MouseMode.mouse_up(self, event)
         self._tugging = False
         self._last_frame_number = None
@@ -84,6 +92,7 @@ class TugAtomsMode(MouseMode):
                 a.display = False
         
     def _tug(self, x, y):
+        self._log('In _tug')
         if not self._tugging:
             return
         v = self.session.main_view
@@ -91,16 +100,17 @@ class TugAtomsMode(MouseMode):
             return	# Make sure we draw a frame before doing another MD calculation
 
         atom_xyz, offset = self._pull_direction(x, y)
+
         from time import time
         t0 = time()
         if self._tugger.tug_displacement(offset):
             self._last_frame_number = v.frame_number
         t1 = time()
-        #print ('one pull time %.2f' % (t1-t0))
         atom_xyz, offset = self._pull_direction(x, y)
         self._draw_arrow(atom_xyz+offset, atom_xyz)
 
     def _pull_direction(self, x, y):
+        self._log('In pull_direction')
         v = self.session.main_view
         x0,x1 = v.clip_plane_points(x, y)
         axyz = self._tugger.atom.scene_coord
@@ -112,9 +122,11 @@ class TugAtomsMode(MouseMode):
         return axyz, -offset
 
     def _continue_tugging(self, *_):
+        self._log('In continue_tugging')
         self._tug(*self._last_xy)
 
     def _draw_arrow(self, xyz1, xyz2, radius = 0.1):
+        self._log('In draw_arrow')
         a = self._arrow_model
         if a is None or a.deleted:
             from chimerax.core.models import Model
@@ -135,6 +147,7 @@ class TugAtomsMode(MouseMode):
 
 class StructureTugger:
     def __init__(self, structure):
+        self._log = Logger('structuretugger.log' if write_logs else None)
         self.structure = structure
         self.atoms = structure.atoms
         self.atom = None
@@ -147,20 +160,25 @@ class StructureTugger:
         self._force = None	# CustomExternalForce pulling force
         self._platform = None
         self._simulation = None
+        self._sim_forces = None # Current forces on atoms
+        
 
         # OpenMM simulation parameters
         self._sim_steps = 50		# Simulation steps between mouse position updates
         self._force_constant = 10000
         from simtk import unit
         #self._temperature = 300*unit.kelvin
-        self._temperature = 0*unit.kelvin
+        self._temperature = 100*unit.kelvin
         #self._constraint_tolerance = 0.00001
-        self._time_step = 2.0*unit.femtoseconds
+        #self._time_step = 2.0*unit.femtoseconds
+        self._integrator_tolerance = 0.001
         self._constraint_tolerance = 0.001
         self._friction = 1.0/unit.picoseconds	# Coupling to heat bath
         self._platform_name = 'CPU'
         #self._platform_name = 'OpenCL' # Works on Mac
         #self._platform_name = 'CUDA'	# This is 3x faster but requires env DYLD_LIBRARY_PATH=/usr/local/cuda/lib Chimera.app/Contents/MacOS/ChimeraX so paths to cuda libraries are found.
+        self._max_allowable_force = 50000.0 # kJ/mol/nm
+        
         
         # OpenMM particle data
         self._particle_number = None		# Integer index of tugged atom
@@ -170,6 +188,7 @@ class StructureTugger:
         self._create_openmm_system()
         
     def tug_atom(self, atom):
+        self._log('In tug_atom')
 
         # OpenMM does not allow removing a force from a system.
         # So when the atom changes we either have to make a new system or add
@@ -194,7 +213,7 @@ class StructureTugger:
         # time a new atoms is pulled. The integrator can only be associated with
         # one simulation so we also create a new integrator.
         from simtk import openmm as mm
-        integrator = mm.LangevinIntegrator(self._temperature, self._friction, self._time_step)
+        integrator = mm.VariableLangevinIntegrator(self._temperature, self._friction, self._integrator_tolerance)
         integrator.setConstraintTolerance(self._constraint_tolerance)
 
         # Make a new simulation.
@@ -202,7 +221,19 @@ class StructureTugger:
         s = app.Simulation(self._topology, self._system, integrator, self._platform)
         self._simulation = s
         
+    def get_max_force (self, c):
+        import numpy
+        from simtk.unit import kilojoule_per_mole, nanometer
+        self._sim_forces = c.getState(getForces = True).getForces(asNumpy = True)/(kilojoule_per_mole/nanometer)
+        forcesx = self._sim_forces[:,0]
+        forcesy = self._sim_forces[:,1]
+        forcesz = self._sim_forces[:,2]
+        magnitudes =numpy.sqrt(forcesx*forcesx + forcesy*forcesy + forcesz*forcesz)
+        return max(magnitudes)
+
+        
     def tug_displacement(self, d):
+        self._log('In tug_displacement')
 
         particle = self._particle_number
         pos = self._particle_positions
@@ -219,17 +250,28 @@ class StructureTugger:
 # Minimization generates "Exception. Particle coordinate is nan" errors rather frequently, 1 in 10 minimizations.
 #        simulation.minimizeEnergy(maxIterations = self._sim_steps)
 # Get same error in LangevinIntegrator_step().
-        from time import time
+        from time import time,sleep
         t0 = time()
         try:
             simulation.step(self._sim_steps)
-        except Exception as e:
-            if 'Particle coordinate is nan' in str(e):
-                return False
-            else:
-                raise
+            self._log('Did simulation step')
+            max_force = self.get_max_force(c)
+            if max_force > self._max_allowable_force:
+                raise Exception('Maximum force exceeded')
+            self._log('Maximum force:')
+        except:
+                max_force=self.get_max_force(c)
+                self._log("FAIL!!!\n")
+                c.setPositions(0.1*pos)
+                while (max_force > self._max_allowable_force):
+                    self._log('Maximum force exceeded, %g > %g! Minimizing...'
+                              % (max_force, self._max_allowable_force))
+                    simulation.minimizeEnergy(maxIterations = self._sim_steps)
+                    max_force = self.get_max_force(c)
         t1 = time()
-        #print ('%d steps in %.2f seconds' % (self._sim_steps, t1-t0))
+        if write_logs:
+            import sys
+            sys.__stderr__.write('%d steps in %.2f seconds\n' % (self._sim_steps, t1-t0))
         state = c.getState(getPositions = True)
         from simtk import unit
         pos = state.getPositions().value_in_unit(unit.angstrom)
@@ -239,6 +281,8 @@ class StructureTugger:
         return True
         
     def _create_openmm_system(self):
+        self._log('In create_openmm_system ')
+        
         from simtk.openmm import app
         from simtk import openmm as mm
         from simtk import unit
@@ -296,6 +340,26 @@ class StructureTugger:
 
 class ForceFieldError(Exception):
     pass
+
+class Logger:
+    def __init__(self, filename = None):
+        self.filename = filename
+        self._log_file = None
+    def __call__(self, message, close = False):
+        if self.filename is None:
+            return	# No logging
+        f = self._log_file
+        if f is None:
+            self._log_file = f = open(self.filename,'w')
+            self._log_counter = 0
+        f.write(message)
+        f.write(' %d' % self._log_counter)
+        f.write("\n")
+        f.flush()
+        self._log_counter += 1
+        if close:
+            f.close()
+            self._log_file = None
 
 def openmm_topology_and_coordinates(mol):
     '''Make OpenMM topology and positions from ChimeraX AtomicStructure.'''

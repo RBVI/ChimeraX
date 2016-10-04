@@ -33,11 +33,13 @@ def register_core_selectors(session):
     reg(None, "sidechain", _sidechain_selector)
     reg(None, "ribose", _ribose_selector)
     from ..atomic import Element, Atom
+    # Since IDATM has types in conflict with element symbols (e.g. 'H'), register
+    # the types first so that they get overriden by the symbols
+    for idatm in Atom.idatm_info_map.keys():
+        reg(None, idatm, lambda ses, models, results, sym=idatm: _idatm_selector(sym, models, results))
     for i in range(1, 115):
         e = Element.get_element(i)
         reg(None, e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results))
-    for idatm in Atom.idatm_info_map.keys():
-        reg(None, idatm, lambda ses, models, results, sym=idatm: _idatm_selector(sym, models, results))
 
     
 

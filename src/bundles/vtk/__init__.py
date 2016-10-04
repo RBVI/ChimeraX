@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,24 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Note: any software used should be mentioned in docs/embedded.html
-# with the appropriate license.
+from chimerax.core.toolshed import BundleAPI
 
-TOP = ..
-NO_SUBDIR_ALL = 1
+class _VTKAPI(BundleAPI):
 
-include $(TOP)/mk/config.make
+    @staticmethod
+    def initialize(session, bundle_info):
+        """Register vtk file format."""
+        from . import vtk
+        vtk.register()
 
-SUBDIRS	+= core bundles apps wheelhouse wsgi
-
-# All needed subdirectories must be set by now.
-include $(TOP)/mk/subdir.make
-
-all:
-
-mainapp-install: core.install
-	$(MAKE) -C apps/$(APP_NAME) install
-
-core.install: wheelhouse.install
-bundles.install: core.install mainapp-install
-apps.install: bundles.install core.install
+bundle_api = _VTKAPI()

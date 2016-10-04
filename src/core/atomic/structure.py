@@ -44,7 +44,6 @@ class Structure(Model, StructureData):
         self._smart_initial_display = smart_initial_display
 
         # for now, restore attrs to default initial values even for sessions...
-        self._deleted = False
         self._atoms_drawing = None
         self._bonds_drawing = None
         self._cached_atom_bounds = None
@@ -79,16 +78,11 @@ class Structure(Model, StructureData):
 
     def delete(self):
         '''Delete this structure.'''
-        self._deleted = True
         t = self.session.triggers
         for handler in self._ses_handlers:
             t.remove_handler(handler)
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
         StructureData.delete(self)
-
-    def deleted(self):
-        '''Has this atomic structure been deleted.'''
-        return self._deleted
 
     def copy(self, name = None):
         '''

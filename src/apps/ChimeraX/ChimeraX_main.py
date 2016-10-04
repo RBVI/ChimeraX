@@ -378,19 +378,21 @@ def init(argv, event_loop=True):
         if sess.ui.is_gui and opts.debug:
             print("Initializing core", flush=True)
 
-    if not opts.silent:
-        sess.ui.splash_info("Initializing bundles",
-                            next(splash_step), num_splash_steps)
-        if sess.ui.is_gui and opts.debug:
-            print("Initializing bundles", flush=True)
-    from chimerax.core import toolshed
-    # toolshed.init returns a singleton so it's safe to call multiple times
-    sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
-    sess.toolshed.bootstrap_bundles(sess)
-    from chimerax.core import tools
-    sess.tools = tools.Tools(sess, first=True)
-    from chimerax.core import tasks
-    sess.tasks = tasks.Tasks(sess, first=True)
+    if opts.module != 'pip':
+        # keep bugs in ChimeraX from preventing pip from working
+        if not opts.silent:
+            sess.ui.splash_info("Initializing bundles",
+                                next(splash_step), num_splash_steps)
+            if sess.ui.is_gui and opts.debug:
+                print("Initializing bundles", flush=True)
+        from chimerax.core import toolshed
+        # toolshed.init returns a singleton so it's safe to call multiple times
+        sess.toolshed = toolshed.init(sess.logger, debug=sess.debug)
+        sess.toolshed.bootstrap_bundles(sess)
+        from chimerax.core import tools
+        sess.tools = tools.Tools(sess, first=True)
+        from chimerax.core import tasks
+        sess.tasks = tasks.Tasks(sess, first=True)
 
     if opts.version >= 0:
         sess.silent = False
