@@ -15,7 +15,7 @@
 ihm: Integrative Hybrid Model file format support
 =================================================
 """
-def read_ihm(session, filename, name, *args, load_linked_files = False, **kw):
+def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
     """Read an integrative hybrid models file creating sphere models and restraint models
 
     :param filename: either the name of a file or a file-like object
@@ -34,23 +34,25 @@ def read_ihm(session, filename, name, *args, load_linked_files = False, **kw):
     from chimerax.core.models import Model
     ihm_model = Model(name, session)
 
-    table_names = ['ihm_model_list', 'ihm_sphere_obj_site', 'ihm_cross_link_restraint',
+    table_names = ['ihm_struct_assembly', 'ihm_model_list', 'ihm_sphere_obj_site', 'ihm_cross_link_restraint',
                    'ihm_ensemble_info', 'ihm_gaussian_obj_ensemble', 'ihm_dataset_other']
     from chimerax.core.atomic import mmcif
     table_list = mmcif.get_mmcif_tables(filename, table_names)
     tables = dict(zip(table_names, table_list))
 
+    acomp = assembly_components(tables['ihm_struct_assembly'])
+    
     gmodels = make_model_groups(session, tables['ihm_model_list'])
     for g in gmodels[1:]:
         g.display = False	# Only show first group.
     ihm_model.add(gmodels)
     
-    smodels = make_sphere_models(session, tables['ihm_sphere_obj_site'], gmodels)
+    smodels = make_sphere_models(session, tables['ihm_sphere_obj_site'], gmodels, acomp)
 
     xlinks = []
     xlink_table = tables['ihm_cross_link_restraint']
     if xlink_table is not None:
-        xlinks = make_crosslink_pseudobonds(xlink_table, smodels)
+        xlinks = make_crosslink_pseudobonds(session, xlink_table, smodels)
 
     pgrids = []
     ensembles_table = tables['ihm_ensemble_info']
@@ -61,7 +63,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = False, **kw):
     lmodels = []
     datasets_table = tables['ihm_dataset_other']
     if datasets_table and load_linked_files:
-        lmodels = read_linked_datasets(session, datasets_table, gmodels)
+        lmodels = read_linked_datasets(session, datasets_table, gmodels, acomp)
         if lmodels:
             from chimerax.core.models import Model
             comp_group = Model('Comparative models', session)
@@ -72,6 +74,32 @@ def read_ihm(session, filename, name, *args, load_linked_files = False, **kw):
            (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids), len(lmodels)))
     return [ihm_model], msg
 
+# -----------------------------------------------------------------------------
+#
+class Assembly:
+    def __init__(self, assembly_id, entity_id, entity_description, asym_id, seq_beg, seq_end):
+        self.assembly_id = assembly_id
+        self.entity_id = entity_id
+        self.entity_description = entity_description
+        self.asym_id = asym_id
+        self.seq_begin = seq_beg
+        self.seq_end = seq_end
+
+# -----------------------------------------------------------------------------
+#
+def assembly_components(ihm_struct_assembly_table):
+    sa_fields = [
+        'assembly_id',
+        'entity_description',
+        'entity_id',
+        'asym_id',
+        'seq_id_begin',
+        'seq_id_end']
+    sa = ihm_struct_assembly_table.fields(sa_fields)
+    acomp = [Assembly(aid, eid, edesc, asym_id, seq_beg, seq_end)
+             for aid, edesc, eid, asym_id, seq_beg, seq_end in sa]
+    return acomp
+    
 # -----------------------------------------------------------------------------
 #
 def make_model_groups(session, ihm_model_list_table):
@@ -95,7 +123,7 @@ def make_model_groups(session, ihm_model_list_table):
 
 # -----------------------------------------------------------------------------
 #
-def make_sphere_models(session, spheres_obj_site, group_models):
+def make_sphere_models(session, spheres_obj_site, group_models, acomp):
 
     sos_fields = [
         'seq_id_begin',
@@ -112,21 +140,31 @@ def make_sphere_models(session, spheres_obj_site, group_models):
         sb, se = int(seq_beg), int(seq_end)
         xyz = float(x), float(y), float(z)
         r = float(radius)
-        mspheres.setdefault(model_id, []).append((sb,se,asym_id,xyz,r))
+        mspheres.setdefault(model_id, {}).setdefault(asym_id, []).append((sb,se,xyz,r))
 
-    models = [IHMSphereModel(session, 'Sphere model %s' % mid, mid, slist) for mid, slist in mspheres.items()]
-    models.sort(key = lambda m: m.ihm_model_id)
+    aname = {a.asym_id:a.entity_description for a in acomp}
+    smodels = []
+    for mid, asym_spheres in mspheres.items():
+        sm = SphereModel(mid, session)
+        smodels.append(sm)
+        models = [SphereAsymModel(session, aname[asym_id], asym_id, mid, slist)
+                  for asym_id, slist in asym_spheres.items()]
+        models.sort(key = lambda m: m.asym_id)
+        sm.add_asym_models(models)
+    smodels.sort(key = lambda m: m.ihm_model_id)
+    for sm in smodels[1:]:
+        sm.display = False
 
     # Add sphere models to group
     gmodel = {id:g for g in group_models for id in g.ihm_model_ids}
-    for m in models:
+    for m in smodels:
         gmodel[m.ihm_model_id].add([m])
 
-    return models
+    return smodels
 
 # -----------------------------------------------------------------------------
 #
-def make_crosslink_pseudobonds(xlink_restraint, models,
+def make_crosslink_pseudobonds(session, xlink_restraint, smodels,
                                radius = 1.0,
                                color = (0,255,0,255),		# Green
                                long_color = (255,0,0,255)):	# Red
@@ -145,20 +183,26 @@ def make_crosslink_pseudobonds(xlink_restraint, models,
         xl = ((asym_id_1, int(seq_id_1)), (asym_id_2, int(seq_id_2)), float(distance_threshold))
         xlinks.setdefault(type, []).append(xl)
 
-    if xlinks:
-        for m in models:
-            for type, xl in xlinks.items():
-                xname = '%d %s crosslinks' % (len(xl), type)
-                g = m.pseudobond_group(xname)
-                g.name = xname
-                for r1, r2, d in xl:
-                    s1, s2 = m.residue_sphere(*r1), m.residue_sphere(*r2)
-                    if s1 and s2 and s1 is not s2:
-                        b = g.new_pseudobond(s1, s2)
-                        b.color = long_color if b.length > d else color
-                        b.radius = radius
-                        b.halfbond = False
-                        b.restraint_distance = d
+    if not xlinks:
+        return xlinks
+    
+    for sm in smodels:
+        pbgs = []
+        for type, xl in xlinks.items():
+            xname = '%d %s crosslinks %s' % (len(xl), type, sm.ihm_model_id)
+            g = session.pb_manager.get_group(xname)
+            # g.name = xname
+            pbgs.append(g)
+            for (asym1, seq1), (asym2, seq2), d in xl:
+                m1, m2 = sm.asym_model(asym1), sm.asym_model(asym2)
+                s1, s2 = m1.residue_sphere(seq1), m2.residue_sphere(seq2)
+                if s1 and s2 and s1 is not s2:
+                    b = g.new_pseudobond(s1, s2)
+                    b.color = long_color if b.length > d else color
+                    b.radius = radius
+                    b.halfbond = False
+                    b.restraint_distance = d
+        sm.add(pbgs)
 
     return xlinks
 
@@ -283,7 +327,7 @@ from chimerax.core.map import covariance_sum
 
 # -----------------------------------------------------------------------------
 #
-def read_linked_datasets(session, datasets_table, gmodels):
+def read_linked_datasets(session, datasets_table, gmodels, acomp):
     '''Read linked data from ihm_dataset_other table'''
     lmodels = []
     fields = ['data_type', 'doi', 'content_filename']
@@ -294,7 +338,17 @@ def read_linked_datasets(session, datasets_table, gmodels):
             from os.path import basename
             name = basename(content_filename)
             from chimerax.core.atomic.pdb import open_pdb
-            models, msg = open_pdb(session, pdbf, name)
+            models, msg = open_pdb(session, pdbf, name, smart_initial_display = False)
+            from numpy import random, uint8
+            color = random.randint(128,255,(4,),uint8)
+            color[3] = 255
+            for m in models:
+                r = m.residues
+                r.ribbon_colors = color
+                r.ribbon_displays = True
+                a = m.atoms
+                a.colors = color
+                a.displays = False
             pdbf.close()
             lmodels.extend(models)
     return lmodels
@@ -307,32 +361,52 @@ def register():
     io.register_format("Integrative Hybrid Model", structure.CATEGORY, (".ihm",), ("ihm",),
                        open_func=read_ihm)
 
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.models import Model
+class SphereModel(Model):
+    def __init__(self, model_id, session):
+        Model.__init__(self, 'Sphere model %s' % model_id, session)
+        self.ihm_model_id = model_id
+        self._asym_models = {}
+
+    def add_asym_models(self, models):
+        Model.add(self, models)
+        am = self._asym_models
+        for m in models:
+            am[m.asym_id] = m
+
+    def asym_model(self, asym_id):
+        return self._asym_models.get(asym_id)
+    
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.atomic import Structure
-class IHMSphereModel(Structure):
-    def __init__(self, session, name, id, sphere_list):
+class SphereAsymModel(Structure):
+    def __init__(self, session, name, asym_id, model_id, sphere_list):
         Structure.__init__(self, session, name = name, smart_initial_display = False)
 
-        self.ihm_model_id = id
-        self._res_sphere = rs = {}	# (asym_id, res_num) -> sphere atom
+        self.ihm_model_id = model_id
+        self.asym_id = asym_id
+        self._res_sphere = rs = {}	# res_num -> sphere atom
         
         from chimerax.core.atomic.colors import chain_rgba8
-        for (sb,se,asym_id,xyz,r) in sphere_list:
+        color = chain_rgba8(asym_id)
+        for (sb,se,xyz,r) in sphere_list:
             aname = ''
             a = self.new_atom(aname, 'H')
             a.coord = xyz
             a.radius = r
             a.draw_mode = a.SPHERE_STYLE
-            a.color = chain_rgba8(asym_id)
+            a.color = color
             rname = '%d' % (se-sb+1)
             r = self.new_residue(rname, asym_id, sb)
             r.add_atom(a)
             for s in range(sb, se+1):
-                rs[(asym_id,s)] = a
+                rs[s] = a
         self.new_atoms()
 
-    def residue_sphere(self, asym_id, res_num):
-
-        return self._res_sphere.get((asym_id, res_num))
+    def residue_sphere(self, res_num):
+        return self._res_sphere.get(res_num)
     
