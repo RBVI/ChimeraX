@@ -2,25 +2,24 @@
 <!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg version="1.1"
-	 id="svg2" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:svg="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" sodipodi:docname="ChimeraX-icon.svg" inkscape:version="0.91 r13725"
-	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="907.505px"
-	 height="828.361px" viewBox="-145.12 -182.361 907.505 828.361" enable-background="new -145.12 -182.361 907.505 828.361"
-	 xml:space="preserve">
-<filter  style="color-interpolation-filters:sRGB;" inkscape:label="Drop Shadow" id="filter4198">
-	<feFlood  result="flood" flood-color="rgb(0,0,0)" flood-opacity="0.498039" id="feFlood4200"></feFlood>
-	<feComposite  operator="in" in2="SourceGraphic" in="flood" result="composite1" id="feComposite4202"></feComposite>
-	<feGaussianBlur  in="composite1" stdDeviation="4.7" result="blur" id="feGaussianBlur4204"></feGaussianBlur>
-	<feOffset  dy="8" dx="8" result="offset" id="feOffset4206"></feOffset>
-	<feComposite  operator="over" in2="offset" in="SourceGraphic" result="composite2" id="feComposite4208"></feComposite>
+	 id="svg2" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:svg="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:dc="http://purl.org/dc/elements/1.1/" sodipodi:docname="ChimeraX-icon.svg" inkscape:version="0.91 r13725"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="773px" height="925px"
+	 viewBox="-84.5 -250.5 773 925" enable-background="new -84.5 -250.5 773 925" xml:space="preserve">
+<filter  inkscape:label="Drop Shadow" id="filter4198" style="color-interpolation-filters:sRGB;">
+	<feFlood  flood-color="rgb(0,0,0)" id="feFlood4200" result="flood" flood-opacity="0.498039"></feFlood>
+	<feComposite  id="feComposite4202" result="composite1" in="flood" in2="SourceGraphic" operator="in"></feComposite>
+	<feGaussianBlur  id="feGaussianBlur4204" result="blur" in="composite1" stdDeviation="4.7"></feGaussianBlur>
+	<feOffset  id="feOffset4206" result="offset" dy="8" dx="8"></feOffset>
+	<feComposite  id="feComposite4208" result="composite2" in="SourceGraphic" in2="offset" operator="over"></feComposite>
 </filter>
-<filter  style="color-interpolation-filters:sRGB;" inkscape:label="Drop Shadow" id="filter4186">
-	<feFlood  result="flood" flood-color="rgb(0,0,0)" flood-opacity="0.498039" id="feFlood4188"></feFlood>
-	<feComposite  operator="in" in2="SourceGraphic" in="flood" result="composite1" id="feComposite4190"></feComposite>
-	<feGaussianBlur  in="composite1" stdDeviation="4.7" result="blur" id="feGaussianBlur4192"></feGaussianBlur>
-	<feOffset  dy="-8" dx="8" result="offset" id="feOffset4194"></feOffset>
-	<feComposite  operator="over" in2="offset" in="SourceGraphic" result="composite2" id="feComposite4196"></feComposite>
+<filter  inkscape:label="Drop Shadow" id="filter4186" style="color-interpolation-filters:sRGB;">
+	<feFlood  flood-color="rgb(0,0,0)" id="feFlood4188" result="flood" flood-opacity="0.498039"></feFlood>
+	<feComposite  id="feComposite4190" result="composite1" in="flood" in2="SourceGraphic" operator="in"></feComposite>
+	<feGaussianBlur  id="feGaussianBlur4192" result="blur" in="composite1" stdDeviation="4.7"></feGaussianBlur>
+	<feOffset  id="feOffset4194" result="offset" dy="-8" dx="8"></feOffset>
+	<feComposite  id="feComposite4196" result="composite2" in="SourceGraphic" in2="offset" operator="over"></feComposite>
 </filter>
-<sodipodi:namedview  inkscape:cy="320" inkscape:cx="428.90827" inkscape:zoom="0.52149125" showgrid="false" guidetolerance="10" gridtolerance="10" objecttolerance="10" borderopacity="1" pagecolor="#ffffff" bordercolor="#666666" id="namedview4" inkscape:current-layer="g10" inkscape:window-maximized="0" inkscape:window-y="192" inkscape:window-x="605" inkscape:window-height="1044" inkscape:window-width="1542" inkscape:pageshadow="2" inkscape:pageopacity="0">
+<sodipodi:namedview  id="namedview4" inkscape:pageopacity="0" inkscape:window-width="1542" inkscape:window-x="605" inkscape:window-height="1044" inkscape:current-layer="g10" inkscape:window-y="192" inkscape:pageshadow="2" inkscape:window-maximized="0" borderopacity="1" showgrid="false" pagecolor="#ffffff" inkscape:zoom="0.52149125" objecttolerance="10" gridtolerance="10" guidetolerance="10" inkscape:cy="320" inkscape:cx="428.90827" bordercolor="#666666">
 	</sodipodi:namedview>
 <g id="g10" transform="matrix(1.25,0,0,-1.25,0,640)" inkscape:label="Chimera-icon" inkscape:groupmode="layer">
 	<g id="g12" filter="url(#filter4186)">
@@ -84,14 +83,10 @@
 	</g>
 </g>
 <g>
-	
-		<sodipodi:namedview  inkscape:cy="-23.180794" inkscape:cx="52.705473" inkscape:zoom="2.8" showgrid="false" borderopacity="1.0" pagecolor="#ffffff" bordercolor="#666666" id="base" fit-margin-bottom="0" fit-margin-right="0" inkscape:document-units="px" inkscape:current-layer="g6331" inkscape:window-maximized="1" inkscape:window-y="0" inkscape:window-x="-8" inkscape:window-height="1689" inkscape:window-width="3200" inkscape:pageshadow="2" inkscape:pageopacity="0.0" fit-margin-top="0" fit-margin-left="0">
-		</sodipodi:namedview>
-	<g id="layer1" transform="translate(-71.835 -798.77)" inkscape:label="Layer 1" inkscape:groupmode="layer">
-		<g id="g6331" transform="translate(-358.67 457.9)">
-			<path id="rect3006" inkscape:connector-curvature="0" fill="none" stroke="#000000" stroke-width="10" d="M734.948,166.37
-				L281.58,492.173h151.122V980.87h604.49V492.173h151.122L734.948,166.37z"/>
-		</g>
+	<g id="layer1" transform="translate(-88.641 -212.12)">
+		<path id="rect3464" fill="none" stroke="#000000" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" d="
+			M746.131,319.632l0.014,130.298l-44.32-38.99V847.62H86.358V403.13l-47.902,46.799l2.443-130.869l41.404-44.592h0.521V24.938
+			h74.466v182.964L391.427-15.88L746.131,319.632L746.131,319.632z"/>
 	</g>
 </g>
 </svg>

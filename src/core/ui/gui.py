@@ -836,7 +836,9 @@ def redirect_stdio_to_logger(logger):
             self.closed = False
 
         def write(self, s):
-            self.logger.info(s, add_newline = False)
+            self.logger.session.ui.thread_safe(self.logger.info,
+                                               s, add_newline = False)
+            # self.logger.info(s, add_newline = False)
 
         def flush(self):
             return
