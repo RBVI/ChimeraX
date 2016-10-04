@@ -127,7 +127,7 @@ class ModelPanel(ToolInstance):
             item.setText(3, name)
             if not update:
                 from chimerax.core.atomic import Structure
-                if not isinstance(model, Structure):
+                if not isinstance(model, Structure) and model.display:
                     self.tree.expandItem(item)
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)
