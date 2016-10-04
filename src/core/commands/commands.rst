@@ -63,10 +63,12 @@ and their code location is described with the function descriptions.
 | `select`_ - Select objects
 | `set`_ - Set rendering effects (background color, silhouettes)
 | `show`_ - Show atoms, ribbons, models
+| `smoothlines`_ * - Smooth paths in line drawings
 | `snav`_ * - Enable space navigator input device
 | `sop`_ - Surface operations
 | `split`_ - Split atomic structures into pieces
 | `stop`_ - Stop motion
+| `struts`_ * - Add struts between atoms for 3d printing
 | `style`_ - Change atom display style
 | `surface`_ - Compute a molecular surface
 | `sym`_ - Show molecular assemblies involving symmetry
@@ -244,6 +246,10 @@ rainbow
 =======
 .. autofunction:: chimerax.core.commands.rainbow.rainbow
 
+rename
+======
+.. autofunction:: chimerax.core.commands.rename.rename
+
 roll
 ====
 .. autofunction:: chimerax.core.commands.roll.roll
@@ -284,6 +290,10 @@ snav
 ====
 .. autofunction:: chimerax.spacenavigator.snav.snav
 
+smoothlines
+===========
+.. autofunction:: chimerax.smooth_lines.smoothlines.smoothlines
+
 sop
 ===
 .. automodule:: chimerax.core.commands.sop
@@ -296,6 +306,10 @@ split
 stop
 ====
 .. autofunction:: chimerax.core.commands.stop.stop
+
+struts
+======
+.. autofunction:: chimerax.struts.struts.struts
 
 style
 =====
