@@ -13,6 +13,24 @@
 # Smooth lines of a drawing.
 #
 def smoothlines(session, models, step_factor = 0.1, iterations = 10, replace = False):
+    '''
+    Smooth models consisting of lines.  Each vertex is moved the fraction step_factor
+    towards the average position of it and its connected neighbors.  This is repeated
+    for the specified number of iterations.  A new model is created unless the replace
+    option is given in which case the current model is changed.
+
+    Parameters
+    ----------
+    models : list Model
+        The models must consist of line segments.
+    step_factor : float
+        Fraction of distance to move each vertex toward average of itself and
+        connected neighbors.  Default 0.1
+    iterations : integer
+        Number of times to repeat smoothing.  Default 10.
+    replace : bool
+        Whether to replace the lines in the existing model, or make a new model.
+    '''
 
     for model in models:
         ta = model.triangles
@@ -38,13 +56,13 @@ def smoothlines(session, models, step_factor = 0.1, iterations = 10, replace = F
 
 def register_smoothlines_command():
 
-    from chimerax.core.commands import CmdDesc, register, ModelsArg, FloatArg, IntArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, ModelsArg, FloatArg, IntArg, NoArg
 
     desc = CmdDesc(
         required = [('models', ModelsArg)],
         keyword = [('step_factor', FloatArg),
                    ('iterations', IntArg),
-                   ('replace', BoolArg)]
+                   ('replace', NoArg)]
     )
     register('smoothlines', desc, smoothlines)
 
