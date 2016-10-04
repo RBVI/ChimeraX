@@ -21,6 +21,7 @@ and their code location is described with the function descriptions.
 | `alias`_ - Define aliases for commands
 | `align`_ - Align one set of atoms to another
 | `buriedarea`_ - Compute buried area between atomic structures
+| `cage`_ * - Place models on polygonal cages
 | `camera`_ - Change camera settings
 | `cartoon`_ * - Display atomic structure ribbons or pipes/planks
 | `clip`_ - Clip models
@@ -54,6 +55,7 @@ and their code location is described with the function descriptions.
 | `pwd`_ - Present working directory
 | `rainbow`_ - Color residues and chains
 | `rename`_ - Rename models
+| `resfit`_ * - Show density around residues
 | `roll`_ - Rotate models
 | `run`_ - Run a user command string
 | `rungs`_ - Display nucleotides as cylinders
@@ -77,6 +79,7 @@ and their code location is described with the function descriptions.
 | `transparency`_ - Set transparency of atoms, ribbons and surfaces
 | `turn`_ - Rotate models
 | `view`_ - Move camera to view specified objects
+| `vive`_ * - Enable HTC Vive virtual reality headset
 | `volume`_ - Change density map display settings
 | `vop`_ - Filter density maps
 | `vseries`_ - Play density map time series
@@ -103,6 +106,10 @@ align
 buriedarea
 ==========
 .. autofunction:: chimerax.core.commands.buriedarea.buriedarea
+
+cage
+====
+.. autofunction:: chimerax.cage_builder.cmd.cage
 
 camera
 ======
@@ -250,6 +257,10 @@ rename
 ======
 .. autofunction:: chimerax.core.commands.rename.rename
 
+resfit
+======
+.. autofunction:: chimerax.residue_fit.cmd.resfit
+
 roll
 ====
 .. autofunction:: chimerax.core.commands.roll.roll
@@ -346,6 +357,10 @@ turn
 view
 ====
 .. autofunction:: chimerax.core.commands.view.view
+
+vive
+====
+.. autofunction:: chimerax.vive.vive.vive
 
 volume
 ======
