@@ -24,7 +24,7 @@ class Alignment(State):
         self.file_attrs = file_attrs
         self.file_markups = file_markups
         from chimerax.core.atomic import AtomicStructure
-        self.associate([s for s in session.models if isinstance(s, AtomicStructure)]
+        self.associate([s for s in session.models if isinstance(s, AtomicStructure)])
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False):
         """associate models with sequences
@@ -143,7 +143,7 @@ class Alignment(State):
                     aseqs = []
                     for chain in self.associations.keys():
                         if chain.structure == struct:
-                            aseqs.append(self.associations[chain]
+                            aseqs.append(self.associations[chain])
                     aseqs.append(seq)
                 for aseq in aseqs:
                     if best_errors:

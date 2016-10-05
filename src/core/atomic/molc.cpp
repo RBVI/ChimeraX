@@ -2486,7 +2486,7 @@ extern "C" EXPORT PyObject *sseq_try_assoc(void *seq_ptr, void *sseq_ptr, size_t
         PyObject* map = pysupport::cmap_of_ptr_int_to_pydict(arv.match_map.res_to_pos(),
             "residue", "associated seq position");
         PyTuple_SET_ITEM(tuple, 0, map);
-        PyTuple_SET_ITEM(tuple, 1, PyLong_FromLong(static_cast<long>(ret_vals.num_errors)));
+        PyTuple_SET_ITEM(tuple, 1, PyLong_FromLong(static_cast<long>(arv.num_errors)));
     }
     return tuple;
 }

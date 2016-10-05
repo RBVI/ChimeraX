@@ -16,6 +16,7 @@
 #ifndef pysupport_convert
 #define pysupport_convert
 
+#include <map>
 #include <stdexcept>
 #include <sstream>
 #include <string>
