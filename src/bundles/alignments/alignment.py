@@ -23,6 +23,8 @@ class Alignment(State):
         self.name = name
         self.file_attrs = file_attrs
         self.file_markups = file_markups
+        from chimerax.core.atomic import AtomicStructure
+        self.associate([s for s in session.models if isinstance(s, AtomicStructure)]
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False):
         """associate models with sequences
@@ -190,10 +192,8 @@ class Alignment(State):
                     for aseq in aseqs:
                         status("Using Needleman-Wunsch to test-associate"
                             " %s %s with %s\n" % (struct_name, sseq.name, aseq.name))
-                        #TODO
-                        match_map, errors = nwAssoc(aseq, sseq)
-                        if not best_seq \
-                        or errors < best_errors:
+                        match_map, errors = nw_assoc(aseq, sseq)
+                        if not best_seq or errors < best_errors:
                             best_match_map = match_map
                             best_errors = errors
                             best_seq = aseq
@@ -201,29 +201,25 @@ class Alignment(State):
                 if best_match_map:
                     assoc_info = (best_seq, best_sseq, best_match_map, best_errors)
                 else:
-                    status("No reasonable association"
-                        " found for %s %s\n" % (struct_name, sseq.name))
+                    status("No reasonable association found for %s %s\n" % (struct_name, sseq.name))
 
             if assoc_info:
                 best_seq, sseq, best_match_map, best_errors = assoc_info
-                if reeval and sseq.molecule in self.associations:
-                    old_aseq = self.associations[sseq.molecule]
+                if reeval and sseq in self.associations:
+                    old_aseq = self.associations[sseq]
                     if old_aseq == best_seq:
                         continue
-                    self.disassociate(sseq.molecule)
-                msg = "Associated %s %s to %s with %d error(s)"\
-                        "\n" % (struct_name, sseq.name,
+                    #TODO
+                    #self.disassociate(sseq.molecule)
+                msg = "Associated %s %s to %s with %d error(s)\n" % (struct_name, sseq.name,
                         best_seq.name, best_errors)
-                status(msg, log=1, followWith=
-                    "Right-click to focus on residue\n"
-                    "Right-shift-click to focus on region",
-                    followLog=False, blankAfter=10)
+                status(msg, log=True, follow_with= "Right-click to focus on residue\n"
+                    "Right-shift-click to focus on region", follow_log=False, blank_after=10)
                 self.prematched_assoc_structure(best_seq, sseq,
                         best_match_map, best_errors, reassoc)
                 new_match_maps.append(best_match_map)
-        if self.intrinsicStructure and len(self.seqs) == 1:
-            self.showSS()
-            status("Helices/strands depicted in gold/green")
+        #TODO
+        """
         if new_match_maps:
             if reassoc:
                 trigName = MOD_ASSOC
@@ -234,6 +230,7 @@ class Alignment(State):
             self.triggers.activateTrigger(trigName, trigData)
             if self.prefs[SHOW_SEL]:
                 self.regionBrowser.showChimeraSelection()
+        """
 
     def prematched_assoc_structure(self, aseq, sseq, match_map, errors, reassoc):
         """If somehow you had obtained a SeqMatchMap for the aseq<->sseq correspondence,
@@ -271,3 +268,49 @@ class Alignment(State):
     def _close(self):
         """Called by alignments manager so alignment can clean up (notify viewers, etc.)"""
         pass
+
+def nw_assoc(align_seq, struct_seq):
+    '''Wrapper around Needle-Wunch matching, to make it return the same kinds of values
+       that try_assoc returns'''
+
+    from chimerax.core.atomic import Sequence, SeqMatchMap
+    sseq = struct_seq
+    aseq = Sequence(name=align_seq.name, characters=align_seq.ungapped())
+    aseq.circular = align_seq.circular
+    from chimerax.align_algs.NeedlemanWunsch import nw
+    score, match_list = nw(sseq, aseq)
+
+    errors = 0
+    # matched are in reverse order...
+    try:
+        m_end = match_list[0][0]
+    except IndexError:
+        m_end = -1
+    if m_end < len(sseq) - 1:
+        # trailing unmatched
+        errors += len(sseq) - m_end - 1
+
+    match_map = SeqMatchMap(aseq, sseq)
+    last_match = m_end + 1
+    for s_index, a_index in match_list:
+        if sseq[s_index] != aseq[a_index]:
+            errors += 1
+
+        if s_index < last_match - 1:
+            # gap in structure sequence
+            errors += last_match - s_index - 1
+
+        res = sseq.residues[s_index]
+        if res:
+            match_map.match(res, a_index)
+
+        last_match = s_index
+    if last_match > 0:
+        # beginning unmatched
+        errors += last_match
+
+    if len(sseq) > len(aseq):
+        # unmatched residues forced, reduce errors by that amount...
+        errors -= len(sseq) - len(aseq)
+
+    return match_map, errors
