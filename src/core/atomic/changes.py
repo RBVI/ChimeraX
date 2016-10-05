@@ -58,7 +58,7 @@ class Changes:
     def created_chains(self, include_new_structures=True):
         return self._created_objects("Chain", include_new_structures)
 
-    def created_graphs(self):
+    def created_structures(self):
         """includes atomic structures"""
         return self._changes["Structure"].created
 
@@ -71,7 +71,7 @@ class Changes:
     def created_residues(self, include_new_structures=True):
         return self._created_objects("Residue", include_new_structures)
 
-    graph_reasons = atomic_structure_reasons
+    structure_reasons = atomic_structure_reasons
 
     def modified_atomic_structures(self):
         return _atomic_structures(self._changes["Structure"].modified)
@@ -85,7 +85,7 @@ class Changes:
     def modified_chains(self):
         return self._changes["Chain"].modified
 
-    def modified_graphs(self):
+    def modified_structures(self):
         return self._changes["Structure"].modified
 
     def modified_pseudobond_groups(self):
@@ -118,7 +118,7 @@ class Changes:
     def num_deleted_structures(self):
         """Not possible to distinguish between AtomicStructures and Structures"""
         return self._changes["Structure"].total_deleted
-    num_deleted_graphs = num_deleted_structures
+    num_deleted_structures = num_deleted_structures
 
     def pseudobond_reasons(self):
         return self._changes["Pseudobond"].reasons

@@ -18,6 +18,7 @@ class Alignment(State):
     Should only be created through new_alignment method of the alignment manager
     """
     def __init__(self, session, seqs, name, file_attrs, file_markups, autodestroy):
+        self.session = session
         self.seqs = seqs
         self.name = name
         self.file_attrs = file_attrs
@@ -26,7 +27,7 @@ class Alignment(State):
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False):
         """associate models with sequences
 
-           'models' is normally a list of models, but it can be a Chain or None.
+           'models' is normally a list of AtomicStructures, but it can be a Chain or None.
            If None, then some or all of the alignment sequences have 'residues'
            attributes indicating their corresponding model; set up the proper associations.
 
@@ -40,19 +41,17 @@ class Alignment(State):
 
            If a chain is less than 'min_length' residues, ignore it.
         """
-        """
-        from structAssoc import tryAssoc, nwAssoc, estimateAssocParams
-        """
-        from chimerax.core.atomic import Chain, StructureSeq, AtomicStructure
-        """
-        from prefs import ASSOC_ERROR_RATE
-        """
+
+        from chimerax.core.atomic import Chain, StructureSeq, AtomicStructure, SeqMatchMap, \
+            estimate_assoc_params, StructAssocError
+        from .settings import settings
+        status = self.session.logger.status
         reeval = False
         if isinstance(models, Chain):
             structures = [models]
         elif models is None:
             for seq in self.seqs:
-                if isinstance(seq, StructureSeq) \
+                if isinstance(seq, Chain) \
                 and seq.existing_residues.chains[0] not in self.associations:
                     self.associate([], seq=seq, reassoc=reassoc)
             return
@@ -66,14 +65,13 @@ class Alignment(State):
         # handled later)
         new_match_maps = []
         if seq:
-            if isinstance(seq, StructureSeq) and not isinstance(models, Chain):
+            if isinstance(seq, StructureSeq) and not isinstance(models, Sequence):
                 # if the sequence we're being asked to set up an association for is a
-                # StructureSeq then we already know what molecule it associates with and how...
+                # StructureSeq then we already know what structure it associates with and how...
                 structures = []
-                match_map = {}
+                match_map = SeqMatchMap(self.session, seq, seq)
                 for res, index in seq.res_map.items():
-                    match_map[res] = index
-                    match_map[index] = res
+                    match_map.match(res, index)
                 #TODO: finish prematched_...
                 self.prematched_assoc_structure(seq, seq, match_map, 0, reassoc)
                 new_match_maps.append(match_map)
@@ -86,166 +84,146 @@ class Alignment(State):
             forw_aseqs = aseqs
             rev_aseqs = aseqs[:]
             rev_aseqs.reverse()
-        for mol in structures:
-            if isinstance(mol, Sequence):
-                mseqs = [mol]
-                mol = mol.molecule
+        for struct in structures:
+            if isinstance(struct, Chain):
+                sseqs = [struct]
+                struct = struct.structure
             else:
-                mseqs = mol.sequences()
-                # sort sequences so that longest is tried
-                # first
-                mseqs.sort(lambda a, b: 0 - cmp(len(a),len(b)))
-            assocInfo = None
-            molName = os.path.split(mol.name)[-1]
-            if '.' in mol.oslIdent():
+                sseqs = struct.chains
+                # sort sequences so that longest is tried first
+                sseqs.sort(lambda a, b: 0 - cmp(len(a),len(b)))
+            assoc_info = None
+            struct_name = os.path.split(struct.name)[-1]
+            if '.' in struct.id_string():
                 # ensemble
-                molName += " (" + mol.oslIdent() + ")"
-            for mseq in mseqs:
-                if len(mseq) < min_length:
+                struct_name += " (" + struct.id_string() + ")"
+            for sseq in sseqs:
+                if len(sseq) < min_length:
                     continue
 
-                # find the apparent gaps in the structure,
-                # and estimate total length of structure
-                # sequence given these gaps;
-                # make a list of the continuous segments
-                estLen, segments, gaps = estimateAssocParams(mseq)
+                # find the apparent gaps in the structure, and estimate total length of
+                # structure sequence given these gaps; make a list of the continuous segments
+                est_len, segments, gaps = estimate_assoc_params(sseq)
                 if not force:
                     if len(segments) > 10 and len(segments[0]) == 1 \
                     and segments.count(segments[0]) == len(segments):
                         # some kind of bogus structure (e.g. from SAXS)
                         return
 
-                if estLen >= len(forw_aseqs[-1].ungapped()):
-                    # structure sequence longer than
-                    # alignment sequence; match against
-                    # longest alignment sequences first
+                if est_len >= len(forw_aseqs[-1].ungapped()):
+                    # structure sequence longer than alignment sequence;
+                    # match against longest alignment sequences first
                     aseqs = rev_aseqs
-                elif estLen > len(forw_aseqs[0].ungapped()):
-                    # mixture of longer and shorter
-                    # alignment seqs; do special sorting
+                elif est_len > len(forw_aseqs[0].ungapped()):
+                    # mixture of longer and shorter alignment seqs;
+                    # do special sorting
+                    def _mix_sort(a, b, lm):
+                        la = len(a.ungapped())
+                        lb = len(b.ungapped())
+                        if la >= lm:
+                            if lb >= lm:
+                                return cmp(la, lb)
+                            else:
+                                return -1
+                        else:
+                            if lb >= lm:
+                                return 1
+                            else:
+                                return cmp(lb, la)
                     mixed = aseqs[:]
-                    mixed.sort(lambda a, b:
-                            _mixSort(a, b, estLen))
+                    mixed.sort(lambda a, b: _mix_sort(a, b, est_len))
                     aseqs = mixed
                 else:
                     aseqs = forw_aseqs
-                bestSeq = bestErrors = None
-                maxErrors = len(mseq) / self.prefs[
-                            ASSOC_ERROR_RATE]
+                best_seq = best_errors = None
+                max_errors = len(sseq) // settings.assoc_error_rate
                 if reeval:
-                    if mol in self.associations:
-                        aseqs = [self.associations[mol],
-                                    seq]
-                    else:
-                        aseqs = [seq]
+                    aseqs = []
+                    for chain in self.associations.keys():
+                        if chain.structure == struct:
+                            aseqs.append(self.associations[chain]
+                    aseqs.append(seq)
                 for aseq in aseqs:
-                    if bestErrors:
-                        tryErrors = bestErrors - 1
+                    if best_errors:
+                        try_errors = best_errors - 1
                     else:
-                        tryErrors = maxErrors
+                        try_errors = max_errors
                     try:
-                        match_map, errors = tryAssoc(
-                            aseq, mseq, segments,
-                            gaps, estLen,
-                            maxErrors=tryErrors)
-                    except ValueError:
-                        # maybe the sequence is
-                        # derived from the structure...
+                        match_map, errors = try_assoc(aseq, sseq, segments, gaps, est_len,
+                            max_errors=try_errors)
+                    except StructAssocError:
+                        # maybe the sequence is derived from the structure...
                         if gaps:
                             try:
-                                match_map, \
-                                errors = \
-                                tryAssoc(aseq,
-                                mseq, [mseq[:]],
-                                [], len(mseq),
-                                maxErrors=
-                                tryErrors)
-                            except ValueError:
+                                match_map, errors = try_assoc(aseq, sseq, [sseq[:]], [], len(sseq),
+                                    max_errors=try_errors)
+                            except StructAssocError:
                                 continue
                         else:
                             continue
                     else:
-                        # if the above worked but
-                        # had errors, see if just
-                        # smooshing sequence together
-                        # works better
+                        # if the above worked but had errors, see if just
+                        # smooshing sequence together works better
                         if errors and gaps:
                             try:
-                                match_map, \
-                                errors = \
-                                tryAssoc(aseq,
-                                mseq, [mseq[:]],
-                                [], len(mseq),
-                                maxErrors=
-                                errors-1)
-                            except ValueError:
+                                match_map, errors = try_assoc(aseq, sseq, [sseq[:]], [], len(sseq),
+                                    max_errors=errors-1)
+                            except StructAssocError:
                                 pass
 
-                    bestMatchMap = match_map
-                    bestErrors = errors
-                    bestSeq = aseq
+                    best_match_map = match_map
+                    best_errors = errors
+                    best_seq = aseq
                     if errors == 0:
                         break
 
-                if bestSeq:
-                    if assocInfo \
-                    and bestErrors >= assocInfo[-1]:
+                if best_seq:
+                    if assoc_info and best_errors >= assoc_info[-1]:
                         continue
-                    assocInfo = (bestSeq, mseq,
-                        bestMatchMap, bestErrors)
-            if not assocInfo and force:
-                # nothing matched built-in criteria
-                # use Needleman-Wunsch
-                bestSeq = bestMseq = bestErrors = None
-                maxErrors = len(mseq) / self.prefs[
-                            ASSOC_ERROR_RATE]
-                for mseq in mseqs:
-
+                    assoc_info = (best_seq, sseq, best_match_map, best_errors)
+            if not assoc_info and force:
+                # nothing matched built-in criteria, use Needleman-Wunsch
+                best_seq = best_sseq = best_errors = None
+                max_errors = len(sseq) // settings.assoc_error_rate
+                for sseq in sseqs:
                     # aseqs are already sorted by length...
                     for aseq in aseqs:
-                        self.status(
-        "Using Needleman-Wunsch to test-associate %s %s with %s\n"
-                            % (molName,
-                            mseq.name, aseq.name))
-                        match_map, errors = nwAssoc(
-                                aseq, mseq)
-                        if not bestSeq \
-                        or errors < bestErrors:
-                            bestMatchMap = match_map
-                            bestErrors = errors
-                            bestSeq = aseq
-                            bestMseq = mseq
-                if bestMatchMap:
-                    assocInfo = (bestSeq, bestMseq,
-                        bestMatchMap, bestErrors)
+                        status("Using Needleman-Wunsch to test-associate"
+                            " %s %s with %s\n" % (struct_name, sseq.name, aseq.name))
+                        #TODO
+                        match_map, errors = nwAssoc(aseq, sseq)
+                        if not best_seq \
+                        or errors < best_errors:
+                            best_match_map = match_map
+                            best_errors = errors
+                            best_seq = aseq
+                            best_sseq = sseq
+                if best_match_map:
+                    assoc_info = (best_seq, best_sseq, best_match_map, best_errors)
                 else:
-                    self.status("No reasonable association"
-                        " found for %s %s\n" % (molName,
-                        mseq.name))
+                    status("No reasonable association"
+                        " found for %s %s\n" % (struct_name, sseq.name))
 
-            if assocInfo:
-                bestSeq, mseq, bestMatchMap, bestErrors = \
-                                assocInfo
-                if reeval \
-                and mseq.molecule in self.associations:
-                    old_aseq = self.associations[
-                                mseq.molecule]
-                    if old_aseq == bestSeq:
+            if assoc_info:
+                best_seq, sseq, best_match_map, best_errors = assoc_info
+                if reeval and sseq.molecule in self.associations:
+                    old_aseq = self.associations[sseq.molecule]
+                    if old_aseq == best_seq:
                         continue
-                    self.disassociate(mseq.molecule)
+                    self.disassociate(sseq.molecule)
                 msg = "Associated %s %s to %s with %d error(s)"\
-                        "\n" % (molName, mseq.name,
-                        bestSeq.name, bestErrors)
-                self.status(msg, log=1, followWith=
+                        "\n" % (struct_name, sseq.name,
+                        best_seq.name, best_errors)
+                status(msg, log=1, followWith=
                     "Right-click to focus on residue\n"
                     "Right-shift-click to focus on region",
                     followLog=False, blankAfter=10)
-                self.prematched_assoc_structure(bestSeq, mseq,
-                        bestMatchMap, bestErrors, reassoc)
-                new_match_maps.append(bestMatchMap)
+                self.prematched_assoc_structure(best_seq, sseq,
+                        best_match_map, best_errors, reassoc)
+                new_match_maps.append(best_match_map)
         if self.intrinsicStructure and len(self.seqs) == 1:
             self.showSS()
-            self.status("Helices/strands depicted in gold/green")
+            status("Helices/strands depicted in gold/green")
         if new_match_maps:
             if reassoc:
                 trigName = MOD_ASSOC
@@ -257,38 +235,27 @@ class Alignment(State):
             if self.prefs[SHOW_SEL]:
                 self.regionBrowser.showChimeraSelection()
 
-    def prematched_assoc_structure(self, aseq, mseq, match_map, errors, reassoc):
-        """If somehow you had obtained a match_map for the aseq<->mseq correspondence,
+    def prematched_assoc_structure(self, aseq, sseq, match_map, errors, reassoc):
+        """If somehow you had obtained a SeqMatchMap for the aseq<->sseq correspondence,
            you would use this call instead of the more usual associate() call
         """
-        #TODO: support 'circular' attr in C++
-        if getattr(aseq, 'circular', False):
-            offset = len(aseq.ungapped())/2
-            for k, v in match_map.items():
-                if type(k) == chimera.Residue:
-                    match_map[v + offset] = k
-        mol = mseq.molecule
-        # can have several 'chains' of the same sequence match to
-        # one alignment sequence if there is an erroneous chain break
-        match_map['mseq'] = mseq
-        match_map['aseq'] = aseq
+        chain = sseq.chain
         try:
-            aseq.match_maps[mol] = match_map
+            aseq.match_maps[chain] = match_map
         except AttributeError:
-            aseq.match_maps = { mol: match_map }
-        self.associations[mol] = aseq
+            aseq.match_maps = { chain: match_map }
+        self.associations[chain] = aseq
 
-        self.seqCanvas.assocSeq(aseq)
-        if hasattr(aseq, 'residueSequence'):
-            aref = aseq.residueSequence
-            errors = True
-        else:
-            aref = aseq.ungapped()
+        #TODO
+        #self.seqCanvas.assocSeq(aseq)
+        #TODO
         # set up callbacks for structure changes
+        """
         match_map["mavDelHandler"] = mseq.triggers.addHandler(
                 mseq.TRIG_DELETE, self._mseqDelCB, match_map)
         match_map["mavModHandler"] = mseq.triggers.addHandler(
                 mseq.TRIG_MODIFY, self._mseqModCB, match_map)
+        """
 
     def take_snapshot(self, session, flags):
         return { 'version': 1, 'seqs': self.seqs, 'name': self.name,

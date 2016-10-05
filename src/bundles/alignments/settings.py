@@ -16,7 +16,8 @@ from chimerax.core.settings import Settings
 class _AlignmentsSettings(Settings):
 
     EXPLICIT_SAVE = {
-        'viewer': 'Multalign Viewer'
+        'viewer': 'Multalign Viewer',
+        'assoc_error_rate': 10
     }
 
 settings = None

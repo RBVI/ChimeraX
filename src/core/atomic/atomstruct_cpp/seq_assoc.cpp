@@ -18,29 +18,29 @@
 #include <cmath>  // std::abs
 
 #define ATOMSTRUCT_EXPORT
-#include "Chain.h"
 #include "Structure.h"
+#include "StructureSeq.h"
 #include "Residue.h"
 #include "seq_assoc.h"
 
 namespace atomstruct {
 
 static AssocParams
-find_gaps(Chain& chain)
+find_gaps(StructureSeq& sseq)
 {
     Residue* prev_res = nullptr;
     AssocParams ap;
     ap.est_len = 0;
-    auto ri = chain.residues().begin();
-    auto ci = chain.begin();
-    for (unsigned int i = 0; i < chain.size(); ++i, ++ri, ++ci) {
+    auto ri = sseq.residues().begin();
+    auto ci = sseq.begin();
+    for (unsigned int i = 0; i < sseq.size(); ++i, ++ri, ++ci) {
         ap.est_len += 1;
         auto res = *ri;
         if (res == nullptr) {
             // explicit gapping
-            ap.est_len = chain.size();
+            ap.est_len = sseq.size();
             ap.segments.clear();
-            ap.segments.emplace_back(chain.begin(), chain.end());
+            ap.segments.emplace_back(sseq.begin(), sseq.end());
             ap.gaps.clear();
             return ap;
         }
@@ -87,21 +87,21 @@ find_gaps(Chain& chain)
         ap.segments.back().push_back(c);
         prev_res = res;
     }
-    int front_pos = chain.residues().front()->position();
+    int front_pos = sseq.residues().front()->position();
     if (ap.est_len > 0 && front_pos > 1)
         ap.est_len += front_pos - 1;
     return ap;
 }
 
 AssocParams
-estimate_assoc_params(Chain& chain)
+estimate_assoc_params(StructureSeq& sseq)
 {
-    AssocParams ap = find_gaps(chain);
+    AssocParams ap = find_gaps(sseq);
 
     // Try to compensate for trailing/leading gaps by
     // looking at SEQRES records or their equivalent
-    auto info = chain.structure()->input_seq_info();
-    auto ii = info.find(chain.chain_id());
+    auto info = sseq.structure()->input_seq_info();
+    auto ii = info.find(sseq.chain_id());
     if (ii != info.end() && (*ii).second.size() > ap.est_len) {
         ap.est_len = (*ii).second.size();
     }
@@ -288,7 +288,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
 }
 
 AssocRetvals
-constrained_match(const Sequence::Contents& aseq, const Chain& mseq,
+constrained_match(const Sequence::Contents& aseq, const StructureSeq& mseq,
     const AssocParams& ap, unsigned int max_errors)
 {
     // all the segments should fit in aseq
@@ -320,7 +320,7 @@ constrained_match(const Sequence::Contents& aseq, const Chain& mseq,
 }
 
 AssocRetvals
-gapped_match(const Sequence::Contents& aseq, const Chain& mseq,
+gapped_match(const Sequence::Contents& aseq, const StructureSeq& mseq,
     const AssocParams& ap, unsigned int max_errors)
 {
     Sequence::Contents gapped = ap.segments[0];
@@ -398,7 +398,7 @@ gapped_match(const Sequence::Contents& aseq, const Chain& mseq,
 }
 
 AssocRetvals
-try_assoc(const Sequence& align_seq, const Chain& mseq,
+try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
     const AssocParams &ap, unsigned int max_errors)
 {
     int lower_to_upper = 'A' - 'a';
