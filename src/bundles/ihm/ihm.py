@@ -70,8 +70,13 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
     dataset_entities = {}
     starting_models = tables['ihm_starting_model_details']
     if starting_models:
-        #stmodels = read_starting_models(session, starting_models)
-        dataset_entities = read_starting_models(session, starting_models)
+        dataset_entities, emodels = read_starting_models(session, starting_models)
+        if emodels:
+            align_atomic_models_to_spheres(emodels, smodels)
+            from chimerax.core.models import Model
+            am_group = Model('Experimental models', session)
+            am_group.add(emodels)
+            ihm_model.add([am_group])
 
     lmodels = []
     datasets_table = tables['ihm_dataset_other']
@@ -82,7 +87,7 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
             comp_group = Model('Comparative models', session)
             comp_group.add(lmodels)
             ihm_model.add([comp_group])
-        align_comparative_models_to_spheres(lmodels, smodels)
+        align_atomic_models_to_spheres(lmodels, smodels)
         
     msg = ('Opened IHM file %s containing %d model groups, %d sphere models, %d distance restraints, %d ensemble distributions, %d linked models' %
            (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids), len(lmodels)))
@@ -347,9 +352,31 @@ def read_starting_models(session, starting_models):
               'dataset_list_id']
     rows = starting_models.fields(fields)
     dataset_entities = {}
+    emodels = []
     for eid, asym_id, seq_beg, seq_end, source, db_name, db_code, db_asym_id, did in rows:
         dataset_entities[did] = (eid, asym_id)
-    return dataset_entities
+        if source == 'experimental model' and db_name == 'PDB' and db_code:
+            from chimerax.core.atomic.mmcif import fetch_mmcif
+            models, msg = fetch_mmcif(session, db_code, smart_initial_display = False)
+            name = '%s %s' % (db_code, db_asym_id)
+            for m in models:
+                keep_one_chain(m, db_asym_id)
+                m.name = name
+                m.entity_id = eid
+                m.asym_id = asym_id
+                m.seq_begin, m.seq_end = seq_beg, seq_end
+                show_colored_ribbon(m, asym_id)
+            emodels.extend(models)
+            
+    return dataset_entities, emodels
+
+# -----------------------------------------------------------------------------
+#
+def keep_one_chain(s, chain_id):
+    atoms = s.atoms
+    cids = atoms.residues.chain_ids
+    datoms = atoms.filter(cids != chain_id)
+    datoms.delete()
     
 # -----------------------------------------------------------------------------
 #
@@ -365,55 +392,59 @@ def read_linked_datasets(session, datasets_table, gmodels, acomp, dataset_entiti
             name = basename(content_filename)
             from chimerax.core.atomic.pdb import open_pdb
             models, msg = open_pdb(session, pdbf, name, smart_initial_display = False)
-            if did in dataset_entities:
-                eid, asym_id = dataset_entities[did]
-                from chimerax.core.atomic.colors import chain_rgba8
-                color = chain_rgba8(asym_id)
-            else:
-                eid = asym_id = None
-                from numpy import random, uint8
-                color = random.randint(128,255,(4,),uint8)
-                color[3] = 255
+            eid, asym_id = dataset_entities[did] if did in dataset_entities else (None, None)
             for m in models:
                 m.dataset_list_id = did
                 m.entity_id = eid
                 m.asym_id = asym_id
-                r = m.residues
-                r.ribbon_colors = color
-                r.ribbon_displays = True
-                a = m.atoms
-                a.colors = color
-                a.displays = False
+                show_colored_ribbon(m, asym_id)
             pdbf.close()
             lmodels.extend(models)
     return lmodels
 
 # -----------------------------------------------------------------------------
 #
-def align_comparative_models_to_spheres(cmodels, smodels):
-    amodels = smodels[0].asym_model_map()
-    for cm in cmodels:
-        sm = amodels.get(cm.asym_id)
+def show_colored_ribbon(m, asym_id):
+    if asym_id is None:
+        from numpy import random, uint8
+        color = random.randint(128,255,(4,),uint8)
+        color[3] = 255
+    else:
+        from chimerax.core.atomic.colors import chain_rgba8
+        color = chain_rgba8(asym_id)
+    r = m.residues
+    r.ribbon_colors = color
+    r.ribbon_displays = True
+    a = m.atoms
+    a.colors = color
+    a.displays = False
+
+# -----------------------------------------------------------------------------
+#
+def align_atomic_models_to_spheres(amodels, smodels):
+    asmodels = smodels[0].asym_model_map()
+    for m in amodels:
+        sm = asmodels.get(m.asym_id)
         if sm is None:
             continue
         # Align comparative model residue centers to sphere centers
-        res = cm.residues
+        res = m.residues
         rnums = res.numbers
         rc = res.centers
-        cxyz = []
+        mxyz = []
         sxyz = []
         for rn, c in zip(rnums, rc):
             s = sm.residue_sphere(rn)
             if s:
-                cxyz.append(c)
+                mxyz.append(c)
                 sxyz.append(s.coord)
                 # TODO: For spheres with multiple residues use average residue center
-        if len(cxyz) >= 3:
+        if len(mxyz) >= 3:
             from chimerax.core.geometry import align_points
             from numpy import array, float64
-            p, rms = align_points(array(cxyz,float64), array(sxyz,float64))
-            cm.position = p
-            print ('aligned %s, %d points, rms %.4g' % (cm.name, len(cxyz), rms))
+            p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
+            m.position = p
+            print ('aligned %s, %d points, rms %.4g' % (m.name, len(mxyz), rms))
             
     
 # -----------------------------------------------------------------------------
