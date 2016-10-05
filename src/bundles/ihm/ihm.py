@@ -68,9 +68,10 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
         pgrids = make_probability_grids(session, ensembles_table, gaussian_table, gmodels)
 
     dataset_entities = {}
+    tmodels = []
     starting_models = tables['ihm_starting_model_details']
     if starting_models:
-        dataset_entities, emodels = read_starting_models(session, starting_models)
+        dataset_entities, emodels, tmodels = read_starting_models(session, starting_models)
         if emodels:
             align_atomic_models_to_spheres(emodels, smodels)
             from chimerax.core.models import Model
@@ -82,12 +83,14 @@ def read_ihm(session, filename, name, *args, load_linked_files = True, **kw):
     datasets_table = tables['ihm_dataset_other']
     if datasets_table and load_linked_files:
         lmodels = read_linked_datasets(session, datasets_table, gmodels, acomp, dataset_entities)
+        align_atomic_models_to_spheres(lmodels, smodels)
+        if tmodels:
+            lmodels = insert_template_models(session, tmodels, lmodels)
         if lmodels:
             from chimerax.core.models import Model
             comp_group = Model('Comparative models', session)
             comp_group.add(lmodels)
             ihm_model.add([comp_group])
-        align_atomic_models_to_spheres(lmodels, smodels)
         
     msg = ('Opened IHM file %s containing %d model groups, %d sphere models, %d distance restraints, %d ensemble distributions, %d linked models' %
            (filename, len(gmodels), len(smodels), len(xlinks), len(pgrids), len(lmodels)))
@@ -353,9 +356,11 @@ def read_starting_models(session, starting_models):
     rows = starting_models.fields(fields)
     dataset_entities = {}
     emodels = []
+    tmodels = []
     for eid, asym_id, seq_beg, seq_end, source, db_name, db_code, db_asym_id, did in rows:
         dataset_entities[did] = (eid, asym_id)
-        if source == 'experimental model' and db_name == 'PDB' and db_code:
+        if (source in ('experimental model', 'comparative model') and
+            db_name == 'PDB' and db_code != '?'):
             from chimerax.core.atomic.mmcif import fetch_mmcif
             models, msg = fetch_mmcif(session, db_code, smart_initial_display = False)
             name = '%s %s' % (db_code, db_asym_id)
@@ -365,18 +370,27 @@ def read_starting_models(session, starting_models):
                 m.entity_id = eid
                 m.asym_id = asym_id
                 m.seq_begin, m.seq_end = seq_beg, seq_end
+                m.dataset_id = did
                 show_colored_ribbon(m, asym_id)
-            emodels.extend(models)
+            if source == 'experimental model':
+                emodels.extend(models)
+            elif source == 'comparative model':
+                tmodels.extend(models)
             
-    return dataset_entities, emodels
+    return dataset_entities, emodels, tmodels
 
 # -----------------------------------------------------------------------------
 #
 def keep_one_chain(s, chain_id):
     atoms = s.atoms
     cids = atoms.residues.chain_ids
-    datoms = atoms.filter(cids != chain_id)
-    datoms.delete()
+    dmask = (cids != chain_id)
+    dcount = dmask.sum()
+    if dcount > 0 and dcount < len(atoms):	# Don't delete all atoms if chain id not found.
+        datoms = atoms.filter(dmask)
+        import sys
+        sys.__stderr__.write('delete atoms %s %s %d %d\n' % (s.name, chain_id, len(atoms), len(datoms)))
+        datoms.delete()
     
 # -----------------------------------------------------------------------------
 #
@@ -394,13 +408,38 @@ def read_linked_datasets(session, datasets_table, gmodels, acomp, dataset_entiti
             models, msg = open_pdb(session, pdbf, name, smart_initial_display = False)
             eid, asym_id = dataset_entities[did] if did in dataset_entities else (None, None)
             for m in models:
-                m.dataset_list_id = did
+                m.dataset_id = did
                 m.entity_id = eid
                 m.asym_id = asym_id
                 show_colored_ribbon(m, asym_id)
             pdbf.close()
             lmodels.extend(models)
+      
     return lmodels
+
+# -----------------------------------------------------------------------------
+#
+def insert_template_models(session, template_models, comparative_models):
+    '''Place template models after their comparative model.'''
+    mm = []
+    tmodels = template_models
+    for cm in comparative_models:
+        mm.append(cm)
+        did = cm.dataset_id
+        templates = [tm for tm in tmodels if tm.dataset_id == did]
+        if templates:
+            from chimerax.core.models import Model
+            tm_group = Model(cm.name + ' templates', session)
+            tm_group.display = False
+            tm_group.add(templates)
+            mm.append(tm_group)
+            tmodels = [tm for tm in tmodels if tm.dataset_id != did]
+    if tmodels:
+        from chimerax.core.models import Model
+        tm_group = Model('extra templates', session)
+        tm_group.add(tmodels)
+        mm.append(tm_group)
+    return mm
 
 # -----------------------------------------------------------------------------
 #
