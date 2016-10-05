@@ -61,7 +61,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
                 return ' '
             if r.is_helix:
                 return 'H'
-            elif r.is_sheet:
+            elif r.is_strand:
                 return 'S'
             return 'O'
         if ssf is False or ssf is None:
@@ -616,7 +616,7 @@ def check_domain_matching(chains, sel_residues):
             new_chains.append(nc)
             chars = []
             residues = []
-            for c, r in zip(str(chain), chain.residues):
+            for c, r in zip(chain.characters, chain.residues):
                 if r in sel_residues:
                     chars.append(c)
                     residues.append(r)

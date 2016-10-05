@@ -171,14 +171,15 @@ class Logger:
             Log.LEVEL_WARNING: self.warning,
             Log.LEVEL_INFO: self.info
         }
-        import sys
         # only put in an excepthook if we're the first session:
+        import sys
         if sys.excepthook == sys.__excepthook__:
-            def ehook(*args):
+            def ehook(*exc_info):
                 from traceback import format_exception
-                # self.error("".join(format_exception(*args)))
-                self.session.ui.thread_safe(self.error,
-                    "".join(format_exception(*args)))
+                if self.session.debug:
+                    from traceback import print_exception
+                    print_exception(*exc_info, file=sys.__stderr__)
+                self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
             sys.excepthook = ehook
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
@@ -266,7 +267,8 @@ class Logger:
         """remove a logger"""
         self.logs.discard(log)
 
-    def report_exception(self, preface=None, error_description=None):
+    def report_exception(self, preface=None, error_description=None,
+                         exc_info=None):
         """Report the current exception (without changing execution context)
 
         Parameters
@@ -278,8 +280,11 @@ class Logger:
         """
         from .errors import NotABug, CancelOperation
         from traceback import format_exception_only, format_exception, format_tb
-        import sys
-        ei = sys.exc_info()
+        if exc_info is not None:
+            ei = exc_info
+        else:
+            import sys
+            ei = sys.exc_info()
         if preface:
             preface = "%s:\n" % preface
         else:

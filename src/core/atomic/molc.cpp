@@ -2251,7 +2251,7 @@ extern "C" EXPORT void residue_set_ss_helix(void *residues, size_t n, bool value
     }
 }
 
-extern "C" EXPORT void residue_set_ss_sheet(void *residues, size_t n, bool value)
+extern "C" EXPORT void residue_set_ss_strand(void *residues, size_t n, bool value)
 {
     // Doesn't touch is_helix
     Residue **r = static_cast<Residue **>(residues);
